@@ -62,3 +62,7 @@ On 2026-10-28 the owner approved one rewording in W6, the RFC-0106 erratum: its 
 ## T8: the retirement record and the inventory
 
 On 2026-10-28 the owner, eugenelim, re-approved the `workspace-retirement` spec and plan as amended by this slice. AC-0028 admits `the child-state check on a brief that never had an entry` and `the cooled child of a brief that never had an entry`, and that plan gains T10. The record gains eight slice-7 Equivalence rows, and its eleven Owner-7 Disposition rows move to slice 9, because tracker-origin entries stay until slice 9. The inventory's 34 other Owner-7 rows move to slice 9 when they still cover the rename or tracker-origin registration, and to slice 8 when only spec registration remains.
+
+## Controlled amendment: deferral anchors resolve to an intent or brief file
+
+On 2026-10-28, after T7, the spec-status lint's invariant (iv) failed once: `docs/specs/m6-role-journey-guides/spec.md` cites `(deferred: role-journey-agent-swarm-section)`, which resolved only through that intent's `[backlog].open` entry, and the repair removed it. The inventory did not list `lint-spec-status.py` as a reader of intent entries. The owner, eugenelim, chose to have the lint also resolve an anchor that names an existing file `docs/product/intents/<anchor>.md` or `docs/product/briefs/<anchor>.md`, through a new criterion and task.
