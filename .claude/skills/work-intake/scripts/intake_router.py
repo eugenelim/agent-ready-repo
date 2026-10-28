@@ -127,6 +127,19 @@ _START_ROUTES = {
 _UNREGISTERED_KINDS = frozenset({"defect", "design", "research"})
 
 
+def _is_unregistered(signals: RoutingSignals) -> bool:
+    """Tell whether this signal writes its own file with no registry entry.
+
+    A repo-origin intent or brief is derivable from its file; a tracker-origin
+    one keeps its entry because refresh reaches its tracker profile through it.
+    """
+
+    return signals.artifact_kind in _UNREGISTERED_KINDS or (
+        signals.authority_mode == "repo-origin"
+        and signals.artifact_kind in {"intent", "brief"}
+    )
+
+
 def route_intake(
     signals: RoutingSignals,
     refresh_processors: RefreshProcessorResolver | None = None,
@@ -168,8 +181,11 @@ def route_intake(
     if signals.ready_brief:
         if signals.artifact_kind != "brief":
             raise ValueError("only a brief can use the ready-brief route")
+        membership = (
+            "none" if _is_unregistered(signals) else "brief_queue.ready"
+        )
         return _route(
-            signals, "brief_queue.ready", "author-delivery-brief continue", "none"
+            signals, membership, "author-delivery-brief continue", "none"
         )
 
     if signals.named_gaps:
@@ -177,7 +193,7 @@ def route_intake(
 
     if signals.action == "remember":
         processor = "intake-intent" if signals.artifact_kind == "intent" else "none"
-        if signals.artifact_kind in _UNREGISTERED_KINDS:
+        if _is_unregistered(signals):
             return _route(
                 signals, "none", processor, "materialize-draft-non-dispatchable"
             )
@@ -192,11 +208,10 @@ def route_intake(
         raise ValueError("unsupported intake routing signals")
 
     membership, processor = _START_ROUTES[signals.artifact_kind]
-    mutation = (
-        "materialize-and-dispatch"
-        if signals.artifact_kind in _UNREGISTERED_KINDS
-        else "materialize-and-register"
-    )
+    if _is_unregistered(signals):
+        membership, mutation = "none", "materialize-and-dispatch"
+    else:
+        mutation = "materialize-and-register"
     return _route(signals, membership, processor, mutation)
 
 

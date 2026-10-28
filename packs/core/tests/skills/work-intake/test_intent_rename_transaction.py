@@ -147,7 +147,9 @@ def _commit(root: Path) -> None:
     )
 
 
-def _fixture(root: Path, *, needs_edge: bool = False) -> bytes:
+def _fixture(
+    root: Path, *, needs_edge: bool = False, workspace: str | None = None
+) -> bytes:
     source = root / SOURCE
     source.parent.mkdir(parents=True)
     source_bytes = (
@@ -181,6 +183,8 @@ def _fixture(root: Path, *, needs_edge: bool = False) -> bytes:
         f"[backlog]\nopen = [{', '.join(entries)}]\n",
         encoding="utf-8",
     )
+    if workspace is not None:
+        (root / "workspace.toml").write_text(workspace, encoding="utf-8")
     _commit(root)
     return source_bytes
 
@@ -504,7 +508,7 @@ def test_t1_registry_exception_releases_the_owned_shared_lock(
 @pytest.mark.parametrize(
     "corruption",
     [b"[backlog\nnot toml", b"[backlog]\nopen = []\n"],
-    ids=["unparseable", "source-unregistered"],
+    ids=["unparseable", "entry-removed"],
 )
 def test_t1_real_registry_errors_release_the_owned_shared_lock(
     tmp_path: Path, corruption: bytes
@@ -1774,3 +1778,102 @@ def test_ac_0026_real_sigkill_after_stage_cleanup_is_already_forward_complete(
     )
     assert len(disposed) == 1
     assert list(disposed[0].iterdir()) == []
+
+
+# -- Registration stop: renames of an intent that no entry names ----------------
+
+_SPEC_ENTRY = (
+    '{{path = "docs/specs/other/spec.md", kind = "spec", '
+    'source = {{mode = "repo-origin", parent = "{parent}"}}, summary = "other", needs = []}}'
+)
+NO_REGISTRY = "[backlog]\nopen = []\n"
+CITED = f"[backlog]\nopen = [{_SPEC_ENTRY.format(parent=SOURCE)}]\n"
+SUCCESSOR_CITED = f"[backlog]\nopen = [{_SPEC_ENTRY.format(parent=SUCCESSOR)}]\n"
+BOTH_CITED = (
+    "[backlog]\nopen = ["
+    + _SPEC_ENTRY.format(parent=SOURCE)
+    + ", "
+    + _SPEC_ENTRY.format(parent=SUCCESSOR)
+    + "]\n"
+)
+
+
+def test_ac_0016_ac_0017_unregistered_source_with_no_occurrence_commits_untouched_registry(
+    tmp_path: Path,
+) -> None:
+    source_before = _fixture(tmp_path, workspace=NO_REGISTRY)
+
+    result = rename.run_intent_rename(
+        SOURCE, "STRAT", repository_root=tmp_path, _today=lambda: TOMBSTONE_DATE
+    )
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert (tmp_path / "workspace.toml").read_text(encoding="utf-8") == NO_REGISTRY
+    assert (tmp_path / "citation.md").read_text(encoding="utf-8") == f"See {SUCCESSOR}.\n"
+    assert (tmp_path / SUCCESSOR).read_bytes() == source_before.replace(
+        SOURCE.encode(), SUCCESSOR.encode()
+    )
+    assert f"- **Reissued as:** {SUCCESSOR}" in (tmp_path / SOURCE).read_text(encoding="utf-8")
+    _assert_no_recovery_residue(tmp_path)
+
+
+def test_ac_0018_source_cited_by_a_spec_entry_is_repointed_and_gains_no_entry(
+    tmp_path: Path,
+) -> None:
+    _fixture(tmp_path, workspace=CITED)
+
+    result = rename.run_intent_rename(
+        SOURCE, "STRAT", repository_root=tmp_path, _today=lambda: TOMBSTONE_DATE
+    )
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert (tmp_path / "workspace.toml").read_text(encoding="utf-8") == CITED.replace(
+        SOURCE, SUCCESSOR
+    )
+    _assert_no_recovery_residue(tmp_path)
+
+
+@pytest.mark.parametrize("workspace", [SUCCESSOR_CITED, BOTH_CITED], ids=["successor", "both"])
+def test_ac_0019_successor_path_already_in_the_registry_refuses_before_any_write(
+    tmp_path: Path, workspace: str
+) -> None:
+    _fixture(tmp_path, workspace=workspace)
+    before = _tree(tmp_path)
+
+    result = rename.run_intent_rename(
+        SOURCE, "STRAT", repository_root=tmp_path, _today=lambda: TOMBSTONE_DATE
+    )
+
+    assert result.status is rename.RenameStatus.REFUSED
+    assert result.code == "registry-ambiguous"
+    assert _tree(tmp_path) == before
+    assert not _stage_dirs(tmp_path)
+
+
+def test_ac_0020_registered_source_still_commits_the_registry_edit(tmp_path: Path) -> None:
+    _fixture(tmp_path)
+
+    result = rename.run_intent_rename(
+        SOURCE, "STRAT", repository_root=tmp_path, _today=lambda: TOMBSTONE_DATE
+    )
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert SUCCESSOR in (tmp_path / "workspace.toml").read_text(encoding="utf-8")
+    assert SOURCE not in (tmp_path / "workspace.toml").read_text(encoding="utf-8")
+
+
+def test_ac_0020_two_entries_naming_the_source_refuse_registry_ambiguous(
+    tmp_path: Path,
+) -> None:
+    entry = (
+        f'{{path = "{SOURCE}", kind = "intent", '
+        'source = {mode = "repo-origin"}, summary = "rename", needs = []}'
+    )
+    _fixture(tmp_path, workspace=f"[backlog]\nopen = [{entry}, {entry}]\n")
+
+    result = rename.run_intent_rename(
+        SOURCE, "STRAT", repository_root=tmp_path, _today=lambda: TOMBSTONE_DATE
+    )
+
+    assert result.code == "registry-ambiguous"
+    assert not _stage_dirs(tmp_path)
