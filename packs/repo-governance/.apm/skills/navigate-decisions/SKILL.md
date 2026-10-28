@@ -234,8 +234,12 @@ python3 scripts/navigate_decisions.py export \
 
 The explorer shares the `navigate-intents` view's look: a compact header with
 search, the Kind and Status filters and a snapshot line, then the record list
-and the picked record's detail side by side. List, Graph and Context switch
-inside the list zone. The page follows the system light or dark setting.
+and the picked record's detail side by side. A question rail answers six
+questions: Recently decided, Still being decided, Replaced, Lineage, By area and
+Browse all. Each shows its count as the answer, and each list names its sort
+key. The detail leads with the record's state and what it replaced, offers
+Lineage and Guidance context links, and collapses the header fields at the end.
+The page follows the system light or dark setting.
 
 The file is written atomically: a temp file is created, synced, then hard-linked
 into place.  The destination must not already exist, must have a `.html` suffix,
