@@ -1,7 +1,7 @@
 # Plan: plan-stage altitude
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations in shipped content); `tests/roster/test_tdd_stub_lifecycle_contract.py` as the existing owner of lifecycle content pins; uncertainty — none, the change is prose plus tests.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -133,3 +133,5 @@ Ships with the next core release. Reversible by reverting the PR; no persisted s
 - 2026-10-28: spec approved by eugenelim
 - 2026-10-28: plan approved by eugenelim
 - 2026-10-28: amendment 1 opened by eugenelim (notes/amendment-1.md)
+- 2026-10-28: spec approved by eugenelim (amendment 1)
+- 2026-10-28: plan approved by eugenelim (amendment 1)

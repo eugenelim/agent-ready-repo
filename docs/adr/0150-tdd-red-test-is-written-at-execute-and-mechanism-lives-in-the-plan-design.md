@@ -1,6 +1,6 @@
 # ADR-0150: The TDD red test is written at EXECUTE, and mechanism lives in the plan's design, not the contract
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-27
 - **Areas:** work-loop, shaping
 - **Reversibility:** high
