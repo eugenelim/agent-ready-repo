@@ -2690,6 +2690,12 @@ consumer = "captured-item registration stop: writers write only the file, the cl
 owner = 3
 
 [[row]]
+pattern = "docs/specs/intent-brief-registration-stop/*"
+class = "contract"
+consumer = "intent and brief registration stop: the intent-brief-drop repair, the brief-file child scope, the no-registry rename, and the writers that stop adding repo-origin intent and brief entries"
+owner = 7
+
+[[row]]
 pattern = "docs/specs/next-item-suggestions-removal/*"
 class = "contract"
 consumer = "slice 6 spec: removes the first-in-list next-item suggestions from the workspace-status orient run"

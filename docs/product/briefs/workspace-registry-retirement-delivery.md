@@ -105,6 +105,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `registry-comparison` | <auto> |
 | `next-item-suggestions-removal` | <auto> |
 | `captured-item-registration-stop` | <auto> |
+| `intent-brief-registration-stop` | <auto> |
 
 ## Governance references (optional)
 
