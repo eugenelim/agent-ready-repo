@@ -70,8 +70,9 @@ the engine is unaffected.
 **Routing row edits, not a new row.** Both exception inputs gain "or a
 mechanism claim whose falsehood could move only the chosen mechanism and on
 which no protected class depends": in `unstarted-task-method` before its
-"**and no test can decide it directly**" clause, in `cheap-with-an-oracle` beside
-"cheap, reversible detail". A claim that could also move a criterion, boundary,
+"**and no test can decide it directly**" clause, in `cheap-with-an-oracle` as "or a
+reversible mechanism claim …" beside "cheap, reversible detail", so the pinned
+reversibility sentence still governs it. A claim that could also move a criterion, boundary,
 task graph, verification strategy, or failure direction still takes the
 residual row, because the routing input stays the largest thing its falsehood
 could move. The residual row, the reversibility sentence, and every pinned
@@ -110,7 +111,7 @@ plan used to hold.
 **Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/.apm/skills/new-spec/evals/evals.json`, `tests/roster/test_tdd_stub_lifecycle_contract.py`, `docs/adr/0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, self-host projections
 
 **Tests:**
-- AC-0022, AC-0023: eval tests added to the roster file; `python3 -m pytest packs/core/tests/skills/work-loop/test_loop_engine.py -q -k evals_json_shape`.
+- AC-0022, AC-0023: eval tests added to the roster file, replacing `test_skill_evals_cover_plan_proof_and_execute_materialization`; `python3 -m pytest packs/core/tests/skills/work-loop/test_loop_engine.py -q -k evals_json_shape`.
 - AC-0027: checked at delivery by reading both fields and `git show origin/main:packs/core/pack.toml`; no permanent test, because once merged `main` carries the new version and the comparison would red.
 - AC-0025, AC-0026: the ADR's status line, set by its decision-maker at spec approval, and the shape-lint command.
 - AC-0024, AC-0028, AC-0029: the named commands, and `git status --porcelain` after self-host.

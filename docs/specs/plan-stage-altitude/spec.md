@@ -24,14 +24,14 @@
 
 ## Outcome
 
-A full-mode `work-loop` plan reaches approval carrying test intent — behavior, boundary, verification mode — rather than test code, and the red test is written and proven red at EXECUTE. A spec settles a mechanism before approval only when a protected class (security boundary, data loss or durability, migration or persisted state, public interface, irreversible operation) depends on it; every other mechanism lives in the plan's design, where a post-approval correction is a verification-ledger observation rather than an amendment.
+A full-mode `work-loop` plan reaches approval carrying test intent — behavior, boundary, verification mode — rather than test code, and the red test is written and proven red at EXECUTE. A mechanism claim whose falsehood could move only the mechanism, and on which no protected class (security boundary, data loss or durability, migration or persisted state, public interface, irreversible operation) depends, lives in the plan's design, where a post-approval correction is a verification-ledger observation rather than an amendment; every other load-bearing claim still settles before approval.
 
 ## What Changes
 
 - `work-loop` PLAN step 7's TDD bullet, step 8, EXECUTE's TDD line, and DECIDE's ledger routing — the red test moves to EXECUTE; a `stub` fence stays optional for supervisor red proof; `implementation-discovered` is the one marker.
 - `work-loop/references/tdd-stubs.md` — rewritten around writing and proving the red test at EXECUTE; the `stub` fence grammar is kept as the optional supervisor form.
 - `work-loop/references/delivery-contract-lifecycle.md` — the ledger route keys on `implementation-discovered` for a seam or a design means.
-- `new-spec` SKILL.md — the claim-routing table sends an unprotected mechanism to its two exception rows and defines the protected classes once; the Testing Strategy pointer drops plan-owned stub code.
+- `new-spec` SKILL.md — the claim-routing table sends a mechanism-only, unprotected claim to its two exception rows and defines the protected classes once; the Testing Strategy pointer drops plan-owned stub code.
 - `new-spec/assets/plan.md` and `assets/spec.md` — `## Design (LLD)` owns mechanism and the marker; Agent Rules excludes mechanism; the task template drops the required stub.
 - `new-spec/references/spec-and-plan-contract.md` and `agents/quality-engineer.md` — their restatements of the PLAN-time stub follow.
 - Guides, `docs/architecture/loop-infrastructure.md`, and the TDD row of `docs/architecture/acceptance-centered-work-loop.md` — they teach the same timing.
@@ -46,7 +46,7 @@ A full-mode `work-loop` plan reaches approval carrying test intent — behavior,
 | Maintainer procedure | The skills and agent are the procedure an agent follows | `packs/core/.apm/skills/work-loop/`, `packs/core/.apm/skills/new-spec/`, `packs/core/.apm/agents/quality-engineer.md` | core pack maintainers | content contract tests and eval records | tests green; projections regenerated |
 | User-facing promise | Adopters read when the red test is written | `guides/core/how-to/plan-and-execute-non-trivial-work.md`, `guides/core/explanation/core-pack.md`, `guides/core/reference/spec-shape-and-lld.md` | core pack maintainers | roster content test | AC-0021 |
 | Current architecture | Two architecture pages describe the stub boundary | `docs/architecture/loop-infrastructure.md`, `docs/architecture/acceptance-centered-work-loop.md` | core pack maintainers | roster content test | page states EXECUTE-time red |
-| Decision rationale | Accepted RFC-0028 decided the PLAN-time timing | `docs/adr/0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md` | eugenelim | ADR shape lint | ADR `Accepted` (AC-0016) |
+| Decision rationale | Accepted RFC-0028 decided the PLAN-time timing | `docs/adr/0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md` | eugenelim | ADR shape lint | ADR `Accepted` (AC-0025) |
 | Release history | A non-cosmetic pack change ships under a new version | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` | core pack maintainers | both files read the same new patch version | catalogue verify passes |
 
 ## Agent Rules
@@ -81,7 +81,7 @@ A full-mode `work-loop` plan reaches approval carrying test intent — behavior,
 ### No PLAN-time stub code
 
 - [ ] **AC-0001.** No live source contains a retired phrase.
-- [ ] **AC-0002.** No live source other than `references/tdd-stubs.md` contains `byte identity` or `byte-identity`.
+- [ ] **AC-0002.** No live source contains `byte identity` or `byte-identity`, except `references/tdd-stubs.md` and the TDD row of `docs/architecture/acceptance-centered-work-loop.md`, where each occurrence names the supervisor's `stub` fence in the same sentence or table cell.
 
 ### work-loop
 
@@ -100,8 +100,9 @@ In this group, "the routing section" is `new-spec` SKILL.md from the `load-beari
 
 - [ ] **AC-0011.** The routing section names the five protected classes: security boundary, data loss or durability, migration or persisted state, public interface, irreversible operation.
 - [ ] **AC-0012.** In the routing section, the `unstarted-task-method` input admits a mechanism claim whose falsehood could move only the chosen mechanism and on which no protected class depends.
-- [ ] **AC-0013.** In the routing section, the `cheap-with-an-oracle` input admits the same claim.
-- [ ] **AC-0014.** The routing section keeps three rows, the keys `reaches-the-contract`, `unstarted-task-method`, and `cheap-with-an-oracle`, and the residual sentence `no load-bearing claim is unrouted`.
+- [ ] **AC-0013.** In the routing section, the `cheap-with-an-oracle` input admits the same claim only when it is also reversible, by the reversibility sentence that row already states.
+- [ ] **AC-0014.** The routing section's table has exactly three rows, keyed `reaches-the-contract`, `unstarted-task-method`, and `cheap-with-an-oracle`.
+- [ ] **AC-0014a.** The `reaches-the-contract` input keeps the sentence `no load-bearing claim is unrouted`.
 - [ ] **AC-0015.** In the routing section, the `unstarted-task-method` destination sends a mechanism to the plan's `## Design (LLD)` with its means marked `implementation-discovered`.
 - [ ] **AC-0016.** The routing section states that a claim about a protected class's property settles before approval.
 - [ ] **AC-0017.** The routing section states that the means delivering a protected property lives in the plan's `## Design (LLD)`.
