@@ -72,3 +72,117 @@ def test_t1_guidance_sentence_names_the_four_exclusions_and_fails_closed() -> No
         ),
     )
     assert "agent guidance, policy, an interface document — is the thing itself" not in sentence
+
+
+def _split_section() -> str:
+    """The bundle-split section, flattened."""
+    raw = _LIGHT_MODE.read_text(encoding="utf-8")
+    return _section(raw, "## Splitting a bundle", "## Editing existing agent guidance")
+
+
+def _guidance_section() -> str:
+    """The guidance-edit section, flattened."""
+    raw = _LIGHT_MODE.read_text(encoding="utf-8")
+    return _section(raw, "## Editing existing agent guidance", "## Loop deltas")
+
+
+def _table_rows(raw: str, start: str, end: str) -> list[str]:
+    """Body rows of the table between two markers, split as the intake suite splits them."""
+    window = raw[raw.index(start) : raw.index(end)]
+    return [
+        line for line in window.splitlines() if line.startswith("| ") and "---" not in line
+    ][1:]
+
+
+def test_t2_split_test_has_three_parts_and_checks_the_diff() -> None:
+    _assert_contains(
+        _split_section(),
+        (
+            "No dependency edge",
+            "Depends on:",
+            "No shared write set",
+            "Touches:",
+            "counts as a write to its source path",
+            "The diff agrees",
+            "touches no file in another unit's set",
+            "Part 3, the diff check,",
+            "before the first write",
+            "never by itself shows independence",
+        ),
+    )
+
+
+def test_t2_each_unit_faces_every_trigger_and_runs_serially() -> None:
+    _assert_contains(
+        _split_section(),
+        (
+            "every eligibility row on its own",
+            "its own branch and pull request",
+            "a split is not parallel execution",
+        ),
+    )
+
+
+def test_t2_bundle_still_passes_the_session_and_queue_rows() -> None:
+    _assert_contains(
+        _split_section(),
+        (
+            "Expected to complete in the current session",
+            "Expected multi-session work",
+            "Queueing for later",
+            "goes to full mode whole",
+        ),
+    )
+
+
+def test_t2_no_light_unit_merges_until_every_unit_passes() -> None:
+    _assert_contains(
+        _split_section(),
+        (
+            "No light unit merges until every unit still in the bundle has a finished diff "
+            "that passes the diff check.",
+        ),
+    )
+
+
+def test_t2_a_unit_that_fires_a_trigger_leaves_with_its_write_set() -> None:
+    _assert_contains(
+        _split_section(),
+        (
+            "leaves the bundle for full mode",
+            "its spec and plan record that set",
+            "run the diff check against that set",
+            "without waiting for the full-mode unit",
+        ),
+    )
+
+
+def test_t2_fallback_keeps_the_bundle_whole() -> None:
+    _assert_contains(
+        _split_section(),
+        ("stays whole and goes to full mode", "stops the whole bundle", "kept as observed work"),
+    )
+
+
+def test_t2_guidance_edit_section_and_durability_row() -> None:
+    _assert_contains(
+        _guidance_section(),
+        (
+            "fires no trigger by being guidance",
+            "still faces every trigger on its other effects",
+            "does not count as a durable product contract",
+            "content-pin test",
+            "reads only the edited section",
+        ),
+    )
+    raw = _LIGHT_MODE.read_text(encoding="utf-8")
+    eligibility = _table_rows(raw, "| Required condition", "Durability is a disjunction")
+    durability = _table_rows(raw, "| Durability trigger", "Direct execution being unavailable")
+    assert (len(eligibility), len(durability)) == (8, 10)
+    rows = [" ".join(r.split()) for r in durability]
+    matching = [r for r in rows if r.startswith("| A public or durable product behavior contract")]
+    assert len(matching) == 1, matching
+    _assert_contains(
+        matching[0],
+        ("**tool surface**", "**authority or gate**", "**security boundary**", "**published schema**"),
+    )
