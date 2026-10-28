@@ -1,7 +1,7 @@
 # Plan: work-loop narrow full mode
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** RFC-0111 § Proposal and § Follow-on artifacts (the authority for the wording); ADR-0088 and `tools/lint-agents-md.py` check 10g (the block's single home); `packs/AGENTS.md` (version bump, self-host, eval harness); `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py` as the analogous section-scoped pin; uncertainty — none, the change is prose plus tests.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -88,7 +88,7 @@ The AC-0002 phrase `an edit to an existing agent-guidance file` matches inside "
 
 **Eval that changes.** `risk-trigger-modify-not-touch` keeps its prompt (a test that calls an unchanged helper) and its verdict. In both `expected_output` and `assertions`, the statement that editing prose which is the rule fires the trigger becomes the narrowed rule: "editing existing agent guidance fires the trigger only when it changes a tool surface, an authority or gate, a security boundary, or a published schema". The clause that editing policy or compliance prose, or an interface document, still fires the trigger stays in both fields, because the narrowing applies only to existing agent guidance.
 
-**Version pin.** `test_t5_pack_versions_match` in `test_evidence_modes_contract.py` already asserts that `pack.toml` and `plugin.json` agree, so this delivery adds no version test and edits neither existing suite; the `3.1.29` value is a delivery command check.
+**Version pin.** `test_t5_pack_versions_match` in `test_evidence_modes_contract.py` already asserts that `pack.toml` and `plugin.json` agree, so this delivery adds no version test and edits neither existing suite; the next-patch value is a delivery command check.
 
 **Changelog fragment.** A pack test may not read `docs/`, so the fragment half of AC-0013 is a command check run once at delivery, not a suite test: fragments are later compacted into bundles, and a standing test would go red for reasons unrelated to this change.
 
@@ -167,8 +167,9 @@ Every new test function is named for its task (`test_t1_…` to `test_t3_…`), 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/**`, `.claude/skills/**`, `.agents/skills/**`, `.codex/**`
 
 **Tests:** no stub (goal-based — command checks)
-- AC-0013, version half: `PYTEST packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q -k pack_versions_match`, plus a delivery command check that prints both versions and compares them to `3.1.29`.
-- AC-0013, fragment half: the fragment is created with `tools/changelog.py new`; then, after the delivery commit, `git diff --name-only --diff-filter=A origin/main -- docs/product/changelog.d/` lists exactly one file, whose front matter names `core` at `3.1.29` and whose `## Highlights` has a `-` bullet; then the render command AC-0013 names, and `python3 tools/changelog.py validate`.
+- AC-0013, base: after `git fetch origin`, `test "$(git merge-base origin/main HEAD)" = "$(git rev-parse origin/main)"` exits 0; otherwise rebase onto `origin/main` and re-run T5 first. Both halves below use that commit as the base.
+- AC-0013, version half: `PYTEST packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q -k pack_versions_match`, plus a delivery command check that reads `version` from `git show <base>:packs/core/pack.toml`, adds one to its patch number, and compares both files to the result.
+- AC-0013, fragment half: the fragment is created with `tools/changelog.py new`; then, after the delivery commit, `git diff --name-only --diff-filter=A <base> -- docs/product/changelog.d/` lists exactly one file, whose front matter names `core` at that next patch version and whose `## Highlights` has a `-` bullet; then the render command AC-0013 names, and `python3 tools/changelog.py validate`.
 - AC-0010: `PYTEST packs/core/tests/skills/work-loop/test_work_intake_dispatch.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q`, with `git diff --quiet origin/main --` over both files.
 - AC-0003 and AC-0014: `python3 tools/lint-agents-md.py`, the two catalogue commands, and `git status --porcelain` after `make build-self`.
 
@@ -178,7 +179,7 @@ Every new test function is named for its task (`test_t1_…` to `test_t3_…`), 
 
 ## Rollout
 
-Ships as a core pack patch release, 3.1.28 to 3.1.29. Reversible by reverting the commit; no data or persisted state changes.
+Ships as a core pack patch release, one patch above the core version on `origin/main` at delivery. Reversible by reverting the commit; no data or persisted state changes.
 
 ## Risks
 
@@ -192,3 +193,6 @@ Ships as a core pack patch release, 3.1.28 to 3.1.29. Reversible by reverting th
 - 2026-10-28: contract amendment — core 3.1.28 shipped in PR #1638 before delivery; AC-0010, AC-0013 and T5 now target 3.1.29 and leave both existing suites unedited
 - 2026-10-28: amended spec approved by eugenelim
 - 2026-10-28: amended plan approved by eugenelim
+- 2026-10-28: contract amendment — core 3.1.29 shipped in PR #1639 before delivery; AC-0013 and T5 now target the next patch above the merge base instead of a literal version
+- 2026-10-28: second amended spec approved by eugenelim
+- 2026-10-28: second amended plan approved by eugenelim
