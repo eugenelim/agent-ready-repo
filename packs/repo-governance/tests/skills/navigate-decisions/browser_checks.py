@@ -5365,6 +5365,7 @@ def test_a_near_cap_areas_field_renders_the_rail_and_by_area_in_linear_time(
     elapsed_ms = (time.monotonic() - start) * 1000
     assert elapsed_ms < 5000, f"By area rendered in {elapsed_ms:.0f} ms"
     assert page._errors == [], page._errors  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
 
 
 @pytest.mark.parametrize(("index", "view"), ((0, "graph"), (1, "context")))
@@ -5403,3 +5404,28 @@ def test_a_damaged_export_hides_the_empty_questions_rail(
     page.locator('#app-main [role="alert"]').wait_for()  # type: ignore[union-attr]
     assert page.get_attribute("#questions-nav", "hidden") is not None  # type: ignore[union-attr]
     assert not page._errors  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize("route", ("#context/ADR-0001/unpicked", "#context"))
+def test_the_guidance_context_puts_its_heading_before_expand_all_and_the_key(
+    browser: object, export_mixed: pathlib.Path, route: str
+) -> None:
+    """As in every list, the view's heading (and the record line under it) comes before
+    Expand all and the Key in the guidance context."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")
+    page.evaluate(f"() => {{ location.hash = '{route}'; }}")  # type: ignore[union-attr]
+    page.wait_for_function("() => !document.getElementById('view-context').hidden")  # type: ignore[union-attr]
+    order = page.evaluate(  # type: ignore[union-attr]
+        """() => { const r = document.getElementById('view-context');
+          const at = s => { const n = r.querySelector(s); if (!n) return -1;
+            return [...r.querySelectorAll('*')].indexOf(n); };
+          return { h2: at('h2'), rec: at('.ctx-record'),
+            tools: at('.tools'), key: at('#key') }; }"""
+    )
+    assert 0 <= order["h2"] < order["tools"] < order["key"], order
+    if order["rec"] >= 0:
+        assert order["rec"] < order["tools"], order
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
