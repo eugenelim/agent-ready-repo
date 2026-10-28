@@ -1,6 +1,6 @@
 # Verification ledger: execution supervisor attempt security
 
-This spec stays `Draft`. Only T1, the Windows launch branch, has been built, as a probe inside PR #1557 (`execution-supervisor-core`). The records below are what that probe established on a real Windows host.
+All five tasks are built. T1 began as a probe inside PR #1557 (`execution-supervisor-core`); T1 to T5 shipped together in PR #1585 as Core 3.1.18 on 2026-10-24. The [acceptance evidence](#acceptance-evidence) section maps every criterion to the test that proves it.
 
 ## T1: Windows launches run in a breakaway-denied Job Object
 
@@ -156,3 +156,80 @@ What ships: AC-0019 is removed and owned by `supervisor-launch-routing-for-plan-
 Accepted Risk records two residuals with the owner's acceptance of 2026-10-23: a `red-proof` or `scratch` child runs the worker's own stub with the supervisor's whole environment and no egress denial, and a worker can declare a `run` line that cannot start and earn a red proof with no failing test behind it. The second is owned by `red-proof-discriminates-a-stub-that-ran`. Rather than record a one-off observation on a host with a virtual environment, T5 adds VI-5043: the planted conftest records that it executed, and both cases assert that record. The refusal assertions already failed once the attack stopped running, so the marker names the cause rather than adding detection.
 
 The owner also noted that a Shipped spec is a historical record and not binding, so `safe-process.v1`'s ownership by `acceptance-authority-and-evidence` was never a reason to defer.
+
+## Closeout: the review-role pair (2026-10-28)
+
+PR #1585 left one gap open against AC-0018. `accept_facts` admitted a `review-role` result that carried both a report and a selection, where the Result acceptance row admits one or the other. Both downstream readers already refused the pair with `invalid-result`, so no such result was ever admitted. `accept_facts` now refuses it first with `result-fact-refused`, and VI-5040 carries the case.
+
+## Owner decision: Git-directory discovery is a helper call (2026-10-28)
+
+`discover` in `_supervisor_git.py` runs `git rev-parse` before any directory is pinned, so it cannot pass `--git-dir` or compare control state. It carries the helper-call environment and fixed flags. The owner (eugenelim) classed it as the helper's first call, not as a third out-of-helper call. AC-0010's pre-check has no baseline until discovery returns the pins it then holds every later call to.
+
+## Acceptance evidence
+
+Every test below lives in `packs/core/tests/skills/work-loop/`. The integration suites run only with `WORK_SUPERVISOR_INTEGRATION=1`; CI runs them in the `Gate A-supervisor` lane of `catalogue-tooling-ci-gates.yml`.
+
+The binding runs are on `main` at `449151c4c` (2026-10-28):
+
+- `catalogue-tooling-ci-gates.yml` run 40636854667: `Gate A-supervisor` and both `Gate A-packs` lanes passed.
+- `build-check-windows.yml` run 40636854664: `test_process_safety_windows.py` gave 18 passed in 27.6 s on `windows-latest`.
+
+The closeout branch reran every suite below locally on macOS, Python 3.11, with the integration lane on.
+
+### Attempt checks and residue
+
+| Criterion | Evidence |
+| --- | --- |
+| AC-0001 | VI-5020: `test_supervisor_attempt.py::test_a_forged_change_is_refused_at_report` (plan, cited ADR, `evidence.jsonl`, branch ref, `refs/replace/`, config, hook), `test_a_modified_installed_skill_is_refused_at_report`, `test_a_rewritten_gitfile_is_refused_at_report`, `test_a_packed_ref_move_is_refused_at_report` |
+| AC-0002 | VI-5021: `test_next_after_an_edit_is_residue_before_any_envelope_refusal` |
+| AC-0003 | VI-5021: the same test, for an implementer and a reviewer, on a first issuance and on the re-issuance after the refusal clears; `HEAD`, the made-commit list, and `run.json` stay unchanged, so no `replan` commit or projection change lands |
+| AC-0004 | VI-5022: `test_a_resolve_effect_during_an_open_attempt_does_not_refuse_it`, `test_a_resolve_effect_killed_during_an_open_attempt_converges`, `test_a_re_approval_start_during_an_open_attempt_advances_head_and_passes`, `test_a_re_approval_start_killed_during_an_open_attempt_converges`, `test_a_re_approval_start_refused_for_a_changed_trusted_file_fires_no_kill_point`; core's `test_supervisor_crash_corpus.py` |
+| AC-0026 | VI-5025: `test_a_rewrite_or_a_commit_with_copied_trailers_refuses_the_attempt` (`reset --soft`, `commit --amend`, `commit -C`) |
+| AC-0027 | VI-5025: `test_deleting_the_local_caches_neither_admits_a_forgery_nor_clears_residue` |
+| AC-0005 | VI-5023: `test_residue_persists_until_every_path_is_restored` |
+| AC-0006 | VI-5023: the same test asserts that `HEAD` and the made-commit list stay unchanged through the refused ADR and plan edits, and that no `replan` commit appears |
+| AC-0007 | VI-5024: `test_a_link_in_the_change_set_is_refused` (out of the root, into a trusted file, into `.git`) |
+| AC-0008 | VI-5024: `test_an_honest_attempt_that_imports_the_installed_scripts_passes`, `test_a_link_inside_the_root_to_an_ordinary_file_is_admitted` |
+
+### Git hardening
+
+| Criterion | Evidence |
+| --- | --- |
+| AC-0009 | VI-5010: `test_supervisor_git.py::test_start_refuses_a_code_running_key_in_repository_config`, `test_every_listed_code_running_key_is_refused_by_name_never_by_value`, `test_start_refuses_a_code_running_key_in_worktree_config`, `test_start_refuses_a_global_filter_that_an_attributes_file_uses`, `test_start_refuses_a_global_filter_kept_under_xdg_config_home`, `test_a_global_filter_that_no_attribute_uses_does_not_refuse`; VI-5044: `test_start_refuses_a_system_filter_that_an_attributes_file_uses` |
+| AC-0010 | VI-5011: `test_planted_code_runs_nothing_during_any_supervisor_git_call`, `test_carried_autocrlf_stages_the_bytes_plain_git_add_stages`, `test_a_global_excludes_file_is_carried_into_the_change_set_read` (a user `core.excludesFile` keeps its file out of the change set; removing the carry turns it red); the open-attempt pre-check by VI-5020's gitfile and packed-ref cases |
+| AC-0011 | VI-5011: `test_planted_code_runs_nothing_during_any_supervisor_git_call` (hook, fsmonitor, filter, textconv, external diff, SSH signing, include) |
+| AC-0012 | VI-5012: `test_a_replaced_supervisor_commit_is_read_as_the_original`, `test_a_graft_is_never_read`, `test_a_message_preserving_rebase_still_reads_the_supervisor_commits`; open-attempt clause by VI-5020's `test_a_packed_ref_move_is_refused_at_report`, `test_a_gitfile_or_commondir_aimed_at_a_decoy_is_never_admitted`, `test_an_attempt_already_reported_stays_closed_after_a_message_preserving_rebase` |
+
+### Launched code, pinning, and trust
+
+| Criterion | Evidence |
+| --- | --- |
+| AC-0013 | VI-5030 with VI-5043's marker: `test_supervisor_pinning.py::test_a_conftest_that_writes_plan_md_during_a_red_proof_is_refused`, `test_a_conftest_that_writes_plan_md_during_a_gate_run_is_refused`. The supervisor has one launch path, `_supervisor_tdd.observe`, which runs each stub on a scratch copy of `HEAD`; a scratch receipt has no launch of its own, so the red-proof case covers it |
+| AC-0014 | VI-5031: `test_the_first_admitted_start_records_the_pins`, `test_a_second_start_neither_overwrites_nor_accepts_a_differing_record`, `test_a_missing_or_malformed_pin_record_after_admission_is_refused`, `test_an_edited_installed_file_is_refused_at_every_entry_point`, `test_a_run_admitted_before_pinning_is_refused_and_blocks_no_other_spec`, `test_an_unpinned_run_directory_blocks_only_its_own_spec_until_its_start_pins`, `test_an_installed_file_edit_during_an_open_attempt_is_refused_on_every_spec`, `test_a_worker_attempt_refused_at_report_guards_other_specs`, `test_a_kill_before_the_store_rename_leaves_no_run_directory_and_blocks_nothing`, `test_a_run_directory_without_a_spec_record_refuses_every_spec_until_removed`, `test_a_case_variant_spec_dir_is_refused_before_any_sibling_loads` |
+| AC-0015 | VI-5031: `test_a_planted_bytecode_file_is_never_executed`, `test_a_module_planted_in_scripts_never_runs_and_is_refused` |
+| AC-0016 | VI-5032: `test_one_regenerate_is_emitted_admitted_and_repinned`, `test_a_tracked_install_waits_for_the_controller_to_commit_the_regenerated_skill`, `test_a_committed_skill_that_differs_from_the_admitted_one_is_refused`, `test_an_install_whose_other_files_differ_from_the_source_is_refused`, `test_a_mismatched_install_is_refused`, `test_no_regenerate_without_the_pack_source_at_head` |
+| AC-0017 | VI-5033: `test_untrusted_trust_with_stubs_asks_a_human_instead_of_a_red_proof`, `test_untrusted_trust_never_issues_run_gates_and_re_approval_clears_it`, `test_untrusted_trust_never_issues_regenerate`, `test_verified_containment_lifts_the_gate`; VI-5042: `test_supervisor_results.py::test_untrusted_trust_issues_no_implement_task_for_a_task_without_stubs` |
+
+### Result facts and the git environment
+
+| Criterion | Evidence |
+| --- | --- |
+| AC-0018 | VI-5040: `test_supervisor_results.py::test_a_row_admits_the_facts_it_lists`, `test_a_row_refuses_everything_else` (now including the report-and-selection pair), `test_an_unknown_kind_asserts_nothing`, `test_report_refuses_before_any_write` |
+| AC-0020 | VI-5041: `test_supervisor_git.py::test_a_helper_call_carries_exactly_the_helper_form`, `test_an_out_of_helper_config_read_carries_exactly_the_hosts_location_values` |
+
+### Windows and POSIX
+
+| Criterion | Evidence |
+| --- | --- |
+| AC-0021 | VI-5001: `test_process_safety_windows.py::test_child_is_in_a_kill_on_close_job_without_breakaway` |
+| AC-0022 | VI-5001: `test_assignment_failure_refuses_and_ends_the_process` |
+| AC-0023 | VI-5002: `test_timeout_leaves_no_survivor` (plain tree, exited intermediate, breakaway request) |
+| AC-0024 | VI-5003: `test_launch_contract_cases`, `test_an_inheritable_parent_handle_does_not_reach_the_child` |
+| AC-0025 | VI-5004: `test_process_safety.py` passes in both `Gate A-packs` lanes. Its last change is PR #1557's test-ID relabel, which keeps every input and assertion and which the owner accepted against AC-0025 on 2026-10-14 |
+
+### Plan Done-when checks
+
+- **Architecture review (2026-10-28).** A design review of the "Execution supervisor controls" section of `docs/architecture/runtime-security-primitives.md` returned SHIP WITH CHANGES. After adjudication it held four findings, all fixed in this change. The page's Result acceptance table now carries the spec's nine rows and three columns, so the page's tables match the spec's. Discovery and the two config reads are described in their own environment forms. The Launch grants references and the owning intent are linked. The control-state check names the open attempt's manifest as its baseline.
+- **T5 security review (2026-10-28).** No clean T5 result had been recorded in PR #1585, so security-reviewer reviewed T5's controls at this change's head. After adjudication it held one Nit and no Blocker or Concern. The Nit, deferred: the helper relies on Git 2.32 or later to honour an empty `GIT_CONFIG_GLOBAL`, and no version floor is checked, so on Git 2.31 a helper call still reads the user's global config. AC-0009's filter refusal and the fixed `-c` overrides leave no code-running path in that case.
+- T5's architecture page and changelog fragment make no claim that a `red-proof` or `scratch` launch is routed through the primitive, records a grant, or runs with a bounded environment. The page's "Launch grants" paragraph states that no supervisor launch goes through the process primitive.
+- AC-0019 appears outside this spec only in `docs/product/intents/supervisor-launch-routing-for-plan-authored-commands.md`, the intent that owns it. That line records the removal; it does not claim the criterion is live. The owner (eugenelim) accepted that reference against this clause on 2026-10-28.

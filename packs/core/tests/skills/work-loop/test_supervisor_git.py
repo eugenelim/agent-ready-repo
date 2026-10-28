@@ -352,6 +352,20 @@ def test_carried_autocrlf_stages_the_bytes_plain_git_add_stages(
     assert ws.git.show("crlf.txt", made) == b"one\ntwo\n"
 
 
+@pytest.mark.parametrize("carried", [True, False], ids=["global-excludes", "none"])
+def test_a_global_excludes_file_is_carried_into_the_change_set_read(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, carried: bool) -> None:
+    excludes = tmp_path / "global-ignore"
+    excludes.write_text("ignored-by-user.txt\n", encoding="utf-8")
+    _global_config(tmp_path, monkeypatch,
+                   f"[core]\n\texcludesFile = {excludes.as_posix()}\n" if carried else "")
+    repo = h.make_repo(tmp_path)
+    (repo / "ignored-by-user.txt").write_text("x\n", encoding="utf-8")
+    with h.git_identity():
+        changed = h.workspace(repo).git.change_set()
+    assert ("ignored-by-user.txt" in changed) is not carried
+
+
 # ── VI-5012: forged history is never read as a supervisor commit ────────────
 
 

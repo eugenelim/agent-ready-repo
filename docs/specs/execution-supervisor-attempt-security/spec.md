@@ -1,6 +1,6 @@
 # Spec: Execution supervisor attempt security
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144
@@ -230,49 +230,49 @@ trusted-file writes after the run.
 
 Attempt checks and residue
 
-- [ ] **AC-0001.** A worker attempt after which a trusted file or Git control
+- [x] **AC-0001.** A worker attempt after which a trusted file or Git control
   state differs from the manifest, or a `delivery/` working copy is neither
   equal to nor a strict prefix of its `HEAD` version, is refused at `report`,
   logs a `security-event.v1` denial, and admits no evidence or completion.
-- [ ] **AC-0002.** While an attempt is open, every `next` compares trusted files,
+- [x] **AC-0002.** While an attempt is open, every `next` compares trusted files,
   Git control state, and `delivery/` against the manifest and `HEAD` before
   core's envelope derivation and before any write, and on a difference refuses
   the attempt, recording the refusal in the supervisor store.
-- [ ] **AC-0003.** A worker edit to `plan.md`, `## Acceptance Criteria`, or
+- [x] **AC-0003.** A worker edit to `plan.md`, `## Acceptance Criteria`, or
   `evidence.jsonl` by an implementer or a reviewer, followed by `next` before
   `report`, yields `attempt-residue`, no `replan` commit, and an unchanged task
   projection, on a first issuance and on a re-issuance after a refusal.
-- [ ] **AC-0004.** A `resolve-effect` during an open attempt advances `HEAD`
+- [x] **AC-0004.** A `resolve-effect` during an open attempt advances `HEAD`
   without refusing the attempt; a re-approval `start` during an open attempt
   first compares trusted files and Git control state with the manifest and
   refuses on a difference; and a kill at any core kill point around either
   leaves an attempt that core's crash corpus still completes.
-- [ ] **AC-0026.** A worker rewind, amend, or commit carrying copied supervisor
+- [x] **AC-0026.** A worker rewind, amend, or commit carrying copied supervisor
   trailers during an open attempt refuses the attempt.
-- [ ] **AC-0027.** Deleting the journal, `run.json`, and `security-events.jsonl`
+- [x] **AC-0027.** Deleting the journal, `run.json`, and `security-events.jsonl`
   during an open attempt or after a refusal neither admits a forged attempt nor
   clears residue.
-- [ ] **AC-0005.** After a refused attempt, `next` refuses with
+- [x] **AC-0005.** After a refused attempt, `next` refuses with
   `attempt-residue`, naming each differing path, until the supervisor store's
   refusal record is cleared by trusted files and Git control state matching the
   manifest and `delivery/` matching `HEAD`.
-- [ ] **AC-0006.** No change to a trusted file present when an attempt is
+- [x] **AC-0006.** No change to a trusted file present when an attempt is
   refused is ever committed as a replan or changes a task projection.
-- [ ] **AC-0007.** A worker attempt whose change set includes a symlink that
+- [x] **AC-0007.** A worker attempt whose change set includes a symlink that
   resolves outside the execution root, into a trusted file, or into the Git
   directory is refused.
-- [ ] **AC-0008.** A non-TDD worker attempt whose change set lies inside the
+- [x] **AC-0008.** A non-TDD worker attempt whose change set lies inside the
   execution root and leaves trusted files and Git control state unchanged —
   including one that imports the installed supervisor scripts, and one during
   which the journal is deleted — passes the attempt checks.
 
 Git hardening
 
-- [ ] **AC-0009.** `start` refuses with `unsupported-git-config`, naming the
+- [x] **AC-0009.** `start` refuses with `unsupported-git-config`, naming the
   setting, when repository or worktree config sets a code-running Git setting,
   or when global or system config defines a filter that any attributes file Git
   reads for the worktree uses.
-- [ ] **AC-0010.** Every supervisor `git` invocation other than an
+- [x] **AC-0010.** Every supervisor `git` invocation other than an
   out-of-helper config read runs through one helper that ignores system and
   global config apart from carried line-ending and `core.excludesFile` settings,
   turns
@@ -280,10 +280,10 @@ Git hardening
   textconv, and replace refs, and first verifies Git control state by direct
   file reads: against the open attempt's manifest when one exists, and
   otherwise against the Git and common directories pinned at admission.
-- [ ] **AC-0011.** A planted hook, fsmonitor command, filter driver, textconv
+- [x] **AC-0011.** A planted hook, fsmonitor command, filter driver, textconv
   driver, external diff, signing command, or config include runs nothing during
   any supervisor `git` call.
-- [ ] **AC-0012.** A commit substituted through `refs/replace/` or a graft is
+- [x] **AC-0012.** A commit substituted through `refs/replace/` or a graft is
   never read as a supervisor commit. During an open attempt, neither is a commit
   reached through a packed-ref move or a rewritten gitfile or `commondir`.
   Outside an open attempt, the supervisor reads its commits by their trailers,
@@ -291,11 +291,11 @@ Git hardening
 
 Launched code, pinning, and trust
 
-- [ ] **AC-0013.** After each run of repository code that the supervisor
+- [x] **AC-0013.** After each run of repository code that the supervisor
   launches or the controller reports — gates, scratch receipts, and red proofs —
   trusted files, Git control state, and `delivery/` are checked again before any
   commit, and a difference refuses the result.
-- [ ] **AC-0014.** Every supervisor entry point compares the installed pinned
+- [x] **AC-0014.** Every supervisor entry point compares the installed pinned
   files with the pinned digests read from the supervisor store before importing any sibling (the
   admitted `start` that records them, per the definition, excepted) — or, while
   a `regenerate` request is open, with the digests the supervisor recorded from
@@ -310,9 +310,9 @@ Launched code, pinning, and trust
   none of its made-commit ids is reachable from `HEAD`, judged through the
   hardened helper. A `<spec-dir>` whose case differs from the tracked path is
   refused as a usage error before any sibling loads.
-- [ ] **AC-0015.** A bytecode file placed beside a pinned module is never
+- [x] **AC-0015.** A bytecode file placed beside a pinned module is never
   executed.
-- [ ] **AC-0016.** When `HEAD` holds the Core pack's work-loop source, review
+- [x] **AC-0016.** When `HEAD` holds the Core pack's work-loop source, review
   readiness holds, and the installed skill differs from that source, `next`
   emits one `regenerate` request; its result is exempt from the manifest for the
   installed skill only, and is admitted only when every file of the installed
@@ -322,7 +322,7 @@ Launched code, pinning, and trust
   skill; until it does, `next` answers `uncommitted-changes`, and the next
   issuance first confirms that the committed installed skill equals what was
   admitted, and refuses `supervisor-changed` when it does not.
-- [ ] **AC-0017.** Under an `untrusted` code-trust classification with no Slice 1
+- [x] **AC-0017.** Under an `untrusted` code-trust classification with no Slice 1
   verified containment, `next` emits no `implement-task`, `run-gates`, or
   `regenerate` request and the supervisor launches no red proof or scratch
   receipt; `next` emits a
@@ -331,9 +331,9 @@ Launched code, pinning, and trust
 
 Result facts and the git environment
 
-- [ ] **AC-0018.** Every row of the Result acceptance table returns its stated
+- [x] **AC-0018.** Every row of the Result acceptance table returns its stated
   result.
-- [ ] **AC-0020.** A `git` child's environment is exactly one of the two forms
+- [x] **AC-0020.** A `git` child's environment is exactly one of the two forms
   the Launch grants section states, by name and by value: a helper call carries
   the hardened values the helper sets, an out-of-helper config read carries the
   host's own values for the config-location names, and every other variable the
@@ -341,21 +341,21 @@ Result facts and the git environment
 
 Windows
 
-- [ ] **AC-0021.** On Windows, a launched process is created suspended, assigned
+- [x] **AC-0021.** On Windows, a launched process is created suspended, assigned
   to a Job Object that denies breakaway and ends every member when its last
   handle closes, and only then resumed.
-- [ ] **AC-0022.** On Windows, any failure to create, configure, or assign the
+- [x] **AC-0022.** On Windows, any failure to create, configure, or assign the
   Job Object refuses the launch with `denied-job-object` and ends the process.
-- [ ] **AC-0023.** On Windows, a timeout terminates the job explicitly, and no
+- [x] **AC-0023.** On Windows, a timeout terminates the job explicitly, and no
   descendant survives, including descendants of an exited intermediate process
   and a child that requested breakaway.
-- [ ] **AC-0024.** On Windows, the launch branch passes the `safe-process.v1`
+- [x] **AC-0024.** On Windows, the launch branch passes the `safe-process.v1`
   contract suite, and a child does not inherit an inheritable handle the parent
   opened other than its standard streams.
 
 POSIX
 
-- [ ] **AC-0025.** On POSIX, the safe-process suite present at the merge-base
+- [x] **AC-0025.** On POSIX, the safe-process suite present at the merge-base
   with `main` when this spec's first task starts passes unchanged.
 
 ## Follow-ons
