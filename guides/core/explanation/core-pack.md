@@ -106,7 +106,7 @@ A feature lifecycle, end to end, with the parts named:
    what it proves and a relevant blind spot. Two passes is normal; three means a
    structural problem and the agent surfaces.
 4. **`work-loop`** initializes `state.json` via its bundled tool, then gates EXECUTE on `plan_review_status = approved`.
-5. **EXECUTE.** For each TDD task, the agent writes each TDD task's red test at its real test path, proves it fails for the intended reason, and then runs green and refactor. For goal-based work: code, then run the one-liner from `Done when:`. The Agent Rules section constrains structure; PLAN also records a declined architectural addition when it materially affects scope or design.
+5. **EXECUTE.** For each TDD task, the agent writes its red test at its real test path, proves it fails for the intended reason, and then runs green and refactor. For goal-based work: code, then run the one-liner from `Done when:`. The Agent Rules section constrains structure; PLAN also records a declined architectural addition when it materially affects scope or design.
 6. **GATES.** Lint, typecheck, tests. Mechanical termination. Don't edit the gate to make it pass.
 7. **REVIEW.** `adversarial-reviewer` reads the diff cold against `AGENTS.md` +
    `AGENTS.md` + `spec.md`. Each report is persisted, then classified:
