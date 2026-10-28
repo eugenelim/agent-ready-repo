@@ -1,7 +1,7 @@
 # Plan: plan-stage altitude
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations in shipped content); `tests/roster/test_tdd_stub_lifecycle_contract.py` as the existing owner of lifecycle content pins; uncertainty — none, the change is prose plus tests.
 
 > **Plan contract:** this is the implementation strategy. It may change
@@ -129,3 +129,6 @@ Ships with the next core release. Reversible by reverting the PR; no persisted s
 - The `work-loop-evidence-modes` spec, now in progress on another worktree, edits step 8 and `tdd-stubs.md` and targets the same next patch version; whichever lands second rebases its text and version.
 
 ## Changelog
+
+- 2026-10-28: spec approved by eugenelim
+- 2026-10-28: plan approved by eugenelim
