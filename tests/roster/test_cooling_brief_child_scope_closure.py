@@ -586,22 +586,23 @@ def test_a_brief_in_the_repository_backlog_resolves_a_declaration(
 def test_a_legacy_bare_string_brief_does_not_resolve_a_declaration(
     tmp_path, engine
 ) -> None:
-    """A former legacy brief entry is unsupported input, so it names no brief.
+    """A former legacy brief entry is not a brief membership; its file attributes the child.
 
-    Canonical reconciliation reads no historical shape, so a cooled child that
-    declares that path cannot be attributed and the run fails closed, exactly as
-    it does for a declaration naming no brief. The entry draws its own
-    `unsupported_legacy` finding, asserted so the case cannot pass on a fixture
-    that silently produced no legacy finding at all.
+    Canonical reconciliation reads no historical shape, so the entry names no
+    brief membership. The fixture still holds the brief's file in the briefs
+    directory, and a declaration byte-identical to that listed regular file
+    attributes the child to the brief with no registry entry, as for any brief
+    that never had one. The entry draws its own `unsupported_legacy` finding,
+    asserted so the case cannot pass on a fixture that silently produced no
+    legacy finding at all.
     """
     result = _membership_form_fixture(
         tmp_path / "legacy", engine, brief_entry_form="legacy",
         child_parent=BRIEF_PATH,
     )
-    assert len(_codes(result, CODE)) == 1, (
-        "a former legacy brief resolved a declaration"
+    assert not _codes(result, CODE), (
+        "the listed brief file did not attribute the cooled child"
     )
-    assert DEPENDANT_PATH not in _ready(result)
     assert [f for f in result.findings if f.code == "unsupported_legacy"], (
         "control: the fixture produced no unsupported_legacy finding, so it proves nothing"
     )

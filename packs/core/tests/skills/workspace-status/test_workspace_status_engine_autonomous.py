@@ -2571,8 +2571,10 @@ def test_t2_dependency_terminal_state_matrix(tmp_path: Path) -> None:
         (
             "brief",
             "docs/product/briefs/dep.md",
-            [("Ready", None), ("Executing", None), ("Shipped", None)],
-            ["Draft", "Superseded", "Unknown"],
+            [("Ready", None), ("Shipped", None)],
+            # An unregistered brief that is `Executing` with no executing child
+            # breaks the brief child-state rule.
+            ["Draft", "Executing", "Superseded", "Unknown"],
         ),
         (
             "intent",

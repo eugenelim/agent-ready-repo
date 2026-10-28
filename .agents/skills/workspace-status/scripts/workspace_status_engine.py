@@ -3018,12 +3018,14 @@ def _dependency_is_satisfied(
     cooled: frozenset[Path],
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
+    brief_child_states: dict[str, set[str]] | None = None,
 ) -> tuple[bool, RoutingFinding | None]:
     """Decide whether one dependency is satisfied, or return the finding why not.
 
     A captured-item file that no membership names settles by its own `Status:`
     and `Resolution:`; every other dependency follows its membership or its
-    artifact's terminal state.
+    artifact's terminal state. An unregistered brief also has to keep the brief
+    child-state rule, which reads only its `Status:` and its child specs.
     """
     if (
         dep.type != "cross-repo"
@@ -3173,6 +3175,16 @@ def _dependency_is_satisfied(
         return False, _finding(
             "unsatisfied_dependency", dep.path, "brief child scope is unknown"
         )
+    if not matches and dep.kind == "brief" and brief_child_states is not None:
+        collection = f"brief_queue.{(metadata.status or '').lower()}"
+        if collection in _ALLOWED_KIND_BY_COLLECTION and not _brief_child_scope_is_valid(
+            collection,
+            brief_child_states.get(dep.path, set()),
+            scope_unevaluable=dep.path in briefs_with_cooled_children,
+        ):
+            return False, _finding(
+                "unsatisfied_dependency", dep.path, "dependency has findings"
+            )
     status = metadata.status
     if status is None and matches:
         status = _membership_status(matches[0])
@@ -4007,6 +4019,35 @@ def _membership_is_cooled(
     return _confined_artifact_path(root, membership.entry.path or "") in cooled
 
 
+def _listed_brief_files(root: Path | None) -> frozenset[str]:
+    """Return the paths of the regular files listed in the briefs directory.
+
+    `docs/product/briefs/`, `docs/product/`, and `docs/` must each be a real
+    directory, not a symbolic link, resolving beneath the resolved root. Any
+    failed condition or `OSError` lists nothing, so a cooled child's scope stays
+    unknown. Nothing is opened and no declared value is resolved through the
+    filesystem: the caller compares strings against this listing.
+    """
+    if root is None:
+        return frozenset()
+    try:
+        resolved_root = root.resolve()
+        for directory in ("docs/product/briefs", "docs/product", "docs"):
+            path = root / directory
+            if not stat.S_ISDIR(os.lstat(path).st_mode):
+                return frozenset()
+            if not path.resolve().is_relative_to(resolved_root):
+                return frozenset()
+        directory_path = root / "docs/product/briefs"
+        return frozenset(
+            f"docs/product/briefs/{name}"
+            for name in os.listdir(directory_path)  # noqa: PTH208
+            if stat.S_ISREG(os.lstat(directory_path / name).st_mode)
+        )
+    except OSError:
+        return frozenset()
+
+
 def _brief_child_spec_states(
     memberships: list[WorkspaceMembership],
     workspace: dict,
@@ -4025,7 +4066,7 @@ def _brief_child_spec_states(
 
     briefs_with_cooled_children names the briefs a cooled child declares
     through `source.parent` **and whose declaration resolves** to a registered
-    brief membership. A declaration resolving to nothing goes to
+    brief membership or a listed brief file. A declaration resolving to nothing goes to
     cooled_scope_unknown instead. For the resolving briefs `invalid_child_scope`
     is unevaluable and a `kind="brief"` dependency on that brief fails closed,
     so a lifecycle record cannot erase or create a finding about a different
@@ -4064,6 +4105,8 @@ def _brief_child_spec_states(
         for membership in memberships
         if membership.entry.kind == "brief" and membership.entry.path is not None
     }
+    # Listed on first need, once per reconciliation.
+    brief_files: frozenset[str] | None = None
     for membership in memberships:
         entry = membership.entry
         if entry.kind != "spec":
@@ -4084,7 +4127,11 @@ def _brief_child_spec_states(
                 raw_parent, require_local_brief=True
             )
             if source_parent is not None:
-                if source_parent in brief_membership_paths:
+                if brief_files is None and source_parent not in brief_membership_paths:
+                    brief_files = _listed_brief_files(root)
+                if source_parent in brief_membership_paths or source_parent in (
+                    brief_files or ()
+                ):
                     briefs_affected.add(source_parent)
                 else:
                     # A declared value naming no registered brief establishes
@@ -4609,6 +4656,7 @@ def evaluate_dispatch(
             cooled,
             briefs_with_cooled_children=briefs_with_cooled_children,
             cooled_scope_unknown=cooled_scope_unknown,
+            brief_child_states=brief_child_states,
         )
         if not satisfied and finding is not None:
             # The path came from a header item, so it is bounded like any other
