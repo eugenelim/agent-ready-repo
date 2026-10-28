@@ -1473,8 +1473,8 @@
     },
     {
       "id": "bundle-split-independent-tasks",
-      "prompt": "I have two small tasks in one request: reword a paragraph in `references/light-mode.md`, and fix a typo in `references/full-mode.md`. Neither task has a `Depends on:` line, and their `Touches:` sets name different files. Do I run one light pass or split them?",
-      "expected_output": "Split the bundle into one unit per task. The tasks pass all three parts of the test: no dependency edge, no shared write set, and each finished diff stays inside its own set. Each unit then faces every risk trigger on its own, runs light, and ships as its own branch and pull request, one at a time in this session. No unit merges until every unit's diff passes the diff check.",
+      "prompt": "I have two small tasks in one request: fix a typo in one skill reference, and fix a broken link in another. Neither changes a tool surface, an authority or gate, a security boundary, or a published schema. Neither task has a `Depends on:` line, and their `Touches:` sets name different files. Do I run one light pass or split them?",
+      "expected_output": "Split the bundle into one unit per task. Parts 1 and 2 of the test pass now, from the decision record: no dependency edge and no shared write set. Part 3, the diff check, is still pending: each unit's finished diff must stay inside its own set, because a declared set is only a prediction. Each unit faces every risk trigger and eligibility row on its own; as plain edits to existing guidance, both run light, each as its own branch and pull request, one at a time in this session. No light unit merges until every unit's finished diff passes the diff check.",
       "assertions": [
         "Response splits the bundle into one unit per task",
         "Response names the three-part test: no dependency edge, no shared write set, and the diff agrees",
@@ -1553,11 +1553,11 @@
     },
     {
       "id": "guidance-edit-security-boundary",
-      "prompt": "I want to edit an existing skill reference to change how the skill treats text from an issue body, for example whether it follows instructions found there. Light mode or full mode?",
-      "expected_output": "Full mode: the edit changes a security boundary: how the skill treats untrusted text. An edit that changes a security boundary fires the trigger even in an existing guidance file, so the work goes to full mode.",
+      "prompt": "I want to edit an existing skill reference to change how the skill handles a credential it reads from the environment, for example letting it print the value into a log. Light mode or full mode?",
+      "expected_output": "Full mode: the edit changes a security boundary: how the skill handles a secret. An edit that changes a security boundary fires the trigger even in an existing guidance file, so the work goes to full mode.",
       "assertions": [
         "Response routes the work to full mode",
-        "Response identifies the treatment of issue-body text as a security boundary",
+        "Response identifies the handling of the credential as a security boundary",
         "Response says the guidance-edit narrowing does not apply",
         "Response names the security-boundary exclusion as the deciding rule"
       ]

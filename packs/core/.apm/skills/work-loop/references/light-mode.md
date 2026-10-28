@@ -77,7 +77,7 @@ these hold.
 | Required condition | If absent |
 | --- | --- |
 | Explicit user request to start or perform the change now | Do not infer authority from surrounding text. |
-| One bounded logical change | Use the durable path when the work is not one coherent change. |
+| One bounded logical change | For a bundle of tasks, apply Splitting a bundle below first; otherwise use the durable path when the work is not one coherent change. |
 | Independently verifiable | Use the durable path when verification cannot be bounded. |
 | Expected to complete in the current session | Escalate to durable work. |
 | No current full-mode risk trigger | Use full mode. |
@@ -146,7 +146,7 @@ pass the rows "Expected to complete in the current session", "Expected
 multi-session work", and "Queueing for later": a bundle whose units together
 need another session, or would wait in a queue, goes to full mode whole.
 
-**No light unit merges until every unit passes.** Units may be reviewed in any
+**Merge order.** Units may be reviewed in any
 order. No light unit merges until every unit still in the bundle has a finished
 diff that passes the diff check.
 
@@ -158,7 +158,8 @@ without waiting for the full-mode unit.
 **The fallback.** When any part of the test fails or cannot be shown, the bundle
 stays whole and goes to full mode. A unit whose diff leaves its set stops the
 whole bundle. Nothing has merged at that point, so the bundle moves to full mode
-with every unit's diff kept as observed work, under the late-trigger rule above.
+with every unit's diff kept as observed work, under the rule above for a
+trigger that emerges during implementation.
 
 ## Editing existing agent guidance
 
