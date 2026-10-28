@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import copy
 import importlib.util
-import json
 import os
 import stat
 import sys
@@ -26,9 +25,7 @@ import pytest
 
 # ── Path anchors ──────────────────────────────────────────────────────────────
 
-_PACK_ROOT = Path(__file__).resolve().parents[3]
-SCRIPTS = _PACK_ROOT / ".apm" / "skills" / "work-loop" / "scripts"
-CONTRACTS = _PACK_ROOT.parents[1] / "contracts" / "delivery"
+SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
 
 
 # ── Module loader ─────────────────────────────────────────────────────────────
@@ -236,12 +233,6 @@ def _ids(receipts: list[dict]) -> set[str]:
     return {r["receipt_id"] for r in receipts}
 
 
-def _schema_required(name: str) -> set[str]:
-    schema = json.loads((CONTRACTS / name).read_text(encoding="utf-8"))
-    assert schema["additionalProperties"] is False
-    return set(schema["required"])
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # AC-0001: valid samples
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -251,17 +242,13 @@ def _schema_required(name: str) -> set[str]:
 def test_valid_sample_is_supported_on_every_adapter(
     sample: Sample, acc: ModuleType, es: ModuleType, sc: ModuleType, tmp_path: Path
 ) -> None:
-    """AC-0001: each sample validates, matches its schema's fields, and is supported."""
+    """AC-0001: each sample passes the shipped validators and is supported."""
     prop = _property(sample)
     receipts = _receipts(sample)
-    property_fields = _schema_required("acceptance-property.v1.schema.json")
-    receipt_fields = _schema_required("evidence-receipt.v1.schema.json")
 
     assert acc.validate_property_dict(prop) == (True, "ok")
-    assert set(prop) == property_fields
     for receipt in receipts:
         assert es.validate_receipt_dict(receipt) == (True, "ok")
-        assert set(receipt) == receipt_fields
 
     for index, adapter in enumerate(acc.SUPPORTED_ADAPTERS):
         verdict = _store_verdict(

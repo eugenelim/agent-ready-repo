@@ -24,3 +24,14 @@
   `workspace.toml`, the test module, and this spec's `spec.md`, `plan.md`, and
   `notes/verification-ledger.md`. No path is under `packs/*/.apm/` or
   `packs/*/seeds/`.
+
+## 2026-10-28 — CI repair, PR #1640
+
+- `lint-pack-test-boundary` refused the suite's read of `contracts/delivery/`.
+  The suite now relies on the shipped validators; the roster parity suites own
+  their agreement with the schema files.
+- The roster version-bump test requires a Core patch bump for any change under
+  `packs/core/`. Core moves to `3.1.30`, the next free patch after `3.1.29` on
+  main, with a changelog fragment.
+- The workspace-retirement inventory requires a row for every spec file that
+  names the registry; this spec directory gets a `historical` row.

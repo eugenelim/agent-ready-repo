@@ -78,7 +78,7 @@ observed and pinned by the suite, not changed:
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Current product truth | The brief's later slices read the contract-fit verdict before C1 starts. | This spec's `Contract-fit result` section and the brief's Spec map row | Platform Core | The targeted suite is green at the recorded revision | The section states the verdict and the revision, and the Spec map row derives `Shipped`. |
-| Release history | Not applicable: the change adds tests and documentation only, so no pack version moves. | none | none | AC-0011's scope check shows no path under `packs/*/.apm/` or `packs/*/seeds/` | No pack manifest changes. |
+| Release history | Any change under `packs/core/`, tests included, ships under a new Core version. | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, a fragment in `docs/product/changelog.d/` | Core pack release maintainers | Both manifests read `3.1.30`; the roster version-bump test passes | AC-0011's scope check shows no path under `packs/*/.apm/` or `packs/*/seeds/`. |
 
 ## Agent Rules
 
@@ -95,6 +95,8 @@ observed and pinned by the suite, not changed:
 
 - Any change under `packs/core/.apm/**`, `packs/core/seeds/**`, or
   `contracts/**`.
+- Any change to a version beyond the Core patch bump that a `packs/core/`
+  change requires.
 - Recording any verdict other than "existing contract sufficient".
 
 ### Never do
@@ -138,10 +140,13 @@ Terms:
 ### Valid samples
 
 - [x] **AC-0001.** For each of the six properties, the property record passes
-  `validate_property_dict`, each receipt passes `validate_receipt_dict`, both
-  carry exactly the required fields of their canonical schema file and no other
-  top-level field, and the store verdict is `supported` on every member of
-  `SUPPORTED_ADAPTERS`.
+  `validate_property_dict`, each receipt passes `validate_receipt_dict`, and the
+  store verdict is `supported` on every member of `SUPPORTED_ADAPTERS`. Those
+  validators refuse a missing required field and an undeclared field. Their
+  agreement with the canonical schema files is owned by
+  `tests/roster/test_acceptance_schema_parity.py` and
+  `tests/roster/test_evidence_store_schema_parity.py`, because a pack test may
+  not read above its pack.
 
 ### Rejections
 
@@ -210,8 +215,10 @@ Terms:
 - [x] **AC-0011.** The scope check, `git diff --name-only "$(git merge-base origin/main HEAD)" HEAD`
   run after every change is committed, lists only paths under
   `packs/core/tests/`, `docs/specs/grounding-preservation-contract-proof/`,
-  `docs/product/briefs/repository-grounding-preservation.md`, and
-  `workspace.toml`.
+  `docs/product/briefs/repository-grounding-preservation.md`,
+  `workspace.toml`, `packs/core/pack.toml`,
+  `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/`, and
+  `docs/specs/workspace-retirement/inventory.toml`.
 
 ## Follow-ons
 
