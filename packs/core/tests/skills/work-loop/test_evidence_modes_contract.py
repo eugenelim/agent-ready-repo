@@ -266,10 +266,12 @@ def test_t5_new_eval_cases_exist_with_required_fields() -> None:
 
 
 def test_t5_pack_versions_are_3_1_27() -> None:
+    """The release that shipped this contract is 3.1.27; later releases keep it."""
     manifest = tomllib.loads((_PACK / "pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads((_PACK / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
-    assert manifest["pack"]["version"] == "3.1.27"
-    assert plugin["version"] == "3.1.27"
+    released = tuple(int(part) for part in manifest["pack"]["version"].split("."))
+    assert released >= (3, 1, 27)
+    assert plugin["version"] == manifest["pack"]["version"]
 
 
 def test_t2_step_1b_renders_as_its_own_block() -> None:

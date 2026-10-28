@@ -68,3 +68,13 @@ On 2026-10-28 the owner, eugenelim, re-approved the `workspace-retirement` spec 
 On 2026-10-28, after T7, the spec-status lint's invariant (iv) failed once: `docs/specs/m6-role-journey-guides/spec.md` cites `(deferred: role-journey-agent-swarm-section)`, which resolved only through that intent's `[backlog].open` entry, and the repair removed it. The inventory did not list `lint-spec-status.py` as a reader of intent entries. The owner, eugenelim, chose to have the lint also resolve an anchor that names an existing file `docs/product/intents/<anchor>.md` or `docs/product/briefs/<anchor>.md`, through a new criterion and task.
 
 On 2026-10-28, after the amendment's review, the owner narrowed the rule: an intent or brief file resolves a deferral anchor only while its `Status:` is not terminal (an intent not `Fulfilled`, `Withdrawn`, `Cancelled`, or `Superseded`; a brief not `Shipped`, `Withdrawn`, or `Cancelled`), so closing it still invalidates every deferral that cites it.
+
+## T10: deferral anchors
+
+`lint-spec-status.py` invariant (iv) also resolves an anchor through an open intent or brief file. Three planted cases red before the change and pass after; seven regression guards pass before and after. Over this repository the lint reports no hard violation, including the `role-journey-agent-swarm-section` anchor, which now resolves through its `Draft` intent file. Core's `test_t5_pack_versions_are_3_1_27` pinned the exact version 3.1.27; it now checks 3.1.27 or later, so this release's 3.1.28 bump keeps it.
+
+## T9: the live comparison
+
+The restored registry is the head `workspace.toml` with T7's removed entries reversed back in. Its SHA-256 is `af96f57ad2fd053d1acf260e6c5dd97a785437eb1855b794ff5c1210dab847f0`, the pre-repair file byte for byte. The engine at `ff33d0dcc` ran `status` over the head tree carrying that registry, and the head engine ran `status` over the head tree. Of the 21 spec memberships in `canonical.ready`, `canonical.active`, or `canonical.blocked`, none differs in its `dispatchable` value, its placement, or the code and path of any finding in its own evaluation. The difference list is empty.
+
+On 2026-10-28 the owner, eugenelim, approved this empty difference list.
