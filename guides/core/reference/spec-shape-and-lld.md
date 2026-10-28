@@ -104,10 +104,10 @@ Before approval, the design is working material an implementer corrects in
 place. After approval it is not: the approval digest hashes the whole plan, so
 an in-place edit moves the hash and the transition guard refuses it. Two cases
 then route differently — grounding that arrives for a seam the plan recorded as
-`no stub (implementation-discovered)` goes to the verification ledger, because
+`implementation-discovered` goes to the verification ledger, because
 the plan predicted that discovery; a design decision approval settled and
 execution falsified is a plan error taking the controlled-amendment procedure.
-The ledger is not a route for the second.
+The ledger is not a route for the second. The design states mechanism; the red test is written at EXECUTE, not stored in the plan.
 
 At closeout, the LLD is treated as mixed delivery material. Policy, trade-offs,
 rejected alternatives, current ownership, state/control flow, security

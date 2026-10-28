@@ -96,6 +96,8 @@ surface before implementation approval.
 The three-tier guard that keeps an implementing agent inside the lines.
 *Always do* applies without asking; *Ask first* requires human sign-off
 before proceeding; *Never do* is a hard rule, even under time pressure.
+A syscall, flag, helper name, or exact write order is mechanism that belongs in
+the plan's `## Design (LLD)`, not here.
 
 ### Always do
 

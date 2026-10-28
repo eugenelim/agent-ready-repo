@@ -16,7 +16,7 @@ WORKING_MATERIAL = re.compile(
 )
 PRE_APPROVAL_BOUND = "corrects in place only\n> before approval"
 COMPLETION_GATE_CLAIM = "`Touches`, `Tests` and `Done when` are what a\n> completion gate reads, and they are pinned."
-LEDGER_ROUTE = "`no stub (implementation-discovered)` goes to the\n> verification ledger"
+LEDGER_ROUTE = "`implementation-discovered` goes to the\n> verification ledger"
 AMENDMENT_ROUTE = "settled design decision that execution falsified is a\n> plan error that follows the controlled-amendment procedure"
 
 

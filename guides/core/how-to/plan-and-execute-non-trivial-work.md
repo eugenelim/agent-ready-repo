@@ -127,20 +127,19 @@ Naming the skill is the reliable form. The `work-loop` description also matches 
 
 The full procedure lives in [the `work-loop` SKILL.md](../../../packs/core/.apm/skills/work-loop/SKILL.md). The short version:
 
-- **PLAN** — reads `spec.md` and `plan.md`, picks verification modes if not already set, and designs construction tests up front. For a TDD task, it stores the exact stub code in `plan.md` and validates syntax plus the intended red from disposable scratch; it does not create a repository test file. A `spec-plan` run can therefore stop after approval with clean gates. Pre-EXECUTE adversarial review fires automatically on spec amendments or on any of the four structural triggers (new module, new dependency, new abstraction, new top-level directory).
+- **PLAN** — reads `spec.md` and `plan.md`, picks verification modes if not already set, and designs construction tests up front. For a TDD task, `Tests:` names the behavior, the boundary it is checked at, and the verification mode; it carries no test code and creates no repository test file. A `spec-plan` run can therefore stop after approval with clean gates. Pre-EXECUTE adversarial review fires automatically on spec amendments or on any of the four structural triggers (new module, new dependency, new abstraction, new top-level directory).
   - PLAN records a declined architectural addition only when it materially affects scope or design.
   - It sizes each task for one PR, then asks whether the review unit can be independently understood, verified, or reviewed. If yes, the unit proceeds; if not, it is split — or carries a transformation/reproducibility proof when it is mechanically uniform WIDE work.
   - About 2,000 reviewable behavior and test lines is a prompt for extra scrutiny, not a gate.
-- **EXECUTE** — implements task by task. Once full mode enters `CODE-IMPLEMENTATION`, a TDD task copies the approved plan block unchanged into the real test path, verifies byte identity, proves the intended red, and continues through green and refactor. Goal-based tasks run the `Done when:` one-liner; manual-QA tasks record the visual check.
+- **EXECUTE** — implements task by task. Once full mode enters `CODE-IMPLEMENTATION`, the red test is written at EXECUTE, at the real test path, and proven red for the intended reason before production code changes; the task then continues through green and refactor. Goal-based tasks run the `Done when:` one-liner; manual-QA tasks record the visual check.
 - **GATES** — lint, typecheck, tests. Mechanical, ordered, no editing the gate to make it pass.
 - **REVIEW** — `adversarial-reviewer` reads the diff cold against `AGENTS.md` + `spec.md`. Findings come back as Blockers / Concerns / Nits with one-sentence fixes. The loop records each pass's finding fingerprints to `state.json` via `loop-cohort review record`, which is what lets the next phase compare a round's findings against the previous one. Pass `--operation-id <run-id>:<transition-sequence>` — read the sequence from `loop-engine status` after the transition that opened the round — and the round is named on disk. Re-issuing the identical recording under that same id is then a no-op rather than a second round, so a session that dies before it knows whether the write landed can simply repeat it. A different payload under a used id is refused rather than silently accepted. The same `classify`, `raw-classify`, `inspect`, and `record` commands also live in `review-artifact.py`, with identical output. Where no cohort `state.json` exists, `review-artifact.py record --run-id <uuid>` keeps one `<round>-record.md` per round under `.context/reviews/<run-id>/` and counts the review budget from those files. There, lifting the cap takes `--allow-retry-cap-override` with an `owner` authority reference passed as `--authority-ref`. Specialist reviewers (`security-reviewer`, `quality-engineer`) run when the diff warrants.
 - **DECIDE** — requiredness decides each finding: work the current intent requires, or that blocks correctness or security, becomes the next review unit in the same session when it cannot share this one. Work no obligation names is excluded — acknowledged in the PR, captured only if its owner asks — not scheduled. If the same findings come back two iterations in a row, that is surfaced to a human; the iteration cap is what bounds the loop.
 
-Two no-stub records are closed exceptions. Use `no stub (mode)` when the chosen
-verification mode is not TDD. Use `no stub (implementation-discovered)` only
-when the callable seam genuinely cannot be known before implementation, and
-record both its discovery predicate and proof obligation. Neither record is a
-reason to repeat the acceptance criterion as behavior prose.
+Record `implementation-discovered` only when a callable seam or a design means
+genuinely cannot be known before implementation, with its discovery predicate,
+constraint, required outcome, and verification mode. The record is not a reason
+to repeat the acceptance criterion as behavior prose.
 
 For the end-to-end narrative with the parts in context, read [core-pack.md § How they tie together](../explanation/core-pack.md#how-they-tie-together).
 

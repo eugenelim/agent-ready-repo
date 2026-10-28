@@ -742,8 +742,11 @@ _TMP_RECOVERY_CASES = [
     # ValueError — so a narrowed `except (FileNotFoundError, ValueError)` let it
     # escape as a traceback from inside `sl.exclusive(...)`. And because the dotfile
     # was never removed, EVERY later transition on that spec failed identically.
+    # Depth 200,000: Python 3.14's json parses 20,000 levels without raising, so the
+    # old depth produced valid content and no longer reached the RecursionError path.
+    # 200,000 stays far under the reader's 8 MiB bound.
     ("deep-nesting", lambda p: p.write_text(
-        '{"state":"X","run_id":"y","z":' + "[" * 20000 + "]" * 20000 + "}",
+        '{"state":"X","run_id":"y","z":' + "[" * 200000 + "]" * 200000 + "}",
         encoding="utf-8"), False),
     ("malformed", lambda p: p.write_text("{ not json", encoding="utf-8"), False),
     ("non-finite", lambda p: p.write_text(

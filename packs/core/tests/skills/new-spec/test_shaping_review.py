@@ -125,14 +125,14 @@ def test_plan_detail_and_stub_doctrine_allow_only_grounded_or_discovery_paths() 
 
     for requirement in (
         "exact path or symbol here only when repository evidence grounds it",
-        "no stub (implementation-discovered)",
+        "`implementation-discovered`",
         "discovery predicate, constraint, required outcome, and verification mode",
         "do not invent a helper, fixture, module, path, or symbol",
-        "one compilable red contract-surface assertion (`stub: true`)",
-        "finished edge-case matrix",
+        "written and proven red at EXECUTE",
     ):
         assert requirement in plan or requirement in stubs
-    assert "There are exactly two dispositions for a TDD task." in stubs
+    assert "stub: true" not in plan
+    assert "exactly two dispositions" not in stubs
 
 
 def test_planning_sufficiency_leaves_build_guidance_nonblocking() -> None:

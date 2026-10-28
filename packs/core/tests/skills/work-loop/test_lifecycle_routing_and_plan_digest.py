@@ -26,7 +26,7 @@ def _load_guards():
 def _assert_lifecycle_routes(reference: str) -> None:
     """Assert the observation and error routes have distinct destinations."""
 
-    assert "`no stub (implementation-discovered)`" in reference
+    assert "`implementation-discovered`" in reference
     assert "goes in the verification ledger" in reference
     assert "amends neither approved artifact" in reference
     assert "approval settled a design decision and execution falsifies it" in reference

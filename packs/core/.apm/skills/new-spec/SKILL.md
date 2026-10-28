@@ -94,8 +94,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    | Routing input | Destination |
    | --- | --- |
    | `reaches-the-contract` — any of the six above, unless a row below applies. This is the residual route, so no load-bearing claim is unrouted | Settle it **before approval**, by a bounded spike under the side-effect-free probe constraint above. The bounded spike is proportionate to what the claim's falsehood would cost. After approval the contract is pinned, and a correction the work discovers may not be applicable to it at all. |
-   | `unstarted-task-method` — it could change only the local method of a task that has not started, **and no test can decide it directly** | Put it in that task as a discovery predicate, a constraint, a required outcome, a verification mode, and a **kill condition**. Do not guess a helper, fixture, module, path, or symbol. |
-   | `cheap-with-an-oracle` — it is a cheap, reversible detail and a test can decide it directly. Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract | Settle it in code. It does not belong in design prose, and a spike for it is wasted work. |
+   | `unstarted-task-method` — it could change only the local method of a task that has not started, or a mechanism claim whose falsehood could move only the chosen mechanism and on which no protected class depends, **and no test can decide it directly** | Put it in that task as a discovery predicate, a constraint, a required outcome, a verification mode, and a **kill condition**. Do not guess a helper, fixture, module, path, or symbol. A mechanism goes in the plan's `## Design (LLD)` with its means marked `implementation-discovered`. |
+   | `cheap-with-an-oracle` — it is a cheap, reversible detail or a reversible mechanism claim whose falsehood could move only the chosen mechanism and on which no protected class depends, and a test can decide it directly. Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract | Settle it in code. It does not belong in design prose, and a spike for it is wasted work. |
+
+   The protected classes are a security boundary, data loss or durability, migration or persisted state, a public interface, and an irreversible operation. A claim about a protected class's property settles before approval; the means that delivers it lives in the plan's `## Design (LLD)`.
 
    **Resolve repository anchors before generating candidates.** Run the
    `repository-grounding` inquiry with the paths this spec touches as
@@ -354,9 +356,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    concrete enough to *stub* — see `work-loop`'s
    [`references/tdd-stubs.md`](../work-loop/references/tdd-stubs.md). This is a
    **pointer/self-check only**: do **not** create a repository test file or
-   author the plan's test here. `work-loop PLAN owns exact stub authoring` as
-   exact stub code in `plan.md`; `work-loop PLAN owns disposable red validation`
-   from disposable scratch. An AC you cannot imagine typing a test against is
+   author the plan's test here; the red test is written at EXECUTE. An AC you cannot imagine typing a test against is
    the signal to sharpen it now. In this skill, do not create a repository test file.
 
 4b. **Author the interface contract — only if this feature exposes an interface
