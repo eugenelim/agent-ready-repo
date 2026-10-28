@@ -56,3 +56,5 @@ On 2026-10-28 the owner, eugenelim, saw the whole plan and approved applying it.
 - **Second plan:** a following `repair-plan` holds no `intent-brief-drop` operation.
 
 `tests/roster/test_workspace_initiative_provenance.py` is deleted with its inventory row. It cross-checked a spec entry's initiative against its brief's `brief_queue` membership, so with no repo-origin brief entry it reaches nothing; initiative membership is a deliberate removal in the retirement record.
+
+On 2026-10-28 the owner approved one rewording in W6, the RFC-0106 erratum: its last sentence now opens "A tracker-origin intent or brief stays registered", so AC-0025's `tracker-origin` literal matches with its case, and the roster check compares literals exactly.

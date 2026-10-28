@@ -182,10 +182,8 @@ def _dated_entries(rel: str) -> list[tuple[str, str]]:
 def test_errata_entry_links_the_rfc_and_holds_each_literal(rel: str) -> None:
     problems = []
     for date, flat in _dated_entries(rel):
-        # The RFC's own entry cannot link itself; the literals are read without
-        # case because that entry opens a sentence with "Tracker-origin".
-        lowered = flat.lower()
-        missing = [lit for lit in _ERRATA[rel] if lit.lower() not in lowered]
+        # RFC-0106's own entry sits inside RFC-0106, so it cannot link itself.
+        missing = [lit for lit in _ERRATA[rel] if lit not in flat]
         links = _RFC_LINK in flat or rel.endswith(_RFC_LINK + ".md")
         if links and not missing:
             return
