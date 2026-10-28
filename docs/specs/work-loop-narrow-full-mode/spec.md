@@ -33,7 +33,7 @@ An agent choosing a mode in core's `work-loop` sends a bundle of tasks that are 
 - The eval `risk-trigger-modify-not-touch` and nine new eval cases — `packs/core/.apm/skills/work-loop/evals/evals.json`.
 - One pitfall paragraph naming both routes — `guides/core/how-to/plan-and-execute-non-trivial-work.md`.
 - Content-pin tests — `packs/core/tests/skills/work-loop/test_narrow_full_mode_contract.py`, and `tests/roster/test_core_onboarding_documentation.py` for the guide.
-- Core 3.1.28, a changelog fragment, and the self-hosted projections.
+- Core 3.1.29, a changelog fragment, and the self-hosted projections.
 
 ## Durable Outputs
 
@@ -41,7 +41,7 @@ An agent choosing a mode in core's `work-loop` sends a bundle of tasks that are 
 | --- | --- | --- | --- | --- | --- |
 | Maintainer procedure | The trigger block and light-mode reference are the procedure an agent follows to pick a mode | `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/work-loop/references/light-mode.md` | core pack maintainers | content-pin tests and eval cases | tests green; projections regenerated |
 | User-facing promise | Adopters read when work needs a spec | `guides/core/how-to/plan-and-execute-non-trivial-work.md` | core pack maintainers | roster guide test | the guide names both routes |
-| Release history | A non-cosmetic pack change ships under a new version | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/` | core pack maintainers | both files read `3.1.28`; one fragment for core 3.1.28 | catalogue verify passes |
+| Release history | A non-cosmetic pack change ships under a new version | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/` | core pack maintainers | both files read `3.1.29`; one fragment for core 3.1.29 | catalogue verify passes |
 | Decision rationale | none — RFC-0111 records why; no ADR is needed | none | — | — | — |
 
 ## Agent Rules
@@ -67,10 +67,10 @@ An agent choosing a mode in core's `work-loop` sends a bundle of tasks that are 
 
 - **Routing rules in the trigger block and light-mode reference (AC-0001, AC-0002, AC-0004, AC-0015, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009):** goal-based, by pytest content tests in `packs/core/tests/skills/work-loop/test_narrow_full_mode_contract.py`. Each reads one section through a `_section(...)` marker helper and asserts the backticked phrases its criterion names, so a rule removed or moved out of the procedure an agent follows turns a test red.
 - **Single home of the block (AC-0003):** goal-based, by `python3 tools/lint-agents-md.py` exit status, whose check 10g compares the three homes byte for byte.
-- **Regression of existing pins (AC-0010):** goal-based. The existing suites run with their files unedited, apart from the version pin AC-0010 permits removing.
+- **Regression of existing pins (AC-0010):** goal-based. The existing suites run with their files unedited.
 - **Agent behavior on recorded cases (AC-0011):** goal-based, by the same test file reading `evals.json`; running the cases against a model is not part of this delivery.
 - **User-facing guide (AC-0012):** goal-based, by a roster test, because a pack test may not read `guides/`.
-- **Release and projection (AC-0013, AC-0014):** goal-based, by a pack test that both version files agree, and by command checks for the `3.1.28` value, the changelog fragment, the catalogue, and the projections, because a pack test may not read `docs/`.
+- **Release and projection (AC-0013, AC-0014):** goal-based, by the existing pack test that both version files agree, and by command checks for the `3.1.29` value, the changelog fragment, the catalogue, and the projections, because a pack test may not read `docs/`.
 
 ## Acceptance Criteria
 
@@ -94,10 +94,10 @@ An agent choosing a mode in core's `work-loop` sends a bundle of tasks that are 
 
 ### Regression, evals, guide, release
 
-- [ ] **AC-0010.** `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py` passes unedited, and `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py` passes with only `test_t5_pack_versions_are_3_1_27` removed.
+- [ ] **AC-0010.** `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py` passes unedited, and `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py` passes unedited.
 - [ ] **AC-0011.** `work-loop`'s `evals/evals.json` holds these nine new cases, each with `id`, `prompt`, `expected_output`, and a non-empty `assertions` list, and each `expected_output` containing its verdict phrase: `bundle-split-independent-tasks` (`one unit per task`), `bundle-unsplittable-shared-file` (`full mode`), `bundle-late-unit-strays` (`whole bundle`), `guidance-edit-plain-runs-light` (`light mode`), `guidance-new-file-fires-structural` (`structural trigger`), `guidance-edit-tool-surface`, `guidance-edit-authority-or-gate`, `guidance-edit-security-boundary`, and `guidance-edit-published-schema` (each `full mode`). In the case `risk-trigger-modify-not-touch`, `expected_output` and at least one `assertions` entry each contain `existing agent guidance`, `only when it changes`, `policy`, and `interface document`, and no field contains `so editing it fires the trigger` or `agent guidance, policy, an interface document -- fires the trigger`, and `test_evals_json_shape` in `packs/core/tests/skills/work-loop/test_loop_engine.py` passes.
 - [ ] **AC-0012.** `guides/core/how-to/plan-and-execute-non-trivial-work.md`'s pitfall on reaching for `new-spec` contains `one unit per task`, `existing agent-guidance file`, `tool surface`, `authority or gate`, `security boundary`, and `published schema`.
-- [ ] **AC-0013.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both carry version `3.1.28`; exactly one file under `docs/product/changelog.d/` added by this change names package `core` at version `3.1.28` and has a `-` bullet under `## Highlights`; and `python3 tools/changelog.py render --output .context/changelog-render.md` exits 0.
+- [ ] **AC-0013.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both carry version `3.1.29`; exactly one file under `docs/product/changelog.d/` added by this change names package `core` at version `3.1.29` and has a `-` bullet under `## Highlights`; and `python3 tools/changelog.py render --output .context/changelog-render.md` exits 0.
 - [ ] **AC-0014.** `agentbundle catalogue lint --root . --deep` and `agentbundle catalogue verify --root .` exit 0, and `make build-self` leaves no tracked change after the delivery commit.
 
 ## Follow-ons

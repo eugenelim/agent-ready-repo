@@ -88,7 +88,7 @@ The AC-0002 phrase `an edit to an existing agent-guidance file` matches inside "
 
 **Eval that changes.** `risk-trigger-modify-not-touch` keeps its prompt (a test that calls an unchanged helper) and its verdict. In both `expected_output` and `assertions`, the statement that editing prose which is the rule fires the trigger becomes the narrowed rule: "editing existing agent guidance fires the trigger only when it changes a tool surface, an authority or gate, a security boundary, or a published schema". The clause that editing policy or compliance prose, or an interface document, still fires the trigger stays in both fields, because the narrowing applies only to existing agent guidance.
 
-**Version pin.** `test_t5_pack_versions_are_3_1_27` in `test_evidence_modes_contract.py` pins the previous release, so T5 removes it. The new file's suite test asserts only that `pack.toml` and `plugin.json` agree, so the next release does not have to edit it; the `3.1.28` value is a delivery command check.
+**Version pin.** `test_t5_pack_versions_match` in `test_evidence_modes_contract.py` already asserts that `pack.toml` and `plugin.json` agree, so this delivery adds no version test and edits neither existing suite; the `3.1.29` value is a delivery command check.
 
 **Changelog fragment.** A pack test may not read `docs/`, so the fragment half of AC-0013 is a command check run once at delivery, not a suite test: fragments are later compacted into bundles, and a standing test would go red for reasons unrelated to this change.
 
@@ -111,7 +111,7 @@ Each new eval's prompt describes one concrete request; its `expected_output` giv
 
 ## Tasks
 
-Every new test function is named for its task (`test_t1_…` to `test_t5_…`), so each `Done when` selects one task's tests with `-k tN_`. A filter that selects nothing exits 5, so a task that adds no test fails its own check. Every task is goal-based: its checks read shipped text or data. `PYTEST` below means `uv run --no-project --with pytest --with pyyaml python -m pytest`.
+Every new test function is named for its task (`test_t1_…` to `test_t3_…`), so each of T1 to T3's `Done when` selects its tests with `-k tN_`; a filter that selects nothing exits 5, so a task that adds no test fails its own check. T4's test is in the roster suite, and T5 adds no test. Every task is goal-based: its checks read shipped text or data. `PYTEST` below means `uv run --no-project --with pytest --with pyyaml python -m pytest`.
 
 ### T1: Narrow the two rules in the risk-trigger block
 
@@ -164,21 +164,21 @@ Every new test function is named for its task (`test_t1_…` to `test_t5_…`), 
 
 **Depends on:** T1, T2, T3, T4
 
-**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/**`, `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py`, `packs/core/tests/skills/work-loop/test_narrow_full_mode_contract.py`, `.claude/skills/**`, `.agents/skills/**`, `.codex/**`
+**Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/**`, `.claude/skills/**`, `.agents/skills/**`, `.codex/**`
 
-**Tests:** no stub (goal-based — content and command checks)
-- AC-0013, version half: a `test_t5_` case reads `version` from `pack.toml` with `tomllib` and from `plugin.json` with `json` and asserts they are equal; a delivery command check prints both and compares them to `3.1.28`.
-- AC-0013, fragment half: the fragment is created with `tools/changelog.py new`; then `git diff --name-only --diff-filter=A origin/main -- docs/product/changelog.d/` lists exactly one file, whose front matter names `core` at `3.1.28` and whose `## Highlights` has a `-` bullet; then the render command AC-0013 names, and `python3 tools/changelog.py validate`.
-- AC-0010, version-pin half: `PYTEST packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q`, with `git diff origin/main` on that file showing only the removed test.
+**Tests:** no stub (goal-based — command checks)
+- AC-0013, version half: `PYTEST packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q -k pack_versions_match`, plus a delivery command check that prints both versions and compares them to `3.1.29`.
+- AC-0013, fragment half: the fragment is created with `tools/changelog.py new`; then, after the delivery commit, `git diff --name-only --diff-filter=A origin/main -- docs/product/changelog.d/` lists exactly one file, whose front matter names `core` at `3.1.29` and whose `## Highlights` has a `-` bullet; then the render command AC-0013 names, and `python3 tools/changelog.py validate`.
+- AC-0010: `PYTEST packs/core/tests/skills/work-loop/test_work_intake_dispatch.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q`, with `git diff --quiet origin/main --` over both files.
 - AC-0003 and AC-0014: `python3 tools/lint-agents-md.py`, the two catalogue commands, and `git status --porcelain` after `make build-self`.
 
 **Effects:** none
 
-**Done when:** `PYTEST packs/core/tests/skills/work-loop/test_narrow_full_mode_contract.py -q -k t5_` and every command in T5's `Tests:` exit 0, and `git status --porcelain` is empty after the delivery commit.
+**Done when:** every command in T5's `Tests:` exits 0, and `git status --porcelain` is empty after the delivery commit.
 
 ## Rollout
 
-Ships as a core pack patch release, 3.1.27 to 3.1.28. Reversible by reverting the commit; no data or persisted state changes.
+Ships as a core pack patch release, 3.1.28 to 3.1.29. Reversible by reverting the commit; no data or persisted state changes.
 
 ## Risks
 
@@ -189,3 +189,6 @@ Ships as a core pack patch release, 3.1.27 to 3.1.28. Reversible by reverting th
 
 - 2026-10-28: spec approved by eugenelim
 - 2026-10-28: plan approved by eugenelim
+- 2026-10-28: contract amendment — core 3.1.28 shipped in PR #1638 before delivery; AC-0010, AC-0013 and T5 now target 3.1.29 and leave both existing suites unedited
+- 2026-10-28: amended spec approved by eugenelim
+- 2026-10-28: amended plan approved by eugenelim
