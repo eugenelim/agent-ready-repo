@@ -30,7 +30,6 @@ def test_t1_unfamiliar_trigger_permits_one_bounded_spike() -> None:
 
 
 _BUG_FIX = _WORK_LOOP.parents[1] / "bug-fix" / "SKILL.md"
-_GUIDES = Path(__file__).resolve().parents[5] / "guides" / "core"
 
 
 def _flat(text: str) -> str:
@@ -82,20 +81,7 @@ def test_t2_bug_fix_skill_hands_the_fix_to_work_loop() -> None:
     assert "failing test from step 2 remains" not in step10
 
 
-def test_t2_guides_state_the_handoff_and_drop_old_phrases() -> None:
-    for name in ("how-to/bug-fix.md", "explanation/core-pack.md"):
-        text = _flat((_GUIDES / name).read_text(encoding="utf-8"))
-        assert "`bug-fix` hands the fix to the build loop" in text, name
-        for banned in (
-            "without entering the spec / loop pipeline",
-            "several files",
-            "past one file",
-        ):
-            assert banned not in text, (name, banned)
-
-
 _WL_REFS = _WORK_LOOP.parent / "references"
-_REPO = Path(__file__).resolve().parents[5]
 _COUNT = r"(?:two|three|four|five|six|seven|eight|nine|ten|\d+)"
 
 
@@ -159,13 +145,13 @@ def test_t3_no_closed_mode_list_outside_work_loop_skill() -> None:
     count_re = re.compile(rf"\b{_COUNT}\s+(?:other\s+)?verification[\s-]+modes?\b", re.I)
     list_re = re.compile(r"TDD\s*(?:/|,)\s*goal-based", re.I)
     hits = []
-    for root in (_WORK_LOOP.parents[2], _REPO / "guides" / "core"):
-        for path in root.rglob("*.md"):
-            if path == _WORK_LOOP:
-                continue
-            text = _flat(path.read_text(encoding="utf-8"))
-            if count_re.search(text) or list_re.search(text):
-                hits.append(str(path))
+    # The guides/core half of this sweep lives in tests/roster/test_core_onboarding_documentation.py.
+    for path in _WORK_LOOP.parents[2].rglob("*.md"):
+        if path == _WORK_LOOP:
+            continue
+        text = _flat(path.read_text(encoding="utf-8"))
+        if count_re.search(text) or list_re.search(text):
+            hits.append(str(path))
     assert not hits, hits
 
 
@@ -179,7 +165,6 @@ def test_t3_named_files_point_at_step7_without_a_count() -> None:
         apm / "skills" / "new-spec" / "SKILL.md",
         apm / "skills" / "new-spec" / "references" / "spec-and-plan-contract.md",
         apm / "skills" / "new-spec" / "assets" / "spec.md",
-        _GUIDES / "explanation" / "core-pack.md",
     ]
     for path in files:
         text = _flat(path.read_text(encoding="utf-8"))

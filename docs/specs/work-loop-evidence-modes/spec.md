@@ -66,7 +66,7 @@ An agent running the core pack's build loop settles an unpredictable design with
 
 ## Testing Strategy
 
-- **Guidance content (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0020):** goal-based, exercised by pytest content tests in `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py`, each scoped to the section its rule lives in. A whole-file search would stay green if a rule moved out of the procedure an agent follows, so each test reads one bounded section.
+- **Guidance content (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0020):** goal-based, exercised by pytest content tests in `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py`, each scoped to the section its rule lives in. The halves that read `guides/core/` (AC-0005, and AC-0009's guide files) live in `tests/roster/test_core_onboarding_documentation.py`, because a pack test may not read above its own pack. A whole-file search would stay green if a rule moved out of the procedure an agent follows, so each test reads one bounded section.
 - **Regression of pinned guidance (AC-0016):** goal-based. The existing suites that pin these files run unedited.
 - **Routing behavior (AC-0017):** goal-based, by the same test file reading both `evals.json` files for the new cases; executing the cases against a model is not part of this delivery.
 - **Release (AC-0018):** goal-based, by the same test file reading both version fields.
