@@ -8,8 +8,8 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** RFC-0106 D1 (D4's clause that an intent's lifecycle state comes from the workspace record)
-- **Related:** ADR-0019 (the recursive intent ontology this restores as sole canon); ADR-0033 (`Level` as an open recognized set); ADR-0051 (the `workspace.toml` format whose per-initiative sections this reframes); ADR-0112 (an index over a corpus is generated or absent); RFC-0064 (the record that introduced the second hierarchy)
+- **Superseded in part:** none
+- **Related:** ADR-0019 (the recursive intent ontology this restores as sole canon); ADR-0033 (`Level` as an open recognized set); ADR-0051 (the `workspace.toml` format whose per-initiative sections this reframes); ADR-0112 (an index over a corpus is generated or absent); RFC-0064 (the record that introduced the second hierarchy); RFC-0106 D1 (supersedes in part D4's clause that an intent's lifecycle state comes from the workspace record; see Errata)
 
 ## Context
 

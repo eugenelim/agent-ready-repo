@@ -200,9 +200,12 @@ def test_errata_entry_links_the_rfc_and_holds_each_literal(rel: str) -> None:
 
 def test_adr_0119_names_the_superseded_part() -> None:
     text = (_REPO / _ADR_0119).read_text(encoding="utf-8")
-    lines = [line for line in text.splitlines() if line.startswith("- **Superseded in part:**")]
-    assert lines, "ADR-0119 has no Superseded in part line"
-    assert "RFC-0106 D1" in lines[0]
+    lines = text.splitlines()
+    related = [line for line in lines if line.startswith("- **Related:**")]
+    assert related, "ADR-0119 has no Related line"
+    assert "RFC-0106 D1" in related[0]
+    # The ADR metadata lint accepts only ADR references in this field.
+    assert "- **Superseded in part:** none" in lines
 
 
 @pytest.mark.parametrize("rel", sorted(_AMENDMENTS))

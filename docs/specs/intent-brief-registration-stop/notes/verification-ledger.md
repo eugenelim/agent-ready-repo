@@ -80,3 +80,7 @@ On 2026-10-28, after the amendment's review, the owner narrowed the rule: an int
 The restored registry is the head `workspace.toml` with T7's removed entries reversed back in. Its SHA-256 is `af96f57ad2fd053d1acf260e6c5dd97a785437eb1855b794ff5c1210dab847f0`, the pre-repair file byte for byte. The engine at `ff33d0dcc` ran `status` over the head tree carrying that registry, and the head engine ran `status` over the head tree. Of the 21 spec memberships in `canonical.ready`, `canonical.active`, or `canonical.blocked`, none differs in its `dispatchable` value, its placement, or the code and path of any finding in its own evaluation. The difference list is empty.
 
 On 2026-10-28 the owner, eugenelim, approved this empty difference list.
+
+## Controlled amendment: ADR-0119 names RFC-0106 D1 on its Related line
+
+On 2026-10-28, CI's `check-adr-shape` step refused ADR-0119: its `Superseded in part:` field accepts only ADR references, so W1's `RFC-0106 D1` entry there failed the lint. The owner, eugenelim, approved moving the pointer to the `Related:` line, setting `Superseded in part:` back to `none`, and leaving the § Errata entry unchanged. AC-0025, the plan's governance task, and the roster test now check the `Related:` line. `lint-adr-shape.py docs/adr` exits 0 after the change.

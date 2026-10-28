@@ -176,7 +176,7 @@ def test_waiter_on_unregistered_brief_with_bad_child_scope_is_blocked(tmp_path):
 **Tests:**
 - Criteria: AC-0025, AC-0026, and the RFC-0106 entry AC-0027's accepted-removal rows cite.
 - The brief's slice 7 text is amended to stop repo-origin intent and brief registration, and its slice 9 text to end tracker-origin registration once the tracker profile has a home on the artifact; the owner approves the wording.
-- Each wording, the brief's included, is shown to the owner and committed only as approved, and the approval is recorded in the ledger. ADR-0119's `Superseded in part:` line names RFC-0106 D1 for D4's lifecycle clause, and its entry says D4's other point is unaffected. ADR-0110's entry adds the brief file to what a declared value resolves to. The RFC-0106 entry authorises the three accepted removals and the two intended changes and records that tracker-origin intents and briefs keep registration until the tracker profile has an artifact home.
+- Each wording, the brief's included, is shown to the owner and committed only as approved, and the approval is recorded in the ledger. ADR-0119's `Related:` line names RFC-0106 D1 for D4's lifecycle clause, and its `Superseded in part:` line stays `none` because that field names only ADRs, and its entry says D4's other point is unaffected. ADR-0110's entry adds the brief file to what a declared value resolves to. The RFC-0106 entry authorises the three accepted removals and the two intended changes and records that tracker-origin intents and briefs keep registration until the tracker profile has an artifact home.
 - `tests/roster/test_intent_brief_registration_stop.py` asserts AC-0025's and AC-0026's names.
 
 **Done when:** each of the ten wordings carries the owner's approval in the ledger, and the roster assertion passes.
@@ -258,3 +258,4 @@ def test_waiter_on_unregistered_brief_with_bad_child_scope_is_blocked(tmp_path):
 - 2026-10-28: plan re-approved by eugenelim
 - 2026-10-28: spec re-approved by eugenelim after the controlled amendment adding AC-0035 (deferral anchors resolve through an open intent or brief file)
 - 2026-10-28: plan re-approved by eugenelim (T10 added)
+- 2026-10-28: owner approved moving ADR-0119's RFC-0106 D1 pointer to its `Related:` line, because the ADR metadata lint accepts only ADR references in `Superseded in part:` (AC-0025 amended)

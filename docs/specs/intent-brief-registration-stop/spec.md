@@ -37,7 +37,7 @@ A maintainer or agent who creates, readies, renames, or closes a repo-origin int
 - The intent rename treats a `workspace.toml` entry path like any other citation: it renames an intent with or without an entry, and repoints whatever `workspace.toml` text names the old path — `scripts/intent_rename_request.py` and `scripts/intent_rename.py`.
 - The instructions that add or move repo-origin intent and brief entries: `work-intake`, `intake-intent`, `author-delivery-brief` create and continue, `close-work`'s brief closeout, and the guides, architecture page, maintainer reference, and pack pages that repeat them. The `cooled_child_scope_unknown` definition in `workspace-status` SKILL.md and the schema guide.
 - The spec-status lint's deferral-anchor check, `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py` invariant (iv), also resolves an anchor naming an intent or brief file, through that file's non-terminal `Status:`, because a removed intent entry no longer carries it.
-- Errata or amendments, each citing RFC-0106 D1: ADR-0119 (with `Superseded in part:` set), ADR-0134, ADR-0110, RFC-0064, RFC-0083, and RFC-0106 (three accepted removals, two intended changes, and the tracker-origin limit); dated owner amendments on FEAT-0001, FEAT-0005, and FEAT-0007.
+- Errata or amendments, each citing RFC-0106 D1: ADR-0119 (with RFC-0106 D1 named on its `Related:` line), ADR-0134, ADR-0110, RFC-0064, RFC-0083, and RFC-0106 (three accepted removals, two intended changes, and the tracker-origin limit); dated owner amendments on FEAT-0001, FEAT-0005, and FEAT-0007.
 - The slice-7 rows of `docs/specs/workspace-retirement/retirement-record.md` § Equivalence and the re-owned Disposition rows, admitted by a controlled amendment of the `workspace-retirement` spec; the inventory rows this stop disposes or re-owns; and the brief's slice 7 and slice 9 text, amended for the tracker-origin limit.
 - Unchanged: tracker-origin intents and briefs, which keep their entries and writers because refresh binds the tracker profile through the entry alone; refresh; spec registration and every writer of spec entries; captured items; `close-work`'s spec moves and its dormant closure-packet registration field, which production never fills; the `place-bet`, `map-capabilities`, and `lean-canvas` suggestions, which only print text and never write `workspace.toml`.
 
@@ -169,7 +169,7 @@ Terms used below. Canonical membership, cooled, and dependency item are as the [
 **Governance and the retirement record**
 
 - [x] **AC-0025.** Each of these § Errata sections holds an entry dated on or after 2026-10-27 that links RFC-0106 and holds each literal listed for it:
-  - `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`: `D4`; and the ADR's `- **Superseded in part:**` line holds `RFC-0106 D1`;
+  - `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`: `D4`; and the ADR's `- **Related:**` line holds `RFC-0106 D1`, while its `- **Superseded in part:**` line stays `none` because that field names only ADRs;
   - `docs/adr/0134-intent-rename-sealed-identity-bound-transaction.md`: `D4`, `Applies to`, and `lock`;
   - `docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md`: `D2`, `D4`, `D7`, and `D9`;
   - `docs/rfc/0064-ini-001-ai-native-ecosystem.md`: `[brief_queue]`, `receive-brief`, `author-brief`, and `M1`;
