@@ -319,6 +319,8 @@ active-list findings manual, revalidates canonical eligibility, and performs a
 comment-preserving atomic write. Never edit `workspace.toml` directly as a
 fallback for a skipped or manual finding. Captured items registered outside `docs/product/captured/` are refused with `unmigrated_captured_item` until the `captured-to-file` repair moves them; `status` lists every captured-item file under its `captured` section.
 
+Intent and brief entries need no registry entry: `repair-plan` also holds an `intent-brief-drop` operation for each repo-origin entry for an intent under `docs/product/intents/` or a brief under `docs/product/briefs/` (never a captured item's entry), and `repair-apply --yes` removes it after the `needs` operations, keeping any entry whose `needs` remain. Details are in `references/mutate.md`.
+
 **Main output sections:**
 
 Format output in four sections (omit sections with no entries):

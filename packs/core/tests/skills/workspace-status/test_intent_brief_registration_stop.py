@@ -488,3 +488,475 @@ def test_status_names_no_unregistered_intent_or_brief(tmp_path: Path) -> None:
     _plant(tmp_path, files, (("brief_queue", "draft", tracker_entry),))
     named = {path for _, path in _findings(tmp_path)}
     assert not named & set(unregistered)
+
+
+# AC-0001 to AC-0006: the `intent-brief-drop` repair step ----------------------
+
+import copy  # noqa: E402
+import json  # noqa: E402
+import tomllib  # noqa: E402
+
+_WS_MODULE = "workspace_status_intent_brief_registration_stop_repair"
+_DROP = "intent-brief-drop"
+_PLAN = ".workspace-repair-plan.json"
+_NOTES = "docs/product/notes"
+_CAPTURED = "docs/product/captured"
+_PEER = "docs/specs/peer/spec.md"
+_SHIPPED = "docs/specs/shipped-one/spec.md"
+
+
+def _load_ws() -> ModuleType:
+    spec = importlib.util.spec_from_file_location(_WS_MODULE, _SCRIPTS / "workspace_status.py")
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[_WS_MODULE] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _row(
+    path: str, kind: str, mode: str = "repo-origin", needs: str = "[]", summary: str = "fixture"
+) -> str:
+    source = (
+        '{mode = "repo-origin"}'
+        if mode == "repo-origin"
+        else '{mode = "tracker-origin", ref = "example-service://ABC-1", revision = "r1"}'
+    )
+    return (
+        f'{{path = "{path}", kind = "{kind}", source = {source}, '
+        f'summary = "{summary}", needs = {needs}}}'
+    )
+
+
+def _intent_file(slug: str, extra: str = "") -> str:
+    return _intent(slug, "Draft", extra)
+
+
+def _drop_fixture(root: Path) -> Path:
+    """A registry holding every case the step must tell apart."""
+    typed = f'[{{type = "local", kind = "spec", path = "{_PEER}"}}]'
+    files = {
+        f"{INTENTS}/open-a.md": _intent_file("open-a"),
+        f"{INTENTS}/backlog-b.md": _intent_file("backlog-b"),
+        f"{INTENTS}/mis.md": _intent_file("mis"),
+        f"{INTENTS}/typed.md": _intent_file("typed"),
+        f"{INTENTS}/cooled.md": _intent_file("cooled"),
+        f"{INTENTS}/open-c.md": _intent_file("open-c"),
+        f"{BRIEFS}/b-one.md": _brief("b-one", "Executing"),
+        f"{BRIEFS}/b-two.md": _brief("b-two", "Executing"),
+        f"{BRIEFS}/b-three.md": _brief("b-three", "Executing"),
+        f"{BRIEFS}/tracked.md": _brief("tracked", "Draft"),
+        f"{_NOTES}/cap.md": "# A note\n\n- **Status:** Draft\n",
+        f"{_CAPTURED}/done.md": "# Done\n\n- **Status:** Open\n- **Kind:** intent\n",
+        _PEER: _spec_file("peer"),
+        "docs/specs/peer/plan.md": "# Plan\n\n- **Status:** Approved\n",
+        _SHIPPED: _spec_file("shipped-one", "Shipped"),
+        "docs/specs/shipped-one/plan.md": "# Plan\n\n- **Status:** Done\n",
+        "docs/lifecycle/cooled.json": _record("cooled", f"{INTENTS}/cooled.md"),
+        "AGENTS.md": "# Agents\n",
+    }
+    text = f"""# fixture header comment
+[backlog]
+open = [
+  # comment before open-a
+  {_row(f"{INTENTS}/open-a.md", "intent")},
+  # comment before the captured entry
+  {_row(f"{_NOTES}/cap.md", "intent")},
+  {_row(f"{_CAPTURED}/done.md", "intent")},
+  # comment before typed
+  {_row(f"{INTENTS}/typed.md", "intent", needs=typed)},
+  # comment before cooled
+  {_row(f"{INTENTS}/cooled.md", "intent", needs=typed)},
+  # comment before open-c
+  {_row(f"{INTENTS}/open-c.md", "intent")},
+]
+closed = []
+
+["ini-001"]
+name = "One"
+status = "active"
+milestone = "m1"
+
+["ini-001".work]
+queue = [
+  {_row(_SHIPPED, "spec")},
+  {_row(f"{INTENTS}/mis.md", "intent")},
+  {_row(_PEER, "spec")},
+]
+active = []
+shipped = []
+
+["ini-001".shaping_queue]
+active = []
+backlog = [
+  # comment before backlog-b
+  {_row(f"{INTENTS}/backlog-b.md", "intent")},
+]
+
+["ini-001".brief_queue]
+draft = [{_row(f"{BRIEFS}/tracked.md", "brief", mode="tracker-origin")}]
+executing = [
+  {_row(f"{BRIEFS}/b-one.md", "brief")},
+  # comment between the briefs
+  {_row(f"{BRIEFS}/b-two.md", "brief")},
+]
+
+["ini-002"]
+name = "Two"
+status = "active"
+milestone = "m2"
+
+["ini-002".brief_queue]
+executing = [
+  {_row(f"{BRIEFS}/b-three.md", "brief")},
+]
+"""
+    root.mkdir(parents=True, exist_ok=True)
+    (root / "workspace.toml").write_text(text, encoding="utf-8")
+    for rel, body in files.items():
+        target = root / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body, encoding="utf-8")
+    return root
+
+
+def _cli(root: Path, capsys: pytest.CaptureFixture[str], *args: str) -> tuple[int, dict[str, Any]]:
+    capsys.readouterr()
+    code = _WS.main([*args, "--root", str(root)])
+    out = capsys.readouterr().out.strip().splitlines()
+    return code, json.loads(out[-1]) if out else {}
+
+
+def _plan_of(root: Path, capsys: pytest.CaptureFixture[str]) -> dict[str, Any]:
+    code, data = _cli(root, capsys, "repair-plan")
+    assert code == 0, data
+    return data
+
+
+def _drops(data: dict[str, Any]) -> list[dict[str, Any]]:
+    return [op for op in data["automatic_operations"] if op["operation_type"] == _DROP]
+
+
+def _rewrite_plan(root: Path, mutate: Callable[[dict[str, Any]], None]) -> None:
+    data = json.loads((root / _PLAN).read_text(encoding="utf-8"))
+    mutate(data)
+    data["plan_id"] = _WS._recompute_plan_id(data)
+    (root / _PLAN).write_text(json.dumps(data, sort_keys=True), encoding="utf-8")
+
+
+def _registry(root: Path) -> dict[str, Any]:
+    return tomllib.loads((root / "workspace.toml").read_text(encoding="utf-8"))
+
+
+def _paths(registry: dict[str, Any]) -> list[str]:
+    found: list[str] = []
+
+    def walk(node: Any) -> None:
+        if isinstance(node, dict):
+            if isinstance(node.get("path"), str) and "kind" in node:
+                found.append(node["path"])
+            for value in node.values():
+                walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                walk(value)
+
+    walk(registry)
+    return found
+
+
+_WS = _load_ws()
+_REPO_ORIGIN = {
+    f"{INTENTS}/open-a.md",
+    f"{INTENTS}/backlog-b.md",
+    f"{INTENTS}/mis.md",
+    f"{INTENTS}/typed.md",
+    f"{INTENTS}/cooled.md",
+    f"{INTENTS}/open-c.md",
+    f"{BRIEFS}/b-one.md",
+    f"{BRIEFS}/b-two.md",
+    f"{BRIEFS}/b-three.md",
+}
+
+
+@pytest.fixture
+def drop_repo(tmp_path: Path) -> Path:
+    pytest.importorskip("tomlkit")
+    return _drop_fixture(tmp_path)
+
+
+def test_plan_holds_one_drop_per_repo_origin_intent_or_brief(
+    drop_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC-0001 and AC-0002: tracker-origin and other kinds get none."""
+    data = _plan_of(drop_repo, capsys)
+    drops = _drops(data)
+    assert {op["path"] for op in drops} == _REPO_ORIGIN
+    assert len(drops) == len(_REPO_ORIGIN)
+    by_path = {op["path"]: op for op in drops}
+    # A captured item's entry is kept whatever its kind, moving or already moved.
+    assert f"{_NOTES}/cap.md" not in by_path and f"{_CAPTURED}/done.md" not in by_path
+    assert by_path[f"{INTENTS}/open-a.md"]["entry_locator"] == {
+        "ini_slug": "", "collection": "backlog.open", "index": 0,
+    }
+    assert by_path[f"{INTENTS}/backlog-b.md"]["entry_locator"] == {
+        "ini_slug": "ini-001", "collection": "shaping_queue.backlog", "index": 0,
+    }
+    assert by_path[f"{BRIEFS}/b-two.md"]["entry_locator"] == {
+        "ini_slug": "ini-001", "collection": "brief_queue.executing", "index": 1,
+    }
+    assert by_path[f"{BRIEFS}/b-three.md"]["entry_locator"] == {
+        "ini_slug": "ini-002", "collection": "brief_queue.executing", "index": 0,
+    }
+    assert by_path[f"{INTENTS}/mis.md"]["entry_locator"]["collection"] == "work.queue"
+    assert by_path[f"{INTENTS}/cooled.md"]["kind"] == "intent"
+    assert by_path[f"{BRIEFS}/b-one.md"]["kind"] == "brief"
+    assert all(len(op["registry_fingerprint"]) == 64 for op in drops)
+    assert all(
+        set(op) == {"operation_type", "entry_locator", "path", "kind", "registry_fingerprint"}
+        for op in drops
+    )
+    assert f"{BRIEFS}/tracked.md" not in by_path
+    assert _SHIPPED not in by_path and _PEER not in by_path
+    assert json.loads((drop_repo / _PLAN).read_text())["automatic_operations"] == (
+        data["automatic_operations"]
+    )
+
+
+def _apply_without_drops(root: Path, capsys: pytest.CaptureFixture[str]) -> dict[str, Any]:
+    """The registry the same plan produces with its drop operations left out."""
+    _rewrite_plan(
+        root,
+        lambda d: d.update(
+            automatic_operations=[
+                op for op in d["automatic_operations"] if op["operation_type"] != _DROP
+            ]
+        ),
+    )
+    code, result = _cli(root, capsys, "repair-apply", "--yes")
+    assert code == 0, result
+    return _registry(root)
+
+
+def _prune(node: Any, doomed: set[str]) -> Any:
+    if isinstance(node, dict):
+        return {k: _prune(v, doomed) for k, v in node.items()}
+    if isinstance(node, list):
+        return [
+            _prune(v, doomed)
+            for v in node
+            if not (isinstance(v, dict) and v.get("path") in doomed)
+        ]
+    return node
+
+
+def test_apply_removes_drops_in_the_same_write_and_keeps_comments(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC-0003: the registry equals the drop-less apply minus the drop entries."""
+    pytest.importorskip("tomlkit")
+    with_drops = _drop_fixture(tmp_path / "a")
+    without = _drop_fixture(tmp_path / "b")
+    _plan_of(without, capsys)
+    expected_base = _apply_without_drops(without, capsys)
+    _plan_of(with_drops, capsys)
+    before = (with_drops / "workspace.toml").read_text(encoding="utf-8")
+    code, result = _cli(with_drops, capsys, "repair-apply", "--yes")
+    assert code == 0, result
+    assert result["applied"] is True
+    dropped = set(_REPO_ORIGIN)
+    assert _registry(with_drops) == _prune(expected_base, dropped)
+    after = (with_drops / "workspace.toml").read_text(encoding="utf-8")
+    assert not any(path in after for path in _REPO_ORIGIN)
+    assert f"{_CAPTURED}/cap.md" in after and f"{_CAPTURED}/done.md" in after
+    assert "# fixture header comment" in after
+    for kept in ("typed", "cooled", "open-c", "open-a", "backlog-b"):
+        assert f"# comment before {kept}" in after
+    assert "# comment between the briefs" in after
+    assert before != after
+    assert f"{BRIEFS}/tracked.md" in after
+    assert [r for r in result["per_operation"] if r.get("applied") is False] == []
+
+
+def test_one_plan_and_apply_leaves_none_and_the_next_plan_holds_no_drop(
+    drop_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC-0005."""
+    _plan_of(drop_repo, capsys)
+    code, result = _cli(drop_repo, capsys, "repair-apply", "--yes")
+    assert code == 0, result
+    registry = _registry(drop_repo)
+    remaining = set(_paths(registry))
+    assert not remaining & _REPO_ORIGIN
+    assert f"{BRIEFS}/tracked.md" in remaining
+    assert _PEER in remaining
+    assert {f"{_CAPTURED}/cap.md", f"{_CAPTURED}/done.md"} <= remaining
+    assert _drops(_plan_of(drop_repo, capsys)) == []
+
+
+def test_a_refused_needs_operation_keeps_the_entry_and_its_needs(
+    drop_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC-0004: a drop whose needs operation was refused keeps its entry."""
+    _plan_of(drop_repo, capsys)
+    waiter = drop_repo / INTENTS / "typed.md"
+    waiter.write_text(waiter.read_text(encoding="utf-8") + "\nedited after planning\n")
+    code, result = _cli(drop_repo, capsys, "repair-apply", "--yes")
+    assert code == 0, result
+    refused = [r for r in result["per_operation"] if r.get("applied") is False]
+    assert any(r["reason"] == "waiting_item_changed" for r in refused)
+    assert any(r["reason"] == "entry_has_needs" for r in refused)
+    registry = _registry(drop_repo)
+    kept = [
+        e for e in registry["backlog"]["open"] if e["path"] == f"{INTENTS}/typed.md"
+    ]
+    assert len(kept) == 1 and kept[0]["needs"]
+    assert not set(_paths(registry)) & (_REPO_ORIGIN - {f"{INTENTS}/typed.md"})
+
+
+def test_a_stale_locator_under_a_recomputed_plan_id_is_refused(
+    drop_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC-0004: the entry at the planned index is not the planned one."""
+    _plan_of(drop_repo, capsys)
+
+    def stale(data: dict[str, Any]) -> None:
+        for op in data["automatic_operations"]:
+            if op["operation_type"] == _DROP and op["path"] == f"{INTENTS}/open-a.md":
+                op["entry_locator"]["index"] = 1
+
+    _rewrite_plan(drop_repo, stale)
+    code, result = _cli(drop_repo, capsys, "repair-apply", "--yes")
+    assert code == 0, result
+    assert [r["reason"] for r in result["per_operation"] if r.get("applied") is False] == [
+        "entry_locator_mismatch"
+    ]
+    assert f"{INTENTS}/open-a.md" in _paths(_registry(drop_repo))
+    assert f"{_CAPTURED}/cap.md" in _paths(_registry(drop_repo))
+
+
+@pytest.mark.parametrize(
+    ("target", "locator"),
+    [
+        (_PEER, {"ini_slug": "ini-001", "collection": "work.queue", "index": 2}),
+        (
+            f"{BRIEFS}/tracked.md",
+            {"ini_slug": "ini-001", "collection": "brief_queue.draft", "index": 0},
+        ),
+    ],
+    ids=["spec-entry", "tracker-origin-entry"],
+)
+def test_an_edited_plan_naming_a_spec_or_tracker_entry_is_refused(
+    drop_repo: Path,
+    capsys: pytest.CaptureFixture[str],
+    target: str,
+    locator: dict[str, Any],
+) -> None:
+    """AC-0004: only a repo-origin intent or brief canonical entry is dropped."""
+    _plan_of(drop_repo, capsys)
+    kind = "spec" if target == _PEER else "brief"
+
+    def edit(data: dict[str, Any]) -> None:
+        template = next(op for op in data["automatic_operations"] if op["operation_type"] == _DROP)
+        forged = copy.deepcopy(template)
+        forged.update(path=target, kind="brief" if kind == "spec" else kind)
+        forged["entry_locator"] = locator
+        data["automatic_operations"].append(forged)
+
+    _rewrite_plan(drop_repo, edit)
+    code, result = _cli(drop_repo, capsys, "repair-apply", "--yes")
+    assert code == 0, result
+    assert target in _paths(_registry(drop_repo))
+    refused = [r for r in result["per_operation"] if r.get("applied") is False]
+    assert len(refused) == 1
+
+
+def test_a_queue_operation_that_shifts_an_array_cannot_misdirect_a_drop(
+    drop_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """The mis-collected intent sits behind a spec a queue operation removes."""
+    data = _plan_of(drop_repo, capsys)
+    assert any(op["operation_type"] == "queue-to-shipped" for op in data["automatic_operations"])
+    mis = next(op for op in _drops(data) if op["path"] == f"{INTENTS}/mis.md")
+    assert mis["entry_locator"]["index"] == 1
+    code, result = _cli(drop_repo, capsys, "repair-apply", "--yes")
+    assert code == 0, result
+    registry = _registry(drop_repo)
+    assert [e["path"] for e in registry["ini-001"]["work"]["queue"]] == [_PEER]
+    assert [e["path"] for e in registry["ini-001"]["work"]["shipped"]] == [_SHIPPED]
+
+
+def test_legacy_migration_routes_and_selections_are_unchanged(
+    drop_repo: Path,
+) -> None:
+    """AC-0006: the repair adds a step and touches neither the routes nor the selections."""
+    assert _DROP in _WS._VALID_OPERATION_TYPES
+    for name in ("_plan_legacy_item", "_LEGACY_KIND_BY_TYPE", "_CAPTURED_LEGACY_COLLECTIONS"):
+        assert hasattr(_WS, name)
+    assert frozenset(
+        {"backlog.open", "backlog.closed", "shaping_queue.backlog", "shaping_queue.active"}
+    ) == _WS._CAPTURED_LEGACY_COLLECTIONS
+    assert _WS._LEGACY_KIND_BY_TYPE == {
+        "shape": "intent", "strategy": "intent", "research": "research", "design": "design",
+    }
+    assert frozenset(
+        {"shape", "research", "strategy", "design", "signal"}
+    ) == _WS._CAPTURED_SHAPING_TYPES
+    assert frozenset({"defect", "design", "research", "intent"}) == _WS._CAPTURED_RECORD_KINDS
+
+
+def test_a_legacy_entry_is_not_dropped(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """AC-0006: a legacy entry keeps its route and gets no drop operation."""
+    pytest.importorskip("tomlkit")
+    (tmp_path / "AGENTS.md").write_text("# Agents\n", encoding="utf-8")
+    (tmp_path / "workspace.toml").write_text(
+        '[backlog]\nopen = [{slug = "old-thing", type = "shape", summary = "an old shape"}]\n'
+        "closed = []\n",
+        encoding="utf-8",
+    )
+    data = _plan_of(tmp_path, capsys)
+    assert _drops(data) == []
+    kinds = [op["operation_type"] for op in data["automatic_operations"]]
+    assert kinds == ["captured-to-file"]
+    assert data["automatic_operations"][0]["entry_locator"] == {
+        "collection": "backlog.open", "index": 0,
+    }
+
+
+@pytest.mark.parametrize(
+    ("target", "after_move"),
+    [(f"{_NOTES}/cap.md", f"{_CAPTURED}/cap.md"), (f"{_CAPTURED}/done.md", f"{_CAPTURED}/done.md")],
+    ids=["moving-captured-intent", "migrated-captured-intent"],
+)
+def test_an_edited_plan_naming_a_captured_intent_entry_is_refused(
+    drop_repo: Path,
+    capsys: pytest.CaptureFixture[str],
+    target: str,
+    after_move: str,
+) -> None:
+    """AC-0002, AC-0004: a captured item's entry is kept, by its pre-move path too."""
+    workspace = _registry(drop_repo)
+    index = next(i for i, e in enumerate(workspace["backlog"]["open"]) if e["path"] == target)
+    fingerprint = _WS._entry_fingerprint(
+        "", "backlog.open", index, workspace["backlog"]["open"][index]
+    )
+    _plan_of(drop_repo, capsys)
+
+    def edit(data: dict[str, Any]) -> None:
+        data["automatic_operations"].append({
+            "operation_type": _DROP,
+            "entry_locator": {"ini_slug": "", "collection": "backlog.open", "index": index},
+            "path": target,
+            "kind": "intent",
+            "registry_fingerprint": fingerprint,
+        })
+
+    _rewrite_plan(drop_repo, edit)
+    code, result = _cli(drop_repo, capsys, "repair-apply", "--yes")
+    assert code == 0, result
+    assert [r["reason"] for r in result["per_operation"] if r.get("applied") is False] == [
+        "entry_not_droppable"
+    ]
+    assert after_move in _paths(_registry(drop_repo))
