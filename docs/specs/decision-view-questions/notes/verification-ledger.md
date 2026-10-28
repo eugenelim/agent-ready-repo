@@ -42,16 +42,34 @@ All tests are in `browser_checks.py`. The List / Graph / Context switch is gone,
 | Export | Commit | Command | Bytes | Records | ADR / RFC | Accepted / Superseded / Rejected | Relationships |
 | --- | --- | --- | ---: | ---: | --- | --- | ---: |
 | Base | 47e1b2836 (checked out as a scratch worktree) | `python3 packs/repo-governance/.apm/skills/navigate-decisions/scripts/navigate_decisions.py export --root /private/tmp/ndq/base-wt --destination /private/tmp/ndq/cmp --name base.html` | 6,706,491 | 258 | 149 / 109 | 254 / 3 / 1 | 883 |
-| Final | 520986b62 (HEAD with the 2.5.0 projections) | same, `--root .` and `--name head.html` | 6,705,049 | 258 | 149 / 109 | 254 / 3 / 1 | 883 |
+| Final | f9a6b8b87 (final code commit, after the review fixes), 2026-10-27 | same, `--root .`, `--destination /private/tmp/ndq/rev` and `--name decisions.html` | 6,706,101 | 258 | 149 / 109 | 254 / 3 / 1 | 883 |
 
-Every count matches (records, kinds, lifecycle values, relationships); the file shrinks by 1,442 bytes. Counts come from the `nav-data` JSON island of each file.
+Every count matches (records, kinds, lifecycle values, relationships); the file shrinks by 390 bytes. Counts come from the `nav-data` JSON island of each file. An intermediate export at 520986b62 (before review) gave the same counts at 6,705,049 bytes.
 
 ## Screenshots (AC-0028 evidence)
 
-`notes/screens/<width>-<theme>-first.png` (no hash, the first screen) and `<width>-<theme>-picked.png` (first Recently decided row clicked), true viewports of 320x800, 1280x900, 1680x1000 and 2560x1200, light and dark: 16 files, from the final export (`/private/tmp/ndq/cmp/head.html`), captured with Playwright's bundled Chromium.
+`notes/screens/<width>-<theme>-first.png` (no hash, the first screen) and `<width>-<theme>-picked.png` (first Recently decided row clicked), true viewports of 320x800, 1280x900, 1680x1000 and 2560x1200, light and dark: 16 files, recaptured with reduced motion after the round-1 review fixes (commit 138c59f38, code at 3730dcbfa) with Playwright's bundled Chromium. The later guidance-context fix (294268ec4) changes neither the first screen nor the picked detail. Captures of the other views (By area with sections open, Replaced, Still being decided, Lineage, Browse all, Guidance context) and of the navigate-intents view were reviewed from a scratch directory and not committed.
 
 ## Build and lint (T4)
 
 - `make build-self`: regenerated the `.agents/` and `.claude/` projections (committed); a second run leaves no diff.
 - `uv run --with ruff ruff check .`, `uv run --with mypy python tools/lint-mypy.py`, the navigate-decisions suites with the two roster tests and `test_skill_html_view_tokens.py`, `python3 tools/check_view_base_parity.py` and `python3 tools/changelog.py validate`: see the T4 report; all exit 0.
 - Edited-test list checked by comparing function ASTs against 47e1b2836: 18 changed functions and the `_ZONE_VIEWS` constant, all in `browser_checks.py`, all in the table above. `test_html_publication.py` and `test_query_contract.py` have no changed function.
+
+## Code review record (AC-0028)
+
+- Spec stage: shaping review clean after 4 rounds; adversarial review clean after 4 rounds (25, 11, 4, then 0 sustained findings); secure-design review clean after 3 rounds.
+- `experience-reviewer` and `frontend-reviewer` ran as installed agents in this session (`packs/experience-design/.apm/agents/experience-reviewer.md` and `packs/frontend-engineering/.apm/agents/frontend-reviewer.md`), seeded with the committed screens, captures of every view across the width and theme matrix, the navigate-intents export as comparator, the `skill-html-views` direction and token file, and RFC-0108 D1 rules 1, 2, 6 and 7.
+- Round 1 (code at 6f9e60191): security 1 Concern sustained (quadratic `areasOf` de-duplication on a hostile Areas field). Adversarial: 1 Concern and 2 Nits sustained (SKILL.md and changelog claimed a count for Browse all; ledger caller count; stale CSS comment), 1 refuted, 1 indeterminate resolved by evidence (the base timing check waited for a visible element; it now waits for the visible state line). Frontend: 1 Minor and 2 Nits sustained (detail links targeted the picked route; empty Questions landmark on a damaged export; misleading comment), 4 refuted. Experience: 15 raised, 2 sustained as Minor and Nit (list head before Expand all and the Key; gap under the 1280 tab row), 13 refuted against the pinned spec and the owner-approved slice 1. All sustained items fixed in 52a60d91a; each new check fails on the previous code and passes now.
+- Round 2 (delta 6f9e60191..138c59f38): security clean after adjudication; adversarial clean after adjudication (2 Nits refuted); frontend 1 Minor sustained (guidance context kept Expand all and the Key above its heading), fixed in 294268ec4 with `test_the_guidance_context_puts_its_heading_before_expand_all_and_the_key` (fails before, passes after). Experience: the same guidance-context item, and 1 Minor sustained: at 320 px the first 800 px viewport shows no full record row; the owner accepted it (below). 5 refuted.
+- Round 3 (delta 138c59f38..f9a6b8b87): frontend clean.
+- Result: no Major or Blocker remains after adjudication.
+
+## Owner approval (AC-0029)
+
+- 2026-10-27: eugenelim opened the real export of this repository and approved the look ("looks good on my side"): the question rail as approved, matching the navigate-intents view's layout. The same day the owner accepted the 320 px first screen as is (the rail stacks one link per line, as in navigate-intents, so the first record row starts just below the first 800 px viewport).
+
+## Final gates
+
+- At f9a6b8b87: `uv run --with ruff ruff check .` pass; `uv run --with mypy python tools/lint-mypy.py` pass (156 files); the navigate-decisions suites, `test_skill_html_view_tokens.py` and the two roster tests: 414 passed; `python3 tools/check_view_base_parity.py` ok; `python3 tools/changelog.py validate` exit 0; `browser_checks.py` on bundled Chromium: 598 passed in 330 s; `make build-self` leaves no diff.
+- T4's review-fix work was applied by the controller, not an implementer subagent, and is recorded as a `human-directed` decline in the cohort dispatch record.

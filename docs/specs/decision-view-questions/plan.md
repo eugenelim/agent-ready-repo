@@ -1,7 +1,7 @@
 # Plan: Decision view questions
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** RFC-0108 D1 rules 1, 2, 6, 7 and its errata of 2026-10-17, and `docs/design/tokens/skill-html-views.md` § Layout (source); `packs/core/.apm/skills/navigate-intents/scripts/view_src/chrome.js` `buildNav`, `labels.js` `QUESTIONS` and `RAIL_GROUPS`, `detail-render.js` `listSummary`, and `view_assets/view.css` rail rules (analogous implementation); `packs/core/tests/skills/navigate-intents/view_browser_checks.py` and `docs/specs/intent-view-tree-and-roadmap/` (tests and precedent criteria); `docs/specs/decision-view-style/` (the slice this builds on). Deviation: the intents view routes by query parameters (`#q=…&node=…`); this view keeps its `#<view>/<id>` grammar so every shipped link keeps working, and adds question keys as views.
 
 > **Plan contract:** this is the implementation strategy. It may change
