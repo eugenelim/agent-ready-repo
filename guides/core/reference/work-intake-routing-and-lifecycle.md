@@ -25,8 +25,8 @@ delegation from neutral intake is the same route, not a second public answer.
 
 | User intent | Result |
 | --- | --- |
-| Start or do work | Select one artifact route, write it, register it, then invoke the owning processor when dispatchable. A defect start writes only its captured-item file under `docs/product/captured/` and registers nothing |
-| Remember work | Write and register a Draft, non-dispatchable artifact; stop before implementation. A defect, design, or research item is written as its own file under `docs/product/captured/` with no entry |
+| Start or do work | Select one artifact route, write it, register it only when it is a spec or a tracker-origin intent or brief, then invoke the owning processor when dispatchable. A defect start writes only its captured-item file under `docs/product/captured/` and registers nothing |
+| Remember work | Write a Draft, non-dispatchable artifact; stop before implementation. Only a spec or a tracker-origin intent or brief is registered. A repo-origin intent or brief, and a defect, design, or research item, is written as its own file with no entry |
 | Inspect status | Return `workspace-status` lifecycle, findings, and next actions without mutation |
 | Refresh requirements | Resolve an existing registered artifact and exact configured profile processor, then present a reviewed field delta |
 | Admit a shaping handoff | Validate bounded context, resolve its semantic destination, and continue through an existing brief or spec processor |
@@ -55,12 +55,12 @@ invoke `new-spec`.
 
 ## Delivery-brief lifecycle
 
-Use the brief's status and its matching `brief_queue` collection together.
+A repo-origin brief's lifecycle is its `Status:` alone. A tracker-origin brief's entry sits in the collection that matches its status.
 
 | Status | When it applies | Next transition |
 | --- | --- | --- |
 | `Draft` | The Ready gate has not passed; no child is `Implementing` or `Shipped`. | Review through `author-delivery-brief continue`. |
-| `Ready` | The gate passed; no child is `Implementing` or `Shipped`. Zero child specs is valid. | Move to `Executing` when child execution evidence first exists. |
+| `Ready` | The gate passed; no child is `Implementing` or `Shipped`. Zero child specs is valid. | Set `Executing` when child execution evidence first exists. |
 | `Executing` | At least one child is `Implementing` or `Shipped`, and the outcome remains open. | Continue delivery or close explicitly. |
 | `Shipped` | The human confirms the outcome is complete; the map is non-empty and every mapped child is `Shipped`. | Terminal. |
 | `Withdrawn` | The human stops the brief before any child reaches `Implementing` or `Shipped`. | Terminal. |

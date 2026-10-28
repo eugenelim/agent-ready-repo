@@ -750,6 +750,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_captured_item_registration_stop.py
 
+      # AC-0021 to AC-0026 of intent-brief-registration-stop: no writer, guide or
+      # pack page tells anyone to register a repo-origin intent or brief, and the
+      # governing errata and amendments name the stop. Sits ABOVE the bulk tests/ step.
+      - name: pytest intent-brief registration stop (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_intent_brief_registration_stop.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a

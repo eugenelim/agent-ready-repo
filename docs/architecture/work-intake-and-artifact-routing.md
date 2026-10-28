@@ -136,7 +136,7 @@ spec's deferral marker is the loop contract's
 
 ### Delivery-brief lifecycle
 
-The brief artifact and its `brief_queue` membership carry the same state. Child
+A repo-origin brief's lifecycle is its `Status:` alone; a tracker-origin brief's entry carries the same state. Child
 specs constrain that state but never change automatically and are never
 rewritten during brief closeout.
 
@@ -254,8 +254,8 @@ invocation already supplies bounded content at the matching pinned revision.
     references, obligations, dependencies, completion event, and independent
     authority facts. It does not close or disposition the work.
     When a brief-backed child first reaches `Implementing`, or when a shipped
-    child proves execution has occurred, the brief must be `Executing` in both
-    the artifact and `brief_queue`; reconciliation fails closed on a mismatch.
+    child proves execution has occurred, the brief must be `Executing` in
+    its `Status:` (and, for a tracker-origin brief, its entry); reconciliation fails closed on a mismatch.
 11. `close-work` reacquires evidence, inventories the plan's Design/LLD and
     implementation findings, and requires human whole-surface freshness review.
     Unowned non-inferable truth, a stale surface, or a live obligation blocks.

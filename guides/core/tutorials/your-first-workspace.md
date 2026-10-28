@@ -149,13 +149,11 @@ processor   none
 source      spec/workspace-core follow-on
 ```
 
-Confirm. The skill writes the Draft intent first, then registers a schema-valid
-entry containing `path`, `kind`, `source`, `summary`, and `needs`.
+Confirm. The skill writes the Draft intent as its own file and adds no
+`workspace.toml` entry, because a repo-origin intent is its file alone.
 
-**You should see:** the new intent artifact and its non-dispatchable workspace
-entry. The artifact, not a TOML comment or chat transcript, is the requirements
-authority. The workspace entry keeps a short current/next summary and hard
-dependencies only. Because the item is not independently shippable yet, no
+**You should see:** the new intent artifact. The artifact, not a TOML comment or
+chat transcript, is the requirements authority. Because the item is not independently shippable yet, no
 processor is dispatched.
 
 For more on how intake routes items, see [Start a software change](../how-to/start-or-remember-work.md).

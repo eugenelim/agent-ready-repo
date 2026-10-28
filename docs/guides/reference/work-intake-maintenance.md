@@ -32,7 +32,7 @@ registered active spec can enter `canonical.active`.
 
 ## Maintaining brief lifecycle state
 
-Keep the brief header and its `brief_queue` collection identical. Reconcile
+A repo-origin brief's lifecycle is its `Status:` alone and it has no entry. Keep a tracker-origin brief's header and its entry's collection identical. Reconcile
 child progress with this closed matrix:
 
 | Brief state | Required child evidence |

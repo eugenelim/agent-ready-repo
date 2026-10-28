@@ -4,20 +4,20 @@
     {
       "id": 1,
       "prompt": "Start work from a normalized repo-origin request with one minimal opportunity and no shippable contract.",
-      "expected_output": "The agent validates the normalized intake, realpath-confines docs/product/intents/<slug>.md, materializes a Draft minimal intent from assets/minimal-intent.md, registers a non-dispatchable workspace entry, and stops without processor dispatch.",
+      "expected_output": "The agent validates the normalized intake, realpath-confines docs/product/intents/<slug>.md, materializes a Draft minimal intent from assets/minimal-intent.md, adds no workspace entry because a repo-origin intent is its file alone, and stops without processor dispatch.",
       "assertions": [
         "Consumes normalized intake rather than raw source instructions",
-        "Writes the artifact before registering the workspace entry",
-        "Reports non-dispatchable Draft membership for the minimal intent",
+        "Writes the artifact and registers no workspace entry for a repo-origin intent",
+        "Reports a non-dispatchable Draft intent with no membership",
         "Does not require optional shaping packs"
       ]
     },
     {
       "id": 2,
       "prompt": "Remember this follow-up from a normalized request, then stop without implementation.",
-      "expected_output": "The agent validates the normalized intake, materializes a Draft artifact, registers non-dispatchable lifecycle membership, and stops without implementation.",
+      "expected_output": "The agent validates the normalized intake, materializes a Draft artifact, registers a non-dispatchable entry only for a spec or tracker-origin artifact, and stops without implementation.",
       "assertions": [
-        "Records Draft membership",
+        "Registers a Draft entry only for a spec or tracker-origin artifact",
         "Does not dispatch to implementation",
         "Preserves source locator and revision"
       ]
@@ -56,10 +56,10 @@
     {
       "id": 6,
       "prompt": "Start a coherent multi-feature outcome from normalized intake.",
-      "expected_output": "The agent routes the multi-spec outcome to a Draft brief, registers brief lifecycle membership, and does not create speculative specs.",
+      "expected_output": "The agent routes the multi-spec outcome to a Draft brief, registers no workspace entry for a repo-origin brief, and does not create speculative specs.",
       "assertions": [
         "Selects author-delivery-brief create as processor",
-        "Registers Draft brief membership",
+        "Registers no membership for a repo-origin Draft brief",
         "Does not create child specs"
       ]
     },
@@ -327,7 +327,7 @@
         "Does not invoke the allocator for an unmapped altitude",
         "Uses the unprefixed destination",
         "Records no ordinal marker, because none is owed at this altitude",
-        "Admits and registers the intent as usual"
+        "Admits the intent as usual and registers no entry for a repo-origin intent"
       ]
     },
     {

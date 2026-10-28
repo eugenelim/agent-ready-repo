@@ -64,7 +64,7 @@ description, labels, assignees). Requires the `gh` CLI installed; for private
 repos, run `gh auth login` first.
 
 **Writes:** `docs/product/briefs/<slug>.md` — only after you approve the draft.
-`workspace.toml` is updated when `receive-brief` registers the brief in the queue.
+`workspace.toml` is updated when the brief is registered in the queue.
 
 Nothing else changes. The Milestone and issues in GitHub are never modified.
 

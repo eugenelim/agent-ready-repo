@@ -162,9 +162,14 @@ item leaves it unsettled. An older captured item may still have a `workspace.tom
 entry. Closing one deletes that entry in the same change as the file's `Status:`
 edit, and never moves it to `[backlog].closed`.
 
-Registering an intent, a brief, or a spec, including remembering one, is
-unchanged: the artifact comes first, and its entry follows the rest of this
-section.
+A repo-origin intent, a repo-origin brief, and a captured item are each their
+own file with no `workspace.toml` entry: write the file and register nothing. A
+tracker-origin intent or brief is registered as before, because refresh checks
+its tracker profile through the entry alone. A spec is registered, including
+when remembered. In each registered case the artifact comes first, and its entry
+follows the rest of this section. A repo-origin intent or brief that still holds
+an entry goes to the `workspace-status` `intent-brief-drop` repair before this
+workflow changes it.
 
 For a separated follow-on from an amended spec, materialize the follow-on's
 owning artifact before registration. The follow-on's current state changes in
@@ -305,7 +310,7 @@ shippability, verifiability, durability needs, and cited defect evidence:
 | Explicit bounded direct-light start | none | none | `work-loop` |
 | Bounded work needing durability or elevated assurance | spec | current durable path | `new-spec` |
 | Coherent multi-slice or cross-repository outcome | brief | current brief path | `author-delivery-brief create` or `continue` |
-| Remember for later | intent path (registered), or a captured-item file with no membership for a defect, design, or research item | non-dispatchable | none |
+| Remember for later | repo-origin intent path with no membership (a tracker-origin intent is registered), or a captured-item file with no membership for a defect, design, or research item | non-dispatchable | none |
 | Cited regression or defect evidence | captured-item file under `docs/product/captured/`, no membership | ready only after canonical context exists | `bug-fix` |
 | Incomplete or ambiguous input | current named-gap behavior | non-dispatchable | none |
 
@@ -339,9 +344,10 @@ helper to sequence registration and the processor handoff. Dispatch is allowed
 only after both writes are durable.
 
 A route whose returned mutation does not register, such as remembering a defect,
-design, or research item or starting a defect, writes no entry. Call the
+design, or research item, starting a defect, or starting or remembering a
+repo-origin intent or brief, writes no entry. Call the
 transaction with no registration step: it takes the writer lock, materializes the
-captured-item file, and dispatches the processor, and `workspace.toml` is left
+artifact file, and dispatches the processor, and `workspace.toml` is left
 byte-identical.
 
 The intake transaction participates in the shared workspace-writer lock at
@@ -414,12 +420,14 @@ admission, whatever its `Level`. When an operator needs to change an existing
 intent's token or name, run
 `scripts/intent_rename.py`: it retires the old path with a tombstone, allocates
 a fresh target ordinal, repoints citations, and can recover an interrupted
-transaction.
+transaction. The rename repoints any `workspace.toml` text that names the old
+path and needs no entry; a repo-origin intent has none.
 
-After the owner returns a durable artifact, register it as a Draft,
-non-dispatchable entry with repository-relative path, source provenance,
-summary, and hard dependencies. Stop after registration and report that there
-is no delivery processor dispatch.
+After the owner returns a durable artifact, register a tracker-origin intent as
+a Draft, non-dispatchable entry with repository-relative path, source
+provenance, summary, and hard dependencies, and register nothing for a
+repo-origin intent. Stop and report that there is no delivery processor
+dispatch.
 
 ### 7. Refresh
 
@@ -512,8 +520,8 @@ allowed-tools:
     the `workspace-status` result.
   - Write - create a new canonical artifact after realpath and symlink
     confinement checks.
-  - Edit - register the already-materialized artifact in `workspace.toml`, or
-    rollback the registration attempt before dispatch.
+  - Edit - register an already-materialized spec or tracker-origin artifact in
+    `workspace.toml`, or rollback the registration attempt before dispatch.
   - Bash - run local Python validation or the `workspace-status` backend with
     discrete arguments; do not use network commands.
 

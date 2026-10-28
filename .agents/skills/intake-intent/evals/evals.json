@@ -4,7 +4,7 @@
     {
       "id": "minimum-repository-intent",
       "prompt": "Capture this outcome and boundary as a repository intent for later shaping. Do not choose a solution artifact.",
-      "expected_output": "Create one Draft repository intent containing the minimum admission fields, register it only when requested, and stop without RFC, brief, spec, or execution work.",
+      "expected_output": "Create one Draft repository intent containing the minimum admission fields, register it only when requested and tracker-origin, and stop without RFC, brief, spec, or execution work.",
       "assertions": [
         "Creates exactly one Draft repository intent",
         "Includes outcome, boundary, owner, unresolved questions, projection, and source",

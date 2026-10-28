@@ -19,7 +19,7 @@ This guide picks up after first install. It explains how each persona fits into 
 
 ## PM
 
-The "PM" section covers the full shaping-room human path across altitudes 0 and 1 — three sub-personas whose work converges on the same output: a DoR-ready brief in `[brief_queue]`. The product strategist sets direction at altitude 0. The product engineer shapes initiatives at altitude 1. The intake PM routes tracker issues into the brief queue.
+The "PM" section covers the full shaping-room human path across altitudes 0 and 1 — three sub-personas whose work converges on the same output: a DoR-ready brief, meaning a brief whose `Status:` is `Ready`. The product strategist sets direction at altitude 0. The product engineer shapes initiatives at altitude 1. The intake PM routes tracker issues into Draft briefs.
 
 ### Altitude 0: Direction-setting
 
@@ -35,9 +35,9 @@ Before a signal enters this sequence, it is made durable. The [work intake](../h
 
 ### Tracker intake
 
-A PM who lives in a tracker takes a shorter path into the brief queue. There is no generic intake skill — each tracker ships its own: `jira-brief-intake` and `jira-align-brief-intake` (the `atlassian` pack), `linear-brief-intake` (`linear`), and `github-brief-intake` (`github`). Each acquires the source read-only, maps its metadata to DoR fields, and prompts interactively for anything the tracker does not capture (Appetite, Rabbit holes, Instrumentation). The brief enters `[brief_queue].draft` with an `Epic:` back-link to the originating tracker issue. When the spec ships, "Fixes #NNN" in the PR body auto-closes the issue. The PM does not need to leave their tracker — the platform adapts to the tracker, not the other way around.
+A PM who lives in a tracker takes a shorter path to a Draft brief. There is no generic intake skill — each tracker ships its own: `jira-brief-intake` and `jira-align-brief-intake` (the `atlassian` pack), `linear-brief-intake` (`linear`), and `github-brief-intake` (`github`). Each acquires the source read-only, maps its metadata to DoR fields, and prompts interactively for anything the tracker does not capture (Appetite, Rabbit holes, Instrumentation). The brief is written as a Draft, with an entry in `[brief_queue].draft` because it is tracker-origin, and an `Epic:` back-link to the originating tracker issue. When the spec ships, "Fixes #NNN" in the PR body auto-closes the issue. The PM does not need to leave their tracker — the platform adapts to the tracker, not the other way around.
 
-All three paths converge here: a DoR-ready brief in the queue. From there, `author-delivery-brief continue` decomposes confirmed slices into specs and routes them to `[work].queue` for an engineer or agent to execute.
+All three paths converge here: a Ready brief. From there, `author-delivery-brief continue` decomposes confirmed slices into specs and routes them to `[work].queue` for an engineer or agent to execute.
 
 **Source journey maps:**
 [product-strategist-sets-direction](../../../docs/product/journeys/product-strategist-sets-direction.md) ·

@@ -17,9 +17,10 @@ Your shaping work has named the outcome and boundaries. Start the Core handoff w
 Start this shaped intent through Core intake: workspace owners need export retention controls, with the confirmed outcome and boundaries preserved.
 ```
 
-Core's `work-intake` writes the canonical artifact, registers it in
-`workspace.toml`, and reports the route. It dispatches a processor only after
-both writes succeed.
+Core's `work-intake` writes the canonical artifact and reports the route. A
+repo-origin intent is its file alone, with no `workspace.toml` entry; a spec or
+a tracker-origin artifact is also registered. It dispatches a processor only
+after every write succeeds.
 
 ## Choose the route
 

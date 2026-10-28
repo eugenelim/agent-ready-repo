@@ -70,9 +70,12 @@ passing test, ownership, writability, or a prior approval.
    Spec map is fully Shipped and the human confirms the outcome is complete.
    Recommend `Withdrawn` when work stops before any child reaches Implementing
    or Shipped, and `Cancelled` when work stops after that execution evidence
-   exists. Preserve every child status. Updating the brief and moving its exact
-   workspace entry to the matching terminal collection is one separately
-   confirmed effect. A brief that contradicts its state's rules — including a
+   exists. Preserve every child status. Brief closeout writes the brief's terminal
+   `Status:`; for a tracker-origin brief it also moves the brief's exact
+   workspace entry to the matching terminal collection, in the same separately
+   confirmed effect. A repo-origin brief has no entry to move, and one that still
+   holds a leftover entry goes to the `workspace-status` `intent-brief-drop`
+   repair before this workflow edits it. A brief that contradicts its state's rules — including a
    `Shipped` brief without a `Cut-closed:` record — is refused by
    `scripts/lint-brief-coverage.py`; the refusal is the lint's, not this
    workflow's.

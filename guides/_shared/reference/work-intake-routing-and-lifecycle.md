@@ -47,10 +47,10 @@ owned.
 
 | Content and evidence | Artifact | Initial membership | Processor | Dispatchable |
 | --- | --- | --- | --- | --- |
-| Minimal opportunity | intent | shaping backlog or repository backlog | `none` | No |
+| Minimal opportunity | intent | none for a repo-origin intent; repository backlog for a tracker-origin one | `none` | No |
 | One independently shippable behavior | spec | `work.queue` only after approval and sibling plan | `new-spec` | Yes after gates |
-| One coherent outcome needing several specs | brief | `brief_queue.draft` | `author-delivery-brief create` | Yes for drafting; not for implementation |
-| Cross-repository outcome | one linked local brief per repository | `brief_queue.draft` | `author-delivery-brief create` | Yes for each local slice |
+| One coherent outcome needing several specs | brief | none for a repo-origin brief (its `Status: Draft`); `brief_queue.draft` for a tracker-origin one | `author-delivery-brief create` | Yes for drafting; not for implementation |
+| Cross-repository outcome | one linked local brief per repository | none for a repo-origin brief; `brief_queue.draft` for a tracker-origin one | `author-delivery-brief create` | Yes for each local slice |
 | Unrelated collection or incoherent view | separate units, view-only result, or Draft with named gaps | none or non-dispatchable Draft | `none` | No |
 | Regression with durable expected-behavior evidence | captured-item file under `docs/product/captured/` | none | `bug-fix` | Yes after context exists |
 | Claimed defect without that evidence | Draft with a named evidence gap | non-dispatchable | `none` | No |
@@ -60,10 +60,12 @@ comment, or previous collection cannot override these routes.
 
 ## Remember and status
 
-Remember materializes the smallest safe Draft artifact, registers it after the
-artifact exists, and stops. A remembered defect, design, or research item is the
-exception: it is written as its own file under `docs/product/captured/` and gets
-no registry entry. Closing it is an edit to that file alone.
+Remember materializes the smallest safe Draft artifact and stops. A repo-origin
+intent or brief is its file alone and gets no registry entry. A spec, and a
+tracker-origin intent or brief, is registered after the artifact exists. A
+remembered defect, design, or research item is written as its own file under
+`docs/product/captured/` and gets no registry entry. Closing it is an edit to
+that file alone.
 
 Status delegates to `workspace-status`. It performs no intake classification
 and no mutation. Canonical, legacy, duplicate, invalid, and refresh findings

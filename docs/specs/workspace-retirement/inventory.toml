@@ -1956,6 +1956,26 @@ consumer = "work-intake routing, refresh, and capture that still register intent
 owner = 7
 
 [[row]]
+pattern = "packs/core/.apm/skills/intake-intent/*"
+class = "guide"
+consumer = "intake-intent text that leaves a tracker-origin intent to its calling workflow's registration and sends a leftover repo-origin entry to the intent-brief-drop repair"
+owner = 9
+
+[[row]]
+pattern = ".claude/skills/intake-intent/*"
+class = "projection"
+consumer = "generated .claude projection of the intake-intent skill"
+owner = 9
+source = "packs/core/.apm/skills/intake-intent/*"
+
+[[row]]
+pattern = ".agents/skills/intake-intent/*"
+class = "projection"
+consumer = "generated .agents projection of the intake-intent skill"
+owner = 9
+source = "packs/core/.apm/skills/intake-intent/*"
+
+[[row]]
 pattern = "packs/core/.apm/skills/author-delivery-brief/*"
 class = "writer"
 consumer = "author-delivery-brief registration and Draft-to-Ready move of a brief entry in workspace.toml"
