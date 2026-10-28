@@ -1,7 +1,7 @@
 # Plan: work-loop evidence modes
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness rules); the risk-trigger single-home lint in `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py`; section-scoped prose pins in `packs/core/tests/pack/test_review_depth_and_verdict_contract.py` as the analogous test shape; uncertainty — none, the change is prose plus tests.
 
 > **Plan contract:** this is the implementation strategy. It may change

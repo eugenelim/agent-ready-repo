@@ -1,6 +1,6 @@
 # Spec: work-loop evidence modes
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -78,38 +78,38 @@ Unless a criterion names another file, "the risk-trigger block" is the text betw
 
 ### Spike
 
-- [ ] **AC-0001.** The risk-trigger block's Unfamiliar bullet permits one spike before that trigger fires on unfamiliarity alone, and states each of these limits on it: it lives outside the tracked tree, it follows `new-spec`'s side-effect-free probe constraint, it is never committed, what it observed is recorded as the trigger's grounding, and it settles only the Unfamiliar trigger.
+- [x] **AC-0001.** The risk-trigger block's Unfamiliar bullet permits one spike before that trigger fires on unfamiliarity alone, and states each of these limits on it: it lives outside the tracked tree, it follows `new-spec`'s side-effect-free probe constraint, it is never committed, what it observed is recorded as the trigger's grounding, and it settles only the Unfamiliar trigger.
 
 ### Bug-fix handoff
 
-- [ ] **AC-0002.** The `work-loop` frontmatter description names a fix whose cause is established as in scope, names `bug-fix` for diagnosing a defect whose cause is not, and does not contain the substring `behavior-changing fix`.
-- [ ] **AC-0003.** `work-loop` PLAN states that a request reporting a defect whose cause is not established runs `bug-fix` diagnosis before mode selection, that diagnosis earns that defect's red regression test's red from disposable scratch whatever mode follows, and that mode selection then decides only how the test is materialized: full mode records it as the task's plan stub, light mode writes it at its real test path during EXECUTE, and in neither mode is it a repository test file during PLAN.
-- [ ] **AC-0004.** In `bug-fix` SKILL.md, step 2 states that its red is earned from disposable scratch; `## When to invoke` states that once the cause is established the fix runs through `work-loop`, whose PLAN materialization rule decides where the test lives, and that steps 8 to 11 bind that run (that rule is AC-0003, and the shipped text does not cite it); and step 10 names the test `work-loop` materializes as the one that stays in the suite.
-- [ ] **AC-0005.** `guides/core/how-to/bug-fix.md` and `guides/core/explanation/core-pack.md` each state that `bug-fix` hands the fix to the build loop, and neither contains `without entering the spec / loop pipeline`, `several files`, or `past one file`.
+- [x] **AC-0002.** The `work-loop` frontmatter description names a fix whose cause is established as in scope, names `bug-fix` for diagnosing a defect whose cause is not, and does not contain the substring `behavior-changing fix`.
+- [x] **AC-0003.** `work-loop` PLAN states that a request reporting a defect whose cause is not established runs `bug-fix` diagnosis before mode selection, that diagnosis earns that defect's red regression test's red from disposable scratch whatever mode follows, and that mode selection then decides only how the test is materialized: full mode records it as the task's plan stub, light mode writes it at its real test path during EXECUTE, and in neither mode is it a repository test file during PLAN.
+- [x] **AC-0004.** In `bug-fix` SKILL.md, step 2 states that its red is earned from disposable scratch; `## When to invoke` states that once the cause is established the fix runs through `work-loop`, whose PLAN materialization rule decides where the test lives, and that steps 8 to 11 bind that run (that rule is AC-0003, and the shipped text does not cite it); and step 10 names the test `work-loop` materializes as the one that stays in the suite.
+- [x] **AC-0005.** `guides/core/how-to/bug-fix.md` and `guides/core/explanation/core-pack.md` each state that `bug-fix` hands the fix to the build loop, and neither contains `without entering the spec / loop pipeline`, `several files`, or `past one file`.
 
 ### Verification modes
 
-- [ ] **AC-0006.** `work-loop` PLAN step 7 and EXECUTE's discipline list each name **Behavior pin** and **Measurement**, and the conditional-reference table routes a task that picks either to `references/verification-modes.md`.
-- [ ] **AC-0007.** The behavior-pin section of `references/verification-modes.md` states each of: the pin passes on the base commit before any structure moves; the pin stays green after each step; lint and typecheck are not a pin; a restructure that names no branch, layer, or invalid state it removed is reverted.
-- [ ] **AC-0008.** The measurement section of `references/verification-modes.md` states each of: the baseline comes from the base commit with the same command, data, and environment as the after run; each side runs at least 5 times, alternating; the report gives median, range, and run count; a difference inside the run-to-run range is reported as no measurable difference; the run records its error count and a count of the work done.
-- [ ] **AC-0020.** `work-loop` PLAN step 8 and `references/tdd-stubs.md` each state that behavior-pin and measurement tasks record `no stub (mode)`, each contains `PLAN step 7`, and neither contains `Goal-based and manual-QA tasks`.
-- [ ] **AC-0009.** No file under `packs/core/.apm/` or `guides/core/` other than `work-loop` SKILL.md states a count of verification modes or lists them as `TDD` followed by `goal-based` joined by `/` or `,`; and each of these files names `work-loop` PLAN step 7 as the owner of the mode list: `agents/adversarial-reviewer.md`, `agents/implementer.md`, `skills/work-loop/references/infra-verification.md`, `skills/work-loop/references/verification-modes.md`, `skills/new-spec/SKILL.md`, `skills/new-spec/references/spec-and-plan-contract.md`, and `skills/new-spec/assets/spec.md` under `packs/core/.apm/`, and `guides/core/explanation/core-pack.md`.
+- [x] **AC-0006.** `work-loop` PLAN step 7 and EXECUTE's discipline list each name **Behavior pin** and **Measurement**, and the conditional-reference table routes a task that picks either to `references/verification-modes.md`.
+- [x] **AC-0007.** The behavior-pin section of `references/verification-modes.md` states each of: the pin passes on the base commit before any structure moves; the pin stays green after each step; lint and typecheck are not a pin; a restructure that names no branch, layer, or invalid state it removed is reverted.
+- [x] **AC-0008.** The measurement section of `references/verification-modes.md` states each of: the baseline comes from the base commit with the same command, data, and environment as the after run; each side runs at least 5 times, alternating; the report gives median, range, and run count; a difference inside the run-to-run range is reported as no measurable difference; the run records its error count and a count of the work done.
+- [x] **AC-0020.** `work-loop` PLAN step 8 and `references/tdd-stubs.md` each state that behavior-pin and measurement tasks record `no stub (mode)`, each contains `PLAN step 7`, and neither contains `Goal-based and manual-QA tasks`.
+- [x] **AC-0009.** No file under `packs/core/.apm/` or `guides/core/` other than `work-loop` SKILL.md states a count of verification modes or lists them as `TDD` followed by `goal-based` joined by `/` or `,`; and each of these files names `work-loop` PLAN step 7 as the owner of the mode list: `agents/adversarial-reviewer.md`, `agents/implementer.md`, `skills/work-loop/references/infra-verification.md`, `skills/work-loop/references/verification-modes.md`, `skills/new-spec/SKILL.md`, `skills/new-spec/references/spec-and-plan-contract.md`, and `skills/new-spec/assets/spec.md` under `packs/core/.apm/`, and `guides/core/explanation/core-pack.md`.
 
 ### Proof by a run
 
-- [ ] **AC-0010.** `adversarial-reviewer.md` states that a mechanical finding claiming what code does when it runs carries the command and the output it printed whenever the run is feasible, where feasible means all of: it runs in this checkout, writes nothing outside ignored scratch, uses no network and no credentials, and completes under a 60-second wall-clock timeout the reviewer applies; a run that hits the timeout is not feasible.
-- [ ] **AC-0011.** `adversarial-reviewer.md` states that a behavior finding whose run was feasible but is absent is a Concern at most, with the missing run named.
-- [ ] **AC-0012.** `adversarial-reviewer.md` lists exactly these cases as owing no run, and requires the finding to name the case that applies: a defect a citation already establishes; spec-stage, RFC, and intent review; prose whose only run would be a model evaluation; and a run that is not feasible.
-- [ ] **AC-0013.** The `What you do not do` section of `adversarial-reviewer.md` states that a targeted reproduction for one finding is not a gate run.
-- [ ] **AC-0014.** `work-loop` FIX states that a sustained finding carrying a command is run before the fix and recorded failing, run after the fix and recorded passing, and that a command which passes before the fix is Surfaced instead of fixed.
-- [ ] **AC-0015.** `finding-adjudicator.md`'s `tools:` line is `Read, Grep`, as at the base commit; this pins that the rerun lives in `work-loop` FIX rather than in the adjudicator.
+- [x] **AC-0010.** `adversarial-reviewer.md` states that a mechanical finding claiming what code does when it runs carries the command and the output it printed whenever the run is feasible, where feasible means all of: it runs in this checkout, writes nothing outside ignored scratch, uses no network and no credentials, and completes under a 60-second wall-clock timeout the reviewer applies; a run that hits the timeout is not feasible.
+- [x] **AC-0011.** `adversarial-reviewer.md` states that a behavior finding whose run was feasible but is absent is a Concern at most, with the missing run named.
+- [x] **AC-0012.** `adversarial-reviewer.md` lists exactly these cases as owing no run, and requires the finding to name the case that applies: a defect a citation already establishes; spec-stage, RFC, and intent review; prose whose only run would be a model evaluation; and a run that is not feasible.
+- [x] **AC-0013.** The `What you do not do` section of `adversarial-reviewer.md` states that a targeted reproduction for one finding is not a gate run.
+- [x] **AC-0014.** `work-loop` FIX states that a sustained finding carrying a command is run before the fix and recorded failing, run after the fix and recorded passing, and that a command which passes before the fix is Surfaced instead of fixed.
+- [x] **AC-0015.** `finding-adjudicator.md`'s `tools:` line is `Read, Grep`, as at the base commit; this pins that the rerun lives in `work-loop` FIX rather than in the adjudicator.
 
 ### Regression, evals, release
 
-- [ ] **AC-0016.** `packs/core/tests/pack/test_review_depth_and_verdict_contract.py`, `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py`, and `packs/core/tests/skills/bug-fix/test_bug_fix_skill_body.py` pass with their test files unedited.
-- [ ] **AC-0017.** `work-loop`'s `evals/evals.json` holds one case each for the spike, the defect handoff, behavior pin, and measurement; `bug-fix`'s `evals/evals.json` holds one handoff case; each new case carries `id`, `prompt`, `expected_output`, and a non-empty `assertions` list; and `test_evals_json_shape` in `packs/core/tests/skills/work-loop/test_loop_engine.py` passes.
-- [ ] **AC-0018.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both carry version `3.1.27`.
-- [ ] **AC-0019.** `agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify --root .`, `python3 tools/validate_guides.py`, `python3 tools/check-guide-index.py`, and `python3 tools/lint-guide-titles.py` exit 0, and `agentbundle catalogue self-host --root . --write` leaves no tracked change after the delivery commit.
+- [x] **AC-0016.** `packs/core/tests/pack/test_review_depth_and_verdict_contract.py`, `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py`, and `packs/core/tests/skills/bug-fix/test_bug_fix_skill_body.py` pass with their test files unedited.
+- [x] **AC-0017.** `work-loop`'s `evals/evals.json` holds one case each for the spike, the defect handoff, behavior pin, and measurement; `bug-fix`'s `evals/evals.json` holds one handoff case; each new case carries `id`, `prompt`, `expected_output`, and a non-empty `assertions` list; and `test_evals_json_shape` in `packs/core/tests/skills/work-loop/test_loop_engine.py` passes.
+- [x] **AC-0018.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both carry version `3.1.27`.
+- [x] **AC-0019.** `agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify --root .`, `python3 tools/validate_guides.py`, `python3 tools/check-guide-index.py`, and `python3 tools/lint-guide-titles.py` exit 0, and `agentbundle catalogue self-host --root . --write` leaves no tracked change after the delivery commit.
 
 ## Follow-ons
 
