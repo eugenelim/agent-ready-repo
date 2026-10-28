@@ -265,7 +265,7 @@ path, and a named uncertainty or deviation; a non-structural plan may say
 remain valid: treat missing metadata as a warning or named assurance gap, not a
 hard failure. Never require whole-repository ingestion or a new durable file.
 
-1b. **Route an undiagnosed defect through `bug-fix` first.** When the request reports a defect whose cause is not established, run `bug-fix` diagnosis first. Diagnosis earns the red regression test's red from disposable scratch, whatever mode follows. Mode selection then decides only how the test is materialized: full mode records it as the task's plan stub, and light mode writes it at its real test path during EXECUTE. It is never a repository test file during PLAN.
+1b. **Route an undiagnosed defect through `bug-fix` first.** When the request reports a defect whose cause is not established, run `bug-fix` diagnosis first. Diagnosis earns the red regression test's red from disposable scratch, whatever mode follows. In either mode, EXECUTE then writes it at its real test path; it is never a repository test file during PLAN.
 
 2. **Select light or full mode** (see [Select: light or full mode](#select-light-or-full-mode)). With an existing spec, retain its spec/plan lifecycle, workspace reconciliation, and governing authority. Without one, select direct-light only after its decision record establishes every eligibility conjunct; otherwise invoke `new-spec`. Full mode requires complete ACs and Testing Strategy. Do not recreate or replace an adequate existing spec.
 3. Use the existing plan's task list when a plan exists. For direct-light, use the bounded active-session task and verification plan; do not create a sibling plan.
@@ -284,7 +284,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
      boundaries; do not invent tasks to make PRs.
 6. **Run self-coverage net-new checks**: conditional domain-grounding (when the build rests on an ungrounded domain claim) and open the resolve-vs-surface disposition record (see [Work-loop contract](#work-loop-contract)). The `new-spec` assumptions step owns claim routing, under the anchor `load-bearing-claim-routing`.
 7. **Pick the verification mode for each task** before writing code:
-   - **TDD** — compressible invariant (pure functions, state machines, protocols). When a spec and plan exist, record ACs + Testing Strategy and exact stub code in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
+   - **TDD** — compressible invariant (pure functions, state machines, protocols). When a spec and plan exist, record ACs + Testing Strategy in `plan.md` under `Tests:` before `Approach:`. Default for testable logic.
    - **Goal-based check** — build config, scaffolding, generated-code consumption, smoke entries. `Done when:` one-liner (build command, grep, typecheck). No test file; don't write a test that just asserts what the compiler already proves.
    - **Visual / manual QA** — any artifact a user invokes directly (CLI, library API, agent, UI, service endpoint). Exercise the real built artifact end-to-end through the documented happy path; record observed output (stdout, exit code, returned value, on-screen result). Never let a passing unit gate stand in for real invocation. For UI work specifically: check after each task that modifies user-visible state — screenshot or eval the real webview; UI matches backend is the bar. A blank footer, a lying status banner, or a missing row is a bug to file-and-fix even when the backend is healthy. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
    - **Behavior pin** — a behavior-preserving restructure (refactor, move, rename, dedupe). Pin current observable behavior before any structure moves; type check and lint are not a pin. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
@@ -293,7 +293,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
    **Confirm the mechanism exists before claiming the mode — task zero if it doesn't.** Applies equally across all modes and light and full mode alike.
 
-8. **Design construction tests up front.** When a plan exists, write `Tests:` in `plan.md` before EXECUTE begins. For direct-light, record the verification plan in the session before EXECUTE. Can't state the test or verification → task is too vague, sharpen first. For TDD tasks, put the exact stub code in `plan.md`, then compile and earn its red from disposable scratch; do not create a repository test file during PLAN (load [`references/tdd-stubs.md`](references/tdd-stubs.md) on demand). Every mode in PLAN step 7 other than TDD records `no stub (mode)`, including behavior pin and measurement. Light mode skips stubs.
+8. **Design construction tests up front.** When a plan exists, write `Tests:` in `plan.md` before EXECUTE begins. For direct-light, record the verification plan in the session before EXECUTE. Can't state the test or verification → task is too vague, sharpen first. For TDD tasks, `Tests:` names the behavior, the boundary it is checked at, and the verification mode; the red test is written and proven red at EXECUTE, and PLAN creates no repository test file (load [`references/tdd-stubs.md`](references/tdd-stubs.md) on demand). A seam the plan cannot ground is recorded `implementation-discovered`. Every mode in PLAN step 7 other than TDD, including behavior pin and measurement, writes no red test here.
 
 8a. **Anchor-test sweep.** Before writing code, grep the test suite for tests that hash, snapshot, or count the exact content of the files you'll edit (patterns: `hashlib`, `sha`, `==` on file content, `len(lines)`, counted assertions). These contract-anchor tests pin the artifact's content and must be updated when the content changes. Discovering them mid-EXECUTE causes false GATES failures — factor them into the task list now.
 
@@ -360,7 +360,7 @@ For durable work, write the plan to disk — don't keep it in memory across turn
 emits a plan task and an `implementer` subagent is installed, dispatch it once per plan task, with one implementer at a time. The controller supplies the execution root and retains scheduling, state transitions, final gates, review, retry, and closeout — including one `loop-cohort dispatch-receipt` once per plan task, `--receipt` when an `implementer` implemented it and `--decline <reason>` when none did. The controller records it; an `implementer` does not record its own, because the receipt is the controller's assertion about who it dispatched, and a subagent asserting its own dispatch records nothing the controller did not already know.
 
 Match discipline to verification mode:
-- **TDD** — red-green-refactor; commit each step if non-trivial. After the full-mode engine enters `CODE-IMPLEMENTATION`, materialize the approved stub from `plan.md` unchanged in the repository test location, verify byte identity, prove the intended red, and then fill deferred assertions; don't rewrite from scratch. Direct-light writes its red test here because it has no durable plan stub.
+- **TDD** — red-green-refactor; commit each step if non-trivial. Write the red test at the real test location and run it; it fails for the intended reason before production code changes. A `stub` fence the plan carries for a supervisor run is materialized unchanged. Then fill deferred assertions; don't rewrite from scratch.
 - **Goal-based check** — write code, run the `Done when:` one-liner.
 - **Visual / manual QA** — implement, exercise the real artifact end-to-end, record observed output.
 - **Behavior pin** — pin green on the base commit first, keep it green after each step, revert a restructure that removes no branch, layer, or invalid state.
@@ -627,7 +627,7 @@ tasks named in the implicated sub-section's `Owned by:` field. Traverse only
 down from the LLD decision to those tasks, never tasks up to the LLD. Route a
 correction by its kind, per
 [delivery-contract-lifecycle.md](references/delivery-contract-lifecycle.md):
-grounding arriving for a `no stub (implementation-discovered)` seam goes to
+grounding arriving for an `implementation-discovered` seam goes to
 the verification ledger, and a settled decision the work falsified is a plan
 error taking controlled amendment. Neither edits the sealed plan.
 

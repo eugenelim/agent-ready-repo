@@ -327,17 +327,17 @@ holds both re-labelling runs and what each established.
 
 ### TDD stub artifact boundary
 
-For a full-mode TDD task, `plan.md` owns the exact stub code and its validation
-result before approval. PLAN compiles and exercises that code from
-disposable scratch, so the proof participates in the approved plan hash without creating a
-repository test file. In `spec-plan` mode, `plan-locked` is terminal and no
-implementation artifact is written.
+For a full-mode TDD task, `plan.md` carries the behavior, the boundary, and the
+verification mode, not test code, and PLAN creates no repository test file. In
+`spec-plan` mode, `plan-locked` is terminal and no implementation artifact is
+written.
 
 In code mode, `plan-locked` advances the engine to `CODE-IMPLEMENTATION`.
-EXECUTE then materializes the approved block unchanged at the repository's real
-test path, verifies byte identity, observes the intended red, and continues to
-green. The engine owns the phase boundary; the plan and test tree own different
-representations on either side of it.
+The red test is written at EXECUTE, at the repository's real test path; the
+implementer observes the intended red and continues to green (ADR-0150). Where a
+supervisor run executes a TDD task, a `stub` fence carried in the approved task
+is materialized unchanged and proven red. The engine owns the phase boundary;
+the plan and test tree own different representations on either side of it.
 
 ## 6. Failure and recovery behavior
 

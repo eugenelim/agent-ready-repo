@@ -94,7 +94,7 @@ specification or plan error is different and still follows the controlled
 amendment procedure above.
 
 A declared discovery is an observation, not an error. When a plan recorded a
-seam as `no stub (implementation-discovered)`, grounding that arrives during
+seam or a design means as `implementation-discovered`, grounding that arrives during
 implementation goes in the verification ledger. The plan predicted the
 discovery, so recording it amends neither approved artifact.
 

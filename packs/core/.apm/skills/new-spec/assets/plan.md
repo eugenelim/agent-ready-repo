@@ -17,7 +17,7 @@
 > completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
 > and `Risks` are working material that an implementer corrects in place only
 > before approval: approval hashes the whole plan. After approval, grounding for
-> a seam recorded as `no stub (implementation-discovered)` goes to the
+> a seam or design means recorded as `implementation-discovered` goes to the
 > verification ledger; a settled design decision that execution falsified is a
 > plan error that follows the controlled-amendment procedure. Treating them as
 > contract is how a review spends a round on prose no gate consumes — the
@@ -109,6 +109,10 @@ or empty; a heavyweight feature fills most of it. The spec stays the contract �
 **no acceptance criterion lives here**; each sub-section instead **traces to the
 AC(s) it satisfies and the `contracts/` it implements**, so the design is always
 anchored to something verifiable.
+
+Mechanism — a syscall, flag, helper name, or exact write order — lives here. A
+means no code grounds yet is marked `implementation-discovered`, and its chosen
+means and any correction go to the verification ledger.
 
 Stack-neutral by construction: these are the *kinds* of design decision every
 build makes, never a framework. Name your actual stack *inside* each sub-section
@@ -224,7 +228,7 @@ their absence makes the plan unable to start or verify the contract.
 
 Keep observable behavior in `spec.md`. Use an exact path or symbol here only
 when repository evidence grounds it. For an implementation-discovered callable
-seam, record `no stub (implementation-discovered)` and its discovery predicate,
+seam, record `implementation-discovered` and its discovery predicate,
 constraint, required outcome, and verification mode; do not invent a helper,
 fixture, module, path, or symbol.
 
@@ -275,9 +279,8 @@ could pick it up and complete it without follow-up questions:
 - <test 1 — behaviour, edge case, or property; reference the Acceptance
   Criterion from spec.md this step verifies, if any>
 - <test 2>
-<!-- For an already-grounded callable seam or coherent TDD task family, include
-     one compilable red contract-surface assertion (`stub: true`). It need not
-     encode the finished edge-case matrix. -->
+<!-- For a TDD task, name the behavior, the boundary it is checked at, and the
+     verification mode. The red test is written at EXECUTE. -->
 
 **Approach:** <omit this field unless the task carries an ordering or seam
 decision the two fields around it do not show>

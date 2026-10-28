@@ -55,8 +55,7 @@ def test_t2_plan_routes_unestablished_defects_through_bug_fix() -> None:
     step = _flat(_section(plan, "1b. ", "2. **Select light or full mode"))
     assert "`bug-fix` diagnosis first" in step
     assert "disposable scratch" in step
-    assert "full mode records it as the task's plan stub" in step
-    assert "light mode writes it at its real test path during EXECUTE" in step
+    assert "EXECUTE then writes it at its real test path" in step
     assert "never a repository test file during PLAN" in step
 
 
@@ -69,14 +68,14 @@ def test_t2_bug_fix_skill_hands_the_fix_to_work_loop() -> None:
     assert "disposable scratch" in step2
     invoke = _flat(_section(raw, "## When to invoke", "## Procedure"))
     assert "`work-loop`" in invoke
-    assert "materialization rule" in invoke
+    assert "EXECUTE writes step 2's red test at its real test path" in invoke
     assert "steps 8 to 11" in invoke
     assert "`new-spec`" not in invoke
     assert "opportunistic restructuring" in invoke
     step10 = _flat(
         _section(raw, "**Regression test stays.", "**Commit body documents the root cause.")
     )
-    assert "`work-loop` materializes" in step10
+    assert "`work-loop` writes at EXECUTE" in step10
     assert "stays in the suite" in step10
     assert "failing test from step 2 remains" not in step10
 
@@ -113,7 +112,7 @@ def test_t3_no_stub_regions_point_at_step7() -> None:
     raw = _WORK_LOOP.read_text(encoding="utf-8")
     stubs = (_WL_REFS / "tdd-stubs.md").read_text(encoding="utf-8")
     step8 = _flat(_section(raw, "8. **Design construction tests", "8a. **Anchor-test sweep"))
-    opening = _flat(_section(stubs, "# TDD stub generation", "## Lifecycle"))
+    opening = _flat(_section(stubs, "# TDD red test", "## Procedure at EXECUTE"))
     bullet = _flat(stubs.split("**Full-mode, TDD-tasks-only.**", 1)[1])
     for region in (step8, opening, bullet):
         assert "PLAN step 7" in region
@@ -265,13 +264,11 @@ def test_t5_new_eval_cases_exist_with_required_fields() -> None:
             assert isinstance(case["assertions"], list) and case["assertions"]
 
 
-def test_t5_pack_versions_are_3_1_27() -> None:
-    """The release that shipped this contract is 3.1.27; later releases keep it."""
+def test_t5_pack_versions_match() -> None:
+    """The two version fields move together; a literal value would red on every later bump."""
     manifest = tomllib.loads((_PACK / "pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads((_PACK / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
-    released = tuple(int(part) for part in manifest["pack"]["version"].split("."))
-    assert released >= (3, 1, 27)
-    assert plugin["version"] == manifest["pack"]["version"]
+    assert manifest["pack"]["version"] == plugin["version"]
 
 
 def test_t2_step_1b_renders_as_its_own_block() -> None:

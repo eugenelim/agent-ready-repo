@@ -132,7 +132,7 @@ def test_task_revised_after_its_stub_commit_gets_a_supervisor_red(tmp_path: Path
     assert len(_red_receipts(repo)) == 2
 
 
-def test_revised_completed_tdd_task_is_refused_until_a_no_stub_replan(tmp_path: Path) -> None:
+def test_revised_completed_tdd_task_is_refused_until_the_fence_is_removed(tmp_path: Path) -> None:
     repo, controller = _stepper(tmp_path)
     _do(repo, controller)
     assert _do(repo, controller)["kind"] == "implement-task"
@@ -142,7 +142,7 @@ def test_revised_completed_tdd_task_is_refused_until_a_no_stub_replan(tmp_path: 
     (repo / SPEC / "plan.md").write_text(revised, "utf-8")
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 1 and payload["refusal"]["code"] == "stub-not-red"
-    assert "no stub" in payload["refusal"]["detail"]
+    assert "remove it" in payload["refusal"]["detail"]
     assert _operations(repo)[-1] == "replan"
     head = h.git(repo, "rev-parse", "HEAD")
     replanned = sup.plan(sup.task("T1", "Calculator answers",

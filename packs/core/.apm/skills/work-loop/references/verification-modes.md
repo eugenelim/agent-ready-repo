@@ -82,8 +82,8 @@ of current behavior, not a new feature test.
   agree, not that behavior held.
 - A restructure that names no branch, layer, or invalid state it removed is
   reverted. Moving code without removing something is churn.
-- The pin records `no stub (mode)` in `Tests:`: it passes by design at the
-  base commit, so there is no red to earn.
+- The pin writes no red test: it passes by design at the base commit, so
+  there is no red to earn.
 
 ## Measurement
 
@@ -102,5 +102,4 @@ the number trustworthy.
   served, items processed). A faster run that did less work or failed more
   often is not faster.
 - Report one vetted number per claim, with the command that produced it.
-- The measurement records `no stub (mode)` in `Tests:`: there is no red to
-  earn.
+- The measurement writes no red test: there is no red to earn.

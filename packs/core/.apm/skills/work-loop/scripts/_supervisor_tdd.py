@@ -6,8 +6,8 @@ with a code its fence declares as red. Red proof belongs to the task and its
 stub digest. When the stub bytes are already in ``HEAD`` (the task was revised
 after its stub commit), the supervisor runs them on a scratch copy of ``HEAD``
 and commits a ``red`` step itself. A stub that already passes is refused with
-``stub-not-red``; the plan author replans the task with a ``no stub``
-disposition. A task with no stubs needs no red proof.
+``stub-not-red``; the plan author makes the ``stub`` fence fail for the
+intended reason or removes it. A task with no stubs needs no red proof.
 
 Standard library only. Python 3.11+.
 """
@@ -205,8 +205,8 @@ def _not_red(task: dict[str, Any], observed: list[tuple[str, int | None]]) -> An
     return Refusal(
         "stub-not-red",
         "plan author",
-        f"{task['position']} stubs are not red ({detail}); replan the task with a "
-        "`no stub` disposition or a failing stub",
+        f"{task['position']} stubs are not red ({detail}); make the `stub` fence "
+        "fail for the intended reason or remove it",
     )
 
 

@@ -73,7 +73,7 @@ On 2026-10-28, after the amendment's review, the owner narrowed the rule: an int
 
 ## T10: deferral anchors
 
-`lint-spec-status.py` invariant (iv) also resolves an anchor through an open intent or brief file. Three planted cases red before the change and pass after; seven regression guards pass before and after. Over this repository the lint reports no hard violation, including the `role-journey-agent-swarm-section` anchor, which now resolves through its `Draft` intent file. Core's `test_t5_pack_versions_are_3_1_27` pinned the exact version 3.1.27; it now checks 3.1.27 or later, so this release's 3.1.28 bump keeps it.
+`lint-spec-status.py` invariant (iv) also resolves an anchor through an open intent or brief file. Three planted cases red before the change and pass after; seven regression guards pass before and after. Over this repository the lint reports no hard violation, including the `role-journey-agent-swarm-section` anchor, which now resolves through its `Draft` intent file. Core's `test_t5_pack_versions_are_3_1_27` pinned the exact version 3.1.27; main has since replaced it with a check that the two version fields match. Main released core 3.1.28 first, so this release ships as core 3.1.29.
 
 ## T9: the live comparison
 
