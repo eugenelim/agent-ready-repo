@@ -1,7 +1,7 @@
 # Plan: Intents and briefs stop being registered
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1; RFC-0105 D3; RFC-0064; RFC-0083 § 6 and § 8; ADR-0119 D4; ADR-0134 D4; ADR-0110; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`: `_VALID_OPERATION_TYPES`, the `needs-to-header` and `captured-to-file` plan and apply sections, and the legacy-migration apply path.
