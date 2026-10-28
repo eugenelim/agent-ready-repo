@@ -41,10 +41,10 @@ Table — When presenting several items that share the same fields, render a Mar
 Even a one-line fix benefits from walking this discipline; it forces
 the question "is this fixing the cause or hiding it?"
 
-For multi-file changes that go beyond fixing one defect — refactors,
-new features triggered by discovering the bug — stop and use
-`new-spec` instead. This skill is for bug fixes, not opportunistic
-restructuring.
+Once the cause is established, the fix runs through `work-loop`. Its
+PLAN materialization rule decides where the red test lives, and steps 8
+to 11 below bind that run. This skill is for bug fixes, not
+opportunistic restructuring.
 
 ## Procedure
 
@@ -78,7 +78,9 @@ risk is controlled.
 2. **Write the failing test (red).** It should pin the *observable
    contract being violated*, not the current implementation. Run it
    against the unfixed behavior and confirm it fails for the intended
-   reason before changing production code. Push back on:
+   reason before changing production code. Earn this red from disposable
+   scratch outside the repository's test tree; where the test lives is
+   decided on handoff (see When to invoke). Push back on:
    - **Mock-shape assertions.** `expect(mock).toHaveBeenCalledWith(...)`
      when the observable contract is a returned value or state change.
      Test the contract, not the implementation.
@@ -169,9 +171,9 @@ risk is controlled.
    If the red test also passes under a symptom-only change, sharpen the
    test before proceeding.
 
-10. **Regression test stays.** The failing test from step 2 remains in
-    the suite and closes the coverage gap from step 6. It pins the
-    missing invariant, not only the observed input.
+10. **Regression test stays.** The test `work-loop` materializes from
+    step 2 stays in the suite and closes the coverage gap from step 6. It
+    pins the missing invariant, not only the observed input.
 
 11. **Commit body documents the root cause.** Use a Conventional Commit
     subject (`fix(<scope>): <subject>`) and a body explaining the

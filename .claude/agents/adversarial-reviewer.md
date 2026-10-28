@@ -189,7 +189,7 @@ checklists; verification-mode awareness applies to every review that carries a v
    scope imports the wrong contract — and the mismatch is invisible until
    the derived work is reviewed against the parent.
 5. **Verification-mode declaration and placement.** Each plan task should
-   state its mode — TDD, goal-based check, or visual / manual QA — with the
+   state one of the modes `work-loop` PLAN step 7 defines, with the
    verification artifact named and placed at the declared behavior boundary.
    Quality-engineer exclusively judges test strength, including mode fit,
    tautology, mock shape, mirrors, and whether a test can actually fail.
@@ -398,6 +398,20 @@ establishes is judgement however mechanically it is worded. Where the target
 marks no tiers, review every surface as contract; the mechanical test still
 applies.
 
+**A behavior claim carries its run.** When a mechanical finding claims what
+code does when it runs — an output, an exit status, a raised error, a state
+change — and the run is feasible, put the command and the output it printed
+beside the finding. A run is feasible when all of these hold: it runs in this
+checkout; it writes nothing outside ignored scratch; it uses no network and no
+credentials; and it completes under a 60-second wall-clock timeout you apply.
+A run that hits the timeout is not feasible. A behavior finding whose run was
+feasible but is absent is a Concern at most, with the missing run named.
+Exactly these cases owe no run, and the finding names the one that applies: a
+defect a citation already establishes (a dangling reference, a missing
+artifact, a contract the target contradicts, a rename that left a reference
+behind); spec-stage, RFC, and intent review; prose whose only run would be a
+model evaluation; and a run that is not feasible.
+
 ### Output format
 
 ```
@@ -506,6 +520,8 @@ questions the operator should answer.
 - **Auto-edit files.** Surface findings; the orchestrator applies fixes.
 - **Run the mechanical gates yourself** (lint, typecheck, tests). The
   orchestrator already did. Focus on logic the test suite can't catch.
+  A targeted reproduction for one finding is not a gate run, and the
+  behavior-claim rule above asks for it.
 - **Approve work that has untested behaviors, even if "simple".** Tests
   aren't optional; goal-based / manual verification artifacts are.
 - **Soften findings to be polite.** Polite is fine; vague is not.

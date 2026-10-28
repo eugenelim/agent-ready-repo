@@ -1,17 +1,16 @@
-# verification-modes — the visual / manual-QA mode (full doctrine)
+# verification-modes — doctrine for the modes that need more than SKILL.md
 
-> **Loaded when:** a plan task picks the **visual / manual-QA** verification
-> mode — UI rendering, an end-to-end UX flow, or any other artifact a user
-> invokes directly (a CLI, a library's public API, an agent or skill, a service
-> endpoint). The other three modes (TDD, goal-based, infra/deploy) don't need
-> this; infra/deploy has its own depth in
+> **Loaded when:** a plan task picks a verification mode whose doctrine runs
+> longer than `work-loop` SKILL.md can carry: **visual / manual QA** (UI
+> rendering, an end-to-end UX flow, or any artifact a user invokes directly: a
+> CLI, a library's public API, an agent or skill, a service endpoint),
+> **behavior pin**, or **measurement**. `work-loop` PLAN step 7 owns the mode
+> list; infra/deploy has its own depth in
 > [`infra-verification.md`](infra-verification.md).
-> **What this is:** the progressive-disclosure depth behind `work-loop`'s
-> visual / manual-QA verification mode. `SKILL.md` keeps the load-bearing
-> contract one-liner (exercise the real built artifact end-to-end through its
-> documented happy path and record what you observed, asserting on that result
-> and never on a passing unit gate); the full doctrine — the per-surface shapes,
-> the accelerants, when to automate, and the exploratory flavor — lives here.
+> **What this is:** the progressive-disclosure depth behind those modes.
+> `SKILL.md` keeps the load-bearing one-liner for each; the full doctrine lives
+> here. For visual / manual QA that means the per-surface shapes, the
+> accelerants, when to automate, and the exploratory flavor.
 
 ## Exercise the real artifact, assert on the observed result
 
@@ -64,3 +63,44 @@ A third flavor — *exploratory / visual fuzz* — drives the UI with varied or
 random input and asserts **invariants** ("didn't crash, didn't render garbage,
 layout holds, no overflow") rather than specific outputs. Reach for it when the
 failure mode is open-ended and you can't enumerate the gestures up front.
+
+## Behavior pin
+
+Use this mode for a behavior-preserving restructure: a refactor, move, rename,
+or dedupe. The claim is "nothing observable changed", so the proof is a check
+of current behavior, not a new feature test.
+
+- Write the pin first and run it on the base commit. The pin passes on the
+  base commit before any structure moves; a pin that has never passed there
+  proves nothing.
+- Pin observable behavior at the boundary a caller sees: outputs, exit codes,
+  rendered text, public return values. Do not pin internals the restructure is
+  meant to change.
+- The pin stays green after each step, not only at the end. A step that turns
+  it red is reverted or fixed before the next step starts.
+- Lint and typecheck are not a pin. They prove the code parses and types
+  agree, not that behavior held.
+- A restructure that names no branch, layer, or invalid state it removed is
+  reverted. Moving code without removing something is churn.
+- The pin records `no stub (mode)` in `Tests:`: it passes by design at the
+  base commit, so there is no red to earn.
+
+## Measurement
+
+Use this mode when the claim is a number: latency, throughput, size, or
+runtime. A number from one run is an anecdote, so the doctrine is about making
+the number trustworthy.
+
+- The baseline comes from the base commit, with the same command, data, and
+  environment as the after run. Change one thing between the two sides.
+- Each side runs at least 5 times, alternating baseline and after so drift
+  hits both sides alike.
+- The report gives the median, the range, and the run count for each side.
+- A difference inside the run-to-run range is reported as no measurable
+  difference. Do not claim a win the noise can produce.
+- The run records its error count and a count of the work done (requests
+  served, items processed). A faster run that did less work or failed more
+  often is not faster.
+- Report one vetted number per claim, with the command that produced it.
+- The measurement records `no stub (mode)` in `Tests:`: there is no red to
+  earn.

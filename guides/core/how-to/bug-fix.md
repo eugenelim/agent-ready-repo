@@ -52,6 +52,6 @@ The agent changes only what the named bug needs. It refuses to hide the symptom 
 
 ## Ship it
 
-Run your lint, type, and test commands, then open the pull request, as the [development workflow](../../../AGENTS.md#development-workflow) describes. The agent writes the commit as `fix(<scope>): <subject>`, with the root cause in its body, following the [coding conventions](../../../AGENTS.md#coding-conventions). For a fix that touches several files, ask it to run the [build loop](start-the-work.md) so independent reviewers read the diff; [why the loop works this way](../explanation/core-pack.md#why-the-loop).
+Run your lint, type, and test commands, then open the pull request, as the [development workflow](../../../AGENTS.md#development-workflow) describes. The agent writes the commit as `fix(<scope>): <subject>`, with the root cause in its body, following the [coding conventions](../../../AGENTS.md#coding-conventions). Once the cause is found, `bug-fix` hands the fix to the build loop (`work-loop`), so independent reviewers read the diff; see [the build loop](start-the-work.md); [why the loop works this way](../explanation/core-pack.md#why-the-loop).
 
 Next, [review the pull request](review-someone-elses-pr.md).

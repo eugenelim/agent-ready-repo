@@ -310,7 +310,7 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      bullets for a reader landing cold: what moves, and where it lives. A
      bulleted re-telling of the Outcome leaves that reader still asking.
    - **Testing Strategy left as the template's mode list.** The
-     template shows three modes (TDD, goal-based, manual QA); naming
+     template shows the modes `work-loop` PLAN step 7 defines; naming
      them without pairing each user-visible outcome from `Outcome`
      with a mode and a one-sentence why isn't a strategy.
    - **Agent Rules left empty.** The three subsections — `Always do`,
@@ -517,8 +517,8 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      explicitly — prior task IDs or `none`. Don't let authors lean on
      task order to imply dependency; that hides serial-by-default
      thinking and makes the plan unparseable.
-   - **Verification mode unstated.** Every task must declare its mode —
-     TDD, goal-based check, or visual / manual QA. Silent defaults
+   - **Verification mode unstated.** Every task must declare one of the
+     modes `work-loop` PLAN step 7 defines. Silent defaults
      produce mock-shape tests on config-shape tasks and untested
      invariants on logic-shape tasks.
    - **Tasks without spec mapping.** Each task should reference which
