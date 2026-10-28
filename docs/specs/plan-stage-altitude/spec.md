@@ -1,6 +1,6 @@
 # Spec: plan-stage altitude
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0150, ADR-0144
@@ -80,54 +80,54 @@ A full-mode `work-loop` plan reaches approval carrying test intent — behavior,
 
 ### No PLAN-time stub code
 
-- [ ] **AC-0001.** No live source contains a retired phrase.
-- [ ] **AC-0002.** No live source contains `byte identity` or `byte-identity`, except `references/tdd-stubs.md` and the TDD row of `docs/architecture/acceptance-centered-work-loop.md`, where each occurrence names the supervisor's `stub` fence in the same sentence or table cell.
+- [x] **AC-0001.** No live source contains a retired phrase.
+- [x] **AC-0002.** No live source contains `byte identity` or `byte-identity`, except `references/tdd-stubs.md` and the TDD row of `docs/architecture/acceptance-centered-work-loop.md`, where each occurrence names the supervisor's `stub` fence in the same sentence or table cell.
 
 ### work-loop
 
-- [ ] **AC-0003.** `work-loop` PLAN step 8, from `8. **Design construction tests` to `8a.`, states that a TDD task's `Tests:` names the behavior, the boundary it is checked at, and the verification mode.
-- [ ] **AC-0004.** The same step states that the red test is written and proven red at EXECUTE.
-- [ ] **AC-0005.** `work-loop` EXECUTE's TDD line states that the red test is written at the real test location and fails for the intended reason before production code changes.
-- [ ] **AC-0006.** `references/tdd-stubs.md` states that an import failure of the not-yet-written target counts as red, and that any other collection, import, or setup error, or a timeout, does not.
-- [ ] **AC-0007.** `references/tdd-stubs.md` states that, where a spec exists, the red's command and failing output go to the verification ledger.
-- [ ] **AC-0008.** `references/tdd-stubs.md` states that the approved plan does not require a `stub` fence.
-- [ ] **AC-0009.** `references/tdd-stubs.md` states that, where a supervisor run executes a TDD task, the plan author carries its fence in the approved task.
-- [ ] **AC-0009b.** `references/tdd-stubs.md` states that a supervisor task without a fence gets no engine-observed red proof and that EXECUTE's red-first rule still applies to it.
-- [ ] **AC-0010.** `references/tdd-stubs.md` states that a fence the supervisor refuses as `stub-not-red` is either made to fail for the intended reason or removed.
+- [x] **AC-0003.** `work-loop` PLAN step 8, from `8. **Design construction tests` to `8a.`, states that a TDD task's `Tests:` names the behavior, the boundary it is checked at, and the verification mode.
+- [x] **AC-0004.** The same step states that the red test is written and proven red at EXECUTE.
+- [x] **AC-0005.** `work-loop` EXECUTE's TDD line states that the red test is written at the real test location and fails for the intended reason before production code changes.
+- [x] **AC-0006.** `references/tdd-stubs.md` states that an import failure of the not-yet-written target counts as red, and that any other collection, import, or setup error, or a timeout, does not.
+- [x] **AC-0007.** `references/tdd-stubs.md` states that, where a spec exists, the red's command and failing output go to the verification ledger.
+- [x] **AC-0008.** `references/tdd-stubs.md` states that the approved plan does not require a `stub` fence.
+- [x] **AC-0009.** `references/tdd-stubs.md` states that, where a supervisor run executes a TDD task, the plan author carries its fence in the approved task.
+- [x] **AC-0009b.** `references/tdd-stubs.md` states that a supervisor task without a fence gets no engine-observed red proof and that EXECUTE's red-first rule still applies to it.
+- [x] **AC-0010.** `references/tdd-stubs.md` states that a fence the supervisor refuses as `stub-not-red` is either made to fail for the intended reason or removed.
 
 ### Mechanism routing
 
 In this group, "the routing section" is `new-spec` SKILL.md from the `load-bearing-claim-routing` anchor to `**Resolve repository anchors`.
 
-- [ ] **AC-0011.** The routing section names the five protected classes: security boundary, data loss or durability, migration or persisted state, public interface, irreversible operation.
-- [ ] **AC-0012.** In the routing section, the `unstarted-task-method` input admits a mechanism claim whose falsehood could move only the chosen mechanism and on which no protected class depends.
-- [ ] **AC-0013.** In the routing section, the `cheap-with-an-oracle` input admits the same claim only when it is also reversible, by the reversibility sentence that row already states.
-- [ ] **AC-0014.** The routing section's table has exactly three rows, keyed `reaches-the-contract`, `unstarted-task-method`, and `cheap-with-an-oracle`.
-- [ ] **AC-0014a.** The `reaches-the-contract` input keeps the sentence `no load-bearing claim is unrouted`.
-- [ ] **AC-0015.** In the routing section, the `unstarted-task-method` destination sends a mechanism to the plan's `## Design (LLD)` with its means marked `implementation-discovered`.
-- [ ] **AC-0016.** The routing section states that a claim about a protected class's property settles before approval.
-- [ ] **AC-0017.** The routing section states that the means delivering a protected property lives in the plan's `## Design (LLD)`.
-- [ ] **AC-0018.** `assets/plan.md`'s `## Design (LLD)` section, up to `### Design decisions`, states that mechanism lives there.
-- [ ] **AC-0019.** The same section states that a means no code grounds yet is marked `implementation-discovered` and that its chosen means and any correction go to the verification ledger.
-- [ ] **AC-0020.** `assets/spec.md`'s `## Agent Rules` section, up to `### Always do`, states that a syscall, flag, helper name, or exact write order is mechanism that belongs in the plan's `## Design (LLD)`.
+- [x] **AC-0011.** The routing section names the five protected classes: security boundary, data loss or durability, migration or persisted state, public interface, irreversible operation.
+- [x] **AC-0012.** In the routing section, the `unstarted-task-method` input admits a mechanism claim whose falsehood could move only the chosen mechanism and on which no protected class depends.
+- [x] **AC-0013.** In the routing section, the `cheap-with-an-oracle` input admits the same claim only when it is also reversible, by the reversibility sentence that row already states.
+- [x] **AC-0014.** The routing section's table has exactly three rows, keyed `reaches-the-contract`, `unstarted-task-method`, and `cheap-with-an-oracle`.
+- [x] **AC-0014a.** The `reaches-the-contract` input keeps the sentence `no load-bearing claim is unrouted`.
+- [x] **AC-0015.** In the routing section, the `unstarted-task-method` destination sends a mechanism to the plan's `## Design (LLD)` with its means marked `implementation-discovered`.
+- [x] **AC-0016.** The routing section states that a claim about a protected class's property settles before approval.
+- [x] **AC-0017.** The routing section states that the means delivering a protected property lives in the plan's `## Design (LLD)`.
+- [x] **AC-0018.** `assets/plan.md`'s `## Design (LLD)` section, up to `### Design decisions`, states that mechanism lives there.
+- [x] **AC-0019.** The same section states that a means no code grounds yet is marked `implementation-discovered` and that its chosen means and any correction go to the verification ledger.
+- [x] **AC-0020.** `assets/spec.md`'s `## Agent Rules` section, up to `### Always do`, states that a syscall, flag, helper name, or exact write order is mechanism that belongs in the plan's `## Design (LLD)`.
 
 ### Guides and architecture
 
-- [ ] **AC-0021.** Each of the three guides and two architecture pages in the live-source list states that the red test is written at EXECUTE.
+- [x] **AC-0021.** Each of the three guides and two architecture pages in the live-source list states that the red test is written at EXECUTE.
 
 ### Evals
 
-- [ ] **AC-0022.** Neither `packs/core/.apm/skills/work-loop/evals/evals.json` nor `packs/core/.apm/skills/new-spec/evals/evals.json` contains a retired phrase.
-- [ ] **AC-0023.** The records `tdd-stub-replaces-prose-or-records-no-stub-reason` and `tdd-stub-uses-the-stub-fence` (work-loop) and `tdd-stub-proof-belongs-to-work-loop-plan` (new-spec) each expect the red test written at EXECUTE.
+- [x] **AC-0022.** Neither `packs/core/.apm/skills/work-loop/evals/evals.json` nor `packs/core/.apm/skills/new-spec/evals/evals.json` contains a retired phrase.
+- [x] **AC-0023.** The records `tdd-stub-replaces-prose-or-records-no-stub-reason` and `tdd-stub-uses-the-stub-fence` (work-loop) and `tdd-stub-proof-belongs-to-work-loop-plan` (new-spec) each expect the red test written at EXECUTE.
 
 ### Regression, decision, release
 
-- [ ] **AC-0024.** `python3 -m pytest packs/core/tests tests/roster tools/test_stasis_retirement_claims.py -q` passes.
-- [ ] **AC-0025.** ADR-0150 reads `Status: Accepted`.
-- [ ] **AC-0026.** `python3 -m pytest tests/roster/test_lint_adr_shape_corpus.py -q` passes.
-- [ ] **AC-0027.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same version, one patch above the version `packs/core/pack.toml` carries on `main` at merge.
-- [ ] **AC-0028.** `agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify --root .`, and `python3 tools/validate_guides.py` exit 0.
-- [ ] **AC-0029.** `agentbundle catalogue self-host --root . --write` leaves no tracked change after the delivery commit.
+- [x] **AC-0024.** `python3 -m pytest packs/core/tests tests/roster tools/test_stasis_retirement_claims.py -q` passes.
+- [x] **AC-0025.** ADR-0150 reads `Status: Accepted`.
+- [x] **AC-0026.** `python3 -m pytest tests/roster/test_lint_adr_shape_corpus.py -q` passes.
+- [x] **AC-0027.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same version, one patch above the version `packs/core/pack.toml` carries on `main` at merge.
+- [x] **AC-0028.** `agentbundle catalogue lint --root . --deep`, `agentbundle catalogue verify --root .`, and `python3 tools/validate_guides.py` exit 0.
+- [x] **AC-0029.** `agentbundle catalogue self-host --root . --write` leaves no tracked change after the delivery commit.
 
 ## Follow-ons
 

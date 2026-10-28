@@ -1,7 +1,7 @@
 # Plan: plan-stage altitude
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations in shipped content); `tests/roster/test_tdd_stub_lifecycle_contract.py` as the existing owner of lifecycle content pins; uncertainty — none, the change is prose plus tests.
 
 > **Plan contract:** this is the implementation strategy. It may change
