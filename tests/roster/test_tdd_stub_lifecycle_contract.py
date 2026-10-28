@@ -82,8 +82,12 @@ def test_spec_authoring_and_plan_do_not_write_repository_tests() -> None:
         normalized_source = source.lower()
         for forbidden in forbidden_plan_time_permissions:
             assert forbidden.lower() not in normalized_source
+    # Read from PLAN step 8 on: an earlier step may name scratch for its own
+    # purpose (defect diagnosis does), and the order pinned here is step 8's.
+    step_8 = "8. **Design construction tests"
+    assert step_8 in work_loop
     _assert_order(
-        work_loop,
+        work_loop[work_loop.index(step_8) :],
         "exact stub code in `plan.md`",
         "disposable scratch",
         "CODE-IMPLEMENTATION",
