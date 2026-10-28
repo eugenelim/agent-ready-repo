@@ -111,7 +111,7 @@ plan used to hold.
 
 **Tests:**
 - AC-0022, AC-0023: eval tests added to the roster file; `python3 -m pytest packs/core/tests/skills/work-loop/test_loop_engine.py -q -k evals_json_shape`.
-- AC-0027: a version test added to the roster file, comparing both fields with each other and with `git show origin/main:packs/core/pack.toml`.
+- AC-0027: checked at delivery by reading both fields and `git show origin/main:packs/core/pack.toml`; no permanent test, because once merged `main` carries the new version and the comparison would red.
 - AC-0025, AC-0026: the ADR's status line, set by its decision-maker at spec approval, and the shape-lint command.
 - AC-0024, AC-0028, AC-0029: the named commands, and `git status --porcelain` after self-host.
 
