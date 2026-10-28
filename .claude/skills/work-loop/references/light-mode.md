@@ -97,7 +97,7 @@ durable spec-and-plan path. Invoke `new-spec` for that path.
 | Queueing for later | Only an indexed spec and plan are dispatchable. |
 | External control-plane orchestration | An external attempt/lease system addresses durable items, not a session. |
 | A human approval boundary that must survive context loss | An approval has to be re-readable after the approver's session ends. |
-| A public or durable product behavior contract | Published behavior is a contract others depend on, not a session decision. |
+| A public or durable product behavior contract; for an edit to an existing agent-guidance file, only one that changes a **tool surface**, an **authority or gate**, a **security boundary**, or a **published schema** | Published behavior is a contract others depend on, not a session decision. A plain guidance edit changes how an agent carries out a step inside the same tools, authority, gates, controls, and formats. |
 | Source-authority or refresh state that must stay meaningful after the session | Provenance and refresh conflict decisions are durable state. |
 | An explicit user request for a spec | The request is itself the authority for the durable path. |
 
@@ -118,6 +118,59 @@ If direct-light discovers that it needs a further session, a second worktree is
 already changing the same files, or gates cannot be repaired in-session, stop,
 Surface the situation, and escalate to the durable spec-and-plan path rather
 than leaving changes stranded with no durable record.
+
+## Splitting a bundle
+
+A request that bundles several tasks may split into one light unit per task
+when the tasks pass all three parts of this test:
+
+1. **No dependency edge.** No task's `Depends on:` names another task in the
+   bundle.
+2. **No shared write set.** Each task declares the paths it will write as a
+   `Touches:` set, and no path or glob in one set matches a path in another. A
+   generated projection of a source file, under `.claude/`, `.agents/`, or
+   `.codex/`, counts as a write to its source path.
+3. **The diff agrees.** Each unit's finished diff stays inside its own set and
+   touches no file in another unit's set.
+
+List every task with its `Depends on:` and `Touches:` lines in the decision
+record, and check parts 1 and 2 there before the first write. Check part 3 on
+every unit's finished diff. Part 3, the diff check, is the check that counts: a
+declared set is a prediction, and a prediction never by itself shows
+independence.
+
+Each unit then faces every risk trigger and every eligibility row on its own,
+and ships as its own branch and pull request. Units run one at a time in this
+session, so a split is not parallel execution. The bundle as a whole must still
+pass the rows "Expected to complete in the current session", "Expected
+multi-session work", and "Queueing for later": a bundle whose units together
+need another session, or would wait in a queue, goes to full mode whole.
+
+**No light unit merges until every unit passes.** Units may be reviewed in any
+order. No light unit merges until every unit still in the bundle has a finished
+diff that passes the diff check.
+
+**A unit that fires another trigger** leaves the bundle for full mode by itself
+and takes its declared write set with it: its spec and plan record that set.
+The units still in the bundle run the diff check against that set, then merge
+without waiting for the full-mode unit.
+
+**The fallback.** When any part of the test fails or cannot be shown, the bundle
+stays whole and goes to full mode. A unit whose diff leaves its set stops the
+whole bundle. Nothing has merged at that point, so the bundle moves to full mode
+with every unit's diff kept as observed work, under the late-trigger rule above.
+
+## Editing existing agent guidance
+
+An edit to an existing agent-guidance file that changes no **tool surface**,
+**authority or gate**, **security boundary**, or **published schema**, as the
+risk-trigger block defines them, fires no trigger by being guidance. It still
+faces every trigger on its other effects, and it does not count as a durable
+product contract for the eligibility table above. It runs light with one added
+obligation: each changed rule gets a new or updated content-pin test, a test
+that asserts the phrases the rule depends on, which reads only the edited
+section between two markers rather than the whole file. Adversarial review runs
+as light mode runs it.
 
 ## Loop deltas
 
