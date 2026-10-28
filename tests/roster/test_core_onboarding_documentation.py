@@ -197,3 +197,22 @@ def test_core_guides_point_at_work_loop_for_verification_modes() -> None:
     core_pack = _collapsed(REPOSITORY_ROOT / "guides/core/explanation/core-pack.md")
     assert not re.search(rf"\b{_COUNT}\s+modes\b", core_pack, re.I)
     assert "PLAN step 7" in core_pack
+
+
+def test_plan_guide_states_bundle_split_and_guidance_edit_rules() -> None:
+    """The new-spec pitfall tells readers how bundles split and guidance edits run."""
+    guide = _collapsed(
+        REPOSITORY_ROOT / "guides/core/how-to/plan-and-execute-non-trivial-work.md"
+    )
+    start = guide.index("Reaching for")
+    pitfall = guide[start : guide.index(":::", start)]
+
+    for phrase in (
+        "one unit per task",
+        "existing agent-guidance file",
+        "tool surface",
+        "authority or gate",
+        "security boundary",
+        "published schema",
+    ):
+        assert phrase in pitfall

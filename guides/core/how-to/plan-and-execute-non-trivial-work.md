@@ -196,7 +196,7 @@ When an `implementer` subagent is installed, the controller dispatches each plan
 ## Pitfalls
 
 :::caution
-**Reaching for `new-spec` because the change touches several files.** File count stopped deciding this a long time ago; risk decides it, and so does durability. A bounded, low-risk change you are doing now runs direct-light with its plan in the session and no spec at all, however many files it touches. Write a spec when the work needs a durable contract — a risk trigger fires, it needs queueing, another session, another person, an external orchestrator, an approval that outlives the context, or it defines published behavior. The discipline is the loop, not the document.
+**Reaching for `new-spec` because the change touches several files.** File count stopped deciding this a long time ago; risk decides it, and so does durability. A bounded, low-risk change you are doing now runs direct-light with its plan in the session and no spec at all, however many files it touches. Write a spec when the work needs a durable contract — a risk trigger fires, it needs queueing, another session, another person, an external orchestrator, an approval that outlives the context, or it defines published behavior. The discipline is the loop, not the document. A request that bundles tasks shown to be independent splits into one unit per task, and each unit is judged on its own. A plain edit to an existing agent-guidance file runs light, with a content-pin test on the edited section. It stays in full mode if it changes a tool surface, an authority or gate, a security boundary, or a published schema. A new guidance file and policy prose also stay in full mode.
 :::
 
 :::caution
