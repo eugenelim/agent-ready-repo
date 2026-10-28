@@ -220,3 +220,8 @@ refusal that names its entry and lifts on one token.
 closeout, making a hand-declared value unnecessary (D1); or a read-free
 brief→child index appears, allowing exact attribution instead of the floor (D5);
 or the refusal is observed to fire on work whose entry cannot be corrected (D5).
+
+## Errata
+
+- **2026-10-27 (Decision-maker: eugenelim) — D2, D4, D7, and D9: a declared value also resolves to a brief file.**
+  [RFC-0106](../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin briefs, so a brief membership is no longer the only record that a brief exists. D2 and D4 now read "resolving to a `kind = "brief"` membership or a brief file". A brief file is a declared value that, as the provenance normalizer returns it, is byte-identical to `docs/product/briefs/` plus the name of a regular, non-link file listed in that directory, where `docs/product/briefs/`, `docs/product/`, and `docs/` are real directories beneath the repository root. D7 still defines a brief membership by entry kind. D9 still opens no body: the check lists one directory and compares strings, never resolving the declared value. Any other value, including a case variant or a link, leaves the scope unknown, so D5's fail-closed refusal is unchanged.
