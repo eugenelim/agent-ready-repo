@@ -1,6 +1,6 @@
 # ADR-0150: The TDD red test is written at EXECUTE, and mechanism lives in the plan's design, not the contract
 
-- **Status:** Accepted
+- **Status:** Proposed
 - **Date:** 2026-10-27
 - **Areas:** work-loop, shaping
 - **Reversibility:** high
@@ -9,7 +9,7 @@
 - **Supersedes in part:** none
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** RFC-0028 (decision 3 and erratum E1 — the PLAN-time stub timing this record replaces; the vehicle, `work-loop/references/tdd-stubs.md`, stays); RFC-0019 (the plan's `## Design (LLD)` this record makes the home of mechanism)
+- **Related:** RFC-0028 (decision 3 and erratum E1 — the PLAN-time stub timing this record replaces; the vehicle, `work-loop/references/tdd-stubs.md`, stays); RFC-0019 (the plan's `## Design (LLD)` this record makes the home of mechanism); ADR-0144 (the supervisor's red-before-green guard this record keeps fed, and the in-envelope task change that carries a design correction once it is authoritative)
 
 ## Decision summary
 
@@ -43,6 +43,8 @@ the whole plan, so `## Design (LLD)` is not correctable after approval except
 through the verification ledger route for a declared implementation-discovered
 seam.
 
+ADR-0144 makes the supervisor the mechanical enforcer of red-before-green, reading the `stub` fences in a task's `Tests:`; a task without one gets no supervisor red proof. It also lets an in-envelope task change proceed without approval once the whole-plan lock is retired. This record keeps both: it moves the fence from approval-time content to task-start content, and it routes a design correction to ADR-0144's task change once that is authoritative.
+
 ADR-0117 D3 admits an RFC erratum only to clarify a decision, not change it.
 Moving the red test's timing changes what decision 3 decided, so this is a new
 record. RFC-0028's vehicle decisions (1, 2, 4, 5, 6) stay in force.
@@ -53,9 +55,9 @@ We will write the TDD red test at EXECUTE and keep mechanism in the plan's desig
 
 - **D1:** At PLAN, a TDD task's `Tests:` bullet names the behavior, the boundary it is checked at, and the verification mode. `plan.md` carries no required stub code.
 - **D2:** At EXECUTE, the implementer writes the red test at the real test location and runs it, and it must fail for the intended reason before production code changes. An import failure of the not-yet-written target counts as that reason; any other collection, import, or setup error, or a timeout, is not red. Where a spec exists, the command and its failing output go to the verification ledger.
-- **D3:** A `stub` fence in `plan.md` stays an optional form for a task that a supervisor run executes and that needs machine red proof. When present, EXECUTE materializes it unchanged, as before.
+- **D3:** A `stub` fence is not required content of the approved plan. Where a supervisor run executes a TDD task, the fence is how the supervisor observes red before green: while the plan is locked as a whole, the plan author carries it in the approved task; once ADR-0144's in-envelope task revision is authoritative, it is written into the task as a revision when the task starts. Either way the supervisor materializes it unchanged and proves it red.
 - **D4:** The protected classes are a security boundary, data loss or durability, a migration or persisted state, a public interface, and an irreversible operation. A mechanism claim reaches the contract when a protected class depends on it or when its falsehood could also move a criterion, boundary, task graph, verification strategy, or failure direction, or when a test can decide it but undoing it is not reversible. For a protected class the property settles before approval; its means still lives in the design.
-- **D5:** A mechanism claim whose falsehood could move only the chosen mechanism, and on which no protected class depends, is a task's local method. One a test can decide, and whose undoing needs no migration, external side effect, or user-visible contract change, is settled in code. One no test can decide lives in the plan's `## Design (LLD)`: the design states the required property and marks the means `implementation-discovered`, and the chosen means and any later correction go to the verification ledger, not an amendment.
+- **D5:** A mechanism claim whose falsehood could move only the chosen mechanism, and on which no protected class depends, is a task's local method. One a test can decide, and whose undoing needs no migration, external side effect, or user-visible contract change, is settled in code. One no test can decide lives in the plan's `## Design (LLD)`: the design states the required property and marks the means `implementation-discovered`, and the chosen means and any later correction go to the verification ledger while the plan is locked as a whole, not an amendment. Once ADR-0144's in-envelope task change is authoritative, that change carries the correction, and this record adds no second rule for it.
 - **D6:** Agent Rules and acceptance criteria name what the agent may do and what is observable. A syscall, flag, helper name, or exact write order is mechanism.
 - **D7:** `implementation-discovered` is the one marker for a seam or a means the plan cannot ground before code exists. It replaces the `no stub (implementation-discovered)` and `no stub (mode)` records, which existed only because plan stubs were required.
 
@@ -67,7 +69,7 @@ We will write the TDD red test at EXECUTE and keep mechanism in the plan's desig
 
 **Negative:**
 - An untestable criterion surfaces at EXECUTE rather than at PLAN when its `Tests:` bullet looked plausible.
-- A supervisor task without a `stub` fence gets no machine red proof from the engine; the plan author adds the fence when that proof is needed.
+- Until in-envelope task revision is authoritative, a supervisor task gets machine red proof only when the plan author carried its fence in the approved task.
 
 **Revisit if:** a run shows a TDD task reaching EXECUTE whose criterion cannot be turned into a red test, or a protected-class defect ships because its means was left to the design.
 
