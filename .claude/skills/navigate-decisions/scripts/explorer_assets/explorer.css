@@ -23,6 +23,17 @@ summary { display: list-item; padding: var(--s-1) 0; }
 .detail .notice { margin: 0 0 var(--s-2); }
 
 .app { padding: var(--s-5); }
+
+/* ---- Question rail: groups of tabs above the zones, one column beside them from 90rem. */
+.questions { margin: 0 0 var(--s-4); min-width: 0; }
+.question-list { list-style: none; margin: 0; padding: 0; gap: var(--s-1); }
+.rail-group { margin: 0; }
+.question-link { display: flex; justify-content: space-between; align-items: center; gap: var(--s-3); min-height: var(--target); padding: var(--s-2) var(--s-3); }
+.q-count { text-align: center; padding: 0.05rem 0.4rem; flex: none; min-width: 2rem; }
+.question-list ~ .question-list { margin-top: var(--s-2); }
+.list-head { padding: 0 0 var(--s-3); border-bottom-width: 1px; border-bottom-style: solid; }
+.list-question, .list-sort { margin: 0; }
+.list-title { margin: var(--s-1) 0; }
 .zones { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
 .worklist, .detail { border-width: 1px; border-style: solid; min-width: 0; }
 .worklist { padding: var(--s-4) var(--s-4) var(--s-2); container-type: inline-size; }
@@ -31,15 +42,15 @@ summary { display: list-item; padding: var(--s-1) 0; }
 .back-link { margin: 0 0 var(--s-3); }
 .zones[data-picked] .worklist { display: none; }
 .zones:not([data-picked]) .detail { display: none; }
-.list-count { margin: var(--s-1) 0 var(--s-2); }
+.list-count, .list-noarea { margin: var(--s-1) 0 0; }
+.group-head { margin: var(--s-3) 0 var(--s-1); padding: 0 var(--s-3); }
+.area-group { margin: var(--s-2) 0 0; }
 
 /* The view switch, Expand all and the Key sit above the views, inside the list zone. */
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-2); }
 .seg { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-1); }
 .seg-btn { padding: 0 var(--s-2); white-space: nowrap; }
 .seg-label { padding-right: var(--s-1); }
-.seg-btn[aria-current="page"] { background: var(--c-accent-bg); border-color: var(--c-accent); color: var(--c-accent); }
-.seg-btn[aria-current="page"]::before { content: "\2713"; content: "\2713" / ""; margin-right: 0.3rem; }
 .key { margin: var(--s-2) 0; }
 .key > summary { display: inline-flex; align-items: center; gap: var(--s-2); margin-left: calc(-1 * var(--s-3)); padding: 0 var(--s-3); min-height: 1.75rem; list-style: none; }
 .key > summary::-webkit-details-marker { display: none; }
@@ -92,13 +103,22 @@ button.row-link { display: grid; grid-template-columns: minmax(0, 1fr); gap: var
 .meta-table th, .meta-table td { padding: var(--s-1) var(--s-3); text-align: left; vertical-align: top; border-bottom: 1px solid var(--c-rule); overflow-wrap: anywhere; white-space: pre-wrap; }
 .meta-table tr:last-child th, .meta-table tr:last-child td { border-bottom-width: 0; }
 .meta-table th { white-space: nowrap; width: 7rem; }
-.rel-details, .sr-details, .body-details { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); }
-.rel-details > summary, .sr-details > summary, .body-details > summary { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-3); background: var(--c-canvas); border-radius: var(--r-1); list-style: none; }
-.rel-details > summary::-webkit-details-marker, .sr-details > summary::-webkit-details-marker, .body-details > summary::-webkit-details-marker { display: none; }
-.rel-details > summary::after, .sr-details > summary::after, .body-details > summary::after { content: "\25BE"; color: var(--c-muted); }
-.rel-details[open] > summary::after, .sr-details[open] > summary::after, .body-details[open] > summary::after { content: "\25B4"; }
+.rel-details, .sr-details, .body-details, .all-fields { border: 1px solid var(--c-rule); border-radius: var(--r-1); margin-bottom: var(--s-2); }
+.rel-details > summary, .sr-details > summary, .body-details > summary, .all-fields > summary { display: flex; justify-content: space-between; align-items: center; gap: var(--s-2); padding: var(--s-1) var(--s-3); background: var(--c-canvas); border-radius: var(--r-1); list-style: none; }
+.rel-details > summary::-webkit-details-marker, .sr-details > summary::-webkit-details-marker, .body-details > summary::-webkit-details-marker, .all-fields > summary::-webkit-details-marker { display: none; }
+.rel-details > summary::after, .sr-details > summary::after, .body-details > summary::after, .all-fields > summary::after { content: "\25BE"; color: var(--c-muted); }
+.rel-details[open] > summary::after, .sr-details[open] > summary::after, .body-details[open] > summary::after, .all-fields[open] > summary::after { content: "\25B4"; }
 .rel-details > .rel-list, .sr-details > ul { padding: var(--s-2) var(--s-3); }
 .sr-details > ul { margin: 0; list-style: none; }
+.all-fields { margin-top: var(--s-3); }
+.all-fields > .meta-table { margin: 0; border-width: 0; }
+
+/* ---- Detail lead: what it replaced, its facts and its links sit above the record content. */
+.replaces-line, .facts-line { margin: 0 0 var(--s-2); overflow-wrap: anywhere; }
+.replaces-line a, .detail-links a { display: inline-flex; align-items: center; min-height: 1.5rem; }
+.detail-links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-4); margin: 0 0 var(--s-3); }
+.detail-links .source-path { overflow-wrap: anywhere; min-width: 0; }
+.list-summary { margin: var(--s-3) 0 0; padding: var(--s-2) var(--s-3); }
 
 /* ---- Record content: a uniform 2px border, distinct from the 4px evidence rails */
 .record-content { border: 2px solid var(--c-rule); border-radius: var(--r-1); padding: var(--s-3) var(--s-4); background: var(--c-canvas); overflow-x: auto; max-width: 100%; line-height: 1.6; }
@@ -166,14 +186,36 @@ text.ln-on-focus { fill: var(--c-bg); }
 
 /* ---- Width tracks: one column below 40rem, the detail replacing the list once a record is picked. */
 @media (min-width: 40rem) {
+  .rail { display: flex; flex-wrap: wrap; gap: var(--s-1); }
+  .question-list { display: flex; flex-wrap: wrap; }
+  .question-list ~ .question-list { margin-top: 0; }
   .search { flex: 1 1 16rem; max-width: 32rem; }
   .zones { grid-template-columns: minmax(0, 3fr) minmax(22rem, 2fr); }
   .zones[data-picked] .worklist, .zones:not([data-picked]) .detail { display: block; }
   .back-link { display: none; }
   .detail { position: sticky; top: var(--s-5); align-self: start; max-height: calc(100vh - 2 * var(--s-5)); overflow: auto; }
 }
+/* Groups of tabs wrapping onto several rows are set apart by a wider gap; one row uses a hairline. */
+@media (min-width: 40rem) and (max-width: 65.99rem) {
+  .question-list ~ .question-list { margin-left: var(--s-3); }
+}
+/* Six tabs in three groups stay on one row from 66rem: the links shrink and wrap their names instead. */
+@media (min-width: 66rem) and (max-width: 89.99rem) {
+  .rail, .question-list { flex-wrap: nowrap; }
+  .rail { gap: var(--s-3); }
+  .question-list, .question { min-width: 0; }
+  .question-list { flex: 0 1 auto; }
+  .question-list ~ .question-list { padding-left: var(--s-3); border-left-width: 1px; border-left-style: solid; }
+}
 @media (min-width: 90rem) {
+  .app { display: grid; grid-template-columns: 16.5rem minmax(0, 1fr); gap: var(--s-4); }
+  .questions { margin: 0; }
+  .rail { display: block; }
+  .question-list { display: block; }
   .zones { grid-template-columns: minmax(0, 1fr) clamp(22rem, 30%, 32rem); }
+  /* The rail sets the row's height here; a short list card keeps its own height instead of stretching to it. */
+  .worklist { align-self: start; }
+  .q-count { min-width: 2.25rem; }
 }
 @media (min-width: 120rem) {
   .zones { grid-template-columns: minmax(0, 1fr) clamp(28rem, 30%, 40rem); }
