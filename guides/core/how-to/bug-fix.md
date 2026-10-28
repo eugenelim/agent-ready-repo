@@ -42,7 +42,7 @@ The agent answers where the defect lives, when it began, and whether the same pa
 
 ## Make the smallest fix
 
-Ask for the fix:
+Once it finds the cause, `bug-fix` hands the fix to the build loop (`work-loop`). The build loop is the routine that plans a change, makes it, runs your checks, and has independent reviewers read the diff. Ask for the fix:
 
 ```text
 Make the smallest change that turns the test green.
@@ -52,6 +52,12 @@ The agent changes only what the named bug needs. It refuses to hide the symptom 
 
 ## Ship it
 
-Run your lint, type, and test commands, then open the pull request, as the [development workflow](../../../AGENTS.md#development-workflow) describes. The agent writes the commit as `fix(<scope>): <subject>`, with the root cause in its body, following the [coding conventions](../../../AGENTS.md#coding-conventions). Once the cause is found, `bug-fix` hands the fix to the build loop (`work-loop`), so independent reviewers read the diff; see [the build loop](start-the-work.md); [why the loop works this way](../explanation/core-pack.md#why-the-loop).
+The build loop runs your lint, type, and test commands, and its reviewers read the diff before the pull request opens. Ask it to open the pull request:
+
+```text
+Open the pull request for this fix.
+```
+
+The agent writes the commit as `fix(<scope>): <subject>`, with the root cause in its body, following the [coding conventions](../../../AGENTS.md#coding-conventions). It opens the pull request as the [development workflow](../../../AGENTS.md#development-workflow) describes. See [the build loop](start-the-work.md) and [why the loop works this way](../explanation/core-pack.md#why-the-loop).
 
 Next, [review the pull request](review-someone-elses-pr.md).

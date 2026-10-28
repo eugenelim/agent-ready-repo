@@ -249,6 +249,7 @@ def test_t4_fix_runs_command_before_and_after() -> None:
     assert "before the fix and record it failing" in sec
     assert "after the fix and record it passing" in sec
     assert "passes before the fix is Surfaced instead of fixed" in sec
+    assert "Failing means its exit status or printed output shows the defect" in sec
 
 
 def test_t4_adjudicator_tools_stay_read_grep() -> None:
@@ -284,3 +285,8 @@ def test_t5_pack_versions_are_3_1_27() -> None:
     plugin = json.loads((_PACK / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
     assert manifest["pack"]["version"] == "3.1.27"
     assert plugin["version"] == "3.1.27"
+
+
+def test_t2_step_1b_renders_as_its_own_block() -> None:
+    text = _WORK_LOOP.read_text(encoding="utf-8")
+    assert "\n\n1b. **Route an undiagnosed defect" in text

@@ -264,7 +264,9 @@ path, and a named uncertainty or deviation; a non-structural plan may say
 `Repository anchors: none — non-structural`. Existing plans without the field
 remain valid: treat missing metadata as a warning or named assurance gap, not a
 hard failure. Never require whole-repository ingestion or a new durable file.
+
 1b. **Route an undiagnosed defect through `bug-fix` first.** When the request reports a defect whose cause is not established, run `bug-fix` diagnosis first. Diagnosis earns the red regression test's red from disposable scratch, whatever mode follows. Mode selection then decides only how the test is materialized: full mode records it as the task's plan stub, and light mode writes it at its real test path during EXECUTE. It is never a repository test file during PLAN.
+
 2. **Select light or full mode** (see [Select: light or full mode](#select-light-or-full-mode)). With an existing spec, retain its spec/plan lifecycle, workspace reconciliation, and governing authority. Without one, select direct-light only after its decision record establishes every eligibility conjunct; otherwise invoke `new-spec`. Full mode requires complete ACs and Testing Strategy. Do not recreate or replace an adequate existing spec.
 3. Use the existing plan's task list when a plan exists. For direct-light, use the bounded active-session task and verification plan; do not create a sibling plan.
 4. Use extended thinking for architecturally significant work.
@@ -815,7 +817,7 @@ runs after the loop closes, under [Capture](#capture).
 ## FIX
 
 1. Read the sustained finding from the adjudication artifact carefully; fix the established defect, not the symptom. Never route a refuted or indeterminate source finding into FIX.
-   A sustained finding carrying a command: run the command before the fix and record it failing, then run it after the fix and record it passing. A command that passes before the fix is Surfaced instead of fixed.
+   A sustained finding carrying a command: run the command before the fix and record it failing, then run it after the fix and record it passing. A command that passes before the fix is Surfaced instead of fixed. Failing means its exit status or printed output shows the defect; passing means it no longer does.
 2. Split by shape: if diagnosing the failure hands you a ≤30-line fix (a missing flag, a wrong base URL, a leaked interval), implement it yourself, test it, commit it — diagnosis is the fix. If the fix is a well-specced multi-file unit, write a complete brief and dispatch it. Orchestrator context is the most expensive resource; spend it on diagnosis and judgment, not bulk edits.
 3. Re-run GATES. Every fix gets the same adversarial verification as worker output — run the suite it could plausibly break. When CI disagrees with your machine, believe CI and reproduce in a clean clone before concluding anything.
 4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept a footer-free `clean` classification directly and adjudicate every other report. Continue until no unresolved Blocker or Concern remains.
