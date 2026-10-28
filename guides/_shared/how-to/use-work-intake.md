@@ -50,10 +50,11 @@ Say:
 Remember that export retries need idempotent replay. Do not implement it now.
 ```
 
-The agent creates the smallest safe Draft artifact, registers a
-non-dispatchable entry, and stops. A defect, design, or research item is
-different: the agent writes it as its own file under `docs/product/captured/` and
-adds no entry. Use `work-intake` in new prompts.
+The agent creates the smallest safe Draft artifact and stops. A spec or a
+tracker-origin item also gets a non-dispatchable entry; a repo-origin intent or
+brief is its file alone. A defect, design, or research item is the same: the
+agent writes it as its own file under `docs/product/captured/` and adds no
+entry. Use `work-intake` in new prompts.
 
 ## Inspect or triage the workspace
 

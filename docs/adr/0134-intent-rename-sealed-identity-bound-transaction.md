@@ -90,6 +90,12 @@ Intent rename will use a sealed retire-and-issue transaction with identity-bound
 - **Treat a parseable record or matching digest seal as recovery authority:** rejected because staging may be incomplete while the record is parseable, and an altered record with a recomputed seal still matches. Authority is independently re-derived.
 - **Create and sweep transaction paths through ordinary path operations:** rejected because a swapped parent symlink escaped the repository in measurement, and a broad sweep could remove another operation's file. Descriptor-relative no-follow access and exact names are required.
 
+
+## Errata
+
+- **2026-10-27 (Decision-maker: eugenelim) — D4 and Applies to: a rename needs no registry entry.**
+  [RFC-0106](../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin intents, so `Applies to` no longer implies that a rename always updates `workspace.toml`, and D4's registry step runs only where `workspace.toml` names the source. A rename's mode is fixed by `workspace.toml` at its base commit. Where an entry names the source, D4 is unchanged. Where no entry names it but the source path occurs, the occurrences are repointed under the same locked, live read-modify-write. Where neither path occurs, the rename makes no registry step at all: it takes no lock, and commit, recovery, and rollback make no decision from the live `workspace.toml`, apart from one check before the first file write that refuses if either path has since appeared. A citation added after that check keeps the old path, as one added after any rename does; the shared lock is still never held across the transaction.
+
 ## References
 
 - ADR-0108 — fresh identifiers are allocated rather than renumbered or reused.

@@ -16,6 +16,7 @@ from __future__ import annotations
 import importlib.util
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 from typing import Any
 from unittest.mock import patch
@@ -245,17 +246,45 @@ def test_unknown_token_refuses_token_unknown(tmp_path: Path) -> None:
     assert result == "token-unknown"
 
 
-def test_unregistered_source_refuses_source_unregistered(tmp_path: Path) -> None:
-    """A source with no workspace.toml entry refuses."""
-    _setup_standard(tmp_path, registered=False)
-    # workspace.toml absent — no entry for the source.
-    (tmp_path / "workspace.toml").write_text(
-        "[backlog]\nopen = []\n", encoding="utf-8"
+def _admitted_unregistered(root: Path, registry_toml: str) -> object:
+    """Commit an intent that no entry names beside ``registry_toml``; validate it."""
+    root.mkdir(exist_ok=True)
+    _init_git_repo(root)
+    _setup_standard(root, registered=False)
+    (root / "workspace.toml").write_text(registry_toml, encoding="utf-8")
+    _commit_all(root)
+    return validator.validate_rename_request(
+        _SOURCE_REL, _TOKEN, repository_root=root
     )
-    result = validator.validate_rename_request(
-        _SOURCE_REL, _TOKEN, repository_root=tmp_path
+
+
+def test_unregistered_source_is_admitted(tmp_path: Path) -> None:
+    """A source with no workspace.toml entry is not refused (AC-0016)."""
+    result = _admitted_unregistered(tmp_path / "repo", "[backlog]\nopen = []\n")
+    assert isinstance(result, validator.ResolvedRequest)
+
+
+def _spec_entry_toml(parent: str) -> str:
+    return (
+        '[backlog]\nopen = [{path = "docs/specs/other/spec.md", kind = "spec", '
+        f'source = {{mode = "repo-origin", parent = "{parent}"}}, summary = "o", needs = []}}]\n'
     )
-    assert result == "source-unregistered"
+
+
+def test_source_cited_by_a_spec_entry_is_admitted(tmp_path: Path) -> None:
+    """A source named only by another entry's ``source.parent`` is admitted (AC-0018)."""
+    result = _admitted_unregistered(tmp_path / "repo", _spec_entry_toml(_SOURCE_REL))
+    assert isinstance(result, validator.ResolvedRequest)
+
+
+def test_successor_occurring_in_the_registry_does_not_refuse_at_request_time(
+    tmp_path: Path,
+) -> None:
+    """The successor is unknown here, so the pre-write gate refuses it (AC-0019)."""
+    result = _admitted_unregistered(
+        tmp_path / "repo", _spec_entry_toml("docs/product/intents/STRAT-0001-x.md")
+    )
+    assert isinstance(result, validator.ResolvedRequest)
 
 
 def test_unparseable_registry_refuses_registry_unparseable(tmp_path: Path) -> None:
@@ -640,8 +669,8 @@ def test_needs_only_entry_is_unregistered(tmp_path: Path) -> None:
     """An intent named only in a ``needs`` edge is not considered registered.
 
     If the source appears only as a ``needs`` edge inside another entry's
-    array, it has no own registration and must refuse with
-    ``source-unregistered``.
+    array, it has no own registration, so the request is admitted and the
+    rename decides from occurrences.
     """
     repo = tmp_path / "repo"
     repo.mkdir()
@@ -663,7 +692,7 @@ def test_needs_only_entry_is_unregistered(tmp_path: Path) -> None:
     result = validator.validate_rename_request(
         _SOURCE_REL, _TOKEN, repository_root=repo
     )
-    assert result == "source-unregistered"
+    assert isinstance(result, validator.ResolvedRequest)
 
 
 # ── B5: liveness scan does not over-fire on field values ──────────────────────
@@ -1070,7 +1099,7 @@ def test_non_ascii_filename_clean_resolves(tmp_path: Path) -> None:
 # ── B3: registry matching counts only declared collection entries ─────────────
 
 
-def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
+def test_decoy_table_is_not_counted_as_registered() -> None:
     """A bare TOML table carrying ``path`` but outside a collection array is not counted.
 
     ``[decoy]\\npath = "..."`` puts a dict value at the document level, not
@@ -1078,15 +1107,10 @@ def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
     because any dict with a ``path`` key was treated as an entry. The new
     structural traversal requires position inside an array.
     """
-    _setup_standard(tmp_path, registered=False)
     decoy_toml = (
         f'[decoy]\npath = "{_SOURCE_REL}"\n'
     )
-    (tmp_path / "workspace.toml").write_text(decoy_toml, encoding="utf-8")
-    result = validator.validate_rename_request(
-        _SOURCE_REL, _TOKEN, repository_root=tmp_path
-    )
-    assert result == "source-unregistered"
+    assert validator._count_registry_matches(tomllib.loads(decoy_toml), _SOURCE_REL) == 0
 
 
 @pytest.mark.parametrize(
@@ -1105,7 +1129,7 @@ def test_decoy_table_is_not_counted_as_registered(tmp_path: Path) -> None:
     ],
 )
 def test_decoy_arrays_outside_a_registry_collection_are_not_counted(
-    tmp_path: Path, shape: str, registry_toml: str
+    shape: str, registry_toml: str
 ) -> None:
     """A path inside any array outside a declared collection is unregistered.
 
@@ -1115,14 +1139,10 @@ def test_decoy_arrays_outside_a_registry_collection_are_not_counted(
     sat in a list. Registration is decided by the whole key path, so these
     stay unregistered however entry-shaped they look.
     """
-    _setup_standard(tmp_path, registered=False)
-    (tmp_path / "workspace.toml").write_text(
-        registry_toml.format(p=_SOURCE_REL), encoding="utf-8"
+    parsed = tomllib.loads(registry_toml.format(p=_SOURCE_REL))
+    assert validator._count_registry_matches(parsed, _SOURCE_REL) == 0, (
+        f"{shape} was counted as a registration"
     )
-    result = validator.validate_rename_request(
-        _SOURCE_REL, _TOKEN, repository_root=tmp_path
-    )
-    assert result == "source-unregistered", f"{shape} was counted as a registration"
 
 
 @pytest.mark.parametrize(

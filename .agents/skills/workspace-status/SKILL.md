@@ -227,7 +227,7 @@ identifier to the repository root without checking it is a path first.
 | `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. A surviving historical alias for the same artifact path is one cause: the canonical entry is blocked while the alias survives anywhere in the workspace. | Remove the duplicate after choosing the authoritative membership. If a legacy alias is the cause, tell the user to delete the alias from `workspace.toml`. |
 | `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
-| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names no registered brief. | Declare `source.parent` on the named entry — a brief path that resolves to a registered brief entry, or `none` only when that spec has no parent brief. A value naming nothing registered does not clear it. A value naming the wrong registered brief does clear it, and misattributes the spec silently, because once the spec has cooled the declaration is trusted rather than verified. |
+| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names neither a brief file nor a brief entry. | Declare `source.parent` on the named entry — the path of a brief file under `docs/product/briefs/` (or of a brief entry), or an empty value (`none`) only when that spec has no parent brief. A value naming neither does not clear it. A value naming the wrong brief does clear it, and misattributes the spec silently, because once the spec has cooled the declaration is trusted rather than verified. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |
@@ -318,6 +318,8 @@ Shipped queue work, removes only explicitly eligible Archived queue work, keeps
 active-list findings manual, revalidates canonical eligibility, and performs a
 comment-preserving atomic write. Never edit `workspace.toml` directly as a
 fallback for a skipped or manual finding. Captured items registered outside `docs/product/captured/` are refused with `unmigrated_captured_item` until the `captured-to-file` repair moves them; `status` lists every captured-item file under its `captured` section.
+
+Intent and brief entries need no registry entry: `repair-plan` also holds an `intent-brief-drop` operation for each repo-origin entry for an intent under `docs/product/intents/` or a brief under `docs/product/briefs/` (never a captured item's entry), and `repair-apply --yes` removes it after the `needs` operations, keeping any entry whose `needs` remain. Details are in `references/mutate.md`.
 
 **Main output sections:**
 

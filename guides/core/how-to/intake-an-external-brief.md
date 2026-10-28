@@ -63,7 +63,7 @@ You need:
 
 4. **Confirm the slug.** The skill proposes a kebab-case slug that becomes the filename (`docs/product/briefs/<slug>.md`). Confirm or correct it. If a file already exists at that path, the skill stops and prompts you before writing.
 
-5. **Brief file created and registered in `workspace.toml`.** The skill writes `docs/product/briefs/<slug>.md` with `Status: Draft`, then registers the structured Draft entry. If registration fails, it rolls back the file when safe or leaves an explicit non-dispatchable reconciliation finding. It never silently degrades to file-only success.
+5. **Brief file created and registered in `workspace.toml`.** The skill writes `docs/product/briefs/<slug>.md` with `Status: Draft`. A tracker-origin brief keeps a registry entry, because refresh reads its tracker profile through the entry, so the skill adds the structured Draft entry as well. If registration fails, it rolls back the file when safe or leaves an explicit non-dispatchable reconciliation finding. It never silently degrades to file-only success.
 
 6. **Brief is queued as draft.** The skill confirms the brief is at `docs/product/briefs/<slug>.md` and tells you to run `author-delivery-brief continue` next for readiness and optional slice selection.
 

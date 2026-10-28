@@ -23,7 +23,7 @@ def test_brief_ready_gate_follows_the_complete_write_back() -> None:
     text = SKILL.read_text(encoding="utf-8")
 
     ready = text.index("1. **Set `Status: Ready`**")
-    workspace = text.index("2. **Move the complete structured brief entry in `workspace.toml`**")
+    workspace = text.index("2. For a tracker-origin brief only, **move the complete structured brief entry")
     gate = text.index("## Project-knowledge gate: `brief-ready`")
     assert ready < workspace < gate
     section = _gate_section()

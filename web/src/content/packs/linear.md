@@ -78,7 +78,7 @@ GraphQL). The API key is stored under namespace `linear` via `credential-setup`
 and never passed to the model.
 
 **Writes:** `docs/product/briefs/<slug>.md` — on initial intake, after your
-approval. `workspace.toml` is updated when the brief enters the queue.
+approval. The tracker-origin brief is registered in `workspace.toml` so refresh can read its tracker profile.
 Linear-sourced fields in an existing brief — on sync, only the fields you
 approve.
 

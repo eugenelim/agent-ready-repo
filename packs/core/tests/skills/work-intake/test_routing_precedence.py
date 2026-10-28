@@ -82,10 +82,10 @@ def test_status_refresh_ready_and_remember_preserve_their_distinct_routes() -> N
     assert (refresh.processor, refresh.mutation) == ("none", "none")
     assert (ready.processor, ready.lifecycle_membership) == (
         "author-delivery-brief continue",
-        "brief_queue.ready",
+        "none",
     )
     assert remembered.processor == "intake-intent"
-    assert remembered.lifecycle_membership == "backlog.open"
+    assert remembered.lifecycle_membership == "none"
 
 
 def test_public_precedence_routes_explicit_work_directly() -> None:

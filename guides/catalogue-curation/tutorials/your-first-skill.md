@@ -72,9 +72,9 @@ packs/<pack>/
 
 | Verb | What it does |
 |---|---|
-| `work-intake` | Materializes a canonical work artifact, then registers lifecycle state |
+| `work-intake` | Materializes a canonical work artifact, and registers a spec or tracker-origin item |
 | `workspace-status` | Surfaces the current queue state without modifying it |
-| `author-delivery-brief continue` | Pulls confirmed slices from `[brief_queue]` into `[work].queue` |
+| `author-delivery-brief continue` | Turns confirmed slices of a Ready brief into specs in `[work].queue` |
 
 Name your skill for what it does, not for internal mechanism.
 If a skill in the codebase already uses a similar verb, align with it.

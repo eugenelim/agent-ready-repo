@@ -97,8 +97,9 @@ appropriate.
 5. Populate the repository template, including safe source provenance and a
    clearly labelled Ready-gaps note. Set `Status: Draft`; create no placeholder
    slices and leave the Spec map empty.
-6. Register one schema-valid Draft pointer in `workspace.toml` only after the
-   artifact is durable. On registration failure, roll back when safe or leave
+6. A repo-origin brief is its file alone: add no `workspace.toml` entry. For a
+   tracker-origin brief, add its one schema-valid Draft entry only after the
+   artifact is durable; on registration failure, roll back when safe or leave
    an explicit non-dispatchable reconciliation finding. Dispatch nothing from
    partial state.
 7. Return the Draft path and stop. Create mode does not set `Status: Ready`;
@@ -176,12 +177,13 @@ transition. Set `Status: Ready` only after a revision-bound `Clean` and that
 confirmation. After confirmation:
 
 1. **Set `Status: Ready`** in the existing brief.
-2. **Move the complete structured brief entry in `workspace.toml`** from Draft
-   to Ready with a comment-preserving edit.
+2. For a tracker-origin brief only, **move the complete structured brief entry
+   in `workspace.toml`** from Draft to Ready with a comment-preserving edit. A
+   repo-origin brief has no entry to move.
 
-If the workspace entry is missing, duplicated ambiguously, or invalid, roll
-back the status edit when safe; otherwise record an explicit non-dispatchable
-reconciliation finding. Do not select slices or dispatch another processor
+If a tracker-origin brief's workspace entry is missing, duplicated ambiguously,
+or invalid, roll back the status edit when safe; otherwise record an explicit
+non-dispatchable reconciliation finding. Do not select slices or dispatch another processor
 from partial state.
 
 ### 4. Offer a separate delivery-slice decision
@@ -226,8 +228,11 @@ set are defined in `scripts/brief_shape.py`. The coverage lint
 child evidence, or `Cut-closed:` record contradicts those rules is refused with
 exit 1. Child statuses are never rewritten to make a brief transition fit.
 
-Move an entry between the matching `brief_queue` collections in the same reviewed
-change that updates the brief. Route a request to ship, withdraw, or cancel a
+A repo-origin brief's lifecycle is its `Status:` alone. Only a tracker-origin
+brief's entry moves between collections, in the same reviewed change that
+updates the brief. Before editing a repo-origin brief that still holds a
+`workspace.toml` entry, send the user to the `workspace-status`
+`intent-brief-drop` repair. Route a request to ship, withdraw, or cancel a
 brief through `close-work`; create and continue modes do not self-certify a
 terminal outcome.
 
@@ -323,7 +328,7 @@ allowed-tools:
     bounded trusted source content, and bounded repository and installed-skill
     evidence packet.
   - Write - create one confirmed Draft brief in create mode.
-  - Edit - update that brief and its existing structured workspace entry.
+  - Edit - update that brief and, for a tracker-origin brief, its existing structured workspace entry.
   - Agent - dispatch one isolated shaping reviewer; a fresh context or
     independent human is the only fallback.
 

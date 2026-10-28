@@ -42,7 +42,10 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
         resolves against `workspace.toml [backlog].open`, in either entry
         shape: a legacy record's `slug`, or a canonical record's `path`
-        reduced by `canonical_entry_anchor`. HARD (exit non-zero).
+        reduced by `canonical_entry_anchor`. An open intent or brief file
+        (`docs/product/intents/<anchor>.md` or `docs/product/briefs/<anchor>.md`,
+        a regular non-link file whose preamble status is not terminal) also
+        resolves an anchor. HARD (exit non-zero).
   (v)   spec↔contract traceability — a spec's
         `- **Contract:**` header (forward ref) names contract file(s) under
         `contracts/<type>/`; each must exist and carry a backward pointer — an
@@ -75,7 +78,9 @@ from __future__ import annotations
 
 import argparse
 import bisect
+import os
 import re
+import stat
 import subprocess
 import sys
 from collections.abc import Iterator
@@ -953,6 +958,47 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parent.parent
 
 
+_TERMINAL_STATUS = {
+    "intents": frozenset({"Fulfilled", "Withdrawn", "Cancelled", "Superseded"}),
+    "briefs": frozenset({"Shipped", "Withdrawn", "Cancelled"}),
+}
+
+
+def _real_dir(path: Path) -> bool:
+    """True when `path` is a directory and not a symbolic link."""
+    return stat.S_ISDIR(os.lstat(path).st_mode)
+
+
+def open_file_resolves(root: Path, anchor: str) -> bool:
+    """True when an open intent or brief file under `root` resolves `anchor`.
+
+    The file must be a regular, non-link file under real directories below the
+    resolved root, and its preamble status (read as a spec's is) must be present
+    and not terminal for its kind. Any OSError means that file does not resolve.
+    """
+    try:
+        product = root.resolve() / "docs" / "product"
+        if not (_real_dir(product.parent) and _real_dir(product)):
+            return False
+    except (OSError, ValueError):
+        return False
+    for kind, terminal in _TERMINAL_STATUS.items():
+        try:
+            directory = product / kind
+            if not _real_dir(directory):
+                continue
+            path = directory / f"{anchor}.md"
+            if not stat.S_ISREG(os.lstat(path).st_mode):
+                continue
+            text = _read(path)
+            status = parse_status(text) if text is not None else None
+        except (OSError, ValueError):
+            continue
+        if status and status not in terminal:
+            return True
+    return False
+
+
 def _repo_wide_findings(
     root: Path, spec_paths: list[Path], anchors: set[str]
 ) -> tuple[list[str], list[str]]:
@@ -966,12 +1012,15 @@ def _repo_wide_findings(
             not the spec file. Closing a `[backlog].open` entry invalidates the
             marker in every spec that cites it, none of which need have changed,
             so scoping this to changed specs would let the routine close-work
-            operation break anchors with nothing reporting it.
+            operation break anchors with nothing reporting it. An open intent
+            or brief file (`open_file_resolves`) also resolves an anchor; that
+            check runs lazily, only for anchors the backlog does not resolve.
 
     Both read the same text, so they share one pass over the corpus.
     """
     hard: list[str] = []
     warn: list[str] = []
+    file_resolved: dict[str, bool] = {}
     for spec_path in spec_paths:
         rel = spec_path.relative_to(root).as_posix()
         text = _read(spec_path)
@@ -1003,10 +1052,15 @@ def _repo_wide_findings(
                 )
         # (iv) deferral anchors resolve. HARD, and repo-wide: see the docstring.
         for lineno, anchor in deferred_anchors(text):
-            if anchor not in anchors:
+            if anchor in anchors:
+                continue
+            if anchor not in file_resolved:
+                file_resolved[anchor] = open_file_resolves(root, anchor)
+            if not file_resolved[anchor]:
                 hard.append(
                     f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
-                    f"does not resolve in workspace.toml [backlog].open"
+                    "does not resolve in workspace.toml [backlog].open or "
+                    "an open intent or brief file"
                 )
     return hard, warn
 

@@ -59,7 +59,7 @@ Separating the rooms makes the distinction explicit at capture time, before work
 
 The path is one-way:
 
-1. A new item arrives — a user surfaces it mid-session, a spec reveals a follow-on, or a review finds a gap. `work-intake` materializes the right canonical artifact and registers its lifecycle state. Work that is not independently shippable remains a non-dispatchable Draft.
+1. A new item arrives — a user surfaces it mid-session, a spec reveals a follow-on, or a review finds a gap. `work-intake` materializes the right canonical artifact; its `Status:` is its lifecycle state, and only a spec or a tracker-origin item is also registered. Work that is not independently shippable remains a non-dispatchable Draft.
 2. Shape items are worked until a spec can be written. The spec lands in `docs/specs/<slug>/`.
 3. The spec's path enters the build room's `queue`.
 4. `work-loop` builds the spec. On PR merge, the entry moves to `shipped`.

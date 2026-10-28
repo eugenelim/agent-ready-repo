@@ -216,6 +216,7 @@ _VALID_OPERATION_TYPES = frozenset({
     "needs-to-header",
     "needs-drop-cooled",
     "captured-to-file",
+    "intent-brief-drop",
 })
 
 
@@ -1168,6 +1169,7 @@ def _build_repair_plan_json(
         )
         automatic_operations.extend(captured_operations)
         manual_findings.extend(captured_findings)
+        automatic_operations.extend(_build_drop_operations(workspace_bytes))
     base["workspace_fingerprint"] = plan.workspace_fingerprint
     base["automatic_operations"] = automatic_operations
     base["manual_findings"] = manual_findings
@@ -1243,6 +1245,11 @@ def _validate_plan_structure(data: dict) -> str | None:
             if captured_reason:
                 return captured_reason
             continue
+        if op_type == _INTENT_BRIEF_DROP:
+            drop_reason = _validate_drop_operation(op)
+            if drop_reason:
+                return drop_reason
+            continue
         if not spec_path or not isinstance(spec_path, str):
             return "plan_invalid"
         if not ini_slug or not isinstance(ini_slug, str):
@@ -1296,10 +1303,18 @@ def _apply_operations(
     captured_operations = [
         op for op in operations if op.get("operation_type") == _CAPTURED_TO_FILE
     ]
+    drop_operations = [
+        op for op in operations if op.get("operation_type") == _INTENT_BRIEF_DROP
+    ]
     operations = [
         op for op in operations
-        if op.get("operation_type") not in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE}
+        if op.get("operation_type")
+        not in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE, _INTENT_BRIEF_DROP}
     ]
+    # Every drop locator is checked against the registry read under the lock, and
+    # bound to its entry object, before any operation below changes `doc`.
+    bound_drops, drop_refusals = _bind_drop_entries(doc, workspace_toml_bytes, drop_operations)
+    per_op.extend(drop_refusals)
     # Re-derived before any write of this run, so a source an earlier operation
     # in the same plan rewrites cannot change what the records are checked against.
     captured_plan = (
@@ -1461,6 +1476,11 @@ def _apply_operations(
             for key in ("header_edges_before", "header_edges_after"):
                 captured_report[key] = edge_report.get(key, []) + captured_report[key]
             edge_report.update(captured_report)
+
+    # Drops run last, so each sees the `needs` its own run cleared.
+    drop_per_op, drop_applied = _apply_bound_drops(bound_drops)
+    per_op.extend(drop_per_op)
+    applied += drop_applied
 
     # Only write when at least one operation succeeded
     if applied == 0:
@@ -1802,7 +1822,8 @@ def _echo_repair_plan(data: dict) -> dict:
     operations = data.get("automatic_operations", [])
     findings = data.get("manual_findings", [])
     if not any(
-        op.get("operation_type") in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE}
+        op.get("operation_type")
+        in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE, _INTENT_BRIEF_DROP}
         for op in operations
     ) and not any(f.get("finding_type") == _CAPTURED_FINDING_TYPE for f in findings):
         return data
@@ -1810,6 +1831,9 @@ def _echo_repair_plan(data: dict) -> dict:
     for op in operations:
         if op.get("operation_type") == _CAPTURED_TO_FILE:
             echoed.append(_echo_captured_operation(op))
+            continue
+        if op.get("operation_type") == _INTENT_BRIEF_DROP:
+            echoed.append(_echo_drop_operation(op))
             continue
         if op.get("operation_type") not in _NEEDS_OPERATION_TYPES:
             echoed.append(op)
@@ -2508,12 +2532,17 @@ def _captured_record_occupant(root: Path, record_path: str, cooled: frozenset[Pa
 
 
 def _registry_fingerprint(item: _CapturedItem) -> str:
+    return _entry_fingerprint(item.ini_slug, item.collection, item.index, item.raw)
+
+
+def _entry_fingerprint(ini_slug: str, collection: str, index: int, raw: object) -> str:
+    """Digest of one registry entry and where it sits, as each repair step binds it."""
     return hashlib.sha256(json.dumps(
         {
-            "ini_slug": item.ini_slug,
-            "collection": item.collection,
-            "index": item.index,
-            "entry": item.raw,
+            "ini_slug": ini_slug,
+            "collection": collection,
+            "index": index,
+            "entry": raw,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -3272,6 +3301,187 @@ def _validate_captured_operation(op: dict) -> str | None:
         ):
             return "plan_invalid"
     elif not isinstance(op.get("slug"), str):
+        return "plan_invalid"
+    return None
+
+
+# ── intent-brief-drop repair ──────────────────────────────────────────────────
+#
+# `repair-plan` holds one operation for each canonical repo-origin intent or
+# brief entry, cooled or not; `repair-apply` removes it after the needs
+# operations ran, and keeps an entry whose `needs` were not cleared.
+
+_INTENT_BRIEF_DROP = "intent-brief-drop"
+_DROP_KINDS = frozenset({"intent", "brief"})
+_DROP_DIRECTORY_BY_KIND = {"intent": "docs/product/intents/", "brief": "docs/product/briefs/"}
+
+
+def _is_droppable(entry) -> bool:
+    """True for a repo-origin intent under the intents directory or brief under the briefs one.
+
+    A captured item's entry is never droppable, whatever its `kind`.
+    """
+    directory = _DROP_DIRECTORY_BY_KIND.get(entry.kind)
+    return (
+        directory is not None
+        and entry.path is not None
+        and entry.path.startswith(directory)
+        and entry.source.mode == "repo-origin"
+    )
+
+
+def _build_drop_operations(workspace_bytes: bytes) -> list[dict]:
+    """Plan one `intent-brief-drop` operation per droppable canonical entry."""
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    memberships = _engine._extract_canonical_memberships(workspace)[0]
+    raw_entries = {
+        (ini, collection, position): raw
+        for ini, collection, position, raw in _raw_registry_entries(workspace)
+    }
+    operations: list[dict] = []
+    for membership in memberships:
+        entry = membership.entry
+        if not _is_droppable(entry):
+            continue
+        locator = (membership.ini_slug, membership.collection, membership.entry_index)
+        operations.append({
+            "operation_type": _INTENT_BRIEF_DROP,
+            "entry_locator": {
+                "ini_slug": locator[0],
+                "collection": locator[1],
+                "index": locator[2],
+            },
+            "path": entry.path,
+            "kind": entry.kind,
+            "registry_fingerprint": _entry_fingerprint(*locator, raw_entries.get(locator)),
+        })
+    return operations
+
+
+def _doc_entry_list(doc, ini_slug: str, collection: str):
+    """The list at a locator in the tomlkit document, or `None`."""
+    section_name, _, list_name = collection.partition(".")
+    if ini_slug:
+        if not _engine._CANONICAL_INITIATIVE_RE.fullmatch(ini_slug):
+            return None
+        names = _engine._INITIATIVE_ENTRY_COLLECTIONS
+        parent = doc.get(ini_slug)
+    else:
+        names = _engine._TOP_LEVEL_ENTRY_COLLECTIONS
+        parent = doc
+    if list_name not in names.get(section_name, ()) or not hasattr(parent, "get"):
+        return None
+    section = parent.get(section_name)
+    entries = section.get(list_name) if hasattr(section, "get") else None
+    if isinstance(entries, (str, dict)) or not hasattr(entries, "__delitem__"):
+        return None
+    return entries
+
+
+def _bind_drop_entries(
+    doc, workspace_bytes: bytes, operations: list[dict]
+) -> tuple[list[tuple[dict, str, Any, Any]], list[dict]]:
+    """Check each drop against the registry read under the lock; bind its entry.
+
+    Returns `(op, shown path, list, entry)` for each drop that passes, and the
+    refusals of the rest.
+    """
+    if not operations:
+        return [], []
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    memberships = {
+        (m.ini_slug, m.collection, m.entry_index): m
+        for m in _engine._extract_canonical_memberships(workspace)[0]
+    }
+    raw_entries = {
+        (ini, collection, position): raw
+        for ini, collection, position, raw in _raw_registry_entries(workspace)
+    }
+    bound: list[tuple[dict, str, Any, Any]] = []
+    refusals: list[dict] = []
+    seen: set[int] = set()
+    for op in operations:
+        shown = _echo_path(op["path"], None)
+        locator = op["entry_locator"]
+        key = (locator["ini_slug"], locator["collection"], locator["index"])
+        membership = memberships.get(key)
+        if (
+            membership is None
+            or membership.entry.path != op["path"]
+            or membership.entry.kind != op["kind"]
+            or op["registry_fingerprint"] != _entry_fingerprint(*key, raw_entries.get(key))
+        ):
+            refusals.append({"path": shown, "applied": False, "reason": "entry_locator_mismatch"})
+            continue
+        if not _is_droppable(membership.entry):
+            refusals.append({"path": shown, "applied": False, "reason": "entry_not_droppable"})
+            continue
+        entries = _doc_entry_list(doc, key[0], key[1])
+        entry = entries[key[2]] if entries is not None and key[2] < len(entries) else None
+        if not hasattr(entry, "get") or entry.get("path") != op["path"] or id(entry) in seen:
+            refusals.append({"path": shown, "applied": False, "reason": "entry_not_found"})
+            continue
+        seen.add(id(entry))
+        bound.append((op, shown, entries, entry))
+    return bound, refusals
+
+
+def _apply_bound_drops(bound: list[tuple[dict, str, Any, Any]]) -> tuple[list[dict], int]:
+    """Remove each bound entry by identity unless it still has `needs`."""
+    per_op: list[dict] = []
+    applied = 0
+    for _op, shown, entries, entry in bound:
+        needs = entry.get("needs")
+        if needs is not None and len(needs) > 0:
+            per_op.append({"path": shown, "applied": False, "reason": "entry_has_needs"})
+            continue
+        position = next((i for i, item in enumerate(entries) if item is entry), None)
+        if position is None:
+            per_op.append({"path": shown, "applied": False, "reason": "entry_not_found"})
+            continue
+        del entries[position]
+        per_op.append({"path": shown, "applied": True})
+        applied += 1
+    return per_op, applied
+
+
+def _echo_drop_operation(op: dict) -> dict:
+    locator = op.get("entry_locator")
+    locator = locator if isinstance(locator, dict) else {}
+    return {
+        **op,
+        "entry_locator": {
+            "ini_slug": _public_ini_slug(locator.get("ini_slug"), allow_empty=True),
+            "collection": _echo_collection(locator.get("collection")),
+            "index": _echo_index(locator.get("index")),
+        },
+        "path": _echo_path(op.get("path"), None),
+        "registry_fingerprint": _echo_sha(op.get("registry_fingerprint")),
+    }
+
+
+def _validate_drop_operation(op: dict) -> str | None:
+    """Shape-check one drop operation; its entry is re-checked at apply."""
+    path = op.get("path")
+    locator = op.get("entry_locator")
+    if (
+        not isinstance(path, str)
+        or not path
+        or "\\" in path
+        or (len(path) >= 2 and path[1] == ":")
+        or _has_control_character(path)
+        or ".." in PurePosixPath(path).parts
+        or PurePosixPath(path).is_absolute()
+        or op.get("kind") not in _DROP_KINDS
+        or not isinstance(op.get("registry_fingerprint"), str)
+        or _SHA256_RE.fullmatch(op["registry_fingerprint"]) is None
+        or not isinstance(locator, dict)
+        or not isinstance(locator.get("ini_slug"), str)
+        or not isinstance(locator.get("collection"), str)
+        or not isinstance(locator.get("index"), int)
+        or isinstance(locator.get("index"), bool)
+        or locator["index"] < 0
+    ):
         return "plan_invalid"
     return None
 

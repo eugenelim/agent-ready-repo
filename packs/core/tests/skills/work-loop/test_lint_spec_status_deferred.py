@@ -208,3 +208,112 @@ def test_bare_status_form_warns(tmp_path: Path) -> None:
     _hard, warn = lint.check(tmp_path, base_ref=None)
     assert any("bare-form" in w and "list-item form" in w for w in warn), warn
     assert not any("list-form/spec.md" in w and "list-item form" in w for w in warn), warn
+
+
+# --- AC-0035: an open intent or brief file also resolves an anchor ----------
+
+_ANCHOR = "some-captured-item"
+
+
+def _plant_spec(root: Path, anchor: str = _ANCHOR) -> None:
+    spec = root / "docs" / "specs" / "my-spec"
+    spec.mkdir(parents=True)
+    (spec / "spec.md").write_text(
+        "- **Status:** Approved\n\n## Acceptance Criteria\n\n"
+        f"- [ ] do thing (deferred: {anchor})\n",
+        encoding="utf-8",
+        newline="\n",
+    )
+    (root / "workspace.toml").write_text("[backlog]\nopen = []\n", encoding="utf-8")
+
+
+def _plant_file(root: Path, kind: str, text: str, anchor: str = _ANCHOR) -> Path:
+    directory = root / "docs" / "product" / kind
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / f"{anchor}.md"
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return path
+
+
+def _violations(root: Path, anchor: str = _ANCHOR) -> list[str]:
+    hard, _warn = _load_lint_module().check(root, base_ref=None)
+    return [v for v in hard if anchor in v]
+
+
+def test_open_intent_file_resolves_anchor(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    _plant_file(tmp_path, "intents", "# Intent\n\n- **Status:** Draft\n\n## Body\n")
+    assert _violations(tmp_path) == []
+
+
+def test_open_brief_file_resolves_anchor(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    _plant_file(tmp_path, "briefs", "# Brief\n\n- **Status:** Active (2026-01-01)\n")
+    assert _violations(tmp_path) == []
+
+
+def test_draft_preamble_with_later_fulfilled_body_line_resolves(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    _plant_file(
+        tmp_path,
+        "intents",
+        "# Intent\n\n- **Status:** Draft\n\n## History\n\n- **Status:** Fulfilled\n",
+    )
+    assert _violations(tmp_path) == []
+
+
+def test_backlog_open_entry_still_resolves(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    (tmp_path / "workspace.toml").write_text(
+        f'[backlog]\nopen = [{{slug = "{_ANCHOR}"}}]\n', encoding="utf-8"
+    )
+    assert _violations(tmp_path) == []
+
+
+def test_symlinked_intent_file_does_not_resolve(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    target = tmp_path / "elsewhere.md"
+    target.write_text("- **Status:** Draft\n", encoding="utf-8")
+    directory = tmp_path / "docs" / "product" / "intents"
+    directory.mkdir(parents=True)
+    (directory / f"{_ANCHOR}.md").symlink_to(target)
+    assert _violations(tmp_path)
+
+
+def test_closed_intent_files_do_not_resolve(tmp_path: Path) -> None:
+    for status in ("Fulfilled", "Withdrawn", "Cancelled", "Superseded"):
+        root = tmp_path / status
+        root.mkdir()
+        _plant_spec(root)
+        _plant_file(root, "intents", f"# Intent\n\n- **Status:** {status}\n")
+        assert _violations(root), status
+
+
+def test_closed_brief_files_do_not_resolve(tmp_path: Path) -> None:
+    for status in ("Shipped", "Withdrawn", "Cancelled"):
+        root = tmp_path / status
+        root.mkdir()
+        _plant_spec(root)
+        _plant_file(root, "briefs", f"# Brief\n\n- **Status:** {status} (2026-01-01)\n")
+        assert _violations(root), status
+
+
+def test_tombstone_intent_file_does_not_resolve(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    _plant_file(
+        tmp_path,
+        "intents",
+        f"- **Slug:** {_ANCHOR}\n- **Tombstone:** true\n- **Reissued:** other\n",
+    )
+    assert _violations(tmp_path)
+
+
+def test_status_line_after_section_heading_does_not_resolve(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    _plant_file(tmp_path, "intents", "# Intent\n\n## Notes\n\n- **Status:** Draft\n")
+    assert _violations(tmp_path)
+
+
+def test_anchor_nothing_resolves_is_violation(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    assert _violations(tmp_path)

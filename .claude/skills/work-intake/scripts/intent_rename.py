@@ -23,7 +23,7 @@ import sys
 import tempfile
 import time
 import tomllib
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Literal, NoReturn, Sequence
@@ -205,6 +205,7 @@ class _LoadedStage:
     stage: Path
     record_bytes: bytes
     seal_bytes: bytes
+    mode: str = "registered"
 
 
 _Checkpoint = Callable[[str], None]
@@ -1215,7 +1216,10 @@ def _load_stage(root: Path, stage: Path, source: str, token: str, date: str) -> 
             seal_bytes = expected_seal
         else:
             raise ValueError("seal-invalid")
-        return _LoadedStage(derived, stage, record_bytes, seal_bytes)
+        mode = _registry_mode(root, derived.base_commit, derived.source, derived.successor)
+        if mode == "successor-only":
+            raise ValueError("registry-alien")
+        return _LoadedStage(derived, stage, record_bytes, seal_bytes, mode)
     finally:
         os.close(descriptor)
 
@@ -1289,12 +1293,40 @@ def _read_preamble_text(root: Path, relative: str) -> str:
         os.close(descriptor)
 
 
-def _registry_state(data: bytes, source: str, successor: str) -> str:
+def _registry_mode(root: Path, commit: str, source: str, successor: str) -> str:
+    """Fix how a rename treats ``workspace.toml`` from its bytes at ``commit``.
+
+    ``registered`` when an entry names the source, ``cited`` when no entry does
+    but the source path occurs, ``successor-only`` when only the successor path
+    occurs, and ``none`` when neither occurs. The bytes come from Git, never the
+    live file, so the mode cannot change after the rename's pre-write check.
+    """
+    data = _git_file(root, commit, WORKSPACE_FILE, max_bytes=_MAX_WORKSPACE_BYTES)
+    parsed = tomllib.loads(data.decode("utf-8"))
+    if _request._count_registry_matches(parsed, source) >= 1:  # type: ignore[attr-defined]
+        return "registered"
+    if source.encode() in data:
+        return "cited"
+    return "successor-only" if successor.encode() in data else "none"
+
+
+def _registry_state(
+    data: bytes, source: str, successor: str, mode: str = "registered"
+) -> str:
     parsed = tomllib.loads(data.decode("utf-8"))
     source_count = _request._count_registry_matches(parsed, source)  # type: ignore[attr-defined]
     successor_count = _request._count_registry_matches(parsed, successor)  # type: ignore[attr-defined]
     source_occurrences = data.count(source.encode())
     successor_occurrences = data.count(successor.encode())
+    if mode == "cited":
+        # No entry names either path, so the state is read from occurrences.
+        if source_count or successor_count:
+            return "alien"
+        if source_occurrences >= 1 and successor_occurrences == 0:
+            return "before"
+        if source_occurrences == 0 and successor_occurrences >= 1:
+            return "after"
+        return "alien"
     if source_count == 1 and successor_count == 0 and source_occurrences >= 1:
         return "before"
     if (
@@ -1312,9 +1344,10 @@ def _merge_backward_workspace(
     pinned_preimage: bytes,
     source: str,
     successor: str,
+    mode: str = "registered",
 ) -> bytes:
     """Reverse only the registry edits derived from the pinned Git preimage."""
-    if _registry_state(pinned_preimage, source, successor) != "before":
+    if _registry_state(pinned_preimage, source, successor, mode) != "before":
         raise ValueError("registry-preimage")
     source_bytes = source.encode()
     successor_bytes = successor.encode()
@@ -1336,7 +1369,7 @@ def _merge_backward_workspace(
     if not owned_spans:
         raise ValueError("registry-preimage")
     derived_postimage = b"".join(pieces)
-    if _registry_state(derived_postimage, source, successor) != "after":
+    if _registry_state(derived_postimage, source, successor, mode) != "after":
         raise ValueError("registry-preimage")
     if data == derived_postimage:
         # Nothing else edited the registry after the forward edit, so the
@@ -1418,14 +1451,17 @@ def _workspace_transition(
     direction: str,
     *,
     pinned_preimage: bytes | None = None,
+    mode: str = "registered",
 ) -> bytes:
     expected, wanted = ("before", "after") if direction == "forward" else ("after", "before")
-    if _registry_state(data, source, successor) != expected:
+    if _registry_state(data, source, successor, mode) != expected:
         raise ValueError("registry-state")
     if direction == "forward":
         changed = data.replace(source.encode(), successor.encode())
     elif pinned_preimage is not None:
-        changed = _merge_backward_workspace(data, pinned_preimage, source, successor)
+        changed = _merge_backward_workspace(
+            data, pinned_preimage, source, successor, mode
+        )
     else:
         raise ValueError("registry-preimage")
     if len(changed) > _MAX_WORKSPACE_BYTES:
@@ -1437,14 +1473,16 @@ def _workspace_transition(
         len(changed.splitlines(keepends=True)) > _MAX_REGISTRY_MERGE_LINES
     ):
         raise ValueError("registry-bound")
-    if _registry_state(changed, source, successor) != wanted:
+    if _registry_state(changed, source, successor, mode) != wanted:
         raise ValueError("registry-transition")
     if direction == "back" and changed.replace(source.encode(), successor.encode()) != data:
         raise ValueError("registry-transition")
     return changed
 
 
-def _stage_budget_refused(derived: _Derived, workspace: bytes) -> bool:
+def _stage_budget_refused(
+    derived: _Derived, workspace: bytes | None, mode: str = "registered"
+) -> bool:
     """Refuse before staging unless every artifact fits the bound its reader applies.
 
     Recovery reads the record, seal, staged postimages, live results and the
@@ -1460,7 +1498,11 @@ def _stage_budget_refused(derived: _Derived, workspace: bytes) -> bool:
         return True
     try:
         _strict_json(record_bytes)
-        _workspace_transition(workspace, derived.source, derived.successor, "forward")
+        if mode != "none":
+            assert workspace is not None
+            _workspace_transition(
+                workspace, derived.source, derived.successor, "forward", mode=mode
+            )
     except ValueError:
         return True
     postimages = [item.postimage for item in derived.writes]
@@ -1505,7 +1547,7 @@ def _successor_identity_state(
     return "alien"
 
 
-def _validate_targets(root: Path, loaded: _LoadedStage) -> tuple[str, str]:
+def _validate_targets(root: Path, loaded: _LoadedStage) -> tuple[str, str | None]:
     derived = loaded.derived
     replace_states: list[str] = []
     for item in _replace_writes(derived):
@@ -1535,10 +1577,14 @@ def _validate_targets(root: Path, loaded: _LoadedStage) -> tuple[str, str]:
         os.close(stage_fd)
     if successor_state == "alien":
         raise ValueError("successor-conflict")
-    workspace = _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
-    registry = _registry_state(workspace, derived.source, derived.successor)
-    if registry == "alien":
-        raise ValueError("registry-alien")
+    registry: str | None = None
+    if loaded.mode != "none":
+        workspace = _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
+        registry = _registry_state(
+            workspace, derived.source, derived.successor, loaded.mode
+        )
+        if registry == "alien":
+            raise ValueError("registry-alien")
     for relative, order in _temporary_targets(derived):
         path = root / relative
         parent = _open_parent(root, path.parent)
@@ -1550,13 +1596,16 @@ def _validate_targets(root: Path, loaded: _LoadedStage) -> tuple[str, str]:
                 raise ValueError("temporary-alien")
         finally:
             os.close(parent)
+    # With no registry step the registry takes no part in the decision.
     terminal = (
         "before"
         if all(state == "before" for state in replace_states)
-        and successor_state == registry == "before"
+        and successor_state == "before"
+        and registry in (None, "before")
         else "after"
         if all(state == "after" for state in replace_states)
-        and successor_state == registry == "after"
+        and successor_state == "after"
+        and registry in (None, "after")
         else "partial"
     )
     return terminal, registry
@@ -1631,6 +1680,8 @@ def _pid_is_dead(payload: bytes) -> bool:
 
 
 def _normalise_old_claim(root: Path, loaded: _LoadedStage) -> None:
+    if loaded.mode == "none":
+        return
     stage_fd = _open_stage(root, loaded.stage)
     root_fd = _open_parent(root, root)
     try:
@@ -1813,7 +1864,9 @@ def _edit_registry(
     try:
         data = _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
         wanted = "after" if direction == "forward" else "before"
-        current = _registry_state(data, loaded.derived.source, loaded.derived.successor)
+        current = _registry_state(
+            data, loaded.derived.source, loaded.derived.successor, loaded.mode
+        )
         checkpoint("before-registry")
         if current != wanted:
             changed = (
@@ -1824,6 +1877,7 @@ def _edit_registry(
                     loaded.derived.source,
                     loaded.derived.successor,
                     direction,
+                    mode=loaded.mode,
                 )
             )
 
@@ -1869,6 +1923,7 @@ def _backward_workspace_candidate(
         loaded.derived.successor,
         "back",
         pinned_preimage=pinned_preimage,
+        mode=loaded.mode,
     )
 
 
@@ -1914,7 +1969,7 @@ def _apply_forward(root: Path, loaded: _LoadedStage, checkpoint: _Checkpoint) ->
             )
         elif current != item.postimage:
             raise ValueError("target-alien")
-    if registry != "after":
+    if loaded.mode != "none" and registry != "after":
         _edit_registry(root, loaded, "forward", checkpoint)
     if _validate_targets(root, loaded)[0] != "after":
         raise ValueError("terminal-validation")
@@ -1924,7 +1979,8 @@ def _apply_forward(root: Path, loaded: _LoadedStage, checkpoint: _Checkpoint) ->
 def _apply_back(root: Path, loaded: _LoadedStage, checkpoint: _Checkpoint) -> None:
     derived = loaded.derived
     _, registry = _validate_targets(root, loaded)
-    if registry != "before":
+    registry_step = loaded.mode != "none" and registry != "before"
+    if registry_step:
         _backward_workspace_candidate(
             root, loaded, _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
         )
@@ -1947,7 +2003,7 @@ def _apply_back(root: Path, loaded: _LoadedStage, checkpoint: _Checkpoint) -> No
         os.close(parent)
         os.close(stage_fd)
     _remove_temporaries(root, derived)
-    if registry != "before":
+    if registry_step:
         _edit_registry(root, loaded, "back", checkpoint)
     for item in reversed(_replace_writes(derived)):
         current = _read_live(root, item.path, _MAX_FILE_BYTES)
@@ -2082,9 +2138,11 @@ def _validate_terminal_bytes(root: Path, loaded: _LoadedStage, direction: str) -
             raise ValueError("cleanup-state-invalid")
     finally:
         os.close(parent)
+    if loaded.mode == "none":
+        return
     workspace = _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
     wanted = "after" if direction == "forward" else "before"
-    if _registry_state(workspace, derived.source, derived.successor) != wanted:
+    if _registry_state(workspace, derived.source, derived.successor, loaded.mode) != wanted:
         raise ValueError("cleanup-state-invalid")
 
 
@@ -2120,8 +2178,9 @@ def _dispose(root: Path, loaded: _LoadedStage, direction: str, checkpoint: _Chec
     checkpoint("after-stage-cleanup")
 
 
-def _discard_unsealed_before(root: Path, stage: Path, derived: _Derived) -> bool:
-    workspace = _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
+def _discard_unsealed_before(
+    root: Path, stage: Path, derived: _Derived, mode: str = "registered"
+) -> bool:
     successor = root / derived.successor
     parent = _open_parent(root, successor.parent)
     try:
@@ -2131,7 +2190,16 @@ def _discard_unsealed_before(root: Path, stage: Path, derived: _Derived) -> bool
                 for item in _replace_writes(derived)
             )
             and _stat_at(parent, successor.name) is None
-            and _registry_state(workspace, derived.source, derived.successor) == "before"
+            and (
+                mode == "none"
+                or _registry_state(
+                    _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES),
+                    derived.source,
+                    derived.successor,
+                    mode,
+                )
+                == "before"
+            )
         )
     finally:
         os.close(parent)
@@ -2246,16 +2314,32 @@ def run_intent_rename(
         planned = {item.path for item in _replace_writes(derived)}
         if set(derive_citing_paths(source_rel, repository_root=root)) - planned:
             return RenameResult(RenameStatus.REFUSED, "path-dirty")
-        workspace = _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
-        if _registry_state(workspace, derived.source, derived.successor) != "before":
+        # The one pre-write check of the live registry. A rename with no
+        # registry step makes no decision from `workspace.toml` after it.
+        mode = _registry_mode(root, base, derived.source, derived.successor)
+        if mode == "successor-only":
+            return RenameResult(RenameStatus.REFUSED, "registry-ambiguous")
+        live_workspace = _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
+        workspace: bytes | None = live_workspace
+        if mode == "none":
+            if (
+                derived.source.encode() in live_workspace
+                or derived.successor.encode() in live_workspace
+            ):
+                return RenameResult(RenameStatus.REFUSED, "registry-ambiguous")
+            workspace = None
+        elif (
+            _registry_state(live_workspace, derived.source, derived.successor, mode)
+            != "before"
+        ):
             return RenameResult(RenameStatus.REFUSED, "registry-ambiguous")
         # Recovery refuses outright past its candidate bound, so a new stage
         # may not be the one that crosses it.
-        if _stage_budget_refused(derived, workspace) or (
+        if _stage_budget_refused(derived, workspace, mode) or (
             len(_stage_candidates(root)) >= _MAX_RECOVERY_CANDIDATES
         ):
             return RenameResult(RenameStatus.REFUSED, "stage-budget")
-        loaded = _write_stage(root, derived, _checkpoint)
+        loaded = replace(_write_stage(root, derived, _checkpoint), mode=mode)
         _validate_targets(root, loaded)
         _checkpoint("before-commit")
         _apply_forward(root, loaded, _checkpoint)
@@ -2325,7 +2409,10 @@ def _try_unsealed_cleanup(
                 return None
     finally:
         os.close(descriptor)
-    if _discard_unsealed_before(root, stage, derived):
+    mode = _registry_mode(root, derived.base_commit, derived.source, derived.successor)
+    if mode == "successor-only":
+        return RenameResult(RenameStatus.REFUSED, "stage-unsealed", derived.operation_id)
+    if _discard_unsealed_before(root, stage, derived, mode):
         return RenameResult(RenameStatus.ROLLED_BACK, "rolled-back", derived.operation_id)
     return RenameResult(RenameStatus.REFUSED, "stage-unsealed", derived.operation_id)
 
@@ -2386,7 +2473,16 @@ def _resume_terminal_cleanup(
             continue
         record_bytes = _canonical_json(_record(derived))
         seal_bytes = _canonical_json(_seal(record_bytes, derived.writes))
-        loaded = _LoadedStage(derived, stage, record_bytes, seal_bytes)
+        # HEAD may already hold a committed rename, so a successor-only HEAD
+        # reads as cited. The mode only governs disposal here.
+        mode = _registry_mode(root, base, derived.source, derived.successor)
+        loaded = _LoadedStage(
+            derived,
+            stage,
+            record_bytes,
+            seal_bytes,
+            "cited" if mode == "successor-only" else mode,
+        )
         # Only a proper prefix of the re-derived canonical record is a record
         # killed mid-write; any other bytes are altered and keep the stage.
         if partial_record and not _is_torn(partial_data, record_bytes):
@@ -2508,7 +2604,7 @@ def recover_intent_rename(
             code = "committed" if cleanup_direction == "forward" else "rolled-back"
             return RenameResult(status, code, loaded.derived.operation_id)
         _, registry = _validate_targets(root, loaded)
-        if direction == "back" and registry != "before":
+        if direction == "back" and loaded.mode != "none" and registry != "before":
             _backward_workspace_candidate(
                 root, loaded, _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
             )

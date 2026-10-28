@@ -76,7 +76,7 @@ def _commit(root: Path) -> None:
     subprocess.run(["git", "commit", "-m", "fixture"], cwd=root, check=True, capture_output=True)
 
 
-def _fixture(root: Path) -> bytes:
+def _fixture(root: Path, *, workspace: str | None = None) -> bytes:
     source = root / SOURCE
     source.parent.mkdir(parents=True)
     source_bytes = (
@@ -94,6 +94,8 @@ def _fixture(root: Path) -> bytes:
         'source = {mode = "repo-origin"}, summary = "rename", needs = []}]\n',
         encoding="utf-8",
     )
+    if workspace is not None:
+        (root / "workspace.toml").write_text(workspace, encoding="utf-8")
     _commit(root)
     return source_bytes
 
@@ -214,14 +216,14 @@ raise SystemExit(
 """
 
 
-def _kill_rename_after_seal(root: Path) -> None:
+def _kill_rename_after_seal(root: Path, checkpoint: str = "after-seal") -> None:
     result = subprocess.run(
         [
             sys.executable,
             "-c",
             _KILL_CHILD,
             os.fspath(SCRIPT),
-            "after-seal",
+            checkpoint,
             TOMBSTONE_DATE.isoformat(),
             "rename",
             SOURCE,
@@ -775,3 +777,320 @@ def test_t2_fixed_cli_diagnostics_do_not_echo_hostile_record_content(tmp_path: P
     assert result.returncode == 1
     assert HOSTILE.encode() not in result.stdout
     assert HOSTILE.encode() not in result.stderr
+
+
+# -- Registration stop: recovery of a rename that no entry names ---------------
+
+_SPEC_ENTRY = (
+    '{{path = "docs/specs/other/spec.md", kind = "spec", '
+    'source = {{mode = "repo-origin", parent = "{parent}"}}, summary = "other", needs = []}}'
+)
+NO_REGISTRY = "[backlog]\nopen = []\n"
+CITED = f"[backlog]\nopen = [{_SPEC_ENTRY.format(parent=SOURCE)}]\n"
+WORKSPACE = "workspace.toml"
+
+
+def _write_workspace(root: Path, text: str) -> None:
+    (root / WORKSPACE).write_text(text, encoding="utf-8")
+
+
+def _forbid_live_workspace(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Fail any live read of ``workspace.toml`` through the transaction's reader."""
+    real = rename._read_live
+
+    def guarded(root: Path, relative: str, *args: Any, **kwargs: Any) -> bytes:
+        assert relative != WORKSPACE, "live workspace.toml read"
+        return real(root, relative, *args, **kwargs)
+
+    monkeypatch.setattr(rename, "_read_live", guarded)
+
+    def no_write(*args: Any, **kwargs: Any) -> None:
+        raise AssertionError("registry edit")
+
+    monkeypatch.setattr(rename, "_edit_registry", no_write)
+
+
+@pytest.mark.parametrize("workspace", [NO_REGISTRY, CITED], ids=["no-registry", "cited"])
+@pytest.mark.parametrize("checkpoint", ["after-successor", "after-replace-1"])
+def test_ac_0016_ac_0018_killed_rename_recovers_forward(
+    tmp_path: Path, workspace: str, checkpoint: str
+) -> None:
+    source_before = _fixture(tmp_path, workspace=workspace)
+    _kill_rename_after_seal(tmp_path, checkpoint)
+
+    result = _recover(tmp_path)
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert (tmp_path / SUCCESSOR).read_bytes() == source_before.replace(
+        SOURCE.encode(), SUCCESSOR.encode()
+    )
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == workspace.replace(
+        SOURCE, SUCCESSOR
+    )
+    assert not (tmp_path / ".workspace-repair.lock").exists()
+
+
+@pytest.mark.parametrize("workspace", [NO_REGISTRY, CITED], ids=["no-registry", "cited"])
+@pytest.mark.parametrize("checkpoint", ["after-successor", "after-replace-1"])
+def test_ac_0016_ac_0018_killed_rename_rolls_back(
+    tmp_path: Path, workspace: str, checkpoint: str
+) -> None:
+    source_before = _fixture(tmp_path, workspace=workspace)
+    before = _tree(tmp_path)
+    _kill_rename_after_seal(tmp_path, checkpoint)
+
+    result = _recover(tmp_path, "back")
+
+    assert result.status is rename.RenameStatus.ROLLED_BACK, result
+    assert (tmp_path / SOURCE).read_bytes() == source_before
+    assert not (tmp_path / SUCCESSOR).exists()
+    assert _tree(tmp_path) == before
+    assert not (tmp_path / ".workspace-repair.lock").exists()
+
+
+def test_ac_0018_cited_rename_killed_after_its_registry_step_rolls_back(
+    tmp_path: Path,
+) -> None:
+    _fixture(tmp_path, workspace=CITED)
+    before = _tree(tmp_path)
+    _kill_rename_after_seal(tmp_path, "after-registry")
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == CITED.replace(
+        SOURCE, SUCCESSOR
+    )
+
+    result = _recover(tmp_path, "back")
+
+    assert result.status is rename.RenameStatus.ROLLED_BACK, result
+    assert _tree(tmp_path) == before
+
+
+def test_ac_0017_pre_write_check_refuses_an_occurrence_that_appears_late(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _fixture(tmp_path, workspace=NO_REGISTRY)
+    real = rename._read_live
+
+    def inject(root: Path, relative: str, *args: Any, **kwargs: Any) -> bytes:
+        data = real(root, relative, *args, **kwargs)
+        return data + f"# {SOURCE}\n".encode() if relative == WORKSPACE else data
+
+    monkeypatch.setattr(rename, "_read_live", inject)
+    before = _tree(tmp_path)
+
+    result = rename.run_intent_rename(
+        SOURCE, "STRAT", repository_root=tmp_path, _today=lambda: TOMBSTONE_DATE
+    )
+
+    assert result.status is rename.RenameStatus.REFUSED
+    assert result.code == "registry-ambiguous"
+    assert _tree(tmp_path) == before
+    assert not list((tmp_path / "docs/product/intents").glob(".intent-rename-*"))
+
+
+def test_ac_0017_no_registry_commit_keeps_an_edit_made_during_the_run(
+    tmp_path: Path,
+) -> None:
+    _fixture(tmp_path, workspace=NO_REGISTRY)
+    edited = NO_REGISTRY + f"# see {SOURCE}\n"
+
+    def edit_at_commit(name: str) -> None:
+        if name == "before-commit":
+            _write_workspace(tmp_path, edited)
+
+    result = rename.run_intent_rename(
+        SOURCE,
+        "STRAT",
+        repository_root=tmp_path,
+        _checkpoint=edit_at_commit,
+        _today=lambda: TOMBSTONE_DATE,
+    )
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert (tmp_path / WORKSPACE).read_bytes() == edited.encode()
+
+
+_EDITS = {
+    "successor": NO_REGISTRY + f"# {SUCCESSOR}\n",
+    "both": NO_REGISTRY + f"# {SOURCE}\n# {SUCCESSOR}\n",
+    "unparseable": "[backlog\nnot toml",
+    "entry": _SPEC_ENTRY.format(parent=SUCCESSOR).join(["[backlog]\nopen = [", "]\n"]),
+}
+
+
+@pytest.mark.parametrize("edit", sorted(_EDITS))
+@pytest.mark.parametrize("direction", ["forward", "back"])
+def test_ac_0017_no_registry_recovery_ignores_the_live_registry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, edit: str, direction: str
+) -> None:
+    source_before = _fixture(tmp_path, workspace=NO_REGISTRY)
+    before = _tree(tmp_path)
+    _kill_rename_after_seal(tmp_path, "after-successor")
+    _write_workspace(tmp_path, _EDITS[edit])
+    _forbid_live_workspace(monkeypatch)
+
+    result = _recover(tmp_path, direction)
+
+    assert result.status is (
+        rename.RenameStatus.COMMITTED
+        if direction == "forward"
+        else rename.RenameStatus.ROLLED_BACK
+    ), result
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == _EDITS[edit]
+    if direction == "back":
+        assert (tmp_path / SOURCE).read_bytes() == source_before
+        assert not (tmp_path / SUCCESSOR).exists()
+        assert {k: v for k, v in _tree(tmp_path).items() if k != WORKSPACE} == {
+            k: v for k, v in before.items() if k != WORKSPACE
+        }
+
+
+@pytest.mark.parametrize("direction", ["forward", "back"])
+def test_ac_0017_no_registry_recovery_is_not_refused_by_a_held_repair_lock(
+    tmp_path: Path, direction: str
+) -> None:
+    _fixture(tmp_path, workspace=NO_REGISTRY)
+    _kill_rename_after_seal(tmp_path, "after-successor")
+    lock = tmp_path / ".workspace-repair.lock"
+    lock.write_bytes(str(os.getpid()).encode("ascii"))
+    inode = lock.stat().st_ino
+
+    result = _recover(tmp_path, direction)
+
+    assert result.status in {
+        rename.RenameStatus.COMMITTED,
+        rename.RenameStatus.ROLLED_BACK,
+    }, result
+    assert lock.stat().st_ino == inode
+    assert lock.read_bytes() == str(os.getpid()).encode("ascii")
+
+
+@pytest.mark.parametrize("direction", ["forward", "back"])
+def test_ac_0020_registered_rename_whose_entry_is_removed_still_refuses(
+    tmp_path: Path, direction: str
+) -> None:
+    _fixture(tmp_path)
+    _kill_rename_after_seal(tmp_path, "after-successor")
+    # The entry goes, but a comment keeps the source path occurring.
+    _write_workspace(tmp_path, f"[backlog]\nopen = []\n# {SOURCE}\n")
+    before = _tree(tmp_path)
+
+    result = _recover(tmp_path, direction)
+
+    assert result.status is rename.RenameStatus.REFUSED
+    assert result.code == "registry-alien"
+    assert _tree(tmp_path) == before
+
+
+@pytest.mark.parametrize("direction", ["forward", "back"])
+def test_ac_0018_cited_rename_that_gains_a_successor_entry_refuses_alien(
+    tmp_path: Path, direction: str
+) -> None:
+    _fixture(tmp_path, workspace=CITED)
+    _kill_rename_after_seal(tmp_path, "after-registry")
+    entry = (
+        f'{{path = "{SUCCESSOR}", kind = "intent", '
+        'source = {mode = "repo-origin"}, summary = "late", needs = []}'
+    )
+    # The source path no longer occurs; an entry now names the successor.
+    _write_workspace(tmp_path, f"[backlog]\nopen = [{entry}]\n")
+    before = _tree(tmp_path)
+
+    result = _recover(tmp_path, direction)
+
+    assert result.status is rename.RenameStatus.REFUSED
+    assert result.code == "registry-alien"
+    assert _tree(tmp_path) == before
+
+
+def _no_stage_left(root: Path) -> bool:
+    """True when no stage holds a file; the sandboxed remover leaves empty directories."""
+    return not [
+        entry
+        for stage in (root / "docs/product/intents").glob(".intent-rename-*")
+        for entry in stage.iterdir()
+    ]
+
+
+def _guard_if_no_registry(workspace: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    if workspace == NO_REGISTRY:
+        _forbid_live_workspace(monkeypatch)
+
+
+@pytest.mark.parametrize("workspace", [NO_REGISTRY, CITED], ids=["no-registry", "cited"])
+@pytest.mark.parametrize("checkpoint", ["after-stage-created", "after-record"])
+@pytest.mark.parametrize("direction", ["forward", "back"])
+def test_ac_0016_ac_0017_killed_before_the_seal_rolls_back_without_touching_the_registry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    workspace: str,
+    checkpoint: str,
+    direction: str,
+) -> None:
+    """An unsealed stage precedes any live write, so recovery reaches a terminal rollback."""
+    _fixture(tmp_path, workspace=workspace)
+    before = _tree(tmp_path)
+    _kill_rename_after_seal(tmp_path, checkpoint)
+    assert not (tmp_path / SUCCESSOR).exists()
+    _guard_if_no_registry(workspace, monkeypatch)
+
+    result = _recover(tmp_path, direction)
+
+    assert result.status is rename.RenameStatus.ROLLED_BACK, result
+    assert _no_stage_left(tmp_path)
+    assert _tree(tmp_path) == before
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == workspace
+
+
+@pytest.mark.parametrize("workspace", [NO_REGISTRY, CITED], ids=["no-registry", "cited"])
+@pytest.mark.parametrize("checkpoint", ["after-dispose-record", "after-dispose-cleanup"])
+def test_ac_0016_ac_0017_interrupted_disposal_finishes_in_the_committed_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, workspace: str, checkpoint: str
+) -> None:
+    """A kill during disposal leaves a committed rename; recovery only removes the stage."""
+    source_before = _fixture(tmp_path, workspace=workspace)
+    _kill_rename_after_seal(tmp_path, checkpoint)
+    assert (tmp_path / SUCCESSOR).exists()
+    assert list((tmp_path / "docs/product/intents").glob(".intent-rename-*"))
+    _guard_if_no_registry(workspace, monkeypatch)
+
+    result = _recover(tmp_path)
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert _no_stage_left(tmp_path)
+    assert (tmp_path / SOURCE).read_bytes() != source_before  # now a tombstone
+    assert (tmp_path / SUCCESSOR).read_bytes() == source_before.replace(
+        SOURCE.encode(), SUCCESSOR.encode()
+    )
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == workspace.replace(
+        SOURCE, SUCCESSOR
+    )
+
+
+@pytest.mark.parametrize("checkpoint", ["after-dispose-cleanup"])
+def test_ac_0018_terminal_cleanup_reads_a_successor_only_head_as_cited(
+    tmp_path: Path, checkpoint: str
+) -> None:
+    """HEAD holding only the successor is a cited registry for disposal, not a no-registry one."""
+    source_before = _fixture(tmp_path, workspace=CITED)
+    _kill_rename_after_seal(tmp_path, checkpoint)
+    # Commit the registry alone, so HEAD's workspace.toml names only the successor.
+    subprocess.run(["git", "add", WORKSPACE], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "registry"], cwd=tmp_path, check=True, capture_output=True
+    )
+    head = subprocess.run(
+        ["git", "show", f"HEAD:{WORKSPACE}"],
+        cwd=tmp_path, check=True, capture_output=True, text=True,
+    ).stdout
+    assert SOURCE not in head and SUCCESSOR in head
+
+    result = _recover(tmp_path)
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert _no_stage_left(tmp_path)
+    assert (tmp_path / SUCCESSOR).read_bytes() == source_before.replace(
+        SOURCE.encode(), SUCCESSOR.encode()
+    )
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == CITED.replace(
+        SOURCE, SUCCESSOR
+    )

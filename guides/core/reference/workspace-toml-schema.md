@@ -164,7 +164,7 @@ Tracker-origin entries require both `ref` and `revision`. Optional fields are:
 
 | Field | Meaning |
 | --- | --- |
-| `parent` | Local parent artifact such as a brief or intent. Declare it explicitly on a spec entry before that spec cools: the value is **unestablished once the spec has cooled** if the key is absent or names no registered brief, and reconciliation then refuses every **local** `kind = "brief"` dependency until it is declared, while a `cross-repo` brief dependency stays decided by its receipt. A literal `none` is a valid declaration meaning the spec has no parent brief. |
+| `parent` | Local parent artifact such as a brief or intent. Declare it explicitly on a spec entry before that spec cools: the value is **unestablished once the spec has cooled** if the key is absent or names neither a brief file nor a brief entry, and reconciliation then refuses every **local** `kind = "brief"` dependency until it is declared, while a `cross-repo` brief dependency stays decided by its receipt. A literal `none` is a valid declaration meaning the spec has no parent brief. |
 | `coordination` | Cross-repository coordination reference. |
 | `tracker_profile` | Optional profile hint with `id` and `version`. |
 
@@ -258,6 +258,8 @@ Priority, affinity, rationale, and suggested order are not dependencies.
 Membership is lifecycle state. A target entry appears in exactly one lifecycle
 collection. A new captured item, meaning a defect, design, or research item, gets no entry; the defect, `research`, and `design` rows below describe only entries registered before captured items moved to their own files.
 
+A new repo-origin intent or brief gets no entry either: it is its file alone, and a brief's lifecycle is its `Status:`. The `workspace-status` `intent-brief-drop` repair removes existing repo-origin intent and brief entries. Captured items keep any entry they already have, and tracker-origin intent and brief entries stay, because refresh reads the tracker profile through the entry. The brief rows below describe those entries.
+
 | Collection | Valid artifacts | Meaning |
 | --- | --- | --- |
 | `[backlog].open` | Draft artifacts and open defect contexts | Visible, not dispatchable. |
@@ -332,12 +334,13 @@ visible in `workspace-status`, but it is not dispatchable. Implementation begins
 only when a selected slice has a spec, its sibling plan, Approved status, and a
 target entry in `work.queue`.
 
-Once a child reaches `Implementing` or `Shipped`, move the open brief to
-`executing`. This includes programmes whose currently materialized children are
+For a tracker-origin brief entry, once a child reaches `Implementing` or `Shipped`,
+the entry sits in `executing`. A repo-origin brief has no entry and its `Status:`
+is its whole lifecycle. This includes programmes whose currently materialized children are
 all Shipped while the next slice has not been materialized. Shipping every
 current row does not move the brief automatically. `Shipped`, `Withdrawn`, and
-`Cancelled` require explicit closeout, preserve child statuses, and use their
-matching collections.
+`Cancelled` require explicit closeout and preserve child statuses; a
+tracker-origin entry moves to the matching collection.
 
 Legacy four-state files need no immediate rewrite. Add empty `withdrawn` and
 `cancelled` lists when you next normalize the table, or add the relevant list
@@ -370,7 +373,7 @@ finding identifier as a path only after confirming it is one.
 | `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. | Remove the duplicate after choosing the authoritative membership. |
 | `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
-| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names no registered brief. | Declare `source.parent` on the named entry — a brief path that resolves to a registered brief entry, or `none` only when that spec has no parent brief. A value naming nothing registered does not clear it. A value naming the wrong registered brief does clear it, and misattributes the spec silently, because once the spec has cooled the declaration is trusted rather than verified. |
+| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names neither a brief file nor a brief entry. | Declare `source.parent` on the named entry — the path of a brief file under `docs/product/briefs/` (or of a brief entry), or an empty value (`none`) only when that spec has no parent brief. A value naming neither does not clear it. A value naming the wrong brief does clear it, and misattributes the spec silently, because once the spec has cooled the declaration is trusted rather than verified. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |

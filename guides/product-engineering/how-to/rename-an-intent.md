@@ -118,7 +118,7 @@ and exits 2. Check the command against the forms above.
 | `refused:source-missing`, `source-not-regular`, `source-unreadable` | Point at an existing, readable intent file. |
 | `refused:source-outside-root` | Use a path under `docs/product/intents/`, relative to the repository root. |
 | `refused:source-tombstone` | The source is already retired. Rename its successor instead; `resolve` names it. |
-| `refused:source-unregistered`, `registry-unparseable`, `registry-ambiguous` | Fix `workspace.toml` so it parses and exactly one entry names the source. |
+| `refused:registry-unparseable`, `registry-ambiguous` | Fix `workspace.toml` so it parses and no more than one entry names the source; the successor path may not occur in it. |
 | `refused:token-unknown` | Use `VISION`, `STRAT`, `CAP` or `FEAT`. |
 | `refused:root-unresolved` | Run the command from inside the repository. |
 | `refused:path-dirty` | Commit or discard the uncommitted changes in the source, its citing files, or `workspace.toml`, then rename again. |

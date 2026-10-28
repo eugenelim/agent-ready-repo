@@ -16,7 +16,6 @@ Refusal tokens, each naming the part at fault:
     ``source-not-regular``   — the source path exists but is not a regular file.
     ``source-unreadable``    — the source cannot establish its own liveness.
     ``source-tombstone``     — the source carries a ``Tombstone:`` field.
-    ``source-unregistered``  — the source has no workspace registry entry.
     ``registry-unparseable`` — the workspace registry is not valid TOML.
     ``registry-ambiguous``   — the workspace registry has more than one entry.
     ``token-unknown``        — the target token is not in the allocator namespace.
@@ -464,8 +463,6 @@ def validate_rename_request(
         return "registry-unparseable"
 
     match_count = _count_registry_matches(workspace_data, source_rel)
-    if match_count == 0:
-        return "source-unregistered"
     if match_count > 1:
         return "registry-ambiguous"
 

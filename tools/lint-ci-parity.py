@@ -728,6 +728,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest captured-item registration stop (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest intent-brief registration stop (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest closure guide surface (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest visual-target guide excerpt (roster-owned)":
@@ -1114,6 +1116,7 @@ _GATE_MAIN_CHECKS = (
     "pytest depends-on headers instructions (roster-owned)",
     "pytest captured-item files instructions (roster-owned)",
     "pytest captured-item registration stop (roster-owned)",
+    "pytest intent-brief registration stop (roster-owned)",
     "pytest closure guide surface (roster-owned)",
     "pytest visual-target guide excerpt (roster-owned)",
     "pytest visual-target release surface (roster-owned)",
