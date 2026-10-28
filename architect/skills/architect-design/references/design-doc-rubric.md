@@ -64,6 +64,10 @@ check under those headings reaches it.
       prioritized quality attribute that justifies it.
 - [ ] Removes unsupported future-proofing. Reuses an existing capability unless
       a current need justifies adding a new mechanism.
+- [ ] *(subsystem, architecture change)* Where the model names internal
+      modules or interfaces, no flag from `module-design-red-flags.md`
+      appears unrecorded. A flag kept on purpose is named in this
+      section's rationale with what catches its misuse.
 
 ## Runtime Model
 
@@ -79,6 +83,9 @@ check under those headings reaches it.
 - [ ] *(architecture change)* Each contract change names its change type,
       the baseline it is measured against, compatibility during the
       transition, and how it is enforced and verified.
+- [ ] *(subsystem, architecture change)* Each new or widened contract
+      shows two or three call sites a real caller would write, in this
+      section's rationale, and the contract table agrees with them.
 
 ## Data and State
 
@@ -125,6 +132,9 @@ check under those headings reaches it.
 - [ ] Each alternative has a *rejection reason*, not a dismissal.
 - [ ] No strawmen — load `alternatives.md` if any alternative reads
       as "we could do X but obviously not".
+- [ ] At least one alternative is a structurally different whole shape,
+      not a variant of the chosen one — or the section states why the
+      chosen shape was the only viable one.
 - [ ] At least three risks. Two if the proposal is genuinely small.
 - [ ] Each risk is paired with a mitigation, or explicitly marked as
       *accepted unmitigated* with the reason.

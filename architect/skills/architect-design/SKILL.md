@@ -187,8 +187,9 @@ real choice remains, create no new artifact.
 
 4. **Shape the concept first (Stage 0).** Before the full doc, draft a
    ≤½-page concept from `assets/concept.md` — problem + constraints, 1–2
-   candidate shapes, provider / provider-class, top 2–3 prioritized quality
-   attributes (rank by business-importance × architectural-risk) — and
+   candidate shapes (design it twice, per `references/alternatives.md`: a
+   second shape that differs in structure, or why only one is viable),
+   provider / provider-class, top 2–3 prioritized quality attributes (rank by business-importance × architectural-risk) — and
    **wait for the user to agree the shape**. This is *shaping* (context +
    constraints + the choice), not the refused "just write the proposal
    section" advocacy (see Anti-patterns). Make it well-architected **by
@@ -266,6 +267,16 @@ real choice remains, create no new artifact.
    Follow the loaded template's own section order and opening questions.
    Embed Mermaid diagrams where structural reasoning genuinely needs a
    picture — not as decoration.
+
+   In a subsystem or architecture-change design, write each new or widened
+   contract from the caller's side first. Draft two or three call sites a real
+   caller would write, show them in the contract section's rationale, and
+   derive the contract table from them; when the two disagree, change the
+   table. Where the model names internal modules, packages, or interfaces,
+   screen every candidate shape, and then the chosen one, against
+   `references/module-design-red-flags.md`.
+   If a flag rules out the shape the user agreed at Stage 0, take that back to
+   the user rather than swapping in another shape.
 
 6. **Self-check against the rubric** in `references/design-doc-rubric.md`.
    Walk it line by line; fix what fails before showing the draft. Before the

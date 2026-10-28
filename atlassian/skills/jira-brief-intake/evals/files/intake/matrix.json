@@ -45,8 +45,8 @@
       "id": "defect",
       "raw": {"key": "EX-404", "issueType": "Bug", "updated": "2026-08-05T00:00:00Z", "expectedBehaviorRef": "docs/specs/login/spec.md", "description": "Restore the documented login behavior. docs/specs/login/spec.md defines the expected behavior. Login no longer times out."},
       "normalized": {"contract_version": "normalized-intake.v1", "action": "start", "content": {"outcomes": ["Restore the documented login behavior."], "constraints": [], "evidence": ["docs/specs/login/spec.md defines the expected behavior."], "behaviors": ["Login no longer times out."], "assumptions": [], "named_gaps": []}, "source": {"mode": "tracker-origin", "locator": "jira://EX-404", "revision": "2026-08-05T00:00:00Z", "tracker_profile": {"id": "jira-default", "version": "1.0"}, "object_type": "Bug"}, "constraints": {}, "proposed_authority": "tracker-origin"},
-      "routing_signals": {"action": "start", "artifact": "docs/product/defects/login-timeout.md", "artifact_kind": "defect", "authority_mode": "tracker-origin"},
-      "expected_route": {"artifact": "docs/product/defects/login-timeout.md", "artifact_kind": "defect", "lifecycle_membership": "backlog.open", "processor": "bug-fix", "authority_mode": "tracker-origin", "mutation": "materialize-and-register"}
+      "routing_signals": {"action": "start", "artifact": "docs/product/captured/login-timeout.md", "artifact_kind": "defect", "authority_mode": "tracker-origin"},
+      "expected_route": {"artifact": "docs/product/captured/login-timeout.md", "artifact_kind": "defect", "lifecycle_membership": "none", "processor": "bug-fix", "authority_mode": "tracker-origin", "mutation": "materialize-and-dispatch"}
     },
     {
       "id": "claimed-defect-without-evidence",
