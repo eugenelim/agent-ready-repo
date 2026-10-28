@@ -380,13 +380,20 @@ def request_effect(
 
     Args:
         session:      The active broker session carrying the producer's grants.
-        grant_id:     The ID of the grant the producer claims for this effect.
+        grant_id:     The ID of the grant the producer claims for this effect;
+                      it is the event's correlation ID, ``"unknown"`` when it
+                      is not a non-empty string.
         operation:    The requested operation (e.g. "write", "read").
         path:         The target path of the effect.
         audit_sink:   Callable accepting a SecurityEvent.  ``None`` means the
                       audit sink is unavailable; the operation fails closed.
         operation_id: Stable operation ID for the audit event; generated from
-                      a random token when absent.
+                      a random token when absent or not a non-empty string.
+                      An identifier the content-safety check refuses on the
+                      allow event refuses the effect with
+                      ``denied-audit-sink-unavailable``, the code every failure
+                      to store the allow event shares, and is audited as a
+                      redacted denial.
 
     Returns:
         BrokerResult — ``success=True`` only when effect was performed AND
@@ -397,27 +404,34 @@ def request_effect(
     if audit_sink is None:
         return BrokerResult.denied("denied-audit-sink-unavailable")
 
-    op_id = operation_id or _se.make_operation_id()  # type: ignore[attr-defined]
+    # Caller-supplied identifiers become event fields, which the schema requires
+    # to be non-empty strings; anything else is replaced before any event is built.
+    op_id = (
+        operation_id
+        if isinstance(operation_id, str) and operation_id
+        else _se.make_operation_id()  # type: ignore[attr-defined]
+    )
+    correlation_id = grant_id if isinstance(grant_id, str) and grant_id else "unknown"
 
     # Locate the claimed grant in the session.
     grant = _find_grant(session, grant_id)
     if grant is None:
         _emit_broker_event(
-            audit_sink, op_id, grant_id, "denied", BROKER_DENY_REASON
+            audit_sink, op_id, correlation_id, "denied", BROKER_DENY_REASON
         )
         return BrokerResult.denied("denied-missing-grant")
 
     # Check grant expiry (expired authority exposes no partial record).
     if _is_expired(grant):
         _emit_broker_event(
-            audit_sink, op_id, grant_id, "denied", BROKER_DENY_REASON
+            audit_sink, op_id, correlation_id, "denied", BROKER_DENY_REASON
         )
         return BrokerResult.denied("denied-expired-grant")
 
     # Validate the grant covers the requested operation and path.
     if not grant.is_valid_for(operation, path):
         _emit_broker_event(
-            audit_sink, op_id, grant_id, "denied", BROKER_DENY_REASON
+            audit_sink, op_id, correlation_id, "denied", BROKER_DENY_REASON
         )
         return BrokerResult.denied("denied-out-of-scope")
 
@@ -427,15 +441,21 @@ def request_effect(
     # APPEND — is refused before any effect reaches the control plane.
     if _cn.is_delivery_control_path(path) and operation not in _DELIVERY_CONTROL_READ_OPS:  # type: ignore[attr-defined]
         _emit_broker_event(
-            audit_sink, op_id, grant_id, "denied", BROKER_DENY_REASON
+            audit_sink, op_id, correlation_id, "denied", BROKER_DENY_REASON
         )
         return BrokerResult.denied("denied-control-plane-write")
 
     # Emit the allow event BEFORE performing any effect.
     # AuditSinkUnavailable propagates as BrokerRefused.
     try:
-        _emit_allow_and_check(audit_sink, op_id, grant_id)
-    except BrokerRefused:
+        _emit_allow_and_check(audit_sink, op_id, correlation_id)
+    except BrokerRefused as exc:
+        if isinstance(exc.__cause__, _se.SecurityEventRefused):  # type: ignore[attr-defined]
+            # The sink works but refused this event's identifiers: the refusal is
+            # still audited, with both identifiers redacted by the denial emitter.
+            _emit_broker_event(
+                audit_sink, op_id, correlation_id, "denied", BROKER_DENY_REASON
+            )
         return BrokerResult.denied("denied-audit-sink-unavailable")
 
     # Real brokered effects run only in conformance fixtures.

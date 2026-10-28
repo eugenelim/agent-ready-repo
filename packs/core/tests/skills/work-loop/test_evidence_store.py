@@ -995,6 +995,10 @@ class TestValidateReceiptDict:
         assert ok, f"validate_receipt_dict must accept a valid record: {code}"
         assert code == "ok"
 
+    def test_valid_task_projection_revision_passes(self, es: ModuleType) -> None:
+        receipt = {**_make_receipt("r-valid-tpr"), "task_projection_revision": "task-rev-a"}
+        assert es.validate_receipt_dict(receipt) == (True, "ok")
+
     def test_refuses_unknown_schema_version(self, es: ModuleType) -> None:
         bad = {**_make_receipt("r-bad-sv"), "schema_version": 99}
         ok, code = es.validate_receipt_dict(bad)
@@ -2380,6 +2384,14 @@ _RECEIPT_CASES = [
     ("empty-fingerprint", {"acceptance_fingerprint": ""}, "denied-invalid-receipt-denied-invalid-field"),
     ("dict-outcome", {"outcome": {"k": [1]}}, "denied-invalid-receipt-denied-invalid-field"),
     ("bool-schema", {"schema_version": True}, "denied-invalid-receipt-denied-unknown-schema-version"),
+    ("empty-task-projection-revision", {"task_projection_revision": ""},
+     "denied-invalid-receipt-denied-invalid-field"),
+    ("int-task-projection-revision", {"task_projection_revision": 3},
+     "denied-invalid-receipt-denied-invalid-field"),
+    ("int-producer-identity", {"producer": {"class": "ci-runner", "identity": 5}},
+     "denied-invalid-receipt-denied-invalid-nested-field"),
+    ("empty-selector-term", {"selector": {"term": ""}},
+     "denied-invalid-receipt-denied-invalid-nested-field"),
 ]
 _SUPERSESSION_CASES = [
     ("list-supersession-id", {"supersession_id": ["a"]}, {},
@@ -2393,6 +2405,10 @@ _SUPERSESSION_CASES = [
     ("int-authority", {"authority": 7}, {},
      "denied-invalid-supersession-denied-invalid-nested-field"),
     ("open-provenance", {"provenance": {"reason_code": "r", "extra": "x"}}, {},
+     "denied-invalid-supersession-denied-invalid-nested-field"),
+    ("empty-authority-identity", {"authority": {"identity": "", "role": "evidence-authority"}}, {},
+     "denied-invalid-supersession-denied-invalid-nested-field"),
+    ("list-authority-identity", {"authority": {"identity": ["a"], "role": "evidence-authority"}}, {},
      "denied-invalid-supersession-denied-invalid-nested-field"),
 ]
 
