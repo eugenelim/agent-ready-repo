@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0151 D3,D5
 - **Related:** RFC-0028 (decision 3 and erratum E1 — the PLAN-time stub timing this record replaces; the vehicle, `work-loop/references/tdd-stubs.md`, stays); RFC-0019 (the plan's `## Design (LLD)` this record makes the home of mechanism); ADR-0144 (the supervisor's red-before-green guard this record keeps fed; its cutover owns the routes once the whole-plan lock retires)
 
 ## Decision summary
