@@ -131,7 +131,7 @@ In this group, "the routing section" is `new-spec` SKILL.md from the `load-beari
 
 ## Follow-ons
 
-- eugenelim, `execution-supervisor-cutover`: when the whole-plan lock retires, move a supervisor task's `stub` fence into a task-start revision written by the trusted controller before it dispatches the implementer attempt (ADR-0144 D11 refuses a worker-written plan change), and route an `implementation-discovered` design means and its corrections through the in-envelope working-plan change instead of the verification ledger (ADR-0150 D3 and D5 leave both to the cutover).
+- Resolved: `execution-supervisor-cutover` owns both post-lock routes as its AC-0022 to AC-0025, and ADR-0151 supersedes ADR-0150 D3 and D5 in part when that cutover's skill rewrite ships.
 - eugenelim: the supervisor's `stub-not-red` refusal and the module docstring in `packs/core/.apm/skills/work-loop/scripts/_supervisor_tdd.py` still ask for a `no stub` disposition; rewording them to "remove the fence or make it fail" is a script change this spec does not make.
 - eugenelim: the in-progress `work-loop-evidence-modes` spec restates the PLAN-time plan stub in its AC-0003 and AC-0020; its author rewords them on rebase.
 

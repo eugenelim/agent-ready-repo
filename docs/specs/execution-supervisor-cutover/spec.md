@@ -3,7 +3,7 @@
 - **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0144, ADR-0064, ADR-0014
+- **Constrained by:** ADR-0144, ADR-0150, ADR-0151, ADR-0064, ADR-0014
 - **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none
 - **Contract:** `contracts/jsonschema/loop-run-event.schema.json` (consumed unchanged); `contracts/jsonschema/loop-cohort-wave-decision.schema.json` (retired); `execution-supervisor-core`'s `run.json` fields (consumed)
@@ -29,6 +29,7 @@ Adopters running full-mode `work-loop` reach the supervisor through the unchange
 - `work-loop/SKILL.md` and its references route every action the old engine or cohort writer owned to a supervisor verb, and light-mode text only swaps command locations.
 - `loop-engine.py`, `loop-cohort.py`, `_compat_facade.py`, `_review_compat.py`, `assets/state.json`, `references/full-mode-engine.md`, and the wave-decision schema leave the catalogue.
 - The pre-PR hooks, `agentbundle`'s workspace bridge, CI, repository tools, guides, sibling packs, `new-spec`'s plan contract, and open backlog entries stop naming the old engine.
+- A supervisor TDD task's `stub` fence becomes a task-start revision the controller writes, and `implementation-discovered` grounding and its corrections become working-plan edits instead of ledger lines.
 - The workspace bridge reads the run id, active signal, stage, and pending human gate from the supervisor's `run.json`.
 - Slice 3's `delivery-fact-feed.py` reads each spec's committed `delivery/evidence.jsonl` instead of the shadow evidence log the cutover removes.
 - Core ships the switched skill in its next major release.
@@ -46,7 +47,8 @@ It keeps the reusable `spec-approved` and `plan-locked` knowledge-capture
 gates that Slice 3 retained, under those gate names; removing them belongs to
 Slice 8 once delivery facts are written by default, which this cutover makes
 true. It does not change light mode's steps or gates; change the supervisor's
-procedure, security checks, or review selection; ship a compatibility adapter,
+procedure, security checks, or review selection, except that a `stub-not-red`
+refusal closes its `write-stub` request (AC-0026); ship a compatibility adapter,
 reverse reader, or dual-write path (ADR-0144 D7); or give adopters their own
 review rules.
 
@@ -54,10 +56,10 @@ review rules.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | The switch needs its governing record accepted. | `docs/adr/0144-work-loop-supervisor-owns-procedure.md`; mirrors on ADR-0125, ADR-0061, ADR-0064 | Platform Core decision-maker | ADR shape lint | ADR-0125 is `Superseded`. |
+| Decision rationale | The switch needs its governing record accepted. | `docs/adr/0144-work-loop-supervisor-owns-procedure.md`; mirrors on ADR-0125, ADR-0061, ADR-0064; `docs/adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md`, mirrored on ADR-0150 | Platform Core decision-maker | ADR shape lint | ADR-0125 is `Superseded`; ADR-0151 is `Accepted`. |
 | Interface compatibility | The wave-decision contract is retired. | `contracts/jsonschema/`, `contracts/README.md`, `.workspace-prune-protected.toml` | `agentbundle` contract maintainers | AC-0008 | The schema and its registry rows are gone. |
-| User and maintainer procedure | Adopters drive full mode through the skill. | `work-loop/SKILL.md`; `references/` (a supervisor reference replacing `full-mode-engine.md`, carrying `execution-supervisor-attempt-security`'s unsupported Git settings list; `state-schema.md`, `session-resumption.md`, `delivery-contract-lifecycle.md`, `supervisor-mode.md`, `finding-adjudication.md`, `pre-execute-review.md`, `review-verdict-record.md`, `reviewer-roster.md`, `light-mode.md`); `evals/evals.json`; `profiles/work-loop.toml` | Core pack maintainers | Skill evals and link checks | Every action AC-0001 lists names its supervisor verb. |
-| Planning contract | Tasks inside the envelope change without amendment. | `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`, `new-spec/assets/plan.md` | Core pack maintainers | new-spec evals | Both state which plan changes need an amendment and which do not. |
+| User and maintainer procedure | Adopters drive full mode through the skill. | `work-loop/SKILL.md`; `references/` (a supervisor reference replacing `full-mode-engine.md`, carrying `execution-supervisor-attempt-security`'s unsupported Git settings list; `state-schema.md`, `session-resumption.md`, `delivery-contract-lifecycle.md`, `tdd-stubs.md`, `supervisor-mode.md`, `finding-adjudication.md`, `pre-execute-review.md`, `review-verdict-record.md`, `reviewer-roster.md`, `light-mode.md`); `evals/evals.json`; `profiles/work-loop.toml` | Core pack maintainers | Skill evals and link checks | Every action AC-0001 lists names its supervisor verb, and AC-0022 and AC-0024 hold. |
+| Planning contract | Tasks inside the envelope change without amendment. | `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`, `new-spec/assets/plan.md` | Core pack maintainers | new-spec evals | Both state which plan changes need an amendment and which do not, and route `implementation-discovered` grounding through the working-plan change. |
 | Current architecture | The authority map changes. | `ARCHITECTURE.md`; `packs/core/DESIGN.md`; `docs/architecture/` `loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`, `work-loop-execution-supervisor.md`, `work-loop-authority-migration.md`, `work-loop-review-disposition.md`, `acceptance-centered-work-loop.md`, `telemetry.md`, `verification-graph.md`, `README.md`, `workspace-mcp/design.md` | Platform Core | Architecture review | None describes a removed script, `legacy-result-ack.v1`, a `tools/` supervisor builder, or a `packages/agentbundle/` supervisor home as current. |
 | Knowledge architecture | The delivery fact feed's source moves from the shadow log to committed evidence. | `docs/architecture/work-loop-knowledge-handoff.md`, `docs/architecture/knowledge-capture.md` | Platform Core and project-knowledge maintainers | Architecture review | Both name `delivery/evidence.jsonl` as the feed source and the retained capture gates as Slice 8's to remove. |
 | Guides and sibling packs | They name the removed commands. | Files under `guides/` and `packs/` found by AC-0007's search | Owning pack maintainers | AC-0007 | No hit remains. |
@@ -91,6 +93,12 @@ review rules.
   installed-skill runs on POSIX and the Windows CI job, plus bridge and
   upgraded-adopter fixtures.
 - **Hooks (AC-0017, AC-0018):** goal-based hook runs.
+- **Post-lock plan routes (AC-0022, AC-0023, AC-0024, AC-0025):** goal-based
+  source searches over the shipped skill and new-spec text, plus synthetic
+  supervisor runs through the installed skill, because the routes are guidance
+  facts and run outcomes.
+- **Not-red recovery (AC-0026):** TDD at the supervisor's `report` and `next`
+  boundary, because it is the one supervisor behavior this cutover changes.
 - **Knowledge (AC-0019, AC-0020, AC-0021):** goal-based runs against
   project-knowledge's capture path, the fact feed, and a skill copy with
   project-knowledge absent.
@@ -109,6 +117,14 @@ review rules.
   becomes `review-artifact.py <verb>` for `classify`, `raw-classify`, `inspect`,
   and `record`; any other mention of `loop-cohort` or `loop-engine` becomes "the
   supervisor".
+- **Task-start revision.** A controller edit that adds or changes a task's
+  `stub` fence in its `Tests:` after `start`, made after the previous request's
+  result is reported and before the `next` that issues that task's first
+  request.
+- **Open attempt.** As `execution-supervisor-attempt-security` defines it;
+  while one is open, any change to the plan refuses it. This spec adds one
+  closing condition, in AC-0026: a `stub-not-red` refusal of a `write-stub`
+  result closes that attempt.
 - **History paths.** Every file named `CHANGELOG.md` or `changelog.md`,
   `docs/adr/`, `docs/rfc/`, `docs/specs/`, `docs/knowledge/`,
   `docs/product/research/`, and `.context/`; in `workspace.toml`, comments and
@@ -186,6 +202,35 @@ Knowledge
   candidate for a supervisor run's review-failure receipt.
 - [ ] **AC-0021.** A full code run reaches readiness with project-knowledge
   absent.
+
+Post-lock plan routes
+
+- [ ] **AC-0022.** `SKILL.md` and `references/tdd-stubs.md` have the controller,
+  never an implementer attempt, write a supervisor TDD task's `stub` fence as a
+  task-start revision, and no shipped line in the work-loop or new-spec skill
+  requires the fence to be in the approved plan.
+- [ ] **AC-0023.** In a synthetic run through the installed skill, a task-start
+  revision is committed as a `replan` step with no approval request, and the
+  supervisor records red for its fence before the task's `implement` step. The
+  same fence added by an implementer attempt's result is refused, and nothing
+  from that result is committed. `SKILL.md` and `references/tdd-stubs.md` tell
+  the controller to make no plan edit while an attempt is open.
+- [ ] **AC-0024.** `references/delivery-contract-lifecycle.md`, new-spec's
+  `assets/plan.md`, and `references/spec-and-plan-contract.md` route the
+  grounding of an `implementation-discovered` seam or design means, and each
+  later correction, to a controller edit of the plan's `## Design (LLD)` made as
+  an in-envelope working-plan change while no attempt is open, and no shipped
+  line in the work-loop or new-spec skill routes either to the verification
+  ledger.
+- [ ] **AC-0025.** In a synthetic run through the installed skill, a controller
+  edit confined to the plan's `## Design (LLD)`, made after `start` while no
+  attempt is open, is committed as a `replan` step with no approval request, and
+  every task completed before it stays complete. The same edit made while an
+  attempt is open refuses that attempt with `attempt-residue`.
+- [ ] **AC-0026.** When the supervisor refuses a `write-stub` result with
+  `stub-not-red`, nothing from that result is committed then or by any later
+  step, and the attempt is closed, so a controller edit that changes or removes the fence
+  is committed by the next `next` as a `replan` step with no approval request.
 
 ## Follow-ons
 

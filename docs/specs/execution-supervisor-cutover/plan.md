@@ -31,7 +31,8 @@ in the next Core major, under the gate stated in the spec's Scope.
 
 ## Constraints
 
-- ADR-0144 D1, D7, D8, D9, and D10.
+- ADR-0144 D1, D3, D7, D8, D9, D10, and D11.
+- ADR-0151 D1 to D3, which replace ADR-0150 D3 and D5 when T2 ships.
 - ADR-0064 D3, D4, and D7 stay in force; only the run-id source changes.
 - ADR-0014 D5: light mode starts no supervisor.
 - `packs/AGENTS.md`: shipped text cites no internal records, and every `.apm/`
@@ -52,7 +53,7 @@ in the next Core major, under the gate stated in the spec's Scope.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Decision rationale | T3 | ADR shape lint | ADR-0125 `Superseded` |
+| Decision rationale | T3 | ADR shape lint | ADR-0125 `Superseded`; ADR-0151 `Accepted` |
 | Interface compatibility | T2 | VI-7013 | Schema and rows gone |
 | User and maintainer procedure | T2 | VI-7010, VI-7011 | Every engine-owned action routed |
 | Planning contract | T2 | VI-7012 | new-spec states the in-envelope rule |
@@ -95,6 +96,36 @@ in the next Core major, under the gate stated in the spec's Scope.
 - **Capture gates:** the rewritten skill keeps the `spec-approved` capture step
   before `start` and the `plan-locked` step at `start`, because project-knowledge
   accepts work-loop producer captures only under those names.
+- **Post-lock plan routes:** one supervisor change is needed, for a fence that
+  is not red; the rest is guidance and pins. The shipped supervisor already commits a controller edit to `plan.md` as one `replan`
+  step, keeps a task's `Tests:` and the plan's `## Design (LLD)` outside the
+  reviewed envelope, includes stub fences in the task revision so a new fence
+  must be proven red before `implement`, and refuses a worker result that
+  touches the spec directory.
+  - **Timing:** `next` opens an attempt and records the plan's bytes with it,
+    and any plan change before that request's result is reported refuses it
+    with `attempt-residue`. So the controller writes a task-start fence after
+    reporting the previous request and before the `next` that issues the
+    task's first request, and writes a design correction after reporting the
+    open attempt and before the next `next`.
+  - **Not-red recovery:** today a `stub-not-red` refusal on a `write-stub`
+    result leaves that request open, so the fence fix the refusal asks for is
+    itself refused as `attempt-residue`, and reverting it only repeats the
+    refusal. T2 makes that refusal close the attempt with nothing committed,
+    so the controller's fence edit becomes a normal replan. How the attempt is
+    closed, and what happens to the uncommitted stub files the worker wrote, is
+    `implementation-discovered`; the required property is AC-0026.
+  - **Guidance T2 changes:** `tdd-stubs.md` and `SKILL.md` EXECUTE state the
+    task-start revision and the timing in place of the approved-plan fence;
+    `SKILL.md`'s DECIDE routing, `delivery-contract-lifecycle.md`, new-spec's
+    `assets/plan.md`, its plan contract, and any other live source the T2
+    search finds send `implementation-discovered` seam or means grounding to
+    the plan's design instead of the ledger; the ledger keeps execution
+    observations.
+  - **Pins T2 changes:** `tests/roster/test_tdd_stub_lifecycle_contract.py`
+    widens its live sources to every file under the work-loop and new-spec
+    skill sources and swaps its required and refused phrases;
+    `test_supervisor_tdd.py` gains the cases VI-7023 names.
 - **Backlog entries:** the open entries in `workspace.toml` that target
   `loop-cohort.py` are dispositioned through `close-work`, as superseded by this
   cutover or rewritten against the supervisor.
@@ -127,7 +158,7 @@ Owned by: T1, T2.
 ### T2: The skill drives the supervisor and the old engine is gone
 
 - **Depends on:** T1; spec:execution-supervisor-core/T8; spec:execution-supervisor-attempt-security/T5; spec:execution-supervisor-review-gate/T4; ADR-0144 Accepted; Slice 3 shipped
-- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0016, AC-0019, AC-0020, AC-0021; goal-based.
+- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0016, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026; goal-based, and TDD for AC-0026.
 - **Touches:** every file the T2 search returns at the start of the task. That
   includes:
   - **Skill:** `SKILL.md`, `references/`, `evals/evals.json`,
@@ -144,7 +175,9 @@ Owned by: T1, T2.
   - **Guides:** `guides/`.
   - **new-spec:** `assets/plan.md` and `references/spec-and-plan-contract.md`.
   - **Contracts:** the wave-decision schema and `contracts/README.md`.
-  - **Tests:** the test suites named in Design.
+  - **Tests:** the test suites named in Design, including
+    `tests/roster/test_tdd_stub_lifecycle_contract.py` and
+    `packs/core/tests/skills/work-loop/test_supervisor_tdd.py`.
   - **Coordination:** `workspace.toml`.
   - **Generated copies:** via `make build-self`.
 - **Verification mode:** goal-based
@@ -175,6 +208,28 @@ Owned by: T1, T2.
   - **VI-7021 (AC-0020):** the Slice 3 feed suite, repointed at
     `delivery/evidence.jsonl` with the shadow setting unset, passes, and a
     supervisor run's review-failure receipt yields one candidate.
+  - **VI-7022 (AC-0022, AC-0024):** the repinned
+    `test_tdd_stub_lifecycle_contract.py` passes. It reads every file under
+    the work-loop and new-spec skill sources (`SKILL.md`, `references/`,
+    `assets/`, and `evals/`), requires the task-start revision, the
+    open-attempt timing, and the working-plan route, and refuses the
+    approved-plan fence requirement and the ledger route.
+  - **VI-7023 (AC-0023, AC-0025):** with `WORK_SUPERVISOR_INTEGRATION=1`,
+    `test_supervisor_tdd.py` runs four cases through the installed skill. A
+    controller-added fence yields `replan`, then `stub` or `red`, then
+    `implement`, with no approval request. A worker-added fence is refused
+    with nothing committed. A design-only edit while no attempt is open
+    yields one `replan` and keeps completed tasks complete. The same edit
+    while an attempt is open refuses it with `attempt-residue`.
+  - **VI-7024 (AC-0026):** TDD in `test_supervisor_tdd.py`. A `write-stub`
+    result whose stub passes is refused with `stub-not-red` and commits
+    nothing. A controller edit that then removes or changes the fence is
+    committed by the next `next` as one `replan` step with no approval request
+    and no `attempt-residue`. Each recovery is followed through the task's next
+    admitted step: with the fence removed, the admitted `implement` commit
+    holds none of the refused result's files; with the fence moved to a new
+    path, the next `write-stub` result is not refused because of them. The red test is written and proven red at
+    EXECUTE against the current supervisor, which leaves the request open.
   - **VI-7901 (AC-0011, AC-0021)**, cross-cutting.
 - **Done when:** every test above passes, `make lint-ruff lint-mypy` is clean, the Windows job passes, and security-reviewer returns clean.
 
@@ -182,13 +237,13 @@ Owned by: T1, T2.
 
 - **Depends on:** T2
 - **Spec behavior:** Durable Outputs rows for decision, architecture, and coordination; goal-based.
-- **Touches:** the architecture pages named in the spec, including the knowledge pages; `workspace.toml`
+- **Touches:** the architecture pages named in the spec, including the knowledge pages; ADR-0151's status; `workspace.toml`
 - **Verification mode:** goal-based
 - **Tests:**
   - **VI-7020:** a bounded search of the named architecture pages finds no
     current-state mention of a removed script, `legacy-result-ack.v1`, a
     `tools/` builder, or a `packages/agentbundle/` supervisor home.
-  - **VI-7030:** the ADR shape lint, the brief-coverage lint, and workspace
+  - **VI-7030:** ADR-0151 is `Accepted`, and the ADR shape lint, the brief-coverage lint, and workspace
     reconcile pass.
 - **Done when:** VI-7020 and VI-7030 pass, and the architecture review is recorded.
 
