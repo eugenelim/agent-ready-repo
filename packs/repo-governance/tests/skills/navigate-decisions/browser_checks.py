@@ -218,14 +218,18 @@ def test_no_network_requests(browser: object, export_mixed: pathlib.Path) -> Non
 def test_hash_routing_empty_hash_shows_list(browser: object, export_mixed: pathlib.Path) -> None:
     """QE-14/FE-F1: Back from a detail route to the no-hash entry shows the list."""
     page = _open_page(browser, export_mixed)
-    page.locator(".record-btn").first.click()
-    page.wait_for_selector("#view-detail h2.detail-heading")
-    assert page.locator("#view-list").is_hidden()
+    page.locator(".row-link").first.click()
+    page.wait_for_selector("#detail-body h2.detail-heading")
+    assert page.locator("#view-list").is_visible(), "the list stays beside the detail"
+    assert page.locator("#detail-body h2.detail-heading").text_content() != "Record detail"
     page.go_back()
-    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    page.wait_for_function(
+        "() => document.querySelector('#detail-body h2.detail-heading').textContent"
+        " === 'Record detail'"
+    )
     assert page.evaluate("location.hash") == ""
     assert page.locator("#view-list h2").text_content() == "Corpus list"
-    assert page.locator("#view-detail").is_hidden()
+    assert page.locator("#app-main[data-picked]").count() == 0
 
 
 def test_hash_routing_bogus_hash_shows_list(browser: object, export_mixed: pathlib.Path) -> None:
@@ -246,7 +250,7 @@ def test_hash_routing_uri_error_safe(browser: object, export_mixed: pathlib.Path
     page.wait_for_timeout(200)
     # Must not crash; either list or detail view must be visible.
     list_visible = page.locator("#view-list").is_visible()
-    detail_visible = page.locator("#view-detail").is_visible()
+    detail_visible = page.locator("#detail-body").is_visible()
     assert list_visible or detail_visible, "after URIError hash, at least one view must be visible"
     assert not page._errors, (  # type: ignore[attr-defined]
         f"page errors after URIError hash: {page._errors}"  # type: ignore[attr-defined]
@@ -318,7 +322,7 @@ def test_missing_id_shows_not_in_export(browser: object, export_mixed: pathlib.P
     page = _open_page(browser, export_mixed)
     page.evaluate("window.location.hash = '#detail/' + encodeURIComponent('ADR-9999')")
     page.wait_for_timeout(300)
-    detail_text = page.locator("#view-detail").text_content() or ""
+    detail_text = page.locator("#detail-body").text_content() or ""
     assert "not in this export" in detail_text.lower() or "ADR-9999" in detail_text, (
         f"missing ID detail view must say the record is not in this export; "
         f"got: {detail_text[:200]!r}"
@@ -333,7 +337,7 @@ def test_24px_min_targets(browser: object, export_mixed: pathlib.Path) -> None:
     """FE-F6: every visible button, link, select and input in the list view is at
     least 24×24 CSS px."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     buttons = page.locator("button, a, select, input").all()
     assert len(buttons) > 10
     for btn in buttons:
@@ -352,7 +356,7 @@ def test_relationships_section_folded_by_default(
     """AC-0026: Relationships <details> in detail view is closed by default."""
     page = _open_page(browser, export_mixed)
     # Click the first record button to go to detail.
-    page.locator(".record-btn").first.click()
+    page.locator(".row-link").first.click()
     page.wait_for_timeout(300)
     # Check that rel-details is present and closed.
     rel_details = page.locator(".rel-details")
@@ -382,7 +386,7 @@ def test_relationships_section_folded_by_default(
 def test_long_body_folded(browser: object, export_pathological: pathlib.Path) -> None:
     """FE-F11: Long record bodies use progressive disclosure (<details>)."""
     page = _open_page(browser, export_pathological)
-    page.locator(".record-btn").first.click()
+    page.locator(".row-link").first.click()
     page.wait_for_timeout(300)
     # The body must be inside a <details> element (body-details class).
     body_details = page.locator(".body-details")
@@ -432,7 +436,7 @@ def test_record_content_border_differs_from_evidence_rail(
     """
     page = _open_page(browser, export_mixed)
     # Navigate to a record with a body.
-    page.locator(".record-btn").first.click()
+    page.locator(".row-link").first.click()
     page.wait_for_timeout(300)
     # Evidence rail checked uses solid; candidate dashed; contextual dotted; nav double.
     # The record-content uses a uniform 2px solid all-around border (not left only).
@@ -452,18 +456,18 @@ def test_supersession_banners_in_list_and_detail(
     """AC-0025: checked supersession shows a banner in the list row and the detail
     view, with partial scope, and its link opens the superseding record."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     list_text = " | ".join(
         page.locator("#view-list .supersede-banner").all_inner_texts()  # type: ignore[union-attr]
     )
     assert "Superseded in part by ADR-0020 (D3)" in list_text, list_text
     assert "Superseded by ADR-0003" in list_text, list_text
     page.evaluate("() => { location.hash = '#detail/ADR-0001'; }")  # type: ignore[union-attr]
-    banner = page.locator("#view-detail .supersede-banner").first  # type: ignore[union-attr]
+    banner = page.locator("#detail-body .supersede-banner").first  # type: ignore[union-attr]
     banner.wait_for()
     assert "Superseded in part by ADR-0020 (D3)" in (banner.inner_text() or "")
     banner.get_by_text("ADR-0020").first.click()
-    page.wait_for_function("() => location.hash === '#detail/ADR-0020'")  # type: ignore[union-attr]
+    page.wait_for_function("() => location.hash === '#list/ADR-0020'")  # type: ignore[union-attr]
     assert not page._errors  # type: ignore[attr-defined]
 
 
@@ -500,7 +504,7 @@ def test_pathological_body_renders_fully_and_inertly(
     """AC-0010: a hostile near-2 MiB body renders within 2 s, falls back to plain
     text past 32 nesting levels, keeps raw HTML literal, and loads nothing."""
     page = _open_page(browser, export_pathological)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     start = time.monotonic()
     _render_body(page)
     elapsed_ms = (time.monotonic() - start) * 1000
@@ -527,7 +531,7 @@ def test_pathological_body_renders_fully_and_inertly(
 def test_typing_in_search_keeps_focus(browser: object, export_mixed: pathlib.Path) -> None:
     """FE-F2 regression: filtering re-renders the list without stealing focus."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     page.click("#search-input")  # type: ignore[union-attr]
     page.keyboard.type("adr")  # type: ignore[union-attr]
     assert page.evaluate("() => document.activeElement.id") == "search-input"  # type: ignore[union-attr]
@@ -679,7 +683,7 @@ def test_graph_focused_svg_has_nodes_and_d3_label(
     """AC-0026: focused #graph/ADR-0001 renders ≥2 node groups and a visible
     'in part · D3' label that sets partial supersession apart from full."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     # At least 2 node groups (ADR-0001 and ADR-0020 in mixed fixture's checked chain)
     node_count = page.evaluate(  # type: ignore[union-attr]
@@ -699,7 +703,7 @@ def test_graph_focused_svg_has_nodes_and_d3_label(
 def test_graph_layout_older_left_of_newer(browser: object, export_mixed: pathlib.Path) -> None:
     """AC-0026: the older superseded record (ADR-0001) renders left of the newer (ADR-0020)."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     x_vals = page.evaluate(  # type: ignore[union-attr]
         "() => {"
@@ -724,7 +728,7 @@ def test_graph_contextual_toggle(browser: object, export_mixed: pathlib.Path) ->
     """AC-0026: contextual group is hidden until the toggle is pressed; chain node
     x-positions do not change when contextual edges are shown."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     # Contextual toggle button is present (ADR-0001 has Related: links)
     page.wait_for_selector(".ctx-toggle")  # type: ignore[union-attr]
@@ -734,10 +738,11 @@ def test_graph_contextual_toggle(browser: object, export_mixed: pathlib.Path) ->
         " var r = g && g.querySelector('rect');"
         " return r ? parseFloat(r.getAttribute('x')) : null; }"
     )
-    # At least one hidden g exists (the ctx group is display:none)
+    # At least one hidden g exists: the ctx group carries `hidden` and computes display:none
     has_hidden_ctx = page.evaluate(  # type: ignore[union-attr]
         "() => { var gs = document.querySelectorAll('svg g[aria-hidden]');"
-        " for (var g of gs) { if (g.style.display === 'none') return true; } return false; }"
+        " for (var g of gs) { if (g.hasAttribute('hidden')"
+        " && getComputedStyle(g).display === 'none') return true; } return false; }"
     )
     assert has_hidden_ctx, "Contextual SVG group should be hidden (display:none) before toggle"
     # Press the toggle
@@ -746,7 +751,7 @@ def test_graph_contextual_toggle(browser: object, export_mixed: pathlib.Path) ->
     # After toggle, no hidden context groups remain
     still_hidden = page.evaluate(  # type: ignore[union-attr]
         "() => { var gs = document.querySelectorAll('svg g[aria-hidden]');"
-        " for (var g of gs) { if (g.style.display === 'none') return true; } return false; }"
+        " for (var g of gs) { if (g.hasAttribute('hidden')) return true; } return false; }"
     )
     assert not still_hidden, "Contextual SVG group should be visible after toggle"
     # Chain node x position must be unchanged after toggle
@@ -766,7 +771,7 @@ def test_graph_cycle_members_share_x_and_have_cycle_labels(
 ) -> None:
     """AC-0026: cycle SCC members share the same x-column; 'cycle' labels appear in the SVG."""
     page = _open_page(browser, export_cycle)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     # All 3 records are in the chain
     node_count = page.evaluate(  # type: ignore[union-attr]
@@ -812,7 +817,7 @@ def test_graph_branching_renders_all_members(
 ) -> None:
     """AC-0026: a branching chain (4 records) renders all members as node groups."""
     page = _open_page(browser, export_branching)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     node_count = page.evaluate(  # type: ignore[union-attr]
         "document.querySelectorAll('[data-node-id]').length"
@@ -831,7 +836,7 @@ def test_graph_five_chain_renders_all_members(
 ) -> None:
     """AC-0026: a 5-record linear chain renders all 5 members in column order."""
     page = _open_page(browser, export_five_chain)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     node_count = page.evaluate(  # type: ignore[union-attr]
         "document.querySelectorAll('[data-node-id]').length"
@@ -856,7 +861,7 @@ def test_graph_keyboard_navigation(browser: object, export_mixed: pathlib.Path) 
     """AC-0026: Tab reaches the focused node (tabindex=0); ArrowRight moves focus to newer
     connected node; Enter navigates to that node's graph view."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     # ADR-0001 is the selected node and must have tabindex=0 (Tab-reachable)
     ti = page.evaluate(  # type: ignore[union-attr]
@@ -889,7 +894,7 @@ def test_graph_text_equivalent_matches_svg_nodes(
 ) -> None:
     """AC-0026: the text equivalent lists the same node IDs that appear as SVG nodes."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     # Node IDs from SVG
     svg_ids = page.evaluate(  # type: ignore[union-attr]
@@ -924,7 +929,7 @@ def test_graph_atlas_shows_one_card_per_chain(browser: object, export_mixed: pat
     """AC-0026: the atlas view (#graph) shows one chain card per checked-supersession chain
     with ≥2 records."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page)  # #graph — no focused record
     card_count = page.evaluate(  # type: ignore[union-attr]
         "document.querySelectorAll('.chain-card').length"
@@ -943,7 +948,7 @@ def test_graph_atlas_shows_one_card_per_chain(browser: object, export_mixed: pat
 def test_graph_no_page_errors(browser: object, export_mixed: pathlib.Path) -> None:
     """AC-0026: graph view opens without page errors."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     assert not page._errors, f"page errors in graph view: {page._errors}"  # type: ignore[attr-defined]
 
@@ -951,7 +956,7 @@ def test_graph_no_page_errors(browser: object, export_mixed: pathlib.Path) -> No
 def test_graph_no_network_requests(browser: object, export_mixed: pathlib.Path) -> None:
     """AC-0026: graph view issues no non-file requests (fully self-contained)."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     non_file = page._non_file_requests  # type: ignore[attr-defined]
     assert not non_file, f"graph view triggered non-file requests: {non_file}"
@@ -1009,13 +1014,15 @@ def test_long_qualified_status_does_not_squeeze_title(
     assert r["status"] == "ok", r.get("error")
     page = _open_page(browser, pathlib.Path(r["path"]))
     page.set_viewport_size({"width": 1440, "height": 900})  # type: ignore[union-attr]
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     info = page.evaluate(  # type: ignore[union-attr]
-        """() => { const li = document.querySelector('li.record-item');
-          const row = li.querySelector('.record-btn').getBoundingClientRect();
-          const title = li.querySelector('.rtitle').getBoundingClientRect();
+        """() => { const li = document.querySelector('li.row');
+          const row = li.querySelector('.row-link').getBoundingClientRect();
+          const title = li.querySelector('.c-title').getBoundingClientRect();
+          const mark = li.querySelector('.mark');
           return { ratio: title.width / row.width,
-                   status: li.querySelector('.rstatus').textContent }; }"""
+                   status: mark.textContent.slice(mark.querySelector('.mark-g').textContent.length)
+                 }; }"""
     )
     assert info["ratio"] >= 0.33, info
     assert info["status"] == status, info
@@ -1046,7 +1053,7 @@ def test_rendered_page_never_shows_raw_bidi_controls(
     )
     assert r["status"] == "ok", r.get("error")
     page = _open_page(browser, pathlib.Path(r["path"]))
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     raw = "‮‬​"
     for frag in ("#list/ADR-0001", "#detail/ADR-0001", "#graph/ADR-0001", "#context/ADR-0001"):
         page.evaluate(f"() => {{ location.hash = '{frag}'; }}")  # type: ignore[union-attr]
@@ -1069,7 +1076,7 @@ def test_lineage_edges_run_between_facing_sides(
     """AC-0026: a checked edge leaves the newer node's left side and ends at the
     older node's right side, so no edge crosses its own endpoints."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     geo = page.evaluate(  # type: ignore[union-attr]
         """() => { const box = id => document.querySelector(`[data-node-id="${id}"] rect`)
@@ -1088,7 +1095,7 @@ def test_lineage_edges_run_between_facing_sides(
 def test_focused_graph_returns_to_atlas(browser: object, export_mixed: pathlib.Path) -> None:
     """AC-0026: the atlas of every chain stays reachable after a record is focused."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     page.click("button.atlas-back")  # type: ignore[union-attr]
     page.wait_for_selector(".chain-card")  # type: ignore[union-attr]
@@ -1100,7 +1107,7 @@ def test_back_from_focused_graph_restores_atlas(
 ) -> None:
     """AC-0016: Back after focusing a node from the atlas shows the atlas again."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")  # type: ignore[union-attr]
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
     _navigate_graph(page, "ADR-0001")
     page.click("button.atlas-back")  # type: ignore[union-attr]
     page.wait_for_selector(".chain-card")  # type: ignore[union-attr]
@@ -1145,7 +1152,7 @@ def test_inline_pathological_body_renders_in_linear_time(
     """AC-0010: heading whitespace and unmatched [, ![, <, _, ` and ]( openers in a
     near-2 MiB body render within 2 s, without the plain-text fallback."""
     page = _open_page(browser, export_inline_pathological)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     start = time.monotonic()
     _render_body(page)
     elapsed_ms = (time.monotonic() - start) * 1000
@@ -1182,7 +1189,7 @@ def test_wrapped_list_item_stays_in_its_bullet(
     """AC-0010: an indented continuation line joins its list item instead of
     becoming a code block or a separate paragraph."""
     page = _open_page(browser, export_wrapped_list)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _render_body(page)
     info = page.evaluate(
         """() => { const c = document.querySelector('.record-content');
@@ -1218,42 +1225,34 @@ def _contrast(page: object, selector: str) -> float:
     )
 
 
-def test_theme_toggle_sets_and_remembers_the_theme(
-    browser: object, export_mixed: pathlib.Path
-) -> None:
-    """Owner request: Auto/Light/Dark toggle overrides the system setting and
-    persists across reloads; Auto follows the system again."""
-    context = browser.new_context(offline=True, color_scheme="light")  # type: ignore[union-attr]
-    page = context.new_page()
-    page.goto(f"file://{export_mixed}")
-    page.wait_for_selector("li.record-item")
-    theme = "() => document.documentElement.dataset.theme"
-    assert page.evaluate(theme) == "light"
-    page.click("[data-theme-choice=dark]")
-    assert page.evaluate(theme) == "dark"
-    assert page.get_attribute("[data-theme-choice=dark]", "aria-pressed") == "true"
-    page.reload()
-    page.wait_for_selector("li.record-item")
-    assert page.evaluate(theme) == "dark", "the choice must survive a reload"
-    page.emulate_media(color_scheme="dark")
-    page.click("[data-theme-choice=light]")
-    assert page.evaluate(theme) == "light", "Light overrides a dark system setting"
-    page.click("[data-theme-choice=auto]")
-    assert page.evaluate(theme) == "dark", "Auto follows the system setting"
-    context.close()
+def _region(view: str) -> str:
+    """CSS selector of the region that shows `view`: the detail zone is not a view."""
+    return "#detail-body" if view == "detail" else f"#view-{view}"
+
+
+def _show(page: object, view: str, record_id: str) -> None:
+    """Route to `view` with `record_id` picked and wait until that region shows it."""
+    page.evaluate(f"() => {{ location.hash = '#{view}/{record_id}'; }}")  # type: ignore[union-attr]
+    if view == "detail":
+        page.wait_for_function(  # type: ignore[union-attr]
+            "(id) => document.getElementById('detail-body').textContent.includes(id)",
+            arg=record_id,
+        )
+    else:
+        page.wait_for_function(  # type: ignore[union-attr]
+            f"() => !document.getElementById('view-{view}').hidden"
+        )
 
 
 def test_links_are_readable_in_both_themes(browser: object, export_mixed: pathlib.Path) -> None:
     """AC-0025: the superseded-by link inside the list banner reaches 4.5:1
     contrast in light and dark themes. (Test exports have no source links.)"""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     for choice in ("light", "dark"):
-        page.click(f"[data-theme-choice={choice}]")
-        assert page.evaluate("() => document.documentElement.dataset.theme") == choice
-        ratio = _contrast(page, "li.record-item .supersede-banner a")
+        page.emulate_media(color_scheme=choice)
+        ratio = _contrast(page, "li.row .supersede-banner a")
         assert ratio >= 4.5, f"{choice}: banner link contrast {ratio:.2f}"
-    page.click("[data-theme-choice=auto]")
 
 
 def test_unknown_record_shows_not_in_export_in_every_view(
@@ -1262,13 +1261,13 @@ def test_unknown_record_shows_not_in_export_in_every_view(
     """AC-0016: an unknown record ID says it is not in this export in the graph,
     context and detail views."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     for view in ("graph", "context", "detail"):
         page.evaluate(f"() => {{ location.hash = '#{view}/ADR-9999'; }}")
         page.wait_for_function(
-            f"() => document.getElementById('view-{view}').textContent.includes('ADR-9999')"
+            f"() => document.querySelector('{_region(view)}').textContent.includes('ADR-9999')"
         )
-        text = page.locator(f"#view-{view}").text_content() or ""
+        text = page.locator(_region(view)).text_content() or ""
         assert "ADR-9999 is not in this export." in text, (view, text[:200])
 
 
@@ -1301,13 +1300,13 @@ def test_expand_all_opens_every_section_on_first_click(
     """AC-0016: with the long body open and relationships closed, the button says
     Expand all and its first activation opens every section."""
     page = _open_page(browser, export_long_and_related)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _render_body(page)
-    page.wait_for_selector("#view-detail .rel-details")
+    page.wait_for_selector("#detail-body .rel-details")
     assert page.locator("#expand-all-btn").text_content() == "Expand all"
     page.click("#expand-all-btn")
     still_closed = page.evaluate(
-        "() => [...document.querySelectorAll('#view-detail details')].filter(d => !d.open).length"
+        "() => [...document.querySelectorAll('#detail-body details')].filter(d => !d.open).length"
     )
     assert still_closed == 0
     assert page.locator("#expand-all-btn").text_content() == "Collapse all"
@@ -1319,7 +1318,7 @@ def test_reset_filters_keeps_keyboard_focus(browser: object, export_mixed: pathl
     page.locator("#search-input").fill("zzzzz-no-match")
     page.locator(".reset-btn").focus()
     page.keyboard.press("Enter")
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     focused = page.evaluate(
         "() => [document.activeElement.tagName, document.activeElement.textContent]"
     )
@@ -1332,9 +1331,9 @@ def test_strike_through_marks_full_supersession_only(
     """A record superseded only in part stays in force: its ID is not struck
     through, while a fully superseded record's ID is."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     deco = page.evaluate(
-        """() => Object.fromEntries([...document.querySelectorAll('li.record-item')].map(li =>
+        """() => Object.fromEntries([...document.querySelectorAll('li.row')].map(li =>
           [li.querySelector('.rid').textContent,
            getComputedStyle(li.querySelector('.rid')).textDecorationLine]))"""
     )
@@ -1349,7 +1348,7 @@ def test_atlas_draws_and_labels_cycle_relationships(
     """AC-0026: a cyclic chain's atlas card draws its cycle relationships and
     labels each one "cycle"."""
     page = _open_page(browser, export_cycle)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page)
     page.wait_for_selector(".chain-card svg")
     info = page.evaluate(
@@ -1367,12 +1366,11 @@ def test_hostile_titles_and_status_stay_inert_in_every_view(
     """Hostile H1 and Status values render as literal text in list, graph,
     context and detail, and never execute or load anything."""
     page = _open_page(browser, export_hostile)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     for view in ("list", "graph", "context", "detail"):
-        page.evaluate(f"() => {{ location.hash = '#{view}/ADR-0001'; }}")
-        page.wait_for_function(f"() => !document.getElementById('view-{view}').hidden")
+        _show(page, view, "ADR-0001")
         info = page.evaluate(
-            f"""() => {{ const v = document.getElementById('view-{view}');
+            f"""() => {{ const v = document.querySelector('{_region(view)}');
             return {{ scripts: v.querySelectorAll('script, img, iframe').length,
               text: v.textContent }}; }}"""
         )
@@ -1419,17 +1417,15 @@ def test_paths_and_assertion_endpoints_escape_directional_marks(
     """AC-0010: source paths and caller-assertion endpoints beside trust labels show
     RLM, ALM and LRM as visible escapes in detail and context views."""
     page = _open_page(browser, export_bidi_paths)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     raw = "‏‎؜"
     for view in ("detail", "context"):
         for rid in ("ADR-0001", "ADR-0002"):
-            page.evaluate(f"() => {{ location.hash = '#{view}/{rid}'; }}")
-            page.wait_for_function(f"() => !document.getElementById('view-{view}').hidden")
-            text = page.locator(f"#view-{view}").text_content() or ""
+            _show(page, view, rid)
+            text = page.locator(_region(view)).text_content() or ""
             assert not any(c in text for c in raw), (view, rid)
-    page.evaluate("() => { location.hash = '#detail/ADR-0001'; }")
-    page.wait_for_function("() => !document.getElementById('view-detail').hidden")
-    detail = page.locator("#view-detail").text_content() or ""
+    _show(page, "detail", "ADR-0001")
+    detail = page.locator("#detail-body").text_content() or ""
     assert "0001-left[U+200F]right[U+061C].md" in detail, detail[:400]
     page.evaluate("() => { location.hash = '#context/ADR-0002'; }")
     page.wait_for_function("() => !document.getElementById('view-context').hidden")
@@ -1443,11 +1439,11 @@ def test_detail_shows_every_header_field_exactly(
     """Exact headers: the detail view lists each header-region field by its label
     and recorded value, including `none` supersession values."""
     page = _open_page(browser, export_bidi_paths)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     page.evaluate("() => { location.hash = '#detail/ADR-0002'; }")
-    page.wait_for_selector("#view-detail .meta-table")
+    page.wait_for_selector("#detail-body .meta-table")
     rows = page.evaluate(
-        """() => [...document.querySelectorAll('#view-detail .meta-table tr')]
+        """() => [...document.querySelectorAll('#detail-body .meta-table tr')]
           .map(tr => [tr.cells[0].textContent, tr.cells[1].textContent])"""
     )
     assert ["Date", "2024-03-15"] in rows, rows
@@ -1463,7 +1459,7 @@ def test_caller_assertion_is_drawn_and_listed_in_the_graph(
     """AC-0026: a caller assertion reaches the graph view as a navigation-only
     relationship, drawn and listed with the same identity."""
     page = _open_page(browser, export_bidi_paths)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     page.evaluate("() => { location.hash = '#graph/ADR-0002'; }")
     page.wait_for_selector("#view-graph .graph-note")
     listed = page.evaluate(
@@ -1511,7 +1507,7 @@ def test_caller_assertions_are_drawn_in_chain_and_as_satellites(
     the diagram — one between chain members, one to a satellite — and listed with
     the same identities in the text equivalent."""
     page = _open_page(browser, export_chain_assertions)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0002")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     drawn = page.evaluate(
@@ -1532,7 +1528,7 @@ def test_partial_edges_differ_by_line_style_in_focus_and_atlas(
     """AC-0026: partial supersession is a hollow double line with an "in part"
     label in the focused diagram and in the atlas, not colour alone."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     widths = page.evaluate(
         """() => Object.fromEntries([...document.querySelectorAll('#view-graph svg [data-rel]')]
@@ -1564,7 +1560,7 @@ def test_status_filter_text_is_escaped_in_no_results(
     """AC-0006/AC-0010: the active status shown in the no-results message and the
     live region uses the visible escape, never the raw control."""
     page = _open_page(browser, export_bidi_status)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     page.select_option("#status-filter", index=1)
     page.locator("#search-input").fill("zzzz-no-match")
     page.wait_for_selector(".empty-msg")
@@ -1580,7 +1576,7 @@ def test_unknown_route_id_is_escaped_and_capped(
     """A record ID taken from the URL is untrusted: its controls are escaped and
     its length capped in every not-in-export message."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     hostile = "ADR-‮" + "x" * 300
     for view in ("graph", "context", "detail"):
         page.evaluate(
@@ -1588,10 +1584,12 @@ def test_unknown_route_id_is_escaped_and_capped(
             [view, hostile],
         )
         page.wait_for_function(
-            f"() => document.getElementById('view-{view}').textContent"
+            f"() => document.querySelector('{_region(view)}').textContent"
             ".includes('is not in this export.')"
         )
-        text = page.locator(f"#view-{view} .empty-msg").first.text_content() or ""
+        text = (
+            page.locator(f"{_region(view)} :is(.empty-msg, .empty)").first.text_content() or ""
+        )
         assert "‮" not in text and "[U+202E]" in text, (view, text[:80])
         assert len(text) < 100, (view, len(text))
 
@@ -1620,12 +1618,12 @@ def test_expand_label_follows_sections_toggled_by_hand(
     """After Expand all, closing one section by hand flips the label back to
     Expand all, so the button always names what it will do."""
     page = _open_page(browser, export_long_and_related)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _render_body(page)
-    page.wait_for_selector("#view-detail .rel-details")
+    page.wait_for_selector("#detail-body .rel-details")
     page.click("#expand-all-btn")
     assert page.locator("#expand-all-btn").text_content() == "Collapse all"
-    page.locator("#view-detail .rel-details summary").click()
+    page.locator("#detail-body .rel-details summary").click()
     page.wait_for_function(
         "() => document.getElementById('expand-all-btn').textContent === 'Expand all'"
     )
@@ -1638,7 +1636,7 @@ def test_supersession_state_is_named_and_marked_in_both_graph_views(
     the atlas marks IDs like the list: struck through for full, underlined for
     partial."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     label = page.get_attribute('[data-node-id="ADR-0001"]', "aria-label") or ""
     assert label.endswith(", superseded in part"), label
@@ -1646,7 +1644,7 @@ def test_supersession_state_is_named_and_marked_in_both_graph_views(
     page.wait_for_selector(".chain-card svg")
     deco = page.evaluate(
         """() => Object.fromEntries(['ADR-0001', 'ADR-0002', 'ADR-0020'].map(id =>
-          [id, document.querySelector(`.chain-card [data-node-id="${id}"] text`)
+          [id, document.querySelector(`.chain-card [data-node-id="${id}"] text.ln-id`)
             .getAttribute('text-decoration')]))"""
     )
     assert deco == {"ADR-0001": "underline", "ADR-0002": "line-through", "ADR-0020": None}, deco
@@ -1665,11 +1663,10 @@ def test_tag_characters_are_visibly_escaped(
 ) -> None:
     """Tag characters (above U+FFFF) render as visible escapes in list and detail."""
     page = _open_page(browser, export_tag_title)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     for view in ("list", "detail"):
-        page.evaluate(f"() => {{ location.hash = '#{view}/ADR-0001'; }}")
-        page.wait_for_function(f"() => !document.getElementById('view-{view}').hidden")
-        text = page.locator(f"#view-{view}").text_content() or ""
+        _show(page, view, "ADR-0001")
+        text = page.locator(_region(view)).text_content() or ""
         assert "\U000e0068" not in text and "[U+E0068]" in text, (view, text[:200])
 
 
@@ -1701,12 +1698,12 @@ def test_bounded_notice_is_readable_in_dark_mode(
         )
     assert r["status"] == "ok", r.get("error")
     page = _open_page(browser, pathlib.Path(r["path"]))
-    page.wait_for_selector("li.record-item")
-    page.click("[data-theme-choice=dark]")
+    page.wait_for_selector("li.row")
+    page.emulate_media(color_scheme="dark")
     page.evaluate("() => { location.hash = '#detail/ADR-0001'; }")
-    page.wait_for_selector("#view-detail .bounded-notice a")
-    assert _contrast(page, "#view-detail .bounded-notice") >= 4.5
-    assert _contrast(page, "#view-detail .bounded-notice a") >= 4.5
+    page.wait_for_selector("#detail-body .bounded-notice a")
+    assert _contrast(page, "#detail-body .bounded-notice") >= 4.5
+    assert _contrast(page, "#detail-body .bounded-notice a") >= 4.5
 
 
 # ── Review round 4 (T8) ───────────────────────────────────────────────────────
@@ -1778,7 +1775,7 @@ def test_fan_in_labels_stay_clear_in_focus_and_atlas(
     """R4-FE-1: on fan-in, no two `in part` plates intersect, and no plate meets a
     node box or an arrowhead box, in the focused graph and the atlas."""
     page = _open_page(browser, export_fan_in)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     _assert_plates_clear(page.evaluate(_BOXES_JS, "#view-graph .lineage-wrap svg"), "focused")
@@ -1793,7 +1790,7 @@ def test_arrowheads_keep_one_size_on_full_and_partial_edges(
     """R4-FE-2: markers use user-space units, so partial (thicker) edges do not
     get larger arrowheads than full edges."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     units = page.evaluate(
         "() => [...document.querySelectorAll('#view-graph marker')]"
@@ -1835,7 +1832,7 @@ def test_in_chain_assertion_never_passes_beneath_a_node(
     """R4-FE-3: an asserted edge between two same-column chain members has no
     point inside another node's box, and its label plate is clear."""
     page = _open_page(browser, export_column_assertion)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     inside = page.evaluate(
@@ -1858,10 +1855,11 @@ def test_in_chain_assertion_never_passes_beneath_a_node(
 def test_expand_all_label_is_unchanged_on_a_view_without_sections(
     browser: object, export_mixed: pathlib.Path
 ) -> None:
-    """R4-FE-4: on the list view there is nothing to expand, so the label stays."""
+    """R4-FE-4: on the list view there is nothing to expand, so the control is disabled and
+    the label stays."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
-    page.click("#expand-all-btn")
+    page.wait_for_selector("li.row")
+    assert page.locator("#expand-all-btn").is_disabled()
     assert page.locator("#expand-all-btn").text_content() == "Expand all"
 
 
@@ -1870,7 +1868,7 @@ def test_text_list_node_buttons_align_to_the_top(
 ) -> None:
     """R4-FE-5: node buttons in the text list align to the top of their item."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     align = page.evaluate(
         "() => getComputedStyle(document.querySelector('.lt-node-btn')).verticalAlign"
@@ -1884,7 +1882,7 @@ def test_partial_edges_are_hollow_and_labelled_in_both_views(
     """R4-QE-4: partial edges carry the white inner stroke and an `in part` label
     in the focused graph and the atlas; full edges carry neither."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     focused = page.evaluate(
         """() => { const svg = document.querySelector('#view-graph .lineage-wrap svg');
@@ -1913,23 +1911,22 @@ def test_graph_focus_ring_reaches_3_to_1_and_clears_the_supersession_ring(
     """R4-EXP-1: the focus indicator's outer ring reaches 3:1 against the canvas
     in both themes and sits outside the selected node's supersession ring."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     for choice in ("light", "dark"):
-        page.click(f"[data-theme-choice={choice}]")
+        page.emulate_media(color_scheme=choice)
         _navigate_graph(page, "ADR-0001")
         info = page.evaluate(
             """() => { const g = document.querySelector('#view-graph [data-node-id="ADR-0001"]');
               const outer = g.querySelector('.focus-ring rect');
               const ring = g.querySelector('.sup-ring');
               const wrap = document.querySelector('#view-graph .lineage-wrap');
-              let bg = getComputedStyle(wrap).backgroundColor;
-              const viewBg = getComputedStyle(document.querySelector('#view-graph'));
-              if (bg === 'rgba(0, 0, 0, 0)') bg = viewBg.backgroundColor;
-              if (bg === 'rgba(0, 0, 0, 0)') bg = getComputedStyle(document.body).backgroundColor;
-              return { stroke: outer.getAttribute('stroke'), bg,
+              let bg = 'rgba(0, 0, 0, 0)';
+              for (let e = wrap; e && bg === 'rgba(0, 0, 0, 0)'; e = e.parentElement)
+                bg = getComputedStyle(e).backgroundColor;
+              return { stroke: getComputedStyle(outer).stroke, bg,
                 gap: ring ? +ring.getAttribute('x') - (+outer.getAttribute('x') + 1) : 99 }; }"""
         )
-        rgb = [int(info["stroke"][i : i + 2], 16) for i in (1, 3, 5)]
+        rgb = [float(v) for v in info["stroke"][info["stroke"].index("(") + 1 : -1].split(",")[:3]]
         bg = [float(v) for v in info["bg"][info["bg"].index("(") + 1 : -1].split(",")[:3]]
 
         def lum(c: list[float]) -> float:
@@ -1941,12 +1938,11 @@ def test_graph_focus_ring_reaches_3_to_1_and_clears_the_supersession_ring(
         ratio = (max(a, b) + 0.05) / (min(a, b) + 0.05)
         assert ratio >= 3, (choice, info, ratio)
         assert info["gap"] >= 1, (choice, info)
-    page.click("[data-theme-choice=auto]")
 
 
 def test_dark_first_paint_without_scripts(browser: object, export_mixed: pathlib.Path) -> None:
     """R4-EXP-2: with scripts off and a dark system preference, the page paints
-    its dark styles: color-scheme, info panel and title."""
+    its dark styles: the header and page backgrounds (the stylesheet declares both schemes)."""
     context = browser.new_context(  # type: ignore[union-attr]
         offline=True, java_script_enabled=False, color_scheme="dark"
     )
@@ -1954,13 +1950,13 @@ def test_dark_first_paint_without_scripts(browser: object, export_mixed: pathlib
     page.goto(f"file://{export_mixed}")
     info = page.evaluate(
         """() => ({ scheme: getComputedStyle(document.documentElement).colorScheme,
-          panel: getComputedStyle(document.querySelector('.info-panel')).backgroundColor,
-          title: getComputedStyle(document.querySelector('.title-gradient')).color })"""
+          header: getComputedStyle(document.querySelector('.page-header')).backgroundColor,
+          page: getComputedStyle(document.body).backgroundColor })"""
     )
     context.close()
-    assert info["scheme"] == "dark", info
-    assert info["panel"] == "rgb(26, 32, 64)", info
-    assert info["title"] == "rgb(147, 197, 253)", info
+    assert info["scheme"] == "light dark", info
+    assert info["header"] == "rgb(22, 24, 29)", info
+    assert info["page"] == "rgb(15, 17, 20)", info
 
 
 def test_partial_id_underline_style_matches_across_views(
@@ -1969,9 +1965,9 @@ def test_partial_id_underline_style_matches_across_views(
     """R4-EXP-4: the partially superseded ID uses a solid underline in the list
     and in both graph views."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     style = page.evaluate(
-        """() => { const rid = [...document.querySelectorAll('li.record-item .rid')]
+        """() => { const rid = [...document.querySelectorAll('li.row .rid')]
             .find(e => e.textContent === 'ADR-0001');
           const cs = getComputedStyle(rid);
           return [cs.textDecorationLine, cs.textDecorationStyle]; }"""
@@ -1979,7 +1975,7 @@ def test_partial_id_underline_style_matches_across_views(
     assert style == ["underline", "solid"], style
     _navigate_graph(page, "ADR-0001")
     deco = page.evaluate(
-        "() => document.querySelector('#view-graph [data-node-id=\"ADR-0001\"] text')"
+        "() => document.querySelector('#view-graph [data-node-id=\"ADR-0001\"] text.ln-id')"
         ".getAttribute('text-decoration')"
     )
     assert deco == "underline", deco
@@ -1999,17 +1995,17 @@ def test_wrapped_status_shows_its_own_row(
         ],
     )
     page = _open_page(browser, _export(tmp_path_factory, root, "wrapped_status"))
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     counts = {}
     for rid in ("ADR-0001", "ADR-0002"):
         page.evaluate(f"() => {{ location.hash = '#detail/{rid}'; }}")
         page.wait_for_function(
-            "(rid) => (document.querySelector('#view-detail h2') || {}).textContent"
-            "?.startsWith(rid)",
+            "(rid) => (document.querySelector('#detail-body .state-line') || {}).textContent"
+            "?.includes(rid)",
             arg=rid,
         )
         counts[rid] = page.evaluate(
-            """() => [...document.querySelectorAll('#view-detail .meta-table tr')]
+            """() => [...document.querySelectorAll('#detail-body .meta-table tr')]
               .filter(tr => tr.cells[0].textContent === 'Status').length"""
         )
     assert counts == {"ADR-0001": 2, "ADR-0002": 1}, counts
@@ -2037,7 +2033,7 @@ def test_fan_in_labels_sit_on_their_own_edges(
     """On fan-in, the edge nearest each scope label is the edge the label names,
     and in the focused graph the label carries that edge's own scope."""
     page = _open_page(browser, export_fan_in)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     focused = page.evaluate(_NEAREST_EDGE_JS, "#view-graph .lineage-wrap svg")
@@ -2095,7 +2091,7 @@ def test_asserted_and_long_partial_labels_stay_clear(
     node never overlap each other, a node or an arrowhead; the long label is
     a number whose key entry gives its full scope."""
     page = _open_page(browser, export_partial_and_asserted)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     labels = page.evaluate(
@@ -2112,88 +2108,11 @@ def test_asserted_and_long_partial_labels_stay_clear(
     _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "partial and asserted")
 
 
-def test_theme_toggle_is_not_clipped_on_a_narrow_screen(
-    browser: object, export_mixed: pathlib.Path
-) -> None:
-    """At 390 px wide, every theme button sits fully inside the toggle."""
-    page = _open_page(browser, export_mixed)
-    page.set_viewport_size({"width": 390, "height": 800})
-    page.wait_for_selector("li.record-item")
-    info = page.evaluate(
-        """() => { const t = document.querySelector('.theme-toggle');
-          const r = t.getBoundingClientRect();
-          return { overflow: t.scrollWidth - t.clientWidth,
-            out: [...t.querySelectorAll('button')].map(b => b.getBoundingClientRect())
-              .filter(b => b.right > r.right + 0.5 || b.left < r.left - 0.5).length }; }"""
-    )
-    assert info == {"overflow": 0, "out": 0}, info
-
-
-def test_every_dark_rule_has_a_system_dark_twin(
-    browser: object, export_mixed: pathlib.Path
-) -> None:
-    """Each `:root[data-theme="dark"]` rule has an identical rule for an unset
-    theme under a dark system preference, so first paint matches the toggle."""
-    page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
-    result = page.evaluate(
-        """() => { const chosen = {}, system = {};
-          const walk = (rules, inDark) => { for (const r of rules) {
-            if (r.media) {
-              walk(r.cssRules, inDark || r.conditionText.includes('dark')); continue; }
-            if (!r.selectorText) continue;
-            const body = r.style.cssText;
-            if (!inDark && r.selectorText.includes(':root[data-theme="dark"]')) {
-              const k = r.selectorText
-                .replaceAll(':root[data-theme="dark"]', ':root:not([data-theme])');
-              chosen[k] = (chosen[k] || '') + body; }
-            if (inDark && r.selectorText.includes(':root:not([data-theme])'))
-              system[r.selectorText] = (system[r.selectorText] || '') + body; } };
-          for (const s of document.styleSheets) walk(s.cssRules, false);
-          return { count: Object.keys(chosen).length,
-            missing: Object.entries(chosen)
-              .filter(([k, v]) => system[k] !== v).map(([k]) => k) }; }"""
-    )
-    assert result["count"] >= 15, result
-    assert result["missing"] == [], result
-
-
-def test_dark_first_paint_matches_the_dark_toggle(
-    browser: object, export_mixed: pathlib.Path
-) -> None:
-    """With scripts off and a dark system preference, the banner, info panel,
-    title and form controls compute the same styles as the scripted dark theme."""
-    probe = """() => { const pick = s => { const e = document.querySelector(s);
-        if (!e) return null; const c = getComputedStyle(e);
-        return [c.color, c.backgroundColor, c.backgroundImage, c.colorScheme].join(' / '); };
-      return Object.fromEntries(['.supersede-banner', '.info-panel', '.title-gradient',
-        'input', 'select'].map(s => [s, pick(s)])); }"""
-    page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item .supersede-banner")
-    page.click("[data-theme-choice=dark]")
-    scripted = page.evaluate(probe)
-    assert all(scripted.values()), scripted
-    context = browser.new_context(  # type: ignore[union-attr]
-        offline=True, java_script_enabled=False, color_scheme="dark"
-    )
-    static = context.new_page()
-    static.goto(f"file://{export_mixed}")
-    # Without scripts no list renders, so the banner is checked on a copy of a
-    # scripted list item placed in the static page.
-    banner = page.evaluate("() => document.querySelector('li.record-item').outerHTML")
-    html = static.content().replace("</body>", f"<ul>{banner}</ul></body>")
-    static.set_content(html)
-    first_paint = static.evaluate(probe)
-    context.close()
-    page.click("[data-theme-choice=auto]")
-    assert first_paint == scripted, (first_paint, scripted)
-
-
 def test_partial_edges_have_a_white_narrower_inner_stroke(
     browser: object, export_mixed: pathlib.Path
 ) -> None:
-    """In both views the hollow line of a partial edge is a white stroke,
-    narrower than its edge, along the same path and drawn on top of it."""
+    """In both views the hollow line of a partial edge is a stroke in the list zone's
+    own background colour, narrower than its edge, along the same path and drawn on top of it."""
     probe = """(scope) => [...document.querySelectorAll(scope + ' [data-inner="part"]')].map(i => {
         const outer = i.previousElementSibling;
         return { color: getComputedStyle(i).stroke, inner: +i.getAttribute('stroke-width'),
@@ -2201,15 +2120,18 @@ def test_partial_edges_have_a_white_narrower_inner_stroke(
           same: outer.getAttribute('d') === i.getAttribute('d'),
           partial: (outer.dataset.rel || '').includes('|supersedes_in_part|') }; })"""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     page.click("button.atlas-back")
     page.wait_for_selector(".chain-card svg")
     lines = page.evaluate(probe, ".chain-card")
     assert lines, "atlas"
+    page_bg = page.evaluate(
+        "() => getComputedStyle(document.querySelector('.worklist')).backgroundColor"
+    )
     for line in lines:
-        assert line["color"] == "rgb(255, 255, 255)", line
+        assert line["color"] == page_bg, (line, page_bg)
         assert line["same"] and line["partial"] and line["inner"] < line["outer"], line
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
@@ -2227,7 +2149,7 @@ def test_full_and_partial_arrowheads_render_at_one_size(
     same rendered size: marker size times the stroke width when the marker
     scales with the stroke, the marker size alone otherwise."""
     page = _open_page(browser, export_partial_and_asserted)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0003")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     sizes = page.evaluate(
@@ -2250,11 +2172,11 @@ def test_partial_id_is_underlined_in_the_atlas(
 ) -> None:
     """The partially superseded ID keeps the same underline in the atlas."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page)
     page.wait_for_selector(".chain-card svg")
     deco = page.evaluate(
-        "() => document.querySelector('.chain-card [data-node-id=\"ADR-0001\"] text')"
+        "() => document.querySelector('.chain-card [data-node-id=\"ADR-0001\"] text.ln-id')"
         ".getAttribute('text-decoration')"
     )
     assert deco == "underline", deco
@@ -2273,13 +2195,13 @@ def test_hostile_status_line_detail_renders_in_linear_time(
     root = tmp_path_factory.mktemp("hostile_status_fixture")
     _build_corpus(root, [(1, "Hostile", f"- **Status:** Accepted{tail}\n")])
     page = _open_page(browser, _export(tmp_path_factory, root, "hostile_status"))
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     page.evaluate(
         """() => { window.__t0 = performance.now(); setTimeout(() => {
           location.hash = '#detail/ADR-0001'; }, 0); }"""
     )
     # A super-linear regression fails here by name instead of hanging the run.
-    page.wait_for_selector("#view-detail .meta-table", timeout=6000)
+    page.wait_for_selector("#detail-body .meta-table", timeout=6000)
     elapsed = page.evaluate("() => performance.now() - window.__t0")
     assert elapsed < 2000, elapsed
 
@@ -2401,7 +2323,7 @@ def test_crowded_labels_stay_on_their_own_edges(
     every plate, node, ring and arrowhead; any label with no room is a numbered
     marker listed in the key under the drawing."""
     page = _open_page(browser, export_fan_out)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, selected)
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", selected)
@@ -2438,7 +2360,7 @@ def test_maximum_length_label_sits_on_a_straight_edge(
 ) -> None:
     """A label at the 16-character limit sits whole on a straight one-column edge."""
     page = _open_page(browser, export_fan_out)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0006")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "straight")
@@ -2508,7 +2430,7 @@ _SAT_RUNS_JS = """(scope) => {
 
 def _satellite_page(browser: object, export: pathlib.Path, selected: str) -> object:
     page = _open_page(browser, export)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, selected)
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     return page
@@ -2775,7 +2697,7 @@ def test_many_one_sided_targets_render_the_focused_view_quickly(
         ],
     )
     page = _open_page(browser, _export(tmp_path_factory, root, "many_one_sided"))
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     page.evaluate(
         """() => { window.__t0 = performance.now(); setTimeout(() => {
           location.hash = '#graph/ADR-0001'; }, 0); }"""
@@ -2810,7 +2732,7 @@ def test_a_near_cap_record_of_one_sided_entries_still_renders_its_lineage(
         ],
     )
     page = _open_page(browser, _export(tmp_path_factory, root, "near_cap"))
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     page.evaluate("() => { setTimeout(() => { location.hash = '#graph/ADR-0001'; }, 0); }")
     page.wait_for_selector("#view-graph .lineage-text", state="attached", timeout=60_000)
     drawn = page.evaluate(
@@ -2828,7 +2750,7 @@ def test_a_label_too_long_to_draw_whole_becomes_a_keyed_number(
     sitting on that edge, and the key under the graph gives the same number
     with the full label and the relationship it belongs to."""
     page = _open_page(browser, export_fan_out)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     labels = _assert_labels_sound(page, "#view-graph .lineage-wrap svg", "keyed")
@@ -2915,7 +2837,7 @@ def test_a_same_column_assertion_runs_straight_between_its_records(
     """An assertion between two records in one column never climbs above the
     higher of its two ends and never doubles back on itself."""
     page = _open_page(browser, export_partial_and_asserted)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, "ADR-0001")
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     route = page.evaluate(
@@ -2979,7 +2901,7 @@ def test_every_edge_of_a_dense_chain_is_marked(
     its whole label or a keyed number on the diagram, and no whole label sits
     by another record's arrowhead."""
     page = _open_page(browser, export_dense)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
     _navigate_graph(page, selected)
     page.wait_for_selector("#view-graph svg [data-rel]", state="attached")
     _assert_labels_sound(page, "#view-graph .lineage-wrap svg", selected)
@@ -3021,22 +2943,25 @@ def test_a_selected_cycle_member_keeps_a_readable_cycle_tag(
     pairs = page.evaluate(
         """() => [...document.querySelectorAll('#view-graph [data-node-id]')].map(g => {
           const tag = [...g.querySelectorAll('text')].find(t => t.textContent === 'cycle');
-          return {id: g.dataset.nodeId, fg: tag.getAttribute('fill'),
-                  bg: g.querySelector('rect').getAttribute('fill')}; })"""
+          let bg = getComputedStyle(g.querySelector('rect')).fill;
+          for (let e = g; e && bg === 'none'; e = e.parentElement) {
+            const c = getComputedStyle(e).backgroundColor;
+            if (c !== 'rgba(0, 0, 0, 0)') bg = c; }
+          return {id: g.dataset.nodeId, fg: getComputedStyle(tag).fill, bg,
+                  focus: g.querySelector('rect').classList.contains('ln-node-focus')}; })"""
     )
 
-    def lum(hex_colour: str) -> float:
-        rgb = [int(hex_colour[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+    def lum(colour: str) -> float:
+        rgb = [float(v) / 255 for v in colour[colour.index("(") + 1 : -1].split(",")[:3]]
         lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
         return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
 
     assert {p["id"] for p in pairs} == {"ADR-0001", "ADR-0002"}, pairs
-    selected = [p["id"] for p in pairs if p["bg"] == "#1d4ed8"]
+    selected = [p["id"] for p in pairs if p["focus"]]
     assert selected == ["ADR-0001"], pairs  # the selected case is really measured
     for pair in pairs:
-        # An unfilled (superseded) node shows the light graph panel behind it.
-        bg = pair["bg"] if pair["bg"].startswith("#") else "#f8fafc"
-        a, b = lum(pair["fg"]), lum(bg)
+        # An unfilled (superseded) node shows the list zone's background behind it.
+        a, b = lum(pair["fg"]), lum(pair["bg"])
         ratio = (max(a, b) + 0.05) / (min(a, b) + 0.05)
         assert ratio >= 4.5, (pair, round(ratio, 2))
 
@@ -3074,11 +2999,11 @@ def test_search_by_record_id(
     leave ADR-0098 in the list; bare ordinals also leave RFC-0098; a title-only
     term still matches; a non-matching term shows the no-result state."""
     page = _open_page(browser, export_search)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
 
     def visible_ids() -> list[str]:
         return page.evaluate(
-            "() => [...document.querySelectorAll('li.record-item .rid')]"
+            "() => [...document.querySelectorAll('li.row .rid')]"
             ".map(e => e.textContent)"
         )
 
@@ -3127,27 +3052,18 @@ def test_search_by_record_id(
 def test_search_label_names_ids_titles_statuses(
     browser: object, export_search: pathlib.Path
 ) -> None:
-    """The search box's visible label and its computed accessible name both
-    mention IDs, titles, and statuses, and the name contains the label."""
+    """The search box's placeholder, the text a sighted user sees in it, names IDs,
+    titles and statuses, and its computed accessible name names them too and
+    contains the label."""
     page = _open_page(browser, export_search)
-    page.wait_for_selector("li.record-item")
+    page.wait_for_selector("li.row")
 
-    # Visible label text — the label wraps the input; strip the input's contribution
+    placeholder = page.locator("#search-input").get_attribute("placeholder") or ""
+    for word in ("ids", "titles", "statuses"):
+        assert word in placeholder.lower(), (word, placeholder)
     label_text = page.evaluate(
-        "() => { const lbl = document.querySelector('label:has(#search-input)');"
-        " if (!lbl) return '';"
-        " const clone = lbl.cloneNode(true);"
-        " clone.querySelectorAll('input').forEach(e => e.remove());"
-        " return clone.textContent.trim(); }"
-    )
-    assert "IDs" in label_text or "ids" in label_text.lower(), (
-        f"visible label must mention IDs; got {label_text!r}"
-    )
-    assert "title" in label_text.lower(), (
-        f"visible label must mention titles; got {label_text!r}"
-    )
-    assert "status" in label_text.lower(), (
-        f"visible label must mention statuses; got {label_text!r}"
+        "() => { const lbl = document.querySelector('label[for=search-input]');"
+        " return lbl ? lbl.textContent.trim() : ''; }"
     )
 
     # Computed accessible name, as assistive technology reads it. It must
@@ -3158,3 +3074,765 @@ def test_search_label_names_ids_titles_statuses(
     assert label_text in name, (label_text, name)
     for word in ("id", "title", "status"):
         assert word in name.lower(), (word, name)
+
+
+# ── decision-view-style: two soft zones across the width and theme matrix ─────
+
+_WIDTHS = (320, 1280, 1680, 2560)
+_SCHEMES = ("light", "dark")
+_ZONE_VIEWS = ("list", "graph", "context")
+_MATRIX = [(w, s) for w in _WIDTHS for s in _SCHEMES]
+_MATRIX_IDS = [f"{w}-{s}" for w, s in _MATRIX]
+
+
+def _zone_page(
+    browser: object, html_path: pathlib.Path, width: int, scheme: str, view: str
+) -> object:
+    """Open `html_path` at `width` in `scheme` with the first record picked in `view`."""
+    context = browser.new_context(  # type: ignore[union-attr]
+        viewport={"width": width, "height": 900}, color_scheme=scheme, offline=True
+    )
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page._errors = errors  # type: ignore[attr-defined]
+    page.goto(f"file://{html_path}")
+    page.wait_for_selector("li.row")
+    first = page.evaluate(
+        "() => JSON.parse(document.getElementById('nav-data').textContent).records[0].id"
+    )
+    if view == "graph":
+        # The first chain in the atlas's display order, or the atlas as it first opens.
+        _navigate_graph(page)
+        chain = page.evaluate(
+            "() => { const c = document.querySelector('.chain-card');"
+            " return c ? c.querySelector('[data-node-id]').dataset.nodeId : null; }"
+        )
+        if chain is None:
+            return page
+        first = chain
+    _show(page, view, first)
+    page.wait_for_function(
+        "(id) => document.querySelector('#detail-body .state-line')"
+        ".textContent.includes(id)",
+        arg=first,
+    )
+    return page
+
+
+@pytest.fixture(params=("mixed", "hostile"))
+def zone_export(request: pytest.FixtureRequest) -> pathlib.Path:
+    """The `mixed` and `negative/hostile` exports."""
+    return request.getfixturevalue(f"export_{request.param}")  # type: ignore[no-any-return]
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_IDS)
+@pytest.mark.parametrize("view", _ZONE_VIEWS)
+def test_zones_are_soft_and_rows_are_flat(
+    browser: object, zone_export: pathlib.Path, width: int, scheme: str, view: str
+) -> None:
+    """AC-0008: both zones have a radius and a shadow; list rows have none or inset only."""
+    page = _zone_page(browser, zone_export, width, scheme, view)
+    info = page.evaluate(  # type: ignore[union-attr]
+        """() => { const z = s => { const c = getComputedStyle(document.querySelector(s));
+            return { radius: c.borderRadius, shadow: c.boxShadow }; };
+          const rows = [...document.querySelectorAll('.row-link')].map(r =>
+            getComputedStyle(r).boxShadow).filter(s => s !== 'none'
+              && !s.split(/,(?![^(]*\\))/).every(p => p.includes('inset')));
+          return { list: z('.worklist'), detail: z('.detail'), badRows: rows }; }"""
+    )
+    for zone in ("list", "detail"):
+        assert info[zone]["radius"] not in ("0px", ""), (zone, info)
+        assert info[zone]["shadow"] != "none", (zone, info)
+    assert info["badRows"] == [], info
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_IDS)
+@pytest.mark.parametrize("view", _ZONE_VIEWS)
+def test_zones_do_not_overflow_their_edges(
+    browser: object, zone_export: pathlib.Path, width: int, scheme: str, view: str
+) -> None:
+    """AC-0010: nothing inside a zone passes its edge by more than 1px, and the page
+    never scrolls sideways; a keyboard-scrollable named container is the one exception."""
+    page = _zone_page(browser, zone_export, width, scheme, view)
+    info = page.evaluate(  # type: ignore[union-attr]
+        """() => { const bad = [];
+          const scroller = e => { const o = getComputedStyle(e).overflowX;
+            return (o === 'auto' || o === 'scroll') && e.getAttribute('tabindex') === '0'
+              && (e.getAttribute('aria-label') || e.getAttribute('aria-labelledby')); };
+          for (const sel of ['.worklist', '.detail']) {
+            const zone = document.querySelector(sel), zr = zone.getBoundingClientRect();
+            if (getComputedStyle(zone).display === 'none') continue;
+            for (const e of zone.querySelectorAll('*')) {
+              let skip = false;
+              for (let p = e.parentElement; p && p !== zone; p = p.parentElement)
+                if (scroller(p)) { skip = true; break; }
+              if (skip) continue;
+              const r = e.getBoundingClientRect();
+              if (r.width === 0 && r.height === 0) continue;
+              if (r.left < zr.left - 1 || r.right > zr.right + 1)
+                bad.push([sel, e.tagName, String(e.getAttribute('class')),
+                  Math.round(r.left - zr.left), Math.round(r.right - zr.right)]);
+            } }
+          return { bad: bad.slice(0, 5),
+            scroll: document.documentElement.scrollWidth, view: innerWidth }; }"""
+    )
+    assert info["bad"] == [], info
+    assert info["scroll"] <= info["view"], info
+
+
+@pytest.mark.parametrize("scheme", _SCHEMES)
+@pytest.mark.parametrize("width", _WIDTHS)
+@pytest.mark.parametrize("view", _ZONE_VIEWS)
+def test_detail_sits_beside_the_list_or_below_it(
+    browser: object, export_mixed: pathlib.Path, width: int, scheme: str, view: str
+) -> None:
+    """AC-0009: from 1280 the detail is right of the list and overlaps it vertically;
+    at 320 it is below the list or the list is hidden."""
+    page = _zone_page(browser, export_mixed, width, scheme, view)
+    info = page.evaluate(  # type: ignore[union-attr]
+        """() => { const l = document.querySelector('.worklist'),
+            d = document.querySelector('.detail');
+          const lr = l.getBoundingClientRect(), dr = d.getBoundingClientRect();
+          return { hidden: getComputedStyle(l).display === 'none',
+            beside: dr.left >= lr.right - 0.5, below: dr.top >= lr.bottom - 0.5,
+            overlap: dr.top < lr.bottom && lr.top < dr.bottom }; }"""
+    )
+    if width >= 1280:
+        assert info["beside"] and info["overlap"], info
+    else:
+        assert info["hidden"] or info["below"], info
+
+
+@pytest.mark.parametrize("scheme", _SCHEMES)
+def test_zones_fill_the_width_at_2560(
+    browser: object, export_mixed: pathlib.Path, scheme: str
+) -> None:
+    """AC-0011: header and zones together span the viewport less twice the page padding."""
+    page = _zone_page(browser, export_mixed, 2560, scheme, "list")
+    span = page.evaluate(  # type: ignore[union-attr]
+        """() => { const r = ['.page-header', '.worklist', '.detail'].map(s =>
+            document.querySelector(s).getBoundingClientRect());
+          return Math.max(...r.map(x => x.right)) - Math.min(...r.map(x => x.left)); }"""
+    )
+    assert span >= 2560 - (2 * 24 + 2), span
+
+
+@pytest.mark.parametrize("view", _ZONE_VIEWS)
+@pytest.mark.parametrize("key", ("Enter", "Space"))
+def test_back_to_list_returns_to_the_current_view_at_320(
+    browser: object, export_mixed: pathlib.Path, view: str, key: str
+) -> None:
+    """AC-0026: at 320 the detail's "Back to list" button, by keyboard, shows the list
+    zone again in the view that was current, with the picked row marked."""
+    page = _zone_page(browser, export_mixed, 320, "light", view)
+    assert page.evaluate(  # type: ignore[union-attr]
+        "() => getComputedStyle(document.querySelector('.worklist')).display"
+    ) == "none"
+    back = page.get_by_role("button", name="Back to list")  # type: ignore[union-attr]
+    back.focus()
+    page.keyboard.press(key)  # type: ignore[union-attr]
+    assert page.evaluate(  # type: ignore[union-attr]
+        "() => getComputedStyle(document.querySelector('.worklist')).display"
+    ) != "none"
+    assert page.get_attribute(f"#btn-{view}", "aria-current") == "page"  # type: ignore[union-attr]
+    if view == "list":
+        assert page.locator("#view-list .row-link[aria-current=true]").count() == 1  # type: ignore[union-attr]
+    if view == "graph":
+        assert page.locator("#view-graph [data-node-id][aria-current=true]").count() == 1  # type: ignore[union-attr]
+
+
+def test_record_body_headings_are_smaller_than_page_headings(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """AC-0025: headings inside the record content are smaller than the page h1 and
+    the detail heading."""
+    page = _zone_page(browser, export_mixed, 1280, "light", "list")
+    info = page.evaluate(  # type: ignore[union-attr]
+        """() => { const px = e => parseFloat(getComputedStyle(e).fontSize);
+          const hs = [...document.querySelectorAll('.record-content h3, .record-content h4,'
+            + '.record-content h5, .record-content h6')];
+          return { count: hs.length, largest: Math.max(...hs.map(px)),
+            h1: px(document.querySelector('h1')),
+            detail: px(document.querySelector('.detail-heading')) }; }"""
+    )
+    assert info["count"] > 0, info
+    assert info["largest"] < info["h1"] and info["largest"] < info["detail"], info
+
+
+# ── decision-view-style: names lead, state marks and token-coloured lineage ───
+
+FIXTURE_MARKS = HERE / "fixtures/lifecycle-marks"
+_MARK_OF = {
+    "accepted": "approved", "experimental": "active", "proposed": "draft", "draft": "draft",
+    "open": "draft", "final": "draft", "superseded": "done", "deprecated": "done",
+    "rejected": "done", "withdrawn": "done",
+}
+_GLYPH = {"active": "●", "approved": "◆", "draft": "◇", "done": "✓"}
+
+
+@pytest.fixture(scope="module")
+def export_marks(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """Export the `lifecycle-marks` fixture: one record for each lifecycle value."""
+    r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+        FIXTURE_MARKS,
+        destination=tmp_path_factory.mktemp("browser_marks"),
+        mode="full",
+        name="marks.html",
+    )
+    assert r["status"] == "ok", r.get("error")
+    return pathlib.Path(r["path"])
+
+
+def _records(page: object) -> list[dict[str, object]]:
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        "() => JSON.parse(document.getElementById('nav-data').textContent).records"
+    )
+
+
+def _expected_mark(rec: dict[str, object]) -> tuple[str, str]:
+    """The AC-0013 mark and visible text for a record's lifecycle."""
+    import re as _re
+
+    life = rec["lifecycle"]
+    assert isinstance(life, dict)
+    if life.get("missing"):
+        return "draft", _GLYPH["draft"] + "No status"
+    word = _re.search(r"[A-Za-z]+", str(life["raw_value"]))
+    mark = _MARK_OF.get(word.group(0).lower(), "draft") if word else "draft"
+    return mark, _GLYPH[mark] + str(life["display_value"])
+
+
+_MARK_PROBE = """(sel) => [...document.querySelectorAll(sel)].map(m => ({
+  mark: m.dataset.mark, text: m.textContent,
+  glyphHidden: !!m.querySelector('.mark-g[aria-hidden="true"]') }))"""
+
+
+@pytest.mark.parametrize("fixture_name", ("export_mixed", "export_marks"))
+def test_every_row_and_the_detail_line_carry_one_mark_by_the_lifecycle_map(
+    browser: object, request: pytest.FixtureRequest, fixture_name: str
+) -> None:
+    """AC-0013: each list row and the detail state line holds one `.mark` whose `data-mark`
+    follows the lifecycle map and whose text is a hidden glyph then the display value."""
+    page = _open_page(browser, request.getfixturevalue(fixture_name))
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
+    records = _records(page)
+    rows = page.evaluate(  # type: ignore[union-attr]
+        """() => [...document.querySelectorAll('li.row')].map(li => ({
+          id: li.querySelector('.row-link').dataset.id,
+          marks: [...li.querySelectorAll('.mark')].map(m => ({ mark: m.dataset.mark,
+            text: m.textContent, glyphHidden: !!m.querySelector('.mark-g[aria-hidden="true"]'),
+            inRow: !!m.closest('.row-link'), inNotice: !!m.closest('.notice') })) }))"""
+    )
+    assert [r["id"] for r in rows] == [r["id"] for r in records]
+    seen = set()
+    for row, rec in zip(rows, records, strict=True):
+        want_mark, want_text = _expected_mark(rec)
+        assert len(row["marks"]) == 1, row
+        got = row["marks"][0]
+        assert (got["mark"], got["text"]) == (want_mark, want_text), (rec["id"], got)
+        assert got["glyphHidden"] and got["inRow"] and not got["inNotice"], got
+        seen.add(want_mark)
+        page.evaluate(f"() => {{ location.hash = '#detail/{rec['id']}'; }}")  # type: ignore[union-attr]
+        page.wait_for_function(  # type: ignore[union-attr]
+            "(id) => (document.querySelector('#detail-body .state-line') || {})"
+            ".textContent?.includes(id)",
+            arg=rec["id"],
+        )
+        line = page.evaluate(_MARK_PROBE, "#detail-body .state-line .mark")  # type: ignore[union-attr]
+        want = [{"mark": want_mark, "text": want_text, "glyphHidden": True}]
+        assert line == want, (rec["id"], line)
+        assert page.locator("#detail-body .notice .mark").count() == 0  # type: ignore[union-attr]
+    if fixture_name == "export_marks":
+        by_id = {r["id"]: _expected_mark(r)[0] for r in records}
+        assert by_id["ADR-0011"] == "draft", by_id  # "Constructor" is no inherited-name mark
+        constructor = page.evaluate(  # type: ignore[union-attr]
+            "() => document.querySelector('.row-link[data-id=\"ADR-0011\"]')"
+            ".parentElement.querySelector('.mark').dataset.mark"
+        )
+        assert constructor == "draft", constructor
+        assert seen == {"active", "approved", "draft", "done"}, seen
+        assert len(records) == 13  # AC-0013's 11 values plus Draft and Constructor
+    else:
+        assert "approved" in seen
+
+
+@pytest.mark.parametrize("fixture_name", ("export_mixed", "export_marks", "export_hostile"))
+def test_a_row_leads_with_its_title_then_its_id(
+    browser: object, request: pytest.FixtureRequest, fixture_name: str
+) -> None:
+    """AC-0012: in every list row the title is the first text in DOM order, and the id
+    appears in the row only after it. The detail heading is the title too."""
+    page = _open_page(browser, request.getfixturevalue(fixture_name))
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
+    info = page.evaluate(  # type: ignore[union-attr]
+        """() => { const data = JSON.parse(
+            document.getElementById('nav-data').textContent).records;
+          return [...document.querySelectorAll('li.row')].map((li, i) => {
+            const texts = [];
+            const w = document.createTreeWalker(li, NodeFilter.SHOW_TEXT);
+            while (w.nextNode()) {
+              const t = w.currentNode.textContent;
+              if (t.trim()) texts.push(t); }
+            const id = data[i].id, title = data[i].display_title || data[i].title;
+            return { id, title, first: texts[0],
+              idAt: texts.findIndex(t => t.includes(id)) }; }); }"""
+    )
+    assert info
+    for row in info:
+        assert row["first"] == row["title"], row
+        assert row["idAt"] > 0, row
+    first = info[0]["id"]
+    _show(page, "detail", first)
+    heading = page.locator("#detail-body h2.detail-heading").text_content()  # type: ignore[union-attr]
+    assert heading == info[0]["title"], heading
+
+
+@pytest.mark.parametrize("reduced", (True, False))
+def test_motion_follows_the_reduced_motion_preference(
+    browser: object, export_mixed: pathlib.Path, reduced: bool
+) -> None:
+    """AC-0015: under `reduce` every element computes a zero transition and animation
+    duration; under `no-preference` a list row computes a transition longer than zero."""
+    context = browser.new_context(  # type: ignore[union-attr]
+        reduced_motion="reduce" if reduced else "no-preference", offline=True
+    )
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    _show(page, "list", "ADR-0001")
+    if reduced:
+        moving = page.evaluate(
+            """() => [...document.querySelectorAll('*')].flatMap(e => {
+              const cs = getComputedStyle(e);
+              const bad = ['transitionDuration', 'animationDuration'].filter(p =>
+                cs[p].split(',').some(d => d.trim() !== '0s'));
+              return bad.length ? [e.tagName + '.' + e.className + ' ' + bad.join()] : []; })"""
+        )
+        assert moving == [], moving[:5]
+    else:
+        durations = page.eval_on_selector(
+            ".row-link", "e => getComputedStyle(e).transitionDuration"
+        )
+        assert any(float(d.strip().removesuffix("s")) > 0 for d in durations.split(",")), durations
+    context.close()
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_IDS)
+@pytest.mark.parametrize("view", _ZONE_VIEWS)
+def test_no_element_carries_a_style_attribute_through_pick_toggle_and_focus(
+    browser: object, zone_export: pathlib.Path, width: int, scheme: str, view: str
+) -> None:
+    """AC-0027: after a pick, after the Graph view's contextual links are shown, and with a
+    diagram node focused, no element in the document has a `style` attribute."""
+    page = _zone_page(browser, zone_export, width, scheme, view)
+    count = "() => document.querySelectorAll('[style]').length"
+    assert page.evaluate(count) == 0  # type: ignore[union-attr]
+    record = page.evaluate(  # type: ignore[union-attr]
+        "() => JSON.parse(document.getElementById('nav-data').textContent).records[0].id"
+    )
+    _show(page, "graph", record)
+    page.evaluate("() => { const t = document.querySelector('.ctx-toggle'); if (t) t.click(); }")  # type: ignore[union-attr]
+    assert page.evaluate(count) == 0  # type: ignore[union-attr]
+    page.evaluate(  # type: ignore[union-attr]
+        "() => { const g = document.querySelector('[data-node-id]'); if (g) g.focus(); }"
+    )
+    assert page.evaluate(count) == 0  # type: ignore[union-attr]
+    # The toggle's control text and the contextual group show the toggled state, not a style.
+    state = page.evaluate(  # type: ignore[union-attr]
+        "() => { const t = document.querySelector('.ctx-toggle');"
+        " return t ? t.getAttribute('aria-expanded') : null; }"
+    )
+    assert state in (None, "true"), state
+
+
+_CONTRAST_JS = """() => {
+  const rgb = s => (s.match(/[\\d.]+/g) || []).map(Number);
+  const lum = c => { const v = c.slice(0, 3).map(x => { x /= 255;
+    return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); });
+    return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+  const ratio = (a, b) => { const x = lum(a), y = lum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+  const backdrop = e => { for (let n = e; n && n.nodeType === 1; n = n.parentElement) {
+      const c = rgb(getComputedStyle(n).backgroundColor);
+      if (c.length >= 3 && (c.length < 4 || c[3] > 0)) return c; }
+    return rgb(getComputedStyle(document.body).backgroundColor); };
+  const inside = (a, b) => a.left >= b.left - 0.5 && a.right <= b.right + 0.5
+    && a.top >= b.top - 0.5 && a.bottom <= b.bottom + 0.5;
+  const SHAPES = new Set(['rect', 'path', 'polygon', 'circle', 'ellipse', 'polyline']);
+  const svgBackdrop = t => { const box = t.getBoundingClientRect(); let found = null;
+    const svg = t.ownerSVGElement;
+    for (const s of svg.querySelectorAll('*')) {
+      if (!SHAPES.has(s.localName) || s === t) continue;
+      if (!(s.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING)) continue;
+      if (!s.parentNode.contains(t)) continue;
+      const f = getComputedStyle(s).fill;
+      if (f === 'none' || !inside(box, s.getBoundingClientRect())) continue;
+      found = rgb(f); }
+    return found || backdrop(svg); };
+  const bad = []; let checked = 0;
+  for (const root of document.querySelectorAll('.page-header, .worklist, .detail')) {
+    if (getComputedStyle(root).display === 'none') continue;
+    for (const e of root.querySelectorAll('*')) {
+      const own = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+      if (!own) continue;
+      const r = e.getBoundingClientRect();
+      if ((r.width <= 1 && r.height <= 1) || getComputedStyle(e).visibility === 'hidden') continue;
+      if (e.closest('select')) continue;
+      const svgText = e instanceof SVGElement;
+      const fg = rgb(getComputedStyle(e)[svgText ? 'fill' : 'color']);
+      const bg = svgText ? svgBackdrop(e) : backdrop(e);
+      const q = ratio(fg, bg); checked++;
+      if (q < 4.5) bad.push(['text', e.tagName, String(e.getAttribute('class')),
+        e.textContent.trim().slice(0, 24), Math.round(q * 100) / 100]);
+    }
+    for (const e of root.querySelectorAll('input, select, button')) {
+      const cs = getComputedStyle(e), r = e.getBoundingClientRect();
+      if (r.width === 0 && r.height === 0) continue;
+      const side = ['Top', 'Right', 'Bottom', 'Left'].find(
+        s => parseFloat(cs['border' + s + 'Width']) > 0);
+      if (!side) continue;
+      const q = ratio(rgb(cs['border' + side + 'Color']), backdrop(e.parentElement)); checked++;
+      if (q < 3) bad.push(['border', e.tagName, String(e.getAttribute('class')), e.id,
+        Math.round(q * 100) / 100]);
+    }
+  }
+  return { bad: bad.slice(0, 8), checked }; }"""
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_IDS)
+@pytest.mark.parametrize("view", _ZONE_VIEWS)
+def test_text_and_control_borders_have_enough_contrast(
+    browser: object, zone_export: pathlib.Path, width: int, scheme: str, view: str
+) -> None:
+    """AC-0014: every text element (SVG text against its own backdrop shape) reaches 4.5:1,
+    and the border of the search field, each select and each bordered button reaches 3:1."""
+    page = _zone_page(browser, zone_export, width, scheme, view)
+    info = page.evaluate(_CONTRAST_JS)  # type: ignore[union-attr]
+    assert info["checked"] > 10, info
+    assert info["bad"] == [], info
+
+
+@pytest.mark.parametrize("scheme", _SCHEMES)
+@pytest.mark.parametrize("width", _WIDTHS)
+def test_diagram_shapes_draw_only_in_token_colours(
+    browser: object, zone_export: pathlib.Path, width: int, scheme: str
+) -> None:
+    """AC-0023: every SVG element under the diagram computes a fill and a stroke that is
+    `none` or equals a `--c-` custom property declared on `:root` in this theme."""
+    page = _zone_page(browser, zone_export, width, scheme, "graph")
+    probe = """() => { const names = [...document.styleSheets].flatMap(s => [...s.cssRules])
+        .flatMap(r => r.selectorText === ':root' ? [...r.style] : r.cssRules
+          ? [...r.cssRules].flatMap(q => q.selectorText === ':root' ? [...q.style] : []) : [])
+        .filter(n => n.startsWith('--c-'));
+      const p = document.createElement('span'); document.body.appendChild(p);
+      const tokens = new Set(names.map(n => { p.style.color = 'var(' + n + ')';
+        return getComputedStyle(p).color; })); p.remove();
+      const bad = []; let n = 0;
+      for (const e of document.querySelectorAll('#view-graph svg, #view-graph svg *')) {
+        const cs = getComputedStyle(e); n++;
+        for (const k of ['fill', 'stroke']) if (cs[k] !== 'none' && !tokens.has(cs[k]))
+          bad.push([e.localName, String(e.getAttribute('class')), k, cs[k]]); }
+      return { tokens: tokens.size, n, bad: bad.slice(0, 6) }; }"""
+    # The probe sets an inline style on a throwaway element; the page itself never does.
+    info = page.evaluate(probe)  # type: ignore[union-attr]
+    assert info["tokens"] >= 10, info
+    assert info["bad"] == [], info
+    # Also with the atlas of every chain.
+    if page.locator("button.atlas-back").count():  # type: ignore[union-attr]
+        page.evaluate("() => document.querySelector('button.atlas-back').click()")  # type: ignore[union-attr]
+        page.wait_for_selector(".chain-card svg")  # type: ignore[union-attr]
+        info = page.evaluate(probe)  # type: ignore[union-attr]
+        assert info["n"] > 10 and info["bad"] == [], info
+
+
+def test_lineage_scroll_wrappers_are_named_keyboard_regions(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """The focused diagram's and each atlas card's scroll wrapper is a named keyboard region."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")  # type: ignore[union-attr]
+    _navigate_graph(page, "ADR-0001")
+    probe = """(sel) => [...document.querySelectorAll(sel)].map(w => ({
+        tab: w.getAttribute('tabindex'), role: w.getAttribute('role'),
+        name: w.getAttribute('aria-label'), overflow: getComputedStyle(w).overflowX }))"""
+    focused = page.evaluate(probe, "#view-graph .lineage-wrap")  # type: ignore[union-attr]
+    assert len(focused) == 1, focused
+    page.click("button.atlas-back")  # type: ignore[union-attr]
+    page.wait_for_selector(".chain-card svg")  # type: ignore[union-attr]
+    atlas = page.evaluate(probe, ".chain-svg-wrap")  # type: ignore[union-attr]
+    assert atlas, atlas
+    for w in focused + atlas:
+        assert w["tab"] == "0" and w["role"] == "group" and w["name"], w
+        assert w["overflow"] == "auto", w
+
+
+# ── decision-view-style review fixes: history, clipping, node size, header ────
+
+
+def _hash_state(page: object) -> dict[str, object]:
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        """() => ({ hash: location.hash,
+          view: ['list', 'graph', 'context'].find(v =>
+            document.getElementById('btn-' + v).getAttribute('aria-current') === 'page'),
+          picked: document.getElementById('app-main').hasAttribute('data-picked'),
+          listShown: getComputedStyle(document.querySelector('.worklist')).display !== 'none',
+          detailShown: getComputedStyle(document.querySelector('.detail')).display !== 'none' })"""
+    )
+
+
+def _first_superseded(page: object) -> tuple[str, str]:
+    return page.evaluate(  # type: ignore[union-attr, no-any-return]
+        """() => { const r = JSON.parse(document.getElementById('nav-data').textContent)
+            .records.find(r => (r.superseded_by || []).some(s => !s.partial));
+          return [r.id, r.superseded_by.find(s => !s.partial).by]; }"""
+    )
+
+
+def test_history_returns_to_the_view_recorded_with_each_entry(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """Every back and forward entry restores the view and the picked state recorded with it:
+    a supersession link follows the current view, and Back and forward agree."""
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    old, new = _first_superseded(page)
+    _show(page, "graph", old)
+    page.locator("#detail-body .supersede-banner a").first.click()
+    page.wait_for_function("(id) => location.hash.includes(id)", arg=new)
+    after_link = _hash_state(page)
+    assert after_link["view"] == "graph" and after_link["picked"], after_link
+    page.click("#btn-list")
+    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    listed = _hash_state(page)
+    assert listed["view"] == "list" and not listed["picked"], listed
+    page.go_back()
+    page.wait_for_function("() => !document.getElementById('view-graph').hidden")
+    assert _hash_state(page) == after_link
+    page.go_forward()
+    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    assert _hash_state(page) == listed
+    page.go_back()
+    page.go_back()
+    page.wait_for_function("(id) => location.hash.includes(id)", arg=old)
+    assert _hash_state(page)["view"] == "graph"
+    context.close()
+
+
+def test_history_after_back_to_list_keeps_the_list_zone_at_320(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """At 320: pick a row, Back to list, Graph, then back and forward; the entry recorded
+    with no pick shows the list zone, never the detail."""
+    context = browser.new_context(viewport={"width": 320, "height": 800}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    page.locator("li.row .row-link").first.click()
+    page.wait_for_selector("#app-main[data-picked]")
+    picked = _hash_state(page)
+    assert picked["detailShown"] and not picked["listShown"], picked
+    page.click("#back-btn")
+    page.wait_for_selector("#app-main:not([data-picked])")
+    unpicked = _hash_state(page)
+    assert unpicked["listShown"] and not unpicked["detailShown"], unpicked
+    page.click("#btn-graph")
+    page.wait_for_function("() => !document.getElementById('view-graph').hidden")
+    graph = _hash_state(page)
+    assert graph["listShown"] and not graph["detailShown"], graph
+    page.go_back()
+    page.wait_for_function("() => !document.getElementById('view-list').hidden")
+    assert _hash_state(page) == unpicked
+    page.go_back()
+    page.wait_for_selector("#app-main[data-picked]")
+    assert _hash_state(page) == picked
+    page.go_forward()
+    page.go_forward()
+    page.wait_for_function("() => !document.getElementById('view-graph').hidden")
+    assert _hash_state(page) == graph
+    context.close()
+
+
+def test_an_old_detail_bookmark_still_opens_the_record(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """A `#detail/<id>` bookmark opens in the List view with the record picked."""
+    context = browser.new_context(viewport={"width": 320, "height": 800}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}#detail/ADR-0001")
+    page.wait_for_selector("#detail-body .state-line")
+    state = _hash_state(page)
+    assert state["view"] == "list" and state["picked"] and state["detailShown"], state
+    context.close()
+
+
+def test_back_to_an_old_detail_bookmark_restores_the_view_it_opened_in(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """Load `#detail/<id>`, switch to Graph, go Back: List with the record picked."""
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}#detail/ADR-0001")
+    page.wait_for_selector("#detail-body .state-line")
+    page.click("#btn-graph")
+    page.wait_for_function("location.hash.indexOf('#graph/') === 0")
+    page.go_back()
+    page.wait_for_function("location.hash.indexOf('#graph/') !== 0")
+    state = _hash_state(page)
+    assert state["view"] == "list" and state["picked"], state
+    context.close()
+
+
+def test_a_focused_lineage_node_shows_one_focus_ring(
+    browser: object, export_mixed: pathlib.Path
+) -> None:
+    """A keyboard-focused node draws its SVG accent ring and no CSS outline."""
+    context = browser.new_context(viewport={"width": 1280, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}#graph/ADR-0001")
+    node = page.locator('.lineage-wrap g[role="button"]').first
+    node.wait_for()
+    node.focus()
+    page.keyboard.press("Shift+Tab")
+    page.keyboard.press("Tab")
+    focused = page.evaluate(
+        "() => { const g = document.activeElement;"
+        " const ring = g.querySelector('.focus-ring');"
+        " return { role: g.getAttribute('role'), outline: getComputedStyle(g).outlineStyle,"
+        " ringShown: !!ring && !ring.hasAttribute('hidden') }; }"
+    )
+    assert focused["role"] == "button", focused
+    assert focused["outline"] == "none" and focused["ringShown"], focused
+    context.close()
+
+
+_OUTLINE_CLIP_JS = """(el) => {
+  const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+  const grow = parseFloat(cs.outlineWidth) + parseFloat(cs.outlineOffset);
+  const box = { l: r.left - grow, t: r.top - grow, r: r.right + grow, b: r.bottom + grow };
+  const clipped = [];
+  for (let a = el.parentElement; a; a = a.parentElement) {
+    const o = getComputedStyle(a);
+    if (o.overflowX === 'visible' && o.overflowY === 'visible') continue;
+    const p = a.getBoundingClientRect();
+    if (box.l < p.left - 0.5 || box.t < p.top - 0.5 || box.r > p.right + 0.5
+        || box.b > p.bottom + 0.5)
+      clipped.push(a.localName + '.' + a.className);
+  }
+  return { grow, clipped }; }"""
+
+
+@pytest.mark.parametrize("width", (320, 1280))
+def test_focus_outlines_are_not_clipped_by_an_ancestor(
+    browser: object, tmp_path_factory: pytest.TempPathFactory, width: int
+) -> None:
+    """A focused Relationships summary and a focused record-content region each have their
+    whole outline inside every ancestor that clips."""
+    export = _publish_with(
+        tmp_path_factory,
+        f"outline_clip_{width}",
+        [
+            (1, "Old", "- **Status:** Accepted\n- **Superseded by:** ADR-0002\n"),
+            (2, "New", "- **Status:** Accepted\n- **Supersedes:** ADR-0001\n"),
+        ],
+        [],
+    )
+    context = browser.new_context(viewport={"width": width, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export}")
+    page.wait_for_selector("li.row")
+    _show(page, "list", "ADR-0001")
+    page.wait_for_selector("#detail-body .rel-details > summary")
+    page.wait_for_selector("#detail-body section.record-content")
+    for sel in ("#detail-body .rel-details > summary", "#detail-body section.record-content"):
+        page.locator(sel).focus()
+        page.keyboard.press("Shift+Tab")
+        page.keyboard.press("Tab")  # focus-visible by keyboard
+        info = page.evaluate(_OUTLINE_CLIP_JS, page.locator(sel).element_handle())
+        assert info["grow"] >= 4, (sel, info)
+        assert info["clipped"] == [], (sel, info)
+    context.close()
+
+
+@pytest.mark.parametrize("width", (320, 1280))
+def test_diagram_nodes_hold_their_size_and_their_text(
+    browser: object, zone_export: pathlib.Path, width: int
+) -> None:
+    """Every diagram node is at least 24 by 24 CSS px; its first text is its record's title
+    and the id follows; node text is at least the shared label size."""
+    page = _zone_page(browser, zone_export, width, "light", "graph")
+    if page.locator("#back-btn").is_visible():  # one column: a pick hides the list zone
+        page.click("#back-btn")
+    seen = 0
+    for _ in range(2):  # the focused chain, then the atlas
+        info = page.evaluate(
+            """() => { const recs = JSON.parse(
+                document.getElementById('nav-data').textContent).records;
+              const p = document.createElement('span'); p.style.font = 'var(--t-label)';
+              document.body.appendChild(p);
+              const label = parseFloat(getComputedStyle(p).fontSize); p.remove();
+              const gs = [...document.querySelectorAll('#view-graph svg [role=button]')];
+              return { label, nodes: gs.map(g => {
+                const r = g.getBoundingClientRect();
+                const rec = recs.find(x => x.id === g.dataset.nodeId);
+                const texts = [...g.querySelectorAll('text')];
+                return { id: g.dataset.nodeId, w: r.width, h: r.height,
+                  first: texts[0].textContent, title: rec.display_title || rec.title,
+                  idAt: texts.findIndex(t => t.textContent === g.dataset.nodeId),
+                  sizes: texts.map(t => parseFloat(getComputedStyle(t).fontSize)) }; }) }; }"""
+        )
+        for node in info["nodes"]:
+            assert node["w"] >= 24 and node["h"] >= 24, node
+            head = node["first"].removesuffix("…")
+            assert node["title"].startswith(head) and head, node
+            assert node["idAt"] > 0, node
+            assert min(node["sizes"]) >= info["label"] - 0.01, (info["label"], node)
+        seen += len(info["nodes"])
+        if not page.locator("button.atlas-back").count():
+            break
+        page.evaluate("() => document.querySelector('button.atlas-back').click()")
+        page.wait_for_selector(".chain-card svg")
+    assert seen or zone_export.name.startswith("hostile"), zone_export
+    page.context.close()
+
+
+def test_name_track_stops_growing_at_2560(browser: object, export_mixed: pathlib.Path) -> None:
+    """From 120rem the row's name track is at most 34rem."""
+    context = browser.new_context(viewport={"width": 2560, "height": 1200}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    page.goto(f"file://{export_mixed}")
+    page.wait_for_selector("li.row")
+    track = page.evaluate(
+        "() => parseFloat(getComputedStyle(document.querySelector('.row-link'))"
+        ".gridTemplateColumns.split(' ')[0])"
+    )
+    assert track <= 34 * 16 + 0.5, track
+    context.close()
+
+
+def test_header_order_and_expand_all_state(browser: object, export_mixed: pathlib.Path) -> None:
+    """The header reads title, search, Kind, Status; Expand all is disabled while nothing
+    can expand and enabled once a record with sections is shown."""
+    page = _open_page(browser, export_mixed)
+    page.wait_for_selector("li.row")
+    order = page.evaluate(
+        """() => ['.page-title', '#search-input', '#kind-filter', '#status-filter'].map(s => {
+          const r = document.querySelector(s).getBoundingClientRect();
+          return [r.top, r.left]; })"""
+    )
+    ids = page.evaluate(
+        """() => { const q = s => document.querySelector(s);
+          const pairs = [['.page-title', '#search-input'], ['#search-input', '#kind-filter'],
+            ['#kind-filter', '#status-filter']];
+          return pairs.map(([a, b]) => !!(q(a).compareDocumentPosition(q(b))
+            & Node.DOCUMENT_POSITION_FOLLOWING)); }"""
+    )
+    assert ids == [True, True, True], ids
+    assert order[1][0] <= order[2][0] + 1, order  # the search sits on or above the filters
+    assert page.locator("#search-input").get_attribute("placeholder")
+    assert page.locator("#expand-all-btn").is_disabled()
+    page.locator("li.row .row-link").first.click()
+    page.wait_for_selector("#detail-body details")
+    assert page.locator("#expand-all-btn").is_enabled()

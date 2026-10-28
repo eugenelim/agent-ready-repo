@@ -232,8 +232,10 @@ python3 scripts/navigate_decisions.py export \
   --name decisions.html
 ```
 
-The explorer offers an Auto / Light / Dark theme control; Auto follows the
-system setting, and a chosen theme is remembered by the browser.
+The explorer shares the `navigate-intents` view's look: a compact header with
+search, the Kind and Status filters and a snapshot line, then the record list
+and the picked record's detail side by side. List, Graph and Context switch
+inside the list zone. The page follows the system light or dark setting.
 
 The file is written atomically: a temp file is created, synced, then hard-linked
 into place.  The destination must not already exist, must have a `.html` suffix,

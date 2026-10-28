@@ -71,12 +71,12 @@ def test_guide_forbids_a_standing_write_permission_and_is_listed() -> None:
 
 
 def test_pack_manifests_carry_the_release_version() -> None:
-    """AC-0096: parsed pack.toml and plugin.json carry 2.3.0."""
+    """AC-0096: parsed pack.toml and plugin.json carry 2.4.0."""
     root = REPO_ROOT / "packs/repo-governance"
     pack = tomllib.loads((root / "pack.toml").read_text(encoding="utf-8"))["pack"]
     plugin = json.loads((root / ".claude-plugin/plugin.json").read_text(encoding="utf-8"))
-    assert pack["version"] == "2.3.0"
-    assert plugin["version"] == "2.3.0"
+    assert pack["version"] == "2.4.0"
+    assert plugin["version"] == "2.4.0"
 
 
 def test_guide_preview_block_follows_the_script_line_order() -> None:
