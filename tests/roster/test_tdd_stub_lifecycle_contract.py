@@ -314,19 +314,28 @@ def test_frozen_rfc_records_the_correction_without_rewriting_history() -> None:
     assert index_row.startswith("| 0028 |")
 
 
-def test_skill_evals_cover_plan_proof_and_execute_materialization() -> None:
-    """The shipped eval harness rejects the former PLAN-time write ordering."""
+EVAL_FILES = (WORK_LOOP_EVALS, NEW_SPEC_EVALS)
+EXECUTE_RED_RECORDS = (
+    (NEW_SPEC_EVALS, "tdd-stub-proof-belongs-to-work-loop-plan"),
+    (WORK_LOOP_EVALS, "tdd-stub-replaces-prose-or-records-no-stub-reason"),
+    (WORK_LOOP_EVALS, "tdd-stub-uses-the-stub-fence"),
+)
 
-    # STUB: AC7
-    records = (
-        _eval_record(NEW_SPEC_EVALS, "tdd-stub-proof-belongs-to-work-loop-plan"),
-        _eval_record(WORK_LOOP_EVALS, "tdd-stub-replaces-prose-or-records-no-stub-reason"),
-    )
-    for record in records:
-        expected = str(record["expected_output"])
-        assert "exact stub code" in expected
-        assert "`plan.md`" in expected
-        assert "disposable scratch" in expected
-        assert "no repository test file" in expected
-        assert "`CODE-IMPLEMENTATION`" in expected
-        assert "materialize the approved stub" in expected
+
+@pytest.mark.parametrize("path", EVAL_FILES, ids=lambda path: path.parent.parent.name)
+def test_evals_contain_no_retired_phrase(path: Path) -> None:
+    """AC-0022: neither shipped eval harness teaches a retired phrase."""
+
+    flat = _flat(path)
+    for phrase in RETIRED_PHRASES:
+        assert phrase.lower() not in flat, phrase
+
+
+@pytest.mark.parametrize(
+    ("path", "record_id"), EXECUTE_RED_RECORDS, ids=lambda value: getattr(value, "name", value)
+)
+def test_eval_records_expect_the_red_written_at_execute(path: Path, record_id: str) -> None:
+    """AC-0023: each named record expects the red test written at EXECUTE."""
+
+    expected = " ".join(str(_eval_record(path, record_id)["expected_output"]).split())
+    assert "written at EXECUTE" in expected or "write the red test at EXECUTE" in expected

@@ -644,15 +644,14 @@
     },
     {
       "id": "tdd-stub-replaces-prose-or-records-no-stub-reason",
-      "prompt": "In a full-mode plan, AC3 is a concrete TDD-mode obligation whose red test is `test_rejects_duplicate_keys`, but the task's `Tests:` entry still carries a prose bullet describing the behaviour. AC4 is concrete and manual-QA mode. AC5 is concrete and TDD-mode, but its only true surface is a CLI exit code. How should the task record these three obligations?",
-      "expected_output": "Replace AC3's prose bullet with exact stub code in `plan.md`, `test_rejects_duplicate_keys (AC3)`, and `stub: true`; validate that code from disposable scratch and create no repository test file during PLAN. After the full-mode engine enters `CODE-IMPLEMENTATION`, materialize the approved stub unchanged, prove the intended red, and continue red-green-refactor. Record AC4 as `no stub (mode)` with the reason that manual-QA mode generates no stub. Do not record AC5 as no-stub: an out-of-process surface still stubs the nearest in-process data contract and carries the exit-code check as a deferred assertion. Add no compensating prose in place of any of the three records, and do not treat AC4 or AC5 as under-specified.",
+      "prompt": "In a full-mode plan, AC3 is a concrete TDD-mode obligation whose red test is `test_rejects_duplicate_keys`, but the task's `Tests:` entry still carries only a vague prose bullet. AC4 is concrete and manual-QA mode. AC5 is concrete and TDD-mode, but its only true surface is a CLI exit code. How should the task record these three obligations?",
+      "expected_output": "Rewrite AC3's `Tests:` entry to name the behavior (duplicate keys are rejected), the boundary it is checked at, and the verification mode (TDD); the plan carries no test code and no stub. The red test `test_rejects_duplicate_keys (AC3)` is written at EXECUTE, at the real test location, and proven red for the intended reason before production code changes; where a spec exists, the red's command and failing output go to the verification ledger. Record AC4 with its manual-QA mode and the check to run; it has no red test. For AC5, name the nearest in-process data contract as the boundary and carry the exit-code check as a separate assertion; an out-of-process surface does not exempt a TDD task from the red-first rule. Do not treat AC4 or AC5 as under-specified.",
       "assertions": [
-        "Replaces AC3's prose bullet with exact stub code in the plan, the test function name, its AC identifier, and `stub: true`",
-        "Validates the plan-contained code from disposable scratch without a repository test file",
-        "Materializes the approved stub unchanged only after CODE-IMPLEMENTATION and proves the intended red",
-        "Records `no stub (mode)` for the manual-QA AC4 with its reason",
-        "Stubs AC5's nearest in-process contract with the exit code as a deferred assertion, rather than recording no-stub for a hard surface",
-        "Does not substitute prose for the executable stub or the no-stub record",
+        "Names behavior, boundary, and verification mode in AC3's `Tests:` entry rather than test code",
+        "Says the red test is written at EXECUTE at the real test location and proven red before production code changes",
+        "Puts no test code or stub in plan.md",
+        "Records the manual-QA mode for AC4 with the check to run and no red test",
+        "Names AC5's nearest in-process contract as the boundary, with the exit code as a separate assertion",
         "Does not treat the concrete AC4 or AC5 as under-specified"
       ]
     },
@@ -827,15 +826,15 @@
     },
     {
       "id": "falsified-settled-design-requires-controlled-amendment",
-      "prompt": "The approved plan settled a design decision that an adapter receives normalized input. During execution, the real dependency rejects normalized input and accepts only raw input, falsifying that decision. The plan did not mark this seam as `no stub (implementation-discovered)`. Can you record the dependency output and switch to raw input in the verification ledger so you can avoid reopening approval?",
-      "expected_output": "No. This is a plan error: approval settled the design decision and execution falsified it. The verification ledger is not a route for it. Before editing the approved plan, take the controlled-amendment procedure, amend the design decision, and rerun the required reviews and human approvals before resealing and scheduling the unfinished work. An in-place edit to the approved plan is refused because its whole-file hash changes. The ledger would be appropriate only for grounding that the plan predicted as `no stub (implementation-discovered)`.",
+      "prompt": "The approved plan settled a design decision that an adapter receives normalized input. During execution, the real dependency rejects normalized input and accepts only raw input, falsifying that decision. The plan did not mark this seam `implementation-discovered`. Can you record the dependency output and switch to raw input in the verification ledger so you can avoid reopening approval?",
+      "expected_output": "No. This is a plan error: approval settled the design decision and execution falsified it. The verification ledger is not a route for it. Before editing the approved plan, take the controlled-amendment procedure, amend the design decision, and rerun the required reviews and human approvals before resealing and scheduling the unfinished work. An in-place edit to the approved plan is refused because its whole-file hash changes. The ledger would be appropriate only for grounding that the plan predicted as `implementation-discovered`.",
       "assertions": [
         "Response classifies the falsified settled decision as a plan error",
         "Response does NOT route the falsified decision to the verification ledger",
         "Response requires controlled amendment before changing the approved plan",
         "Response requires renewed review and human approval before unfinished work resumes",
         "Response says an in-place edit changes the whole-plan hash and is refused",
-        "Response distinguishes the predicted `no stub (implementation-discovered)` case as a ledger observation"
+        "Response distinguishes the predicted `implementation-discovered` case as a ledger observation"
       ]
     },
     {
@@ -1284,13 +1283,15 @@
     },
     {
       "id": "tdd-stub-uses-the-stub-fence",
-      "prompt": "Record the exact red stub for a TDD task whose test lives at tests/test_orders.py and runs with `python -m pytest -q`. A collection error must not count as red.",
+      "prompt": "A supervisor run executes a TDD task whose test lives at tests/test_orders.py and runs with `python -m pytest -q`. How does the plan author give the engine a red proof, and what must not count as red?",
       "files": [],
-      "expected_output": "The task's `Tests:` subsection carries a fenced block whose info string is `stub path=tests/test_orders.py run=\"python -m pytest -q {path}\" red-exit=1`. The payload is the exact test file content. The red-exit list names only the exit code of a failing test, so pytest's collection-error exit (2) is not red.",
+      "expected_output": "The plan does not require a fence, and the red test is still written at EXECUTE. Where a supervisor run executes the task, the plan author carries an optional `stub` fence in the approved task: a fenced block whose info string is `stub path=tests/test_orders.py run=\"python -m pytest -q {path}\" red-exit=1`. The red-exit list names only the exit code of a failing test, so pytest's collection-error exit (2) is not red. A task without a fence gets no engine-observed red proof, and EXECUTE's red-first rule still applies to it.",
       "assertions": [
+        "Treats the `stub` fence as optional and says the red test is written at EXECUTE",
         "Uses a `stub` fence with `path=`, `run=`, and `red-exit=` attributes",
         "Uses `{path}` in the run command rather than repeating the path",
-        "Keeps `red-exit` to the failing-test exit code, excluding collection or setup errors"
+        "Keeps `red-exit` to the failing-test exit code, excluding collection or setup errors",
+        "Says a supervisor task without a fence gets no engine-observed red proof but the red-first rule still applies"
       ]
     },
     {
