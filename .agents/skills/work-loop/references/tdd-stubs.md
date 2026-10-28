@@ -1,39 +1,52 @@
-# TDD stub generation — turning a TDD-mode AC into a compilable red test
+# TDD red test — writing and proving the red at EXECUTE
 
-Loaded on demand from `work-loop` PLAN's *Design tests up front* step, in
-**full mode** only, for **TDD-mode tasks** only. Every mode in `work-loop`
-PLAN step 7 other than TDD (goal-based, visual / manual QA, behavior pin,
-measurement, infra/deploy) generates no stub — it records `no stub (mode)` in
-its `Tests:` subsection and moves on. Light mode's lean path runs none of this.
+Loaded on demand from `work-loop` PLAN's *Design tests up front* step and from
+EXECUTE's TDD line, in **full mode** only, for **TDD-mode tasks** only. Every
+mode in `work-loop` PLAN step 7 other than TDD (goal-based, visual / manual QA,
+behavior pin, measurement, infra/deploy) writes no red test here. Light mode's
+lean path runs none of this.
 
-This reference turns the loop's existing "write construction tests up front"
-obligation from behaviour-restating *prose* into exact, executable test code in
-`plan.md`'s per-task `Tests:` subsection. A stub is an executable claim that
-fails; a prose mirror of the acceptance criterion is not. The payoff is timing:
-a vague or untestable criterion shows up mechanically during PLAN, without
-leaving an intentionally failing file in the repository.
+A red test is an executable claim that fails; a prose mirror of the acceptance
+criterion is not. At PLAN, a TDD task's `Tests:` names the behavior, the
+boundary it is checked at, and the verification mode. The red test itself is
+written and proven red at EXECUTE, so a vague or untestable criterion shows up
+when EXECUTE tries to write it, and the plan never holds test code that the
+implementation then contradicts.
 
-## Lifecycle
+## Procedure at EXECUTE
 
-PLAN stores the exact stub code in `plan.md` and validates its syntax and red
-from disposable scratch. The plan records the code, its AC mapping, and the
-validation result; it does not write into the repository's test tree. A
-`spec-plan` run ends after approval, and spec-plan writes no repository test
-file. Put plainly: spec-plan writes no repository test file. In code mode, only
-after the engine enters `CODE-IMPLEMENTATION` does
-EXECUTE materialize the approved block unchanged at the real test path, verify
-byte identity, and prove the intended red. Production changes then drive the
-test green, deferred assertions and edge cases are completed, and refactoring
-holds the test fixed as its safety net.
+1. Detect the stack (see the recipe below) and mirror the existing tests'
+   location and naming.
+2. Write the red test at the real test location, one test function per
+   criterion, named from the criterion and importing the contract types (or the
+   plan's `## Design (LLD)` component names where the contract is thin).
+3. Run it. It fails for the intended reason before production code changes.
+4. Where a spec exists, the red's command and failing output go to the
+   verification ledger.
+5. Production changes drive the test green, deferred assertions and edge cases
+   are completed, and refactoring holds the test fixed as its safety net.
 
-For byte identity, the payload is the fenced code lines, excluding the fence
-delimiter, with their line endings preserved and exactly one terminal newline.
-A blank payload line immediately before the closing fence is extra code, not
-the file-ending newline. Reject it instead of relying on Markdown rendering.
+An import failure of the not-yet-written target counts as red. Any other
+collection, import, or setup error, or a timeout, does not: fix it, then run
+again. If you cannot name the test function because the criterion is too
+abstract to type a test against, that is the under-specification signal: surface
+it as a finding and sharpen the spec rather than writing a hollow `TODO` test.
 
-A stub written for mechanical red proof uses a `stub` fence inside the task's
-`Tests:` subsection, with the path, the command that runs it, and the exit codes
-that count as red:
+A seam the plan cannot ground before code exists is recorded
+`implementation-discovered` with its discovery predicate, constraint, required
+outcome, and verification mode. Do not invent a helper, fixture, module, path,
+or symbol to manufacture a test.
+
+## The `stub` fence — supervisor red-proof input
+
+The approved plan does not require a `stub` fence. Where a supervisor run
+executes a TDD task, the plan author carries its fence in the approved task;
+the supervisor materializes it unchanged and proves it red before the
+implementer attempt. A supervisor task without a fence gets no engine-observed
+red proof, and EXECUTE's red-first rule still applies to it.
+
+A fence uses the `stub` info string inside the task's `Tests:` subsection, with
+the path, the command that runs it, and the exit codes that count as red:
 
 ````markdown
 - **Tests:**
@@ -51,31 +64,14 @@ that count as red:
   committed tree, with the stub files added.
 - `red-exit` lists the exit codes that count as red, comma-separated, default `1`.
   Any other exit, a timeout, or a collection or setup error is not red.
-- The payload is the fenced lines with the fence's own indentation removed, plus
-  one terminal newline. The file at `path` must equal those bytes. A blank line
-  before the closing fence is refused, and a plan carrying `stub` fences uses LF
-  line endings.
+- For the `stub` fence, the payload is the fenced lines with the fence's own
+  indentation removed, plus one terminal newline, and the file at `path` must
+  match that byte identity. A blank line before the closing fence is refused,
+  and a plan carrying `stub` fences uses LF line endings.
 
-A task may carry several `stub` fences; each must be red. A task whose stubs
-already pass needs a replan to a `no stub` disposition, not a weaker stub.
-
-This is one owner — the loop — progressing across its own phases, not a second
-test-design tool with a handoff.
-
-Generation is **single-pass with one bounded syntax-correction pass** — never an
-iterate-to-coverage retry loop. A gap goes back to the spec author as a sharper
-PLAN, not into a regenerate loop.
-
-## Legal PLAN dispositions
-
-There are exactly two dispositions for a TDD task. For an already-grounded
-callable seam or coherent TDD task family, write one compilable red
-contract-surface assertion (`stub: true`); it need not encode the finished
-edge-case matrix. When the callable seam can only be discovered during
-implementation, record `no stub (implementation-discovered)` plus the discovery
-predicate, constraint, required outcome, and verification mode. Do not invent a
-helper, fixture, module, or symbol to manufacture a stub.
-The record must name the `discovery predicate` and the later `proof obligation`.
+A task may carry several `stub` fences; each must be red. A fence the
+supervisor refuses as `stub-not-red` is either made to fail for the intended
+reason or removed.
 
 ## What a stub is — the stub-fullness rule
 
@@ -98,7 +94,7 @@ dependency. It is a floor, not a licence to write half a test:
   avoid (revisable if they pin an internal detail the plan later changes).
 
 This maps onto the contract-vs-construction split: the **contract-level**
-assertion (status, shape — durable) is the exact stub code proved during PLAN;
+assertion (status, shape — durable) is the first red test;
 the **construction-level** detail (exact values, edge cases — revisable) is
 built out in EXECUTE, *before* the refactor step (which holds the tests fixed).
 
@@ -112,118 +108,6 @@ makes it falsifiable: assert that detection/handling *fires* on a real input,
 then assert the exclusion/invariant alongside. A stub that passes against an
 empty implementation is not yet a red test.
 
-## The five phases
-
-### 1. Parse
-
-Read the inputs the stub is derived from:
-
-- the spec's **Testing Strategy** — which ACs are TDD-mode (those are the only
-  ones you stub);
-- each TDD-mode task's **`Tests:` entry** in `plan.md` — the construction-test
-  intent you are making compilable;
-- the **`Contract:`** file if the spec names one (its types/operations are what
-  the stub imports and asserts against). If the spec names no contract, fall
-  back to the component names in the plan's `## Design (LLD)`.
-
-For each TDD-mode AC, name the test function after the criterion. If you cannot
-even name the function because the AC is too abstract to type a test against, that
-**is** the under-specification signal: surface it as a finding ("AC N is not
-concrete enough to stub") and sharpen the spec, rather than writing a hollow
-`TODO`-test.
-
-If the criterion is concrete but its verification mode does not admit a stub,
-record `no stub (mode)` with the reason. That branch is not a licence to leave
-an abstract criterion unsharpened, and it does not add prose in place of the
-stub. A hard *surface* is not that branch: an out-of-process surface still
-stubs the nearest in-process contract (see Validate).
-
-### 2. Resolve stack
-
-Detect the test framework, assertion library, and test-path convention so the
-stub is framework-appropriate, mirroring how `new-spec` resolves the
-implementation stack:
-
-- **When a reference architecture doc is present**, conform to the framework it
-  names — don't invent a parallel one.
-- **Otherwise, detect from the repo**: lockfiles / manifests and existing test
-  files (see the detection recipe below).
-- **Elicit, don't invent.** When detection is ambiguous or the repo is
-  greenfield, **ask** which framework to target. An invented framework is worse
-  than one asked question.
-
-### 3. Generate
-
-Write one exact stub **code block per plan task** (the grouping default), with
-one **test function per AC**, named from the criterion and importing the
-contract types (or placeholders where the contract is thin). Apply the
-stub-fullness rule above: a full red assertion where the AC pins behaviour, a
-shape assertion with a placeholder otherwise. Never a bare `TODO`, and do not
-create the repository test file during PLAN.
-
-#### Stub marker convention (defined once)
-
-Every stub block and its plan entry carry two halves of one marker, so a reader
-(and the EXECUTE step) can identify the approved source before and after
-materialization:
-
-1. **In the plan-contained code block** — a comment on the test (or its header)
-   of the form `# STUB: AC<n>` (or `// STUB: AC<n>` in brace-comment
-   languages), naming the acceptance criterion the function pins. The same
-   comment is present when EXECUTE copies the block into the test file. Use the
-   stack's line-comment token; the `STUB:` keyword and the `AC<n>` reference
-   are fixed.
-2. **In `plan.md`** — the test function name plus its AC identifier and a
-   `stub: true` field in that task's `Tests:` subsection. This is the `Tests:`
-   entry, not a prose restatement of the behaviour.
-
-Everywhere else that refers to "the stub marker" means exactly this pair.
-
-### 4. Validate
-
-Copy the code block to disposable scratch outside the repository test tree.
-Run **one** language-appropriate syntax/compile pass. Run the execution or
-collection pass that proves the intended red only in a bounded harness that
-denies network access, applies a timeout, confines filesystem reads to the
-repository and declared test dependencies, and confines writes to disposable
-scratch plus explicitly declared test-harness side effects. Then allow **one**
-bounded correction pass — no retry loop:
-
-| Language     | Compile / collect check          |
-| ------------ | -------------------------------- |
-| TypeScript   | `tsc --noEmit`                   |
-| Python       | `python -m py_compile` (or `pytest --collect-only`) |
-| Java         | `javac`                          |
-| Go           | `go build` / `go vet`            |
-
-A stub that compiles has a typed, parseable signature against the AC surface;
-the intended red proves the assertion is not vacuous. Record both results in
-the plan and remove the disposable copy. Neither result authorizes a repository
-test file during PLAN.
-
-**Fail closed at plan approval.** If stack detection, compilation, or intended-
-red validation fails, surface the exact failure and block plan approval. When
-the required execution isolation is unavailable, a compile-only diagnostic is
-allowed, but record the isolation downgrade and do not treat it as validated or
-approvable. Proceed without a validated stub only when the obligation honestly
-qualifies for `no stub (implementation-discovered)` and records its discovery
-predicate and proof obligation; do not invent a third draft-stub disposition.
-Where an AC's true surface is only reachable out-of-process (a CLI exit code,
-say), assert the nearest in-process data contract and record the out-of-process
-assertion as a deferred assertion for the full test — again, never a bare
-`TODO`.
-
-### 5. Record
-
-Keep each exact code block and its stub reference — test function name plus AC
-identifier — in the task's `Tests:` subsection in `plan.md`, flagged with the
-`stub: true` field from the marker convention above. This replaces a prose
-descriptor. An obligation without a stub records `no stub (mode)` and its
-reason, not more prose. No repository test file exists yet; the coverage signal
-is the set of `Tests:` subsections plus a one-line covered / uncovered /
-`no stub (mode)` tally rolled into the spec's Testing Strategy. There is no
-`coverage-matrix.md`.
-
 ## Worked example — Python / pytest
 
 AC under test: *"`create_order` returns a 201 response whose body carries the
@@ -233,10 +117,10 @@ positive assertion (a 201 is actually produced) so the stub goes red against an
 absent handler.
 
 ```python
-# STUB: AC3 — create_order returns 201 with the created order id
-# Stored and validated in PLAN's T<n> Tests: subsection. The status and
-# the *presence* of an id are the durable contract surface (asserted now); the
-# exact id value is construction-level detail (built out in EXECUTE green).
+# create_order returns 201 with the created order id.
+# The status and the *presence* of an id are the durable contract surface
+# (asserted now); the exact id value is construction-level detail (built out
+# in EXECUTE green).
 import pytest
 
 from orders.api import create_order            # imported from the Contract / LLD
@@ -255,15 +139,14 @@ def test_create_order_returns_201_with_order_id():
     assert body["id"].startswith(EXPECTED_ID_PREFIX)
 ```
 
-Against an absent `create_order`, the import (or the call) fails — the stub is
-**red**. It compiles under `python -m py_compile` (or collects under
-`pytest --collect-only`), proving the AC was concrete enough to type a test
-against. In `plan.md`, the task records:
+Against an absent `create_order`, the import fails: the target's import failure
+is **red**, and the test collects once the module exists. At PLAN, the task's
+`Tests:` records only the behavior, the boundary, and the mode:
 
 ```
 Tests:
-- test_create_order_returns_201_with_order_id (AC3)
-  stub: true
+- Criterion 3: the handler returns 201 and an id, checked at the in-process handler
+  boundary; TDD.
 ```
 
 ## Stack-agnostic detection recipe
@@ -289,11 +172,10 @@ when they conflict or are absent:
 ## Boundaries
 
 - **Complements `quality-engineer`, doesn't replace it.** Different timing and
-  inputs: exact stub code is authored and proved **in PLAN** from spec +
-  contract, then materialized after `CODE-IMPLEMENTATION`; `quality-engineer`'s
-  test-author mode reviews **after** implementation, from code + spec. Both can
-  coexist on one spec.
-- **No new artifact, no new gate.** Stubs ride the existing per-task `Tests:`
-  subsections and the existing plan-approval / pre-EXECUTE-review flow.
+  inputs: the red test is written at EXECUTE, before production code, from spec +
+  contract; `quality-engineer`'s test-author mode reviews **after**
+  implementation, from code + spec. Both can coexist on one spec.
+- **No new artifact, no new gate.** The red test lives in the repository test
+  tree; the coverage signal is the set of `Tests:` subsections.
 - **Full-mode, TDD-tasks-only.** Every mode in `work-loop` PLAN step 7 other
-  than TDD, and all of light mode, generates nothing here.
+  than TDD, and all of light mode, writes nothing here.

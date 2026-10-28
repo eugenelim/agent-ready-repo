@@ -243,17 +243,14 @@ way around. `Approach:` is conditional and `assets/plan.md` owns when it is
 written. Red-green-refactor: write the failing test, make it pass, refactor —
 separate commits for each when the change is non-trivial.
 
-**Stub → EXECUTE handoff.** For TDD-mode tasks, PLAN carries the exact test code
-as the task's compilable, validated red **stub** — as much of the real failing
-test as the AC and contract honestly determine, never less than a compiling
-assertion on the contract surface, never a bare `TODO`. PLAN compiles and earns
-the red from disposable scratch; it does not create a repository test file.
-After the state machine enters `CODE-IMPLEMENTATION`, EXECUTE materializes the
-approved code unchanged in the real test location, proves byte identity and the
-intended red, then completes red-green-refactor. A `spec-plan` run therefore
-ends with documents only and no intentionally failing test in the repository.
-The full procedure and the closed no-stub exceptions live in the `work-loop`
-skill's `references/tdd-stubs.md`.
+**Stub → EXECUTE handoff.** For TDD-mode tasks, PLAN's `Tests:` names the
+behavior, the boundary it is checked at, and the verification mode; it carries
+no test code. EXECUTE writes the red test at the real test location — as much of
+the real failing test as the AC and contract honestly determine, never a bare
+`TODO` — proves the intended red, then completes red-green-refactor. A
+`spec-plan` run therefore ends with documents only and no intentionally failing
+test in the repository. The full procedure lives in the `work-loop` skill's
+`references/tdd-stubs.md`.
 
 This is the forcing function that keeps specs honest (every Acceptance
 Criterion must be testable in its declared mode) and keeps implementations
