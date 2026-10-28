@@ -223,11 +223,21 @@ if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:false});}}
 function focusDetailHeading(){
 var h=document.querySelector('#detail-body h2');
 if(h){h.setAttribute('tabindex','-1');h.focus({preventScroll:false});}}
-function focusRow(){
-var rows=document.querySelectorAll('#view-'+state.view+' button.row-link');
+// Focus the first row of the selected record in the current list. A row in a closed area section
+// cannot take focus: opening every section that holds the record (back to list) or, failing an
+// open one, the first section lets focus land without disturbing the reader's other sections.
+function focusRow(openAll){
+var rows=document.querySelectorAll('#view-'+state.view+' button.row-link'),mine=[];
 for(var i=0;i<rows.length;i++){
-if(rows[i].getAttribute('data-id')===state.sel){rows[i].focus();return true;}}
-return false;}
+if(rows[i].getAttribute('data-id')===state.sel)mine.push(rows[i]);}
+if(mine.length===0)return false;
+var target=mine[0];
+mine.forEach(function(r){var d=r.closest('details');if(openAll&&d)d.open=true;});
+if(!openAll){
+var ready=mine.filter(function(r){var d=r.closest('details');return !d||d.open;});
+if(ready.length)target=ready[0];
+else{var d0=target.closest('details');if(d0)d0.open=true;}}
+target.focus();return true;}
 // With the list zone hidden (one column) focus follows the pick into the detail.
 // Every view but Lineage and the guidance context is a list of rows.
 function isListView(v){return v!=='graph'&&v!=='context';}
@@ -296,53 +306,92 @@ return div;}
 // ── List view ────────────────────────────────────────────────────────────────
 // A list's head: its full question, its heading, how it is sorted and, for a list of
 // records, how many of them the search and filters leave.
-function listHead(c,q,count){
+function listHead(c,q,count,extra){
 var d=el('div','list-head');
 d.appendChild(el('p','list-question',q.name));
 d.appendChild(el('h2','list-title',q.heading));
 d.appendChild(el('p','meta list-sort',q.sort));
 if(count!=null)d.appendChild(el('p','meta list-count',count));
+if(extra)d.appendChild(el('p','meta list-noarea',extra));
 c.appendChild(d);}
-// Until each question builds its own rows, every list shows the narrowed corpus.
-function renderList(c,key){
-var fr=filtered();
-listHead(c,question(key),fr.length+' of '+records.length+' records shown');
-if(fr.length===0){
-var activeFilters=[];
-if(state.q)activeFilters.push('search: "'+state.q+'"');
-if(state.kind)activeFilters.push('kind: '+state.kind);
-if(state.status)activeFilters.push('status: '+V(state.status));
-var msg=records.length===0?
-'No canonical ADR or RFC records were admitted. Check the corpus boundary.':
-activeFilters.length>0?
-'No records match '+activeFilters.join(', ')+'.':
-'No records match the active filters.';
-c.appendChild(el('p','empty-msg empty',msg));
-if(activeFilters.length>0){
-var rb=btn('reset-btn','Reset filters',function(){
-state.q='';state.kind='';state.status='';
-if(searchEl)searchEl.value='';
-setKindPill('');
-if(statusEl)statusEl.value='';
-render(true);focusViewHeading();});
-c.appendChild(rb);}
-updateLive(msg);return;}
-var ul=el('ul','rows record-list');
-fr.forEach(function(r){
+// A header date: the first ten characters of the first field with this label, when they read
+// YYYY-MM-DD. The first field with the label decides, even when it holds no date.
+function headerDate(rec,label){
+var hf=Array.isArray(rec.header_fields)?rec.header_fields:[];
+for(var i=0;i<hf.length;i++){
+if(hf[i]&&String(hf[i].label).toLowerCase()===label){
+var d=String(hf[i].raw_value!=null?hf[i].raw_value:'').slice(0,10);
+return /^\d{4}-\d{2}-\d{2}$/.test(d)?d:null;}}
+return null;}
+function decisionDate(rec){return headerDate(rec,rec.kind==='RFC'?'date closed':'date');}
+function openedDate(rec){return headerDate(rec,rec.kind==='RFC'?'date opened':'date');}
+// Text order by code point: the lowercased names first, then the names themselves.
+function cpCmp(a,b){
+var x=Array.from(a),y=Array.from(b),n=Math.min(x.length,y.length);
+for(var i=0;i<n;i++){var d=x[i].codePointAt(0)-y[i].codePointAt(0);if(d)return d;}
+return x.length-y.length;}
+function nameCmp(a,b){return cpCmp(a.toLowerCase(),b.toLowerCase())||cpCmp(a,b);}
+// Records sorted by a date key and then by export position (ascending or descending); records
+// with no date follow in export order. Returns the dated part and the undated part.
+var POS=new Map();
+records.forEach(function(r,i){POS.set(r,i);});
+function byDate(recs,dateOf,newestFirst){
+var dated=[],undated=[];
+recs.forEach(function(r){
+var d=dateOf(r),i=POS.get(r);
+if(d===null)undated.push(r);else dated.push({r:r,d:d,i:i});});
+dated.sort(function(a,b){
+var c=a.d<b.d?-1:a.d>b.d?1:0;
+if(c===0)c=a.i-b.i;
+return newestFirst?-c:c;});
+return{dated:dated.map(function(x){return x.r;}),undated:undated};}
+// Each question's membership: sections of records, with no reference to search or filters.
+// A section's head is the heading shown before its rows, or null when it has none.
+function recentSections(){
+var p=byDate(records.filter(isDecided),decisionDate,true);
+return[{head:null,recs:p.dated,date:decisionDate},{head:'No decision date',recs:p.undated,date:decisionDate}];}
+function decidingSections(){
+var p=byDate(records.filter(isDeciding),openedDate,false);
+return[{head:null,recs:p.dated,date:openedDate},{head:'No opened date',recs:p.undated,date:openedDate}];}
+function replacedSections(){
+var full=[],part=[];
+records.forEach(function(r){
+var s=r.superseded_by||[];
+if(s.some(function(e){return !e.partial;}))full.push(r);
+else if(s.length)part.push(r);});
+return[{head:'Replaced in full',recs:full},{head:'Replaced in part',recs:part}];}
+function areaSections(){
+var groups=Object.create(null),names=[];
+records.forEach(function(r){areasOf(r).forEach(function(a){
+if(!hasOwn(groups,a)){groups[a]=[];names.push(a);}
+groups[a].push(r);});});
+names.sort(nameCmp);
+return names.map(function(a){
+var p=byDate(groups[a],decisionDate,true);
+return{area:a,recs:p.dated.concat(p.undated),date:decisionDate};});}
+function sectionsOf(key){
+if(key==='recent')return recentSections();
+if(key==='deciding')return decidingSections();
+if(key==='replaced')return replacedSections();
+if(key==='areas')return areaSections();
+return[{head:null,recs:records}];}
+// Areas the reader has opened stay open when the list is built again.
+var openAreas=Object.create(null);
+function rowItem(r,key,dateText){
 // Strike-through is reserved for full supersession; a record superseded only
 // in part stays in force and gets the lighter "in part" treatment.
 var supAll=r.superseded_by||[];
 var supCls=supAll.some(function(s){return !s.partial;})?' is-superseded':
 supAll.length?' is-superseded-part':'';
 var li=el('li','row'+supCls);
-// One button per row: title first, then the lifecycle mark, then kind and id.
+// One button per row: title first, then the lifecycle mark, then the sorting date, kind and id.
 var b=el('button','row-link');b.type='button';
 b.setAttribute('data-id',r.id);
 if(r.id===state.sel)b.setAttribute('aria-current','true');
 b.appendChild(el('span','c-title c-name',r.display_title||r.title));
 b.appendChild(markEl(r));
 var ctx=el('span','c-context');
-ctx.appendChild(document.createTextNode(r.kind+' · '));
+ctx.appendChild(document.createTextNode((dateText?dateText+' · ':'')+r.kind+' · '));
 ctx.appendChild(el('span','value rid',r.id));
 b.appendChild(ctx);
 var supBy=r.superseded_by||[];
@@ -356,9 +405,59 @@ else if(unresClaims.length>0){
 var sb2=document.createElement('div');sb2.className='notice supersede-banner is-unresolved';sb2.setAttribute('role','note');
 sb2.appendChild(document.createTextNode('Unresolved supersession claim: '+claimText(unresClaims[0])));
 li.appendChild(sb2);}
-ul.appendChild(li);});
-c.appendChild(ul);
-updateLive(fr.length+' of '+records.length+' records shown.');}
+return li;}
+function rowList(recs,key,dateOf){
+var ul=el('ul','rows record-list');
+recs.forEach(function(r){ul.appendChild(rowItem(r,key,dateOf?dateOf(r):null));});
+return ul;}
+function emptyAfterNarrowing(c){
+var activeFilters=[];
+if(state.q)activeFilters.push('search: "'+state.q+'"');
+if(state.kind)activeFilters.push('kind: '+state.kind);
+if(state.status)activeFilters.push('status: '+V(state.status));
+var msg=activeFilters.length>0?
+'No records match '+activeFilters.join(', ')+'.':
+'No records match the active filters.';
+c.appendChild(el('p','empty-msg empty',msg));
+if(activeFilters.length>0){
+var rb=btn('reset-btn','Reset filters',function(){
+state.q='';state.kind='';state.status='';
+if(searchEl)searchEl.value='';
+setKindPill('');
+if(statusEl)statusEl.value='';
+render(true);focusViewHeading();});
+c.appendChild(rb);}
+return msg;}
+// Every list but Lineage and the guidance context: the question's rows, narrowed by search and filters.
+function renderList(c,key){
+var q=question(key),secs=sectionsOf(key);
+var keep=new Set(filtered());
+var all=new Set(),shown=new Set();
+secs.forEach(function(s){s.recs.forEach(function(r){all.add(r);if(keep.has(r))shown.add(r);});});
+var noArea='';
+if(key==='areas'&&all.size>0&&all.size<records.length){
+var n=records.length-all.size;
+noArea=n+(n===1?' record has':' records have')+' no area; Browse all lists them.';}
+listHead(c,q,shown.size+' of '+all.size+' records shown',noArea);
+if(all.size===0){
+c.appendChild(el('p','empty-msg empty',q.empty));
+updateLive(q.empty);return;}
+if(shown.size===0){updateLive(emptyAfterNarrowing(c));return;}
+secs.forEach(function(s){
+var recs=s.recs.filter(function(r){return keep.has(r);});
+if(recs.length===0)return;
+if(key==='areas'){
+var d=el('details','key area-group');
+var open=hasOwn(openAreas,s.area);
+d.open=open;
+d.appendChild(el('summary',null,s.area+' ('+recs.length+')'));
+d.addEventListener('toggle',function(){
+if(d.open)openAreas[s.area]=true;else delete openAreas[s.area];});
+d.appendChild(rowList(recs,key,s.date));
+c.appendChild(d);return;}
+if(s.head)c.appendChild(el('h3','group-head',s.head));
+c.appendChild(rowList(recs,key,s.date));});
+updateLive(shown.size+' of '+all.size+' records shown.');}
 // ── Graph view ───────────────────────────────────────────────────────────────
 function renderGraph(c){
 listHead(c,question('graph'));
@@ -567,7 +666,7 @@ if(mainEl)mainEl.addEventListener('toggle',syncExpandLabel,true);
 var backBtn=document.getElementById('back-btn');
 if(backBtn)backBtn.addEventListener('click',function(){
 state.picked=false;pushState();render(true);
-if(!(isListView(state.view)&&focusRow()))focusViewHeading();});
+if(!(isListView(state.view)&&focusRow(true)))focusViewHeading();});
 window.addEventListener('popstate',function(){parseHash();render();focusAfterPick();});
 var provPre=document.getElementById('prov-pre');
 if(provPre)provPre.textContent=JSON.stringify(D.provenance||{},null,2);

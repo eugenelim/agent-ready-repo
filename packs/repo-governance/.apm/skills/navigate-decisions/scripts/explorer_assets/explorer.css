@@ -42,15 +42,15 @@ summary { display: list-item; padding: var(--s-1) 0; }
 .back-link { margin: 0 0 var(--s-3); }
 .zones[data-picked] .worklist { display: none; }
 .zones:not([data-picked]) .detail { display: none; }
-.list-count { margin: var(--s-1) 0 0; }
+.list-count, .list-noarea { margin: var(--s-1) 0 0; }
+.group-head { margin: var(--s-3) 0 var(--s-1); padding: 0 var(--s-3); }
+.area-group { margin: var(--s-2) 0 0; }
 
 /* The view switch, Expand all and the Key sit above the views, inside the list zone. */
 .tools { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-4); margin: 0 0 var(--s-2); }
 .seg { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s-1); }
 .seg-btn { padding: 0 var(--s-2); white-space: nowrap; }
 .seg-label { padding-right: var(--s-1); }
-.seg-btn[aria-current="page"] { background: var(--c-accent-bg); border-color: var(--c-accent); color: var(--c-accent); }
-.seg-btn[aria-current="page"]::before { content: "\2713"; content: "\2713" / ""; margin-right: 0.3rem; }
 .key { margin: var(--s-2) 0; }
 .key > summary { display: inline-flex; align-items: center; gap: var(--s-2); margin-left: calc(-1 * var(--s-3)); padding: 0 var(--s-3); min-height: 1.75rem; list-style: none; }
 .key > summary::-webkit-details-marker { display: none; }

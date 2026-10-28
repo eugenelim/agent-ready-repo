@@ -30,6 +30,8 @@ HERE = pathlib.Path(__file__).resolve().parent
 SCRIPTS = HERE.parents[2] / ".apm/skills/navigate-decisions/scripts"
 FIXTURE_MIXED = HERE / "fixtures/mixed"
 FIXTURE_HOSTILE = HERE / "fixtures/negative/hostile"
+FIXTURE_QUESTIONS = HERE / "fixtures/questions"
+FIXTURE_CHAIN = HERE / "fixtures/lineage-chain"
 
 
 def _load_module(name: str, path: pathlib.Path) -> object:
@@ -56,6 +58,20 @@ def export_mixed(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
         destination=out_dir,
         mode="full",
         name="mixed.html",
+    )
+    assert r["status"] == "ok", r.get("error")
+    return pathlib.Path(r["path"])
+
+
+@pytest.fixture(scope="module")
+def export_questions(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """Export the questions fixture: every list's membership, order and hostile-name case."""
+    out_dir = tmp_path_factory.mktemp("browser_questions")
+    r = EXPLORER.publish_explorer(  # type: ignore[attr-defined]
+        FIXTURE_QUESTIONS,
+        destination=out_dir,
+        mode="full",
+        name="questions.html",
     )
     assert r["status"] == "ok", r.get("error")
     return pathlib.Path(r["path"])
@@ -1333,9 +1349,10 @@ def test_strike_through_marks_full_supersession_only(
     """A record superseded only in part stays in force: its ID is not struck
     through, while a fully superseded record's ID is."""
     page = _open_page(browser, export_mixed)
-    page.wait_for_selector("li.row")
+    page.evaluate("() => { location.hash = '#list'; }")
+    page.wait_for_selector("#view-list li.row")
     deco = page.evaluate(
-        """() => Object.fromEntries([...document.querySelectorAll('li.row')].map(li =>
+        """() => Object.fromEntries([...document.querySelectorAll('#view-list li.row')].map(li =>
           [li.querySelector('.rid').textContent,
            getComputedStyle(li.querySelector('.rid')).textDecorationLine]))"""
     )
@@ -1562,11 +1579,12 @@ def test_status_filter_text_is_escaped_in_no_results(
     """AC-0006/AC-0010: the active status shown in the no-results message and the
     live region uses the visible escape, never the raw control."""
     page = _open_page(browser, export_bidi_status)
-    page.wait_for_selector("li.row")
+    page.evaluate("() => { location.hash = '#list'; }")
+    page.wait_for_selector("#view-list li.row")
     page.select_option("#status-filter", index=1)
     page.locator("#search-input").fill("zzzz-no-match")
-    page.wait_for_selector(".empty-msg")
-    msg = page.locator(".empty-msg").text_content() or ""
+    page.wait_for_selector("#view-list .empty-msg")
+    msg = page.locator("#view-list .empty-msg").text_content() or ""
     live = page.locator("#live-region").text_content() or ""
     for text in (msg, live):
         assert "‮" not in text and "Acc[U+202E]epted" in text, text
@@ -1589,9 +1607,7 @@ def test_unknown_route_id_is_escaped_and_capped(
             f"() => document.querySelector('{_region(view)}').textContent"
             ".includes('is not in this export.')"
         )
-        text = (
-            page.locator(f"{_region(view)} :is(.empty-msg, .empty)").first.text_content() or ""
-        )
+        text = page.locator(f"{_region(view)} :is(.empty-msg, .empty)").first.text_content() or ""
         assert "‮" not in text and "[U+202E]" in text, (view, text[:80])
         assert len(text) < 100, (view, len(text))
 
@@ -2994,9 +3010,7 @@ def export_search(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
     return _export(tmp_path_factory, root, "search")
 
 
-def test_search_by_record_id(
-    browser: object, export_search: pathlib.Path
-) -> None:
+def test_search_by_record_id(browser: object, export_search: pathlib.Path) -> None:
     """Search by full ID, lowercase ID, bare ordinal, and zero-padded ordinal each
     leave ADR-0098 in the list; bare ordinals also leave RFC-0098; a title-only
     term still matches; a non-matching term shows the no-result state."""
@@ -3005,8 +3019,7 @@ def test_search_by_record_id(
 
     def visible_ids() -> list[str]:
         return page.evaluate(
-            "() => [...document.querySelectorAll('li.row .rid')]"
-            ".map(e => e.textContent)"
+            "() => [...document.querySelectorAll('li.row .rid')].map(e => e.textContent)"
         )
 
     # Full uppercase ID — substring match on r.id, kind-restricted to ADR
@@ -3082,7 +3095,7 @@ def test_search_label_names_ids_titles_statuses(
 
 _WIDTHS = (320, 1280, 1680, 2560)
 _SCHEMES = ("light", "dark")
-_ZONE_VIEWS = ("list", "graph", "context")
+_ZONE_VIEWS = ("list", "graph", "context", "recent")
 _MATRIX = [(w, s) for w in _WIDTHS for s in _SCHEMES]
 _MATRIX_IDS = [f"{w}-{s}" for w, s in _MATRIX]
 
@@ -3114,9 +3127,14 @@ def _zone_page(
             return page
         first = chain
     _show(page, view, first)
+    if view == "areas":
+        # The By area list is checked with every section open.
+        page.evaluate(
+            "() => document.querySelectorAll('#view-areas details')"
+            ".forEach(d => { d.open = true; })"
+        )
     page.wait_for_function(
-        "(id) => document.querySelector('#detail-body .state-line')"
-        ".textContent.includes(id)",
+        "(id) => document.querySelector('#detail-body .state-line').textContent.includes(id)",
         arg=first,
     )
     return page
@@ -3228,15 +3246,21 @@ def test_back_to_list_returns_to_the_current_view_at_320(
     """AC-0026: at 320 the detail's "Back to list" button, by keyboard, shows the list
     zone again in the view that was current, with the picked row marked."""
     page = _zone_page(browser, export_mixed, 320, "light", view)
-    assert page.evaluate(  # type: ignore[union-attr]
-        "() => getComputedStyle(document.querySelector('.worklist')).display"
-    ) == "none"
+    assert (
+        page.evaluate(  # type: ignore[union-attr]
+            "() => getComputedStyle(document.querySelector('.worklist')).display"
+        )
+        == "none"
+    )
     back = page.get_by_role("button", name="Back to list")  # type: ignore[union-attr]
     back.focus()
     page.keyboard.press(key)  # type: ignore[union-attr]
-    assert page.evaluate(  # type: ignore[union-attr]
-        "() => getComputedStyle(document.querySelector('.worklist')).display"
-    ) != "none"
+    assert (
+        page.evaluate(  # type: ignore[union-attr]
+            "() => getComputedStyle(document.querySelector('.worklist')).display"
+        )
+        != "none"
+    )
     if view == "context":
         assert _current_links(page) == []
     else:
@@ -3269,9 +3293,16 @@ def test_record_body_headings_are_smaller_than_page_headings(
 
 FIXTURE_MARKS = HERE / "fixtures/lifecycle-marks"
 _MARK_OF = {
-    "accepted": "approved", "experimental": "active", "proposed": "draft", "draft": "draft",
-    "open": "draft", "final": "draft", "superseded": "done", "deprecated": "done",
-    "rejected": "done", "withdrawn": "done",
+    "accepted": "approved",
+    "experimental": "active",
+    "proposed": "draft",
+    "draft": "draft",
+    "open": "draft",
+    "final": "draft",
+    "superseded": "done",
+    "deprecated": "done",
+    "rejected": "done",
+    "withdrawn": "done",
 }
 _GLYPH = {"active": "●", "approved": "◆", "draft": "◇", "done": "✓"}
 
@@ -3320,10 +3351,11 @@ def test_every_row_and_the_detail_line_carry_one_mark_by_the_lifecycle_map(
     """AC-0013: each list row and the detail state line holds one `.mark` whose `data-mark`
     follows the lifecycle map and whose text is a hidden glyph then the display value."""
     page = _open_page(browser, request.getfixturevalue(fixture_name))
-    page.wait_for_selector("li.row")  # type: ignore[union-attr]
+    page.evaluate("() => { location.hash = '#list'; }")  # type: ignore[union-attr]
+    page.wait_for_selector("#view-list li.row")  # type: ignore[union-attr]
     records = _records(page)
     rows = page.evaluate(  # type: ignore[union-attr]
-        """() => [...document.querySelectorAll('li.row')].map(li => ({
+        """() => [...document.querySelectorAll('#view-list li.row')].map(li => ({
           id: li.querySelector('.row-link').dataset.id,
           marks: [...li.querySelectorAll('.mark')].map(m => ({ mark: m.dataset.mark,
             text: m.textContent, glyphHidden: !!m.querySelector('.mark-g[aria-hidden="true"]'),
@@ -3369,11 +3401,12 @@ def test_a_row_leads_with_its_title_then_its_id(
     """AC-0012: in every list row the title is the first text in DOM order, and the id
     appears in the row only after it. The detail heading is the title too."""
     page = _open_page(browser, request.getfixturevalue(fixture_name))
-    page.wait_for_selector("li.row")  # type: ignore[union-attr]
+    page.evaluate("() => { location.hash = '#list'; }")  # type: ignore[union-attr]
+    page.wait_for_selector("#view-list li.row")  # type: ignore[union-attr]
     info = page.evaluate(  # type: ignore[union-attr]
         """() => { const data = JSON.parse(
             document.getElementById('nav-data').textContent).records;
-          return [...document.querySelectorAll('li.row')].map((li, i) => {
+          return [...document.querySelectorAll('#view-list li.row')].map((li, i) => {
             const texts = [];
             const w = document.createTreeWalker(li, NodeFilter.SHOW_TEXT);
             while (w.nextNode()) {
@@ -3964,9 +3997,9 @@ def test_rail_holds_six_links_under_three_headings_with_full_questions(
     assert info, "no rail"
     assert info["label"] == "Questions"
     assert info["groups"] == ["Decisions", "Changes", "Browse"]
-    assert [
-        (link["group"], link["id"], link["name"], link["desc"]) for link in info["links"]
-    ] == [(g, f"q-{k}", label, q) for g, k, label, q in _RAIL]
+    assert [(link["group"], link["id"], link["name"], link["desc"]) for link in info["links"]] == [
+        (g, f"q-{k}", label, q) for g, k, label, q in _RAIL
+    ]
     assert [link["href"] for link in info["links"]] == [f"#{k}" for _, k, _, _ in _RAIL]
     assert page.locator(".worklist .tools nav.seg").count() == 0
     assert page.locator("#btn-list, #btn-graph, #btn-context").count() == 0
@@ -4253,3 +4286,664 @@ def test_rail_fits_reads_and_is_large_enough_across_the_matrix(
     assert info["bad"] == [] and info["small"] == [], info
     assert info["scroll"] <= info["view"], info
     page.context.close()  # type: ignore[union-attr]
+
+
+# ── decision-view-questions T2: the four new question lists ─────────────────────
+
+_LIST_KEYS = ("recent", "deciding", "replaced", "areas")
+_QUESTION_LISTS = (*_LIST_KEYS, "list")
+_EMPTY_TEXT = {
+    "recent": (
+        "No record has a decided status: Accepted, Superseded, Deprecated, Rejected or Withdrawn."
+    ),
+    "deciding": (
+        "Nothing is being decided: no record has a Draft, Proposed, Open, Final Comment Period"
+        " or Experimental status."
+    ),
+    "replaced": "No record is replaced in full or in part.",
+    "areas": "No record has an Areas field.",
+}
+
+
+@pytest.fixture(scope="module")
+def export_chain(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """The lineage-chain fixture: three decided records, one chain, no Areas field."""
+    return _export(tmp_path_factory, FIXTURE_CHAIN, "chain")
+
+
+@pytest.fixture(scope="module")
+def export_proposed_only(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """One `Proposed` ADR: nothing decided, nothing replaced."""
+    return _publish_with(
+        tmp_path_factory, "proposed_only", [(1, "Only proposal", "- **Status:** Proposed\n")], []
+    )
+
+
+@pytest.fixture(scope="module")
+def export_every_record_has_an_area(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """Two records, both with an area."""
+    return _publish_with(
+        tmp_path_factory,
+        "all_areas",
+        [
+            (1, "First", "- **Status:** Accepted\n- **Areas:** Alpha\n"),
+            (2, "Second", "- **Status:** Accepted\n- **Areas:** Beta, Alpha\n"),
+        ],
+        [],
+    )
+
+
+@pytest.fixture(scope="module")
+def export_one_without_area(tmp_path_factory: pytest.TempPathFactory) -> pathlib.Path:
+    """Four records: one with no area, one carrying an unresolved claim, one superseded."""
+    return _publish_with(
+        tmp_path_factory,
+        "one_no_area",
+        [
+            (
+                1,
+                "Claimant",
+                "- **Status:** Accepted\n- **Superseded by:** ADR-0099\n- **Areas:** Alpha\n",
+            ),
+            (2, "Plain", "- **Status:** Accepted\n- **Date:** 2025-01-01\n"),
+            (
+                3,
+                "Old",
+                "- **Status:** Superseded\n- **Superseded by:** ADR-0004\n- **Areas:** Alpha\n",
+            ),
+            (4, "New", "- **Status:** Accepted\n- **Supersedes:** ADR-0003\n- **Areas:** Alpha\n"),
+        ],
+        [],
+    )
+
+
+def _header_date(rec: dict[str, object], label: str) -> str | None:
+    """A header date as the spec's Terms define it."""
+    for field in rec.get("header_fields") or []:  # type: ignore[attr-defined]
+        if str(field.get("label", "")).lower() == label:
+            head = str(field.get("raw_value") or "")[:10]
+            return head if re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}", head) else None
+    return None
+
+
+def _decision_date(rec: dict[str, object]) -> str | None:
+    return _header_date(rec, "date closed" if rec["kind"] == "RFC" else "date")
+
+
+def _opened_date(rec: dict[str, object]) -> str | None:
+    return _header_date(rec, "date opened" if rec["kind"] == "RFC" else "date")
+
+
+def _decision_order(recs: list[dict[str, object]], pos: dict[str, int]) -> list[dict[str, object]]:
+    """Dated records newest first (ties in reverse export order), then the undated."""
+    dated = sorted(
+        (r for r in recs if _decision_date(r)),
+        key=lambda r: (_decision_date(r), pos[str(r["id"])]),
+        reverse=True,
+    )
+    return dated + [r for r in recs if not _decision_date(r)]
+
+
+def _expected_sections(data: dict[str, object], key: str) -> list[list[object]]:
+    """Each list's sections from the data island: [head or area, [ids]] in display order,
+    before search and filters. Built in Python, independent of the page script."""
+    recs: list[dict[str, object]] = data["records"]  # type: ignore[assignment]
+    pos = {str(r["id"]): i for i, r in enumerate(recs)}
+    if key == "recent":
+        decided = [r for r in recs if _word(r) in _DECIDED_WORDS]
+        ordered = _decision_order(decided, pos)
+        return [
+            [None, [r["id"] for r in ordered if _decision_date(r)]],
+            ["No decision date", [r["id"] for r in ordered if not _decision_date(r)]],
+        ]
+    if key == "deciding":
+        deciding = [r for r in recs if _word(r) in _DECIDING_WORDS]
+        dated = sorted(
+            (r for r in deciding if _opened_date(r)),
+            key=lambda r: (_opened_date(r), pos[str(r["id"])]),
+        )
+        return [
+            [None, [r["id"] for r in dated]],
+            ["No opened date", [r["id"] for r in deciding if not _opened_date(r)]],
+        ]
+    if key == "replaced":
+        full = [r for r in recs if any(not s["partial"] for s in r.get("superseded_by") or [])]
+        part = [r for r in recs if r.get("superseded_by") and r not in full]
+        return [
+            ["Replaced in full", [r["id"] for r in full]],
+            ["Replaced in part", [r["id"] for r in part]],
+        ]
+    if key == "areas":
+        names = sorted({a for r in recs for a in _areas_of(r)}, key=lambda a: (a.lower(), a))
+        return [
+            [a, [r["id"] for r in _decision_order([r for r in recs if a in _areas_of(r)], pos)]]
+            for a in names
+        ]
+    return [[None, [r["id"] for r in recs]]]
+
+
+def _matches(rec: dict[str, object], search: str, kind: str, status: str) -> bool:
+    """Whether the page's search, Kind filter and Status filter keep a record."""
+    life = rec.get("lifecycle") or {}
+    raw = None if life.get("missing") else life.get("raw_value")  # type: ignore[attr-defined]
+    if kind and rec["kind"] != kind:
+        return False
+    if status and raw != status:
+        return False
+    if search:
+        shown = str(life.get("display_value") or raw or "(missing)")  # type: ignore[attr-defined]
+        hay = (str(rec["id"]), str(rec["title"]), shown)
+        return any(search.lower() in h.lower() for h in hay)
+    return True
+
+
+_STRUCT_JS = """(key) => { const r = document.getElementById('view-' + key); const out = [];
+  const ids = n => [...n.querySelectorAll('.row-link')].map(b => b.dataset.id);
+  for (const n of r.children) {
+    if (n.classList.contains('list-head')) continue;
+    if (n.matches('h3.group-head')) out.push({ head: n.textContent });
+    else if (n.matches('ul.rows')) out.push({ ids: ids(n) });
+    else if (n.matches('details.key.area-group')) out.push({
+      area: n.querySelector('summary').textContent, open: n.open, ids: ids(n),
+      kids: [...n.children].map(c => c.localName) });
+    else out.push({ other: n.localName + '.' + n.className });
+  }
+  return out; }"""
+
+
+def _go(page: object, key: str, record_id: str | None = None) -> None:
+    """Route to a list, with a record selected when given, and wait for its region."""
+    page.evaluate(  # type: ignore[union-attr]
+        f"() => {{ location.hash = '#{key}{'/' + record_id if record_id else ''}'; }}"
+    )
+    page.wait_for_function(  # type: ignore[union-attr]
+        f"() => !document.getElementById('view-{key}').hidden"
+        f" && document.querySelector('#view-{key} h2.list-title')"
+    )
+
+
+def _structure(page: object, key: str) -> list[dict[str, object]]:
+    return page.evaluate(_STRUCT_JS, key)  # type: ignore[union-attr, no-any-return]
+
+
+def _expected_structure(sections: list[list[object]], key: str) -> list[dict[str, object]]:
+    """The region's children for `sections`, empty sections left out."""
+    out: list[dict[str, object]] = []
+    for head, ids in sections:
+        if not ids:
+            continue
+        if key == "areas":
+            out.append({"area": f"{head} ({len(ids)})", "ids": ids})
+        else:
+            if head:
+                out.append({"head": head})
+            out.append({"ids": ids})
+    return out
+
+
+def _flat(structure: list[dict[str, object]]) -> list[dict[str, object]]:
+    """Drop the area sections' `open` and `kids` keys so a structure compares to the oracle."""
+    return [{k: v for k, v in s.items() if k in ("head", "ids", "area")} for s in structure]
+
+
+def _row_ids(page: object, key: str) -> list[str]:
+    return page.eval_on_selector_all(  # type: ignore[union-attr, no-any-return]
+        f"#view-{key} .row-link", "els => els.map(e => e.getAttribute('data-id'))"
+    )
+
+
+@pytest.mark.parametrize("fixture_name", ("export_questions", "export_mixed"))
+def test_recently_decided_rows_follow_decision_order_with_an_undated_tail(
+    browser: object, request: pytest.FixtureRequest, fixture_name: str
+) -> None:
+    """AC-0005: decided records newest first, equal dates in reverse export order, then a
+    "No decision date" heading and the undated in export order; each dated row's context
+    starts with its date."""
+    page = _open_page(browser, request.getfixturevalue(fixture_name))
+    _go(page, "recent")
+    data = _island(page)
+    sections = _expected_sections(data, "recent")
+    assert _flat(_structure(page, "recent")) == _expected_structure(sections, "recent")
+    dates = {str(r["id"]): _decision_date(r) for r in data["records"]}  # type: ignore[attr-defined]
+    ctx = page.eval_on_selector_all(
+        "#view-recent .row",
+        "els => els.map(e => [e.querySelector('.row-link').dataset.id,"
+        " e.querySelector('.c-context').textContent])",
+    )
+    for rid, text in ctx:
+        want = f"{dates[rid]} · " if dates[rid] else ""
+        assert text.startswith(want), (rid, text)
+        assert want or not re.match(r"[0-9]{4}-", text), (rid, text)
+    if fixture_name == "export_questions":
+        assert sections[0][1] == [
+            "ADR-0004", "RFC-0004", "ADR-0002", "ADR-0001", "ADR-0005",
+            "ADR-0014", "ADR-0013", "ADR-0012", "ADR-0011",
+        ]  # fmt: skip
+        assert sections[1][1] == ["ADR-0003", "RFC-0001"]
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_still_being_decided_rows_run_oldest_first_and_leave_out_odd_words(
+    browser: object, export_questions: pathlib.Path
+) -> None:
+    """AC-0006: one record per being-decided word, dated oldest first with ties in export
+    order, then a "No opened date" heading; `constructor` and `tostring` appear only in
+    Browse all and By area."""
+    page = _open_page(browser, export_questions)
+    _go(page, "deciding")
+    data = _island(page)
+    sections = _expected_sections(data, "deciding")
+    assert _flat(_structure(page, "deciding")) == _expected_structure(sections, "deciding")
+    assert sections[0][1] == ["ADR-0007", "ADR-0006", "RFC-0002", "RFC-0003"]
+    assert sections[1][1] == ["ADR-0008"]
+    words = {str(r["id"]): _word(r) for r in data["records"]}  # type: ignore[attr-defined]
+    assert sorted(
+        w for w in words.values() if w and w not in _DECIDED_WORDS | _DECIDING_WORDS
+    ) == [
+        "constructor",
+        "tostring",
+    ]
+    odd = [i for i, w in words.items() if w in ("constructor", "tostring")]
+    ctx = page.eval_on_selector_all(
+        "#view-deciding .row",
+        "els => els.map(e => [e.querySelector('.row-link').dataset.id,"
+        " e.querySelector('.c-context').textContent])",
+    )
+    dates = {str(r["id"]): _opened_date(r) for r in data["records"]}  # type: ignore[attr-defined]
+    for rid, text in ctx:
+        assert text.startswith(
+            f"{dates[rid]} · " if dates[rid] else "ADR · " if rid.startswith("ADR") else "RFC · "
+        ), text
+    for key in ("recent", "deciding", "replaced"):
+        _go(page, key)
+        assert not set(odd) & set(_row_ids(page, key)), key
+    for key in ("list", "areas"):
+        _go(page, key)
+        assert set(odd) <= set(_row_ids(page, key)), key
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize(
+    ("fixture_name", "key"),
+    (
+        ("export_chain", "deciding"),
+        ("export_chain", "areas"),
+        ("export_proposed_only", "recent"),
+        ("export_proposed_only", "replaced"),
+    ),
+)
+def test_an_empty_question_shows_its_own_text_never_the_no_match_message(
+    browser: object, request: pytest.FixtureRequest, fixture_name: str, key: str
+) -> None:
+    """AC-0007: a list holding no record before search and filters has no rows, shows its
+    empty text and no Reset control."""
+    page = _open_page(browser, request.getfixturevalue(fixture_name))
+    _go(page, key)
+    assert _row_ids(page, key) == []
+    assert page.locator(f"#view-{key} p.empty").all_inner_texts() == [_EMPTY_TEXT[key]]  # type: ignore[union-attr]
+    assert "No records match" not in page.inner_text(f"#view-{key}")  # type: ignore[union-attr]
+    assert page.locator(f"#view-{key} .reset-btn").count() == 0  # type: ignore[union-attr]
+    assert page.locator(f"#view-{key} details, #view-{key} .group-head").count() == 0  # type: ignore[union-attr]
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize("fixture_name", ("export_questions", "export_mixed"))
+def test_replaced_rows_sit_under_in_full_and_in_part_headings(
+    browser: object, request: pytest.FixtureRequest, fixture_name: str
+) -> None:
+    """AC-0008: full first, then part, each in export order, a heading shown only when it
+    has records, and each row keeping its supersession notice."""
+    page = _open_page(browser, request.getfixturevalue(fixture_name))
+    _go(page, "replaced")
+    data = _island(page)
+    sections = _expected_sections(data, "replaced")
+    assert _flat(_structure(page, "replaced")) == _expected_structure(sections, "replaced")
+    if fixture_name == "export_questions":
+        assert sections == [["Replaced in full", ["ADR-0011"]], ["Replaced in part", ["ADR-0013"]]]
+    rows = page.locator("#view-replaced li.row")  # type: ignore[union-attr]
+    assert rows.count() == sum(len(ids) for _, ids in sections)  # type: ignore[arg-type]
+    for i in range(rows.count()):
+        assert rows.nth(i).locator(".supersede-banner").count() >= 1
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_by_area_has_one_closed_section_per_area_in_name_order(
+    browser: object, export_questions: pathlib.Path
+) -> None:
+    """AC-0009: sections ordered case-insensitively then by code point, closed at first
+    show, summary "<area> (<count>)", rows in decision order, no heading inside, a record
+    with several areas in each, and a section a search empties hidden."""
+    page = _open_page(browser, export_questions)
+    _go(page, "areas")
+    data = _island(page)
+    sections = _expected_sections(data, "areas")
+    got = _structure(page, "areas")
+    assert _flat(got) == _expected_structure(sections, "areas")
+    assert [s["area"].rsplit(" (", 1)[0] for s in got] == [  # type: ignore[attr-defined]
+        "<img src=x onerror=alert(1)>", "__proto__", "Auth", "auth", "Billing",
+        "constructor", "Platform",
+    ]  # fmt: skip
+    assert all(s["open"] is False for s in got)
+    assert all(s["kids"] == ["summary", "ul"] for s in got)  # no heading inside a section
+    by_area = {str(s[0]): s[1] for s in sections}
+    assert "ADR-0001" in by_area["Billing"] and "ADR-0001" in by_area["Auth"]  # type: ignore[operator]
+    assert by_area["Billing"].count("ADR-0005") == 1  # type: ignore[attr-defined]
+    ctx = page.eval_on_selector_all(
+        "#view-areas .row", "els => els.map(e => e.querySelector('.c-context').textContent)"
+    )
+    assert len(ctx) == sum(len(s["ids"]) for s in got)  # type: ignore[arg-type]
+    # Search narrows the counts and hides a section left empty, with the list keeping records.
+    page.fill("#search-input", "invoice")
+    kept = {str(r["id"]) for r in data["records"] if _matches(r, "invoice", "", "")}  # type: ignore[attr-defined]
+    want = [
+        {"area": f"{a} ({len(n)})", "ids": n}
+        for a, ids in by_area.items()
+        if (n := [i for i in ids if i in kept])  # type: ignore[attr-defined]
+    ]
+    narrowed = _flat(_structure(page, "areas"))
+    assert narrowed == want
+    assert {"area": "Billing (2)", "ids": ["ADR-0001", "ADR-0003"]} in narrowed
+    assert not any(s["area"].startswith("auth ") for s in narrowed)  # type: ignore[attr-defined]
+    assert len(narrowed) < len(sections) and narrowed
+    page.fill("#search-input", "")
+    page.click("#expand-all-btn")
+    assert page.eval_on_selector_all("#view-areas details", "els => els.every(e => e.open)")
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_by_area_head_counts_the_records_with_no_area(
+    browser: object,
+    export_questions: pathlib.Path,
+    export_one_without_area: pathlib.Path,
+    export_every_record_has_an_area: pathlib.Path,
+    export_chain: pathlib.Path,
+) -> None:
+    """AC-0010: "<n> records have no area; Browse all lists them." when some but not all
+    records have an area; absent when every record has one and when none does."""
+    page = _open_page(browser, export_questions)
+    _go(page, "areas")
+    recs = _island(page)["records"]
+    n = sum(1 for r in recs if not _areas_of(r))  # type: ignore[attr-defined]
+    assert n == 8
+    line = f"{n} records have no area; Browse all lists them."
+    assert page.locator("#view-areas .list-head").inner_text().count(line) == 1  # type: ignore[union-attr]
+    page.context.close()  # type: ignore[union-attr]
+    page = _open_page(browser, export_one_without_area)
+    _go(page, "areas")
+    assert page.locator("#view-areas .list-noarea").all_inner_texts() == [  # type: ignore[union-attr]
+        "1 record has no area; Browse all lists them."
+    ]
+    page.context.close()  # type: ignore[union-attr]
+    for export in (export_every_record_has_an_area, export_chain):
+        page = _open_page(browser, export)
+        _go(page, "areas")
+        assert "have no area" not in page.inner_text("#view-areas")  # type: ignore[union-attr]
+        assert "has no area" not in page.inner_text("#view-areas")  # type: ignore[union-attr]
+        page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize("key", _QUESTION_LISTS)
+def test_each_list_narrows_and_counts_its_records_once(
+    browser: object, export_questions: pathlib.Path, key: str
+) -> None:
+    """AC-0013: search, Kind and Status narrow a list's rows, and the count line reads
+    "<shown> of <total> records shown" over distinct records; an emptied list shows the
+    no-match message and Reset."""
+    page = _open_page(browser, export_questions)
+    _go(page, key)
+    data = _island(page)
+    recs: list[dict[str, object]] = data["records"]  # type: ignore[assignment]
+    by_id = {str(r["id"]): r for r in recs}
+    members = {str(i) for _, ids in _expected_sections(data, key) for i in ids}  # type: ignore[attr-defined]
+    counts = page.locator(f"#view-{key} .list-count")  # type: ignore[union-attr]
+    assert counts.inner_text() == f"{len(members)} of {len(members)} records shown"
+    cases = (("invoice", "", ""), ("", "RFC", ""), ("", "", "Accepted"), ("a", "ADR", "Accepted"))
+    for search, kind, status in cases:
+        page.fill("#search-input", search)
+        page.click(f'#kind-filter button[data-kind="{kind}"]')
+        page.select_option("#status-filter", value=status)
+        want = {i for i in members if _matches(by_id[i], search, kind, status)}
+        assert set(_row_ids(page, key)) == want, (key, search, kind, status)
+        if want:
+            assert counts.inner_text() == f"{len(want)} of {len(members)} records shown"
+        else:
+            assert page.locator(f"#view-{key} p.empty").inner_text().startswith("No records match")  # type: ignore[union-attr]
+            assert page.locator(f"#view-{key} .reset-btn").count() == 1  # type: ignore[union-attr]
+    page.fill("#search-input", "zzzzz-no-match")
+    page.click('#kind-filter button[data-kind=""]')
+    page.select_option("#status-filter", value="")
+    assert page.locator(f"#view-{key} p.empty").inner_text().startswith("No records match")  # type: ignore[union-attr]
+    page.click(f"#view-{key} .reset-btn")
+    assert set(_row_ids(page, key)) == members
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_a_record_under_two_areas_counts_once(
+    browser: object, export_questions: pathlib.Path
+) -> None:
+    """AC-0013: By area's counts are over distinct records, though ADR-0001 has two rows."""
+    page = _open_page(browser, export_questions)
+    _go(page, "areas")
+    rows = _row_ids(page, "areas")
+    assert rows.count("ADR-0001") == 2
+    total = len(set(rows))
+    assert total < len(rows)
+    assert page.locator("#view-areas .list-count").inner_text() == (
+        f"{total} of {total} records shown"
+    )
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize("key", _QUESTION_LISTS)
+def test_every_row_of_the_selected_record_is_marked_current(
+    browser: object, export_questions: pathlib.Path, key: str
+) -> None:
+    """AC-0017: each row of the selected record carries aria-current="true", and no other row."""
+    page = _open_page(browser, export_questions)
+    _go(page, key, "ADR-0001")
+    rows = page.eval_on_selector_all(
+        f"#view-{key} .row-link",
+        "els => els.map(e => [e.dataset.id, e.getAttribute('aria-current')])",
+    )
+    assert all((cur == "true") == (rid == "ADR-0001") for rid, cur in rows), rows
+    want = {"recent": 1, "deciding": 0, "replaced": 0, "areas": 2, "list": 1}[key]
+    assert sum(1 for rid, _ in rows if rid == "ADR-0001") == want
+    page.context.close()  # type: ignore[union-attr]
+
+
+def _narrow_page(browser: object, export: pathlib.Path, record_id: str, key: str) -> object:
+    """A 320 px page on `key` with `record_id` picked, so the detail replaces the list."""
+    context = browser.new_context(viewport={"width": 320, "height": 900}, offline=True)  # type: ignore[union-attr]
+    page = context.new_page()
+    errors: list[str] = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page._errors = errors  # type: ignore[attr-defined]
+    page.goto(f"file://{export}")
+    page.wait_for_selector("li.row")
+    _go(page, key, record_id)
+    assert _is_picked(page)
+    return page
+
+
+_FOCUS_JS = """() => { const a = document.activeElement;
+  return { id: a.dataset && a.dataset.id, cur: a.getAttribute('aria-current'),
+    tag: a.localName, inH2: a.matches('#view-' + %s + ' h2'),
+    first: a === [...document.querySelectorAll('#view-' + %s + ' .row-link')]
+      .find(b => b.dataset.id === a.dataset.id) }; }"""
+
+
+@pytest.mark.parametrize(
+    ("record_id", "closed"),
+    (
+        ("ADR-0001", ("Auth", "Billing")),
+        ("ADR-0004", ("<img src=x onerror=alert(1)>", "constructor", "__proto__")),
+    ),
+)
+def test_back_to_list_in_by_area_focuses_the_first_row_and_opens_its_sections(
+    browser: object, export_questions: pathlib.Path, record_id: str, closed: tuple[str, ...]
+) -> None:
+    """AC-0017, AC-0024: at 320 px Back to list focuses the first row of the picked record and
+    opens every section holding it, with no page error, hostile area names included."""
+    page = _narrow_page(browser, export_questions, record_id, "areas")
+    assert page.eval_on_selector_all(  # type: ignore[union-attr]
+        "#view-areas details", "els => els.every(e => !e.open)"
+    )
+    page.get_by_role("button", name="Back to list").click()  # type: ignore[union-attr]
+    info = page.evaluate(_FOCUS_JS % ("'areas'", "'areas'"))  # type: ignore[union-attr]
+    assert info["id"] == record_id and info["cur"] == "true" and info["first"], info
+    opened = page.eval_on_selector_all(  # type: ignore[union-attr]
+        "#view-areas details",
+        "els => els.filter(e => e.open).map(e => e.querySelector('summary').textContent)",
+    )
+    assert [o.rsplit(" (", 1)[0] for o in opened] == sorted(closed, key=lambda a: (a.lower(), a))
+    assert page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_back_to_list_falls_back_to_the_heading_when_the_list_has_no_such_row(
+    browser: object, export_questions: pathlib.Path
+) -> None:
+    """AC-0017: a record the current list does not hold leaves focus on the list's h2."""
+    page = _narrow_page(browser, export_questions, "ADR-0001", "deciding")
+    page.get_by_role("button", name="Back to list").click()  # type: ignore[union-attr]
+    info = page.evaluate(_FOCUS_JS % ("'deciding'", "'deciding'"))  # type: ignore[union-attr]
+    assert info["inH2"], info
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_hostile_area_names_are_sections_of_literal_text_and_add_no_elements(
+    browser: object, export_questions: pathlib.Path
+) -> None:
+    """AC-0024 (By area): markup-shaped and inherited-property area names each form their own
+    section as literal text, add no element beyond the list markup and raise no error."""
+    page = _open_page(browser, export_questions)
+    dialogs: list[str] = []
+    page.on("dialog", lambda d: dialogs.append(d.message))
+    _go(page, "areas", "ADR-0004")
+    sums = page.locator("#view-areas details > summary").all_inner_texts()  # type: ignore[union-attr]
+    for name in ("<img src=x onerror=alert(1)>", "constructor", "__proto__"):
+        assert f"{name} (1)" in sums, sums
+    tags = set(page.eval_on_selector_all("#view-areas *", "els => els.map(e => e.localName)"))
+    assert tags <= {
+        "div",
+        "p",
+        "h2",
+        "h3",
+        "details",
+        "summary",
+        "ul",
+        "li",
+        "button",
+        "span",
+        "a",
+    }, tags
+    assert (
+        page.locator(
+            "#view-areas :is(img, script, svg), #detail-body :is(img, script, svg)"
+        ).count()
+        == 0
+    )  # type: ignore[union-attr]
+    assert page.evaluate("() => ({}).constructor === Object && ({}).x === undefined")  # type: ignore[union-attr]
+    assert dialogs == [] and page._errors == []  # type: ignore[attr-defined]
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize("key", _LIST_KEYS)
+def test_a_marked_row_carries_its_supersession_marker_or_unresolved_note(
+    browser: object,
+    export_questions: pathlib.Path,
+    export_one_without_area: pathlib.Path,
+    export_mixed: pathlib.Path,
+    key: str,
+) -> None:
+    """AC-0030: every row of a superseded record has the criterion-0025 marker, and every row
+    of a record with only unresolved claims has the unresolved note, as Browse all's do."""
+    seen = 0
+    for export in (export_questions, export_mixed, export_one_without_area):
+        page = _open_page(browser, export)
+        _go(page, key)
+        recs = {str(r["id"]): r for r in _island(page)["records"]}  # type: ignore[attr-defined]
+        rows = page.eval_on_selector_all(
+            f"#view-{key} li.row",
+            """els => els.map(e => [e.querySelector('.row-link').dataset.id,
+              [...e.querySelectorAll(':scope > .supersede-banner')].map(b =>
+                [b.textContent, b.classList.contains('is-unresolved')])])""",
+        )
+        for rid, notes in rows:
+            rec = recs[rid]
+            if rec["superseded_by"]:
+                assert notes and not any(u for _, u in notes), (rid, notes)
+                assert len(notes) == len(rec["superseded_by"])  # type: ignore[arg-type]
+                seen += 1
+            elif rec["unresolved_claims"]:
+                assert len(notes) == 1 and notes[0][1], (rid, notes)
+                assert notes[0][0].startswith("Unresolved supersession claim: ")
+                seen += 1
+            else:
+                assert notes == [], (rid, notes)
+        page.context.close()  # type: ignore[union-attr]
+    assert seen >= 2 or key == "deciding", key
+
+
+def test_unresolved_claim_note_appears_in_by_area_rows(
+    browser: object, export_one_without_area: pathlib.Path
+) -> None:
+    """AC-0030: the unresolved note on a By area row."""
+    page = _open_page(browser, export_one_without_area)
+    _go(page, "areas")
+    assert page.locator("#view-areas .row .is-unresolved").count() == 1  # type: ignore[union-attr]
+    page.context.close()  # type: ignore[union-attr]
+
+
+def test_rail_counts_on_the_questions_fixture_match_the_data_and_ignore_search(
+    browser: object, export_questions: pathlib.Path
+) -> None:
+    """AC-0002: decided, being decided, replaced, chains and distinct areas on `questions`,
+    where `constructor` and `tostring` records count only in the area count."""
+    page = _open_page(browser, export_questions)
+    want = _rail_counts(_island(page))
+    assert want == {"recent": 11, "deciding": 5, "replaced": 2, "graph": 2, "areas": 7}
+
+    def shown() -> dict[str, str]:
+        return page.evaluate(  # type: ignore[no-any-return]
+            """() => Object.fromEntries([...document.querySelectorAll('a.question-link .q-count')]
+              .map(c => [c.closest('a').id.slice(2), c.textContent]))"""
+        )
+
+    expect = {k: str(v) for k, v in want.items()}
+    assert shown() == expect
+    page.fill("#search-input", "invoice")
+    page.click('#kind-filter button[data-kind="RFC"]')
+    assert shown() == expect
+    page.context.close()  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize("view", _LIST_KEYS)
+def test_list_head_for_the_four_new_questions_reads_question_heading_sort_line(
+    browser: object, export_mixed: pathlib.Path, view: str
+) -> None:
+    """AC-0004 (Recently decided, Still being decided, Replaced, By area)."""
+    test_list_head_reads_question_then_heading_then_sort_line(browser, export_mixed, view)
+
+
+@pytest.mark.parametrize(("width", "scheme"), _MATRIX, ids=_MATRIX_IDS)
+@pytest.mark.parametrize(
+    "check",
+    (
+        test_zones_are_soft_and_rows_are_flat,
+        test_zones_do_not_overflow_their_edges,
+        test_no_element_carries_a_style_attribute_through_pick_toggle_and_focus,
+        test_text_and_control_borders_have_enough_contrast,
+    ),
+    ids=lambda f: f.__name__,
+)
+def test_by_area_list_meets_the_matrix_checks_with_every_section_open(
+    browser: object, export_questions: pathlib.Path, width: int, scheme: str, check: object
+) -> None:
+    """decision-view-style AC-0008, 0010, 0014 and 0027, with "each view" extended to By area:
+    the slice-1 checks run over the `questions` export with every section open."""
+    check(browser, export_questions, width, scheme, "areas")  # type: ignore[operator]
