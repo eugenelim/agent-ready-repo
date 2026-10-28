@@ -102,12 +102,19 @@ the lint's.
 
 Before approval, the design is working material an implementer corrects in
 place. After approval it is not: the approval digest hashes the whole plan, so
-an in-place edit moves the hash and the transition guard refuses it. Two cases
-then route differently — grounding that arrives for a seam the plan recorded as
-`implementation-discovered` goes to the verification ledger, because
-the plan predicted that discovery; a design decision approval settled and
-execution falsified is a plan error taking the controlled-amendment procedure.
-The ledger is not a route for the second. The design states mechanism; the red test is written at EXECUTE, not stored in the plan.
+an in-place edit moves the hash and the transition guard refuses it. A spot the
+plan marks `implementation-discovered` is a seam or mechanism the plan cannot
+confirm before code exists. Two cases then route differently:
+
+- The answer for an `implementation-discovered` spot goes to the
+  [verification ledger](../../../packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md#verification-ledger),
+  because the plan predicted that discovery.
+- A design decision that approval settled and the code then proved wrong is a
+  plan error. It takes the controlled-amendment procedure and never goes to the
+  ledger.
+
+The design section states mechanism. The red test is written at EXECUTE, not
+stored in the plan.
 
 At closeout, the LLD is treated as mixed delivery material. Policy, trade-offs,
 rejected alternatives, current ownership, state/control flow, security

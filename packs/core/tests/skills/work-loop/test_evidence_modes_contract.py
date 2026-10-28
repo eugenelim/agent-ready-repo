@@ -68,14 +68,14 @@ def test_t2_bug_fix_skill_hands_the_fix_to_work_loop() -> None:
     assert "disposable scratch" in step2
     invoke = _flat(_section(raw, "## When to invoke", "## Procedure"))
     assert "`work-loop`" in invoke
-    assert "materialization rule" in invoke
+    assert "EXECUTE writes step 2's red test at its real test path" in invoke
     assert "steps 8 to 11" in invoke
     assert "`new-spec`" not in invoke
     assert "opportunistic restructuring" in invoke
     step10 = _flat(
         _section(raw, "**Regression test stays.", "**Commit body documents the root cause.")
     )
-    assert "`work-loop` materializes" in step10
+    assert "`work-loop` writes at EXECUTE" in step10
     assert "stays in the suite" in step10
     assert "failing test from step 2 remains" not in step10
 

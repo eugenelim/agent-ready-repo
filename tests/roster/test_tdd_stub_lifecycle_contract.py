@@ -50,6 +50,9 @@ LIVE_SOURCES = (
     REFERENCE,
     ARCHITECTURE,
     ACCEPTANCE_LOOP,
+    # Beyond the spec's thirteen: shipped guidance that names the TDD timing.
+    ROOT / "packs/core/.apm/skills/work-loop/references/verification-modes.md",
+    ROOT / "packs/core/.apm/skills/bug-fix/SKILL.md",
 )
 GUIDE_AND_ARCHITECTURE_PAGES = (HOW_TO, EXPLANATION, REFERENCE, ARCHITECTURE, ACCEPTANCE_LOOP)
 RETIRED_PHRASES = (
