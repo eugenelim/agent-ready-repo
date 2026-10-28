@@ -3183,7 +3183,7 @@ def _dependency_is_satisfied(
             scope_unevaluable=dep.path in briefs_with_cooled_children,
         ):
             return False, _finding(
-                "unsatisfied_dependency", dep.path, "dependency has findings"
+                "unsatisfied_dependency", dep.path, "brief child state rule broken"
             )
     status = metadata.status
     if status is None and matches:
@@ -4066,7 +4066,8 @@ def _brief_child_spec_states(
 
     briefs_with_cooled_children names the briefs a cooled child declares
     through `source.parent` **and whose declaration resolves** to a registered
-    brief membership or a listed brief file. A declaration resolving to nothing goes to
+    brief membership or a listed brief file. A declaration naming no registered
+    brief membership and no listed brief file goes to
     cooled_scope_unknown instead. For the resolving briefs `invalid_child_scope`
     is unevaluable and a `kind="brief"` dependency on that brief fails closed,
     so a lifecycle record cannot erase or create a finding about a different
@@ -4074,7 +4075,7 @@ def _brief_child_spec_states(
 
     cooled_scope_unknown names every cooled spec entry whose parent scope is
     not established: the `source.parent` key is absent, or it holds a value that
-    resolves to no registered brief membership. Those entries are named in a
+    names no registered brief membership and no listed brief file. Those entries are named in a
     `cooled_child_scope_unknown` finding and every `kind="brief"` dependency
     fails closed while any of them exists, because the brief such a child
     belongs to is precisely what is unknown.

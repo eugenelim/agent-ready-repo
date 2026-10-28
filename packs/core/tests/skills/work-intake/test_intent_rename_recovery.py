@@ -1000,3 +1000,97 @@ def test_ac_0018_cited_rename_that_gains_a_successor_entry_refuses_alien(
     assert result.status is rename.RenameStatus.REFUSED
     assert result.code == "registry-alien"
     assert _tree(tmp_path) == before
+
+
+def _no_stage_left(root: Path) -> bool:
+    """True when no stage holds a file; the sandboxed remover leaves empty directories."""
+    return not [
+        entry
+        for stage in (root / "docs/product/intents").glob(".intent-rename-*")
+        for entry in stage.iterdir()
+    ]
+
+
+def _guard_if_no_registry(workspace: str, monkeypatch: pytest.MonkeyPatch) -> None:
+    if workspace == NO_REGISTRY:
+        _forbid_live_workspace(monkeypatch)
+
+
+@pytest.mark.parametrize("workspace", [NO_REGISTRY, CITED], ids=["no-registry", "cited"])
+@pytest.mark.parametrize("checkpoint", ["after-stage-created", "after-record"])
+@pytest.mark.parametrize("direction", ["forward", "back"])
+def test_ac_0016_ac_0017_killed_before_the_seal_rolls_back_without_touching_the_registry(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    workspace: str,
+    checkpoint: str,
+    direction: str,
+) -> None:
+    """An unsealed stage precedes any live write, so recovery reaches a terminal rollback."""
+    _fixture(tmp_path, workspace=workspace)
+    before = _tree(tmp_path)
+    _kill_rename_after_seal(tmp_path, checkpoint)
+    assert not (tmp_path / SUCCESSOR).exists()
+    _guard_if_no_registry(workspace, monkeypatch)
+
+    result = _recover(tmp_path, direction)
+
+    assert result.status is rename.RenameStatus.ROLLED_BACK, result
+    assert _no_stage_left(tmp_path)
+    assert _tree(tmp_path) == before
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == workspace
+
+
+@pytest.mark.parametrize("workspace", [NO_REGISTRY, CITED], ids=["no-registry", "cited"])
+@pytest.mark.parametrize("checkpoint", ["after-dispose-record", "after-dispose-cleanup"])
+def test_ac_0016_ac_0017_interrupted_disposal_finishes_in_the_committed_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, workspace: str, checkpoint: str
+) -> None:
+    """A kill during disposal leaves a committed rename; recovery only removes the stage."""
+    source_before = _fixture(tmp_path, workspace=workspace)
+    _kill_rename_after_seal(tmp_path, checkpoint)
+    assert (tmp_path / SUCCESSOR).exists()
+    assert list((tmp_path / "docs/product/intents").glob(".intent-rename-*"))
+    _guard_if_no_registry(workspace, monkeypatch)
+
+    result = _recover(tmp_path)
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert _no_stage_left(tmp_path)
+    assert (tmp_path / SOURCE).read_bytes() != source_before  # now a tombstone
+    assert (tmp_path / SUCCESSOR).read_bytes() == source_before.replace(
+        SOURCE.encode(), SUCCESSOR.encode()
+    )
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == workspace.replace(
+        SOURCE, SUCCESSOR
+    )
+
+
+@pytest.mark.parametrize("checkpoint", ["after-dispose-cleanup"])
+def test_ac_0018_terminal_cleanup_reads_a_successor_only_head_as_cited(
+    tmp_path: Path, checkpoint: str
+) -> None:
+    """HEAD holding only the successor is a cited registry for disposal, not a no-registry one."""
+    source_before = _fixture(tmp_path, workspace=CITED)
+    _kill_rename_after_seal(tmp_path, checkpoint)
+    # Commit the registry alone, so HEAD's workspace.toml names only the successor.
+    subprocess.run(["git", "add", WORKSPACE], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "registry"], cwd=tmp_path, check=True, capture_output=True
+    )
+    head = subprocess.run(
+        ["git", "show", f"HEAD:{WORKSPACE}"],
+        cwd=tmp_path, check=True, capture_output=True, text=True,
+    ).stdout
+    assert SOURCE not in head and SUCCESSOR in head
+
+    result = _recover(tmp_path)
+
+    assert result.status is rename.RenameStatus.COMMITTED, result
+    assert _no_stage_left(tmp_path)
+    assert (tmp_path / SUCCESSOR).read_bytes() == source_before.replace(
+        SOURCE.encode(), SUCCESSOR.encode()
+    )
+    assert (tmp_path / WORKSPACE).read_text(encoding="utf-8") == CITED.replace(
+        SOURCE, SUCCESSOR
+    )

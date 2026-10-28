@@ -3341,7 +3341,7 @@ def _build_drop_operations(workspace_bytes: bytes) -> list[dict]:
     operations: list[dict] = []
     for membership in memberships:
         entry = membership.entry
-        if entry.path is None or not _is_droppable(entry):
+        if not _is_droppable(entry):
             continue
         locator = (membership.ini_slug, membership.collection, membership.entry_index)
         operations.append({

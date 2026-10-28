@@ -373,6 +373,7 @@ def _active_child(brief_slug: str, slug: str = "child") -> tuple[dict[str, str],
 def _brief_waiter(
     root: Path, status: str, children: int, extra: str = ""
 ) -> dict[str, Any]:
+    """Plant the waiter and return `observe(root)`; `root` then holds the repository."""
     files: dict[str, str] = {f"{BRIEFS}/target.md": _brief("target", status, extra)}
     extras: tuple[Any, ...] = ()
     for index in range(children):
@@ -387,18 +388,37 @@ def _waiter_findings(result: dict[str, Any]) -> list[list[str]]:
     return [f for f in result["findings"] if f[1] == f"{BRIEFS}/target.md"]
 
 
+def _refusal_details(root: Path) -> list[str]:
+    """Details of the canonical `unsatisfied_dependency` findings on the target brief."""
+    workspace = ENGINE.parse_workspace(root / "workspace.toml")
+    cooled, _ = ENGINE._resolve_cooled_state(root)
+    canonical = ENGINE.run_canonical_reconciliation(workspace, root, cooled)
+    return [
+        f.detail
+        for f in canonical.findings
+        if f.code == UNSATISFIED and f.path == f"{BRIEFS}/target.md"
+    ]
+
+
 @pytest.mark.parametrize(
     ("status", "children"),
     [("Ready", 1), ("Draft", 1), ("Executing", 0), ("Shipped", 1)],
-    ids=["ready-with-implementing", "draft-with-implementing", "executing-none", "shipped-implementing"],
+    ids=[
+        "ready-with-implementing",
+        # Regression guard: refused the same way before the registration stop.
+        "draft-with-implementing-regression-guard",
+        "executing-none",
+        "shipped-implementing",
+    ],
 )
 def test_child_state_break_refuses_the_unregistered_brief(
     tmp_path: Path, status: str, children: int
 ) -> None:
-    """AC-0010: a break of the child-state rule refuses the dependency."""
+    """AC-0010: a break of the child-state rule refuses the dependency, by that rule."""
     result = _brief_waiter(tmp_path, status, children)
     assert result["dispatchable"][WAITER] is False
     assert [UNSATISFIED, f"{BRIEFS}/target.md"] in result["findings"]
+    assert "brief child state rule broken" in _refusal_details(tmp_path)
 
 
 @pytest.mark.parametrize(
@@ -419,10 +439,8 @@ def test_invalid_own_parent_reports_the_safety_finding_first(tmp_path: Path) -> 
     """AC-0010: the dependency safety finding precedes the child-state check."""
     result = _brief_waiter(tmp_path, "Ready", 1, "- **Parent:** ../outside.md\n")
     assert result["dispatchable"][WAITER] is False
-    assert _waiter_findings(result) == [["invalid_artifact_path", f"{BRIEFS}/target.md"]] or (
-        ["invalid_artifact_path", "../outside.md"] in result["findings"]
-        and [UNSATISFIED, f"{BRIEFS}/target.md"] not in result["findings"]
-    )
+    assert ["invalid_artifact_path", "../outside.md"] in result["findings"]
+    assert [UNSATISFIED, f"{BRIEFS}/target.md"] not in result["findings"]
 
 
 # AC-0011: an unregistered intent -------------------------------------------

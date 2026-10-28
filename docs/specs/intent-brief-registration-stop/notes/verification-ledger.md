@@ -27,6 +27,8 @@ workspace.toml sha256 53cf9ad7f5d971c878e8178acc6744b1a6254fc4db90173413c1cc9ae4
 
 The 48 `registry_omission` rows are outstanding items that no registry entry names. That class is allowed and never failing.
 
+On 2026-10-28 the owner, eugenelim, accepted this run as discharging AC-0029, which names `--root .`: the archive is the committed branch head, the same tree `--root .` reads apart from the uncommitted spec drafts.
+
 ## T6: the errata and amendments
 
 On 2026-10-27 the owner, eugenelim, approved all ten wordings as drafted, and each was committed unchanged:

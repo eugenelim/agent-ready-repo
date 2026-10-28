@@ -966,8 +966,7 @@ _TERMINAL_STATUS = {
 
 def _real_dir(path: Path) -> bool:
     """True when `path` is a directory and not a symbolic link."""
-    mode = os.lstat(path).st_mode
-    return stat.S_ISDIR(mode) and not stat.S_ISLNK(mode)
+    return stat.S_ISDIR(os.lstat(path).st_mode)
 
 
 def open_file_resolves(root: Path, anchor: str) -> bool:

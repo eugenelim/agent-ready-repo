@@ -583,7 +583,7 @@ def test_a_brief_in_the_repository_backlog_resolves_a_declaration(
     assert DEPENDANT_PATH in _ready(result)
 
 
-def test_a_legacy_bare_string_brief_does_not_resolve_a_declaration(
+def test_a_legacy_bare_string_brief_resolves_a_declaration_through_its_listed_file(
     tmp_path, engine
 ) -> None:
     """A former legacy brief entry is not a brief membership; its file attributes the child.

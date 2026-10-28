@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Instruction roster for the intent and brief registration stop (AC-0021 to AC-0026).
+"""Instruction roster for the intent and brief registration stop (AC-0021 to AC-0026, AC-0029 to AC-0031).
 
 Spec: docs/specs/intent-brief-registration-stop/spec.md
 
@@ -16,6 +16,13 @@ AC-0025: each governing record's Errata section holds a dated entry that links
 RFC-0106 and holds each listed literal.
 AC-0026: each intent holds a dated owner amendment that links RFC-0106 and holds
 each listed literal.
+AC-0029: the ledger's T1 section records the registry comparison, its exit code
+``0``, the commit, and the merge base.
+AC-0030: this repository's ``workspace.toml`` holds no repo-origin intent entry
+under ``docs/product/intents/`` and no repo-origin brief entry under
+``docs/product/briefs/``.
+AC-0031: the ledger's T7 section records the plan and the apply that removed
+them, with the counts of intent and brief operations and of entries removed.
 Standard library only; the checks read files and git history and write nothing.
 """
 
@@ -213,3 +220,65 @@ def test_intent_amendment_is_dated_owner_approved_and_holds_each_literal(rel: st
             return
         problems.append(f"{match.group(1)}: missing {missing}")
     raise AssertionError(f"{rel}: no qualifying amendment; {problems}")
+
+
+_LEDGER = "docs/specs/intent-brief-registration-stop/notes/verification-ledger.md"
+
+
+def _ledger_section(heading: str) -> str:
+    """Return the ledger text under one ``## `` heading, up to the next one."""
+    text = (_REPO / _LEDGER).read_text(encoding="utf-8")
+    start = text.index(f"\n## {heading}")
+    end = text.find("\n## ", start + 1)
+    return text[start:] if end < 0 else text[start:end]
+
+
+def test_ac0029_ledger_records_the_comparison_before_the_stop() -> None:
+    section = _ledger_section("T1: the registry comparison before the stop")
+    assert "tools/compare-registry.py --root" in section
+    assert "**Exit code:** `0`" in section
+    assert re.search(r"\*\*Commit:\*\* `[0-9a-f]{40}`", section)
+    assert re.search(r"\*\*Merge base with `origin/main`:\*\* `[0-9a-f]{40}`", section)
+    assert "registry comparison: pass" in section
+
+
+def _repo_origin_intent_and_brief_entries(node: object) -> list[str]:
+    """Return every repo-origin intent or brief entry path in a parsed registry."""
+    found: list[str] = []
+    if isinstance(node, dict):
+        path, kind = node.get("path"), node.get("kind")
+        mode = node.get("source", {}).get("mode") if isinstance(node.get("source"), dict) else None
+        if isinstance(path, str) and mode == "repo-origin" and (
+            (kind == "intent" and path.startswith("docs/product/intents/"))
+            or (kind == "brief" and path.startswith("docs/product/briefs/"))
+        ):
+            found.append(path)
+        for value in node.values():
+            found.extend(_repo_origin_intent_and_brief_entries(value))
+    elif isinstance(node, list):
+        for value in node:
+            found.extend(_repo_origin_intent_and_brief_entries(value))
+    return found
+
+
+def test_ac0030_registry_holds_no_repo_origin_intent_or_brief_entry() -> None:
+    import tomllib
+
+    data = tomllib.loads((_REPO / "workspace.toml").read_text(encoding="utf-8"))
+    assert _repo_origin_intent_and_brief_entries(data) == []
+
+
+def test_ac0030_detector_finds_a_planted_entry() -> None:
+    planted = {"backlog": {"open": [{
+        "path": "docs/product/intents/x.md", "kind": "intent",
+        "source": {"mode": "repo-origin"},
+    }]}}
+    assert _repo_origin_intent_and_brief_entries(planted) == ["docs/product/intents/x.md"]
+
+
+def test_ac0031_ledger_records_the_repair_run() -> None:
+    section = _ledger_section("T7: the repair on this repository")
+    for literal in ("repair-plan", "repair-apply", "95 for intents and 23 for briefs",
+                    "`operations_applied: 118`", "**Entries removed:** 118",
+                    "holds no `intent-brief-drop` operation"):
+        assert literal in section, literal
