@@ -39,3 +39,7 @@ On 2026-10-27 the owner, eugenelim, approved all ten wordings as drafted, and ea
 - W6: RFC-0106 § Errata entry naming three accepted removals, two intended changes, and the tracker-origin limit.
 - W7, W8, W9: amendments on FEAT-0001 (C3), FEAT-0005 (§ Boundary item 7 and the brief terminal move), and FEAT-0007 (§ Opportunity's remember route).
 - W10: the delivery brief's slice 7 and slice 9 text, with a dated note on its `Slices confirmed` line.
+
+## Controlled amendment: captured memberships stay registered
+
+On 2026-10-28, during T3, the owner, eugenelim, decided that the `intent-brief-drop` repair does not drop a captured membership (an entry whose `path` lies under `docs/product/captured/`), even when its `kind` is `intent`. That keeps slice 3's RFC-0083 erratum, under which an already registered captured item keeps its entry until the registry is retired. The spec's "Repo-origin intent or brief entry" term is narrowed to say so. This repository holds no such entry: its 95 intent entries all point under `docs/product/intents/` and its 23 brief entries under `docs/product/briefs/`.
