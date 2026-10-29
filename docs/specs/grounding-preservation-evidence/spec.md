@@ -45,7 +45,7 @@ tautological, or feature-only evidence leaves every affected property short of
   and decide every property through the shipped evidence store and evaluator.
 - One paragraph in `guides/core/how-to/plan-and-execute-non-trivial-work.md`
   naming the path for adopters.
-- A Core patch release and its changelog fragment, at the version AC-0013
+- A Core patch release and its changelog fragment, at the version AC-0016
   states.
 - The frozen evidence-sufficiency case in `work-loop`'s `evals/` is this
   change's eval harness; it stays unchanged.
@@ -56,8 +56,8 @@ tautological, or feature-only evidence leaves every affected property short of
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Adopters running `work-loop` on a shared-substrate change meet the new reference | `guides/core/how-to/plan-and-execute-non-trivial-work.md` | Platform Core | The paragraph names the reference's purpose and links it, without restating its rules | The guide links the shipped reference path |
 | Current product truth | The brief tracks slice delivery | The brief's Spec map row | Platform Core | The coverage roll-up resolves this spec through its `Brief:` line | The row derives `Shipped` |
-| Release history | Any `packs/core/` change ships under a new Core version | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, a fragment in `docs/product/changelog.d/` | Core pack release maintainers | The version AC-0013 states | AC-0013 holds |
-| Reusable learning | The graded runs are the measurement C3 reuses | `notes/verification-ledger.md` in this spec directory | Platform Core | The graded and baseline runs' outputs and grades, each with the pack version it ran against | The ledger records the AC-0012 run and its baseline |
+| Release history | Any `packs/core/` change ships under a new Core version | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, a fragment in `docs/product/changelog.d/` | Core pack release maintainers | The version AC-0016 states | AC-0016 holds |
+| Reusable learning | The graded runs are the measurement C3 reuses | `notes/verification-ledger.md` in this spec directory | Platform Core | The graded and baseline runs' outputs and grades, each with the pack version it ran against | The ledger records the AC-0015 run and its baseline |
 
 ## Agent Rules
 
@@ -93,110 +93,151 @@ tautological, or feature-only evidence leaves every affected property short of
 
 ## Testing Strategy
 
-- **Evidence families and incompleteness (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011):** goal-based.
+- **Evidence families and incompleteness (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012):** goal-based.
   The targeted pytest module passes. The evaluator already exists, so a TDD red
-  is not available; each family's mutant is the proof that its oracle can fail,
+  is not available; each oracle's named mutant is the proof that it can fail,
   and AC-0002 makes that proof a criterion.
-- **Evidence-sufficiency case (AC-0012):** visual / manual QA of the rebuilt
+- **The reference and its routing row (AC-0013, AC-0014):** TDD. Content pins
+  are written first and fail while the reference is absent.
+- **Evidence-sufficiency case (AC-0015):** visual / manual QA of the rebuilt
   agent artifact. No CI gate grades eval output, so the case runs once as a
   graded run, beside one baseline graded run against the base's
-  `.claude/skills/work-loop/` projection.
-- **Release and scope (AC-0013, AC-0014):** goal-based; one command each.
+  `.claude/skills/work-loop/` projection. If the baseline also holds all five
+  assertions, AC-0015 shows only that the reference does not regress the case,
+  and AC-0013 and AC-0014 carry the proof that the reference ships.
+- **Release and scope (AC-0016, AC-0017):** goal-based; one command each.
 
 ## Acceptance Criteria
 
 Terms:
 
 - **The fixture substrate** is a test-local graph over a small corpus of source
-  files with two implementations. **The base implementation** has no synthetic
-  value nodes. **The head implementation** adds them and is the implementation
-  under test.
+  files whose lines are `def NAME`, `call NAME`, or `value NAME`. It has two
+  implementations. **The base implementation** ignores `value` lines. **The
+  head implementation** turns each `value` line into a value node.
 - **The six properties** are: ordinary calls resolve to no value node; default
   search excludes value nodes; full and incremental construction give the same
   semantic model; a one-file edit stays within its stated invalidation bound;
   value nodes are created, updated, deleted, and rebuilt correctly; the public
-  result type's supported construction and destructuring still work.
-- **A production path** is a public operation of the head implementation:
-  full build, one-file update, one-file removal, rebuild, call resolution, and
+  result type's supported construction and destructuring still work. Each
+  property has one or more required terms under `all`, and each term has one
+  oracle.
+- **A production path** is a public operation of an implementation: full
+  build, one-file update, one-file removal, rebuild, call resolution, and
   search. A test-only helper that builds or edits internal state is not one.
-- **The named mutant** of a property is the head implementation with one
-  stated source edit applied, which breaks that property alone.
-- **The producer** is the suite's receipt producer. It runs one oracle against
-  the head implementation and against that property's named mutant, and emits
-  outcome `pass`, or `within-budget` for bounded work, only when the head run
-  passes and the mutant run fails. Otherwise it emits `fail`, `over-budget`, or
-  `unproven`.
-- **The subject fingerprint** is the SHA-256 of the head implementation's
-  source bytes, standing in for the projected acceptance fingerprint.
+- **An oracle's named mutation** is one stated source edit whose old text
+  occurs exactly once in the head implementation's source and which makes that
+  oracle fail. **Its named mutant** is the head source with that edit applied.
+- **The producer** is the suite's receipt producer. Its inputs are one oracle
+  and one implementation under test, given as source text. It runs the oracle
+  on the implementation under test. When that run passes, it applies the
+  oracle's named mutation to the same source and runs the oracle again. It
+  emits `pass`, or `within-budget` for bounded work, only when the first run
+  passes and the second run fails. When the first run fails it emits `fail`,
+  or `over-budget` for bounded work. When the mutation's old text does not
+  occur in the source, or the second run also passes, it emits `fail`. It emits
+  no other outcome.
+- **A receipt's fingerprint** is the SHA-256 of the implementation-under-test
+  source the producer was given. **The subject fingerprint** is that hash for
+  the head source.
 - **A store verdict** is the verdict `EvidenceStore.evaluate_verdicts` returns
   for a property after the receipts are appended through `append_receipt`.
+- **The base revision** is `git merge-base origin/main HEAD` after a fresh
+  fetch, with every change committed.
 
 ### Every family
 
-- [ ] **AC-0001.** For each of the six properties, the producer's receipts,
-  bound to the subject fingerprint, give a store verdict of `supported`.
-- [ ] **AC-0002.** For each of the six properties, with its named mutant as the
-  implementation under test, its oracle fails, and the producer's receipts,
-  bound to the mutant's fingerprint and evaluated against it, give a store
-  verdict other than `supported`.
+- [ ] **AC-0001.** For each of the six properties, the producer's receipts for
+  its terms over the head source, evaluated against the subject fingerprint,
+  give a store verdict of `supported`.
+- [ ] **AC-0002.** For each oracle, with its named mutant as the implementation
+  under test, the producer emits `fail` or `over-budget` for that oracle, and
+  the store verdict over the producer's receipts for all of that property's
+  terms on the mutant, evaluated against the mutant's fingerprint, is
+  `insufficient`.
 
 ### Each oracle
 
 - [ ] **AC-0003.** Conservation of ordinary calls: the oracle resolves every
-  call name in the corpus with the base implementation and the head
-  implementation and requires the two results to be equal, with no allowed
-  delta.
-- [ ] **AC-0004.** Conservation of default search: the oracle runs every query
-  in the corpus through both implementations' default search and requires equal
-  results. With values explicitly requested, the head result equals the base
-  result plus exactly the matching value nodes.
+  call name in the corpus with the base implementation and with the
+  implementation under test, and passes only when the two results are equal.
+- [ ] **AC-0004.** Conservation of default search has two terms. The default
+  term runs every query in the corpus through both implementations' default
+  search and passes only when the results are equal. The explicit term passes
+  only when the implementation under test, with values requested, returns the
+  base default result plus exactly the value names that match the query, read
+  from the corpus text.
 - [ ] **AC-0005.** Equivalence: the oracle compares a full build of the edited
   corpus with a full build of the original corpus followed by a one-file update,
-  in a semantic form that ignores internal identifiers and insertion order. Two
-  graphs that differ by a single edge compare unequal in that form.
-- [ ] **AC-0006.** Lifecycle: the property requires four terms, create, update,
-  delete, and rebuild, under `all`, each observed only through production
-  paths. Removing the file that declares a value leaves no node and no edge
-  that names it.
+  in a semantic form that ignores internal identifiers and insertion order, and
+  passes only when the two are equal. Two graphs that differ by a single edge
+  compare unequal in that form.
+- [ ] **AC-0006.** Lifecycle has four terms, each observed only through
+  production paths and compared with value names read from the corpus text:
+  create, where a build holds exactly the corpus's value names; update, where
+  after a one-file edit the graph holds exactly the edited corpus's value
+  names; delete, where after removing a file no node or edge names that file's
+  values; and rebuild, where a rebuild holds exactly the current corpus's value
+  names.
 - [ ] **AC-0007.** Compatibility: the oracle compiles and runs a consumer
-  snippet that builds the public result type by position and by keyword and
-  destructures it by position, and passes when the snippet raises nothing.
+  snippet that uses only the base implementation's public result-type fields.
+  It builds the type by position and by keyword and destructures it by
+  position. It passes only when the snippet raises nothing, a pattern matches,
+  and each destructured value equals the value it was built from.
 - [ ] **AC-0008.** Bounded work: the receipt has observation type
-  `command-result`. The bound is stated in the fixture's criterion as the
-  number of declarations in the edited file before and after the edit, counted
-  from the file text rather than from the implementation. An update that
-  invalidates more nodes than that bound decides `insufficient`.
+  `command-result`. The bound is the count of `def` and `value` lines in the
+  edited file's text before the edit plus that count after the edit. The oracle
+  compares it with the number of nodes the one-file update reports as
+  invalidated. The suite's one-file edit gives `within-budget` on the head
+  source, and an update that reports more invalidated nodes than the bound
+  gives `over-budget` and a store verdict of `insufficient`.
 
 ### Incomplete evidence
 
 - [ ] **AC-0009.** Missing: for each of the six properties, with every other
   property's receipts present and its own absent, its store verdict is
   `insufficient`.
-- [ ] **AC-0010.** Stale: for each of the six properties, receipts produced
-  against an earlier head source and bound to that source's fingerprint give a
-  store verdict of `insufficient` when evaluated against the current subject
-  fingerprint.
-- [ ] **AC-0011.** Tautological and feature-only: a conservation oracle whose
-  expected side is computed by the head implementation still passes on its
-  named mutant, so the producer emits `unproven` and the store verdict is
-  `insufficient`. A receipt set holding only value-creation feature receipts,
-  bound to a feature criterion, leaves all six store verdicts `insufficient`.
+- [ ] **AC-0010.** Stale: for each of the six properties, receipts produced over
+  an earlier head source that differs only by a behavior-neutral edit carry
+  every term's passing outcome and give `supported` against that source's
+  fingerprint, and give `insufficient` against the subject fingerprint.
+- [ ] **AC-0011.** Tautological: a variant of the ordinary-calls oracle that
+  resolves both sides with the implementation under test still passes on the
+  named mutant, so the producer emits `fail` and the store verdict is
+  `insufficient`.
+- [ ] **AC-0012.** Feature-only: the value-creation feature test, run through
+  the producer as the oracle for every term of the six properties and bound to
+  each property's own ID and term, leaves every one of the six store verdicts
+  `insufficient`.
+
+### The reference
+
+- [ ] **AC-0013.** Exactly one row in `work-loop` `SKILL.md`
+  § Conditional-reference routing links `references/preservation-evidence.md`,
+  and its predicate names a preservation property in the accepted criteria.
+- [ ] **AC-0014.** `references/preservation-evidence.md` names the five
+  evidence families, the rule that an oracle counts only after it fails on a
+  named mutation, and the four kinds of incomplete evidence: missing, stale,
+  tautological, and feature-only. It links `new-spec`'s shared-substrate
+  preservation reference and `work-loop`'s `references/mutation-proof.md`, and
+  it names no path under `docs/`.
 
 ### Agent behavior, release, and scope
 
-- [ ] **AC-0012.** A graded run of `shared-substrate-feature-tests-do-not-prove-preservation`
+- [ ] **AC-0015.** A graded run of `shared-substrate-feature-tests-do-not-prove-preservation`
   against the rebuilt `.claude/skills/work-loop/` projection holds all five of
   its assertions. A graded run is one fresh agent following a copy of that
   projection with its `evals/` directory removed, given only the case's
   `prompt`, and scored by a separate grader that receives the output and the
   case's `assertions`.
-- [ ] **AC-0013.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
-  both read the patch version one above `packs/core/pack.toml` at the base,
-  `git merge-base origin/main HEAD` after a fresh fetch, and a
-  `docs/product/changelog.d/` fragment names `core` at that version.
-- [ ] **AC-0014.** `git diff --name-only <base> HEAD` lists no path under
-  `contracts/`, `packs/core/.apm/skills/work-loop/scripts/`,
-  `packs/core/.apm/skills/work-loop/evals/`, or `packs/core/.apm/agents/`.
+- [ ] **AC-0016.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
+  both read the patch version one above `packs/core/pack.toml` at the base
+  revision, and a `docs/product/changelog.d/` fragment names `core` at that
+  version.
+- [ ] **AC-0017.** `git diff --name-only <base revision> HEAD` lists no path
+  under `contracts/`, `packs/core/.apm/skills/work-loop/scripts/`,
+  `packs/core/.apm/skills/work-loop/evals/`, or `packs/core/.apm/agents/`. The
+  Agent Rules alone govern the other forbidden surfaces.
 
 ## Follow-ons
 

@@ -16,8 +16,8 @@ The rules go into one `work-loop` reference loaded only when accepted criteria
 include a preservation property, so other work reads one extra table row. The
 evaluator cannot tell an independent oracle from a tautological one, so the
 suite puts that check where the receipt is produced: a receipt passes only when
-its oracle passes on the head implementation and fails on that property's
-named mutant. The fixture substrate is built first, because every family's
+its oracle passes on the implementation under test and fails once that
+oracle's named mutation is applied. The fixture substrate is built first, because every family's
 oracle and mutant depends on its production paths; the graded runs come last,
 against the rebuilt projection.
 
@@ -44,7 +44,7 @@ against the rebuilt projection.
 | --- | --- | --- | --- |
 | User-facing promise — the how-to guide paragraph | T2 | Guide links the reference | Link resolves to the shipped path |
 | Current product truth — brief Spec map row | T3 | Row added; spec `Brief:` line | Row derives `Shipped` |
-| Release history — the Core patch AC-0013 states | T3 | Manifests and fragment | AC-0013 |
+| Release history — the Core patch AC-0016 states | T3 | Manifests and fragment | AC-0016 |
 | Reusable learning — verification ledger | T4 | The graded and baseline runs recorded | The spec's Reusable learning closeout condition |
 
 ## Design (LLD)
@@ -86,7 +86,7 @@ The reference carries five parts, in this order:
    property short of `supported`, and a property short of `supported` blocks
    completion.
 
-Traces to: AC-0012 · none.
+Traces to: AC-0013, AC-0014, AC-0015 · none.
 
 Owned by: T2.
 
@@ -101,24 +101,29 @@ Nodes carry kind, file, and name; edges carry kind and their endpoints' names.
 The public result type is a frozen dataclass whose new field has a default and
 comes last.
 
-Each named mutant is one exact `str.replace` over `head.py`'s source whose old
-text occurs exactly once, loaded as a separate module:
+Each named mutation is one exact `str.replace` over `head.py`'s source whose
+old text occurs exactly once, loaded as a separate module:
 
-| Property | Mutation |
-| --- | --- |
-| ordinary calls | the resolver's kind filter removed |
-| default search | the default for including values flipped to true |
-| equivalence | the update path skips relinking the edited file's call edges |
-| lifecycle | removal deletes the file's definition nodes but not its value nodes |
-| compatibility | the new field's default removed |
-| bounded work | the update path invalidates every node |
+| Property | Term | Mutation |
+| --- | --- | --- |
+| ordinary calls | differential resolver | the resolver's kind filter removed |
+| default search | default query | the default for including values flipped to true |
+| default search | explicit query | the explicit path drops the name match on value nodes |
+| equivalence | equivalence harness | the update path skips relinking the edited file's call edges |
+| lifecycle | create | the build parser skips `value` lines |
+| lifecycle | update | the update path keeps the file's old value nodes |
+| lifecycle | delete | removal deletes the file's definition nodes but not its value nodes |
+| lifecycle | rebuild | rebuild parses the stored corpus with `value` lines skipped |
+| compatibility | downstream compile | the new field's default removed |
+| bounded work | invalidation count | the update path invalidates every node |
 
-The producer computes the receipt fingerprint from the source bytes it ran.
-A receipt's `lineage.criterion_ref` is its property ID, so the store's routing
-binds it. The tautological oracle compares head with head. The feature
-receipts bind to a `value-nodes-created` criterion.
+The earlier head source for the stale case is `head.py`'s source with one
+trailing comment line appended. A receipt's `lineage.criterion_ref` is its
+property ID, so the store's routing binds it. The tautological oracle resolves
+both sides with the implementation under test. The feature test asserts that a
+build holds a value node for each `value` line.
 
-Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011 · `contracts/delivery/acceptance-property.v1.schema.json`,
+Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012 · `contracts/delivery/acceptance-property.v1.schema.json`,
 `contracts/delivery/evidence-receipt.v1.schema.json`.
 
 Owned by: T1.
@@ -134,9 +139,10 @@ Owned by: T1.
 **Mode:** goal-based. The mutants are the failing cases.
 
 **Tests:**
-- AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011 in `test_preservation_evidence.py`, through
-  `_evidence_store.EvidenceStore` and `_acceptance`, loaded by path with the
-  C0 module's loader and store helpers copied under new qualified names.
+- AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012 in `test_preservation_evidence.py`, through
+  `_evidence_store.EvidenceStore`, `_acceptance`, and `_security_capability`,
+  loaded by path with the C0 module's loader and store helpers copied under
+  new qualified names.
 - Each mutation's old text occurs exactly once in `head.py`.
 - The fixture modules import nothing outside the standard library.
 
@@ -152,12 +158,8 @@ Owned by: T1.
 reference is absent; the reference's behavior is proved by T4.
 
 **Tests:**
-- Content pins in `test_preservation_evidence_reference.py`: exactly one
-  routing row names `references/preservation-evidence.md`; the reference
-  names the five families, the four incomplete-evidence kinds, and the
-  failing-mutation rule; it links `references/mutation-proof.md` and
-  `new-spec`'s shared-substrate preservation reference; it names no path under
-  `docs/`.
+- AC-0013 and AC-0014 as content pins in
+  `test_preservation_evidence_reference.py`.
 - The existing `work-loop` content suites that read `SKILL.md` pass.
 
 **Done when:** both `Tests:` bullets pass, and
@@ -173,7 +175,7 @@ prints `1`.
 **Mode:** goal-based.
 
 **Tests:**
-- AC-0013 and AC-0014 commands.
+- AC-0016 and AC-0017 commands.
 - `agentbundle catalogue self-host --root . --write` leaves no diff on re-run.
 - The roster version-bump and brief-coverage checks pass.
 
@@ -186,10 +188,10 @@ prints `1`.
 **Mode:** visual / manual QA of the rebuilt agent artifact.
 
 **Tests:**
-- AC-0012 graded run, and one baseline graded run against the base's
+- AC-0015 graded run, and one baseline graded run against the base's
   projection, recorded in `notes/verification-ledger.md`.
 
 **Done when:** the ledger records both graded runs, each with the pack version
-it ran against, and the AC-0012 run holds every assertion.
+it ran against, and the AC-0015 run holds every assertion.
 
 ## Changelog
