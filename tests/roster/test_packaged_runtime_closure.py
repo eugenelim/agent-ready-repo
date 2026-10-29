@@ -64,6 +64,7 @@ def test_runtime_sibling_reaches_derives_the_real_closure() -> None:
         "cooling.py": {"close_work.py"},
         "close_work.py": {"file_safety.py"},
         "file_safety.py": set(),
+        "_content_safety.py": set(),
     }
 
     reached = {name for names in observed.values() for name in names}

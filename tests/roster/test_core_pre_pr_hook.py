@@ -41,6 +41,12 @@ HOOK = REPO_ROOT / "packs" / "core" / ".apm" / "hooks" / "pre-pr.py"
 CATALOGUE_HOOK = REPO_ROOT / "tools" / "catalogue" / "pre_pr_catalogue.py"
 
 
+def test_repository_hook_copy_matches_the_shipped_hook() -> None:
+    """`tools/hooks/pre-pr.py` is a hand-kept copy; the pack's tests run only the shipped one."""
+    tools_copy = REPO_ROOT / "tools" / "hooks" / "pre-pr.py"
+    assert tools_copy.read_bytes() == HOOK.read_bytes()
+
+
 def test_catalogue_hook_runs_core_checks_and_delegates() -> None:
     """The repo-native catalogue hook runs the core check set, then delegates
     to the shipped pre-pr.py. Agent-artifact, seeds, credentialed-skill, and

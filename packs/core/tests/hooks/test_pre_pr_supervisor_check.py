@@ -1,7 +1,6 @@
 """The pre-PR hooks run the supervisor's readiness check for each approved run.
 
-Both copies of the hook (the shipped pack source and the repository's own) are
-run against a throwaway tree with a fake ``work-supervisor.py`` whose exit code
+The shipped hook is run against a throwaway tree with a fake ``work-supervisor.py`` whose exit code
 each spec directory chooses through an ``exit-code`` file.
 """
 
@@ -14,9 +13,10 @@ from pathlib import Path
 import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
+# The repository's own copy is held byte-identical to this one by the root
+# roster suite; a pack test may not read above its pack.
 HOOKS = {
     "pack": PACK_ROOT / ".apm" / "hooks" / "pre-pr.py",
-    "tools": PACK_ROOT.parents[1] / "tools" / "hooks" / "pre-pr.py",
 }
 REAL_SUPERVISOR = (
     PACK_ROOT / ".apm" / "skills" / "work-loop" / "scripts" / "work-supervisor.py"

@@ -14,6 +14,14 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.58.1
+
+The workspace MCP bridge understands supervisor runs. While a spec has a
+supervisor status file, `workspace_status` shows that run's id, stage, and
+`run_active` signal. A pending human question appears only as framed untrusted
+text that has passed a content-safety check, or as a fixed placeholder. A
+status file that is a link, oversized, or malformed shows no run and no gate.
+
 ## What's new in 0.58.0
 
 The shared file-safety helper gains `write_confined_regular_file`, which creates
