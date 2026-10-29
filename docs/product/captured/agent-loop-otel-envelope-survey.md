@@ -1,6 +1,7 @@
 # Agent loop otel envelope survey
 
-- **Status:** Open
+- **Status:** Closed
+- **Resolution:** superseded
 - **Kind:** defect
 - **Detail:** docs/product/research/agent-loop-otel-envelope-survey.md
 

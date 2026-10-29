@@ -303,3 +303,67 @@ caller's own Git config stands, so the autocrlf carry test still proves its case
 Observation, outside this spec: the supervisor honours a repository's
 `core.autocrlf`, so a Windows adopter whose plan checks out with CRLF gets
 `invalid-stub-fence` for a plan that carries stub fences.
+
+## T3: backlog dispositions
+
+The search covered every `[backlog].open` entry's values, plus the captured
+file each one points to, for `loop-engine`, `loop-cohort`, `engine-state.json`,
+`full-mode-engine`, and a cohort `state.json`. It found six entries. Four are
+retired as superseded through `close-work`: each captured item is now
+`Status: Closed` with `Resolution: superseded`, and its entry has left
+`workspace.toml`. One is rewritten, and one is kept.
+
+- **Retired:** `docs/product/captured/agent-loop-otel-envelope-survey.md`.
+  Follow-ons 1, 3, 4, and 5 concern the engine's line writer and its cohort
+  counters, and both are removed. The supervisor's line carries `schema: 1`,
+  and the retry count re-derives from supervisor commits. Follow-on 2 was
+  already resolved in core 2.27.11. For follow-on 6, executing reader tests
+  now exist: `test_workspace_mcp_supervisor_run.py` has 30 and
+  `test_workspace_mcp_events_poller.py` has 3. For follow-on 7, the line's
+  canonical schema is `contracts/jsonschema/loop-run-event.schema.json`, and
+  ADR-0064's prose is frozen.
+- **Retired:** `docs/product/captured/record-attempt-lock-contention-under-load.md`.
+  `record-attempt` and its concurrency test belong to `loop-cohort.py`. The
+  shared lock's remaining hazard is tracked by `reclaim-residual`.
+- **Retired:** `cohort-seal-blocks-in-phase-plan-correction`. The whole-plan
+  seal is removed. An in-envelope plan edit now commits as a `replan` step with
+  no approval (ADR-0144 D3).
+- **Retired:** `pre-existing-recover-engine-state-deep-nesting`. Its failing
+  case lives in `test_loop_engine.py`, which the switch deletes.
+- **Rewritten:** `docs/product/captured/loop-cohort.md` is now
+  `docs/product/captured/supervisor-duplicate-task-heading.md`, sourced from
+  `_supervisor_projector.py`. The defect survives the switch in a new form. A
+  plan with two `### T1:` sections and a `T2` that depends on `T1` projects
+  three tasks. Both T1 sections get the second one's identity, and T2 lists
+  that identity twice. Nothing refuses the plan. This was reproduced against
+  `project_plan` at 7dc7e9231.
+- **Kept:** `docs/product/captured/reclaim-residual.md`. Its entry names none
+  of the terms; only its detail note lives under a `loop-cohort-state-lock`
+  spec path. `_statelock.py` remains the supervisor's run lock, so the reclaim
+  race still applies.
+
+No other `[backlog].open` value names a term. Each remaining mention in
+`workspace.toml` is a comment, or a `path` or `ref` that points into a history
+path. The brief's Spec map is projected (`<auto>`) and already lists all seven
+specs, so it needs no edit.
+
+## T3: decision records
+
+ADR-0125 was already `Superseded` by ADR-0144. The mirrors on ADR-0061
+(`ADR-0144 D1,D2,D8`) and ADR-0064 (`ADR-0144 D1,D2,D5,D6`) match ADR-0144's
+`Supersedes in part:`. ADR-0150's mirror matches ADR-0151's
+(`ADR-0151 D3,D5`), and so does ADR-0144's (`ADR-0151 D3,D11`). ADR-0151 and
+its index row move to `Accepted` in a separate final commit. ADR-0151 D4 makes
+the routes take effect when the switch ships, so the owner confirms that
+commit at merge time.
+
+## T3: a telemetry pin that waits on the switch
+
+`tests/roster/test_loop_telemetry_disclosure_contract.py::test_section_5_1_field_count_equals_what_the_engine_emits`
+compares `telemetry.md` §5.1's stated count with a line `loop-engine.py`
+writes. After T3, the page states the supervisor's line: ten keys, from
+`_supervisor_journal.py` `_project_events`. Before the switch, the engine's
+line has 14 keys, so the test fails. T2 removes `loop-engine.py`, so T2 owns
+pointing that helper at a supervisor line. With that change the count is ten
+and the test passes. Nothing else in the T3-touched roster and conformance
+suites fails: 1,388 pass and 2 skip.

@@ -1,6 +1,7 @@
 # Cohort seal blocks in phase plan correction
 
-- **Status:** Open
+- **Status:** Closed
+- **Resolution:** superseded
 - **Kind:** defect
 
 ## Summary
