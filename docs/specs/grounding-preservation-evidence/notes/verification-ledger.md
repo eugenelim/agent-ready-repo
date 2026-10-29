@@ -41,11 +41,11 @@
 
 ## T3 — release, projection, registration, 2026-10-29
 
-- AC-0016: after rebasing onto `dfa3fe067`, the base revision has Core
-  `3.1.35`. `pack.toml` and `plugin.json` both read `3.1.36`. Fragment
+- AC-0016: after merging main at `7dc7e9231`, the base revision has Core
+  `3.1.36`. `pack.toml` and `plugin.json` both read `3.1.37`. Fragment
   `docs/product/changelog.d/ed8f5605-27c3-43a4-9c4a-9b580365ed14.md` names
-  `core` at `3.1.36`.
-- AC-0017: `git diff --name-only dfa3fe067 HEAD`, filtered to `contracts/`,
+  `core` at `3.1.37`.
+- AC-0017: `git diff --name-only 7dc7e9231 HEAD`, filtered to `contracts/`,
   work-loop `scripts/` and `evals/`, and `packs/core/.apm/agents/`, prints
   nothing.
 - `agentbundle catalogue self-host --root . --check` prints `ok`.
