@@ -14,16 +14,15 @@
   production `search(..., include_values=True)` path instead of the graph's
   node table.
 - Call resolution in both fixture implementations now follows call-site edges
-  to their definition. The delete oracle checks it for every remaining call: an
-  edge into the removed file shows up as a resolution there, and a dangling
-  edge raises. `test_delete_observes_left_over_edges_through_call_resolution`
-  pins this with a removal that keeps every edge. No remaining call in the
-  corpus is named after a removed value, so the pin fails through edges into
-  removed definitions only. The same resolution check would also catch a
-  dangling or surviving edge into a removed value, because it follows every
-  edge whatever its target's kind. The ordinary-calls mutation
-  moved to where edges are built (`if node.kind == "def":` becomes
-  `if node.kind != "call":`), so a call can now link to a value node.
+  to the first target, sorted by file. A dangling edge raises. The delete
+  oracle resolves every remaining call and fails when a call resolves into the
+  removed file or raises. `test_delete_observes_left_over_edges_through_call_resolution`
+  pins this with a removal that keeps every edge; it fails through edges into
+  removed definitions, because no remaining call is named after a removed
+  value. A removed value that survives is caught by the oracle's search check.
+  The ordinary-calls mutation moved to where edges are built
+  (`if node.kind == "def":` becomes `if node.kind != "call":`), so a call can
+  now link to a value node.
 - After these changes, `test_preservation_evidence.py` passes 62 tests.
   All ten mutants still fail their own oracle, and the head source passes all
   ten.
