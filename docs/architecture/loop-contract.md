@@ -159,10 +159,10 @@ nothing compares a contract against its approved form.
 
 The full-mode supervisor's `start` commits one approval pair to the spec's
 `delivery/approvals.jsonl`. The pair binds a fingerprint over the spec's
-protected sections and the terminal intent. A change to a protected section
-refuses and names its owner; any other edit, including every plan edit,
-commits as a `replan` step with no approval. The protected references and the
-replan rules have one home, the supervisor page's
+protected sections, the decision section of each record its `Constrained by:`
+value cites, and the terminal intent. A change to any of them refuses and
+names its owner. Which other edits commit as a `replan` step, and when, has one
+home: the supervisor page's
 [replanning section](work-loop-execution-supervisor.md#replanning). The plan
 as a whole is not pinned.
 

@@ -73,7 +73,7 @@ dependency of pack source or of a target runtime.
 | Full-mode delivery records | `docs/specs/**/delivery/` (committed) | `work-loop` `work-supervisor.py` | Supervisor re-derivation, pre-PR hooks, delivery fact feed, reviewers |
 | Full-mode run store | Under the Git directory: attempt manifests, pinned supervisor digests, owed confirmations | `work-loop` `work-supervisor.py` | The supervisor only (attempt-security trust root) |
 | Full-mode run status | `docs/specs/**/.supervisor/` (self-ignoring, deletable) | `work-loop` `work-supervisor.py` | Harness operators and workspace MCP |
-| Harness events | `.loop-run/events.jsonl` (ephemeral) | `work-loop` `work-supervisor.py` | Harness operators and workspace MCP |
+| Harness events | `.loop-run/events.jsonl` (ephemeral) | `work-loop` `work-supervisor.py` | Harness operators, workspace MCP, and the separately installed `jsonl-otlp-exporter` |
 | Knowledge records | `docs/knowledge/` | `project-knowledge/scripts/knowledge_store.py` | Capture, enquiry, review, and research workflows |
 | Credential material | OS credential store and `~/.agentbundle/credentials.env` | `credbroker` write API | Credential brokers in the invoking process |
 | Authored site content | `guides/`, `web/`, and `docs-site/` | Content maintainers | Site build and documentation checks |

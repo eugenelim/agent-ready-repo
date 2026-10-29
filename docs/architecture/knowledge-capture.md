@@ -250,3 +250,6 @@ named command enforces it.
 `docs/specs/work-item-capture/spec.md`, current on this pack's landed T1-T7.
 The candidate mode, § 4a, and § 8a were added by
 `docs/specs/delivery-knowledge-projection/spec.md` and match its T1-T3 code.
+§ 4a's feed source was then revised by
+`docs/specs/execution-supervisor-cutover/spec.md`; that revision is not
+re-verified by this marker.

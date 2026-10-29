@@ -10,48 +10,14 @@ facts that bound how much parallelism a plan could offer.
 
 ## 1. Concurrency inside one run today
 
-The supervisor (`work-loop/scripts/work-supervisor.py` and its
-`_supervisor_*.py` siblings) is the only writer of procedure state
+The supervisor is the only writer of procedure state
 ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D1). Four rules
-keep a run consistent without waves or cohort state.
+keep one run consistent; each has one home.
 
-- **One request at a time.** `next` issues the first incomplete task whose
-  dependencies are complete, and it issues a new attempt only after the current
-  one is reported or superseded. Otherwise it re-issues the current attempt
-  unchanged. A plan whose unfinished tasks all wait on each other refuses with
-  `dependency-cycle`, owned by the plan author.
-- **One run lock.** `start`, `next`, `report`, and `resolve-effect` take an
-  exclusive lock under `<spec>/.supervisor/`; `status` reads without it. `supervisor-policy.json` sets its wait and
-  stale windows. The stale window is longer than the red-proof budget, so a
-  live holder is never judged dead.
-- **An open attempt freezes trusted files.** While an attempt is open, any
-  change to the spec, the plan, the records it cites, the installed skill, Git
-  control state, or committed `delivery/` records refuses that attempt with
-  `attempt-residue`. The supervisor page lists
-  [which requests open an attempt](work-loop-execution-supervisor.md#attempts). A controller plan edit is therefore in-envelope only between
-  a `report` and the next `next`
-  ([ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)).
-- **Recovery re-derives from commits.** Each supervisor step is one Git commit
-  carrying one operation. Completion, red proof, the retry count, and effect
-  state are read back from those commits and the spec's `delivery/` records.
-  The local journal and `run.json` are deletable caches, so a crash at any
-  point converges to the uninterrupted run's result.
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant C as Controller
-  participant S as work-supervisor.py
-  participant G as Git and delivery records
-
-  C->>S: next
-  S->>G: take the run lock and derive state from commits
-  S-->>C: one request, attempt opened
-  Note over C: worker runs, trusted files stay unchanged
-  C->>S: report
-  S->>G: check the attempt, then commit one step
-  S-->>C: attempt closed
-```
+- **One request at a time:** [request order](work-loop-execution-supervisor.md#request-order).
+- **One run lock:** [the run lock](loop-infrastructure.md#the-run-lock).
+- **An open attempt freezes trusted files:** [attempts](work-loop-execution-supervisor.md#attempts).
+- **Recovery re-derives from commits:** [failure and recovery](work-loop-execution-supervisor.md#failure-and-recovery).
 
 ### Retired mechanisms
 

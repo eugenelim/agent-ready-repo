@@ -14,8 +14,8 @@ divides what is possible from what is not. **A pack records what its own
 code did. It cannot record what the model did**, because the tool running the
 session makes the model call and a pack never sees the reply.
 
-Out of scope: the supervisor procedure these events describe ([loop
-infrastructure](loop-infrastructure.md)); build-time evaluation of skills, which
+Out of scope: the supervisor procedure these events describe ([execution
+supervisor](work-loop-execution-supervisor.md)); build-time evaluation of skills, which
 runs against fixtures beside each skill; and host telemetry, which belongs to
 the runtime and is described in § 4.
 
@@ -108,8 +108,10 @@ fields; the supervisor writes none of them. So a line has no duration, no gate
 result, and no retry counters.
 
 The retry count is not on the line because it has one home: the supervisor
-re-derives it from its own commits. `work-supervisor.py status --check` exits 3
-once the implementation retry count reaches its cap of 5.
+re-derives it from its own commits. `work-supervisor.py status --check` reports
+reaching the cap that `implementation_retry_cap` in `supervisor-policy.json`
+sets, as the supervisor page's
+[exit codes](work-loop-execution-supervisor.md#exit-codes) state.
 
 The line is **always written** for a full-mode run. There is no switch. The
 file is local and gitignored, and nothing leaves the machine.
@@ -350,8 +352,8 @@ help someone work out what happened.
   follow-ons.
 - [Workflow lifecycle vocabulary bake-off](../product/research/workflow-lifecycle-vocabulary-comparison-matrix.md)
   — why the domain vocabulary is ours and which shapes were borrowed.
-- [Loop infrastructure](loop-infrastructure.md) — the supervisor procedure these
-  events describe.
+- [Execution supervisor](work-loop-execution-supervisor.md) — the supervisor
+  procedure these events describe.
 - [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) — D10 makes the
   supervisor the only producer of this file, in the same envelope.
 - [`agentbundle` § 7.1](agentbundle.md#71-the-install-time-layout-default)

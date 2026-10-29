@@ -12,7 +12,9 @@ authority went.
 **Last updated:** 2026-10-29
 **Reviewers:** Core pack maintainers
 
-This page is the one home for the supervisor's mechanism.
+This page is the home for the supervisor's procedure: requests, steps,
+stages, replanning, the TDD guard, effects, readiness, and state.
+[runtime security primitives § 11](runtime-security-primitives.md#11-execution-supervisor-controls) owns the attempt-security controls.
 [Loop infrastructure](loop-infrastructure.md) covers how its scripts are
 invoked, the linters, the run lock, and the light-mode review flow.
 
@@ -61,9 +63,19 @@ authority role each decision accepts. `work-loop/review-rules.json` says which
 reviewer roles run.
 
 The supervisor also loads siblings that earlier slices shipped and it does not
-own: `_acceptance.py` for the envelope and verdict, `_evidence_store.py` for
-evidence, `_review_*.py` for structured review records, and
-`_security_capability.py` for capability grants.
+own:
+
+- `_acceptance.py` for the envelope and verdict;
+- `_evidence_store.py` for evidence, and `_policy_import.py` for the approval
+  pair it imports;
+- `_review_selection.py`, `_review_persistence.py`, `_review_disposition.py`,
+  and `_review_bridge.py` for structured review records;
+- `_subject_projection.py` for the review subject;
+- `_loop_guards.py` for the plan grammar and contract canonicalisation;
+- `_statelock.py` for the run lock;
+- `_file_safety.py` and `_confined_mutation.py` for confined reads and writes;
+- `_security_capability.py`, `_security_events.py`, and `_containment.py` for
+  capability grants, the security log, and host containment.
 
 ```mermaid
 flowchart TB
@@ -133,9 +145,13 @@ projected and no request issued (ADR-0144 D4).
 
 ### Normal sequence
 
-1. `next` derives the current request from `HEAD`, writing nothing beyond
-   `run.json`. It first commits any pending controller edit to the spec, plan,
-   or cited records as one `replan` step.
+1. `next` derives the current request from `HEAD`. It first commits any
+   pending controller edit to the spec, plan, or cited records as one `replan`
+   step. It then commits any step it takes itself — a supervisor-run `red`
+   proof, an `effect-intent`, or `terminal` — projects the matching event
+   lines, records the attempt's issuance in the run store, writes `run.json`,
+   and appends an advisory journal line. A refusal derived here writes only
+   `run.json`.
 2. The request's id is deterministic, so a repeated `next` re-issues it
    unchanged until it is reported or superseded.
 3. An attempt request records its manifest before the controller dispatches it
@@ -147,7 +163,11 @@ projected and no request issued (ADR-0144 D4).
 
 ### Request order
 
-`next` takes the first of these that applies:
+`next` takes the first of these that applies. When the run's code trust is
+`untrusted` and the host supplies no verified containment, every request that
+would run repository code — `write-stub`, `implement-task`, a supervisor-run red
+proof, `run-gates`, and `regenerate` — becomes an `untrusted-code`
+`human-decision` instead.
 
 1. `terminal`, when a terminal step exists for the current product tree, or the
    intent is `spec-plan`.
@@ -168,9 +188,13 @@ projected and no request issued (ADR-0144 D4).
 
 ### Request kinds and stages
 
-`run.json`'s `stage` comes from the current request kind. Any refusal maps to
-`awaiting-human` from every stage, whoever owns it — including controller-owned
-refusals such as `attempt-residue` and `supervisor-changed`.
+`run.json`'s `stage` comes from the current request kind. A refusal that `next`
+derives while choosing a request — such as `dependency-cycle` or a protected
+boundary — maps to `awaiting-human` from any stage, whoever owns it. Other
+refusals never reach `run.json`: `attempt-residue` from the open-attempt guard,
+`supervisor-changed` from the pin check, every `report` refusal, and
+`run-locked` reach the controller only through the verb's output and leave
+`run.json` unchanged.
 
 | Request kind | `run.json` stage | Opens an attempt |
 | --- | --- | --- |
@@ -198,9 +222,9 @@ stateDiagram-v2
   reviewing --> terminal : ready, nothing pending
   gating --> terminal : regenerate admitted, nothing pending
   implementing --> terminal : last finish effect done
-  implementing --> awaiting_human : refusal or human-decision
-  gating --> awaiting_human : gates failed, or refusal
-  reviewing --> awaiting_human : review not eligible, or refusal
+  implementing --> awaiting_human : derived refusal or human-decision
+  gating --> awaiting_human : gates failed, or derived refusal
+  reviewing --> awaiting_human : review not eligible, or derived refusal
   awaiting_human --> implementing : replan adds or revises a task
   terminal --> [*]
 ```
@@ -212,9 +236,10 @@ has; the diagram draws only the repair path.
 ### Step kinds and event stages
 
 Each supervisor commit carries one operation, and each emits one
-`.loop-run/events.jsonl` line. The line's `event` is the operation. Its `from`
-and `to` are stages, but they come from the commit's operation, not from the
-request, so they can differ from `run.json`'s stage.
+`.loop-run/events.jsonl` line whose `event` is the operation.
+[Telemetry](telemetry.md#51-what-a-line-holds) owns the line's fields. The
+stage a line records comes from the commit's operation, not from the request,
+so it can differ from `run.json`'s stage:
 
 | Operation | Event-line stage |
 | --- | --- |
@@ -228,9 +253,8 @@ request, so they can differ from `run.json`'s stage.
 | `terminal` | `terminal` |
 
 Issuing a `human-decision` commits nothing, so no line is written while a human
-is pending. `awaiting_input` is true only on a `resolution` line, which
-records a named human's effect resolution after it is made. A replan
-confirmation commits as `replan`, and an owner review decision as `review`. A `gate-fail` step comes from a failing `implement-task`
+is pending. A replan confirmation commits as `replan`, and an owner review
+decision as `review`. A `gate-fail` step comes from a failing `implement-task`
 result and counts toward the retry cap. A `run-gates` result commits an
 `evidence` step, pass or fail.
 
@@ -341,8 +365,9 @@ stored verdict as input.
    spec, plan, Git history, evidence, and review facts. It is not resumed in
    place (ADR-0144 D7).
 4. A refusal writes no commit, ref, journal line, event, or tracked file. Its
-   code and owner reach the controller through the verb's output and
-   `run.json`'s `refusal` field.
+   code and owner reach the controller through the verb's output. Only a
+   refusal `next` derives while choosing a request also sets `run.json`'s
+   `refusal` field (§ 3, *Request kinds and stages*).
 
 ### Exit codes
 
@@ -397,6 +422,12 @@ during an attempt to a trusted file, to Git control state, or to committed
 supervisor made. The controller is trusted. A named-human decision is recorded
 with its authority reference (ADR-0144 D11).
 
+`start --code-trust trusted|untrusted` records whether the run's repository
+code is trusted, and an `untrusted` run runs no repository code without verified
+host containment (§ 3, *Request order*). Git hardening, launch grants, the
+run-store layout, supervisor pinning and regeneration admission, and result
+acceptance per request kind are in [runtime security primitives § 11](runtime-security-primitives.md#11-execution-supervisor-controls).
+
 ## 5. Data and State
 
 | Location | Holds | Durability | Rule |
@@ -413,8 +444,8 @@ with its authority reference (ADR-0144 D11).
 `run.json` holds `run_id`, `active`, `stage`, `gate_pending`, `gate_question`,
 and `refusal`. `active` is true from the first admitted `start` until terminal.
 `gate_pending` is true exactly while a `human-decision` is open, with its
-question in `gate_question`. `refusal` names the current refusal code and
-owner, or is empty. The workspace bridge reads `run.json` through a confined
+question in `gate_question`. `refusal` names the refusal `next` last derived,
+with its owner, or is empty. The workspace bridge reads `run.json` through a confined
 regular-file read with a 64 KiB bound and only displays it. A human answer
 reaches the supervisor only through its own `human-decision` request.
 
@@ -472,8 +503,11 @@ There is no build step: the skill ships the modules as path-loaded siblings.
 - **Rejected:** a single-file supervisor built from a manifest by a repository
   tool, and a journal or effect store in `packages/agentbundle/`. Neither
   reaches adopters (ADR-0144, alternatives).
-- **Not in this subsystem:** provider selection, external runtime adapters,
-  leases, and parallel scheduling. The
+- **Not built yet:** leases and parallel scheduling. ADR-0144 D1 assigns
+  leases to the supervisor; they arrive with parallel scheduling in a later
+  slice (see the [brief's delivery slices](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)).
+- **Not in this subsystem:** provider selection and external runtime adapters.
+  The
   [runtime adapter crosswalk](runtime-adapter-crosswalk.md) is a draft mapping
   for later slices.
 - **Risk:** a controller needs a plan edit while an attempt is open.

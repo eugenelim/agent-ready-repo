@@ -4,7 +4,7 @@
 reports, actual-failure findings, and explicit dispositions.
 **Author(s):** Platform Core maintainers
 **Status:** Implemented
-**Last updated:** 2026-10-10
+**Last updated:** 2026-10-29
 **Reviewers:** Core reviewer-role maintainers
 
 ## 1. Scope and Context
@@ -35,8 +35,8 @@ scheduler nor knowledge intake is required.
 
 Review and knowledge both expose typed producer boundaries, but only review
 persists acceptance-critical delivery records. Knowledge observations are
-derived from existing facts; optional notification and later capture can fail
-without blocking delivery.
+derived from existing facts and found by pull scan, with no notification;
+capture can fail without blocking delivery.
 
 ## 2. Structural Model
 
@@ -199,8 +199,8 @@ The example's `subject` fingerprints the complete canonical
 come from the run itself: `_supervisor_readiness.py` projects the delivery
 subject from the `HEAD` tree with the spec directory excluded, under the
 `work-supervisor` provider, and the changed paths are those the run's own
-`stub` and `implement` commits touched. From slice 5, `protected-product-ref`
-supplies the result.
+`stub` and `implement` commits touched. **STATUS: PLANNED** (Slice 5; see the
+[brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)): `protected-product-ref` will supply the result.
 
 Host merge bases, default branches,
 and unacknowledged checkouts never substitute for either manifest.
@@ -222,7 +222,7 @@ and unacknowledged checkouts never substitute for either manifest.
 | Unit | Runs as | Scaling | Observability |
 | --- | --- | --- | --- |
 | Review policy | Projected skill logic | Up to 100,000 changed paths; refuse larger or ambiguous subjects without truncation | Selected roles and reasons |
-| Invoker | Harness adapter | One attempt per obligation, runtime-dependent concurrency | Role, attempt, latency, terminal status |
+| Invoker | Harness adapter | One `review-role` attempt per obligation, issued one request at a time by the supervisor | Role, attempt, latency, terminal status |
 | Content-validation port | Harness boundary before every semantic review write | Per report, assessment, and disposition | Rejected size, privacy, secret, classification, and injection-shape counts |
 | Reviewer-report store | Repository semantic-state port | One current report per role and subject, plus retained audit reports | Current, stale, invalid, and recovery counts |
 | Finding assessment | Pure predicates, independent judgment adapter, and evidence transaction log | Per finding after report persistence | Mechanical, judgment, unsupported, indeterminate, and transaction-recovery counts |
