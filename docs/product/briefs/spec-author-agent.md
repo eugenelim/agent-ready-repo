@@ -338,9 +338,10 @@ this brief was written, from `loop-engine.py`'s `_BOTH_TRANSITIONS`,
 execution-supervisor cutover (Core 4.0.0, ADR-0144) removed the phase engine,
 these transition tables, and the `SPEC-PLAN-DRAFTING` state.** The supervisor
 admits an approved pair at `start` and has no drafting state, so the edges this
-brief enumerates no longer exist as engine data; the
-[execution supervisor](../../architecture/work-loop-execution-supervisor.md#request-order)
-holds what replaced them. Re-deciding which re-entry points S1 and S2 cover is
+brief enumerates no longer exist as engine data and have no direct supervisor
+counterpart; the supervisor's
+[request order](../../architecture/work-loop-execution-supervisor.md#request-order)
+is what the owner would map them onto. Re-deciding which re-entry points S1 and S2 cover is
 the brief owner's call, and later engine-state names in this brief refer to
 this note. S1 dispatches on none. Enumerated because three of
 the four carry no adjudicated finding set, so a slice scoped to "repair" drops

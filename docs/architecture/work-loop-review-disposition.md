@@ -259,7 +259,7 @@ keep `review-artifact.py` and its `validate`, `classify`, `raw-classify`,
 | Review contracts and shared validators | `_review_contracts.py` | Core pack | Schema corpus, no-copy, and traceability tests |
 | Review-subject projector and obligation selector | `_review_selection.py` | Core pack | Diff normalization, policy evals, and policy-leakage source check |
 | Report validator and persistence store | `_review_persistence.py` | Core pack | Atomic persistence, current-role, and recovery tests |
-| Assessment recording and current-assessment selection | `_supervisor_readiness.py` records an `assess-finding` result; `_review_bridge.py` selects the current assessment | Core pack | Finding truth-table and atomic-transaction tests |
+| Assessment recording and current-assessment selection | `_supervisor_readiness.py` records an `assess-finding` result; `_review_bridge.py` selects the current assessment | Core pack | `test_review_bridge.py` and the `test_supervisor_review*.py` suites |
 | Assessment-to-evidence bridge | `_review_bridge.py` | Core pack | Bridge lifecycle and supersession tests |
 | Disposition ledger and review readiness | `_review_disposition.py` | Core pack | Disposition truth-table and readiness matrix tests |
 | Full-mode selection, policy resolver, and review closure | `_supervisor_review.py` over `review-rules.json` | Core pack | Supervisor review-gate suites |

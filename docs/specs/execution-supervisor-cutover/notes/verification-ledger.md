@@ -459,7 +459,8 @@ paths for `loop-engine`, `loop-cohort`, `engine-state.json`,
   `Status: Closed` and `Resolution: superseded`. The supervisor has no
   pending-transition marker. A protected-edit refusal followed by an amendment
   and a second `start` keeps the run (execution-supervisor-core AC-0030).
-- **`docs/product/briefs/`:** 7 briefs had 23 hits. Every hit that remains
+- **`docs/product/briefs/`:** 7 briefs had 26 matching lines before the clean-up
+  (`git grep -n -E 'loop-engine|loop-cohort|engine-state\.json|full-mode-engine|state\.json' 66aae17e9^ -- docs/product/briefs/`). Every hit that remains
   either describes past delivery or a past measurement, now marked "before
   Core 4.0.0" or "when this brief was written", or is a removal note. Links
   to the removed scripts became plain text. `policy-arrival-validator.md`'s
@@ -474,7 +475,13 @@ owners must decide each one:
 - **`stage-input-readiness`:** B2b was settled as a `loop-engine init` guard.
   The candidate replacement is the supervisor's `start` admission.
 - **`spec-author-agent`:** its re-entry edges into `SPEC-PLAN-DRAFTING` have
-  no supervisor counterpart.
+  no direct supervisor counterpart; the supervisor's request order is what the
+  owner would map them onto.
 
 The brief-coverage lint and workspace reconcile both exit 0, with no
 captured-item findings.
+
+The plan amendment that adds `docs/product/briefs/` to T3's Touches and
+defines VI-7031 is the switch session's. It lives on branch
+`feat/cutover-switch`, because `plan.md` is outside T3's write scope. Until
+that branch lands, this section is the only in-tree record of VI-7031.

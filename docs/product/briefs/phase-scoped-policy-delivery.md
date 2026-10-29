@@ -168,9 +168,9 @@ to contradict it.
 
 ## Proposed slices
 **D1's selector also covers the light path, where there is no recorded phase.**
-The recorded phase (see § Current delivery contract) is the key whenever a loop
-exists. Direct-light
-creates none, so D1 admits a single reserved `DIRECT-LIGHT` selection token for
+As decided before the cutover, the recorded phase was the key whenever a loop
+existed (see § Current delivery contract for what replaced it). Direct-light
+created none, so D1 admits a single reserved `DIRECT-LIGHT` selection token for
 that case. It stays deterministic — a constant, not an inference — and it keeps
 selection in one owner rather than giving the light path its own mechanism.
 Without it `universal-implementer-dispatch`'s U2 would require phase-selected
@@ -243,10 +243,11 @@ primitive exceeds it and returns to shaping.
 
 - Policy data stays in a blessed skill subdirectory. A top-level `policies/`
   directory is rejected because it warns under `CAT-S004`.
-- The selection key is the recorded phase (see § Current delivery contract),
-  plus a closed set of reserved
-  constant tokens for paths that record no phase — `DIRECT-LIGHT` is the
-  only member today. A reserved token is a declared constant, never an inference
+- As decided before the cutover, the selection key was the recorded phase
+  (see § Current delivery contract for what replaced it), plus a closed set of
+  reserved constant tokens for paths that created no engine state, with
+  `DIRECT-LIGHT` the only member then. The current constant set is in the
+  work-loop skill's `references/policy-families.md`. A reserved token is a declared constant, never an inference
   from prose. Any *other* attribute may be added only after it becomes declared,
   tool-written data with a mechanical reader.
 - Every family is declared `precise` or `advisory`; no intermediate blocking

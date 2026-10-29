@@ -434,8 +434,9 @@ checks only the pre-existing `Brief:` field and needs neither half.
   whose `Brief:` does not resolve. Neither subsumes the other.
 - **Settled — B's slices take their activation contract from M, not from the
   registry.** Every check here is mechanical: B1 is a standing lint, B2a is a
-  spec metadata field, B2b is an initialisation guard (see § "B2b is one
-  surface: the init guard"), and B3, B4 and B5 are
+  spec metadata field, B2b is a `loop-engine init` guard (settled before the
+  cutover removed `loop-engine.py`; see § "B2b is one surface: the init
+  guard"), and B3, B4 and B5 are
   readiness predicates over declared inputs. None consumes a policy family, so
   none waits on `phase-scoped-policy-delivery` or `policy-arrival-validator`.
   The three-part activation contract they each carry is
