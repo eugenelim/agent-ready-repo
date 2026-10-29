@@ -121,9 +121,24 @@ QUERIES = sorted(
 )
 
 
-def _graph_values(graph: object) -> set[str]:
-    """Names of the value nodes a graph holds."""
-    return {n.name for n in graph.nodes.values() if n.kind == "value"}  # type: ignore[attr-defined]
+LIFECYCLE_QUERIES = sorted(
+    {name for corpus in (CORPUS, EDITED) for kind in ("def", "call", "value") for name in _names(corpus, kind)}
+)
+
+
+def _searched_values(impl: ModuleType, graph: object) -> list[tuple[str, str]]:
+    """(file, NAME) of every value node the production search returns when values are requested."""
+    return [
+        (file, name)
+        for query in LIFECYCLE_QUERIES
+        for kind, file, name in impl.search(graph, query, include_values=True)
+        if kind == "value"
+    ]
+
+
+def _graph_values(impl: ModuleType, graph: object) -> set[str]:
+    """Names of the value nodes a graph exposes through the production search path."""
+    return {name for _, name in _searched_values(impl, graph)}
 
 
 # ── Oracles ───────────────────────────────────────────────────────────────────
@@ -202,14 +217,14 @@ def check_equivalence(impl: ModuleType) -> bool:
 
 def check_create(impl: ModuleType) -> bool:
     """AC-0006 create: a build holds exactly the corpus's value names."""
-    return _graph_values(impl.build(CORPUS)) == _names(CORPUS, "value")
+    return _graph_values(impl, impl.build(CORPUS)) == _names(CORPUS, "value")
 
 
 def check_update(impl: ModuleType) -> bool:
     """AC-0006 update: after an edit the graph holds exactly the edited corpus's value names."""
     graph = impl.build(CORPUS)
     graph.update(EDIT_FILE, EDIT_TEXT)
-    return _graph_values(graph) == _names(EDITED, "value")
+    return _graph_values(impl, graph) == _names(EDITED, "value")
 
 
 def check_delete(impl: ModuleType) -> bool:
@@ -217,18 +232,19 @@ def check_delete(impl: ModuleType) -> bool:
     graph = impl.build(CORPUS)
     graph.remove(REMOVED_FILE)
     remaining = {f: t for f, t in CORPUS.items() if f != REMOVED_FILE}
-    if any(n.file == REMOVED_FILE for n in graph.nodes.values()):
+    if any(file == REMOVED_FILE for file, _ in _searched_values(impl, graph)):
         return False
+    # Search cannot see edges, so dangling edges are read from the graph the removal returned.
     if any(a not in graph.nodes or b not in graph.nodes for a, b in graph.edges):
         return False
-    return _graph_values(graph) == _names(remaining, "value")
+    return _graph_values(impl, graph) == _names(remaining, "value")
 
 
 def check_rebuild(impl: ModuleType) -> bool:
     """AC-0006 rebuild: a rebuild holds exactly the current corpus's value names."""
     graph = impl.build(CORPUS)
     graph.update(EDIT_FILE, EDIT_TEXT)
-    return _graph_values(graph.rebuild()) == _names(EDITED, "value")
+    return _graph_values(impl, graph.rebuild()) == _names(EDITED, "value")
 
 
 CONSUMER_SNIPPET = """
