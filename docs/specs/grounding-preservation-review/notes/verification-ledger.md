@@ -83,9 +83,11 @@ assertions and the outputs, labelled `output1` and `output2` in the order in
   the defect but returned Markdown with no typed report and no
   `affected_acceptance_criteria`, failing those two assertions. Both head
   reviewers returned one JSON block binding the finding to `CRIT-3` or `CRIT-2`.
-  Neither head reviewer raised a finding against the filtered search path. The
-  graded head runs are the `-r2` outputs, run after the `schema_version` fix;
-  the `-r1` outputs are kept for that fix's evidence.
+  Neither head reviewer raised a reachability or missed-consumer finding
+  against the filtered search path. The admitted head runs are the `-r3`
+  outputs, run on the final reviewer guidance and graded against the final
+  assertions; the `-r1` and `-r2` outputs are kept as evidence for the
+  changes that replaced them.
 - **The positive authoring case misses on head and base alike.** The
   `new-spec` projections are byte-identical, because C3 changes no `new-spec`
   file. Head run 1 never said the consumer map is disposable. Head run 2 also
@@ -100,7 +102,14 @@ assertions and the outputs, labelled `output1` and `output2` in the order in
   `/tmp` copy with no code-intelligence or Pi tool.
 - **Head-run replacements.** The two reviewer cases' `-r2` runs replace their
   `-r1` runs. The guidance change is commit `fe2421c44`, which set the typed
-  report section's finding `schema_version` to "the integer `1`". The positive
+  report section's finding `schema_version` to "the integer `1`". Their `-r3`
+  runs replace `-r2` after commit `c1cf109a6`, which gave check 35 the
+  artifact condition and the named-family clause, named spec-stage check 6 in
+  check 10, and scoped the missed-consumer case's filtered-search assertion to
+  reachability or missed-consumer findings. The `-r3` runs and the base runs
+  are graded against those final assertions
+  ([`blind-mapping-r3.json`](graded-runs/blind-mapping-r3.json)): 6 of 6 on
+  head and 4 of 6 on base for both cases. The positive
   authoring case's second head run (`-r2`) is recorded only, with no pass
   requirement. Its rerun is not a replacement under the rule, because the
   `new-spec` guidance is unchanged.
