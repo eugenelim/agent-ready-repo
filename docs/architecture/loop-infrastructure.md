@@ -65,8 +65,6 @@ scope: discovery ships at user scope, while build and release are repo-scoped.
 - `review-artifact.py`: `validate`, `classify`, `raw-classify`, `inspect`, and
   `record`. Light mode and pre-approval review use these verbs. Full-mode code
   review does not decide closure through them (§ 4).
-- `check-spec-status.py`: validates a requested status in `spec.md` or
-  `plan.md`.
 
 Exit codes and the refusal shape are in the supervisor design's
 [exit codes](work-loop-execution-supervisor.md#exit-codes).
