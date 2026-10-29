@@ -101,8 +101,10 @@ so it needs no change.
   Core — owner of brief:repository-grounding-preservation and maintainer of the
   Core pack this change releases — waives `packs/AGENTS.md` § Security and
   authoring rules ("A non-cosmetic pack update also updates that pack's eval
-  harness") for this change, and accepts that no held-out positive case tests
-  the edits on another substrate, decided 2026-10-29.
+  harness") for this change. Because each edit is a generic rule rather than
+  fixture-specific wording, Platform Core also accepts that no held-out
+  positive case tests the edits on another substrate. Both were decided
+  2026-10-29.
 - **Release (AC-0008, AC-0009), scope (AC-0010):** goal-based; one command
   each.
 
@@ -164,3 +166,4 @@ Terms:
 - Technical: no held-out positive case on another substrate — the three
   edits' generality beyond the frozen case they were designed against is
   ungrounded; only the negative control guards against over-triggering.
+  Accepted; see Testing Strategy, Eval harness (AC-0007).
