@@ -164,14 +164,17 @@ Terms:
 - [ ] **AC-0003.** The typed-report section says that when the caller asks for
   a typed report, the reviewer returns only one fenced `json` block holding
   `terminal_status` and `findings`, instead of the findings block or clean
-  line; otherwise the findings block or clean line is returned unchanged. It
-  says the section governs only the modes in that file that return a findings
-  block. It says a typed-report return does not satisfy the file's
+  line, and that this overrides the file's findings-only return for that
+  request; otherwise the findings block or clean line is returned unchanged.
+  It says the section governs only the modes in that file that return a
+  findings block for a review against an accepted spec. It says a typed-report return does not satisfy the file's
   review-complete gate, and the typed review path's obligation decision
   governs it instead. The sentence beginning `Return **only** the findings
   block above` stays in both reviewer files.
 - [ ] **AC-0004.** The typed-report section defines a material finding as the
-  Terms above do and says the typed report carries only material findings.
+  Terms above do and says the typed report carries only material findings. It
+  says a review with no material finding returns `clean`, and that a caller
+  who needs the non-material findings asks for the findings block instead.
 - [ ] **AC-0005.** The typed-report section says an affected criterion is an
   identifier the accepted spec contains, and that when a material finding has
   no such identifier to name, the typed report's status is `indeterminate`
