@@ -132,11 +132,13 @@ reference is absent; the reference's behavior is proved by T4.
   exclusions, the class-count stop rule, that the map never lives in
   `spec.md`, the later-discovery routing, and the sustained-finding clause;
   it cites `assets/spec.md` and the authoring rubric; it names no path under
-  `docs/`; the guide paragraph links the reference.
+  `docs/`.
 - `test_repository_grounding_evals.py` and the existing `new-spec` suites pass
   unchanged.
 
-**Done when:** both `Tests:` bullets pass.
+**Done when:** both `Tests:` bullets pass, and
+`grep -c 'packs/core/.apm/skills/new-spec/references/shared-substrate-preservation.md' guides/core/how-to/plan-and-execute-non-trivial-work.md`
+prints `1`.
 
 ### T2: Deleting or rebuilding a plan-resident map leaves fingerprint and verdict unchanged
 
@@ -188,3 +190,5 @@ version it ran against, and the AC-0001 and AC-0002 runs hold every assertion.
 
 - 2026-10-29: spec approved by the owner (Platform Core)
 - 2026-10-29: plan approved by the owner (Platform Core)
+- 2026-10-29: amended spec approved by the owner (Platform Core) after a controlled amendment moving the T1 guide-link check to `Done when`
+- 2026-10-29: amended plan approved by the owner (Platform Core)

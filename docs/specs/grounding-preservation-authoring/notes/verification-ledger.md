@@ -47,3 +47,19 @@ not require adapt-to-project or code intelligence.
 - Mutation: a throwaway plugin that stops `_is_excluded` from dropping the spec
   directory turns `test_plan_resident_map_is_disposable` red with three
   distinct fingerprints; the plugin was deleted after the run.
+
+## Amendment review — deferred Nits, 2026-10-29
+
+- Deferred: T1's `Done when` grep proves the guide names the reference path,
+  not that the relative link resolves (`plan.md:139-141` against `:47`). The
+  link was resolved by hand from `guides/core/how-to/` to the shipped file.
+- Deferred: T1's `Mode:` line does not name the goal-based grep in its
+  `Done when` (`plan.md:126-127`).
+
+## Wave 1 accounting, 2026-10-29
+
+T1 and T2 were implemented in the controller session, not by an
+`implementer` subagent. The owner directed recording them `human-directed`
+after the fact. Wave-1 gates: `make lint-ruff lint-mypy` pass; targeted suites
+360 passed, 82 subtests; T1's `Done when` grep prints `1`;
+`tools/lint-pack-test-boundary.py` passes.
