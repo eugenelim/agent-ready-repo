@@ -5,8 +5,7 @@
 .adapt-install-marker.toml
 
 # Work-loop session state — per-spec scratch, never committed.
-docs/specs/**/state.json
-docs/specs/**/engine-state.json
+docs/specs/**/.supervisor/
 # State lock: a SIGKILLed holder leaves the lockfile, and a reclaimer that dies
 # mid-rename leaves a `.reclaim.<uuid>` companion.
 docs/specs/**/*.json.lock

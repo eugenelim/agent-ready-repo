@@ -12,17 +12,17 @@
 
 The shipped `pre-pr.py` (`packs/core/.apm/hooks/pre-pr.py` → projects to
 `tools/hooks/pre-pr.py`) is stripped to an **adopter-clean** gate: run
-`loop-cohort.py check` against any active `docs/specs/*/state.json`, plus a
+`cohort-writer.py check` against any active `docs/specs/*/state.json`, plus a
 commented "wire your own lint/test here" stub, degrading gracefully — and
 referencing **none** of the 7 catalogue linters. This repo keeps its full gate
 via a new **repo-native** `tools/pre-pr-catalogue.py` (never projected) that runs
 the 8 catalogue checks and then delegates to the shipped `pre-pr.py`; `make pre-pr` and
 CI's aggregator job point at it. The rest is reference/doc hygiene
-(`plan.md` template → `loop-cohort schedule`; `session-start.py` hint;
+(`plan.md` template → `cohort-writer schedule`; `session-start.py` hint;
 `max_iterations` single-source; `CONVENTIONS.md`/`conventions-check.md`/`README.md`
 honesty; `AGENTS.local.md` direction) plus a `make build-self` reproject and two
 backlog follow-ups. Riskiest bit: the `max_iterations` single-source touches the
-`loop-cohort` schema self-test (a CI-only gate) and `lint-agents-md` drift-watch
+`cohort-writer` schema self-test (a CI-only gate) and `lint-agents-md` drift-watch
 #10a — both must move in lockstep or CI red-flags after local gates pass.
 
 ## Constraints
@@ -38,7 +38,7 @@ backlog follow-ups. Riskiest bit: the `max_iterations` single-source touches the
 
 **Integration tests:**
 - Run the shipped `pre-pr.py` in a tmp adopter-shaped tree (no `tools/lint-*`,
-  no active specs → exit 0; with an active `state.json` → runs `loop-cohort
+  no active specs → exit 0; with an active `state.json` → runs `cohort-writer
   check`, exit 0) (T1; AC2).
 
 **Manual verification:**
@@ -58,15 +58,15 @@ backlog follow-ups. Riskiest bit: the `max_iterations` single-source touches the
 - Integration: run the hook in a tmp tree with no linters and no `docs/specs/*/state.json`
   → exit 0, prints a no-op/skip notice. (AC2)
 - Integration: with one active `docs/specs/<f>/state.json` present → it invokes
-  `loop-cohort.py check` and exits 0 (or surfaces the caps result), never a
+  `cohort-writer.py check` and exits 0 (or surfaces the caps result), never a
   missing-linter crash. (AC2)
 
 **Approach:**
 - Rewrite the hook to run only: for each active spec `state.json`, the shipped
-  `loop-cohort.py check <spec-dir>` (`--phase implement` + `--phase review`);
+  `cohort-writer.py check <spec-dir>` (`--phase implement` + `--phase review`);
   then a commented stub block
   (`# Wire your own gate here, e.g.: _run("lint", ["make", "lint"])`).
-  The hook is adopter-agnostic: it discovers `loop-cohort.py` under whichever
+  The hook is adopter-agnostic: it discovers `cohort-writer.py` under whichever
   adapter skill root the work-loop installed into (`.claude/`, `.agents/`,
   `.kiro/`, `.apm/`), never assuming Claude Code's `.claude/` layout.
 - Remove all 8 catalogue `_run(...)` calls (the 6 `tools/lint-*.py`,
@@ -89,18 +89,18 @@ backlog follow-ups. Riskiest bit: the `max_iterations` single-source touches the
   `tools/pre-pr-catalogue.py` does not project. (AC3, AC9)
 - Goal-based: `tools/test-pre-pr.sh` is repointed at the catalogue hook and its
   existing regression guard passes — note it only plants corruption for the
-  layers it already covers (4 linters + loop-cohort), not all 8; widening it to
+  layers it already covers (4 linters + cohort-writer), not all 8; widening it to
   the remaining checks is out of scope here. (AC3)
 
 **Approach:**
 - Add repo-native `tools/pre-pr-catalogue.py` (NOT under any pack): run the 8
   checks in order, then `subprocess`-delegate to `tools/hooks/pre-pr.py` for the
-  loop-cohort half.
+  cohort-writer half.
 - Repoint **both** Makefile invocations: the `pre-pr:` target *and*
   `build-check`'s direct `$(PYTHON) tools/hooks/pre-pr.py` call (`Makefile:74`).
 - Update the `.github/workflows/docs.yml` aggregator (`hooks`) job + repoint
   `tools/test-pre-pr.sh` (which asserts the aggregator's label/fail composition)
-  at the catalogue hook so its existing guard (the 4 linters + loop-cohort it
+  at the catalogue hook so its existing guard (the 4 linters + cohort-writer it
   already corrupts) keeps passing against the new composition.
 
 **Done when:** AC3 tests pass; `make pre-pr`, `make build-check`, and the CI
@@ -112,11 +112,11 @@ aggregator all run the full 8-check set.
 
 **Tests:**
 - `packs/core/.apm/skills/new-spec/assets/plan.md` contains no
-  `tools/lint-plan-deps.py` (the `loop-cohort schedule` references already stand). (AC4)
+  `tools/lint-plan-deps.py` (the `cohort-writer schedule` references already stand). (AC4)
 
 **Approach:**
 - Line ~76: remove the `; tools/lint-plan-deps.py enforces this` clause —
-  the per-spec `loop-cohort.py schedule` (already referenced at lines ~68/78)
+  the per-spec `cohort-writer.py schedule` (already referenced at lines ~68/78)
   is the shipped enforcement. Pure removal, not a new reference.
 
 **Done when:** AC4 grep passes.
@@ -139,18 +139,18 @@ aggregator all run the full 8-check set.
 **Depends on:** none
 
 **Tests:**
-- `loop-cohort.py` DEFAULTS contains **no hard-coded `max_iterations` literal** —
-  it derives the value from the bundled `assets/state.json` template (the single
+- `cohort-writer.py` DEFAULTS contains **no hard-coded `max_iterations` literal** —
+  it derives the value from the bundled `assets/state-template` template (the single
   source). (AC6)
-- `loop-cohort.py` still resolves the cap (derived value == template value); the
+- `cohort-writer.py` still resolves the cap (derived value == template value); the
   existing `state.get("max_iterations", DEFAULTS[...])` read works. (AC6)
-- The `loop-cohort` schema self-test (`tools/test-loop-cohort.sh` — **both** the
+- The `cohort-writer` schema self-test (`tools/test-cohort-writer.sh` — **both** the
   `expected_keys` and `defaults-match-template` blocks) passes **unchanged**. (AC6)
 
 **Approach:**
-- **Keep** `max_iterations` in `assets/state.json` (it stays the canonical,
+- **Keep** `max_iterations` in `assets/state-template` (it stays the canonical,
   adopter-visible per-spec knob — no semantics change, drift-watch #10a unchanged).
-- In `loop-cohort.py`, replace the hard-coded `"max_iterations": 5` in DEFAULTS
+- In `cohort-writer.py`, replace the hard-coded `"max_iterations": 5` in DEFAULTS
   with a value **read from the bundled template** at load (the template is already
   a sibling asset `init` reads). The `defaults-match-template` self-test then holds
   trivially (DEFAULTS value came from the template), and `expected_keys` / #10a are
@@ -166,7 +166,7 @@ aggregator all run the full 8-check set.
 
 **Tests:**
 - Goal-based: shipped `CONVENTIONS.md` § Enforcement presents the adopter gate as
-  `loop-cohort` + the adopter's own linters/tests, with no catalogue `tools/lint-*`
+  `cohort-writer` + the adopter's own linters/tests, with no catalogue `tools/lint-*`
   as the adopter's gate and no `.github/workflows/docs.yml` as the adopter's CI. (AC7)
 - Goal-based: `conventions-check.md` carries a one-line note that its named linters
   are this catalogue's own (adopters substitute their project's). (AC7)
@@ -177,7 +177,7 @@ aggregator all run the full 8-check set.
 
 **Approach:**
 - `packs/core/seeds/docs/CONVENTIONS.md` § Enforcement: reframe the adopter gate as
-  `loop-cohort` + the adopter's own linters/tests; the catalogue triplet detail
+  `cohort-writer` + the adopter's own linters/tests; the catalogue triplet detail
   (incl. the `docs.yml` CI mention) is reframed as "for catalogue contributors" or
   dropped from the seed so adopters aren't pointed at tooling/CI they don't have.
 - `packs/core/.apm/commands/conventions-check.md`: add a **one-line** note that the
@@ -218,7 +218,7 @@ aggregator all run the full 8-check set.
   - RFC-0015 / `wave-scheduled-supervisor`: `lint-plan-deps.py` (its AC7
     deliverable) is invoked by **no gate** (not in `Makefile`/`.github/`) and has
     no test; this PR removed its last template anchor — decide there to wire it
-    (enforce AC7) or retire it (redundant with the per-spec `loop-cohort schedule`).
+    (enforce AC7) or retire it (redundant with the per-spec `cohort-writer schedule`).
   - RFC-0013 / `credential-broker-contract`: from first principles the adopter
     artifact for authoring a credentialed skill is the **how-to** (already exists:
     `guides/credential-brokers/how-to/add-a-credentialed-skill.md` + the explanation guide); the
@@ -240,7 +240,7 @@ Reversible by revert. Existing installs unaffected until they re-run install/upg
   template; that's *why* the chosen mechanism keeps the key in the template and
   derives DEFAULTS from it (rather than dropping it from the template, which would
   break that block). With this mechanism `expected_keys`, `defaults-match-template`,
-  and drift-watch #10a stay green unchanged. The self-test (`tools/test-loop-cohort.sh`)
+  and drift-watch #10a stay green unchanged. The self-test (`tools/test-cohort-writer.sh`)
   is a CI job *not* in `make build-check` — run it by hand in T5 to confirm.
 - **CI aggregator job** (T2) — if `docs.yml`'s `hooks` job isn't repointed at the
   catalogue hook, the full linter set stops running via the aggregator (though the

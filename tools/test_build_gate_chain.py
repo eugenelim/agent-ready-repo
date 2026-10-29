@@ -195,19 +195,15 @@ class PackSkillPytestShapeTest(unittest.TestCase):
         self.assertEqual(failures, [], "\n".join(failures))
 
 
-class LoopCohortGateDecouplingTest(unittest.TestCase):
-    """The CLI port and its five delegated suites stay independent gates."""
+class WorkLoopGateDecouplingTest(unittest.TestCase):
+    """The work-loop script suites that remain stay independent gates."""
 
-    def test_test_all_keeps_all_six_loop_gates_independent(self):
+    def test_test_all_keeps_the_work_loop_gates_independent(self):
         root = Path(__file__).resolve().parents[1]
         namespace = runpy.run_path(str(root / "tools/test-all.py"))
         commands = dict(namespace["TESTS"])
         expected = {
-            "loop-cohort": "test_loop_cohort_cli.py",
-            "loop-cohort-unit": "test_loop_cohort.py",
-            "loop-engine": "test_loop_engine.py",
             "loop-statelock": "test_statelock.py",
-            "loop-concurrency": "test_loop_concurrency.py",
             "loop-base-freshness": "test_check_base_freshness.py",
         }
 
@@ -218,16 +214,12 @@ class LoopCohortGateDecouplingTest(unittest.TestCase):
                 self.assertIn("--durations=10", command)
                 self.assertTrue(command[-1].endswith(filename), command)
 
-    def test_docs_workflow_profiles_all_six_loop_gates(self):
+    def test_docs_workflow_profiles_the_work_loop_gates(self):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/docs.yml").read_text(encoding="utf-8")
-        block = workflow.split("  loop-cohort:\n", 1)[1].split("\n  hooks:\n", 1)[0]
+        block = workflow.split("  work-loop-scripts:\n", 1)[1].split("\n  hooks:\n", 1)[0]
         filenames = (
-            "test_loop_cohort_cli.py",
-            "test_loop_cohort.py",
-            "test_loop_engine.py",
             "test_statelock.py",
-            "test_loop_concurrency.py",
             "test_check_base_freshness.py",
         )
 
@@ -249,26 +241,6 @@ class LoopCohortGateDecouplingTest(unittest.TestCase):
             {matched_filenames[0] for _, matched_filenames in suite_lines},
             set(filenames),
         )
-
-    def test_windows_workflow_runs_portable_cli_suite(self):
-        root = Path(__file__).resolve().parents[1]
-        workflow = (root / ".github/workflows/build-check-windows.yml").read_text(
-            encoding="utf-8"
-        )
-        block = workflow.split("  agentbundle-windows:\n", 1)[1].split(
-            "\n  credbroker-tests-windows:\n", 1
-        )[0]
-        expected = (
-            "run: python -m pytest "
-            "packs/core/tests/skills/work-loop/test_loop_cohort_cli.py "
-            "-q --durations=10"
-        )
-        commands = [
-            line.strip()
-            for line in block.splitlines()
-            if "test_loop_cohort_cli.py" in line
-        ]
-        self.assertEqual(commands, [expected])
 
 
 class BanditRegistryProvisioningTest(unittest.TestCase):
@@ -569,10 +541,10 @@ class CiPytestProvisioningTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[1]
         workflow = (root / ".github/workflows/docs.yml").read_text(encoding="utf-8")
         jobs = {
-            "lint-knowledge": ("loop-cohort", "run: python3 -m pytest"),
-            "loop-cohort": (
+            "lint-knowledge": ("work-loop-scripts", "run: python3 -m pytest"),
+            "work-loop-scripts": (
                 "hooks",
-                "run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10",
+                "run: python3 -m pytest packs/core/tests/skills/work-loop/test_statelock.py -q --durations=10",
             ),
         }
 

@@ -268,6 +268,8 @@ jobs:
           packs/core/tests/skills/work-loop/test_supervisor_dark_launch.py
           packs/core/tests/skills/work-loop/test_supervisor_review_gate.py
           packs/core/tests/skills/work-loop/test_supervisor_review_closure.py
+          packs/core/tests/skills/work-loop/test_supervisor_ignore_rules.py
+          packs/core/tests/skills/work-loop/test_supervisor_consumer_map.py
           -q -rs --durations=10
 
   # ── Gate B: external catalogue portability ────────────────────────────────

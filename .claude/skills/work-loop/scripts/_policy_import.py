@@ -30,7 +30,7 @@ Implements:
 
 Standard library only. Loads sibling modules by path using the
 ``importlib.util.spec_from_file_location`` pattern established in
-``_confined_mutation.py`` and ``loop-cohort.py``.
+``_confined_mutation.py``.
 
 Python 3.11+.
 """
@@ -100,7 +100,7 @@ class PolicyImportRefused(Exception):
 # ── Sibling module loader ─────────────────────────────────────────────────────
 #
 # Each sibling is loaded lazily on first use and cached. The loader pattern
-# follows _confined_mutation.py and loop-cohort.py:
+# follows _confined_mutation.py:
 #   - lstat + S_ISREG on the path before exec_module.
 #   - sys.dont_write_bytecode saved and restored to its prior value.
 #   - NOT registered in sys.modules (avoids session-global singleton leaks and

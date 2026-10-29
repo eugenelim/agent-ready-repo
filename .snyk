@@ -28,7 +28,7 @@
 # That one is a documented non-security digest (see its docstring). If the org
 # scan flags it, disposition it in the Snyk platform/API with the assigned ID.
 #
-# RESOLVED (core 2.3.0): loop-cohort.py's review fingerprint was the second
+# RESOLVED (core 2.3.0): the work-loop's review fingerprint was the second
 # candidate. Rather than suppress it we switched the digest to SHA-256 — the
 # fingerprints are opaque tokens compared set-wise for stasis detection, so the
 # change is behaviour-preserving, and a real fix satisfies Bandit, Semgrep AND

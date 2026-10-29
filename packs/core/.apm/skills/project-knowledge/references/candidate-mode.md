@@ -9,11 +9,11 @@ writer, choose a storage path, or write a file.
 ## Procedure
 
 1. Pull a page with the work-loop skill's feed and pipe it straight in. The feed
-   reads only specs run with `WORK_LOOP_SHADOW_SERVICES=1`; with the flag unset
-   it returns an empty page and you get an empty frame.
+   reads each spec's committed `delivery/evidence.jsonl`; a repository whose
+   specs hold none returns an empty page and you get an empty frame.
 
    ```bash
-   WORK_LOOP_SHADOW_SERVICES=1 python '<work-loop-dir>/scripts/delivery-fact-feed.py' \
+   python '<work-loop-dir>/scripts/delivery-fact-feed.py' \
      | python '<skill-dir>/scripts/project_knowledge.py' --candidates
    ```
 

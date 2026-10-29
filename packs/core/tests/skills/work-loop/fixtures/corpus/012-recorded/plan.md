@@ -42,15 +42,15 @@ and release metadata only after behavior is green.
 ### T3 — Pin managed-state symlink reads with red tests
 
 - **Depends on:** none
-- **Touches:** `packs/core/tests/skills/work-loop/test-loop-engine.py`, `packs/core/tests/skills/work-loop/test-loop-cohort.py`
+- **Touches:** `packs/core/tests/skills/work-loop/test-phase-engine.py`, `packs/core/tests/skills/work-loop/test-cohort-writer.py`
 - **Acceptance criteria:** AC3, AC5, AC6
 - **Tests:** Cover symlinked and non-regular state/pending files, an over-8-MiB file, and a sentinel external JSON target. Add a controlled replacement or monkeypatched filesystem-boundary case that changes file identity during the read and must be rejected. Cover dangling `events.jsonl` symlinks in initialization and append, asserting the external target is not created. Assert status and recovery never emit or act on the sentinel. Preserve ordinary status and recovery tests.
-  - `test-loop-engine.py::{test_status_rejects_symlinked_engine_state,test_engine_state_reader_rejects_identity_change,test_engine_state_reader_rejects_over_limit_file,test_engine_state_reader_rejects_non_regular_path}` — `# STUB: AC3`; exercise the public sink plus descriptor identity, size, and type controls.
-  - `test-loop-cohort.py::{test_status_rejects_symlinked_cohort_state,test_cohort_state_reader_rejects_identity_change,test_cohort_state_reader_rejects_over_limit_file,test_cohort_state_reader_rejects_non_regular_path}` — `# STUB: AC3`; same contract for cohort state.
-  - `test-loop-engine.py::{test_recover_pending_rejects_symlink,test_recover_pending_rejects_symlinked_parent,test_recover_pending_rejects_non_regular_path,test_recover_pending_rejects_over_limit_file,test_recover_pending_rejects_identity_change}` — `# STUB: AC3`; exercise the actual recovery sink and assert no external sentinel is replayed or mutated through its target or parent.
-  - `test-loop-engine.py::{test_init_rejects_dangling_event_log_symlink,test_append_rejects_dangling_event_log_symlink}` — `# STUB: AC3`; exercise both event-log creation paths and assert no external file is created.
-  - `test-loop-engine.py::{test_init_rejects_non_regular_event_log,test_append_rejects_non_regular_event_log,test_append_rejects_event_log_identity_change}` — `# STUB: AC3`; cover shared event-log type and pre-write identity checks through both callers.
-  - `test-loop-engine.py::test_init_creates_owner_only_event_log` — constructs an event log through the public init path and rejects any group/world permission bits.
+  - `test-phase-engine.py::{test_status_rejects_symlinked_engine_state,test_engine_state_reader_rejects_identity_change,test_engine_state_reader_rejects_over_limit_file,test_engine_state_reader_rejects_non_regular_path}` — `# STUB: AC3`; exercise the public sink plus descriptor identity, size, and type controls.
+  - `test-cohort-writer.py::{test_status_rejects_symlinked_cohort_state,test_cohort_state_reader_rejects_identity_change,test_cohort_state_reader_rejects_over_limit_file,test_cohort_state_reader_rejects_non_regular_path}` — `# STUB: AC3`; same contract for cohort state.
+  - `test-phase-engine.py::{test_recover_pending_rejects_symlink,test_recover_pending_rejects_symlinked_parent,test_recover_pending_rejects_non_regular_path,test_recover_pending_rejects_over_limit_file,test_recover_pending_rejects_identity_change}` — `# STUB: AC3`; exercise the actual recovery sink and assert no external sentinel is replayed or mutated through its target or parent.
+  - `test-phase-engine.py::{test_init_rejects_dangling_event_log_symlink,test_append_rejects_dangling_event_log_symlink}` — `# STUB: AC3`; exercise both event-log creation paths and assert no external file is created.
+  - `test-phase-engine.py::{test_init_rejects_non_regular_event_log,test_append_rejects_non_regular_event_log,test_append_rejects_event_log_identity_change}` — `# STUB: AC3`; cover shared event-log type and pre-write identity checks through both callers.
+  - `test-phase-engine.py::test_init_creates_owner_only_event_log` — constructs an event log through the public init path and rejects any group/world permission bits.
   - stub: true
 - **Approach:** Exercise public command functions or subprocess entry points so parsing-only tests cannot pass without reaching the sink.
 - **Done when:** The current implementation fails the new boundary tests for the expected read path.
@@ -58,7 +58,7 @@ and release metadata only after behavior is green.
 ### T4 — Harden managed-state reads
 
 - **Depends on:** T3
-- **Touches:** `packs/core/.apm/skills/work-loop/scripts/loop-engine.py`, `packs/core/.apm/skills/work-loop/scripts/loop-cohort.py`
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/phase-engine.py`, `packs/core/.apm/skills/work-loop/scripts/cohort-writer.py`
 - **Acceptance criteria:** AC3, AC5
 - **Tests:** Make T3's materialized stubs green and run the complete engine/cohort suites, including normal recovery and status serialization.
   - stub: consumed from T3

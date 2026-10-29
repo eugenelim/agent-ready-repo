@@ -7,7 +7,7 @@ reviewed-envelope fingerprint, terminal intent, code-trust classification, run
 id, and both authority references. A later ``start`` after an amendment appends
 a new pair under the same run id.
 
-It never opens a legacy ``engine-state.json`` or cohort ``state.json``.
+It reads no state file an earlier release left in the spec directory.
 
 Standard library only. Python 3.11+.
 """

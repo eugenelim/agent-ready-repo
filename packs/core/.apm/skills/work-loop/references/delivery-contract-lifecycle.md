@@ -7,7 +7,8 @@ fire; this page owns their complete payload and recovery rules.
 ## What a delivery contract binds, and for how long
 
 A spec and plan bind this delivery, not the repository forever: living while the
-plan is drafting, pinned from plan approval, frozen once the spec is `Shipped`,
+plan is drafting, partly protected from plan approval (the spec's protected sections
+and its terminal intent), frozen once the spec is `Shipped`,
 when the code becomes the truth. A frozen spec no longer constrains how the system
 behaves: later work that contradicts one is recorded in the code, and in a
 decision record when it reverses a decision, never by rewriting the shipped
@@ -21,24 +22,21 @@ the anchors a frozen body still owes.
 
 ## Rejected planning gates
 
-If the spec is rejected, fire `spec-rejected` from `SPEC-HUMAN-GATE` to return to
-`SPEC-PLAN-DRAFTING`. Revise the pair, set the spec and plan to `Draft` and
-`Drafting`, then fire `spec-ready`:
-
-```text
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-rejected
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-ready
-```
-
-If the plan is rejected, fire `plan-rejected` from `PLAN-HUMAN-GATE` and apply the
-same status reset, revision, and `spec-ready` sequence:
-
-```text
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> plan-rejected
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> spec-ready
-```
+A spec or plan rejected at a human gate has no run to reset: `start` has not run,
+and the supervisor holds no pre-approval state. Revise the pair, set the spec and
+plan back to `Draft` and `Drafting`, run the pre-EXECUTE reviewers again, and
+take both approvals again before `start`. A run that was already admitted is not
+rejected; it is amended, below.
 
 ## Controlled full-mode contract amendment
+
+Which plan changes need an amendment depends on what the approval covers. The
+approval covers the protected spec sections — contract, scope and non-goals,
+durable outputs, agent rules, testing strategy, acceptance criteria, accepted
+risk — and the terminal intent. A change to any of them needs an amendment. A
+change to tasks, tests, stubs, design, or approach does not: it is a
+working-plan edit, made by the controller only while no attempt is open
+([`supervisor.md`](supervisor.md#the-open-attempt-rule--when-the-plan-may-change)).
 
 When implementation proves an accepted item is genuinely separable, do not leave
 an open acceptance criterion or narrow the outcome because the session, retry
@@ -46,37 +44,21 @@ budget, or review round ended. First obtain explicit scope-owner authority and
 materialize the separated follow-on through `work-intake`, or obtain its stable
 external evidence reference.
 
-From code mode `CODE-IMPLEMENTATION`, before editing the spec or plan, run:
+Then amend the protected sections: set the spec and
+plan back to `Draft` and `Drafting`, amend the bounded outcome, final AC set,
+`Follow-ons`, and any unfinished tasks, and follow the ordinary pre-EXECUTE
+reviews and both human approvals. Write `Implementing` and `Executing` again and
+run `python '<skill-dir>/scripts/work-supervisor.py' start <spec-dir> ...` with
+the approvers' authority references: it appends a new approval pair under the
+same run. Until it does, `next` refuses a protected edit with its owner named
+(`criteria-changed`, `scope-changed`, `terminal-intent-changed`, and the like).
 
-```text
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> contract-amendment \
-    --owner-authority-ref <stable-owner-approval-ref> \
-    --reason-ref <stable-follow-on-artifact-or-external-ref> \
-    --completed-evidence-ref T1=<stable-gate-or-review-ref> \
-    --completed-evidence-ref T2=<stable-gate-or-review-ref>
-```
-
-The event pins the prior approved spec/plan and every completed task section,
-preserves completed evidence bound to task IDs, review counters, and run identity,
-clears only the remaining approval/schedule baseline, and returns to
-`SPEC-PLAN-DRAFTING`. Repeat `--completed-evidence-ref Tn=<stable-ref>` so every
-completed task has at least one evidence binding; no evidence flags are needed when
-no tasks have completed. Evidence from earlier amendments remains bound unless the
-current transition adds another reference for that task.
-
-An interrupted call is recovered by reissuing the exact same command. Changed
-authority, reason, or evidence facts refuse instead of creating another amendment.
-
-Then set the spec/plan to `Draft`/`Drafting`, amend the bounded outcome, final AC
-set, `Follow-ons`, and unfinished tasks, and follow the ordinary `spec-ready`,
-pre-EXECUTE reviews, human spec/plan gates, `approve-plan`, `schedule`, and
-`plan-locked` sequence. Completed task sections cannot be edited, removed, or
-renamed; a correction is a new dependency-ordered unfinished task. Rescheduling
-emits only unfinished tasks and treats preserved completed dependencies as met.
-
-The event is unavailable in spec-plan mode and outside `CODE-IMPLEMENTATION`.
-Required accepted work remains `Implementing`; session end, retry cap, stasis, or
-model judgment never invokes this transition or creates a follow-on.
+Completed tasks stay complete: the supervisor derives completion from the commits
+and receipts for each task's current revision, so a correction that touches a
+finished task is a new revision, which is a new unfinished task to run. Required
+accepted work remains `Implementing`; session end, retry cap, stasis, or model
+judgment never invokes this transition or creates a follow-on. The retry count never
+resets.
 
 ## Verification ledger
 
@@ -88,20 +70,26 @@ comparisons, manual-QA output, and any deviation from a task row's literal
 method.
 
 The approved `spec.md` and `plan.md` retain obligations only: acceptance
-criteria and task rows. The ledger is not hash-pinned, so recording an
-observation there needs no amendment to either approved artifact. A genuine
-specification or plan error is different and still follows the controlled
-amendment procedure above.
+criteria and task rows. The ledger is outside the reviewed envelope, so recording
+an observation there needs no amendment and no plan edit. A genuine
+specification or plan error is different: it is corrected as the sections above
+say.
 
-A declared discovery is an observation, not an error. When a plan recorded a
-seam or a design means as `implementation-discovered`, grounding that arrives during
-implementation goes in the verification ledger. The plan predicted the
-discovery, so recording it amends neither approved artifact.
+A declared discovery is not an execution observation: it changes the plan. When
+a plan recorded a seam or a design means as `implementation-discovered`, the
+grounding that arrives during implementation, and each later correction to it, is
+a controller edit of the plan's `## Design (LLD)`. Make it as an in-envelope
+working-plan change; the supervisor commits it as one `replan` with no approval,
+and every task completed before it stays complete. A worker attempt that learns a
+seam reports what it found, and the controller writes it into the design. The
+ledger keeps what execution observed.
 
 A falsified settled decision is an error. When approval settled a design
-decision and execution falsifies it, the plan is wrong and takes the controlled
-amendment procedure above. The verification ledger is not a route for a
-settled decision that execution falsified.
+decision and execution falsifies it, the plan is wrong: Surface the evidence,
+obtain the owner's agreement, and correct the plan. A correction that stays
+inside tasks, tests, stubs, design, and approach is a working-plan edit; one
+that reaches a protected spec section or the
+terminal intent takes the amendment above.
 
 ## When the design shape is wrong
 
@@ -110,7 +98,7 @@ That is a plan error on its own, and one is enough. A `design-misfit`
 deviation whose assumption is a settled decision in the approved
 `## Design (LLD)` is that case: take the steps below at once, without waiting
 for a second sign. A verification-ledger entry may record it, but never
-resolves it; only the amendment does.
+resolves it; only a corrected plan does.
 
 This section also covers the harder case. Each deviation looks local, yet a
 run of them shares a cause, which means the design itself has the wrong
@@ -143,16 +131,16 @@ When the pattern holds:
 2. Surface the evidence: each sign, where it appeared, and the design decision
    they share. When the plan has a `## Design (LLD)`, name the sub-section and
    the assumption it rested on. Wait for the owner.
-3. If the owner agrees the shape is wrong, take the controlled amendment
-   above. Redesign from what was actually built, as if the constraints the
+3. If the owner agrees the shape is wrong, correct the plan as the section
+   above says: a working-plan edit, or the controlled amendment when it
+   reaches a protected section. Redesign from what was actually built, as if the constraints the
    build revealed had been known from the start. Do not patch only the line
    the build disproved.
 4. Make the new design smaller than the old one before it grows. Removing or
    merging the parts that existed only to work around the old shape comes
-   first, as new unfinished tasks; the amendment rule above keeps completed
-   task sections sealed.
+   first, as new unfinished tasks; a finished task stays finished.
 
-Light mode has no amendment event, whether its plan is a spec on disk or,
+Light mode has no amendment, whether its plan is a spec on disk or,
 for direct-light, held only in the session. Its one task is the whole change,
 so watch for signs inside it: the same workaround across its files, escape
 hatches, or an unplanned lock. When they appear, or when the build disproves
@@ -212,10 +200,9 @@ Stop the current iteration when any of these is true:
    clean. Proceed to the finish checklist. **Do not continue searching for
    additional improvements.** A clean or merged unit does not complete the
    accepted intent while work that intent requires remains.
-2. `loop-cohort.py check` exits non-zero, other than the expected pending plan
-   review that triggers pre-EXECUTE reviewers. Implementation/review retry caps
-   identify their condition. A repeated finding fingerprint from `review inspect`
-   is Surfaced, not a stop; it bounds nothing.
+2. `work-supervisor.py status --check` exits non-zero: 3 names the
+   implementation retry cap, 1 a refusal. A finding the supervisor's review
+   readiness keeps raising is Surfaced, not a stop; it bounds nothing.
 3. The diff is shrinking but findings are not. Stop spot-fixing and return to the
    plan/root cause.
 

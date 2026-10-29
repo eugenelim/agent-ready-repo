@@ -1602,7 +1602,13 @@ def test_pack_delivery_contract_is_complete_and_version_increased(workspace_stat
                 )
 
         major, minor, patch = (int(part) for part in base_version.split("."))
-        if base_primitives - current_primitives:
+        # The pack rule's "major for removals" covers a removed file under `.apm/`
+        # as well as a removed primitive.
+        removed_files = subprocess.run(
+            ["git", "diff", "--name-only", "--diff-filter=D", base, "--", "packs/core/.apm"],
+            cwd=REPO_ROOT, capture_output=True, text=True, check=False,
+        ).stdout.split()
+        if base_primitives - current_primitives or removed_files:
             expected_version = f"{major + 1}.0.0"
         elif current_primitives - base_primitives:
             expected_version = f"{major}.{minor + 1}.0"

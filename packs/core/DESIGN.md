@@ -111,7 +111,7 @@ No trigger fires → light mode.
 | Spec | Eligible direct-light work keeps its plan in the active session; a supplied or persisted spec remains governing | Durable `new-spec` document |
 | `adversarial-reviewer` passes | Rounds run to clean, with a divergence checkpoint that routes to the requester | Iterated to clean (max 5 iterations) |
 | `quality-engineer` | Not run by default | Runs at end-of-session checklist |
-| `loop-cohort` state machine | Not used | Used |
+| `work-supervisor.py` run | Not used | Used |
 | Task count | Single logical task | Multi-task via supervisor |
 
 ### Why risk, not file count
@@ -497,7 +497,7 @@ Three co-located helper copies ride alongside the derivation:
 
 The `navigate-intents` query script (`navigate_intents.py`) consumes this derivation. `close-work` loads a byte-identical copy at `close-work/scripts/intent_graph.py`, pinned by `test_intent_delivery_relations_copies.py`, for its ancestor walk and its `children` arm. It holds no second parent-edge parser, and `tools/check_closure_terminality_parity.py` pins the parent kinds the derivation reads.
 
-The derivation also reads an intent's `Related intents:` field into related edges, which `navigate-intents` shows from both ends. No reconciler reads them: `close-work`'s closure, the delivery resolver, `lint-traceability`, `loop-cohort`, and `workspace-status` ignore the field, and a source scan over the pack's Python files pins that. The `work-intake` corpus lint checks the field's shape and its targets.
+The derivation also reads an intent's `Related intents:` field into related edges, which `navigate-intents` shows from both ends. No reconciler reads them: `close-work`'s closure, the delivery resolver, `lint-traceability`, `work-supervisor`, and `workspace-status` ignore the field, and a source scan over the pack's Python files pins that. The `work-intake` corpus lint checks the field's shape and its targets.
 
 The `dependencies` query operation and the view's `dependencies` payload member read an intent's `Depends on:` header. `derive` drops preamble fields, so the operation re-reads the intent collection through the same confined helpers (`_file_safety.py`, the same admission, tombstone and identity rules) and refuses with `unsafe_input` if the live intents it read differ from `derive`'s. It resolves typed ids and legacy repository paths, lists values it cannot resolve as diagnostics and cycles as groups, and is display only: it is not the enforcing reader, never reads `workspace.toml` or workspace dependencies, and decides no readiness. A scoped `export` carries the dependency records of the intents linked to its subtree and names those outside it by id.
 

@@ -303,6 +303,28 @@
         "Response names the assumption that would make the choice wrong if the build disproved it",
         "Response keeps the Traces to and Owned by fields"
       ]
+    },
+    {
+      "id": "post-approval-plan-changes-amendment-or-working-plan",
+      "prompt": "A supervisor run is executing an approved plan. One task's approach needs a different helper, another task needs a reordered dependency, and a third change would add a new acceptance criterion. Which of these need an amendment?",
+      "expected_output": "Only the new acceptance criterion needs an amendment, because it changes a protected spec section; the owner's authority, fresh pre-execution review, and both approvals are required. The different helper and the reordered dependency are changes to tasks and approach, so the controller makes them as in-envelope working-plan changes while no execution attempt is open. The supervisor commits them without an approval request, and every task finished before them stays finished.",
+      "assertions": [
+        "Says a new acceptance criterion changes a protected spec section and needs an amendment",
+        "Says tasks, tests, stubs, design, and approach changes need no amendment",
+        "Has the controller make the working-plan change while no execution attempt is open",
+        "Says finished tasks stay finished"
+      ]
+    },
+    {
+      "id": "implementation-discovered-grounding-goes-to-the-design",
+      "prompt": "The plan marked a seam's means `implementation-discovered`. During implementation the code grounds it. Where does the grounding go, and where does a later correction to it go?",
+      "expected_output": "Both go into the plan's `## Design (LLD)`, written by the controller as an in-envelope working-plan change after the open attempt's result is reported and before the next request is issued. Neither goes to the verification ledger, which keeps execution observations such as a red test's command and failing output. A settled decision that execution falsified is a plan error the owner agrees to, and it is corrected the same way unless it reaches a protected spec section, which takes an amendment.",
+      "assertions": [
+        "Routes the grounding and each later correction to the plan's `## Design (LLD)`",
+        "Has the controller write it while no attempt is open",
+        "Does not route either to the verification ledger",
+        "Keeps execution observations in the ledger"
+      ]
     }
   ]
 }

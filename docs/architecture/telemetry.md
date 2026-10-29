@@ -85,27 +85,24 @@ purpose.
 
 ### 5.1 What a line holds
 
-Each line carries fourteen fields: the seven that identify the transition
-(`seq`, `run_id`, `spec`, `from`, `event`, `to`, `at`), the envelope version
-(`schema`), and six that describe it (`phase_started_at`, `phase_s`, `result`,
-`awaiting_input`, `waived`, `budgets`).
+Each line carries ten fields: the seven that identify the step (`seq`,
+`run_id`, `spec`, `from`, `event`, `to`, `at`), the envelope version
+(`schema`), `awaiting_input`, and `step_id`.
 
 Three rules govern the shape.
 
-- **Unknown is written as `null`, never left out.** A missing key reads as zero
-   to anything adding up durations or comparing a counter against a limit. So a
-   field the engine cannot work out is still there, holding `null`.
-- **A decision, not a count.** `result` records what a gate decided. It uses
-   OpenTelemetry's CI/CD result words rather than ones we made up. It says what
-   one transition decided and never how many have happened; counting the lines
-   answers that. The retry counters are a different thing and they *are* on the
-   line, in `budgets` — see the next rule.
-- **`budgets` copies the counters and reports the enforced caps.** `loop-cohort`
-  owns the retry counters and changes them in a later step, so the line shows
-  where they stood one round ago. An absent cap reports the default the
-  guard enforces, so a capped run never reads as uncapped. A malformed cap, which
-  the guard refuses, reports `null`, as does a count nothing has recorded. The pack's `state-schema.md` spells out what follows from that.
-  Those limits change what the numbers mean; they are not small print.
+- **Every field is always present.** The supervisor derives each line from its
+  own commit, so it knows every value and never leaves a key out.
+- **`from`, `event`, and `to` are supervisor names.** `event` is the commit's
+  operation, such as `replan`, `stub`, `implement`, `gate-fail`, `review`, or
+  `terminal`. `from` and `to` are the run's stage before and after it:
+  `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, or
+  `terminal`.
+- **`awaiting_input` and `step_id` say where the run stands.**
+  `awaiting_input` is true exactly when the step leaves the run waiting on a
+  human. `step_id` names the supervisor commit the line was derived from, so a
+  reader can match a line to its commit. Retry counts and caps are not on the
+  line; `work-supervisor.py status --json` reports them.
 
 The line is **always written**. There is no switch. The file is local and
 gitignored, and nothing leaves the machine.

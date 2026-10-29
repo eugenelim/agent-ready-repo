@@ -726,3 +726,89 @@ def test_a_diff_too_large_to_show_is_refused_not_truncated(tmp_path: Path) -> No
                                 "utf-8")
     request = _confirmation(repo)
     assert len(request["diff"]) <= 4 * 1024 * 1024
+
+
+# ── VI-7023: who may add a stub fence, and when the plan may change ───────────
+
+DESIGN_NOTE = (
+    "## Design (LLD)\n\n"
+    "- The calculator is one function, `answer()`, in `calc.py`.\n\n"
+)
+FENCED = "- **VI-1:** x\n\n" + sup.stub_fence(indent="  ")
+
+
+def _with_design(plan: str) -> str:
+    """*plan* with a design note ahead of its tasks: an edit outside every task."""
+    return plan.replace("## Tasks", DESIGN_NOTE + "## Tasks", 1)
+
+
+def _approvals(repo: Path) -> int:
+    return len(h.workspace(repo).approvals())
+
+
+def _completed(repo: Path) -> list[str]:
+    _, status = h.run_cli(repo, "status", SPEC, "--json")
+    return [t["title"] for t in status["tasks"] if t["complete"]]
+
+
+def test_a_controller_added_fence_replans_then_stubs_then_implements(
+        tmp_path: Path) -> None:
+    repo, controller = _stepper(tmp_path, _calc_plan("no stub (implementation-discovered)"))
+    approvals = _approvals(repo)
+    # The controller adds the fence after the last result and before the first request.
+    _plan_path(repo).write_text(_calc_plan(FENCED), "utf-8")
+    assert _do(repo, controller)["kind"] == "write-stub"
+    assert _operations(repo) == ["approval", "replan", "stub"]
+    assert _do(repo, controller)["kind"] == "implement-task"
+    assert _operations(repo) == ["approval", "replan", "stub", "implement"]
+    assert _approvals(repo) == approvals
+    assert "Calculator answers" in _completed(repo)
+    assert len(_red_receipts(repo)) == 1
+
+
+def test_a_worker_added_fence_is_refused_and_commits_nothing(tmp_path: Path) -> None:
+    repo, controller = _stepper(tmp_path, _calc_plan("no stub (implementation-discovered)"))
+    _, payload = h.run_cli(repo, "next", SPEC)
+    assert payload["request"]["kind"] == "implement-task"
+    result = controller.work(payload["request"])
+    _plan_path(repo).write_text(_calc_plan(FENCED), "utf-8")
+    head = h.git(repo, "rev-parse", "HEAD")
+    code, refused = controller.report(result)
+    assert code == 1 and refused["refusal"]["code"] == "attempt-refused", refused
+    assert h.git(repo, "rev-parse", "HEAD") == head
+    assert _operations(repo) == ["approval"]
+    assert _approvals(repo) == 1
+    assert _completed(repo) == []
+    assert "calc.py" not in _tracked(repo)
+
+
+def test_a_design_only_edit_between_attempts_is_one_replan_and_keeps_completed_tasks(
+        tmp_path: Path) -> None:
+    repo, controller = _stepper(tmp_path)
+    _do(repo, controller)
+    _do(repo, controller)
+    assert _completed(repo) == ["Calculator answers"]
+    approvals = _approvals(repo)
+    _plan_path(repo).write_text(_with_design(_plan_path(repo).read_text("utf-8")), "utf-8")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "implement-task", payload
+    assert _operations(repo).count("replan") == 1 and _operations(repo)[-1] == "replan"
+    assert _completed(repo) == ["Calculator answers"]
+    assert _approvals(repo) == approvals
+
+
+def test_the_same_design_edit_while_an_attempt_is_open_is_attempt_residue(
+        tmp_path: Path) -> None:
+    repo, controller = _stepper(tmp_path)
+    _, payload = h.run_cli(repo, "next", SPEC)
+    assert payload["request"]["kind"] == "write-stub"
+    result = controller.work(payload["request"])
+    _plan_path(repo).write_text(_with_design(_plan_path(repo).read_text("utf-8")), "utf-8")
+    head = h.git(repo, "rev-parse", "HEAD")
+    code, refused = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and refused["refusal"]["code"] == "attempt-residue", refused
+    code, refused = controller.report(result)
+    assert code == 1 and refused["refusal"]["code"] == "attempt-residue", refused
+    assert h.git(repo, "rev-parse", "HEAD") == head
+    assert _operations(repo) == ["approval"]
+    assert _approvals(repo) == 1

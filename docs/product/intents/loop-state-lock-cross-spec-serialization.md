@@ -1,30 +1,30 @@
-# Serialize loop state recovery across specs
+# Serialize supervisor state across specs
 
 - **Slug:** `loop-state-lock-cross-spec-serialization`
 - **Status:** Draft
 - **Level:** feature
 - **Owner:** eugenelim
-- **Governed by:** [spec/loop-cohort-state-lock AC11](../../specs/loop-cohort-state-lock/spec.md)
+- **Governed by:** [the state-lock spec, AC11](../../specs/loop-cohort-state-lock/spec.md), the contract of the lock the supervisor's run lock reuses
 
 ## Outcome
 
-Work-loop state recovery and its repo-global event outbox can be operated concurrently without one spec's transition mutating another spec's in-flight state, with the lock failure and reclaim cases proved by deterministic evidence.
+Supervisor runs on different specs and their repo-global event log can operate concurrently without one spec's step mutating another spec's in-flight state, with the lock failure and reclaim cases proved by deterministic evidence.
 
 ## Opportunity
 
-The current per-spec lock protects only the spec being transitioned, while recovery and both outbox writers use repo-global paths and the remaining failure observations have not been conclusively classified.
+The supervisor's run lock, under each spec's `.supervisor/` directory, protects only the spec being stepped, while every run appends to the one repo-global `.loop-run/events.jsonl` and the remaining failure observations have not been conclusively classified.
 
 ## What this absorbs
 
 ### loop-outbox-cross-spec-rmw
 
-`loop-engine`'s `_recover_pending` reads the repo-global `.loop-run/events.pending` and calls `_recover_engine_state_tmp(pending_spec_dir)` for whichever spec the record names. A transition on spec A, while holding only A's per-spec lock, can therefore promote or delete spec B's in-flight engine-state temporary file while B holds B's own lock. The two outbox writers, `_write_events_pending` and `_append_events_jsonl`, likewise touch single repo-global paths on the same terms. A per-spec lock cannot serialize these operations. The recorded fix options are to skip a pending record naming another spec and leave it for that spec's next transition, or add a repo-scoped lock with a documented acquisition order relative to the per-spec lock. A second lock scope risks deadlock without an ordering rule.
+Each supervisor verb takes its spec's run lock (`run_lock` in `_supervisor_admission.py`, built on `_statelock.py`) and then projects its steps into the repo-global `.loop-run/events.jsonl` through `reconcile_events` in `_supervisor_journal.py`. Two runs on different specs hold different run locks and append to the same file, so the run lock cannot serialize them. The supervisor treats that log as advisory: a failed read or write prints a warning and never changes a verb's outcome, each run's step records live in its own spec and Git history, and a run that missed a line catches up on its next verb. Recovery no longer reaches into another spec's state: the pending-record replay that could promote or delete another spec's in-flight state file left with the old engine. What remains is whether concurrent appends from two specs can interleave or truncate a line. The recorded fix options are an append that is atomic for one line, or a repo-scoped lock with a documented acquisition order relative to the run lock. A second lock scope risks deadlock without an ordering rule.
 
-Unblocks when: a design establishes the second lock scope and its acquisition order, or establishes the safe other-spec pending-record behavior.
+Unblocks when: a design establishes the append behavior for concurrent specs, or the second lock scope and its acquisition order.
 
 ### statelock-token-write-failure-test
 
-The `loop-cohort-state-lock` contract says that the token write must succeed before the body is entered, that failure removes the lockfile, and the verb fails closed. It records this as deferred because injecting an `os.write` failure needs a seam the module deliberately lacks. The missing test must demonstrate that token-write failure prevents body entry, removes the lockfile, and fails closed.
+The state-lock contract (`docs/specs/loop-cohort-state-lock`) says that the token write must succeed before the body is entered, that failure removes the lockfile, and the verb fails closed. It records this as deferred because injecting an `os.write` failure needs a seam the module deliberately lacks. The missing test must demonstrate that token-write failure prevents body entry, removes the lockfile, and fails closed.
 
 Unblocks when: a test mechanism can control the token-write failure without weakening the lock module's deliberate no-seam design.
 
@@ -42,7 +42,7 @@ Unblocks when: those runs provide a measured probability and trace.
 
 ## Assumptions
 
-- Cross-spec recovery needs a design that proves a deadlock-free acquisition order or proves that deferring another spec's pending record is safe.
+- Concurrent cross-spec event appends need a design that proves a deadlock-free acquisition order or proves that an advisory, catch-up-on-next-verb log is safe.
 - `statelock-token-write-failure-test` needs controlled token-write-failure evidence that preserves the deliberately seam-free lock implementation.
 - The two reclaim observations need the deterministic or loaded-run evidence named above before their lock behavior or assertions can be changed.
 

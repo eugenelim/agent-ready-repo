@@ -136,7 +136,7 @@ The full procedure lives in [the `work-loop` SKILL.md](../../../packs/core/.apm/
 
   When the accepted criteria say an existing behavior must survive a change, the loop also loads a reference on the evidence that proves it: an independent expected side, an oracle seen to fail on a named mutation, and what counts as missing, stale, tautological, or feature-only. See [the preservation-evidence reference](../../../packs/core/.apm/skills/work-loop/references/preservation-evidence.md).
 - **GATES** — lint, typecheck, tests. Mechanical, ordered, no editing the gate to make it pass.
-- **REVIEW** — `adversarial-reviewer` reads the diff cold against `AGENTS.md` + `spec.md`. Findings come back as Blockers / Concerns / Nits with one-sentence fixes. The loop records each pass's finding fingerprints to `state.json` via `loop-cohort review record`, which is what lets the next phase compare a round's findings against the previous one. Pass `--operation-id <run-id>:<transition-sequence>` — read the sequence from `loop-engine status` after the transition that opened the round — and the round is named on disk. Re-issuing the identical recording under that same id is then a no-op rather than a second round, so a session that dies before it knows whether the write landed can simply repeat it. A different payload under a used id is refused rather than silently accepted. The same `classify`, `raw-classify`, `inspect`, and `record` commands also live in `review-artifact.py`, with identical output. Where no cohort `state.json` exists, `review-artifact.py record --run-id <uuid>` keeps one `<round>-record.md` per round under `.context/reviews/<run-id>/` and counts the review budget from those files. There, lifting the cap takes `--allow-retry-cap-override` with an `owner` authority reference passed as `--authority-ref`. Specialist reviewers (`security-reviewer`, `quality-engineer`) run when the diff warrants. Either reviewer can return its findings as a typed report when the caller asks, and on a shared-substrate change `adversarial-reviewer` asks whether every reachable consumer class has a preservation criterion while `quality-engineer` asks whether each preservation criterion has current, independent evidence.
+- **REVIEW** — `adversarial-reviewer` reads the diff cold against `AGENTS.md` + `spec.md`. Findings come back as Blockers / Concerns / Nits with one-sentence fixes. In a full-mode run the supervisor closes review from structured review readiness: it asks for a reviewer selection, then a typed report per selected role, then an assessment of each finding, and it returns the task to implementation for each supported finding until a fresh report no longer carries it. Pre-approval review and light mode use `review-artifact.py` (`classify`, `raw-classify`, `inspect`, `record`) with a run id: `review-artifact.py record --run-id <uuid>` keeps one `<round>-record.md` per round under `.context/reviews/<run-id>/` and counts the review budget from those files. Pass `--operation-id <run-id>:<sequence>` and re-issuing the identical recording is a no-op rather than a second round, so a session that dies before it knows whether the write landed can simply repeat it. There, lifting the cap takes `--allow-retry-cap-override` with an `owner` authority reference passed as `--authority-ref`. Specialist reviewers run when the diff warrants. Either reviewer can return its findings as a typed report when the caller asks, and on a shared-substrate change `adversarial-reviewer` asks whether every reachable consumer class has a preservation criterion while `quality-engineer` asks whether each preservation criterion has current, independent evidence.
 - **DECIDE** — requiredness decides each finding: work the current intent requires, or that blocks correctness or security, becomes the next review unit in the same session when it cannot share this one. Work no obligation names is excluded — acknowledged in the PR, captured only if its owner asks — not scheduled. If the same findings come back two iterations in a row, that is surfaced to a human; the iteration cap is what bounds the loop.
 
 Sometimes the plan cannot yet know which function the code will hook into, or
@@ -148,9 +148,11 @@ how a design will be built. The plan then marks that spot
 - the result it must deliver;
 - how that result is checked.
 
-When the answer turns up, it goes to the
-[verification ledger](../../../packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md#verification-ledger),
-and the approved plan is not edited. Don't use the mark to restate an acceptance
+When the answer turns up, you write it into the plan's design section as a
+working-plan change between requests, and the supervisor commits it without a
+new approval. The
+[verification ledger](../../../packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md#verification-ledger)
+keeps what the run observed. Don't use the mark to restate an acceptance
 criterion.
 
 For the end-to-end narrative with the parts in context, read [core-pack.md § How they tie together](../explanation/core-pack.md#how-they-tie-together).
@@ -158,7 +160,7 @@ For the end-to-end narrative with the parts in context, read [core-pack.md § Ho
 ### Termination cues you'll see
 
 - **Gates green and review clean** → ship.
-- **`loop-cohort.py check` exits non-zero** → the script tells you which cap fired (implementation retry cap or review retry cap). Read the message. A cap firing means the loop stopped converging, so the default answer is to reset and start a new run, not to push past it. The review cap alone has an escape hatch — `--allow-retry-cap-override`, which must be passed to both `loop-engine.py transition findings-remain` and the matching `loop-cohort.py review record`, since either half alone leaves the engine and the cohort a round apart. It is for a human who has looked at why the loop is not converging and decided to continue anyway; an agent running unattended should stop and surface the cap instead. The implementation cap has no override by design.
+- **`work-supervisor.py status --check` exits 3, or a `retry-cap` decision opens** → the implementation retry cap fired. The loop stopped converging, so the default answer is to stop and re-plan or split the task, not to push past it; no replan, amendment, or approval resets the count. An agent running unattended should stop and surface it.
 - **Diff is shrinking but findings aren't** → you're spot-fixing without addressing root cause. Back to PLAN.
 
 If any of these fire and the work isn't done, the task is bigger than you thought. Re-plan rather than expanding scope silently.
@@ -182,19 +184,15 @@ merge-ready PR. The merge decision is yours; the loop does not take it.
 
 ### Resume an in-flight spec
 
-`work-loop` reads `docs/specs/<feature>/` and picks up from both `engine-state.json` (FSM phase) and `state.json` (execution counters and wave progress). Phrase as "resume the X work" or "continue on `docs/specs/X`". The Session Resumption protocol in the skill reads `loop-engine status --json` first, then `loop-cohort status --json`, and routes by `last_event`. On a review round it also compares `last_review_record_operation_id` against the id it would compute now: equal means the round was recorded and the loop moves on, and anything else means it was not.
-
-Both files are gitignored session-scratch — on a fresh checkout (new machine, after `git clean`, a teammate's box), the loop re-initializes with engine first: `loop-engine init --json` produces the `run_id`; `loop-cohort init <spec-dir> --run-id <run_id>` registers it. Any other init order causes the engine's identity preflight to reject every subsequent transition.
+`work-loop` reads `docs/specs/<feature>/` and picks up from Git history and the committed `delivery/` records. Phrase as "resume the X work" or "continue on `docs/specs/X`". The Session Resumption protocol in the skill runs `work-supervisor.py status --json` first, then `next`, and answers what it issues. A deleted `.supervisor/` directory loses nothing, because the supervisor re-derives the run from commits and committed records.
 
 ### Spec amendment mid-flight
 
-Once `approve-plan` runs (during the G-plan sequence after the plan approver fires `plan-approved`), `plan check-current --require-schedule` guards the subsequent `plan-locked` transition against the approved plan hash. A post-approval `plan.md` edit will cause the `plan-locked` transition to be rejected — the approved plan is immutable in substance. If EXECUTE discovers a fundamentally missing or wrong task, surface that to a human and start a new run rather than editing in place. Safe post-approval edits are the ones the loop itself mandates plus pure formatting: the preamble `**Status:**` token, checkbox bookkeeping (`[ ]` → `[x]`), trailing whitespace, and line endings are all normalized out of the hash. Anything else — task text, a `Depends on:` edge, re-indenting a criterion, or free text appended after the status token — invalidates it. Record an execution observation through the [verification-ledger procedure](../../../packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md#verification-ledger).
+After `start`, the approval covers the spec's protected sections, its terminal intent, and the reviewed execution envelope. A change to tasks, tests, stubs, design, or approach is a working-plan edit: you make it between requests, while no attempt is open, and the supervisor commits it as a `replan` with no new approval. A change to a protected section or the terminal intent is refused and names its owner; it takes an amendment, which returns through review and both approvals and ends with `start` again. Record an execution observation through the [verification-ledger procedure](../../../packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md#verification-ledger).
 
 ### Parallel implementers (supervisor mode)
 
-Parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 — those verbs exit non-zero without touching `state.json`. The full parallel-dispatch design (opt-in, gated, wave-scheduled) is documented in [`references/supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md) for future phases.
-
-When an `implementer` subagent is installed, the controller dispatches each plan task sequentially, one implementer at a time, using the schedule order.
+The supervisor issues one `implement-task` request at a time, in the plan's dependency order. When an `implementer` subagent is installed, the controller dispatches each plan task sequentially, one implementer at a time; the reviewer fan-out rules are in [`references/supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md).
 
 ## Pitfalls
 
@@ -203,7 +201,7 @@ When an `implementer` subagent is installed, the controller dispatches each plan
 :::
 
 :::caution
-**Editing `state.json` by hand.** The file is owned by the `loop-cohort` tool. Hand edits desync the loop's view of plan approval and fingerprint state. Run the tool's verbs; don't reach in.
+**Editing `.supervisor/` or `delivery/` by hand.** The supervisor owns those records, and a hand edit refuses the next verb. Run the supervisor's verbs; don't reach in.
 :::
 
 :::caution
@@ -245,8 +243,8 @@ Two layered mechanisms enforce discipline before a PR opens:
 
 | Layer | Mechanism | What it gates |
 |---|---|---|
-| Caps | `scripts/loop-cohort.py check` in the `work-loop` skill | Implementation retry cap (`--phase gates-failed`) and review retry cap (`--phase review`) (see `references/state-schema.md` in the `work-loop` skill). The same tool owns every state mutation upstream of the check. |
-| Your gate | `tools/hooks/pre-pr.py` | Runs the caps check, then **your project's own** lint / typecheck / test commands — wire them into the stub in `pre-pr.py` (or let the `adapt-to-project` skill fill them in from your detected build commands). |
+| Caps | `scripts/work-supervisor.py status --check` in the `work-loop` skill | The implementation retry cap (exit 3) and any standing refusal (exit 1), for every spec holding `delivery/approvals.jsonl` (see `references/state-schema.md` in the `work-loop` skill). |
+| Your gate | `tools/hooks/pre-pr.py` | Runs the supervisor check, then **your project's own** lint / typecheck / test commands — wire them into the stub in `pre-pr.py` (or let the `adapt-to-project` skill fill them in from your detected build commands). |
 
 This is **Shift Left**: catch problems as early as possible, locally
 before CI, at PLAN before EXECUTE. The pre-EXECUTE adversarial review

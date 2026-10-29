@@ -47,7 +47,8 @@ ROUTES = {
 
 def test_current_security_checklist_modules_are_frozen() -> None:
     skill = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
-    work_loop = WORK_LOOP_SKILL.read_text(encoding="utf-8")
+    # The security reviewer's boundary text moved into the rules file with the roster.
+    work_loop = (WORK_LOOP_SKILL.parent / "review-rules.json").read_text(encoding="utf-8")
 
     assert "name: security-checklists" in skill
     assert "generated-by: compile-okf agentbundle-okf/v1" not in skill

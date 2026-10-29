@@ -20,9 +20,8 @@ from typing import Any
 SCRIPTS = (
     Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
 )
-SHADOW_SUBDIR = ".shadow-acceptance"
-LOG_NAME = "shadow-evidence.log"
-MARKER = b"*\n"
+SHADOW_SUBDIR = "delivery"
+LOG_NAME = "evidence.jsonl"
 
 
 def load_script(alias: str, filename: str) -> ModuleType:
@@ -47,11 +46,11 @@ def null_sink(event: object) -> None:
 
 
 class FeedRepo:
-    """A temporary repository with spec directories and shadow evidence logs."""
+    """A temporary repository with spec directories and committed evidence logs."""
 
     def __init__(self, base: Path) -> None:
         self.root = base / "repo"
-        (self.root / ".git").mkdir(parents=True)
+        self.root.mkdir(parents=True)
         (self.root / "docs" / "specs").mkdir(parents=True)
         self.es = load_script("dfp_evidence_store", "_evidence_store.py")
         self.sc = load_script("dfp_security_capability", "_security_capability.py")
@@ -79,19 +78,17 @@ class FeedRepo:
         return path
 
     def shadow_dir(self, slug: str) -> Path:
-        """Return the shadow directory path for *slug* without creating it."""
+        """Return the `delivery/` directory path for *slug* without creating it."""
         return self.spec_dir(slug) / SHADOW_SUBDIR
 
     def log_path(self, slug: str) -> Path:
         """Return the evidence log path for *slug*."""
         return self.shadow_dir(slug) / LOG_NAME
 
-    def ensure_shadow(self, slug: str, *, marker: bytes | None = MARKER) -> Path:
-        """Create the shadow directory with the writer's marker (or another, or none)."""
+    def ensure_shadow(self, slug: str) -> Path:
+        """Create the spec's committed `delivery/` directory."""
         directory = self.shadow_dir(slug)
         directory.mkdir(exist_ok=True)
-        if marker is not None:
-            (directory / ".gitignore").write_bytes(marker)
         return directory
 
     def log_bytes(self, slug: str) -> bytes:
@@ -126,7 +123,7 @@ class FeedRepo:
     # ── Writers ─────────────────────────────────────────────────────────────
 
     def open_store(self, slug: str) -> Any:
-        """Open the production evidence store for *slug*, with the marker in place."""
+        """Open the production evidence store for *slug*, in its `delivery/` directory."""
         self.ensure_shadow(slug)
         store = self.es.EvidenceStore(self.log_path(slug))
         store.open()

@@ -6,6 +6,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.59.0] — 2026-10-29
+
+### Changed
+
+- **Breaking:** the workspace bridge no longer reads a spec directory's old
+  engine state file. The run id, stage, active signal, and pending human question
+  come only from a supervisor run's status file. A spec directory with no
+  supervisor status shows no run and no pending gate, and `workspace_status`
+  `gate_question` is always a framed object (`untrusted`, `admitted`, `field`,
+  `value`, `notice`) or null; it is never a plain string.
+
+Engine-Change-RFC: n/a — removes the bridge's old-engine path under the supervisor cutover spec
+
 ## [0.58.1] — 2026-10-29
 
 ### Added

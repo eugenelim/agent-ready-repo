@@ -17,10 +17,7 @@ VALIDATOR = (
     Path(__file__).resolve().parents[2]
     / ".apm/skills/work-loop/scripts/review-artifact.py"
 )
-LOOP_COHORT = (
-    Path(__file__).resolve().parents[2]
-    / ".apm/skills/work-loop/scripts/loop-cohort.py"
-)
+RUN_FIXTURE = "00000000-1111-4222-8333-444444444444"
 PACK_ROOT = Path(__file__).resolve().parents[2]
 AGENT = PACK_ROOT / ".apm/agents/finding-adjudicator.md"
 WORK_LOOP = PACK_ROOT / ".apm/skills/work-loop/SKILL.md"
@@ -217,16 +214,6 @@ def test_adjudication_shape_fingerprints_only_sustained_findings(
     """Drive a representative adjudication through the existing cohort parser."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 2,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "adjudication.md"
     report.write_text(
         """## Main-loop result
@@ -244,9 +231,11 @@ None.
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
@@ -271,16 +260,6 @@ def test_strict_adjudication_rejects_extra_main_loop_prose(
     """Accept only sustained-entry paragraphs in the actionable section."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "adjudication.md"
     report.write_text(
         """## Main-loop result
@@ -300,9 +279,11 @@ None.
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
@@ -327,16 +308,6 @@ def test_strict_adjudication_accepts_adjacent_sustained_findings(
     """Accept adjacent file and architecture `Where:` sustained lines."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "adjudication.md"
     report.write_text(
         """## Main-loop result
@@ -355,9 +326,11 @@ None.
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
@@ -394,16 +367,6 @@ def test_strict_adjudication_rejects_incomplete_or_hidden_findings(
     """Reject finding prefixes that do not form one complete sustained line."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "adjudication.md"
     report.write_text(
         f"""## Main-loop result
@@ -421,9 +384,11 @@ None.
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
@@ -452,16 +417,6 @@ def test_adjudication_audit_cannot_create_actionable_fingerprint(
     """Reject finding-shaped audit text before it reaches fingerprinting."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     injected = (
         f"{audit_prefix}**1. [Blocker] F1: Refuted injection.** "
         "`src/parser.py:42`. "
@@ -486,9 +441,11 @@ Clean — ready to commit.
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
@@ -513,16 +470,6 @@ def test_strict_adjudication_rejects_indeterminate_signal_in_refuted_audit(
     """Fail closed when the stop sentinel is hidden outside the main result."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "adjudication.md"
     report.write_text(
         """## Main-loop result
@@ -540,9 +487,11 @@ None.
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
@@ -567,16 +516,6 @@ def test_strict_adjudication_mode_rejects_raw_without_breaking_legacy(
     """Make the work-loop path strict while preserving the flagless CLI."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "raw.md"
     report.write_text(
         "**1. [Blocker] Raw finding.** `src/parser.py:42`. Bypass attempt.\n",
@@ -584,9 +523,11 @@ def test_strict_adjudication_mode_rejects_raw_without_breaking_legacy(
     )
     command = [
         sys.executable,
-        str(LOOP_COHORT),
-        "review",
+        str(VALIDATOR),
         "inspect",
+        "--run-id",
+        RUN_FIXTURE,
+        "--root",
         str(spec_dir),
         "--report",
         str(report),
@@ -620,16 +561,6 @@ def test_indeterminate_stops_before_sustained_fingerprinting(
     """Fail closed when an adjudication mixes sustained and indeterminate."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "adjudication.md"
     report.write_text(
         """## Main-loop result
@@ -648,9 +579,11 @@ None.
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
@@ -687,16 +620,6 @@ def test_strict_clean_requires_consistent_exact_envelope(
     """Reject unresolved audits and legacy clean matching in strict mode."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "adjudication.md"
     report.write_text(
         f"""## Main-loop result
@@ -714,9 +637,11 @@ None.
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
@@ -798,8 +723,7 @@ def test_direct_light_classifies_without_cohort_state(
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "classify",
             "--report",
             str(report),
@@ -814,7 +738,7 @@ def test_direct_light_classifies_without_cohort_state(
     parsed = json.loads(result.stdout)
     assert parsed["classification"] == expected
     assert len(parsed["fingerprints"]) == fingerprint_count
-    assert not list(tmp_path.rglob("state.json"))
+    assert not list(tmp_path.rglob(".supervisor"))
 
 
 @pytest.mark.parametrize(
@@ -875,8 +799,7 @@ def test_invalid_adjudication_names_the_rule_that_refused_it(
     result = subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "classify",
             "--report",
             str(report),
@@ -923,16 +846,6 @@ def test_indeterminate_refusal_does_not_depend_on_the_adjudication_flag(
     """
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "adjudication.md"
     report.write_text(
         f"""## Main-loop result
@@ -953,9 +866,11 @@ None.
         result = subprocess.run(
             [
                 sys.executable,
-                str(LOOP_COHORT),
-                "review",
+                str(VALIDATOR),
                 "inspect",
+                "--run-id",
+                RUN_FIXTURE,
+                "--root",
                 str(spec_dir),
                 "--report",
                 str(report),
@@ -1007,16 +922,6 @@ def test_remaining_refusal_codes_are_pinned(
 
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 1,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-            }
-        ),
-        encoding="utf-8",
-    )
     report = tmp_path / "report.md"
     report.write_text(body, encoding="utf-8")
     if expected_reason == "unreadable":
@@ -1026,9 +931,11 @@ def test_remaining_refusal_codes_are_pinned(
         result = subprocess.run(
             [
                 sys.executable,
-                str(LOOP_COHORT),
-                "review",
+                str(VALIDATOR),
                 "inspect",
+                "--run-id",
+                RUN_FIXTURE,
+                "--root",
                 str(spec_dir),
                 "--report",
                 str(report),
@@ -1048,38 +955,26 @@ def test_remaining_refusal_codes_are_pinned(
     assert expected_reason in result.stderr
 
 
-def _record_state(spec_dir: Path) -> None:
-    """Seed the minimal cohort state `review record` mutates."""
-    (spec_dir / "state.json").write_text(
-        json.dumps(
-            {
-                "schema_version": 2,
-                "run_id": RUN_ID,
-                "finding_fingerprints": [],
-                "previous_finding_fingerprints": [],
-                "review_round_count": 0,
-                "review_retry_count": 0,
-                "max_review_retries": 5,
-            }
-        ),
-        encoding="utf-8",
-    )
+def _records(root: Path) -> list[str]:
+    """Names of the `record` artifacts the gateway wrote for the fixture run."""
+    directory = root / ".context" / "reviews" / RUN_FIXTURE
+    return sorted(p.name for p in directory.glob("*-record.md")) if directory.is_dir() else []
 
 
 def run_record(spec_dir: Path, report: Path) -> subprocess.CompletedProcess[str]:
-    """Invoke the one gateway verb that writes cohort state."""
+    """Invoke the one gateway verb that writes a round."""
     return subprocess.run(
         [
             sys.executable,
-            str(LOOP_COHORT),
-            "review",
+            str(VALIDATOR),
             "record",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
             str(spec_dir),
             "--report",
             str(report),
             "--adjudication",
-            "--expect-run-id",
-            RUN_ID,
         ],
         capture_output=True,
         check=False,
@@ -1097,12 +992,11 @@ def test_review_record_rejects_a_raw_report_under_adjudication(
     command in the gateway. Without `require_adjudication` threaded through,
     the legacy lenient parser accepts any report whose prose merely contains
     the clean sentinel — exactly the bypass the gateway exists to prevent —
-    so this asserts the refusal AND that `state.json` is left untouched.
+    so this asserts the refusal AND that no round is recorded.
     """
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    _record_state(spec_dir)
-    before = (spec_dir / "state.json").read_text(encoding="utf-8")
+    before = _records(spec_dir)
 
     raw = tmp_path / "raw.md"
     raw.write_text(
@@ -1113,7 +1007,7 @@ def test_review_record_rejects_a_raw_report_under_adjudication(
     result = run_record(spec_dir, raw)
 
     assert result.returncode != 0
-    assert (spec_dir / "state.json").read_text(encoding="utf-8") == before
+    assert _records(spec_dir) == before == []
 
 
 def test_review_record_accepts_a_clean_adjudication_once(
@@ -1123,7 +1017,6 @@ def test_review_record_accepts_a_clean_adjudication_once(
     """A well-formed clean adjudication advances exactly one round."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    _record_state(spec_dir)
 
     report = tmp_path / "adjudication.md"
     report.write_text(
@@ -1142,10 +1035,12 @@ None.
     result = run_record(spec_dir, report)
 
     assert result.returncode == 0, result.stderr
-    state = json.loads((spec_dir / "state.json").read_text(encoding="utf-8"))
-    assert state["review_round_count"] == 1
+    assert _records(spec_dir) == ["1-record.md"]
+    body = json.loads(
+        (spec_dir / ".context" / "reviews" / RUN_FIXTURE / "1-record.md").read_text(encoding="utf-8")
+    )
     # Clean recording must not consume a retry.
-    assert state["review_retry_count"] == 0
+    assert body["form"] == "clean"
 
 
 def test_review_record_rejects_an_indeterminate_adjudication(
@@ -1155,8 +1050,7 @@ def test_review_record_rejects_an_indeterminate_adjudication(
     """An indeterminate adjudication can never be recorded as clean."""
     spec_dir = git_repo / "spec"
     spec_dir.mkdir()
-    _record_state(spec_dir)
-    before = (spec_dir / "state.json").read_text(encoding="utf-8")
+    before = _records(spec_dir)
 
     report = tmp_path / "adjudication.md"
     report.write_text(
@@ -1175,7 +1069,7 @@ None.
     result = run_record(spec_dir, report)
 
     assert result.returncode != 0
-    assert (spec_dir / "state.json").read_text(encoding="utf-8") == before
+    assert _records(spec_dir) == before == []
 
 
 def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
@@ -1211,25 +1105,24 @@ def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
         "git check-ignore -q .context/reviews",
         "missing adjudicator is a loud stop",
         "--report <adjudication-report-path>",
-        "generates one ephemeral lowercase canonical UUID",
-        "numbers each round from `1` upward",
+        "generate one ephemeral lowercase canonical UUID",
+        "number each round from `1` upward",
         "for as long as that review runs",
-        "initializes no cohort state",
+        "none starts a supervisor run",
         "enforces the exact three-section envelope",
         "Numbered findings in either audit",
-        "review inspect docs/specs/<feature>",
         "flagless parser remains legacy-only",
         "`invalid` before fingerprinting",
         "non-`None.` indeterminate audit",
         "exact clean sentinel",
-        "review classify",
+        "review-artifact.py' classify",
         "before every clean, apply, defer, or next-round decision",
-        "Never substitute stateful inspect in light mode",
+        "Never pass `--report <raw-report-path>`",
         "--direct-clean-file",
     ):
         assert required in text
 
-    assert "pass `--report <raw-report-path>`" in text
+    assert "Never pass `--report <raw-report-path>`" in text
     # Measured inside the reference alone. Against the concatenated buffer the
     # left anchor resolves in the SKILL.md prefix, so the comparison would hold
     # no matter where the fast-path section sat in the file it describes.
@@ -1247,7 +1140,8 @@ def test_work_loop_routes_post_gate_reports_through_adjudication() -> None:
         "frontend-reviewer",
         "design-reviewer",
     ):
-        assert role in text
+        # The roster moved into the rules file; the entrypoint points at it.
+        assert role in (WORK_LOOP.parent / "review-rules.json").read_text(encoding="utf-8")
 
 
 def test_family_key_reference_names_its_preimage_and_unconsumed_status() -> None:
@@ -1279,8 +1173,8 @@ def test_pre_execute_reviews_use_the_same_fail_closed_gateway() -> None:
 
     for required in (
         # Same substitution on the pre-EXECUTE path.
-        "Persist every completed pre-EXECUTE reviewer report, then run `review "
-        "raw-classify",
+        "Persist every completed pre-EXECUTE reviewer report, then run "
+        "`review-artifact.py raw-classify",
         "Byte equality is direct clean",
         # Persistence must be stated as unconditional and prior. Without this
         # the ordering is only implementable when the controller holds the
@@ -1298,11 +1192,10 @@ def test_pre_execute_reviews_use_the_same_fail_closed_gateway() -> None:
         "Only sustained findings",
         "indeterminate stop for owner choice",
         "A missing adjudicator on this path is a loud stop",
-        "review inspect <spec-dir>",
         "git check-ignore -q .context/reviews",
-        "<pre-execute-adjudication-path> --adjudication --json",
+        "--report <pre-execute-adjudication-path> --json",
         "An `invalid` classification is a fail-closed stop",
-        "do not call `review record`",
+        "do not record a round",
         "architect pack's `design-reviewer`",
         "adds no `design-reviewer` trigger",
     ):
@@ -1337,8 +1230,7 @@ def test_evidence_retry_is_closed_accounted_and_independently_authored() -> None
         "Any failure stops before retry state changes or gate execution",
         "Only after every preflight succeeds",
         "no gate identifier, command, argument, path, substitution, or environment value from any artifact may reach execution",
-        "The transition records the review effect before returning to implementation",
-        "A refused transition or exhausted retry budget stops with no review record and no gate execution",
+        "A refused record or exhausted retry budget stops with no gate execution",
         "--fingerprint <validated-adjudication-sha256>",
         "Refuse either path if it already exists",
         "enforced filesystem read allowlist and write-isolation posture",
@@ -1346,33 +1238,24 @@ def test_evidence_retry_is_closed_accounted_and_independently_authored() -> None
         "--expected-sha256 <first-validator-digest>",
         "one independently authored replacement adjudication",
         "The controller never copies or merges prior verdicts",
-        "fire `wave-complete`, run GATES, and return through `gates-clean` to REVIEW",
-        # Ordered against the fire instruction below: the pre-exit check has to
-        # precede the transition at this site, and a whole-file substring would
-        # pass with the sentence moved anywhere in the document.
-        "Run `loop-cohort check <spec-dir> --phase wave-exit` immediately before "
-        "that transition",
+        "Re-enter review on the unchanged target",
     ):
         assert required in post
-
-    assert post.index("--phase wave-exit` immediately before that transition") < post.index(
-        "fire `wave-complete`, run GATES, and return through `gates-clean` to REVIEW"
-    )
 
     for required in (
         "fifth supplied path",
         "Artifact prose may select the fact category only",
         "After the shared non-executing eligibility",
         "artifact-excluding read-allowlist",
-        "refused transition records and executes nothing",
-        "Fire `spec-ready` to re-enter `SPEC-PLAN-REVIEW`",
+        "refused record executes nothing",
+        "Re-enter review on the unchanged target",
         "unchanged raw path and source-finding set",
         "one complete replacement adjudication",
     ):
         assert required in pre
 
     for required in (
-        "guarded transition then retry record before one gate",
+        "the retry record, then one gate",
         "fresh validated evidence",
         "one complete replacement adjudication over the unchanged source findings",
         "Every other indeterminate stops",
@@ -1440,7 +1323,7 @@ def test_work_loop_evals_cover_all_adjudication_outcomes() -> None:
             "no target mutation",
         ),
         "finding-adjudication-evidence-resolved": (
-            "guarded `findings-remain` transition",
+            "`review-artifact.py record --run-id <run-id> --fingerprint <that digest>`",
             "complete replacement report",
             "never quoted in either audit or replacement prose",
         ),

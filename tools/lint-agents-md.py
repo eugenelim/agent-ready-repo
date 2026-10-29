@@ -404,16 +404,6 @@ def main() -> int:
                     f"drift-watch: '{pattern}' re-appeared in {forb} (canonical: {canonical})."
                 )
 
-    # 10a — Phase-1 retry caps live in state.json template, not prose.
-    drift_check(
-        r'"max_implementation_retries":\s*[0-9]+',
-        ".claude/skills/work-loop/assets/state.json",
-        [
-            ".claude/skills/work-loop/SKILL.md",
-            "AGENTS.md",
-        ],
-    )
-
     # 10b — prose probe for the cap value (belt-and-braces).
     drift_check(
         r"(hard )?cap of (five|5) (in-session )?iterations?",
@@ -483,7 +473,7 @@ def main() -> int:
     # never answered, sending the operator to fix a file that is fine. So a
     # degraded or refused resolution is reported as what it is.
     probes = (
-        "docs/specs/example/state.json",
+        "docs/specs/example/.supervisor/run.json",
         "docs/specs/example/notes/implementer-T1-0.md",
         ".worktrees/T1/README.md",
     )

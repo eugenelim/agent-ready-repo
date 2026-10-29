@@ -20,13 +20,9 @@ agentbundle-layout.toml
 !tests/roster/fixtures/**/agentbundle-layout.toml
 
 # Work-loop session state — per-spec scratch, never committed.
-# The engine writes the run id to a repo-root temp file; it was committed once
-# (392e7c35a) because nothing ignored it and the task used `git add -A`.
+# The supervisor keeps its local run status, journal, and security log here.
 .loop-runid.tmp
-docs/specs/**/state.json
-docs/specs/**/engine-state.json
-docs/specs/**/state-*.json
-docs/specs/**/engine-state-*.json
+docs/specs/**/.supervisor/
 # State lock (statelock_core). The lockfile is removed on both the success and
 # the exception path, but a SIGKILLed holder leaves one behind — and a reclaimer
 # that dies mid-rename leaves a `.reclaim.<uuid>` companion. Both patterns, or

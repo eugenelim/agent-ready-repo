@@ -14,7 +14,7 @@
 > on `kiro-ide-hook` and the corresponding entries in § *Follow-on
 > artifacts*. See [`plan.md`](plan.md) for the task breakdown.
 
-This loop anchor exists so `loop-cohort.py` has a directory to point
+This loop anchor exists so `cohort-writer.py` has a directory to point
 its state file at; the spec amendments delivered by this work live
 in two existing specs ([`distribution-adapters`](../distribution-adapters/spec.md)
 and [`agent-spec-cli`](../agent-spec-cli/spec.md)) rather than in

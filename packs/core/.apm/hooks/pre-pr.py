@@ -19,13 +19,10 @@ What it runs:
     ``.supervisor/run.json``. Fails on any non-zero exit, and fails (rather
     than skips) when an approved run exists but the supervisor script cannot be
     found. Passes when no spec holds an ``approvals.jsonl``.
-  - ``loop-cohort.py check <spec-dir>`` for each ``docs/specs/*/state.json``,
-    in ``--phase implement`` and ``--phase review`` — the work-loop's
-    iteration/stasis caps. The script ships with the work-loop skill; this
-    hook finds it under whichever skills directory your agent tool installed
-    into (``.claude/``, ``.agents/``, ``.kiro/`` …) — same for
-    ``lint-knowledge.py`` above. Skipped cleanly when there are no active
-    specs (or the work-loop isn't installed).
+  - The work-loop scripts ship with the work-loop skill; this hook finds
+    them under whichever skills directory your agent tool installed into
+    (``.claude/``, ``.agents/``, ``.kiro/`` …) — same for ``lint-knowledge.py``
+    above.
 
 It deliberately runs **none** of the source project's own artifact linters —
 those enforce that project's conventions on its own tree and
@@ -39,7 +36,6 @@ run exists but ``work-supervisor.py`` cannot be found, the hook fails.
 
 from __future__ import annotations
 
-import json
 import os
 import stat
 import subprocess
@@ -217,53 +213,6 @@ def main() -> int:
         )
     else:
         _run("knowledge lint", [py, str(lint_knowledge)])
-
-    # --- Work-loop caps gate (ships with `core`) -----------------------------
-    loop_cohort = _find_work_loop_script("loop-cohort.py")
-    state_files = sorted(Path("docs/specs").glob("*/state.json"))
-    if loop_cohort is None:
-        print("pre-pr: — loop-cohort.py not found — skipping work-loop caps check")
-    elif not state_files:
-        print("pre-pr: (no active state.json — skipping loop-cohort check)")
-    else:
-        for state in state_files:
-            spec_dir = state.parent
-            # Run check --phase review only when the FSM is in CODE-REVIEW.
-            # In CODE-IMPLEMENTATION the agent may legitimately have
-            # review_retry_count == max_review_retries while pursuing a clean
-            # pass; the cap guards only the findings-remain edge, not the
-            # clean path. In CODE-HUMAN-GATE/DONE the review phase is complete.
-            review_phase_active = True
-            engine_state_path = spec_dir / "engine-state.json"
-            if engine_state_path.is_file():
-                try:
-                    es = json.loads(engine_state_path.read_text(encoding="utf-8"))
-                    if es.get("state") != "CODE-REVIEW":
-                        review_phase_active = False
-                except (OSError, ValueError, KeyError):
-                    pass  # unreadable engine-state → conservative: check anyway
-            for phase in ("implement", "review"):
-                if phase == "review" and not review_phase_active:
-                    print(  # FSM not in CODE-REVIEW; cap check doesn't apply
-                        f"pre-pr: — loop-cohort check {spec_dir}"
-                        " (review) skipped (FSM not CODE-REVIEW)"
-                    )
-                    continue
-                result = subprocess.run(
-                    [py, str(loop_cohort), "check", str(spec_dir), "--phase", phase],
-                    capture_output=True, text=True, encoding="utf-8", check=False,
-                )
-                if result.returncode != 0:
-                    if result.stdout:
-                        sys.stdout.write(result.stdout)
-                    if result.stderr:
-                        sys.stderr.write(result.stderr)
-                    print(
-                        f"pre-pr: ✖ loop-cohort check {spec_dir} --phase {phase} failed",
-                        file=sys.stderr,
-                    )
-                    sys.exit(1)
-                print(f"pre-pr: ✓ loop-cohort check {spec_dir} ({phase})")
 
     # --- Supervisor readiness gate (ships with `core`) -----------------------
     _supervisor_check()

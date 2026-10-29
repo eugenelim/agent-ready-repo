@@ -1,13 +1,10 @@
 """VI-6010: `review-rules.json` carries the live reviewer roster verbatim.
 
-While `SKILL.md` holds the reviewer roster table, each roster role's condition,
-mode limit, role bullet, and fallback sentence, and the high-risk paragraph,
-equal the rules file under the three named normalizations: a trailing
-`(full mode)` moves into the mode limit, relative links are rewritten relative
-to the skill root (`SKILL.md` sits at the skill root, so they already are), and
-a role with no bullet holds an empty boundary. A one-word edit to either side
-fails the check. Once the cutover removes the table, the check has nothing to
-compare and stops running.
+The roster table left `SKILL.md` with the cutover, so the rules file is the only
+home of each role, its condition, its boundary, and the high-risk definition. The
+parity check below still runs against any copy of the skill that holds a table,
+and stops when there is none. A second check keeps every other skill file from
+pairing a role with its condition in a table row or list item.
 
 Standard library and pytest only.
 """
@@ -94,11 +91,13 @@ def _copy(tmp_path: Path) -> Path:
     return skill
 
 
-def test_vi6010_the_live_roster_equals_the_rules() -> None:
-    """VI-6010: AC-0005 and the AC-0006 roster clause hold on the shipped files."""
-    live = roster_from_skill((SKILL / "SKILL.md").read_text(encoding="utf-8"))
-    assert live is not None, "SKILL.md no longer holds the roster table; retire this check"
-    assert [r["role"] for r in live[0]] == [
+def test_vi6010_the_roster_lives_in_the_rules_file_alone() -> None:
+    """VI-6010: `SKILL.md` holds no roster table, and the rules file holds every role."""
+    skill_text = (SKILL / "SKILL.md").read_text(encoding="utf-8")
+    assert roster_from_skill(skill_text) is None, "SKILL.md still holds a roster table"
+    assert "`review-rules.json`" in skill_text
+    rules = json.loads((SKILL / "review-rules.json").read_text(encoding="utf-8"))
+    assert [r["role"] for r in rules["roles"]] == [
         "adversarial-reviewer",
         "security-reviewer",
         "experience-reviewer",
@@ -106,40 +105,27 @@ def test_vi6010_the_live_roster_equals_the_rules() -> None:
         "design-reviewer",
         "quality-engineer",
     ]
+    assert rules["high_risk_definition"].startswith("**High-risk work**")
     assert roster_problems(SKILL) == []
 
 
-def test_vi6010_a_one_word_edit_to_the_skill_fails(tmp_path: Path) -> None:
-    """VI-6010: changing one word of a bullet, a condition, or the paragraph is caught."""
-    skill = _copy(tmp_path)
-    original = (skill / "SKILL.md").read_text(encoding="utf-8")
-    for old, new, expected in (
-        ("guarding control: auth", "guarding control: authn", "security-reviewer.boundary"),
-        ("what a reader or adopter sees |", "what a reader or buyer sees |", "experience-reviewer.condition"),
-        ("this is its only\ndefinition", "this is its sole\ndefinition", "high_risk_definition"),
-        ("Fallback absent: named skip.", "Fallback absent: named stop.", "frontend-reviewer.fallback"),
-    ):
-        assert old in original, old
-        (skill / "SKILL.md").write_text(original.replace(old, new), encoding="utf-8")
-        assert any(expected in p for p in roster_problems(skill)), expected
-    (skill / "SKILL.md").write_text(original, encoding="utf-8")
-    assert roster_problems(skill) == []
-
-
-def test_vi6010_a_one_word_edit_to_the_rules_fails(tmp_path: Path) -> None:
-    """VI-6010: changing one word on the rules side is caught too."""
-    skill = _copy(tmp_path)
-    rules = json.loads((skill / "review-rules.json").read_text(encoding="utf-8"))
-    rules["roles"][1]["condition"] += "!"
-    rules["high_risk_definition"] = rules["high_risk_definition"].replace("three", "four", 1)
-    (skill / "review-rules.json").write_text(json.dumps(rules), encoding="utf-8")
-    problems = roster_problems(skill)
-    assert "security-reviewer.condition differs from SKILL.md" in problems
-    assert "high_risk_definition differs from SKILL.md" in problems
+def test_vi6010_no_other_skill_file_pairs_a_role_with_its_condition() -> None:
+    """The rules file and the light-mode reference are the only homes of a role and its condition."""
+    rules = json.loads((SKILL / "review-rules.json").read_text(encoding="utf-8"))
+    conditional = [r for r in rules["roles"] if r["condition"] and r["kind"] != "always"]
+    for path in sorted(SKILL.rglob("*.md")):
+        if path.name == "light-mode.md":
+            continue
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if not line.lstrip().startswith(("|", "- ", "* ", "1. ")):
+                continue
+            for role in conditional:
+                if f"`{role['role']}`" in line and role["condition"].strip("*()").lower() in line.lower():
+                    raise AssertionError(f"{path.name}:{number} pairs {role['role']} with its condition")
 
 
 def test_vi6010_the_check_stops_when_the_roster_table_is_gone(tmp_path: Path) -> None:
-    """VI-6010: AC-0006 binds only while `SKILL.md` holds a roster table."""
+    """VI-6010: the parity check binds only while `SKILL.md` holds a roster table."""
     skill = _copy(tmp_path)
     (skill / "SKILL.md").write_text("# Skill\n\nNo roster here.\n", encoding="utf-8")
     assert roster_problems(skill) == []

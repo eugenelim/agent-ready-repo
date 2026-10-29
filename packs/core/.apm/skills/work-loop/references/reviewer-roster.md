@@ -1,8 +1,8 @@
 # Reviewer roster — the lens the default gives up
 
 Load when selecting reviewers, when briefing one for dispatch, or when weighing
-whether the default roster gives up a lens this change needs. `SKILL.md` owns
-the roster table itself, each role's firing condition, and the definition of
+whether the default roster gives up a lens this change needs. `review-rules.json`
+owns the roster, each role's firing condition and boundary, and the definition of
 high-risk work; this reference states what the default costs and carries the
 dispatch depth the entrypoint no longer holds.
 
@@ -26,7 +26,7 @@ scanners; does not replace them.
 **Inline its depth, don't make it self-discover:** detect which trust
 boundaries the diff crosses, load only the matching `security-checklists`
 modules, inline them into the subagent's brief (subagent has no Skill tool).
-`SKILL.md` carries the routing sentence that names the Module index; this
+The security reviewer's boundary in `review-rules.json` names the Module index; this
 reference states what to do once it has routed.
 
 **Mandatory and multi-module on infra-flavored work** (destructive/irreversible

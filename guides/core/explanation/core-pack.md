@@ -24,14 +24,14 @@ The leverage in agent coding has moved off the prompt. A single sharp prompt buy
       assump-   coherent     types      a cold read  finish
       tions     change       tests      of the diff
         │
-        └──► spec · plan · state.json · captured learnings
+        └──► spec · plan · delivery records · captured learnings
              (on disk — the loop's memory survives the next run)
 ```
 
 A loop running on its own is also a loop making mistakes on its own, at machine speed — so it has to check its own work harder than you would by hand. Three forces make that non-negotiable, and `core` answers each:
 
 - **The model grades its own homework too kindly.** The agent that just wrote the code is the worst judge of whether it's right. `core` splits the maker from the checker: `adversarial-reviewer` reads the diff cold in a separate context, with no memory of why the code looks the way it does and no sunk cost to defend.
-- **The model forgets everything between runs.** Nothing in the agent's head carries to the next session, so the memory lives on disk — the spec, the plan, `state.json`, `AGENTS.md`, and the learnings captured at the end of every loop. The next run reads the repo, not a transcript.
+- **The model forgets everything between runs.** Nothing in the agent's head carries to the next session, so the memory lives on disk — the spec, the plan, the supervisor's delivery records, `AGENTS.md`, and the learnings captured at the end of every loop. The next run reads the repo, not a transcript.
 - **Your attention is the bottleneck, not the tool.** You can spawn more agents than you can meaningfully review, and the gap between what ships and what you actually understand widens every time you wave a change through. `core` keeps you in the judgment seat on purpose: it surfaces assumptions and **stops** before building on them, gates on checks you can trust, and refuses to self-certify past a red gate.
 
 A loop will happily make you faster on work you understand — or let you skip understanding it at all. The loop can't tell those apart. You can. `core` is built for the first kind of engineer: the one who designs the loop and stays the engineer, not just the person who presses go.
@@ -63,7 +63,7 @@ The core pack ships seven tightly-coupled artifacts plus the documents they all 
 - **`AGENTS.md`** — the project's agent context, loaded first by every skill, every subagent, every reviewer. It carries the non-negotiables ("touch only what you're asked to touch"), the source-of-truth table, the check-before-acting rules. If a subagent skips it, the review is wrong.
 - **the `work-loop` skill and the core guides** — the *why* behind `AGENTS.md`. The verification-mode taxonomy (the modes `work-loop` PLAN step 7 defines), the loop-iteration cap, the model-selection table, the rationale for every rule. AGENTS.md cites it for anything that needs a paragraph.
 - **The `new-spec` skill** — drafts `docs/specs/<feature>/spec.md` + `plan.md`. Mandates assumption-surfacing **before** any spec body is written, mandates an Agent Rules section with at least one structural `Never do`, mandates per-task `Tests:` before `Approach:`. The spec is the contract; the plan is the strategy.
-- **The `work-loop` skill** — the plan → execute → gates → review → fix loop. Tracks state in `state.json` (gitignored, session-scratch), enforces an iteration cap, reports when a round's findings repeat, and gates EXECUTE on plan-approval after a pre-EXECUTE adversarial review.
+- **The `work-loop` skill** — the plan → execute → gates → review → fix loop. Its supervisor, `work-supervisor.py`, derives each next step from Git history and committed delivery records, enforces an iteration cap, and starts EXECUTE only after both human approvals follow a pre-EXECUTE adversarial review.
 - **Shaping review** — `new-spec` uses the internal `shaping-reviewer` before construction begins to test the contract's scope and observability. It is distinct from the later code-review lenses, which now own disjoint concerns: adversarial checks delivery drift and contract conformance, security owns every threat finding, and quality owns test strength and maintenance cost. A reviewer that spots another lens's concern says so in its own lens rather than emitting that lens's finding.
 - **The reviewer subagents** —
   - **`adversarial-reviewer`** (Opus): reads spec/plan or diff cold, against `AGENTS.md` + the spec. Returns severity-labeled findings (Blockers / Concerns / Nits), and cannot be skipped, in those code-facing modes and the RFC-only one. It also carries a narrower, optional `intent` mode that attacks a bet's riskiest assumption and non-goals, returning an open question with a named decider, a validation hook, or nothing — no severity labels there, and nothing that gates a transition.
@@ -105,7 +105,7 @@ A feature lifecycle, end to end, with the parts named:
    or a prior review repair, and any green gate used as evidence is bounded by
    what it proves and a relevant blind spot. Two passes is normal; three means a
    structural problem and the agent surfaces.
-4. **`work-loop`** initializes `state.json` via its bundled tool, then gates EXECUTE on `plan_review_status = approved`.
+4. **`work-loop`** runs `work-supervisor.py start` once both approvals are written; it records them and admits the run.
 5. **EXECUTE.** For each TDD task, the agent writes its red test at its real test path, proves it fails for the intended reason, and then runs green and refactor. For goal-based work: code, then run the one-liner from `Done when:`. The Agent Rules section constrains structure; PLAN also records a declined architectural addition when it materially affects scope or design.
 6. **GATES.** Lint, typecheck, tests. Mechanical termination. Don't edit the gate to make it pass.
 7. **REVIEW.** `adversarial-reviewer` reads the diff cold against `AGENTS.md` +
@@ -114,16 +114,18 @@ A feature lifecycle, end to end, with the parts named:
    or a coverage-disclosure footer goes to `finding-adjudicator`, and a
    malformed one stops the loop. The adjudicator independently sustains,
    refutes, or stops on each reported finding before the loop acts.
-   `loop-cohort review record` fingerprints the sustained set, and the loop
-   iterates. Given `--operation-id`, a repeated recording of the same round is
-   recognised as a completed write instead of counted twice.
+   In a full-mode run the supervisor closes review from typed reports and
+   finding assessments, and repairs each supported finding before it closes.
+   In pre-approval and light-mode review, `review-artifact.py record` given
+   `--operation-id` recognises a repeated recording of the same round as a
+   completed write instead of counting it twice.
 8. **Specialist reviewers** (if warranted). `security-reviewer` when the diff changes a security boundary, data flow, or guarding control, including agent authority, untrusted-input, tool, permission, sandbox, or data-handling behavior. Unchanged existing I/O and ordinary prompt wording do not fire it. `quality-engineer` covers the maintenance lens. Nits from any reviewer do not block readiness: they are recorded with their citation and deferred, and are only acted on — after promotion, if the repair is larger than a Nit — when the thread means to change the code because of one.
 9. **Repeated findings are reported.** When a round's findings fingerprint the
    same as the previous round's, the loop surfaces that and carries on. It is
    advisory: the iteration cap is what bounds the loop.
 10. **Capture.** Each scratch note from this session's DECIDE passes routes to a destination. Capture owns the two that outlive the loop: a generalisable note feeds a skill, ADR, or pattern note through the `project-knowledge` seam, and a defect blocked on a decision, an instrument, elapsed time, or a dependency is captured as a work item. The two same-session routes — shipping a defect now as a ride-along, or making it the session's next reviewed unit — belong to the DECIDE pass instead, because that is a point the loop reaches while both are still open. Capture sits after closeout rather than inside it: the loop is complete once its five finish assertions hold, and routing the notes is the next thing you do, not a condition of being done.
 
-The pieces are tightly coupled by design. `adversarial-reviewer` loads `AGENTS.md` first because skipping it makes the review wrong. `new-spec` writes Agent Rules because the reviewer measures plans against that section — `Boundaries` is only its pre-rename name. Only an unmigrated spec carrying neither heading falls back to a declined architectural addition that materially affects scope or design, then to effective repository guidance. The work-loop's prose gates EXECUTE on `plan_review_status = approved`, and that field is set by the reviewer-pass step rather than by the implementing agent — so the discipline holds when the loop is followed and only when it is.
+The pieces are tightly coupled by design. `adversarial-reviewer` loads `AGENTS.md` first because skipping it makes the review wrong. `new-spec` writes Agent Rules because the reviewer measures plans against that section — `Boundaries` is only its pre-rename name. Only an unmigrated spec carrying neither heading falls back to a declined architectural addition that materially affects scope or design, then to effective repository guidance. The supervisor starts only from approvals a named human wrote, and records them under that human's authority reference rather than the implementing agent's — so the discipline holds when the loop is followed and only when it is.
 
 ## Why this beats vibe-coding
 
@@ -153,7 +155,7 @@ Two well-known spec-driven workflows exist; the core pack overlaps with both but
 | Spec template with sections | ✓ | ✓ (plus mandatory assumption-surfacing before bodies, structural `Never do` enforced) |
 | User-driven flow with explicit commands | ✓ (slash commands) | ✓ (skills auto-invoked by the agent; not literal slash commands today) |
 | Adversarial reviewer reading the diff cold | — | ✓ (`adversarial-reviewer`, separate-process, separate model context) |
-| State-machine discipline with a mechanical iteration cap | — | ✓ (`state.json` + `loop-cohort` tool) |
+| State-machine discipline with a mechanical iteration cap | — | ✓ (`work-supervisor.py`) |
 | Specialist review lenses (security, quality) | — | ✓ |
 | Supervisor-mode parallelism for independent tasks | — | ✓ |
 | Cross-harness reach | partial (multiple agent harnesses supported) | ✓ (direct adapters for Claude Code, Codex, Copilot, Cursor, Gemini, and Kiro — plus APM's `HookIntegrator` for the targets it covers) |
@@ -228,7 +230,7 @@ loses the planning context. We do it the other way only when fresh context
 is the *point* — an unattended, fresh-session-per-iteration loop (see the
 work-loop skill).
 
-**Why a hard iteration cap.** Without one, you're hoping. The implementation and review retry caps live as data in `state.json` (see below) and are enforced by the `work-loop` skill's `scripts/loop-cohort.py` through `loop-cohort check --phase gates-failed` and `--phase review`; if you hit one, the task is bigger than you thought — pause for human replanning, then stop, re-plan, or split. A cap never declares the accepted intent complete or creates follow-on work automatically.
+**Why a hard iteration cap.** Without one, you're hoping. The implementation retry cap lives in the supervisor's policy and is enforced by the `work-loop` skill's `scripts/work-supervisor.py` (`status --check` exits 3 at the cap); if you hit one, the task is bigger than you thought — pause for human replanning, then stop, re-plan, or split. A cap never declares the accepted intent complete or creates follow-on work automatically.
 
 **Why capture.** A loop that finishes without updating *some*
 doc, skill, or note has wasted what it learned. The next agent (or a

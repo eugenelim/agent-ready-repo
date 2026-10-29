@@ -27,7 +27,7 @@ than creating a durable artifact.
 
    Direct-light does **not** invoke `new-spec`; create `docs/specs/`; create a
    sibling plan; mutate `workspace.toml`;
-   initialize `loop-engine` or `loop-cohort`; run spec-status lint when no spec
+   initialize the supervisor; run spec-status lint when no spec
    exists; or perform project-knowledge capture solely because a spec gate did
    not occur. All ordinary implementation gates and the adversarial review
    remain.
@@ -56,7 +56,7 @@ than creating a durable artifact.
    which is the third high-risk condition and warrants the lens in either mode
    without escalating to full. Absent either, Surface a maintainability concern
    that needs the lens rather than resolving it unaided.
-4. **No `loop-cohort` state machine.** Run finish-time `lint-spec-status.py`
+4. **No supervisor state machine.** Run finish-time `lint-spec-status.py`
    only when a persisted spec exists.
 
 The rounds rule replaces neither risk-trigger escalation nor the mode
@@ -182,7 +182,7 @@ nothing above a deferred Nit ends the rounds.
 **FIX.** After a fix, return to GATES, then re-enter REVIEW.
 
 **Finish checklist.** "Review clean" means the `adversarial-reviewer` rounds
-with no `loop-cohort` involved; deferred Nits do not block it. Two checklist
+with no supervisor involved; deferred Nits do not block it. Two checklist
 items carry light-mode deltas:
 
 - The `adversarial-reviewer` rounds left no unresolved Blocker or Concern,

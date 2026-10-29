@@ -29,7 +29,7 @@ adopter-generic — they enforce *this catalogue's* conventions on *this
 catalogue's* artifacts — so the shipped enforcement gate ships **zero** of them.
 
 Success: a fresh `core` install's `pre-pr.py` runs without crashing — it runs
-only the genuinely-adopter-relevant `loop-cohort.py check` (the work-loop caps
+only the genuinely-adopter-relevant `cohort-writer.py check` (the work-loop caps
 gate, which ships) plus a commented "wire your own lint/test here" stub, and
 degrades gracefully when nothing is present. This repo's full enforcement (the 8
 catalogue checks) moves to a catalogue-only hook that never projects. The
@@ -53,7 +53,7 @@ template/hint/docs stop pointing adopters at repo-native paths, and
 
 ### Ask first
 
-- Any change to what `loop-cohort.py check` *does* (its caps semantics).
+- Any change to what `cohort-writer.py check` *does* (its caps semantics).
 - Touching `add-credentialed-skill` / `example-credentialed-skill` (owned by
   RFC-0013's in-flight `credential-broker-contract` spec).
 - Touching `lint-plan-deps.py` itself (owned by RFC-0015's `wave-scheduled-supervisor`).
@@ -75,22 +75,22 @@ template/hint/docs stop pointing adopters at repo-native paths, and
 - **B1 `pre-pr.py` adopter-clean + graceful** — **TDD.** The shipped `pre-pr.py`
   source matches none of `tools/lint[-_]` / `test-lint-credentialed-skills`; run it in an adopter-shaped tree
   (no catalogue linters; with and without an active `state.json`) and assert exit
-  0 — it runs `loop-cohort check` when a spec state exists and skips gracefully
+  0 — it runs `cohort-writer check` when a spec state exists and skips gracefully
   otherwise, never crashing.
 - **B2 catalogue-only hook** — **goal-based.** `make pre-pr` (→ the catalogue-only
   hook) runs the 8 catalogue checks (7 linters + the `test-lint-credentialed-skills`
   self-test) + delegates to the shipped `pre-pr.py`; this repo's gate
   (`make build-check` / CI) stays green.
 - **B3 plan template** — **goal-based.** The shipped `new-spec` `plan.md` template
-  references `loop-cohort.py schedule` and contains no `tools/lint-plan-deps.py`.
+  references `cohort-writer.py schedule` and contains no `tools/lint-plan-deps.py`.
 - **B4 session-start hint** — **goal-based.** `session-start.py` contains no
   `tools/lint-` adopter-facing path.
-- **B5 `max_iterations` single-source** — **TDD.** A test pins that `loop-cohort.py`
+- **B5 `max_iterations` single-source** — **TDD.** A test pins that `cohort-writer.py`
   DEFAULTS carries no hard-coded `max_iterations` literal (it derives from the
-  template), and that `loop-cohort` still resolves the cap from the template;
+  template), and that `cohort-writer` still resolves the cap from the template;
   the schema self-test (both blocks) stays green.
 - **B6 doc honesty** — **goal-based + manual QA.** Shipped `CONVENTIONS.md` §
-  Enforcement + `conventions-check.md` describe the adopter gate as `loop-cohort`
+  Enforcement + `conventions-check.md` describe the adopter gate as `cohort-writer`
   + the adopter's own linters/tests (no catalogue-internal linters, no
   nonexistent CI job); repo `README.md` linter count is accurate; reviewer confirms.
 - **B7 `AGENTS.local.md` direction** — **goal-based.** The local-only principle
@@ -104,11 +104,11 @@ template/hint/docs stop pointing adopters at repo-native paths, and
       references **none** of the 8 catalogue checks — asserted by matching
       `tools/lint[-_]` **and** `test-lint-credentialed-skills` (the underscore
       variant `lint_credentialed_skills.py` must not slip a substring check) — and
-      runs only `loop-cohort.py check` (against active spec `state.json`s) plus a
+      runs only `cohort-writer.py check` (against active spec `state.json`s) plus a
       commented "wire your own lint/test here" stub.
 - [x] **AC2** Run in an adopter-shaped tree with **no** catalogue linters present:
       `pre-pr.py` exits 0 both with no active specs (skips) and with an active
-      `state.json` (runs `loop-cohort check`); it never hard-fails on a missing linter.
+      `state.json` (runs `cohort-writer check`); it never hard-fails on a missing linter.
 - [x] **AC3** A catalogue-only hook (`tools/pre-pr-catalogue.py`, repo-native)
       runs the 8 catalogue checks (the exact ordered set the old `pre-pr.py` ran)
       and delegates to the shipped `pre-pr.py`. **Both** `make pre-pr` *and*
@@ -116,21 +116,21 @@ template/hint/docs stop pointing adopters at repo-native paths, and
       the CI aggregator (`docs.yml` `hooks` job) is repointed — so this repo's full
       gate runs all 8 checks end-to-end. `tools/test-pre-pr.sh` is repointed at the
       catalogue hook and its existing regression guard (the layers it already
-      corrupts: 4 linters + loop-cohort) still passes.
+      corrupts: 4 linters + cohort-writer) still passes.
 - [x] **AC4** The shipped `new-spec` `plan.md` template no longer references
-      `tools/lint-plan-deps.py` (its `loop-cohort schedule` references already
+      `tools/lint-plan-deps.py` (its `cohort-writer schedule` references already
       stand — this is a removal of the repo-native enforcement clause, not an addition).
 - [x] **AC5** `session-start.py` contains no adopter-facing `tools/lint-*` path
       (hint generalized or removed).
 - [x] **AC6** `max_iterations` has a single source of truth: it stays in the
       `state.json` template (the canonical, adopter-visible per-spec knob), and
-      `loop-cohort.py` DEFAULTS **derives** its value from that template rather
+      `cohort-writer.py` DEFAULTS **derives** its value from that template rather
       than hard-coding a duplicate literal — so an adopter changes the cap in one
-      place. The `loop-cohort` schema self-test (`tools/test-loop-cohort.sh`'s
+      place. The `cohort-writer` schema self-test (`tools/test-cohort-writer.sh`'s
       `expected_keys` **and** `defaults-match-template` blocks) and `lint-agents-md`
       drift-watch #10a stay green **unchanged** (the template keeps the key).
 - [x] **AC7** The shipped `CONVENTIONS.md` § Enforcement describes the adopter
-      gate as `loop-cohort` + the adopter's own linters/tests — no
+      gate as `cohort-writer` + the adopter's own linters/tests — no
       catalogue-internal linters presented as the adopter's gate, no
       `.github/workflows/docs.yml` reference presented as the adopter's CI.
       `conventions-check.md` gets a one-line note that its named linters are *this
@@ -150,27 +150,27 @@ template/hint/docs stop pointing adopters at repo-native paths, and
 
 - Technical: `pre-pr.py` hard-fails on the first missing linter (`_run` →
   `sys.exit(1)`); it runs **8** repo-native `_run` calls (6 `lint-*.py`,
-  `lint_credentialed_skills.py`, `test-lint-credentialed-skills.py`) + loop-cohort;
+  `lint_credentialed_skills.py`, `test-lint-credentialed-skills.py`) + cohort-writer;
   none ship (source: `packs/core/.apm/hooks/pre-pr.py:77-85`, grep).
 - Technical: none of those checks are adopter-generic — `lint-agents-md` checks
   Diátaxis dirs + drift-watch against catalogue files + core-seed special-cases;
   `lint-agent-artifacts` enforces this catalogue's frontmatter conventions;
   `lint-knowledge` lints an optional Claude-Code-leaning feature (source:
   `tools/lint-agents-md.py`, `lint-agent-artifacts.py`, `lint-knowledge.py`).
-- Technical: `loop-cohort.py check` is the one shipped, adopter-relevant gate (it
-  caps the work-loop the adopter uses) (source: `loop-cohort.py`).
+- Technical: `cohort-writer.py check` is the one shipped, adopter-relevant gate (it
+  caps the work-loop the adopter uses) (source: `cohort-writer.py`).
 - Technical: `lint-plan-deps.py` (RFC-0015) and `add-credentialed-skill` /
   `example-credentialed-skill` (RFC-0013) are owned by other specs; the
   adopter-facing how-to + explanation for credentialed skills already exist
   (source: `guides/{how-to,explanation}/*credential*`).
-- Technical: `max_iterations` is double-sourced — `loop-cohort.py:55` DEFAULTS +
+- Technical: `max_iterations` is double-sourced — `cohort-writer.py:55` DEFAULTS +
   `state.json:4`. The schema self-test's `defaults-match-template` block requires
   every DEFAULTS key to be in the template with a matching value, so the template
   must **keep** the key; single-sourcing therefore means DEFAULTS *derives* from
   the template (not the reverse). This leaves `expected_keys`, `defaults-match-template`,
-  and drift-watch #10a unchanged (source: `tools/test-loop-cohort.sh`, `tools/lint-agents-md.py:222-231`).
+  and drift-watch #10a unchanged (source: `tools/test-cohort-writer.sh`, `tools/lint-agents-md.py:222-231`).
 - Process: the local-only direction lands in `AGENTS.local.md` (tracked), not
   `CONVENTIONS.md` (RFC-gated) (source: user confirmation 2026-05-30).
-- Product: ship zero catalogue linters; `pre-pr` runs only `loop-cohort` + a
+- Product: ship zero catalogue linters; `pre-pr` runs only `cohort-writer` + a
   stub; catalogue-only hook for the rest; one PR; reframe `conventions-check.md`
   (source: user confirmation 2026-05-30).

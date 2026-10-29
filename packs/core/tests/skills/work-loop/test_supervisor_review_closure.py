@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import copy
 import importlib.util
-import inspect
 import json
 import sys
 from pathlib import Path
@@ -515,12 +514,7 @@ def test_vi6022_a_role_added_only_to_the_rules_closes_its_obligation(tmp_path: P
     """VI-6022: AC-0004: no roster table, one new rules entry, no code edit, closes on a report."""
     skill = tmp_path / "work-loop"
     skill.mkdir()
-    lines = (SKILL / "SKILL.md").read_text(encoding="utf-8").split("\n")
-    start = lines.index(_ROSTER_HEADER)
-    end = start + 2
-    while lines[end].startswith("|"):
-        end += 1
-    (skill / "SKILL.md").write_text("\n".join(lines[:start] + lines[end:]), encoding="utf-8")
+    (skill / "SKILL.md").write_text((SKILL / "SKILL.md").read_text(encoding="utf-8"), encoding="utf-8")
     rules = json.loads((SKILL / "review-rules.json").read_text(encoding="utf-8"))
     rules["roles"].append({
         "role": "synthetic-reviewer",
@@ -574,87 +568,23 @@ def test_vi6022_a_role_added_only_to_the_rules_closes_its_obligation(tmp_path: P
         assert "synthetic-reviewer" not in (sup.SCRIPTS / name).read_text(encoding="utf-8")
 
 
-# ── VI-6023: the ingest maps the compatibility corpus ───────────────────────
+@integration
+def test_vi7021_a_supervisor_runs_review_failure_receipt_yields_one_feed_candidate(
+    tmp_path: Path,
+) -> None:
+    """VI-7021: the fact feed reads the run's committed `delivery/evidence.jsonl`.
 
-
-def _corpus_rows() -> list[tuple[Any, ...]]:
-    """The parametrized rows Slice 2's compatibility test runs, read from that test."""
-    path = _HERE / "test_review_compat.py"
-    spec = importlib.util.spec_from_file_location("core_work_loop_review_compat_corpus", path)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    marks = [m for m in module.test_vi1013_compatibility_corpus.pytestmark if m.name == "parametrize"]
-    (mark,) = marks
-    return [tuple(getattr(row, "values", row)) for row in mark.args[1]]
-
-
-def test_vi6023_every_compatibility_row_maps_to_its_required_result(tmp_path: Path) -> None:
-    """VI-6023: AC-0017: each row of Slice 2's compatibility corpus, through the ingest."""
-    rows = _corpus_rows()
-    assert {r[0] for r in rows} >= {
-        "direct-clean",
-        "adjudicated-all-refuted",
-        "findings-no-adjudication",
-        "unknown-form",
-        "content-safety-refused",
-        "safe-unmappable",
-        "one-sided-legacy-present",
-        "one-sided-legacy-absent",
-    }
-    assert {r[3] for r in rows} == {"clean", "findings", "indeterminate", "unable"}
-    for number, (label, kwargs, legacy_state, expected, acknowledged) in enumerate(rows):
-        lab = Lab(tmp_path / f"row-{number}")
-        subject = lab.subject("a")
-        event = {"role": "legacy-reviewer", "adjudication_text": None, **kwargs}
-        result = review.ingest_legacy_event(
-            lab.store,
-            event,
-            legacy_state=legacy_state(),
-            review_subject=subject,
-            review_policy={},
-            issuer=lab.issuer,
-            grant=lab.grant,
-            audit_sink=_sink,
-        )
-        assert result["result"] == expected, label
-        assert result["acknowledged"] is acknowledged, label
-        stored = [
-            r["terminal_status"]
-            for r in lab.store.get_semantic_records("review-report.v1")
-            if r["lineage"]["source_event_id"] == event["source_event_id"]
-        ]
-        assert stored == ([] if expected == "unable" else [expected]), label
-
-
-def test_vi6023_a_crash_before_acknowledgement_replays_to_the_same_facts(tmp_path: Path) -> None:
-    """VI-6023: the replay row: the same paired facts, acknowledged once, with no duplicate."""
-    rows = {r[0]: r for r in _corpus_rows()}
-    _label, kwargs, legacy_state, _expected, _ack = rows["direct-clean"]
-    lab = Lab(tmp_path)
-    subject = lab.subject("a")
-    event = {"role": "legacy-reviewer", "adjudication_text": None, **kwargs}
-
-    def ingest(state: dict[str, Any]) -> dict[str, Any]:
-        return review.ingest_legacy_event(  # type: ignore[no-any-return]
-            lab.store, event, legacy_state=state, review_subject=subject, review_policy={},
-            issuer=lab.issuer, grant=lab.grant, audit_sink=_sink,
-        )
-
-    first = ingest({"last_review_record_operation_id": None,
-                    "last_review_record_payload_digest": None, "transition_history": []})
-    assert first["result"] == "clean" and first["acknowledged"] is False
-    second = ingest(legacy_state())
-    assert second["result"] == "clean" and second["acknowledged"] is True
-    assert len(lab.store.get_semantic_records("review-report.v1")) == 1
-
-
-def test_vi6023_the_ingest_calls_the_shipped_mapping_and_does_not_copy_it() -> None:
-    """VI-6023: the ingest holds none of the four result values; it calls the shipped mapping."""
-    source = inspect.getsource(review.ingest_legacy_event)
-    for value in ("clean", "findings", "indeterminate", "unable"):
-        assert f'"{value}"' not in source
-    assert "reconcile_review_source_event" in source
+    No shadow-services setting is involved: the supervisor's own review-failure
+    receipt for the open supported finding is the one candidate the feed offers.
+    """
+    repo, _controller, _decision = _run_to_open_finding(tmp_path)
+    assert (repo / SPEC / "delivery" / "evidence.jsonl").is_file()
+    feed = h.cli._supervisor("_delivery_feed.py")
+    page = feed.feed_page(repo)
+    facts = [e for e in page["entries"] if e["entry_kind"] == "fact"]
+    candidates = [e for e in facts if e["observation"] is not None]
+    assert len(candidates) == 1, [e["none_reason"] for e in facts]
+    assert candidates[0]["source"]["spec_path"] == SPEC
 
 
 # ── a git-backed run to an open supported finding ───────────────────────────

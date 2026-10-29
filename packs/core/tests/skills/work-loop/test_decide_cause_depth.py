@@ -69,7 +69,8 @@ def test_decide_routes_lld_causes_to_generator_instances_and_lifecycle() -> None
     assert "controlled amendment" in decide
     assert "AC-00" not in decide
     assert "delivery-contract-lifecycle.md" in decide
-    assert "Neither edits the sealed plan." in decide
+    assert "in-envelope working-plan change" in decide
+    assert "keeps execution observations, never either" in decide
 
 
 def test_decide_preserves_the_ten_rungs_in_order() -> None:

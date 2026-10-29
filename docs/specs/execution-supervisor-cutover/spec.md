@@ -147,9 +147,16 @@ Skill switch, light mode, and removal
 - [ ] **AC-0003.** A direct-light run and a durable light-mode run invoke no
   `work-supervisor.py` command and create no `<spec>/.supervisor/`.
 - [ ] **AC-0004.** Light-mode text differs from its pre-change text only by the
-  command swaps and by qualifiers that limit a clause shared with full-mode
-  code review to light mode and pre-approval, and no shipped skill line names a
-  bare `review <verb>` without `review-artifact.py`.
+  command swaps, by qualifiers that limit a clause shared with full-mode code
+  review to light mode and pre-approval, and by edits AC-0002 forces: a
+  reviewer roster becomes a pointer to `review-rules.json`, a table drops a
+  reviewer-role column, and a table row or list item that pairs a role with its
+  condition or boundary text is reworded without the role. A phrase that names
+  an old-engine transition or edge light mode never ran may also be removed, or
+  replaced by a full-mode-qualified equivalent that leaves the light-mode half
+  of the clause unchanged.
+  No shipped skill line names a bare `review <verb>` without
+  `review-artifact.py`.
 - [ ] **AC-0005.** `packs/core/tests/skills/work-intake/test_direct_light_no_writes.py`
   and `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py` pass with
   no change other than the command swaps.
@@ -160,7 +167,13 @@ Skill switch, light mode, and removal
   `packages/`, `tests/`, `guides/`, `contracts/`, `.github/`,
   `docs/product/intents/`, `docs/product/briefs/`, `Makefile`, `.snyk`, or
   `workspace.toml` names `loop-engine`, `loop-cohort`, `engine-state.json`,
-  `full-mode-engine`, or a cohort `state.json`.
+  `full-mode-engine`, or a cohort `state.json`, except at the sites
+  `tests/roster/test_retired_name_pinned_sites.py` lists by path and term. Each listed site is a value
+  hashed into recorded approval digests, a containment deny-list entry, or the
+  line of a test that asserts one of those names is absent, and that test fails
+  on any site outside its list. `tests/roster/test_retired_name_pinned_sites.py` itself is outside
+  the search, because it must spell the terms to search for them, and so is a
+  reference to a `docs/specs/<slug>` path, which points into a history path.
 - [ ] **AC-0008.** `contracts/jsonschema/loop-cohort-wave-decision.schema.json`
   is absent, and no file outside history paths names it.
 - [ ] **AC-0009.** No remaining script in `work-loop/scripts/` was invoked only

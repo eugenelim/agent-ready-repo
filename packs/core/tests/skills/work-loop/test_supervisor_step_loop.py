@@ -328,3 +328,37 @@ def test_index_is_clean_after_every_commit_and_sync(tmp_path: Path) -> None:
         h.commit_module.set_kill_hook(None)
     assert staged == []
     assert h.git(repo, "diff", "--cached", "--name-only") == ""
+
+
+# ── scheduling in dependency order ────────────────────────────────────────────
+
+
+def _goal(number: str, title: str, depends: str) -> str:
+    return sup.task(number, title, depends=depends, mode="goal-based", tests="no stub (goal-based)")
+
+
+def test_tasks_are_issued_in_dependency_order_not_plan_order(tmp_path: Path) -> None:
+    plan = sup.plan(_goal("T1", "Third in order", "T2"), _goal("T2", "Second in order", "T3"),
+                    _goal("T3", "First in order", "none"))
+    repo = h.make_repo(tmp_path, plan=plan)
+    assert h.start(repo)[0] == 0
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    titles: list[str] = []
+    for _ in range(12):  # a plain task retries once before its gate passes
+        request = _step(repo, controller)
+        if request["kind"] == "implement-task" and request["task"]["title"] not in titles:
+            titles.append(request["task"]["title"])
+        if len(titles) == 3:
+            break
+    assert titles == ["First in order", "Second in order", "Third in order"]
+
+
+def test_a_dependency_cycle_is_refused_and_commits_nothing(tmp_path: Path) -> None:
+    plan = sup.plan(_goal("T1", "First", "T2"), _goal("T2", "Second", "T1"))
+    repo = h.make_repo(tmp_path, plan=plan)
+    assert h.start(repo)[0] == 0
+    head = h.git(repo, "rev-parse", "HEAD")
+    code, payload = _next(repo)
+    assert code == 1 and payload["refusal"]["code"] == "dependency-cycle", payload
+    assert payload["refusal"]["owner"] == "plan author"
+    assert h.git(repo, "rev-parse", "HEAD") == head

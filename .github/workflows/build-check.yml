@@ -665,15 +665,19 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_navigate_decisions_file_safety_mirror.py
 
-      # The repair-round parity check compares the spec's contract rules against the
-      # shipped predicate, building its domain inline with no separate oracle.
-      # It reads docs/ and packs/ together, so lint-pack-test-boundary forbids a
-      # pack home. It sits ABOVE the carve-out step below, whose `pytest tests/ -q`
-      # also collects it, so that a failure is attributed to this named step rather
-      # than to the broad one.
-      - name: pytest repair-round predicate parity (spec contract vs shipped guard)
+      # The installed-skill run reads the repository's `.claude/` projection and the
+      # core pack's shared supervisor harness, so no pack suite may own it. Keep it
+      # above the bulk tests/ step for named failure attribution.
+      - name: pytest installed-skill supervisor run (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tests/roster/test_repair_round_predicate_parity.py
+        run: python -m pytest tests/roster/test_supervisor_installed_skill_run.py
+
+      # The pinned-sites search walks packs/, packages/, tools/, tests/, guides/,
+      # contracts/ and the intents, which no single pack suite may reach across.
+      # Keep it above the bulk tests/ step for named failure attribution.
+      - name: pytest retired-name pinned sites (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_retired_name_pinned_sites.py
 
       # The retirement output contract spans contracts/, docs/specs/, and the
       # core pack emitter, so the pack-test boundary requires a roster home.
@@ -687,13 +691,6 @@ jobs:
       - name: pytest spec-retirement candidate CLI (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_spec_retirement_candidates_cli.py
-
-      # The wave-decision JSON contract spans contracts/, docs/specs/, and the
-      # core pack CLI payload, so the pack-local suite may not own it. Keep this
-      # above the bulk tests/ step for named failure attribution.
-      - name: pytest loop-cohort wave-decision contract (roster-owned)
-        if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tests/roster/test_loop_cohort_wave_decision_contract.py
 
       # Both modules read across two packs and the guides, so lint-pack-test-boundary
       # forbids a pack home and they live in the roster suite. Each sits ABOVE the

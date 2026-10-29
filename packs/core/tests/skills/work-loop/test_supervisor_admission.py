@@ -206,7 +206,9 @@ sys.addaudithook(_audit)
 
 def test_start_never_opens_legacy_state(tmp_path: Path) -> None:
     repo = h.make_repo(tmp_path)
-    for name in ("engine-state.json", "state.json"):
+    # The legacy names a rollback reads; the run must never open either.
+    legacy = ("engine-state.json", "state.json")
+    for name in legacy:
         (repo / h.SPEC_DIR / name).write_text('{"legacy": true}\n', "utf-8")
     _OPENED.clear()
     _AUDITING[0] = True
@@ -217,4 +219,4 @@ def test_start_never_opens_legacy_state(tmp_path: Path) -> None:
         _AUDITING[0] = False
     assert code == 0, out
     assert _OPENED, "the audit hook saw no opens"
-    assert not [p for p in _OPENED if p.endswith(("engine-state.json", "/state.json"))]
+    assert not [p for p in _OPENED if p.endswith(tuple("/" + n for n in legacy))]

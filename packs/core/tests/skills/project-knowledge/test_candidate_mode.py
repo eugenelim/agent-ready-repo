@@ -126,7 +126,7 @@ def test_a_page_repeating_a_source_presents_one_candidate_for_that_identity(pk) 
     assert '<omitted ordinal="1" entry="1" reason="duplicate"/>' in rendered
 
 
-def test_a_removed_refused_or_disabled_log_yields_no_candidate(pk, repo) -> None:
+def test_a_removed_or_refused_log_yields_no_candidate(pk, repo) -> None:
     store = repo.open_store("alpha")
     repo.add_review_failure("alpha", store, "one")
     other = repo.open_store("beta")
@@ -147,10 +147,6 @@ def test_a_removed_refused_or_disabled_log_yields_no_candidate(pk, repo) -> None
     # the removed log is simply absent.
     assert rendered.count("<unread-source ") == 1
     assert '<unread-source path="docs/specs/beta" reason="log-unsafe"/>' in rendered
-    disabled = pk.render_candidates(
-        page_bytes(cs._FEED.feed_page(repo.root, environ={}))  # shadow flag unset
-    )
-    assert presented(disabled) == []
 
 
 def test_a_corrupt_log_shows_as_an_unread_source_not_as_an_empty_scan(pk, repo) -> None:

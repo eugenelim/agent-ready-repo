@@ -4,7 +4,7 @@ After the full design doc is drafted, `architect-design` does not stop at a
 one-shot draft. It *converges* the doc: obtain a review pass, fix the mechanical
 findings itself, re-review, repeat — then surface only the real decisions to the
 human. This is a **pure-prose, in-conversation procedure**: the loop
-**requires and invokes no script, no state file, no `loop-cohort`** — it is
+**requires and invokes no script, no state file, no supervisor** — it is
 bounded by these instructions and stasis-checked by the agent re-reading its
 own prior findings. `scripts/check_document_architecture.py` decides `DA3`
 and `DA10` mechanically, but the agent running this loop does not invoke it —

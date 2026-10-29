@@ -222,17 +222,6 @@ def test_cli_prints_one_deterministic_page_and_pages_through_continuations(tmp_p
     assert repo.tree_state() == before
 
 
-def test_cli_with_the_flag_unset_prints_a_complete_empty_snapshot(tmp_path: Path) -> None:
-    repo = dfs.FeedRepo(tmp_path)
-    store = repo.open_store("alpha")
-    repo.add_review_failure("alpha", store, "one")
-    result = cli(repo.root, shadow=False)
-    page = json.loads(result.stdout)
-    assert result.returncode == 0
-    assert page["entries"] == [] and page["continuation"] is None
-    assert page["shadow_services"] == "disabled"
-
-
 def test_cli_refusal_prints_a_closed_code_and_nothing_on_stdout(tmp_path: Path) -> None:
     repo = dfs.FeedRepo(tmp_path)
     repo.open_store("alpha")

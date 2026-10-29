@@ -6,22 +6,28 @@
   one or two analogous production implementations; corresponding tests or
   construction path; named uncertainty/deviation — or `none — non-structural`>
 
-> **Plan contract:** this is the implementation strategy. It may change
-> substantively only while its Status is `Drafting`, before approval records its
-> baseline. After approval, `spec.md` and `plan.md` are pinned in substance;
-> only lifecycle bookkeeping is permitted, and execution observations belong in
-> `docs/specs/<feature>/notes/verification-ledger.md` (or the adopter's
-> equivalent). A genuine artifact error follows the controlled-amendment path.
+> **Plan contract:** this is the implementation strategy. After approval, a
+> change needs an **amendment** only when it touches the spec's protected
+> sections (contract, scope and non-goals, durable outputs, agent rules, testing
+> strategy, acceptance criteria, accepted risk) or its `Terminal Intent`. A change
+> to tasks, tests, stubs, design, or approach needs none: the controller makes it
+> as an in-envelope working-plan change while no execution attempt is open, and
+> the run continues with every finished task still finished. Execution
+> observations belong in `docs/specs/<feature>/notes/verification-ledger.md` (or
+> the adopter's equivalent). A genuine error in a protected section follows the
+> controlled-amendment path.
 >
 > **Not every field is contract.** `Touches`, `Tests` and `Done when` are what a
-> completion gate reads, and they are pinned. `Design`, `Approach`, `Grounding`
-> and `Risks` are working material that an implementer corrects in place only
-> before approval: approval hashes the whole plan. After approval, grounding for
-> a seam or design means recorded as `implementation-discovered` goes to the
-> verification ledger; a settled design decision that execution falsified is a
-> plan error that follows the controlled-amendment procedure. Treating them as
-> contract is how a review spends a round on prose no gate consumes — the
-> measured share is over half the plan's lines. `Grounding` stays *recorded*,
+> completion gate reads. `Design`, `Approach`, `Grounding` and `Risks` are working
+> material the controller corrects in place, before or after approval, while no
+> attempt is open. After approval, grounding for a seam or design means recorded
+> as `implementation-discovered`, and each later correction, is a controller edit
+> of the plan's `## Design (LLD)`, never a ledger line; a settled design decision
+> that execution falsified is a plan error the owner agrees to, corrected the same
+> way unless it reaches a protected section. A TDD task's `stub` fence is likewise
+> written by the controller at task start, not carried in the approved plan.
+> Treating working material as contract is how a review spends a round on prose
+> no gate consumes — the measured share is over half the plan's lines. `Grounding` stays *recorded*,
 > because a per-task resolution that nobody wrote is not grounding; what it stops
 > being is a claim a reviewer holds the plan to.
 
@@ -111,8 +117,10 @@ AC(s) it satisfies and the `contracts/` it implements**, so the design is always
 anchored to something verifiable.
 
 Mechanism — a syscall, flag, helper name, or exact write order — lives here. A
-means no code grounds yet is marked `implementation-discovered`, and its chosen
-means and any correction go to the verification ledger.
+means no code grounds yet is marked `implementation-discovered`; when code
+grounds it, its chosen means and any correction are written back into this
+section by the controller as an in-envelope working-plan change while no attempt
+is open.
 
 Stack-neutral by construction: these are the *kinds* of design decision every
 build makes, never a framework. Name your actual stack *inside* each sub-section
@@ -232,29 +240,26 @@ seam, record `implementation-discovered` and its discovery predicate,
 constraint, required outcome, and verification mode; do not invent a helper,
 fixture, module, path, or symbol.
 
-**`Depends on:` grammar** (so the supervisor-mode scheduler —
-`loop-cohort schedule` — can read it). The field is a comma-separated list of:
+**`Depends on:` grammar** (so the supervisor can read it). The field is a
+comma-separated list of:
 local task IDs (`T1`, `T1a`), ranges (`T1-T6`), or a **cross-spec marker**
 `spec:<name>/TN` for a dependency on another spec's task (e.g.
 `spec:auth-tokens/T7`). Parenthetical prose after the IDs is
 ignored, so `T11 (lands after the shim)` is fine. Cross-spec deps are
-*spec-sequencing*, not intra-plan waves, and are excluded from this plan's
-DAG. The scheduler **fails on a dependency cycle** and **warns on a
-forward-reference** (a dep authored later — it still schedules correctly by
-running the dep first). A `Depends on:` entry that
-names no task in the plan is refused: the run exits non-zero, every offending
-task→dep pair is named, and nothing is persisted.
+*spec-sequencing*, not intra-plan ordering, and are excluded from this plan's
+DAG. The supervisor issues a task only once the tasks it depends on are
+complete, so a dependency authored later in the file still runs first, and it
+**refuses a dependency cycle**. An entry that names no task in the plan is
+ignored rather than refused, so a mistyped ID silently drops an edge: check
+each ID against the task headings.
 
-**Optional `Touches:` grammar** (read by `loop-cohort schedule`).
+**Optional `Touches:` grammar.**
 A task *may* add a `**Touches:**` line listing the file globs it expects to
 touch — a comma-separated list of paths/globs (`src/api/*.py, docs/api.md`),
-trailing prose ignored. `loop-cohort schedule` uses it to predict, per wave,
-`predicted-disjoint: yes|no|unknown` **before** dispatch — a cheap
-*serialize-only* screen. It **never greenlights** parallel: a predicted overlap
-serializes early, but `yes`/`unknown` still require the authoritative post-write
-`git merge-tree` check to actually parallelize (under-declaration is unsafe).
-The field is **optional** — omit it freely; a task with no `Touches:` makes its
-wave `unknown`, never an error.
+trailing prose ignored. The supervisor runs one task at a time, so the field
+predicts no parallelism; it records the declared surface in the task's
+revision, which makes a change to it a task change. The field is **optional** —
+omit it freely; a task with no `Touches:` is never an error.
 
 **Optional `Effects:` grammar.** A task *may* add an `**Effects:**` line naming
 the external effects it performs once its change lands — a comma-separated list
@@ -333,14 +338,17 @@ Approvals, and nothing else. Drafting history does not belong here: while the
 plan is `Drafting` its current text is the only version anyone acts on, so a
 dated account of how it got there is the draft narration `spec.md`'s
 present-tense rule already refuses, one document over. After approval this
-section is pinned like the rest of the plan, and an execution observation goes
-to the verification ledger, not to a new changelog entry.
+section still holds approvals only, and an execution observation goes to the
+verification ledger, not to a new changelog entry.
 
 **Each approval is an entry.** The two forms are given at the end of this
-note — one per gate, a real date, the approver's own handle. Both live here
-because the plan carries the only dated history in the spec directory. Without them nothing in the artifacts says when
-the contract froze or on whose authority, so a later reader cannot tell which
-claims were in it at approval and which arrived afterwards. `work-loop`'s
+note — one per gate, a real date, the approver's own handle. The entry is the
+human half of the record: who approved each gate, and when, in the one place a
+reader of the spec directory looks. The machine half is separate. `work-supervisor.py`
+`start` appends the approval pair to `delivery/approvals.jsonl` — the approving
+authority references, the approved envelope fingerprint, the base commit, and a
+timestamp — and nothing else writes that file. A changelog entry never stands
+in for that record, and that record never stands in for the entry. `work-loop`'s
 G-plan sequence owns *when* each is written and why the order matters; this
 template owns only the form.
 

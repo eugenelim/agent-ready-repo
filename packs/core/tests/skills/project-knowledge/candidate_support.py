@@ -16,7 +16,6 @@ from types import ModuleType
 from typing import Any
 
 _WORK_LOOP_TESTS = Path(__file__).resolve().parents[1] / "work-loop"
-ENABLED = {"WORK_LOOP_SHADOW_SERVICES": "1"}
 
 
 def _load(alias: str, path: Path) -> ModuleType:
@@ -38,7 +37,7 @@ def feed_pages(root: Path) -> list[bytes]:
     pages: list[bytes] = []
     token: str | None = None
     while True:
-        page = _FEED.feed_page(root, continuation=token, environ=ENABLED)
+        page = _FEED.feed_page(root, continuation=token)
         pages.append(_FEED.render_page(page))
         token = page["continuation"]
         if token is None:

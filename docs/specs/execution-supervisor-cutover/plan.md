@@ -89,7 +89,7 @@ in the next Core major, under the gate stated in the spec's Scope.
   `_compat_facade`, `_review_compat`, `assets/state.json`,
   `full-mode-engine`, `loop-cohort-wave-decision`, and bare `review <verb>`
   forms. The search covers the whole repository outside the spec's history
-  paths.
+  paths, `workspace.toml`, and `docs/product/briefs/`; T3 owns those two.
 - **Tests that exercise removed files:** these suites are retired or rewritten,
   and each change is recorded in the ledger:
   - `test_review_boundary_policy.py`, which runs the engine and loads
@@ -190,7 +190,7 @@ Owned by: T1, T2.
 ### T2: The skill drives the supervisor and the old engine is gone
 
 - **Depends on:** T1; spec:execution-supervisor-core/T8; spec:execution-supervisor-attempt-security/T5; spec:execution-supervisor-review-gate/T4; ADR-0144 Accepted; Slice 3 shipped
-- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0016, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026; goal-based, and TDD for AC-0026.
+- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007 (outside `workspace.toml` and `docs/product/briefs/`), AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0016, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026; goal-based, and TDD for AC-0026.
 - **Touches:** every file the T2 search returns at the start of the task. That
   includes:
   - **Skill:** `SKILL.md`, `references/`, `evals/evals.json`,
@@ -209,8 +209,10 @@ Owned by: T1, T2.
   - **Contracts:** the wave-decision schema and `contracts/README.md`.
   - **Tests:** the test suites named in Design, including
     `tests/roster/test_tdd_stub_lifecycle_contract.py` and
-    `packs/core/tests/skills/work-loop/test_supervisor_tdd.py`.
-  - **Coordination:** `workspace.toml`.
+    `packs/core/tests/skills/work-loop/test_supervisor_tdd.py`, and the new
+    `tests/roster/test_retired_name_pinned_sites.py` with its named `.github/workflows/build-check.yml` step,
+    `tools/lint-ci-parity.py` entry, and any `.workspace-prune-protected.toml`
+    entry it needs.
   - **Generated copies:** via `make build-self`.
 - **Verification mode:** goal-based
 - **Tests:**
@@ -221,12 +223,16 @@ Owned by: T1, T2.
     resolves.
   - **VI-7012:** the new-spec evals pass with the rewritten plan contract.
   - **VI-7013 (AC-0006, AC-0007, AC-0008, AC-0009):** removed files are absent
-    from the source and the generated copies. The search is empty. Every kept
-    script has a caller.
+    from the source and the generated copies. The search, outside
+    `workspace.toml` and `docs/product/briefs/`, finds only the (path, term)
+    sites `tests/roster/test_retired_name_pinned_sites.py` lists, each tied to one admitted kind, and that
+    test fails on any other site. No kept script was called only by removed
+    files.
   - **VI-7014 (AC-0003, AC-0004, AC-0005):** direct-light and durable light runs
     leave no `.supervisor/` and no supervisor invocation. The light-mode text
-    diff against the base commit shows only command swaps, and no bare
-    `review <verb>` remains. The two named suites pass.
+    diff against the base commit shows only command swaps, light-mode and
+    pre-approval qualifiers, the AC-0002-forced edits, and removed or replaced
+    old-engine transition phrases, each listed in the ledger. No bare `review <verb>` remains. The two named suites pass.
   - **VI-7015 (AC-0012):** `build-check-windows.yml` runs the synthetic run, and
     it reaches readiness.
   - **VI-7016 (AC-0016):** a fixture repository without the ignore rules
@@ -282,16 +288,18 @@ Owned by: T1, T2.
 ### T3: Architecture, decisions, and coordination describe the shipped supervisor
 
 - **Depends on:** T2
-- **Spec behavior:** Durable Outputs rows for decision, architecture, and coordination; goal-based.
-- **Touches:** the architecture pages named in the spec, including the knowledge pages; ADR-0151's status; `workspace.toml`
+- **Spec behavior:** Durable Outputs rows for decision, architecture, and coordination; AC-0007 for `workspace.toml` and `docs/product/briefs/`; goal-based.
+- **Touches:** the architecture pages named in the spec, including the knowledge pages; ADR-0151's status; `workspace.toml`; `docs/product/briefs/`
 - **Verification mode:** goal-based
 - **Tests:**
   - **VI-7020:** a bounded search of the named architecture pages finds no
     current-state mention of a removed script, `legacy-result-ack.v1`, a
     `tools/` builder, or a `packages/agentbundle/` supervisor home.
+  - **VI-7031 (AC-0007):** the AC-0007 search over `workspace.toml` and
+    `docs/product/briefs/` finds no current-state mention.
   - **VI-7030:** ADR-0151 is `Accepted`, and the ADR shape lint, the brief-coverage lint, and workspace
     reconcile pass.
-- **Done when:** VI-7020 and VI-7030 pass, and the architecture review is recorded.
+- **Done when:** VI-7020, VI-7030, and VI-7031 pass, and the architecture review is recorded.
 
 ## Rollout
 
@@ -314,3 +322,9 @@ Owned by: T1, T2.
 - 2026-10-29: plan approved by eugenelim
 - 2026-10-29: spec approved by eugenelim (amended Contract line)
 - 2026-10-29: plan approved by eugenelim (amended Contract line)
+- 2026-10-29: spec approved by eugenelim (amended AC-0004)
+- 2026-10-29: plan approved by eugenelim (amended AC-0004)
+- 2026-10-29: spec approved by eugenelim (amended AC-0007 and the T2/T3 scope)
+- 2026-10-29: plan approved by eugenelim (amended AC-0007 and the T2/T3 scope)
+- 2026-10-29: spec approved by eugenelim (amended AC-0004, AC-0007, VI-7013, and VI-7014)
+- 2026-10-29: plan approved by eugenelim (amended AC-0004, AC-0007, VI-7013, and VI-7014)

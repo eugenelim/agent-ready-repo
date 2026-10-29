@@ -3,16 +3,10 @@
 
 `validate` checks an orchestrator-owned review artifact without disclosing its
 path or body. `classify`, `raw-classify`, `inspect`, and `record` are the
-finding-adjudication commands. They live here so they outlast `loop-cohort.py`,
-and the `loop-cohort.py review` verbs call the same code, so both command sets
-print identical text.
-
-With cohort state (a spec directory holding `state.json`), `inspect` and
-`record` read and write that state exactly as the `loop-cohort.py review` verbs
-always have, and write no review artifact. Without cohort state, `--run-id`
-names a run, and each recorded round becomes one `record` artifact,
-`.context/reviews/<run-id>/<round>-record.md`, so the next round and the review
-budget read from artifacts alone.
+finding-adjudication commands that pre-approval review and light mode use. They
+hold no supervisor run: `--run-id` names a review, and each recorded round becomes
+one `record` artifact, `.context/reviews/<run-id>/<round>-record.md`, so the next
+round and the review budget read from artifacts alone.
 """
 
 from __future__ import annotations
@@ -48,7 +42,7 @@ SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 ROLE_RE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
 MAX_ROLE_LENGTH = 64
 
-# The authority role that may lift the review retry cap without cohort state.
+# The authority role that may lift the review retry cap.
 OVERRIDE_AUTHORITY_ROLE = "owner"
 # An authority reference is `<role>` or `<role>:<hex>`. This pattern is kept
 # equal to the supervisor's own by a parity test; the supervisor stays dark, so
@@ -389,8 +383,7 @@ def validate_artifact(metadata: ArtifactMetadata) -> tuple[int, str]:
 
 # ── relocated finding-adjudication logic ──────────────────────────────────
 #
-# Moved from `loop-cohort.py` without changing what it prints. The `loop-cohort:`
-# prefix on its diagnostics is part of that output, so it stays.
+# The `review-artifact:` prefix on these diagnostics is part of what they print.
 
 def _load_sibling(filename: str, module_name: str) -> ModuleType:
     """Load a sibling script by path, never through `sys.path`.
@@ -451,12 +444,8 @@ INDETERMINATE_SENTINEL = "ADJUDICATION-INDETERMINATE"
 # on its own line as their clean verdict instead of CLEAN_SUBSTRING.
 _SHIP_IT_RE = re.compile(r"^SHIP IT\s*$", re.MULTILINE)
 # Fingerprints are SHA-256 (64 hex). The 40-hex SHA-1 form is still accepted
-# so a cohort that was mid-review when core upgraded can finish: its
-# state.json holds SHA-1 values and `review record --fingerprint` would
-# otherwise hard-reject them. Stasis detection compares sets computed by the
-# same binary, so a straddling run misses a match for exactly one round and
-# self-heals on the next. Drop the 40-hex alternative once no in-flight
-# cohort predates core 2.3.0.
+# so a review that was mid-flight when core upgraded can finish: its records hold
+# SHA-1 values and `record --fingerprint` would otherwise hard-reject them.
 _RE_FINGERPRINT = re.compile(r"^(?:[0-9a-f]{40}|[0-9a-f]{64})$")
 
 
@@ -606,7 +595,7 @@ def _invalid(reason: str) -> dict:
     content-free, matching `review-artifact.py`'s refusal codes.
     """
     print(
-        f"loop-cohort: report classified invalid ({reason})",
+        f"review-artifact: report classified invalid ({reason})",
         file=sys.stderr,
     )
     return {
@@ -807,7 +796,7 @@ def _warn_raw_refusal(result: dict[str, object]) -> None:
     """Name which grammar rule refused the report, without echoing its content."""
     reason = result.get("_reason")
     if result["classification"] == "invalid" and reason:
-        print(f"loop-cohort: raw report refused ({reason})", file=sys.stderr)
+        print(f"review-artifact: raw report refused ({reason})", file=sys.stderr)
 
 
 RAW_CLASSIFICATION_FIELDS = ("classification", "finding_count", "not_checked_present")
@@ -849,7 +838,7 @@ def _classify_report(
         # genuinely contains no findings — and that classification feeds the review
         # retry accounting.
         print(
-            f"loop-cohort: warning — {_diag(report_path.name)} could not be read "
+            f"review-artifact: warning — {_diag(report_path.name)} could not be read "
             f"({_diag(exc)}); classified invalid",
             file=sys.stderr,
         )
@@ -901,7 +890,7 @@ def _print_review_result(result: dict, *, as_json: bool, verb: str) -> None:
         print(json.dumps(result))
         return
     print(
-        f"loop-cohort: review {verb} classification={result['classification']} "
+        f"review-artifact: review {verb} classification={result['classification']} "
         f"fingerprints={len(result['fingerprints'])} "
         f"matches_previous_round={result['matches_previous_round']}"
     )
@@ -912,12 +901,12 @@ def _print_review_result(result: dict, *, as_json: bool, verb: str) -> None:
 # `--operation-id` names the round being recorded, so a session that re-issues a
 # recording after losing its own record of whether the write landed gets one
 # write rather than two. The id is `<run_id>:<transition_sequence>` supplied by
-# the caller and validated here; this module never reads `engine-state.json`.
+# the caller and validated here.
 #
 # The payload digest is STORED, not derived on read. Deriving it is unsound: the
 # fingerprint and all-skipped branches overwrite `finding_fingerprints` and never
 # touch `last_review_clean_source`, the clean branches do the reverse, and no
-# field records which form closed a round — so `state.json` stops describing a
+# field records which form closed a round — so the counters stop describing a
 # round's payload as soon as the next round lands.
 
 # `\A`/`\Z`, not `^`/`$`: Python's `$` also matches before a trailing newline,
@@ -940,7 +929,6 @@ def _review_operation_decision(
     *,
     expect_run_id: str,
     spec_name: str,
-    allow_durable_operation_id: bool = False,
 ) -> tuple[str, str | None]:
     """Decide the recorded round's fate before any mutation.
 
@@ -965,34 +953,25 @@ def _review_operation_decision(
             f"over the {_REVIEW_OP_ID_MAX}-character limit, for {spec_name}"
         )
 
-    if allow_durable_operation_id:
-        if not SHA256_RE.fullmatch(operation_id):
-            return "refuse", (
-                "review record: internal transition operation id must be a "
-                f"SHA-256 transition id (got {operation_id!r}) for {spec_name}"
-            )
-        matched = None
-    else:
-        matched = _REVIEW_OP_ID_RE.match(operation_id)
+    matched = _REVIEW_OP_ID_RE.match(operation_id)
 
     # A leading zero is a second spelling of the same sequence, and the recorded
     # id is compared by exact string equality, so `:01` and `:1` would each
     # record the round once.
-    if not allow_durable_operation_id:
-        canonical = matched is not None and (
-            matched.group("seq") == "0" or not matched.group("seq").startswith("0")
+    canonical = matched is not None and (
+        matched.group("seq") == "0" or not matched.group("seq").startswith("0")
+    )
+    if not canonical:
+        return "refuse", (
+            f"review record: --operation-id must be "
+            f"'<expect-run-id>:<decimal-sequence>' with no leading zero "
+            f"(got {operation_id!r}) for {spec_name}"
         )
-        if not canonical:
-            return "refuse", (
-                f"review record: --operation-id must be "
-                f"'<expect-run-id>:<decimal-sequence>' with no leading zero "
-                f"(got {operation_id!r}) for {spec_name}"
-            )
-        if matched.group("run") != expect_run_id:
-            return "refuse", (
-                f"review record: --operation-id names run {matched.group('run')!r} "
-                f"but --expect-run-id is {expect_run_id!r} for {spec_name}"
-            )
+    if matched.group("run") != expect_run_id:
+        return "refuse", (
+            f"review record: --operation-id names run {matched.group('run')!r} "
+            f"but --expect-run-id is {expect_run_id!r} for {spec_name}"
+        )
     if payload_digest is None:
         # Refusing here is what keeps a later repeat decidable: an id recorded
         # without a comparison value could never be judged a replay.
@@ -1011,9 +990,8 @@ def _review_operation_decision(
             )
         return "refuse", (
             f"review record: operation {operation_id!r} is already recorded with "
-            f"a different payload; a replay must carry the payload it recorded. "
-            f"Compare against last_review_record_payload_digest in "
-            f"`loop-cohort status --json` for {spec_name}"
+            f"a different payload; a replay must carry the payload it recorded, "
+            f"for {spec_name}"
         )
     return "record", None
 
@@ -1030,7 +1008,6 @@ def _record_review_state(
     clean_source: str | None = None,
     clean_digest: str | None = None,
     allow_retry_cap_override: bool = False,
-    allow_durable_operation_id: bool = False,
     non_negative_int: Callable[..., Any] | None = None,
     default_cap: int | None = None,
 ) -> tuple[dict, str]:
@@ -1050,7 +1027,6 @@ def _record_review_state(
         payload_digest,
         expect_run_id=expected_run_id,
         spec_name=spec_name,
-        allow_durable_operation_id=allow_durable_operation_id,
     )
     if outcome == "refuse":
         raise ValueError(str(reason))
@@ -1081,10 +1057,8 @@ def _record_review_state(
                 f"review record: review retry cap reached ({retries}/{cap}) for "
                 f"{spec_name}; a findings round past the cap is the runaway "
                 f"the cap exists to stop — stop and surface it. Only a human "
-                f"directing this run may continue: reset and start a new run, or "
-                f"pass --allow-retry-cap-override to this command AND to the "
-                f"`loop-engine transition findings-remain` that opens the round "
-                f"(either half alone leaves the cohort and the engine a round apart)"
+                f"directing this run may continue: start a new review, or pass "
+                f"--allow-retry-cap-override with an owner --authority-ref"
             )
         updated["finding_fingerprints"] = stored_fingerprints
         updated["review_retry_count"] = retries + 1
@@ -1246,17 +1220,17 @@ def _record_success_line(form: RecordForm, updated: dict, name: str) -> str:
     """Return the one line a recorded round prints."""
     if form.form == "all-skipped":
         return (
-            f"loop-cohort: review record (all-skipped) "
+            f"review-artifact: review record (all-skipped) "
             f"round={updated['review_round_count']} for {name}"
         )
     if form.form == "findings":
         return (
-            f"loop-cohort: review record (findings) "
+            f"review-artifact: review record (findings) "
             f"round={updated['review_round_count']} retry={updated['review_retry_count']} "
             f"fingerprints={len(form.fingerprints)} for {name}"
         )
     return (
-        f"loop-cohort: review record (clean:{form.clean_source}) "
+        f"review-artifact: review record (clean:{form.clean_source}) "
         f"round={updated['review_round_count']} "
         f"retry={updated['review_retry_count']} for {name}"
     )
@@ -1266,7 +1240,7 @@ def _record_success_line(form: RecordForm, updated: dict, name: str) -> str:
 
 
 def run_classify(args: argparse.Namespace, *, read_text: ReadText | None = None) -> int:
-    """Strictly classify an adjudication report without cohort state."""
+    """Strictly classify an adjudication report without a supervisor run."""
     report_path = _resolved_report(args.report)
     result = _classify_report(
         report_path,
@@ -1279,7 +1253,7 @@ def run_classify(args: argparse.Namespace, *, read_text: ReadText | None = None)
 
 
 def run_raw_classify(args: argparse.Namespace, *, read_text: ReadText | None = None) -> int:
-    """Classify a raw reviewer report without cohort state."""
+    """Classify a raw reviewer report without a supervisor run."""
     full = _classify_raw_report(_resolved_report(args.report), read_text=read_text)
     _warn_raw_refusal(full)
     result = _raw_classification_payload(full)
@@ -1287,7 +1261,7 @@ def run_raw_classify(args: argparse.Namespace, *, read_text: ReadText | None = N
         print(json.dumps(result))
     else:
         print(
-            "loop-cohort: review raw-classify "
+            "review-artifact: review raw-classify "
             f"classification={result['classification']} "
             f"finding_count={result['finding_count']} "
             f"not_checked_present={result['not_checked_present']}"
@@ -1295,95 +1269,7 @@ def run_raw_classify(args: argparse.Namespace, *, read_text: ReadText | None = N
     return 0
 
 
-# ── commands: with cohort state ───────────────────────────────────────────
-#
-# `host` is the object that owns cohort state I/O: `loop-cohort.py` passes its
-# own, and this script's CLI loads `loop-cohort.py` for one. It supplies
-# `resolve_spec_dir`, `state_path_for`, `read_state`, `write_state_atomic`,
-# `validate_run_id`, `with_state_lock`, `stop`, `emit`, `read_text`,
-# `non_negative_int`, and `default_cap`.
-
-
-def run_inspect(args: argparse.Namespace, host: Any) -> int:
-    """Classify a report against the cohort's previous round, read-only."""
-    try:
-        spec_dir = host.resolve_spec_dir(args.spec_dir)
-    except ValueError as exc:
-        return int(host.stop(str(exc)))
-    try:
-        state = host.read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        # Operational error (spec-dir unresolvable or state.json unreadable)
-        return int(host.stop(str(exc)))
-
-    report_path = _resolved_report(args.report)
-    result = _classify_report(
-        report_path,
-        state,
-        require_adjudication=args.adjudication,
-        read_text=host.read_text,
-    )
-
-    _print_review_result(result, as_json=args.json, verb="inspect")
-    return 0  # content outcomes always exit 0
-
-
-def run_record(args: argparse.Namespace, host: Any) -> int:
-    """Record one review round into the cohort's `state.json`, under its lock."""
-    try:
-        spec_dir = host.resolve_spec_dir(args.spec_dir)
-    except ValueError as exc:
-        return int(host.stop(str(exc)))
-    return int(
-        host.with_state_lock(
-            spec_dir, "review record", lambda: _record_with_state(args, spec_dir, host)
-        )
-    )
-
-
-def _record_with_state(args: argparse.Namespace, spec_dir: Path, host: Any) -> int:
-    """Body of `run_record`, run while the cohort state lock is held."""
-    try:
-        state = host.read_state(spec_dir)
-    except (FileNotFoundError, ValueError) as exc:
-        return int(host.stop(str(exc)))
-    reason = host.validate_run_id(state, args.expect_run_id, verb="review record")
-    if reason is not None:
-        return int(host.stop(reason))
-
-    operation_id = getattr(args, "operation_id", None)
-    form = _resolve_record_form(args, state, read_text=host.read_text)
-    if isinstance(form, str):
-        return int(host.stop(form))
-    try:
-        updated, status = _record_review_state(
-            state,
-            expected_run_id=args.expect_run_id,
-            spec_name=spec_dir.name,
-            form=form.form,
-            operation_id=operation_id,
-            payload_digest=form.digest,
-            fingerprints=form.fingerprints,
-            clean_source=form.clean_source,
-            clean_digest=form.clean_digest,
-            allow_retry_cap_override=getattr(args, "allow_retry_cap_override", False),
-            non_negative_int=host.non_negative_int,
-            default_cap=host.default_cap,
-        )
-    except ValueError as exc:
-        return int(host.stop(str(exc)))
-    if status == "already":
-        host.emit(
-            f"review record already recorded for operation "
-            f"{operation_id!r} (idempotent no-op) for {spec_dir.name}"
-        )
-        return 0
-    host.write_state_atomic(spec_dir, updated)
-    print(_record_success_line(form, updated, spec_dir.name))
-    return 0
-
-
-# ── commands: without cohort state ────────────────────────────────────────
+# ── commands: review records ──────────────────────────────────────────────
 
 
 def _reject_constant(name: str) -> NoReturn:
@@ -1503,7 +1389,7 @@ def _load_records(root: Path, run_id: str) -> list[dict[str, Any]]:
 
 
 def _previous_state(records: list[dict[str, Any]]) -> dict:
-    """The cohort-shaped counters a run's `record` artifacts add up to."""
+    """The counters a run's `record` artifacts add up to."""
     return {
         "review_round_count": len(records),
         "review_retry_count": sum(r["form"] == "findings" for r in records),
@@ -1512,7 +1398,7 @@ def _previous_state(records: list[dict[str, Any]]) -> dict:
 
 
 def run_inspect_run(args: argparse.Namespace) -> int:
-    """`inspect` without cohort state: the previous round comes from `record` artifacts."""
+    """`inspect` for a review run: the previous round comes from `record` artifacts."""
     run_id = _parse_run_id(args.run_id)
     records = _load_records(_resolve_root(args.root), run_id)
     result = _classify_report(
@@ -1532,7 +1418,7 @@ def _refuse(code: str, reason: str) -> int:
 
 
 def run_record_run(args: argparse.Namespace) -> int:
-    """`record` without cohort state: one `record` artifact per recorded round."""
+    """`record` for a review run: one `record` artifact per recorded round."""
     run_id = _parse_run_id(args.run_id)
     if getattr(args, "expect_run_id", None) not in (None, run_id):
         raise UsageError("invalid-metadata")
@@ -1622,38 +1508,6 @@ def run_record_run(args: argparse.Namespace) -> int:
 # ── CLI ───────────────────────────────────────────────────────────────────
 
 
-def _load_cohort_host() -> Any:
-    """Load `loop-cohort.py`, the owner of cohort state I/O, and return its host."""
-    try:
-        module = _load_sibling("loop-cohort.py", "_review_artifact_cohort")
-    except Exception as exc:
-        raise ArtifactError("cohort-unavailable") from exc
-    if getattr(module, "_g", None) is None:
-        raise ArtifactError("cohort-unavailable")
-    return module._review_host()
-
-
-def _cohort_host_for(args: argparse.Namespace) -> Any | None:
-    """Return the cohort host when cohort state governs this call, else `None`.
-
-    A spec directory holding `state.json` is cohort state; `--run-id` then plays
-    no part. No spec directory, or one with no `state.json`, plus `--run-id` is
-    the no-cohort path.
-    """
-    if args.spec_dir is None:
-        if args.run_id is None:
-            raise UsageError("invalid-command")
-        return None
-    host = _load_cohort_host()
-    if args.run_id is None:
-        return host
-    try:
-        spec_dir = host.resolve_spec_dir(args.spec_dir)
-    except ValueError:
-        return host  # the cohort path words this refusal
-    return host if os.path.lexists(host.state_path_for(spec_dir)) else None
-
-
 def _run_validate(args: argparse.Namespace) -> int:
     """Validate one report and emit only fixed status, size, and digest fields."""
     metadata = _parse_metadata(args)
@@ -1687,7 +1541,6 @@ def _build_parser() -> QuietArgumentParser:
     raw.add_argument("--json", action="store_true")
 
     inspect = subparsers.add_parser("inspect", add_help=True)
-    inspect.add_argument("spec_dir", nargs="?")
     inspect.add_argument("--report", required=True)
     inspect.add_argument("--adjudication", action="store_true")
     inspect.add_argument("--json", action="store_true")
@@ -1695,7 +1548,6 @@ def _build_parser() -> QuietArgumentParser:
     inspect.add_argument("--root", default=".")
 
     record = subparsers.add_parser("record", add_help=True)
-    record.add_argument("spec_dir", nargs="?")
     forms = record.add_mutually_exclusive_group(required=True)
     forms.add_argument("--direct-clean-file", default=None)
     forms.add_argument("--structural-clean-file", default=None)
@@ -1726,14 +1578,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             return run_classify(args)
         if args.command == "raw-classify":
             return run_raw_classify(args)
-        host = _cohort_host_for(args)
-        if args.command == "inspect":
-            return run_inspect(args, host) if host else run_inspect_run(args)
-        if host is None:
-            return run_record_run(args)
-        if args.expect_run_id is None:
+        if args.run_id is None:
             raise UsageError("invalid-command")
-        return run_record(args, host)
+        if args.command == "inspect":
+            return run_inspect_run(args)
+        return run_record_run(args)
     except UsageError:
         print("INVALID invalid-metadata")
         return 2

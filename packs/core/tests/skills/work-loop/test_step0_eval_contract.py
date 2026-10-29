@@ -38,34 +38,23 @@ def test_step0_evals_follow_dispatch_decision() -> None:
     assert "candidates" in "\n".join(str(item) for item in ask["assertions"])  # type: ignore[attr-defined]
 
 
-def test_schedule_refuses_unknown_dependency_eval_contract() -> None:
-    """Eval entry for unknown-dependency refusal must name both topics in its assertions.
+def test_resumption_evals_name_the_supervisor_verbs() -> None:
+    """The resumption evals must name the supervisor verb that answers each case.
 
     The catalogue lint only checks assertions are non-empty strings, so nothing
-    else notices if the entry stops mentioning refusal or the forward-reference
-    contrast at all.  This check pins that both topics are mentioned; it is a
-    substring search, so it does not observe polarity — an assertion could name
-    refusal and still say the wrong thing about it, and that is the eval run's
-    job to catch, not this one's.
+    else notices if an entry stops naming the verb it teaches. This is a
+    substring search and does not observe polarity; the eval run catches that.
     """
-    import re
-
     evals = _evals_by_id()
-    assert "schedule-refuses-unknown-dependency" in evals, (
-        "Missing eval entry 'schedule-refuses-unknown-dependency' in evals.json"
-    )
-    entry = evals["schedule-refuses-unknown-dependency"]
-    assertions: list[str] = list(entry["assertions"])  # type: ignore[arg-type]
-
-    has_refus = any(re.search("refus", a, re.IGNORECASE) for a in assertions)
-    assert has_refus, (
-        "No assertion in 'schedule-refuses-unknown-dependency' matches 'refus' (case-insensitive)"
-    )
-
-    has_forward = any(re.search("forward", a, re.IGNORECASE) for a in assertions)
-    assert has_forward, (
-        "No assertion in 'schedule-refuses-unknown-dependency' matches 'forward' (case-insensitive)"
-    )
+    for eval_id, verb in (
+        ("resume-reads-status-first", "work-supervisor.py status"),
+        ("approved-without-start-resumption", "work-supervisor.py start"),
+        ("resume-after-interrupted-report", "next"),
+    ):
+        assert eval_id in evals, f"Missing eval entry {eval_id!r} in evals.json"
+        entry = evals[eval_id]
+        text = str(entry["expected_output"]) + " ".join(str(a) for a in entry["assertions"])
+        assert verb in text, f"{eval_id!r} no longer names {verb!r}"
 
 
 def test_step0_evals_do_not_retain_superseded_messages() -> None:

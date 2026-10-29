@@ -27,9 +27,12 @@ on, so the criteria pin what's actually intended.)
 
 **`plan.md` is the implementation strategy.** It enumerates the changes —
 "add a `<thing>` to package X, modify `<other thing>` in package Y, write tests
-for cases A, B, C". It may change substantively only while `Drafting`; once
-approved, both it and `spec.md` are pinned except for lifecycle bookkeeping. See
-§ *A spec directory freezes as a unit, when the spec ships*.
+for cases A, B, C". Once approved, a change to the spec's protected sections or
+its `Terminal Intent` needs an **amendment**; a change to the plan's tasks,
+tests, stubs, design, or approach does not, and the controller makes it as an
+in-envelope working-plan change while no execution attempt is open. See
+§ *What needs an amendment after approval* and § *A spec directory freezes as a
+unit, when the spec ships*.
 
 **Durable outputs own lasting truth.** A durable spec identifies the semantic
 owners it expects to create or update before implementation starts: user
@@ -42,8 +45,10 @@ rationale, authority, ownership, or non-executable operational promises.
 
 **Lifecycle:** specs are **living documents** until the plan is approved. If
 implementation diverges from the spec, the spec is wrong — but from approval
-onward the correction is the controlled-amendment path, not an in-flight edit,
-and an observation produced by execution goes to the verification ledger. After
+onward a correction to a protected section is the controlled-amendment path, not
+an in-flight edit; a correction to tasks, tests, stubs, design, or approach is a
+working-plan change, and an observation produced by execution goes to the
+verification ledger. After
 the feature ships the spec **freezes**: at that point the *code is the truth*,
 and the spec becomes the record of what was agreed, not a description of
 current behaviour. A later behaviour change is recorded where it belongs — in
@@ -246,7 +251,8 @@ separate commits for each when the change is non-trivial.
 
 **Stub → EXECUTE handoff.** For TDD-mode tasks, PLAN's `Tests:` names the
 behavior, the boundary it is checked at, and the verification mode; it carries
-no test code. EXECUTE writes the red test at the real test location — as much of
+no test code, and the approved plan does not carry a `stub` fence: the
+controller adds one to a supervisor task at task start. EXECUTE writes the red test at the real test location — as much of
 the real failing test as the AC and contract honestly determine, never a bare
 `TODO` — proves the intended red, then completes red-green-refactor. A
 `spec-plan` run therefore ends with documents only and no intentionally failing
@@ -311,29 +317,50 @@ absent a skill, it is hand-authored into the same conventional location.
 > it, and any substantive change to this convention, routes through your RFC
 > process (see § 3).
 
+### What needs an amendment after approval
+
+Approval covers the spec's protected sections — `Contract`, `Scope and
+Non-goals`, `Durable Outputs`, `Agent Rules`, `Testing Strategy`, `Acceptance
+Criteria`, `Accepted Risk` — and its `Terminal Intent`. After approval:
+
+- **A change to any of those needs an amendment**: the owner's authority, fresh
+  pre-execution review, and both approvals again. The supervisor refuses such an
+  edit during a run and names its owner.
+- **A change to the plan's tasks, tests, stubs, design, or approach needs none.**
+  The controller makes it as an in-envelope working-plan change while no execution
+  attempt is open; the supervisor commits it without an approval request, and every
+  task finished before it stays finished. The `Outcome`, `What Changes`,
+  `Follow-ons`, and `Assumptions` sections are working material too.
+- **Grounding for an `implementation-discovered` seam or design means, and each
+  later correction, goes into the plan's `## Design (LLD)`** as that same
+  working-plan change, never into the verification ledger.
+- **A TDD task's `stub` fence is written by the controller at task start**, as a
+  task-start revision, not carried in the approved plan.
+- **An observation produced by execution** — a red test's command and failing
+  output, a digest comparison, manual-QA output — belongs in the sibling
+  `notes/verification-ledger.md`, never in either approved artifact.
+
 ### A spec directory freezes as a unit, when the spec ships
 
 `shipped specs/*` above means the whole directory — `spec.md` **and** `plan.md`.
 This needs saying because the plan template's own contract line reads "Unlike
 the spec, this document is allowed to change as you learn", which sounds like a
-standing exemption and is not one. That licence is **phase-scoped**: it holds
-only while the plan is `Drafting`, and ends when the plan is approved. From
-approval, both `spec.md` and `plan.md` are pinned in substance. Only lifecycle
-bookkeeping — the preamble status token and task-progress checkboxes — may still
-be written. An observation produced by execution belongs in the sibling
-`notes/verification-ledger.md`, never in either approved artifact.
+standing exemption and is not one. That licence is **phase-scoped**: before
+approval it is wide, and after approval it covers only the working-plan changes
+above. Lifecycle bookkeeping — the preamble status token and task-progress
+checkboxes — may still be written.
 
-There are therefore **two stages, not one.** At plan approval the pair is
-*pinned in substance*: the contract stops moving so implementation cannot drift
-it, while lifecycle bookkeeping is still written. Once the plan is `Done` and
-the spec is `Shipped`, the work is over, both documents are history, and the
-whole directory is *frozen* — the retention rule the `Frozen` class above
-names. Pinned protects the contract during the build; frozen protects the
-record afterwards.
+There are therefore **two stages, not one.** At plan approval the protected
+sections and terminal intent are *protected*: the contract stops moving so
+implementation cannot drift it, while the plan's working material and lifecycle
+bookkeeping are still written. Once the plan is `Done` and the spec is
+`Shipped`, the work is over, both documents are history, and the whole directory
+is *frozen* — the retention rule the `Frozen` class above names. Protection
+holds the contract during the build; frozen protects the record afterwards.
 
-A plan that stayed substantively editable after approval would be a second,
-unversioned account of what we did, competing with the ADR that records why. A
-genuine error in either approved artifact follows the controlled-amendment path.
+A plan that stayed editable in its protected parts after approval would be a
+second, unversioned account of what we did, competing with the ADR that records
+why. A genuine error in a protected section follows the controlled-amendment path.
 
 ### Superseding a frozen document
 

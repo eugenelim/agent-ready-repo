@@ -1,9 +1,9 @@
 """Contract suite for the read-only delivery fact feed (Slice 3, task T1).
 
-Covers AC-0001, AC-0002, AC-0010, AC-0012 of delivery-knowledge-projection:
-complete and paged scans, torn and corrupt frames, supersession, snapshot
-refusal, and log byte-identity.  Fixtures are built with the shipped Slice 1
-and Slice 2 writers, in temporary repositories.
+Covers complete and paged scans, torn and corrupt frames, supersession, snapshot
+refusal, and log byte-identity, read from each spec's committed
+``delivery/evidence.jsonl`` with no shadow-services setting. Fixtures are built
+with the shipped Slice 1 and Slice 2 writers, in temporary repositories.
 
 Mode: TDD through contract and integration tests.
 """
@@ -18,7 +18,6 @@ from typing import Any
 import delivery_feed_support as dfs
 import pytest
 
-ENABLED = {"WORK_LOOP_SHADOW_SERVICES": "1"}
 FINGERPRINT_PREFIX = "acceptance-fp-"
 
 
@@ -39,7 +38,7 @@ def scan(feed: ModuleType, root: Path, **kwargs: Any) -> tuple[list[dict], list[
     pages: list[dict] = []
     token: str | None = None
     while True:
-        page = feed.feed_page(root, continuation=token, environ=ENABLED, **kwargs)
+        page = feed.feed_page(root, continuation=token, **kwargs)
         pages.append(page)
         token = page["continuation"]
         if token is None:
@@ -180,32 +179,6 @@ def test_absent_log_and_disabled_shadow_dir_contribute_nothing(
     assert pages[0]["continuation"] is None
 
 
-def test_unset_shadow_flag_returns_complete_empty_snapshot_without_listing(
-    feed: ModuleType, repo: dfs.FeedRepo, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """AC-0012: flag unset means an empty snapshot and no listing or read."""
-    store = repo.open_store("alpha")
-    repo.add_review_failure("alpha", store, "one")
-    fs = feed._file_safety()
-    for name in ("list_confined_directories", "validate_confined_directory",
-                 "read_confined_regular_file"):
-        monkeypatch.setattr(fs, name, lambda *a, **k: pytest.fail("filesystem touched"))
-    for env in ({}, {"WORK_LOOP_SHADOW_SERVICES": ""}, {"WORK_LOOP_SHADOW_SERVICES": "0"},
-                {"WORK_LOOP_SHADOW_SERVICES": "true"}):
-        page = feed.feed_page(repo.root / "does-not-exist", environ=env)
-        assert page["entries"] == [] and page["continuation"] is None
-        assert page["shadow_services"] == "disabled"
-
-
-def test_flag_semantics_match_the_shadow_facade(feed: ModuleType) -> None:
-    """The feed reads the same opt-in the facade writes under."""
-    facade = dfs.load_script("dfp_contract_facade", "_compat_facade.py")
-    assert feed.SHADOW_ENV_VAR == facade.SHADOW_ENV_VAR
-    assert feed._MARKER_BYTES == b"*\n"
-    assert feed._SHADOW_SUBDIR == facade.SHADOW_SUBDIR
-    assert feed._EVIDENCE_LOG == facade._EVIDENCE_LOG
-
-
 # ── AC-0001: bounds, paging, snapshot ────────────────────────────────────────
 
 
@@ -256,7 +229,7 @@ def _two_page_repo(feed: ModuleType, repo: dfs.FeedRepo) -> dict:
 
 def _first_page(feed: ModuleType, repo: dfs.FeedRepo, monkeypatch: pytest.MonkeyPatch) -> dict:
     monkeypatch.setattr(feed, "MAX_ENTRIES", 2)
-    page = feed.feed_page(repo.root, environ=ENABLED)
+    page = feed.feed_page(repo.root)
     assert page["continuation"] is not None
     return page
 
@@ -279,7 +252,6 @@ def test_continuation_refuses_a_changed_snapshot_without_a_partial_result(
         repo.spec_dir("gamma")
     elif mutate == "remove-spec":
         (repo.log_path("beta")).unlink()
-        (repo.shadow_dir("beta") / ".gitignore").unlink()
         repo.shadow_dir("beta").rmdir()
         repo.spec_dir("beta").rmdir()
     else:
@@ -287,7 +259,7 @@ def test_continuation_refuses_a_changed_snapshot_without_a_partial_result(
         data[40] ^= 0x01  # same length, different prefix
         repo.log_path("alpha").write_bytes(bytes(data))
     with pytest.raises(feed.ScanRefused) as caught:
-        feed.feed_page(repo.root, continuation=page["continuation"], environ=ENABLED)
+        feed.feed_page(repo.root, continuation=page["continuation"])
     assert caught.value.code == "snapshot-changed"
 
 
@@ -302,7 +274,7 @@ def test_completing_a_torn_frame_between_pages_changes_the_snapshot(
     with repo.log_path("beta").open("ab") as handle:
         handle.write(b'"x"}}\n')
     with pytest.raises(feed.ScanRefused) as caught:
-        feed.feed_page(repo.root, continuation=page["continuation"], environ=ENABLED)
+        feed.feed_page(repo.root, continuation=page["continuation"])
     assert caught.value.code == "snapshot-changed"
 
 
@@ -317,7 +289,7 @@ def test_malformed_continuation_tokens_are_refused(
     """The token grammar is strict, including a trailing newline."""
     repo.open_store("alpha")
     with pytest.raises(feed.ScanRefused) as caught:
-        feed.feed_page(repo.root, continuation=token, environ=ENABLED)
+        feed.feed_page(repo.root, continuation=token)
     assert caught.value.code == "token-invalid"
 
 
@@ -327,9 +299,9 @@ def test_forged_position_in_a_valid_snapshot_is_refused(
     """A token for the right snapshot but a position past the end is refused."""
     store = repo.open_store("alpha")
     repo.add_engine_transition("alpha", store)
-    snapshot = feed.feed_page(repo.root, environ=ENABLED)["snapshot_id"].rsplit("-", 1)[1]
+    snapshot = feed.feed_page(repo.root)["snapshot_id"].rsplit("-", 1)[1]
     with pytest.raises(feed.ScanRefused) as caught:
-        feed.feed_page(repo.root, continuation=f"dff1.{snapshot}.5", environ=ENABLED)
+        feed.feed_page(repo.root, continuation=f"dff1.{snapshot}.5")
     assert caught.value.code == "token-invalid"
 
 
@@ -530,7 +502,7 @@ def test_an_unexpected_replay_fault_is_not_reported_as_a_corrupt_log(
 
     monkeypatch.setattr(feed._evidence_store(), "replay_admitted_frames", defective)
     with pytest.raises(RuntimeError):
-        feed.feed_page(repo.root, environ=ENABLED)
+        feed.feed_page(repo.root)
 
 
 def test_the_command_names_the_stage_and_exception_class_of_an_unexpected_fault(

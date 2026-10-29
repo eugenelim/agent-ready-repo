@@ -1,4 +1,4 @@
-# Spec: loop-cohort-state-lock
+# Spec: cohort-writer-state-lock
 
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
@@ -72,7 +72,7 @@ proceeding; *Never do* is a hard rule, even under time pressure.
   repo-global operation under it manufactures false confidence.
 - **Never delete a file the lock did not create.** The reclaim path must
   recognise a lockfile as its own kind before touching it.
-- **Never create a directory in order to take a lock.** `loop-cohort.py`'s
+- **Never create a directory in order to take a lock.** `cohort-writer.py`'s
   spec-dir resolver does not confine to the repo root.
 
 ## Acceptance Criteria
@@ -151,9 +151,9 @@ and each task's `Tests:`.
 **The wiring**
 
 - [x] **AC13** — Every code path that writes `state.json` or
-      `engine-state.json` does so inside a critical section that also contains
+      `engine-state-file` does so inside a critical section that also contains
       the read it decided from. Ten verbs today; the inventory is in the LLD.
-- [x] **AC14** — For `loop-engine.py`'s `transition`, the critical section
+- [x] **AC14** — For `phase-engine.py`'s `transition`, the critical section
       extends through the outbox finalisation, not merely through the state
       write. Releasing at the write leaves a reachable same-spec
       duplicate-event interleaving.
@@ -187,12 +187,12 @@ and each task's `Tests:`.
 - [x] **AC21** — The suite is hermetic: the live repo's `.loop-run/` **contents**
       and `.gitignore` are byte-identical before and after a full run, compared
       against a baseline taken at import — not mid-suite — since
-      `loop-engine init` appends to `.gitignore`.
+      `phase-engine init` appends to `.gitignore`.
 
 **Not-a-regression, and the ship-side**
 
-- [x] **AC22** — Existing behavior is unchanged: `test-loop-cohort.py`,
-      `test-loop-engine.py`, `test-loop-cohort.sh`, and the pytest-collected
+- [x] **AC22** — Existing behavior is unchanged: `test-cohort-writer.py`,
+      `test-phase-engine.py`, `test-cohort-writer.sh`, and the pytest-collected
       `test_loop_cohort_schedule.py`, `test_loop_engine_events_jsonl.py`,
       `test_loop_cohort_max_iter_single_source.py` all pass.
 - [x] **AC23** — `.gitignore` and the shipped adopter seed
@@ -206,10 +206,10 @@ and each task's `Tests:`.
       `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json` and
       `.claude-plugin/marketplace.json` all carry the same bumped version.
 - [x] **AC26** — `workspace.toml [backlog].open` drops
-      `loop-cohort-state-rmw-unlocked` and carries
+      `cohort-writer-state-rmw-unlocked` and carries
       `agentbundle-statelock-symlink-spin`, `loop-outbox-cross-spec-rmw`,
       `append-knowledge-rmw-unlocked` and
-      `loop-cohort-resolve-spec-dir-confinement`.
+      `cohort-writer-resolve-spec-dir-confinement`.
 
 ## Testing strategy
 
@@ -245,8 +245,8 @@ CPU not burned — never a timing window or a transient filename.
 3. **Contention is rare and short** — one `open` and one `unlink` per verb in the
    uncontended case.
 4. **`spec-dir` is operator-supplied, not attacker-supplied.**
-   `loop-cohort.py`'s resolver rejects `..` but does not confine to the repo
-   root the way `loop-engine.py`'s does. This change declines to *widen* that
+   `cohort-writer.py`'s resolver rejects `..` but does not confine to the repo
+   root the way `phase-engine.py`'s does. This change declines to *widen* that
    gap — no directory creation (AC12), no deletion of unrecognised files
    (AC9) — but does not close it. Tracked as
-   `loop-cohort-resolve-spec-dir-confinement`.
+   `cohort-writer-resolve-spec-dir-confinement`.

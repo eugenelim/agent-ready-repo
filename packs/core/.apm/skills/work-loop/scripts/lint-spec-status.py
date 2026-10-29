@@ -3,7 +3,7 @@
 
 This is a `work-loop` **skill script**: it lives at
 `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py` and projects to
-every adapter's `.../skills/work-loop/scripts/`, the same way `loop-cohort.py`
+every adapter's `.../skills/work-loop/scripts/`, the same way the supervisor
 does. The agent runs it at the work-loop's finish-time checklist — *available
 and agent-invoked, not fail-closed* (there is no PR-open hook event in an
 adopter repo). It no-ops gracefully where Python is absent.
@@ -716,7 +716,7 @@ def acceptance_criteria_lines(spec_text: str) -> list[tuple[int, str]]:
 
 
 # Local git metadata and object reads must not indefinitely stall a lint run.
-# This matches the local-git bound used by the work-loop's engine and cohort.
+# This matches the local-git bound used by the work-loop's other scripts.
 GIT_TIMEOUT_S = 20.0
 
 
@@ -1379,9 +1379,8 @@ def main(argv: list[str] | None = None) -> int:
         "--verbose", action="store_true",
         help="list every warn-only finding; without it they are only counted",
     )
-    # Read from the parsed args, never at module scope: `_loop_guards.py`,
-    # `loop-cohort.py`, and `check-spec-status.py` exec this file for its
-    # parser symbols, so an argv read here would see the *host's* argv.
+    # Read from the parsed args, never at module scope: `_loop_guards.py`
+    # execs this file for its parser symbols, so an argv read here would see the *host's* argv.
     args = parser.parse_args(argv)
 
     root = _validated_root(args.root)

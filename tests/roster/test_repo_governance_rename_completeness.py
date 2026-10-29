@@ -209,11 +209,11 @@ def test_pack_manifest_and_plugin_manifest_carry_the_new_name() -> None:
 
 
 def test_iac_terraform_requires_the_renamed_pack() -> None:
-    """AC-0002: iac-terraform is 0.2.0 and requires repo-governance ^2.0."""
+    """AC-0002: iac-terraform is 0.2.1 and requires repo-governance ^2.0."""
     root = REPO_ROOT / "packs" / "iac-terraform"
     pack = tomllib.loads((root / "pack.toml").read_text(encoding="utf-8"))["pack"]
     plugin = json.loads((root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
-    assert pack["version"] == "0.2.0" and plugin["version"] == "0.2.0"
+    assert pack["version"] == "0.2.1" and plugin["version"] == "0.2.1"
     required = {dep["pack"]: dep["version"] for dep in pack["dependencies"]["required"]}
     assert required[NEW_NAME] == "^2.0"
     assert OLD_NAME not in required

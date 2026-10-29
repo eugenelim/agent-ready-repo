@@ -59,11 +59,6 @@ def digests() -> dict:
     return _load(gs.GOLDEN_DIGESTS)["digests"]
 
 
-@pytest.fixture(scope="module")
-def rows() -> list[dict]:
-    return _load(gs.GOLDEN_CLI_STREAMS)["rows"]
-
-
 # ── 1. corpus shape coverage ───────────────────────────────────────────────
 
 def _read(path: Path) -> str:
@@ -182,15 +177,6 @@ def test_canonical_contract_folds_line_endings() -> None:
 
 # ── 2. normalizer ──────────────────────────────────────────────────────────
 
-def test_normalize_is_idempotent(rows: list[dict]) -> None:
-    for row in rows:
-        for stream in ("stdout", "stderr"):
-            once = row["before"][stream]
-            assert gs.normalize(once) == once, (
-                f"{row['key']}/{stream}: normalize is not idempotent, so a second "
-                "pass could mask a real difference"
-            )
-
 
 def test_normalize_preserves_distinct_values() -> None:
     """Two different run ids must not collapse to one token.
@@ -215,103 +201,8 @@ def test_normalize_strips_absolute_paths(tmp_path: Path) -> None:
 
 # ── 3. the change-reason contract ──────────────────────────────────────────
 
-def test_after_present_iff_change_reason_declared(rows: list[dict]) -> None:
-    for row in rows:
-        has_after = "after" in row
-        has_reason = "change_reason" in row
-        assert has_after == has_reason, (
-            f"{row['key']}: `after` and `change_reason` must appear together. "
-            "An `after` without a declared reason is how a golden gets relaxed to "
-            "make a failure go away."
-        )
-        if has_reason:
-            assert row["change_reason"] in gs.CHANGE_REASONS, (
-                f"{row['key']}: change_reason {row['change_reason']!r} is not in the "
-                f"closed set {sorted(gs.CHANGE_REASONS)}"
-            )
-
-
-def test_declared_change_reasons_are_all_exercised(rows: list[dict]) -> None:
-    """Every reason in the closed set is used, and none outside it appears.
-
-    A reason that stops being used means the behavior change it described was
-    dropped — which should be a deliberate edit to the set, not silent drift.
-    """
-    observed = {r["change_reason"] for r in rows if "change_reason" in r}
-    assert observed <= gs.CHANGE_REASONS
-    unexercised = sorted(gs.CHANGE_REASONS - observed)
-    assert not unexercised, (
-        f"declared but unexercised change reasons: {unexercised}. Either add rows "
-        "for them or remove them from golden_support.CHANGE_REASONS."
-    )
-
-
-def test_changed_rows_flip_a_verdict(rows: list[dict]) -> None:
-    """An `after` must actually differ from `before` on the pass/fail verdict."""
-    for row in (r for r in rows if "after" in r):
-        before_ok = row["before"]["returncode"] == 0
-        after_ok = row["after"]["returncode"] == 0
-        assert before_ok != after_ok, (
-            f"{row['key']}: declares change_reason {row['change_reason']!r} but the "
-            "verdict is unchanged — it belongs in the preserved set"
-        )
-
 
 # ── 4. preserved rows are clean ────────────────────────────────────────────
-
-def test_preserved_rows_have_one_line_no_traceback_stderr(rows: list[dict]) -> None:
-    """The CLI contract, asserted on the capture itself.
-
-    Rows declaring a `change_reason` are exempt: their pre-change behavior is what
-    this change is fixing, so requiring it to be clean would either block the fix
-    or force the traceback to be enshrined as expected.
-    """
-    for row in rows:
-        if "change_reason" in row:
-            continue
-        before = row["before"]
-        combined = before["stdout"] + "\n" + before["stderr"]
-        assert "Traceback" not in combined, (
-            f"{row['key']}: the pre-change CLI produced a traceback. Do not record "
-            "it as expected behavior — surface it as a defect, or classify the row "
-            "with a change_reason if this change fixes it."
-        )
-        if before["returncode"] != 0:
-            assert before["stderr"], f"{row['key']}: non-zero exit with empty stderr"
-            assert len(before["stderr"].split("\n")) == 1, (
-                f"{row['key']}: stderr is {len(before['stderr'].split(chr(10)))} lines; "
-                "the CLI contract is one line"
-            )
-
-
-def test_all_six_read_only_verbs_are_covered(rows: list[dict]) -> None:
-    """Every verb being converted to an adapter has recorded failure branches."""
-    prefixes = {
-        "identity/": 3,
-        "plan-check-current/": 6,
-        "schedule-check-current/": 4,
-        "check/": 6,
-        "wave-check/": 4,
-        "check-spec-status/": 5,
-    }
-    for prefix, minimum in prefixes.items():
-        n = sum(1 for r in rows if r["key"].startswith(prefix))
-        assert n >= minimum, f"{prefix}: only {n} rows, expected at least {minimum}"
-    # Both outcomes for every verb, so no verb is recorded as refuse-only.
-    for prefix in prefixes:
-        codes = {r["before"]["returncode"] == 0 for r in rows if r["key"].startswith(prefix)}
-        assert codes == {True, False}, (
-            f"{prefix}: recorded only {'passes' if True in codes else 'refusals'}; "
-            "a verb needs both to pin its contract"
-        )
-
-
-def test_the_unprefixed_refusal_is_recorded(rows: list[dict]) -> None:
-    """`plan_review_status: pending` carries no verb prefix and is easy to lose."""
-    row = next((r for r in rows if r["key"] == "plan-check-current/pending"), None)
-    assert row is not None
-    assert row["before"]["returncode"] != 0
-    assert row["before"]["stderr"] == "loop-cohort: stop — plan_review_status: pending"
 
 
 # ── 5. the live-code guard ─────────────────────────────────────────────────
@@ -319,12 +210,7 @@ def test_the_unprefixed_refusal_is_recorded(rows: list[dict]) -> None:
 def _current_canonical_helpers():
     """`sha256_canonical_contract` as the tree currently implements it.
 
-    Deliberately loaded from `loop-cohort.py` rather than from `_loop_guards.py`:
-    that name stays a valid `loop-cohort` module attribute across the extraction
-    (T1a re-binds every relocated name), so this test keeps pointing at whatever
-    module actually owns the algorithm and needs no edit when it moves. Pointing it
-    at the new module instead would make it silently stop covering the old path
-    during the transition.
+    Loaded from `_loop_guards.py`, the module that owns the algorithm.
     """
     scripts = (
         Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
@@ -332,7 +218,7 @@ def _current_canonical_helpers():
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
-        "_cohort_for_digest_check", str(scripts / "loop-cohort.py")
+        "_guards_for_digest_check", str(scripts / "_loop_guards.py")
     )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -346,10 +232,6 @@ def test_recomputed_digests_match_golden(digests: dict) -> None:
     that can fail when the implementation changes. Mutation-verified: perturbing the
     line-rstrip or the status splice in `canonical_contract` turns this red.
 
-    Loaded from `loop-cohort.py` rather than `_loop_guards.py` on purpose — that name
-    stays a valid `loop-cohort` module attribute across the extraction, so this test
-    keeps pointing at whatever module owns the algorithm and needs no edit when it
-    moves.
     """
     hasher, _ = _current_canonical_helpers()
     mismatches = [
@@ -359,6 +241,6 @@ def test_recomputed_digests_match_golden(digests: dict) -> None:
     assert not mismatches, (
         f"{len(mismatches)} digest(s) no longer match the pre-change golden: "
         f"{mismatches[:8]}. The canonical contract pins every approved baseline, so "
-        "a digest change silently invalidates in-flight runs — including this spec's "
-        "own state.json. Do NOT regenerate the fixture to make this pass."
+        "a digest change silently invalidates in-flight runs — "
+        "Do NOT regenerate the fixture to make this pass."
     )

@@ -27,7 +27,7 @@ PACKS_DIR = REPO_ROOT / "packs"
 # Repo-only packs (allowed-scopes = ["repo"]) with adapter-contract v0.8
 # (core is v0.12 — bumped by copilot-full-parity / copilot-skills-and-web).
 REPO_ONLY_PACKS = ("core", "repo-governance", "user-guide-diataxis", "monorepo-extras")
-# Addon packs that declare a required dep on core ^3.0. repo-governance is
+# Addon packs that declare a required dep on core ^4.0. repo-governance is
 # absent: it names core only as a recommended companion (asserted below).
 CORE_DEP_PACKS = ("monorepo-extras",)
 
@@ -55,10 +55,10 @@ def _load(pack_name: str) -> dict:
 @pytest.mark.parametrize("pack_name", CORE_DEP_PACKS)
 def test_addon_manifests_carry_required_dependency(pack_name):
     """Addon packs (monorepo-extras) declare
-    `[[pack.dependencies.required]]` against `core` with the `^3.0`
+    `[[pack.dependencies.required]]` against `core` with the `^4.0`
     caret-minor range (bumped from ^0.1 → ^1.0 when core
     hit 1.0.0, then ^1.0 → ^2.0 when core hit 2.0.0, then ^2.0 → ^3.0
-    when core hit 3.0.0).
+    when core hit 3.0.0, then ^3.0 → ^4.0 when core hit 4.0.0).
 
     user-guide-diataxis (0.3.0) is a deprecated shim that depends on
     product-documentation instead of core; its dep is pinned separately.
@@ -73,11 +73,11 @@ def test_addon_manifests_carry_required_dependency(pack_name):
         if isinstance(e, dict)
         and e.get("catalogue") == "agent-ready-repo"
         and e.get("pack") == "core"
-        and e.get("version") == "^3.0"
+        and e.get("version") == "^4.0"
     ]
     assert matches, (
         f"{pack_name}: required-dep entry "
-        '{catalogue="agent-ready-repo", pack="core", version="^3.0"} not found; '
+        '{catalogue="agent-ready-repo", pack="core", version="^4.0"} not found; '
         f"got {required!r}"
     )
 
@@ -89,7 +89,7 @@ def test_governance_extras_declares_core_only_as_recommended():
     assert not dependencies.get("required"), dependencies
     recommended = dependencies.get("recommended")
     assert recommended == [
-        {"catalogue": "agent-ready-repo", "pack": "core", "version": "^3.0"}
+        {"catalogue": "agent-ready-repo", "pack": "core", "version": "^4.0"}
     ], recommended
 
 

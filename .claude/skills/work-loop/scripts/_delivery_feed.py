@@ -1,26 +1,26 @@
 """_delivery_feed — read-only, reproducible snapshot feed over evidence logs.
 
-``feed_page`` scans ``docs/specs/<feature>/.shadow-acceptance/shadow-evidence.log``
-under a repository root and returns one ``delivery-fact-feed.v1`` page of
-committed delivery facts, each with its ``knowledge-observation.v1`` projection
-or an explicit ``none`` with a closed reason.
+``feed_page`` scans ``docs/specs/<feature>/delivery/evidence.jsonl`` under a
+repository root and returns one ``delivery-fact-feed.v1`` page of committed
+delivery facts, each with its ``knowledge-observation.v1`` projection or an
+explicit ``none`` with a closed reason.
+
+Committed facts only: when the root is a Git repository, a log whose bytes
+differ from its bytes at ``HEAD`` (or that is not in ``HEAD``) is unread with
+``log-unsafe``, so an uncommitted frame never reaches a page.  The ``HEAD`` read
+runs through ``_supervisor_git.HardenedGit``.
 
 Read only.  The feed never writes, locks for writing, truncates, repairs, or
 appends to a log, and it never calls ``EvidenceStore.open()`` (which truncates a
 torn final frame).  Every log read goes through ``file_safety.py``'s confined,
-no-follow, single-link, regular-file, bounded helpers rooted at the repository,
-and only when the log's directory holds the writer's exact self-ignoring
-``.gitignore`` marker.  Admission matches the store's replay
-(``_evidence_store.replay_admitted_frames``) except that a torn final frame stays
-invisible and unrepaired.
+no-follow, single-link, regular-file, bounded helpers rooted at the repository.
+Admission matches the store's replay (``_evidence_store.replay_admitted_frames``)
+except that a torn final frame stays invisible and unrepaired.
 
 Snapshot: the first page fixes the source set, that is the ``docs/specs/``
 listing plus each log's state, byte length, and sha256.  A continuation
 re-enumerates and refuses, with no partial page, on any difference.  Nothing is
 cached: the token is the whole cursor.
-
-With ``WORK_LOOP_SHADOW_SERVICES`` unset the feed returns a complete, empty
-snapshot without touching the filesystem.
 
 Self-contained: standard library plus sibling work-loop modules loaded by path.
 It never opens, copies, or loads a delivery schema.
@@ -36,7 +36,6 @@ import os
 import re
 import stat
 import sys
-from collections.abc import Mapping
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Final, NamedTuple
@@ -50,7 +49,6 @@ __all__ = [
     "MAX_ENTRIES",
     "MAX_PAGE_BYTES",
     "SCAN_REFUSAL_CODES",
-    "SHADOW_ENV_VAR",
     "UNREAD_REASONS",
     "ScanRefused",
     "feed_page",
@@ -59,18 +57,18 @@ __all__ = [
 
 _SCRIPTS_DIR: Final[Path] = Path(__file__).resolve().parent
 
-SHADOW_ENV_VAR: Final[str] = "WORK_LOOP_SHADOW_SERVICES"
-_SHADOW_SUBDIR: Final[str] = ".shadow-acceptance"
-_EVIDENCE_LOG: Final[str] = "shadow-evidence.log"
-_MARKER_NAME: Final[str] = ".gitignore"
-# The exact bytes _compat_facade writes to make the directory self-ignoring.
-_MARKER_BYTES: Final[bytes] = b"*\n"
+_DELIVERY_SUBDIR: Final[str] = "delivery"
+_EVIDENCE_LOG: Final[str] = "evidence.jsonl"
+# The page's `shadow_services` member is kept for the v1 shape; the feed always reads.
+_SHADOW_SERVICES: Final[str] = "enabled"
 
 # Page bounds, stated once in delivery-fact-feed.v1 and pinned to it by a test.
 MAX_ENTRIES: Final[int] = 1000
 MAX_PAGE_BYTES: Final[int] = 1024 * 1024
 _MAX_RECORD_SCHEMA_VERSION: Final[int] = 1000
 
+# The full v1 contract set. The feed reads a committed file now, so it no longer
+# produces the shadow-directory and marker codes; they stay valid in the contract.
 UNREAD_REASONS: Final[frozenset[str]] = frozenset({
     "shadow-dir-unsafe",
     "marker-missing",
@@ -123,7 +121,13 @@ def _sibling(alias: str, filename: str) -> ModuleType:
         if spec is None or spec.loader is None:
             raise ImportError(f"no import spec for {path}")
         module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
+        # A dataclass resolves its annotations through ``sys.modules`` while the
+        # module body runs; the entry is removed again straight after.
+        sys.modules[alias] = module
+        try:
+            spec.loader.exec_module(module)
+        finally:
+            sys.modules.pop(alias, None)
     finally:
         sys.dont_write_bytecode = previous
     _modules[alias] = module
@@ -136,6 +140,10 @@ def _file_safety() -> ModuleType:
 
 def _evidence_store() -> ModuleType:
     return _sibling("_df_evidence_store", "_evidence_store.py")
+
+
+def _supervisor_git() -> ModuleType:
+    return _sibling("_df_supervisor_git", "_supervisor_git.py")
 
 
 def _projection() -> ModuleType:
@@ -181,38 +189,6 @@ def _missing(exc: BaseException) -> bool:
     return isinstance(exc.__cause__, FileNotFoundError)
 
 
-def _shadow_dir_state(shadow_dir: Path) -> str:
-    """Diagnose a failed marker read without reading: absent, unsafe, or a plain directory."""
-    try:
-        info = os.lstat(shadow_dir)
-    except FileNotFoundError:
-        return "absent"
-    except OSError:
-        return "shadow-dir-unsafe"
-    if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
-        return "shadow-dir-unsafe"
-    return "directory"
-
-
-def _marker_refusal(root: Path, shadow_dir: Path) -> str | None:
-    """Return None when the exact marker is present, else ``absent`` or a reason code."""
-    fs = _file_safety()
-    try:
-        marker = fs.read_confined_regular_file(
-            root, shadow_dir / _MARKER_NAME, max_bytes=len(_MARKER_BYTES)
-        )
-    except fs.BoundExceeded:
-        return "marker-invalid"
-    except fs.UnsafeContentError as exc:
-        state = _shadow_dir_state(shadow_dir)
-        if state != "directory":
-            return state
-        return "marker-missing" if _missing(exc) else "marker-unsafe"
-    except OSError:
-        return "marker-unsafe"
-    return None if marker == _MARKER_BYTES else "marker-invalid"
-
-
 def _admit(raw: bytes) -> _LogView | str:
     """Replay the log's complete frames as the store does, or return a refusal reason.
 
@@ -255,22 +231,49 @@ def _feed_identifier(value: object) -> str:
     return "digest-sha256:" + digest
 
 
+def _committed(root: Path, log_rel: str, working: bytes, log_cap: int) -> bool:
+    """Return True when the log's bytes at ``HEAD`` equal the working file's bytes.
+
+    The read is the supervisor's hardened Git helper, so no configured program
+    runs.  A root with no ``.git`` entry, checked with ``os.lstat`` and not followed,
+    is outside Git and has no ``HEAD`` to compare against, so it passes.  When a
+    ``.git`` entry exists, a log that is absent from ``HEAD``, differs from it, or
+    cannot be read through the helper (discovery failing included) does not pass,
+    so an uncommitted frame never reaches a page, whatever a worker did to the
+    repository's control files.
+    """
+    try:
+        os.lstat(root / ".git")
+    except FileNotFoundError:
+        return True
+    except OSError:
+        return False
+    sg = _supervisor_git()
+    try:
+        git = sg.HardenedGit(root)
+        git.pins  # noqa: B018 — pins the repository; a failure is an unread log
+        object_name = f"HEAD:{log_rel}"
+        size = git.run("cat-file", "-s", object_name, check=False).strip()
+        if not size.isdigit() or int(size) > log_cap or int(size) != len(working):
+            return False
+        return git.run("cat-file", "blob", object_name, check=False) == working
+    except (sg.SupervisorGitError, OSError):
+        return False
+
+
 def _read_spec_source(root: Path, spec_dir: Path, spec_path: str, log_cap: int) -> _SpecSource:
     """Read one spec's log through the confined helpers, or report why it is unread."""
     fs = _file_safety()
-    shadow_dir = spec_dir / _SHADOW_SUBDIR
-    refusal = _marker_refusal(root, shadow_dir)
-    if refusal == "absent":
-        return _SpecSource(spec_path, "absent")
-    if refusal is not None:
-        return _SpecSource(spec_path, refusal)
+    log_path = spec_dir / _DELIVERY_SUBDIR / _EVIDENCE_LOG
     try:
-        raw = fs.read_confined_regular_file(root, shadow_dir / _EVIDENCE_LOG, max_bytes=log_cap)
+        raw = fs.read_confined_regular_file(root, log_path, max_bytes=log_cap)
     except fs.BoundExceeded:
         return _SpecSource(spec_path, "log-oversized")
     except fs.UnsafeContentError as exc:
         return _SpecSource(spec_path, "absent" if _missing(exc) else "log-unsafe")
     except OSError:
+        return _SpecSource(spec_path, "log-unsafe")
+    if not _committed(root, f"{spec_path}/{_DELIVERY_SUBDIR}/{_EVIDENCE_LOG}", raw, log_cap):
         return _SpecSource(spec_path, "log-unsafe")
     digest = hashlib.sha256(raw).hexdigest()
     # A torn final frame (bytes after the last newline) is invisible and left
@@ -423,7 +426,6 @@ def feed_page(
     root: Path,
     *,
     continuation: str | None = None,
-    environ: Mapping[str, str] | None = None,
     log_max_bytes: int | None = None,
 ) -> dict[str, Any]:
     """Return one ``delivery-fact-feed.v1`` page, or raise ``ScanRefused``.
@@ -433,17 +435,6 @@ def feed_page(
     *log_max_bytes* overrides the store's 256 MiB per-log cap, for tests.
     """
     kp = _projection()
-    env = os.environ if environ is None else environ
-    if env.get(SHADOW_ENV_VAR, "") != "1":
-        # Complete and empty, decided before any listing or read.
-        snapshot = _snapshot_id("disabled", [])
-        if continuation is not None:
-            digest, _ = _parse_token(continuation)
-            if digest != snapshot:
-                raise ScanRefused("snapshot-changed")
-            raise ScanRefused("token-invalid")
-        return _compose("disabled", snapshot, 0, [], None)
-
     token_digest, position = (None, 0) if continuation is None else _parse_token(continuation)
     cap = _evidence_store()._EVIDENCE_LOG_MAX_BYTES if log_max_bytes is None else log_max_bytes
     try:
@@ -457,7 +448,7 @@ def feed_page(
         _read_spec_source(root, directory, f"docs/specs/{directory.name}", cap)
         for directory in _list_specs(root)
     ]
-    snapshot = _snapshot_id("enabled", sources)
+    snapshot = _snapshot_id(_SHADOW_SERVICES, sources)
     if token_digest is not None and token_digest != snapshot:
         raise ScanRefused("snapshot-changed")
     slots = _slots(sources)
@@ -466,7 +457,7 @@ def feed_page(
 
     # Page size is counted exactly: the empty page (continuation null) plus each
     # entry and its comma, plus the token's extra bytes when more entries remain.
-    used = len(render_page(_compose("enabled", snapshot, position, [], None)))
+    used = len(render_page(_compose(_SHADOW_SERVICES, snapshot, position, [], None)))
     digest = snapshot.rsplit("-", 1)[1]
     entries: list[dict[str, Any]] = []
     index = position
@@ -481,7 +472,7 @@ def feed_page(
         used += size
         index += 1
     next_token = None if index >= len(slots) else f"dff1.{digest}.{index}"
-    page = _compose("enabled", snapshot, position, entries, next_token)
+    page = _compose(_SHADOW_SERVICES, snapshot, position, entries, next_token)
     if len(render_page(page)) > MAX_PAGE_BYTES:
         raise ScanRefused("scan-failed")
     return page

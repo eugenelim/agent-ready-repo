@@ -20,8 +20,8 @@ def test_execute_declares_complete_sequential_dispatch() -> None:
     execute = _execute_section()
     for literal in (
         "implementer",
-        "loop-cohort schedule",
-        "once per plan task",
+        "work-supervisor.py",
+        "once per request",
         "one implementer at a time",
     ):
         assert literal in execute, literal

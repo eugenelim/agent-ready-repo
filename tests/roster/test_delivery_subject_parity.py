@@ -22,8 +22,7 @@ before any T6 writer task begins.
 
 Parity rule (verification-ledger.md §Script-versus-schema parity): every task
 that adds a module building delivery records carries parity tests.  This file
-satisfies that obligation for T6's ``_subject_projection.py`` and
-``_subject_source.py``.
+satisfies that obligation for T6's ``_subject_projection.py``.
 """
 
 from __future__ import annotations

@@ -1,15 +1,11 @@
 """The canonical process-spawn set, and the AST walks that use it.
 
-Two test files need to agree about what "spawns a process" means:
-`test_loop_concurrency.py` (nothing unbounded runs while `cmd_transition` holds the
-state lock) and `test_loop_engine_no_child_python.py` (no child *Python* at all).
-They previously each carried their own literal — `{"run", "Popen", "check_output",
-"check_call"}` in one, the same four in the other — under a docstring claiming they
-were shared "so the two cannot drift". They were not shared, and both were only the
-`subprocess` half: an `os.system("git gc")` added under the lock passed both.
+Test files need to agree about what "spawns a process" means. A shared set stops each
+from carrying its own literal, and both used to be only the `subprocess` half: an
+`os.system("git gc")` passed a scan that named only `run`, `Popen`, `check_output`,
+and `check_call`.
 
-One definition, imported by both. Extending the set here tightens both scans at once,
-which is the property the old comment claimed and did not have.
+One definition, imported by every scan. Extending the set here tightens them all at once.
 
 Stdlib only, no pytest import — this is support code, collected by neither runner.
 """

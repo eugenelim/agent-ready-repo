@@ -117,8 +117,8 @@ paths — use the placeholders listed there.
 
 ## Pulling candidates from delivery review failures
 
-A run with `WORK_LOOP_SHADOW_SERVICES=1` records review failures in a per-spec
-evidence log under `docs/specs/<feature>/.shadow-acceptance/`. A pull scan
+A supervisor run records review failures in the spec's committed evidence log,
+`docs/specs/<feature>/delivery/evidence.jsonl`. A pull scan
 lists each failure that nothing has replaced as a *candidate*: a suggestion for a
 `gotcha`, not knowledge. Delivery sends no notification and keeps no scan state,
 so you can run a scan whenever you like and run it again.
@@ -130,7 +130,7 @@ agent tool installed it (`.claude/skills/`, `.agents/skills/`, `.kiro/skills/`,
 `.apm/skills/`):
 
 ```bash
-WORK_LOOP_SHADOW_SERVICES=1 python '<work-loop-dir>/scripts/delivery-fact-feed.py' --root . \
+python '<work-loop-dir>/scripts/delivery-fact-feed.py' --root . \
   | python '<project-knowledge-dir>/scripts/project_knowledge.py' --candidates
 ```
 

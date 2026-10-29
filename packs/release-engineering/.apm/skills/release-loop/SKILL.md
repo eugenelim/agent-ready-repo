@@ -256,7 +256,7 @@ surfacing-predicate stall clause) — **never churn forever**. Defaults are
 The loop **reuses** `core`'s reviewers; it adds **no new reviewer agent** (the
 three-reviewer ceiling holds — the operational lens is a *mode* of
 `quality-engineer`, not a new agent) and **no executable code** as the feature
-mechanism. `loop-cohort.py` / `lint-spec-status.py` are byte-unchanged.
+mechanism. The work-loop's scripts and `lint-spec-status.py` are byte-unchanged.
 
 - **The operational lens reuses `quality-engineer`.** At the loop's REVIEW step,
   the orchestrator detects which operational failure modes the cycle raises and

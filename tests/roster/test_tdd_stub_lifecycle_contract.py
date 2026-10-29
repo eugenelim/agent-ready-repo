@@ -36,14 +36,28 @@ LIVE_PLAN_TIME_SOURCES = (
     ROOT / "tools/test-pages-workflow.py",
     ROOT / "docs-site/src/plugins/rehype-scrollable-tables.test.ts",
 )
+LIFECYCLE = ROOT / "packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md"
+PLAN_CONTRACT = ROOT / "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md"
+SKILL_ROOTS = (WORK_LOOP.parent, NEW_SPEC.parent)
+# The four places a skill's shipped text lives; `scripts/` is code, not guidance.
+SKILL_TEXT_DIRS = frozenset({"references", "assets", "evals"})
+
+
+def _skill_sources() -> tuple[Path, ...]:
+    """Every file under both skills' `SKILL.md`, `references/`, `assets/`, and `evals/`."""
+
+    found = []
+    for root in SKILL_ROOTS:
+        for path in sorted(root.rglob("*")):
+            parts = path.relative_to(root).parts
+            if path.is_file() and (parts == ("SKILL.md",) or parts[0] in SKILL_TEXT_DIRS):
+                found.append(path)
+    return tuple(found)
+
+
+SKILL_SOURCES = _skill_sources()
 LIVE_SOURCES = (
-    WORK_LOOP,
-    TDD_STUBS,
-    ROOT / "packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md",
-    NEW_SPEC,
-    PLAN_TEMPLATE,
-    SPEC_TEMPLATE,
-    ROOT / "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
+    *SKILL_SOURCES,
     ROOT / "packs/core/.apm/agents/quality-engineer.md",
     HOW_TO,
     EXPLANATION,
@@ -100,6 +114,13 @@ def _flat(path: Path) -> str:
     return " ".join(_text(path).split()).lower()
 
 
+def _flat_unquoted(path: Path) -> str:
+    """Return a source with blockquote markers removed, whitespace collapsed, lower-cased."""
+
+    text = re.sub(r"^>[ ]?", "", _text(path), flags=re.MULTILINE)
+    return " ".join(text.split()).lower()
+
+
 def _section(path: Path, start: str, end: str) -> str:
     """Return the flattened, lower-cased text from `start` up to `end`."""
 
@@ -152,7 +173,13 @@ def _assert_all(text: str, *needles: str) -> None:
         assert needle.lower() in text, needle
 
 
-@pytest.mark.parametrize("source", LIVE_SOURCES, ids=lambda path: path.name)
+def _label(path: Path) -> str:
+    """A test id that tells two files with one name apart."""
+
+    return str(path.relative_to(ROOT))
+
+
+@pytest.mark.parametrize("source", LIVE_SOURCES, ids=_label)
 def test_sweep(source: Path) -> None:
     """AC-0001, AC-0002: no retired phrase; byte identity only for the stub fence."""
 
@@ -217,7 +244,7 @@ def test_execute_tdd_line_writes_the_red_at_the_real_location() -> None:
 
 
 def test_reference_states_red_rules() -> None:
-    """AC-0006 to AC-0010: red counting, ledger, optional fence, supervisor fence."""
+    """Red counting, ledger, the controller-written fence, and the refusal recovery."""
 
     reference = _flat(TDD_STUBS)
     _assert_all(
@@ -225,14 +252,114 @@ def test_reference_states_red_rules() -> None:
         "an import failure of the not-yet-written target counts as red",
         "any other collection, import, or setup error, or a timeout, does not",
         "where a spec exists, the red's command and failing output go to the verification ledger",
-        "the approved plan does not require a `stub` fence",
-        "where a supervisor run executes a tdd task, the plan author carries its fence in the approved task",
-        "a supervisor task without a fence gets no engine-observed red proof",
+        "a supervisor task without a fence gets no supervisor-observed red proof",
         "execute's red-first rule still applies to it",
         "a fence the supervisor refuses as `stub-not-red` is either made to fail for the intended reason or removed",
         "`implementation-discovered`",
         "do not invent a helper, fixture, module, path, or symbol",
     )
+
+
+def test_task_start_revision_and_open_attempt_timing() -> None:
+    """The controller, never an implementer, writes the fence at task start, with no attempt open."""
+
+    reference = _flat(TDD_STUBS)
+    _assert_all(
+        reference,
+        "the **controller**, never an implementer attempt, writes that fence as a **task-start revision**",
+        "after the previous request's result is reported and before the `next` that issues the task's first request",
+        "**make no plan edit while an attempt is open**",
+        "supervisor.md#the-open-attempt-rule--when-the-plan-may-change",
+        "an implementer attempt that adds or changes a fence in its result is refused",
+    )
+    owner = _flat(WORK_LOOP.parent / "references" / "supervisor.md")
+    _assert_all(
+        owner,
+        "## the open-attempt rule — when the plan may change",
+        "any change to one of them refuses the attempt with `attempt-residue`, whoever made it",
+    )
+    execute = _execute_modes()
+    _assert_all(
+        execute,
+        "the controller — never an implementer attempt — writes the task's `stub` fence into its `tests:` as a task-start revision",
+        "after the previous request's result is reported and before the `next` that issues the task's first request",
+    )
+    loop = _section(WORK_LOOP, "**Full mode — the supervisor's loop.**", "Match discipline to verification mode:")
+    _assert_all(
+        loop,
+        "the controller changes the plan only while no attempt is open",
+        "references/supervisor.md",
+    )
+
+
+def test_design_grounding_routes_to_a_working_plan_edit() -> None:
+    """Grounding and later corrections go to the plan's design, as an in-envelope working-plan change."""
+
+    _assert_all(
+        _flat(LIFECYCLE),
+        "is a controller edit of the plan's `## design (lld)`",
+        "in-envelope working-plan change",
+        "while no attempt is open",
+    )
+    _assert_all(
+        _flat_unquoted(PLAN_TEMPLATE),
+        "is a controller edit of the plan's `## design (lld)`",
+        "while no attempt is open",
+    )
+    _assert_all(
+        _flat(PLAN_CONTRACT),
+        "grounding for an `implementation-discovered` seam or design means, and each later correction, goes into the plan's `## design (lld)`",
+        "working-plan change",
+    )
+    decide = _section(WORK_LOOP, "## Step 5. DECIDE", "### Cut")
+    _assert_all(
+        decide,
+        "`implementation-discovered` seam or design means",
+        "controller edit of the plan's `## design (lld)`",
+        "in-envelope working-plan change",
+    )
+
+
+def test_amendment_boundary_is_stated_in_the_planning_contract() -> None:
+    """Both planning sources say which plan changes need an amendment and which do not."""
+
+    for source in (PLAN_CONTRACT, PLAN_TEMPLATE):
+        flat = _flat_unquoted(source)
+        assert "amendment" in flat, source.name
+        for needle in ("acceptance criteria", "terminal intent", "tasks, tests, stubs, design"):
+            assert needle in flat, (source.name, needle)
+
+
+def _sentences(path: Path) -> list[str]:
+    """The source split into flattened, lower-cased sentences."""
+
+    return [s for s in re.split(r"(?<=[.!?:;])\s+", " ".join(_text(path).split()).lower()) if s]
+
+
+NEGATED = re.compile(r"\b(?:never|not|no|neither|keeps)\b")
+
+
+@pytest.mark.parametrize("source", SKILL_SOURCES, ids=_label)
+def test_no_source_requires_the_approved_plan_fence_or_the_ledger_route(source: Path) -> None:
+    """Refuse the retired routes: the fence carried in the approved plan, grounding sent to the ledger."""
+
+    flat = _flat(source)
+    for phrase in (
+        "carries its fence in the approved task",
+        "the plan author carries its fence",
+        "the approved plan does not require a `stub` fence",
+        "carries an optional `stub` fence in the approved task",
+        "grounding that arrives during implementation goes in the verification ledger",
+        "its chosen means and any correction go to the verification ledger",
+        "chosen means and any correction go to the verification ledger",
+        "neither edits the sealed plan",
+    ):
+        assert phrase not in flat, (source.name, phrase)
+    for sentence in _sentences(source):
+        if "fence" in sentence and "approved" in sentence and "stub" in sentence:
+            assert NEGATED.search(sentence), (source.name, sentence)
+        if "implementation-discovered" in sentence and "ledger" in sentence:
+            assert NEGATED.search(sentence), (source.name, sentence)
 
 
 def test_routing_names_protected_classes_and_splits_property_from_means() -> None:
@@ -275,7 +402,7 @@ def test_plan_template_design_section_owns_mechanism() -> None:
         "mechanism",
         "lives here",
         "a means no code grounds yet is marked `implementation-discovered`",
-        "its chosen means and any correction go to the verification ledger",
+        "written back into this section by the controller as an in-envelope working-plan change while no attempt is open",
     )
 
 
