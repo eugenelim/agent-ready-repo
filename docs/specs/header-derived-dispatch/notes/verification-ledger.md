@@ -2,7 +2,7 @@
 
 ## Live replay
 
-Run 2026-10-29 with `tools/replay-dispatch.py` at repository commit `811815b3c` (the tool itself is added by the commit that records this run), over a `git worktree` of snapshot commit `95a8cc985`:
+Run 2026-10-29 with `tools/replay-dispatch.py` at repository commit `df96661ed` (its byte-identical pre-rebase twin is `811815b3c`; the tool itself is added by the commit that records this run), over a `git worktree` of snapshot commit `95a8cc985`:
 
 ```
 python3 tools/replay-dispatch.py --root <worktree> --base-engine <worktree>/packs/core/.apm/skills/workspace-status/scripts/workspace_status.py
