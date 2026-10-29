@@ -1,7 +1,7 @@
 # Plan: Header-derived dispatch and its replay
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and D3; RFC-0105 D3; ADR-0110; RFC-0096 § 7; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`:

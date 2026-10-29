@@ -1,6 +1,6 @@
 # Spec: Header-derived dispatch and its replay
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-29 by eugenelim, spec and plan, after four spec-mode shaping and adversarial review rounds, each adjudicated, with the round-4 fixes accepted unreviewed; review records under `.context/reviews/header-derived-dispatch-spec-r1/` to `-r4/`. Re-approved 2026-10-29 by eugenelim after the pre-EXECUTE adversarial and secure-design reviews tightened confinement, the drop rule, named refusals and the engine load; records under `.context/reviews/ea6a3fd9-0b6d-4b55-841e-fc58e265b40c/`. Re-approved 2026-10-29 by eugenelim after a controlled amendment during T6: AC-0021's four rows cite the 2026-10-29 RFC-0106 § Errata entry and AC-0022 covers every removal row; records `5-*` and `6-*` there. Re-approved 2026-10-29 by eugenelim after a controlled amendment during REVIEW: AC-0018 names `invalid_artifact_path` for its two path conditions in place of `provenance_reference`, and T8 carries the implementation-review repairs; records `7-*` and `8-*` there.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -109,17 +109,17 @@ Terms used below:
 
 **The dispatch result**
 
-- [ ] **AC-0001.** `dispatch.py --root <root>` exits `0` and prints one JSON object. Its keys are `schema_version`, `ready`, `active`, `blocked`, `findings` and `decision`. Each `ready`, `active` and `blocked` item carries `path`, `slug`, `status` and `findings`. Each finding carries `code`, `path`, `dispatchable` and `next_action`. `decision` carries `action`, one of `start`, `resume`, `ask`, `none` and `refuse`; `path`, a spec path or `null`; `candidates`, a list that is empty unless `action` is `ask`; and `findings`, a list that is empty unless `action` is `refuse`, and otherwise holds the findings AC-0009 or AC-0010 names. Each list is sorted by `path`.
-- [ ] **AC-0002.** Unless AC-0010 refuses the run, `ready` holds exactly the paths of the header result's evaluations whose kind is `spec`, whose collection is `work.queue`, and which are dispatchable. `active` holds exactly the paths of those whose kind is `spec`, whose collection is `work.active`, and which have no finding.
-- [ ] **AC-0003.** `blocked` holds each header-result evaluation in `work.queue` or `work.active` whose path is in neither `ready` nor `active`, with that evaluation's findings. No other spec is in `blocked`.
-- [ ] **AC-0004.** `findings` holds each header-result finding that belongs to no `blocked` item, including every `cooled_child_scope_unknown` and cooling-resolution finding, and each finding AC-0010 or AC-0011 adds. Output objects carry only the keys AC-0001 lists, so neither the added initiative nor any synthesized `summary` reaches the output.
-- [ ] **AC-0005.** Except for an item whose path a kept entry names, no `ready`, `active` or `blocked` item's findings carry `unregistered_work`, `duplicate_membership`, `unsupported_legacy`, `configuration_mismatch`, `impossible_transition` or `provenance_mismatch`.
-- [ ] **AC-0006.** For one tree, the output is byte-identical whatever entries its `workspace.toml` holds that are not kept entries, in whatever collections and order, including none. With a `workspace.toml` that holds only such entries, the output is byte-identical to the output with no `workspace.toml`. A spec entry whose `needs` is missing or not an array is a kept entry.
-- [ ] **AC-0007.** A run writes nothing. The set of paths under the root, and each file's bytes and modification time, are the same afterwards.
+- [x] **AC-0001.** `dispatch.py --root <root>` exits `0` and prints one JSON object. Its keys are `schema_version`, `ready`, `active`, `blocked`, `findings` and `decision`. Each `ready`, `active` and `blocked` item carries `path`, `slug`, `status` and `findings`. Each finding carries `code`, `path`, `dispatchable` and `next_action`. `decision` carries `action`, one of `start`, `resume`, `ask`, `none` and `refuse`; `path`, a spec path or `null`; `candidates`, a list that is empty unless `action` is `ask`; and `findings`, a list that is empty unless `action` is `refuse`, and otherwise holds the findings AC-0009 or AC-0010 names. Each list is sorted by `path`.
+- [x] **AC-0002.** Unless AC-0010 refuses the run, `ready` holds exactly the paths of the header result's evaluations whose kind is `spec`, whose collection is `work.queue`, and which are dispatchable. `active` holds exactly the paths of those whose kind is `spec`, whose collection is `work.active`, and which have no finding.
+- [x] **AC-0003.** `blocked` holds each header-result evaluation in `work.queue` or `work.active` whose path is in neither `ready` nor `active`, with that evaluation's findings. No other spec is in `blocked`.
+- [x] **AC-0004.** `findings` holds each header-result finding that belongs to no `blocked` item, including every `cooled_child_scope_unknown` and cooling-resolution finding, and each finding AC-0010 or AC-0011 adds. Output objects carry only the keys AC-0001 lists, so neither the added initiative nor any synthesized `summary` reaches the output.
+- [x] **AC-0005.** Except for an item whose path a kept entry names, no `ready`, `active` or `blocked` item's findings carry `unregistered_work`, `duplicate_membership`, `unsupported_legacy`, `configuration_mismatch`, `impossible_transition` or `provenance_mismatch`.
+- [x] **AC-0006.** For one tree, the output is byte-identical whatever entries its `workspace.toml` holds that are not kept entries, in whatever collections and order, including none. With a `workspace.toml` that holds only such entries, the output is byte-identical to the output with no `workspace.toml`. A spec entry whose `needs` is missing or not an array is a kept entry.
+- [x] **AC-0007.** A run writes nothing. The set of paths under the root, and each file's bytes and modification time, are the same afterwards.
 
 **The decision**
 
-- [ ] **AC-0008.** Unless AC-0010 refuses the run, with no selector:
+- [x] **AC-0008.** Unless AC-0010 refuses the run, with no selector:
   - exactly one `active` item gives `resume` with its path;
   - more than one gives `ask` with every `active` path as `candidates`;
   - no `active` item and exactly one `ready` item gives `start` with its path;
@@ -127,7 +127,7 @@ Terms used below:
   - otherwise the decision is `none`.
 
   For one tree, the decision is the same whatever the discovery order and modification times of the spec directories.
-- [ ] **AC-0009.** `--start <spec>` gives `start` when the spec's path is in `ready`, and `--resume <spec>` gives `resume` when it is in `active`. Every other named invocation gives `refuse` with at least one finding, each with its `next_action`, chosen by the first rule that applies:
+- [x] **AC-0009.** `--start <spec>` gives `start` when the spec's path is in `ready`, and `--resume <spec>` gives `resume` when it is in `active`. Every other named invocation gives `refuse` with at least one finding, each with its `next_action`, chosen by the first rule that applies:
   1. AC-0010 refuses the run: that run's findings.
   2. The spec's path is in `blocked` with at least one finding: its `blocked` findings.
   3. A kept entry names the path: the findings the engine gives for that entry, from its header-result evaluation or, when it has none, from parsing it, such as `unsupported_legacy` or `invalid_entry`. When there are none, `impossible_transition`.
@@ -142,33 +142,33 @@ Terms used below:
 
 **The refusals**
 
-- [ ] **AC-0010.** When the root's `workspace.toml` exists and is a symbolic link, not a regular file, a file with more than one link, larger than 8 MiB, unreadable, or not valid TOML, or when every `ini-NNN` slug is used by a kept initiative, `ready`, `active` and `blocked` are empty, the decision is `refuse`, and `findings` holds one `invalid_workspace` finding with path `workspace.toml` and its `next_action`.
-- [ ] **AC-0011.** Each `docs/specs/` entry whose `docs/specs/<name>/spec.md` path `_is_canonical_spec_artifact_path` accepts, but which fails another spec-file condition, gives one `invalid_artifact_path` finding in `findings` with that path, and nothing else is read from it. Each spec file that no lifecycle record cools and no kept entry names, and that `_metadata_from_root` reports as not readable, gives one `unreadable_artifact` finding in `findings` with its path.
-- [ ] **AC-0012.** `dispatch.py` resolves its own path and loads the engine from `workspace-status/scripts/workspace_status_engine.py` under the resolved skills directory that holds it, only when its own resolved parent is named `scripts`, that skills directory is named `skills`, and the engine path resolves to a regular file inside that skills directory. It loads the engine, and work-loop's `file_safety` beside `dispatch.py` under the same resolved-path and confinement rule, each under a unique module name without changing `sys.path`. When any of those conditions fails, either import raises, or a loaded module lacks a callable `dispatch.py` uses, it exits `2` with an `engine_unavailable` message on standard error and prints nothing on standard output.
+- [x] **AC-0010.** When the root's `workspace.toml` exists and is a symbolic link, not a regular file, a file with more than one link, larger than 8 MiB, unreadable, or not valid TOML, or when every `ini-NNN` slug is used by a kept initiative, `ready`, `active` and `blocked` are empty, the decision is `refuse`, and `findings` holds one `invalid_workspace` finding with path `workspace.toml` and its `next_action`.
+- [x] **AC-0011.** Each `docs/specs/` entry whose `docs/specs/<name>/spec.md` path `_is_canonical_spec_artifact_path` accepts, but which fails another spec-file condition, gives one `invalid_artifact_path` finding in `findings` with that path, and nothing else is read from it. Each spec file that no lifecycle record cools and no kept entry names, and that `_metadata_from_root` reports as not readable, gives one `unreadable_artifact` finding in `findings` with its path.
+- [x] **AC-0012.** `dispatch.py` resolves its own path and loads the engine from `workspace-status/scripts/workspace_status_engine.py` under the resolved skills directory that holds it, only when its own resolved parent is named `scripts`, that skills directory is named `skills`, and the engine path resolves to a regular file inside that skills directory. It loads the engine, and work-loop's `file_safety` beside `dispatch.py` under the same resolved-path and confinement rule, each under a unique module name without changing `sys.path`. When any of those conditions fails, either import raises, or a loaded module lacks a callable `dispatch.py` uses, it exits `2` with an `engine_unavailable` message on standard error and prints nothing on standard output.
 
 **The lifecycle record**
 
-- [ ] **AC-0013.** The schema's `properties` gains `parent`, whose value is the string `none` or one matching `^docs/product/briefs/[a-z0-9][a-z0-9-]{0,127}\.md$`. The schema stays `delivery-lifecycle-record.v1` and keeps `additionalProperties: false` and its `required` list. `cooling.py`'s `validate_payload` accepts exactly the payloads the schema accepts for `parent`: absent, or either form. It refuses any other value with the result code it gives any other invalid field.
-- [ ] **AC-0014.** `cooling.enrol`, given a record whose `locator` is a spec file and which carries no `parent`, writes the record with `parent` taken from that spec's `Brief:` header, read before the spec cools:
+- [x] **AC-0013.** The schema's `properties` gains `parent`, whose value is the string `none` or one matching `^docs/product/briefs/[a-z0-9][a-z0-9-]{0,127}\.md$`. The schema stays `delivery-lifecycle-record.v1` and keeps `additionalProperties: false` and its `required` list. `cooling.py`'s `validate_payload` accepts exactly the payloads the schema accepts for `parent`: absent, or either form. It refuses any other value with the result code it gives any other invalid field.
+- [x] **AC-0014.** `cooling.enrol`, given a record whose `locator` is a spec file and which carries no `parent`, writes the record with `parent` taken from that spec's `Brief:` header, read before the spec cools:
   - `brief:<slug>`, or a repository path naming `docs/product/briefs/<slug>.md`, gives that path when it is a brief file, as ADR-0110's 2026-10-27 erratum defines one, and AC-0013's pattern accepts it;
   - a readable spec whose `Brief:` header is `none` or empty, or which has no `Brief:` header, gives `none`;
   - anything else gives no `parent`. This includes a missing, unreadable, non-regular or out-of-root spec file, and a value naming no brief file. Child scope then stays unknown, failing closed.
 
   A record whose `locator` is not a spec file is written as given.
-- [ ] **AC-0015.** Every record payload that `tests/roster/test_thirty_day_cooling_and_retirement.py` and `tests/roster/test_cooling_scope_closure.py` build validates and verifies as it does at `95a8cc985`. The first file is unchanged. In the second, only `test_ac23_pinned_files_are_byte_unchanged` changes: it re-pins the digests of `cooling.py` and the schema under a dated comment that names this spec, and it keeps every other pin.
-- [ ] **AC-0025.** A record that carries `parent` keeps it, with the same value, through `parse_record_bytes`, `load_record`, `canonical_bytes`, `record_rename`, `update_record`, `review`, `review_exception` and `reclassify_record`. Each of those accepts that record wherever it accepts the same record without `parent`.
+- [x] **AC-0015.** Every record payload that `tests/roster/test_thirty_day_cooling_and_retirement.py` and `tests/roster/test_cooling_scope_closure.py` build validates and verifies as it does at `95a8cc985`. The first file is unchanged. In the second, only `test_ac23_pinned_files_are_byte_unchanged` changes: it re-pins the digests of `cooling.py` and the schema under a dated comment that names this spec, and it keeps every other pin.
+- [x] **AC-0025.** A record that carries `parent` keeps it, with the same value, through `parse_record_bytes`, `load_record`, `canonical_bytes`, `record_rename`, `update_record`, `review`, `review_exception` and `reclassify_record`. Each of those accepts that record wherever it accepts the same record without `parent`.
 
 **`workspace-status` unchanged**
 
-- [ ] **AC-0016.** No file under `packs/core/.apm/skills/workspace-status/` changes, and these fixtures are byte-identical to their state at `95a8cc985`:
+- [x] **AC-0016.** No file under `packs/core/.apm/skills/workspace-status/` changes, and these fixtures are byte-identical to their state at `95a8cc985`:
   - `packs/core/tests/skills/workspace-status/fixtures/depends-on-headers/expected.json`;
   - `packs/core/tests/skills/workspace-status/fixtures/depends-on-headers/expected-cooled-brief.json`;
   - `packs/core/tests/skills/workspace-status/fixtures/captured-item-files/expected.json`.
-- [ ] **AC-0017.** Every `packs/core/tests/skills/workspace-status/` suite, `tools/test_workspace_status.py`, `tests/roster/test_thirty_day_cooling_and_retirement.py` and `tests/roster/test_cooling_scope_closure.py` pass.
+- [x] **AC-0017.** Every `packs/core/tests/skills/workspace-status/` suite, `tools/test_workspace_status.py`, `tests/roster/test_thirty_day_cooling_and_retirement.py` and `tests/roster/test_cooling_scope_closure.py` pass.
 
 **The replay**
 
-- [ ] **AC-0018.** `packs/core/tests/skills/work-loop/test_header_derived_dispatch_replay.py` builds one repository per case. Each case's spec memberships are registered as the base engine needs them. The unregistered cases keep a `workspace.toml` that omits only that spec's entry. For every spec file in every case, the suite compares two things:
+- [x] **AC-0018.** `packs/core/tests/skills/work-loop/test_header_derived_dispatch_replay.py` builds one repository per case. Each case's spec memberships are registered as the base engine needs them. The unregistered cases keep a `workspace.toml` that omits only that spec's entry. For every spec file in every case, the suite compares two things:
   - the base result's ready and active membership and the base decision for each invocation shape, frozen once in `packs/core/tests/skills/work-loop/fixtures/header-derived-dispatch/expected.json`;
   - `dispatch.py`'s dispatch result over the same tree.
 
@@ -180,7 +180,7 @@ Terms used below:
   - **Fail-closed and provenance findings:** `provenance_mismatch`, `invalid_artifact_path` for a spec whose `Brief:` names a path that is not a brief file, `invalid_source_authority`, `missing_plan`, `unreadable_artifact` for both a registered and an unregistered unreadable spec, `unapproved_spec`, `missing_artifact`, `invalid_artifact_path` for a `spec.md` symbolic link that resolves outside the root, `impossible_transition`, `duplicate_membership`, `unsupported_legacy`, and `configuration_mismatch`.
   - **Status and registration:** a bare `**Status:**` spec, a symbolic-link `spec.md`, a symbolic-link spec directory aliasing another spec, a legacy `spec/<slug>` entry and a legacy `{slug = ...}` entry each aliasing an Approved spec, and a spec entry whose `needs` is not an array, with a named start of each asserting its finding code, a symbolic-link entry `docs/specs/linked` beside a ready spec, asserting its single `invalid_artifact_path` while the sibling stays in `ready`, a symbolic-link `docs/specs/README.md` that gives no finding, a provenance-valid tracker-origin spec the base dispatches, a provenance-invalid one, the unregistered Approved spec, the unregistered Implementing spec, and a spec under an inactive initiative.
   - **Selection and refusals:** several ready specs, several active specs, an unmigrated `needs` entry beside an otherwise-ready spec, an unmigrated captured-item entry beside an otherwise-ready spec, and a tracker-origin spec under an inactive initiative.
-- [ ] **AC-0019.** The ledger holds one run of `tools/replay-dispatch.py` over a `git worktree` of `95a8cc985`. It records:
+- [x] **AC-0019.** The ledger holds one run of `tools/replay-dispatch.py` over a `git worktree` of `95a8cc985`. It records:
   - the base result's `canonical.ready` and `canonical.active`, and `dispatch.py`'s `ready` and `active`;
   - the `workspace.toml` SHA-256 and the number of lifecycle records;
   - every spec whose dispatch result differs, each assigned by hand to an AC-0018 case and class;
@@ -190,11 +190,11 @@ Terms used below:
 
 **Governance and records**
 
-- [ ] **AC-0020.** `docs/specs/workspace-retirement/retirement-record.md` § Equivalence holds one slice-8 row for each AC-0018 case. A row's Case cell is the case's name. Its Result is `accepted removal` when any of the case's classification entries is, and `reproduced` otherwise. An `accepted removal` row's Authority covers every removal entry in its case. Each row meets the row rules the [`workspace-retirement`](../workspace-retirement/spec.md) spec sets for § Equivalence.
-- [ ] **AC-0021.** The rows for `unregistered-approved`, `unregistered-implementing`, `dep-spec-open` and `several-ready` are `accepted removal`. Their Authority is the 2026-10-29 RFC-0106 § Errata entry. Its text names the first three as D1's header-derived readiness and activity, under which a spec with no registry entry is ready, active, started, resumed or offered by an argless start, and its `unregistered_work` refusal is retired. It names the fourth as the first-ready selection D3 replaces with listing and asking.
-- [ ] **AC-0022.** Every `accepted removal` row's Authority is an RFC-0106 § Errata entry. That entry is dated on or after 2026-10-28 and names the row's case. For each such entry, the ledger holds its case, the owner's approval, and the approval date, which is no later than the date of the commit that adds the entry.
-- [ ] **AC-0023.** Each file this change adds that names `workspace.toml`, `workspace-status` or `workspace_status` has a row in `docs/specs/workspace-retirement/inventory.toml`. This spec's directory has one `docs/specs/header-derived-dispatch/*` `contract` row at owner `8`, and the inventory check passes.
-- [ ] **AC-0024.** The brief's Spec map holds `header-derived-dispatch`, and `lint-brief-coverage.py` passes.
+- [x] **AC-0020.** `docs/specs/workspace-retirement/retirement-record.md` § Equivalence holds one slice-8 row for each AC-0018 case. A row's Case cell is the case's name. Its Result is `accepted removal` when any of the case's classification entries is, and `reproduced` otherwise. An `accepted removal` row's Authority covers every removal entry in its case. Each row meets the row rules the [`workspace-retirement`](../workspace-retirement/spec.md) spec sets for § Equivalence.
+- [x] **AC-0021.** The rows for `unregistered-approved`, `unregistered-implementing`, `dep-spec-open` and `several-ready` are `accepted removal`. Their Authority is the 2026-10-29 RFC-0106 § Errata entry. Its text names the first three as D1's header-derived readiness and activity, under which a spec with no registry entry is ready, active, started, resumed or offered by an argless start, and its `unregistered_work` refusal is retired. It names the fourth as the first-ready selection D3 replaces with listing and asking.
+- [x] **AC-0022.** Every `accepted removal` row's Authority is an RFC-0106 § Errata entry. That entry is dated on or after 2026-10-28 and names the row's case. For each such entry, the ledger holds its case, the owner's approval, and the approval date, which is no later than the date of the commit that adds the entry.
+- [x] **AC-0023.** Each file this change adds that names `workspace.toml`, `workspace-status` or `workspace_status` has a row in `docs/specs/workspace-retirement/inventory.toml`. This spec's directory has one `docs/specs/header-derived-dispatch/*` `contract` row at owner `8`, and the inventory check passes.
+- [x] **AC-0024.** The brief's Spec map holds `header-derived-dispatch`, and `lint-brief-coverage.py` passes.
 
 ## Follow-ons
 
