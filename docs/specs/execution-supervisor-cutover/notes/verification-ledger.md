@@ -433,5 +433,5 @@ Two discoveries outside T3 go to the owner:
 - **Pre-PR hook gap:** the pre-PR hooks gate on `status --check`, so a run
   stopped on `foreign-delivery-edit`, or on a supervisor-run `stub-not-red`,
   passes the hook.
-- **Leftover import:** `_supervisor_loop.py` still loads `_review_compat.py`.
+- **Leftover import:** `_supervisor_review.py:854` still loads `_review_compat.py`.
   T2 must repoint that call before it deletes the file.
