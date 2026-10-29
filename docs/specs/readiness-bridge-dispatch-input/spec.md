@@ -1,6 +1,7 @@
 # Spec: The readiness bridge reads work-loop's dispatch output
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-29 by eugenelim, spec and plan at `67addcade`, including the page wording AC-0012 to AC-0015 and AC-0032 state, after two spec-mode shaping, adversarial and spec-stage security review rounds, each adjudicated, with the round-2 repairs accepted unreviewed; records under `.context/reviews/readiness-bridge-dispatch-input-spec-r1/` and `-r2/`.
 - **Owner:** eugenelim, as `navigate-intents` owner and Platform Core maintainer
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0108 (D3, the readiness bridge and its argless mark, and D1 rules 1 to 10 as corrected by its errata), RFC-0105 (D3, through RFC-0108's errata exception, which ends the bridge's `workspace-status` input in the release where `work-loop` stops dispatching from `workspace-status`), RFC-0106 (D1 and D3, list-and-ask in place of first-ready selection), RFC-0055 (errata entries on an Accepted RFC), ADR-0074 (standard-library skill scripts)
