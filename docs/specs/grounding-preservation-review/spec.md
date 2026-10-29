@@ -114,8 +114,10 @@ emit that shape on the frozen PR-207-shaped cases.
 - **Scope and optional packs (AC-0018, AC-0019, AC-0020, AC-0021):**
   goal-based; one command each.
 - **Reviewer behavior (AC-0022):** visual / manual QA of the rebuilt agent
-  artifacts. No CI gate grades eval output, so each case runs once as a graded
-  run beside one baseline graded run against the base revision's projection.
+  artifacts. No CI gate grades eval output, so each case runs as a graded run
+  beside one baseline graded run against the base revision's projection, and a
+  rerun replaces a head run when the guidance changes. The positive authoring
+  case is recorded, not graded for a pass.
   If a reviewer case's baseline also holds every assertion, AC-0022 shows only
   that the guidance does not regress that case, and the content pins carry the
   proof that the guidance ships.
@@ -273,13 +275,13 @@ Terms:
   `shared-substrate-feature-tests-do-not-prove-preservation`, and AC-0017's two
   cases. `new-spec`'s `shared-substrate-change-expands-preservation-proof` also
   runs on the rebuilt and base projections, and the ledger records its scores
-  without a pass requirement, because this change edits no `new-spec` file. A graded run is one fresh agent following a copy of the projection
-  with its `evals/` directory removed, given only the case's `prompt` and
-  files, and scored by a separate grader that receives the output and the
-  case's `assertions`. A reviewer case's agent follows the projected reviewer
-  definition. The copy holds only Core's projected skills and agents, so Pi,
-  `adapt-to-project`, and code intelligence are absent, and the ledger records
-  that for each run.
+  without a pass requirement. A graded run is one fresh agent following a copy
+  of the projection with its `evals/` directory removed, given only the case's
+  `prompt` and files, and scored by a separate grader that receives the output
+  and the case's `assertions`. A reviewer case's agent follows the projected
+  reviewer definition. The copy holds only Core's projected skills and agents,
+  with `adapt-to-project` removed, so Pi, `adapt-to-project`, and code
+  intelligence are absent, and the ledger records that for each run.
 - [ ] **AC-0023.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both read the patch version one above `packs/core/pack.toml` at the base
   revision.
@@ -288,7 +290,10 @@ Terms:
 
 ## Follow-ons
 
-none
+- The brief's C3 "integrated positive fixture" proof is not met by this slice:
+  `new-spec`'s `shared-substrate-change-expands-preservation-proof` does not
+  reproduce on unchanged `new-spec` guidance. Owner: Platform Core. Tracked in
+  `docs/product/captured/new-spec-positive-case-reproducibility.md`.
 
 ## Assumptions
 

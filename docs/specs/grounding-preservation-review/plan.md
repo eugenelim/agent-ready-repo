@@ -241,10 +241,12 @@ Owned by: T2, T3.
   base projection has no reviewer eval cases, so their baselines run the same
   prompt and files against the base reviewer definitions.
 
-**Done when:** the ledger records all ten runs and any reruns, each with the pack version it
-ran against, and every AC-0022 run holds all its assertions.
+**Done when:** the ledger records all ten runs and any reruns, each with the
+pack version it ran against, and the latest rebuilt-projection run of each of
+AC-0022's four pass-required cases holds all its assertions.
 
 ## Changelog
 
 - 2026-10-29: spec approved by the owner (Platform Core)
 - 2026-10-29: plan approved by the owner (Platform Core)
+- 2026-10-29: AC-0022 narrowed to the four cases this change reaches, directed by the owner (Platform Core)
