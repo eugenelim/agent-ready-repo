@@ -312,3 +312,5 @@ Owned by: T1, T2.
 
 - 2026-10-29: spec approved by eugenelim
 - 2026-10-29: plan approved by eugenelim
+- 2026-10-29: spec approved by eugenelim (amended Contract line)
+- 2026-10-29: plan approved by eugenelim (amended Contract line)

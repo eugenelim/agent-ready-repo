@@ -249,7 +249,12 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 256,
-      "description": "Delivery subject and changed-path digest a reviewer selection answers."
+      "description": "Delivery subject and changed-path digest a reviewer selection answers; for a replan confirmation, the digest of the exact trusted-file bytes the diff shows."
+    },
+    "diff": {
+      "type": "string",
+      "maxLength": 4194304,
+      "description": "A replan confirmation's unified diff of the trusted files against HEAD, shown to the human."
     }
   },
   "allOf": [

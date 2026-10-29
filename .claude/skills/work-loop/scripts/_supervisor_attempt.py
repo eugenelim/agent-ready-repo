@@ -21,6 +21,12 @@ supervisor-launched repository code (a red proof) runs under one, so a write to 
 trusted file by launched code is refused before any commit. A ``regenerate``
 request's manifest leaves out the installed skill.
 
+A ``write-stub`` result refused as not red closes its attempt, and the store
+records that a human's confirmation of the next trusted-file change is owed.
+That record lives beside the issuance marks, so deleting the local journal,
+``run.json``, or the security log neither reopens the closure nor clears the
+confirmation.
+
 The store also holds the pinned digests of the installed supervisor files. The
 admitted ``start`` records them once; every other entry point compares against
 them, and an open ``regenerate`` request also accepts the digests of the pack
@@ -38,7 +44,7 @@ import os
 import re
 import stat
 import sys
-from collections.abc import Generator, Iterable
+from collections.abc import Callable, Generator, Iterable
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -103,6 +109,7 @@ ATTEMPT_KINDS = WORKER_KINDS | {"run-gates", "regenerate"}
 SOURCE_REL = "packs/core/.apm/skills/work-loop"
 PINS_FILE = "pins.json"
 REGENERATE_FILE = "regenerate.json"
+RECOVERY_FILE = "recovery.json"
 ORPHAN_FILE = "orphan"
 ADMITTED_FILE = "admitted-skill.json"
 _POLICY_FILES = ("supervisor-policy.json", "review-rules.json")
@@ -676,6 +683,67 @@ class Attempts:
         body = _json(record)
         self._write(run_id, f"{seq:06d}.json", body)
         self.open = self._manifest = self._load(run_id, store)
+
+    # ── closing an attempt whose stub was not red ───────────────────────────
+
+    def recovery(self, run_id: str) -> dict[str, Any]:
+        """The run's recovery record.
+
+        ``owed``: a confirmation is owed for the next trusted-file change;
+        ``declined``: the digest a human declined, or ``""``; ``confirming``: the
+        step a confirmation is about to commit, written first so a crash is
+        recoverable; ``decisions``: every decision recorded; ``leftovers``: paths a
+        discard left behind, each with the fingerprint it had then.
+        """
+        record = self._store_record(run_id, RECOVERY_FILE) or {}
+        owed, declined = record.get("owed", False), record.get("declined", "")
+        confirming, decisions = record.get("confirming"), record.get("decisions", [])
+        leftovers = record.get("leftovers", {})
+        if (
+            not isinstance(owed, bool)
+            or not isinstance(declined, str)
+            or not (confirming is None or isinstance(confirming, dict))
+            or not isinstance(decisions, list)
+            or not isinstance(leftovers, dict)
+            or not all(isinstance(k, str) and isinstance(v, str) for k, v in leftovers.items())
+        ):
+            raise _unverifiable("supervisor-changed", f"{RECOVERY_FILE} is malformed")
+        return {
+            "owed": owed,
+            "declined": declined,
+            "confirming": confirming,
+            "decisions": decisions,
+            "leftovers": leftovers,
+        }
+
+    def update_recovery(self, run_id: str, **changes: Any) -> None:
+        """Merge *changes* into the owed-confirmation record, replacing the file atomically."""
+        merged = {**self.recovery(run_id), **changes}
+        self._put(
+            run_id,
+            RECOVERY_FILE,
+            _json({"schema_version": _SCHEMA_VERSION, "run_id": run_id, **merged}),
+            replace=True,
+        )
+
+    def close_not_red(
+        self, state: Any, request_id: str, discard: Callable[[], dict[str, str]]
+    ) -> dict[str, str]:
+        """Close the open ``write-stub`` attempt after a ``stub-not-red`` refusal.
+
+        The owed confirmation is recorded first, then *discard* removes the files the
+        attempt left, then the attempt is marked closed. A crash in between leaves the
+        attempt open, and a retry repeats the steps.
+        """
+        issuance = self.open
+        if issuance is None or issuance.request_id != request_id or issuance.refused:
+            return {}
+        self.update_recovery(state.run_id, owed=True, confirming=None)
+        leftovers = discard()
+        self.update_recovery(state.run_id, leftovers=leftovers)
+        self._mark(issuance, ".reported")
+        self.open = self._manifest = None
+        return leftovers
 
     # ── launched code ───────────────────────────────────────────────────────
 
