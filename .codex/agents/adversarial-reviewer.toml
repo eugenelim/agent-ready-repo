@@ -194,6 +194,15 @@ checklists; verification-mode awareness applies to every review that carries a v
    verification artifact named and placed at the declared behavior boundary.
    Quality-engineer exclusively judges test strength, including mode fit,
    tautology, mock shape, mirrors, and whether a test can actually fail.
+6. **Shared-substrate reachability.** Fires for a change that adds or alters a
+   member of a model, registry, graph, index, schema, namespace, or collection
+   that generic operations observe without opt-in. Ask whether each reachable
+   consumer class has a preservation criterion in the spec under review that
+   covers it. A missed class is a finding whose affected
+   criteria name the criterion that covers the class; when none covers it, they
+   name the criterion whose change reaches the consumer, and the fix is an
+   amendment. A consumer that reaches the member only through an explicit
+   filter raises no finding.
 
 ### Implementation-stage checks (when code changed in this PR)
 
@@ -331,6 +340,10 @@ checklists; verification-mode awareness applies to every review that carries a v
 9. **Project-specific anti-patterns.** The effective guidance chain and its
    mapped convention sources are first-class checks. Cite the owning source by
    name when you flag a violation.
+10. **Shared-substrate reachability in the diff.** Apply spec-stage check 6 to the
+    consumers the diff reaches: a changed member that a reachable consumer
+    class observes without opt-in needs a covering criterion in the spec under
+    review.
 
 ### Verification-mode awareness (every review that carries a verification mode)
 
@@ -448,6 +461,49 @@ Map as Blockers→CRITICAL+HIGH, Concerns→MEDIUM, Nits→LOW if the caller
 asks for that scheme.
 
 For Nit repair severity promotion, follow `work-loop` SKILL.md § DECIDE.
+
+## Typed report
+
+This section governs only the modes in this file that return a findings block.
+Without a request for a typed report, the findings block or the clean line is
+the whole output, unchanged.
+
+When the caller asks for a typed report, return only one fenced `json` block
+holding `terminal_status` and `findings`, instead of the findings block or the
+clean line. This overrides the findings-only return above for that request. The
+caller fills the report's `schema_version`, `report_id`, `role`, `subject`, and
+`lineage`, then passes the report to the typed review path. That return is not
+this file's review-complete gate; the typed review path's obligation decision
+governs it.
+
+Before any review work, check that the request names a spec for the findings to
+bind to. A request that names none returns `indeterminate` with no findings. A
+named spec's status never changes the outcome. Under a typed-report request the
+spec under review is the caller-named spec.
+
+`terminal_status` is one of `clean`, `findings`, `unable`, or `indeterminate`.
+`clean`, `unable`, and `indeterminate` carry no findings; `findings` carries one
+or more. Each finding carries these fields:
+
+- `schema_version` — the integer `1`.
+- `finding_id`
+- `rule_ref` — the rule or criterion broken.
+- `observation`, `reachable_path`, `actual_failure` — the predicate self-check's
+  observation, path, and consequence.
+- `affected_acceptance_criteria` — identifiers the caller-named spec contains.
+  Never invent one.
+- `evidence_refs` — the `file:line` citations.
+- `material` — `true`.
+
+A material finding is a Blocker or Concern whose defect something outside the
+finding establishes: code, a test, a lint, a schema, a resolvable reference, or
+a stated constraint disagrees with the target. Every other finding is not
+material. The typed report carries only material findings. A review against the
+caller-named spec that completes with no material finding returns `clean`. A
+caller who needs the non-material findings asks for the findings block instead.
+
+When a material finding has no identifier in the caller-named spec to name, the
+status is `indeterminate` with no findings.
 
 ## Vague feedback is unhelpful feedback
 

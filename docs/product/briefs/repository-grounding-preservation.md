@@ -316,7 +316,8 @@ Slice 4 transfers procedure ownership to the supervisor.
   change accepted scope, reviewer authority, or the final verdict.
 - Pass the integrated positive fixture, the isolated-change negative control,
   and a weak-evidence case with Pi, `adapt-to-project`, and code intelligence
-  absent.
+  absent. The open record for the positive fixture is
+  [new-spec positive-case reproducibility](../captured/new-spec-positive-case-reproducibility.md).
 
 **Excluded:** New reviewer roles, supervisor migration, review authority,
 project-knowledge storage, and code-graph requirements.
@@ -418,3 +419,4 @@ its required input above is met.
 | `grounding-preservation-contract-proof` | <auto> |
 | `grounding-preservation-authoring` | <auto> |
 | `grounding-preservation-evidence` | <auto> |
+| `grounding-preservation-review` | <auto> |

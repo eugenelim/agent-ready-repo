@@ -1572,6 +1572,42 @@
         "Response says the guidance-edit narrowing does not apply",
         "Response names the published-schema exclusion as the deciding rule"
       ]
+    },
+    {
+      "id": "typed-review-binds-missed-consumer-to-preservation-criterion",
+      "prompt": "Run an implementation-stage review of the change that adds value nodes to the small graph package in evals/files/preservation-review/graph.py, with its tests in test_graph.py. Return a typed report. Bind every finding to the acceptance criteria of the spec in evals/files/preservation-review/spec.md. Neither adapt-to-project nor code intelligence is installed.",
+      "files": [
+        "evals/files/preservation-review/spec.md",
+        "evals/files/preservation-review/graph.py",
+        "evals/files/preservation-review/test_graph.py"
+      ],
+      "expected_output": "One fenced json block holding terminal_status `findings` and at least one material finding. The finding reports that a generic listing consumer in graph.py iterates every node without filtering, so value nodes appear in the listing, and its affected_acceptance_criteria names CRIT-3 (default search and listing exclude value nodes) with file:line evidence for that consumer. No reachability or missed-consumer finding is raised against the filtered search path, which hides value nodes behind its explicit flag. Every criterion identifier comes from the named spec; none is invented.",
+      "assertions": [
+        "Returns only one fenced json block carrying a terminal_status of findings",
+        "Reports a material finding that a listing consumer returns value nodes without filtering",
+        "The finding's affected_acceptance_criteria names CRIT-3 and no identifier absent from the named spec",
+        "The finding cites file and line evidence in graph.py for the unfiltered listing consumer",
+        "Raises no reachability or missed-consumer finding against the filtered search path",
+        "Does not require adapt-to-project or code intelligence"
+      ]
+    },
+    {
+      "id": "typed-review-binds-weak-evidence-to-preservation-criterion",
+      "prompt": "Run a typed quality review of the tests in evals/files/preservation-review/test_graph.py for the change in evals/files/preservation-review/graph.py. Return a typed report. Bind every finding to the acceptance criteria of the spec in evals/files/preservation-review/spec.md. Neither adapt-to-project nor code intelligence is installed.",
+      "files": [
+        "evals/files/preservation-review/spec.md",
+        "evals/files/preservation-review/graph.py",
+        "evals/files/preservation-review/test_graph.py"
+      ],
+      "expected_output": "One fenced json block holding terminal_status `findings` with a material finding that the ordinary-calls test computes its expected value by calling the code under test, so it can never fail and no named mutation of call resolution would fail it. The finding's affected_acceptance_criteria names CRIT-2 (ordinary calls resolve to no value node). The value-creation test is feature evidence for CRIT-1 and is not counted as preservation evidence for CRIT-2. Every criterion identifier comes from the named spec.",
+      "assertions": [
+        "Returns only one fenced json block carrying a terminal_status of findings",
+        "Reports a material finding that the ordinary-calls test computes its expected side from the code under test",
+        "The finding's affected_acceptance_criteria names CRIT-2",
+        "States that no named mutation of call resolution would fail the test",
+        "Does not count the value-creation feature test as preservation evidence",
+        "Does not require adapt-to-project or code intelligence"
+      ]
     }
   ]
 }
