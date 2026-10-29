@@ -167,16 +167,18 @@ Terms:
   line, and that this overrides the file's findings-only return for that
   request; otherwise the findings block or clean line is returned unchanged.
   It says the section governs only the modes in that file that return a
-  findings block for a review against an accepted spec. It says a typed-report return does not satisfy the file's
+  findings block, and only when the caller names the spec whose criteria the
+  findings bind to, whatever that spec's status. It says a typed-report return does not satisfy the file's
   review-complete gate, and the typed review path's obligation decision
   governs it instead. The sentence beginning `Return **only** the findings
   block above` stays in both reviewer files.
 - [ ] **AC-0004.** The typed-report section defines a material finding as the
   Terms above do and says the typed report carries only material findings. It
-  says a review with no material finding returns `clean`, and that a caller
+  says a review that completes with only non-material findings returns
+  `clean`, and that a caller
   who needs the non-material findings asks for the findings block instead.
 - [ ] **AC-0005.** The typed-report section says an affected criterion is an
-  identifier the accepted spec contains, and that when a material finding has
+  identifier the caller-named spec contains, and that when a material finding has
   no such identifier to name, the typed report's status is `indeterminate`
   with no findings.
 - [ ] **AC-0006.** `adversarial-reviewer.md` has check 6 under
@@ -207,14 +209,17 @@ Terms:
   one material finding whose affected criteria name the default-search
   property, sent through the generic path, records one review-failure receipt
   for that property. Its verdict is `contradicted` and the other two fixture
-  properties stay `supported`.
+  properties stay `supported`. With a mandatory obligation for its role, the
+  obligation decision is satisfied and blocks acceptance on the open finding.
 - [ ] **AC-0010.** Weak evidence: a `quality-engineer` typed report with one
   material finding whose affected criteria name the ordinary-calls property,
   sent through the generic path, makes that property `contradicted` and leaves
   the other two `supported`.
 - [ ] **AC-0011.** Negative control: a `clean` typed report with no findings,
   sent through the generic path, records no review-failure receipt and leaves
-  all three fixture properties `supported`.
+  all three fixture properties `supported`. With a mandatory obligation for its
+  role, the obligation decision is satisfied with no review or acceptance
+  block.
 - [ ] **AC-0012.** A typed report whose finding has an empty affected-criteria
   list, or omits one finding field, is refused by the shipped report contract,
   and no record is persisted.
@@ -238,8 +243,9 @@ Terms:
 ### Eval cases, scope, and optional packs
 
 - [ ] **AC-0017.** `work-loop`'s `evals/evals.json` carries two cases, each
-  with its files under `evals/files/preservation-review/`. The fixture spec's
-  criteria include `CRIT-2`, ordinary calls resolve to no value node, and
+  with its files under `evals/files/preservation-review/`. The fixture spec
+  reads `Status: Approved`, each prompt names it as the spec the findings bind
+  to, and its criteria include `CRIT-2`, ordinary calls resolve to no value node, and
   `CRIT-3`, default search and listing exclude value nodes. The
   `adversarial-reviewer` case's expected output names `CRIT-3` for the
   unfiltered listing consumer, its prompt does not name that consumer, and one

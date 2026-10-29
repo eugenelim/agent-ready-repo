@@ -57,16 +57,17 @@ The typed-report section, identical in both reviewer files, is a new
 `## Typed report` section placed immediately before
 `## Vague feedback is unhelpful feedback`, a heading both files carry. It says:
 
-1. It governs only the modes that return a findings block for a review
-   against an accepted spec; the property decides, so the section names no
-   mode, and RFC and intent reviews fall outside it. Without a request, the findings block or clean line is the whole output and
+1. It governs only the modes that return a findings block, and only when the
+   caller names the spec whose criteria the findings bind to, Draft or
+   Approved; the property decides, so the section names no mode, and RFC and
+   intent reviews fall outside it. Without a request, the findings block or clean line is the whole output and
    the shipped raw classifier reads it as before. When the caller asks for a
    typed report, the reviewer returns only one fenced `json` block holding
    `terminal_status` and `findings`, which the caller completes and passes to
    the typed review path rather than to the raw classifier. That return is not
    the file's `adversarial-review-complete` or `quality-review-complete` gate,
    whose text stays unchanged; the typed obligation decision governs it.
-2. The reviewer returns `terminal_status` and `findings`. `clean`, `unable`,
+2. `clean`, `unable`,
    and `indeterminate` carry no findings; `findings` carries one or more. The
    caller fills the report's `schema_version`, `report_id`, `role`, `subject`,
    and `lineage`.
@@ -77,14 +78,15 @@ The typed-report section, identical in both reviewer files, is a new
    review-failure receipt for every supported finding whatever its `material`
    value, so a typed non-material finding would contradict its criterion.
    Leaving it out keeps Nits and judgement calls non-blocking, at the cost
-   that a typed-report return does not show them: a review whose findings are
-   all non-material returns `clean`. The "keep flagging both" rule still holds
+   that a typed-report return does not show them: a review that completes
+   with only non-material findings returns `clean`. `unable` and
+   `indeterminate` keep their meanings. The "keep flagging both" rule still holds
    for the findings block, which a caller asks for when it wants them.
 4. Each finding carries the nine finding fields. `rule_ref` names the rule or
    criterion broken; `observation`, `reachable_path`, and `actual_failure`
    carry the predicate self-check's observation, path, and consequence;
    `evidence_refs` carries the `file:line` citations; `material` is `true`.
-5. `affected_acceptance_criteria` lists identifiers the accepted spec
+5. `affected_acceptance_criteria` lists identifiers the caller-named spec
    contains, at least one. When any material finding has none to name, the
    status is `indeterminate` with no findings. The review then stops for owner
    direction instead of losing the finding or inventing an identifier.
@@ -119,7 +121,7 @@ over a temporary git repository, as in C1's fixture. The review subject is
 projected with `_review_selection.project_review_subject` from that delivery
 subject and the product's changed paths, which exclude the spec directory.
 Obligations come from `select_review_obligations` with a two-role mandatory
-policy, and `decide_review_obligation` decides AC-0015: the `indeterminate`
+policy, and `decide_review_obligation` decides AC-0009, AC-0011, and AC-0015: the `indeterminate`
 tip gives reason `report-unable`, and no persisted report gives
 `denied-no-current-report` from `_review_contracts.select_current_report`. Reports persist through
 `_review_persistence.append_current_review_report`. Assessments come from
@@ -131,7 +133,7 @@ routing binds the receipt.
 The eval fixture under `work-loop/evals/files/preservation-review/` is one
 small graph package:
 
-- `spec.md`: an excerpt with `CRIT-1` (value nodes are created), `CRIT-2`
+- `spec.md`: an excerpt reading `Status: Approved`, with `CRIT-1` (value nodes are created), `CRIT-2`
   (ordinary calls resolve to no value node), and `CRIT-3` (default search and
   listing exclude value nodes).
 - `graph.py`: a model with the new value kind, a `search` path that filters
