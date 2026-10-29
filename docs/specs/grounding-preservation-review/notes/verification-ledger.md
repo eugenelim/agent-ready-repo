@@ -116,6 +116,21 @@ assertions and the outputs, labelled `output1` and `output2` in the order in
   missed the invalidation assertion only. C1's single graded run of this case
   held 6 of 6 on Core 3.1.33.
 
+- **Run inventory with pack version.** Every head run ran against Core 3.1.38
+  (the version stayed 3.1.38 across the guidance commits named below) and every
+  base run against Core 3.1.37 at `c8d1d817a`. Head outputs by guidance state:
+  `-r1` ran on the guidance at `50c2019c3`; `-r2` ran after `fe2421c44`; `-r3`
+  ran after `c1cf109a6`. The two unsuffixed head outputs (cases 1 and 2) hold the
+  `new-spec` and `work-loop` guidance C3 does not change after `50c2019c3`, so
+  their result does not depend on that split.
+  Grade files and the head output each graded: `grades-case1.md` (head),
+  `grades-case2.md` (head), `grades-case3.md` and `grades-case4.md` (`-r2`; the
+  `-r1` outputs of those two cases are kept ungraded), `grades-case5.md`
+  (`-r1`), `grades-case5r.md` (`-r2`, one output), `grades-case3r.md` and
+  `grades-case4r.md` (`-r3` against the final assertions). The base outputs of
+  the two reviewer cases were graded in `grades-case3.md`/`grades-case4.md`
+  against the earlier assertions and again in the `r` files against the final
+  ones, with the same 4 of 6.
 - **Run conditions held for every listed run.** For every head, base, and
   rerun output in `graded-runs/`, the copy held only Core's projected skills
   and agents with no `adapt-to-project`. The agent had no code-intelligence
