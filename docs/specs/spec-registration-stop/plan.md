@@ -59,16 +59,16 @@ Owned by: T3
 
 - `spec-entry-drop` joins `_VALID_OPERATION_TYPES`. It carries the `entry_locator` shape `intent-brief-drop` uses (initiative key, collection label, index), the entry's `path` and `kind`, and the `registry_fingerprint`.
 - A held entry becomes one item in the plan's existing manual list, with a reason string, the entry `path`, the record path, and the `parent` value; it is not a finding.
-- The declared parent reads the raw `source.parent` key first. An absent key, or a value the normalizer and brief-file rule reject, gives no declared parent, so the entry drops and its record stays without `parent`: child scope stays unknown, failing closed (ADR-0110), exactly as the entry gives today.
+- The declared parent reads the raw `source.parent` key first. An absent key, or a value the normalizer and brief-file rule reject, gives no declared parent, so the entry drops and its record stays without `parent`: `dispatch.py`, which reads a cooled spec's parent from its record, keeps child scope unknown and fails closed (ADR-0110), exactly as it does with the entry present.
 
 ### Behavior & rules
 
 Owned by: T3
 
-- **Plan.** Drop candidates come from the same membership iterator `intent-brief-drop` uses, so only canonical collections are reached. A spec entry whose `needs` a needs operation of the same plan empties is a candidate in that plan.
+- **Plan.** Drop candidates come from the same membership iterator `intent-brief-drop` uses, filtered to `work.` and `backlog.` collections, so a table the engine does not parse is never a candidate and keeps the finding it has today. A spec entry whose `needs` a needs operation of the same plan empties is a candidate in that plan.
 - **Apply order.** `needs-to-header` and `needs-drop-cooled`, then queue operations, then `spec-entry-drop` and `intent-brief-drop`, all in one `workspace.toml` write.
 - **Lock-time hold re-check.** For a cooled candidate, apply re-reads its record through the engine's cooling loader; if the record still lacks `parent` while the entry declares one, the drop is refused.
-- **Queue operations.** `queue-to-shipped` and `queue-remove` skip a drop candidate, because `spec-entry-drop` removes it in the same run.
+- **Queue operations.** `queue-to-shipped` and `queue-remove` skip a drop candidate: `spec-entry-drop` removes it in the same run, and a held entry keeps its collection until a later run drops it, because moving a cooled spec's entry would read its status from the cooled body.
 
 ### Interfaces & contracts
 
@@ -116,18 +116,19 @@ Owned by: T10
 
 - **Depends on:** T1
 - **Verification mode:** TDD
-- **Tests:** for AC-0003, AC-0004, AC-0005:
+- **Tests:** for AC-0003, AC-0004, AC-0005, AC-0039, AC-0041:
   - A planted unregistered spec's `explain` output, in `tools/test_workspace_status_cli.py`, whose current `unregistered_work` assertions move to the new payload.
   - A search test over the AC-0003 trees.
   - The bridge's pinned-table parity test, with the owner-approved sentence, and eval case 11 rewritten.
+  - A planted Approved spec with no entry: `reconcile`'s `reconciliation.type1` and `repair-plan`'s manual list, in the `workspace-status` suites that assert `type1-untracked` today, which move to the empty result.
 - **Done when:** the tests above pass and `make build-self` leaves the packaged engine equal to the source.
 
 ### T3: The repair step
 
 - **Depends on:** T1
 - **Verification mode:** TDD
-- **Tests:** for AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020:
-  - A new `packs/core/tests/skills/workspace-status/test_spec_registration_stop_repair.py` in the planted-repository style of `test_depends_on_headers_repair.py`: one planted entry per rule, including a candidate whose `needs` the same plan empties, an entry outside a canonical collection, an entry with no `needs` key, cooled entries whose `source.parent` is absent, `none`, empty, a brief file and invalid, a record that already has `parent`, each lock-time refusal, a digest of `docs/lifecycle/` before and after, and the two-run sequence with a record gaining `parent` between runs.
+- **Tests:** for AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0042:
+  - A new `packs/core/tests/skills/workspace-status/test_spec_registration_stop_repair.py` in the planted-repository style of `test_depends_on_headers_repair.py`: one planted entry per rule, including a candidate whose `needs` the same plan empties, an entry outside a canonical collection, an entry with no `needs` key, cooled entries whose `source.parent` is absent, `none`, empty, a brief file and invalid, a record that already has `parent`, each lock-time refusal, a declared parent that is a brief file outside the record's pattern, a held entry in `work.queue`, a digest of `docs/lifecycle/` before and after, the two-run sequence with a record gaining `parent` between runs, and `dispatch.py` stdout digests around each apply.
   - The existing legacy-migration and `intent-brief-drop` suites run unchanged.
 - **Done when:** the tests above pass and `mutate.md` describes the step and the held entry.
 
@@ -142,15 +143,15 @@ Owned by: T10
 
 - **Depends on:** T2
 - **Verification mode:** TDD
-- **Tests:** for AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011: the existing `packs/core/tests/skills/navigate-intents/` readiness suites rewritten to `dispatch.py`'s shape, one planted refusal per rule, a `workspace-status status` payload refused as `wrong_schema`, each decision action's mark including `refuse`, and the corpus test the Construction tests section describes.
+- **Tests:** for AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0040: the existing `packs/core/tests/skills/navigate-intents/` readiness suites rewritten to `dispatch.py`'s shape, keeping every carried case; one planted refusal per AC-0007 bullet, including a `decision` that names a blocked spec; a `workspace-status status` payload refused as `wrong_schema`; the four marks, and `refuse` giving `bad_workspace`; the marker-string case; and the corpus test the Construction tests section describes.
 - **Done when:** the tests above pass.
 
 ### T6: `work-loop` dispatches from `dispatch.py`
 
 - **Depends on:** T1
 - **Verification mode:** goal-based
-- **Tests:** for AC-0001, AC-0002: the roster check's `work-loop` SKILL.md rows; the seven `work-loop` eval cases AC-0002 names.
-- **Done when:** the roster rows and the eval suite pass.
+- **Tests:** for AC-0001, AC-0002: the roster check's `work-loop` SKILL.md rows, and its check that `evals.json` parses and holds the nine cases AC-0002 names with their outcomes in `expected_output` and `assertions`.
+- **Done when:** the roster rows pass.
 
 ### T7: Deferral anchors through open spec files
 
@@ -163,14 +164,14 @@ Owned by: T10
 
 - **Depends on:** T3, T4, T5, T7
 - **Verification mode:** goal-based
-- **Tests:** for AC-0022, AC-0023, AC-0024, AC-0025, AC-0026: a new `tests/roster/test_spec_registration_stop.py` holding the closed file-and-phrase lists of AC-0001, AC-0005, AC-0023 to AC-0026 and AC-0029 to AC-0030, with each phrase's presence at the base asserted from `git show dfa3fe067:<path>`; the AC-0022 fixture digests.
+- **Tests:** for AC-0022, AC-0023, AC-0024, AC-0025, AC-0026: a new `tests/roster/test_spec_registration_stop.py` holding the closed file-and-phrase lists of AC-0001, AC-0005, AC-0023 to AC-0026 and AC-0029 to AC-0030, with each banned phrase's presence at the base asserted from `git show dfa3fe067:<path>`; the AC-0022 fixture digests.
 - **Done when:** the roster test passes, including its build-check step and parity entry.
 
 ### T9: Governance wording
 
 - **Depends on:** T1
 - **Verification mode:** goal-based
-- **Tests:** for AC-0027, AC-0028, AC-0029, AC-0030, AC-0031: the roster test's governance rows, and its ledger rows comparing each approval date with `git log` for the commit that adds the text.
+- **Tests:** for AC-0027, AC-0028, AC-0029, AC-0030, AC-0031: the roster test's governance rows, and its ledger rows comparing each approval timestamp with `git log --format=%aI` of the commit that adds the text.
 - **Done when:** each entry is committed with approved wording and its row passes.
 
 ### T11: Run the repair on this repository
@@ -202,7 +203,7 @@ Owned by: T10
 ## Risks
 
 - A tracker-origin spec entry stays, and its writers stay, until slice 9. A reader that assumes no spec entries remain would miss them; `dispatch.py` judges them as kept entries.
-- An adopter with a cooled spec whose record lacks a declared parent keeps that entry until they add one `parent` line to the record; the plan names the line.
+- An adopter with a cooled spec whose entry declares a parent its record lacks keeps that entry until they add one `parent` line to the record, and an entry whose `needs` the needs repair leaves as a manual item keeps its entry until that is resolved; the plan names both.
 
 ## Changelog
 

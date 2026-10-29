@@ -4,6 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D1, spec registration stops in the release that ships header-derived dispatch, the `unregistered_work` refusal is retired, and the contracts requiring registration change in that release; D3, several ready specs are listed and the user is asked), RFC-0105 (D3, the behavioral-equivalence gate, and its 2026-10-12 erratum, under which the readiness bridge's `workspace-status` input ends in this release), RFC-0108 (D3, the readiness bridge and its argless mark), RFC-0064 (D4 and its `work-loop` writer rows), ADR-0110 (a cooled child's parent scope is declared, and an undeclared one fails closed), ADR-0076 (dispatch starts from specs), RFC-0055 (errata entries on an Accepted RFC), ADR-0074 (standard-library skill scripts)
+- **Amends:** [intent-view-readiness-handover](../intent-view-readiness-handover/spec.md) — its criteria 0009, 0010, 0011, 0012, 0016, 0021 and 0049, replaced by AC-0007 to AC-0010 and AC-0040 here, because the bridge's input becomes `dispatch.py`'s output; every other criterion carries over under AC-0006.
 - **Brief:** brief:workspace-registry-retirement-delivery
 - **Discovery:** none
 - **Depends on:** spec:header-derived-dispatch
@@ -23,7 +24,7 @@
 
 ## Outcome
 
-A maintainer or agent who writes, starts, resumes, or ships a repo-origin spec edits the spec and never adds, moves, or removes a `workspace.toml` entry for it, and `work-loop` decides what to start or resume from `dispatch.py`, listing several ready specs and asking. Success is that this repository's registry holds no repo-origin spec entry in a canonical collection, that `dispatch.py` gives the same output before and after the repair that removed them, and that an adopter removes theirs with the same repair, after one manual `parent` line for each cooled spec whose record lacks it.
+A maintainer or agent who writes, starts, resumes, or ships a repo-origin spec edits the spec and never adds, moves, or removes a `workspace.toml` entry for it, and `work-loop` decides what to start or resume from `dispatch.py`, listing several ready specs and asking. Success is that this repository's registry holds no repo-origin spec entry in a canonical collection, that `dispatch.py` gives the same output before and after the repair that removed them, and that an adopter removes theirs with the same repair, apart from a cooled spec whose entry declares a parent its record lacks, and an entry whose `needs` the repair cannot migrate, each of which the plan names.
 
 ## What Changes
 
@@ -31,7 +32,7 @@ A maintainer or agent who writes, starts, resumes, or ships a repo-origin spec e
 - **`unregistered_work` removed** from `workspace_status.py`'s `_canonical_explain`, the engine's finding table and its packaged copy, the `workspace-status` SKILL.md and schema-guide tables, and the readiness bridge's pinned copy. `cooled_child_scope_unknown`'s next action, and the `workspace-status` eval that grades it, name the lifecycle record's `parent`.
 - **Readiness bridge.** `navigate-intents export --readiness -` reads `dispatch.py`'s output, and its start mark comes from `decision` — `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`, the skill's SKILL.md, and its how-to guide.
 - **Writers.** `work-intake`'s router returns no membership for a repo-origin spec's start or remember route; the `workspace-status` repair plans `queue-to-shipped` and `queue-remove` only for an entry that is not a drop candidate; `work-intake`, `new-spec`, `new-rfc` (in `repo-governance`), the deferral guidance, and the guides stop telling anyone to register or move a repo-origin spec.
-- **Repair.** A `workspace-status` step, `spec-entry-drop`, removes each repo-origin spec entry. It holds a cooled spec's entry, naming the `parent` value to add to its lifecycle record, while that record lacks a parent the entry declares. It never writes a lifecycle record. Run once on this repository.
+- **Repair.** A `workspace-status` step, `spec-entry-drop`, removes each repo-origin spec entry. It holds a cooled spec's entry, naming the `parent` value to add to its lifecycle record, while that record lacks a parent the entry declares. It never writes a lifecycle record. The Type 1 audit, which reports a live spec with no entry, reports nothing. Run once on this repository.
 - **Spec-status lint.** A `(deferred: <anchor>)` marker also resolves through an open `docs/specs/<anchor>/spec.md`.
 - **Governance.** § Errata on RFC-0064, RFC-0105, RFC-0106, RFC-0108, ADR-0076 and ADR-0110; dated owner amendments on FEAT-0005 and FEAT-0007; the `docs/product/AGENTS.md` coverage sentence; the `agent-skill-engineering` brief's registration steps.
 - **Records.** The retirement record's slice-8 rows, the inventory's owner-8 rows, the brief's Spec map, and this spec's ledger.
@@ -49,7 +50,7 @@ A maintainer or agent who writes, starts, resumes, or ships a repo-origin spec e
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility: how `work-loop` dispatches | Applicable: every adopter's argless start and resume changes | `packs/core/.apm/skills/work-loop/SKILL.md` Step 0 and its evals | Platform Core maintainer | AC-0001 and AC-0002 pass | Step 0 names `dispatch.py` and each decision action |
 | Interface compatibility: which spec entries the registry holds, and the repair that removes the rest | Applicable: adopters' writers and the repair share the schema | `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/workspace-status/references/mutate.md`, and `packs/core/.apm/skills/workspace-status/SKILL.md` | Platform Core maintainer | AC-0012 to AC-0020 and AC-0023 pass | Each names `spec-entry-drop` and says a repo-origin spec gets no entry |
-| Interface compatibility: the readiness bridge's input | Applicable: maintainers pipe a command into the export | `navigate-intents` SKILL.md, `guides/core/how-to/navigate-intents.md` | `navigate-intents` owner, jointly with Platform Core | AC-0006 to AC-0011 and AC-0025 pass | Both pipe `dispatch.py` |
+| Interface compatibility: the readiness bridge's input | Applicable: maintainers pipe a command into the export | `navigate-intents` SKILL.md, `guides/core/how-to/navigate-intents.md` | `navigate-intents` owner, jointly with Platform Core | AC-0006 to AC-0011, AC-0025 and AC-0040 pass | Both pipe `dispatch.py` |
 | Decision rationale: the contracts that required registration | Applicable: RFC-0106 D1 requires each to change in the stop's release | RFC-0064, RFC-0105, RFC-0106, RFC-0108, ADR-0076 and ADR-0110, each § Errata; FEAT-0005 and FEAT-0007 amendments; `docs/product/AGENTS.md`; the `agent-skill-engineering` brief | eugenelim, Decision-maker, Approver, and owner | AC-0027 to AC-0031 pass | Each carries owner-approved wording |
 | Decision rationale: equivalence evidence and authority | Applicable: RFC-0105 D3 gate 3 | `docs/specs/workspace-retirement/retirement-record.md` § Equivalence and § Disposition | Platform Core maintainer; eugenelim as RFC-0106 Approver | AC-0032 and AC-0033 pass | Each case has a row; no owner-8 row is left open |
 | Current product truth: which consumers still depend on the registry | Applicable: the stop changes what the owner-8 inventory rows describe | `docs/specs/workspace-retirement/inventory.toml` | Platform Core maintainer | AC-0034 passes | No row outside this spec's directory names slice 8 |
@@ -86,11 +87,11 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-- **Dispatch instructions (AC-0001, AC-0002): goal-based.** A roster check over the SKILL.md text, each phrase present or absent at the base, plus `work-loop` eval cases; the decision itself is `dispatch.py`'s, already proven by its replay.
-- **`unregistered_work` and the cooled-child next action (AC-0003, AC-0004, AC-0005): goal-based and TDD.** A search over the shipped trees, one `explain` call on a planted unregistered spec that reds before the change, and the parity test.
-- **Readiness bridge (AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011): TDD with a corpus.** The checks are a pure function of bytes, so planted `dispatch.py` outputs red each rule, and the outputs `dispatch.py` prints for the replay suite's case trees are the corpus of real inputs.
+- **Dispatch instructions (AC-0001, AC-0002): goal-based.** A roster check over the SKILL.md text and the eval file's cases by id; the decision itself is `dispatch.py`'s, already proven by its replay, and the eval cases are graded by a model outside any gate.
+- **`unregistered_work`, the cooled-child next action and the Type 1 audit (AC-0003, AC-0004, AC-0005, AC-0039, AC-0041): goal-based and TDD.** A search over the shipped trees, one `explain` and one `reconcile` call on a planted unregistered spec that red before the change, the parity test, and a read of the eval case.
+- **Readiness bridge (AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0040): TDD with a corpus.** The checks are a pure function of bytes, so planted `dispatch.py` outputs red each rule, and the outputs `dispatch.py` prints for the replay suite's case trees are the corpus of real inputs.
 - **Router and matrices (AC-0012, AC-0013): TDD.** `route_intake` is pure, so each route reds against its expected membership and mutation.
-- **Repair (AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020): TDD.** Each rule is a plan or apply result over a planted `workspace.toml` and lifecycle record, so one planted entry per case reds before the step exists.
+- **Repair (AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0042): TDD.** Each rule is a plan or apply result over a planted `workspace.toml` and lifecycle record, so one planted entry per case reds before the step exists.
 - **Spec-status lint (AC-0021): TDD.** A planted open spec reds before the lint changes; the closed and link cases are regression guards.
 - **Equivalence fixtures (AC-0022): goal-based.** The frozen fixtures and their suites run unchanged.
 - **Writer and guide text (AC-0023, AC-0024, AC-0025, AC-0026): goal-based.** A roster check over closed lists of files and phrases, each phrase present at the base.
@@ -103,45 +104,61 @@ Terms used below. Kept entry, header registry and dispatch result are as the [`h
 
 - **Base.** Commit `dfa3fe067`.
 - **Repo-origin spec entry.** A `workspace.toml` table whose `kind` is exactly `"spec"`, whose `source` is a table with `mode` exactly `"repo-origin"`, and whose `needs` is present as an array.
-- **Canonical collection.** A collection the repair's membership iterator yields at the base: an initiative's `work.queue`, `work.active` and `work.shipped`, and the top-level `backlog` collections.
-- **Drop candidate.** A repo-origin spec entry in a canonical collection whose `needs` is empty, or is emptied by a `needs-to-header` or `needs-drop-cooled` operation of the same plan.
-- **Declared parent.** For a cooled drop candidate, the brief file's path that `_resolved_provenance_parent(source.parent, require_local_brief=True)` returns, or `none` when the raw `source.parent` key is present with the value `none` or an empty string. An absent key, or any other value, declares no parent.
+- **Registered repo-origin spec.** A membership the engine's `_extract_canonical_memberships` yields, as at the base, in a collection whose label starts `work.` or `backlog.`, with `kind` `spec` and `source.mode` `repo-origin`.
+- **Drop candidate.** A registered repo-origin spec whose `needs` is empty, or is emptied by a `needs-to-header` or `needs-drop-cooled` operation of the same plan.
+- **Declared parent.** For a cooled drop candidate whose raw `source.parent` key is present: `none` when its value is `none` or an empty string; otherwise the path `_resolved_provenance_parent(source.parent, require_local_brief=True)` returns, when that path is a brief file and matches `^docs/product/briefs/[a-z0-9][a-z0-9-]{0,127}\.md$`. An absent key, or any other value, declares no parent.
 - **Held entry.** A cooled drop candidate that has a declared parent and whose lifecycle record carries no `parent`.
 
 **Dispatch**
 
 - [ ] **AC-0001.** Read with each run of whitespace as one space, `packs/core/.apm/skills/work-loop/SKILL.md` holds `scripts/dispatch.py`, `decision`, `candidates`, `--start`, and `--resume`, and holds none of `canonical.ready`, `canonical.active`, `canonical.blocked`, `select only the first`, ``If `workspace.toml` is present, read it and Surface``, and ``If `workspace.toml` is absent, an explicit current request``.
-- [ ] **AC-0002.** The `work-loop` eval suite holds one case for each `decision.action` (`start`, `resume`, `ask`, `none`, `refuse`) whose expected output follows that action, a case where an explicit current request names a path in `dispatch.py`'s `ready`, `active` or `blocked` list and the expected output names that path and does not proceed to PLAN, and a case with no `workspace.toml` and one ready spec whose expected output starts it; and the suite passes.
+- [ ] **AC-0002.** `packs/core/.apm/skills/work-loop/evals/evals.json` parses and holds these cases, each with an `expected_output` and `assertions` that name the outcome listed:
+  - for each `decision.action` of an argless start (`start`, `resume`, `ask`, `none`, `refuse`): reading the named spec and plan and going to PLAN for `start` and `resume`; listing every `candidates` path and asking for `ask`; stopping and surfacing each finding's `code`, `path` and `next_action` for `none` and `refuse`;
+  - a supplied spec path that `dispatch.py --start` accepts: starting it;
+  - a supplied spec path that `dispatch.py --resume` refuses: stopping with its findings;
+  - an explicit current request for new work whose scope matches a spec in `dispatch.py`'s `ready`, `active` or `blocked` list: naming that spec and not starting direct-light work;
+  - a repository with no `workspace.toml` and one ready spec: starting it.
 
 **`unregistered_work` and the cooled-child next action**
 
 - [ ] **AC-0003.** No file under `packs/core/.apm/skills/` or `packages/agentbundle/agentbundle/_data/`, and not `guides/core/reference/workspace-toml-schema.md`, holds `unregistered_work`.
 - [ ] **AC-0004.** `workspace-status explain docs/specs/<slug>/spec.md` for a spec that no canonical evaluation and no finding names prints `selector_status` `not_found` and an empty `findings` list.
-- [ ] **AC-0005.** The engine's `cooled_child_scope_unknown` next action, its packaged copy, the readiness bridge's pinned copy, the `workspace-status` SKILL.md table and the schema guide's table each hold the sentence the ledger records as owner-approved, which names the lifecycle record's `parent`; case 11 of `packs/core/.apm/skills/workspace-status/evals/evals.json` names the record's `parent` as the repair and does not hold ``declare `source.parent` on the named entry``; and the bridge's pinned-table parity test passes.
+- [ ] **AC-0005.** The engine's `cooled_child_scope_unknown` next action, its packaged copy, the readiness bridge's pinned copy, the `workspace-status` SKILL.md table and the schema guide's table each hold the sentence the ledger records as owner-approved, which names the lifecycle record's `parent`, and the bridge's pinned-table parity test passes.
+- [ ] **AC-0039.** Case 11 of `packs/core/.apm/skills/workspace-status/evals/evals.json` names the lifecycle record's `parent` as the repair in its `expected_output` and `assertions`, and does not hold ``declare `source.parent` on the named entry``.
 
 **Readiness bridge**
 
-- [ ] **AC-0006.** `intent_readiness.check` accepts bytes that are one JSON object with exactly the keys `dispatch.py` prints, `schema_version` `1`, each `ready`, `active` and `blocked` item and each finding carrying exactly the keys and types `dispatch.py` prints, no path in two of those lists, and a `decision.action` among `start`, `resume`, `ask`, `none` and `refuse`.
-- [ ] **AC-0007.** Every other well-formed JSON object gives `wrong_schema`, including the stdout of `workspace-status status` for the same repository.
-- [ ] **AC-0008.** The read limit, the deadline, and the reasons `unreadable`, `timed_out`, `too_large`, `empty`, `not_json` and `page_too_big` are as at the base, and `no_workspace` is not in `REASONS`.
-- [ ] **AC-0009.** Accepted input whose `decision.action` is `refuse`, or that holds an `invalid_workspace` finding anywhere, gives `bad_workspace`.
-- [ ] **AC-0010.** For checked input, the start mark's `rule` is the decision's action (`start`, `resume`, `ask` or `none`); its `id` is the decision path's node id when the action is `start` or `resume`, that path is loaded and no finding names it, and is `null` otherwise; and `active_count` is the length of `active`.
+- [ ] **AC-0006.** Every criterion of the [readiness hand-over spec](../intent-view-readiness-handover/spec.md) that this spec's `Amends:` header does not name holds with the stdout of `dispatch.py --root <root>` in place of each status input and of its base status, and the suites that check those criteria pass.
+- [ ] **AC-0007.** Each of these inputs gives the reason `wrong_schema`, given a base `dispatch.py` output holding one ready, one active and one blocked spec with no `decision` refusal:
+  - the stdout of `workspace-status status` for the same repository;
+  - a top-level key absent or added; `schema_version` of `true`, `1.0`, `"1"` or `2`;
+  - `ready`, `active`, `blocked` or `findings` absent or not a list; an item that is not an object, or whose keys are not exactly `path`, `slug`, `status` and `findings`, or whose `path`, `slug` or `status` is not a string, or whose `findings` is not a list;
+  - a finding that is not an object or whose keys are not exactly `code`, `path`, `dispatchable` and `next_action`; a `code` whose whole string does not match `[a-z][a-z0-9_]{0,63}`; a `path` that is not a string or `null`; a `dispatchable` that is not a boolean; a `next_action` that is not a string, is longer than 500 code points, or holds a code point from U+D800 to U+DFFF;
+  - one `path` in two of `ready`, `active` and `blocked`; an `active` item with a finding;
+  - a `decision` that is not an object or whose keys are not exactly `action`, `path`, `candidates` and `findings`; an `action` outside `start`, `resume`, `ask`, `none` and `refuse`; a `candidates` that is not a list of strings; a `decision.findings` that is not a list of findings as above;
+  - a `decision` other than `refuse` that differs in `action`, `path`, `candidates` or `findings` from the argless decision `dispatch.py` derives from the same `ready` and `active` lists.
+- [ ] **AC-0008.** `REASONS` is exactly `unreadable`, `timed_out`, `too_large`, `empty`, `not_json`, `wrong_schema`, `bad_workspace`, `page_too_big`, and the reason is that of the first failing check in that order; the read limit and the deadline are as at the base.
+- [ ] **AC-0009.** Input that passes AC-0007's checks gives `bad_workspace` when its `decision.action` is `refuse`, or when a finding at top level, in an item, or in `decision.findings` has the `code` `invalid_workspace`, `configuration_mismatch` or `unsafe_path`.
+- [ ] **AC-0010.** For checked input, `readiness.start` holds exactly `rule`, `id`, `held` and `active_count`. `rule` is the decision's action; `active_count` is the length of `active`. For `start` and `resume`, `held` is `true` exactly when some finding at top level or in any item has a `path` equal to the decision's `path`, and `id` is that path's node id when it is a loaded path and `held` is `false`, and `null` otherwise. For `ask` and `none`, `id` is `null` and `held` is `false`.
+- [ ] **AC-0040.** Given checked input whose items carry a `slug` and a `status`, and whose findings, including `decision.findings`, carry a `path` and a `next_action`, each holding its own distinct marker string, none of those marker strings appears in the HTML, apart from the `next_action` of a finding on a blocked item whose `path` is a loaded path.
 - [ ] **AC-0011.** For every case tree `test_header_derived_dispatch_replay.py` builds, the bridge gives the stdout of `dispatch.py --root <tree>` a checked member, or `bad_workspace` exactly when that run's decision is `refuse`; a checked member's `ready`, `active` and `blocked` ids are the loaded subset of `dispatch.py`'s lists.
 
 **Writers**
 
 - [ ] **AC-0012.** For a signal whose `authority_mode` is `repo-origin` and `artifact_kind` is `spec`, carrying no named gaps, `route_intake` returns `lifecycle_membership` `none` with mutation `materialize-and-dispatch` and processor `new-spec` for `start`, and `none` with `materialize-draft-non-dispatchable` and processor `none` for `remember`. It returns the same `Route` as at the base for every other signal.
 - [ ] **AC-0013.** The core routing matrix `packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json` gains the cases `start-repo-origin-spec` and `remember-repo-origin-spec` expecting AC-0012's routes; its other cases and every case of the `jira-brief-intake`, `jira-align-brief-intake`, `github-brief-intake` and `linear-brief-intake` matrices are byte-identical to the base; and each matrix's comparison suite passes.
-- [ ] **AC-0014.** `workspace-status repair-plan` holds no `queue-to-shipped` or `queue-remove` operation for a drop candidate, and holds the operations it holds at the base for every other entry.
-- [ ] **AC-0015.** The legacy-migration repair's routes and selections are those it offers and accepts at the base, and a `repair-plan` run after its apply holds a `spec-entry-drop` operation for each repo-origin spec entry it wrote.
+- [ ] **AC-0014.** `workspace-status repair-plan` holds no `queue-to-shipped` or `queue-remove` operation for a drop candidate, so a held entry keeps its collection, and holds the operations it holds at the base for every other entry.
+- [ ] **AC-0015.** The legacy-migration repair's routes and selections are those it offers and accepts at the base, and a `repair-plan` run after its apply holds a `spec-entry-drop` operation for each drop candidate it wrote that is not a held entry, and AC-0017's manual item for each held one.
 
 **The repair**
 
-- [ ] **AC-0016.** `repair-plan` holds one `spec-entry-drop` operation for each drop candidate that is not a held entry, naming its initiative key (empty for a top-level collection), collection, index, `path`, `kind` and registry fingerprint. It holds none for any other entry, including a repo-origin spec entry outside a canonical collection and a `kind = "spec"` entry with no `needs` key, which keeps the finding the engine gives it at the base.
+- [ ] **AC-0016.** `repair-plan` holds one `spec-entry-drop` operation for each drop candidate that is not a held entry, naming its initiative key (empty for a top-level collection), collection, index, `path`, `kind` and registry fingerprint. It holds none for any other entry, including a `workspace.toml` table the membership iterator does not yield, such as a `kind = "spec"` entry with no `needs` key, which keeps the finding the engine gives it at the base.
 - [ ] **AC-0017.** For each held entry, `repair-plan` holds no `spec-entry-drop` operation and one manual item naming the entry's `path`, its lifecycle record's path, and the `parent` value to add to that record: the declared parent.
 - [ ] **AC-0018.** `repair-plan` and `repair-apply --yes` change no file under `docs/lifecycle/`: the set of paths there, and each file's bytes and modification time, are the same afterwards.
 - [ ] **AC-0019.** `repair-apply --yes` applies every `needs-to-header` and `needs-drop-cooled` operation before any `spec-entry-drop` operation, and removes the entries of its applied drops in the same atomic, comment-preserving `workspace.toml` write under the writer lock as its other applied operations. It refuses a drop, keeping its entry, when the entry still has non-empty `needs` at that point, when the registry read under the lock holds no repo-origin spec entry at the planned locator with the planned `path` and fingerprint, or when that entry is then a held entry.
 - [ ] **AC-0020.** On a registry where every planned operation applies, one `repair-plan` and `repair-apply --yes` run leaves no drop candidate other than held entries, and a following `repair-plan` holds no `spec-entry-drop` operation. Once a held entry's record carries `parent`, the next `repair-plan` holds a `spec-entry-drop` operation for it.
+- [ ] **AC-0041.** `reconcile`'s `reconciliation.type1` is an empty list, and `repair-plan`'s manual list holds no `type1-untracked` item, for every tree, including a tree with an Approved or Implementing spec that no entry names.
+- [ ] **AC-0042.** For each planted tree of the repair suite, including a cooled drop candidate with an absent `source.parent`, a held entry before and after its record gains `parent`, and a cooled drop candidate whose record already carries `parent`, the stdout of `dispatch.py --root <tree>` is byte-identical immediately before and immediately after `repair-apply --yes`, when that plan holds no `needs-to-header` or `needs-drop-cooled` operation.
 
 **The spec-status lint**
 
@@ -163,7 +180,9 @@ Each phrase below is present in its file at the base, and each check reads the f
   - `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`: `for queue registration`;
   - `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`: ``resolve to an entry in `workspace.toml [backlog].open` ``;
   - `packs/core/.apm/skills/work-loop/SKILL.md`: ``historical deferral anchors in `[backlog].open` `` or ``anchors still resolve in `[backlog].open` ``;
-  - `packs/core/.apm/agents/adversarial-reviewer.md`: ``resolves to a slug entry in `workspace.toml [backlog].open` ``.
+  - `packs/core/.apm/agents/adversarial-reviewer.md`: ``resolves to a slug entry in `workspace.toml [backlog].open` ``;
+  - `packs/core/.apm/skills/workspace-status/references/reconcile.md`: `finds work nobody registered`;
+  - `packs/core/.apm/skills/workspace-status/SKILL.md`: ``run `reconcile` to also check for untracked live specs``.
 - [ ] **AC-0025.** `packs/core/.apm/skills/workspace-status/SKILL.md` names `work-loop`'s `dispatch.py` as the source of ready and active specs. `packs/core/.apm/skills/navigate-intents/SKILL.md` and `guides/core/how-to/navigate-intents.md` each pipe `dispatch.py` into `--readiness -` and hold neither `scripts/workspace_status.py' status` nor the base's no-registry reason: ``` no ``workspace.toml`` ``` in the SKILL.md, and ``the repository has no `workspace.toml` `` in the guide.
 - [ ] **AC-0026.** None of these files holds the phrase listed for it:
   - `guides/core/tutorials/your-first-workspace.md`: ``Move the entry in `workspace.toml` from``;
@@ -189,7 +208,7 @@ Each phrase below is present in its file at the base, and each check reads the f
   - `docs/product/intents/FEAT-0007-work-item-promotion-routing.md`: `spec` and `remember route`.
 - [ ] **AC-0029.** `docs/product/AGENTS.md` does not hold ``Registered spec membership in `workspace.toml` ``, and its § Status has one home names the spec's `Brief:` header as the coverage evidence.
 - [ ] **AC-0030.** `docs/product/briefs/agent-skill-engineering.md` holds none of ``registered under `ini-009` ``, ``register the spec under `ini-009` ``, and ``register approved specs in `workspace.toml` ``, and `lint-brief-coverage.py` passes on it.
-- [ ] **AC-0031.** `docs/specs/spec-registration-stop/notes/verification-ledger.md` holds one row for each entry AC-0027 lists, each intent AC-0028 lists, the files AC-0029 and AC-0030 name, and the AC-0005 sentence, naming its target file, the owner's approval, and an approval date no later than the date of the commit that adds that text.
+- [ ] **AC-0031.** `docs/specs/spec-registration-stop/notes/verification-ledger.md` holds one row for each entry AC-0027 lists, each intent AC-0028 lists, the files AC-0029 and AC-0030 name, and the AC-0005 sentence, naming its target file and the owner's approval with an ISO 8601 timestamp to the minute with its UTC offset, which is earlier than the author date (`git log --format=%aI`) of the commit that adds that text.
 
 **Records**
 
@@ -200,8 +219,8 @@ Each phrase below is present in its file at the base, and each check reads the f
 **This repository**
 
 - [ ] **AC-0035.** The ledger holds, from before any writer instruction, router branch, repair step, or registry entry changes other than this spec's own entry: one run of `python3 tools/compare-registry.py --root .` with its full output, exit code `0`, commit, and merge base with `origin/main`; and one run of `tools/replay-dispatch.py` over a `git worktree` of that merge base, with every differing spec assigned to an accepted authority or the owner's recorded approval.
-- [ ] **AC-0036.** This repository's `workspace.toml` holds no repo-origin spec entry in a canonical collection, and the brief's Spec map holds `spec-registration-stop`.
-- [ ] **AC-0037.** The ledger holds the `repair-plan` and `repair-apply` output that removed them; the number of `needs-to-header` and `needs-drop-cooled` operations, held entries, and `spec-entry-drop` operations planned, and of entries the apply removed; and the owner's recorded sight of the plan file before the apply.
+- [ ] **AC-0036.** This repository's `workspace.toml` holds no registered repo-origin spec, and the brief's Spec map holds `spec-registration-stop`.
+- [ ] **AC-0037.** The ledger holds the `repair-plan` and `repair-apply` output that removed them; the number of `needs-to-header` and `needs-drop-cooled` operations, held entries, needs manual items, `type1-untracked` items, and `spec-entry-drop` operations planned, and of entries the apply removed; and the owner's recorded sight of the plan file before the apply.
 - [ ] **AC-0038.** The ledger holds the SHA-256 of `dispatch.py --root .`'s stdout and of `dispatch.py --root . --resume docs/specs/spec-registration-stop/spec.md`'s stdout, each taken immediately before and immediately after that apply, and each pair is equal; that plan holds no `needs-to-header` or `needs-drop-cooled` operation and no held entry.
 
 ## Follow-ons
