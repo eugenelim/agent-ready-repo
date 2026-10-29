@@ -1,136 +1,110 @@
 # Subsystem Design — Work-loop authority migration
 
-**Decision sought:** Move delivery authority from the current FSM, cohort,
-approval pin, and parallelism decisions only through explicit compatibility and
-governance cutovers; no implementation slice supersedes an accepted record by
-implication.
+**Decision:** Each work-loop authority moves only through an accepted record
+that names what it supersedes. Core 4.0.0 moved phase, cohort, plan-lock, and
+review-gate authority to the [execution supervisor](work-loop-execution-supervisor.md)
+in one switch, with no compatibility adapter, reverse reader, or dual-write
+path ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D7).
+Parallel admission and the knowledge capture gates have not moved yet.
 **Author:** Platform Core
-**Status:** Draft
-**Last updated:** 2026-10-01
+**Status:** Current
+**Last updated:** 2026-10-29
 **Reviewers:** Core, `agentbundle`, and architecture-governance maintainers
 
 ## 1. Scope and Context
 
 | In scope | Out of scope | Why |
 | --- | --- | --- |
-| Current and target authority for each work-loop concern | Rewriting frozen ADR bodies | A new accepted record, not implementation, changes authority |
-| Compatibility, cutover, reversal, and baseline-document updates | Child contract fields | The owning subsystem designs define their schemas |
-| Required superseding governance decisions | Assigning an RFC or ADR number | The repository decision workflow owns identifiers |
+| Where each work-loop authority lives now, and what still has to move | Rewriting frozen ADR bodies | A new accepted record, not implementation, changes authority |
+| The governance record behind each move | Child contract fields | The owning subsystem designs define their schemas |
+| Remaining obligations for Slices 7 and 8 | Slice status | The [brief's delivery slices](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices) own it |
 
-The current engine and cohort are not merely code to replace. Their transition
-tables, writer rules, approval pins, and accepted decisions are authority until
-a named gate and an accepted superseding record move that authority.
+An implementation never supersedes an accepted record by implication. A move
+lands only with the record that authorizes it, and the baseline architecture
+pages change in the same reviewed change.
 
-## 2. Authority and Records Migration
+## 2. Authority Map
 
-| Current authority | Target authority | Compatibility owner | Cutover and reversal | Required governance record |
-| --- | --- | --- | --- | --- |
-| `loop-engine.py` transition table and `engine-state.json` completion phase | Approved criteria, `semantic-evidence-transaction.v1`, review facts, and derived `acceptance-verdict.v1` | Slice-1 evaluator adapter dual-reads old events and new facts | Slice 1 requires unexplained-verdict parity and cache-deletion rehydration; reversal selects the old verdict path without deleting new facts | Accepted work-loop authority record explicitly replaces phase state as completion authority and requires updates to `ARCHITECTURE.md` and `loop-infrastructure.md` |
-| ADR-0125 D1–D3 registered engine effects and `loop-cohort.py` as `state.json` writer of record | Supervisor scheduler, task projection, and repairable mechanical journal | Slice-4 legacy result and cohort adapters | Slice 4 requires command, schedule, backward-edge, and acknowledged-result parity; reversal relaunches the old engine and cohort writers | The same or a linked accepted record supersedes ADR-0125 D1–D3 and updates `loop-infrastructure.md` |
-| Current whole-artifact `approve-plan` pin for canonical spec and plan digests | One spec-policy `approval-record.v1` plus one `initial-plan-review.v1` carrying terminal intent; the imported plan digest proves the reviewed baseline but grants no continuing authority to its task list | Slice-1 importer and slice-4 task projector/reverse reader | Both records become visible atomically or neither does; later in-envelope task changes need no approval; changing terminal intent requires explicit authorization; reversal requires an explicit downgrade approval for the current plan snapshot because the old engine still requires a lock | Work-loop authority record replaces whole-plan locking with initial review plus mutable task projection; [acceptance and evidence](work-loop-acceptance-evidence.md) owns canonicalization and protected-boundary parity |
-| ADR-0061 D5 prohibition on parallel-wave orchestration and its deferred modes | Supervisor scheduling with sequential floor and capability-based parallel admission | Slice-7 scheduler and provider conformance suite | No concurrent dispatch before the superseding record is accepted; reversal selects sequential mode | Accepted record explicitly supersedes ADR-0061 D5 and names the newly admitted runtime modes |
-| ADR-0005 D3 safe-category membership and D4 post-write `git merge-tree` file-disjointness gate | Enforced read allowlisting or complete tracing before admission, plus protected-ref integration and permutation proof | Slice-7 scheduler, security capability, and result-integration ports | Missing proof serializes; any parity failure disables parallel admission without changing semantic facts | Parallelism record explicitly supersedes ADR-0005 D3–D4 while preserving fail-closed admission and merge-conflict handling |
-| `loop-parallelism.md` §§3–4 serialize-only prediction and planned `wave-decision` contract | Task-contract isolation hints plus the supervisor's non-authoritative scheduler decision | Slice-4 compatibility projector; slice-7 scheduler afterward | Prediction remains advisory and cannot grant parallel writes; optional Pi compatibility is not a prerequisite; slice 7 retires it only after conformance and governance gates pass | Parallelism record accepts, replaces, or retires the planned contract and records the reserved owner decision |
-| `project-knowledge --producer-profile work-loop` reusable capture gates (`spec-approved`, `plan-locked`) and the close-time `work-item` capture | Slice 3 adds a read-only shadow-scoped feed, a stateless projection, and a read-only candidate mode beside the gates; the gates are retained and their removal is owned by Slice 8 `legacy-engine-cutover`; explicit `work-item` capture is retained for specific blocked residue | Slice-3 feed, projector, and candidate mode; project-knowledge capture and read quarantine | Candidate mode can be stopped without affecting delivery; the retained gates and the `work-item` path keep their own validation and owners | Baseline `knowledge-capture.md` is updated at slice 3; no ADR supersession is required unless ownership changes |
+| Former authority | Current authority | Governing record | Remaining obligation |
+| --- | --- | --- | --- |
+| The phase engine's transition table and its completion phase | Readiness derived by the supervisor from the approval pair, `acceptance-verdict.v1` over admitted evidence, and structured review readiness | ADR-0144 D1, D8; supersedes ADR-0061 D1, D2 and ADR-0064 D1, D2 in part | None |
+| The cohort writer as writer of record, with engine-invoked cohort effects | Supervisor commits, one step each, and committed `delivery/` records | ADR-0144 D1; supersedes ADR-0125 | None |
+| The whole-artifact approval pin of the spec and plan | One `approval-record.v1` plus one `initial-plan-review.v1` per `start`, bound to the reviewed-execution-envelope fingerprint and terminal intent; in-envelope plan and task changes commit as `replan` with no approval | ADR-0144 D3, narrowed by [ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md) D3 for the change after a not-red stub | None |
+| The legacy review gate (`raw-classify` and adjudication grammar) for full-mode code review | Structured review readiness: current `review-report.v1`, `finding-assessment.v1`, and `finding-disposition.v1` records, with roles selected by `review-rules.json` | ADR-0144 D8 | Light mode and pre-approval review keep `review-artifact.py`'s classifier |
+| Unknown-effect handling, which had no durable form | `effect-resolution.v1` in `delivery/effect-resolutions.jsonl` | ADR-0144 D6; supplies what ADR-0061 D8 deferred | None |
+| The event file's producer | The supervisor, one line per step in the unchanged `loop-run-event` envelope; the bridge reads `run.json` | ADR-0144 D10; ADR-0064 D3, D4, D7 stand | None |
+| The planned `wave-decision` contract | Retired with its schema; the supervisor dispatches sequentially | ADR-0144; the [parallelism page](loop-parallelism.md) records what remains | Slice 7 decides any parallel scheduler decision record |
+| ADR-0061 D5's ban on parallel-wave orchestration | Unchanged; sequential is the only mode | ADR-0061 D5 | Slice 7: an accepted record supersedes it and names the admitted modes |
+| ADR-0005 D3 safe categories and D4 post-write `git merge-tree` disjointness gate | Unchanged | ADR-0005 | Slice 7: a parallelism record supersedes D3 and D4 while keeping fail-closed admission and merge-conflict handling |
+| The mutable execution-root worktree as the product result | Unchanged | ADR-0144 D9 | Slice 5: [product result integration](work-loop-result-integration.md) |
+| The `project-knowledge --producer-profile work-loop` capture gates `spec-approved` and `plan-locked` | Retained under those names, beside the read-only delivery fact feed over each spec's committed `delivery/evidence.jsonl` | [Knowledge capture](knowledge-capture.md) | Slice 8 removes both gates |
+| Close-time `work-item` capture | Retained as an explicit capture | [Knowledge capture](knowledge-capture.md) | None |
 
-“Required governance record” is a cutover prerequisite, not a placeholder
-decision. The accepted artifact receives its identifier through `new-rfc` or
-`new-adr`, cites the rows it supersedes, and names the first release allowed to
-switch each writer. Until then, the current record remains authoritative even
-when shadow services exist.
+## 3. Data Transition
 
-## 3. Data Transition Inventory
+| Former artifact | Current artifact | What happens to old data |
+| --- | --- | --- |
+| `engine-state.json` and the cohort `state.json` | Supervisor commits, `delivery/` records, and the deletable `<spec>/.supervisor/` | Never read. `start` ignores both files, and an in-flight run is re-derived from the spec, plan, Git history, evidence, and review facts |
+| The approved spec and plan digests | `delivery/approvals.jsonl` | A new `start` records the pair against the current envelope |
+| Ledger observations and engine events as evidence | `delivery/evidence.jsonl` | Execution observations stay in the verification ledger; evidence is what the supervisor admits |
+| Raw reviewer output and the review verdict record | Structured review records | Full-mode code review reads only the structured records |
 
-| Old artifact and schema | New artifact and schema | Trigger and dual rule | Partial residue and recovery | Rollback inside dual-read window | Cutover proof |
-| --- | --- | --- | --- | --- | --- |
-| `engine-state.json` schema v1 | Derived `acceptance-verdict.v1` | Every old transition also evaluates a shadow verdict; old writer remains authoritative | New semantic records remain valid; recomputation resumes from their fingerprints | Select old engine and ignore the shadow verdict | Zero unexplained verdict differences plus cache-deletion rehydration |
-| `state.json` cohort schema v2 | Mutable `task-contract.v1` projections plus `mechanical-journal.v1` | The reviewed baseline first projects tasks; later working-plan or task changes inside the protected envelope reproject without approval while cohort mutation remains authoritative | Projections and journal may be discarded and rebuilt; semantic records deduplicate by identity | Delete new mechanical state and continue from cohort v2 | Schedule parity, task replacement, protected-boundary refusal, crash recovery, and delete-journal fixtures pass |
-| Mutable worktree result | Protected product ref plus `result-integration.v1` | Each completed old-engine task snapshots and shadow-integrates its result | Temporary objects and partial checkout are discarded; protected ref remains old or new | Restore old worktree authority from the matching integration commit | Sequential, permutation, conflict, and crash parity pass |
-| Canonical approved spec digest plus canonical approved plan digest | One spec-policy `approval-record.v1` plus one `initial-plan-review.v1` baseline record | Import both from the same current `approve-plan` pin after exact canonicalization parity; publish atomically; later plan/task revisions are Git and projection provenance, not approvals | Ambiguous criteria, digest mismatch, or either missing record publishes neither; retry recomputes both | During dual-read, restore the original approved pair; after cutover, downgrade requires explicit approval of the current plan snapshot and refuses a lossy projection | Every imported criterion maps to the approved spec digest; the initial review maps to the legacy plan digest; in-envelope task changes reproject without approval; status and checkbox normalization corpus passes |
-| `.loop-run/events.jsonl` schema v1 plus `notes/verification-ledger.md` observations | `evidence-receipt.v1` and `evidence-supersession.v1` | Each verification observation emits old and new forms with one producer event ID | One-sided records reconcile by event ID; duplicates collapse by receipt identity | Ignore new receipts and continue the old gate path | Truth-table corpus and cross-adapter evidence parity pass |
-| Raw reviewer output, `review-verdict.v1`, classifiers, and paired audits | `review-report.v1`, `finding-assessment.v1`, and `finding-disposition.v1` | Existing review adapters validate and write both forms before acknowledging | A validated new report remains but is ignored until its old counterpart reconciles | Read preserved raw and old verdict data through the old review path | Reviewer transport, reachability, privacy, and replacement-subject fixtures pass |
-| Manual unknown-effect decisions in engine events | `effect-resolution.v1` | Each new manual decision dual-writes a stable operation-key record; unresolved historical effects stay blocked | A durable resolution remains valid if journal state is lost | Old engine consumes its event while the compatibility adapter reads the resolution | Three outcome fixtures pass after journal deletion |
-| Reusable in-loop pattern, gotcha, and antipattern capture gates | Derived `knowledge-observation.v1` candidates from `review-failure` receipts; no delivery-side or scan-side store | Pull-scan eligible durable facts into read-only candidates while the old capture gates remain authoritative and keep running; a person or agent captures a candidate through the existing `--capture` | No notification exists; a rescan derives the same candidates and creates no cursor, deduplication, acknowledgement, or revocation state | Stop running the candidate mode and keep the old reusable-capture path | Pull-rescan, privacy, readiness-isolation, retained-capture-path, and read-quarantine fixtures pass; gate removal waits for Slice 8 |
-| Close-time `work-item` through plain `--capture` with a cold reasoning verdict and `semantic_gate.name: close-time` | Retained explicit `work-item` capture contract | Closeout submits specific blocked residue through existing validation; projection never substitutes for it | Unavailable or refused capture leaves no record and cannot change delivery readiness | Keep the current producer seam | Existing reasoning-tier, schema, privacy, and closeout fixtures pass |
+Reversal is reinstalling the prior Core major. That release cannot read
+supervisor records, so they are discarded rather than projected backwards.
 
 ## 4. Runtime and Failure Model
 
-**Normal sequence**
+A move follows four steps:
 
-1. A slice deploys compatible readers and shadow writers while the current
-   authority remains the sole decision source.
-2. Parity and recovery fixtures bind old and new results to the same subject.
-3. The required governance record is accepted before the cutover lease opens.
-4. One cutover changes the reader and writer together and records the release,
-   source and target fingerprints, reverse reader, and authority.
-5. Baseline architecture documents are updated in that same reviewed change.
+1. The governing record is accepted and names the decisions it supersedes.
+2. One change switches the reader and writer together.
+3. The same change updates the baseline architecture pages.
+4. The release names the consequence for in-flight work.
 
-After target authority is active, replanning inside the reviewed envelope is
-not a writer cutover. The supervisor records a new task projection, cancels
-unintegrated attempts, and preserves integrated facts. A change to criteria or
-evidence policy, scope or non-goals, security or authority, public contracts,
-durable outputs, accepted risk, or review-authorized terminal intent is
-protected and refuses until its owner acts.
-
-**Failure and reversal sequence**
-
-1. Missing governance, partial import, stale parity, an active run, or an
-   unavailable reverse reader refuses cutover.
-2. A crash before the authority receipt leaves the old owner active; a crash
-   after it recovers from the receipt and refuses a second switch.
-3. Reversal acquires the same lease, proves the retained reader and artifact
-   provenance, and switches authority without deleting newer semantic facts.
-4. A lossy reverse projection refuses and requires forward repair.
+Replanning inside the reviewed envelope is not an authority move. The
+supervisor commits it as a `replan` step. A change to a protected reference or
+the terminal intent refuses until its owner acts.
 
 ## 5. Invariants
 
 | Invariant | Enforcement |
 | --- | --- |
-| An accepted record is never superseded by code deployment alone | Cutover checks the named governance artifact and superseded decision IDs |
-| One concern has one active writer | Cutover lease and compare-and-swap authority receipt switch reader and writer together |
-| Shadow data cannot grant authority | Compatibility readers mark it non-authoritative until the cutover receipt exists |
-| Reversal preserves semantic history | Reverse readers project older forms without deleting criteria, approvals, evidence, reports, or dispositions |
-| Initial review cannot become a permanent task lock | The initial record proves one review gate; later in-envelope task projections need no approval and cannot change protected semantic inputs |
-| Parallelism cannot arrive early | Scheduler exposes sequential capability until both governance and proof gates pass |
+| An accepted record is never superseded by code alone | Each move cites its record; the ADR shape lint checks supersession mirrors |
+| One concern has one writer | Only the supervisor writes procedure state and `delivery/` records |
+| Initial review is not a permanent task lock | In-envelope plan and task changes need no approval |
+| Parallelism cannot arrive early | The supervisor dispatches one request at a time until Slice 7's record is accepted |
 
-## 6. Build and Documentation Mapping
+## 6. Remaining Moves
 
-| Cutover | Sources that must change together | Verification |
+| Slice | Sources that change together | Proof |
 | --- | --- | --- |
-| Slice 1 acceptance authority and initial plan review | `ARCHITECTURE.md`, `loop-infrastructure.md`, `loop-contract.md`, approval/review schemas, evaluator and importer | Digest canonicalization, atomic import, initial-review semantics, verdict parity, cache deletion, reverse read |
-| Slice 3 knowledge separation | `knowledge-capture.md`, `work-loop-knowledge-handoff.md`, `acceptance-centered-work-loop.md`, the feed and projector, the project-knowledge candidate mode and read quarantine, `contracts/delivery/delivery-fact-feed.v1.schema.json`, `contracts/delivery/knowledge-observation.v1.schema.json` | Pull-rescan, shadow-unset empty snapshot, readiness isolation, retained work-item and gate capture, unavailable tooling, per-record read quarantine with writers still refusing |
-| Slice 4 procedure authority and mutable task projection | `ARCHITECTURE.md`, `loop-infrastructure.md`, supervisor facade, task projector, legacy result/cohort adapters | Command, schedule, task replacement, protected-boundary refusal, backward-edge, crash, and reversal parity |
-| Slice 7 parallel admission | `ARCHITECTURE.md`, `loop-parallelism.md`, superseding ADR/RFC, scheduler, security and integration ports | Governance refusal, read-proof enforcement, permutation equivalence, sequential fallback |
-| Slice 8 removal | All reverse readers and release manifests plus retired engine/cohort sources; removal of the reusable `spec-approved` and `plan-locked` capture gates | Full reversal rehearsal followed by engine-removal rehearsal |
+| Slice 5 result integration | `work-loop-result-integration.md`, the subject provider, `ARCHITECTURE.md` | Old and new providers yield the same manifest; conflict and crash recovery pass |
+| Slice 7 parallel admission | `ARCHITECTURE.md`, `loop-parallelism.md`, a record superseding ADR-0061 D5 and ADR-0005 D3, D4, the scheduler, and security and integration ports | Missing governance or read proof serializes; permutations equal the sequential result |
+| Slice 8 removal | The `spec-approved` and `plan-locked` capture gates, `knowledge-capture.md`, `work-loop-knowledge-handoff.md` | Removal rehearsal in a clean environment |
 
-Frozen ADR bodies remain unchanged. A superseding record and permitted errata
-carry the relationship; current architecture pages are updated only after the
-new record is accepted.
+Frozen ADR bodies stay unchanged. A superseding record carries the
+relationship, and the superseded record's status fields mirror it.
 
 ## 7. Quality Scenarios
 
-| Stimulus | Response | Target | Verification |
-| --- | --- | --- | --- |
-| Cutover runs without its superseding record | Refuse before changing a reader or writer | Zero implied supersessions | Missing-governance fixture per governed row |
-| One side of the legacy spec-approval/initial-review import fails | Publish neither record | Zero partially initialized deliveries | Crash, malformed-spec-policy, and malformed-plan corpus |
-| A working plan reorders, splits, or replaces tasks inside the reviewed envelope | Reproject without approval and cancel only unintegrated predecessor attempts | Zero approval prompts and zero lost integrated facts | Reorder, split, replacement, cancellation, and evidence-preservation corpus |
-| A replan changes a protected semantic boundary or terminal intent | Refuse dispatch and name the owning amendment or review route | Zero protected changes execute as ordinary replans | Criterion, evidence-policy, scope/non-goal, authority/security, public-contract, durable-output, accepted-risk, and terminal-intent mutation corpus |
-| Parallel provider is installed before slice 7 governance | Advertise or select sequential capability only | Zero concurrent dispatches | Pre-governance provider fixture |
-| Reversal follows newer semantic writes | Reverse reader preserves facts it cannot represent and refuses lossy authority switch | Zero deleted semantic facts | Forward-write then reversal rehearsal |
+| Stimulus | Response | Verification |
+| --- | --- | --- |
+| A spec directory holds `engine-state.json` or a cohort `state.json` | `start` never reads either | Supervisor admission fixtures |
+| A working plan reorders, splits, or replaces tasks | Reproject without approval | Replan corpus |
+| A replan changes a protected reference or terminal intent | Refuse and name the owner | Replan corpus |
+| A parallel provider appears before Slice 7's record | Nothing dispatches concurrently | Sequential dispatch only |
 
 ## 8. Risks and Ownership
 
-- **Risk:** Governance lands after implementation and shadow paths become a de
-  facto authority. **Mitigation:** conformance keeps all target decisions
-  non-authoritative until the governance fingerprint is present.
-- **Risk:** Baseline pages and accepted records disagree after cutover.
-  **Mitigation:** their updates share the cutover change and release manifest.
-- **Risk:** A rollback reader is retained but no longer executable.
-  **Mitigation:** every release rehearses the retained reader before removal.
+- **Risk:** an in-flight run cannot be re-derived. **Mitigation:** it restarts
+  from its approved spec; the owner accepted this risk on 2026-10-11 because
+  distribution is small.
+- **Risk:** baseline pages and accepted records disagree after a move.
+  **Mitigation:** both change in the move's reviewed change.
 
 | Responsibility | Owner |
 | --- | --- |
-| Superseding work-loop authority record | Architecture-governance owner |
-| Slice cutover and reverse-reader implementation | Core and `agentbundle` maintainers |
+| Superseding work-loop authority records | Architecture-governance owner |
+| Slice moves | Core and `agentbundle` maintainers |
 | Parallelism supersession and safety proof | Architecture-governance, security, and Core maintainers |
-| Release authorization and reversal | `agentbundle` release maintainer on call |
+| Release and reversal | Core pack release maintainers |

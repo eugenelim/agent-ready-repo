@@ -2,59 +2,68 @@
 
 ## 1. Purpose and boundary
 
-The execution harness tracks work-loop phases and cohort state for one spec
-directory. `loop-engine.py` advances the finite-state machine.
-`loop-cohort.py` records cohort execution state.
+The execution supervisor runs a full-mode `work-loop` delivery for one spec
+directory. `work-supervisor.py` and its `_supervisor_*.py` siblings in
+`packs/core/.apm/skills/work-loop/scripts/` are the only owner of full-mode
+procedure: admission, task projection, ordering, dispatch, recovery, and
+terminal handling ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md)
+D1). Core 4.0.0 replaced the phase engine and cohort writer with it.
 
-The harness does not create requirements or implement work. It consumes approved
-specification and plan artifacts.
+The supervisor does not create requirements or implement work. It consumes an
+approved spec and plan, issues one typed request at a time to the controller,
+and commits what the controller reports. Light mode runs no supervisor
+([ADR-0014](../adr/0014-rigor-scales-with-risk-work-loop-modes.md)).
 
-The boundary runs the other way too, and it splits by **policy versus
-mechanism** rather than by topic. `work-loop` decides *which* reviewers a change
-warrants, when light or full mode applies, whether a simplify pass runs, and how
-a session manages its context. The harness owns the machinery those decisions
-feed: `loop-cohort.py` parses and classifies reviewer reports
-(`review raw-classify`, `review inspect --adjudication`) and records the
-resulting state.
+The boundary splits by **policy versus mechanism** rather than by topic.
+`work-loop` decides when light or full mode applies, whether a simplify pass
+runs, and how a session manages its context. Which reviewer roles a change
+warrants is data in `work-loop/review-rules.json`, and caps and authority roles
+are data in `work-loop/supervisor-policy.json`. The supervisor owns the
+machinery that reads them. This page does not restate either file, because a
+second copy would be falsified by the next edit with nothing comparing the two.
 
-So a reviewer-selection rule belongs in the `work-loop` skill and this page does
-not restate it, while the classification contract that consumes the report
-belongs here. A second copy of the selection rules would be falsified by the
-next edit to the skill with nothing comparing the two.
-
-### Sibling loops, and why only this one has an engine
+### Sibling loops, and why only this one has a supervisor script
 
 `work-loop` is one of three loops, not the whole of the lifecycle.
 `discovery-loop` sits upstream in `product-engineering` and `release-loop`
 downstream in `release-engineering`, each run by its own supervisor agent —
 `discovery-lead` and `release-lead` — that is a **peer** of `work-loop`'s
-supervisor rather than a mode of it. They meet at numbered gates: discovery
+controller rather than a mode of it. They meet at numbered gates: discovery
 hands off at **G3**, and the build hands off to release at **G4**, the point
 where the build is locally done and deploy-ready.
 [The three loops](../../guides/_shared/explanation/the-operating-model.md) is the
 guide that reconciles the numbering across all three.
 
-Neither sibling has an engine. `discovery-loop`'s transitions are file edits on
-a typed sidecar; `release-loop` ships no executable engine. Both still have an orchestrating
-agent and both keep state on disk; what neither has is a program that advances
-it.
-Everything on this page — the phase machine, the cohort state, the locks, the
-replay markers — is `work-loop`'s alone. They also differ in install scope:
-discovery ships at user scope, while build and release are repo-scoped.
+Neither sibling has a procedure script. `discovery-loop`'s transitions are file
+edits on a typed sidecar; `release-loop` ships no executable engine. Both still
+have an orchestrating agent and both keep state on disk; what neither has is a
+program that advances it. Everything on this page — the supervisor, its
+records, its run lock — is `work-loop`'s alone. They also differ in install
+scope: discovery ships at user scope, while build and release are repo-scoped.
 
 ## 2. Entrypoints
 
-- `loop-engine.py`: `init`, `transition`, `status`, and `reset`.
-- `loop-cohort.py`: `init`, `identity`, `status`, `approve-plan`,
-  `schedule`, `check`, `reset`, wave, and review commands.
+- `work-supervisor.py`, full mode only. Every verb prints one JSON object.
+  - `start <spec-dir> --intent code|spec-plan --code-trust trusted|untrusted
+    --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>]`
+    admits the approved pair.
+  - `next <spec-dir>` derives and prints the current request.
+  - `report <spec-dir> <result.json>` admits that request's result and commits
+    it.
+  - `status <spec-dir> [--json] [--check]` shows the run.
+  - `resolve-effect <spec-dir> --operation <key> --decision
+    effect-confirmed|do-not-retry|retry-authorized --authority-ref
+    effect-authority[:<hex>]` records a named human's effect decision.
+- `review-artifact.py`: `validate`, `classify`, `raw-classify`, `inspect`, and
+  `record`. Light mode and pre-approval review use these verbs. Full-mode code
+  review does not decide closure through them (§ 5).
 - `check-spec-status.py`: validates a requested status in `spec.md` or
   `plan.md`.
 
-The parallel-execution verbs — `dispatch-decision`, `auto-parallel`, and
-`worktree {preflight, add, record, list, merge, cleanup}` — are present in
-`loop-cohort.py` but disabled: each exits non-zero with
-`<verb> is disabled in Phase 1` and touches no state. ADR-0061 D5 defers
-parallel-wave orchestration, so the verb surface is carved out and inert.
+Exit codes are shared across supervisor verbs: 0 success, 1 refusal, 2 usage
+error. `status --check` exits 3 when the implementation retry cap is reached on
+a non-terminal run, and 3 takes precedence over 1. A refusal prints
+`{"refusal": {"code", "owner", "detail"}}`.
 
 ### How these scripts are invoked
 
@@ -65,13 +74,20 @@ invocation resolves it and passes the script as one quoted argument from the
 repository root:
 
 ```
-python '<skill-dir>/scripts/loop-engine.py' …
+python '<skill-dir>/scripts/work-supervisor.py' next docs/specs/<feature>
 python '<skill-dir>/scripts/lint-spec-status.py' --root .
 ```
 
-A bare-relative `python scripts/loop-engine.py` is rejected by the work-loop
-evaluation contract, because it silently resolves against the caller's working
-directory rather than the installed skill.
+A bare-relative `python scripts/work-supervisor.py` is rejected by the
+work-loop evaluation contract, because it silently resolves against the
+caller's working directory rather than the installed skill.
+
+The supervisor runs on the Python standard library alone and loads only its
+sibling scripts, by path, on every platform full mode supports, Windows
+included. It never imports `tools/`, `packages/`, or another installed package
+(ADR-0144 D2). Before loading any sibling, every verb hashes the installed
+supervisor files and compares them with the digests the first admitted `start`
+pinned; a difference refuses `supervisor-changed`.
 
 These instructions are byte-identical across the generated Codex and Claude
 projections; they are one source projected twice, not two copies to keep in
@@ -99,393 +115,270 @@ Makefile and finding nothing is not evidence that a linter is ungated.
 
 ## 3. Owned state and write authority
 
+State falls into three classes. Only the first is authority.
+
 | State | Location | Write authority | Readers |
 | --- | --- | --- | --- |
-| FSM phase state | `docs/specs/**/engine-state.json` (gitignored) | `loop-engine.py` | Harness operators |
-| Cohort state | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py`; the engine invokes that module in-process for registered effects (see § 4) | Harness operators and engine guards |
-| Transition events | `.loop-run/events.jsonl` (ephemeral) | `loop-engine.py` | Harness operators and workspace MCP |
+| Committed delivery records | `docs/specs/<feature>/delivery/`: `approvals.jsonl`, `evidence.jsonl`, `review-selections.jsonl`, `review-decisions.jsonl`, `effect-resolutions.jsonl` | The supervisor, through its own commits | The supervisor, pre-PR hooks, the delivery fact feed |
+| Supervisor commits | Git history on the working branch, one operation per commit | The supervisor | The supervisor, which re-derives completion from them |
+| Run store | Under the Git directory: attempt manifests, issuance marks, pinned supervisor digests, the owed not-red confirmation | The supervisor | The supervisor (attempt-security trust root) |
+| Local status | `<spec>/.supervisor/` (ignores itself in Git): `run.json`, advisory `journal.jsonl`, `security-events.jsonl`, the run lock | The supervisor | Workspace bridge, operators |
+| Step events | `.loop-run/events.jsonl` (ephemeral) | The supervisor, sole producer | Workspace MCP, telemetry export |
+
+Completion, red proof, the implementation retry count, and effect state are
+derived from supervisor commits and `delivery/` records on every call. The
+journal is never read for a decision, and deleting `.supervisor/` loses no
+fact.
+
+The controller — the agent following `SKILL.md` — is trusted. Worker attempts,
+meaning implementer and reviewer subagents, are untrusted. A worker result that
+changes a trusted file (the spec, its plan, the records it cites, or the
+installed skill), Git control state, or committed `delivery/` records is
+refused, and `HEAD` may move only by commits the supervisor made (ADR-0144
+D11).
 
 ### Concurrency control
 
-Each state file has exactly one writer and its own advisory lockfile, taken
-through `_statelock.py` (ADR-0074). The two locks are distinct files and know
-nothing of each other: holding one says nothing about the other.
+One exclusive run lock under `<spec>/.supervisor/` serialises every supervisor
+verb for a spec, taken through `_statelock.py`
+([ADR-0074](../adr/0074-the-work-loop-owns-its-state-lock.md)). Its timing is
+policy data: a contender waits `run_lock_timeout_seconds`, the longest hold is
+bounded by the red-proof budget, and a lock older than
+`run_lock_stale_seconds` is stale. Admission refuses a policy file that breaks
+`timeout < hold < stale`.
 
-`loop-engine.py` holds `engine-state.json.lock` across a whole `transition` —
-the state-machine table lookup, the plan-hash pre-guard, the event guard, the
-registered cohort effect, and the outbox finalisation — so the
-read-decide-write section is atomic against a second engine process.
-`loop-cohort.py` holds `state.json.lock` for each mutation verb and for each
-marker/effect commit in the registered-transition protocol.
-
-The engine's guard layer reads cohort state without taking the cohort lock, and
-the diagram marks those reads as unserialised. For a registered effect, the
-engine calls `loop-cohort.py` while still holding the engine lock. The cohort
-module acquires its own lock to persist the marker, releases it, and later
-acquires it again to reclassify and commit the effect, history entry, and marker
-clear together. The diagram shows both the unlocked guard read and the
-engine-invoked writer path.
+There is one writer and one lock, so no lock ordering exists to get wrong.
 
 ```mermaid
 flowchart LR
-  subgraph EP["loop-engine.py"]
-    ET["transition"]
-    EG["guard layer (_loop_guards.py)"]
-  end
-  subgraph CP["loop-cohort.py"]
-    CV["mutation verbs: wave advance, dispatch-receipt, wave reopen"]
-    CT["registered transition protocol"]
-  end
-
-  EL(["engine-state.json.lock"])
-  CL(["state.json.lock"])
-  ES[("engine-state.json")]
-  CS[("state.json")]
-
-  ET -- holds --> EL
-  EL -- serialises --> ES
-  ET -- "read + write" --> ES
-  ET -- calls --> EG
-  ET -- "invokes registered effect" --> CT
-  ET -- "holds for non-effect commit" --> CL
-
-  CV -- holds --> CL
-  CL -- serialises --> CS
-  CV -- "read + write" --> CS
-  CT -- holds --> CL
-  CT -- "read + write" --> CS
-
-  EG -. "read, NOT serialised" .-> CS
+  C[controller] -- "start, next, report, status, resolve-effect" --> S[work-supervisor.py]
+  S -- holds --> L([.supervisor run lock])
+  S -- commits --> G[(Git history and delivery records)]
+  S -- writes --> R[(run store under the Git directory)]
+  S -- projects --> J[(.supervisor run.json and journal)]
+  S -- appends --> E[(.loop-run events.jsonl)]
+  B[workspace bridge] -. "reads only" .-> J
 ```
-
-The two domains **are** nested on two paths. For a registered effect, the engine
-loads `loop-cohort.py` as a module and calls its transition functions while the
-engine lock is held; those functions take the cohort lock. For a non-effect
-transition, the engine takes the cohort lock directly across fingerprint
-revalidation and the engine-state commit. Neither path holds the cohort lock
-across a subprocess.
-
-The order is fixed and acyclic. `loop-cohort.py` never reads `engine-state.json`,
-so no site takes the pair the other way, and engine-then-cohort is the only
-ordered pair that exists.
 
 ## 4. Dependencies and allowed edges
 
-`loop-engine.py` reads spec and plan status, then invokes `loop-cohort.py`
-identity and schedule checks before guarded transitions. `check-spec-status.py`
-imports the canonical status parser from `lint-spec-status.py`.
+`work-supervisor.py` loads its siblings by path. Each has one job:
 
-The engine does not write or unlink cohort `state.json` directly. ADR-0125 D3
-keeps `loop-cohort.py` as its writer of record; the cohort tool likewise does
-not advance FSM phase state. The engine guard layer may read cohort state
-directly in-process through `_loop_guards.read_state`, which is the unserialised
-read shown in § 3.
+| Module | Owns |
+| --- | --- |
+| `_supervisor_admission.py` | The run's workspace, the approval pair, and `start` |
+| `_supervisor_projector.py` | Plan grammar, task projection, and envelope references |
+| `_supervisor_loop.py` | Deriving the current request, committing steps, recovery |
+| `_supervisor_attempt.py` | The attempt manifest, the open-attempt check, and residue |
+| `_supervisor_tdd.py` | The red-before-green guard and task attempts |
+| `_supervisor_recovery.py` | Recovery after a stub result that is not red |
+| `_supervisor_effects.py` | External effects that never repeat |
+| `_supervisor_review.py` | Reviewer selection, the policy resolver, and review dispositions |
+| `_supervisor_readiness.py` | Readiness derived from durable facts |
+| `_supervisor_commit.py` | The Git port and commit builder |
+| `_supervisor_git.py` | The one hardened helper every supervisor `git` call uses |
+| `_supervisor_journal.py` | Local, deletable state and event projection |
 
-ADR-0125 D1 departs from ADR-0061's pure-referee split: an eligible engine event
-now causes its cohort effect as part of the transition by invoking
-`loop-cohort.py`. ADR-0125 D2 closes that authority to five events:
-`contract-amendment`, `wave-passed`, `gates-failed`, `findings-remain`, and
-`reviewers-clean`. The two review events have effects only on their
-`CODE-REVIEW` edges; the same event names on `SPEC-PLAN-REVIEW` remain
-effect-free. Every other event gains no cohort-write authority and skips the
-registered-transition protocol.
-
-### Reopen obligation on three backward edges
-
-Three backward edges require a skill-invoked wave reopen before they can fire:
-`gates-failed` from `CODE-VERIFICATION`, `findings-remain` from `CODE-REVIEW`,
-and `blocker-applied` from `CODE-HUMAN-GATE`. The controller runs
-`loop-cohort wave reopen` before firing any of these; the guard refuses while
-the current wave holds a live dispatch record, so the wave exit cannot be
-discharged twice from one set of records.
+The supervisor also consumes the acceptance, evidence, content-safety, and
+structured-review modules that ship beside it (`_acceptance.py`,
+`_evidence_store.py`, `_content_safety.py`, `_review_*.py`) without redefining
+their contracts. `check-spec-status.py` imports the canonical status parser
+from `lint-spec-status.py`. No other script writes procedure state.
 
 ## 5. Primary flows
 
-1. `loop-engine.py init` creates FSM state and emits a run identifier.
-   `loop-cohort.py init` adopts that identifier.
-2. A guarded engine transition verifies required artifact status and cohort
-   identity. Code transitions also verify the scheduled plan remains current.
-3. `loop-cohort.py` records plan approval, scheduling, attempts, waves, and
-   review evidence. `loop-engine.py` records phase transitions and events.
+1. `start` checks that the spec is `Approved` or `Implementing`, the plan is
+   `Approved` or `Executing`, and `--intent` matches `## Terminal Intent`. It
+   commits one `delivery/approvals.jsonl` line holding an `approval-record.v1`
+   and an `initial-plan-review.v1`. That line binds the reviewed-execution
+   envelope fingerprint, terminal intent, code-trust classification, run id,
+   and both authority references.
+2. `next` derives the current request from committed facts. It first commits
+   any pending controller edit to the spec, plan, or cited records as one
+   `replan` step. It then picks, in order: the retry cap, the first incomplete
+   task, open effects of completed tasks, gates and review, finish effects,
+   then terminal.
+3. The controller executes the request — itself, or through a worker
+   subagent — and writes an `execution-result.v1`.
+4. `report` re-derives, refuses a result that is not for the current request,
+   and otherwise commits it through the builder.
+5. Steps 2 to 4 repeat until readiness holds and the run reaches `terminal`.
 
-### The phase machine
+Under `spec-plan` intent the run makes exactly two commits, `approval` then
+`terminal`, and issues no request (ADR-0144 D4).
 
-Ten states and eighteen transitions. Ten edges move forward; **eight move
-backward**, so rework is not an exception path but nearly half the machine —
-`contract-amendment` alone returns a run five phases, from implementation to
-drafting. `loop-engine.py`'s transition tables are the authority; this diagram
-renders them.
+**Request kinds** form a closed set: `implement-task`, `write-stub`,
+`run-gates`, `review-role`, `assess-finding`, `external-effect`,
+`effect-query`, `regenerate`, and `human-decision`.
+
+**Step kinds.** Each supervisor commit carries exactly one operation and emits
+one event: `approval`, `replan`, `stub`, `red`, `implement`, `evidence`,
+`gate-fail`, `review`, `effect-intent`, `effect-dispatch`, `effect-receipt`,
+`claim`, `resolution`, or `terminal`.
+
+### The stage set
+
+`run.json`'s `stage` follows the current request. The human waits only in
+`awaiting-human`; every other stage is agent work.
 
 ```mermaid
 stateDiagram-v2
-  direction TB
-  SP_DRAFTING : SPEC-PLAN-DRAFTING
-  SP_REVIEW : SPEC-PLAN-REVIEW
-  S_HUMAN_GATE : SPEC-HUMAN-GATE
-  P_HUMAN_GATE : PLAN-HUMAN-GATE
-  SP_APPROVED : SPEC-PLAN-APPROVED
-  C_IMPLEMENTATION : CODE-IMPLEMENTATION
-  C_VERIFICATION : CODE-VERIFICATION
-  C_REVIEW : CODE-REVIEW
-  C_HUMAN_GATE : CODE-HUMAN-GATE
-
-  [*] --> SP_DRAFTING
-
-  SP_DRAFTING --> SP_REVIEW : spec-ready
-  SP_REVIEW --> S_HUMAN_GATE : reviewers-clean
-  S_HUMAN_GATE --> P_HUMAN_GATE : spec-approved
-  P_HUMAN_GATE --> SP_APPROVED : plan-approved
-  SP_APPROVED --> C_IMPLEMENTATION : plan-locked (code)
-  C_IMPLEMENTATION --> C_VERIFICATION : wave-complete
-  C_VERIFICATION --> C_REVIEW : gates-clean
-  C_REVIEW --> C_HUMAN_GATE : reviewers-clean
-  C_HUMAN_GATE --> DONE : done
-  SP_APPROVED --> DONE : plan-locked (spec-plan)
-
-  SP_REVIEW --> SP_DRAFTING : findings-remain
-  S_HUMAN_GATE --> SP_DRAFTING : spec-rejected
-  P_HUMAN_GATE --> SP_DRAFTING : plan-rejected
-  C_IMPLEMENTATION --> SP_DRAFTING : contract-amendment
-  C_VERIFICATION --> C_IMPLEMENTATION : wave-passed
-  C_VERIFICATION --> C_IMPLEMENTATION : gates-failed
-  C_REVIEW --> C_IMPLEMENTATION : findings-remain
-  C_HUMAN_GATE --> C_IMPLEMENTATION : blocker-applied
-
-  DONE --> [*]
+  direction LR
+  [*] --> admitted : start
+  admitted --> implementing : first task request
+  implementing --> gating : run-gates or regenerate
+  gating --> implementing : gate-fail or next task
+  gating --> reviewing : gates pass
+  reviewing --> implementing : repair work
+  reviewing --> awaiting_human : human-decision
+  implementing --> awaiting_human : refusal or human-decision
+  awaiting_human --> implementing : decision reported
+  reviewing --> terminal : ready and finish effects done
+  admitted --> terminal : spec-plan
+  terminal --> [*]
 ```
 
-`plan-locked` is the one event whose target depends on mode: it seals the
-baseline and hands off to implementation in `code` mode, and terminates the run
-in `spec-plan` mode. The three `*-HUMAN-GATE` states are where the run waits on
-a person; every other state is agent work.
+`awaiting_human` in the diagram is the `awaiting-human` stage. `write-stub`,
+`external-effect`, and `effect-query` requests run in `implementing`;
+`review-role` and `assess-finding` run in `reviewing`.
 
-### The review and classification sequence
+### Review closure
 
-Severity is assigned in three places and validated in none. `loop-cohort.py`
-parses a report's shape and computes fingerprints. Nothing reads the emitted
-`review-verdict.v1` block.
+Full-mode code review closes only on structured review readiness: every
+selected obligation has a current typed `review-report.v1`, every finding has a
+current actual-failure assessment, and every supported finding is disposed
+(ADR-0144 D8). `review-rules.json` decides which roles are selected. A new
+reviewer joins through one entry there and a typed report, with no change to
+skill procedure or supervisor code.
+
+Light mode and pre-approval review keep the report classifier on
+`review-artifact.py`:
 
 ```mermaid
 flowchart TD
-  BRIEF[orchestrator writes reviewer brief]
   REV[reviewer emits findings under Blockers Concerns Nits]
   RAW[raw report persisted to .context/reviews/run-id]
-  CLS{review raw-classify}
-  ADJ[finding-adjudicator six predicates]
+  CLS{review-artifact.py raw-classify}
+  ADJ[finding-adjudicator]
   ADJART[adjudication artifact persisted]
-  INSP{review inspect --adjudication}
-  REC[review record --fingerprint]
+  INSP{review-artifact.py inspect or classify}
+  REC[review-artifact.py record]
   DEC[DECIDE ladder Cut Route Fix Hold]
-  GATES[re-run GATES and REVIEW]
-  VERD[json review-verdict.v1 emitted]
-  NOVAL[no reader validates the record]
 
-  BRIEF --> REV
-  REV -->|1 severity assigned| RAW
+  REV --> RAW
   RAW --> CLS
   CLS -->|clean| REC
   CLS -->|invalid| STOP[loud stop]
   CLS -->|findings| ADJ
-  ADJ -->|2 predicate 5 decides advisory tier| ADJART
+  ADJ --> ADJART
   ADJART --> INSP
   INSP -->|refuted| AUDIT[paired audit artifact only]
-  INSP -->|invalid| STOP
-  INSP -->|indeterminate| STOP
+  INSP -->|invalid or indeterminate| STOP
   INSP -->|sustained| REC
   REC --> DEC
-  DEC -->|3 effective severity may be promoted| VERD
-  DEC -->|Blocker| GATES
-  GATES --> REV
-  VERD --> NOVAL
 ```
 
-Full mode iterates `adversarial-reviewer` until no unresolved Blocker **or
-Concern** remains, so both return the loop to GATES. The rungs differ in
-disposition rather than in whether they iterate: a Concern may be applied only
-when the accepted contract and the bundled-fixes carve-out authorise it, and
-required work that cannot share the unit moves to the next. Nits are deferred
-with their citation.
+Each recorded round becomes one artifact,
+`.context/reviews/<run-id>/<round>-record.md`, so the next round and the review
+budget read from artifacts alone.
 
 The adjudicator may **lower** a reviewer's severity and may not raise it. Its
 fifth predicate is what lowers a consequence to advisory: a defect nothing
 external establishes, or a citation whose every surface the target marks as
 working material rather than contract. A disposition-changing severity conflict
-returns `indeterminate` for owner direction.
-
-That first test reads the defect, not the remedy. A finding several defensible
-repairs could fix is still established, and stays eligible for blocking
-severity.
+returns `indeterminate` for owner direction. That test reads the defect, not
+the remedy: a finding several defensible repairs could fix is still
+established, and stays eligible for blocking severity.
 
 That ceiling is honoured in practice. Across 2,062 adjudicator entries declaring
 a consequence advisory, 98% sustained at Concern or Nit; per run, 13 of 15 runs
-with at least 20 such entries were perfectly compliant. No entry in that corpus
-records which reading of the test its adjudicator applied, so how consistently
-runtimes apply it can only be measured by re-labelling a sample, not read off
-the entries.
+with at least 20 such entries were perfectly compliant.
 [`review-loop-nonconvergence-survey.md`](../product/research/review-loop-nonconvergence-survey.md)
-holds both re-labelling runs and what each established.
+holds the re-labelling runs and what each established.
 
-### TDD stub artifact boundary
+### TDD stub fence
 
-For a full-mode TDD task, `plan.md` carries the behavior, the boundary, and the
-verification mode, not test code, and PLAN creates no repository test file. In
-`spec-plan` mode, `plan-locked` is terminal and no implementation artifact is
-written.
+The red test is written at EXECUTE. PLAN creates no repository test file; a
+task's `Tests:` names the behavior, the boundary, and the verification mode
+([ADR-0150](../adr/0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md)).
+For a supervisor TDD task, the controller writes the task's `stub` fence as a
+task-start revision: after the previous request's result is reported, and
+before the `next` that issues the task's first request
+([ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
+D1). The supervisor commits it as a `replan`, issues `write-stub`, and
+observes the exact stub bytes fail before it admits any production change for
+the task (ADR-0144 D5). A fence written by a worker attempt is refused.
 
-In code mode, `plan-locked` advances the engine to `CODE-IMPLEMENTATION`.
-The red test is written at EXECUTE, at the repository's real test path; the
-implementer observes the intended red and continues to green (ADR-0150). Where a
-supervisor run executes a TDD task, a `stub` fence carried in the approved task
-is materialized unchanged and proven red. The engine owns the phase boundary;
-the plan and test tree own different representations on either side of it.
+When the stub is not red, the `stub-not-red` refusal closes that `write-stub`
+attempt with nothing from it committed. The next trusted-file change then opens
+a `human-decision` carrying the diff and a digest of its exact bytes. It
+commits as a `replan` only when a named human confirms it and the bytes still
+match (ADR-0151 D3).
 
 ## 6. Failure and recovery behavior
 
-A failed guard blocks the transition. A run-identifier mismatch blocks cohort
-mutation. A changed plan blocks code transitions until scheduling is current.
+A refusal writes no commit, ref, lease, journal line, event, or tracked file.
+Its code and owner reach the controller through the verb's output and
+`run.json`'s `refusal` field.
 
-Both state writers use `tempfile.mkstemp` and `os.replace` in the target
-directory. A crash leaves either the previous JSON or the replacement JSON.
-`reset` is the explicit recovery action.
+### Replanning after initial review
 
-### Re-planning after plan approval
+There is no whole-plan lock. The accepted `initial-plan-review.v1` is bound to
+the reviewed-execution envelope: six protected references derived from the
+spec — `spec_policy`, `scope_and_non_goals`, `authority_and_security`,
+`public_contracts`, `durable_outputs`, and `accepted_risk` — plus the terminal
+intent.
 
-Three situations arise once `approved_plan_hash` is written, and they take three
-different routes.
+| Change after initial review | Route |
+| --- | --- |
+| Any edit that leaves every protected reference and the terminal intent unchanged: reorder, split, merge, replace, or delete tasks; change tests, stubs, effects, or the plan's `## Design (LLD)`; bookkeeping | Committed as one `replan` step with no approval; unintegrated attempts of superseded tasks cancel; completed work stays complete |
+| An edit to a protected reference or the terminal intent | Refused; the refusal names the spec-amendment, decision, contract, risk, or plan-review owner |
+| A plan edit while an attempt is open | That attempt is refused with `attempt-residue` |
 
-| Situation | Route | Preserves completed work |
-| --- | --- | --- |
-| An accepted criterion proves genuinely separable | `contract-amendment` from `CODE-IMPLEMENTATION`, with scope-owner authority, a reason reference, and per-task completed evidence | yes, via the evidence payload |
-| Execution produces an observation the plan predicted | the work-loop's verification ledger, which is not hash-pinned and needs no amendment | n/a — the plan does not change |
-| The plan's approach is wrong | `reset`, then a new run | **no** |
+So a controller plan edit is in-envelope only after the open request's result
+is reported and before the next `next`. The grounding of an
+`implementation-discovered` seam or design means, and each later correction,
+is such an edit to the plan's `## Design (LLD)` (ADR-0151 D2). The
+verification ledger keeps execution observations only.
 
-**The third row is enforced, not merely advised.**
-`validate_completed_task_sections` returns a refusal "when an amended plan
-rewrites completed work": `completed_task_section_hashes` holds an exact SHA-256
-per completed task section, and both `approve-plan` and `schedule` refuse an
-amended plan that edits, removes, or renames one. So an approach change that
-reaches completed work cannot be amended in place — the pin refuses it — and an
-amendment that leaves those sections untouched has not changed the approach for
-them. In-place re-planning is therefore closed by construction, which is the
-mechanism behind ADR-0061's *Tradeoff accepted*: "any post-approval plan change
-requires a full reset."
+### Re-derivation instead of replay
 
-**What reset costs** is recorded as an invariant in
-[§ 8](#8-mechanical-invariants): the recovery is correct and the run record does
-not survive it.
+Every identity is derived from committed facts reachable from `HEAD`: a task is
+complete when an `implement` commit exists for its current revision, and red
+proof is a `stub` or `red` commit for its stub digest. Request ids are
+deterministic, so `next` re-issues the current request until it is reported or
+superseded. A crash at any point converges to the uninterrupted run's result,
+and `next` repairs a lost or duplicated event line from the commits.
 
-**Editing `plan.md` outside these routes strands the run.** The schedule guard
-compares against the pinned `plan_hash` on every `CODE-*` transition, so a direct
-edit leaves every subsequent transition refusing with no forward edge; reset is
-then the only exit, at the cost above.
+An external effect whose outcome the source cannot establish is never repeated
+automatically. It waits for a named-human `effect-resolution.v1` decision
+recorded through `resolve-effect`. An effect the source shows never happened
+may be dispatched again, at most three times in all, before a human decides
+(ADR-0144 D6).
 
-### Durable markers close the transition crash windows
-
-Two durable records make an interrupted transition recoverable.
-
-| Marker | Where | Window it closes |
-| --- | --- | --- |
-| `pending_transition` plus the last `transition_history` entry | cohort `state.json` | a registered marker or cohort effect landed but engine-state did not |
-| `events.pending` | `.loop-run/` | engine-state was written but the `events.jsonl` append did not happen |
-
-For a registered effect, `cmd_transition` commits the cohort side first and
-writes engine state last. Replaying the same engine command therefore completes
-an absent effect or recognizes the last matching history entry without applying
-the effect twice. A legacy or manually-created engine-first divergence uses the
-same registered protocol after re-checking the schedule.
-
-`pending_transition` is the short-lived durable marker for the registered
-cohort-effect transition in progress. `transition_history` is the single replay
-ledger and replaces `amendment_history`; `contract-amendment` keeps the same
-artifact pin by re-reading `plan.md` and re-running
-`validate_completed_task_sections`, while the other registered effects reduce
-`applied` to the last history match. History retention drops oldest entries
-only when the whole cohort state would exceed 1 MiB, and this is safe because
-the replay predicate reads the last entry only.
-
-The closed registry is `contract-amendment`, `wave-passed`, `gates-failed`,
-`findings-remain`, and `reviewers-clean`. The two review events own cohort
-effects only on their `CODE-REVIEW` edges; their `SPEC-PLAN-REVIEW`
-pre-execute edges remain legal engine transitions with no cohort review effect
-and no review-counter increment. For CODE-review effects, the engine passes the
-durable transition id as the cohort review `operation_id`, so replay repeats the
-same `loop-engine transition` command rather than a separate
-`loop-cohort review record` or a manual authorization gate.
-
-Cohort state is schema 2 and engine state remains schema 1. A run crossing the
-boundary is refused rather than migrated; the authorized recovery is the
-destructive pair `loop-cohort reset` then `loop-engine reset`.
-
-### A wave-exit verdict is not serialised against the wave pointer
-
-The `wave-complete` guard decides whether every task in the **current** wave
-carries a dispatch receipt. It learns which wave is current by reading
-`current_wave_index` from cohort state, unlocked. `loop-cohort wave advance`
-moves that same field under the cohort lock. Nothing orders the two, so a
-verdict reached about wave `n` can be committed after the pointer has left
-wave `n`.
-
-```mermaid
-sequenceDiagram
-  autonumber
-  participant E as loop-engine transition
-  participant S as state.json
-  participant C as loop-cohort wave advance
-
-  E->>E: acquire engine-state.json.lock
-  E->>S: read current_wave_index (no cohort lock)
-  Note over E,S: index = 0 — wave 0 is fully accounted
-  Note over E: guard APPROVES — the verdict is about wave 0
-  C->>S: acquire state.json.lock
-  C->>S: current_wave_index 0 to 1
-  C->>S: release state.json.lock
-  E->>E: commit CODE-IMPLEMENTATION to CODE-VERIFICATION
-  Note over E: the verdict was about wave 0 — the run is now on wave 1
-```
-
-The consequence lands one transition later, not here. `gates-clean` asks only
-whether the current wave is the last one; wave 1 is, so it passes. Wave 1 is
-entered and exited with no guard ever reading its receipts, using sanctioned
-verbs alone and no direct state write.
-
-The interleaving needs two concurrent processes against one spec directory, so
-it is unreachable from the sequential single-controller flow that Phase 1
-supports.
-
-**This is now serialised, and the diagram above shows the pre-serialisation
-behaviour.** For a non-effect transition, `cmd_transition` fingerprints cohort
-`state.json` before its first cohort read and re-reads it under the cohort lock
-before committing, refusing when it moved; the mutator above can no longer land
-in that window undetected. Registered effect edges skip that fingerprint rail
-because they intentionally mutate cohort state, and instead reclassify marker
-and history under the lock owned by `loop-cohort.py`. See
-[`loop-parallelism.md` § 2](loop-parallelism.md#2-serialising-a-transition-against-cohort-state)
-for the mechanism and, importantly, for the residuals it does not close.
-
-One residual bears on this section directly. The consequence this section names
-— `gates-clean` asking only whether the current wave is the last, so a wave is
-entered and exited with no guard reading its receipts — is **not** closed by
-serialisation: it needs no interleaving at all. An advance that lands before the
-`gates-clean` guard runs produces it with every read consistent. That is a
-missing check rather than a lost race, and it remains open.
+A run whose durable state predates the supervisor is re-derived from the spec,
+plan, Git history, evidence, and review facts. No compatibility reader exists,
+and reversal is reinstalling the prior Core release (ADR-0144 D7).
 
 ## 7. Observability and evidence
 
-Both tools expose `status --json`. `engine-state.json` and `state.json` record
-phase and cohort state; `loop-engine transition` appends one line per
-transition to `.loop-run/events.jsonl` (ephemeral, gitignored). Workspace MCP
-reads that stream.
+`status --json` prints the run. `run.json` holds `run_id`, `active`, `stage`,
+`gate_pending`, `gate_question`, and `refusal`; the workspace bridge reads it
+and only displays it. A human answer reaches the supervisor only through the
+supervisor's own `human-decision` request.
 
-Review-round correlation has two forms. A direct or pre-EXECUTE `review record`
-uses `<run_id>:<seq>`, which joins directly to the engine event carrying that
-run and sequence. A registered CODE-REVIEW effect uses its SHA-256
-`transition_id` as the review operation id. Its retained `transition_history`
-entry carries that id, the event, and `pre_transition_sequence`; it correlates
-to the engine event with the same run and event at sequence
-`pre_transition_sequence + 1`. Finding counts and round recurrence remain on
-the cohort side rather than being duplicated onto the event line. Because old
-history entries may be truncated, that second correlation is available only
-while the corresponding history entry is retained.
+The supervisor is the only producer of `.loop-run/events.jsonl`. It appends one
+line per supervisor step in the unchanged `loop-run-event.schema.json`
+envelope, with the step kind in `event`, and derives the lines from its own
+commits so they stay crash-consistent (ADR-0144 D10). The bridge's tail,
+filter, and reset rules are unchanged
+([ADR-0064](../adr/0064-events-jsonl-as-fsm-event-source.md) D3, D4, D7).
+
+Every writer-authority allow and denial is stored as a `security-event.v1`
+line in `<spec>/.supervisor/security-events.jsonl`.
+
+The pre-PR hooks run `work-supervisor.py status --check` for each spec holding
+`delivery/approvals.jsonl` and fail on any non-zero exit.
 
 The envelope's field set, its export posture, its configuration route and what
 a backend can do with it are a cross-cutting concern: see
@@ -493,45 +386,21 @@ a backend can do with it are a cross-cutting concern: see
 
 ## 8. Mechanical invariants
 
-- `check-spec-status.py` blocks guarded transitions unless the requested
-  `spec.md` or `plan.md` status is present.
-- `loop-engine.py` checks cohort identity before every transition.
-- `loop-engine.py` checks the current schedule before code transitions except
-  `done`.
-- `loop-cohort.py` requires `--expect-run-id` for cohort mutations.
-- Each state file is written under its own advisory lock, so a read-modify-write
-  on one file is atomic against another process running the same tool.
-- The `spec-plan` `findings-remain` edge is guarded, but by a counter nothing
-  on that path increments. `loop-engine.py` maps
-  `("spec-plan", "findings-remain")` to the same `_guard_check_phase_review`
-  the code path uses, and that guard refuses at
-  `review_retry_count >= max_review_retries`. A registered CODE-REVIEW
-  `findings-remain` effect increments `review_retry_count` through
-  `loop-cohort.py`; direct `review record --fingerprint` does the same for the
-  separate bounded evidence-replacement path. An ordinary pre-EXECUTE round
-  uses neither writer. The work-loop skill's `references/pre-execute-review.md`
-  states that separation deliberately.
-  So an ordinary spec/plan revision cycle reads `0/5` on every round and the
-  cap never fires. Whether such a loop stops is therefore an orchestrator
-  judgement, not a mechanical refusal. Reproduced directly: twelve consecutive
-  `findings-remain` transitions in `mode=code` all succeeded with
-  `review_retry_count` at `0`. ADR-0061's *Revisit if* clause names a bounded
-  round cap for unattended `spec-plan` runs (D5); no such change is designed.
-- **`reset` destroys the run record.** `loop-cohort reset` is `path.unlink()` on
-  `state.json` with no archive, so `completed_task_ids`,
-  `completed_task_section_hashes`, `review_round_count`, `review_retry_count`,
-  `pending_transition`, `transition_history`, and `dispatch_receipts` are lost
-  rather than set aside.
-  Because in-place re-planning is closed by construction (§ 6), reset is the only
-  recovery from a wrong plan approach, so this loss is on the sole exit from that
-  situation. Known defect.
-- Cross-domain transition commits use one of two mechanical rails. Non-effect
-  transitions revalidate the whole cohort fingerprint while holding the cohort
-  lock; registered effect edges reclassify marker/history under the cohort
-  module's lock before the engine-state commit. This prevents a concurrent
-  cohort write from silently invalidating the transition's earlier reads, but
-  it does not add a missing guard such as the `gates-clean` receipt check
-  described in § 6.
+- `start` admits only an `Approved` or `Implementing` spec with an `Approved`
+  or `Executing` plan, and only authority references of the role its flag
+  accepts.
+- No production change for a stub-declaring task is admitted before the
+  supervisor observed its current stub bytes fail.
+- A refusal writes no tracked state.
+- Only supervisor commits move `HEAD` during a run; a worker result touching a
+  trusted file, Git control state, or `delivery/` records is refused.
+- The implementation retry cap (5) and the effect dispatch cap (3) come from
+  `supervisor-policy.json`; `status --check` exits 3 at the retry cap.
+- A light-mode run invokes no `work-supervisor.py` command and creates no
+  `<spec>/.supervisor/`.
+- Deleting the journal, `run.json`, or `security-events.jsonl` neither reopens
+  a closed attempt nor clears an owed not-red confirmation, because both live
+  in the run store under the Git directory.
 
 ## 9. Relevant ADRs
 
@@ -541,136 +410,17 @@ rate, and what does and does not bound a loop — is recorded in
 Consult it before proposing a new bound; it records eleven mechanisms tested and
 not shipped.
 
-
-- [ADR-0061 — Loop infrastructure](../adr/0061-loop-infrastructure-phase-1.md)
-- [ADR-0064 — Events JSONL as FSM event source](../adr/0064-events-jsonl-as-fsm-event-source.md)
+- [ADR-0144 — Work-loop supervisor owns procedure](../adr/0144-work-loop-supervisor-owns-procedure.md)
+- [ADR-0151 — Post-lock routes for the stub fence and implementation-discovered means](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
+- [ADR-0150 — The TDD red test is written at EXECUTE](../adr/0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md)
+- [ADR-0064 — Events JSONL as FSM event source](../adr/0064-events-jsonl-as-fsm-event-source.md) (D3, D4, D7 in force)
 - [ADR-0074 — Work loop owns its state lock](../adr/0074-the-work-loop-owns-its-state-lock.md)
-- [ADR-0125 — Durable transitions make four cohort mutations engine-invoked](../adr/0125-engine-invoked-cohort-mutations.md)
+- [ADR-0014 — Rigor scales with risk](../adr/0014-rigor-scales-with-risk-work-loop-modes.md)
+- [ADR-0061 — Loop infrastructure](../adr/0061-loop-infrastructure-phase-1.md) (superseded in part by ADR-0144)
 
-## 10. Maintainer Procedure — Acceptance Shadow Services
+## 10. Last verified against commit
 
-The following commands let maintainers verify parity, recovery, and reversal for
-the callable shadow acceptance services without reading the delivery
-spec. All commands run from the repository root.
-
-### Enable shadow mode
-
-Set `WORK_LOOP_SHADOW_SERVICES=1` before a `loop-engine transition` call to
-turn on the shadow services. After each committed transition, the engine
-appends an `evidence-receipt.v1` record through the evidence store. At
-`plan-locked`, it also imports the `approval-record.v1` and
-`initial-plan-review.v1` records against the approved spec and plan digests in
-`state.json`, projects a `delivery-subject.v1` record when the tree allows, and
-derives an `acceptance-verdict.v1` record. Everything is written under
-`<spec-dir>/.shadow-acceptance/`, which ignores itself in Git. The current
-engine keeps all authority. Every writer-authority allow and denial is stored
-as a `security-event.v1` line in `shadow-security-events.jsonl` before the
-service acknowledges it; if that line cannot be stored, the write is refused.
-A shadow failure is recorded there as a redacted divergence entry without
-changing the legacy result.
-
-```bash
-WORK_LOOP_SHADOW_SERVICES=1 python '<skill-dir>/scripts/loop-engine.py' transition …
-```
-
-### Policy import (approval and initial-plan-review)
-
-Run the policy-import suite to verify that legacy canonicalization matches the
-target, that atomic import exposes exactly zero or two records on failure, and
-that protected-change classification works without dispatching task state:
-
-```bash
-python3 -m pytest packs/core/tests/skills/work-loop/test_policy_import.py -q
-```
-
-### Rehydration (cold-start verdict recovery)
-
-Run the cold-rehydration benchmark to verify that deleting derived indexes and
-replaying all evidence records from a fresh process reproduces the pre-interruption
-verdict within 10 seconds for 1,000 criteria and 100,000 receipts:
-
-```bash
-python3 -m pytest packs/core/tests/skills/work-loop/test_cold_rehydration_benchmark.py -q
-```
-
-### Reversal (disable shadow services)
-
-To restore the legacy-only path, unset the environment variable. No shadow facts
-are deleted; the current engine resumes its authoritative path, and shadow records
-remain for later reinspection:
-
-```bash
-unset WORK_LOOP_SHADOW_SERVICES
-```
-
-The compatibility facade suite verifies that disabling target calls restores the
-legacy path and that a missing accepted governance record refuses every
-authority-switch attempt:
-
-```bash
-python3 -m pytest packs/core/tests/skills/work-loop/test_compat_facade.py -q
-```
-
-### Cross-adapter conformance
-
-Run the cross-adapter forgery corpus to verify that every adapter refuses the
-same control-plane writes, direct-syscall attempts, protected-ref writes, and
-broker bypasses, and that containment refuses unattested or broader-than-grant
-launches:
-
-```bash
-python3 -m pytest packs/core/tests/skills/work-loop/test_containment_broker.py -q
-```
-
-Run the conformance roll-up to verify that the projected Core pack copies are
-byte-identical to the source, so every pack-suite assertion also covers the
-projected copies, and that each shadow record matches its canonical schema:
-
-```bash
-python3 -m pytest tests/roster/test_t9a_conformance_rollup.py -q
-```
-
-Run the clean-environment fence to verify that every work-loop runtime script
-imports only the standard library or its own sibling modules, and that shadow
-mode completes in a subprocess where `agentbundle` is not importable:
-
-```bash
-python3 -m pytest tests/roster/test_t9a_clean_env_fence.py -q
-```
-
-Run every suite the acceptance evidence map cites for a complete evidence pass:
-
-```bash
-python3 -m pytest \
-  packs/core/tests/skills/work-loop/test_acceptance.py \
-  packs/core/tests/skills/work-loop/test_policy_import.py \
-  packs/core/tests/skills/work-loop/test_subject_projection.py \
-  packs/core/tests/skills/work-loop/test_evidence_store.py \
-  packs/core/tests/skills/work-loop/test_content_safety.py \
-  packs/core/tests/skills/work-loop/test_security_primitives.py \
-  packs/core/tests/skills/work-loop/test_process_safety.py \
-  packs/core/tests/skills/work-loop/test_containment_broker.py \
-  packs/core/tests/skills/work-loop/test_capability_intersection.py \
-  packs/core/tests/skills/work-loop/test_audit_boundary_invariant.py \
-  packs/core/tests/skills/work-loop/test_validator_totality.py \
-  packs/core/tests/skills/work-loop/test_compat_facade.py \
-  packs/core/tests/skills/work-loop/test_acceptance_benchmark.py \
-  packs/core/tests/skills/work-loop/test_cold_rehydration_benchmark.py \
-  tests/roster/test_delivery_contract_bundle.py \
-  tests/roster/test_content_safety_boundary_matrix.py \
-  tests/roster/test_security_primitives_schema_parity.py \
-  tests/roster/test_acceptance_schema_parity.py \
-  tests/roster/test_delivery_subject_parity.py \
-  tests/roster/test_containment_attestation_parity.py \
-  tests/roster/test_evidence_store_schema_parity.py \
-  tests/roster/test_t9a_conformance_rollup.py \
-  tests/roster/test_t9a_clean_env_fence.py \
-  -q
-```
-
-## 11. Last verified against commit
-
-`8d30c6f6c` for the whole page. §§ 3, 4 and 6 were re-verified against the
-change that added the cohort-state identity check they now describe; the rest
-of the page has not been re-audited since `8d30c6f6c`, so that is what this
-marker records.
+This page describes the Core 4.0.0 switch state. It was verified against the
+supervisor sources at `7dc7e9231` together with the removals the
+[execution supervisor cutover](../specs/execution-supervisor-cutover/spec.md)
+makes.

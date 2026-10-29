@@ -473,7 +473,9 @@ CredBroker environment allowlist, path normalization, and process termination.
 
 `build-check-windows.yml` covers a curated subset: the Windows self-host
 compatibility command, the full CredBroker suite, `test_windows_lock_semantics.py`,
-`test_coordination_lease.py`, and `test_loop_cohort_cli.py`, all under
+`test_coordination_lease.py`, the work-loop safe-process suites
+(`test_process_safety_windows.py` and `test_process_safety.py`), and the
+work-loop supervisor's synthetic full code run, all under
 `PYTHONUTF8=1` and `PYTHONIOENCODING=utf-8`. It asserts no collection floor and
 no expected-skip set.
 

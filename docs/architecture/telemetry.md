@@ -14,16 +14,18 @@ divides what is possible from what is not. **A pack records what its own
 code did. It cannot record what the model did**, because the tool running the
 session makes the model call and a pack never sees the reply.
 
-Out of scope: the phase machine these events describe ([loop
+Out of scope: the supervisor procedure these events describe ([loop
 infrastructure](loop-infrastructure.md)); build-time evaluation of skills, which
 runs against fixtures beside each skill; and host telemetry, which belongs to
 the runtime and is described in § 4.
 
 ## 2. Entrypoints
 
-`loop-engine transition` is the only thing that writes today. It adds one JSON
-line per phase change to `.loop-run/events.jsonl`. That file sits at the
-repository root, is gitignored, and is not meant to last.
+The work-loop supervisor, `work-supervisor.py`, is the only writer. It adds one
+JSON line to `.loop-run/events.jsonl` for each supervisor step, that is, each
+commit the supervisor makes. That file sits at the repository root, is
+gitignored, and is not meant to last. Light mode runs no supervisor, so it
+writes no lines.
 
 A sender exists, and it is not part of any pack. `jsonl-otlp-exporter` is
 **separately installed**, and it
@@ -36,20 +38,16 @@ that is structural rather than a setting.
 
 | State | Location | Write authority | Readers |
 | --- | --- | --- | --- |
-| Transition events | `.loop-run/events.jsonl` (ephemeral) | `loop-engine.py` | Operators, workspace MCP |
-| Round payloads | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py` | Engine guards, operators |
+| Step events | `.loop-run/events.jsonl` (ephemeral) | `work-supervisor.py` | Operators, workspace MCP, `jsonl-otlp-exporter` |
+| Run status | `docs/specs/**/.supervisor/run.json` (self-ignoring, deletable) | `work-supervisor.py` | Workspace MCP, operators |
 
-The correlation has two forms. A direct or pre-EXECUTE `review record` stores
-`<run_id>:<seq>` as `last_review_record_operation_id`, so it joins directly to
-the engine event with that run and sequence. A registered CODE-REVIEW
-`findings-remain` or `reviewers-clean` effect stores its SHA-256
-`transition_id` instead. Its retained `transition_history` entry also carries
-the event and `pre_transition_sequence`, so it joins to the engine event with
-the same run and event at sequence `pre_transition_sequence + 1`. The event
-line still carries *when* and the cohort carries *what* — finding fingerprints,
-their previous-round rotation, and the recurrence flag `review inspect`
-computes. The transition-history correlation is bounded by history retention;
-it is not a permanent telemetry index.
+The event file is a projection, not a record. The supervisor derives each line
+from its own commits, so the lines and the commits cannot disagree for long:
+when an append is lost, the next supervisor call that can read and write the
+file adds the missing lines, matched by `step_id`. What a step decided, and the
+evidence behind it, lives in the spec's committed `delivery/` records and the
+commit itself. The line carries *when* and *which step*; the commit carries
+*what*.
 
 ## 4. Dependencies and allowed edges
 
@@ -85,27 +83,36 @@ purpose.
 
 ### 5.1 What a line holds
 
-Each line carries ten fields: the seven that identify the step (`seq`,
-`run_id`, `spec`, `from`, `event`, `to`, `at`), the envelope version
-(`schema`), `awaiting_input`, and `step_id`.
+Each line carries ten fields, all written by the supervisor:
 
-Three rules govern the shape.
+| Field | Holds |
+| --- | --- |
+| `schema` | Envelope version, `1` |
+| `seq` | The step's position among the run's supervisor commits |
+| `run_id` | The run, not the agent and not the spec |
+| `spec` | Repository-relative spec directory |
+| `from` | The stage before the step |
+| `event` | The step kind, such as `stub`, `red`, `implement`, `gate-fail`, `review`, or `terminal` |
+| `to` | The stage after the step |
+| `at` | When the supervisor commit was made |
+| `awaiting_input` | True exactly when `to` is `awaiting-human` |
+| `step_id` | The supervisor step's identity, used to repair a lost append |
 
-- **Every field is always present.** The supervisor derives each line from its
-  own commit, so it knows every value and never leaves a key out.
-- **`from`, `event`, and `to` are supervisor names.** `event` is the commit's
-  operation, such as `replan`, `stub`, `implement`, `gate-fail`, `review`, or
-  `terminal`. `from` and `to` are the run's stage before and after it:
-  `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, or
-  `terminal`.
-- **`awaiting_input` and `step_id` say where the run stands.**
-  `awaiting_input` is true exactly when the step leaves the run waiting on a
-  human. `step_id` names the supervisor commit the line was derived from, so a
-  reader can match a line to its commit. Retry counts and caps are not on the
-  line; `work-supervisor.py status --json` reports them.
+The stages are `admitted`, `implementing`, `gating`, `reviewing`,
+`awaiting-human`, and `terminal`. A `replan` step keeps the stage it found.
 
-The line is **always written**. There is no switch. The file is local and
-gitignored, and nothing leaves the machine.
+The envelope is still `loop-run-event.schema.json`. That schema requires only
+`seq`, `run_id`, `spec`, `from`, `event`, `to`, and `at`. It still lists
+`phase_started_at`, `phase_s`, `result`, `waived`, and `budgets` as optional
+fields; the supervisor writes none of them. So a line has no duration, no gate
+result, and no retry counters.
+
+The retry count is not on the line because it has one home: the supervisor
+re-derives it from its own commits. `work-supervisor.py status --check` exits 3
+once the implementation retry count reaches its cap of 5.
+
+The line is **always written** for a full-mode run. There is no switch. The
+file is local and gitignored, and nothing leaves the machine.
 
 ### 5.2 Export is a separate concern, and it is off
 
@@ -200,15 +207,17 @@ inherited default rather than an operator's own statement.
 
 ## 6. Failure and recovery behavior
 
-Recording never gets in the way. Any failure prints a warning and the phase
-state is still written. A field the writer cannot work out becomes `null`. A
-cohort file it cannot read gives a `budgets` object with every key present and
-every value `null`. Nothing here can cost a run its transition.
+Recording never gets in the way. If the event file cannot be read or written,
+the supervisor prints a warning on stderr and the step's outcome is unchanged.
+The commit is already made, so the step is not lost. The next call that can
+reach the file appends every missing line. A file past its size bound stays
+skipped until an operator rotates it.
 
-Two things follow that are worth knowing. Kill a run mid-phase and that phase
-is missing rather than long, because the next step is what records the previous
-one. And hitting a retry limit refuses the step, so nothing is written. In this
-file alone, a spent budget looks exactly like a stall.
+Two things follow that are worth knowing. A run killed mid-step shows no line
+for the unfinished step, because a line exists only for a commit. And a refused
+request makes no commit, so it writes no line. In this file alone, a refused
+run looks like a stalled one. `run.json`'s `refusal` field and
+`status --check` tell them apart.
 
 ## 7. Observability and evidence
 
@@ -281,9 +290,9 @@ did the time go.
 
 That last one is the cost handle. Time spent waiting for a person costs
 nothing; time spent implementing or reviewing costs tokens. `awaiting_input`
-tells the two apart, so elapsed time minus waiting is a closer guide to cost
-than elapsed time, and review rounds — the expensive part — are counted
-exactly.
+marks the waiting steps, so the gaps between `at` values, minus the waiting,
+are a closer guide to cost than elapsed time. The line carries no duration of
+its own, so any duration is a difference between two lines.
 
 None of it says whether a run produced something good. There is nothing at run
 time to check against. Whether the work is right is settled by the prepared
@@ -306,30 +315,32 @@ help someone work out what happened.
 
 **What the lines answer on their own**
 
-- Where the time went, per phase and per run.
-- How many gate failures there were, split by automated check, review, and
-  person.
-- How much rework happened. That includes the jump from implementation back to
-  drafting, which sends a run five phases backwards.
-- How close a run came to a retry limit, and which steps used an override.
-- Which phases ran longer than a stated threshold.
+- When each step happened, and the time between steps, per run.
+- How many implementation attempts failed their gates, by counting `gate-fail`
+  steps.
+- How much rework happened, by counting `replan` steps and repeated
+  `implement` steps for one run.
+- How often a run waited for a person, by counting `awaiting_input` lines.
 
 **What they do not answer, and why**
 
 | Question | Why not |
 | --- | --- |
 | What did it cost? | The tool running the session makes the model call |
-| Why did a review fail? | The line records an outcome, never the findings |
-| What happened to a run that was killed? | The next step writes the previous phase; there is no next step |
-| Was it a stall or a spent budget? | Hitting a limit refuses the step, and a refused step writes nothing |
+| Why did a review fail? | The line names the step, never the findings |
+| What did a gate decide? | The supervisor writes no `result`; the decision is in the commit and `delivery/` records |
+| How close is a run to its retry cap? | The line carries no counters; `status --check` reports the cap |
+| What happened to a run that was killed? | A line exists only for a commit, and the unfinished step made none |
+| Was it a stall or a refusal? | A refused request writes nothing; `run.json` and `status --check` say which |
 | Was the work any good? | Nothing at run time can answer that |
 
 ## 8. Mechanical invariants
 
-- The first seven fields keep their names, order and values, so adding a field
+- The seven required fields keep their names and meanings, so adding a field
   never breaks an existing reader.
-- A field the writer cannot work out is written as `null` and never left out.
-- Recording never stops a transition from completing.
+- Every line is derived from a supervisor commit, and no two lines share a
+  `step_id` for one run.
+- Recording never changes a supervisor step's outcome.
 - Nothing in a pack sends. Anything that sends is installed separately.
 
 ## 9. Relevant records
@@ -339,8 +350,10 @@ help someone work out what happened.
   follow-ons.
 - [Workflow lifecycle vocabulary bake-off](../product/research/workflow-lifecycle-vocabulary-comparison-matrix.md)
   — why the domain vocabulary is ours and which shapes were borrowed.
-- [Loop infrastructure](loop-infrastructure.md) — the phase machine these events
-  describe.
+- [Loop infrastructure](loop-infrastructure.md) — the supervisor procedure these
+  events describe.
+- [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) — D10 makes the
+  supervisor the only producer of this file, in the same envelope.
 - [`agentbundle` § 7.1](agentbundle.md#71-the-install-time-layout-default)
   — how the install-time layout default writes, and what it may carry.
 - [Loop telemetry export survey](../product/research/loop-telemetry-export-survey.md)
@@ -351,8 +364,9 @@ help someone work out what happened.
   — why the sender is a separately installed distribution rather than a pack,
   and what that makes structurally impossible.
 - [Loop telemetry event derivability](../product/research/loop-telemetry-event-derivability.md)
-  — which of INI-005's eight telemetry events these fields can answer.
-  Six of them. Of the rest, one needs a token count this process never sees and
+  — which of INI-005's eight telemetry events the retired engine's fields could
+  answer; the supervisor line carries fewer fields, so re-check a verdict there
+  before relying on it. It found six of them. Of the rest, one needs a token count this process never sees and
   one names a fact the loop does not have, so no new event would carry either.
   Supersedes most of the standards survey's "needs an envelope change" verdicts,
   and carries the commands to re-run the core measurement plus what each further
@@ -382,8 +396,8 @@ batching, and infrastructure metadata.
 
 Two facts decide the shape, and the second surprises people.
 
-**These lines are logs, not spans.** They describe phase transitions with a
-duration, which looks span-like, but nothing converts a file of events into
+**These lines are logs, not spans.** They describe supervisor steps in time
+order, which looks span-like, but nothing converts a file of events into
 spans: the Collector's `filelog` receiver produces log records, the `transform`
 processor cannot cross signal types, and the contrib request to add a
 log-to-span path has been open since 2021 without an implementation.
@@ -463,50 +477,18 @@ profiles signal. This is why the event line carries a version.
 
 ## 11. Last verified against commit
 
-`6e015a51d`, re-verified 2026-09-14. The previous pin, `ec6b94f91`, was 160
-commits behind `main` when this delivery began.
+`7dc7e9231`, re-verified 2026-10-29 for the state after the Core 4.0.0 cutover
+removes the phase engine and cohort writer.
 
-That is a commit hash, not `HEAD`. A draft of this line during the merge
-said `f0a04a223..HEAD`, which reintroduced the exact defect the paragraph
-below warns about — twice in one delivery, once by the repair for it.
+**What the re-verification checked.** §§ 2, 3, 5.1, 6, 7.1, and 8 were checked
+against `_supervisor_journal.py` (`reconcile_events`, `_project_events`, and
+`OPERATION_STAGE`) and against `contracts/jsonschema/loop-run-event.schema.json`
+at that commit. The ten-field line and the stage mapping are read from the
+source, not from an emitted line.
 
-**What the re-verification checked, and what it found.** The distance turned out
-not to matter for the parts of this page that describe what the engine emits.
-Between the old pin and the start of this delivery the emission path had not
-changed at all — `git diff ec6b94f91..f0a04a223 -- packs/core/.apm/skills/work-loop/scripts/loop-engine.py`
-is **empty**. This delivery then added exactly one thing to it, the `schema` key.
-
-That command names two fixed commits on purpose. An earlier draft of this
-paragraph compared against `HEAD`, which was empty when written and stopped being
-empty four commits later when this delivery's own change landed — a verified
-sentence that falsified itself. **An evidence line pinned to a moving ref has a
-shelf life measured in commits.**
-
-`loop-cohort.py` did change over that range, but only to hoist a `SCHEMA_VERSION`
-constant and reword one `--help` string, which leaves § 5.1's "`budgets` is a
-copy" behaviour intact.
-
-- **§ 5.1 — re-measured, holds.** Fourteen fields, confirmed by driving real
-  transitions against `core` 2.26.5 rather than by reading the source. It was
-  thirteen until `schema` shipped; the count here is pinned to an emitted line by
-  AC-0051, so it cannot drift from what the engine writes. The one-round
-  `budgets` lag this section describes was reproduced directly.
-- **§§ 6, 7, 8 — carry forward** on the unchanged emission path.
-- **§ 10.3 — holds**, and now has stronger evidence than when it was written: the
-  same boundary was re-measured through a live Collector on 2026-09-13 by
-  `jsonl-otlp-exporter`'s round trip, recorded in its
-  [verification ledger](../specs/jsonl-otlp-exporter/notes/verification-ledger.md).
-- **New:** which of the roadmap's eight telemetry events these fields can answer
-  is measured in
-  [loop telemetry event derivability](../product/research/loop-telemetry-event-derivability.md).
-
-**What no longer holds: nothing.** The six statements this section previously
-inventoried as stale — two in § 1, one in § 2, one in § 5.2, one in § 10, and
-§ 10.4's claim that the event line carries a version — have all been corrected or
-have become true. § 10.4 needed no edit: the line now carries `schema`, so the
-sentence describes the build rather than anticipating it.
-
-§ 5.1's own two-bullet contradiction is also resolved. It said attempt counts
-were not on the line while the next rule described `budgets` copying the retry
-counters onto every line. The first bullet now says what it meant: `result`
-reports one transition's decision, and the counters live in `budgets`.
+**Carried forward, not re-checked.** §§ 4, 5.2, 5.3, 7 (the backend table), and
+10 do not depend on which script writes the line. § 10.3 holds on its
+2026-09-13 Collector measurement, recorded in `jsonl-otlp-exporter`'s
+[verification ledger](../specs/jsonl-otlp-exporter/notes/verification-ledger.md).
+Whether `jsonl-otlp-exporter` maps the supervisor's line without the optional
+fields it once received was not re-checked here.

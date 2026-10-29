@@ -70,9 +70,9 @@ dependency of pack source or of a target runtime.
 | Canonical work artifacts | `docs/product/` and `docs/specs/` | The workflow that creates the artifact | Workflows, contributors, reviewers |
 | Lifecycle index | `workspace.toml` | `work-intake` and its selected workflow | `workspace-status`, execution, review |
 | Tracker provenance | Canonical artifact and its index entry | The accepting intake workflow | Refresh and reconciliation workflows |
-| Harness phase state | `docs/specs/**/engine-state.json` (gitignored) | `loop-engine.py` | Harness operators |
-| Harness cohort state | `docs/specs/**/state.json` (gitignored) | `loop-cohort.py` | Harness operators |
-| Harness events | `.loop-run/events.jsonl` (ephemeral) | `loop-engine.py` | Harness operators and workspace MCP |
+| Full-mode delivery records | `docs/specs/**/delivery/` (committed) | `work-loop` `work-supervisor.py` | Supervisor re-derivation, pre-PR hooks, delivery fact feed, reviewers |
+| Full-mode run status | `docs/specs/**/.supervisor/` (self-ignoring, deletable) | `work-loop` `work-supervisor.py` | Harness operators and workspace MCP |
+| Harness events | `.loop-run/events.jsonl` (ephemeral) | `work-loop` `work-supervisor.py` | Harness operators and workspace MCP |
 | Knowledge records | `docs/knowledge/` | `project-knowledge/scripts/knowledge_store.py` | Capture, enquiry, review, and research workflows |
 | Credential material | OS credential store and `~/.agentbundle/credentials.env` | `credbroker` write API | Credential brokers in the invoking process |
 | Authored site content | `guides/`, `web/`, and `docs-site/` | Content maintainers | Site build and documentation checks |
@@ -95,7 +95,9 @@ dependency of pack source or of a target runtime.
    local request enters `work-intake`, which classifies it into canonical
    artifacts and lifecycle membership. `workspace-status` and the execution
    harness resolve context, `work-loop` performs approved work and gates, then
-   hands the diff and evidence to reviewers or the requesting contributor.
+   hands the diff and evidence to reviewers or the requesting contributor. In
+   full mode, the skill's `work-supervisor.py` owns the procedure and commits
+   each step with its `delivery/` records. Light mode runs no supervisor.
 4. **Scratch → knowledge capture → enquiry.** `project-knowledge` capture
    admits a strict observation from scratch material. Its distill mode
    reconciles pending observations into topics under `docs/knowledge/`. Its
@@ -172,7 +174,8 @@ dependency of pack source or of a target runtime.
 - [AgentBundle](docs/architecture/agentbundle.md)
 - [Credentials](docs/architecture/credentials.md)
 - [Work intake and artifact routing](docs/architecture/work-intake-and-artifact-routing.md)
-- [Loop infrastructure](docs/architecture/loop-infrastructure.md) and
+- [Loop infrastructure](docs/architecture/loop-infrastructure.md),
+  [execution supervisor](docs/architecture/work-loop-execution-supervisor.md), and
   [workspace MCP](docs/architecture/workspace-mcp/design.md)
 - [Knowledge capture](docs/architecture/knowledge-capture.md)
 - [Telemetry](docs/architecture/telemetry.md)

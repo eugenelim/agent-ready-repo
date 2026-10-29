@@ -1,11 +1,13 @@
 # Architecture Change — Acceptance-centered work loop
 
 **Decision sought:** Refactor `work-loop` in place: keep its public skill,
-center policy on acceptance criteria, upgrade its bundled engine into the
-procedural supervisor, and retire phase/cohort state as semantic authority.
+center policy on acceptance criteria, make the skill-shipped supervisor the
+only full-mode procedure owner, and retire phase and cohort state as authority.
+Core 4.0.0 removed the phase engine and cohort writer; the
+[brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices) owns each slice's status.
 **Author:** Platform Core
 **Status:** Draft
-**Last updated:** 2026-10-01
+**Last updated:** 2026-10-29
 **Reviewers:** Core and `agentbundle`
 
 **Baseline:** [Repository architecture](../../ARCHITECTURE.md) and its loop,
@@ -19,15 +21,15 @@ governance needed for each writer cutover.
 
 | Delta | Owner after the change | Detailed design |
 | --- | --- | --- |
-| Authority, governance, and legacy-record cutovers | Explicit compatibility and supersession gates | [Authority migration](work-loop-authority-migration.md) |
+| Authority, governance, and legacy-record cutovers | Explicit supersession records; no compatibility layer (ADR-0144 D7) | [Authority migration](work-loop-authority-migration.md) |
 | Acceptance criteria and evidence | Delivery policy plus a pure evaluator | [Acceptance and evidence](work-loop-acceptance-evidence.md) |
-| Tasks, execution, recovery, and parallelism | Bundled supervisor engine and optional extensions | [Execution supervisor](work-loop-execution-supervisor.md) |
+| Tasks, execution, recovery, and parallelism | `work-supervisor.py` and its `_supervisor_*.py` siblings in the `work-loop` skill; parallelism and optional extensions belong to later slices | [Execution supervisor](work-loop-execution-supervisor.md) |
 | Runtime-specific agent, session, workspace, and terminal mechanisms | Neutral adapter ports | [Runtime adapter crosswalk](runtime-adapter-crosswalk.md) |
 | Canonical product-tree updates and merge conflicts | Result-integration boundary | [Product result integration](work-loop-result-integration.md) |
 | Reviewer selection, reports, findings, and disposition | Review policy plus opaque reviewer implementations | [Review and disposition](work-loop-review-disposition.md) |
 | Filesystem and process confinement | Shared infrastructure primitives | [Runtime security primitives](runtime-security-primitives.md) |
 | Classification, redaction, and inert persisted content | Shared semantic boundary | [Delivery content safety](delivery-content-safety.md) |
-| Reusable observations | Shadow-scoped read-only feed and stateless projection into unadmitted candidates; capture stays the existing project-knowledge path | [Knowledge projection](work-loop-knowledge-handoff.md) |
+| Reusable observations | Read-only feed over each spec's committed `delivery/evidence.jsonl` and stateless projection into unadmitted candidates; capture stays the existing project-knowledge path | [Knowledge projection](work-loop-knowledge-handoff.md) |
 
 Success means one verdict and one owner per mechanism.
 
@@ -41,16 +43,16 @@ that Slice 6 gate those later cuts.
 | Slice | Shippable change | Exit proof | Owning designs |
 | --- | --- | --- | --- |
 | 1. Acceptance authority, security foundation, and initial plan review | Criteria become authoritative; a derived execution envelope binds separately approved protected facts; the current approved pair imports atomically as spec-policy approval plus an initial review that grants no task-content authority; shared security, evidence, and content-safety services ship without moving orchestration | Atomic-import, derived-envelope, mutation-classification, subject/verdict, evidence-recovery, security, and content-safety conformance pass | [Acceptance and evidence](work-loop-acceptance-evidence.md), [authority migration](work-loop-authority-migration.md), [security primitives](runtime-security-primitives.md), [content safety](delivery-content-safety.md) |
-| 2. Review simplification | Opaque reports, actual-failure assessments, and dispositions ship as self-contained modules beside the current legacy review path; the compatibility adapter (`_review_compat.py`) reconciles legacy review events without moving authority; the review-authority cutover belongs to the FEAT-0036 follow-on | Synthetic reviewer integrates without work-loop changes; closed compatibility corpus, authority-isolation, and self-containment conformance pass; legacy review authority retained | [Review and disposition](work-loop-review-disposition.md) |
-| 3. Knowledge separation | A read-only feed reads each spec's shadow evidence log through the confined file helpers, and a stateless projector derives one unadmitted `gotcha` candidate per unsuperseded `review-failure` receipt; project-knowledge gains a read-only candidate mode, and a person or agent keeps a candidate through the existing `--capture`; the read-only knowledge paths quarantine an invalid committed record per record while writers still refuse; the `spec-approved` and `plan-locked` capture gates and the close-time `work-item` path are retained | Pull scanning is the only discovery path, with no notification; absent, failing, or refusing knowledge tooling never changes a delivery decision; the retained capture paths behave as before | [Knowledge projection](work-loop-knowledge-handoff.md) |
-| 4. FSM strangler, mutable task projection, and engine inversion | Existing facade launches the supervisor; plan tasks, order, decomposition, and local method can reproject inside the reviewed envelope without human reapproval; the legacy result adapter retains current worktree application | Current commands, readiness rehydration, protected-boundary refusal, task-replanning, acknowledged-result parity, and slice-1 security conformance pass | [Execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
+| 2. Review simplification | Opaque reports, actual-failure assessments, and dispositions ship as self-contained modules; Slice 4's supervisor closes full-mode code review only from their structured readiness (ADR-0144 D8) | Synthetic reviewer integrates without work-loop changes; authority-isolation and self-containment conformance pass | [Review and disposition](work-loop-review-disposition.md) |
+| 3. Knowledge separation | A read-only feed reads each spec's committed `delivery/evidence.jsonl` through the confined file helpers, and a stateless projector derives one unadmitted `gotcha` candidate per unsuperseded `review-failure` receipt; project-knowledge gains a read-only candidate mode, and a person or agent keeps a candidate through the existing `--capture`; the read-only knowledge paths quarantine an invalid committed record per record while writers still refuse; the `spec-approved` and `plan-locked` capture gates and the close-time `work-item` path are retained, and Slice 8 removes the two gates | Pull scanning is the only discovery path, with no notification; absent, failing, or refusing knowledge tooling never changes a delivery decision; the retained capture paths behave as before | [Knowledge projection](work-loop-knowledge-handoff.md) |
+| 4. Supervisor inversion and mutable task projection | The unchanged `work-loop` invocation reaches the supervisor in full mode, which replaces the phase engine, cohort writer, whole-plan lock, and legacy review gate with no compatibility layer (ADR-0144 D7); plan tasks, order, decomposition, and local method reproject inside the reviewed envelope without human reapproval; the product result stays the execution-root worktree | Readiness re-derivation, protected-boundary refusal, task-replanning, red-before-green, effect-resolution, structured-review closure, clean-environment import fence, and slice-1 security conformance pass; the old engine and cohort scripts are absent | [Execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
 | 5. Canonical result integration | Results advance the protected product ref; the subject provider switches after parity | Both providers yield the same manifest; sequential crash recovery passes | [Product result integration](work-loop-result-integration.md) |
 | 6. Pi compatibility conformance | The neutral supervisor protocol and conformance kit can be consumed by a separately installed Pi extension without importing, bundling, selecting, or depending on Pi in Core | An external Pi-hosted run passes sequential, recovery, interruption, containment, and control-plane-forgery conformance; removing Pi changes no Core artifact or default behavior | [Runtime adapter crosswalk](runtime-adapter-crosswalk.md), [execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
 | 7. Parallel read coverage and concurrency | After explicit ADR supersession, enforced read allowlisting or complete tracing enables provider-neutral concurrency; Pi compatibility is not a prerequisite | Missing governance or read coverage serializes; undeclared reads deny/trace; permutations equal sequential results | [Authority migration](work-loop-authority-migration.md), [execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
-| 8. Cutover and removal (`legacy-engine-cutover`) | New semantic paths become authoritative; old FSM writers retire; the reusable `spec-approved` and `plan-locked` capture gates are removed once delivery facts are written by default | Parity, cache deletion, provenance-backed reversal, and engine-removal rehearsal pass | This parent design and all child quality suites |
+| 8. Cutover and removal (`legacy-engine-cutover`) | The reusable `spec-approved` and `plan-locked` capture gates are removed now that every full-mode run writes delivery facts, and any remaining compatibility path retires; the engine and cohort scripts already left in Slice 4, and no reverse reader exists to retire | Cache deletion and removal rehearsals pass | This parent design and all child quality suites |
 
-Slices 1–3 add services without moving orchestration. Slice 4 inverts control
-and makes replanning mechanical. Slice 6 proves optional compatibility off the
+Slices 1–3 add services without moving orchestration. Slice 4 inverts control,
+makes replanning mechanical, and removes the old engine. Slice 6 proves optional compatibility off the
 cutover and parallelism critical path. Review alone persists
 acceptance-critical records; delivery owns no knowledge state, and knowledge
 owns every capture, admission, and storage concern.
@@ -60,11 +62,11 @@ owns every capture, admission, and storage concern.
 | Element | Change | Responsibility |
 | --- | --- | --- |
 | Work-loop skill | Preserved and narrowed | Public progressive-mode facade; declare acceptance, authority, and stop policy |
-| Bundled engine | Upgraded in place | Slices 1–3 expose services to the current engine; slice 4 takes procedure ownership |
+| Supervisor | Replaces the phase engine | `work-supervisor.py` owns full-mode procedure; light mode runs none |
 | Runtime extensions | Added | Implement host agent, process, workspace, and journal capabilities |
 | Semantic artifacts | Centered | Preserve criteria, decisions, findings, and proof |
 | Mechanical journal | Reduced | Preserve attempts, leases, checkpoints, and recovery receipts |
-| Engine and cohort FSMs | Retired | Stop acting as workflow authorities |
+| Engine and cohort FSMs | Removed in Core 4.0.0 | No longer exist |
 
 ```mermaid
 flowchart LR
@@ -89,8 +91,9 @@ flowchart LR
     Proof --> Knowledge
 ```
 
-`SKILL.md` states what must hold; its bundled script owns procedure, recovery,
-persistence, and typed skill calls.
+`SKILL.md` states what must hold; in full mode its `work-supervisor.py` owns
+procedure, recovery, and persistence, and issues typed requests the controller
+carries out.
 
 ## 3. Runtime Change
 
@@ -104,22 +107,22 @@ persistence, and typed skill calls.
 
 | Baseline scenario | Target delta | Untouched behavior | Owning design | Compatibility behavior | Parity fixture |
 | --- | --- | --- | --- | --- | --- |
-| Spec approval and initial plan review | A derived envelope fingerprints approved spec policy, scope, security and authority decisions, public contracts, durable outputs, and risk; initial review checks alignment and authorizes terminal intent without granting task text authority | Each named owner approves its fact; plan-review authority owns terminal intent; in-envelope task edits need no approval | [Acceptance and evidence](work-loop-acceptance-evidence.md) | Current spec and plan digests import atomically as spec-policy approval and initial review; plan digest is audit evidence | Canonicalization, envelope derivation, terminal-intent and mutation classification, atomic import, and initial-review corpus |
-| Spec-plan terminal mode | Stop after the initial review records `spec-plan` intent, without projecting execution | No repository implementation or test artifact is written | Parent policy | Existing `plan-locked` terminal remains during compatibility | No-dispatch fixture |
-| TDD boundary | The red test is written at EXECUTE (ADR-0150); when the plan carries a supervisor task's `stub` fence, the guard validates it in scratch and proves it red before production edits | Spec-plan stays artifact-free; changing task-local test shape does not require plan approval | [Execution supervisor](work-loop-execution-supervisor.md) | Existing phase boundary remains authoritative until slice 4 cutover | Scratch, byte-identity of the supervisor `stub` fence, task-revision, and red-to-green corpus |
-| Plan scheduling | Disposable task contracts replace cohort waves | Current plan dependencies and isolation intent remain inputs | [Execution supervisor](work-loop-execution-supervisor.md) | Cohort v2 remains authoritative during shadow projection | Schedule and sequential-degradation parity |
-| Post-review replanning | A working-plan or task change inside the reviewed envelope cancels unintegrated attempts and reprojects without human approval | Integrated history and fresh evidence remain | Acceptance and execution designs | Old plan lock stays authoritative until slice 4 cutover | Task-revision, protected-boundary, and evidence-freshness corpus |
-| Wrong-plan recovery | Revise tasks, ordering, decomposition, or local method in the same lineage; amend the spec or governing decision only when a protected boundary changes | Criteria remain authoritative | Parent policy and execution supervisor | Old engine reset is an expected pre-cutover divergence | Wrong-plan replan, boundary-crossing refusal, and explicit-abandon corpus |
-| Execute | Supervisor selects one declared provider | Agents still edit, run tools, and return observations | [Execution supervisor](work-loop-execution-supervisor.md) | Current engine runs behind the compatibility adapter | Result, effect, and authority-intersection corpus |
-| Result application | Protected Git ref serializes sequential and isolated results | Conflicts still require rework; Git history remains durable | [Product result integration](work-loop-result-integration.md) | Current worktree stays authoritative in shadow mode | Permutation, conflict, cancellation, and crash corpus |
-| Gate or verification step | Mechanism emits normalized evidence during execution | Repository commands and test frameworks remain repository choices | [Acceptance and evidence](work-loop-acceptance-evidence.md) | Gate events dual-emit evidence receipts | Truth-table and stale-subject corpus |
-| Attempt recovery | Journal reconciliation uses stable operation keys and durable effect resolutions | Unknown effects still fail closed | [Execution supervisor](work-loop-execution-supervisor.md) | Current replay markers remain authoritative during dual-read | Crash-after-effect and delete-journal corpus |
-| Review and adjudication | Opaque reports feed assessment then resolution; the shipped Slice 2 boundary (`_review_contracts.py`, `_review_selection.py`, `_review_persistence.py`, `_review_assessment.py`, `_review_bridge.py`, `_review_disposition.py`, `_review_compat.py`) provides structured review facts beside the legacy path; the review-authority cutover follow-on switches the engine gate | Mandatory role policy still follows repository risk; legacy review authority and reviewer-specific procedure remain active until the FEAT-0036 cutover | [Review and disposition](work-loop-review-disposition.md) | Compatibility adapter reconciles legacy review events without moving authority; existing reports and verdicts remain authoritative | Role, reachability, privacy, replacement-subject, and authority-isolation corpus |
-| Indeterminate finding | Leave review unsatisfied and stop for owner direction | Baseline stop behavior remains | [Review and disposition](work-loop-review-disposition.md) | Existing `STOP` remains authoritative | Indeterminate-stop parity fixture |
-| Backward review or rework | Open contradiction projects repair work; changed product requires fresh evidence and review | Rework remains mandatory before readiness | Acceptance, execution, and review designs | Existing wave reopen and backward edge remain authoritative | Gates-failed, findings-remain, and blocker-applied corpus |
-| Human gate and decision | Readiness derives from approval, evidence, review closure, and accepted risk | Named humans retain amendment and risk authority | Parent policy plus acceptance and review designs | Old human gate remains authoritative before cutover | Derived-readiness parity corpus |
-| Closeout | No change | `close-work` retains lifecycle and archival authority | Existing closeout subsystem | Reads old state before cutover and derived readiness after cutover | Existing closeout suite plus adapter fixture |
-| Knowledge capture | Delivery exposes a read-only, shadow-scoped feed and a stateless projection; it sends no notification and stores nothing | Project-knowledge owns the candidate mode, capture, admission, distillation, enquiry, and per-record read quarantine | [Knowledge projection](work-loop-knowledge-handoff.md) | The feed runs beside the retained capture gates, whose removal Slice 8 owns | Pull-rescan, disabled-tooling, retained-capture-path, quarantine, and privacy corpus |
+| Spec approval and initial plan review | A derived envelope fingerprints approved spec policy, scope, security and authority decisions, public contracts, durable outputs, and risk; initial review checks alignment and authorizes terminal intent without granting task text authority | Each named owner approves its fact; plan-review authority owns terminal intent; in-envelope task edits need no approval | [Acceptance and evidence](work-loop-acceptance-evidence.md) | None; `start` commits one `approval-record.v1` and one `initial-plan-review.v1` line to `delivery/approvals.jsonl` | Canonicalization, envelope derivation, terminal-intent and mutation classification, atomic import, and initial-review corpus |
+| Spec-plan terminal mode | Stop after the initial review records `spec-plan` intent, without projecting execution | No repository implementation or test artifact is written | Parent policy | None; the supervisor commits `approval` then `terminal` | No-dispatch fixture |
+| TDD boundary | The red test is written at EXECUTE (ADR-0150); the controller writes a supervisor task's `stub` fence as a task-start revision, and the supervisor proves it red before production edits (ADR-0151) | Spec-plan stays artifact-free; changing task-local test shape does not require plan approval | [Execution supervisor](work-loop-execution-supervisor.md) | None (ADR-0144 D7) | Scratch, byte-identity of the supervisor `stub` fence, task-revision, and red-to-green corpus |
+| Plan scheduling | Disposable task contracts replace cohort waves; the supervisor dispatches one request at a time | Current plan dependencies and isolation intent remain inputs | [Execution supervisor](work-loop-execution-supervisor.md) | None (ADR-0144 D7) | Schedule and sequential-degradation parity |
+| Post-review replanning | A working-plan or task change inside the reviewed envelope cancels unintegrated attempts and reprojects without human approval | Integrated history and fresh evidence remain | Acceptance and execution designs | None; the whole-plan lock is removed (ADR-0144 D3) | Task-revision, protected-boundary, and evidence-freshness corpus |
+| Wrong-plan recovery | Revise tasks, ordering, decomposition, or local method in the same lineage; amend the spec or governing decision only when a protected boundary changes | Criteria remain authoritative | Parent policy and execution supervisor | None (ADR-0144 D7) | Wrong-plan replan, boundary-crossing refusal, and explicit-abandon corpus |
+| Execute | Supervisor issues one request at a time to the controller; provider selection belongs to a later slice | Agents still edit, run tools, and return observations | [Execution supervisor](work-loop-execution-supervisor.md) | None (ADR-0144 D7) | Result, effect, and authority-intersection corpus |
+| Result application | Slice 5: a protected Git ref serializes sequential and isolated results | Conflicts still require rework; Git history remains durable | [Product result integration](work-loop-result-integration.md) | The execution-root worktree stays the result boundary until Slice 5 | Permutation, conflict, cancellation, and crash corpus |
+| Gate or verification step | Mechanism emits normalized evidence during execution | Repository commands and test frameworks remain repository choices | [Acceptance and evidence](work-loop-acceptance-evidence.md) | The supervisor commits gate evidence to `delivery/evidence.jsonl` | Truth-table and stale-subject corpus |
+| Attempt recovery | Journal reconciliation uses stable operation keys and durable effect resolutions | Unknown effects still fail closed | [Execution supervisor](work-loop-execution-supervisor.md) | None; recovery re-derives from supervisor commits and `delivery/` records | Crash-after-effect and delete-journal corpus |
+| Review and adjudication | Opaque reports feed assessment then resolution; the Slice 2 boundary (`_review_contracts.py`, `_review_selection.py`, `_review_persistence.py`, `_review_assessment.py`, `_review_bridge.py`, `_review_disposition.py`) provides structured review facts, and `_supervisor_review.py` closes full-mode code review from them | Mandatory role policy still follows repository risk, expressed as `review-rules.json` data; light mode and pre-approval review keep `review-artifact.py` | [Review and disposition](work-loop-review-disposition.md) | None (ADR-0144 D7) | Role, reachability, privacy, replacement-subject, and authority-isolation corpus |
+| Indeterminate finding | Leave review unsatisfied and stop for owner direction | Baseline stop behavior remains | [Review and disposition](work-loop-review-disposition.md) | The supervisor refuses and stays unsatisfied | Indeterminate-stop parity fixture |
+| Backward review or rework | Open contradiction projects repair work; changed product requires fresh evidence and review | Rework remains mandatory before readiness | Acceptance, execution, and review designs | None; the supervisor projects repair, gate, or review work | Gates-failed, findings-remain, and blocker-applied corpus |
+| Human gate and decision | Readiness derives from approval, evidence, review closure, and accepted risk | Named humans retain amendment and risk authority | Parent policy plus acceptance and review designs | None; a named human answers the supervisor's `human-decision` request | Derived-readiness parity corpus |
+| Closeout | No change | `close-work` retains lifecycle and archival authority | Existing closeout subsystem | Reads derived readiness | Existing closeout suite plus adapter fixture |
+| Knowledge capture | Delivery exposes a read-only feed over committed `delivery/evidence.jsonl` and a stateless projection; it sends no notification and stores nothing | Project-knowledge owns the candidate mode, capture, admission, distillation, enquiry, and per-record read quarantine | [Knowledge projection](work-loop-knowledge-handoff.md) | The feed runs beside the retained capture gates, whose removal Slice 8 owns | Pull-rescan, disabled-tooling, retained-capture-path, quarantine, and privacy corpus |
 
 `Plan → Execute → Establish support → Review → Decide` is a query over criteria,
 initial review, current tasks, Git, evidence, review facts, and effect
@@ -150,7 +153,7 @@ complete.
 
 | Semantic fact | Authoritative path and schema | Writer | Fingerprint | Retention and precedence |
 | --- | --- | --- | --- | --- |
-| Delivery subject | Derived `delivery-subject.v1`, never a source file | Subject-source port and pure projector | Product, spec, evidence policy, exclusions, lineage; task-projection revision is execution provenance | Legacy snapshot precedes protected-ref provider; task-only changes preserve acceptance identity |
+| Delivery subject | Derived `delivery-subject.v1`, never a source file | Subject-source port and pure projector | Product, spec, evidence policy, exclusions, lineage; task-projection revision is execution provenance | The supervisor's `HEAD`-tree projection precedes the Slice 5 protected-ref provider; task-only changes preserve acceptance identity |
 | Canonical product tree | Protected `refs/agentbundle/delivery/<delivery-id>/product` plus integration commits | Result-integration port | Integration operation, parent commit, tree | CAS advances one lineage; worktree files are a repairable projection |
 | Accepted criteria | `docs/specs/<feature>/spec.md`, stable criterion IDs projected as `acceptance-property.v1` | Spec author through accepted amendment policy | Spec path, criterion ID, normalized claim hash | Only the fingerprint named by the current approval record is accepted; criteria override every task projection |
 | Reviewed execution envelope | Derived `reviewed-execution-envelope.v1`, never a source file | Pure projector over current owning approvals | Ordered references for spec policy, scope, security/authority, contracts, durable outputs, and accepted risk | Changed, missing, or ambiguous input changes or refuses the fingerprint; the envelope grants no authority |
@@ -165,19 +168,12 @@ complete.
 | Acceptance verdict | Derived `acceptance-verdict.v1`, never a source file | Pure evaluator | Criteria and admissible-record set fingerprint | Recomputed on demand; no stored verdict overrides its inputs |
 
 The complete transition matrix lives in
-[authority migration](work-loop-authority-migration.md#3-data-transition-inventory).
-The old engine remains authoritative during dual-read; every cutover requires
-parity and cache deletion.
-
-Post-cutover reversal uses the retained reverse reader. Downgrade explicitly
-approves and freezes the current plan for the legacy engine; it never treats
-initial review as task approval. Lossy projection refuses.
-
-At removal, `supervisor-build-manifest.v1` pins the prior release, reverse
-reader, digests, locators, verifier policy, and schema compatibility. The
-cutover reader derives `reversal-bundle.yaml`; missing data blocks removal under
-[release-loop provenance policy](../../packs/release-engineering/.apm/skills/release-loop/SKILL.md#artifact-provenance-verification).
-Monthly checks enforce retention; rehearsal covers lease and write.
+[authority migration](work-loop-authority-migration.md#3-data-transition).
+No compatibility adapter, reverse reader, or dual-write path exists
+(ADR-0144 D7). A run whose state predates the supervisor is re-derived from the
+spec, plan, Git history, evidence, and review facts, not resumed in place.
+Reversal is reinstalling the prior Core major, which discards supervisor
+records that release cannot read.
 
 ## 6. Quality Regression and Verification
 
@@ -186,10 +182,10 @@ Monthly checks enforce retention; rehearsal covers lease and write.
 | Runtime neutrality | Adapter contract, pure acceptance evaluator, and execution-supervisor conformance matrix | Identical verdict and invariant behavior for every runtime declared supported | Shared semantic, recovery, review, and control-plane-forgery suite |
 | Acceptance integrity | Subject-bound receipts and satisfaction invariant | Zero accepted criteria without fresh admissible support | Missing, stale, irrelevant, and contradictory evidence fixtures |
 | Replanning freedom | Initial review plus protected-boundary comparison; task projections remain disposable | Zero in-envelope task changes require approval and zero protected-boundary changes dispatch without their owning amendment | Task reorder, split, replacement, boundary-crossing, cancellation, and evidence-preservation fixtures |
-| Recovery and reversal | Semantic state, journal reconciliation, verified reversal bundle | Cache deletion preserves readiness; retained release reads and writes a post-cutover snapshot | Crash, reconstruction, provenance-failure, and full reversal rehearsal |
+| Recovery and reversal | Semantic state and re-derivation from supervisor commits; reversal reinstalls the prior Core major | Cache deletion preserves readiness | Crash-corpus and journal-deletion runs |
 | Review simplicity | Opaque `review-report.v1` boundary | A synthetic reviewer integrates without a work-loop change | Reviewer conformance fixture |
 | Security | Capability-only API plus verified host sandbox or restricted principal for untrusted code | Zero worker writes reach semantic control-plane paths | Cross-adapter control-plane forgery fixtures |
-| Knowledge isolation | Shadow-scoped read-only feed and stateless projection | Delivery decisions are identical with knowledge tooling absent, disabled, unavailable, timing out, refusing, or failing, and delivery owns no knowledge state | `test_delivery_knowledge_isolation.py` and the pull-rescan and retained-capture fixtures |
+| Knowledge isolation | Read-only feed over committed evidence and stateless projection | Delivery decisions are identical with knowledge tooling absent, disabled, unavailable, timing out, refusing, or failing, and delivery owns no knowledge state | `test_delivery_knowledge_isolation.py` and the pull-rescan and retained-capture fixtures |
 | Semantic scale | Disposable indexes | At 1,000 criteria, 100,000 evidence records, and 10,000 review records: p95 readiness ≤2 s and cold rehydration ≤10 s on the CI reference worker | Indexed and index-deleted stress fixtures |
 | Infrastructure scale | Bounded subsystem inputs | Child maxima cover product paths, result bytes, tasks, edges, journal, and candidates | Traversal, scheduling, merge, rebuild, diff, and intake stress fixtures |
 
@@ -199,12 +195,11 @@ Monthly checks enforce retention; rehearsal covers lease and write.
 | --- | --- | --- |
 | Delivery policy | `packs/core/.apm/skills/work-loop/` | Skill evals |
 | Portable contracts | Authoritative `contracts/delivery/`; builders project all copies | Field, identity, and byte/schema parity |
-| Work-loop facade and bundled supervisor | `packs/core/.apm/skills/work-loop/`; manifest-built single script embeds schemas and standard-library-only runtime modules | Deterministic digest, clean-environment import fence, and provider tests |
+| Work-loop facade and supervisor | `packs/core/.apm/skills/work-loop/SKILL.md`, `scripts/work-supervisor.py`, and its `_supervisor_*.py` siblings, loaded by path on the standard library alone with no build step | Clean-environment import fence and supervisor run suites |
 | Runtime adapters | Neutral contracts plus optional host-owned projections; Core carries no Pi dependency | Adapter conformance and clean-environment dependency fence |
-| Structured review boundary (Slice 2) | `_review_contracts.py`, `_review_selection.py`, `_review_persistence.py`, `_review_assessment.py`, `_review_bridge.py`, `_review_disposition.py`, `_review_compat.py` under `packs/core/.apm/skills/work-loop/scripts/`; legacy review authority retained; review-authority cutover is the FEAT-0036 follow-on | Synthetic reviewer, closed compatibility corpus, policy-leakage, authority-isolation, and self-containment suite |
-| Result integration | Proposed `work_supervisor/result_integration.py` and `git_integration.py` | Merge, CAS, conflict, cancellation, and crash suite |
+| Structured review boundary (Slice 2) | `_review_contracts.py`, `_review_selection.py`, `_review_persistence.py`, `_review_assessment.py`, `_review_bridge.py`, `_review_disposition.py` under `packs/core/.apm/skills/work-loop/scripts/`, read by `_supervisor_review.py` | Synthetic reviewer, policy-leakage, authority-isolation, and self-containment suite |
+| Result integration | Slice 5; not built | Merge, CAS, conflict, cancellation, and crash suite |
 | Security primitive | `packs/core/.apm/skills/work-loop/scripts/file_safety.py` (Slice 1 confinement base) plus `_security_capability.py`, `_confined_mutation.py`, `_process_safety.py`, `_security_events.py`, `_containment.py`, and `_effect_broker.py` beside it | Security boundary suite |
 | Content safety | `contracts/delivery/` policy plus `packs/core/.apm/skills/work-loop/scripts/_content_safety.py` | Shared boundary corpus |
 | Knowledge projection | `delivery-fact-feed.py`, `_delivery_feed.py`, and `_knowledge_projection.py` in `packs/core/.apm/skills/work-loop/scripts/`; the `--candidates` mode and read quarantine in `packs/core/.apm/skills/project-knowledge/scripts/`; canonical schemas [`delivery-fact-feed.v1`](../../contracts/delivery/delivery-fact-feed.v1.schema.json) and [`knowledge-observation.v1`](../../contracts/delivery/knowledge-observation.v1.schema.json) | Feed, projection, candidate-mode, quarantine, isolation, and retained-capture suites listed in [Knowledge projection](work-loop-knowledge-handoff.md#8-implementation-mapping) |
-| Reversal manifest and bundle | `contracts/delivery/` schemas; release-loop slice-gate writer; `agentbundle` cutover reader | Manifest-only derivation, explicitly approved downgrade snapshot, retention, and rehearsal |
-| Authority and baseline cutovers | [Authority migration](work-loop-authority-migration.md); `ARCHITECTURE.md`, `loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`, and `knowledge-capture.md` update with their owning cutover | Missing-governance refusal, writer-switch CAS, baseline-link, and reversal fixtures |
+| Authority and baseline cutovers | [Authority migration](work-loop-authority-migration.md); `ARCHITECTURE.md`, `loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`, and `knowledge-capture.md` update with their owning cutover | Architecture review and baseline-link checks |

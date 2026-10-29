@@ -29,13 +29,17 @@ does not write the event stream.
 | Session process state | Server process | `workspace_mcp.py` | ACP client and agent |
 | Event offset | Per-session server state | `workspace_mcp.py` | Event bridge |
 | Response file | Per-elicitation temporary directory | ACP client response writer | `elicit` |
-| Loop events | `.loop-run/events.jsonl` | `loop-engine.py` | Workspace MCP event bridge |
+| Loop events | `.loop-run/events.jsonl` | `work-loop` `work-supervisor.py` | Workspace MCP event bridge |
+| Full-mode run status | `docs/specs/<feature>/.supervisor/run.json` | `work-loop` `work-supervisor.py` | Event bridge and `workspace_status` (display only) |
 | Workspace lifecycle | `workspace.toml` and artifacts | Owning workflow | `workspace_status` and Git tools |
 
 ## 4. Dependencies and allowed edges
 
-Workspace MCP reads `workspace.toml`, lifecycle artifacts, and
-`.loop-run/events.jsonl`. It tails events by byte offset and never writes them.
+Workspace MCP reads `workspace.toml`, lifecycle artifacts,
+`.loop-run/events.jsonl`, and the bound spec's supervisor `run.json`. It tails
+events by byte offset and never writes them. It reads `run.json` through the
+confined regular-file read with a 64 KiB bound; a link, non-regular, oversized,
+unreadable, or malformed file leaves the session with no run and no gate.
 
 The server invokes loop and Git operations through its bounded tool surface.
 Git tools validate the dispatched lifecycle manifest before subprocess use. A
@@ -50,7 +54,12 @@ Third-party pack types may extend `workspace-types.d/` additively.
 1. The control plane starts a bound or discovery session and the agent calls
    `workspace_status`.
 2. The event bridge tails matching loop events and emits namespaced state and
-   human-gate notifications.
+   human-gate notifications. It takes the run id, `run_active`, stage, and
+   pending human gate from `run.json`. A gate question passes a content-safety
+   check and is shown only inside inert framing; a rejected or oversized
+   question shows a fixed placeholder. The bridge only displays the gate. A
+   human answer reaches the supervisor only through the supervisor's own
+   `human-decision` request.
 3. `elicit` sends `elicitation/create` when the client supports it; otherwise
    it waits for an atomically published response file.
 4. Git tools validate output paths and branch before status, branch, commit, or
@@ -59,7 +68,7 @@ Third-party pack types may extend `workspace-types.d/` additively.
 ## 6. Failure and recovery behavior
 
 If an event file shrinks or its inode changes, the bridge resets its offset and
-rediscovers the run identifier. It holds a partial final event until the next
+rediscovers the run identifier from `run.json`. It holds a partial final event until the next
 poll.
 
 Response files use a private directory, exclusive creation, and atomic rename.
@@ -82,7 +91,9 @@ repository-provided `agentbundle/` directory from shadowing the installed wheel.
 ## 7. Observability and evidence
 
 `workspace_status` returns ready, shaping, blocked, and active items with
-unmet dependencies and bound FSM fields. The event bridge emits
+unmet dependencies and bound FSM fields. For a supervisor run, `current_state`
+is the `run.json` stage, and `run_active` and the gate fields come from the
+same file. The event bridge emits
 `_agentbundle.core/` notifications and records its byte-offset progress.
 
 Git tool results, response paths, lifecycle artifacts, and the loop event stream
@@ -100,6 +111,7 @@ security boundaries or notification delivery.
 - [ADR-0065 — Elicit create response-file fallback](../../adr/0065-elicit-elicitation-create-response-file-fallback.md)
 - [ADR-0068 — Notification namespace x-core](../../adr/0068-notification-namespace-x-core.md)
 - [ADR-0069 — Threading model: daemon threads and bounded pool](../../adr/0069-threading-model-daemon-threads-bounded-pool.md)
+- [ADR-0144 — Work-loop supervisor owns procedure](../../adr/0144-work-loop-supervisor-owns-procedure.md) (D10 moves the run-id source to `run.json`)
 
 ## 10. Last verified against commit
 

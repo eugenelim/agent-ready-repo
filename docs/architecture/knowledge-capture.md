@@ -58,16 +58,18 @@ authority. Canonical artifacts retain authority for their concerns.
 ## 4a. Delivery feed and candidates
 
 Delivery owns no knowledge state. The work-loop skill's read-only
-`delivery-fact-feed.py` reads each spec's shadow evidence log through its
-confined file helpers, only when `WORK_LOOP_SHADOW_SERVICES=1` has made the
-writer produce one, and prints a `delivery-fact-feed.v1` page whose candidates
-come from unsuperseded `review-failure` receipts. Pull scanning is the only
-discovery path: no notification is sent, and the scan keeps no cursor,
-deduplication, acknowledgement, retry, or admission state. The two skills
-exchange only that page; neither imports the other. The retained
-`spec-approved` and `plan-locked` producer capture gates and the close-time
-`work-item` capture work as before, and the gates' removal is owned by Slice 8
-`legacy-engine-cutover`. The full boundary is in
+`delivery-fact-feed.py` reads each spec's committed `delivery/evidence.jsonl`
+through its confined file helpers and prints a `delivery-fact-feed.v1` page
+whose candidates come from unsuperseded `review-failure` receipts. The
+supervisor writes that log in every full-mode run, so no setting turns the feed
+on. Pull scanning is the only discovery path: no notification is sent, and the
+scan keeps no cursor, deduplication, acknowledgement, retry, or admission
+state. The two skills exchange only that page; neither imports the other. The
+`spec-approved` capture gate before the supervisor's `start` and the
+`plan-locked` gate at `start` remain under those names, and the close-time
+`work-item` capture is explicit. Slice 8 of the
+[acceptance-centered work-loop brief](../product/briefs/acceptance-centered-work-loop.md)
+removes the two gates. The full boundary is in
 [work-loop-knowledge-handoff.md](work-loop-knowledge-handoff.md); the
 contracts are
 [`delivery-fact-feed.v1`](../../contracts/delivery/delivery-fact-feed.v1.schema.json)
