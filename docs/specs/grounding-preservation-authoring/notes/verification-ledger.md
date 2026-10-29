@@ -120,3 +120,7 @@ criteria with the non-discrimination stated in the pull request.
   reference (`shared-substrate-preservation.md:70,81`).
 
 The guide repair was a controller fix under the work-loop FIX step (a small fix diagnosis hands over); the reopened wave re-records T4 as `human-directed`, as the owner directed for T4.
+- `experience-reviewer` round 2: SHIP IT. Deferred: the clause "once it has
+  confirmed that from the repository" sits after the second skip case only
+  (guide step 2); the reference requires the proof for both. Deferred Nit:
+  "shared read path" and "new item" paraphrase the reference's terms.

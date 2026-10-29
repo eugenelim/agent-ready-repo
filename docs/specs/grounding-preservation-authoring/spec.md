@@ -1,6 +1,6 @@
 # Spec: Preservation properties from a bounded consumer map
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -111,22 +111,22 @@ Terms:
 - **The base** is `git merge-base origin/main HEAD` after a fresh fetch, with
   every change committed.
 
-- [ ] **AC-0001.** A graded run of `shared-substrate-change-expands-preservation-proof`
+- [x] **AC-0001.** A graded run of `shared-substrate-change-expands-preservation-proof`
   against the rebuilt projection holds all six of its assertions.
-- [ ] **AC-0002.** A graded run of `isolated-private-change-does-not-expand-preservation-proof`
+- [x] **AC-0002.** A graded run of `isolated-private-change-does-not-expand-preservation-proof`
   against the rebuilt projection holds all four of its assertions.
-- [ ] **AC-0003.** In a committed spec directory, a `plan.md` carrying a
+- [x] **AC-0003.** In a committed spec directory, a `plan.md` carrying a
   consumer map, the same plan with the map deleted, and the plan with the map
   rebuilt in a different row order each give the same acceptance fingerprint,
   and `evaluate_verdict` over one property with a receipt bound to that
   fingerprint decides `supported` for all three; the same map added to
   `spec.md` instead decides `insufficient`.
-- [ ] **AC-0004.** `git diff --exit-code <base> HEAD -- packs/core/.apm/skills/new-spec/evals/`
+- [x] **AC-0004.** `git diff --exit-code <base> HEAD -- packs/core/.apm/skills/new-spec/evals/`
   exits 0.
-- [ ] **AC-0005.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
+- [x] **AC-0005.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both read the patch version one above `packs/core/pack.toml` at the base,
   and a `docs/product/changelog.d/` fragment names `core` at that version.
-- [ ] **AC-0006.** `git diff --name-only <base> HEAD` lists no path under
+- [x] **AC-0006.** `git diff --name-only <base> HEAD` lists no path under
   `contracts/` or `packs/core/.apm/skills/work-loop/`.
 
 ## Follow-ons

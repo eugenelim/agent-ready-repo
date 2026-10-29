@@ -1,7 +1,7 @@
 # Plan: Preservation properties from a bounded consumer map
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/new-spec/SKILL.md` step 3
   (repository anchors, analogue rule); the conditional-reference pattern of
   `references/spec-authoring-rubric.md`; the frozen cases in
