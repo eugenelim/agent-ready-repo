@@ -122,6 +122,7 @@ Terms:
   result type's supported construction and destructuring still work. Each
   property has one or more required terms under `all`, and each term has one
   oracle.
+- **The queries** are every distinct NAME in the corpus.
 - **A production path** is a public operation of an implementation: full
   build, one-file update, one-file removal, rebuild, call resolution, and
   search. A test-only helper that builds or edits internal state is not one.
@@ -150,8 +151,8 @@ Terms:
 - [ ] **AC-0001.** For each of the six properties, the producer's receipts for
   its terms over the head source, evaluated against the subject fingerprint,
   give a store verdict of `supported`.
-- [ ] **AC-0002.** For each oracle, run directly on its named mutant, the
-  oracle returns a failing result, or a count over its bound for bounded work.
+- [ ] **AC-0002.** For each term's oracle, run directly on that term's named
+  mutant, the oracle returns a failing result, or a count over its bound for bounded work.
   The store verdict over the producer's receipts for all of that property's
   terms with the mutant as the implementation under test, evaluated against the
   mutant's fingerprint, is `insufficient`.
@@ -160,9 +161,11 @@ Terms:
 
 - [ ] **AC-0003.** Conservation of ordinary calls: the oracle resolves every
   call name in the corpus with the base implementation and with the
-  implementation under test, and passes only when the two results are equal.
+  implementation under test, and passes only when, for every call name, the two
+  results agree on every field of the base implementation's result type. The
+  new field is the allowed delta and is not compared.
 - [ ] **AC-0004.** Conservation of default search has two terms. The default
-  term runs every query in the corpus through both implementations' default
+  term runs every query through both implementations' default
   search and passes only when the results are equal. The explicit term passes
   only when the implementation under test, with values requested, returns the
   base default result plus exactly the corpus value names equal to the query.
