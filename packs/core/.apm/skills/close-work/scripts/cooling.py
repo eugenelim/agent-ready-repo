@@ -8,7 +8,7 @@ import re
 import stat
 import sys
 from contextlib import suppress
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any, TypeGuard
@@ -40,6 +40,13 @@ REFUSAL_CODES = frozenset(
     }
 )
 
+_PARENT_RE = re.compile(r"^docs/product/briefs/[a-z0-9][a-z0-9-]{0,127}\.md$")
+_BRIEF_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,127}$")
+_SPEC_LOCATOR_RE = re.compile(r"^docs/specs/[^/]+/spec\.md$")
+_BRIEF_HEADER_RE = re.compile(r"^- \*\*Brief:\*\*(.*)$")
+_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+MAX_SPEC_BYTES = 1_000_000
+_BRIEFS_DIRECTORY = ("docs", "product", "briefs")
 _DELIVERY_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,127}$")
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _EVIDENCE_RE = re.compile(r"^(?:commit:[0-9a-f]{40}|pr:[0-9]+|run:[0-9]+)$")
@@ -90,6 +97,7 @@ class CoolingRecord:
     authority: tuple[tuple[str, tuple[tuple[str, str], ...]], ...]
     confirmation_proof: str
     exception: tuple[tuple[str, str], ...] | None = None
+    parent: str | None = None
 
     @classmethod
     def from_payload(cls, payload: dict[str, object]) -> "CoolingRecord":
@@ -123,6 +131,7 @@ class CoolingRecord:
                 tuple((key, str(value)) for key, value in exception.items())
                 if exception is not None else None
             ),
+            parent=None if payload.get("parent") is None else str(payload["parent"]),
         )
 
     def as_payload(self) -> dict[str, object]:
@@ -145,6 +154,8 @@ class CoolingRecord:
         }
         if self.exception is not None:
             payload["exception"] = dict(self.exception)
+        if self.parent is not None:
+            payload["parent"] = self.parent
         return payload
 
 
@@ -302,7 +313,7 @@ def validate_payload(payload: object) -> CoolingResult:
     """Validate the closed lifecycle shape without raising on untrusted input."""
     if (
         not isinstance(payload, dict)
-        or set(payload) - (_REQUIRED | {"exception"})
+        or set(payload) - (_REQUIRED | {"exception", "parent"})
         or not set(payload) >= _REQUIRED
     ):
         return CoolingResult(code="record-invalid")
@@ -346,6 +357,10 @@ def validate_payload(payload: object) -> CoolingResult:
     ):
         return CoolingResult(code="record-invalid")
     if _zone(payload["timezone"]) is None:
+        return CoolingResult(code="record-invalid")
+    if "parent" in payload and payload["parent"] != "none" and not _matches(
+        _PARENT_RE, payload["parent"]
+    ):
         return CoolingResult(code="record-invalid")
     has_exception = "exception" in payload
     if (payload["disposition"] == "retain-exception") != has_exception:
@@ -698,6 +713,63 @@ def _resolve_destination(root: Path, candidates: object) -> Path | str:
         return "unsafe-target"
 
 
+def _brief_file_exists(root: Path, slug: str) -> bool:
+    """Report whether `docs/product/briefs/<slug>.md` is a listed regular file.
+
+    The three directories must be real, and the name must appear in the
+    directory listing byte-for-byte, so a case variant or a link never counts.
+    """
+    file_safety = _close_work().file_safety()
+    directory = root.joinpath(*_BRIEFS_DIRECTORY)
+    name = f"{slug}.md"
+    try:
+        file_safety.validate_confined_directory(root, directory)
+        if name not in {entry.name for entry in directory.iterdir()}:
+            return False
+        return stat.S_ISREG(os.lstat(directory / name).st_mode)
+    except (OSError, ValueError):
+        return False
+
+
+def _derive_parent(root: Path, locator: str) -> str | None:
+    """Read a spec's `Brief:` header and return a `parent` value, or None.
+
+    None means the scope stays unknown, so every unreadable or unrecognised
+    input fails closed. Only the preamble before the first `##` heading is read.
+    """
+    try:
+        root = Path(root)
+        raw = _close_work().file_safety().read_confined_regular_file(
+            root, root / locator, max_bytes=MAX_SPEC_BYTES
+        )
+        text = raw.decode("utf-8")
+    except (ImportError, OSError, ValueError, RecursionError):
+        return None
+    values: list[str] = []
+    for line in text.splitlines():
+        if line.startswith("## "):
+            break
+        found = _BRIEF_HEADER_RE.match(line)
+        if found:
+            values.append(_HTML_COMMENT_RE.sub("", found.group(1)).strip())
+    if not values:
+        return "none"
+    if len(values) != 1:
+        return None
+    value = values[0]
+    if value in {"", "none"}:
+        return "none"
+    if value.startswith("brief:"):
+        slug = value[len("brief:"):]
+        path = f"docs/product/briefs/{slug}.md"
+    else:
+        path = value
+        slug = path[len("docs/product/briefs/"):-len(".md")]
+    if not _PARENT_RE.fullmatch(path) or not _BRIEF_SLUG_RE.fullmatch(slug):
+        return None
+    return path if _brief_file_exists(root, slug) else None
+
+
 def enrol(
     *,
     root: Path,
@@ -721,6 +793,11 @@ def enrol(
     destination = _resolve_destination(root, candidates)
     if isinstance(destination, str):
         return CoolingResult(code=destination)
+    if record.parent is None and _SPEC_LOCATOR_RE.fullmatch(record.locator):
+        # Read before the write: a cooled spec body is never read afterwards.
+        derived = _derive_parent(root, record.locator)
+        if derived is not None:
+            record = replace(record, parent=derived)
     try:
         return _write_record(root, destination, record, authority_binding)
     except (ImportError, OSError, ValueError):

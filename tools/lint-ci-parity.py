@@ -682,6 +682,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # pytest tests/ -q run inside test-after-build-check.
     "pytest repo-governance standalone (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest lifecycle record parent schema agreement (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest package pytest pythonpath (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest shaping-review contracts (roster-owned)":
@@ -1073,6 +1075,7 @@ _GATE_MAIN_CHECKS = (
     "pytest catalogue specification contract loads (roster-owned)",
     "pytest catalogue manifest schema parity (roster-owned)",
     "pytest repo-governance standalone (roster-owned)",
+    "pytest lifecycle record parent schema agreement (roster-owned)",
     "pytest intent shape contract cross-tree claims (roster-owned)",
     "pytest typed-ordinal owner parity and equivalence (roster-owned)",
     "pytest portable-catalogue-authentication packaging (roster-owned)",
@@ -1727,6 +1730,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Tests a maintainer-run comparison that has no CI job by owner decision "
             "(FEAT-0034 Registry comparison). `make test` runs it; CI reaches it "
+            "through the dispatch-only test-corpus.yml."
+        ),
+    'tools/test_replay_dispatch.py':
+        NO_PR_GATE(
+            "Tests a maintainer-run replay that has no CI job by owner decision "
+            "(header-derived-dispatch AC-0019). `make test` runs it; CI reaches it "
             "through the dispatch-only test-corpus.yml."
         ),
     'tools/test_intent_corpus_gate.py':

@@ -146,6 +146,11 @@ classification. Source, write, and deletion authority remain independent.
 Use `scripts/close_work.py` as the deterministic decision/effect seam and
 `scripts/cooling.py` as the cooling seam — enrolment, the review date, due
 state, day-30 review, and retirement all live in the latter.
+A lifecycle record may carry an optional `parent`: the string `none`, or the
+path of the brief file the delivered spec belongs to
+(`docs/product/briefs/<slug>.md`). Enrolment sets it from a spec's `Brief:`
+header, read before the spec cools. When it is absent, the record's parent is
+unknown and any check that depends on it fails closed.
 It loads the sibling resolver and the co-located byte-identical projection of the
 blessed file-safety helper; there is no fallback resolver or weaker filesystem branch.
 

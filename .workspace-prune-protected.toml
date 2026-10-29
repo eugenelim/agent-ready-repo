@@ -37,6 +37,7 @@ protected = [
   "docs/specs/checkable-adr-metadata",
   "docs/specs/closure-eligibility-check",
   "docs/specs/intent-brief-registration-stop",
+  "docs/specs/header-derived-dispatch",
   "docs/specs/child",
   "docs/specs/childb",
   "docs/specs/chosen",

@@ -954,11 +954,14 @@ def test_ac22_migration_rollback_is_identical_with_and_without_cooling(
 def test_ac23_pinned_files_are_byte_unchanged() -> None:
     """AC23: every frozen dependency retains its approved byte digest."""
     expected_digests = {
+        # Re-pinned 2026-10-29 (docs/specs/header-derived-dispatch/spec.md): only
+        # the optional `parent` field was added to cooling.py and to the schema,
+        # and the `parent` reader's HTML-comment pattern gained `re.DOTALL`.
         "packs/core/.apm/skills/close-work/scripts/cooling.py": (
-            "dcd1954a5e3f07f731027b8723ad78f248c283869ecc864d68841476a6a99be1"
+            "fd1f2cb6a8c38341099c420f5ad87c508a7a52e6d9c0d31a8106bd73ed916215"
         ),
         "contracts/jsonschema/delivery-lifecycle-record.schema.json": (
-            "2e031c282db59995245004fc2d9fa3c1a0ce2c2ee6eff73cbd5b4f9295e9b120"
+            "f44b5536ff18657c007b402897cecc99aeef042c0fc8947cef5e052727a06bc3"
         ),
         # Re-pinned 2026-09-12: this spec's Status-line supersession pointer named
         # ADR-0106, an ordinal that was held by two accepted records and has since

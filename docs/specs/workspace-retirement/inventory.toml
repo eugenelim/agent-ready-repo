@@ -2722,6 +2722,12 @@ consumer = "captured-item registration stop: writers write only the file, the cl
 owner = 3
 
 [[row]]
+pattern = "docs/specs/header-derived-dispatch/*"
+class = "contract"
+consumer = "header-derived dispatch: the read-only work-loop dispatch command over spec headers, the lifecycle record parent, and the replay against canonical dispatch"
+owner = 8
+
+[[row]]
 pattern = "docs/specs/intent-brief-registration-stop/*"
 class = "contract"
 consumer = "intent and brief registration stop: the intent-brief-drop repair, the brief-file child scope, the no-registry rename, and the writers that stop adding repo-origin intent and brief entries"
@@ -2756,6 +2762,18 @@ pattern = "tools/test_compare_registry.py"
 class = "fixture"
 consumer = "the registry comparison suite: its fixture registries are workspace.toml-shaped files the comparison reads"
 owner = 5
+
+[[row]]
+pattern = "tools/replay-dispatch.py"
+class = "reader"
+consumer = "the live replay tool: reads workspace.toml read-only through the base engine to list where header-derived dispatch differs from it"
+owner = 8
+
+[[row]]
+pattern = "tools/test_replay_dispatch.py"
+class = "fixture"
+consumer = "the live replay suite: its planted trees carry a workspace.toml the base engine reads"
+owner = 8
 
 [[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
