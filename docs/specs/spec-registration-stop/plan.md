@@ -40,8 +40,8 @@ Record first. T1 runs the comparison and the replay and writes both to the ledge
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | How `work-loop` dispatches | T6 | Step 0 text and eval cases | AC-0001, AC-0002 and AC-0043 pass |
-| Spec entries and the repair | T2, T3, T4, T8 | the router, the repair step, `mutate.md`, SKILL.md, the schema guide | AC-0003 to AC-0005, AC-0012 to AC-0020, AC-0023 pass |
-| Contracts that required registration | T9 | four errata entries, two amendments, the AGENTS.md sentence, the brief edit, the ledger approval rows | AC-0027 to AC-0031 pass |
+| Spec entries, the repair and the spec-status lint | T2, T3, T4, T7, T8 | the router, the repair step, `mutate.md`, SKILL.md, the schema guide | AC-0003 to AC-0005, AC-0012 to AC-0021, AC-0023 pass |
+| Contracts that required registration | T9 | four errata entries, two amendments, the AGENTS.md sentence, two brief edits, the ledger approval rows | AC-0027 to AC-0031 and AC-0045 pass |
 | Equivalence evidence and authority | T9, T10 | § Equivalence rows, re-owned § Disposition rows | AC-0032 and AC-0033 pass |
 | Inventory | T10 | `inventory.toml` edits | AC-0034 passes |
 | User documentation and deferral guidance | T8 | the pages AC-0024 and AC-0026 list | AC-0024 and AC-0026 pass; review for the wording |
@@ -90,7 +90,7 @@ Owned by: T8
 
 Owned by: T10
 
-- The 17 owner-8 Shipped spec-directory rows become `historical`, owner `none`, consumer text naming the stop; every other owner-8 row outside this spec's directory becomes owner `9` with consumer text naming what remains (tracker-origin entries, the engine `dispatch.py` loads), or is removed when its last registry mention goes.
+- The rows AC-0034 leaves to `readiness-bridge-dispatch-input` are not edited here; that spec disposes them in the same branch. The other Shipped spec-directory rows at owner 8 become `historical`, owner `none`, consumer text naming the stop; every other owner-8 row becomes owner `9` with consumer text naming what remains (tracker-origin entries, the engine `dispatch.py` loads), or is removed when its last registry mention goes.
 - § Disposition's owner-8 rows move to owner `9` with Home text naming the tracker-origin spec entries that stay; `spec registration as brief coverage evidence` keeps owner `8` with Home `nothing`.
 
 ## Tasks
@@ -102,6 +102,7 @@ Owned by: T10
 - **Tests:** for AC-0035, AC-0036:
   - The ledger holds `compare-registry.py` output, exit `0`, commit and merge base; and the `replay-dispatch.py` output over a `git worktree` of that merge base, each difference assigned to its slice-8 class or the owner's approval.
   - The brief's Spec map holds `spec-registration-stop`, this spec's `workspace.toml` entry and inventory row exist, and `lint-brief-coverage.py` passes.
+  - `tests/roster/test_spec_registration_stop.py` exists with its `build-check.yml` step and parity entry; each later task adds its own rows to it.
 - **Done when:** both runs are in the ledger with no failing or unassigned row, and the coverage lint passes.
 
 ### T2: Remove `unregistered_work` and reword the cooled-child next action
@@ -150,14 +151,14 @@ Owned by: T10
 
 - **Depends on:** T3, T4, T7
 - **Verification mode:** goal-based
-- **Tests:** for AC-0022, AC-0023, AC-0024, AC-0025, AC-0026: a new `tests/roster/test_spec_registration_stop.py` holding the closed file-and-phrase lists of AC-0001, AC-0005, AC-0023 to AC-0026, AC-0029 and AC-0030, and AC-0043, with each banned phrase's presence at the base asserted from `git show dfa3fe067:<path>`; the AC-0022 fixture digests.
-- **Done when:** the roster test passes, including its build-check step and parity entry.
+- **Tests:** for AC-0022, AC-0023, AC-0024, AC-0025, AC-0026: the roster test's rows for the closed file-and-phrase lists of AC-0023, AC-0025 and AC-0026, and AC-0024 apart from its Type 1 phrases (T2's), with each banned phrase's presence at the base asserted from `git show dfa3fe067:<path>`; the AC-0022 fixture digests.
+- **Done when:** those roster rows pass.
 
 ### T9: Governance wording
 
 - **Depends on:** T1
 - **Verification mode:** goal-based
-- **Tests:** for AC-0027, AC-0028, AC-0029, AC-0030, AC-0031: the roster test's governance rows, and its ledger rows comparing each approval timestamp with `git log --format=%aI` of the commit that adds the text.
+- **Tests:** for AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0045: the roster test's governance rows, and its ledger rows comparing each approval timestamp with `git log --format=%aI` of the commit that adds the text.
 - **Done when:** each entry is committed with approved wording and its row passes.
 
 ### T11: Run the repair on this repository
@@ -178,7 +179,7 @@ Owned by: T10
 
 - **Depends on:** T2, T3, T4, T6, T7, T8, T9, T10, T11
 - **Verification mode:** goal-based
-- **Tests:** for AC-0044 and the release-history durable output: the bridge spec's `Status:` at the ship commit; `python3 tools/check-core-release.py --base origin/main`, the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml` and `test-corpus.yml` runs.
+- **Tests:** for AC-0044 and the release-history durable output: the bridge spec's `Status:` and the fragment's `[[packages]]` entry and Highlights at the ship commit, read by the roster test; `python3 tools/check-core-release.py --base origin/main`, the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml` and `test-corpus.yml` runs.
 - **Done when:** all pass on the branch.
 
 ## Rollout

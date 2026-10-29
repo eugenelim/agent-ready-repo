@@ -29,7 +29,7 @@ A maintainer or agent who writes, starts, resumes, or ships a repo-origin spec e
 
 - **Dispatch.** `work-loop`'s Step 0 ORIENT runs `scripts/dispatch.py`, with or without `workspace.toml`, and acts on its `decision`, in place of `workspace-status`'s `canonical.ready` and `canonical.active` and the first-ready selection — `packs/core/.apm/skills/work-loop/SKILL.md` and its evals.
 - **`unregistered_work` removed** from `workspace_status.py`'s `_canonical_explain`, the engine's finding table and its packaged copy, the `workspace-status` SKILL.md and schema-guide tables, and the readiness bridge's pinned copy. `cooled_child_scope_unknown`'s next action, and the `workspace-status` eval that grades it, name the lifecycle record's `parent`.
-- **Readiness bridge.** Re-pointed to `dispatch.py`'s output by the [`readiness-bridge-dispatch-input`](../readiness-bridge-dispatch-input/spec.md) spec, which ships in the same release; this spec changes only the bridge's pinned finding table.
+- **Readiness bridge.** Re-pointed to `dispatch.py`'s output by the `docs/specs/readiness-bridge-dispatch-input/` spec, which ships in the same release; this spec changes only the bridge's pinned finding table.
 - **Writers.** `work-intake`'s router returns no membership for a repo-origin spec's start or remember route; the `workspace-status` repair plans `queue-to-shipped` and `queue-remove` only for an entry that is not a drop candidate; `work-intake`, `new-spec`, `new-rfc` (in `repo-governance`), the deferral guidance, and the guides stop telling anyone to register or move a repo-origin spec.
 - **Repair.** A `workspace-status` step, `spec-entry-drop`, removes each repo-origin spec entry. It holds a cooled spec's entry, naming the `parent` value to add to its lifecycle record, while that record lacks a parent the entry declares. It never writes a lifecycle record. The Type 1 audit, which reports a live spec with no entry, reports nothing. Run once on this repository.
 - **Spec-status lint.** A `(deferred: <anchor>)` marker also resolves through an open `docs/specs/<anchor>/spec.md`.
@@ -48,10 +48,10 @@ A maintainer or agent who writes, starts, resumes, or ships a repo-origin spec e
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility: how `work-loop` dispatches | Applicable: every adopter's argless start and resume changes | `packs/core/.apm/skills/work-loop/SKILL.md` Step 0 and its evals | Platform Core maintainer | AC-0001 and AC-0002 pass | Step 0 names `dispatch.py` and each decision action |
-| Interface compatibility: which spec entries the registry holds, and the repair that removes the rest | Applicable: adopters' writers and the repair share the schema | `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/workspace-status/references/mutate.md`, and `packs/core/.apm/skills/workspace-status/SKILL.md` | Platform Core maintainer | AC-0012 to AC-0020 and AC-0023 pass | Each names `spec-entry-drop` and says a repo-origin spec gets no entry |
+| Interface compatibility: which spec entries the registry holds, and the repair that removes the rest | Applicable: adopters' writers and the repair share the schema | `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/workspace-status/references/mutate.md`, and `packs/core/.apm/skills/workspace-status/SKILL.md` | Platform Core maintainer | AC-0012 to AC-0021 and AC-0023 pass | Each names `spec-entry-drop` and says a repo-origin spec gets no entry |
 | Decision rationale: the contracts that required registration | Applicable: RFC-0106 D1 requires each to change in the stop's release | RFC-0064, RFC-0106, ADR-0076 and ADR-0110, each § Errata; FEAT-0005 and FEAT-0007 amendments; `docs/product/AGENTS.md`; the `agent-skill-engineering` brief | eugenelim, Decision-maker, Approver, and owner | AC-0027 to AC-0031 pass | Each carries owner-approved wording |
 | Decision rationale: equivalence evidence and authority | Applicable: RFC-0105 D3 gate 3 | `docs/specs/workspace-retirement/retirement-record.md` § Equivalence and § Disposition | Platform Core maintainer; eugenelim as RFC-0106 Approver | AC-0032 and AC-0033 pass | Each case has a row; no owner-8 row is left open |
-| Current product truth: which consumers still depend on the registry | Applicable: the stop changes what the owner-8 inventory rows describe | `docs/specs/workspace-retirement/inventory.toml` | Platform Core maintainer | AC-0034 passes | No row outside this spec's directory names slice 8 |
+| Current product truth: which consumers still depend on the registry | Applicable: the stop changes what the owner-8 inventory rows describe | `docs/specs/workspace-retirement/inventory.toml` | Platform Core maintainer | AC-0034 passes | No row names slice 8 apart from those left to the bridge spec |
 | User documentation: how a spec is started, remembered, cooled and shipped | Applicable: adopters follow the guides by hand | the guides AC-0026 lists | Platform Core maintainer | AC-0026 passes; the rewritten paragraphs are checked in review | No listed page tells a reader to register or move a repo-origin spec |
 | Verification record: comparison, replay, repair, dispatch before and after, and approvals | Applicable: FEAT-0034's validation hook | `docs/specs/spec-registration-stop/notes/verification-ledger.md` | Platform Core maintainer | AC-0031 and AC-0035 to AC-0038 pass | The ledger holds each run, each approval, and no failing row |
 | Release history | Applicable: `core` and `repo-governance` content changes | a `docs/product/changelog.d/` fragment; each pack's `pack.toml` and `.claude-plugin/plugin.json` at one new patch version | Platform Core maintainer | The changelog and version gates pass | The fragment names the stop, the repair step, and the list-and-ask start |
@@ -93,13 +93,13 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 - **Spec-status lint (AC-0021): TDD.** A planted open spec reds before the lint changes; the closed and link cases are regression guards.
 - **Equivalence fixtures (AC-0022): goal-based.** The frozen fixtures and their suites run unchanged.
 - **Writer and guide text (AC-0023, AC-0024, AC-0025, AC-0026): goal-based.** A roster check over closed lists of files and phrases, each phrase present at the base.
-- **Release pairing (AC-0044): goal-based.** A read of the bridge spec's `Status:` at this spec's ship commit.
-- **Governance and records (AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0032, AC-0033, AC-0034): goal-based.** The same roster check reads each entry and the ledger's approval rows; the `workspace-retirement` check reads the record and inventory.
+- **Release pairing (AC-0044): goal-based.** A read of the bridge spec's `Status:` and of the branch's fragment front matter and Highlights at this spec's ship commit.
+- **Governance and records (AC-0027, AC-0028, AC-0029, AC-0030, AC-0031, AC-0045, AC-0032, AC-0033, AC-0034): goal-based.** The same roster check reads each entry and the ledger's approval rows; the `workspace-retirement` check reads the record and inventory.
 - **This repository (AC-0035, AC-0036, AC-0037, AC-0038): manual QA with a byte comparison.** The comparison, replay and repair run once over real data; `dispatch.py`'s before-and-after output is compared byte for byte, and the owner judges any replay difference.
 
 ## Acceptance Criteria
 
-Terms used below. Kept entry, header registry and dispatch result are as the [`header-derived-dispatch`](../header-derived-dispatch/spec.md) spec's Acceptance Criteria define them; canonical membership and cooled as the [`depends-on-headers`](../depends-on-headers/spec.md) spec's do; brief file as the [`intent-brief-registration-stop`](../intent-brief-registration-stop/spec.md) spec's does.
+Terms used below. Kept entry is as the [`header-derived-dispatch`](../header-derived-dispatch/spec.md) spec's Acceptance Criteria define them; canonical membership and cooled as the [`depends-on-headers`](../depends-on-headers/spec.md) spec's do; brief file as the [`intent-brief-registration-stop`](../intent-brief-registration-stop/spec.md) spec's does.
 
 - **Base.** Commit `dfa3fe067`.
 - **Repo-origin spec entry.** A `workspace.toml` table whose `kind` is exactly `"spec"`, whose `source` is a table with `mode` exactly `"repo-origin"`, and whose `needs` is present as an array.
@@ -119,7 +119,7 @@ Terms used below. Kept entry, header registry and dispatch result are as the [`h
   - `step0-supplied-path-resume-refused`: a supplied spec path that `dispatch.py --resume` refuses, stopping with its findings;
   - `step0-explicit-request-conflict`: an explicit current request for new work whose scope matches a spec in `dispatch.py`'s `ready`, `active` or `blocked` list, naming that spec and not starting direct-light work;
   - `step0-no-registry-start`: a repository with no `workspace.toml` and one ready spec, starting it.
-- [ ] **AC-0043.** No case of that file holds `canonical.ready`, `canonical.active`, `Canonical workspace-status preflight`, or `untracked live specs` in its `prompt`, `expected_output` or `assertions`.
+- [ ] **AC-0043.** No case of that file holds `canonical.ready`, `canonical.active`, `canonical workspace-status preflight`, or `untracked live specs` in its `prompt`, `expected_output` or `assertions`, matched without regard to letter case.
 
 **`unregistered_work` and the cooled-child next action**
 
@@ -167,8 +167,8 @@ Each phrase below is present in its file at the base, and each check reads the f
   - `packs/core/.apm/skills/work-loop/SKILL.md`: ``historical deferral anchors in `[backlog].open` `` or ``anchors still resolve in `[backlog].open` ``;
   - `packs/core/.apm/agents/adversarial-reviewer.md`: ``resolves to a slug entry in `workspace.toml [backlog].open` ``;
   - `packs/core/.apm/skills/workspace-status/references/reconcile.md`: `finds work nobody registered` or ``without being added to `workspace.toml` ``;
-  - `packs/core/.apm/skills/workspace-status/SKILL.md`: ``run `reconcile` to also check for untracked live specs``, `Full audit: find untracked live specs`, `also finds untracked live specs (Type 1)`, or `untracked live specs (empty in status/explain`.
-- [ ] **AC-0025.** `packs/core/.apm/skills/workspace-status/SKILL.md` names `work-loop`'s `dispatch.py` as the source of ready and active specs.
+  - `packs/core/.apm/skills/workspace-status/SKILL.md`: ``run `reconcile` to also check for untracked live specs``, `Full audit: find untracked live specs`, `also finds untracked live specs (Type 1)`, `untracked live specs (empty in status/explain`, ``Autonomous dispatch consumers must use `canonical.ready` as the ready set``, ```canonical.ready` is the only queue-ready set and `canonical.active` the only resumable one``, or ``add to [work].queue through `work-intake` ``.
+- [ ] **AC-0025.** `packs/core/.apm/skills/workspace-status/SKILL.md` names `work-loop`'s `dispatch.py` as the source of ready and resumable specs, and its next-action choices for starting or resuming a spec name `dispatch.py` rather than `canonical.ready` or `canonical.active`.
 - [ ] **AC-0026.** None of these files holds the phrase listed for it:
   - `guides/core/tutorials/your-first-workspace.md`: ``Move the entry in `workspace.toml` from``;
   - `guides/core/explanation/role-journeys.md`: ``moves the spec from `[work].active` to `[work].shipped` `` or ``routes them to `[work].queue` ``;
@@ -190,18 +190,19 @@ Each phrase below is present in its file at the base, and each check reads the f
   - `docs/product/intents/FEAT-0005-lifecycle-and-closure.md`: `item 7` and `spec`;
   - `docs/product/intents/FEAT-0007-work-item-promotion-routing.md`: `spec` and `remember route`.
 - [ ] **AC-0029.** `docs/product/AGENTS.md` does not hold ``Registered spec membership in `workspace.toml` ``, and its § Status has one home names the spec's `Brief:` header as the coverage evidence.
+- [ ] **AC-0045.** The Non-goals of `docs/product/briefs/workspace-registry-retirement-delivery.md` admit, in owner-approved wording, keeping the bridge's pinned finding table equal to the engine's when a slice adds, removes or rewords a finding code, and no longer hold `when a slice adds a finding code, as the bridge's parity test requires`.
 - [ ] **AC-0030.** `docs/product/briefs/agent-skill-engineering.md` holds none of ``registered under `ini-009` ``, ``register the spec under `ini-009` ``, and ``register approved specs in `workspace.toml` ``, and `lint-brief-coverage.py` passes on it.
-- [ ] **AC-0031.** `docs/specs/spec-registration-stop/notes/verification-ledger.md` holds one row for each entry AC-0027 lists, each intent AC-0028 lists, the files AC-0029 and AC-0030 name, and the AC-0005 sentence, naming its target file and the owner's approval with an ISO 8601 timestamp to the minute with its UTC offset, which is earlier than the author date (`git log --format=%aI`) of the commit that adds that text.
+- [ ] **AC-0031.** `docs/specs/spec-registration-stop/notes/verification-ledger.md` holds one row for each entry AC-0027 lists, each intent AC-0028 lists, the files AC-0029, AC-0030 and AC-0045 name, and the AC-0005 sentence, naming its target file and the owner's approval with an ISO 8601 timestamp to the minute with its UTC offset, which is earlier than the author date (`git log --format=%aI`) of the commit that adds that text.
 
 **Records**
 
 - [ ] **AC-0032.** `docs/specs/workspace-retirement/retirement-record.md` § Equivalence holds one slice-8 row for each of these cases, under the criteria the [`workspace-retirement`](../workspace-retirement/spec.md) spec states: `the spec entry removal`, as `reproduced`.
 - [ ] **AC-0033.** No row of that record's § Disposition carries Owner `8`, apart from `spec registration as brief coverage evidence`, whose Home is exactly `nothing`.
-- [ ] **AC-0034.** In `docs/specs/workspace-retirement/inventory.toml`, no row whose `pattern` lies outside `docs/specs/spec-registration-stop/` and `docs/specs/readiness-bridge-dispatch-input/` carries `owner = 8`; this spec's directory has one `docs/specs/spec-registration-stop/*` `contract` row at owner `8`; and the inventory check passes.
+- [ ] **AC-0034.** In `docs/specs/workspace-retirement/inventory.toml`, no row carries `owner = 8` apart from the rows left to `docs/specs/readiness-bridge-dispatch-input/`, which are exactly those whose `pattern` lies under that directory, `packs/core/.apm/skills/navigate-intents/`, `packs/core/tests/skills/navigate-intents/`, `.claude/skills/navigate-intents/`, `.agents/skills/navigate-intents/`, `docs/specs/intent-view-readiness-handover/`, `docs/specs/intent-navigation/` or `docs/specs/intent-navigation-export/`, or is `guides/core/how-to/navigate-intents.md` or `docs/rfc/0108-skill-html-view-standard.md`; this spec's directory has one `docs/specs/spec-registration-stop/*` `contract` row at owner `8`; and the inventory check passes.
 
 **Release pairing**
 
-- [ ] **AC-0044.** At the commit that sets this spec's `Status:` to `Shipped`, `docs/specs/readiness-bridge-dispatch-input/spec.md` exists with `Status:` `Shipped`, and `core`'s `pack.toml` version is the same one that commit's changelog fragment names for both specs.
+- [ ] **AC-0044.** At the commit that sets this spec's `Status:` to `Shipped`, `docs/specs/readiness-bridge-dispatch-input/spec.md` exists with `Status:` `Shipped`, and one `docs/product/changelog.d/` fragment that the branch adds carries a `[[packages]]` entry whose `name` is `core` and whose `version` equals `core`'s `pack.toml` version at that commit, and whose Highlights hold both `spec-entry-drop` and `--readiness`.
 
 **This repository**
 
@@ -212,7 +213,7 @@ Each phrase below is present in its file at the base, and each check reads the f
 
 ## Follow-ons
 
-- [`readiness-bridge-dispatch-input`](../readiness-bridge-dispatch-input/spec.md), owned jointly with the `navigate-intents` owner, re-points `export --readiness -` to `dispatch.py`'s output and amends the readiness hand-over spec, with the RFC-0105 and RFC-0108 errata and the `the readiness bridge's first-ready mark` equivalence row. It ships in this spec's release (AC-0044). The bridge criteria first drafted here, and the round-3 findings against them, are its shaping input.
+- `docs/specs/readiness-bridge-dispatch-input/`, owned jointly with the `navigate-intents` owner, re-points `export --readiness -` to `dispatch.py`'s output and amends the readiness hand-over spec, with the RFC-0105 and RFC-0108 errata and the `the readiness bridge's first-ready mark` equivalence row. It ships in this spec's release (AC-0044). The bridge criteria first drafted here, and the round-3 findings against them, are its shaping input.
 - The brief's slice 9 gives tracker-origin specs, intents and briefs a home for their tracker profile, ends their registration, moves whatever engine rules `dispatch.py` still needs into `work-loop`, shrinks `workspace-status` to the repair, and deletes `workspace.toml`.
 
 ## Assumptions
