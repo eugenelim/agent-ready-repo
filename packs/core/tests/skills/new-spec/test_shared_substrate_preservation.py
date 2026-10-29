@@ -25,6 +25,10 @@ RULES = (
     ("sustained-finding clause", "a sustained review finding against it contradicts it"),
     ("criterion shape citation", "`assets/spec.md` § Acceptance Criteria"),
     ("rubric citation", "`references/spec-authoring-rubric.md`"),
+    ("gap only without an oracle", "Name a gap only when no oracle can be built"),
+    ("unseen producer is a bounded assumption", "marked as bounded by that criterion"),
+    ("map states its disposability", "Open the map with one sentence"),
+    ("alternate builds must agree", "the old behavior includes that they agree"),
 )
 
 
