@@ -1569,6 +1569,12 @@ consumer = "roster test test_cooling_brief_child_scope_closure.py that exercises
 owner = 8
 
 [[row]]
+pattern = "tests/roster/test_spec_registration_stop.py"
+class = "fixture"
+consumer = "roster test test_spec_registration_stop.py: the closed phrase lists of the spec registration stop and the readiness bridge input"
+owner = 9
+
+[[row]]
 pattern = "tests/roster/test_cooling_scope_closure.py"
 class = "fixture"
 consumer = "roster test test_cooling_scope_closure.py that exercises the registry consumers of its feature"
