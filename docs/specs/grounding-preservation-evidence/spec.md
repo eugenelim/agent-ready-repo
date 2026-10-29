@@ -166,11 +166,13 @@ Terms:
   new field is the allowed delta and is not compared.
 - [ ] **AC-0004.** Conservation of default search has two terms. The default
   term runs every query through both implementations' default
-  search and passes only when the results are equal. The explicit term passes
-  only when the implementation under test, with values requested, returns the
-  base default result plus exactly the corpus value names equal to the query.
-  The oracle reads those names from the corpus text and applies the equality
-  itself, without calling the implementation under test.
+  search and passes only when the results are equal. The explicit term runs
+  every query through the implementation under test with values requested, and
+  passes only when, for each query, the result equals the base
+  implementation's default result for that query plus one entry for each
+  corpus `value` line whose NAME equals the query. The oracle derives the
+  expected value entries from the corpus text, without calling the
+  implementation under test.
 - [ ] **AC-0005.** Equivalence: the oracle compares a full build of the edited
   corpus with a full build of the original corpus followed by a one-file update,
   in a semantic form that ignores internal identifiers and insertion order, and
