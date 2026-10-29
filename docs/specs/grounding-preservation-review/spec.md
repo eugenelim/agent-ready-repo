@@ -1,6 +1,6 @@
 # Spec: Preservation through typed review
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -202,8 +202,10 @@ Terms:
   `### Preservation evidence` subsection of review mode. It asks, for
   each preservation criterion in the spec under review, whether its evidence is current, has
   an expected side independent of the code under test, and fails on a named
-  mutation. It says missing, stale, tautological, or feature-only evidence is
-  a finding whose affected criteria name that criterion.
+  mutation. It says stale, tautological, or feature-only evidence is a finding
+  whose affected criteria name that criterion, and that a criterion with no
+  evidence at all is `adversarial-reviewer`'s existence finding, not this
+  check's.
 - [ ] **AC-0008.** The added text names no path under `docs/` or `contracts/`
   and does not contain the words `preservation finding`, `adapt-to-project`,
   `code intelligence`, or `Pi`. The typed-report section does not contain the

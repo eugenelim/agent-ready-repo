@@ -1,7 +1,7 @@
 # Plan: Preservation through typed review
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** the review-module chain exercised end to end by
   `packs/core/tests/skills/work-loop/test_review_bridge.py::test_supported_assessment_commits_complete_receipts_and_replays_projection`
   (persist a report, assess, bridge, evaluate `contradicted`); the
@@ -103,8 +103,10 @@ The lens checks continue the existing numbering:
   subsection after `### Performance ergonomics`.** It sits beside the strength
   judgment the adversarial reviewer already leaves to this lens. For each preservation criterion in the spec under review, the evidence is current, its
   expected side does not come from the code under test, and its oracle fails
-  on a named mutation. Missing, stale, tautological, and feature-only evidence
-  each make a finding against that criterion.
+  on a named mutation. Stale, tautological, and feature-only evidence each
+  make a finding against that criterion. A criterion with no evidence at all
+  stays with `adversarial-reviewer`, which exclusively maps each criterion to
+  an existing artifact.
 
 Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0022 · none.
 
@@ -226,9 +228,28 @@ Owned by: T2, T3.
 
 **Done when:** every `Tests:` bullet passes.
 
+### T6: Code-review repairs
+
+**Depends on:** T1, T2, T3, T4
+
+**Touches:** packs/core/.apm/agents/adversarial-reviewer.md, packs/core/.apm/agents/quality-engineer.md, packs/core/.apm/skills/work-loop/evals/evals.json, packs/core/.apm/skills/work-loop/evals/files/preservation-review/*, packs/core/tests/pack/test_preservation_review_guidance.py, packs/core/tests/skills/work-loop/test_preservation_review.py, packs/core/tests/skills/work-loop/test_preservation_review_eval.py, .agents/**, .claude/**, .codex/**, docs/specs/workspace-retirement/inventory.toml, docs/product/captured/new-spec-positive-case-reproducibility.md
+
+**Mode:** TDD for the pins; goal-based for the rest.
+
+**Tests:**
+- AC-0007: check 35 names stale, tautological, and feature-only evidence and hands a criterion with no evidence to `adversarial-reviewer`; the AC-0007 pin is updated first and fails on the old text.
+- AC-0006: check 10 names spec-stage check 6 as its referent.
+- AC-0013: the role-swap test compares the full active review-failure receipts.
+- AC-0017: the pins load the fixture by path and fail when the prompt-hidden listing consumer is missing or filters values, or when the ordinary-calls test stops taking its expected side from the code under test; the filtered-search assertion forbids only a reachability or missed-consumer finding there.
+- AC-0021: the import scan covers all three new modules.
+- AC-0008 and AC-0002 pins match the banned words without regard to case or hyphenation and bind the caller fields to the caller sentence; unused helper parameters are gone.
+- The T1 regression suites and `make lint-ruff lint-mypy` pass; self-host leaves no diff.
+
+**Done when:** every `Tests:` bullet passes.
+
 ### T5: Graded runs against the rebuilt and base projections
 
-**Depends on:** T4
+**Depends on:** T4, T6
 
 **Touches:** docs/specs/grounding-preservation-review/notes/verification-ledger.md, docs/specs/grounding-preservation-review/notes/graded-runs/*, docs/product/briefs/repository-grounding-preservation.md
 
@@ -255,3 +276,4 @@ Follow-on's captured item.
 - 2026-10-29: AC-0022 narrowed to the four cases this change reaches, directed by the owner (Platform Core)
 - 2026-10-29: amended spec approved by the owner (Platform Core)
 - 2026-10-29: amended plan approved by the owner (Platform Core)
+- 2026-10-29: AC-0007 hands missing evidence to adversarial-reviewer, directed by the owner (Platform Core)
