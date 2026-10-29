@@ -37,8 +37,13 @@ each task's dispatch receipt is recorded as `human-directed`.
 
 **Method.** Each run is one fresh `general-purpose` subagent given only
 `notes/graded-runs/run-brief-template.txt` filled with its directories and the
-case prompt. A separate `general-purpose` grader read only the output file and
-the case assertions (`grader-pos.txt`, `grader-neg.txt`). Run copies are built
+case prompt. Graders are separate `general-purpose` subagents. The first
+grading pass (`<run>-grade.md`, briefs `grader-pos.txt` and `grader-neg.txt`)
+also showed the grader the case prompt, which the spec's graded-run term does
+not allow; every counted run was therefore regraded by a fresh grader that read
+only the output file and the case assertions (`<run>-grade-r2.md`, briefs
+`grader-pos-r2.txt` and `grader-neg-r2.txt`). The r2 grades are the counted
+ones. Run copies are built
 by `notes/graded-runs/mkrun.py`: `git archive <rev> .claude/skills
 .claude/agents`, keeping only skill directories with a
 `packs/core/.apm/skills/<name>/SKILL.md` and agent files under
@@ -64,7 +69,7 @@ per-copy output is `notes/graded-runs/head-isolation.txt`.
 
 ### Results
 
-| Run | Projection | Case | Score |
+| Run | Projection | Case | Score (r2, counted) |
 | --- | --- | --- | ---: |
 | `pos-head1` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 |
 | `pos-head2` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 |
@@ -77,7 +82,10 @@ per-copy output is `notes/graded-runs/head-isolation.txt`.
 | `pos-spike3` | spike, Edits 1–3 on a `/tmp` copy of 3.1.38 | positive | 6/6 |
 
 These nine are every graded run made under this spec. Outputs and grades are
-`notes/graded-runs/<run>.md` and `<run>-grade.md`.
+`notes/graded-runs/<run>.md` and `<run>-grade.md`, plus `<run>-grade-r2.md` for
+the four counted runs. The first-pass grades of the counted runs matched the r2
+grades exactly (6/6, 6/6, 6/6, 4/4). Base and spike runs keep their first-pass
+grades only; they are baselines and design evidence, not counted runs.
 
 - **Base positive** missed assertion 5 only: the map was never called
   disposable. Its invalidation criterion held this time.
