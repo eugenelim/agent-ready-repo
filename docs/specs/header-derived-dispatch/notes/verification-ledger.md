@@ -37,16 +37,21 @@ The author assigns each case and class by hand, and the owner approves the list 
 
 | Spec path | Field | Base | Dispatch | Case | Class |
 | --- | --- | --- | --- | --- | --- |
-| `*` | `argless_start` | `ask` over 2 candidates | `ask` over 3 candidates | | |
-| `*` | `argless_resume` | `ask` over 2 candidates | `ask` over 3 candidates | | |
-| `docs/specs/execution-supervisor-attempt-security/spec.md` | `resume` | `refuse` | `resume` | | |
-| `docs/specs/experience-pack-0.6.0/spec.md` | `start` | `refuse` | `invalid_selector` | | |
-| `docs/specs/experience-pack-0.6.0/spec.md` | `resume` | `refuse` | `invalid_selector` | | |
-| `docs/specs/plan-evolution-experiments/spec.md` | `active` | `false` | `true` | | |
-| `docs/specs/plan-evolution-experiments/spec.md` | `resume` | `refuse` | `resume` | | |
+| `*` | `argless_start` | `ask` over 2 candidates | `ask` over 3 candidates | `unregistered-implementing` | accepted removal (RFC-0106 D1) |
+| `*` | `argless_resume` | `ask` over 2 candidates | `ask` over 3 candidates | `unregistered-implementing` | accepted removal (RFC-0106 D1) |
+| `docs/specs/execution-supervisor-attempt-security/spec.md` | `resume` | `refuse` | `resume` | `dependent-finding-names-spec` | accepted removal (RFC-0106 § Errata, 2026-10-29, item 9) |
+| `docs/specs/experience-pack-0.6.0/spec.md` | `start` | `refuse` | `invalid_selector` | `dotted-slug-selector` | accepted removal (RFC-0106 § Errata, 2026-10-29, item 10) |
+| `docs/specs/experience-pack-0.6.0/spec.md` | `resume` | `refuse` | `invalid_selector` | `dotted-slug-selector` | accepted removal (RFC-0106 § Errata, 2026-10-29, item 10) |
+| `docs/specs/plan-evolution-experiments/spec.md` | `active` | `false` | `true` | `unregistered-implementing` | accepted removal (RFC-0106 D1) |
+| `docs/specs/plan-evolution-experiments/spec.md` | `resume` | `refuse` | `resume` | `unregistered-implementing` | accepted removal (RFC-0106 D1) |
 
 ## Owner approvals
 
 | Date | Item | Approval |
 | --- | --- | --- |
 | 2026-10-29 | Dated re-pin of `cooling.py` and the schema digests in `tests/roster/test_cooling_scope_closure.py` (AC-0015) | Authorized by eugenelim |
+| 2026-10-29 | The live replay's classified difference list above (AC-0019) | Approved by eugenelim |
+| 2026-10-29 | The case replay's classification, including `dep-spec-open`'s unregistered target under RFC-0106 D1 (AC-0018) | Approved by eugenelim |
+| 2026-10-29 | RFC-0106 § Errata entry of 2026-10-29, cases `duplicate-membership`, `provenance-mismatch`, `inactive-initiative`, `impossible-transition`, `registry-settled-target-with-findings`, `symlink-spec-file`, `symlink-spec-dir-alias`, `cooled-child-none-record-predates-parent` (name corrected from `cooled-child-record-predates-parent` with the owner's approval, 2026-10-29), `dependent-finding-names-spec`, `dotted-slug-selector` (AC-0022), wording approved before commit | Approved by eugenelim |
+| 2026-10-29 | Adding the `dependent-finding-names-spec` and `dotted-slug-selector` corpus cases, recording only their new keys | Approved by eugenelim |
+| 2026-10-29 | Controlled amendment of AC-0021: its three rows cite the 2026-10-29 RFC-0106 § Errata entry, which gains item (11) to (13) naming `unregistered-approved`, `unregistered-implementing` and `several-ready` under D1 and D3; the retirement check requires each removal row's Case text in its cited section | Approved by eugenelim |
