@@ -140,7 +140,7 @@ jobs:
           - os: windows-latest
             python: "3.11"
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -233,7 +233,7 @@ jobs:
 
   # ── Gate A-supervisor: work-loop execution supervisor integration suites ──
   # These suites drive whole git-backed supervisor runs; the crash corpus alone
-  # is about 125 of them. That does not fit Gate A-packs' 10-minute budget, so
+  # is about 125 of them. That does not fit Gate A-packs' 15-minute budget, so
   # they skip there (naming this lane) and run here with the variable set.
   supervisor-integration:
     name: "Gate A-supervisor — execution supervisor integration suites (ubuntu-latest / py3.12)"

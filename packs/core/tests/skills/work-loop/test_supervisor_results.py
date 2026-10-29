@@ -68,6 +68,7 @@ REFUSED = [
     ("write-stub", {"assessment": {}}),
     ("review-role", {"gate": {"passed": True}}),
     ("review-role", {"report": {}, "effect": {"outcome": "present"}}),
+    ("review-role", {"report": {}, "selection": {}}),
     ("assess-finding", {"report": {}}),
     ("assess-finding", {"assessment": {}, "criteria": []}),
     ("run-gates", {"gate": {"passed": True}, "criteria": [], "report": {}}),

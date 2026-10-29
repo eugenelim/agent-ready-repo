@@ -627,6 +627,12 @@ def accept_facts(result: dict[str, Any]) -> None:
             "controller",
             f"a {kind} result may not assert: " + ", ".join(extra),
         )
+    if kind == "review-role" and {"report", "selection"} <= set(result):
+        raise Refusal(
+            "result-fact-refused",
+            "controller",
+            "a review-role result asserts a report or a selection, not both",
+        )
 
 
 def _refuse_protected_change(ws: Workspace, state: State) -> list[str]:

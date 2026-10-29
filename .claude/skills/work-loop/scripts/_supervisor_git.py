@@ -185,6 +185,21 @@ def _launch(
 
 # ── discovery ───────────────────────────────────────────────────────────────
 
+# Git honours an empty ``GIT_CONFIG_GLOBAL`` only from 2.32; an older Git reads
+# the user's global config inside every helper call.
+_MINIMUM_GIT = (2, 32)
+
+
+def _require_git_version(cwd: Path | None) -> None:
+    """Refuse a Git too old to honour the helper's config-location variables."""
+    done = _launch(["git", *_fixed_flags(), "version"], cwd=cwd, env=hardened_env())
+    found = re.match(rb"git version (\d+)\.(\d+)", done.stdout)
+    if done.returncode != 0 or found is None or (int(found[1]), int(found[2])) < _MINIMUM_GIT:
+        raise SupervisorGitError(
+            "unsupported-git-version",
+            "the supervisor needs Git 2.32 or later, which honours GIT_CONFIG_GLOBAL",
+        )
+
 
 def discover(cwd: Path | None) -> Pins:
     """The repository root, Git directory, and common directory that *cwd* belongs to.
@@ -192,6 +207,7 @@ def discover(cwd: Path | None) -> Pins:
     Runs before any directory is pinned, so it cannot pass ``--git-dir``; it
     uses the helper's environment and flags instead.
     """
+    _require_git_version(cwd)
     done = _launch(
         [
             "git",

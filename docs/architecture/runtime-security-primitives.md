@@ -248,13 +248,20 @@ behavior is unchanged.
 (`_supervisor_git.py`). It ignores system and global config, carries only the
 line-ending and `core.excludesFile` settings, and turns off hooks, fsmonitor,
 external diff, textconv, replace refs, signing, and every filter that
-repository config defines. Before each call it reads the work tree's `.git`
-entry and `commondir` and refuses if they no longer name the directories pinned
-at admission, or if `info/grafts` exists. The `git` calls outside it are
-two config reads that run no configured code — the effective config at
-admission, and the commit identity once per run — and the Git-directory
-discovery each invocation starts with. All three carry the helper's own
-environment and fixed flags. `start` refuses with
+repository config defines. Before each call it checks Git control state by
+direct file reads: against the open attempt's manifest when one exists, and
+otherwise against the Git and common directories this invocation's discovery
+pinned. It also refuses if `info/grafts` exists. Each invocation first refuses
+`unsupported-git-version` on a Git older than 2.32, which would not honour an
+empty `GIT_CONFIG_GLOBAL`. It then runs the helper's Git-directory discovery,
+which carries the helper-call environment and fixed flags; it runs before
+anything is pinned, so it has no control state to compare yet, and its result
+becomes the pins. The only `git` calls outside the helper
+are two config reads that run no configured code: the effective config at
+admission, and the commit identity once per run. Both pass the pinned
+`--git-dir` and none of the helper's fixed flags, check control state first, and
+carry the out-of-helper environment form that the
+[spec's Launch grants section](../specs/execution-supervisor-attempt-security/spec.md#launch-grants) states. `start` refuses with
 `unsupported-git-config` when repository config sets a code-running key, or
 when any config scope defines a filter that an attributes file uses.
 
@@ -276,35 +283,42 @@ every installed `scripts/` file and of the two policy files in the store. Every
 entry point compares them before it imports a sibling and refuses
 `supervisor-changed` on a mismatch, and each sets no-bytecode so a planted
 `.pyc` never runs. A run with an open or uncleared refused attempt guards every
-spec in the work tree. When `HEAD` holds the Core work-loop source and the
-installed skill differs, `next` emits one `regenerate` request. The supervisor
-admits it only when every installed file equals that source, then re-pins.
+spec in the work tree. When `HEAD` holds the Core work-loop source, review
+readiness holds, and the installed skill differs, `next` emits one `regenerate`
+request. The supervisor admits it only when every installed file equals that
+source, then re-pins. When the installed skill is tracked in the work tree,
+`next` answers `uncommitted-changes` until the controller commits the
+regenerated skill.
 
 **Untrusted code.** Under an `untrusted` classification with no verified
 containment, the supervisor launches no red proof or scratch receipt, emits no
 `implement-task`, `run-gates`, or `regenerate` request, and asks for a human decision.
 
 **Result acceptance.** `report` admits only the facts a request kind's row
-lists, and refuses the rest before reading any state:
+lists, and refuses the rest before reading any state. The table is the
+[spec's Result acceptance table](../specs/execution-supervisor-attempt-security/spec.md#result-acceptance):
 
-| Request kind | Facts admitted |
-| --- | --- |
-| `implement-task` | The controller-run gate outcome only; the supervisor computes the change set |
-| `write-stub` | None; the supervisor computes the change set and runs the red proof |
-| `review-role` | One review report or a selection record |
-| `assess-finding` | One finding assessment |
-| `run-gates` | Gate outcome and criteria outcomes |
-| `external-effect`, `effect-query` | The effect outcome and receipt |
-| `regenerate` | None |
-| `human-decision` | The decision and its authority reference |
+| Request kind (from `execution-supervisor-core`) | Facts the result may assert | Everything else |
+| --- | --- | --- |
+| `implement-task` | The controller-run gate outcome only; the supervisor computes the change set | Refused |
+| `write-stub` | Nothing; the supervisor computes the change set and runs the red proof | Refused |
+| `review-role` | One `review-report.v1` bound to the requested subject, or a selection record | Refused |
+| `assess-finding` | One finding assessment for the requested finding | Refused |
+| `run-gates` | The gate outcome — its commands, exit codes, and output digests — and the criteria outcomes the readiness reader requires | Refused |
+| `external-effect`, `effect-query` | Presence, absence, or unknowability, whether the attempt has ended, and the effect receipt | Refused |
+| `regenerate` | Completion only; the supervisor computes the new digests | Refused |
+| `human-decision` | The decision and its authority reference | Refused |
+| Any other kind | Nothing | Refused |
 
 An extra fact refuses `result-fact-refused`. An unknown kind refuses
 `result-kind-refused`.
 
 **Launch grants.** No supervisor launch goes through the process primitive, so
 none records a `safe-process.v1` record or a `security-capability.v1` grant. The
-spec's Launch grants table states the rows each kind will adopt; adopting them
-is owned by `supervisor-launch-routing-for-plan-authored-commands`.
+[spec's Launch grants table](../specs/execution-supervisor-attempt-security/spec.md#launch-grants) holds each launch kind's grant
+row. Only the `git` row's Environment column is adopted today; the rest is owned
+by
+[`supervisor-launch-routing-for-plan-authored-commands`](../product/intents/supervisor-launch-routing-for-plan-authored-commands.md).
 
 `red-proof` and `scratch` are unrouted because the interpreter a plan-authored
 command names cannot be pinned without letting the launched code decide what the
@@ -317,8 +331,9 @@ the output it returns, which would alter Git's data output: `HOME` prefixes a
 normal repository path and the helper parses git's stdout everywhere. The
 helper's stdin-bearing calls have no route either. The hardened helper does
 bound the child environment itself, in two forms — one for a helper call and
-one for an out-of-helper config read. The spec's Launch grants section is their
-single statement; AC-0020 is checked against it.
+one for an out-of-helper config read. The
+[spec's Launch grants section](../specs/execution-supervisor-attempt-security/spec.md#launch-grants) is their single statement;
+AC-0020 is checked against it.
 
 **What needs verified containment.** Write roots and network denial are neither
 recorded nor enforced today. The post-run check of trusted files is the only

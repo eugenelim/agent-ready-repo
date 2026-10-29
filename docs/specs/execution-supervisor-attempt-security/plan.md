@@ -1,7 +1,7 @@
 # Plan: Execution supervisor attempt security
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0144 D11 sets the trust boundary.
   - **Slice 1 primitives** in `work-loop/scripts/`:
     - `_process_safety.py`: POSIX `killpg` tree-kill, and refusal when that is

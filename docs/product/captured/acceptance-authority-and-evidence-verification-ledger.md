@@ -1,6 +1,7 @@
 # Acceptance authority and evidence verification ledger
 
-- **Status:** Open
+- **Status:** Closed
+- **Resolution:** fixed
 - **Kind:** defect
 - **Detail:** docs/specs/acceptance-authority-and-evidence/notes/verification-ledger.md
 

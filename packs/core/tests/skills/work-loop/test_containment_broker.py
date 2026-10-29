@@ -928,6 +928,72 @@ class TestBrokerAuditBoundary:
         assert all(_CREDENTIAL_SHAPED not in repr(e) for e in events), events
         assert {e.correlation_id for e in events} == {"redacted"}
 
+    @staticmethod
+    def _assert_schema_valid(eb: ModuleType, events: list) -> None:
+        """Every stored event's identifiers are the non-empty strings the schema requires."""
+        for event in events:
+            ok, code = eb._se.validate_event_dict(vars(event).copy())
+            assert ok, code
+            assert isinstance(event.operation_id, str) and event.operation_id
+            assert isinstance(event.correlation_id, str) and event.correlation_id
+
+    @pytest.mark.parametrize("operation_id", ["", 7, b"op-bytes", {"op": 1}, ["op"]])
+    @pytest.mark.parametrize("granted", [False, True], ids=["denied", "allowed"])
+    def test_an_odd_operation_id_is_never_stored(
+        self, effect_broker: ModuleType, operation_id: object, granted: bool
+    ) -> None:
+        """A non-string or empty operation ID is replaced before any event is built."""
+        eb = effect_broker
+        grant = eb.BrokerGrant(grant_id="g-op", operations=("write",), allowed_roots=("/work",))
+        session = eb.create_broker_session(session_id="s-op", grants=[grant] if granted else [])
+        events: list = []
+        result = eb.request_effect(
+            session, grant_id="g-op", operation="write", path="/work/x",
+            audit_sink=events.append, operation_id=operation_id,  # type: ignore[arg-type]
+        )
+        assert result.success is granted
+        assert len(events) == 1
+        assert events[0].operation_id.startswith("op-")
+        self._assert_schema_valid(eb, events)
+
+    @pytest.mark.parametrize("grant_id", ["", None, 7, ["g"], {"g": 1}])
+    def test_an_odd_grant_id_is_never_stored_as_the_correlation(
+        self, effect_broker: ModuleType, grant_id: object
+    ) -> None:
+        """A non-string or empty grant ID is audited under a fixed correlation."""
+        eb = effect_broker
+        session = eb.create_broker_session(session_id="s-corr", grants=[])
+        events: list = []
+        result = eb.request_effect(
+            session, grant_id=grant_id,  # type: ignore[arg-type]
+            operation="write", path="/work/x", audit_sink=events.append,
+        )
+        assert result.denial_code == "denied-missing-grant"
+        assert [e.correlation_id for e in events] == ["unknown"]
+        self._assert_schema_valid(eb, events)
+
+    @pytest.mark.parametrize("field", ["operation_id", "grant_id"])
+    def test_a_refused_allow_event_is_audited_as_a_redacted_denial(
+        self, effect_broker: ModuleType, field: str
+    ) -> None:
+        """An allow event the content-safety check refuses still leaves an audited denial."""
+        eb = effect_broker
+        grant_id = _CREDENTIAL_SHAPED if field == "grant_id" else "g-cred"
+        operation_id = _CREDENTIAL_SHAPED if field == "operation_id" else None
+        grant = eb.BrokerGrant(grant_id=grant_id, operations=("write",), allowed_roots=("/work",))
+        session = eb.create_broker_session(session_id="s-cred-allow", grants=[grant])
+        events: list = []
+        result = eb.request_effect(
+            session, grant_id=grant_id, operation="write", path="/work/x",
+            audit_sink=events.append, operation_id=operation_id,
+        )
+        assert not result.success
+        assert result.denial_code == "denied-audit-sink-unavailable"
+        assert [e.outcome for e in events] == ["denied"]
+        assert events[0].correlation_id == "redacted"
+        assert all(_CREDENTIAL_SHAPED not in repr(e) for e in events), events
+        self._assert_schema_valid(eb, events)
+
     @pytest.mark.parametrize(
         "failure",
         [RuntimeError("boom /private/secret"), OSError("disk /private/secret-path full")],
@@ -935,14 +1001,16 @@ class TestBrokerAuditBoundary:
     def test_allow_path_sink_failure_refuses_with_stable_code(
         self, effect_broker: ModuleType, failure: Exception
     ) -> None:
-        """Any sink failure before an effect refuses with the stable sink code."""
+        """Any sink failure before an effect refuses with the stable sink code, never retried."""
         eb = effect_broker
         grant = eb.BrokerGrant(
             grant_id="g-allow", operations=("write",), allowed_roots=("/work",),
         )
         session = eb.create_broker_session(session_id="s-allow", grants=[grant])
+        calls: list = []
 
         def failing_sink(event: object) -> None:
+            calls.append(event)
             raise failure
 
         result = eb.request_effect(
@@ -952,6 +1020,8 @@ class TestBrokerAuditBoundary:
         assert not result.success
         assert result.denial_code == "denied-audit-sink-unavailable"
         assert "/private" not in repr(result)
+        # A sink that failed is not handed a follow-up denial.
+        assert [e.outcome for e in calls] == ["allowed"]
 
 
 class TestBrokerCapabilityFailures:

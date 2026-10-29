@@ -212,12 +212,14 @@ shipped   = [
 
 ["ini-002".work]
 active  = [
-  # Implementing since 2026-10-20 (PR #1585): T1 to T3 built; T4 and T5 next, now that the review gate shipped.
-  {path = "docs/specs/execution-supervisor-attempt-security/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Refuse worker attempts that touch the control plane, harden supervisor git calls, pin the supervisor, and end Windows process trees through a Job Object", needs = []},
   # Implementing since 2026-10-29: spec and plan approved; T1 (bridge and pre-PR hooks) in review; T2 and T3 wait on attempt-security.
   {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = []},
 ]
 shipped = [
+  # Shipped 2026-10-29 as Core 3.1.34: the supervisor's worker-attempt security.
+  # T1 to T5 were built in Core 3.1.18 (PR #1585). Evidence for every criterion
+  # is in notes/verification-ledger.md.
+  {path = "docs/specs/execution-supervisor-attempt-security/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Refuse worker attempts that touch the control plane, harden supervisor git calls, pin the supervisor, and end Windows process trees through a Job Object", needs = []},
   # Shipped 2026-10-29 as core 3.1.33: slice C1 of repository-grounding-preservation, the
   # shared-substrate preservation reference in new-spec. Evidence is in notes/verification-ledger.md.
   {path = "docs/specs/grounding-preservation-authoring/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Add a shared-substrate preservation reference to new-spec so a change that adds a member to a shared model derives a bounded consumer map and writes preservation criteria with allowed deltas and failing oracles", needs = []},
@@ -669,7 +671,6 @@ open = [
   # resolvable after its successor spec moves to Platform Core's ready queue.
   # The approved spec owns implementation; this note is only the historical
   # anchor and retires through a governed amendment of that shipped spec.
-  {path = "docs/product/captured/acceptance-authority-and-evidence-verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "Clean the caller-supplied operation and correlation IDs at the effect broker (request_effect) so an odd value is never stored or escapes unaudited; pin the evidence-store task_projection_revision, authority identity, and nested-value schema checks with tests that fail when each is removed; and take any later in-class finding routed here by the security stop rule or the owner's 2026-10-07 review cap", needs = []},
   {path = "docs/product/captured/spec-review-retry-cap-dead-end.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "After a contract amendment, spec review inherits the code-review retry count, and findings-remain from SPEC-PLAN-REVIEW refuses the owner override, so an amended spec cannot loop back to drafting", needs = []},
   {path = "docs/product/captured/capture-work-alias-removal.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/work-intake-migration-docs/spec.md"}, summary = "Preserve the historical capture-work-alias-removal deferral anchor while the approved removal spec is queued for Platform Core", needs = []},
   # The consumer half of the decomposed visual-target contract. Registered here

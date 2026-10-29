@@ -352,6 +352,20 @@ def test_carried_autocrlf_stages_the_bytes_plain_git_add_stages(
     assert ws.git.show("crlf.txt", made) == b"one\ntwo\n"
 
 
+@pytest.mark.parametrize("carried", [True, False], ids=["global-excludes", "none"])
+def test_a_global_excludes_file_is_carried_into_the_change_set_read(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, carried: bool) -> None:
+    excludes = tmp_path / "global-ignore"
+    excludes.write_text("ignored-by-user.txt\n", encoding="utf-8")
+    _global_config(tmp_path, monkeypatch,
+                   f"[core]\n\texcludesFile = {excludes.as_posix()}\n" if carried else "")
+    repo = h.make_repo(tmp_path)
+    (repo / "ignored-by-user.txt").write_text("x\n", encoding="utf-8")
+    with h.git_identity():
+        changed = h.workspace(repo).git.change_set()
+    assert ("ignored-by-user.txt" in changed) is not carried
+
+
 # ── VI-5012: forged history is never read as a supervisor commit ────────────
 
 
@@ -574,3 +588,50 @@ def test_a_system_filter_runs_in_no_helper_call(
         ) is not None
         ws.git.run("diff", "HEAD~1", "HEAD")
     assert sorted(p.name for p in marks.iterdir()) == []
+
+
+# ── The helper's environment needs Git 2.32 to honour GIT_CONFIG_GLOBAL ─────
+
+
+@pytest.mark.parametrize(("banner", "refused"), [
+    (b"git version 2.31.8\n", True),
+    (b"git version 1.9.0\n", True),
+    (b"not a version banner\n", True),
+    (b"git version 2.32.0\n", False),
+    (b"git version 2.47.1.windows.1\n", False),
+    (b"git version 3.0.0\n", False),
+])
+def test_a_git_older_than_2_32_is_refused_before_discovery(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, banner: bytes, refused: bool) -> None:
+    repo = h.make_repo(tmp_path)
+    real = _git_module._launch
+
+    def _version_banner(argv: list[str], **kwargs: Any) -> Any:
+        if argv[-1:] == ["version"]:
+            return subprocess.CompletedProcess(argv, 0, banner, b"")
+        return real(argv, **kwargs)
+
+    monkeypatch.setattr(_git_module, "_launch", _version_banner)
+    if refused:
+        with pytest.raises(_git_module.SupervisorGitError) as caught:
+            _git_module.discover(repo)
+        assert caught.value.code == "unsupported-git-version"
+    else:
+        assert _git_module.discover(repo).root == repo.resolve()
+
+
+def test_every_verb_reports_an_old_git_by_its_own_code(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    real = _git_module._launch
+
+    def _old_git(argv: list[str], **kwargs: Any) -> Any:
+        if argv[-1:] == ["version"]:
+            return subprocess.CompletedProcess(argv, 0, b"git version 2.31.8\n", b"")
+        return real(argv, **kwargs)
+
+    monkeypatch.setattr(_git_module, "_launch", _old_git)
+    code, out = h.run_cli(repo, "status", h.SPEC_DIR)
+    assert code != 0
+    assert "unsupported-git-version" in out["detail"], out
+    assert "2.32" in out["detail"], out
