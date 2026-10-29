@@ -561,3 +561,71 @@ def test_navigate_evals_name_dispatch_not_workspace_status() -> None:
         c["should_trigger"] is True and "work-loop" in c["query"] and "dispatch" in c["query"]
         for c in cases
     )
+
+
+_RECORD = "docs/specs/workspace-retirement/retirement-record.md"
+_INVENTORY = "docs/specs/workspace-retirement/inventory.toml"
+_OWNER_8_PREFIXES = (
+    "docs/specs/spec-registration-stop/",
+    "docs/specs/readiness-bridge-dispatch-input/",
+    "packs/core/.apm/skills/navigate-intents/",
+    "packs/core/tests/skills/navigate-intents/",
+    ".claude/skills/navigate-intents/",
+    ".agents/skills/navigate-intents/",
+    "docs/specs/intent-view-readiness-handover/",
+    "docs/specs/intent-navigation/",
+    "docs/specs/intent-navigation-export/",
+)
+_OWNER_8_EXACT = (
+    "guides/core/how-to/navigate-intents.md",
+    "docs/rfc/0108-skill-html-view-standard.md",
+)
+
+
+def test_no_inventory_row_is_owner_8_outside_the_two_spec_directories() -> None:
+    """AC-0034 and the bridge's AC-0026: only the two contract rows keep owner 8."""
+    import tomllib
+
+    rows = tomllib.loads((_REPO / _INVENTORY).read_text(encoding="utf-8"))["row"]
+    left = sorted(r["pattern"] for r in rows if r["owner"] == 8)
+    assert left == [
+        "docs/specs/readiness-bridge-dispatch-input/*",
+        "docs/specs/spec-registration-stop/*",
+    ]
+    assert all(r["class"] == "contract" for r in rows if r["owner"] == 8)
+    # Rows the bridge spec disposes are named by AC-0034; none may stay at 8.
+    for r in rows:
+        p = r["pattern"]
+        if p in _OWNER_8_EXACT or (
+            p.startswith(_OWNER_8_PREFIXES[2:]) and not p.startswith(_OWNER_8_PREFIXES[0])
+        ):
+            assert r["owner"] != 8, p
+
+
+def test_disposition_owner_8_is_only_the_coverage_evidence_row_with_home_nothing() -> None:
+    """AC-0033."""
+    text = (_REPO / _RECORD).read_text(encoding="utf-8")
+    section = text.split("\n## Disposition", 1)[1].split("\n## ", 1)[0]
+    owner_8 = []
+    for line in section.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if line.startswith("|") and len(cells) == 5 and cells[3] == "8":
+            owner_8.append(cells)
+    assert [c[0] for c in owner_8] == ["`spec registration as brief coverage evidence`"]
+    assert owner_8[0][2] == "nothing"
+
+
+def test_equivalence_holds_the_two_slice_8_rows() -> None:
+    """AC-0032 and the bridge's AC-0024."""
+    text = (_REPO / _RECORD).read_text(encoding="utf-8")
+    section = text.split("\n## Equivalence", 1)[1].split("\n## ", 1)[0]
+    rows = {}
+    for line in section.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if line.startswith("|") and len(cells) == 5:
+            rows[cells[0].strip("`")] = cells
+    assert rows["the spec entry removal"][1:3] == ["8", "reproduced"]
+    assert rows["the spec entry removal"][4] == "none"
+    mark = rows["the readiness bridge's first-ready mark"]
+    assert mark[1:3] == ["8", "accepted removal"]
+    assert "0106-stop-registering-derivable-work.md#errata" in mark[4]
