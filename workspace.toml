@@ -216,6 +216,8 @@ active  = [
   {path = "docs/specs/execution-supervisor-attempt-security/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Refuse worker attempts that touch the control plane, harden supervisor git calls, pin the supervisor, and end Windows process trees through a Job Object", needs = []},
   # Implementing since 2026-10-29: spec and plan approved; T1 (bridge and pre-PR hooks) in review; T2 and T3 wait on attempt-security.
   {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = []},
+  # Implementing since 2026-10-29: slice C1 of repository-grounding-preservation; spec and plan approved.
+  {path = "docs/specs/grounding-preservation-authoring/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Add a shared-substrate preservation reference to new-spec so a change that adds a member to a shared model derives a bounded consumer map and writes preservation criteria with allowed deltas and failing oracles", needs = []},
 ]
 shipped = [
   # Shipped 2026-10-28: slice C0 of repository-grounding-preservation, test-only;
