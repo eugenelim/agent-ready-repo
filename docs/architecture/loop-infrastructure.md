@@ -224,8 +224,9 @@ line's fields, its export posture, and what a backend can do with it are in
 [telemetry](telemetry.md).
 
 The pre-PR hooks run `work-supervisor.py status --check` for each spec holding
-`delivery/approvals.jsonl` and fail on any non-zero exit. That exit misses two
-refusals `next` records only in `run.json`
+`delivery/approvals.jsonl` and fail on any non-zero exit. `status` re-derives
+without the attempt guard or the delivery-record sync, so a run that `next`
+keeps refusing can still exit 0
 ([request kinds and stages](work-loop-execution-supervisor.md#request-kinds-and-stages)). A light-mode run
 invokes no `work-supervisor.py` command and creates no `<spec>/.supervisor/`.
 
