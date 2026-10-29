@@ -17,7 +17,11 @@
   to their definition. The delete oracle checks it for every remaining call: an
   edge into the removed file shows up as a resolution there, and a dangling
   edge raises. `test_delete_observes_left_over_edges_through_call_resolution`
-  pins this with a removal that keeps every edge. The ordinary-calls mutation
+  pins this with a removal that keeps every edge. No remaining call in the
+  corpus is named after a removed value, so the pin fails through edges into
+  removed definitions only. The same resolution check would also catch a
+  dangling or surviving edge into a removed value, because it follows every
+  edge whatever its target's kind. The ordinary-calls mutation
   moved to where edges are built (`if node.kind == "def":` becomes
   `if node.kind != "call":`), so a call can now link to a value node.
 - After these changes, `test_preservation_evidence.py` passes 62 tests.
