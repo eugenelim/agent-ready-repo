@@ -62,3 +62,9 @@ Every difference falls under a case that the [`header-derived-dispatch`](../../h
 | `docs/specs/experience-pack-0.6.0/spec.md` | `resume` | `refuse` | `invalid_selector` | `dotted-slug-selector` | accepted removal (RFC-0106 § Errata, 2026-10-29, item 10) |
 | `docs/specs/plan-evolution-experiments/spec.md` | `active` | `false` | `true` | `unregistered-implementing` | accepted removal (RFC-0106 D1) |
 | `docs/specs/plan-evolution-experiments/spec.md` | `resume` | `refuse` | `resume` | `unregistered-implementing` | accepted removal (RFC-0106 D1) |
+
+## Owner approvals of wording (AC-0031)
+
+| Target | Wording | Approval |
+| --- | --- | --- |
+| `cooled_child_scope_unknown` next action (AC-0005): `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`, its packaged copy, `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`, `packs/core/.apm/skills/workspace-status/SKILL.md`, `guides/core/reference/workspace-toml-schema.md` | "Set parent on the spec's lifecycle record: a resolving brief path, or none only when that spec has no parent brief; a tracker-origin entry declares source.parent instead." | eugenelim (owner), 2026-10-29T14:31-05:00 |
