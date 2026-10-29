@@ -575,6 +575,12 @@ def test_each_mutation_old_text_occurs_exactly_once(oracle: Oracle) -> None:
     assert HEAD_SOURCE.count(oracle.mutation[0]) == 1
 
 
+@pytest.mark.parametrize("oracle", ORACLES, ids=ORACLE_IDS)
+def test_each_named_mutant_loads(oracle: Oracle) -> None:
+    """AC-0002: a mutant that cannot load would fail every oracle and prove nothing."""
+    _load_source(f"core_work_loop_preservation_evidence_loads_{oracle.term}", mutant_source(oracle))
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # AC-0003 to AC-0008: each oracle
 # ═══════════════════════════════════════════════════════════════════════════════
