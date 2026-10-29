@@ -58,7 +58,7 @@ not require adapt-to-project or code intelligence.
 
 ## Wave 1 accounting, 2026-10-29
 
-T1 and T2 were implemented in the controller session, not by an
+T1 and T2 (wave index 0) were implemented in the controller session, not by an
 `implementer` subagent. The owner directed recording them `human-directed`
 after the fact. Wave-1 gates: `make lint-ruff lint-mypy` pass; targeted suites
 360 passed, 82 subtests; T1's `Done when` grep prints `1`;
