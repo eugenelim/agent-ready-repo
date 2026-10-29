@@ -25,3 +25,25 @@ not require adapt-to-project or code intelligence.
 | Distinct evidence for all six properties | Not held | No invalidation-bound criterion; compatibility was `git diff --exit-code` on the Rust file, which forbids change rather than compiling the supported surface |
 | Map disposable; feature-only tests insufficient | Held | Map placed in plan `## Design (LLD)`; characterization tests required beyond creation |
 | Repository-native evidence only | Held | Reads, `grep`, and one throwaway probe |
+
+## T1 — reference and step-3 pointer, 2026-10-29
+
+- Red: `test_shared_substrate_preservation.py` written first; 11 failed while
+  the reference and pointer were absent.
+- Green: 11 passed after the reference and the step-3 pointer landed; the
+  `new-spec` suites pass (278 passed, 82 subtests).
+- Plan error found: T1's pinned `Tests:` puts the guide-link pin in the pack
+  test, but `tools/lint-pack-test-boundary.py` check 8 (pack-tests-stay-in-pack)
+  forbids a pack test reading `guides/`. The guide paragraph is written and its
+  link resolves (`grep -c` prints 1); `validate_guides.py`,
+  `lint-guide-titles.py`, and `lint-guides-no-repo-only-refs.py` pass. Routed
+  to a controlled amendment.
+
+## T2 — consumer-map disposability pin, 2026-10-29
+
+- `test_consumer_map_disposable.py`: 2 passed through
+  `_subject_source.project_legacy_subject` over a temporary git repository and
+  `_acceptance.evaluate_verdict`.
+- Mutation: a throwaway plugin that stops `_is_excluded` from dropping the spec
+  directory turns `test_plan_resident_map_is_disposable` red with three
+  distinct fingerprints; the plugin was deleted after the run.
