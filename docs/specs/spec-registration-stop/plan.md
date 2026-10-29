@@ -7,7 +7,7 @@
   - `packs/core/.apm/skills/work-loop/scripts/dispatch.py` and its suites `packs/core/tests/skills/work-loop/test_dispatch.py` and `test_header_derived_dispatch_replay.py`: the dispatch this spec switches to, unchanged.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`: `_VALID_OPERATION_TYPES` (line 213), `_canonical_explain` (line 665), `_apply_operations` (line 1280, the `queue-to-shipped` and `queue-remove` arms), and the `intent-brief-drop` section (line 3308), the precedent both new steps copy.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`: `_FINDING_NEXT_ACTIONS` (line 101), `_resolved_provenance_parent` (line 2330), `_load_cooling_module` (line 2161).
-  - `packs/core/.apm/skills/close-work/scripts/cooling.py`: `update_record`, `_write_record`, `_TRANSITIONS`, `validate_payload`.
+  - `packs/core/.apm/skills/close-work/scripts/cooling.py`: `load_record` and the record's `parent`, read only; the repair never writes a record.
   - `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`: `check`, `_walk`, `start`, `project`, `_KNOWN_FINDINGS`.
   - `packs/core/.apm/skills/work-intake/scripts/intake_router.py`: `_is_unregistered` and `route_intake`.
   - `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`: invariant (iv).
@@ -15,26 +15,25 @@
 
 ## Approach
 
-Record first. T1 runs the comparison and the replay and writes both to the ledger before any writer, router, repair or registry change, because FEAT-0034's validation hook keeps registration if either fails. T2 to T7 then change one surface each and leave the repository working: the finding table, the repair, the router, the bridge, `work-loop`'s dispatch text, and the lint. T8 changes the instruction and guide text. T9 commits governance wording only after the owner approves each. T10 writes the records that cite that wording. T11 runs the repair on this repository last, after every writer has stopped, with the owner's sight of the plan file. T12 cuts the release.
+Record first. T1 runs the comparison and the replay and writes both to the ledger before any writer, router, repair or registry change other than this spec's own entry, because FEAT-0034's validation hook keeps registration if either fails. T2 to T7 then change one surface each and leave the repository working: the finding table, the repair, the router, the bridge, `work-loop`'s dispatch text, and the lint. T8 changes the instruction and guide text. T9 commits governance wording only after the owner approves each. T11 runs the repair on this repository after every writer has stopped and the lint resolves open spec anchors, with the owner's sight of the plan file. T10 then writes the records whose evidence T11 produced. T12 cuts the release.
 
 ## Constraints
 
 - Standard library only in every changed skill script (ADR-0074), apart from `tomlkit`, which `repair-apply` already uses under its declaration in `packs/core/AGENTS.md`.
-- `workspace-status` reaches `cooling.py` only through the engine's existing confined loader; no skill imports another by `sys.path`.
+- `workspace-status` reads a lifecycle record only through the engine's existing confined cooling loader, and writes none; `cooling.py` and `close_work.py` do not change.
 - `make build-self` reprojects the engine into `packages/agentbundle/agentbundle/_data/` and each skill into `.claude/skills/` and `.agents/skills/`. Projections are never hand-edited.
 - A commit that changes `packages/agentbundle/**` carries `Engine-Change-RFC: 0106`.
 - `core` and `repo-governance` each take one patch bump in `pack.toml` and `.claude-plugin/plugin.json`, at the next free patch above fetched `origin/main` at merge time, and each changed skill's eval harness gains or updates a case. No `atlassian`, `github` or `linear` file changes.
 - Shipped pack text states its rules directly and cites no internal record. Errata and amendments stay in `docs/`.
 - An ADR's prose is frozen; only its connection fields and `## Errata` change. An accepted RFC changes through § Errata (RFC-0055). An intent records a change as a dated owner amendment paragraph. A brief changes through `author-delivery-brief`.
-- A byte-pinned file this change edits, such as `cooling.py` in `tests/roster/test_cooling_scope_closure.py`, is re-pinned under a dated comment naming this spec, keeping every other pin.
 - A new roster test gets a `build-check.yml` step and a `tools/lint-ci-parity.py` `STEP_DISPOSITION` entry; a `docs/specs/<slug>` literal in it goes into `.workspace-prune-protected.toml`; parametrize ids are stable strings.
 - Every file this change adds or edits that names `workspace.toml`, `workspace-status` or `workspace_status` outside an inventoried directory needs an inventory row.
 - This spec's `Status:` and its `workspace.toml` entry move together until T11's repair removes the entry; the brief stays `Executing`.
 
 ## Construction tests
 
-- **Corpus for the bridge (T5):** the suite builds each case tree of `test_header_derived_dispatch_replay.py` through that module's builder, loaded by unique name, runs `dispatch.py --root <tree>`, and feeds its stdout to `intent_readiness.member` with a `path_to_id` built from the tree's spec files; it asserts AC-0008 per case and records the accepted and refused counts in the test's output.
-- **Before-and-after dispatch (T11):** `dispatch.py --root .` and `--resume docs/specs/spec-registration-stop/spec.md` stdout SHA-256, taken just before and just after `repair-apply`; a throwaway run at `dfa3fe067` that dropped all 240 repo-origin spec entries with `tomlkit` gave equal digests (`f797e01af67b01ff…`), which is why AC-0034 is a byte comparison.
+- **Corpus for the bridge (T5):** the suite builds each case tree of `test_header_derived_dispatch_replay.py` through that module's builder, loaded by unique name, runs `dispatch.py --root <tree>`, and feeds its stdout to `intent_readiness.member` with a `path_to_id` built from the tree's spec files; it asserts AC-0011 per case and prints the accepted and refused counts.
+- **Before-and-after dispatch (T11):** the two `dispatch.py` stdout digests, taken just before and just after `repair-apply`. The comparison is exact because a drop candidate with empty `needs` is never a kept entry, so `dispatch.py` already ignores every entry the apply removes.
 - **Manual verification:** the owner's approvals in T1, T9 and T11 are Ask-first gates, recorded in the ledger.
 
 ## Durable-output map
@@ -42,15 +41,15 @@ Record first. T1 runs the comparison and the replay and writes both to the ledge
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | How `work-loop` dispatches | T6 | Step 0 text and eval cases | AC-0001 and AC-0002 pass |
-| Spec entries and the repair | T2, T3, T4, T8 | the router, the repair steps, `mutate.md`, SKILL.md, the schema guide | AC-0003, AC-0004, AC-0009 to AC-0017, AC-0020, AC-0035 pass |
-| Readiness bridge input | T5, T8 | `intent_readiness.py`, its SKILL.md and guide | AC-0005 to AC-0008 and AC-0023 pass |
-| Contracts that required registration | T9 | six errata entries, two amendments, the AGENTS.md sentence, the brief edit | AC-0024 to AC-0027 pass |
-| Equivalence evidence and authority | T9, T10 | § Equivalence rows, re-owned § Disposition rows | AC-0028 and AC-0029 pass |
-| Inventory | T10 | `inventory.toml` edits | AC-0030 passes |
-| User documentation | T8 | the pages AC-0021 lists | AC-0021 passes; review for the wording |
-| Comparison, replay and repair record | T1, T11 | `notes/verification-ledger.md` | AC-0031, AC-0033, AC-0034 pass |
+| Spec entries and the repair | T2, T3, T4, T8 | the router, the repair step, `mutate.md`, SKILL.md, the schema guide | AC-0003 to AC-0005, AC-0012 to AC-0020, AC-0023 pass |
+| Readiness bridge input | T5, T8 | `intent_readiness.py`, its SKILL.md and guide | AC-0006 to AC-0011 and AC-0025 pass |
+| Contracts that required registration | T9 | six errata entries, two amendments, the AGENTS.md sentence, the brief edit, the ledger approval rows | AC-0027 to AC-0031 pass |
+| Equivalence evidence and authority | T9, T10 | § Equivalence rows, re-owned § Disposition rows | AC-0032 and AC-0033 pass |
+| Inventory | T10 | `inventory.toml` edits | AC-0034 passes |
+| User documentation and deferral guidance | T8 | the pages AC-0024 and AC-0026 list | AC-0024 and AC-0026 pass; review for the wording |
+| Comparison, replay and repair record | T1, T11 | `notes/verification-ledger.md` | AC-0035, AC-0037, AC-0038 pass |
 | Release history | T12 | changelog fragment and two version bumps | changelog and version gates pass |
-| Delivery membership | T1 | the Spec map row | AC-0032 passes |
+| Delivery membership | T1 | the Spec map row | AC-0036 passes |
 
 ## Design (LLD)
 
@@ -58,17 +57,18 @@ Record first. T1 runs the comparison and the replay and writes both to the ledge
 
 Owned by: T3
 
-- `cooled-parent-to-record` and `spec-entry-drop` join `_VALID_OPERATION_TYPES`. Both carry the `entry_locator` shape `intent-brief-drop` uses (initiative key, collection label, index), the entry's `path` and the `registry_fingerprint`; `spec-entry-drop` adds `kind`, and `cooled-parent-to-record` adds the record's repository path, its SHA-256 fingerprint, and the `parent` value.
-- A repo-origin spec entry is decided by the same exact-type test `dispatch.py` uses to drop an entry from its header registry, so the repair removes exactly the entries dispatch already ignores. That identity is what makes AC-0034's byte comparison hold.
-- The `parent` value is `_resolved_provenance_parent(source.parent, require_local_brief=True)` checked against the brief-file rule; `none` or an empty `source.parent` gives `none`. An absent `source.parent` gives no operation, so the record stays without `parent` and child scope stays unknown, failing closed (ADR-0110).
+- `spec-entry-drop` joins `_VALID_OPERATION_TYPES`. It carries the `entry_locator` shape `intent-brief-drop` uses (initiative key, collection label, index), the entry's `path` and `kind`, and the `registry_fingerprint`.
+- A held entry becomes one item in the plan's existing manual list, with a reason string, the entry `path`, the record path, and the `parent` value; it is not a finding.
+- The declared parent reads the raw `source.parent` key first. An absent key, or a value the normalizer and brief-file rule reject, gives no declared parent, so the entry drops and its record stays without `parent`: child scope stays unknown, failing closed (ADR-0110), exactly as the entry gives today.
 
 ### Behavior & rules
 
 Owned by: T3
 
-- **Apply order.** `needs-to-header` and `needs-drop-cooled`, then `cooled-parent-to-record`, then queue operations, then `spec-entry-drop` and `intent-brief-drop`. Record writes happen before the single `workspace.toml` write, so a failed registry write leaves records that only gained `parent`, which the schema already allows and dispatch already reads; the next `repair-plan` then plans no parent operation for them.
-- **Record write.** `cooling.update_record` accepts only listed disposition transitions, so a parent-only write needs a guarded path that keeps disposition and result: the means is `implementation-discovered` inside `cooling.py` (a same-state transition or a dedicated parent setter through `_write_record`), required outcome AC-0014, kill condition: if it cannot reuse `_write_record`'s guard, stop and ask.
-- **Queue operations.** `queue-to-shipped` and `queue-remove` skip a repo-origin spec entry, because `spec-entry-drop` removes it in the same run.
+- **Plan.** Drop candidates come from the same membership iterator `intent-brief-drop` uses, so only canonical collections are reached. A spec entry whose `needs` a needs operation of the same plan empties is a candidate in that plan.
+- **Apply order.** `needs-to-header` and `needs-drop-cooled`, then queue operations, then `spec-entry-drop` and `intent-brief-drop`, all in one `workspace.toml` write.
+- **Lock-time hold re-check.** For a cooled candidate, apply re-reads its record through the engine's cooling loader; if the record still lacks `parent` while the entry declares one, the drop is refused.
+- **Queue operations.** `queue-to-shipped` and `queue-remove` skip a drop candidate, because `spec-entry-drop` removes it in the same run.
 
 ### Interfaces & contracts
 
@@ -91,7 +91,7 @@ Owned by: T2
 Owned by: T8
 
 - `workspace-status` SKILL.md keeps its triggers and sends "what's ready" for specs to `work-loop`'s `dispatch.py`; its status JSON is unchanged.
-- `close-work`'s cooling guidance names the record's `parent`, stamped by `cooling.enrol` from `Brief:`, as a cooled spec's declared parent; it no longer asks for `source.parent` on an entry.
+- `work-loop` Step 0 still shows the initiative and milestone when `workspace.toml` exists, but dispatch never depends on the file.
 - Frozen Shipped spec directories are not edited; T10 reclassifies their inventory rows.
 
 ### Dependencies & integration
@@ -105,93 +105,92 @@ Owned by: T10
 
 ### T1: Record the comparison and the replay
 
-- **Verification mode:** goal-based
 - **Depends on:** none
-- **Tests:** for AC-0031, AC-0032:
+- **Verification mode:** goal-based
+- **Tests:** for AC-0035, AC-0036:
   - The ledger holds `compare-registry.py` output, exit `0`, commit and merge base; and the `replay-dispatch.py` output over a `git worktree` of that merge base, each difference assigned to its slice-8 class or the owner's approval.
-  - The brief's Spec map holds `spec-registration-stop`, this spec's `workspace.toml` entry exists, and `lint-brief-coverage.py` passes.
+  - The brief's Spec map holds `spec-registration-stop`, this spec's `workspace.toml` entry and inventory row exist, and `lint-brief-coverage.py` passes.
 - **Done when:** both runs are in the ledger with no failing or unassigned row, and the coverage lint passes.
 
 ### T2: Remove `unregistered_work` and reword the cooled-child next action
 
-- **Verification mode:** TDD
 - **Depends on:** T1
-- **Tests:** for AC-0003, AC-0004, AC-0035:
+- **Verification mode:** TDD
+- **Tests:** for AC-0003, AC-0004, AC-0005:
   - A planted unregistered spec's `explain` output, in `tools/test_workspace_status_cli.py`, whose current `unregistered_work` assertions move to the new payload.
   - A search test over the AC-0003 trees.
-  - The bridge's pinned-table parity test, with the owner-approved sentence.
+  - The bridge's pinned-table parity test, with the owner-approved sentence, and eval case 11 rewritten.
 - **Done when:** the tests above pass and `make build-self` leaves the packaged engine equal to the source.
 
-### T3: The repair steps
+### T3: The repair step
 
-- **Verification mode:** TDD
 - **Depends on:** T1
-- **Tests:** for AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017:
-  - A new `packs/core/tests/skills/workspace-status/test_spec_registration_stop_repair.py` in the planted-repository style of `test_depends_on_headers_repair.py`: one planted entry per rule, each lock-time refusal, a cooled entry with a brief path, `none`, absent and invalid `source.parent`, a record that already has `parent`, a stale record fingerprint, and the two-run idempotence.
+- **Verification mode:** TDD
+- **Tests:** for AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020:
+  - A new `packs/core/tests/skills/workspace-status/test_spec_registration_stop_repair.py` in the planted-repository style of `test_depends_on_headers_repair.py`: one planted entry per rule, including a candidate whose `needs` the same plan empties, an entry outside a canonical collection, an entry with no `needs` key, cooled entries whose `source.parent` is absent, `none`, empty, a brief file and invalid, a record that already has `parent`, each lock-time refusal, a digest of `docs/lifecycle/` before and after, and the two-run sequence with a record gaining `parent` between runs.
   - The existing legacy-migration and `intent-brief-drop` suites run unchanged.
-  - `tests/roster/test_cooling_scope_closure.py`'s `cooling.py` pin, re-pinned if `cooling.py` changes.
-- **Done when:** the tests above pass and `mutate.md` describes both steps.
+- **Done when:** the tests above pass and `mutate.md` describes the step and the held entry.
 
 ### T4: The router and its matrix
 
-- **Verification mode:** TDD
 - **Depends on:** T1
-- **Tests:** for AC-0009, AC-0010: `route_intake` cases for repo-origin spec start and remember and their tracker-origin twins; the two new matrix cases through the existing matrix comparison suites; the four tracker matrices' digests against the base.
+- **Verification mode:** TDD
+- **Tests:** for AC-0012, AC-0013: `route_intake` cases for repo-origin spec start and remember and their tracker-origin twins; the two new matrix cases through the existing matrix comparison suites; the four tracker matrices' digests against the base.
 - **Done when:** the tests above pass.
 
 ### T5: Re-point the readiness bridge
 
-- **Verification mode:** TDD
 - **Depends on:** T2
-- **Tests:** for AC-0005, AC-0006, AC-0007, AC-0008: the existing `packs/core/tests/skills/navigate-intents/` readiness suites rewritten to `dispatch.py`'s shape, one planted refusal per rule, a `workspace-status status` payload refused as `wrong_schema`, each decision action's mark, and the corpus test the Construction tests section describes.
-- **Done when:** the tests above pass and the corpus test reports every case accepted or `bad_workspace` as AC-0008 states.
+- **Verification mode:** TDD
+- **Tests:** for AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011: the existing `packs/core/tests/skills/navigate-intents/` readiness suites rewritten to `dispatch.py`'s shape, one planted refusal per rule, a `workspace-status status` payload refused as `wrong_schema`, each decision action's mark including `refuse`, and the corpus test the Construction tests section describes.
+- **Done when:** the tests above pass.
 
 ### T6: `work-loop` dispatches from `dispatch.py`
 
-- **Verification mode:** goal-based
 - **Depends on:** T1
-- **Tests:** for AC-0001, AC-0002: the roster check's `work-loop` SKILL.md rows; five `work-loop` eval cases, one per decision action.
+- **Verification mode:** goal-based
+- **Tests:** for AC-0001, AC-0002: the roster check's `work-loop` SKILL.md rows; the seven `work-loop` eval cases AC-0002 names.
 - **Done when:** the roster rows and the eval suite pass.
 
 ### T7: Deferral anchors through open spec files
 
-- **Verification mode:** TDD
 - **Depends on:** T1
-- **Tests:** for AC-0018: planted cases in the `lint-spec-status` suite: an open spec resolves; a Shipped, an Archived, a symbolic-link spec file and a symbolic-link spec directory do not; each base case keeps its result.
+- **Verification mode:** TDD
+- **Tests:** for AC-0021: planted cases in the `lint-spec-status` suite: an open spec resolves; a Shipped, an Archived, a symbolic-link spec file and a symbolic-link spec directory do not; each base case keeps its result.
 - **Done when:** the tests above pass and the lint passes on this repository.
 
-### T8: Writer and guide text
+### T8: Writer, deferral and guide text
 
+- **Depends on:** T3, T4, T5, T7
 - **Verification mode:** goal-based
-- **Depends on:** T3, T4, T5
-- **Tests:** for AC-0019, AC-0020, AC-0021, AC-0022, AC-0023: a new `tests/roster/test_spec_registration_stop.py` holding the closed file-and-phrase lists of AC-0001, AC-0020 to AC-0023 and AC-0026 to AC-0027, with each phrase's presence at the base asserted from `git show dfa3fe067:<path>`; the AC-0019 fixture digests.
+- **Tests:** for AC-0022, AC-0023, AC-0024, AC-0025, AC-0026: a new `tests/roster/test_spec_registration_stop.py` holding the closed file-and-phrase lists of AC-0001, AC-0005, AC-0023 to AC-0026 and AC-0029 to AC-0030, with each phrase's presence at the base asserted from `git show dfa3fe067:<path>`; the AC-0022 fixture digests.
 - **Done when:** the roster test passes, including its build-check step and parity entry.
 
 ### T9: Governance wording
 
-- **Verification mode:** goal-based
 - **Depends on:** T1
-- **Tests:** for AC-0024, AC-0025, AC-0026, AC-0027: the roster test's governance rows; the owner's approval of each wording recorded in the ledger before its commit.
-- **Done when:** each entry is committed with approved wording and its row passes.
-
-### T10: The retirement record and inventory
-
 - **Verification mode:** goal-based
-- **Depends on:** T9
-- **Tests:** for AC-0028, AC-0029, AC-0030: `tests/roster/test_workspace_retirement_inventory.py` and the roster test's owner-8 rows.
-- **Done when:** both pass.
+- **Tests:** for AC-0027, AC-0028, AC-0029, AC-0030, AC-0031: the roster test's governance rows, and its ledger rows comparing each approval date with `git log` for the commit that adds the text.
+- **Done when:** each entry is committed with approved wording and its row passes.
 
 ### T11: Run the repair on this repository
 
+- **Depends on:** T2, T3, T4, T6, T7, T8
 - **Verification mode:** manual QA with a byte comparison
-- **Depends on:** T2, T3, T4, T6, T8
-- **Tests:** for AC-0032, AC-0033, AC-0034: the ledger's plan and apply output, operation counts, the owner's sight of the plan file, and the two before-and-after digest pairs.
-- **Done when:** the registry holds no repo-origin spec entry and both digest pairs are equal.
+- **Tests:** for AC-0036, AC-0037, AC-0038: the ledger's plan and apply output, operation and held counts, the owner's sight of the plan file, and the two before-and-after digest pairs.
+- **Done when:** the registry holds no repo-origin spec entry in a canonical collection and both digest pairs are equal.
+
+### T10: The retirement record and inventory
+
+- **Depends on:** T9, T11
+- **Verification mode:** goal-based
+- **Tests:** for AC-0032, AC-0033, AC-0034: `tests/roster/test_workspace_retirement_inventory.py` and the roster test's owner-8 rows.
+- **Done when:** both pass.
 
 ### T12: Release
 
-- **Verification mode:** goal-based
 - **Depends on:** T2, T3, T4, T5, T6, T7, T8, T9, T10, T11
+- **Verification mode:** goal-based
 - **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`, the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml` and `test-corpus.yml` runs.
 - **Done when:** all pass on the branch.
 
@@ -203,7 +202,7 @@ Owned by: T10
 ## Risks
 
 - A tracker-origin spec entry stays, and its writers stay, until slice 9. A reader that assumes no spec entries remain would miss them; `dispatch.py` judges them as kept entries.
-- An adopter who skips the repair keeps stale repo-origin spec entries that nothing reads for dispatch; `workspace-status status` still lists them. The SKILL.md and schema guide name the repair.
+- An adopter with a cooled spec whose record lacks a declared parent keeps that entry until they add one `parent` line to the record; the plan names the line.
 
 ## Changelog
 
