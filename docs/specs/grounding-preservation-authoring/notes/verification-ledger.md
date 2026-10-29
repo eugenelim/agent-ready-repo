@@ -103,3 +103,18 @@ T4 accounting: the graded runs need fresh, isolated agents, which an
 `implementer` subagent cannot start, so the controller ran T4. The owner
 directed recording it `human-directed`, and directed shipping on the met
 criteria with the non-discrimination stated in the pull request.
+
+## Code review, 2026-10-29
+
+- `adversarial-reviewer`: 3 raised; adjudication refuted 2 and sustained 1 as a
+  Nit. Deferred: the shipped later-discovery routing ("the plan before
+  approval, or the verification ledger after") is more precise than plan
+  Design (LLD) part 6 ("a plan edit"); it agrees with the work-loop
+  verification-ledger rule. Citations: `shared-substrate-preservation.md:111`,
+  `plan.md:96-98`.
+- `experience-reviewer`: 10 raised; adjudication refuted 5 and sustained 1
+  Concern and 4 Nits. Fixed in the guide paragraph: the trigger now says "adds
+  or changes", the generic reading is explained in plain words, the skip cases
+  are plain and say the skill confirms them, and the long sentence is split.
+  Deferred: plain-words glosses for "oracle" and "analogues" in the skill
+  reference (`shared-substrate-preservation.md:70,81`).
