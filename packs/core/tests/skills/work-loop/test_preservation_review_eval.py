@@ -6,6 +6,7 @@ Spec: docs/specs/grounding-preservation-review/spec.md
 import ast
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -25,7 +26,13 @@ def _load_fixture_graph() -> ModuleType:
     spec = importlib.util.spec_from_file_location("core_work_loop_preservation_review_fixture_graph", str(path))
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Keep bytecode out of the shipped skill tree.
+    previous = sys.dont_write_bytecode
+    sys.dont_write_bytecode = True
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.dont_write_bytecode = previous
     return module
 
 
