@@ -69,17 +69,17 @@ per-copy output is `notes/graded-runs/head-isolation.txt`.
 
 ### Results
 
-| Run | Projection | Case | Score (r2, counted) |
+| Run | Projection | Case | Score (grading pass, role) |
 | --- | --- | --- | ---: |
-| `pos-head1` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 |
-| `pos-head2` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 |
-| `pos-head3` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 |
-| `neg-head1` | final, `b45be95c4`, Core 3.1.39 | negative | 4/4 |
-| `pos-base` | base, `b1be32193`, Core 3.1.38 | positive | 5/6 |
-| `neg-base` | base, `b1be32193`, Core 3.1.38 | negative | 4/4 |
-| `pos-spike` | spike, Edits 1–2 on a `/tmp` copy of 3.1.38 | positive | 5/6 |
-| `pos-spike2` | spike, Edits 1–3 on a `/tmp` copy of 3.1.38 | positive | 6/6 |
-| `pos-spike3` | spike, Edits 1–3 on a `/tmp` copy of 3.1.38 | positive | 6/6 |
+| `pos-head1` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 (r2, counted) |
+| `pos-head2` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 (r2, counted) |
+| `pos-head3` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 (r2, counted) |
+| `neg-head1` | final, `b45be95c4`, Core 3.1.39 | negative | 4/4 (r2, counted) |
+| `pos-base` | base, `b1be32193`, Core 3.1.38 | positive | 5/6 (first pass, baseline) |
+| `neg-base` | base, `b1be32193`, Core 3.1.38 | negative | 4/4 (first pass, baseline) |
+| `pos-spike` | spike, Edits 1–2 on a `/tmp` copy of 3.1.38 | positive | 5/6 (first pass, design) |
+| `pos-spike2` | spike, Edits 1–3 on a `/tmp` copy of 3.1.38 | positive | 6/6 (first pass, design) |
+| `pos-spike3` | spike, Edits 1–3 on a `/tmp` copy of 3.1.38 | positive | 6/6 (first pass, design) |
 
 These nine are every graded run made under this spec. Outputs and grades are
 `notes/graded-runs/<run>.md` and `<run>-grade.md`, plus `<run>-grade-r2.md` for
