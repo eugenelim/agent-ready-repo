@@ -213,7 +213,6 @@ shipped   = [
 ["ini-002".work]
 active  = [
   # Implementing since 2026-10-29: spec and plan approved; T1 (bridge and pre-PR hooks) shipped in Core 3.1.32 (#1643); T2 and T3 are unblocked, since attempt-security shipped in Core 3.1.34 (#1637).
-  {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = []},
 ]
 shipped = [
   # Shipped 2026-10-29 as core 3.1.39: closes the new-spec positive-case reproducibility defect for
@@ -224,60 +223,42 @@ shipped = [
   {path = "docs/specs/grounding-preservation-review/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Give adversarial-reviewer and quality-engineer a generic typed report and the shared-substrate reachability and preservation-evidence questions, proved through the shipped review and evidence modules", needs = []},
   # Shipped 2026-10-29 as core 3.1.37: slice C2 of repository-grounding-preservation, the
   # work-loop preservation-evidence reference. Evidence is in notes/verification-ledger.md.
-  {path = "docs/specs/grounding-preservation-evidence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Produce independent preservation evidence: an oracle independent of the code under test, a named failing mutation per check, and receipts the acceptance evaluator attributes to the right property", needs = []},
   # Shipped 2026-10-29 as Core 3.1.34: the supervisor's worker-attempt security.
   # T1 to T5 were built in Core 3.1.18 (PR #1585). Evidence for every criterion
   # is in notes/verification-ledger.md.
-  {path = "docs/specs/execution-supervisor-attempt-security/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Refuse worker attempts that touch the control plane, harden supervisor git calls, pin the supervisor, and end Windows process trees through a Job Object", needs = []},
   # Shipped 2026-10-29 as core 3.1.33: slice C1 of repository-grounding-preservation, the
   # shared-substrate preservation reference in new-spec. Evidence is in notes/verification-ledger.md.
-  {path = "docs/specs/grounding-preservation-authoring/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Add a shared-substrate preservation reference to new-spec so a change that adds a member to a shared model derives a bounded consumer map and writes preservation criteria with allowed deltas and failing oracles", needs = []},
   # Shipped 2026-10-28: slice C0 of repository-grounding-preservation, test-only;
   # the existing acceptance contract is sufficient. Evidence is in notes/verification-ledger.md.
-  {path = "docs/specs/grounding-preservation-contract-proof/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Prove the six PR-207-shaped preservation properties through the shipped acceptance evaluator with valid, rejected, and mutated samples, and record that the existing contract is sufficient", needs = []},
   # Shipped 2026-10-26 as repo-governance 2.3.0 / agentbundle 0.58.0 / core 3.1.21 / architect 0.15.20: slice 4 of repo-governance-pack, the new-rfc governance mode.
-  {path = "docs/specs/new-rfc-governance/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repo-governance-pack.md", parent = "docs/product/briefs/repo-governance-pack.md"}, summary = "Add a governance mode to new-rfc that drafts GOVERNANCE.md and CODEOWNERS under the RFC-0110 trust model, with a confined file_safety write", needs = []},
   # Shipped 2026-10-26 as repo-governance 2.2.0: slice 3 of repo-governance-pack, the read-only health mode.
-  {path = "docs/specs/navigate-decisions-health/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repo-governance-pack.md", parent = "docs/product/briefs/repo-governance-pack.md"}, summary = "Add a read-only health mode to navigate-decisions that reports due, superseded and drifting decisions", needs = []},
   # Shipped 2026-10-26 as repo-governance 2.1.0: slice 2 of repo-governance-pack, the read-only route mode.
-  {path = "docs/specs/navigate-decisions-route/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repo-governance-pack.md", parent = "docs/product/briefs/repo-governance-pack.md"}, summary = "Add a read-only route mode to navigate-decisions that holds new-rfc step 0 routing plus an advice step and a reversibility check", needs = []},
   # Shipped 2026-10-25 as agentbundle 0.57.0 / repo-governance 2.0.0 / iac-terraform 0.2.0: slice 1 of repo-governance-pack.
-  {path = "docs/specs/repo-governance-rename/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repo-governance-pack.md", parent = "docs/product/briefs/repo-governance-pack.md"}, summary = "Rename governance-extras to repo-governance 2.0.0 with a catalogue rename map and an installer rename hint that prints the migration steps instead of not-found", needs = []},
   # Shipped 2026-10-21 as Core 3.1.14: the supervisor review gate. Evidence is in
   # notes/verification-ledger.md.
-  {path = "docs/specs/execution-supervisor-review-gate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Close supervisor review from structured readiness, carry the reviewer roster as data, relocate finding-adjudication commands, and key policy families on supervisor stages", needs = []},
   # Shipped 2026-10-19 as Core 3.1.9: Slice 4a, the dark execution supervisor
   # core, beside the unchanged loop engine. Evidence is in notes/verification-ledger.md.
-  {path = "docs/specs/execution-supervisor-core/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Dark skill-shipped supervisor: admission, task projection and replanning, TDD guard, sequential dispatch, recovery, effects, and derived readiness", needs = []},
   # Shipped 2026-10-12 (run d1063609): per-update changelog fragments, with
   # released records in append-only monthly bundles under ADR-0143. Evidence
   # is in notes/verification-ledger.md.
-  {path = "docs/specs/product-changelog-fragments/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0123-product-changelog-per-update-sources-and-generated-views.md"}, summary = "Author new product changelog updates as independent reviewed fragments, freeze the historical file, and generate every complete view from one shared model", needs = []},
   # Shipped 2026-10-11 as Core 3.0.5. Slice 2 of the acceptance-centered work loop:
   # structured review boundary beside the authoritative legacy review path; the
   # cutover is FEAT-0036. Evidence is in notes/verification-ledger.md.
-  {path = "docs/specs/structured-review-boundary/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", revision = "sha256-bytes-v1:8e2cf33151320b16cf8a12bf852531f262e57b5470dc8105ed121087b0347410", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Expose selected review obligations and current typed reviewer reports through an opaque boundary, reducing finding disposition to reachable actual failure without leaking reviewer mechanics into delivery policy", needs = []},
   # Shipped 2026-10-13: read-only delivery fact feed, knowledge candidates, and
   # per-record read quarantine beside the retained capture gates (core 3.1.3).
   # Evidence is in notes/verification-ledger.md.
-  {path = "docs/specs/delivery-knowledge-projection/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", revision = "sha256-bytes-v1:5b4cc8d489a256eda3f5edbb0e51de07ccd35dcfa6bd0f38964286ca563f8910", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Project reusable observations from durable delivery facts without giving delivery ownership of knowledge lifecycle state", needs = []},
   # Shipped 2026-10-19 (run 824e1fdb): `ux-writing` moves to experience-design
   # (product-engineering 2.0.0, experience-design 4.2.0); evidence in notes/verification-ledger.md.
-  { path = "docs/specs/ux-writing-to-experience-design/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Move ux-writing and its evals from product-engineering to experience-design", needs = [] },
   # Shipped 2026-10-11 (run b0a6f681): the `intent` skill with route mode and the
   # short-route verbs; evidence in notes/verification-ledger.md.
-  { path = "docs/specs/intent-short-route/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "The intent skill with its read-only route mode and the short-route verbs frame, de-risk, and decompose, retiring the three short-route shaping skills", needs = [] },
   # Shipped 2026-10-09 as Core 3.0.0 (PR #1525, merge 7e745dbf7) with agentbundle
   # 0.52.0 on PyPI; evidence and the RFC-0083 authorization are in notes/verification-ledger.md.
-  {path = "docs/specs/capture-work-alias-removal/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/capture-work-alias-removal.md", revision = "sha256-bytes-v1:fbb06d3299467f51612c7629feb0b5804c7274fc5d6008ea3bcd2528ab7882b6"}, summary = "Remove the capture-work alias and ordinary accepted-legacy reader in Core 3.0.0 while retaining explicit migration and rollback", needs = []},
   # Shipped 2026-10-07. Slice 1 of the acceptance-centered work loop: shadow
   # acceptance services behind WORK_LOOP_SHADOW_SERVICES=1, with the current engine
   # keeping all authority. Evidence map, benchmarks, and owner decisions are in
   # notes/verification-ledger.md; follow-ups are in [backlog].open.
-  {path = "docs/specs/acceptance-authority-and-evidence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", revision = "sha256-bytes-v1:4f43ad971588c13cbef0180ba01e0fa3822673df62441b342caa201664b259c1", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Make accepted criteria and their evidence authoritative through atomic approval import, legacy subject projection, evidence transactions, a derived verdict, shared security primitives, capability refusal, and content-safety decisions without moving orchestration ownership", needs = []},
   # Shipped 2026-10-07 (FEAT-0033, RFC-0105). AC-0020 closed on the owner's
   # accepted session after the 2026-10-07 amendment.
-  {path = "docs/specs/decision-navigation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0033-decision-navigation.md"}, summary = "Replace rfc-status with bounded ADR/RFC queries and list, lifecycle, guidance-context, and detail views in one safe offline explorer", needs = []},
   # Shipped 2026-10-06. Delivered across #1506 (waves 1-4) and its closeout.
   # Registered 2026-10-05 from a Type 1 finding — the spec and plan were
   # approved 2026-10-02 with no workspace membership, so nothing could dispatch
@@ -286,18 +267,13 @@ shipped = [
   # pack lockfiles, and a `workflow_dispatch` against the default branch. All
   # three are recorded in notes/verification-ledger.md against
   # 798cb5945d2224de825a1904f4d3c5c34cc26729.
-  {path = "docs/specs/pack-javascript-ci-workflow/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/pack-javascript-ci-workflow.md"}, summary = "Give pack JavaScript a dedicated path-scoped remote workflow that installs every canonical pack npm project from a committed lockfile and runs the render-proof suites, while npm audit stays with make sast", needs = []},
-  {path = "docs/specs/optional-intelligence-exploration-composition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0030-optional-intelligence-exploration-composition.md", revision = "working-tree-2026-10-04"}, summary = "Add an optional repository-exploration method for native capability selection, evidence discipline, and deliberate fallback", needs = []},
-  {path = "docs/specs/optional-intelligence-grounding-composition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0029-optional-intelligence-grounding-composition.md", revision = "working-tree-2026-10-04"}, summary = "Give Core grounding a provider-neutral owner that can add native evidence while preserving its no-provider result", needs = []},
   # Shipped 2026-09-28 after owner ratification of the delivered standalone
   # 16-obligation contract. Delivery event: f2b1f5ab4 (PR #1276).
-  {path = "docs/specs/pack-guidebook-walkability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Fix the guidebook step contract, enforce it with a lint, and make each of the five SOP packs journeys walkable against it", needs = []},
   # Shipped 2026-09-28. Discharges RFC-0102 with a blocking ADR shape lint,
   # four mutability zones replacing the retired status-only edit rule, and a
   # `Superseded by:` field the index generator reads. `source.revision` remains
   # omitted because the workspace's recorded sha256 revisions do not reproduce
   # from current artifact bytes.
-  {path = "docs/specs/checkable-adr-metadata/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0102-mechanically-checkable-adrs.md"}, summary = "Make an ADR's metadata mechanically checkable and split acceptance's freeze so it binds prose rather than metadata", needs = []},
   # Shipped 2026-09-24, closing the `_loop_guards.py` repair-round defect that
   # was registered under [backlog].open and is retired in the same change. The
   # mechanism is supersession, not a counter and not deletion: `wave reopen`
@@ -306,7 +282,6 @@ shipped = [
   # gates-failed, findings-remain from code review, and blocker-applied refuse
   # until it has run. wave-passed is a fourth edge with the same shape and is
   # recorded as a follow-on rather than fixed here.
-  {path = "docs/specs/repair-round-dispatch-assertion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/wave-complete-dispatch-receipts/spec.md"}, summary = "Require every edge that re-enters code implementation without moving the wave pointer to reopen its wave first, so a repair round's exit is discharged by its own dispatch records", needs = []},
   # Rewrites the desk-research pack's arXiv retriever as a production retriever
   # with three optional modes: search, get, and enrich. The originating evidence
   # is the 429 recorded in the agents-md-size survey, which cost that survey its
@@ -314,19 +289,15 @@ shipped = [
   # entry above records: the recorded values here do not reproduce from their
   # cited artifacts' current bytes, so a computed one would assert a provenance
   # check that is not actually performed.
-  {path = "docs/specs/arxiv-retriever-production/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/research/agents-md-size-survey.md"}, summary = "Rewrite the arXiv retriever as a production retriever with search, get and enrich modes, a tiered query ladder that reports how loose the match was, canonical metadata, and rate-limit survival", needs = []},
   # Shipped 2026-09-22. Restores the scoping promise AC14 of the Shipped
   # `workspace-mcp` spec already made, on which its AC17 rests the six-tool
   # `permissions.allow` pre-approval. Membership tracks Status: `queue` while
   # Draft or Approved, `shipped` at closeout.
-  {path = "docs/specs/git-commit-scope-confinement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0078-workspace-mcp.md"}, summary = "Confine git_commit's staging scope to the built-in manifest's wildcard structure and refuse a configured output_dir carrying a reserved character", needs = []},
-  {path = "docs/specs/aesthetic-style-direction/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/research/aesthetic-style-blueprint.md"}, summary = "Give a creative direction fifteen named axes, seven structural, so two directions can be compared; gate it against the generic default with a named-comparator counterfactual check; ship Swiss, editorial and Bauhaus presets; and audit divergence by the closest pair rather than the mean", needs = []},
   # S1 of the agent-authoring-input-quality brief, authored 2026-09-17. It
   # routes a claim the author cannot settle by what its falsehood would cost,
   # in the `new-spec` assumptions step only. A seven-delivery replay in the
   # spec's notes cut every evidence-shape obligation the intent proposed and
   # kept the consequence routing; the pre-review probe step stays with slice A4.
-  {path = "docs/specs/load-bearing-claim-grounding/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/agent-authoring-input-quality.md", revision = "sha256-bytes-v1:43eaca63c9a81b094b5bcb2f91e42ae113fcbaafce0a4a3a003c334e85c7c115", parent = "docs/product/briefs/agent-authoring-input-quality.md"}, summary = "Route an unresolved load-bearing claim by what its falsehood would cost, in the new-spec assumptions step", needs = []},
   # Shipped 2026-09-13. The routed cognitive-load rule was skipped for a whole
   # session and breached throughout, so it is inline in both `AGENTS.md` files
   # and the routed topic file is retired. `AGENT_RULES.md` survives as a
@@ -334,13 +305,11 @@ shipped = [
   # activate. Nine review rounds, sixteen findings. The paired measurement was
   # inconclusive by its own pre-registered rule and gates nothing; the change
   # rests on the structural argument, which the record states plainly.
-  {path = "docs/specs/cognitive-rule-inlining/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Inline the cognitive-load chat clauses into both AGENTS.md files, empty the routing table, retire the routed topic file and every declaration of it, and record a paired measurement that gates nothing", needs = []},
   # The frozen-case run A6 cut unbuilt, scoped by owner decision to the
   # repair-response arm only. The instrument works; its first output is that the
   # arm comparison is not decisive at one session per cell, so it licenses no
   # decision about the finding grammar. The authoring-guidance arm remains
   # unmeasured and still gates the deferred criteria in the owning intent.
-  {path = "docs/specs/finding-response-scoring/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/spec-authoring-protocol-measured-before-shipping.md"}, summary = "A deterministic scorer plus three frozen cases measuring whether a neutral finding grammar changes how sustained findings are answered; result is non-decisive at n=1 per cell", needs = []},
   # Gives the non-repair answers somewhere to live: optional response/reason on a
   # review-verdict finding, and DECIDE stating the answers as a cut-first ladder.
   # Two answers added on owner authority, filling the axis that let a contract
@@ -356,31 +325,23 @@ shipped = [
   # only in the ADR and this spec. The two retired conventions copies stayed out
   # of scope because another branch deletes them, and that deletion has since
   # landed, so the recorded risk of both keeping a retired halt is discharged.
-  {path = "docs/specs/stasis-stop-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0104-light-mode-review-stops-on-divergence.md"}, summary = "Retire full mode's stasis stop disposition across the work-loop references, the published guides, and the public pack page, preserving the Surface dispositions and the authority statements, and pin it with an absence sweep", needs = []},
-  {path = "docs/specs/finding-response-receptacle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/review-response-protocol-across-reviewer-surfaces.md"}, summary = "Optional response and reason on a review-verdict finding, and the answers to a sustained finding stated in DECIDE as an ordered four-axis ladder with a stop rule and a per-axis surface walk", needs = []},
   # Slice A6 of agent-authoring-input-quality. Shipped 2026-09-11 with eleven
   # criteria over the three checks the skill runs on its own artifacts; the
   # selection procedure, its guide page, the frozen-case run and the
   # review-response protocol were cut unbuilt and routed to
   # docs/product/intents/spec-authoring-protocol-measured-before-shipping.md.
-  {path = "docs/specs/acceptance-criteria-set-construction/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/agent-authoring-input-quality.md", revision = "sha256-bytes-v1:2e2eb308e8e5a51b95ba264be4b2bb4ccfd9a5ea3bdb1276d7b919f96b776e66", parent = "docs/product/briefs/agent-authoring-input-quality.md"}, summary = "Author a loop contract from obligations rather than from every check: a five-stage selection procedure, a set-level sweep over the spec and plan as one set, and a review-response protocol naming eight answers to a sustained finding", needs = []},
   # Slice S2 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and shipped the same day after five spec-review rounds. Scope was
   # trimmed by owner decision mid-review: the handover entry plus the six broken
   # links already shipping from the same pack, with the standing emitted-fallback
   # detector cut to docs/product/intents/emitted-guide-link-fallback-detector.md
   # and its [backlog] entry.
-  {path = "docs/specs/desk-research-build-handover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:084add62a17189bcf6dba11fb7fa716eeafffcfe92e587447afb2a53a9421c79", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Give the desk-research pack a front-door link into the shaping-to-build handover, and repair the six unresolvable in-tree links the same pack publishes", needs = []},
   # Slice S1 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-08, materialized the same day, shipped 2026-09-09. Registered at
   # spec-authoring time, matching the precedent set by the
   # universal-implementer-dispatch U1 entry below: a brief's child scope is
   # derived from its registered spec memberships, so a confirmed slice with no
   # entry leaves the parent brief with no execution evidence.
-  {path = "docs/specs/install-to-ship-walkthrough/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:bce0bfb472ef852f0b77413f302a68f6ac42bab951d1ad0e4d4d6835ca20f3df", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Name the install-to-ship walkthrough on the guide hub and enter it from the marketing landing page, the documentation home, and getting-started, keeping the route intact after site generation", needs = []},
-  {path = "docs/specs/direct-skill-lifecycle/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md"}, summary = "Give an installed direct skill a route to a later revision of itself", needs = []},
-  {path = "docs/specs/cooling-brief-child-scope-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Give a cooled child a parent link readable without opening its body: source.parent answers three ways, and an absent or unresolvable value is unknown scope that names the entry and fails closed on every brief dependency", needs = []},
-  {path = "docs/specs/distribution-route-registry/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:b8daba8a937964f1cc37233cd613cdc8993d53bdcf64bc580ea7799e4741829d", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Build all three routes through one generic six-field registry with no route-name branches in shared code", needs = []},
   # U1 of universal-implementer-dispatch, confirmed 2026-09-03. Registered at
   # spec-authoring time by owner decision rather than at work-loop dispatch.
   # Slice D1 of phase-scoped-policy-delivery, shipped 2026-09-04. Registered
@@ -389,116 +350,19 @@ shipped = [
   # execution evidence, which the canonical reconciliation reports as an
   # impossible_transition. `reconcile` does not catch it; the roster's
   # fail-closed lifecycle test does.
-  {path = "docs/specs/phase-policy-registry-and-selector/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/phase-scoped-policy-delivery.md", revision = "sha256-bytes-v1:a737f4f9dda60bd2bc611217146fecd763e372893d5d0e6af24c55c0d5554dc3", parent = "docs/product/briefs/phase-scoped-policy-delivery.md"}, summary = "Declare which policy families each work-loop phase teaches and turn one selection key into the ordered families it selects, with each family's tier, its teaching-text locator and a confined digest of the file that carries the rule", needs = []},
-  {path = "docs/specs/sequential-implementer-dispatch/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/universal-implementer-dispatch.md", revision = "sha256-bytes-v1:9aaed0b51aafb824851b8adf47973188fa3a4ceb996367de0e2a57a96e018b28", parent = "docs/product/briefs/universal-implementer-dispatch.md"}, summary = "Route every spec-backed CODE-IMPLEMENTATION plan task through the implementer agent sequentially, admit the primary working tree as an execution root, and remove the four surfaces that deny it", needs = []},
-  {path = "docs/specs/status-projection-and-context-exclusion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "20c0ba50ebad22651694bc6f43715ee0df1a3938"}, summary = "Project closeout state, due reviews and exceptions, and exclude cooled artifacts from ordinary orientation", needs = []},
-  {path = "docs/specs/rfc0099-migration-validation-record/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md"}, summary = "Waive RFC-0099's unrun adopter study, close activation and shaping-review fixture gaps, and publish the maintained seven-family fixture register", needs = []},
-  {path = "docs/specs/rfc-architecture-simplification/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:a4a9a7d51de1c6ae7a434154e4dd17fa46d74693c60bc35af6a08341aa0965c4"}, summary = "Pre-write RFC artifact choice, adversarial RFC YAGNI review, architecture reuse and Stage-0 stopping, and architecture-specific YAGNI review without a new reviewer", needs = []},
-  {path = "docs/specs/cooling-untrusted-input-refusals/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Refuse malformed cooling-record input with a named code instead of raising", needs = []},
-  {path = "docs/specs/thirty-day-cooling-and-retirement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Compute the exact 30-day review date, persist the cooling record, and review it without auto-deleting", needs = []},
-  {path = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "6e984d67b583b36798efddbb2717ce5784572a49"}, summary = "Portable close-work closeout with separately confirmed immediate disposition", needs = []},
-  {path = "docs/specs/local-pytest-process-optimization/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25", revision = "f871fe506053ea17dd1702ccea37c802b78de557"}, summary = "Reduce pytest startup and repeated collection while preserving exact test semantics and proven isolation", needs = []},
   # RFC-0092 Phase 1A — shipped after Phase 0 established the route contract;
   # it supplied the third real route, which is what gates the Phase 2 registry
   # extraction that now follows it.
-  {path = "docs/specs/portable-agent-plugin-projection/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Project portable-eligible canonical skills into deterministic Agent Plugins 1.0.0 packages", needs = []},
-  {path = "docs/specs/distribution-route-contract/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/distribution-routes-programme.md", revision = "sha256-bytes-v1:329d3aec010ffd0f0b090022bac7faf35b85f337d9b3c719ab8063b7c74dbc45", parent = "docs/product/briefs/distribution-routes-programme.md"}, summary = "Separate distribution-route ownership from runtime adapters without changing APM or Claude package bytes", needs = []},
-  {path = "docs/specs/agents-md-lost-obligations/spec.md", kind = "spec", source = {mode = "repo-origin", revision = "0e1c1b04b0f7b46d9edaee319f6f194569816709"}, summary = "Restore AGENTS.md obligations lost during instruction-surface simplification", needs = []},
-  {path = "docs/specs/rfc0088-round10-measurement/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0088-web-pilot-foundation.md", revision = "a02389adad6033ccd684969db66418b25a238d52"}, summary = "Measure the four bounded RFC-0088 round-10 residuals", needs = []},
-  {path = "docs/specs/local-ci-shared-test-deduplication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-25"}, summary = "Execute five build-check-owned shared test files only once within one composed make ci", needs = []},
-  {path = "docs/specs/review-finding-adjudication/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-23", revision = "sha256-bytes-v1:6aee06c1ae0093929cf70d3088ce8db7ac05c128b2eea8cb2fd2f2d098af621b"}, summary = "Adjudicate every reviewer finding before it enters the main loop's decision or repair context", needs = []},
-  {path = "docs/specs/adjudicator-evidence-and-remedy-predicate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "conversation:2026-08-24"}, summary = "Bound machine-checkable adjudication evidence retries and distinguish wrong remedy mechanisms", needs = []},
-  {path = "docs/specs/rfc0088-round12-consumer-shaped-residuals/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Measure RFC-0088 open questions 4-6", needs = []},
-  {path = "docs/specs/rfc0088-round14-destination-adapter-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Amend RFC-0088 open question 3 to a destination adapter contract and measure the fixture pair", needs = []},
-  {path = "docs/specs/rfc0088-round15-reference-consumer/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run the reference-consumer observation on both admitted channels and record the per-group split-cost measurement result", needs = []},
-  {path = "docs/specs/m6-astro-work-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give PMs a static read-only view of canonical workspace status", needs = []},
-  {path = "docs/specs/m6-enterprise-rollout-playbook/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Guide champions through pilot, wave, and organization-wide adoption", needs = []},
-  {path = "docs/specs/project-knowledge-foundation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Establish safe portable project knowledge capture, distillation, and enquiry", needs = []},
-  {path = "docs/specs/project-knowledge-authoring-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge at authoring semantic gates", needs = []},
-  
-  {path = "docs/specs/project-knowledge-research-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Integrate project knowledge with independently verified research workflows", needs = []},
-  {path = "docs/specs/claude-plugin-hook-parity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Compile pack-authored hooks onto the Claude-plugin route behind a publisher-only branch control", needs = []},
-  {path = "docs/specs/engine-export-boundary/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "engine export boundary", needs = []},
-  {path = "docs/specs/guide-typed-asides-conversion/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Convert load-bearing guide blockquotes to typed Starlight asides while preserving genuine quotations", needs = []},
-  {path = "docs/specs/product-documentation-pack/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "product-documentation pack (Phase 1)", needs = []},
-  {path = "docs/specs/agentbundle-first-value-handoff/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "agentbundle-first-value-handoff", needs = []},
-  {path = "docs/specs/catalogue-curation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-curation pack", needs = []},
-  {path = "docs/specs/m2-frame-situation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-frame-situation", needs = []},
-  
-  
-  {path = "docs/specs/m1-governance-integration/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m1-governance-integration", needs = []},
-  {path = "docs/specs/spec-A-workspace-status-rename/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-A-workspace-status-rename", needs = []},
-  {path = "docs/specs/new-rfc-followon-queue-write/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "new-rfc follow-on queue-write guard", needs = []},
-  {path = "docs/specs/queue-add/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "queue-add — bridge session-surfaced items into the work queue", needs = []},
-  
-  {path = "docs/specs/spec-D-pack-workflow-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-D-pack-workflow-guide", needs = []},
-  {path = "docs/specs/spec-B-pack-status-skills/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-B-pack-status-skills", needs = []},
-  {path = "docs/specs/workspace-status-next-actions/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status-next-actions", needs = []},
-  {path = "docs/specs/workspace-status-queue-reconciliation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-status queue reconciliation", needs = []},
-  
-  {path = "docs/specs/capture-work/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "capture-work — universal capture-then-triage front-door", needs = []},
-  {path = "docs/specs/spec-C-workloop-argless-resume/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "spec-C-workloop-argless-resume", needs = []},
-  
-  {path = "docs/specs/author-brief-docs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "author-brief-docs", needs = []},
-  {path = "docs/specs/m2-diverge-solutions/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-diverge-solutions", needs = []},
-  {path = "docs/specs/m2-lean-canvas-and-initiative-brief/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-lean-canvas-and-initiative-brief", needs = []},
-  {path = "docs/specs/m2-place-bet/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-place-bet", needs = []},
-  {path = "docs/specs/m2-identify-opportunities/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-identify-opportunities", needs = []},
-  {path = "docs/specs/m2-map-capabilities/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-map-capabilities", needs = []},
-  {path = "docs/specs/m2-frame-intent-jtbd/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m2-frame-intent-jtbd", needs = []},
-  
-  
-  {path = "docs/specs/portfolio-pack-first-value-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "portfolio-pack-first-value-contract", needs = []},
-  {path = "docs/specs/m6-role-journey-guides/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m6-role-journey-guides", needs = []},
-  {path = "docs/specs/m5-linear-brief-intake-and-sync/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-linear-brief-intake-and-sync", needs = []},
-  {path = "docs/specs/portfolio-first-run-pilot-architect/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "portfolio-first-run-pilot-architect", needs = []},
-  {path = "docs/specs/portfolio-first-run-pilot-figma/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "portfolio-first-run-pilot-figma", needs = []},
-  {path = "docs/specs/m5-tracker-guides/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "m5-tracker-guides", needs = []},
-  {path = "docs/specs/new-guide-conversation-first/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "new-guide conversation-first", needs = []},
-  {path = "docs/specs/site-ui-primitives/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "site-ui-primitives", needs = []},
-  {path = "docs/specs/atlassian-sso-cookie-selector-integration-test/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "atlassian-sso-cookie-selector-integration-test", needs = []},
-  {path = "docs/specs/credbroker-security-hardening/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "credbroker-security-hardening", needs = []},
-  {path = "docs/specs/flaky-sso-store-concurrency-on-windows/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Flaky SSO store concurrency on Windows", needs = []},
-  {path = "docs/specs/site-design-system-spec/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "site-design-system-spec", needs = []},
-  {path = "docs/specs/jira-check-sso-auto-login/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "jira-check-sso-auto-login", needs = []},
-  {path = "docs/specs/confluence-crawler-check-auto-login/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Confluence crawler check auto-login", needs = []},
-  {path = "docs/specs/catalogue-test-carve-out/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue test carve-out", needs = []},
-  
-  {path = "docs/specs/workspace-mcp/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "workspace-mcp — Stage 1 implementation", needs = []},
-  {path = "docs/specs/m6-live-demo-guide/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run a peer-led shaping-to-spec demonstration on the adopting organization's repository", needs = []},
-  {path = "docs/specs/guide-title-clarity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Apply the four approved guide-title wording changes", needs = []},
-  {path = "docs/specs/docs-site-build-contract-hardening/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Harden docs rendering with site-local cleanup and built-in plugin tests", needs = []},
-  {path = "docs/specs/site-ci-contract-closure/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Require the existing site construction tests and docs contrast checker in CI", needs = []},
-  {path = "docs/specs/site-contract-provenance-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Reconcile frozen site decisions, living guidance, and legacy provenance", needs = []},
-  {path = "docs/specs/site-now-surface/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Publish released changelog highlights at Now without exposing in-progress work", needs = []},
-{path = "docs/specs/guide-metadata-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete reviewed metadata for every rendered public guide", needs = []},
-  {path = "docs/specs/docs-site-print-chrome-suppression/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Suppress the docs footer navigation link groups in print", needs = []},
-  {path = "docs/specs/site-browser-quality-gate/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Gate emitted-site responsiveness, accessibility, and navigation behavior", needs = []},
-  {path = "docs/specs/work-loop-in-process-guards/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Run every work-loop transition guard in the engine's own process", needs = []},
-  {path = "docs/specs/ci-gate-parallelization/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the SAST and export-boundary legs from build-check.yml into their own jobs behind a name-preserving aggregator, and split Gate A; targets in AC11", needs = []},
-  {path = "docs/specs/ci-gate-credbroker/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Extract the credbroker suite from gate-main into its own gate-credbroker job", needs = []},
-
-  {path = "docs/specs/journey-page-completion/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Complete priority journey evidence, orientation, and gate navigation", needs = []},
-  {path = "docs/specs/site-shared-chrome/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/tech-site-completion.md", revision = "7da8b07571e44fe5d6052f0efca7952484e173c8", parent = "docs/product/briefs/tech-site-completion.md"}, summary = "Share destination architecture while retaining renderer-local chrome", needs = []},
-  {path = "docs/specs/local-ci-orchestration/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Remove duplicate local CI orchestration and resolve Make's default Python once", needs = []},
-  {path = "docs/specs/architecture-decision-surface-portability/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "d5e68b6969bf601d06479a8ac14613bc9693d8fc"}, summary = "Resolve design, current architecture, and decision-record destinations without changing their methods", needs = []},
-  {path = "docs/specs/shaping-intake-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "f7660b00820dc06cf7f4618e0b6479d135e5c726"}, summary = "Reuse optional shaping and external work through portable core intake routing", needs = []},
-  {path = "docs/specs/core-guidance-artifact-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Install the canonical cut-before-adding ladder and simplify Core intent and delivery-brief routing", needs = []},
-  {path = "docs/specs/dependency-scoped-completion-receipts/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Project the dependency-scoped four-field completion receipt from the citing local need, so a dependant on a closed-out and pruned delivery resolves instead of reporting missing_dependency", needs = []},
-  {path = "docs/specs/reclassified-lifecycle-result/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Carry Reclassified in the lifecycle record by pairing it with retain-exception, reachable only from a retained record on a supplied acceptance and terminal thereafter", needs = []},
-  {path = "docs/specs/guide-callout-inventory/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Derive guide callout rendering expectations from source and validate the frozen ledger against itself", needs = []},
   # RFC-0096 Wave 7c slice 1 of 2. Read-only: it resolves whether any membership
   # points at a selected spec, including duplicate and legacy-alias forms. Shipped
   # 2026-09-13 at 31 focused roster cases; slice 2 composes it, and RFC-0096's
   # 2026-09-13 Errata uses it to re-verify each carved-out candidate before any
   # deletion.
-  {path = "docs/specs/selection-scoped-membership-absence/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md", revision = "3cca0ac77"}, summary = "Report, for a supplied non-empty selection of spec directories, whether any workspace.toml membership resolves to each one - canonical, duplicate or legacy alias - without mutating anything or widening default reconciliation", needs = []},
   # RFC-0096 Wave 7c slice 2 of 2. The destructive half: it removes an approved
   # selection of artifacts together with every membership resolving to them, and
   # refuses success unless one coherent observation taken under the shared lock
   # proves both sides absent. ADR-0114 forbids an atomic prune, so the invariant
   # closes the operation rather than the window. Shipped 2026-09-14.
-  {path = "docs/specs/two-sided-prune-closure-invariant/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md"}, summary = "Remove an approved selection of delivery artifacts and every workspace.toml membership resolving to them, proving both absent in one coherent locked observation before exit zero, and failing whenever either half survives", needs = []},
   # Shipped 2026-09-20. Membership tracked this spec's Status: `queue` while
   # it was Draft or Approved, `shipped` at closeout. The engine refuses a
   # mismatch as `impossible_transition`.
@@ -530,16 +394,13 @@ shipped = [
   # the cited artifact's current bytes, 20 differ and 1 `ref` is not a file.
   # A computed digest here would therefore assert a provenance check that
   # nothing performs and that most entries already fail.
-  {path = "docs/specs/architect-design-shape-overlay/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/architect-design-conditional-overlays.md"}, summary = "Add a system-shape axis to the architect-design router; the overlay probe ran separately as a spike and returned no verdict", needs = []},
   # Spike-first: the owner chose a measurement spike before the delivery
   # spec for ADR-0123. The delivery spec is a Follow-on in this spec rather
   # than a slice of it, because its thresholds come from this run's figures.
-  {path = "docs/specs/changelog-fragment-assembly-spike/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0123-product-changelog-per-update-sources-and-generated-views.md"}, summary = "Measure merge independence, deterministic assembly, /now/ parity and site-build cost for the per-update changelog design before its delivery contract pins a threshold", needs = []},
   # Shipped 2026-10-01 as core 2.27.10. Classification payloads now carry a
   # position-free `families` key beside `fingerprints`; nothing stores or
   # compares it yet. Severity normalisation is a closed list so a
   # reviewer-assigned bracketed id survives.
-  {path = "docs/specs/review-recurrence-family-key/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0104-light-mode-review-stops-on-divergence.md"}, summary = "Expose a position-free review-finding family key beside existing fingerprints without changing storage or review stops", needs = []},
   # Shipped 2026-10-05. The implementation landed across #1313, #1331, #1334,
   # #1340, #1347 and #1350; T9 and T10 were discharged by the two sibling specs
   # the plan named rather than by this one. Closed when all 76 criteria were
@@ -549,26 +410,19 @@ shipped = [
   # `docs/specs/jsonl-otlp-exporter-first-publish/`, which is Draft in `queue`.
   # The distribution is therefore Shipped as a contract and unpublished as an
   # artifact; those are deliberately different states here.
-  {path = "docs/specs/jsonl-otlp-exporter/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0115-loop-telemetry-sender-is-a-separately-installed-distribution.md"}, summary = "Publish a standalone JSONL-to-OTLP logs exporter with profile-defined field mapping and fail-closed input and endpoint controls", needs = []},
-  {path = "docs/specs/code-intelligence-golden-composition-example/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0031-code-intelligence-golden-composition-example.md", revision = "working-tree-2026-10-04"}, summary = "Show one complete Wicked Estate composition without making its provider-specific shape normative", needs = []},
 ]
 queue   = [
-  {path = "docs/specs/native-provider-selection-validation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0032-native-provider-selection-validation.md", revision = "working-tree-2026-10-04"}, summary = "Run a blind human validation that can survive, reframe, or leave inconclusive the native-provider selection bet", needs = []},
   # Draft 2026-10-05, carved out of `jsonl-otlp-exporter` when that spec closed.
   # It owns the one gesture the parent's contract never asked for and only the
   # maintainer can make: the first PyPI publication. Remains Draft and requires
   # human approval before dispatch; its T2 is explicitly not agent work.
-  {path = "docs/specs/jsonl-otlp-exporter-first-publish/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/jsonl-otlp-exporter/spec.md"}, summary = "Publish jsonl-otlp-exporter 0.2.0 to PyPI on a maintainer tag push, then verify the published artifact from the public index", needs = []},
-  {path = "docs/specs/guide-invocation-outcome-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Close the accepted guide invocation and outcome gaps and add source-grounded invocation phrasing to the accepted published skills", needs = []},
   # Slice S4 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after its clean-room adversarial review reached
   # clean on Round 2. It remains Draft and requires human approval before
   # dispatch.
-  {path = "docs/specs/tutorial-worked-examples/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add paired demonstrated inputs, representative outputs, and result-reading cues to every accepted-base tutorial", needs = []},
   # Slice S5 of sdlc-guide-uplift-and-learning-paths, confirmed by the owner
   # 2026-09-09 and registered after a clean shaping review and three adversarial
   # rounds. It remains Draft and requires human approval before dispatch.
-  {path = "docs/specs/how-to-sample-output-coverage/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md", revision = "sha256-bytes-v1:89da64999f25e3290e244f02207ed2f3572b56782ee4f0a42a134e3496c7d6cc", parent = "docs/product/briefs/sdlc-guide-uplift-and-learning-paths.md"}, summary = "Add source-grounded representative responses and success cues to every accepted-base how-to that already shows a literal request", needs = []},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -593,26 +447,19 @@ queue   = [
 shipped = [
   # Shipped 2026-10-04. ADR-0139: a token taxonomy silent on a domain the
   # surface needs is a third upstream-gap source; frontend-engineering 0.4.4.
-  {path = "docs/specs/silent-domain-gap/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Hold a visual domain a resolved token taxonomy leaves silent as an upstream gap routed to whoever produced the taxonomy, across the frontend rule table, entrypoint, guide, roster walk and evals", needs = []},
   # Shipped 2026-10-03. A roster test installs experience-design and
   # frontend-engineering together and walks six handoff paths through the
   # installed visual-authority rules; frontend-engineering 0.4.2 ships three
   # golden eval cases. Narrower than the cross-pack-experience-eval intent.
-  {path = "docs/specs/visual-handoff-golden-path/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Prove the experience-design to frontend-engineering visual handoff across the pack boundary: six paths walked through the installed authority rules, concrete taxonomy values consumed without fallback, and render-observe-correct ahead of the engineering gates", needs = []},
   # Shipped 2026-10-02. Makes the approved-visual-target rung resolve only on
   # `visual_target: confirmed`, migrating every carrier that restated the
   # superseded prose reading and enforcing it with a repository-level property
   # over a re-run sweep. Seven pre-EXECUTE review rounds and three post-gates.
-  {path = "docs/specs/visual-target-rung-precondition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the approved-visual-target rung require visual_target: confirmed, gate converge, visualize and creative-direction SKILL.md on a confirmed target under the three criteria visual-target-field retired on 2026-09-30, and migrate every carrier stating the superseded prose reading, enforced by a positive exclusive property over a re-run sweep", needs = []},
-    {path = "docs/specs/xd-copy-router/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/experience-design-skill-consolidation.md"}, summary = "Fold content-design, copy-direction and tone-of-voice into one copy-layer skill with three modes, reconciling six drifted shared references", needs = []},
-    {path = "docs/specs/xd-genre-router/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/experience-design-skill-consolidation.md"}, summary = "Fold six genre skills and information-architecture into one genre-aware skill and repair frontend-engineering's genre routing", needs = []},
-    {path = "docs/specs/creative-direction-modes/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give creative-direction five operations, divergence generation, and a capability-gated visual step, with a smaller always-loaded body; standalone, no brief", needs = []},
   # Shipped 2026-09-23. The composition and depth half of a two-spec split with
   # docs/specs/design-output-addressing (Shipped), which gives the three
   # crossing artifacts their addresses. Owner decision at intake: risk-tier
   # stays in journey body prose and `####` sub-stages; no journey `contract:`
   # key, so the five-declaration schema cost is not paid.
-  {path = "docs/specs/frontend-experience-composition/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Give experience-design and frontend-engineering one shared state-coverage map and one selectable, cheap-by-default depth ladder, with accessibility non-waivable at every tier", needs = []},
   # Shipped 2026-09-18. The frontend-engineering shared pre-flight, which all four
   # of its modes run, reads the adopter's named design handoff instead of
   # re-deriving an aesthetic direction. One new trust boundary: an
@@ -623,33 +470,23 @@ shipped = [
   # and are named in the spec's Follow-ons as needing an executable read path.
   # One owner waiver: the heightened-root confirmation control has no paired run,
   # because staging it means writing the operator's own home configuration.
-  {path = "docs/specs/design-handoff-read/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the frontend-engineering shared pre-flight read the adopter's named design handoff under bounded confinement, and fall back to canonical product references only for a slot no artifact filled", needs = []},
 
   # Shipped 2026-09-14. Lets a surface declare the minimum viewport width it
   # supports, so the channel axis stops requiring a capture below it. Supersedes
   # the "exactly the bands those breakpoints bound" and "exactly two channels"
   # criteria of the spec it needs, which take Status-line pointers to AC-0002
   # and AC-0003.
-  {path = "docs/specs/channel-minimum-width/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Let a surface declare its supported minimum width, so the rendered-page inspection stops requiring a capture below the width the surface supports", needs = []},
 
   # Shipped 2026-09-14. Makes viewport width a completeness axis of the
   # rendered-page inspection, so a capture set cannot sit entirely on one side of
   # every breakpoint a surface declares. Supersedes the height-only scroll-pair
   # criterion of the spec below, which carries a Status-line pointer to AC-0007.
-  {path = "docs/specs/rendered-page-channel-axis/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make viewport width a completeness axis of the rendered-page inspection, so a conforming capture set cannot sit entirely on one side of every breakpoint a surface declares", needs = []},
 
   # Shipped 2026-09-13. Makes the frontend-engineering pack look at the rendered
   # page, record what it saw, and refuse to complete a surface over an unresolved
   # blocking finding. Scope widened mid-delivery by owner decision to cover the
   # independent reviewer's seed, lens and capture ability; the amendment and the
   # five review rounds are in the spec's notes/verification-ledger.md.
-  {path = "docs/specs/rendered-page-visual-inspection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Make the frontend-engineering pack capture the rendered page in named states, judge it for reader-visible layout failures, and record the judgement in the evidence manifest the human acceptance gate reads", needs = []},
-
-  {path = "docs/specs/shaping-review-contracts/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0099-cut-before-adding-and-artifact-shaping.md", revision = "sha256-bytes-v1:6d7e5dad22929f72ccdbcc3d168a852e0fabdd433b041872abbaeb4e67189ae4"}, summary = "Cold-review intent, delivery-brief, and spec contracts without adding shaping-loop state", needs = []},
-  {path = "docs/specs/digital-experience-contract/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "digital-experience-contract", needs = []},
-  {path = "docs/specs/xd-copy-direction/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "xd-copy-direction", needs = []},
-  {path = "docs/specs/frontend-engineering-doctrine-update/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "frontend-engineering-doctrine-update", needs = []},
-  {path = "docs/specs/xd-skill-boundaries/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "xd-skill-boundaries", needs = []},
 ]
 ["ini-003".brief_queue]
 executing = []
@@ -1773,7 +1610,6 @@ open = [
   # what its AC12 fences. No source.parent: the engine requires that field to
   # resolve to a brief path, and this spec has no parent brief -- it is a slice
   # of an intent, which its own Provenance section records. Unblocks now.
-  {path = "docs/specs/claude-apps-route-docs/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10"}, summary = "Publish the no-terminal route as a reachable, honest pair of pages: a both-surfaces install how-to and a capability reference, with no first-value or install-success claim", needs = []},
   # The catalogue declares sequences and surfaces them by hand. Canonical corpus:
   # the 137 skills under packs/*/.apm/skills/*/SKILL.md (the literal tree holds
   # 510; the rest are projections and fixtures). How many already name a successor
@@ -2130,33 +1966,14 @@ open = [
   # `jira-epic-outcome-view` was the eleventh and is no longer here: its spec and
   # plan were approved on 2026-09-25, and an Approved spec cannot sit in
   # `backlog.open`, so it moved to `["ini-010".work].queue` alongside the approval.
-  { path = "docs/specs/tracker-projection-profile-table/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-backed-working-view.md", parent = "docs/product/briefs/intent-backed-working-view.md" }, summary = "Give every profile-table cell an explicit managed/trace/none classification, reconcile every row against ADR-0127 D1 through D4a from those classifications, and add the Jira Software column and the cross-repository delivery-brief rung", needs = [] },
-  { path = "docs/specs/bounded-remote-create-action/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-backed-working-view.md", parent = "docs/product/briefs/intent-backed-working-view.md" }, summary = "Add a create action to the bounded remote-action set under the existing confirmation contract, and derive the capability an action requires from the action so the shipped opt-in gate cannot fail open", needs = [] },
-  { path = "docs/specs/tracker-working-view-jira-software/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-backed-working-view.md", parent = "docs/product/briefs/intent-backed-working-view.md" }, summary = "Make canonical intent visible and actionable in Jira Software across ADR-0127's range and return shaped intent onto items the team already holds; declares the Jira create capability and documents the pattern the other delivery systems conform to", needs = [] },
-  { path = "docs/specs/tracker-working-view-jira-align/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-backed-working-view.md", parent = "docs/product/briefs/intent-backed-working-view.md" }, summary = "The same outcome on Jira Align, conforming to the Jira Software pattern; inherits the unverified Epic-to-Feature rename", needs = [] },
-  { path = "docs/specs/tracker-working-view-github/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-backed-working-view.md", parent = "docs/product/briefs/intent-backed-working-view.md" }, summary = "The same outcome on GitHub Issues + Projects, conforming to the pattern", needs = [] },
-  { path = "docs/specs/tracker-working-view-linear/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-backed-working-view.md", parent = "docs/product/briefs/intent-backed-working-view.md" }, summary = "The same outcome on Linear, conforming to the pattern", needs = [] },
-  { path = "docs/specs/delivery-state-observation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/delivery-state-and-flow-visibility.md", parent = "docs/product/briefs/delivery-state-and-flow-visibility.md" }, summary = "Read state, assignment, blocking and elapsed time over intent-backed work and fix what each observation means across delivery systems; useful at zero completed items. Needs work to be intent-backed by some delivery system; no brief orders it behind a named slice, so no edge is asserted", needs = [] },
-  { path = "docs/specs/flow-distribution-sample-honest/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/delivery-state-and-flow-visibility.md", parent = "docs/product/briefs/delivery-state-and-flow-visibility.md" }, summary = "Cycle time, throughput and percentiles over those observations, reporting the strongest claim the sample supports and naming it", needs = [] },
-  { path = "docs/specs/delivery-forecast-with-uncertainty/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "A delivery forecast carrying its range and its sample, distinguishable from a committed date", needs = [] },
-  { path = "docs/specs/progress-review-two-answers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/timeline-and-strategic-progress-review.md", parent = "docs/product/briefs/timeline-and-strategic-progress-review.md" }, summary = "Place the forecast beside the intent's declared outcome, read verbatim from its Outcome section, with both separations intact", needs = [] },
   # Work-item capture and disposition — delivery for CAP-0005 and its four
   # feature intents, all Accepted and therefore de-registered. These specs are
   # where the work stays visible. Each names exactly one parent feature intent
   # in `source.ref`, and the `needs` edges are the enforceable form of the
   # ordering each intent states in prose: capture, then promotion, then the two
   # routes that act on a promoted item.
-  {path = "docs/specs/work-item-mechanical-tier/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0006-work-item-capture-contract.md"}, summary = "Settle the deterministic half of capture validation — two checks over a cited repair target, and the open questions that choosing that target raises", needs = []},
-  {path = "docs/specs/work-item-promotion-handoff/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"}, summary = "Hand a captured item to the owner that handles work of its shape or close it because it should go nowhere, committing the terminal disposition either way", needs = []},
-  {path = "docs/specs/governance-item-record-routing/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0008-governance-item-record-routing.md"}, summary = "Route a captured question whose deliverable is a decision to a record naming who decides, eliciting the record type rather than deriving it, and refusing loudly when the authoring pack is absent", needs = []},
-  {path = "docs/specs/duplicate-coverage-offer/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0009-duplicate-coverage-check.md"}, summary = "Offer the artifact that already covers a captured item before promotion creates a second one; path proximity is refuted and the surviving question is whether coverage is discoverable at all", needs = []},
   # Confirmed delivery slices of docs/product/briefs/verb-mode-skills-and-slice-handover.md,
   # registered as Draft specs; the brief's Spec map owns the set. `needs` carries the build order.
-  { path = "docs/specs/component-slice-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "The Core component-slice contract and shape check, brief template fields, the slices route, and the checker changes, with intent decompose writing component slices", needs = [] },
-  { path = "docs/specs/value-stream-acquire-and-refresh/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Acquire and refresh a component slice from a local meta-repo checkout at a pinned, reviewed-branch revision", needs = [] },
-  { path = "docs/specs/value-stream-status-collection/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Receipts-only status collection in align-value-stream, the value-stream repo list, and the rollup as a view over component slices", needs = [] },
-  { path = "docs/specs/work-intake-modes/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Fold intent and brief authoring into work-intake modes behind a human-set write switch, retiring four Core skills at the removal gate", needs = [] },
-  { path = "docs/specs/value-stream-provider-read/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/verb-mode-skills-and-slice-handover.md", parent = "docs/product/briefs/verb-mode-skills-and-slice-handover.md" }, summary = "Stretch: a provider-pack read surface for meta-repos available only remotely", needs = [] },
   # Pre-existing on HEAD 2026-10-11: packs/core/tests/skills/work-loop/test_loop_engine.py::
   # test_recover_engine_state_tmp_never_tracebacks_and_deletes_only_bad_content[deep-nesting]
   # fails with "decision was silent" on an unmodified detached HEAD worktree.
@@ -2176,35 +1993,6 @@ milestone = "M2 · Authoring Discovery + Information Architecture"
 active  = [
 ]
 shipped = [
-  {path = "docs/specs/catalogue-spec-site/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0109-catalogue-specification-publication.md"}, summary = "RFC-0109 S3 — the catalogue specification on the docs site, at draft/", needs = []},
-  {path = "docs/specs/catalogue-manifest-schema/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0109-catalogue-specification-publication.md"}, summary = "RFC-0109 S2 — a schema for the catalogue release archive manifest", needs = []},
-  {path = "docs/specs/catalogue-spec-manifest/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0109-catalogue-specification-publication.md"}, summary = "RFC-0109 S1 — catalogue specification manifest and bundled-only contract loading", needs = []},
-  {path = "docs/specs/catalogue-wave6-technical-docs-ia/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/catalogue-wave6-technical-docs-ia.md"}, summary = "Catalogue Wave 6 — one Build a Catalogue docs tab carrying the ten RFC-0076 D9 routes, two docs-home routes, and pack.toml and SKILL.md field references generated from the schemas", needs = []},
-  {path = "docs/specs/catalogue-init-packageable/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/specs/catalogue-wave5-release-integrity/notes/verification-ledger.md"}, summary = "catalogue init writes a root AGENTS.md marker and CLAUDE.md shim so a blank catalogue packages and verifies with no hand edits; a bad package include entry reports CAT-PKG-001", needs = []},
-  {path = "docs/specs/catalogue-wave5-release-integrity/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/catalogue-wave5-release-integrity.md"}, summary = "Catalogue Wave 5 — per-unit content digests, release comparison with a prior archive, and refusal to replace an existing release unless forced", needs = []},
-  {path = "docs/specs/portable-catalogue-authentication/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Resolve target-bound HTTPS catalogue access through credbroker in one fixed provider order -- bearer, JFrog CLI, exact-machine .netrc, anonymous -- with no fallback after selection and no credential reaching AgentBundle state or output", needs = []},
-  { path = "docs/specs/jira-epic-outcome-view/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0014-tracker-native-value-before-adoption.md" }, summary = "Group a Jira scope by Epic and render each Epic's delivery reading beside its declared outcome, read from Jira and never authored here. Read-only, zero coupling to this repository's machinery per ADR-0126 D1-D3; the first slice obliged by that ADR", needs = [] },
-  {path = "docs/specs/catalogue-sync-dry-run/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "c1d4fbf1614c4ac4e173e06a7a623b54d2422343"}, summary = "agentbundle catalogue sync --dry-run and --check: resolve, replay, classify, and plan with no write path", needs = []},
-  {path = "docs/specs/direct-skill-repository-installation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/rfc/0098-direct-skill-repository-installation.md", revision = "38e017322df0a622ffba530116f97f204da594c2"}, summary = "Admit bounded direct skill repositories through the canonical AgentBundle install lifecycle", needs = []},
-  {path = "docs/specs/okf-authoring-projection/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Project pack-local OKF knowledge into deterministic portable Skills", needs = []},
-  {path = "docs/specs/catalogue-verifier-correctness/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-verifier-correctness", needs = []},
-  {path = "docs/specs/lint-performance-p0/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Batch git-ignore, reuse one lint inventory, and make lint falsification fixture-based", needs = []},
-  {path = "docs/specs/governance-guides-cleanup/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Governance guide reference cleanup", needs = []},
-  {path = "docs/specs/catalogue-verify-classification/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue verify classification", needs = []},
-  {path = "docs/specs/pack-test-boundary-remaining-packs/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "pack-test-boundary-remaining-packs", needs = []},
-  {path = "docs/specs/catalogue-wave1-contract-convergence/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-wave1-contract-convergence", needs = []},
-  {path = "docs/specs/catalogue-wave2-pack-integrations/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "catalogue-wave2-pack-integrations", needs = []},
-  {path = "docs/specs/documentation-entry-navigation/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "documentation-entry-navigation", needs = []},
-  {path = "docs/specs/catalogue-source-identity/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Define adapter-neutral local catalogue source identity", needs = []},
-
-  {path = "docs/specs/catalogue-wave3-enterprise-authoring-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bundled contracts for offline enterprise authoring", needs = []},
-  {path = "docs/specs/rendered-site-link-debt/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Repair rendered internal links and enforce generated-site link closure", needs = []},
-  {path = "docs/specs/okf-catalogue-discovery/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Expose bounded live OKF metadata through AgentBundle catalogue inspection", needs = []},
-
-  {path = "docs/specs/catalogue-wave4-semantic-contracts-index/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Catalogue Wave 4 — Semantic contracts and neutral index", needs = []},
-  {path = "docs/specs/pack-test-compatibility-classes/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Keep pack tests isolated by default and permit proven same-pack compatibility classes", needs = []},
-  {path = "docs/specs/catalogue-sync-apply/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "8cf5b8b3561c6790b259cd8eee7a5430ffe7c3e5"}, summary = "agentbundle catalogue sync apply path plus the four scoping flags: consent, jailed writes, guarded stale removal, and a pinned state write", needs = []},
-  {path = "docs/specs/catalogue-package-sync/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/architecture/catalogue/upstream-sync.md", revision = "52cb5911c5f90cadec3ee161cfbb9eab65663203"}, summary = "agentbundle catalogue sync package sync for both --package destinations: the vendored tooling root and packages/credbroker/, applied last, with a two-input self-replacement refusal", needs = []},
 ]
 queue   = [
 ]
@@ -2256,13 +2044,6 @@ active  = [
 queue   = [
 ]
 shipped = [
-  { path = "docs/specs/agent-skill-engineering-subagent-and-plugin-concepts/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Teach the portable subagent and plugin concepts an author needs — isolated worker context, delegation boundaries, and the standardised plugin core — and retire the seven runtime-profile leaves to open extension", needs = [] },
-  { path = "docs/specs/agent-skill-engineering-composition-fixtures/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:c9706aaf81a6bab3706b8c4f5c030c707a7e88510443e78c0a91b21762cb9fee", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Add the subagent-composition and hook/plugin-design behavior fixtures, graded blind against retained transcripts, and re-measure every inherited authoring result the shared digest moves", needs = [] },
-  { path = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md", kind = "spec", source = { mode = "repo-origin", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Wire work-loop and architect-design to the installed agent-skill-engineering provider with a bounded request-inlining step, and publish the seam's diagnostic vocabulary to an installed surface", needs = [] },
-  { path = "docs/specs/agent-skill-engineering-composition-floors/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:f4ecebf39306f44b06cee660db055899ade9dbc71bf563196c844537e8a94063", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Admit the three portable composition floors and a probe-verified Claude Code pilot profile, and build the runtime capability-claim ledger with its lifecycle states and profile roll-up", needs = [] },
-  { path = "docs/specs/agent-skill-engineering-languages-and-execution/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Add language-specific and execution-economics corpus depth after the corpus baseline ships", needs = [] },
-  { path = "docs/specs/agent-skill-engineering-corpus/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:fef790246776e6716ee7eb94e4aad9c2805a8a608ced3f0917676fa4ad59803b", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Deliver the governed corpus, skill-pattern census, topology, retrieval baseline, and knowledge-provider authoring mode", needs = [] },
-  { path = "docs/specs/agent-skill-engineering-foundation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/agent-skill-engineering.md", revision = "sha256-bytes-v1:42fe891e902f906db83b55c12a67d5362589afd9b00765aeeb5632a0b2d14e9f", parent = "docs/product/briefs/agent-skill-engineering.md" }, summary = "Build the portable agent-skill-engineering foundation and close its two OKF compiler prerequisites", needs = [] },
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2354,10 +2135,7 @@ queue   = [
 ]
 active  = [
   # Slice 1 of `workspace-registry-retirement-delivery`; Approved 2026-10-25 and moved from `queue` when it became Implementing the same day.
-  { path = "docs/specs/workspace-retirement/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The workspace retirement record: a per-PR-checked consumer inventory and the per-fact disposition, with removal authority, that RFC-0105 D3 requires", needs = [] },
   # Slice 8 (B) of `workspace-registry-retirement-delivery`, Implementing 2026-10-29; its own spec-entry-drop repair removes these two entries
-  { path = "docs/specs/spec-registration-stop/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Stop registering repo-origin specs: dispatch from dispatch.py, remove unregistered_work, and drop the entries with a repair", needs = [] },
-  { path = "docs/specs/readiness-bridge-dispatch-input/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Re-point the navigate-intents readiness bridge to work-loop dispatch output", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must
@@ -2377,67 +2155,41 @@ active  = [
 # but slices 2 and 3 are not yet cut.
 shipped = [
   # Slice 8 part A of `workspace-registry-retirement-delivery`; Approved 2026-10-29 and moved from `queue` when it became Implementing the same day; Shipped 2026-10-29 as core 3.1.35 and moved from `active`.
-  { path = "docs/specs/header-derived-dispatch/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Build a read-only work-loop dispatch command from spec headers and replay it against canonical dispatch over a frozen corpus", needs = [] },
   # Slice 7 of `workspace-registry-retirement-delivery`; Shipped 2026-10-28 as core 3.1.29, moved from `active` with the spec `Shipped` and the plan `Done`.
-  { path = "docs/specs/intent-brief-registration-stop/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Stop registering repo-origin intents and briefs, remove their entries with the intent-brief-drop repair, and amend the contracts that required them", needs = [] },
   # Slice 6 of `workspace-registry-retirement-delivery`; Shipped 2026-10-27, moved from `active` with the spec `Shipped` and the plan `Done`
-  { path = "docs/specs/next-item-suggestions-removal/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Next-item suggestions removed: workspace-status Next-actions drops the first-in-list next_queue and next_shape choices and offers each active spec as its own choice", needs = [] },
   # Slice 2 of `workspace-registry-retirement-delivery`; Shipped 2026-10-26, moved from `active` with the spec `Shipped` and the plan `Done`.
-  { path = "docs/specs/depends-on-headers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Dependency edges on the waiting item: Depends on: headers and their reader, the unmigrated needs refusal, and the needs-to-header repair", needs = [] },
   # Slice 3 of `workspace-registry-retirement-delivery`; Shipped 2026-10-26, moved from `active` with the spec `Shipped` and the plan `Done`.
-  { path = "docs/specs/captured-item-files/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Captured items in their own files: the file shape and its reader, the unmigrated captured-item refusal, file-based shaping-item routing, and the captured-to-file repair", needs = [] },
   # Slice 4 of `workspace-registry-retirement-delivery`; Shipped 2026-10-27, moved from `active` with the spec `Shipped` and the plan `Done`.
-  { path = "docs/specs/priority-header-field/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The optional Priority: header field on intents, briefs, specs and captured items, its reader and lint, and the guard that nothing ordering work reads it", needs = [] },
   # Slice 5 of `workspace-registry-retirement-delivery`; Shipped 2026-10-27, moved from `active` with the spec `Shipped` and the plan `Done`.
-  { path = "docs/specs/registry-comparison/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The read-only registry comparison: FEAT-0034 classes over outstanding work, captured-item files and workspace.toml, run before each registration stop", needs = [] },
   # Slice 3 (second half) of `workspace-registry-retirement-delivery`; Shipped 2026-10-27, moved from `active` with the spec `Shipped` and the plan `Done`.
-  { path = "docs/specs/captured-item-registration-stop/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Captured items stop being registered: every captured-item writer writes only its file, a closed captured item settles a dependency through its own Status: and Resolution:, and the contracts that required registration are amended", needs = [] },
-  { path = "docs/specs/intent-view-record-owners/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md"}, summary = "Carry each record's Owner: header through the intent derivation and query, show it on every intent view row, and narrow every question to one owner with a page-wide Owner control", needs = [] },
   # Shipped 2026-10-21 as core 3.1.15: the intent view readiness bridge (slice 11b of
   # intent-navigation-delivery). Evidence is in its notes/verification-ledger.md.
-  { path = "docs/specs/intent-view-readiness-handover/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show workspace-status's active, ready and blocked sets and the argless work-loop mark in the intent view from a piped, size-capped, schema-checked and allowlisted status projection, with workspace findings in What is broken", needs = [] },
   # Slice 6 of `intent-navigation-delivery`, shipped 2026-10-21 (core 3.1.13); moved from `queue` when the spec was set Shipped.
-  { path = "docs/specs/lint-traceability-intent-parity/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "lint-traceability classifies intent ladder kinds from the preamble only, with a parity check against the navigator", needs = [] },
   # Slice 7 of `intent-navigation-delivery`, shipped 2026-10-21 (core 3.1.12); moved from `queue` when the spec was set Shipped.
-  { path = "docs/specs/typed-discovery-pointers/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Typed intent-valued Discovery: pointers end to end: resolver accepts every registered kind, writers, forward check, and one-time sweep", needs = [] },
   # Slice 5 of `intent-navigation-delivery`, shipped 2026-10-20 (core 3.1.11); moved from `queue` when the spec was set Shipped.
-  { path = "docs/specs/graph-well-formed-authoring/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Skills write Parent intent: and Brief: as typed references, with a forward check", needs = [] },
   # Slice 11a of `intent-navigation-delivery` (the copyable next-step prompt), shipped 2026-10-19 (core 3.1.10); moved from `active` when the spec was set Shipped.
-  { path = "docs/specs/intent-view-handover-prompt/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Show a fixed-template, grammar-checked next-step prompt with a Copy control in the intent view's detail zone, selecting it for manual copy when the clipboard refuses", needs = [] },
   # Slice 13 of `intent-navigation-delivery` (tree, roadmap and grouped rail), shipped 2026-10-17 (core 3.1.8); moved from `active` when the spec was set Shipped.
-  { path = "docs/specs/intent-view-tree-and-roadmap/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Group the intent view rail by job, add a capability progress question under each product strategy, and give Browse all intents Show, Group and expand controls", needs = [] },
   # Slice 12 of `intent-navigation-delivery`, shipped 2026-10-17 (core 3.1.7); moved from `active` when the spec was set Shipped.
-  { path = "docs/specs/intent-view-source-and-style/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Author the intent view script as joined source parts and apply the owner-refined style: soft zones, tinted state pills, a clearer detail card and reduced-motion-aware fades", needs = [] },
   # Slice 8 of `intent-navigation-delivery`, shipped 2026-10-14 (core 3.1.5); moved from `active` when the spec was set Shipped.
-  { path = "docs/specs/intent-dependency-graphs/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Read-only intent dependency graphs from typed Depends on headers, in bounded JSON, text, and offline HTML", needs = [] },
   # Slice 10 of `intent-navigation-delivery`, shipped 2026-10-13 (core 3.1.2); moved from `active` when the spec was set Shipped.
-  { path = "docs/specs/intent-view-session-start/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Redesign the offline intent view around four session-start questions, with the shared view stylesheet and its parity gate", needs = [] },
-  { path = "docs/specs/intent-node-headings/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Give brief and spec nodes a heading from their title line, bounded to the preamble region, and carry it on outstanding items", needs = [] },
   # Slices 1 and 4 of `intent-navigation-delivery`, delivered 2026-10-11 on `feature/intent-navigation`
   # and published with it; moved from `active` in the same commit that set both specs `Shipped`.
-  { path = "docs/specs/intent-navigation/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "Navigator core: header-derived intent graph, bounded query, text tree, and outstanding-work view", needs = [] },
-  { path = "docs/specs/intent-navigation-export/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "The offline HTML view of the intent graph, and publication of navigate-intents", needs = [] },
   # Slice 3 of `intent-navigation-delivery`, delivered 2026-10-10 on `feature/intent-navigation`;
   # moved from `active` in the same commit that set the spec `Shipped`.
-  { path = "docs/specs/related-intents-field/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "The Related intents: intent field, its validation, and its display in the query and tree", needs = [] },
   # Slice 2 of `intent-navigation-delivery`, delivered 2026-10-10 on `feature/intent-navigation`;
   # moved from `active` in the same commit that set the spec `Shipped`.
-  { path = "docs/specs/close-work-intent-graph-convergence/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-navigation-delivery.md", parent = "docs/product/briefs/intent-navigation-delivery.md" }, summary = "close-work takes intent and brief parent edges from the shared intent derivation", needs = [] },
   # FEAT-0003's single delivery unit. Delivered 2026-10-07 and moved from
   # `active` to `shipped` in the change that set the spec `Shipped` and the plan
   # `Done`.
-  { path = "docs/specs/intent-delivery-traceability/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/intents/FEAT-0003-intent-delivery-traceability.md" }, summary = "Provide one confined, header-only typed delivery-relation snapshot to close-work and lint-traceability without collapsing provenance; the linked plan carries the adapter-root and consumer-convergence sequence", needs = [] },
   # The final slice of `intent-identity-and-registration`. Delivered
   # 2026-10-03 and moved from `active` to `shipped` in the change that set the
   # spec `Shipped` and the plan `Done`. Ships the installed retire-and-issue
   # rename, its recovery, and one-hop tombstone resolution.
-  { path = "docs/specs/intent-rename-transaction/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "The intent rename transaction", needs = [] },
   # The final confirmed slice of `intent-identity-and-registration`, delivered
   # 2026-09-29 and moved from `backlog.open` in the same change that set the
   # spec `Shipped` and the plan `Done`. It keeps three out-of-root forms
   # distinct: symlink traversal and `..` refuse, while an absolute-only path
   # outside the repository asks before use.
-  { path = "docs/specs/frame-intent-escape-verdicts/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Three out-of-root escape forms get three verdicts: a symlink refuses, a dot-dot segment refuses under ADR-0030 D6, and an absolute-only external path keeps D7 Ask-first", needs = [] },
   # Slice 8 of `intent-identity-and-registration`. Delivered 2026-09-29 and
   # moved from `active` to `shipped` in the change that set the spec
   # `Shipped` and the plan `Done`; membership and status move together or the
@@ -2449,27 +2201,22 @@ shipped = [
   # `intent-rename-h1-title-false-refusal`, was retired 2026-10-02 once the
   # exemption shipped in code; the retirement note sits above that entry's
   # former position.
-  { path = "docs/specs/intent-renumber-and-reissue/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Intent renumber, reissue, and the tombstone", needs = [] },
   # Slice 2 of `intent-lifecycle-and-closure`, delivered 2026-09-27 and moved
   # from `queue` to `shipped` in the same change that set the spec `Shipped`
   # and the plan `Done`. Membership and status move together: leaving a
   # non-`Draft` spec in an open collection is what `workspace-queue-reconciliation`
   # reports as `impossible_transition`, which is the same invariant this
   # slice's own check refuses a closure on.
-  { path = "docs/specs/closure-eligibility-check/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "A terminal transition fires a closure check on its ancestors that gathers descendant state at decision time, classifies refuse/not-eligible/eligible without collapsing the first two, presents an evidence packet a human decides on, and records the decision", needs = [] },
   # Slice 3 of `intent-lifecycle-and-closure`, delivered 2026-09-26 and moved
   # from `active` in the same change that set the spec `Shipped` and the plan
   # `Done`, for the membership-and-status reason recorded just above. Slice 2
   # stays blocked on `intent-identity-and-registration` recording the carve-out
   # mark and the closed-empty marker, so the parent brief stays `Executing`:
   # two of its four slices are materialized and both are Shipped.
-  { path = "docs/specs/brief-lifecycle-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "Give a brief a state table, a legal transition set and a Cut-closed declaration a bounded comment-aware preamble reader decides, with the vocabulary and coherence predicate moved to one defining home and every brief read in the coverage lint routed through that reader", needs = [] },
   # Slice 7 of `intent-identity-and-registration`, shipped 2026-09-26 after a
   # controlled plan amendment repaired ownership of the field-reference parity
   # input. It owns two declarations needed by `intent-lifecycle-and-closure`
   # slice 2, while closure refusal behavior stays with that consuming slice.
-  { path = "docs/specs/intent-preamble-closure-declarations/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Declare Outcome co-owner as a validated typed peer pointer and add a closed-empty Decomposed terminus while keeping closure refusal behavior out of this slice", needs = [] },
-  { path = "docs/specs/lifecycle-transition-contract/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-lifecycle-and-closure.md", parent = "docs/product/briefs/intent-lifecycle-and-closure.md" }, summary = "An intent's Status is a closed contract a snapshot lint can decide: a state asserting delivery carries the Accepted and Fulfilled records that authorise it, on a corpus-lint-only seam, with no rule it adds reachable from the shared validate_live_intent surface", needs = [] },
   # Slice 6 of `intent-identity-and-registration`, cut 2026-09-23 on the second
   # distinct confirmation the post-Ready slice path requires. It delivers the two
   # 2026-09-23 inbound entries in that brief's Post-Ready decisions, both handed
@@ -2479,7 +2226,4 @@ shipped = [
   # on that spec's own twice-stated precedent that a shipped spec's criteria are
   # historical. `needs` is empty: ini-010's other queued spec takes no blocking
   # edge on it and consumes whichever form lands.
-  { path = "docs/specs/intent-preamble-lifecycle-records/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Split supersession into a bare Status: Superseded plus a Superseded by: pointer field, and give the Accepted: and Fulfilled: records a dated-evidence value shape; the value rules sit on the per-artifact surface and the pairing and resolution rules on the corpus-lint-only one", needs = [] },
-  { path = "docs/specs/intent-reference-grammar-migration/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Cross-artifact reference grammar and pointer migration", needs = [] },
-  { path = "docs/specs/typed-intent-ordinal-allocator/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/intent-identity-and-registration.md", parent = "docs/product/briefs/intent-identity-and-registration.md" }, summary = "Prefix-type-aware intent ordinal allocator", needs = [] },
 ]

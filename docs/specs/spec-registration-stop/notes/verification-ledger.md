@@ -79,3 +79,32 @@ Every difference falls under a case that the [`header-derived-dispatch`](../../h
 | `docs/product/briefs/workspace-registry-retirement-delivery.md` Non-goals (AC-0045) | "…adds, removes or rewords a finding code…" | eugenelim (owner), 2026-10-29T15:19-05:00 |
 | `docs/rfc/0106-stop-registering-derivable-work.md` § Errata, last sentence (AC-0027) | "The tracker-origin spec entries, and their writers, stay until slice 9." (re-approved: one word added for the `tracker-origin` literal) | eugenelim (owner), 2026-10-29T15:24-05:00 |
 | `docs/specs/workspace-retirement/spec.md` AC-0021 (controlled amendment of that Implementing spec) | "…is a `contract` row, unless the file no longer mentions `workspace.toml`, `workspace-status` or `workspace_status`." | eugenelim (owner), 2026-10-29T17:24-05:00 |
+
+## The repair on this repository (AC-0036, AC-0037, AC-0038)
+
+Run 2026-10-29 on this branch after every writer task (T2, T3, T4, T6, T7, T8) had landed.
+
+```
+python packs/core/.apm/skills/workspace-status/scripts/workspace_status.py repair-plan --root . --plan-file .context/repair/plan.json
+python packs/core/.apm/skills/workspace-status/scripts/workspace_status.py repair-apply --root . --plan-file .context/repair/plan.json --yes
+```
+
+Plan: `plan_id` `8e62a2e96129b382264224494d68bdf9070cfa081aebb1fefbc1dfcb64c2bc95`, file SHA-256 `6826caa6b83cb18b3bc2f5cc282fe6854d8bb2506ceeccbe37fdc3bcc7816c3b`, registry fingerprint `777a6c01f31f322884bede5d743da02f222b15ca2b228601f63da7a903f07fb0`. The owner was shown the plan file path, its SHA-256 and its operation counts, and approved the apply before it ran (2026-10-29, eugenelim).
+
+| Planned | Count |
+| --- | ---: |
+| `needs-to-header` operations | 0 |
+| `needs-drop-cooled` operations | 0 |
+| held entries | 0 |
+| needs manual items | 0 |
+| `type1-untracked` items | 0 |
+| `spec-entry-drop` operations | 243 (214 `work.shipped`, 20 `backlog.open`, 5 `work.queue`, 4 `work.active`) |
+
+Apply: exit `0`, `applied: true`, `operations_applied: 243`; 243 entries removed; `workspace.toml` SHA-256 `777a6c01f31f322884bede5d743da02f222b15ca2b228601f63da7a903f07fb0` before, `f9ebb555f640a756e487d9e6112af626f9ce85f9580d16b89764c9c9c820ec09` after. A following `repair-plan` holds no operation and no manual item. No repo-origin spec table is left in `workspace.toml`, and `tools/compare-registry.py --root .` still passes.
+
+| Stdout of | SHA-256 before the apply | SHA-256 after the apply |
+| --- | --- | --- |
+| `dispatch.py --root .` | `96d8f586fcb5315e3187f56734d8832eb35397b7119541c25f47a69c6c9f3a7f` | `96d8f586fcb5315e3187f56734d8832eb35397b7119541c25f47a69c6c9f3a7f` |
+| `dispatch.py --root . --resume docs/specs/spec-registration-stop/spec.md` | `06d395d484a0e49c3c7a2c8360adcb072dd42810af27ce90ed05b74f633c622d` | `06d395d484a0e49c3c7a2c8360adcb072dd42810af27ce90ed05b74f633c622d` |
+
+Both pairs are equal, and the plan held no needs operation and no held entry.
