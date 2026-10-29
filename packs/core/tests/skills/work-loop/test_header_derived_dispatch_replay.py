@@ -14,7 +14,7 @@ start, argless resume, a named start and a named resume.
 The base outcome comes from `workspace-status reconcile` at commit `95a8cc985`,
 checked out as a `git worktree` so its sibling modules are that commit's. The
 base decision transcribes `work-loop`'s SKILL.md lines 168-195 at that commit.
-To record (once, never again), run this file with
+To record only the cases missing from the file (a recorded key is never rewritten), run this file with
 `HEADER_DISPATCH_BASE=<worktree>` and `HEADER_DISPATCH_RECORD=1` set.
 
 `CLASSIFICATION` names every difference by case, spec path and field, with the
@@ -380,7 +380,18 @@ def _cases() -> list[RCase]:
             + _e("trk-paused", mode="tracker-origin", source_extra=TRACKER) + "]\n",
         )
 
+    def dependent_finding(repo: Any) -> None:
+        repo.spec("waited", "Implementing")
+        repo.spec("dependent", "Draft", depends="spec:waited")
+        repo.workspace(active=[_e("waited")], queue=[_e("dependent")])
+
+    def dotted_slug(repo: Any) -> None:
+        repo.spec("dotted-1.0", "Shipped", plan="Done")
+        repo.workspace(shipped=[_e("dotted-1.0")])
+
     cases += [
+        _simple("dependent-finding-names-spec", dependent_finding),
+        _simple("dotted-slug-selector", dotted_slug),
         _simple("several-ready", several_ready),
         _simple("several-active", several_active),
         _simple("unmigrated-needs-beside-ready", unmigrated_needs),
@@ -501,6 +512,14 @@ def _slim(decision: dict[str, Any]) -> dict[str, Any]:
     return _decision(decision["action"], decision["path"], decision["candidates"])
 
 
+def _header_named(D: ModuleType, root: Path, mode: str, path: str) -> dict[str, Any]:
+    """A named decision; an invalid selector is the action `invalid_selector`, as in the replay tool."""
+    try:
+        return D.dispatch(root, mode, path)["decision"]
+    except D._InvalidSelector:
+        return {**_decision("invalid_selector"), "findings": []}
+
+
 def _header_observe(D: ModuleType, case: RCase, root: Path) -> dict[str, Any]:
     result = D.dispatch(root)
     ready = {i["path"] for i in result["ready"]}
@@ -508,15 +527,13 @@ def _header_observe(D: ModuleType, case: RCase, root: Path) -> dict[str, Any]:
     specs: dict[str, Any] = {}
     named_codes: dict[str, Any] = {}
     for path in _spec_paths(case, root):
-        start = D.dispatch(root, "start", path)["decision"]
-        resume = D.dispatch(root, "resume", path)["decision"]
+        named = {mode: _header_named(D, root, mode, path) for mode in ("start", "resume")}
         specs[path] = {
             "ready": path in ready, "active": path in active,
-            "start": _slim(start), "resume": _slim(resume),
+            "start": _slim(named["start"]), "resume": _slim(named["resume"]),
         }
         named_codes[path] = {
-            "start": sorted({f["code"] for f in start["findings"]}),
-            "resume": sorted({f["code"] for f in resume["findings"]}),
+            mode: sorted({f["code"] for f in named[mode]["findings"]}) for mode in named
         }
     argless = _slim(result["decision"])
     return {
@@ -579,6 +596,20 @@ def _admitted(case: str, slug: str, authority: str) -> dict[tuple[str, str, str]
     return _unregistered(case, slug, "start", "ready", authority)
 
 
+def _dependent_finding() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None]]:
+    """The base names `waited` in the Draft `dependent`'s finding; a Draft has no membership now."""
+    case, path = "dependent-finding-names-spec", _p("waited")
+    return _removal(case, path, "resume", _REFUSE, _decision("resume", path), _errata(case))
+
+
+def _dotted_slug() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None]]:
+    """A dotted slug is no accepted selector: the headers exit 2 where the base refused."""
+    case, path = "dotted-slug-selector", _p("dotted-1.0")
+    refused = _decision("invalid_selector")
+    table = _removal(case, path, "start", _REFUSE, refused, _errata(case))
+    return table | _removal(case, path, "resume", _REFUSE, refused, _errata(case))
+
+
 def _table() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None]]:
     table: dict[tuple[str, str, str], tuple[Any, Any, str, str | None]] = {}
     # RFC-0106 D1: a spec that is not registered is dispatched from its header.
@@ -592,6 +623,9 @@ def _table() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None]]:
             "several-ready", "*", shape,
             _decision("start", _p("one")), _decision("ask", candidates=several), D3,
         )
+    # RFC-0106 § Errata (2026-10-29): the two cases below, approved by the owner.
+    table |= _dependent_finding()
+    table |= _dotted_slug()
     # Each below needs an RFC-0106 § Errata entry, written after the owner approves it.
     for case, slug in (
         ("duplicate-membership", "dup"),
@@ -652,9 +686,12 @@ def test_record_the_base_outcomes_once(tmp_path: Path) -> None:
     """The recorder: run against a worktree of 95a8cc985; it never overwrites."""
     if not (_RECORD and _BASE):
         pytest.skip("set HEADER_DISPATCH_BASE=<worktree> and HEADER_DISPATCH_RECORD=1 to record")
-    assert not _EXPECTED_PATH.exists(), "expected.json is frozen: never re-record"
-    recorded: dict[str, Any] = {}
+    recorded: dict[str, Any] = (
+        json.loads(_EXPECTED_PATH.read_text(encoding="utf-8")) if _EXPECTED_PATH.exists() else {}
+    )
     for case in CASES:
+        if case.name in recorded:
+            continue  # frozen: a recorded key is never overwritten
         root = tmp_path / case.name
         _plant(case, root, "base")
         try:
@@ -663,6 +700,7 @@ def test_record_the_base_outcomes_once(tmp_path: Path) -> None:
             for path in root.rglob("*"):
                 if path.is_file() and not path.is_symlink():
                     path.chmod(0o644)
+    assert recorded, "nothing recorded"
     _EXPECTED_PATH.parent.mkdir(parents=True, exist_ok=True)
     _EXPECTED_PATH.write_text(json.dumps(recorded, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     pytest.skip("recorded expected.json from the base engine")
