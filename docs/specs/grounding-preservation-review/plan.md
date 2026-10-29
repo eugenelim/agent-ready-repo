@@ -57,13 +57,14 @@ The typed-report section, identical in both reviewer files, is a new
 `## Typed report` section placed immediately before
 `## Vague feedback is unhelpful feedback`, a heading both files carry. It says:
 
-1. It governs only the modes that return a findings block; intent mode, and
-   `quality-engineer`'s test-author and testability-audit modes, ignore it.
-   Without a request, the findings block or clean line is the whole output and
+1. It governs only the modes that return a findings block; the property
+   decides, so the section names no mode. Without a request, the findings block or clean line is the whole output and
    the shipped raw classifier reads it as before. When the caller asks for a
-   typed report, the reviewer returns only one fenced `json` block holding it,
-   which the caller passes to the typed review path rather than to the raw
-   classifier.
+   typed report, the reviewer returns only one fenced `json` block holding
+   `terminal_status` and `findings`, which the caller completes and passes to
+   the typed review path rather than to the raw classifier. That return is not
+   the file's `adversarial-review-complete` or `quality-review-complete` gate,
+   whose text stays unchanged; the typed obligation decision governs it.
 2. The reviewer returns `terminal_status` and `findings`. `clean`, `unable`,
    and `indeterminate` carry no findings; `findings` carries one or more. The
    caller fills the report's `schema_version`, `report_id`, `role`, `subject`,
