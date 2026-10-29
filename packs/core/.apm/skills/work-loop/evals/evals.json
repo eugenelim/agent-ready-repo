@@ -889,12 +889,12 @@
     {
       "id": "risk-trigger-modify-not-touch",
       "prompt": "You are adding a unit test that imports and calls the repository's existing path-confinement helper. You change no line of that helper. Does the compliance, governance, or security-boundary risk trigger fire, routing the work to full mode?",
-      "expected_output": "No. That trigger names a thing you can modify, and it fires only when the change modifies that thing — its definition, its implementation, or what it guarantees. Reading it, calling it, testing it, documenting it, or regenerating a projection of it does not change the thing, so none of those fire it. Writing a test that calls the helper is calling it. The documentation exemption is not unconditional: prose *about* such a thing is exempt, but prose that *is* the rule — agent guidance, policy, an interface document — is the thing itself, so editing it fires the trigger. If instead you rewrote the helper's internals while preserving its behaviour, the trigger would fire: a modification that preserves behaviour still modifies the thing.",
+      "expected_output": "No. That trigger names a thing you can modify, and it fires only when the change modifies that thing — its definition, its implementation, or what it guarantees. Reading it, calling it, testing it, documenting it, or regenerating a projection of it does not change the thing, so none of those fire it. Writing a test that calls the helper is calling it. The documentation exemption is not unconditional: prose *about* such a thing is exempt, but prose that *is* the rule is the thing itself. Editing existing agent guidance fires the trigger only when it changes a tool surface, an authority or gate, a security boundary, or a published schema; editing policy or compliance prose, or an interface document, still fires the trigger. If instead you rewrote the helper's internals while preserving its behaviour, the trigger would fire: a modification that preserves behaviour still modifies the thing.",
       "assertions": [
         "Response answers that the trigger does not fire",
         "Response distinguishes modifying the thing from reading, calling, testing, documenting, or reprojecting it",
         "Response identifies writing a test that calls the helper as calling it",
-        "Response states that editing prose which IS the rule -- agent guidance, policy, an interface document -- fires the trigger, unlike prose merely about it",
+        "Response states that editing existing agent guidance fires the trigger only when it changes a tool surface, an authority or gate, a security boundary, or a published schema, while editing policy or compliance prose, or an interface document, still fires it",
         "Response states that a behaviour-preserving rewrite of the helper would fire the trigger",
         "Response does not treat mere contact with a security-relevant file as firing the trigger"
       ]
@@ -1469,6 +1469,108 @@
         "Response uses at least five alternating runs of base and change",
         "Response reports the median, range, and run count",
         "Response writes no red test, because a measurement has no red to earn"
+      ]
+    },
+    {
+      "id": "bundle-split-independent-tasks",
+      "prompt": "I have two small tasks in one request: fix a typo in one skill reference, and fix a broken link in another. Neither changes a tool surface, an authority or gate, a security boundary, or a published schema. Neither task has a `Depends on:` line, and their `Touches:` sets name different files. Do I run one light pass or split them?",
+      "expected_output": "Split the bundle into one unit per task. Parts 1 and 2 of the test pass now, from the decision record: no dependency edge and no shared write set. Part 3, the diff check, is still pending: each unit's finished diff must stay inside its own set, because a declared set is only a prediction. Each unit faces every risk trigger and eligibility row on its own; as plain edits to existing guidance, both run light, each as its own branch and pull request, one at a time in this session. No light unit merges until every unit's finished diff passes the diff check.",
+      "assertions": [
+        "Response splits the bundle into one unit per task",
+        "Response names the three-part test: no dependency edge, no shared write set, and the diff agrees",
+        "Response says each unit faces every risk trigger and eligibility row on its own",
+        "Response says each unit ships as its own branch and pull request, run one at a time",
+        "Response says no light unit merges until every unit passes the diff check"
+      ]
+    },
+    {
+      "id": "bundle-unsplittable-shared-file",
+      "prompt": "I want two features in one request: one adds a step to the Plan section of `work-loop/SKILL.md`, and the other adds a row to a table in the same `SKILL.md`. Can I split this into two light units?",
+      "expected_output": "No. Both tasks write the same file, so their `Touches:` sets overlap and the shared-write-set part of the test fails. When any part of the test fails or cannot be shown, the bundle stays whole and goes to full mode.",
+      "assertions": [
+        "Response says the bundle does not split",
+        "Response identifies the shared file as an overlapping write set",
+        "Response applies the fallback: the bundle stays whole and goes to full mode",
+        "Response does not split the work into two light units"
+      ]
+    },
+    {
+      "id": "bundle-late-unit-strays",
+      "prompt": "I split a two-task bundle into two light units with disjoint `Touches:` sets. Unit one is finished and its diff is clean. Unit two's finished diff also edits a file in unit one's set. Do I merge unit one, since its diff passed?",
+      "expected_output": "No. Unit two's diff left its declared set, so the diff check fails and the whole bundle stops. Nothing has merged, because no light unit merges until every unit passes. The bundle moves to full mode as a whole bundle, with every unit's diff kept as observed work.",
+      "assertions": [
+        "Response says unit one does not merge",
+        "Response says a unit whose diff leaves its set stops the whole bundle",
+        "Response moves the whole bundle to full mode",
+        "Response says no light unit merges until every unit passes the diff check",
+        "Response keeps every unit's diff as observed work"
+      ]
+    },
+    {
+      "id": "guidance-edit-plain-runs-light",
+      "prompt": "In an existing reference file of a skill, I want to swap the order of two steps in a numbered list. It changes no tool, gate, security rule, or schema. Light mode or full mode?",
+      "expected_output": "Light mode. Editing an existing agent-guidance file that changes no tool surface, authority or gate, security boundary, or published schema fires no trigger by being guidance. It runs light with one added obligation: a new or updated content-pin test that reads only the edited section between two markers, not the whole file. Adversarial review runs as light mode runs it.",
+      "assertions": [
+        "Response routes the work to light mode",
+        "Response says the edit changes no tool surface, authority or gate, security boundary, or published schema",
+        "Response requires a content-pin test scoped to the edited section between two markers",
+        "Response says the test does not read the whole file",
+        "Response says it still faces every trigger on its other effects"
+      ]
+    },
+    {
+      "id": "guidance-new-file-fires-structural",
+      "prompt": "I want to add a brand-new reference file to a skill and have the skill's `SKILL.md` load it in a step. Does this run light, like a plain guidance edit?",
+      "expected_output": "No. The plain-edit narrowing covers an edit to an existing agent-guidance file only. A new file that a skill newly loads is a structural trigger, so the work goes to full mode.",
+      "assertions": [
+        "Response says the structural trigger fires",
+        "Response says the narrowing covers existing guidance files only, not a new file",
+        "Response routes the work to full mode",
+        "Response does not treat the new reference as a plain guidance edit"
+      ]
+    },
+    {
+      "id": "guidance-edit-tool-surface",
+      "prompt": "I want to edit an existing skill reference so the skill may run a new script it could not run before. Light mode or full mode?",
+      "expected_output": "Full mode: the edit changes a tool surface: which tools, commands, hooks, or scripts an agent may run, or how they are invoked. An edit that changes a tool surface fires the trigger even though the file already exists, so the work goes to full mode.",
+      "assertions": [
+        "Response routes the work to full mode",
+        "Response identifies the new script as a change to the tool surface",
+        "Response says the guidance-edit narrowing does not apply",
+        "Response states that an existing file does not exempt the edit"
+      ]
+    },
+    {
+      "id": "guidance-edit-authority-or-gate",
+      "prompt": "I want to edit an existing skill reference to change what counts as a clean review round. Light mode or full mode?",
+      "expected_output": "Full mode: the edit changes an authority or gate: what a gate requires and what counts as clean. An edit that changes an authority or gate fires the trigger, so the work goes to full mode.",
+      "assertions": [
+        "Response routes the work to full mode",
+        "Response identifies what counts as clean as a gate",
+        "Response says the guidance-edit narrowing does not apply",
+        "Response names the authority-or-gate exclusion as the deciding rule"
+      ]
+    },
+    {
+      "id": "guidance-edit-security-boundary",
+      "prompt": "I want to edit an existing skill reference to change how the skill handles a credential it reads from the environment, for example letting it print the value into a log. Light mode or full mode?",
+      "expected_output": "Full mode: the edit changes a security boundary: how the skill handles a secret. An edit that changes a security boundary fires the trigger even in an existing guidance file, so the work goes to full mode.",
+      "assertions": [
+        "Response routes the work to full mode",
+        "Response identifies the handling of the credential as a security boundary",
+        "Response says the guidance-edit narrowing does not apply",
+        "Response names the security-boundary exclusion as the deciding rule"
+      ]
+    },
+    {
+      "id": "guidance-edit-published-schema",
+      "prompt": "I want to edit an existing skill's frontmatter rules so a new field becomes required. Light mode or full mode?",
+      "expected_output": "Full mode: the edit changes a published schema: a required frontmatter field changes what other files must contain. An edit that changes a published schema fires the trigger, so the work goes to full mode.",
+      "assertions": [
+        "Response routes the work to full mode",
+        "Response identifies the new required frontmatter field as a published schema change",
+        "Response says the guidance-edit narrowing does not apply",
+        "Response names the published-schema exclusion as the deciding rule"
       ]
     }
   ]

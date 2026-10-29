@@ -94,9 +94,25 @@ a modification that preserves behaviour still fires. Reading it, calling it,
 testing it, documenting it, or regenerating a projection of it does not fire
 one, because none of those changes the thing.
 Merely touching unchanged existing I/O does not fire one either. Prose
-*about* such a thing is exempt; prose that *is* the rule — agent guidance,
-policy, an interface document — is the thing itself. Where you cannot tell
-whether the change reached the thing, it did.
+*about* such a thing is exempt; prose that *is* the rule — policy, an
+interface document, agent guidance — is the thing itself. For an edit to an
+existing agent-guidance file — a skill, an agent definition, an `AGENTS.md`,
+or a reference a skill loads — that holds only when the edit changes a
+**tool surface** (which tools, commands, hooks, or scripts an agent may run,
+or how they are invoked), an **authority or gate** (who or what may approve,
+decide, merge, or skip a gate; what a gate requires; what counts as clean;
+what evidence the finish checklist needs; what a finding may block; or which
+text an agent treats as instruction), a **security boundary** (a control the
+first trigger below names, including how untrusted input, secrets,
+confinement, or LLM authority — what an AI agent is allowed to do — are
+handled), or a **published schema** (a format other tools or adopters parse,
+such as frontmatter fields, a record grammar, a verdict schema, or a
+manifest). A plain edit that changes none of the four follows the
+guidance-edit rules in `references/light-mode.md`. Compliance and policy
+prose keeps its trigger, and a new skill, agent definition, hook, command, or
+newly loaded reference still fires the structural trigger. An edit you
+cannot place outside the four is inside them. Where you cannot tell whether
+the change reached the thing, it did.
 
 - **Compliance, governance, or security boundary** — it changes a compliance
   or governance surface, or changes a security boundary, data flow, or guarding control
@@ -135,7 +151,10 @@ when everything it touches is unchanged.
 - **Multi-person** — multiple implementers or external collaborators must
   coordinate the work. Mandatory automated reviewers do not count.
 - **Multi-feature or dependent tasks** — it decomposes a multi-feature
-  brief, or its tasks depend on one another.
+  brief, or it bundles tasks that `references/light-mode.md` cannot show
+  independent. A bundle shown independent splits into one unit per task, and
+  each unit faces every other trigger here on its own. A bundle whose
+  independence cannot be shown fires this trigger.
 
 No trigger fires → **light mode**.
 <!-- risk-triggers:end -->
