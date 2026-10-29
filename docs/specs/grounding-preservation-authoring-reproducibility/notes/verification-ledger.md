@@ -90,3 +90,15 @@ These nine are every graded run made under this spec. Outputs and grades are
   criterion comparing full and incremental builds with each other.
 - Base and spike copies were built the same way (spike copies from the working
   tree's `.claude/`), and `find` found no `evals` directory in any of them.
+
+## T4 — closeout registration, 2026-10-29
+
+- `docs/product/captured/new-spec-positive-case-reproducibility.md` reads
+  `Status: Closed`, `Resolution: fixed`, with its detail pointing at this ledger.
+- `[backlog].open` has no entry for it; this spec's entry sits in
+  `["ini-002".work].shipped`; its inventory row is `historical`.
+- The brief's C3 "Pass the integrated positive fixture" bullet links this ledger.
+- `lint-spec-status.py --root .`: clean. `workspace_status.py reconcile` reports
+  one finding for this spec, `impossible_transition` (shipped membership while
+  `spec.md` reads `Implementing`), which the REVIEW-stage `Status: Shipped`
+  write clears.

@@ -4049,9 +4049,9 @@ owner = 9
 
 [[row]]
 pattern = "docs/specs/grounding-preservation-authoring-reproducibility/*"
-class = "contract"
-consumer = "implementing spec whose plan Touches the registry for its own registration"
-owner = 9
+class = "historical"
+consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/grounding-preservation-review/*"
