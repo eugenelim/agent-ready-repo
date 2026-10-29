@@ -2722,6 +2722,12 @@ consumer = "captured-item registration stop: writers write only the file, the cl
 owner = 3
 
 [[row]]
+pattern = "docs/specs/header-derived-dispatch/*"
+class = "contract"
+consumer = "header-derived dispatch: the read-only work-loop dispatch command over spec headers, the lifecycle record parent, and the replay against canonical dispatch"
+owner = 8
+
+[[row]]
 pattern = "docs/specs/intent-brief-registration-stop/*"
 class = "contract"
 consumer = "intent and brief registration stop: the intent-brief-drop repair, the brief-file child scope, the no-registry rename, and the writers that stop adding repo-origin intent and brief entries"

@@ -106,6 +106,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `next-item-suggestions-removal` | <auto> |
 | `captured-item-registration-stop` | <auto> |
 | `intent-brief-registration-stop` | <auto> |
+| `header-derived-dispatch` | <auto> |
 
 ## Governance references (optional)
 

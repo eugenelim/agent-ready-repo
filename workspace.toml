@@ -2344,6 +2344,8 @@ backlog = [
 queue   = [
 ]
 active  = [
+  # Slice 8 part A of `workspace-registry-retirement-delivery`; Approved 2026-10-29 and moved from `queue` when it became Implementing the same day.
+  { path = "docs/specs/header-derived-dispatch/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Build a read-only work-loop dispatch command from spec headers and replay it against canonical dispatch over a frozen corpus", needs = [] },
   # Slice 1 of `workspace-registry-retirement-delivery`; Approved 2026-10-25 and moved from `queue` when it became Implementing the same day.
   { path = "docs/specs/workspace-retirement/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The workspace retirement record: a per-PR-checked consumer inventory and the per-fact disposition, with removal authority, that RFC-0105 D3 requires", needs = [] },
 ]
