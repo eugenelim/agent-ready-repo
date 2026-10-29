@@ -51,7 +51,7 @@ Pick one mode, then load only that mode's reference.
 | Mode | Subcommand | When to use | Type 1 walk | Writes |
 |------|-----------|-------------|-------------|--------|
 | status | `status` (default) | Session start, queue check — fast bounded scan | No | — |
-| reconcile | `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
+| reconcile | `reconcile` | Full audit of stale and premature entries | Yes | — |
 | explain | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
 | reconcile | `retirement-candidates --run-date <YYYY-MM-DD>` | Report which delivery contracts are retirement candidates and every blocker holding each one back | Yes | — |
 | mutate | `selected-membership --spec-dir docs/specs/<slug>` | Report membership for each explicitly selected spec directory; repeat the flag to preserve selection order | No | — |
@@ -110,7 +110,7 @@ Run the production backend via **argument vector** (the canonical and only safe 
 ["<python>", "<skill-dir>/scripts/workspace_status.py", "status", "--root", "<repo-root>"]
 ```
 
-The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global spec walk). Use `reconcile` for a full audit that also finds untracked live specs (Type 1). Use `explain` to investigate a specific item. See **Mode selection** above.
+The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global spec walk). Use `reconcile` for a full audit of stale and premature entries. The Type 1 audit reports nothing for specs, because a spec needs no entry. Use `explain` to investigate a specific item. See **Mode selection** above.
 
 To inspect workspace membership for an explicit selection of spec directories,
 repeat `--spec-dir` once per directory:
@@ -172,7 +172,7 @@ shaping.ready  — list of ready shaping entries (from active AND backlog); each
 shaping.signals — list of active-context signal entries; each carries ini_slug
 shaping.blocked — list of blocked shaping entries (backlog only); each carries ini_slug and blocking_needs
 shaping.active_entries — list of all shaping_queue.active entries; each carries slug, ini_slug, and entry_type (signals included)
-reconciliation.type1             — untracked live specs (empty in status/explain; 1 not in types_performed)
+reconciliation.type1             — always empty: a spec needs no entry, so the Type 1 audit reports nothing
 reconciliation.type2             — stale queue/active entries
 reconciliation.type3             — prematurely-shipped entries
 reconciliation.type2_cleanup_ops — non-authoritative Type 2 repair descriptors
@@ -223,11 +223,10 @@ identifier to the repository root without checking it is a path first.
 | `unmigrated_captured_item` | A captured item is registered at a path outside `docs/product/captured/`. | Run workspace-status repair-plan to move this captured item into its own file under docs/product/captured/. |
 | `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
 | `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
-| `unregistered_work` | Supplied or active spec has no unique matching workspace membership. | Register or reconcile the canonical entry explicitly. |
 | `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. A surviving historical alias for the same artifact path is one cause: the canonical entry is blocked while the alias survives anywhere in the workspace. | Remove the duplicate after choosing the authoritative membership. If a legacy alias is the cause, tell the user to delete the alias from `workspace.toml`. |
 | `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
-| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names neither a brief file nor a brief entry. | Declare `source.parent` on the named entry — the path of a brief file under `docs/product/briefs/` (or of a brief entry), or an empty value (`none`) only when that spec has no parent brief. A value naming neither does not clear it. A value naming the wrong brief does clear it, and misattributes the spec silently, because once the spec has cooled the declaration is trusted rather than verified. |
+| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names neither a brief file nor a brief entry. | Set parent on the spec's lifecycle record: a resolving brief path, or none only when that spec has no parent brief; a tracker-origin entry declares source.parent instead. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |
@@ -261,25 +260,16 @@ user to rewrite the entry in canonical form by hand.
 
 For status and reconcile modes only, continue:
 
-**Type 1 audit notice:** when `1` is not in `reconciliation.types_performed` (status mode only), always render the following line unconditionally — even when reconciliation is otherwise clean (N = 0):
+**Type 1 audit:** it reports nothing for specs, because a spec needs no workspace entry. Render no notice and no subsection for it.
 
-> _Type 1 scan not performed — run `reconcile` to also check for untracked live specs._
-
-If the reconciliation block is non-empty (any type1/type2/type3 findings), output it first:
+If the reconciliation block is non-empty (any type2/type3 findings), output it first:
 
 **Reconciliation:**
 
-Let N = total count across all three finding types. When N > 0, output before the main sections; omit subsections with no entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`):
+Let N = total count across the type 2 and type 3 findings. When N > 0, output before the main sections; omit subsections with no entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`):
 
 ```
 **Reconciliation** — N inconsistenc(y/ies) detected:
-
-  Untracked live specs (Approved or Implementing, not in any initiative list):
-  [Gate: render this subsection only when 1 is in reconciliation.types_performed.
-   When absent: omit this subsection — the global Type 1 audit notice at the top
-   of **Surface results** already informs the user; do not emit a second notice
-   here.]
-  - `spec/<slug>` (Status: Approved) — add to [work].queue through `work-intake`
 
   Stale queue/active entries (spec shows Shipped or Archived):
   - `spec/<slug>` in [ini-002 work].queue — Status: Shipped

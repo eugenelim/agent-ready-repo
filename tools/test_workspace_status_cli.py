@@ -644,12 +644,8 @@ backlog = []
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(result.stdout)
         self.assertEqual(data["selector_status"], "not_found")
-        self.assertEqual(data["findings"], [{
-            "code": "unregistered_work",
-            "path": "docs/specs/unregistered/spec.md",
-            "dispatchable": False,
-            "next_action": "Register or reconcile the canonical entry explicitly.",
-        }])
+        self.assertEqual(data["findings"], [])
+        self.assertNotIn("unregistered_work", result.stdout)
 
     def test_explain_malformed_registered_target_preserves_its_refusal(self) -> None:
         root = self._write_workspace(
@@ -693,12 +689,9 @@ backlog = []
         data = json.loads(result.stdout)
         # Former legacy selector is not_found: legacy entries are unsupported_legacy
         # in ordinary reconciliation and no longer appear in evaluations or
-        # legacy_memberships.  The explain result carries an unregistered_work finding.
+        # legacy_memberships.  The explain result carries no findings.
         self.assertEqual(data["selector_status"], "not_found")
-        self.assertIn(
-            "unregistered_work",
-            {finding["code"] for finding in data["findings"]},
-        )
+        self.assertEqual(data["findings"], [])
 
     def test_parse_error_is_sanitized_canonical_deny(self) -> None:
         root = self._write_workspace(
@@ -2340,12 +2333,9 @@ class SubcommandTests(_CliBase):
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertEqual(data.get("mode"), "explain")
-        # spec/alpha is a legacy string → unsupported_legacy → not_found with unregistered_work
+        # spec/alpha is a legacy string → unsupported_legacy → not_found, no findings
         self.assertEqual(data.get("selector_status"), "not_found")
-        self.assertIn(
-            "unregistered_work",
-            {finding["code"] for finding in data.get("findings", [])},
-        )
+        self.assertEqual(data.get("findings"), [])
         # AC10 explain coverage
         self.assertEqual(data.get("scan", {}).get("global_scan_spec_files_read"), 0)
 
@@ -2358,12 +2348,12 @@ class SubcommandTests(_CliBase):
         self.assertEqual(data.get("selector_status"), "not_found")
 
     def test_explain_cli_ambiguous_exit0(self) -> None:
-        """AC14: former ambiguous-legacy selector → exit 0, not_found with unregistered_work.
+        """AC14: former ambiguous-legacy selector → exit 0, not_found with no findings.
 
         Both initiatives carry `spec/shared-slug` as a legacy string.  Legacy
         entries are unsupported_legacy in ordinary reconciliation and never reach
         the candidates set in _canonical_explain, so no ambiguity can be reported.
-        The result is not_found with an unregistered_work finding.
+        The result is not_found with an empty findings list.
         """
         root = self._write_workspace(_TWO_INI_SHARED_SLUG_TOML)
         r = self._run_explain(root, "shared-slug")
@@ -2371,10 +2361,7 @@ class SubcommandTests(_CliBase):
                          f"not_found must be exit 0, got {r.returncode}: {r.stderr}")
         data = json.loads(r.stdout)
         self.assertEqual(data.get("selector_status"), "not_found")
-        self.assertIn(
-            "unregistered_work",
-            {finding["code"] for finding in data.get("findings", [])},
-        )
+        self.assertEqual(data.get("findings"), [])
 
     def test_explain_cli_canonical_ambiguous_exit0(self) -> None:
         """Canonical path under two initiatives → exit 0, ambiguous, two matches.

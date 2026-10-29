@@ -199,7 +199,7 @@ If `workspace.toml` is present, read it and Surface an orientation block:
      - Supplied spec path: continue only when the path has a matching
        `canonical.ready` evaluation for a new start or matching `canonical.active`
        evaluation for a resume. Otherwise stop and surface the matching canonical
-       finding, or `unregistered_work` if no canonical evaluation exists.
+       finding.
      - Argless queued start: select only the first `canonical.ready` item. Raw
        workspace `[work].queue` membership never authorizes PLAN.
      - Active resume: accept only a matching `canonical.active` item. Raw

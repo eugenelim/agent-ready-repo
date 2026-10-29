@@ -6,7 +6,7 @@ Generates a synthetic workspace with:
   - 30–80 queued entries across active initiatives
   - Multiple active initiatives (4)
   - A cross-initiative dependency chain
-  - An untracked Approved spec (triggers Type 1)
+  - An untracked Approved spec (no Type 1 finding: a spec needs no entry)
   - A mix of ready, blocked, active, shipped, and archived specs
 
 Run:  python3 tools/bench-workspace-status.py
@@ -155,7 +155,7 @@ def _build_specs(root: Path) -> int:
             p.write_text(_spec_status_text("Approved", slug), encoding="utf-8")
             count += 1
 
-    # Untracked Approved spec (AC4f — Type 1 finding)
+    # Untracked Approved spec (AC4f — zero Type 1 findings)
     untracked_p = specs_dir / UNTRACKED_APPROVED_SLUG / "spec.md"
     untracked_p.parent.mkdir(exist_ok=True)
     untracked_p.write_text(
@@ -252,7 +252,7 @@ def run_benchmark() -> dict:
 
         # Untracked spec check (AC4f)
         type1_paths = {f.spec_path for f in result.type1}
-        has_type1_untracked = UNTRACKED_APPROVED_PATH in type1_paths
+        has_type1_untracked = UNTRACKED_APPROVED_PATH in type1_paths  # must stay False
 
         # AC4d complete state mix — all five states must be present
         active_ini_entries = sum(len(ini.work.active) for ini in active_inis)
@@ -345,8 +345,11 @@ def main() -> int:
             f"AC4e: expected cross-initiative dep resolved — "
             f"no ready entry in {CROSS_INI_DEP_INI} with {CROSS_INI_PROVIDER}:work: need"
         )
-    if not m["has_untracked_approved"]:
-        errors.append("AC4f: expected untracked Approved spec → Type 1 finding")
+    if m["has_untracked_approved"] or m["type1_findings"] != 0:
+        errors.append(
+            f"AC4f: expected zero Type 1 findings for the untracked Approved spec, "
+            f"got {m['type1_findings']}"
+        )
 
     if errors:
         print("AC gate FAILURES:")
@@ -364,7 +367,7 @@ def main() -> int:
           f" archived={m['archived_spec_count']} (all five states present)")
     print(f"  ✓  AC4e: cross-initiative dep resolved "
           f"({CROSS_INI_DEP_INI} ready via {CROSS_INI_PROVIDER} shipped spec)")
-    print(f"  ✓  AC4f: untracked Approved spec → Type 1 ({m['type1_findings']} finding(s))")
+    print(f"  ✓  AC4f: untracked Approved spec → no Type 1 finding ({m['type1_findings']})")
     print(f"  ✓  AC4g: measurements collected "
           f"(workspace={m['workspace_files_read']} spec={m['files_read_by_reconciliation']}, "
           f"first={m['analysis_elapsed_first_run_s']:.4f}s "

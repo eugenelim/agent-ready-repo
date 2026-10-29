@@ -703,17 +703,7 @@ def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
                 "selector_status": "not_found",
                 "findings": matching_findings,
             }
-        return public_selector, {
-            "selector_status": "not_found",
-            "findings": [{
-                "code": "unregistered_work",
-                "path": canonical_path,
-                "dispatchable": False,
-                "next_action": (
-                    "Register or reconcile the canonical entry explicitly."
-                ),
-            }],
-        }
+        return public_selector, {"selector_status": "not_found", "findings": []}
     if len(by_initiative) > 1:
         return public_selector, {
             "selector_status": "ambiguous",

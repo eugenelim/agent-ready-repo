@@ -76,15 +76,15 @@ _KNOWN_FINDINGS: dict[str, str] = {
     ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
-    "unregistered_work": "Register or reconcile the canonical entry explicitly.",
     "duplicate_membership": ("Remove the duplicate after choosing the authoritative membership."),
     "impossible_transition": ("Correct the artifact or membership through a reviewed transition."),
     "provenance_mismatch": (
         "Resolve provenance in the canonical artifact and mirror it deliberately."
     ),
     "cooled_child_scope_unknown": (
-        "Declare source.parent on the entry: a resolving brief path, or none "
-        "only when that spec has no parent brief."
+        "Set parent on the spec's lifecycle record: a resolving brief path, or "
+        "none only when that spec has no parent brief; a tracker-origin entry "
+        "declares source.parent instead."
     ),
     "refresh_conflict": "Resolve the conflict through the artifact's authority workflow.",
     "unsatisfied_dependency": "Complete or explicitly revise the dependency.",

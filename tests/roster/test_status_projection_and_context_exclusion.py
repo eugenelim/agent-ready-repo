@@ -710,7 +710,7 @@ def test_cooled_dependency_does_not_block_its_dependant(tmp_path, engine) -> Non
 
 
 def test_cooled_spec_raises_no_type1_finding(tmp_path, engine) -> None:
-    """AC15: the global scan omits cooled, untracked specs."""
+    """AC15: the global scan omits cooled, untracked specs (and, as AC-0041, reports no spec)."""
     control = _tree(tmp_path / "control", lifecycle=False, specs=())
     cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
     for root in (control, cooled):
@@ -719,7 +719,7 @@ def test_cooled_spec_raises_no_type1_finding(tmp_path, engine) -> None:
 
     control_findings = _reconcile_json(control, engine)["reconciliation"]["type1"]
     cooled_findings = _reconcile_json(cooled, engine)["reconciliation"]["type1"]
-    assert [item["spec_path"] for item in control_findings] == ["spec/alpha"]
+    assert control_findings == []
     assert all(item["spec_path"] != "spec/alpha" for item in cooled_findings)
 
 
@@ -738,7 +738,7 @@ def test_global_scan_counter_moves_by_exactly_one(tmp_path, engine) -> None:
         cooled_json["scan"]["global_scan_spec_files_read"]
         == control_json["scan"]["global_scan_spec_files_read"] - 1
     )
-    assert [item["spec_path"] for item in cooled_json["reconciliation"]["type1"]] == ["spec/gamma"]
+    assert cooled_json["reconciliation"]["type1"] == []
 
 
 def test_cooled_queue_entry_never_becomes_dispatchable(tmp_path, engine) -> None:
