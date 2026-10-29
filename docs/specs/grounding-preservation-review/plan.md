@@ -1,7 +1,7 @@
 # Plan: Preservation through typed review
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** the review-module chain exercised end to end by
   `packs/core/tests/skills/work-loop/test_review_bridge.py::test_supported_assessment_commits_complete_receipts_and_replays_projection`
   (persist a report, assess, bridge, evaluate `contradicted`); the
@@ -253,3 +253,5 @@ Follow-on's captured item.
 - 2026-10-29: spec approved by the owner (Platform Core)
 - 2026-10-29: plan approved by the owner (Platform Core)
 - 2026-10-29: AC-0022 narrowed to the four cases this change reaches, directed by the owner (Platform Core)
+- 2026-10-29: amended spec approved by the owner (Platform Core)
+- 2026-10-29: amended plan approved by the owner (Platform Core)
