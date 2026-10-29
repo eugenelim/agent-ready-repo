@@ -172,7 +172,8 @@ Terms:
   implementation's default result for that query plus one entry for each
   corpus `value` line whose NAME equals the query. The oracle derives the
   expected value entries from the corpus text, without calling the
-  implementation under test.
+  implementation under test. Both terms compare each query's results as
+  collections of kind, file, and name that ignore order and keep multiplicity.
 - [ ] **AC-0005.** Equivalence: the oracle compares a full build of the edited
   corpus with a full build of the original corpus followed by a one-file update,
   in a semantic form that ignores internal identifiers and insertion order, and
