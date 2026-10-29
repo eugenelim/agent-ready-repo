@@ -116,11 +116,12 @@ assertions and the outputs, labelled `output1` and `output2` in the order in
   missed the invalidation assertion only. C1's single graded run of this case
   held 6 of 6 on Core 3.1.33.
 
-- **Run inventory with pack version.** Every head run ran against Core 3.1.38
-  (the version stayed 3.1.38 across the guidance commits named below) and every
-  base run against Core 3.1.37 at `c8d1d817a`. Head outputs by guidance state:
-  `-r1` ran on the guidance at `50c2019c3`; `-r2` ran after `fe2421c44`; `-r3`
-  ran after `c1cf109a6`. The two unsuffixed head outputs (cases 1 and 2) hold the
+- **Run inventory.** Pack versions are in the Method paragraph, and the
+  Head-run replacements bullet owns what each guidance commit changed. Head
+  outputs by guidance state: `-r1` ran on the guidance at `50c2019c3`; `-r2` ran
+  after `fe2421c44`; `-r3` ran after `c1cf109a6`. The two unsuffixed head
+  outputs (`isolated-private-change-does-not-expand-preservation-proof` and
+  `shared-substrate-feature-tests-do-not-prove-preservation`) hold the
   `new-spec` and `work-loop` guidance C3 does not change after `50c2019c3`, so
   their result does not depend on that split.
   Grade files and the head output each graded: `grades-case1.md` (head),
