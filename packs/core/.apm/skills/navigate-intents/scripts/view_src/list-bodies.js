@@ -125,7 +125,7 @@
     return li;
   }
 
-  // Checked readiness lists what workspace-status reports, grouped, instead of the startable stages.
+  // Checked readiness lists what work-loop's dispatch reports, grouped, instead of the startable stages.
   function bodyReadiness(route) {
     add(dom.list, readinessPreface());
     var groups = readinessGroups(route.owner);

@@ -49,7 +49,7 @@
     return list.concat(depEntriesOf(id), workspaceEntriesOf(id));
   }
 
-  // A workspace-status finding: a known one reads with its action; one this view does not know
+  // A work-loop dispatch finding: a known one reads with its action; one this view does not know
   // keeps the action under a label saying where it came from.  Both are text only.
   function workspaceBroken(li, w) {
     if (w.known) {
@@ -58,7 +58,7 @@
     }
     add(li, el('p', 'meaning diag-raw', 'Workspace finding ' + w.code + '.'));
     var note = add(li, el('div', 'edge-line'));
-    add(note, el('span', 'field', 'Note from workspace-status:'));
+    add(note, el('span', 'field', 'Note from work-loop\'s dispatch:'));
     add(note, el('span', 'value diag-raw', w.next_action));
   }
 
