@@ -34,13 +34,13 @@ Checks first, wording second, records last. T2 rewrites the input checks and the
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| The bridge's input | T2, T4 | `intent_readiness.py`; SKILL.md and evals | AC-0001 to AC-0011, AC-0019, AC-0020 pass |
+| The bridge's input | T2, T4 | `intent_readiness.py`; SKILL.md and evals | AC-0001 to AC-0011, AC-0019, AC-0020 and AC-0031 pass |
 | User procedure | T4 | the guide section | AC-0019 passes; guide lints pass |
 | Current architecture | T4 | `packs/core/DESIGN.md` | AC-0021 passes |
-| Page wording | T3 | `readiness.js`, `labels.js`, `detail.js` | AC-0012 to AC-0015 pass |
+| Page wording | T3 | `readiness.js`, `labels.js`, `detail.js` | AC-0012 to AC-0015 and AC-0032 pass |
 | Decision rationale | T5 | three errata entries and the § Equivalence row | AC-0022 to AC-0024 pass |
 | Product truth and inventory | T6 | the hand-over header line; inventory rows | AC-0025 and AC-0026 pass |
-| Verification record | T5, T6 | `notes/verification-ledger.md` | AC-0016 to AC-0018 and AC-0027 pass |
+| Verification record | T5, T6 | `notes/verification-ledger.md` | AC-0016 to AC-0018, AC-0027, AC-0029 and AC-0030 pass |
 | Delivery membership | T1 | Spec map row | AC-0028 passes |
 
 ## Design (LLD)
@@ -49,16 +49,16 @@ Checks first, wording second, records last. T2 rewrites the input checks and the
 
 Owned by: T2
 
-- `_walk` checks the exact key sets AC-0001 to AC-0003 name and returns `Checked(active, ready, blocked, findings, decision)`. `_typed_list` keeps the per-list rules that still hold: an `active` item carries no finding; a `ready` item may carry findings, because `dispatch.py` lists every dispatchable queue spec.
-- The argless-decision check recomputes the decision from the checked `active` and `ready` paths in input order and compares it with the input's, so the mark can only name a spec the checked lists already hold.
-- `start` reads the checked decision; `held` keeps today's rule over top-level and item findings.
-- `REASONS` drops `no_workspace`; `_WORKSPACE_FAILURE_CODES` is unchanged, and `refuse` joins it as a `bad_workspace` cause.
+- `_walk` checks the exact key sets AC-0001 to AC-0003 name and returns `Checked(active, ready, blocked, findings, decision)`. `_typed_list` keeps the per-list rule that a `ready` or `active` item carries no finding, which every `dispatch.py` output meets because the engine's `dispatchable` requires an evaluation with no finding.
+- The argless-decision check recomputes the decision from the checked `active` and `ready` paths in input order and compares it with the input's, so the mark can only name a spec the checked lists already hold. The only other decision admitted is the argless refusal, which `bad_workspace` then catches; every named invocation's output is `wrong_schema`, because the bridge reads argless dispatch only.
+- `start` reads the checked decision; `held` stays in the start object for the payload's shape and is always `false`, because a finding naming the decided path, such as a blocked waiter's `unsatisfied_dependency`, does not stop `work-loop` acting on a checked `start` or `resume`.
+- `REASONS` drops `no_workspace`; `_WORKSPACE_FAILURE_CODES` is unchanged and is also read in `decision.findings`.
 
 ### Behavior & rules
 
 Owned by: T3
 
-- The `ask` note splits on `active_count`, because `dispatch.py` asks over active specs first and over ready specs only when none is active.
+- The `ask` note splits on `active_count`, because `dispatch.py` asks over active specs first and over ready specs only when none is active. The `held` notes go with `held`.
 
 ### Dependencies & integration
 
@@ -77,28 +77,28 @@ Owned by: T6
 
 ### T2: Input checks and the mark
 
-- **Depends on:** T1
+- **Depends on:** T1; `spec-registration-stop` T1 and T2
 - **Verification mode:** TDD
-- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011: `test_export_readiness.py` rewritten to the base input of this spec's terms, with one planted case per AC-0001 to AC-0004 clause, including a `null` status and a ready item with a finding that pass; the `bad_workspace` cases; the reason order; the fail-closed and budget cases over every failing input; the marker-string case; the four marks and `ask` over two ready specs; the corpus test; and the hand-built and fixture hostile inputs. `test_independence.py` runs unchanged.
+- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0031: `test_export_readiness.py` rewritten to the base input of this spec's terms, with one planted case per AC-0001 to AC-0004 clause, including a blocked item with a `null` status that passes and a ready item with a finding that does not; the argless-refusal and named-output cases; the `bad_workspace` cases; the reason order; the fail-closed, `page_too_big` and over-budget cases over every failing input with the pinned clock; the marker-string case; the four marks, the `dep-spec-open` shape, and `ask` over two ready specs; the corpus test with the planted invalid-TOML tree; and the hand-built and fixture hostile inputs. The tests of the carried criteria in `test_export_readiness.py` (hand-over 0001 to 0008, 0014, 0015, 0018 to 0020, 0034 to 0036, 0046 and 0047) are rewritten to the base input and keep their assertions. `test_independence.py` runs unchanged.
 - **Done when:** those suites pass.
 
 ### T3: Page wording
 
 - **Depends on:** T2
 - **Verification mode:** scripted browser check
-- **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015: `view_browser_checks.py`'s readiness cases with the new literals, the `ask` note for zero and non-zero `active_count`, every reason's notice, the Key, the label set, and a search of the rendered text for `workspace-status`.
-- **Done when:** the full browser pass, with none skipped, is in the ledger.
+- **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0032: `view_browser_checks.py`'s readiness cases with the new literals, the title, the empty state and the `outstanding`-unavailable count, the `ask` note for zero and non-zero `active_count`, every reason's notice, the checked and unchecked Key, the label and glyph sets over the `hostile` fixture, and a search of the rendered text outside `next_action` for `workspace-status`.
+- **Done when:** those browser cases pass.
 
 ### T4: Instructions, eval and design note
 
-- **Depends on:** T2
+- **Depends on:** T2; `spec-registration-stop` T1
 - **Verification mode:** goal-based
-- **Tests:** for AC-0019, AC-0020, AC-0021: the roster rows `spec-registration-stop`'s roster test holds for this spec's phrase lists, with each banned phrase's presence at the base asserted from `git show dfa3fe067:<path>`; the guide lints.
+- **Tests:** for AC-0019, AC-0020, AC-0021: rows in `spec-registration-stop`'s roster test that read each named section and paragraph by its heading or opening words at the head and at `dfa3fe067`, and assert the banned tokens present at the base and absent at the head; the guide lints.
 - **Done when:** those rows and the guide lints pass.
 
 ### T5: Governance wording
 
-- **Depends on:** T1
+- **Depends on:** T1; `spec-registration-stop` T1
 - **Verification mode:** goal-based
 - **Tests:** for AC-0022, AC-0023, AC-0024, AC-0027: the roster rows for each errata entry and the § Equivalence row, and the ledger rows comparing each approval timestamp with `git log --format=%aI` of the commit that adds the text; the `workspace-retirement` check.
 - **Done when:** each entry is committed with approved wording and its rows pass.
@@ -107,7 +107,7 @@ Owned by: T6
 
 - **Depends on:** T2, T3, T4, T5
 - **Verification mode:** goal-based
-- **Tests:** for AC-0016, AC-0017, AC-0018, AC-0025, AC-0026: the ledger's real-input run, scale benchmark and real export counts; a `git diff` of the hand-over spec showing only the header line; the inventory check.
+- **Tests:** for AC-0016, AC-0017, AC-0018, AC-0025, AC-0026, AC-0029, AC-0030: the ledger's real-input run, scale benchmark, 4 MiB timing and real export counts; the full browser pass and the `test-corpus.yml` dispatch at the final code commit; the `experience-reviewer` pass over the four changed states; a `git diff` of the hand-over spec showing only the header line; the inventory check.
 - **Done when:** the ledger holds each run and the inventory check passes.
 
 ## Rollout
