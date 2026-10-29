@@ -212,10 +212,10 @@ and unacknowledged checkouts never substitute for either manifest.
 | Selector and evaluator | Stateless | n/a | Same facts produce same obligations and validity result |
 | Invoker | Attempts and opaque session handles | Started, completed, abandoned | Never treated as reviewer verdict |
 | Raw reviewer output | Optional adapter-private log outside Git | Retained for a declared bounded period, then deleted | Semantic review state never depends on raw output |
-| Reviewer-report store | Validated reports under `docs/specs/<feature>/delivery/reviews/` | Port assigns the next per-role-and-subject sequence and supersedes the unique lineage tip atomically | Validator is sole writer; forks, duplicate sequences, and incomplete files never become current |
+| Reviewer-report store | Validated `review-report.v1` semantic records in `docs/specs/<feature>/delivery/evidence.jsonl` | Port assigns the next per-role-and-subject sequence and supersedes the unique lineage tip atomically | Validator is sole writer; forks, duplicate sequences, and incomplete files never become current |
 | Review subject | Base/result tree fingerprints and normalized changes embedded in obligations and reports | Derived, fingerprinted, retained with reports | Rehydration recomputes the same fingerprint or leaves obligations unsatisfied |
 | Assessment view | Disposable index rebuilt from `semantic-evidence-transaction.v1` records in `evidence.jsonl` | Projected, replaced, deleted, rebuilt | Never authoritative; tooling or named authority remains recorded in each source record |
-| Disposition ledger | Accept-risk, repair-request, and fixed-by records | Open, accepted, repair requested, linked to replacement subject | Only supported findings enter; fixed-by requires a fresh replacement report |
+| Disposition ledger | Accept-risk, repair-request, and fixed-by `finding-disposition.v1` records in `evidence.jsonl` | Open, accepted, repair requested, linked to replacement subject | Only supported findings enter; fixed-by requires a fresh replacement report |
 
 ## 6. Deployment and Operations
 

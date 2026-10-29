@@ -20,14 +20,15 @@ keep a run consistent without waves or cohort state.
   one is reported or superseded. Otherwise it re-issues the current attempt
   unchanged. A plan whose unfinished tasks all wait on each other refuses with
   `dependency-cycle`, owned by the plan author.
-- **One run lock.** `next`, `report`, and `resolve-effect` take an exclusive
-  lock under `<spec>/.supervisor/`. `supervisor-policy.json` sets its wait and
+- **One run lock.** `start`, `next`, `report`, and `resolve-effect` take an
+  exclusive lock under `<spec>/.supervisor/`; `status` reads without it. `supervisor-policy.json` sets its wait and
   stale windows. The stale window is longer than the red-proof budget, so a
   live holder is never judged dead.
-- **An open attempt freezes trusted files.** While a request is open, any change
-  to the spec, the plan, the records it cites, the installed skill, Git control
-  state, or committed `delivery/` records refuses that attempt with
-  `attempt-residue`. A controller plan edit is therefore in-envelope only between
+- **An open attempt freezes trusted files.** While an attempt is open, any
+  change to the spec, the plan, the records it cites, the installed skill, Git
+  control state, or committed `delivery/` records refuses that attempt with
+  `attempt-residue`. The supervisor page lists
+  [which requests open an attempt](work-loop-execution-supervisor.md#attempts). A controller plan edit is therefore in-envelope only between
   a `report` and the next `next`
   ([ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)).
 - **Recovery re-derives from commits.** Each supervisor step is one Git commit
@@ -52,21 +53,12 @@ sequenceDiagram
   S-->>C: attempt closed
 ```
 
-### What was retired
+### Retired mechanisms
 
-The phase engine and cohort writer used to serialise a transition against
-`state.json` through durable markers and five registered cohort effects. That
-whole protocol is gone with the scripts that ran it.
-
-- [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) supersedes
-  [ADR-0125](../adr/0125-engine-invoked-cohort-mutations.md), which made those
-  cohort mutations engine-invoked.
-- The read-only wave-decision screen and its JSON contract left the catalogue
-  with the execution-supervisor cutover in Core 4.0.0.
-- ADR-0144 D6 supplies the durable side-effect semantics that ADR-0061 D8
-  deferred: effect intents and receipts are committed records, and an effect
-  whose outcome cannot be established waits for a named human's
-  `effect-resolution.v1`.
+Where the earlier transition protocol, the cohort effect registry, and the
+wave-decision screen went is recorded once, in
+[authority migration](work-loop-authority-migration.md) and
+[ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md).
 
 ## 2. Parallel scheduling is Slice 7's
 

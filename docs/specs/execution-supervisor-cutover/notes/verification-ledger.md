@@ -367,3 +367,25 @@ line has 14 keys, so the test fails. T2 removes `loop-engine.py`, so T2 owns
 pointing that helper at a supervisor line. With that change the count is ten
 and the test passes. Nothing else in the T3-touched roster and conformance
 suites fails: 1,388 pass and 2 skip.
+
+## T3: VI-7020
+
+The search ran over the 14 architecture pages that T3 owns, the spec's
+"Current architecture" and "Knowledge architecture" rows minus
+`packs/core/DESIGN.md`: `ARCHITECTURE.md`, and under `docs/architecture/`,
+`loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`,
+`work-loop-execution-supervisor.md`, `work-loop-authority-migration.md`,
+`work-loop-review-disposition.md`, `acceptance-centered-work-loop.md`,
+`telemetry.md`, `verification-graph.md`, `README.md`,
+`workspace-mcp/design.md`, `work-loop-knowledge-handoff.md`, and
+`knowledge-capture.md`. It looked for these terms: `loop-engine`,
+`loop-cohort`, `_compat_facade`, `_review_compat`, `assets/state.json`,
+`full-mode-engine`, `wave-decision`, `engine-state`, `legacy-result-ack`,
+`build-work-supervisor`, `supervisor-bundle`, `work_supervisor`,
+`legacy_result`, the shadow-log names, `packages/agentbundle`, and a `tools/`
+supervisor path.
+
+Result: every hit names its item as removed, retired, rejected, or never read.
+No hit describes one as current. `packs/core/DESIGN.md:114` and `:500` still
+name `loop-cohort` as current, and `plan.md` gives that file to T2. So the
+"Current architecture" row closes only when T2 lands.

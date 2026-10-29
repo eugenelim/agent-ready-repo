@@ -4,9 +4,9 @@
 
 The loop contract is the pair of artifacts a work loop runs against: `spec.md`,
 which states what done means, and `plan.md`, which states how it gets built and
-verified. [Loop infrastructure](loop-infrastructure.md) records that the harness
-"does not create requirements or implement work. It consumes approved
-specification and plan artifacts." This page owns those artifacts — what each
+verified. The full-mode supervisor consumes an approved spec and plan and
+creates neither ([loop infrastructure](loop-infrastructure.md)). This page owns
+those artifacts — what each
 one holds, how the items inside them are identified, and how that identity
 survives a loop that rewrites them.
 
@@ -16,8 +16,8 @@ iteration by an agent that cannot tell a stale reference from a live one, so a
 broken cross-reference is a defect rather than untidiness, and identity has to
 outlive editing.
 
-Out of scope: how the loop advances between phases ([loop
-infrastructure](loop-infrastructure.md)); how work reaches an artifact in the
+Out of scope: how the supervisor advances a run from request to request
+([execution supervisor](work-loop-execution-supervisor.md)); how work reaches an artifact in the
 first place ([work intake and artifact
 routing](work-intake-and-artifact-routing.md)); and what verifies the repository
 ([verification facts](verification-graph.md)).
@@ -158,25 +158,13 @@ reading this section without that distinction leaves the impression that
 nothing compares a contract against its approved form.
 
 The full-mode supervisor's `start` commits one approval pair to the spec's
-`delivery/approvals.jsonl`. The pair binds a fingerprint over six protected
-references, plus the terminal intent:
-
-- `spec_policy`: `Acceptance Criteria`, `Testing Strategy`, and `Agent Rules`;
-- `scope_and_non_goals`: `Scope and Non-goals`;
-- `authority_and_security`: the `Constrained by:` value and each cited record's
-  decision section;
-- `public_contracts`: the `Contract:` value;
-- `durable_outputs`: `Durable Outputs`;
-- `accepted_risk`: `Accepted Risk`.
-
-Every `next` recomputes them. A change to any protected reference, or to
-`## Terminal Intent`, refuses and names the owner who must amend it. Any other
-edit — task order, decomposition, tests, stubs, the plan's `## Design (LLD)`,
-or bookkeeping — commits as one `replan` step with no approval
-([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D3). The plan
-as a whole is not pinned. Each task carries its own revision digest over its
-title and pinned fields (`Tests:` with its stub fences, `Touches:`,
-`Done when:`, and `Effects:`); a changed revision makes the task due again.
+`delivery/approvals.jsonl`. The pair binds a fingerprint over the spec's
+protected sections and the terminal intent. A change to a protected section
+refuses and names its owner; any other edit, including every plan edit,
+commits as a `replan` step with no approval. The protected references and the
+replan rules have one home, the supervisor page's
+[replanning section](work-loop-execution-supervisor.md#replanning). The plan
+as a whole is not pinned.
 
 Each protected section is canonicalised before it is hashed, by
 `canonical_contract` in the work-loop skill's `_loop_guards.py`. The canonical

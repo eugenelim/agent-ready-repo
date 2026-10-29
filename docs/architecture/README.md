@@ -46,6 +46,12 @@ rules live with that split.
   and the `wave-decision` screen it once described were removed with the phase
   engine in Core 4.0.0 ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md)
   supersedes [ADR-0125](../adr/0125-engine-invoked-cohort-mutations.md)).
+- **STATUS: PARTLY IMPLEMENTED** — [Acceptance-centered work loop](acceptance-centered-work-loop.md)
+  is the parent design for the work-loop refactor. Its rows marked
+  `STATUS: PLANNED` (runtime extensions, leases, and the protected product ref)
+  are later slices; the
+  [brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
+  owns each slice's status.
 - **STATUS: PLANNED** — [Agent skill engineering](agent-skill-engineering.md)
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by

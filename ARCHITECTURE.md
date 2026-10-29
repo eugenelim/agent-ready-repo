@@ -71,6 +71,7 @@ dependency of pack source or of a target runtime.
 | Lifecycle index | `workspace.toml` | `work-intake` and its selected workflow | `workspace-status`, execution, review |
 | Tracker provenance | Canonical artifact and its index entry | The accepting intake workflow | Refresh and reconciliation workflows |
 | Full-mode delivery records | `docs/specs/**/delivery/` (committed) | `work-loop` `work-supervisor.py` | Supervisor re-derivation, pre-PR hooks, delivery fact feed, reviewers |
+| Full-mode run store | Under the Git directory: attempt manifests, pinned supervisor digests, owed confirmations | `work-loop` `work-supervisor.py` | The supervisor only (attempt-security trust root) |
 | Full-mode run status | `docs/specs/**/.supervisor/` (self-ignoring, deletable) | `work-loop` `work-supervisor.py` | Harness operators and workspace MCP |
 | Harness events | `.loop-run/events.jsonl` (ephemeral) | `work-loop` `work-supervisor.py` | Harness operators and workspace MCP |
 | Knowledge records | `docs/knowledge/` | `project-knowledge/scripts/knowledge_store.py` | Capture, enquiry, review, and research workflows |
