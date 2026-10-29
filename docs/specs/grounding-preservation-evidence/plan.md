@@ -97,7 +97,8 @@ The fixture substrate lives in
 `base.py` and `head.py`, loaded by path under pack-and-skill-qualified names.
 The corpus is a mapping of file names to lines of the form `def NAME`,
 `call NAME`, and `value NAME`; the base implementation ignores `value` lines.
-Nodes carry kind, file, and name; edges carry kind and their endpoints' names.
+Nodes carry kind, file, and name. An edge links a call node to each definition
+of its name, and call resolution follows those edges.
 The public result type is a frozen dataclass whose new field has a default and
 comes last. `head.py` builds that type only in call resolution and always
 passes the new field explicitly, so a build-only feature test never constructs
@@ -108,7 +109,7 @@ old text occurs exactly once, loaded as a separate module:
 
 | Property | Term | Mutation |
 | --- | --- | --- |
-| ordinary calls | differential resolver | the resolver's kind filter removed |
+| ordinary calls | differential resolver | edge building links calls to every non-call node, not only definitions |
 | default search | default query | the default for including values flipped to true |
 | default search | explicit query | the explicit path drops the name match on value nodes |
 | equivalence | equivalence harness | the update path skips relinking the edited file's call edges |

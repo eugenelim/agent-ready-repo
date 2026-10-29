@@ -115,6 +115,8 @@ Terms:
   files whose lines are `def NAME`, `call NAME`, or `value NAME`. It has two
   implementations. **The base implementation** ignores `value` lines. **The
   head implementation** turns each `value` line into a value node.
+- **The new field** is the one field the head implementation's public result
+  type adds to the base implementation's result type.
 - **The six properties** are: ordinary calls resolve to no value node; default
   search excludes value nodes; full and incremental construction give the same
   semantic model; a one-file edit stays within its stated invalidation bound;

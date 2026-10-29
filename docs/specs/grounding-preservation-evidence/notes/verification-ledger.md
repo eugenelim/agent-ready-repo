@@ -41,11 +41,11 @@
 
 ## T3 — release, projection, registration, 2026-10-29
 
-- AC-0016: the base revision `abc1680aa` has Core `3.1.34`. `pack.toml` and
-  `plugin.json` both read `3.1.35`. Fragment
+- AC-0016: after rebasing onto `dfa3fe067`, the base revision has Core
+  `3.1.35`. `pack.toml` and `plugin.json` both read `3.1.36`. Fragment
   `docs/product/changelog.d/ed8f5605-27c3-43a4-9c4a-9b580365ed14.md` names
-  `core` at `3.1.35`.
-- AC-0017: `git diff --name-only abc1680aa HEAD`, filtered to `contracts/`,
+  `core` at `3.1.36`.
+- AC-0017: `git diff --name-only dfa3fe067 HEAD`, filtered to `contracts/`,
   work-loop `scripts/` and `evals/`, and `packs/core/.apm/agents/`, prints
   nothing.
 - `agentbundle catalogue self-host --root . --check` prints `ok`.
@@ -60,7 +60,7 @@ Each run used one fresh agent following a copy of a `work-loop` projection with
 its `evals/` directory removed, given only the case's `prompt`. A separate
 grader received only the output and the case's five assertions.
 
-| Assertion | Base, Core 3.1.34 | Rebuilt, Core 3.1.35 |
+| Assertion | Base, Core 3.1.34 | Rebuilt, this branch |
 | --- | --- | --- |
 | Refuses to report completion from feature creation tests alone | Held | Held |
 | Requires criterion-matched evidence for all six accepted preservation properties | Held | Held |
@@ -107,7 +107,7 @@ repository.
 >
 > Not having adapt-to-project or code intelligence waives none of this. When dependents evidence is needed, `repository-exploration` gets it from a plain repository search. The proofs above need only the project's normal build and test commands.
 
-### Rebuilt run output (Core 3.1.35)
+### Rebuilt run output (this branch)
 
 > No. The work-loop cannot report completion. The tests you have only show that the new synthetic value nodes exist. They do not show that any existing behavior survived. That makes them feature-only evidence, and a preservation property without supporting evidence blocks the "Acceptance criteria satisfied" item on the finish checklist.
 >
