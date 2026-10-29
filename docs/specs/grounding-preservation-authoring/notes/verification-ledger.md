@@ -118,3 +118,5 @@ criteria with the non-discrimination stated in the pull request.
   are plain and say the skill confirms them, and the long sentence is split.
   Deferred: plain-words glosses for "oracle" and "analogues" in the skill
   reference (`shared-substrate-preservation.md:70,81`).
+
+The guide repair was a controller fix under the work-loop FIX step (a small fix diagnosis hands over); the reopened wave re-records T4 as `human-directed`, as the owner directed for T4.
