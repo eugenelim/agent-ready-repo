@@ -31,6 +31,9 @@ _ABSENT: dict[str, tuple[str, ...]] = {
         "without being added to `workspace.toml`",
     ),
     "packs/core/.apm/skills/workspace-status/SKILL.md": (
+        "Register or reconcile the canonical entry explicitly",
+        "Autonomous dispatch consumers must use `canonical.ready` as the ready set",
+        "`canonical.ready` is the only queue-ready set and `canonical.active` the only resumable one",
         "run `reconcile` to also check for untracked live specs",
         "Full audit: find untracked live specs",
         "also finds untracked live specs (Type 1)",
@@ -47,10 +50,59 @@ _COOLED_CHILD_ACTION = (
 )
 
 _PRESENT: dict[str, tuple[str, ...]] = {
+    # T8 (AC-0023, AC-0025): repo-origin specs need no entry; dispatch.py is the source.
+    "packs/core/.apm/skills/work-intake/SKILL.md": ("tracker-origin", "spec-entry-drop"),
     # T2 (AC-0005): the owner-approved cooled-child next action.
     "packs/core/.apm/skills/workspace-status/SKILL.md": (_COOLED_CHILD_ACTION,),
-    "guides/core/reference/workspace-toml-schema.md": (_COOLED_CHILD_ACTION,),
+    "guides/core/reference/workspace-toml-schema.md": (
+        _COOLED_CHILD_ACTION,
+        "tracker-origin",
+        "spec-entry-drop",
+    ),
 }
+_PRESENT["packs/core/.apm/skills/workspace-status/SKILL.md"] += (
+    "tracker-origin",
+    "spec-entry-drop",
+    "`dispatch.py`",
+)
+_ABSENT.update({
+    # T8 (AC-0023, AC-0024, AC-0026): writer, deferral and guide text.
+    "packs/core/.apm/skills/work-intake/SKILL.md": (
+        "A spec is registered, including when remembered",
+        "register an already-materialized spec",
+    ),
+    "guides/core/reference/workspace-toml-schema.md": (
+        "Register or reconcile the canonical entry explicitly",
+    ),
+    "packs/core/.apm/skills/new-spec/SKILL.md": ("The workspace entry for a",),
+    "packs/repo-governance/.apm/skills/new-rfc/SKILL.md": ("for queue registration",),
+    "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md": (
+        "resolve to an entry in `workspace.toml [backlog].open`",
+    ),
+    "packs/core/.apm/agents/adversarial-reviewer.md": (
+        "resolves to a slug entry in `workspace.toml [backlog].open`",
+    ),
+    "guides/core/tutorials/your-first-workspace.md": ("Move the entry in `workspace.toml` from",),
+    "guides/core/explanation/role-journeys.md": (
+        "moves the spec from `[work].active` to `[work].shipped`",
+        "routes them to `[work].queue`",
+    ),
+    "guides/core/explanation/two-room-model.md": ("The spec's path enters the build room's `queue`",),
+    "guides/core/how-to/start-or-remember-work.md": ("then adds the `workspace.toml`",),
+    "guides/_shared/reference/work-intake-routing-and-lifecycle.md": (
+        "`work.queue` only after approval and sibling plan",
+    ),
+    "guides/catalogue-curation/tutorials/your-first-skill.md": (
+        "registers a spec or tracker-origin item",
+        "into specs in `[work].queue`",
+    ),
+    "guides/core/how-to/close-and-disposition-work.md": (
+        "declare source.parent on its workspace entry",
+    ),
+    "docs/product/journeys/engineer-runs-work-loop.md": (
+        "canonical ready/active spec from `workspace-status`",
+    ),
+})
 
 # AC-0003: no file in these trees holds the retired finding code.
 _RETIRED_CODE = "unregistered_work"
@@ -209,6 +261,9 @@ _PRESENT.update({
 _WORK_LOOP = "packs/core/.apm/skills/work-loop/SKILL.md"
 _WORK_LOOP_EVALS = "packs/core/.apm/skills/work-loop/evals/evals.json"
 _ABSENT[_WORK_LOOP] = (
+    # T8 (AC-0024): historical deferral anchors resolve beyond [backlog].open.
+    "historical deferral anchors in `[backlog].open`",
+    "anchors still resolve in `[backlog].open`",
     # T6 (AC-0001): Step 0 dispatches from dispatch.py, not canonical.* lists.
     "canonical.ready",
     "canonical.active",
@@ -354,3 +409,30 @@ def test_each_approval_precedes_the_commit_that_adds_its_text(ledger: str) -> No
         if added is None:
             pytest.skip("history unavailable in this checkout")
         assert datetime.fromisoformat(stamp) < datetime.fromisoformat(added), (target, stamp, added)
+
+
+# --- AC-0022: the equivalence fixtures stay byte-identical to the baseline ---
+
+_FIXTURES = (
+    "packs/core/tests/skills/work-loop/fixtures/header-derived-dispatch/expected.json",
+    "packs/core/tests/skills/workspace-status/fixtures/depends-on-headers/expected.json",
+    "packs/core/tests/skills/workspace-status/fixtures/depends-on-headers/expected-cooled-brief.json",
+    "packs/core/tests/skills/workspace-status/fixtures/captured-item-files/expected.json",
+)
+
+
+@pytest.mark.parametrize("rel", _FIXTURES)
+def test_equivalence_fixture_is_byte_identical_to_the_baseline(rel: str) -> None:
+    result = subprocess.run(
+        ["git", "show", f"{_BASELINE}:{rel}"], cwd=_REPO, capture_output=True, check=False
+    )
+    if result.returncode != 0:
+        pytest.skip(f"commit {_BASELINE} is not available in this checkout")
+    assert (_REPO / rel).read_bytes() == result.stdout
+
+
+def test_close_guide_names_the_lifecycle_record_parent() -> None:
+    """AC-0026: the cooled spec's declared parent is the lifecycle record's `parent`."""
+    flat = _flat("guides/core/how-to/close-and-disposition-work.md")
+    assert "lifecycle record's `parent`" in flat
+    assert "spec's `Brief:` header" in flat

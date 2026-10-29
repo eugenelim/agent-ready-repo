@@ -260,6 +260,8 @@ collection. A new captured item, meaning a defect, design, or research item, get
 
 A new repo-origin intent or brief gets no entry either: it is its file alone, and a brief's lifecycle is its `Status:`. The `workspace-status` `intent-brief-drop` repair removes existing repo-origin intent and brief entries. Captured items keep any entry they already have, and tracker-origin intent and brief entries stay, because refresh reads the tracker profile through the entry. The brief rows below describe those entries.
 
+A repo-origin spec gets no entry either: its own `Status:` and `Depends on:` headers are its record. A tracker-origin spec keeps its entry. A repo-origin spec entry that remains in a `work.` or `backlog.` collection with no `needs` is removed by the `workspace-status` `spec-entry-drop` repair, which gives it no queue move.
+
 | Collection | Valid artifacts | Meaning |
 | --- | --- | --- |
 | `[backlog].open` | Draft artifacts and open defect contexts | Visible, not dispatchable. |

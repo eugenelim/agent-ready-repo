@@ -353,9 +353,10 @@ anyway shows the reader a blank where a name should be.
 
 **Needs-resolution modes (`analyze_bounded` / `is_need_satisfied`):** `workspace_status()` (used by workspace-mcp) calls `analyze_bounded(autonomous_dispatch=True)`, which applies conservative semantics. All other callers use `autonomous_dispatch=False` (default, human-session semantics). The difference:
 
-Autonomous dispatch consumers must use `canonical.ready` as the ready set. A
-valid `work.active` item appears in `canonical.active` as resumable context,
-not queue-ready. Invalid entries
+Autonomous dispatch consumers take the ready and resumable specs from
+`work-loop`'s `dispatch.py`, which reads each spec's own headers. A valid
+`work.active` item appears in `canonical.active` as resumable context, not
+queue-ready. Invalid entries
 and `unsupported_legacy` entries remain visible under `canonical.findings`,
 but never dispatch.
 
@@ -426,12 +427,11 @@ Using the JSON data from Step 1 — do not re-read `workspace.toml` or recompute
 
 From the JSON result:
 
-- `active` = all entries in `canonical.active`
-- `unblocked` = all entries in `canonical.ready`
+- Run `work-loop`'s `dispatch.py --root .` (read-only) for the ready and resumable specs. Its `ready` list is the `unblocked` set and its `active` list is the `active` set. This status JSON does not decide either.
 
 Ready to start already lists every ready item with its command, so the user picks among them.
 
-**Path resolution:** entries in `canonical.ready`, `canonical.active`, etc. carry a `path` field (e.g. `"docs/specs/<slug>/spec.md"`). Strip `docs/specs/` and trailing `/spec.md` to get the slug; use `docs/specs/<slug>/` for file-system commands.
+**Path resolution:** entries in `canonical.blocked` and each `dispatch.py` list carry a `path` field (e.g. `"docs/specs/<slug>/spec.md"`). Strip `docs/specs/` and trailing `/spec.md` to get the slug; use `docs/specs/<slug>/` for file-system commands.
 
 **5b. ASCII dependency graph (when ≥2 unblocked work items)**
 
@@ -446,7 +446,7 @@ Work queue — parallel opportunities:
 ```
 
 - Right-pad the slug column to the longest slug for alignment. Use each canonical item's `path` field.
-- Entries in `canonical.ready`: annotate `[ready]`.
+- Entries in `dispatch.py`'s `ready` list: annotate `[ready]`.
 - Entries in `canonical.blocked`: annotate with the first finding `code`; surface its `next_action` instead of recomputing a dependency reason.
 
 **5c. Harness detection and parallel-session offer (when graph rendered)**
@@ -460,14 +460,14 @@ When the graph was rendered, offer a parallel-session choice as the **first** nu
 
 Emit the following choices in order. Omit any whose source is empty; renumber sequentially. The parallel-session offer from 5c (when present) occupies the first slot and the remaining choices follow.
 
-- **Active spec:** one numbered choice for each entry in `canonical.active`: `work-loop docs/specs/<slug>/` — continue this active spec. Present when `active` is non-empty.
+- **Start a ready spec:** one numbered choice for each spec in `dispatch.py`'s `ready` list: `work-loop docs/specs/<slug>/` — start this spec. Present when `unblocked` is non-empty.
+- **Active spec:** one numbered choice for each entry in `dispatch.py`'s `active` list: `work-loop docs/specs/<slug>/` — continue this active spec. Present when `active` is non-empty.
 - **Start or remember work (always — final choice):** `work-intake`
 
 ## Never
 
-- Infer dispatchability. `canonical.ready` is the only queue-ready set and
-  `canonical.active` the only resumable one; never derive either from raw
-  `[work]` membership.
+- Infer dispatchability. `work-loop`'s `dispatch.py` is the source of ready and
+  resumable specs; never derive either from raw `[work]` membership.
 - Mutate the workspace during `status`, `reconcile`, or `explain`. Every
   mutating subcommand — `prune`, `repair-apply`, `repair-rollback` — needs
   explicit human confirmation first, and reaching one from an orientation run

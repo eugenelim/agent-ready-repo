@@ -48,7 +48,7 @@ owned.
 | Content and evidence | Artifact | Initial membership | Processor | Dispatchable |
 | --- | --- | --- | --- | --- |
 | Minimal opportunity | intent | none for a repo-origin intent; repository backlog for a tracker-origin one | `none` | No |
-| One independently shippable behavior | spec | `work.queue` only after approval and sibling plan | `new-spec` | Yes after gates |
+| One independently shippable behavior | spec | none for a repo-origin spec (ready once approved with a sibling plan); `work.queue` for a tracker-origin one | `new-spec` | Yes after gates |
 | One coherent outcome needing several specs | brief | none for a repo-origin brief (its `Status: Draft`); `brief_queue.draft` for a tracker-origin one | `author-delivery-brief create` | Yes for drafting; not for implementation |
 | Cross-repository outcome | one linked local brief per repository | none for a repo-origin brief; `brief_queue.draft` for a tracker-origin one | `author-delivery-brief create` | Yes for each local slice |
 | Unrelated collection or incoherent view | separate units, view-only result, or Draft with named gaps | none or non-dispatchable Draft | `none` | No |

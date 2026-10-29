@@ -131,7 +131,8 @@ mechanical rule.
   review and human approval before implementation resumes.
 - **Historical deferral token.** Frozen specs may still contain older inline
   `(deferred: <slug>)` markers. While they exist, the marker's `<slug>` must
-  resolve to an entry in `workspace.toml [backlog].open` of *either* shape: a
+  resolve through an entry in `workspace.toml [backlog].open` or through an open
+  intent, brief or spec file. A `[backlog].open` entry takes *either* shape: a
   legacy record's `slug` field, or a canonical record's `path` through
   `lint-spec-status.canonical_entry_anchor`, which anchors a spec or plan path
   on its owning directory and any other artifact on its file stem. New entries

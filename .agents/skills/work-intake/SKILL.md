@@ -162,14 +162,15 @@ item leaves it unsettled. An older captured item may still have a `workspace.tom
 entry. Closing one deletes that entry in the same change as the file's `Status:`
 edit, and never moves it to `[backlog].closed`.
 
-A repo-origin intent, a repo-origin brief, and a captured item are each their
-own file with no `workspace.toml` entry: write the file and register nothing. A
-tracker-origin intent or brief is registered as before, because refresh checks
-its tracker profile through the entry alone. A spec is registered, including
-when remembered. In each registered case the artifact comes first, and its entry
-follows the rest of this section. A repo-origin intent or brief that still holds
-an entry goes to the `workspace-status` `intent-brief-drop` repair before this
-workflow changes it.
+A repo-origin intent, a repo-origin brief, a repo-origin spec, and a captured
+item are each their own file with no `workspace.toml` entry: write the file and
+register nothing. A tracker-origin intent, brief or spec is registered as
+before, because refresh checks its tracker profile through the entry alone. In
+each registered case the artifact comes first, and its entry follows the rest of
+this section. A repo-origin intent or brief that still holds an entry goes to
+the `workspace-status` `intent-brief-drop` repair before this workflow changes
+it; a repo-origin spec that still holds one goes to the `spec-entry-drop`
+repair.
 
 For a separated follow-on from an amended spec, materialize the follow-on's
 owning artifact before registration. The follow-on's current state changes in
@@ -520,7 +521,7 @@ allowed-tools:
     the `workspace-status` result.
   - Write - create a new canonical artifact after realpath and symlink
     confinement checks.
-  - Edit - register an already-materialized spec or tracker-origin artifact in
+  - Edit - register a tracker-origin artifact in
     `workspace.toml`, or rollback the registration attempt before dispatch.
   - Bash - run local Python validation or the `workspace-status` backend with
     discrete arguments; do not use network commands.

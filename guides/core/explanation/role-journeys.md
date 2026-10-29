@@ -37,7 +37,7 @@ Before a signal enters this sequence, it is made durable. The [work intake](../h
 
 A PM who lives in a tracker takes a shorter path to a Draft brief. There is no generic intake skill — each tracker ships its own: `jira-brief-intake` and `jira-align-brief-intake` (the `atlassian` pack), `linear-brief-intake` (`linear`), and `github-brief-intake` (`github`). Each acquires the source read-only, maps its metadata to DoR fields, and prompts interactively for anything the tracker does not capture (Appetite, Rabbit holes, Instrumentation). The brief is written as a Draft, with an entry in `[brief_queue].draft` because it is tracker-origin, and an `Epic:` back-link to the originating tracker issue. When the spec ships, "Fixes #NNN" in the PR body auto-closes the issue. The PM does not need to leave their tracker — the platform adapts to the tracker, not the other way around.
 
-All three paths converge here: a Ready brief. From there, `author-delivery-brief continue` decomposes confirmed slices into specs and routes them to `[work].queue` for an engineer or agent to execute.
+All three paths converge here: a Ready brief. From there, `author-delivery-brief continue` decomposes confirmed slices into specs, each its own file with no registry entry, for an engineer or agent to execute.
 
 **Source journey maps:**
 [product-strategist-sets-direction](../../../docs/product/journeys/product-strategist-sets-direction.md) ·
@@ -88,7 +88,7 @@ The distinction between the agent's loop and the engineer's loop is not capabili
 
 ### The ship signal
 
-When the spec is done, the agent submits a PR and moves the spec from `[work].active` to `[work].shipped` in `workspace.toml`. The ship signal is the committed write-back — not the PR submission itself, but the state transition in `workspace.toml`. This is what allows the next agent (or the engineer reviewing the session) to see what shipped without reading any prior session's context. `workspace-status` run at the start of the next session will show the shipped spec and surface whatever comes next.
+When the spec is done, the agent submits a PR and sets the spec's `Status:` to `Shipped`. The ship signal is the committed write-back — not the PR submission itself, but the `Status:` header in the spec. This is what allows the next agent (or the engineer reviewing the session) to see what shipped without reading any prior session's context. `workspace-status` run at the start of the next session will show the shipped spec and surface whatever comes next.
 
 ### Harness-controlled sessions
 
