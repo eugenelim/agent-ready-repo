@@ -1,6 +1,6 @@
 # Spec: Preservation through typed review
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -268,11 +268,12 @@ Terms:
 ### Agent behavior and release
 
 - [ ] **AC-0022.** Graded runs against the rebuilt projections hold every
-  assertion of five cases. The cases are `new-spec`'s
-  `shared-substrate-change-expands-preservation-proof` and
+  assertion of four cases: `new-spec`'s
   `isolated-private-change-does-not-expand-preservation-proof`, `work-loop`'s
   `shared-substrate-feature-tests-do-not-prove-preservation`, and AC-0017's two
-  cases. A graded run is one fresh agent following a copy of the projection
+  cases. `new-spec`'s `shared-substrate-change-expands-preservation-proof` also
+  runs on the rebuilt and base projections, and the ledger records its scores
+  without a pass requirement, because this change edits no `new-spec` file. A graded run is one fresh agent following a copy of the projection
   with its `evals/` directory removed, given only the case's `prompt` and
   files, and scored by a separate grader that receives the output and the
   case's `assertions`. A reviewer case's agent follows the projected reviewer

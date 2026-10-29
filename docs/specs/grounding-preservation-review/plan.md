@@ -1,7 +1,7 @@
 # Plan: Preservation through typed review
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Drafting
 - **Repository anchors:** the review-module chain exercised end to end by
   `packs/core/tests/skills/work-loop/test_review_bridge.py::test_supported_assessment_commits_complete_receipts_and_replays_projection`
   (persist a report, assess, bridge, evaluate `contradicted`); the
@@ -230,17 +230,18 @@ Owned by: T2, T3.
 
 **Depends on:** T4
 
-**Touches:** docs/specs/grounding-preservation-review/notes/verification-ledger.md
+**Touches:** docs/specs/grounding-preservation-review/notes/verification-ledger.md, docs/specs/grounding-preservation-review/notes/graded-runs/*
 
 **Mode:** visual / manual QA of the rebuilt agent artifacts.
 
 **Tests:**
-- AC-0022's five graded runs, and one baseline graded run per case against the
+- AC-0022's four graded runs plus the recorded positive authoring case, and
+  one baseline graded run per case against the
   base revision's projection, recorded in `notes/verification-ledger.md`. The
   base projection has no reviewer eval cases, so their baselines run the same
   prompt and files against the base reviewer definitions.
 
-**Done when:** the ledger records all ten runs, each with the pack version it
+**Done when:** the ledger records all ten runs and any reruns, each with the pack version it
 ran against, and every AC-0022 run holds all its assertions.
 
 ## Changelog
