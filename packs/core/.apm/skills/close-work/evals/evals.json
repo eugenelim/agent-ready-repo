@@ -180,6 +180,16 @@
         "Applies it only under fresh confirmation and never overwrites a current-architecture source without per-file acceptance",
         "Reports and leaves the design unchanged when no current-architecture destination resolves"
       ]
+    },
+    {
+      "id": "enrol-records-spec-parent",
+      "prompt": "Enrol a shipped delivery contract whose spec carries a `Brief:` header naming its parent brief.",
+      "expected_output": "The agent writes the lifecycle record with an optional `parent` filled from the spec's `Brief:` header read before the spec cools, writes `none` when the header says so, and leaves `parent` absent when the header is missing rather than guessing.",
+      "assertions": [
+        "Fills the record's `parent` from the spec's `Brief:` header",
+        "Writes `none` only when the header states none",
+        "Leaves `parent` absent when no header exists instead of inferring one"
+      ]
     }
   ]
 }
