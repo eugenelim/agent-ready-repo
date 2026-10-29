@@ -163,7 +163,10 @@ def _cases() -> list[RCase]:
 
     cases.append(_simple("cooled-named-start-and-resume", cooled_named))
 
-    # Registry-settled dependencies.
+    # Registry-settled dependencies. `registry-settled-defect` and
+    # `registry-settled-kind-differs` exercise a refused membership (an `Open` file in
+    # `backlog.closed`, an intent file registered as a brief); the `-closed` and
+    # `-kind-mismatch` cases below hold valid memberships and reach the named condition.
     def defect_settled(repo: Any) -> None:
         repo.spec("waiter", depends="docs/product/captured/settled.md")
         repo.put("docs/product/captured/settled.md", "# Defect\n\n- **Status:** Open\n- **Kind:** defect\n")
@@ -188,7 +191,31 @@ def _cases() -> list[RCase]:
             brief_executing=[entry("docs/product/intents/target.md", "brief")],
         )
 
+    def defect_closed(repo: Any) -> None:
+        repo.spec("waiter", depends="docs/product/captured/settled.md")
+        repo.put(
+            "docs/product/captured/settled.md",
+            "# Defect\n\n- **Status:** Closed\n- **Kind:** defect\n- **Resolution:** fixed\n",
+        )
+        repo.workspace(
+            queue=[_e("waiter")],
+            backlog_closed=[entry("docs/product/captured/settled.md", "defect")],
+        )
+
+    def kind_mismatch(repo: Any) -> None:
+        repo.spec("waiter", depends="intent:target")
+        repo.put(
+            "docs/product/intents/target.md",
+            "# Research: target\n\n- **Status:** Draft\n- **Slug:** target\n",
+        )
+        repo.workspace(
+            queue=[_e("waiter")],
+            backlog_open=[entry("docs/product/intents/target.md", "research")],
+        )
+
     cases += [
+        _simple("registry-settled-defect-closed", defect_closed),
+        _simple("registry-settled-kind-mismatch", kind_mismatch),
         _simple("registry-settled-defect", defect_settled),
         _simple("registry-settled-target-with-findings", target_with_findings),
         _simple("registry-settled-kind-differs", kind_differs),
@@ -556,8 +583,8 @@ def _flatten(case_name: str, observed: dict[str, Any]) -> dict[tuple[str, str, s
 
 REPRODUCED = "reproduced"
 REMOVAL = "accepted removal"
-D1 = "RFC-0106 D1"
-D3 = "RFC-0106 D3"
+D1 = "RFC-0106 § Errata (2026-10-29)"
+D3 = "RFC-0106 § Errata (2026-10-29)"
 
 
 def _errata(case: str) -> str:
@@ -612,11 +639,11 @@ def _dotted_slug() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None
 
 def _table() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None]]:
     table: dict[tuple[str, str, str], tuple[Any, Any, str, str | None]] = {}
-    # RFC-0106 D1: a spec that is not registered is dispatched from its header.
+    # D1: a spec that is not registered is dispatched from its header.
     table |= _admitted("dep-spec-open", "target", D1)
     table |= _admitted("unregistered-approved", "loose", D1)
     table |= _unregistered("unregistered-implementing", "loose", "resume", "active", D1)
-    # RFC-0106 D3: several ready specs are asked about, not picked in list order.
+    # D3: several ready specs are asked about, not picked in list order.
     several = [_p("one"), _p("three"), _p("two")]
     for shape in ("argless_start", "argless_resume"):
         table |= _removal(
@@ -626,7 +653,7 @@ def _table() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None]]:
     # RFC-0106 § Errata (2026-10-29): the two cases below, approved by the owner.
     table |= _dependent_finding()
     table |= _dotted_slug()
-    # Each below needs an RFC-0106 § Errata entry, written after the owner approves it.
+    # Each below is named by its own RFC-0106 § Errata entry.
     for case, slug in (
         ("duplicate-membership", "dup"),
         ("provenance-mismatch", "pm"),
@@ -654,7 +681,7 @@ def _table() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None]]:
 CLASSIFICATION: dict[tuple[str, str, str], tuple[Any, Any, str, str | None]] = _table()
 
 
-def _differences(D: ModuleType, tmp_path: Path) -> tuple[dict[Any, tuple[Any, Any]], set[str]]:
+def _compute_differences(D: ModuleType, tmp_path: Path) -> tuple[dict[Any, tuple[Any, Any]], set[str]]:
     expected = json.loads(_EXPECTED_PATH.read_text(encoding="utf-8"))
     diffs: dict[Any, tuple[Any, Any]] = {}
     built: set[str] = set()
@@ -677,6 +704,16 @@ def _differences(D: ModuleType, tmp_path: Path) -> tuple[dict[Any, tuple[Any, An
             if base[key] != header[key]:
                 diffs[key] = (base[key], header[key])
     return diffs, built
+
+
+@pytest.fixture(scope="module")
+def differences(
+    D: ModuleType, tmp_path_factory: pytest.TempPathFactory
+) -> dict[Any, tuple[Any, Any]]:
+    """The replay differences, computed once for the module."""
+    if _RECORD:
+        return {}
+    return _compute_differences(D, tmp_path_factory.mktemp("replay"))[0]
 
 
 # --- tests -----------------------------------------------------------------------
@@ -713,11 +750,11 @@ def test_built_cases_equal_the_recorded_cases() -> None:
     assert set(names) == set(expected)
 
 
-def test_every_difference_is_classified_exactly(D: ModuleType, tmp_path: Path) -> None:
+def test_every_difference_is_classified_exactly(differences: dict[Any, tuple[Any, Any]]) -> None:
     """AC-0018: no unnamed difference, no wrong value, no unused table entry."""
     if _RECORD:
         pytest.skip("recording")
-    diffs, _ = _differences(D, tmp_path)
+    diffs = differences
     if os.environ.get("HEADER_DISPATCH_DUMP"):
         print(json.dumps([[*k, v[0], v[1]] for k, v in sorted(diffs.items())], indent=1))
     skipped = {k for k in CLASSIFICATION if IS_ROOT and k[0] in SKIP_AS_ROOT}
@@ -735,7 +772,7 @@ def test_every_difference_is_classified_exactly(D: ModuleType, tmp_path: Path) -
             assert key not in diffs and base == header, f"reproduced entry differs: {key}"
 
 
-def test_every_dependency_case_reproduces(D: ModuleType, tmp_path: Path) -> None:
+def test_every_dependency_case_reproduces(differences: dict[Any, tuple[Any, Any]]) -> None:
     """A dependency case that differs would keep spec registration: it is never a removal.
 
     The one difference in a dependency case is `dep-spec-open`'s target, an
@@ -744,7 +781,7 @@ def test_every_dependency_case_reproduces(D: ModuleType, tmp_path: Path) -> None
     """
     if _RECORD:
         pytest.skip("recording")
-    diffs, _ = _differences(D, tmp_path)
+    diffs = differences
     edge_cases = {c.name for c in CASES if c.name.startswith("dep-")}
     edge_cases |= {c.name for c in CASES if c.name.startswith("cooled-child-")}
     edge_cases -= {"cooled-child-none-record-predates-parent"}

@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import subprocess
 import sys
 from pathlib import Path
+from types import ModuleType
+from typing import Any
 
 _TOOLS = Path(__file__).resolve().parent
 _TOOL = _TOOLS / "replay-dispatch.py"
@@ -91,3 +94,74 @@ def test_a_selector_dispatch_refuses_is_recorded_not_fatal(tmp_path: Path) -> No
     assert done.returncode == 0, done.stderr
     assert 'DIFF docs/specs/v1.2/spec.md start base={"action": "refuse"' in done.stdout
     assert '"action": "invalid_selector"' in done.stdout
+
+
+# --- the base decision agrees with the replay suite's transcription -----------------
+
+_SUITE = (
+    _TOOLS.parent / "packs/core/tests/skills/work-loop/test_header_derived_dispatch_replay.py"
+)
+
+
+def _load(path: Path, stem: str) -> ModuleType:
+    """Load a module by file path under a unique name."""
+    name = f"tools_replay_dispatch_parity_{stem}"
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(name, None)
+    return module
+
+
+def _item(path: str) -> dict[str, Any]:
+    return {"path": path}
+
+
+def _blocked(path: str) -> dict[str, Any]:
+    return {"path": path, "findings": [{"code": "missing_plan"}]}
+
+
+def _canonical(
+    ready: list[str] = (), active: list[str] = (), blocked: list[dict[str, Any]] = (),  # type: ignore[assignment]
+    findings: list[dict[str, Any]] = (),  # type: ignore[assignment]
+) -> dict[str, Any]:
+    paths = [*ready, *active]
+    return {
+        "ready": [_item(p) for p in ready], "active": [_item(p) for p in active],
+        "blocked": list(blocked), "findings": list(findings),
+        "evaluations": [_item(p) for p in paths],
+    }
+
+
+_A, _B, _C = (f"docs/specs/{n}/spec.md" for n in "abc")
+_CANONICALS = {
+    "empty": _canonical(),
+    "one ready": _canonical(ready=[_A]),
+    "two ready": _canonical(ready=[_A, _B]),
+    "ready and blocked": _canonical(ready=[_A], blocked=[_blocked(_A)]),
+    "ready, slug-spelled finding": _canonical(
+        ready=[_A], findings=[{"path": "spec/a", "code": "unsupported_legacy"}]
+    ),
+    "ready, bare-slug block": _canonical(ready=[_A], blocked=[_blocked("a")]),
+    "first ready blocked, second not": _canonical(ready=[_A, _B], blocked=[_blocked(_A)]),
+    "one active": _canonical(active=[_B]),
+    "two active": _canonical(active=[_B, _C]),
+    "active beside ready": _canonical(ready=[_A], active=[_B]),
+    "active and blocked": _canonical(active=[_B], blocked=[_blocked(_B)]),
+}
+
+
+def test_base_decision_matches_the_replay_suite() -> None:
+    tool = _load(_TOOL, "tool")
+    suite = _load(_SUITE, "suite")
+    for label, canonical in _CANONICALS.items():
+        assert tool.base_argless(canonical) == suite.base_argless(canonical), label
+        for mode in ("start", "resume"):
+            for target in (_A, _B, _C):
+                assert tool.base_named(canonical, mode, target) == (
+                    suite.base_named(canonical, mode, target)[0]
+                ), (label, mode, target)

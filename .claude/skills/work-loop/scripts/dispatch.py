@@ -89,9 +89,17 @@ class _InvalidSelector(ValueError):
 
 
 def _confined_module(
-    skills: Path, candidate: Path, prefix: str, names: tuple[str, ...]
+    skills: Path,
+    candidate: Path,
+    prefix: str,
+    names: tuple[str, ...],
+    data: tuple[str, ...] = (),
 ) -> ModuleType:
-    """Load `candidate` by path under a unique name, only from inside `skills`."""
+    """Load `candidate` by path under a unique name, only from inside `skills`.
+
+    Each of `names` must be callable (a function or class); each of `data` need
+    only be present.
+    """
     try:
         resolved = candidate.resolve(strict=True)
         resolved.relative_to(skills)
@@ -113,7 +121,9 @@ def _confined_module(
         except Exception as exc:
             sys.modules.pop(name, None)
             raise _Unavailable(candidate.name) from exc
-    if any(getattr(module, attribute, None) is None for attribute in names):
+    if any(not callable(getattr(module, attribute, None)) for attribute in names) or any(
+        getattr(module, attribute, None) is None for attribute in data
+    ):
         raise _Unavailable(candidate.name)
     return module
 
@@ -129,7 +139,8 @@ def _load_modules() -> tuple[ModuleType, ModuleType]:
         skills,
         skills / "workspace-status" / "scripts" / "workspace_status_engine.py",
         "_work_loop_dispatch_engine_",
-        _ENGINE_NAMES + ("_COOLING_PAIRS",),
+        _ENGINE_NAMES,
+        ("_COOLING_PAIRS",),
     )
     safety = _confined_module(
         skills, scripts / "file_safety.py", "_work_loop_dispatch_file_safety_",

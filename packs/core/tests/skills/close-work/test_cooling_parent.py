@@ -289,7 +289,12 @@ def test_enrol_with_a_repeated_brief_header_has_no_parent(tmp_path: Path) -> Non
 
 @pytest.mark.parametrize("locator", ["docs/specs/example/plan.md", "docs/product/briefs/x.md", "README.md"])
 def test_enrol_writes_a_non_spec_locator_as_given(tmp_path: Path, locator: str) -> None:
-    _plant_spec(tmp_path, "- **Brief:** none")
+    # A readable file with a resolvable `Brief:` sits at the locator: only the locator's
+    # form, not the file's content, keeps `parent` absent.
+    _plant_brief(tmp_path)
+    _plant_spec(tmp_path, "- **Brief:** brief:example-brief", locator)
+    assert (tmp_path / locator).read_text(encoding="utf-8").count("brief:example-brief") == 1
+    assert (tmp_path / _BRIEF).is_file()
     assert _enrol(tmp_path, locator=locator).parent is None
 
 

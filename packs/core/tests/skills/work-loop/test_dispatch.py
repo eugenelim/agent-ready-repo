@@ -483,9 +483,6 @@ def test_decision_with_no_selector(D: ModuleType, tmp_path: Path) -> None:
     repo.spec("other")
     decision = D.dispatch(repo.root)["decision"]
     assert decision["action"] == "ask" and decision["path"] is None
-    assert decision["candidates"] == [SPEC.format("only"), SPEC.format("other")][::-1] or (
-        decision["candidates"] == sorted(decision["candidates"])
-    )
     assert decision["candidates"] == sorted([SPEC.format("only"), SPEC.format("other")])
     repo.spec("running", "Implementing")
     assert D.dispatch(repo.root)["decision"]["action"] == "resume"
@@ -561,13 +558,10 @@ def test_named_refusals_by_rule(D: ModuleType, tmp_path: Path) -> None:
     repo.spec("legacy-one")
     # rule 2: blocked findings
     assert "missing_plan" in _refusal(D, repo, "start", "noplan")
-    # rule 3: a kept entry without evaluation findings still refuses
-    kept = Repo(tmp_path / "kept")
-    kept.spec("k", "Implementing")
-    kept.workspace(active=[entry(SPEC.format("k"), needs='[{type = "local", kind = "spec", '
-                                 'path = "docs/specs/x/spec.md"}]')])
-    assert _refusal(D, kept, "start", "k")
-    assert "unsupported_legacy" in _refusal(D, repo, "start", "legacy-one")
+    # rule 3: a kept entry that is not blocked, whose Approved status would start, is
+    # refused with the engine's own finding; without rule 3 it would be `unapproved_spec`.
+    assert SPEC.format("legacy-one") not in paths(D.dispatch(repo.root)["blocked"])
+    assert _refusal(D, repo, "start", "legacy-one") == ["unsupported_legacy"]
     # rule 4: cooled, from the record alone
     assert _refusal(D, repo, "start", "cooled") == ["impossible_transition"]
     assert _refusal(D, repo, "resume", "cooled") == ["impossible_transition"]
@@ -791,7 +785,6 @@ def test_unreadable_spec_gives_one_finding_unless_a_kept_entry_names_it(
     repo = Repo(tmp_path / "r")
     locked = repo.spec("locked")
     named = repo.spec("named")
-    repo.workspace(queue=[entry(SPEC.format("named"), needs="[]  ")])
     # `named` keeps its entry only because the entry below is not droppable.
     repo.workspace(queue=[entry(SPEC.format("named"), needs='""')])
     locked.chmod(0)
@@ -822,6 +815,9 @@ def test_plan_problems_block_rather_than_hide_a_spec(D: ModuleType, tmp_path: Pa
         plan.chmod(0o644)
     blocked = set(paths(result["blocked"]))
     assert SPEC.format("planless") in blocked
+    if not IS_ROOT:
+        locked = {i["path"]: i for i in result["blocked"]}[SPEC.format("lockedplan")]
+        assert "unreadable_artifact" in codes(locked["findings"])
     linked = {i["path"]: i for i in result["blocked"]}[SPEC.format("linkplan")]
     assert "invalid_artifact_path" in codes(linked["findings"])
 
@@ -958,6 +954,16 @@ def test_missing_file_safety(
     _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
 
 
+def test_engine_name_that_is_not_callable(
+    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    engine = tree / "workspace-status/scripts/workspace_status_engine.py"
+    engine.write_text(engine.read_text(encoding="utf-8") + "\n_finding = 'not callable'\n",
+                      encoding="utf-8")
+    module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
+    _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
+
+
 def test_file_safety_without_the_reader(
     tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -1027,3 +1033,41 @@ def test_main_runs_as_a_subprocess_with_utf8_json(tree: Path, tmp_path: Path) ->
         capture_output=True, check=False,
     )
     assert broken.returncode == 2 and broken.stdout == b""
+
+
+# --- parity with workspace-status's selector rule ---------------------------------
+
+_SELECTOR_TABLE = (
+    "ok", "spec/ok", "docs/specs/ok", "docs/specs/ok/spec.md", "a_b-1", "A1",
+    "", "..", "a/b/c", "docs/specs/../x", "/abs", "-x", "a\\b", "C:x", "x" * 201,
+    "spec/", "docs/specs", "dotted.1", "spec/a/b", "docs/specs/ok/plan.md", "docs//specs/ok",
+)
+
+
+def test_selector_rule_matches_workspace_status(base_skills: Path, D: ModuleType) -> None:
+    """The one named difference: `docs/specs/<slug>/` is accepted here and normalized there."""
+    path = base_skills / "workspace-status" / "scripts" / "workspace_status.py"
+    name = f"core_work_loop_dispatch_parity_{next(_COUNTER)}"
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    status = importlib.util.module_from_spec(spec)
+    sys.modules[name] = status
+    try:
+        spec.loader.exec_module(status)
+    finally:
+        sys.modules.pop(name, None)
+
+    def header(selector: str) -> str | None:
+        try:
+            return D._selector_path(selector)
+        except D._InvalidSelector:
+            return None
+
+    def explain(selector: str) -> str | None:
+        targets = status._explain_selector_targets(selector)
+        return None if targets is None else targets[0]
+
+    for selector in _SELECTOR_TABLE:
+        assert header(selector) == explain(selector), selector
+    assert header("docs/specs/ok/") == SPEC.format("ok")
+    assert explain("docs/specs/ok/") is None

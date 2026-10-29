@@ -2215,7 +2215,79 @@
       }
     }
   },
+  "registry-settled-defect-closed": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
   "registry-settled-kind-differs": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "registry-settled-kind-mismatch": {
     "argless_resume": {
       "action": "none",
       "candidates": [],
