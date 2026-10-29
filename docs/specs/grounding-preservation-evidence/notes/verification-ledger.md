@@ -12,8 +12,11 @@
   counted as a failing oracle run.
 - After code review, the four lifecycle oracles read value nodes through the
   production `search(..., include_values=True)` path instead of the graph's
-  node table. The delete oracle checks references through call resolution: no
-  remaining call may resolve into the removed file. After both changes, all ten
+  node table. The delete oracle also checks, through call resolution, that no
+  remaining call resolves to a definition in the removed file. No production
+  path exposes edges, so no oracle observes dangling edges. The edge part of
+  the delete term holds in this fixture only because value nodes never take
+  edges. After both changes, all ten
   mutants still fail their own oracle, and the head source passes all ten.
 - The bounded-work mutant as the implementation under test makes the producer
   emit `over-budget`, pinned in the AC-0008 tests. This covers the deferred

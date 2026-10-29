@@ -234,8 +234,9 @@ def check_delete(impl: ModuleType) -> bool:
     remaining = {f: t for f, t in CORPUS.items() if f != REMOVED_FILE}
     if any(file == REMOVED_FILE for file, _ in _searched_values(impl, graph)):
         return False
-    # Call resolution is the production path that exposes references, so no
-    # remaining call may resolve into the removed file.
+    # No production path exposes edges. Values are observed through search and the
+    # removed file's definitions through call resolution; the edge clause holds here
+    # because value nodes never take edges, not because an observation shows it.
     for name in sorted(_names(remaining, "call")):
         resolved = impl.resolve_call(graph, name)
         if resolved is not None and resolved.file == REMOVED_FILE:
