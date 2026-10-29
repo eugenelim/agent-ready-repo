@@ -30,7 +30,7 @@ The work has three parts: build, prove, then record. T2 adds the record field on
 - An accepted RFC changes only through § Errata (RFC-0055).
 - Pack tests load a skill module under a unique name that includes pack and skill. They never put `scripts/` on `sys.path`.
 - Every added file that names `workspace.toml`, `workspace-status` or `workspace_status` needs an inventory row.
-- The brief stays `Executing` with this spec as an `Implementing` child. This spec's `Status:` and its `workspace.toml` entry move together, because spec registration still runs.
+- The brief stays `Executing` with this spec as an `Implementing` child. This spec's `Status:` and its `workspace.toml` entry move together, because spec registration still runs. During a controlled amendment the spec may sit at `Draft` while its entry stays in `work.active`, until re-approval returns it to `Implementing`.
 - Base outcomes come from `git worktree add <tmp> 95a8cc985`. The worktree is removed afterwards.
 
 ## Construction tests
@@ -85,7 +85,7 @@ Owned by: T3
 - **Added initiative and summaries.** The added memberships need a valid initiative slug and a `summary` on each entry to pass the engine's schema checks. `dispatch.py` takes the highest `ini-NNN` slug, from `ini-999` down, that matches the engine's `^ini-\d{3}$` and that no kept initiative uses, and uses the spec's title as the summary. Neither reaches the output. If every slug is taken, AC-0010 refuses the run.
 - **Status and parent** come from `_metadata_from_root`, the same reader `evaluate_dispatch` compares against. So an added membership never earns `provenance_mismatch` or `impossible_transition` from its own headers.
 - **Cooled specs.** These come from the lifecycle records the engine's cooled-set resolution returns, never from a spec body. A named start or resume of one is refused from the record alone.
-- **The `workspace.toml` read.** The file is read once through work-loop's co-located `file_safety.read_confined_regular_file`, and when it is absent nothing is read. `docs/specs/` is checked with the same module's `validate_confined_directory` and listed once, with a listing error giving AC-0011's single `docs/specs` finding, and each entry is checked on its own with that function, so one bad entry never refuses the others. `dispatch.py` loads that module as a sibling under AC-0012's rule.
+- **The `workspace.toml` read.** The file is read once through work-loop's co-located `file_safety.read_confined_regular_file`, and when it is absent nothing is read. `docs/specs/` is checked with the same module's `validate_confined_directory` and listed once, with a listing error giving the Spec file term's single `docs/specs` finding, and each entry is checked on its own with that function, so one bad entry never refuses the others. `dispatch.py` loads that module as a sibling under AC-0012's rule.
 - **The engine load** mirrors `_cooling_module_path` and `_load_cooling_module`: the layout predicate, resolve-and-confine, a unique module name, and fail-closed on any load error.
 
 ### Data & schema
@@ -264,3 +264,5 @@ Older records stay valid, and rollback is a revert.
 - Approved 2026-10-29 by eugenelim with the spec.
 - Spec re-approved 2026-10-29 by eugenelim after the pre-EXECUTE reviews.
 - Plan re-approved 2026-10-29 by eugenelim with the spec.
+- Spec re-approved 2026-10-29 by eugenelim after the AC-0021 controlled amendment.
+- Plan re-approved 2026-10-29 by eugenelim after the AC-0021 controlled amendment.

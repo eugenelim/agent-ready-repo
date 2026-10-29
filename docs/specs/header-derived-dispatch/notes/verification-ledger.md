@@ -33,6 +33,8 @@ The snapshot holds no lifecycle record (`lifecycle records 0`), so the second ru
 
 ### Classification
 
+For the § Equivalence rows, the 2026-10-29 RFC-0106 § Errata entry replaces the D1 and D3 citations below; D1 and D3 remain the decisions that entry applies.
+
 The author assigns each case and class by hand, and the owner approves the list below.
 
 | Spec path | Field | Base | Dispatch | Case | Class |
@@ -54,4 +56,5 @@ The author assigns each case and class by hand, and the owner approves the list 
 | 2026-10-29 | The case replay's classification, including `dep-spec-open`'s unregistered target under RFC-0106 D1 (AC-0018) | Approved by eugenelim |
 | 2026-10-29 | RFC-0106 § Errata entry of 2026-10-29, cases `duplicate-membership`, `provenance-mismatch`, `inactive-initiative`, `impossible-transition`, `registry-settled-target-with-findings`, `symlink-spec-file`, `symlink-spec-dir-alias`, `cooled-child-none-record-predates-parent` (name corrected from `cooled-child-record-predates-parent` with the owner's approval, 2026-10-29), `dependent-finding-names-spec`, `dotted-slug-selector` (AC-0022), wording approved before commit | Approved by eugenelim |
 | 2026-10-29 | Adding the `dependent-finding-names-spec` and `dotted-slug-selector` corpus cases, recording only their new keys | Approved by eugenelim |
-| 2026-10-29 | Controlled amendment of AC-0021: its three rows cite the 2026-10-29 RFC-0106 § Errata entry, which gains item (11) to (13) naming `unregistered-approved`, `unregistered-implementing` and `several-ready` under D1 and D3; the retirement check requires each removal row's Case text in its cited section | Approved by eugenelim |
+| 2026-10-29 | Superseded by the next row: controlled amendment of AC-0021 as first drafted, naming three rows and items (11) to (13) | Approved by eugenelim, then superseded |
+| 2026-10-29 | Controlled amendment of AC-0021 and AC-0022 as committed: four rows (`unregistered-approved`, `unregistered-implementing`, `dep-spec-open`, `several-ready`) cite the 2026-10-29 RFC-0106 § Errata entry; that entry's final wording, items (1) to (14), with items (11) to (13) under D1 and item (14) under D3, approved before its commit; spec and plan re-approved | Approved by eugenelim |
