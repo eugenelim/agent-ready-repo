@@ -485,7 +485,7 @@ spec under review is the caller-named spec.
 `clean`, `unable`, and `indeterminate` carry no findings; `findings` carries one
 or more. Each finding carries these fields:
 
-- `schema_version`
+- `schema_version` — the integer `1`.
 - `finding_id`
 - `rule_ref` — the rule or criterion broken.
 - `observation`, `reachable_path`, `actual_failure` — the predicate self-check's

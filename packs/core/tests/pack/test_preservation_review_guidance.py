@@ -80,6 +80,8 @@ def test_ac0002_fields_and_statuses(path: Path) -> None:
     for name in (*FINDING_FIELDS, *STATUSES, *CALLER_FIELDS):
         assert f"`{name}`" in sec, name
     assert "caller fills" in _flat(sec)
+    # finding.v1 fixes schema_version to the integer 1; a string is refused.
+    assert "`schema_version` — the integer `1`" in sec
 
 
 @pytest.mark.parametrize("path", REVIEWERS, ids=lambda p: p.stem)
