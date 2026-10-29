@@ -1,0 +1,2968 @@
+{
+  "bare-status-line": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/bare/spec.md": {
+        "resume": [
+          "unapproved_spec"
+        ],
+        "start": [
+          "unapproved_spec"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/bare/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "configuration-mismatch": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/a/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/a/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/a/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/a/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/a/spec.md"
+        }
+      }
+    }
+  },
+  "cooled-child-declared-parent": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/child/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/child/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "cooled-child-none-record-predates-parent": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/child/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/child/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "cooled-child-parent-none": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/child/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/child/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "cooled-child-record-predates-parent": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/child/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/child/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "cooled-named-start-and-resume": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/done/spec.md": {
+        "resume": [
+          "cooled_child_scope_unknown"
+        ],
+        "start": [
+          "cooled_child_scope_unknown"
+        ]
+      },
+      "docs/specs/queued/spec.md": {
+        "resume": [
+          "cooled_child_scope_unknown"
+        ],
+        "start": [
+          "cooled_child_scope_unknown"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/done/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/queued/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-brief-child-scope-unknown": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/child/spec.md": {
+        "resume": [
+          "cooled_child_scope_unknown"
+        ],
+        "start": [
+          "cooled_child_scope_unknown"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/child/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-brief-cooled-no-slug": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-brief-cooled-slug-is-stem": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-brief-missing": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "missing_dependency"
+        ],
+        "start": [
+          "missing_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-brief-missing-receipt-abandoned": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-brief-missing-receipt-completed": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-brief-missing-receipt-invalid": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "invalid_completion_receipt"
+        ],
+        "start": [
+          "invalid_completion_receipt"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-brief-open": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-brief-terminal": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-coordination-block-invalid": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "invalid_receipt"
+        ],
+        "start": [
+          "invalid_receipt"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-coordination-match": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-coordination-revision-differs": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "invalid_receipt"
+        ],
+        "start": [
+          "invalid_receipt"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-cycle-two-specs": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/peer/spec.md": {
+        "resume": [
+          "dependency_cycle",
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "dependency_cycle",
+          "unsatisfied_dependency"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "dependency_cycle",
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "dependency_cycle",
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/peer/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-defect-closed-member": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-defect-missing": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "missing_dependency"
+        ],
+        "start": [
+          "missing_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-defect-no-member": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-defect-open-member": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-intent-missing": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "missing_dependency"
+        ],
+        "start": [
+          "missing_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-intent-missing-receipt-abandoned": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-intent-missing-receipt-completed": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-intent-missing-receipt-invalid": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "invalid_completion_receipt"
+        ],
+        "start": [
+          "invalid_completion_receipt"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-intent-open": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-intent-terminal": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-spec-cooled": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/target/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/target/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-spec-missing": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "missing_dependency"
+        ],
+        "start": [
+          "missing_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-spec-missing-receipt-abandoned": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-spec-missing-receipt-completed": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "dep-spec-missing-receipt-invalid": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "invalid_completion_receipt"
+        ],
+        "start": [
+          "invalid_completion_receipt"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-spec-open": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/target/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/target/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "dep-spec-terminal": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/waiter/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/target/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/target/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/waiter/spec.md"
+        }
+      }
+    }
+  },
+  "duplicate-membership": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/dup/spec.md": {
+        "resume": [
+          "duplicate_membership"
+        ],
+        "start": [
+          "duplicate_membership"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/dup/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "impossible-transition": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/approved-in-active/spec.md": {
+        "resume": [
+          "impossible_transition"
+        ],
+        "start": [
+          "impossible_transition"
+        ]
+      },
+      "docs/specs/shipped-in-queue/spec.md": {
+        "resume": [
+          "impossible_transition",
+          "unapproved_spec"
+        ],
+        "start": [
+          "impossible_transition",
+          "unapproved_spec"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/approved-in-active/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/shipped-in-queue/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "inactive-initiative": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/paused/spec.md": {
+        "resume": [
+          "inactive_initiative"
+        ],
+        "start": [
+          "inactive_initiative"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/paused/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "invalid-artifact-path": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/esc/spec.md": {
+        "resume": [
+          "invalid_artifact_path"
+        ],
+        "start": [
+          "invalid_artifact_path"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/esc/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "invalid-source-authority": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/isa/spec.md": {
+        "resume": [
+          "invalid_source_authority",
+          "provenance_mismatch"
+        ],
+        "start": [
+          "invalid_source_authority",
+          "provenance_mismatch"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/isa/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "legacy-string-alias": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/legacy-one/spec.md": {
+        "resume": [
+          "unsupported_legacy"
+        ],
+        "start": [
+          "unsupported_legacy"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/legacy-one/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "legacy-table-alias": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/legacy-tbl/spec.md": {
+        "resume": [
+          "unsupported_legacy"
+        ],
+        "start": [
+          "unsupported_legacy"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/legacy-tbl/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "missing-artifact": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/ghost/spec.md": {
+        "resume": [
+          "missing_artifact"
+        ],
+        "start": [
+          "missing_artifact"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/ghost/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "missing-plan": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/registered/spec.md": {
+        "resume": [
+          "missing_plan"
+        ],
+        "start": [
+          "missing_plan"
+        ]
+      },
+      "docs/specs/unregistered/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/registered/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/unregistered/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "needs-not-an-array": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/bad-needs/spec.md": {
+        "resume": [
+          "invalid_entry"
+        ],
+        "start": [
+          "invalid_entry"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/bad-needs/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "provenance-mismatch": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/pm/spec.md": {
+        "resume": [
+          "provenance_mismatch"
+        ],
+        "start": [
+          "provenance_mismatch"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/pm/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "provenance-reference": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/pr/spec.md": {
+        "resume": [
+          "invalid_artifact_path"
+        ],
+        "start": [
+          "invalid_artifact_path"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/pr/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "registry-settled-defect": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "registry-settled-kind-differs": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "registry-settled-target-with-findings": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/target/spec.md": {
+        "resume": [
+          "duplicate_membership",
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "duplicate_membership",
+          "unsatisfied_dependency"
+        ]
+      },
+      "docs/specs/waiter/spec.md": {
+        "resume": [
+          "unsatisfied_dependency"
+        ],
+        "start": [
+          "unsatisfied_dependency"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/target/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/waiter/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "several-active": {
+    "argless_resume": {
+      "action": "ask",
+      "candidates": [
+        "docs/specs/one/spec.md",
+        "docs/specs/two/spec.md"
+      ],
+      "path": null
+    },
+    "argless_start": {
+      "action": "ask",
+      "candidates": [
+        "docs/specs/one/spec.md",
+        "docs/specs/two/spec.md"
+      ],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/one/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/two/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/one/spec.md": {
+        "active": true,
+        "ready": false,
+        "resume": {
+          "action": "resume",
+          "candidates": [],
+          "path": "docs/specs/one/spec.md"
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/two/spec.md": {
+        "active": true,
+        "ready": false,
+        "resume": {
+          "action": "resume",
+          "candidates": [],
+          "path": "docs/specs/two/spec.md"
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "several-ready": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/one/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/one/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/one/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/three/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/two/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/one/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/one/spec.md"
+        }
+      },
+      "docs/specs/three/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/three/spec.md"
+        }
+      },
+      "docs/specs/two/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/two/spec.md"
+        }
+      }
+    }
+  },
+  "symlink-entry-beside-ready": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/ok/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/ok/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/ok/spec.md"
+        }
+      }
+    }
+  },
+  "symlink-readme-gives-no-finding": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/ok/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/ok/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/ok/spec.md"
+        }
+      }
+    }
+  },
+  "symlink-spec-dir-alias": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/real/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/real/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/alias/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/real/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/alias/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/alias/spec.md"
+        }
+      },
+      "docs/specs/real/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/real/spec.md"
+        }
+      }
+    }
+  },
+  "symlink-spec-file": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/real/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/real/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/real/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/sl/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/real/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/real/spec.md"
+        }
+      },
+      "docs/specs/sl/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/sl/spec.md"
+        }
+      }
+    }
+  },
+  "tracker-origin-invalid": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/trk/spec.md": {
+        "resume": [
+          "provenance_mismatch"
+        ],
+        "start": [
+          "provenance_mismatch"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/trk/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "tracker-origin-under-inactive-initiative": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/ok/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/trk-paused/spec.md": {
+        "resume": [
+          "inactive_initiative",
+          "provenance_mismatch",
+          "source_authority_migration_required"
+        ],
+        "start": [
+          "inactive_initiative",
+          "provenance_mismatch",
+          "source_authority_migration_required"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/ok/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/ok/spec.md"
+        }
+      },
+      "docs/specs/trk-paused/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "tracker-origin-valid": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/trk/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/trk/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/trk/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/trk/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/trk/spec.md"
+        }
+      }
+    }
+  },
+  "unapproved-spec": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/draft/spec.md": {
+        "resume": [
+          "unapproved_spec"
+        ],
+        "start": [
+          "unapproved_spec"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/draft/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "unmigrated-captured-item-beside-ready": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/ok/spec.md": {
+        "resume": [],
+        "start": []
+      }
+    },
+    "specs": {
+      "docs/specs/ok/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/ok/spec.md"
+        }
+      }
+    }
+  },
+  "unmigrated-needs-beside-ready": {
+    "argless_resume": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "argless_start": {
+      "action": "start",
+      "candidates": [],
+      "path": "docs/specs/ok/spec.md"
+    },
+    "named_codes": {
+      "docs/specs/ok/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/waiting/spec.md": {
+        "resume": [
+          "unmigrated_needs"
+        ],
+        "start": [
+          "unmigrated_needs"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/ok/spec.md": {
+        "active": false,
+        "ready": true,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "start",
+          "candidates": [],
+          "path": "docs/specs/ok/spec.md"
+        }
+      },
+      "docs/specs/waiting/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "unreadable-artifact": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/anchor/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/registered/spec.md": {
+        "resume": [
+          "unreadable_artifact"
+        ],
+        "start": [
+          "unreadable_artifact"
+        ]
+      },
+      "docs/specs/unregistered/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/anchor/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/registered/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/unregistered/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "unregistered-approved": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/anchor/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/loose/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/anchor/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/loose/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  },
+  "unregistered-implementing": {
+    "argless_resume": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "argless_start": {
+      "action": "none",
+      "candidates": [],
+      "path": null
+    },
+    "named_codes": {
+      "docs/specs/anchor/spec.md": {
+        "resume": [],
+        "start": []
+      },
+      "docs/specs/loose/spec.md": {
+        "resume": [
+          "unregistered_work"
+        ],
+        "start": [
+          "unregistered_work"
+        ]
+      }
+    },
+    "specs": {
+      "docs/specs/anchor/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      },
+      "docs/specs/loose/spec.md": {
+        "active": false,
+        "ready": false,
+        "resume": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        },
+        "start": {
+          "action": "refuse",
+          "candidates": [],
+          "path": null
+        }
+      }
+    }
+  }
+}
