@@ -2945,9 +2945,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/grounding-preservation-evidence/*"
-class = "contract"
-consumer = "Implementing spec whose plan Touches entry registers it in workspace.toml"
-owner = 9
+class = "historical"
+consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/guide-callout-inventory/*"

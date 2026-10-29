@@ -1,7 +1,7 @@
 # Plan: Independent preservation evidence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/work-loop/SKILL.md`
   § Conditional-reference routing; the conditional-reference pattern of
   `packs/core/.apm/skills/new-spec/references/shared-substrate-preservation.md`

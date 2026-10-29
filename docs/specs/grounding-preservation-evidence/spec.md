@@ -1,6 +1,6 @@
 # Spec: Independent preservation evidence
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -148,10 +148,10 @@ Terms:
 
 ### Every family
 
-- [ ] **AC-0001.** For each of the six properties, the producer's receipts for
+- [x] **AC-0001.** For each of the six properties, the producer's receipts for
   its terms over the head source, evaluated against the subject fingerprint,
   give a store verdict of `supported`.
-- [ ] **AC-0002.** For each term's oracle, run directly on that term's named
+- [x] **AC-0002.** For each term's oracle, run directly on that term's named
   mutant, the oracle returns a failing result, or a count over its bound for bounded work.
   The store verdict over the producer's receipts for all of that property's
   terms with the mutant as the implementation under test, evaluated against the
@@ -159,12 +159,12 @@ Terms:
 
 ### Each oracle
 
-- [ ] **AC-0003.** Conservation of ordinary calls: the oracle resolves every
+- [x] **AC-0003.** Conservation of ordinary calls: the oracle resolves every
   call name in the corpus with the base implementation and with the
   implementation under test, and passes only when, for every call name, the two
   results agree on every field of the base implementation's result type. The
   new field is the allowed delta and is not compared.
-- [ ] **AC-0004.** Conservation of default search has two terms. The default
+- [x] **AC-0004.** Conservation of default search has two terms. The default
   term runs every query through both implementations' default
   search and passes only when the results are equal. The explicit term runs
   every query through the implementation under test with values requested, and
@@ -174,12 +174,12 @@ Terms:
   expected value entries from the corpus text, without calling the
   implementation under test. Both terms compare each query's results as
   collections of kind, file, and name that ignore order and keep multiplicity.
-- [ ] **AC-0005.** Equivalence: the oracle compares a full build of the edited
+- [x] **AC-0005.** Equivalence: the oracle compares a full build of the edited
   corpus with a full build of the original corpus followed by a one-file update,
   in a semantic form that ignores internal identifiers and insertion order, and
   passes only when the two are equal. Two graphs that differ by a single edge
   compare unequal in that form.
-- [ ] **AC-0006.** Lifecycle has four terms, each observed only through
+- [x] **AC-0006.** Lifecycle has four terms, each observed only through
   production paths and compared with value names read from the corpus text:
   create, where a build holds exactly the corpus's value names; update, where
   after a one-file edit the graph holds exactly the edited corpus's value
@@ -187,12 +187,12 @@ Terms:
   values and the graph holds exactly the remaining corpus's value names; and
   rebuild, where a rebuild holds exactly the current corpus's value
   names.
-- [ ] **AC-0007.** Compatibility: the oracle compiles and runs a consumer
+- [x] **AC-0007.** Compatibility: the oracle compiles and runs a consumer
   snippet that uses only the base implementation's public result-type fields.
   It builds the type by position and by keyword and destructures it by
   position. It passes only when the snippet raises nothing, a pattern matches,
   and each destructured value equals the value it was built from.
-- [ ] **AC-0008.** Bounded work: the receipt has observation type
+- [x] **AC-0008.** Bounded work: the receipt has observation type
   `command-result`. The bound is the count of `def` and `value` lines in the
   edited file's text before the edit plus that count after the edit. The oracle
   compares it with the number of nodes the one-file update reports as
@@ -201,18 +201,18 @@ Terms:
 
 ### Incomplete evidence
 
-- [ ] **AC-0009.** Missing: for each of the six properties, with every other
+- [x] **AC-0009.** Missing: for each of the six properties, with every other
   property's receipts present and its own absent, its store verdict is
   `insufficient`.
-- [ ] **AC-0010.** Stale: for each of the six properties, receipts produced over
+- [x] **AC-0010.** Stale: for each of the six properties, receipts produced over
   an earlier head source that differs only by a behavior-neutral edit carry
   every term's passing outcome and give `supported` against that source's
   fingerprint, and give `insufficient` against the subject fingerprint.
-- [ ] **AC-0011.** Tautological: a variant of the ordinary-calls oracle that
+- [x] **AC-0011.** Tautological: a variant of the ordinary-calls oracle that
   resolves both sides with the implementation under test still passes on the
   named mutant, so the producer emits `fail` and the store verdict is
   `insufficient`.
-- [ ] **AC-0012.** Feature-only: the value-creation feature test, run through
+- [x] **AC-0012.** Feature-only: the value-creation feature test, run through
   the producer as the oracle for every term of the six properties, using each
   term's named mutation and bound to each property's own ID and term, earns
   `pass` only for the lifecycle create term and `fail` for every other term,
@@ -220,10 +220,10 @@ Terms:
 
 ### The reference
 
-- [ ] **AC-0013.** Exactly one row in `work-loop` `SKILL.md`
+- [x] **AC-0013.** Exactly one row in `work-loop` `SKILL.md`
   § Conditional-reference routing links `references/preservation-evidence.md`,
   and its predicate names a preservation property in the accepted criteria.
-- [ ] **AC-0014.** `references/preservation-evidence.md` names the five
+- [x] **AC-0014.** `references/preservation-evidence.md` names the five
   evidence families, the rule that an oracle counts only after it fails on a
   named mutation, and the four kinds of incomplete evidence: missing, stale,
   tautological, and feature-only. It links `new-spec`'s shared-substrate
@@ -232,17 +232,17 @@ Terms:
 
 ### Agent behavior, release, and scope
 
-- [ ] **AC-0015.** A graded run of `shared-substrate-feature-tests-do-not-prove-preservation`
+- [x] **AC-0015.** A graded run of `shared-substrate-feature-tests-do-not-prove-preservation`
   against the rebuilt `.claude/skills/work-loop/` projection holds all five of
   its assertions. A graded run is one fresh agent following a copy of that
   projection with its `evals/` directory removed, given only the case's
   `prompt`, and scored by a separate grader that receives the output and the
   case's `assertions`.
-- [ ] **AC-0016.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
+- [x] **AC-0016.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both read the patch version one above `packs/core/pack.toml` at the base
   revision, and a `docs/product/changelog.d/` fragment names `core` at that
   version.
-- [ ] **AC-0017.** `git diff --name-only <base revision> HEAD` lists no path
+- [x] **AC-0017.** `git diff --name-only <base revision> HEAD` lists no path
   under `contracts/`, `packs/core/.apm/skills/work-loop/scripts/`,
   `packs/core/.apm/skills/work-loop/evals/`, or `packs/core/.apm/agents/`. The
   Agent Rules alone govern the other forbidden surfaces.
