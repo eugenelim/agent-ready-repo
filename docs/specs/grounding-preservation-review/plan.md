@@ -79,17 +79,18 @@ The typed-report section, identical in both reviewer files, is a new
    status is `indeterminate` with no findings. The review then stops for owner
    direction instead of losing the finding or inventing an identifier.
 
-Each lens check is one numbered check appended to an existing checklist:
+The lens checks continue the existing numbering:
 
-- **`adversarial-reviewer`, `### Implementation-stage checks`** (and the
-  spec-stage list points at it). It fires only when the change adds or alters
+- **`adversarial-reviewer`, check 6 of `### Spec-stage checks`**, with check 10
+  of `### Implementation-stage checks` applying it to the diff. It fires only when the change adds or alters
   a member of a shared substrate. For each consumer class reachable from the
   changed member, the reviewer finds the accepted preservation criterion that
   covers it. A missed class is a finding. It names the covering criterion, or
   the criterion whose change reaches the consumer, with an amendment as the
   fix. A consumer reached only through an explicit filter raises nothing.
-- **`quality-engineer`, `## Review mode — attack along the relevant checklist`.**
-  For each accepted preservation criterion, the evidence is current, its
+- **`quality-engineer`, check 35 in a new `### Preservation evidence`
+  subsection after `### Performance ergonomics`.** It sits beside the strength
+  judgment the adversarial reviewer already leaves to this lens. For each accepted preservation criterion, the evidence is current, its
   expected side does not come from the code under test, and its oracle fails
   on a named mutation. Missing, stale, tautological, and feature-only evidence
   each make a finding against that criterion.

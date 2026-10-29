@@ -129,7 +129,7 @@ Terms:
   and `packs/core/.apm/agents/quality-engineer.md`.
 - **The typed-report section** is the one `## Typed report` section in a
   reviewer file.
-- **The added text** is the typed-report section plus the lens check AC-0006
+- **The added text** is the typed-report section plus the lens checks AC-0006
   or AC-0007 names in that file.
 - **The finding fields** are `schema_version`, `finding_id`, `rule_ref`,
   `observation`, `reachable_path`, `actual_failure`,
@@ -168,7 +168,9 @@ Terms:
   identifier the accepted spec contains, and that when a material finding has
   no such identifier to name, the typed report's status is `indeterminate`
   with no findings.
-- [ ] **AC-0006.** `adversarial-reviewer.md` has one numbered check that asks,
+- [ ] **AC-0006.** `adversarial-reviewer.md` has check 6 under
+  `### Spec-stage checks`, and check 10 under `### Implementation-stage checks`
+  applies check 6 to the consumers the diff reaches. Check 6 asks,
   for a change that adds or alters a member of a model, registry, graph,
   index, schema, namespace, or collection that generic operations observe
   without opt-in, whether each reachable consumer class has an accepted
@@ -177,7 +179,8 @@ Terms:
   it, they name the criterion whose change reaches the consumer, and the fix
   is an amendment. It says a consumer that reaches the member only through an
   explicit filter raises no finding.
-- [ ] **AC-0007.** `quality-engineer.md` has one numbered check that asks, for
+- [ ] **AC-0007.** `quality-engineer.md` has check 35 in a
+  `### Preservation evidence` subsection of review mode. It asks, for
   each accepted preservation criterion, whether its evidence is current, has
   an expected side independent of the code under test, and fails on a named
   mutation. It says missing, stale, tautological, or feature-only evidence is
