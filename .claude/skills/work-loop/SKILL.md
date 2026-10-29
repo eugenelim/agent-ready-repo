@@ -904,6 +904,7 @@ Load when the predicate fires; don't load speculatively.
 | Full mode needs to fire a transition or record cohort state | [`references/full-mode-engine.md`](references/full-mode-engine.md) |
 | Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
 | A repair or claimed fix needs mutation proof | [`references/mutation-proof.md`](references/mutation-proof.md) |
+| Accepted criteria include a preservation property: an existing behavior to keep, its allowed change, and an oracle | [`references/preservation-evidence.md`](references/preservation-evidence.md) |
 | Selecting reviewers, briefing one for dispatch, or weighing the lens the default roster gives up | [`references/reviewer-roster.md`](references/reviewer-roster.md) |
 | Task concerns a skill, a skill script or evaluation, agent-loop orchestration, a hook, or a plugin | [`references/skill-engineering-provider.md`](references/skill-engineering-provider.md) |
 | Before every `finding-adjudicator` dispatch | [`references/finding-adjudication.md`](references/finding-adjudication.md) |
