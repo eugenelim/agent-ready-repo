@@ -1,7 +1,7 @@
 # Plan: Preservation through typed review
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** the review-module chain exercised end to end by
   `packs/core/tests/skills/work-loop/test_review_bridge.py::test_supported_assessment_commits_complete_receipts_and_replays_projection`
   (persist a report, assess, bridge, evaluate `contradicted`); the
@@ -280,4 +280,6 @@ Follow-on's captured item.
 - 2026-10-29: amended spec approved by the owner (Platform Core)
 - 2026-10-29: amended plan approved by the owner (Platform Core)
 - 2026-10-29: AC-0007 hands missing evidence to adversarial-reviewer, directed by the owner (Platform Core)
-- 2026-10-29: AC-0007 refined: only a criterion with no verification artifact goes to adversarial-reviewer; a named family with no current result stays with quality-engineer
+- 2026-10-29: AC-0007 refined: only a criterion with no verification artifact goes to adversarial-reviewer; a named family with no current result stays with quality-engineer, approved by the owner (Platform Core)
+- 2026-10-29: second amended spec approved by the owner (Platform Core)
+- 2026-10-29: second amended plan approved by the owner (Platform Core)
