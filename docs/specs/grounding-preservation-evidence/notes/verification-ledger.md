@@ -12,9 +12,9 @@
   counted as a failing oracle run.
 - After code review, the four lifecycle oracles read value nodes through the
   production `search(..., include_values=True)` path instead of the graph's
-  node table. The delete oracle still reads the graph's edges for dangling
-  edges, because no production path exposes edges. All four lifecycle mutants
-  still fail their own oracle, and the head source passes all ten.
+  node table. The delete oracle checks references through call resolution: no
+  remaining call may resolve into the removed file. After both changes, all ten
+  mutants still fail their own oracle, and the head source passes all ten.
 - The bounded-work mutant as the implementation under test makes the producer
   emit `over-budget`, pinned in the AC-0008 tests. This covers the deferred
   review Nit about that outcome.
@@ -27,6 +27,21 @@
 - Full `packs/core/tests/skills/work-loop` run: 3621 passed, 431 skipped, in
   9m21s.
 - The guide link check `grep -c` prints `1`.
+
+## T3 — release, projection, registration, 2026-10-29
+
+- AC-0016: the base revision `abc1680aa` has Core `3.1.34`. `pack.toml` and
+  `plugin.json` both read `3.1.35`. Fragment
+  `docs/product/changelog.d/ed8f5605-27c3-43a4-9c4a-9b580365ed14.md` names
+  `core` at `3.1.35`.
+- AC-0017: `git diff --name-only abc1680aa HEAD`, filtered to `contracts/`,
+  work-loop `scripts/` and `evals/`, and `packs/core/.apm/agents/`, prints
+  nothing.
+- `agentbundle catalogue self-host --root . --check` prints `ok`.
+- `lint-brief-coverage.py --root .` exits 0, with 26 briefs checked. It lists
+  this spec as `Shipped` under `repository-grounding-preservation`.
+- The roster workspace-retirement inventory, brief single-home, and
+  verification-ledger suites pass: 142 tests.
 
 ## T4 — graded runs of `shared-substrate-feature-tests-do-not-prove-preservation`, 2026-10-29
 
