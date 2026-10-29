@@ -230,7 +230,7 @@ Owned by: T2, T3.
 
 **Depends on:** T4
 
-**Touches:** docs/specs/grounding-preservation-review/notes/verification-ledger.md, docs/specs/grounding-preservation-review/notes/graded-runs/*
+**Touches:** docs/specs/grounding-preservation-review/notes/verification-ledger.md, docs/specs/grounding-preservation-review/notes/graded-runs/*, docs/product/briefs/repository-grounding-preservation.md
 
 **Mode:** visual / manual QA of the rebuilt agent artifacts.
 
@@ -244,7 +244,8 @@ Owned by: T2, T3.
 **Done when:** the ledger records all ten runs and any reruns, each with the
 pack version it ran against; for each of AC-0022's four pass-required cases,
 the head run the Testing Strategy's replacement rule admits holds all its
-assertions; and the ledger names the guidance change behind each replacement.
+assertions; the ledger names the guidance change behind each replacement; and
+the brief's § C3 proof bullet points to the Follow-on's captured item.
 
 ## Changelog
 

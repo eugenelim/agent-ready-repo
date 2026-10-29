@@ -118,7 +118,7 @@ emit that shape on the frozen PR-207-shaped cases.
   beside one baseline graded run against the base revision's projection, and a
   rerun replaces a head run when the guidance changes. The positive authoring
   case is recorded, not graded for a pass.
-  If a reviewer case's baseline also holds every assertion, AC-0022 shows only
+  If a case's baseline also holds every assertion, AC-0022 shows only
   that the guidance does not regress that case, and the content pins carry the
   proof that the guidance ships.
 - **Release (AC-0023, AC-0024):** goal-based; one command each.
@@ -281,8 +281,8 @@ Terms:
   and the case's `assertions`. A reviewer case's agent follows the projected
   reviewer definition. Each run's copy holds only Core's projected skills and
   agents and has no `adapt-to-project`, and each run's agent has no
-  code-intelligence capability and no Pi; the ledger records each condition for
-  each run.
+  code-intelligence capability and no Pi; the ledger records that each condition
+  held for every listed run.
 - [ ] **AC-0023.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both read the patch version one above `packs/core/pack.toml` at the base
   revision.
