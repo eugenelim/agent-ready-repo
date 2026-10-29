@@ -2764,6 +2764,18 @@ consumer = "the registry comparison suite: its fixture registries are workspace.
 owner = 5
 
 [[row]]
+pattern = "tools/replay-dispatch.py"
+class = "reader"
+consumer = "the live replay tool: reads workspace.toml read-only through the base engine to list where header-derived dispatch differs from it"
+owner = 8
+
+[[row]]
+pattern = "tools/test_replay_dispatch.py"
+class = "fixture"
+consumer = "the live replay suite: its planted trees carry a workspace.toml the base engine reads"
+owner = 8
+
+[[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
 class = "contract"
 consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces"

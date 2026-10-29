@@ -1732,6 +1732,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "(FEAT-0034 Registry comparison). `make test` runs it; CI reaches it "
             "through the dispatch-only test-corpus.yml."
         ),
+    'tools/test_replay_dispatch.py':
+        NO_PR_GATE(
+            "Tests a maintainer-run replay that has no CI job by owner decision "
+            "(header-derived-dispatch AC-0019). `make test` runs it; CI reaches it "
+            "through the dispatch-only test-corpus.yml."
+        ),
     'tools/test_intent_corpus_gate.py':
         NO_PR_GATE(
             "Asserts docs.yml's lint-intent-corpus job still invokes the intent "
