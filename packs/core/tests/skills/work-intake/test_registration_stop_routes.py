@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -71,7 +72,6 @@ def test_start_defect_dispatches_bug_fix_without_registration() -> None:
 # (artifact, artifact_kind, lifecycle_membership, processor, authority_mode, mutation).
 _UNCHANGED = [
     ('direct-light', {'action': 'start', 'artifact': '', 'artifact_kind': '', 'authority_mode': 'repo-origin', 'direct_light': True}, ('', '', 'none', 'work-loop', 'repo-origin', 'none')),
-    ('remember-spec', {'action': 'remember', 'artifact': 'docs/specs/later/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'repo-origin'}, ('docs/specs/later/spec.md', 'spec', 'backlog.open', 'none', 'repo-origin', 'materialize-draft-and-register-non-dispatchable')),
     ('status-passthrough', {'action': 'status', 'artifact': 'workspace.toml', 'artifact_kind': 'workspace-status', 'authority_mode': 'read-only'}, ('workspace.toml', 'workspace-status', 'passthrough', 'workspace-status', 'read-only', 'none')),
     ('refresh-unavailable', {'action': 'refresh', 'artifact': 'docs/specs/example/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'repo-origin'}, ('docs/specs/example/spec.md', 'spec', 'resolved-existing', 'none', 'repo-origin', 'none')),
     ('ambiguity', {'action': 'start', 'artifact': 'docs/product/intents/work-intake.md', 'artifact_kind': 'intent', 'authority_mode': 'repo-origin', 'named_gaps': True}, ('docs/product/intents/work-intake.md', 'intent', 'draft-with-gaps', 'none', 'repo-origin', 'ask-or-draft-only')),
@@ -90,12 +90,14 @@ def test_every_other_route_matches_the_pre_change_route(
     assert _route_tuple(router.route_intake(router.RoutingSignals(**signals))) == expected
 
 
-# Repo-origin intent and brief routes that no longer register (AC-0013).
+# Repo-origin intent, brief, and spec routes that no longer register (AC-0013).
 _STOPPED = [
     ('start-intent', {'action': 'start', 'artifact': 'docs/product/intents/workspace-routing.md', 'artifact_kind': 'intent', 'authority_mode': 'repo-origin'}, ('docs/product/intents/workspace-routing.md', 'intent', 'none', 'intake-intent', 'repo-origin', 'materialize-and-dispatch')),
     ('start-brief', {'action': 'start', 'artifact': 'docs/product/briefs/new.md', 'artifact_kind': 'brief', 'authority_mode': 'repo-origin'}, ('docs/product/briefs/new.md', 'brief', 'none', 'author-delivery-brief create', 'repo-origin', 'materialize-and-dispatch')),
     ('remember-intent', {'action': 'remember', 'artifact': 'docs/product/intents/deferred-work.md', 'artifact_kind': 'intent', 'authority_mode': 'repo-origin'}, ('docs/product/intents/deferred-work.md', 'intent', 'none', 'intake-intent', 'repo-origin', 'materialize-draft-non-dispatchable')),
     ('remember-brief', {'action': 'remember', 'artifact': 'docs/product/briefs/later.md', 'artifact_kind': 'brief', 'authority_mode': 'repo-origin'}, ('docs/product/briefs/later.md', 'brief', 'none', 'none', 'repo-origin', 'materialize-draft-non-dispatchable')),
+    ('start-repo-origin-spec', {'action': 'start', 'artifact': 'docs/specs/new/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'repo-origin'}, ('docs/specs/new/spec.md', 'spec', 'none', 'new-spec', 'repo-origin', 'materialize-and-dispatch')),
+    ('remember-spec', {'action': 'remember', 'artifact': 'docs/specs/later/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'repo-origin'}, ('docs/specs/later/spec.md', 'spec', 'none', 'none', 'repo-origin', 'materialize-draft-non-dispatchable')),
     ('ready-brief', {'action': 'start', 'artifact': 'docs/product/briefs/ready-without-specs.md', 'artifact_kind': 'brief', 'authority_mode': 'repo-origin', 'ready_brief': True}, ('docs/product/briefs/ready-without-specs.md', 'brief', 'none', 'author-delivery-brief continue', 'repo-origin', 'none')),
 ]
 
@@ -147,3 +149,20 @@ def test_tracker_origin_routes_match_the_pre_change_route(
 ) -> None:
     router = _load_router()
     assert _outcome(router, signals) == expected
+
+
+_TRACKER_MATRICES = (
+    "packs/atlassian/.apm/skills/jira-brief-intake/evals/files/intake/matrix.json",
+    "packs/atlassian/.apm/skills/jira-align-brief-intake/evals/files/intake/matrix.json",
+    "packs/github/.apm/skills/github-brief-intake/evals/files/intake/matrix.json",
+    "packs/linear/.apm/skills/linear-brief-intake/evals/files/intake/matrix.json",
+)
+
+
+@pytest.mark.parametrize("rel", _TRACKER_MATRICES)
+def test_tracker_matrices_are_byte_identical_to_the_base(rel: str) -> None:
+    repo = Path(__file__).resolve().parents[5]
+    base = subprocess.run(
+        ["git", "show", f"dfa3fe067:{rel}"], cwd=repo, capture_output=True, check=True
+    ).stdout
+    assert (repo / rel).read_bytes() == base

@@ -181,10 +181,10 @@ EXPECTED_MATRIX: list[dict[str, object]] = [
         "disposition": "standalone-route",
         "artifact": "docs/specs/example/spec.md",
         "artifact_kind": "spec",
-        "lifecycle_membership": "work.queue",
+        "lifecycle_membership": "none",
         "processor": "new-spec",
         "authority_mode": "repo-origin",
-        "mutation": "materialize-and-register",
+        "mutation": "materialize-and-dispatch",
         "effects": [],
     },
     {

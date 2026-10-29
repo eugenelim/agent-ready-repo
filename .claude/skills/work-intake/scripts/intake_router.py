@@ -130,13 +130,13 @@ _UNREGISTERED_KINDS = frozenset({"defect", "design", "research"})
 def _is_unregistered(signals: RoutingSignals) -> bool:
     """Tell whether this signal writes its own file with no registry entry.
 
-    A repo-origin intent or brief is derivable from its file; a tracker-origin
+    A repo-origin intent, brief, or spec is derivable from its file; a tracker-origin
     one keeps its entry because refresh reaches its tracker profile through it.
     """
 
     return signals.artifact_kind in _UNREGISTERED_KINDS or (
         signals.authority_mode == "repo-origin"
-        and signals.artifact_kind in {"intent", "brief"}
+        and signals.artifact_kind in {"intent", "brief", "spec"}
     )
 
 

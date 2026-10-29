@@ -265,7 +265,8 @@ def test_integrated_matrix_runs_byte_identically_in_two_clean_roots(
     # and each tracker profile 15 (its own 9 plus the 6 fanned-out
     # `all-supported` cases).
     # 71 -> 70: the capture-work alias-equivalence case was removed.
-    assert len(results) == 70
+    # 70 -> 72: the repo-origin spec start and remember cases (core only).
+    assert len(results) == 72
     assert all(
         set(result)
         == {
