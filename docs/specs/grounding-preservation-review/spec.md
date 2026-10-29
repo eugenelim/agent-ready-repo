@@ -119,9 +119,8 @@ emit that shape on the frozen PR-207-shaped cases.
   rerun replaces a head run when the guidance changes. The positive authoring
   case is recorded, not graded for a pass.
   If a pass-required case's baseline also holds every assertion, AC-0022 shows
-  only
-  that the guidance does not regress that case, and the content pins carry the
-  proof that the guidance ships.
+  only that the guidance does not regress that case, and the content pins carry
+  the proof that the guidance ships.
 - **Release (AC-0023, AC-0024):** goal-based; one command each.
 
 ## Acceptance Criteria
