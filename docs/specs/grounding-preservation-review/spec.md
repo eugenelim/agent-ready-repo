@@ -37,8 +37,8 @@ emit that shape on the frozen PR-207-shaped cases.
   statuses, the fields every finding carries, which fields the caller fills in,
   which findings the typed report carries, and how a finding names the
   accepted criteria it affects. The section serves every finding, not only
-  preservation findings. The Markdown findings block is still returned
-  beside it.
+  preservation findings. Without a request for it, the reviewer returns its
+  Markdown findings block or clean line exactly as before.
 - One lens question in each reviewer: shared-substrate reachability in
   `adversarial-reviewer`, oracle independence and evidence sufficiency in
   `quality-engineer`.
@@ -136,8 +136,10 @@ Terms:
   `affected_acceptance_criteria`, `evidence_refs`, and `material`.
 - **The caller fields** are the report's `schema_version`, `report_id`,
   `role`, `subject`, and `lineage`.
-- **A material finding** is a Blocker or a mechanical Concern. Nits and
-  judgement Concerns are not material.
+- **A material finding** is a Blocker or Concern whose defect something
+  outside the finding establishes: code, a test, a lint, a schema, a
+  resolvable reference, or a stated constraint disagrees with the target.
+  Every other finding is not material.
 - **The fixture properties** are three `acceptance-property.v1` records: the
   ordinary-calls property, the default-search property, and the lifecycle
   property. Each names `supported-review-failure` in its contradiction rule
@@ -159,11 +161,14 @@ Terms:
 - [ ] **AC-0002.** The typed-report section names every finding field, the
   four terminal statuses `clean`, `findings`, `unable`, and `indeterminate`,
   and every caller field as filled by the caller.
-- [ ] **AC-0003.** The typed-report section says the Markdown findings block
-  is always returned, and the typed report is returned beside it only when the
-  caller asks for one.
-- [ ] **AC-0004.** The typed-report section says the typed report carries only
-  material findings.
+- [ ] **AC-0003.** The typed-report section says that when the caller asks for
+  a typed report, the reviewer returns only that report, as one fenced `json`
+  block, instead of the findings block or clean line; otherwise the findings
+  block or clean line is returned unchanged. It says the section governs only
+  the modes in that file that return a findings block. The sentence beginning
+  `Return **only** the findings block above` stays in both reviewer files.
+- [ ] **AC-0004.** The typed-report section defines a material finding as the
+  Terms above do and says the typed report carries only material findings.
 - [ ] **AC-0005.** The typed-report section says an affected criterion is an
   identifier the accepted spec contains, and that when a material finding has
   no such identifier to name, the typed report's status is `indeterminate`
@@ -214,9 +219,11 @@ Terms:
   generic path, records no review-failure receipt and leaves its named property
   `supported`.
 - [ ] **AC-0015.** An `indeterminate` typed report with no findings, sent
-  through the generic path with a mandatory obligation for its role, leaves
-  that obligation unsatisfied, records no review-failure receipt, and leaves
-  all three fixture properties `supported`.
+  through the generic path with a mandatory obligation for its role, is
+  selected as that role's current report. The obligation decision for it is
+  unsatisfied with a reason different from the decision with no report
+  persisted. No review-failure receipt is recorded and all three fixture
+  properties stay `supported`.
 - [ ] **AC-0016.** Deleting the plan's consumer map, rebuilding it in another
   order, and replacing the plan's task list each leave unchanged the acceptance
   fingerprint, the ordered review obligations selected for the subject, the

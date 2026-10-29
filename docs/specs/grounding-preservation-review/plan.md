@@ -57,19 +57,25 @@ The typed-report section, identical in both reviewer files, is a new
 `## Typed report` section placed immediately before
 `## Vague feedback is unhelpful feedback`, a heading both files carry. It says:
 
-1. The Markdown findings block, or the clean sentinel, is always the output.
-   When the caller asks for a typed report, one fenced `json` block holding it
-   follows the Markdown.
+1. It governs only the modes that return a findings block; intent mode, and
+   `quality-engineer`'s test-author and testability-audit modes, ignore it.
+   Without a request, the findings block or clean line is the whole output and
+   the shipped raw classifier reads it as before. When the caller asks for a
+   typed report, the reviewer returns only one fenced `json` block holding it,
+   which the caller passes to the typed review path rather than to the raw
+   classifier.
 2. The reviewer returns `terminal_status` and `findings`. `clean`, `unable`,
    and `indeterminate` carry no findings; `findings` carries one or more. The
    caller fills the report's `schema_version`, `report_id`, `role`, `subject`,
    and `lineage`.
-3. The typed report carries only material findings: Blockers and mechanical
-   Concerns. Nits and judgement Concerns stay in the Markdown block only. The
-   shipped evidence store writes a review-failure receipt for every supported
-   finding whatever its `material` value, so a typed non-material finding
-   would contradict its criterion; leaving it out keeps Nits and judgement
-   calls non-blocking.
+3. The typed report carries only material findings, defined in the section
+   itself so `quality-engineer` can decide it without the adversarial
+   reviewer's severity text: a Blocker or Concern whose defect something
+   outside the finding establishes. The shipped evidence store writes a
+   review-failure receipt for every supported finding whatever its `material`
+   value, so a typed non-material finding would contradict its criterion.
+   Leaving it out keeps Nits and judgement calls non-blocking, at the cost
+   that a typed-report return does not show them.
 4. Each finding carries the nine finding fields. `rule_ref` names the rule or
    criterion broken; `observation`, `reachable_path`, and `actual_failure`
    carry the predicate self-check's observation, path, and consequence;
@@ -109,7 +115,9 @@ over a temporary git repository, as in C1's fixture. The review subject is
 projected with `_review_selection.project_review_subject` from that delivery
 subject and the product's changed paths, which exclude the spec directory.
 Obligations come from `select_review_obligations` with a two-role mandatory
-policy, and `decide_review_obligation` decides AC-0015. Reports persist through
+policy, and `decide_review_obligation` decides AC-0015: the `indeterminate`
+tip gives reason `report-unable`, and no persisted report gives the store's
+no-current-report reason. Reports persist through
 `_review_persistence.append_current_review_report`. Assessments come from
 `_review_assessment.assess_finding_actual_failure` and are recorded through
 `_review_bridge.append_finding_assessment_bridge`. Each finding's
@@ -155,10 +163,13 @@ Owned by: T2, T3.
   `test_exploration_consumer_boundary.py`,
   `test_finding_adjudication_contract.py`, `test_ride_along_admission_test.py`,
   `test_reviewer_project_knowledge_boundary.py`, `test_spec_authority_scoping.py`,
-  `test_shaping_review_contract.py`, and under `skills/work-loop/`
+  `test_shaping_review_contract.py`, `skills/new-spec/test_shaping_review.py`,
+  and under `skills/work-loop/`
   `test_evidence_modes_contract.py`, `test_non_gating_nits.py`,
   `test_reviewer_lens_ownership.py`, `test_repository_idiom_delta.py`; and
   `skills/new-spec/test_artifact_prose_discipline.py`.
+- `tests/roster/test_tdd_stub_lifecycle_contract.py`, through the dispatched
+  `test-roster.yml` run after push.
 
 **Done when:** both `Tests:` bullets pass and the guide sentence is present.
 
