@@ -25,3 +25,4 @@ These differ from the working-material draft in plan § Design (LLD). No `Tests:
 
 - PR #1638 merged to `main` as `8b7d65531` during execution and shipped core 3.1.28. The branch was rebased on it, and the controlled amendment recorded in the plan's Changelog moved this delivery to core 3.1.29.
 - PR #1639 merged to `main` as `95a8cc985` and shipped core 3.1.29. The branch was rebased on it, and a second controlled amendment made AC-0013 target the next patch above a freshly fetched `origin/main`; at delivery that base carried 3.1.29, so this change ships core 3.1.30. The 3.1.29 fragment was replaced by a 3.1.30 fragment with the same body.
+- PR #1640 merged to `main` as `a770a9678` and also shipped core 3.1.30. Under the amended AC-0013 the branch was rebased on it and now ships core 3.1.31; the 3.1.30 fragment was replaced by a 3.1.31 fragment with the same body.
