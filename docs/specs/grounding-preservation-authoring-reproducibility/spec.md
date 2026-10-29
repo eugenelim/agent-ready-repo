@@ -97,10 +97,12 @@ so it needs no change.
   has already passed and then failed to reproduce.
 - **Eval harness (AC-0007):** goal-based. The frozen case is the harness for
   all three edits: its assertion 4 covers the gap rule and path agreement, and
-  its assertion 5 covers the disposability sentence. Platform Core, the owner,
-  waives `packs/AGENTS.md` § Security and authoring rules ("A non-cosmetic pack
-  update also updates that pack's eval harness") for this change on that
-  ground, decided 2026-10-29.
+  its assertion 5 covers the disposability sentence. On that ground Platform
+  Core — owner of brief:repository-grounding-preservation and maintainer of the
+  Core pack this change releases — waives `packs/AGENTS.md` § Security and
+  authoring rules ("A non-cosmetic pack update also updates that pack's eval
+  harness") for this change, and accepts that no held-out positive case tests
+  the edits on another substrate, decided 2026-10-29.
 - **Release (AC-0008, AC-0009), scope (AC-0010):** goal-based; one command
   each.
 
@@ -136,8 +138,9 @@ Terms:
 - [ ] **AC-0005.** For every run AC-0001, AC-0002, AC-0003, and AC-0004
   count, the ledger lists the skill and agent entries its copy held, and that
   list equals the entries under `packs/core/.apm/skills/` and
-  `packs/core/.apm/agents/` at the run's revision, less `adapt-to-project`,
-  with no `evals/` directory inside the copy.
+  `packs/core/.apm/agents/` at the run's revision, less `adapt-to-project`;
+  and the ledger records the output of `find <copy> -type d -name evals` over
+  that copy, which is empty.
 - [ ] **AC-0006.** For every run AC-0001, AC-0002, AC-0003, and AC-0004
   count, the ledger names the agent type and tool set the run agent was given,
   and that set holds no Pi tool and no code-intelligence capability.
@@ -158,8 +161,6 @@ Terms:
 
 ## Assumptions
 
-- Technical (accepted risk): all three edits were designed against the same
-  frozen case that AC-0001 grades, and no held-out positive case tests them on
-  another substrate; only the negative control guards against over-triggering.
-  Platform Core accepted this risk on 2026-10-29, because each edit is a
-  generic rule rather than fixture-specific wording.
+- Technical: no held-out positive case on another substrate — the three
+  edits' generality beyond the frozen case they were designed against is
+  ungrounded; only the negative control guards against over-triggering.
