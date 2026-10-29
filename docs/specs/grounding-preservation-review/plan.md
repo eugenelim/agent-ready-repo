@@ -77,8 +77,8 @@ The typed-report section, identical in both reviewer files, is a new
    review-failure receipt for every supported finding whatever its `material`
    value, so a typed non-material finding would contradict its criterion.
    Leaving it out keeps Nits and judgement calls non-blocking, at the cost
-   that a typed-report return does not show them: a review that completes
-   with no material finding returns `clean`. `unable` and
+   that a typed-report return does not show them: a review against the
+   caller-named spec that completes with no material finding returns `clean`. `unable` and
    `indeterminate` keep their meanings. The "keep flagging both" rule still holds
    for the findings block, which a caller asks for when it wants them.
 4. Each finding carries the nine finding fields. `rule_ref` names the rule or

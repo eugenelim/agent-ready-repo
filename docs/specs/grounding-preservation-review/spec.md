@@ -178,7 +178,8 @@ Terms:
   block above` stays in both reviewer files.
 - [ ] **AC-0004.** The typed-report section defines a material finding as the
   Terms above do and says the typed report carries only material findings. It
-  says a review that completes with no material finding returns `clean`, and that a caller
+  says a review against the caller-named spec that completes with no material
+  finding returns `clean`, and that a caller
   who needs the non-material findings asks for the findings block instead.
 - [ ] **AC-0005.** The typed-report section says an affected criterion is an
   identifier the caller-named spec contains, and that when a material finding has
