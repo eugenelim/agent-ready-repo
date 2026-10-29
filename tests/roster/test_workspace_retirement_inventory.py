@@ -373,6 +373,10 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
             )
         )
     for path in _RFC_0106_CONTRACTS:
+        # A named contract that no longer mentions the registry needs no row: AC-0006 forbids one.
+        text = repo.text(path)
+        if text is not None and not _mention_lines(text):
+            continue
         gi = governing(path)
         if gi is None or rows[gi]["class"] != "contract":
             violations.append(Violation("AC-0021", path, "governing row must be a `contract` row"))
@@ -1161,6 +1165,16 @@ def test_ac0021_wrong_class_on_named_contract(tmp_path: Path) -> None:
 def test_ac0021_fulfilled_intent_with_contract_row_passes(tmp_path: Path) -> None:
     # _FEAT0001 is Fulfilled and keeps its exact contract row in the base fixture.
     assert _run(tmp_path) == []
+
+
+def test_ac0021_named_contract_without_mention_needs_no_row(tmp_path: Path) -> None:
+    base = [r for r in _BASE_ROWS if r["pattern"] != _PRODUCT_AGENTS]
+    found = _run(
+        tmp_path,
+        inventory_text=_render_inventory(base),
+        extra_files={_PRODUCT_AGENTS: "names no registry file\n"},
+    )
+    assert found == []
 
 
 def test_ac0021_named_contract_without_row(tmp_path: Path) -> None:

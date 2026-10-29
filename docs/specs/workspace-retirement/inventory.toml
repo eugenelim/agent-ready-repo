@@ -10,12 +10,6 @@ consumer = "RFC-0064 registry contract: D2-D9 schema, D4 and its work-loop write
 owner = 8
 
 [[row]]
-pattern = "docs/product/AGENTS.md"
-class = "contract"
-consumer = "product docs rule: registered spec membership is the brief coverage confirmation evidence"
-owner = 8
-
-[[row]]
 pattern = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md"
 class = "contract"
 consumer = "FEAT-0005 lifecycle contract: close-work moves registrations at a terminal transition"
@@ -394,12 +388,6 @@ pattern = "docs/product/README.md"
 class = "guide"
 consumer = "product docs index pointing at the workspace.toml dependency reference"
 owner = 9
-
-[[row]]
-pattern = "docs/product/briefs/agent-skill-engineering.md"
-class = "contract"
-consumer = "live brief: approved specs register in workspace.toml through work-intake"
-owner = 8
 
 [[row]]
 pattern = "docs/product/briefs/guidance-activation-measurement.md"
