@@ -190,7 +190,7 @@ pre-spec evidence are recorded below.
 
 The accepted RFC confirms this dependency-ordered cut. Sub-cuts within a confirmed follow-on are owner delivery-cut variances, each recorded in [INI-009](../initiatives/ini-009-agent-skill-engineering.md). Each slice materializes through
 `new-spec`, back-links this brief, and remains non-dispatchable until its canonical spec
-and plan are approved and registered under `ini-009`.
+and plan are approved.
 
 | Slice | Ships | Dependency rule |
 | --- | --- | --- |
@@ -222,8 +222,8 @@ owner-input gates are true.
 
 | Slice | Gating | `spec.md` on disk | `plan.md` on disk | Next action |
 | --- | --- | --- | --- | --- |
-| 3c-r — claim-state reporting | Ready to materialize: predecessor `3c` is satisfied by the Spec map | Absent | Absent | Author and approve a spec and plan, then register the spec under `ini-009` |
-| 3d — `runtime-package` mode | Ready to materialize: predecessor `3c` is satisfied by the Spec map | Absent | Absent | Author and approve a spec and plan, then register the spec under `ini-009` |
+| 3c-r — claim-state reporting | Ready to materialize: predecessor `3c` is satisfied by the Spec map | Absent | Absent | Author and approve a spec and plan |
+| 3d — `runtime-package` mode | Ready to materialize: predecessor `3c` is satisfied by the Spec map | Absent | Absent | Author and approve a spec and plan |
 | 5 — self-host and footprint adaptation | Ready to materialize: predecessors `4` and `3c` are satisfied by the Spec map | Absent | Absent | Author and approve a spec and plan; freeze the Gate 4 baseline before changing a route |
 | 6 — pilot and closeout | Not ready to author: predecessors `3c-r`, `3d` and `5` still need shipped child evidence; predecessor `3e` is satisfied by the Spec map | Absent | Absent | Owner-select the admitted pilot candidate and obtain the outstanding architect-owner review while predecessors deliver; materialize the slice only when its implementation inputs are explicit |
 
@@ -449,6 +449,6 @@ in [INI-009](../initiatives/ini-009-agent-skill-engineering.md).
    build-time boundary.
 2. Scaffold and approve the foundation spec and plan.
 3. Materialize each later slice only when its hard predecessor and evidence inputs are
-   explicit; register approved specs in `workspace.toml` through `work-intake`.
+   explicit; approved specs carry this brief's `Brief:` header.
 4. Keep `ini-009.work.queue` empty until an approved spec exists. This brief is a
    coordination artifact, not permission to dispatch implementation.

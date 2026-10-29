@@ -47,6 +47,8 @@ It does not own three neighbouring things. **Owner decision, 2026-09-24, eugenel
 
 **Amendment, 2026-10-27, eugenelim (owner): no terminal registration move for a repo-origin intent or brief.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin intents and briefs. This § Boundary's item 7 (the intent's terminal registration move), and the brief terminal move `close-work` makes alongside the brief's `Status:` edit, no longer apply to them: closing one writes its terminal `Status:` and nothing in `workspace.toml`. A tracker-origin brief still moves its entry with its `Status:`. Spec entries keep their terminal move until spec registration stops. This child's outcome is unchanged.
 
+**Amendment, 2026-10-29, eugenelim (owner): no terminal registration move for a repo-origin spec.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin specs. This § Boundary's item 7, and any spec collection move at closeout, no longer apply to a repo-origin spec: shipping or closing one writes its terminal `Status:` and nothing in `workspace.toml`. A tracker-origin spec keeps its entry until slice 9. This child's outcome is unchanged.
+
 ## Owner
 
 - eugenelim, Platform Core maintainer. Accountable for this intent's outcome.

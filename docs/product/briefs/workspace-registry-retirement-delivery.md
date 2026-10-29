@@ -55,7 +55,7 @@ FEAT-0034's [de-risk record](../intents/FEAT-0034-workspace-registry-retirement.
 - Any shipped skill other than the repair reading the old `workspace.toml` shape after its replacement ships. A reader may still refuse unmigrated content and name the repair.
 - Retiring the `workspace-status` skill name. A later release does that under RFC-0067.
 - Tracker sync reading the priority field. [External tracker projection](../intents/CAP-0004-external-tracker-projection.md) owns that.
-- Any change to `navigate-intents`, including its readiness bridge, except keeping the bridge's pinned copy of the `workspace-status` finding table equal to the engine's when a slice adds a finding code, as the bridge's parity test requires (owner decision, 2026-10-25). The [readiness hand-over spec](../../specs/intent-view-readiness-handover/spec.md) gives the bridge's re-pointing to the `navigate-intents` owner, in the release where dispatch moves.
+- Any change to `navigate-intents`, including its readiness bridge, except keeping the bridge's pinned copy of the `workspace-status` finding table equal to the engine's when a slice adds, removes or rewords a finding code, as the bridge's parity test requires (owner decision, 2026-10-25; widened 2026-10-29). The [readiness hand-over spec](../../specs/intent-view-readiness-handover/spec.md) gives the bridge's re-pointing to the `navigate-intents` owner, in the release where dispatch moves.
 - FEAT-0004's end state. FEAT-0004 amends it in its own record.
 - Rewriting frozen records or completed intents that name `workspace.toml` only as history.
 

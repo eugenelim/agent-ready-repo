@@ -75,6 +75,8 @@ and commits the terminal disposition once it has gone — by either route.
 
 **Amendment, 2026-10-27, eugenelim (owner): the remember route registers no repo-origin intent or brief.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin intents and briefs. The remember route described in this § Opportunity, "a Draft registered non-dispatchable", and the start route's registration no longer apply to them: each is written as its artifact with no entry. Promotion is still a transaction, because it materialises an artifact and hands off. This intent's outcome is unchanged.
 
+**Amendment, 2026-10-29, eugenelim (owner): the start and remember routes register no repo-origin spec.** [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin specs. The start route's `work.queue` registration and the remember route's `backlog.open` registration no longer apply to a repo-origin spec: each is written as its spec with no entry. A tracker-origin spec still registers until slice 9. This intent's outcome is unchanged.
+
 ## What exists today
 
 **Snapshot taken 2026-09-19.** These are locations, not contents. Each names a
