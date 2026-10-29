@@ -21,7 +21,7 @@
 ## Outcome
 
 When a change touches a shared substrate, `adversarial-reviewer` asks whether
-every reachable consumer class has an accepted preservation criterion, and
+every reachable consumer class has a preservation criterion in the spec under review, and
 `quality-engineer` asks whether each preservation criterion has current,
 independent evidence. Each reviewer can return its findings as a typed report
 in which every finding names the criterion it affects in the spec the caller names. Success is a
@@ -144,9 +144,6 @@ Terms:
   ordinary-calls property, the default-search property, and the lifecycle
   property. Each names `supported-review-failure` in its contradiction rule
   and has a current passing receipt for each required term.
-- **An accepted preservation criterion**, in a lens check, is a preservation
-  criterion in the spec the reviewer reviews against. In a typed report that
-  is the caller-named spec.
 - **A typed report** is a `review-report.v1` record whose findings are
   `finding.v1` records.
 - **Sent through the generic path** means: validated with the shipped report
@@ -170,9 +167,9 @@ Terms:
   line, and that this overrides the file's findings-only return for that
   request; otherwise the findings block or clean line is returned unchanged.
   It says the section governs only the modes in that file that return a
-  findings block. It says a typed-report request that names no spec whose
-  criteria the findings bind to, of whatever status, returns `indeterminate`
-  with no findings. It says a typed-report return does not satisfy the file's
+  findings block. It says a typed-report request that names no spec for
+  the findings to bind to returns `indeterminate` with no findings, whatever
+  the review finds, and that a named spec's status never changes the outcome. It says a typed-report return does not satisfy the file's
   review-complete gate, and the typed review path's obligation decision
   governs it instead. The sentence beginning `Return **only** the findings
   block above` stays in both reviewer files.
@@ -190,15 +187,16 @@ Terms:
   applies check 6 to the consumers the diff reaches. Check 6 asks,
   for a change that adds or alters a member of a model, registry, graph,
   index, schema, namespace, or collection that generic operations observe
-  without opt-in, whether each reachable consumer class has an accepted
-  preservation criterion. It says a missed class is a finding whose affected
+  without opt-in, whether each reachable consumer class has a
+  preservation criterion in the spec under review, whatever that spec's
+  status. It says a missed class is a finding whose affected
   criteria name the criterion that covers the class. When no criterion covers
   it, they name the criterion whose change reaches the consumer, and the fix
   is an amendment. It says a consumer that reaches the member only through an
   explicit filter raises no finding.
 - [ ] **AC-0007.** `quality-engineer.md` has check 35 in a
   `### Preservation evidence` subsection of review mode. It asks, for
-  each accepted preservation criterion, whether its evidence is current, has
+  each preservation criterion in the spec under review, whether its evidence is current, has
   an expected side independent of the code under test, and fails on a named
   mutation. It says missing, stale, tautological, or feature-only evidence is
   a finding whose affected criteria name that criterion.

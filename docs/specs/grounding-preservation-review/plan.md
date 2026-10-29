@@ -95,13 +95,13 @@ The lens checks continue the existing numbering:
 - **`adversarial-reviewer`, check 6 of `### Spec-stage checks`**, with check 10
   of `### Implementation-stage checks` applying it to the diff. It fires only when the change adds or alters
   a member of a shared substrate. For each consumer class reachable from the
-  changed member, the reviewer finds the accepted preservation criterion that
+  changed member, the reviewer finds the preservation criterion in the spec under review that
   covers it. A missed class is a finding. It names the covering criterion, or
   the criterion whose change reaches the consumer, with an amendment as the
   fix. A consumer reached only through an explicit filter raises nothing.
 - **`quality-engineer`, check 35 in a new `### Preservation evidence`
   subsection after `### Performance ergonomics`.** It sits beside the strength
-  judgment the adversarial reviewer already leaves to this lens. For each accepted preservation criterion, the evidence is current, its
+  judgment the adversarial reviewer already leaves to this lens. For each preservation criterion in the spec under review, the evidence is current, its
   expected side does not come from the code under test, and its oracle fails
   on a named mutation. Missing, stale, tautological, and feature-only evidence
   each make a finding against that criterion.
