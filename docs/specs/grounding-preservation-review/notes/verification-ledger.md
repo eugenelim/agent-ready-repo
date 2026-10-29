@@ -59,6 +59,27 @@ approved the spec and plan after round 8.
 - `agentbundle catalogue verify --root .` exits 0.
 - Self-host re-run leaves no diff. `make lint-ruff lint-mypy` is clean.
 
+## T6 — code-review repairs, 2026-10-29
+
+- AC-0007 pin, re-observed by the controller: it fails on the pre-T6 check 35
+  text, on check 35 without the named-family clause, and on check 35 without
+  the "at least one artifact" condition, and passes on the shipped text.
+- The implementer observed each other repaired pin red first: AC-0006 on the
+  old check 10 wording; AC-0017 with `outline` renamed, with a value filter
+  added to it, and with the ordinary-calls expected side made a literal;
+  AC-0021 with `import yaml` appended to the eval module; AC-0008 with a
+  planted "Adapt-To-Project and Code Intelligence"; AC-0002 with
+  `schema_version` dropped from the caller sentence. The AC-0013 full-receipt
+  comparison was not run against a mutant.
+- AC-0021: `test_new_modules_import_only_stdlib_and_pytest` scans all three new
+  modules by literal path and passes. The eval pin loads the fixture
+  `graph.py` by path, and the fixture imports only `dataclasses`.
+- The three new modules plus the T1 regression suites and the two
+  eval-construction suites pass, 295 tests with 51 subtests in 12.9s.
+- `make lint-ruff lint-mypy` is clean. Self-host re-run leaves no diff.
+- The fixture loader sets `sys.dont_write_bytecode`, so the suite writes no
+  `__pycache__` into the shipped skill tree.
+
 ## T5 — graded runs, 2026-10-29
 
 **Method.** Each run is one fresh agent confined to a copy of the projection
