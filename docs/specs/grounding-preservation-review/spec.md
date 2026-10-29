@@ -168,8 +168,8 @@ Terms:
   request; otherwise the findings block or clean line is returned unchanged.
   It says the section governs only the modes in that file that return a
   findings block. It says a typed-report request that names no spec for
-  the findings to bind to returns `indeterminate` with no findings, whatever
-  the review finds, and that a named spec's status never changes the outcome. It says a typed-report return does not satisfy the file's
+  the findings to bind to returns `indeterminate` with no findings, checked
+  before any review work, and that a named spec's status never changes the outcome. It says a typed-report return does not satisfy the file's
   review-complete gate, and the typed review path's obligation decision
   governs it instead. The sentence beginning `Return **only** the findings
   block above` stays in both reviewer files.
@@ -179,7 +179,9 @@ Terms:
   finding returns `clean`, and that a caller
   who needs the non-material findings asks for the findings block instead.
 - [ ] **AC-0005.** The typed-report section says an affected criterion is an
-  identifier the caller-named spec contains, and that when a material finding has
+  identifier the caller-named spec contains, that under a typed-report
+  request the spec under review is the caller-named spec, and that when a
+  material finding has
   no such identifier to name, the typed report's status is `indeterminate`
   with no findings.
 - [ ] **AC-0006.** `adversarial-reviewer.md` has check 6 under
@@ -188,8 +190,7 @@ Terms:
   for a change that adds or alters a member of a model, registry, graph,
   index, schema, namespace, or collection that generic operations observe
   without opt-in, whether each reachable consumer class has a
-  preservation criterion in the spec under review, whatever that spec's
-  status. It says a missed class is a finding whose affected
+  preservation criterion in the spec under review. It says a missed class is a finding whose affected
   criteria name the criterion that covers the class. When no criterion covers
   it, they name the criterion whose change reaches the consumer, and the fix
   is an amendment. It says a consumer that reaches the member only through an
