@@ -14,7 +14,7 @@ A selector is a slug, `spec/<slug>`, `docs/specs/<slug>`, `docs/specs/<slug>/`
 or `docs/specs/<slug>/spec.md`.
 
 Output: one JSON object on standard output with these keys.
-  schema_version  1.
+  schema_version  the output schema version, `SCHEMA_VERSION`.
   ready           Specs whose entry sits in the work queue and is dispatchable.
   active          Specs in the work-active collection that have no finding.
   blocked         Queue or active specs that are in neither list, with findings.
