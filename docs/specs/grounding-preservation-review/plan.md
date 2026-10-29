@@ -85,10 +85,10 @@ The typed-report section, identical in both reviewer files, is a new
    criterion broken; `observation`, `reachable_path`, and `actual_failure`
    carry the predicate self-check's observation, path, and consequence;
    `evidence_refs` carries the `file:line` citations; `material` is `true`.
-5. `affected_acceptance_criteria` lists identifiers the caller-named spec
-   contains, at least one. When any material finding has none to name, the
-   status is `indeterminate` with no findings. The review then stops for owner
-   direction instead of losing the finding or inventing an identifier.
+5. `affected_acceptance_criteria` binds to the caller-named spec, which is
+   also the spec under review; AC-0005 owns that rule and the missing-identifier
+   rule, and the section states them once. The reviewer never invents an
+   identifier or loses the finding.
 
 The lens checks continue the existing numbering:
 

@@ -167,9 +167,10 @@ Terms:
   line, and that this overrides the file's findings-only return for that
   request; otherwise the findings block or clean line is returned unchanged.
   It says the section governs only the modes in that file that return a
-  findings block. It says a typed-report request that names no spec for
-  the findings to bind to returns `indeterminate` with no findings, checked
-  before any review work, and that a named spec's status never changes the outcome. It says a typed-report return does not satisfy the file's
+  findings block. It says the reviewer checks whether a typed-report
+  request names a spec for the findings to bind to before any review work,
+  and that a request naming none returns `indeterminate` with no findings,
+  and that a named spec's status never changes the outcome. It says a typed-report return does not satisfy the file's
   review-complete gate, and the typed review path's obligation decision
   governs it instead. The sentence beginning `Return **only** the findings
   block above` stays in both reviewer files.
