@@ -24,7 +24,7 @@ When a change touches a shared substrate, `adversarial-reviewer` asks whether
 every reachable consumer class has an accepted preservation criterion, and
 `quality-engineer` asks whether each preservation criterion has current,
 independent evidence. Each reviewer can return its findings as a typed report
-in which every finding names the accepted criterion it affects. Success is a
+in which every finding names the criterion it affects in the spec the caller names. Success is a
 fixture suite in which such a finding, sent through the shipped generic review
 path without any reviewer-specific code, makes exactly its affected
 preservation property `contradicted`, and graded runs in which both reviewers
@@ -36,7 +36,7 @@ emit that shape on the frozen PR-207-shaped cases.
   and `packs/core/.apm/agents/quality-engineer.md`: the report's terminal
   statuses, the fields every finding carries, which fields the caller fills in,
   which findings the typed report carries, and how a finding names the
-  accepted criteria it affects. The section serves every finding, not only
+  criteria it affects in the caller-named spec. The section serves every finding, not only
   preservation findings. Without a request for it, the reviewer returns its
   Markdown findings block or clean line exactly as before.
 - One lens question in each reviewer: shared-substrate reachability in
@@ -90,7 +90,7 @@ emit that shape on the frozen PR-207-shaped cases.
 - Add a schema, a schema field, an evaluator or evidence-store change, a new
   persistent state record, or a change to who may approve, waive, or dispose a
   finding.
-- Make a reviewer invent a criterion identifier the accepted spec does not
+- Make a reviewer invent a criterion identifier the caller-named spec does not
   contain.
 - Move review authority from the current review path, or touch the supervisor
   cutover's files.
@@ -144,6 +144,9 @@ Terms:
   ordinary-calls property, the default-search property, and the lifecycle
   property. Each names `supported-review-failure` in its contradiction rule
   and has a current passing receipt for each required term.
+- **An accepted preservation criterion**, in a lens check, is a preservation
+  criterion in the spec the reviewer reviews against. In a typed report that
+  is the caller-named spec.
 - **A typed report** is a `review-report.v1` record whose findings are
   `finding.v1` records.
 - **Sent through the generic path** means: validated with the shipped report
@@ -167,15 +170,15 @@ Terms:
   line, and that this overrides the file's findings-only return for that
   request; otherwise the findings block or clean line is returned unchanged.
   It says the section governs only the modes in that file that return a
-  findings block, and only when the caller names the spec whose criteria the
-  findings bind to, whatever that spec's status. It says a typed-report return does not satisfy the file's
+  findings block. It says a typed-report request that names no spec whose
+  criteria the findings bind to, of whatever status, returns `indeterminate`
+  with no findings. It says a typed-report return does not satisfy the file's
   review-complete gate, and the typed review path's obligation decision
   governs it instead. The sentence beginning `Return **only** the findings
   block above` stays in both reviewer files.
 - [ ] **AC-0004.** The typed-report section defines a material finding as the
   Terms above do and says the typed report carries only material findings. It
-  says a review that completes with only non-material findings returns
-  `clean`, and that a caller
+  says a review that completes with no material finding returns `clean`, and that a caller
   who needs the non-material findings asks for the findings block instead.
 - [ ] **AC-0005.** The typed-report section says an affected criterion is an
   identifier the caller-named spec contains, and that when a material finding has

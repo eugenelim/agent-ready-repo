@@ -57,10 +57,9 @@ The typed-report section, identical in both reviewer files, is a new
 `## Typed report` section placed immediately before
 `## Vague feedback is unhelpful feedback`, a heading both files carry. It says:
 
-1. It governs only the modes that return a findings block, and only when the
-   caller names the spec whose criteria the findings bind to, Draft or
-   Approved; the property decides, so the section names no mode, and RFC and
-   intent reviews fall outside it. Without a request, the findings block or clean line is the whole output and
+1. It governs only the modes that return a findings block; the property
+   decides, so the section names no mode, and intent mode falls outside it.
+   AC-0003 owns the rule for a request that names no spec. Without a request, the findings block or clean line is the whole output and
    the shipped raw classifier reads it as before. When the caller asks for a
    typed report, the reviewer returns only one fenced `json` block holding
    `terminal_status` and `findings`, which the caller completes and passes to
@@ -79,7 +78,7 @@ The typed-report section, identical in both reviewer files, is a new
    value, so a typed non-material finding would contradict its criterion.
    Leaving it out keeps Nits and judgement calls non-blocking, at the cost
    that a typed-report return does not show them: a review that completes
-   with only non-material findings returns `clean`. `unable` and
+   with no material finding returns `clean`. `unable` and
    `indeterminate` keep their meanings. The "keep flagging both" rule still holds
    for the findings block, which a caller asks for when it wants them.
 4. Each finding carries the nine finding fields. `rule_ref` names the rule or
