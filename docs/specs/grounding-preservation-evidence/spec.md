@@ -150,11 +150,11 @@ Terms:
 - [ ] **AC-0001.** For each of the six properties, the producer's receipts for
   its terms over the head source, evaluated against the subject fingerprint,
   give a store verdict of `supported`.
-- [ ] **AC-0002.** For each oracle, with its named mutant as the implementation
-  under test, the producer emits `fail` or `over-budget` for that oracle, and
-  the store verdict over the producer's receipts for all of that property's
-  terms on the mutant, evaluated against the mutant's fingerprint, is
-  `insufficient`.
+- [ ] **AC-0002.** For each oracle, run directly on its named mutant, the
+  oracle returns a failing result, or a count over its bound for bounded work.
+  The store verdict over the producer's receipts for all of that property's
+  terms with the mutant as the implementation under test, evaluated against the
+  mutant's fingerprint, is `insufficient`.
 
 ### Each oracle
 
@@ -165,8 +165,9 @@ Terms:
   term runs every query in the corpus through both implementations' default
   search and passes only when the results are equal. The explicit term passes
   only when the implementation under test, with values requested, returns the
-  base default result plus exactly the value names that match the query, read
-  from the corpus text.
+  base default result plus exactly the corpus value names equal to the query.
+  The oracle reads those names from the corpus text and applies the equality
+  itself, without calling the implementation under test.
 - [ ] **AC-0005.** Equivalence: the oracle compares a full build of the edited
   corpus with a full build of the original corpus followed by a one-file update,
   in a semantic form that ignores internal identifiers and insertion order, and
@@ -177,7 +178,8 @@ Terms:
   create, where a build holds exactly the corpus's value names; update, where
   after a one-file edit the graph holds exactly the edited corpus's value
   names; delete, where after removing a file no node or edge names that file's
-  values; and rebuild, where a rebuild holds exactly the current corpus's value
+  values and the graph holds exactly the remaining corpus's value names; and
+  rebuild, where a rebuild holds exactly the current corpus's value
   names.
 - [ ] **AC-0007.** Compatibility: the oracle compiles and runs a consumer
   snippet that uses only the base implementation's public result-type fields.
@@ -189,8 +191,7 @@ Terms:
   edited file's text before the edit plus that count after the edit. The oracle
   compares it with the number of nodes the one-file update reports as
   invalidated. The suite's one-file edit gives `within-budget` on the head
-  source, and an update that reports more invalidated nodes than the bound
-  gives `over-budget` and a store verdict of `insufficient`.
+  source.
 
 ### Incomplete evidence
 
@@ -206,9 +207,10 @@ Terms:
   named mutant, so the producer emits `fail` and the store verdict is
   `insufficient`.
 - [ ] **AC-0012.** Feature-only: the value-creation feature test, run through
-  the producer as the oracle for every term of the six properties and bound to
-  each property's own ID and term, leaves every one of the six store verdicts
-  `insufficient`.
+  the producer as the oracle for every term of the six properties, using each
+  term's named mutation and bound to each property's own ID and term, earns
+  `pass` only for the lifecycle create term and `fail` for every other term,
+  and leaves every one of the six store verdicts `insufficient`.
 
 ### The reference
 

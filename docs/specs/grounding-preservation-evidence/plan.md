@@ -99,7 +99,9 @@ The corpus is a mapping of file names to lines of the form `def NAME`,
 `call NAME`, and `value NAME`; the base implementation ignores `value` lines.
 Nodes carry kind, file, and name; edges carry kind and their endpoints' names.
 The public result type is a frozen dataclass whose new field has a default and
-comes last.
+comes last. `head.py` builds that type only in call resolution and always
+passes the new field explicitly, so a build-only feature test never constructs
+it.
 
 Each named mutation is one exact `str.replace` over `head.py`'s source whose
 old text occurs exactly once, loaded as a separate module:
@@ -144,6 +146,7 @@ Owned by: T1.
   loaded by path with the C0 module's loader and store helpers copied under
   new qualified names.
 - Each mutation's old text occurs exactly once in `head.py`.
+- The feature test passes on the compatibility mutant.
 - The fixture modules import nothing outside the standard library.
 
 **Done when:** the new module passes.
