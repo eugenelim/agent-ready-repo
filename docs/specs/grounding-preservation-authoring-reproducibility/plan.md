@@ -39,7 +39,7 @@ misses, the reference is revised and every final-projection run is redone.
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | Current product truth — brief Spec map row, C3 bullet, captured item | T2, T4 | Row added; spec `Brief:` line; bullet links the ledger; captured item `Closed` | Row derives `Shipped`; no `[backlog].open` entry names the captured item |
-| Release history — the Core patch AC-0004 states | T2 | Manifests and fragment | AC-0004 |
+| Release history — the Core patch AC-0007 states | T2 | Manifests and fragment | AC-0007, AC-0008 |
 | Reusable learning — verification ledger | T3 | Every graded run recorded | The spec's Reusable learning closeout condition |
 
 ## Design (LLD)
@@ -80,11 +80,12 @@ class…" and the gap bullet with:
   it. Give it a criterion that states the bound.
 - A consumer you can read gets a criterion even when code that feeds it is out
   of view. Take its output on base-revision inputs as the oracle, state the
-  allowed delta, and record the unseen producer in `## Assumptions` as a fact
-  the criterion still bounds, not as a gap.
+  allowed delta, and record the unseen producer in `## Assumptions`, marked
+  as bounded by that criterion. It is not a gap and does not block review.
 - Name a gap only when no oracle can be built from the repository for a
-  reachable class, such as when the consumer itself is out of view. Write the
-  gap in the spec's `## Assumptions`. It blocks review while it stands.
+  reachable class, such as when the map cites a consumer whose code is out of
+  view. Write the gap in the spec's `## Assumptions`, marked as a named gap. It
+  blocks review while it stands.
 
 **Edit 2 — § Where the consumer map lives.** After "never in `spec.md`.",
 add: "Open the map with one sentence saying it is working material and that
@@ -98,31 +99,31 @@ the same final state both ways with the new member present and compares the two
 results, in addition to comparing each with the base revision."
 
 **Pins.** Four phrases join `RULES`: "Name a gap only when no oracle can be
-built", "not as a gap", "Open the map with one sentence", and "the old behavior
-includes that they agree". The existing "never in `spec.md`" and
-sustained-finding pins stay.
+built", "marked as bounded by that criterion", "Open the map with one
+sentence", and "the old behavior includes that they agree". The existing
+"never in `spec.md`" and sustained-finding pins stay.
 
-The frozen case already exercises all three edits, so the eval harness needs no
-change (`packs/AGENTS.md` § Security and authoring rules: the harness covers
-the changed content).
-
-Traces to: AC-0001, AC-0002 · none.
+Traces to: AC-0001, AC-0003 · none.
 
 Owned by: T1.
 
 ### Graded-run method
 
-Each run copies the named projection's `.claude/skills` and `.claude/agents`
-into a fresh `/tmp` directory, removes every `evals/` directory and
-`adapt-to-project`, and copies the case's `files` into a separate working
-directory. A fresh subagent gets only the case prompt, the two directory paths,
+Each run extracts the named revision's `.claude/skills` and `.claude/agents`
+with `git archive <rev>` into a fresh `/tmp` directory, keeps only the skill
+directories that have a `packs/core/.apm/skills/<name>/SKILL.md` at that
+revision and the agent files present under `packs/core/.apm/agents/`, removes
+every `evals/` directory and `adapt-to-project`, and copies the case's `files`
+into a separate working directory. The subagent has no Pi and no
+code-intelligence tool; the run brief forbids reading or invoking any skill or
+guidance outside the copy. A fresh subagent gets only the case prompt, the two directory paths,
 and an instruction to stay inside them. A separate grader subagent gets only
 the output text and the case's assertions, and returns one PASS or FAIL with a
-quoted reason per assertion. The base projection comes from
-`git archive <base> .claude/skills .claude/agents`. Outputs and grades are
-stored under `notes/graded-runs/`.
+quoted reason per assertion. The ledger notes, per run, the revision, Core
+version, kept-entry counts, and that no `evals/` directory remains. Outputs and
+grades are stored under `notes/graded-runs/`.
 
-Traces to: AC-0001, AC-0002 · none.
+Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005 · none.
 
 Owned by: T3.
 
@@ -157,10 +158,13 @@ reference.
 **Mode:** goal-based.
 
 **Tests:**
-- AC-0003, AC-0004, AC-0005 commands.
+- AC-0006, AC-0007, AC-0008, AC-0009 commands.
 - `agentbundle catalogue self-host --root . --write --force` leaves no diff on
   re-run.
-- The roster version-bump, brief-coverage, and workspace inventory checks pass.
+- `python3 tools/check-core-release.py`,
+  `python3 .claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py`,
+  and `python3 -m pytest tests/roster/test_workspace_retirement_inventory.py -q`
+  pass.
 
 **Done when:** every `Tests:` bullet passes.
 
@@ -173,12 +177,12 @@ reference.
 **Mode:** visual / manual QA of the rebuilt agent artifact.
 
 **Tests:**
-- AC-0001 and AC-0002 runs, plus one base run of each case, recorded in
-  `notes/verification-ledger.md` with outputs and grades under
-  `notes/graded-runs/`.
+- The AC-0001, AC-0002, AC-0003, and AC-0004 runs, one base run of each case, and the
+  pre-approval spike runs, recorded in `notes/verification-ledger.md` with
+  outputs and grades under `notes/graded-runs/` and the AC-0005 conditions per
+  run.
 
-**Done when:** the ledger records every run with its pack version and
-revision, and AC-0001 and AC-0002 hold.
+**Done when:** every `Tests:` bullet holds, and AC-0001, AC-0002, AC-0003, AC-0004, and AC-0005 hold.
 
 ### T4: Close the captured item and point the brief at the evidence
 
