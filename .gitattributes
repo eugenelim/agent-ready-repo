@@ -61,6 +61,7 @@
 /AGENT_RULES.md                                           merge=regen
 docs/AGENTS.md                                            merge=regen
 governance/manifest.example.yaml                          merge=regen
+packages/agentbundle/agentbundle/_data/_content_safety.py merge=regen
 packages/agentbundle/agentbundle/_data/close_work.py      merge=regen
 packages/agentbundle/agentbundle/_data/cooling.py         merge=regen
 packages/agentbundle/agentbundle/_data/file_safety.py     merge=regen

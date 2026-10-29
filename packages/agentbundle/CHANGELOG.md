@@ -6,6 +6,22 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.58.1] — 2026-10-29
+
+### Added
+
+- The workspace bridge reads a supervisor run's status file when one exists and
+  shows the run id, stage, active signal, and any pending human question. The
+  question is checked for safety and shown only as framed, untrusted text; one
+  that fails the check, or is too long, shows a fixed placeholder. A status
+  file that is a link, not a regular file, oversized, or malformed leaves the
+  bridge with no run and no gate. In `workspace_status`, `gate` reads
+  `human-decision` and a `run_active` field appears for a supervisor run;
+  `gate_question` is a plain string for the old engine and a framed object
+  (`untrusted`, `admitted`, `field`, `value`, `notice`) for a supervisor run.
+
+Engine-Change-RFC: n/a — display-only bridge change under an approved spec
+
 ## [0.58.0] — 2026-10-26
 
 ### Added
