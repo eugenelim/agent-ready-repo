@@ -1,6 +1,6 @@
 # Spec: Reproducible preservation authoring on the shared-graph case
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
