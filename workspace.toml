@@ -972,6 +972,7 @@ open = [
   # applying a different test to each pack.
   # `Unblocks when:` above is satisfied — `docs/specs/layout-install-sections/spec.md`
   # is Shipped.
+  {path = "docs/product/captured/new-spec-positive-case-reproducibility.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/grounding-preservation-review/spec.md"}, summary = "The frozen new-spec shared-substrate positive case does not reproduce its 6 of 6 on unchanged guidance, leaving the repository-grounding-preservation C3 positive-fixture proof unmet", needs = []},
   {path = "docs/product/captured/agentbundle.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/layout-install-sections/spec.md"}, summary = "Move the `agentbundle-layout.toml` section vocabulary onto canonical pack names, so the section an adopter configures matches the pack that owns it", needs = []},
   # Seven design defects in the core 2.25.14 events.jsonl envelope, found by
   # adversarial + quality review and registered rather than repaired because

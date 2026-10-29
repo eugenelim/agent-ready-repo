@@ -242,8 +242,9 @@ Owned by: T2, T3.
   prompt and files against the base reviewer definitions.
 
 **Done when:** the ledger records all ten runs and any reruns, each with the
-pack version it ran against, and the latest rebuilt-projection run of each of
-AC-0022's four pass-required cases holds all its assertions.
+pack version it ran against; for each of AC-0022's four pass-required cases,
+the head run the Testing Strategy's replacement rule admits holds all its
+assertions; and the ledger names the guidance change behind each replacement.
 
 ## Changelog
 

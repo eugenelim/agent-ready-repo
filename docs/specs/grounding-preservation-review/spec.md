@@ -279,9 +279,10 @@ Terms:
   of the projection with its `evals/` directory removed, given only the case's
   `prompt` and files, and scored by a separate grader that receives the output
   and the case's `assertions`. A reviewer case's agent follows the projected
-  reviewer definition. The copy holds only Core's projected skills and agents,
-  with `adapt-to-project` removed, so Pi, `adapt-to-project`, and code
-  intelligence are absent, and the ledger records that for each run.
+  reviewer definition. Each run's copy holds only Core's projected skills and
+  agents and has no `adapt-to-project`, and each run's agent has no
+  code-intelligence capability and no Pi; the ledger records each condition for
+  each run.
 - [ ] **AC-0023.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both read the patch version one above `packs/core/pack.toml` at the base
   revision.
@@ -293,7 +294,8 @@ Terms:
 - The brief's C3 "integrated positive fixture" proof is not met by this slice:
   `new-spec`'s `shared-substrate-change-expands-preservation-proof` does not
   reproduce on unchanged `new-spec` guidance. Owner: Platform Core. Tracked in
-  `docs/product/captured/new-spec-positive-case-reproducibility.md`.
+  `docs/product/captured/new-spec-positive-case-reproducibility.md`, registered
+  in the backlog. At closeout the brief's § C3 proof bullet points to it.
 
 ## Assumptions
 
