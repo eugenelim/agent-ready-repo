@@ -1658,9 +1658,11 @@ def test_repair_plan_keeps_its_pre_wave6_cooling_posture(tmp_path, engine, capsy
     # `automatic_operations` is the observable that moves: the entry itself is
     # echoed either way, so asserting the path appears anywhere in the JSON
     # cannot distinguish the two postures.
+    # Since the spec registration stop the reach is a `spec-entry-drop` of the
+    # repo-origin entry rather than a queue move; either still proves the reach.
     assert [
         op for op in plan["automatic_operations"]
-        if op.get("spec_path") == "docs/specs/alpha/spec.md"
+        if "docs/specs/alpha/spec.md" in (op.get("spec_path"), op.get("path"))
     ], "repair-plan lost its pre-Wave-6 reach into a cooled entry"
     # Ordinary orientation excludes the same entry, so the assertion above is
     # about the deferral rather than about cooling never doing anything here.
