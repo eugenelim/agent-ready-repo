@@ -63,7 +63,12 @@ _VALUES: list[tuple[object, bool]] = [
 ]
 
 
-@pytest.mark.parametrize(("value", "valid"), _VALUES, ids=lambda v: repr(v)[:40])
+@pytest.mark.parametrize(
+    ("value", "valid"),
+    _VALUES,
+    # A stable id per worker: repr of the absent sentinel carries its address.
+    ids=lambda v: "absent" if v is _ABSENT else repr(v)[:40],
+)
 def test_schema_and_validator_agree_on_parent(value: object, valid: bool) -> None:
     payload = dict(_BASE)
     if value is not _ABSENT:
