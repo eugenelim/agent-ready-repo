@@ -191,12 +191,19 @@ proof, `run-gates`, and `regenerate` — becomes an `untrusted-code`
 ### Request kinds and stages
 
 `run.json`'s `stage` comes from the current request kind. A refusal that `next`
-derives while choosing a request — such as `dependency-cycle` or a protected
-boundary — maps to `awaiting-human` from any stage, whoever owns it. Other
-refusals never reach `run.json`: `attempt-residue` from the open-attempt guard,
-`supervisor-changed` from the pin check, every `report` refusal, and
-`run-locked` reach the controller only through the verb's output and leave
-`run.json` unchanged.
+writes — such as `dependency-cycle` or a protected boundary — maps to
+`awaiting-human` from any stage, whoever owns it. Every other refusal reaches
+the controller only through the verb's output and leaves `run.json` unchanged.
+Examples are `attempt-residue` from the open-attempt guard,
+`supervisor-changed` from the pin check, every `report` refusal, `run-locked`,
+and refusals from `start` and `resolve-effect`.
+
+`status` re-derives the run without committing, so `status --check` exits 1
+only for a refusal that derivation and request selection produce. Two refusals
+that `next` writes to `run.json` do not reach it: a `foreign-delivery-edit` from
+the delivery-record sync, and a `stub-not-red` from the supervisor's own red
+run of committed stubs. For either, `run.json` shows the refusal while
+`status --check` exits 0.
 
 | Request kind | `run.json` stage | Opens an attempt |
 | --- | --- | --- |
@@ -311,7 +318,13 @@ For a task with a stub fence (ADR-0151 D1, ADR-0144 D5):
 6. Only then is `implement-task` issued. A worker attempt that writes or
    changes a fence is refused.
 
-When a stub already passes, `report` refuses `stub-not-red`. Once the attempt
+When the supervisor's own red run of committed stubs finds them not red, `next`
+refuses `stub-not-red`. That run uses a scratch copy, so nothing is discarded
+and no confirmation is owed; the controller's fence edit commits as an ordinary
+`replan`.
+
+When a `write-stub` result's stub already passes, `report` refuses
+`stub-not-red`. Once the attempt
 checks find no difference, that refusal closes the attempt and discards the
 files it and its launch changed; nothing from the result commits. The run store
 records that a confirmation is owed (ADR-0151 D3). The next trusted-file change
@@ -368,11 +381,11 @@ stored verdict as input.
    place (ADR-0144 D7).
 4. A refusal writes no commit, ref, journal line, or `.loop-run/events.jsonl`
    line. An attempt refusal does record a refusal mark in the run store and a
-   denial line in `security-events.jsonl`, and a `stub-not-red` refusal
-   discards the attempt's files (§ 3, *TDD guard*). The refusal's code and
-   owner reach the controller through the verb's output. Only a
-   refusal `next` derives while choosing a request also sets `run.json`'s
-   `refusal` field (§ 3, *Request kinds and stages*).
+   denial line in `security-events.jsonl`, and a `stub-not-red` refusal of a
+   `write-stub` result discards the attempt's files (§ 3, *TDD guard*). The
+   refusal's code and owner reach the controller through the verb's output.
+   Only a refusal `next` writes also sets `run.json`'s `refusal` field (§ 3,
+   *Request kinds and stages*).
 
 ### Exit codes
 

@@ -218,11 +218,10 @@ skipped until an operator rotates it.
 Two things follow that are worth knowing. A run killed mid-step shows no line
 for the unfinished step, because a line exists only for a commit. And a refused
 request makes no commit, so it writes no line. In this file alone, a refused
-run looks like a stalled one. A refusal that `next` derives while choosing a
-request also shows in `run.json`'s `refusal` field and in `status --check`.
-`attempt-residue`, `supervisor-changed`, every `report` refusal, and
-`run-locked` show only in the refused verb's own output
-([request kinds and stages](work-loop-execution-supervisor.md#request-kinds-and-stages)).
+run looks like a stalled one. A refusal that `next` writes also shows in
+`run.json`'s `refusal` field, and `status --check` shows the subset it
+re-derives without committing. Every other refusal shows only in the refused
+verb's own output ([request kinds and stages](work-loop-execution-supervisor.md#request-kinds-and-stages)).
 
 ## 7. Observability and evidence
 
@@ -340,7 +339,7 @@ help someone work out what happened.
 | What did a gate decide? | The supervisor writes no `result`; the decision is in the commit and `delivery/` records |
 | How close is a run to its retry cap? | The line carries no counters; `status --check` reports the cap |
 | What happened to a run that was killed? | A line exists only for a commit, and the unfinished step made none |
-| Was it a stall or a refusal? | A refused request writes nothing; `run.json` and `status --check` show only refusals `next` derives, and the rest show only in the verb's output |
+| Was it a stall or a refusal? | A refused request writes nothing; `run.json` shows refusals `next` writes, `status --check` shows the subset it re-derives, and the rest show only in the verb's output |
 | Was the work any good? | Nothing at run time can answer that |
 
 ## 8. Mechanical invariants

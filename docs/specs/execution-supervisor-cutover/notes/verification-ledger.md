@@ -389,3 +389,49 @@ Result: every hit names its item as removed, retired, rejected, or never read.
 No hit describes one as current. `packs/core/DESIGN.md:114` and `:500` still
 name `loop-cohort` as current, and `plan.md` gives that file to T2. So the
 "Current architecture" row closes only when T2 lands.
+
+## T3: architecture review
+
+Two reviewers ran on the T3 diff, `7dc7e9231..HEAD`: `adversarial-reviewer`,
+and the architect pack's `design-reviewer` in verdict mode. There were four
+rounds. The `finding-adjudicator` tested rounds 1 to 3 against the source.
+
+| Round | Design verdict | Sustained | Refuted |
+| --- | --- | ---: | ---: |
+| 1 | MAJOR REWRITE | 17 | 10 |
+| 2 | SHIP WITH CHANGES | 22 | 5 |
+| 3 | SHIP WITH CHANGES | 8 | 6 |
+| 4 | SHIP IT | 3 | 0 |
+
+Every sustained finding is fixed:
+
+- **Round 1:** the supervisor mechanism now has one home,
+  `work-loop-execution-supervisor.md`. Review records are evidence-store
+  records. The run-lock verb set is corrected, and unbuilt rows carry
+  `STATUS: PLANNED`.
+- **Round 2:** `run.json` refusal reach is corrected, and restated rules now
+  link their owner.
+- **Round 3:** the telemetry claims about refusals and waits are narrowed, and
+  ADR-0151's moves are mapped.
+- **Round 4:** the `status --check` reach and the supervisor's own red-run
+  refusal are corrected.
+
+Round 4 was not sent to the adjudicator. Both reviewers raised the same
+`status --check` finding independently, and the adversarial reviewer
+reproduced it with a run. `next` refused `foreign-delivery-edit` and exited 1,
+while `status --check` exited 0.
+
+Two refuted findings are recorded here for traceability:
+
+- `packs/core/DESIGN.md`: T2 owns it (see VI-7020 above).
+- Round 2 G21, the "FSM" wording in `workspace-mcp/design.md`: it was
+  indeterminate and is deferred as a Nit. The bridge code itself names that
+  mode (`get_fsm_state`, "binds an FSM session").
+
+Two discoveries outside T3 go to the owner:
+
+- **Pre-PR hook gap:** the pre-PR hooks gate on `status --check`, so a run
+  stopped on `foreign-delivery-edit`, or on a supervisor-run `stub-not-red`,
+  passes the hook.
+- **Leftover import:** `_supervisor_loop.py` still loads `_review_compat.py`.
+  T2 must repoint that call before it deletes the file.
