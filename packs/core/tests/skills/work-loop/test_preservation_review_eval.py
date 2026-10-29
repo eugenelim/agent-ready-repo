@@ -3,8 +3,11 @@
 Spec: docs/specs/grounding-preservation-review/spec.md
 """
 
+import ast
+import importlib.util
 import json
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
@@ -14,6 +17,16 @@ SPEC_PATH = "evals/files/preservation-review/spec.md"
 ADVERSARIAL_ID = "typed-review-binds-missed-consumer-to-preservation-criterion"
 QUALITY_ID = "typed-review-binds-weak-evidence-to-preservation-criterion"
 LISTING_FUNCTION = "outline"
+
+
+def _load_fixture_graph() -> ModuleType:
+    """Load the fixture ``graph.py`` by literal path under a unique module name."""
+    path = Path(__file__).resolve().parents[3] / ".apm/skills/work-loop/evals/files/preservation-review/graph.py"
+    spec = importlib.util.spec_from_file_location("core_work_loop_preservation_review_fixture_graph", str(path))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _case(case_id: str) -> dict[str, Any]:
@@ -53,7 +66,10 @@ def test_adversarial_case_binds_missed_consumer_without_naming_it() -> None:
     case = _case(ADVERSARIAL_ID)
     assert "CRIT-3" in case["expected_output"]
     assert LISTING_FUNCTION not in case["prompt"]
-    assert any("search" in a and "no finding" in a.lower() for a in case["assertions"])
+    assert any(
+        "filtered search path" in a and "no reachability or missed-consumer finding" in a.lower()
+        for a in case["assertions"]
+    )
     assert any("CRIT-3" in a for a in case["assertions"])
 
 
@@ -62,3 +78,29 @@ def test_quality_case_binds_tautological_test_to_crit_2() -> None:
     case = _case(QUALITY_ID)
     assert "CRIT-2" in case["expected_output"]
     assert any("CRIT-2" in a for a in case["assertions"])
+
+
+def test_hidden_listing_consumer_exists_and_returns_value_nodes() -> None:
+    """The consumer the prompt hides is in the fixture and does not filter values."""
+    graph_module = _load_fixture_graph()
+    listing = getattr(graph_module, LISTING_FUNCTION, None)
+    assert callable(listing), f"fixture graph.py has no {LISTING_FUNCTION}"
+    graph = graph_module.build(["def run", "value limit"])
+    assert any(entry.startswith("value ") for entry in listing(graph))
+
+
+def test_fixture_ordinary_calls_test_takes_expected_side_from_code_under_test() -> None:
+    """The tautological test builds its expected value by calling ``resolve_calls``."""
+    tree = ast.parse((FIXTURE_DIR / "test_graph.py").read_text(encoding="utf-8"))
+    [func] = [
+        n for n in tree.body
+        if isinstance(n, ast.FunctionDef) and n.name == "test_ordinary_calls_resolve_to_definitions"
+    ]
+    [expected] = [
+        n.value for n in ast.walk(func)
+        if isinstance(n, ast.Assign) and any(isinstance(t, ast.Name) and t.id == "expected" for t in n.targets)
+    ]
+    assert any(
+        isinstance(c, ast.Call) and isinstance(c.func, ast.Name) and c.func.id == "resolve_calls"
+        for c in ast.walk(expected)
+    )

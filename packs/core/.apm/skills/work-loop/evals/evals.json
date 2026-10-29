@@ -1581,13 +1581,13 @@
         "evals/files/preservation-review/graph.py",
         "evals/files/preservation-review/test_graph.py"
       ],
-      "expected_output": "One fenced json block holding terminal_status `findings` and at least one material finding. The finding reports that a generic listing consumer in graph.py iterates every node without filtering, so value nodes appear in the listing, and its affected_acceptance_criteria names CRIT-3 (default search and listing exclude value nodes) with file:line evidence for that consumer. No finding is raised against the filtered search path, which hides value nodes behind its explicit flag. Every criterion identifier comes from the named spec; none is invented.",
+      "expected_output": "One fenced json block holding terminal_status `findings` and at least one material finding. The finding reports that a generic listing consumer in graph.py iterates every node without filtering, so value nodes appear in the listing, and its affected_acceptance_criteria names CRIT-3 (default search and listing exclude value nodes) with file:line evidence for that consumer. No reachability or missed-consumer finding is raised against the filtered search path, which hides value nodes behind its explicit flag. Every criterion identifier comes from the named spec; none is invented.",
       "assertions": [
         "Returns only one fenced json block carrying a terminal_status of findings",
         "Reports a material finding that a listing consumer returns value nodes without filtering",
         "The finding's affected_acceptance_criteria names CRIT-3 and no identifier absent from the named spec",
         "The finding cites file and line evidence in graph.py for the unfiltered listing consumer",
-        "Raises no finding against the filtered search path",
+        "Raises no reachability or missed-consumer finding against the filtered search path",
         "Does not require adapt-to-project or code intelligence"
       ]
     },

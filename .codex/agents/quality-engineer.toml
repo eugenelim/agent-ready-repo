@@ -361,11 +361,14 @@ stands in for.
 
 ### Preservation evidence
 
-35. **Evidence for each preservation criterion.** For each preservation
-    criterion in the spec under review, the evidence is current, its expected
-    side is independent of the code under test, and its oracle fails on a named
-    mutation. Missing, stale, tautological, or feature-only evidence is a
-    finding whose affected criteria name that criterion.
+35. **Evidence for each preservation criterion.** A criterion with no
+    verification artifact at all is `adversarial-reviewer`'s existence finding,
+    not this check's. For each preservation criterion in the spec under review
+    that has at least one artifact, the evidence is current, its expected side
+    is independent of the code under test, and its oracle fails on a named
+    mutation. Stale, tautological, or feature-only evidence, or a family the
+    criterion names with no current result, is a finding whose affected
+    criteria name that criterion.
 
 ## Test-author mode
 

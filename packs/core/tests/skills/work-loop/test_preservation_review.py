@@ -152,11 +152,11 @@ def _passing_receipt(property_id: str, fingerprint: str) -> dict[str, Any]:
     }
 
 
-def _finding(property_id: str, finding_id: str = "finding-1") -> dict[str, Any]:
+def _finding(property_id: str) -> dict[str, Any]:
     """A material finding.v1 whose affected criteria name *property_id*."""
     return {
         "schema_version": 1,
-        "finding_id": finding_id,
+        "finding_id": "finding-1",
         "rule_ref": "rule-preservation",
         "observation": "A consumer of the changed substrate was not updated.",
         "reachable_path": "consumer reads every node without a filter",
@@ -190,19 +190,19 @@ class World:
         return list(self.m.review_selection.select_review_obligations(self.subject, self.policy))
 
     def report(
-        self, role: str, status: str, findings: list[dict[str, Any]], report_id: str = "report-1"
+        self, role: str, status: str, findings: list[dict[str, Any]]
     ) -> dict[str, Any]:
         """A review-report.v1 for *role* on this world's review subject."""
         return {
             "schema_version": 1,
-            "report_id": report_id,
+            "report_id": "report-1",
             "role": role,
             "subject": copy.deepcopy(self.subject),
             "terminal_status": status,
             "lineage": {
                 "sequence": 1,
                 "review_policy_fingerprint": POLICY_FP,
-                "source_event_id": f"source-{report_id}",
+                "source_event_id": "source-report-1",
                 "producer": "synthetic-reviewer",
             },
             "findings": findings,
@@ -427,14 +427,11 @@ def test_malformed_finding_is_refused_and_nothing_is_persisted(world: World, bre
 
 
 def _outcome(world: World, role: str, property_id: str) -> dict[str, Any]:
-    """Send one report and return its assessment, receipt shape, and verdicts."""
+    """Send one report and return its assessment, full active receipts, and verdicts."""
     sent = world.send(role, property_id)
     return {
         "assessment": sent["assessment"],
-        "receipts": [
-            (r["lineage"]["criterion_ref"], r["outcome"], r["selector"]["term"], r["producer"]["class"])
-            for r in world.review_failures()
-        ],
+        "receipts": world.review_failures(),
         "verdicts": world.verdicts(),
     }
 
@@ -520,18 +517,33 @@ def test_plan_map_and_task_edits_leave_fingerprint_obligations_report_and_verdic
         assert result == baseline, name
 
 
-def test_new_module_imports_only_stdlib_and_pytest() -> None:
-    """The suite's own imports are standard library or pytest."""
-    tree = ast.parse(Path(__file__).read_text("utf-8"))
+def _imported_roots(path: Path) -> set[str]:
+    """Top-level module names a file imports (absolute imports only)."""
+    tree = ast.parse(path.read_text("utf-8"))
     names = {
         alias.name.split(".")[0]
         for node in ast.walk(tree)
         if isinstance(node, ast.Import)
         for alias in node.names
-    } | {
+    }
+    names |= {
         (node.module or "").split(".")[0]
         for node in ast.walk(tree)
         if isinstance(node, ast.ImportFrom) and node.level == 0
     }
-    assert names
-    assert names <= set(sys.stdlib_module_names) | {"pytest"}, names
+    return names
+
+
+def test_new_modules_import_only_stdlib_and_pytest() -> None:
+    """All three new test modules import only the standard library, pytest, or __future__."""
+    tests_root = Path(__file__).resolve().parents[2]
+    modules = (
+        tests_root / "skills" / "work-loop" / "test_preservation_review.py",
+        tests_root / "skills" / "work-loop" / "test_preservation_review_eval.py",
+        tests_root / "pack" / "test_preservation_review_guidance.py",
+    )
+    allowed = set(sys.stdlib_module_names) | {"pytest", "__future__"}
+    for module in modules:
+        names = _imported_roots(module)
+        assert names, module.name
+        assert names <= allowed, (module.name, names - allowed)

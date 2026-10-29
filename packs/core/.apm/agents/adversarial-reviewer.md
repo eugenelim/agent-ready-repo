@@ -341,7 +341,7 @@ checklists; verification-mode awareness applies to every review that carries a v
 9. **Project-specific anti-patterns.** The effective guidance chain and its
    mapped convention sources are first-class checks. Cite the owning source by
    name when you flag a violation.
-10. **Shared-substrate reachability in the diff.** Apply check 6 to the
+10. **Shared-substrate reachability in the diff.** Apply spec-stage check 6 to the
     consumers the diff reaches: a changed member that a reachable consumer
     class observes without opt-in needs a covering criterion in the spec under
     review.

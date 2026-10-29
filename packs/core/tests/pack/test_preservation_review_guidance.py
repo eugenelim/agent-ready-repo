@@ -79,7 +79,9 @@ def test_ac0002_fields_and_statuses(path: Path) -> None:
     sec = _section(path)
     for name in (*FINDING_FIELDS, *STATUSES, *CALLER_FIELDS):
         assert f"`{name}`" in sec, name
-    assert "caller fills" in _flat(sec)
+    sentence = next(s for s in re.split(r"(?<=\.)\s+", _flat(sec)) if "caller fills" in s)
+    for name in CALLER_FIELDS:
+        assert f"`{name}`" in sentence, name
     # finding.v1 fixes schema_version to the integer 1; a string is refused.
     assert "`schema_version` — the integer `1`" in sec
 
@@ -140,7 +142,7 @@ def test_ac0006_adversarial_checks() -> None:
     ):
         assert phrase in c6, phrase
     c10 = _flat(_check(ADVERSARIAL, "### Implementation-stage checks", 10))
-    assert "Apply check 6" in c10
+    assert "Apply spec-stage check 6" in c10
     assert "consumers the diff reaches" in c10
 
 
@@ -155,10 +157,15 @@ def test_ac0007_quality_check() -> None:
         "is current",
         "independent of the code under test",
         "fails on a named mutation",
-        "Missing, stale, tautological, or feature-only evidence",
-        "affected criteria name that criterion",
+        "A criterion with no verification artifact at all is `adversarial-reviewer`'s existence finding, not this check's",
+        "that has at least one artifact",
+        "Stale, tautological, or feature-only evidence, or a family the criterion names with no current result",
+        "is a finding whose affected criteria name that criterion",
     ):
         assert phrase in c35, phrase
+    assert "Missing" not in c35
+    # The family clause reaches only criteria that have an artifact.
+    assert c35.index("that has at least one artifact") < c35.index("a family the criterion names")
 
 
 @pytest.mark.parametrize("path", REVIEWERS, ids=lambda p: p.stem)
@@ -172,7 +179,9 @@ def test_ac0008_portability(path: Path) -> None:
     else:
         added += _check(path, "### Preservation evidence", 35)
     for word in FORBIDDEN_WORDS:
-        assert word not in added, word
-    assert not re.search(r"\bPi\b", added)
+        # Whole word, case-blind, and a space or hyphen between parts alike.
+        pattern = r"\b" + r"[\s-]+".join(re.escape(p) for p in re.split(r"[\s-]+", word)) + r"\b"
+        assert not re.search(pattern, added, re.I), word
+    assert not re.search(r"\bPi\b", added, re.I)
     assert not re.search(r"\b(docs|contracts)/", added)
     assert "preservation" not in sec.lower()
