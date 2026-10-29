@@ -45,7 +45,10 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         reduced by `canonical_entry_anchor`. An open intent or brief file
         (`docs/product/intents/<anchor>.md` or `docs/product/briefs/<anchor>.md`,
         a regular non-link file whose preamble status is not terminal) also
-        resolves an anchor. HARD (exit non-zero).
+        resolves an anchor. So does an open spec file: `docs/specs/<anchor>/spec.md`
+        under real (non-link) `docs/`, `docs/specs/` and `docs/specs/<anchor>/`
+        directories, a regular non-link file whose preamble status's leading
+        word is not `Shipped` or `Archived`. HARD (exit non-zero).
   (v)   spec↔contract traceability — a spec's
         `- **Contract:**` header (forward ref) names contract file(s) under
         `contracts/<type>/`; each must exist and carry a backward pointer — an
@@ -999,6 +1002,29 @@ def open_file_resolves(root: Path, anchor: str) -> bool:
     return False
 
 
+def open_spec_resolves(root: Path, anchor: str) -> bool:
+    """True when an open spec file under `root` resolves `anchor`.
+
+    `docs/`, `docs/specs/` and `docs/specs/<anchor>/` must be real directories
+    below the resolved root and `spec.md` a regular non-link file, read with the
+    size guard. Its preamble status must be present and not `Shipped` or
+    `Archived`. Any OSError means the spec does not resolve.
+    """
+    try:
+        docs = root.resolve() / "docs"
+        directory = docs / "specs" / anchor
+        if not all(_real_dir(d) for d in (docs, docs / "specs", directory)):
+            return False
+        path = directory / "spec.md"
+        if not stat.S_ISREG(os.lstat(path).st_mode):
+            return False
+        text = _read(path)
+        status = parse_status(text) if text is not None else None
+    except (OSError, ValueError):
+        return False
+    return bool(status) and status not in {"Shipped", "Archived"}
+
+
 def _repo_wide_findings(
     root: Path, spec_paths: list[Path], anchors: set[str]
 ) -> tuple[list[str], list[str]]:
@@ -1013,8 +1039,9 @@ def _repo_wide_findings(
             marker in every spec that cites it, none of which need have changed,
             so scoping this to changed specs would let the routine close-work
             operation break anchors with nothing reporting it. An open intent
-            or brief file (`open_file_resolves`) also resolves an anchor; that
-            check runs lazily, only for anchors the backlog does not resolve.
+            or brief file (`open_file_resolves`) or an open spec file
+            (`open_spec_resolves`) also resolves an anchor; that check runs
+            lazily, only for anchors the backlog does not resolve.
 
     Both read the same text, so they share one pass over the corpus.
     """
@@ -1055,7 +1082,9 @@ def _repo_wide_findings(
             if anchor in anchors:
                 continue
             if anchor not in file_resolved:
-                file_resolved[anchor] = open_file_resolves(root, anchor)
+                file_resolved[anchor] = open_file_resolves(
+                    root, anchor
+                ) or open_spec_resolves(root, anchor)
             if not file_resolved[anchor]:
                 hard.append(
                     f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
