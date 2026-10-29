@@ -436,3 +436,23 @@ def test_close_guide_names_the_lifecycle_record_parent() -> None:
     flat = _flat("guides/core/how-to/close-and-disposition-work.md")
     assert "lifecycle record's `parent`" in flat
     assert "spec's `Brief:` header" in flat
+
+
+# spec-registration-stop AC-0013: the four tracker intake matrices are untouched
+# (a pack test may not read above its own pack, so this repository-level check lives here).
+_TRACKER_MATRICES = (
+    "packs/atlassian/.apm/skills/jira-brief-intake/evals/files/intake/matrix.json",
+    "packs/atlassian/.apm/skills/jira-align-brief-intake/evals/files/intake/matrix.json",
+    "packs/github/.apm/skills/github-brief-intake/evals/files/intake/matrix.json",
+    "packs/linear/.apm/skills/linear-brief-intake/evals/files/intake/matrix.json",
+)
+
+
+@pytest.mark.parametrize("rel", _TRACKER_MATRICES)
+def test_tracker_matrices_are_byte_identical_to_the_base(rel: str) -> None:
+    result = subprocess.run(
+        ["git", "show", f"{_BASELINE}:{rel}"], cwd=_REPO, capture_output=True, check=False
+    )
+    if result.returncode != 0:
+        pytest.skip(f"commit {_BASELINE} is not available in this checkout")
+    assert (_REPO / rel).read_bytes() == result.stdout

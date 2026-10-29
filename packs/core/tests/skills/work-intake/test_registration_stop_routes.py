@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib.util
-import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -149,20 +148,3 @@ def test_tracker_origin_routes_match_the_pre_change_route(
 ) -> None:
     router = _load_router()
     assert _outcome(router, signals) == expected
-
-
-_TRACKER_MATRICES = (
-    "packs/atlassian/.apm/skills/jira-brief-intake/evals/files/intake/matrix.json",
-    "packs/atlassian/.apm/skills/jira-align-brief-intake/evals/files/intake/matrix.json",
-    "packs/github/.apm/skills/github-brief-intake/evals/files/intake/matrix.json",
-    "packs/linear/.apm/skills/linear-brief-intake/evals/files/intake/matrix.json",
-)
-
-
-@pytest.mark.parametrize("rel", _TRACKER_MATRICES)
-def test_tracker_matrices_are_byte_identical_to_the_base(rel: str) -> None:
-    repo = Path(__file__).resolve().parents[5]
-    base = subprocess.run(
-        ["git", "show", f"dfa3fe067:{rel}"], cwd=repo, capture_output=True, check=True
-    ).stdout
-    assert (repo / rel).read_bytes() == base
