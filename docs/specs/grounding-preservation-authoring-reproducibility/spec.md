@@ -1,6 +1,6 @@
 # Spec: Reproducible preservation authoring on the shared-graph case
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -125,34 +125,34 @@ Terms:
 - **The base** is `git merge-base origin/main HEAD` after a fresh fetch, with
   every change committed.
 
-- [ ] **AC-0001.** Every graded run of
+- [x] **AC-0001.** Every graded run of
   `shared-substrate-change-expands-preservation-proof` against the final
   rebuilt projection holds all six assertions.
-- [ ] **AC-0002.** At least three graded runs of
+- [x] **AC-0002.** At least three graded runs of
   `shared-substrate-change-expands-preservation-proof` against the final
   rebuilt projection are recorded in `notes/verification-ledger.md`.
-- [ ] **AC-0003.** Every graded run of
+- [x] **AC-0003.** Every graded run of
   `isolated-private-change-does-not-expand-preservation-proof` against the
   final rebuilt projection holds all four assertions.
-- [ ] **AC-0004.** At least one graded run of
+- [x] **AC-0004.** At least one graded run of
   `isolated-private-change-does-not-expand-preservation-proof` against the
   final rebuilt projection is recorded in `notes/verification-ledger.md`.
-- [ ] **AC-0005.** For every run AC-0001, AC-0002, AC-0003, and AC-0004
+- [x] **AC-0005.** For every run AC-0001, AC-0002, AC-0003, and AC-0004
   count, the ledger lists the skill and agent entries its copy held, and that
   list equals the entries under `packs/core/.apm/skills/` and
   `packs/core/.apm/agents/` at the run's revision, less `adapt-to-project`;
   and the ledger records the output of `find <copy> -type d -name evals` over
   that copy, which is empty.
-- [ ] **AC-0006.** For every run AC-0001, AC-0002, AC-0003, and AC-0004
+- [x] **AC-0006.** For every run AC-0001, AC-0002, AC-0003, and AC-0004
   count, the ledger names the agent type and tool set the run agent was given,
   and that set holds no Pi tool and no code-intelligence capability.
-- [ ] **AC-0007.** `git diff --exit-code <base> HEAD -- packs/core/.apm/skills/new-spec/evals/`
+- [x] **AC-0007.** `git diff --exit-code <base> HEAD -- packs/core/.apm/skills/new-spec/evals/`
   exits 0.
-- [ ] **AC-0008.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
+- [x] **AC-0008.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both read the patch version one above `packs/core/pack.toml` at the base.
-- [ ] **AC-0009.** A `docs/product/changelog.d/` fragment names `core` at the
+- [x] **AC-0009.** A `docs/product/changelog.d/` fragment names `core` at the
   version AC-0008 states.
-- [ ] **AC-0010.** `git diff --name-only <base> HEAD` lists no path under
+- [x] **AC-0010.** `git diff --name-only <base> HEAD` lists no path under
   `contracts/`, and its only path under `packs/core/.apm/` is
   `packs/core/.apm/skills/new-spec/references/shared-substrate-preservation.md`.
 

@@ -1,7 +1,7 @@
 # Plan: Reproducible preservation authoring on the shared-graph case
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** `none — non-structural`. The edit stays inside one
   existing reference,
   `packs/core/.apm/skills/new-spec/references/shared-substrate-preservation.md`,

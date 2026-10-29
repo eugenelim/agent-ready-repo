@@ -110,3 +110,19 @@ grades only; they are baselines and design evidence, not counted runs.
   one finding for this spec, `impossible_transition` (shipped membership while
   `spec.md` reads `Implementing`), which the REVIEW-stage `Status: Shipped`
   write clears.
+
+## REVIEW, 2026-10-29
+
+- `adversarial-reviewer`, code stage: round 1 sustained one Concern (grader
+  input) and refuted four; round 2 sustained one Nit (table labels); round 3
+  clean. `security-reviewer`: not warranted — the edit changes authoring prose,
+  not a tool surface, authority, untrusted-input handling, or data flow.
+  `quality-engineer`: not warranted — no operational-safety module, no
+  structural change, not requested. `experience-reviewer` and
+  `frontend-reviewer`: not warranted — no rendered or reader-facing surface.
+- At HEAD, AC-0007 to AC-0010 re-checked against base `b1be32193`
+  (`origin/main` unchanged): evals diff empty; Core 3.1.38 → 3.1.39 in both
+  manifests; fragment `ae86168c-…` names `core` 3.1.39; the only
+  `packs/core/.apm/` path is the reference, none under `contracts/`.
+- With `Status: Shipped`, `workspace_status.py reconcile` reports no finding for
+  this spec, and `lint-spec-status.py --root .` is clean.
