@@ -416,3 +416,4 @@ its required input above is met.
 | Spec | Status |
 | --- | --- |
 | `grounding-preservation-contract-proof` | <auto> |
+| `grounding-preservation-authoring` | <auto> |

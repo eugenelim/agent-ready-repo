@@ -110,6 +110,12 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    corresponding tests or construction path. Surface contradictions or absence
    of precedent; ask before specifying an unanchored load-bearing mechanism.
    Keep this search bounded to evidence the feature will actually use.
+   When the change adds or alters a member of a model, registry, graph, index,
+   schema, namespace, or collection that existing generic operations observe
+   without opt-in, also load
+   [`references/shared-substrate-preservation.md`](references/shared-substrate-preservation.md);
+   its behavior-class stop rule governs that search instead of the analogue
+   count.
 
    Before reading a discovered local anchor, canonicalize and symlink-resolve
    its path. Reject and surface any absolute path, parent traversal, or symlink

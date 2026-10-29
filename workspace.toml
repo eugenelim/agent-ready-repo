@@ -218,6 +218,9 @@ active  = [
   {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = []},
 ]
 shipped = [
+  # Shipped 2026-10-29 as core 3.1.33: slice C1 of repository-grounding-preservation, the
+  # shared-substrate preservation reference in new-spec. Evidence is in notes/verification-ledger.md.
+  {path = "docs/specs/grounding-preservation-authoring/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Add a shared-substrate preservation reference to new-spec so a change that adds a member to a shared model derives a bounded consumer map and writes preservation criteria with allowed deltas and failing oracles", needs = []},
   # Shipped 2026-10-28: slice C0 of repository-grounding-preservation, test-only;
   # the existing acceptance contract is sufficient. Evidence is in notes/verification-ledger.md.
   {path = "docs/specs/grounding-preservation-contract-proof/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Prove the six PR-207-shaped preservation properties through the shipped acceptance evaluator with valid, rejected, and mutated samples, and record that the existing contract is sufficient", needs = []},
