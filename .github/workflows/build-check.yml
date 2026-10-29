@@ -757,6 +757,14 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_intent_brief_registration_stop.py
 
+      # spec-registration-stop and readiness-bridge-dispatch-input: no writer, guide
+      # or instruction tells anyone to register or move a repo-origin spec, work-loop
+      # dispatches from dispatch.py, and the governing errata name the stop. Sits
+      # ABOVE the bulk tests/ step.
+      - name: pytest spec registration stop (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_spec_registration_stop.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a

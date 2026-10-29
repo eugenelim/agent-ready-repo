@@ -2722,6 +2722,18 @@ consumer = "captured-item registration stop: writers write only the file, the cl
 owner = 3
 
 [[row]]
+pattern = "docs/specs/spec-registration-stop/*"
+class = "contract"
+consumer = "spec registration stop: the spec-entry-drop repair, the stopped spec writers, and the dispatch switch to dispatch.py"
+owner = 8
+
+[[row]]
+pattern = "docs/specs/readiness-bridge-dispatch-input/*"
+class = "contract"
+consumer = "readiness bridge input: the navigate-intents export reads argless work-loop dispatch output in place of workspace-status status"
+owner = 8
+
+[[row]]
 pattern = "docs/specs/header-derived-dispatch/*"
 class = "contract"
 consumer = "header-derived dispatch: the read-only work-loop dispatch command over spec headers, the lifecycle record parent, and the replay against canonical dispatch"

@@ -38,6 +38,8 @@ protected = [
   "docs/specs/closure-eligibility-check",
   "docs/specs/intent-brief-registration-stop",
   "docs/specs/header-derived-dispatch",
+  "docs/specs/spec-registration-stop",
+  "docs/specs/readiness-bridge-dispatch-input",
   "docs/specs/child",
   "docs/specs/childb",
   "docs/specs/chosen",

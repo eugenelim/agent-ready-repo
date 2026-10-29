@@ -2355,6 +2355,9 @@ queue   = [
 active  = [
   # Slice 1 of `workspace-registry-retirement-delivery`; Approved 2026-10-25 and moved from `queue` when it became Implementing the same day.
   { path = "docs/specs/workspace-retirement/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "The workspace retirement record: a per-PR-checked consumer inventory and the per-fact disposition, with removal authority, that RFC-0105 D3 requires", needs = [] },
+  # Slice 8 (B) of `workspace-registry-retirement-delivery`, Implementing 2026-10-29; its own spec-entry-drop repair removes these two entries
+  { path = "docs/specs/spec-registration-stop/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Stop registering repo-origin specs: dispatch from dispatch.py, remove unregistered_work, and drop the entries with a repair", needs = [] },
+  { path = "docs/specs/readiness-bridge-dispatch-input/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Re-point the navigate-intents readiness bridge to work-loop dispatch output", needs = [] },
 ]
 # Delivered 2026-09-24 and moved from `active` to `shipped` in the same change
 # that set the spec `Shipped` and the plan `Done`. Membership and status must

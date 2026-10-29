@@ -107,6 +107,8 @@ The Status column is derived from each spec; it is not hand-edited.
 | `captured-item-registration-stop` | <auto> |
 | `intent-brief-registration-stop` | <auto> |
 | `header-derived-dispatch` | <auto> |
+| `spec-registration-stop` | <auto> |
+| `readiness-bridge-dispatch-input` | <auto> |
 
 ## Governance references (optional)
 
