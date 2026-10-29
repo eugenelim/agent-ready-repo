@@ -1,7 +1,7 @@
 # Plan: The readiness bridge reads work-loop's dispatch output
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0108 D3 and its errata; RFC-0105 D3's 2026-10-12 erratum; RFC-0106 D1 and D3; RFC-0055; ADR-0074.
   - `docs/specs/intent-view-readiness-handover/spec.md` and `plan.md`: the Shipped contract this spec amends, its terms, and its test and browser-check layout.
@@ -79,14 +79,14 @@ Owned by: T6
 
 - **Depends on:** T1; `spec-registration-stop` T1 and T2
 - **Verification mode:** TDD
-- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0031: `test_export_readiness.py` rewritten to the base input of this spec's terms, with one planted case per AC-0001 to AC-0004 clause, including a blocked item with a `null` status that passes and a ready item with a finding that does not; the argless-refusal and named-output cases; the `bad_workspace` cases; the reason order; the fail-closed, `page_too_big` and over-budget cases over every failing input with the pinned clock; the marker-string case; the four marks, the `dep-spec-open` shape, and `ask` over two ready specs; the corpus test with the planted invalid-TOML tree; and the hand-built and fixture hostile inputs. The tests of the carried criteria in `test_export_readiness.py` (hand-over 0001 to 0008, 0014, 0015, 0018 to 0020, 0034 to 0036, 0046 and 0047) are rewritten to the base input and keep their assertions. `test_independence.py` runs unchanged.
+- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0031: `test_export_readiness.py` rewritten to the base input of this spec's terms, with one planted case per AC-0001 to AC-0004 clause, including a path twice in `ready` and twice in `active`, including a blocked item with a `null` status that passes and a ready item with a finding that does not; the argless-refusal and named-output cases; the `bad_workspace` cases; the reason order; the fail-closed, `page_too_big` and over-budget cases over every failing input with the pinned clock; the marker-string case; the four marks, the `dep-spec-open` shape, and `ask` over two ready specs; the corpus test with the planted invalid-TOML tree; and the hand-built and fixture hostile inputs. The tests of the carried criteria in `test_export_readiness.py` (hand-over 0001 to 0008, 0014, 0015, 0018 to 0020, 0034 to 0036, 0046 and 0047) are rewritten to the base input and keep their assertions. `test_independence.py` runs unchanged.
 - **Done when:** those suites pass.
 
 ### T3: Page wording
 
 - **Depends on:** T2
 - **Verification mode:** scripted browser check
-- **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0032: `view_browser_checks.py`'s readiness cases with the new literals, the title, the empty state and the `outstanding`-unavailable count, the `ask` note for zero and non-zero `active_count`, every reason's notice, the checked and unchecked Key, the label and glyph sets over the `hostile` fixture, a search of the rendered text outside `next_action` and record text for `workspace-status`; and the shared readiness input builders and every carried readiness case (hand-over 0024, 0025, 0027, 0030, 0032, 0035 to 0037, 0039, 0040, and the record-owners readiness export) rewritten to the base input with their assertions kept.
+- **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0032, AC-0033: `view_browser_checks.py`'s readiness cases with the new literals, the title, the empty state and the `outstanding`-unavailable count, the `ask` note for zero and non-zero `active_count`, every reason's notice, the checked and unchecked Key, the label and glyph sets over the `hostile` fixture, a search of the rendered text outside `next_action` and record text for `workspace-status`; and the shared readiness input builders and every carried readiness case (hand-over 0024, 0025, 0027, 0030, 0032, 0035 to 0037, 0039, 0040, and the record-owners readiness export) rewritten to the base input with their assertions kept, apart from the carried 0030 lead assertions in `view_browser_checks.py` (the checked lead and its unchecked sibling), which move to AC-0033's lead; the mark-help, Key and finding-help strings; and a check of `export --help` for AC-0033's `--readiness` text.
 - **Done when:** the full `view_browser_checks.py` pass succeeds with none skipped.
 
 ### T4: Instructions, eval and design note
