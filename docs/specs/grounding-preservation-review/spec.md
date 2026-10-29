@@ -1,6 +1,6 @@
 # Spec: Preservation through typed review
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -158,12 +158,12 @@ Terms:
 
 ### Reviewer guidance
 
-- [ ] **AC-0001.** Each of the two reviewer files has exactly one typed-report
+- [x] **AC-0001.** Each of the two reviewer files has exactly one typed-report
   section, and the two sections are identical.
-- [ ] **AC-0002.** The typed-report section names every finding field, the
+- [x] **AC-0002.** The typed-report section names every finding field, the
   four terminal statuses `clean`, `findings`, `unable`, and `indeterminate`,
   and every caller field as filled by the caller.
-- [ ] **AC-0003.** The typed-report section says that when the caller asks for
+- [x] **AC-0003.** The typed-report section says that when the caller asks for
   a typed report, the reviewer returns only one fenced `json` block holding
   `terminal_status` and `findings`, instead of the findings block or clean
   line, and that this overrides the file's findings-only return for that
@@ -176,18 +176,18 @@ Terms:
   review-complete gate, and the typed review path's obligation decision
   governs it instead. The sentence beginning `Return **only** the findings
   block above` stays in both reviewer files.
-- [ ] **AC-0004.** The typed-report section defines a material finding as the
+- [x] **AC-0004.** The typed-report section defines a material finding as the
   Terms above do and says the typed report carries only material findings. It
   says a review against the caller-named spec that completes with no material
   finding returns `clean`, and that a caller
   who needs the non-material findings asks for the findings block instead.
-- [ ] **AC-0005.** The typed-report section says an affected criterion is an
+- [x] **AC-0005.** The typed-report section says an affected criterion is an
   identifier the caller-named spec contains, that under a typed-report
   request the spec under review is the caller-named spec, and that when a
   material finding has
   no such identifier to name, the typed report's status is `indeterminate`
   with no findings.
-- [ ] **AC-0006.** `adversarial-reviewer.md` has check 6 under
+- [x] **AC-0006.** `adversarial-reviewer.md` has check 6 under
   `### Spec-stage checks`, and check 10 under `### Implementation-stage checks`
   applies check 6 to the consumers the diff reaches. Check 6 asks,
   for a change that adds or alters a member of a model, registry, graph,
@@ -198,7 +198,7 @@ Terms:
   it, they name the criterion whose change reaches the consumer, and the fix
   is an amendment. It says a consumer that reaches the member only through an
   explicit filter raises no finding.
-- [ ] **AC-0007.** `quality-engineer.md` has check 35 in a
+- [x] **AC-0007.** `quality-engineer.md` has check 35 in a
   `### Preservation evidence` subsection of review mode. It asks, for
   each preservation criterion in the spec under review, whether its evidence is current, has
   an expected side independent of the code under test, and fails on a named
@@ -207,51 +207,51 @@ Terms:
   criterion with at least one artifact, it says stale, tautological, or
   feature-only evidence, or a family the criterion names with no current
   result, is a finding whose affected criteria name that criterion.
-- [ ] **AC-0008.** The added text names no path under `docs/` or `contracts/`
+- [x] **AC-0008.** The added text names no path under `docs/` or `contracts/`
   and does not contain the words `preservation finding`, `adapt-to-project`,
   `code intelligence`, or `Pi`. The typed-report section does not contain the
   word `preservation`.
 
 ### The generic path
 
-- [ ] **AC-0009.** Missed consumer: an `adversarial-reviewer` typed report with
+- [x] **AC-0009.** Missed consumer: an `adversarial-reviewer` typed report with
   one material finding whose affected criteria name the default-search
   property, sent through the generic path, records one review-failure receipt
   for that property. Its verdict is `contradicted` and the other two fixture
   properties stay `supported`. With a mandatory obligation for its role, the
   obligation decision is satisfied and blocks acceptance on the open finding.
-- [ ] **AC-0010.** Weak evidence: a `quality-engineer` typed report with one
+- [x] **AC-0010.** Weak evidence: a `quality-engineer` typed report with one
   material finding whose affected criteria name the ordinary-calls property,
   sent through the generic path, makes that property `contradicted` and leaves
   the other two `supported`.
-- [ ] **AC-0011.** Negative control: a `clean` typed report with no findings,
+- [x] **AC-0011.** Negative control: a `clean` typed report with no findings,
   sent through the generic path, records no review-failure receipt and leaves
   all three fixture properties `supported`. With a mandatory obligation for its
   role, the obligation decision is satisfied with no review or acceptance
   block.
-- [ ] **AC-0012.** A typed report whose finding has an empty affected-criteria
+- [x] **AC-0012.** A typed report whose finding has an empty affected-criteria
   list, or omits one finding field, is refused by the shipped report contract,
   and no record is persisted.
-- [ ] **AC-0013.** Repeating AC-0009 and AC-0010 with each report's `role`
+- [x] **AC-0013.** Repeating AC-0009 and AC-0010 with each report's `role`
   replaced by a role name no shipped reviewer uses gives the same assessments,
   receipts, and verdicts.
-- [ ] **AC-0014.** A finding whose assessment is unsupported, sent through the
+- [x] **AC-0014.** A finding whose assessment is unsupported, sent through the
   generic path, records no review-failure receipt and leaves its named property
   `supported`.
-- [ ] **AC-0015.** An `indeterminate` typed report with no findings, sent
+- [x] **AC-0015.** An `indeterminate` typed report with no findings, sent
   through the generic path with a mandatory obligation for its role, is
   selected as that role's current report. The obligation decision for it is
   unsatisfied with a reason different from the decision with no report
   persisted. No review-failure receipt is recorded and all three fixture
   properties stay `supported`.
-- [ ] **AC-0016.** Deleting the plan's consumer map, rebuilding it in another
+- [x] **AC-0016.** Deleting the plan's consumer map, rebuilding it in another
   order, and replacing the plan's task list each leave unchanged the acceptance
   fingerprint, the ordered review obligations selected for the subject, the
   current report, and all three verdicts after AC-0009's report.
 
 ### Eval cases, scope, and optional packs
 
-- [ ] **AC-0017.** `work-loop`'s `evals/evals.json` carries two cases, each
+- [x] **AC-0017.** `work-loop`'s `evals/evals.json` carries two cases, each
   with its files under `evals/files/preservation-review/`. The fixture spec
   reads `Status: Approved`, each prompt names it as the spec the findings bind
   to, and its criteria include `CRIT-2`, ordinary calls resolve to no value node, and
@@ -261,18 +261,18 @@ Terms:
   of its assertions requires no finding against the filtered search path. The
   `quality-engineer` case's expected output names `CRIT-2` for the
   tautological ordinary-calls test.
-- [ ] **AC-0018.** `git diff --name-only <base revision> HEAD` lists no path
+- [x] **AC-0018.** `git diff --name-only <base revision> HEAD` lists no path
   under `contracts/`, `packs/core/.apm/skills/work-loop/scripts/`, or
   `packs/core/.apm/skills/work-loop/references/`, and does not list
   `packs/core/.apm/skills/work-loop/SKILL.md`.
-- [ ] **AC-0019.** `packs/core/pack.toml` has no `[dependencies]` table.
-- [ ] **AC-0020.** `agentbundle catalogue verify --root .` exits 0.
-- [ ] **AC-0021.** The new test modules import only the standard library,
+- [x] **AC-0019.** `packs/core/pack.toml` has no `[dependencies]` table.
+- [x] **AC-0020.** `agentbundle catalogue verify --root .` exits 0.
+- [x] **AC-0021.** The new test modules import only the standard library,
   `pytest`, and `work-loop` scripts loaded by path.
 
 ### Agent behavior and release
 
-- [ ] **AC-0022.** Graded runs against the rebuilt projections hold every
+- [x] **AC-0022.** Graded runs against the rebuilt projections hold every
   assertion of four cases: `new-spec`'s
   `isolated-private-change-does-not-expand-preservation-proof`, `work-loop`'s
   `shared-substrate-feature-tests-do-not-prove-preservation`, and AC-0017's two
@@ -286,10 +286,10 @@ Terms:
   agents and has no `adapt-to-project`, and each run's agent has no
   code-intelligence capability and no Pi; the ledger records that each condition
   held for every listed run.
-- [ ] **AC-0023.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
+- [x] **AC-0023.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both read the patch version one above `packs/core/pack.toml` at the base
   revision.
-- [ ] **AC-0024.** A `docs/product/changelog.d/` fragment names `core` at the
+- [x] **AC-0024.** A `docs/product/changelog.d/` fragment names `core` at the
   version AC-0023 states.
 
 ## Follow-ons

@@ -1,7 +1,7 @@
 # Plan: Preservation through typed review
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved
+- **Status:** Done
 - **Repository anchors:** the review-module chain exercised end to end by
   `packs/core/tests/skills/work-loop/test_review_bridge.py::test_supported_assessment_commits_complete_receipts_and_replays_projection`
   (persist a report, assess, bridge, evaluate `contradicted`); the
