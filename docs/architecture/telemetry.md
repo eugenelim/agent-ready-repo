@@ -218,8 +218,11 @@ skipped until an operator rotates it.
 Two things follow that are worth knowing. A run killed mid-step shows no line
 for the unfinished step, because a line exists only for a commit. And a refused
 request makes no commit, so it writes no line. In this file alone, a refused
-run looks like a stalled one. `run.json`'s `refusal` field and
-`status --check` tell them apart.
+run looks like a stalled one. A refusal that `next` derives while choosing a
+request also shows in `run.json`'s `refusal` field and in `status --check`.
+`attempt-residue`, `supervisor-changed`, every `report` refusal, and
+`run-locked` show only in the refused verb's own output
+([request kinds and stages](work-loop-execution-supervisor.md#request-kinds-and-stages)).
 
 ## 7. Observability and evidence
 
@@ -291,10 +294,13 @@ changed something, did a change help, is a run in trouble right now, and where
 did the time go.
 
 That last one is the cost handle. Time spent waiting for a person costs
-nothing; time spent implementing or reviewing costs tokens. `awaiting_input`
-marks the waiting steps, so the gaps between `at` values, minus the waiting,
-are a closer guide to cost than elapsed time. The line carries no duration of
-its own, so any duration is a difference between two lines.
+nothing; time spent implementing or reviewing costs tokens. The lines cannot
+separate the two. `awaiting_input` is true only on a step that leaves the run
+`awaiting-human` — today an effect `resolution`, and a `replan` straight after
+one. Issuing a `human-decision` commits nothing, and its answer commits as
+`review` or `replan`, so most waits for a person leave no marked line. The line
+carries no duration of its own, so any duration is a difference between two
+lines.
 
 None of it says whether a run produced something good. There is nothing at run
 time to check against. Whether the work is right is settled by the prepared
@@ -306,8 +312,8 @@ run time there is none — and two things make the comparison pointless here
 anyway. The state machine already refuses a step that is not allowed, so a run
 cannot take an invalid path. And several different paths are equally right,
 because going back to fix something is a designed part of the loop, not a
-mistake. What the numbers do support is *describing* paths: how often runs go
-back to drafting, how rounds spread out. That tells you about the set of runs
+mistake. What the numbers do support is *describing* paths: how often runs
+replan or return to `implementing`, how rounds spread out. That tells you about the set of runs
 and points at an odd one. It does not mark any run pass or fail.
 
 **Do not tune against these.** Push an automated loop to improve a number and
@@ -322,7 +328,8 @@ help someone work out what happened.
   steps.
 - How much rework happened, by counting `replan` steps and repeated
   `implement` steps for one run.
-- How often a run waited for a person, by counting `awaiting_input` lines.
+- How often a run resolved an external effect by a person's decision, by counting
+  `resolution` steps.
 
 **What they do not answer, and why**
 
@@ -333,7 +340,7 @@ help someone work out what happened.
 | What did a gate decide? | The supervisor writes no `result`; the decision is in the commit and `delivery/` records |
 | How close is a run to its retry cap? | The line carries no counters; `status --check` reports the cap |
 | What happened to a run that was killed? | A line exists only for a commit, and the unfinished step made none |
-| Was it a stall or a refusal? | A refused request writes nothing; `run.json` and `status --check` say which |
+| Was it a stall or a refusal? | A refused request writes nothing; `run.json` and `status --check` show only refusals `next` derives, and the rest show only in the verb's output |
 | Was the work any good? | Nothing at run time can answer that |
 
 ## 8. Mechanical invariants

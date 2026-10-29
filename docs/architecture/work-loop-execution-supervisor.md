@@ -138,7 +138,8 @@ sequenceDiagram
 `Approved` or `Executing`, and `--intent` matches the spec's
 `## Terminal Intent`. It commits one line to `delivery/approvals.jsonl` holding
 an `approval-record.v1` and an `initial-plan-review.v1`. Both are bound to the
-reviewed-execution-envelope fingerprint, the terminal intent, the code-trust
+reviewed-execution-envelope fingerprint (a digest of the spec's protected
+sections, listed in § 3, *Replanning*), the terminal intent, the code-trust
 classification, the run id, and the `owner` and `plan-reviewer` authority
 references. A `spec-plan` run then commits `terminal` and ends, with no task
 projected and no request issued (ADR-0144 D4).
@@ -147,7 +148,8 @@ projected and no request issued (ADR-0144 D4).
 
 1. `next` derives the current request from `HEAD`. It first commits any
    pending controller edit to the spec, plan, or cited records as one `replan`
-   step. It then commits any step it takes itself — a supervisor-run `red`
+   step, unless a not-red confirmation is owed (§ 3, *TDD guard*). It then
+   commits any step it takes itself — a supervisor-run `red`
    proof, an `effect-intent`, or `terminal` — projects the matching event
    lines, records the attempt's issuance in the run store, writes `run.json`,
    and appends an advisory journal line. A refusal derived here writes only
@@ -364,8 +366,11 @@ stored verdict as input.
 3. A run whose durable state predates the supervisor is re-derived from the
    spec, plan, Git history, evidence, and review facts. It is not resumed in
    place (ADR-0144 D7).
-4. A refusal writes no commit, ref, journal line, event, or tracked file. Its
-   code and owner reach the controller through the verb's output. Only a
+4. A refusal writes no commit, ref, journal line, or `.loop-run/events.jsonl`
+   line. An attempt refusal does record a refusal mark in the run store and a
+   denial line in `security-events.jsonl`, and a `stub-not-red` refusal
+   discards the attempt's files (§ 3, *TDD guard*). The refusal's code and
+   owner reach the controller through the verb's output. Only a
    refusal `next` derives while choosing a request also sets `run.json`'s
    `refusal` field (§ 3, *Request kinds and stages*).
 
