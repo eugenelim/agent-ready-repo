@@ -6,7 +6,7 @@
   - RFC-0108 D3 and its errata; RFC-0105 D3's 2026-10-12 erratum; RFC-0106 D1 and D3; RFC-0055; ADR-0074.
   - `docs/specs/intent-view-readiness-handover/spec.md` and `plan.md`: the Shipped contract this spec amends, its terms, and its test and browser-check layout.
   - `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`: `REASONS`, `_WORKSPACE_FAILURE_CODES`, `_typed_finding`, `_typed_list`, `_walk`, `check`, `start`, `project`.
-  - `packs/core/.apm/skills/navigate-intents/scripts/view_src/readiness.js`, `labels.js`, `detail.js`: the page wording.
+  - `packs/core/.apm/skills/navigate-intents/scripts/view_src/readiness.js`, `labels.js`, `detail.js`: the page wording; `scripts/navigate_intents.py`: the `--readiness` help text.
   - `packs/core/tests/skills/navigate-intents/test_export_readiness.py`, `test_independence.py`, `view_browser_checks.py`, `view_bench.py`, and `fixtures/hostile_workspace/`.
   - `packs/core/.apm/skills/work-loop/scripts/dispatch.py` (the argless decision, lines 474–485) and `packs/core/tests/skills/work-loop/test_header_derived_dispatch_replay.py` (its case-tree builder).
   - `docs/specs/spec-registration-stop/`: the paired spec, built on the same branch, whose criterion 0034 names this spec's inventory rows and whose criterion 0044 pairs the release.
@@ -37,7 +37,7 @@ Checks first, wording second, records last. T2 rewrites the input checks and the
 | The bridge's input | T2, T4 | `intent_readiness.py`; SKILL.md and evals | AC-0001 to AC-0011, AC-0019, AC-0020 and AC-0031 pass |
 | User procedure | T4 | the guide section | AC-0019 passes; guide lints pass |
 | Current architecture | T4 | `packs/core/DESIGN.md` | AC-0021 passes |
-| Page wording | T3 | `readiness.js`, `labels.js`, `detail.js` | AC-0012 to AC-0015 and AC-0032 pass |
+| Page wording and help text | T3 | `readiness.js`, `labels.js`, `detail.js`; `navigate_intents.py`'s `--readiness` help | AC-0012 to AC-0015 and AC-0032 to AC-0034 pass |
 | Decision rationale | T5 | three errata entries and the § Equivalence row | AC-0022 to AC-0024 pass |
 | Product truth and inventory | T6 | the hand-over header line; inventory rows | AC-0025 and AC-0026 pass |
 | Verification record | T5, T6 | `notes/verification-ledger.md` | AC-0016 to AC-0018, AC-0027, AC-0029 and AC-0030 pass |
@@ -86,7 +86,7 @@ Owned by: T6
 
 - **Depends on:** T2
 - **Verification mode:** scripted browser check
-- **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0032, AC-0033: `view_browser_checks.py`'s readiness cases with the new literals, the title, the empty state and the `outstanding`-unavailable count, the `ask` note for zero and non-zero `active_count`, every reason's notice, the checked and unchecked Key, the label and glyph sets over the `hostile` fixture, a search of the rendered text outside `next_action` and record text for `workspace-status`; and the shared readiness input builders and every carried readiness case (hand-over 0024, 0025, 0027, 0030, 0032, 0035 to 0037, 0039, 0040, and the record-owners readiness export) rewritten to the base input with their assertions kept, apart from the carried 0030 lead assertions in `view_browser_checks.py` (the checked lead and its unchecked sibling), which move to AC-0033's lead; the mark-help, Key and finding-help strings; and a check of `export --help` for AC-0033's `--readiness` text.
+- **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0032, AC-0033, AC-0034: `view_browser_checks.py`'s readiness cases with the new literals, the title, the empty state and the `outstanding`-unavailable count, the `ask` note for zero and non-zero `active_count`, every reason's notice, the checked and unchecked Key, the label and glyph sets over the `hostile` fixture, a search of the rendered text outside `next_action` and record text for `workspace-status`; and the shared readiness input builders and every carried readiness case (hand-over 0024, 0025, 0027, 0030, 0032, 0035 to 0037, 0039, 0040, and the record-owners readiness export) rewritten to the base input with their assertions kept, apart from the carried 0030 lead assertions in `view_browser_checks.py` (the checked lead and its unchecked sibling), which move to AC-0033's lead; the mark-help, Key and finding-help strings; and, in `test_export_readiness.py`, a check of `export --help` for AC-0034's `--readiness` text.
 - **Done when:** the full `view_browser_checks.py` pass succeeds with none skipped.
 
 ### T4: Instructions, eval and design note
