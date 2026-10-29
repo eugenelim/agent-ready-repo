@@ -265,9 +265,10 @@ verdicts, so M3 is the unblocking point and M4's portability result is additive
   report does not record which rules were in the author's context, so a rule's
   firing cannot be recovered from it. Not because the artifacts are missing:
   116 tracked files match `docs/specs/*/notes/` with `review` in the path, and
-  none is ignored. What *is* machine-local is narrower — the loop's recorded
-  verdicts (`docs/specs/**/state.json`, `engine-state.json`, `.loop-run/`) and
-  implementer reports (`docs/specs/**/notes/implementer-*.md`).
+  none is ignored. What *is* machine-local is narrower — the loop's local run
+  state (the supervisor's self-ignoring `docs/specs/<feature>/.supervisor/` and
+  `.loop-run/`; before Core 4.0.0, the engine's and cohort writer's state files)
+  and implementer reports (`docs/specs/**/notes/implementer-*.md`).
 - **The report**, applying the pre-registered decision rule to the run and
   keeping the two strata separate.
 

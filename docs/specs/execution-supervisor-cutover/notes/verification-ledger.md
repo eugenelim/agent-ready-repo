@@ -443,3 +443,38 @@ Two discoveries outside T3 go to the owner:
   `run.json`. Each such run passes the pre-PR hooks.
 - **Leftover import:** `_supervisor_review.py:854` still loads
   `_review_compat.py`. T2 must repoint that call before it deletes the file.
+
+## T3: VI-7031
+
+The owner moved the AC-0007 clean-up of `workspace.toml` and
+`docs/product/briefs/` into T3 on 2026-10-29. The search covered those two
+paths for `loop-engine`, `loop-cohort`, `engine-state.json`,
+`full-mode-engine`, and a cohort `state.json`.
+
+- **`workspace.toml`:** 0 non-comment hits, and every remaining mention is a
+  comment. One more open entry was about the removed engine:
+  `contract-amendment-prepare-strands-the-run`, which concerned
+  `loop-engine transition … contract-amendment`, `pending_transition`, and
+  `approve-plan`. It is retired as superseded, with its captured item now
+  `Status: Closed` and `Resolution: superseded`. The supervisor has no
+  pending-transition marker. A protected-edit refusal followed by an amendment
+  and a second `start` keeps the run (execution-supervisor-core AC-0030).
+- **`docs/product/briefs/`:** 7 briefs had 23 hits. Every hit that remains
+  either describes past delivery or a past measurement, now marked "before
+  Core 4.0.0" or "when this brief was written", or is a removal note. Links
+  to the removed scripts became plain text. `policy-arrival-validator.md`'s
+  search command now covers `work-supervisor.py`, `_supervisor_*.py`, and
+  `_loop_guards.py`, and still finds nothing.
+
+Three design anchors were marked removed rather than re-decided. Their brief
+owners must decide each one:
+
+- **`phase-scoped-policy-delivery`:** its selection key was
+  `engine-state.json.state`. The candidate replacement is `run.json`'s `stage`.
+- **`stage-input-readiness`:** B2b was settled as a `loop-engine init` guard.
+  The candidate replacement is the supervisor's `start` admission.
+- **`spec-author-agent`:** its re-entry edges into `SPEC-PLAN-DRAFTING` have
+  no supervisor counterpart.
+
+The brief-coverage lint and workspace reconcile both exit 0, with no
+captured-item findings.

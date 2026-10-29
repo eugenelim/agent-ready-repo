@@ -24,8 +24,9 @@ table rather than repeating them.
 
 ## Success metrics
 
-- For every supported selection key — every legal `engine-state.json.state`
-  value and every reserved constant token — the same registry produces a
+- For every supported selection key — every legal phase value of the
+  selection key (see § Current delivery contract) and every reserved constant
+  token — the same registry produces a
   deterministic ordered set of policy-family identifiers.
 - A dispatched spec-author or implementer brief contains the complete teaching
   payload and family identifiers selected for that phase.
@@ -43,7 +44,7 @@ table rather than repeating them.
 **In scope**
 
 - A policy-family registry carried inside a skill directory.
-- Selection keyed first by `engine-state.json.state`.
+- Selection keyed first by the recorded phase (see § Current delivery contract).
 - Ordered module loading and inlining into the dispatched `spec-author` and
   `implementer` briefs.
 - A delivery record containing the selected family identifiers and the exact
@@ -81,9 +82,17 @@ the brief. No executable dispatcher performs that selection or insertion.
 The measured repository trace records both precedents and their consumers in
 [`phase-scoped-policy-delivery.md`](../research/phase-scoped-policy-delivery.md#1-existing-inlining-precedents).
 
-`engine-state.json.state` is the only current phase signal recorded as
-tool-written data. Its legal FSM values are declared in
-[`state-schema.md`](../../../packs/core/.apm/skills/work-loop/references/state-schema.md#fields-in-engine-statejson-phase-1).
+When this brief was written, `engine-state.json.state` was the only phase
+signal recorded as tool-written data, with its legal FSM values declared in the
+work-loop `state-schema.md`. **The execution-supervisor cutover (Core 4.0.0,
+ADR-0144) removed `engine-state.json` and the phase engine.** The nearest
+tool-written signal now is the supervisor's `stage` in
+`docs/specs/<feature>/.supervisor/run.json` (`admitted`, `implementing`,
+`gating`, `reviewing`, `awaiting-human`, `terminal`), which the work-loop
+`references/policy-families.md` already admits as a selection key. Whether the
+stage replaces the engine state as this brief's selection key is the brief
+owner's decision to re-make; every later mention of the selection key below
+refers to this note.
 `Shape:` is author-selected spec metadata; verification mode and task flavour
 are selected or inferred in prose. A measured search found no mechanical reader
 for any of them:
@@ -113,7 +122,7 @@ one dispatch it must identify:
 
 | Field | Populated by |
 | --- | --- |
-| the selection key used — an `engine-state.json.state` value or a reserved constant token | D1, at selection time |
+| the selection key used — a recorded phase value (see § Current delivery contract) or a reserved constant token | D1, at selection time |
 | the ordered, unique policy-family identifiers selected by that key | D1, at selection time |
 | each family's binary tier, `precise` or `advisory` | D1, at selection time |
 | the module identity and digest used as teaching text | D1, at selection time |
@@ -158,8 +167,9 @@ the parent's open question should be closed against that answer rather than left
 to contradict it.
 
 ## Proposed slices
-**D1's selector also covers the light path, where there is no engine state.**
-`engine-state.json.state` is the phase key whenever a loop exists. Direct-light
+**D1's selector also covers the light path, where there is no recorded phase.**
+The recorded phase (see § Current delivery contract) is the key whenever a loop
+exists. Direct-light
 creates none, so D1 admits a single reserved `DIRECT-LIGHT` selection token for
 that case. It stays deterministic — a constant, not an inference — and it keeps
 selection in one owner rather than giving the light path its own mechanism.
@@ -233,8 +243,9 @@ primitive exceeds it and returns to shaping.
 
 - Policy data stays in a blessed skill subdirectory. A top-level `policies/`
   directory is rejected because it warns under `CAT-S004`.
-- The selection key is `engine-state.json.state`, plus a closed set of reserved
-  constant tokens for paths that create no engine state — `DIRECT-LIGHT` is the
+- The selection key is the recorded phase (see § Current delivery contract),
+  plus a closed set of reserved
+  constant tokens for paths that record no phase — `DIRECT-LIGHT` is the
   only member today. A reserved token is a declared constant, never an inference
   from prose. Any *other* attribute may be added only after it becomes declared,
   tool-written data with a mechanical reader.
@@ -334,8 +345,8 @@ semantic fields, and the Spec map may be empty.
 
 - Do not build a second router for each adapter. Projection differences are
   fixtures around one source registry.
-- Do not infer phase from headings, task prose, filenames, or agent role when
-  `engine-state.json.state` exists.
+- Do not infer phase from headings, task prose, filenames, or agent role when a
+  recorded phase exists (see § Current delivery contract).
 - Do not put every policy into every brief to make coverage easy. That removes
   phase scoping and defeats progressive disclosure.
 - Do not treat a delivery record as proof of compliance. It proves what was

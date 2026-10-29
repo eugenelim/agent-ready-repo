@@ -600,14 +600,18 @@ are blind on opposite axes: review is cheap at "is this claim true" and dear at
 "is this the right decomposition."
 
 **Derive it; do not draw it** — the rule above applies to this practice first.
-In this repository the engine's transition tables are data, so the relevant
-neighbourhood is generated rather than authored: read the composed
-`_TRANSITIONS_BY_MODE` in `loop-engine.py`, select the edges whose source or
-destination is a named state, and report the mode each edge appears under.
+In this repository the loop's procedure is data, so the relevant
+neighbourhood is generated rather than authored. When this section was written,
+that meant reading the composed `_TRANSITIONS_BY_MODE` in `loop-engine.py`,
+selecting the edges whose source or destination is a named state, and
+reporting the mode each edge appears under. The execution-supervisor cutover
+(Core 4.0.0, ADR-0144) removed that engine; the supervisor's derived request
+order and stage set are now the data to read
+([execution supervisor](../../architecture/work-loop-execution-supervisor.md#request-order)).
 
-**And the derivation itself has a trap that proves the point.** An earlier
+**And the derivation itself had a trap that proves the point.** An earlier
 revision of this section shipped a regex that matched each transition table
-separately. That is wrong: `_CODE_TRANSITIONS` and `_SPEC_PLAN_TRANSITIONS` are
+separately. That was wrong: `_CODE_TRANSITIONS` and `_SPEC_PLAN_TRANSITIONS` are
 each built with `**_BOTH_TRANSITIONS`, so their shared edges are never literal
 text inside their own blocks. Per-block matching finds **1** literal edge in the
 spec-plan table when that mode actually carries eight — it would have missed
@@ -632,11 +636,14 @@ the one-hop neighbourhood of each state the spec names, plus the file that
 instructs each edge.
 
 **Then the plan walks its change DAG over the flow DAG.** The plan already has a
-change DAG and does not need a new one: task `Depends on:` edges, computed by
-`loop-cohort schedule`. It **fails** on a dependency cycle
-(`loop-cohort.py:603-607`) but only **warns and reorders** on a
-forward-reference (`loop-cohort.py:1385-1392`), so an ill-formed plan is
-caught at PLAN only in the cycle case. Note `supervisor-mode.md` lines 13-15
+change DAG and does not need a new one: task `Depends on:` edges. When this
+section was written, `loop-cohort schedule` computed them; it **failed** on a
+dependency cycle (`loop-cohort.py:603-607`) but only **warned and reordered** on
+a forward-reference (`loop-cohort.py:1385-1392`), so an ill-formed plan was
+caught at PLAN only in the cycle case. Since the execution-supervisor cutover
+(Core 4.0.0) the supervisor projects tasks from the same edges, and `next`
+refuses a plan whose unfinished tasks all wait on each other with
+`dependency-cycle`. Note `supervisor-mode.md` lines 13-15
 states both as failing; that conflict is owed to that file's owner and is not
 resolved here — an earlier draft of this paragraph restated its wording by
 hand and inherited the error, which is this section's own subject.

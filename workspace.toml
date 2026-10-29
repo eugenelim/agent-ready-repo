@@ -583,20 +583,6 @@ open = [
   # its closing "Outcome" section is stale in two respects — the rule is now
   # amended in code, and this slug is no longer carried in `[backlog].open`.
   # That record is frozen, so this note is where both claims are superseded.
-  # The sibling residual it names, `contract-amendment-prepare-strands-the-run`,
-  # is unaffected and still open: the transition defect is unfixed.
-  # `loop-engine transition <spec> contract-amendment` can strand a run. The
-  # cohort prepare writes `pending_transition` before the mutation validates,
-  # so a mutation that refuses -- for example on a missing
-  # `--completed-evidence-ref` binding -- leaves the marker behind. Re-issuing
-  # with the bindings changes the canonical args and prepare then refuses with
-  # `pending transition conflicts with this sequence`; re-issuing the original
-  # args matches identity and fails the same mutation again. The marker is
-  # cleared only by `approve-plan`, which refuses while the spec is
-  # `Implementing`, and `completed_task_evidence` has no independent writer, so
-  # every route is closed. Reproduced twice on 2026-09-29 at
-  # `loop-cohort.py:1341-1346`. Recovery today is the destructive reset pair.
-  { slug = "contract-amendment-prepare-strands-the-run", source = "spec/intent-renumber-and-reissue (blocked amendment, 2026-09-29)" },
 
   # A pack JOURNEY.md cannot link to a guide page, and the one attempt is a
   # live 404. Found 2026-09-24 by measuring the knowledge topic
@@ -655,7 +641,8 @@ open = [
   # Retired 2026-10-29 as superseded by the execution-supervisor cutover, which
   # removes loop-engine.py and loop-cohort.py in Core 4.0.0: the
   # agent-loop-otel-envelope-survey, record-attempt-lock-contention-under-load,
-  # cohort-seal-blocks-in-phase-plan-correction, and
+  # cohort-seal-blocks-in-phase-plan-correction,
+  # contract-amendment-prepare-strands-the-run, and
   # pre-existing-recover-engine-state-deep-nesting entries. Reasons are in
   # docs/specs/execution-supervisor-cutover/notes/verification-ledger.md.
   # Retired 2026-09-28: `loop-cohort-repo-root-uncached`, because the memo it
@@ -2148,8 +2135,8 @@ shipped = [
   # canonical reconciliation raises `impossible_transition`. Ships the rename
   # request contract, the tombstone shape and the allocator property; the
   # operation that composes them is `intent-rename-transaction`, which this
-  # unblocks. One residual is carried in `[backlog].open`:
-  # `contract-amendment-prepare-strands-the-run`. The other,
+  # unblocks. One residual, `contract-amendment-prepare-strands-the-run`, was
+  # retired 2026-10-29 as superseded by the execution-supervisor cutover. The other,
   # `intent-rename-h1-title-false-refusal`, was retired 2026-10-02 once the
   # exemption shipped in code; the retirement note sits above that entry's
   # former position.
