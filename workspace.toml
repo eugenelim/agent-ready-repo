@@ -2367,6 +2367,8 @@ active  = [
 # The parent brief stays `Executing`: its only materialized child is Shipped,
 # but slices 2 and 3 are not yet cut.
 shipped = [
+  # Slice 8 part A of `workspace-registry-retirement-delivery`; Approved 2026-10-29 and moved from `queue` when it became Implementing the same day; Shipped 2026-10-29 as core 3.1.35 and moved from `active`.
+  { path = "docs/specs/header-derived-dispatch/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Build a read-only work-loop dispatch command from spec headers and replay it against canonical dispatch over a frozen corpus", needs = [] },
   # Slice 7 of `workspace-registry-retirement-delivery`; Shipped 2026-10-28 as core 3.1.29, moved from `active` with the spec `Shipped` and the plan `Done`.
   { path = "docs/specs/intent-brief-registration-stop/spec.md", kind = "spec", source = { mode = "repo-origin", ref = "docs/product/briefs/workspace-registry-retirement-delivery.md", parent = "docs/product/briefs/workspace-registry-retirement-delivery.md" }, summary = "Stop registering repo-origin intents and briefs, remove their entries with the intent-brief-drop repair, and amend the contracts that required them", needs = [] },
   # Slice 6 of `workspace-registry-retirement-delivery`; Shipped 2026-10-27, moved from `active` with the spec `Shipped` and the plan `Done`

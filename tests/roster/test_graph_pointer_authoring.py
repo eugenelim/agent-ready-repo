@@ -55,6 +55,8 @@ MANIFEST: dict[str, tuple[str, str]] = {
     S + "work-intake/references/lifecycle-index.md": ("instruction", ""),
     S + "workspace-status/references/mutate.md": ("instruction", ""),
     "guides/core/reference/workspace-toml-schema.md": ("instruction", ""),
+    S + "close-work/SKILL.md": (
+        "excluded", "describes enrolment reading Brief: into the lifecycle record's parent; writes none"),
     S + "navigate-intents/SKILL.md": (
         "excluded", "describes which pointer fields the reader follows; writes none"),
     S + "workspace-status/references/agentbundle-layout.md": (
