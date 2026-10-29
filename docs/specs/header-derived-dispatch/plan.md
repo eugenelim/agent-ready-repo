@@ -230,9 +230,28 @@ def test_several_ready_specs_ask_and_never_pick(tmp_path):
 
 **Done when:** both checks pass, and every slice-8 row's authority resolves.
 
+### T8: Implementation-review repairs
+
+**Depends on:** T6
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0003, AC-0009, AC-0012, AC-0014, AC-0018, AC-0019, AC-0020, AC-0022.
+- The replay suite gains `registry-settled-defect-closed`, a `Closed` defect with an accepted `Resolution:` in `backlog.closed`, and `registry-settled-kind-mismatch`, a validly registered target whose kind differs from the dependency's. Only their new `expected.json` keys are recorded from a worktree of `95a8cc985`. Each new difference is classified, and any new removal comes back to the owner for its errata wording before T6's records gain its row. The existing `registry-settled-defect` and `registry-settled-kind-differs` cases, their keys and their `reproduced` rows stay under their names; the suite relabels them as exercising a refused membership.
+- The table's four D1/D3 authorities name the 2026-10-29 RFC-0106 § Errata entry, and the stale comment goes.
+- `dispatch.py` refuses a required name that is not callable with `engine_unavailable`; `test_dispatch.py` plants one.
+- `test_dispatch.py`: the rule-3 refusal asserts its exact code on an unblocked kept-entry spec; `lockedplan` asserts its outcome, skipped only as root; the two dead statements go.
+- `test_cooling_parent.py`: each non-spec locator holds a readable file with a resolvable `Brief:`, and `parent` stays absent.
+- Parity tests pin `dispatch.py`'s selector against `_explain_selector_targets` (trailing slash the one named difference) and the tool's base decision against the suite's.
+- The replay suite computes its differences once per module.
+- The ledger cites `df96661ed` for the live run.
+
+**Done when:** those suites pass, and the retirement and inventory checks pass with any new rows.
+
 ### T7: Closeout
 
-**Depends on:** T2, T3, T4, T5, T6
+**Depends on:** T2, T3, T4, T5, T6, T8
 
 **Mode:** goal-based
 
@@ -266,3 +285,5 @@ Older records stay valid, and rollback is a revert.
 - Plan re-approved 2026-10-29 by eugenelim with the spec.
 - Spec re-approved 2026-10-29 by eugenelim after the AC-0021 controlled amendment.
 - Plan re-approved 2026-10-29 by eugenelim after the AC-0021 controlled amendment.
+- Spec re-approved 2026-10-29 by eugenelim after the AC-0018 controlled amendment.
+- Plan re-approved 2026-10-29 by eugenelim with T8 added.
