@@ -359,6 +359,14 @@ stands in for.
 34. **Unbounded growth.** Collections, caches, log buffers, or
     queues with no eviction or backpressure.
 
+### Preservation evidence
+
+35. **Evidence for each preservation criterion.** For each preservation
+    criterion in the spec under review, the evidence is current, its expected
+    side is independent of the code under test, and its oracle fails on a named
+    mutation. Missing, stale, tautological, or feature-only evidence is a
+    finding whose affected criteria name that criterion.
+
 ## Test-author mode
 
 When asked to draft tests, follow the repo's split:
@@ -478,6 +486,49 @@ For Nit repair severity promotion, follow `work-loop` SKILL.md § DECIDE.
 If a quality issue also warrants a security lens (for example, an unbounded
 resource that may affect availability), state the security pass need as a
 quality process finding; security-reviewer owns the threat finding.
+
+## Typed report
+
+This section governs only the modes in this file that return a findings block.
+Without a request for a typed report, the findings block or the clean line is
+the whole output, unchanged.
+
+When the caller asks for a typed report, return only one fenced `json` block
+holding `terminal_status` and `findings`, instead of the findings block or the
+clean line. This overrides the findings-only return above for that request. The
+caller fills the report's `schema_version`, `report_id`, `role`, `subject`, and
+`lineage`, then passes the report to the typed review path. That return is not
+this file's review-complete gate; the typed review path's obligation decision
+governs it.
+
+Before any review work, check that the request names a spec for the findings to
+bind to. A request that names none returns `indeterminate` with no findings. A
+named spec's status never changes the outcome. Under a typed-report request the
+spec under review is the caller-named spec.
+
+`terminal_status` is one of `clean`, `findings`, `unable`, or `indeterminate`.
+`clean`, `unable`, and `indeterminate` carry no findings; `findings` carries one
+or more. Each finding carries these fields:
+
+- `schema_version`
+- `finding_id`
+- `rule_ref` — the rule or criterion broken.
+- `observation`, `reachable_path`, `actual_failure` — the predicate self-check's
+  observation, path, and consequence.
+- `affected_acceptance_criteria` — identifiers the caller-named spec contains.
+  Never invent one.
+- `evidence_refs` — the `file:line` citations.
+- `material` — `true`.
+
+A material finding is a Blocker or Concern whose defect something outside the
+finding establishes: code, a test, a lint, a schema, a resolvable reference, or
+a stated constraint disagrees with the target. Every other finding is not
+material. The typed report carries only material findings. A review against the
+caller-named spec that completes with no material finding returns `clean`. A
+caller who needs the non-material findings asks for the findings block instead.
+
+When a material finding has no identifier in the caller-named spec to name, the
+status is `indeterminate` with no findings.
 
 ## Vague feedback is unhelpful feedback
 
