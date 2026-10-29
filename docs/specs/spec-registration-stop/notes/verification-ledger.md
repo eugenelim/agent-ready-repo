@@ -78,3 +78,4 @@ Every difference falls under a case that the [`header-derived-dispatch`](../../h
 | `docs/product/briefs/agent-skill-engineering.md` (AC-0030) | the three registration phrases rewritten as shown | eugenelim (owner), 2026-10-29T15:19-05:00 |
 | `docs/product/briefs/workspace-registry-retirement-delivery.md` Non-goals (AC-0045) | "…adds, removes or rewords a finding code…" | eugenelim (owner), 2026-10-29T15:19-05:00 |
 | `docs/rfc/0106-stop-registering-derivable-work.md` § Errata, last sentence (AC-0027) | "The tracker-origin spec entries, and their writers, stay until slice 9." (re-approved: one word added for the `tracker-origin` literal) | eugenelim (owner), 2026-10-29T15:24-05:00 |
+| `docs/specs/workspace-retirement/spec.md` AC-0021 (controlled amendment of that Implementing spec) | "…is a `contract` row, unless the file no longer mentions `workspace.toml`, `workspace-status` or `workspace_status`." | eugenelim (owner), 2026-10-29T17:24-05:00 |
