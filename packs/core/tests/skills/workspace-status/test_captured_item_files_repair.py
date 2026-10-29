@@ -611,7 +611,7 @@ def test_typed_needs_refuse_the_record_and_keep_the_needs_to_header_operation(
         tmp_path,
         {path: note(), peer: spec_text("peer")},
         open_=[entry(path, needs=needs)],
-        queue=[entry(peer, "spec")],
+        active=[entry(peer, "spec")],  # outside work. and backlog.: no spec-entry-drop
     )
     data = plan(repo, capsys)
     assert captured_ops(data) == []
@@ -720,7 +720,7 @@ def mixed_repo(root: Path) -> Path:
         },
         open_=[entry(f"{NOTES}/d1.md"), entry(dep, "design"), legacy("legacy-one", summary="x")],
         closed=[entry(closed)],
-        queue=[entry("docs/specs/peer/spec.md", "spec")],
+        active=[entry("docs/specs/peer/spec.md", "spec")],  # no spec-entry-drop
     )
 
 
@@ -806,11 +806,13 @@ def test_a_plan_with_needs_and_captured_operations_applies_each_by_its_own_contr
         tmp_path,
         {waiter: spec_text("waiter"), peer: spec_text("peer"), f"{NOTES}/d1.md": note()},
         open_=[entry(f"{NOTES}/d1.md")],
-        queue=[entry(waiter, "spec", needs=needs), entry(peer, "spec")],
+        queue=[entry(waiter, "spec", needs=needs)],
+        active=[entry(peer, "spec")],  # outside work. and backlog.: no spec-entry-drop
     )
     data = plan(repo, capsys)
     kinds = sorted(op["operation_type"] for op in data["automatic_operations"])
-    assert kinds == ["captured-to-file", "needs-to-header"]
+    # The waiting spec's `needs` empties in this plan, so its entry is dropped too.
+    assert kinds == ["captured-to-file", "needs-to-header", "spec-entry-drop"]
     before = snapshot(repo)
     code, result = apply(repo, capsys)
     assert code == 0, result
@@ -821,6 +823,7 @@ def test_a_plan_with_needs_and_captured_operations_applies_each_by_its_own_contr
     assert set(after) - set(before) == {f"{CAPTURED}/d1.md"}
     workspace = after["workspace.toml"].decode()
     assert f'path = "{CAPTURED}/d1.md"' in workspace and "needs = []" in workspace
+    assert f'path = "{waiter}"' not in workspace
     assert result["edges_equal"] is True and result["captured_equal"] is True
 
 

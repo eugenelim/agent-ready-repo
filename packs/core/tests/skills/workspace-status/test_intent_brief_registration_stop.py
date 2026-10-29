@@ -521,6 +521,9 @@ _NOTES = "docs/product/notes"
 _CAPTURED = "docs/product/captured"
 _PEER = "docs/specs/peer/spec.md"
 _SHIPPED = "docs/specs/shipped-one/spec.md"
+# A need the repair refuses (a brief that does not exist) keeps `needs` non-empty,
+# so the shipped spec is no drop candidate and still gets its queue operation.
+_UNEXPRESSIBLE = '[{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]'
 
 
 def _load_ws() -> ModuleType:
@@ -597,9 +600,9 @@ milestone = "m1"
 
 ["ini-001".work]
 queue = [
-  {_row(_SHIPPED, "spec")},
+  {_row(_SHIPPED, "spec", needs=_UNEXPRESSIBLE)},
   {_row(f"{INTENTS}/mis.md", "intent")},
-  {_row(_PEER, "spec")},
+  {_row(_PEER, "spec", mode="tracker-origin")},
 ]
 active = []
 shipped = []
