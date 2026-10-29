@@ -2,7 +2,7 @@
 
 ## Live replay
 
-Run 2026-10-29 with `tools/replay-dispatch.py` at repository commit `df96661ed` (its byte-identical pre-rebase twin is `811815b3c`; the tool itself is added by the commit that records this run), over a `git worktree` of snapshot commit `95a8cc985`:
+Run 2026-10-29 with `tools/replay-dispatch.py` with `packs/core/.apm/skills/work-loop/scripts/dispatch.py` at git blob `afddc94c0a1730daa2720b05b4aa6b0c44910995` (the same blob at pre-rebase commits `811815b3c` and `df96661ed`, and at on-branch `0844338a3` when this was written; the tool itself is added by the commit that records this run), over a `git worktree` of snapshot commit `95a8cc985`:
 
 ```
 python3 tools/replay-dispatch.py --root <worktree> --base-engine <worktree>/packs/core/.apm/skills/workspace-status/scripts/workspace_status.py
@@ -60,3 +60,8 @@ The author assigns each case and class by hand, and the owner approves the list 
 | 2026-10-29 | Controlled amendment of AC-0021 and AC-0022 as committed: four rows (`unregistered-approved`, `unregistered-implementing`, `dep-spec-open`, `several-ready`) cite the 2026-10-29 RFC-0106 § Errata entry; that entry's final wording, items (1) to (14), with items (11) to (13) under D1 and item (14) under D3, approved before its commit; spec and plan re-approved | Approved by eugenelim |
 | 2026-10-29 | Implementation review: add replay cases `registry-settled-defect-closed` and `registry-settled-kind-mismatch` with only their new keys recorded; amend AC-0018 to replace `provenance_reference` with `invalid_artifact_path` for a spec whose `Brief:` names a path that is not a brief file; settle the ledger citation of `811815b3c` (the pre-rebase twin of on-branch `df96661ed`, byte-identical `dispatch.py`) as a Nit fixed by citing `df96661ed` | Approved by eugenelim |
 | 2026-10-29 | Keep `registry-settled-defect` and `registry-settled-kind-differs`, their keys and their rows under their names, relabelled in the suite as exercising a refused membership | Approved by eugenelim |
+| 2026-10-29 | The live run is cited by `dispatch.py`'s blob hash, because each rebase rewrites the commit ids; same Nit, same fix intent as the row above | Recorded under the owner's settlement above |
+
+## Mutation proof: the callable load check
+
+`test_engine_name_that_is_not_callable` with `dispatch.py` line 124 reverted to `getattr(module, attribute, None) is None`: 1 failed. With the shipped `not callable(...)` check: 77 passed (`test_dispatch.py`).

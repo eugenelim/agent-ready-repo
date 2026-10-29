@@ -961,7 +961,14 @@ def test_engine_name_that_is_not_callable(
     engine.write_text(engine.read_text(encoding="utf-8") + "\n_finding = 'not callable'\n",
                       encoding="utf-8")
     module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
-    _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
+    code = module.main(["--root", str(_repo_with_spec(tmp_path).root)])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    # The load-time refusal names the module; a run-time failure would say
+    # "engine run failed", so this pins the callable check itself.
+    assert "engine_unavailable: workspace_status_engine.py" in captured.err
+    assert "engine run failed" not in captured.err
 
 
 def test_file_safety_without_the_reader(
