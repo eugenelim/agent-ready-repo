@@ -98,3 +98,8 @@ scored by any assertion:
   map.
 - The baseline reported that its skill had no preservation step and built its
   map from rubric class 2 unprompted.
+
+T4 accounting: the graded runs need fresh, isolated agents, which an
+`implementer` subagent cannot start, so the controller ran T4. The owner
+directed recording it `human-directed`, and directed shipping on the met
+criteria with the non-discrimination stated in the pull request.
