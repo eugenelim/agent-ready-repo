@@ -245,7 +245,8 @@ Owned by: T2, T3.
 pack version it ran against; for each of AC-0022's four pass-required cases,
 the head run the Testing Strategy's replacement rule admits holds all its
 assertions; the ledger names the guidance change behind each replacement; and
-the brief's § C3 proof bullet points to the Follow-on's captured item.
+the brief's § C3 "Pass the integrated positive fixture" bullet points to the
+Follow-on's captured item.
 
 ## Changelog
 
