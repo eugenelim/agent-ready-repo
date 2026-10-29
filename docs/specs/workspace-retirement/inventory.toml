@@ -432,6 +432,12 @@ consumer = "live delivery brief for retiring workspace.toml"
 owner = 9
 
 [[row]]
+pattern = "docs/product/changelog.d/63f095d4-35ac-4274-a2f9-6b4cffa2bd9e.md"
+class = "historical"
+consumer = "released changelog entry that names the workspace_status tool"
+owner = "none"
+
+[[row]]
 pattern = "docs/product/changelog.d/30bfb581-099d-4380-ba8f-9cf70ea33468.md"
 class = "historical"
 consumer = "released changelog entry that cites the registry"
@@ -1344,6 +1350,12 @@ owner = 9
 pattern = "packages/agentbundle/tests/integration/test_install_seed_delivery.py"
 class = "fixture"
 consumer = "package test that builds or reads workspace.toml or the workspace-status engine"
+owner = 9
+
+[[row]]
+pattern = "packages/agentbundle/tests/unit/test_workspace_mcp_supervisor_run.py"
+class = "fixture"
+consumer = "package test that drives the workspace MCP server's workspace_status handler over a supervisor run"
 owner = 9
 
 [[row]]

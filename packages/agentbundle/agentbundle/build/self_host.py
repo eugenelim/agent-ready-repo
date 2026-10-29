@@ -127,6 +127,14 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
             )
             for name in ("cooling.py", "close_work.py", "file_safety.py")
         ),
+        (
+            # The workspace bridge admits a supervisor gate question through this
+            # guard and must never load it from a repository or skill path.
+            root / "packs" / "core" / ".apm" / "skills" / "work-loop"
+            / "scripts" / "_content_safety.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "_data"
+            / "_content_safety.py",
+        ),
     )
 
 

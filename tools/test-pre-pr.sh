@@ -132,6 +132,13 @@ run_corruption "loop-cohort-fail" \
   "mkdir -p docs/specs/example && python3 -c \"import json,pathlib; p=pathlib.Path('.claude/skills/work-loop/assets/state.json'); s=json.loads(p.read_text()); s['review_retry_count']=int(s['max_review_retries']); pathlib.Path('docs/specs/example/state.json').write_text(json.dumps(s))\"" \
   'pre-pr: ✖ loop-cohort check'
 
+# 5. supervisor readiness check — plant a spec holding delivery/approvals.jsonl
+#    with no run behind it, which makes `work-supervisor.py status --check`
+#    exit non-zero. Drops the test if pre-pr ever stops discovering approved runs.
+run_corruption "supervisor-check-fail" \
+  "mkdir -p docs/specs/example/delivery && printf '%s\n' '{}' > docs/specs/example/delivery/approvals.jsonl" \
+  'pre-pr: ✖ supervisor status docs/specs/example --check failed'
+
 echo
 if [[ "$failures" -gt 0 ]]; then
   echo "✖ Self-test: $failures of $ran cases failed" >&2

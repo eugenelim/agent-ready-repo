@@ -214,6 +214,8 @@ shipped   = [
 active  = [
   # Implementing since 2026-10-20 (PR #1585): T1 to T3 built; T4 and T5 next, now that the review gate shipped.
   {path = "docs/specs/execution-supervisor-attempt-security/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Refuse worker attempts that touch the control plane, harden supervisor git calls, pin the supervisor, and end Windows process trees through a Job Object", needs = []},
+  # Implementing since 2026-10-29: spec and plan approved; T1 (bridge and pre-PR hooks) in review; T2 and T3 wait on attempt-security.
+  {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = []},
 ]
 shipped = [
   # Shipped 2026-10-28: slice C0 of repository-grounding-preservation, test-only;
@@ -537,8 +539,6 @@ shipped = [
   {path = "docs/specs/code-intelligence-golden-composition-example/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0031-code-intelligence-golden-composition-example.md", revision = "working-tree-2026-10-04"}, summary = "Show one complete Wicked Estate composition without making its provider-specific shape normative", needs = []},
 ]
 queue   = [
-  # Slice 4 of acceptance-centered-work-loop delivers through four specs under ADR-0144; only the cutover moves authority.
-  {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = []},
   {path = "docs/specs/native-provider-selection-validation/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/intents/FEAT-0032-native-provider-selection-validation.md", revision = "working-tree-2026-10-04"}, summary = "Run a blind human validation that can survive, reframe, or leave inconclusive the native-provider selection bet", needs = []},
   # Draft 2026-10-05, carved out of `jsonl-otlp-exporter` when that spec closed.
   # It owns the one gesture the parent's contract never asked for and only the

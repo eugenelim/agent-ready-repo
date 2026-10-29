@@ -1,7 +1,7 @@
 # Plan: Execution supervisor cutover
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0144 governs.
   - **Procedure:** `packs/core/.apm/skills/work-loop/SKILL.md` and `references/`.
   - **Callers:**
@@ -32,7 +32,8 @@ in the next Core major, under the gate stated in the spec's Scope.
 ## Constraints
 
 - ADR-0144 D1, D3, D7, D8, D9, D10, and D11.
-- ADR-0151 D1 to D3, which replace ADR-0150 D3 and D5 when T2 ships.
+- ADR-0151 D1 to D4, which replace ADR-0150 D3 and D5 and narrow ADR-0144 D3
+  and D11 when T2 ships.
 - ADR-0064 D3, D4, and D7 stay in force; only the run-id source changes.
 - ADR-0014 D5: light mode starts no supervisor.
 - `packs/AGENTS.md`: shipped text cites no internal records, and every `.apm/`
@@ -69,11 +70,21 @@ in the next Core major, under the gate stated in the spec's Scope.
 - **Bridge:**
   - It reads core's `run.json` fields when the file exists, and falls back to
     `engine-state.json` until T2 removes that path.
-  - `gate_question` passes through `_content_safety.wrap_as_untrusted` before
-    display.
+  - `run.json` is read with `read_confined_regular_file` and a 64 KiB bound.
+  - `gate_question` is checked with `check_content_safety` under the
+    `review-report` profile, then wrapped with `wrap_as_untrusted`; a rejected
+    question shows a fixed placeholder. The status field and the gate-pending
+    notification share one helper. `_content_safety.py` joins self-host's
+    packaged-runtime copies in `agentbundle._data`, so the existing self-host
+    drift check keeps it byte-identical to the pack source. The bridge imports
+    only `agentbundle._data._content_safety`, with no repository or skill
+    candidate in any mode; it does not reuse `_load_workspace_status_engine`'s
+    candidate list.
 - **Hooks:** both hooks discover runs from committed `delivery/approvals.jsonl`,
-  not from the deletable `run.json`. They fail on any non-zero `status --check`
-  exit, which preserves today's fail-on-any-error rule.
+  not from the deletable `run.json`, through `list_confined_regular_files`. They
+  fail on any non-zero `status --check` exit, which preserves today's
+  fail-on-any-error rule, and fail rather than skip when an approved run exists
+  but the supervisor script is missing.
 - **Search terms for T2:** `loop-engine`, `loop-cohort`, `engine-state.json`,
   `_compat_facade`, `_review_compat`, `assets/state.json`,
   `full-mode-engine`, `loop-cohort-wave-decision`, and bare `review <verb>`
@@ -112,9 +123,18 @@ in the next Core major, under the gate stated in the spec's Scope.
     result leaves that request open, so the fence fix the refusal asks for is
     itself refused as `attempt-residue`, and reverting it only repeats the
     refusal. T2 makes that refusal close the attempt with nothing committed,
-    so the controller's fence edit becomes a normal replan. How the attempt is
-    closed, and what happens to the uncommitted stub files the worker wrote, is
-    `implementation-discovered`; the required property is AC-0026.
+    but only after the attempt checks pass. Because a surviving launch child
+    can still write after closure, the next trusted-file change opens a
+    `human-decision` with its diff instead of committing on the controller's
+    word. How the closure is recorded, how the human-decision is shaped, and
+    what happens to files the attempt left behind are
+    `implementation-discovered`; the required property is AC-0026. The
+    second change is in `report`: today it refuses any `human-decision` result
+    while the spec directory has uncommitted edits. Only the post-closure
+    confirmation is exempt, and only when the change set is exactly the files
+    and bytes its digest binds. The core Replan
+    corpus fixtures involve no not-red closure, so its no-approval assertion
+    stays true.
   - **Guidance T2 changes:** `tdd-stubs.md` and `SKILL.md` EXECUTE state the
     task-start revision and the timing in place of the approved-plan fence;
     `SKILL.md`'s DECIDE routing, `delivery-contract-lifecycle.md`, new-spec's
@@ -139,7 +159,10 @@ Owned by: T1, T2.
 - **Depends on:** spec:execution-supervisor-core/T6
 - **Spec behavior:** AC-0013, AC-0014, AC-0015, AC-0017, AC-0018; goal-based.
 - **Touches:**
-  - `packages/agentbundle/agentbundle/workspace_mcp.py` and its tests;
+  - `packages/agentbundle/agentbundle/workspace_mcp.py` and its tests, the
+    packaged `_content_safety.py` projection with its self-host registration in
+    `packages/agentbundle/agentbundle/build/self_host.py` and its
+    `.gitattributes` `merge=regen` entry, and the package version;
   - `packs/core/.apm/hooks/pre-pr.py`, `tools/hooks/pre-pr.py`, and
     `tools/test-pre-pr.sh`;
   - Core manifests and changelog.
@@ -147,13 +170,22 @@ Owned by: T1, T2.
 - **Tests:**
   - **VI-7001 (AC-0013, AC-0014):** a supervisor run binds the id and active
     signal. A `human-decision` shows the gate pending with its question, and the
-    gate clears after resolution.
+    gate clears after resolution. No bridge tool or handler writes under
+    `.supervisor/` or `delivery/`, or calls a supervisor verb other than
+    `status`.
   - **VI-7002 (AC-0015):** a `gate_question` holding instruction-shaped text is
-    displayed inside inert framing.
-  - **VI-7003 (AC-0017, AC-0018):** six cases for both hooks. Exit 3 fails.
+    displayed inside inert framing in both the status field and the
+    notification; a rejected or oversized question shows only the placeholder.
+    A planted repository-side `_content_safety.py` under `.claude/skills/` is
+    not loaded.
+  - **VI-7004 (AC-0013):** a symlinked, oversized, or malformed `run.json`
+    leaves the bridge with no run and no gate.
+  - **VI-7003 (AC-0017, AC-0018):** eight cases for both hooks. Exit 3 fails.
     Exit 1 fails. All runs at 0 pass. A terminal run at the cap passes. No
-    `approvals.jsonl` passes. A deleted `run.json` still runs the check.
-- **Done when:** VI-7001 through VI-7003 pass, the existing bridge and hook suites pass, and security-reviewer returns clean.
+    `approvals.jsonl` passes. A deleted `run.json` still runs the check. A
+    missing `work-supervisor.py` with an approved run fails. A symlinked spec
+    directory is not discovered.
+- **Done when:** VI-7001 through VI-7004 pass, the existing bridge and hook suites pass, and security-reviewer returns clean.
 
 ### T2: The skill drives the supervisor and the old engine is gone
 
@@ -223,12 +255,26 @@ Owned by: T1, T2.
     while an attempt is open refuses it with `attempt-residue`.
   - **VI-7024 (AC-0026):** TDD in `test_supervisor_tdd.py`. A `write-stub`
     result whose stub passes is refused with `stub-not-red` and commits
-    nothing. A controller edit that then removes or changes the fence is
-    committed by the next `next` as one `replan` step with no approval request
-    and no `attempt-residue`. Each recovery is followed through the task's next
+    nothing and closes the attempt. A controller edit that then removes or
+    changes the fence raises no `attempt-residue`, opens a `human-decision`
+    bound to its bytes, and is committed as one `replan` step only after
+    confirmation; that confirmation is reported and admitted while the edit is
+    still uncommitted. Each recovery is followed through the task's next
     admitted step: with the fence removed, the admitted `implement` commit
     holds none of the refused result's files; with the fence moved to a new
-    path, the next `write-stub` result is not refused because of them. The red test is written and proven red at
+    path or changed at the same path, the next `write-stub` result is not
+    refused because of them. A not-red launch that also writes
+    `plan.md` stays refused for residue and does not close. Deleting the
+    journal, `run.json`, and `security-events.jsonl` after closure, and again
+    after a decline, leaves the attempt closed and the next trusted-file change
+    still opens a bound confirmation. A trusted-file
+    write between showing the diff and committing it commits nothing and opens
+    a new decision. The recorded decision names its authority reference. A
+    declined confirmation commits nothing, `next` refuses until the trusted
+    files are restored, and the controller's next fence edit opens a new
+    confirmation. Another `human-decision` kind reported over uncommitted
+    plan edits is refused, and so is a confirmation reported while an extra
+    path is also changed. The red test is written and proven red at
     EXECUTE against the current supervisor, which leaves the request open.
   - **VI-7901 (AC-0011, AC-0021)**, cross-cutting.
 - **Done when:** every test above passes, `make lint-ruff lint-mypy` is clean, the Windows job passes, and security-reviewer returns clean.
@@ -263,3 +309,6 @@ Owned by: T1, T2.
 ## Changelog
 
 <!-- Approvals only. -->
+
+- 2026-10-29: spec approved by eugenelim
+- 2026-10-29: plan approved by eugenelim

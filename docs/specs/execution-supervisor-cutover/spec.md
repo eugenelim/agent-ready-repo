@@ -1,6 +1,6 @@
 # Spec: Execution supervisor cutover
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0150, ADR-0151, ADR-0064, ADR-0014
@@ -47,8 +47,11 @@ It keeps the reusable `spec-approved` and `plan-locked` knowledge-capture
 gates that Slice 3 retained, under those gate names; removing them belongs to
 Slice 8 once delivery facts are written by default, which this cutover makes
 true. It does not change light mode's steps or gates; change the supervisor's
-procedure, security checks, or review selection, except that a `stub-not-red`
-refusal closes its `write-stub` request (AC-0026); ship a compatibility adapter,
+procedure, security checks, or review selection, except for AC-0026's two
+changes: a `stub-not-red` refusal closes its `write-stub` attempt, and the
+first trusted-file change after that closure needs a named human's
+confirmation, which narrows the core Replan truth table's no-approval row for
+that one change (ADR-0151 D3); ship a compatibility adapter,
 reverse reader, or dual-write path (ADR-0144 D7); or give adopters their own
 review rules.
 
@@ -172,12 +175,21 @@ Runtime
   skill's `scripts/` directory importable.
 - [ ] **AC-0012.** The Windows CI job runs the same synthetic run to readiness.
 - [ ] **AC-0013.** The workspace bridge binds a supervisor run's id and active
-  signal from `run.json`.
+  signal from `run.json`, read through the repository's confined regular-file
+  read with a size bound. A `run.json` that is a link, not a regular file,
+  oversized, unreadable, or malformed leaves the bridge with no run and no gate.
+  The bridge only displays `run.json` fields. A human answer reaches the
+  supervisor only through the supervisor's own open `human-decision` request,
+  never on the bridge's word.
 - [ ] **AC-0014.** The bridge marks a gate pending with its question while
   `run.json` reports an open `human-decision`, and clears it once that request
   resolves.
-- [ ] **AC-0015.** The bridge shows a gate question only through Slice 1
-  content-safety inert framing.
+- [ ] **AC-0015.** The bridge admits a gate question through a Slice 1
+  content-safety check under a named profile, and shows an admitted question
+  only inside inert framing, in both the status field and the gate-pending
+  notification. A rejected or oversized question is never shown; only a fixed
+  placeholder is. The content-safety code the bridge runs ships inside the
+  `agentbundle` package and is never loaded from a repository or skill path.
 - [ ] **AC-0016.** In a repository whose ignore rules omit `.supervisor/` and
   `.loop-run/`, a full run reaches readiness and no supervisor commit touches
   either.
@@ -186,7 +198,11 @@ Hooks
 
 - [ ] **AC-0017.** `packs/core/.apm/hooks/pre-pr.py` and `tools/hooks/pre-pr.py`
   run `work-supervisor.py status --check` for each spec holding
-  `delivery/approvals.jsonl`, and fail when any such run exits non-zero.
+  `delivery/approvals.jsonl`, and fail when any such run exits non-zero. They
+  discover only spec directories and `approvals.jsonl` files that resolve inside
+  the repository and are not links. When at least one spec holds
+  `delivery/approvals.jsonl` and `work-supervisor.py` cannot be located, the
+  hooks fail.
 - [ ] **AC-0018.** The hooks' supervisor check adds no failure when every such
   run exits 0, including a terminal run that reached the retry cap, or when no
   spec holds `delivery/approvals.jsonl`.
@@ -228,9 +244,26 @@ Post-lock plan routes
   every task completed before it stays complete. The same edit made while an
   attempt is open refuses that attempt with `attempt-residue`.
 - [ ] **AC-0026.** When the supervisor refuses a `write-stub` result with
-  `stub-not-red`, nothing from that result is committed then or by any later
-  step, and the attempt is closed, so a controller edit that changes or removes the fence
-  is committed by the next `next` as a `replan` step with no approval request.
+  `stub-not-red`, and the report's attempt checks and the post-launch check find
+  no difference, the attempt closes. No other refusal closes an attempt, and an
+  attempt that is also refused for residue stays refused until its residue
+  clears. Deleting the journal, `run.json`, or `security-events.jsonl` neither
+  reopens nor forges the closure, and neither clears nor satisfies the owed
+  confirmation below, including after a decline. Nothing from that result — any file the attempt or its launch
+  created or changed — is committed then or by any later step. The next plan
+  change after the closure that touches a trusted file opens a `human-decision`
+  bound to a digest of the exact trusted-file bytes it shows. It is committed as
+  a `replan` step only once a human confirms it, with the decision recorded
+  under that human's authority reference, and only when the bytes at commit
+  time match the digest; any difference opens a new decision and commits
+  nothing. A declined confirmation is recorded and commits nothing; `next`
+  refuses until the trusted files match `HEAD` again, and the next
+  trusted-file change still needs a confirmation. Only this confirmation may be
+  reported while trusted files hold uncommitted edits, and only when those
+  edits are exactly the files and bytes its digest binds; every other
+  `human-decision`, and a confirmation with any extra changed path, keeps
+  today's refusals. The human reads the diff from the supervisor's `status` in the
+  controller session, never only from the bridge.
 
 ## Follow-ons
 
