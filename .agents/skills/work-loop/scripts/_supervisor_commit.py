@@ -429,14 +429,17 @@ class GitPort:
         operation: str,
         trailers: dict[str, str] | None = None,
         paths: Iterable[str] = (),
+        contents: dict[str, bytes | None] | None = None,
         appends: dict[str, bytes] | None = None,
         summary: str = "",
         known_steps: set[str] | None = None,
     ) -> str | None:
         """Commit one supervisor step, or return None when it is already reachable.
 
-        *paths* are working-tree paths taken into the commit; *appends* maps a
-        ``delivery/`` file name to bytes appended to its HEAD version.
+        *paths* are working-tree paths taken into the commit; *contents* maps a path
+        to the exact bytes to commit there (``None`` removes it), staged without
+        reading the working tree again; *appends* maps a ``delivery/`` file name to
+        bytes appended to its HEAD version.
         """
         steps = (
             known_steps
@@ -458,6 +461,7 @@ class GitPort:
                 )
         old = self.head()
         appended: dict[str, bytes] = {}
+        exact = contents or {}
         with self._private_index() as env:
             path_list = sorted(set(paths))
             if path_list:
@@ -470,6 +474,12 @@ class GitPort:
                     literal_pathspecs=True,
                     stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in path_list),
                 )
+            for rel, data in sorted(exact.items()):
+                if data is None:
+                    self.run("update-index", "--force-remove", "--", rel, env=env)
+                    continue
+                blob = self.text("hash-object", "-w", "--stdin", stdin=data).strip()
+                self.run("update-index", "--add", "--cacheinfo", f"100644,{blob},{rel}", env=env)
             for name, extra in sorted((appends or {}).items()):
                 rel = f"{self.delivery_rel}/{name}"
                 content = (self.show(rel) or b"") + extra
@@ -496,7 +506,7 @@ class GitPort:
             self._head = None
         kill_point("head-moved")
         self.write_delivery(appended)
-        self.refresh_index(path_list + sorted(appended))
+        self.refresh_index(path_list + sorted(exact) + sorted(appended))
         kill_point("synced")
         return new
 

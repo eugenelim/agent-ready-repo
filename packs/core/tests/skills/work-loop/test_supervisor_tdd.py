@@ -8,6 +8,9 @@ completed TDD task, and an attempt that changes a production file before red.
 from __future__ import annotations
 
 import importlib.util
+import json
+import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -218,3 +221,508 @@ def test_a_spent_red_proof_budget_runs_no_further_stub(
     assert code == 1 and refused["refusal"]["code"] == "stub-not-red"
     assert "test_calc_two.py exited None" in refused["refusal"]["detail"]
     assert launched == ["test_calc.py"], launched
+
+
+# ── not-red recovery: a stub that is not red closes its attempt ─────────────
+
+OWNER = "owner:0123456789ab"
+PASSING_STUB = "assert True\n"
+MOVED_STUB = "test_calc_moved.py"
+REVISED_STUB = "import calc\nassert calc.answer() == 42\nassert calc.answer() > 41\n"
+
+
+def _stub_plan(path: str = "test_calc.py", body: str = PASSING_STUB) -> str:
+    return _calc_plan("- **VI-1:** x\n\n" + sup.stub_fence(path=path, body=body, indent="  "))
+
+
+def _plan_path(repo: Path) -> Path:
+    return repo / SPEC / "plan.md"
+
+
+def _store(repo: Path) -> Path:
+    run_id = h.workspace(repo).approvals()[0]["run_id"]
+    return repo / ".git" / "agentbundle-supervisor" / run_id
+
+
+def _closed(tmp_path: Path, plan: str | None = None) -> tuple[Path, h.Controller, str]:
+    """A run whose write-stub result was refused as not red; returns the HEAD it left."""
+    repo, controller = _stepper(tmp_path, plan or _stub_plan())
+    _, payload = h.run_cli(repo, "next", SPEC)
+    code, refused = controller.report(controller.work(payload["request"]))
+    assert code == 1 and refused["refusal"]["code"] == "stub-not-red", refused
+    return repo, controller, h.git(repo, "rev-parse", "HEAD").strip()
+
+
+def _confirmation(repo: Path) -> dict[str, Any]:
+    _, payload = h.run_cli(repo, "next", SPEC)
+    assert "request" in payload, payload
+    request = payload["request"]
+    assert request["kind"] == "human-decision" and request["reason"] == "replan-confirmation"
+    return request
+
+
+def _answer(request: dict[str, Any], decision: str = "confirm-replan",
+            ref: str = OWNER) -> dict[str, Any]:
+    return {"schema_version": 1, "request_id": request["request_id"],
+            "run_id": request["run_id"], "kind": "human-decision",
+            "decision": {"decision": decision, "authority_ref": ref,
+                         "selection_key": request["selection_key"]}}
+
+
+def _wipe_local_state(repo: Path) -> None:
+    for name in ("journal.jsonl", "run.json", "security-events.jsonl"):
+        (repo / SPEC / ".supervisor" / name).unlink(missing_ok=True)
+
+
+def _tracked(repo: Path) -> list[str]:
+    return h.git(repo, "ls-files").split()
+
+
+def test_a_stub_that_is_not_red_closes_its_attempt_and_commits_nothing(tmp_path: Path) -> None:
+    repo, _controller, head = _closed(tmp_path)
+    assert _operations(repo) == ["approval"]
+    assert "test_calc.py" not in _tracked(repo)
+    # The refused result's file is gone, so nothing later can commit it.
+    assert not (repo / "test_calc.py").exists()
+    assert h.git(repo, "status", "--porcelain", "--", ".").split() == []
+    # The attempt is closed: a plan edit now is not residue.
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "human-decision", payload
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+
+
+def _fence_fixes() -> dict[str, tuple[str, str]]:
+    return {
+        "removed": (_calc_plan("no stub (covered elsewhere)"), "implement-task"),
+        "moved": (_stub_plan(MOVED_STUB, sup.STUB), "write-stub"),
+        "same-path": (_stub_plan("test_calc.py", sup.STUB), "write-stub"),
+    }
+
+
+@pytest.mark.parametrize("fix", ["removed", "moved", "same-path"])
+def test_a_fence_fix_waits_for_a_human_then_commits_as_one_replan(
+        tmp_path: Path, fix: str) -> None:
+    repo, controller, head = _closed(tmp_path)
+    fixed, follow_kind = _fence_fixes()[fix]
+    _plan_path(repo).write_text(fixed, "utf-8")
+    request = _confirmation(repo)
+    assert "attempt-residue" not in json.dumps(request)
+    assert request["diff"].count("\n") > 0 and "stub" in request["diff"]
+    # status returns the same request, diff included.
+    _, status = h.run_cli(repo, "status", SPEC)
+    assert status["request"] == request
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    code, admitted = controller.report(_answer(request))
+    assert code == 0, admitted
+    assert _operations(repo) == ["approval", "replan"]
+    trailers = h.git(repo, "log", "-1", "--format=%B")
+    assert f"Supervisor-Authority-Ref: {OWNER}" in trailers
+    assert _plan_path(repo).read_text("utf-8") == fixed
+    # The gate ends with the confirmation: the next trusted-file change is a plain replan.
+    _plan_path(repo).write_text(fixed + "\n- 2026-10-15: a note\n", "utf-8")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == follow_kind, payload
+    assert _operations(repo) == ["approval", "replan", "replan"]
+    # The next admitted step holds none of the refused result's files.
+    code, admitted = controller.report(controller.work(payload["request"]))
+    assert code == 0, admitted
+    step = _commits(repo)[-1]
+    if fix == "removed":
+        assert step.operation == "implement"
+        assert _product_paths(repo, step.sha) == ["calc.py"]
+        assert "test_calc.py" not in _tracked(repo)
+    else:
+        assert step.operation == "stub"
+        expected = MOVED_STUB if fix == "moved" else "test_calc.py"
+        assert _product_paths(repo, step.sha) == [expected]
+        assert ("test_calc.py" in _tracked(repo)) == (fix == "same-path")
+
+
+def test_a_not_red_launch_that_also_writes_the_plan_stays_refused(tmp_path: Path) -> None:
+    plan_file = tmp_path / "repo" / SPEC / "plan.md"
+    body = f"open({str(plan_file)!r}, 'a').write('<!-- touched -->')\n"
+    repo, controller = _stepper(tmp_path, _stub_plan(body=body))
+    original = _plan_path(repo).read_bytes()
+    _, payload = h.run_cli(repo, "next", SPEC)
+    code, refused = controller.report(controller.work(payload["request"]))
+    assert code == 1 and refused["refusal"]["code"] == "attempt-refused", refused
+    code, again = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and again["refusal"]["code"] == "attempt-residue"
+    assert not list((_store(repo) / "attempts").glob("*.reported"))
+    assert not (_store(repo) / "recovery.json").exists()
+    # Restoring the plan clears the refusal; the attempt was never closed, so the
+    # stale result is still not admitted.
+    _plan_path(repo).write_bytes(original)
+    code, refused = controller.report(controller.work(payload["request"]))
+    assert code == 1 and refused["refusal"]["code"] == "attempt-residue"
+
+
+def test_deleting_local_state_neither_forges_nor_reopens_the_closure(tmp_path: Path) -> None:
+    repo, controller, _head = _closed(tmp_path)
+    _wipe_local_state(repo)
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    request = _confirmation(repo)
+    _wipe_local_state(repo)
+    # Still owed after a decline, and the refusal survives the wipe.
+    code, declined = controller.report(_answer(request, "decline-replan"))
+    assert code == 0, declined
+    _wipe_local_state(repo)
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and payload["refusal"]["code"] == "replan-declined"
+    h.git(repo, "checkout", "--", f"{SPEC}/plan.md")
+    _wipe_local_state(repo)
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "write-stub"
+
+
+def test_deleting_local_state_does_not_close_an_open_attempt(tmp_path: Path) -> None:
+    repo, _controller = _stepper(tmp_path, _stub_plan())
+    _, payload = h.run_cli(repo, "next", SPEC)
+    assert payload["request"]["kind"] == "write-stub"
+    _wipe_local_state(repo)
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    code, refused = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and refused["refusal"]["code"] == "attempt-residue"
+
+
+def test_a_trusted_write_after_the_diff_is_shown_commits_nothing_and_opens_a_new_decision(
+        tmp_path: Path) -> None:
+    repo, controller, head = _closed(tmp_path)
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    first = _confirmation(repo)
+    sneaky = _stub_plan(body=sup.STUB) + "\n- 2026-10-14: surprise\n"
+    _plan_path(repo).write_text(sneaky, "utf-8")
+    code, refused = controller.report(_answer(first))
+    assert code == 1 and refused["refusal"]["code"] == "not-current-attempt", refused
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    second = _confirmation(repo)
+    assert second["request_id"] != first["request_id"]
+    assert second["selection_key"] != first["selection_key"]
+    assert "surprise" in second["diff"]
+    code, admitted = controller.report(_answer(second))
+    assert code == 0, admitted
+    assert h.git(repo, "show", f"HEAD:{SPEC}/plan.md") == sneaky
+
+
+def test_a_decline_commits_nothing_and_the_next_edit_needs_a_new_confirmation(
+        tmp_path: Path) -> None:
+    repo, controller, head = _closed(tmp_path)
+    fixed = _stub_plan(body=sup.STUB)
+    _plan_path(repo).write_text(fixed, "utf-8")
+    request = _confirmation(repo)
+    code, declined = controller.report(_answer(request, "decline-replan"))
+    assert code == 0, declined
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and payload["refusal"]["code"] == "replan-declined"
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    h.git(repo, "checkout", "--", f"{SPEC}/plan.md")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "write-stub"
+    code, refused = controller.report(controller.work(payload["request"]))
+    assert code == 1 and refused["refusal"]["code"] == "stub-not-red"
+    _plan_path(repo).write_text(fixed, "utf-8")
+    again = _confirmation(repo)
+    assert again["selection_key"] == request["selection_key"]
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+
+
+def test_a_confirmation_needs_an_owner_reference_and_its_own_digest(tmp_path: Path) -> None:
+    repo, controller, head = _closed(tmp_path)
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    request = _confirmation(repo)
+    for bad in (_answer(request, ref="risk-owner:0123456789ab"),
+                {**_answer(request), "decision": {**_answer(request)["decision"],
+                                                  "selection_key": "0" * 64}}):
+        code, refused = controller.report(bad)
+        assert code == 1, refused
+        assert h.git(repo, "rev-parse", "HEAD").strip() == head
+
+
+def test_a_confirmation_with_an_extra_changed_path_is_refused(tmp_path: Path) -> None:
+    repo, controller, head = _closed(tmp_path)
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    request = _confirmation(repo)
+    (repo / "stray.txt").write_text("extra\n", "utf-8")
+    code, refused = controller.report(_answer(request))
+    assert code == 1 and refused["refusal"]["code"] == "unexpected-change", refused
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    (repo / "stray.txt").unlink()
+    code, admitted = controller.report(_answer(request))
+    assert code == 0, admitted
+
+
+def test_another_decision_kind_over_uncommitted_plan_edits_is_refused(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path, plan=_stub_plan())
+    code, _ = h.run_cli(repo, "start", SPEC, "--intent", "code", "--code-trust", "untrusted",
+                        "--authority-ref", OWNER, "--review-authority-ref",
+                        "plan-reviewer:0123456789ab")
+    assert code == 0
+    _, payload = h.run_cli(repo, "next", SPEC)
+    request = payload["request"]
+    assert request["kind"] == "human-decision" and request["reason"] == "untrusted-code"
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    result = {"schema_version": 1, "request_id": request["request_id"],
+              "run_id": request["run_id"], "kind": "human-decision",
+              "decision": {"decision": "reselect-review", "authority_ref": OWNER,
+                           "selection_key": "k"}}
+    code, refused = controller.report(result)
+    assert code == 1 and refused["refusal"]["code"] == "protected-path-changed", refused
+
+
+# ── recovery hardening ──────────────────────────────────────────────────────
+
+
+def _with_hook(hook: Any) -> Any:
+    """Install a kill-point hook for one block."""
+    import contextlib
+
+    @contextlib.contextmanager
+    def scope() -> Any:
+        h.commit_module.set_kill_hook(hook)
+        try:
+            yield
+        finally:
+            h.commit_module.set_kill_hook(None)
+
+    return scope()
+
+
+def _recovery_record(repo: Path) -> dict[str, Any]:
+    return json.loads((_store(repo) / "recovery.json").read_text("utf-8"))
+
+
+def test_a_trusted_write_between_the_digest_check_and_staging_commits_nothing(
+        tmp_path: Path) -> None:
+    repo, controller, head = _closed(tmp_path)
+    fixed = _stub_plan(body=sup.STUB)
+    _plan_path(repo).write_text(fixed, "utf-8")
+    first = _confirmation(repo)
+
+    def swap(name: str) -> None:
+        if name == "replan-verified":
+            _plan_path(repo).write_text(fixed + "\n- 2026-10-14: swapped\n", "utf-8")
+
+    with _with_hook(swap):
+        code, refused = controller.report(_answer(first))
+    assert code == 1 and refused["refusal"]["code"] == "replan-changed", refused
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    second = _confirmation(repo)
+    assert second["selection_key"] != first["selection_key"] and "swapped" in second["diff"]
+
+
+def test_discard_leaves_a_path_changed_after_the_observation(tmp_path: Path) -> None:
+    repo, controller = _stepper(tmp_path, _stub_plan())
+    _, payload = h.run_cli(repo, "next", SPEC)
+    result = controller.work(payload["request"])
+
+    def unrelated(name: str) -> None:
+        if name == "recovery-discard":
+            (repo / "test_calc.py").write_text("# someone else's edit\n", "utf-8")
+            (repo / "other.txt").write_text("unrelated\n", "utf-8")
+
+    with _with_hook(unrelated):
+        code, refused = controller.report(result)
+    assert code == 1 and refused["refusal"]["code"] == "stub-not-red"
+    assert (repo / "test_calc.py").read_text("utf-8") == "# someone else's edit\n"
+    assert (repo / "other.txt").read_text("utf-8") == "unrelated\n"
+
+
+def test_discard_does_not_follow_a_parent_swapped_for_a_link(tmp_path: Path) -> None:
+    repo, controller = _stepper(tmp_path, _stub_plan("d/test_calc.py"))
+    _, payload = h.run_cli(repo, "next", SPEC)
+    result = controller.work(payload["request"])
+
+    def swap(name: str) -> None:
+        if name == "recovery-discard":
+            shutil.rmtree(repo / "d")
+            (repo / "real").mkdir()
+            (repo / "real" / "test_calc.py").write_text(PASSING_STUB, "utf-8")
+            (repo / "d").symlink_to("real")
+
+    with _with_hook(swap):
+        code, refused = controller.report(result)
+    assert code == 1 and refused["refusal"]["code"] == "stub-not-red"
+    assert (repo / "real" / "test_calc.py").read_text("utf-8") == PASSING_STUB
+
+
+def test_a_crash_after_the_replan_commits_recovers_without_a_human(tmp_path: Path) -> None:
+    repo, controller, _head = _closed(tmp_path)
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    request = _confirmation(repo)
+
+    def crash(name: str) -> None:
+        if name == "replan-committed":
+            raise h.Crash(name)
+
+    with _with_hook(crash), pytest.raises(h.Crash):
+        controller.report(_answer(request))
+    assert _operations(repo)[-1] == "replan" and _recovery_record(repo)["owed"] is True
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "write-stub", payload
+    record = _recovery_record(repo)
+    assert record["owed"] is False and record["confirming"] is None
+    assert [d["authority_ref"] for d in record["decisions"]] == [OWNER]
+
+
+def test_a_different_edit_after_a_decline_is_refused_until_restored_to_head(
+        tmp_path: Path) -> None:
+    repo, controller, head = _closed(tmp_path)
+    fixed = _stub_plan(body=sup.STUB)
+    _plan_path(repo).write_text(fixed, "utf-8")
+    first = _confirmation(repo)
+    assert controller.report(_answer(first, "decline-replan"))[0] == 0
+    issued = sorted(p.name for p in (_store(repo) / "attempts").iterdir())
+    _plan_path(repo).write_text(fixed + "\n- 2026-10-15: another take\n", "utf-8")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and payload["refusal"]["code"] == "replan-declined", payload
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    assert sorted(p.name for p in (_store(repo) / "attempts").iterdir()) == issued
+    # Restoring brings the fence that was not red back: the stub runs again and closes again.
+    h.git(repo, "checkout", "--", f"{SPEC}/plan.md")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "write-stub", payload
+    code, refused = controller.report(controller.work(payload["request"]))
+    assert code == 1 and refused["refusal"]["code"] == "stub-not-red"
+    _plan_path(repo).write_text(fixed + "\n- 2026-10-15: another take\n", "utf-8")
+    second = _confirmation(repo)
+    assert second["selection_key"] != first["selection_key"]
+    assert controller.report(_answer(second))[0] == 0
+
+
+class _FailingUnlink:
+    """``os`` with an ``unlink`` that fails, to force a discard failure."""
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(os, name)
+
+    @staticmethod
+    def unlink(*_args: Any, **_kwargs: Any) -> None:
+        raise OSError("forced")
+
+
+def test_a_file_the_discard_cannot_remove_is_reported_and_blocks_the_next_step(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, controller = _stepper(tmp_path, _stub_plan())
+    _, payload = h.run_cli(repo, "next", SPEC)
+    result = controller.work(payload["request"])
+    recovery = h.cli._supervisor("_supervisor_recovery.py")
+    with monkeypatch.context() as patch:
+        patch.setattr(recovery, "os", _FailingUnlink())
+        code, refused = controller.report(result)
+    detail = refused["refusal"]["detail"]
+    assert code == 1 and refused["refusal"]["code"] == "stub-not-red"
+    assert "test_calc.py" in detail and "could not be discarded" in detail
+    assert "Its files are discarded" not in detail
+    assert (repo / "test_calc.py").exists()
+    assert list(_recovery_record(repo)["leftovers"]) == ["test_calc.py"]
+    _, status = h.run_cli(repo, "status", SPEC)
+    assert list(status["recovery_leftovers"]) == ["test_calc.py"]
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    code, blocked = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and blocked["refusal"]["code"] == "recovery-leftovers", blocked
+    assert "test_calc.py" in blocked["refusal"]["detail"]
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    (repo / "test_calc.py").unlink()
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "write-stub", payload
+    _, status = h.run_cli(repo, "status", SPEC)
+    assert status["recovery_leftovers"] == {}
+
+
+def test_rewriting_a_leftover_does_not_unblock_the_run(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, controller = _stepper(tmp_path, _stub_plan())
+    _, payload = h.run_cli(repo, "next", SPEC)
+    result = controller.work(payload["request"])
+    with monkeypatch.context() as patch:
+        patch.setattr(h.cli._supervisor("_supervisor_recovery.py"), "os", _FailingUnlink())
+        assert controller.report(result)[0] == 1
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    (repo / "test_calc.py").write_text("# rewritten in place\n", "utf-8")
+    code, blocked = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and blocked["refusal"]["code"] == "recovery-leftovers", blocked
+    assert "HEAD" in blocked["refusal"]["detail"]
+    _, status = h.run_cli(repo, "status", SPEC)
+    assert list(status["recovery_leftovers"]) == ["test_calc.py"]
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    assert "test_calc.py" not in h.git(repo, "log", "--all", "--name-only", "--format=")
+    (repo / "test_calc.py").unlink()
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and payload["request"]["kind"] == "write-stub", payload
+    assert "test_calc.py" not in h.git(repo, "log", "--all", "--name-only", "--format=")
+
+
+def _leftover_run(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch, plan: str) -> tuple[Path, dict[str, Any]]:
+    """A run whose refused stub file could not be discarded."""
+    repo, controller = _stepper(tmp_path, plan)
+    _, payload = h.run_cli(repo, "next", SPEC)
+    result = controller.work(payload["request"])
+    with monkeypatch.context() as patch:
+        patch.setattr(h.cli._supervisor("_supervisor_recovery.py"), "os", _FailingUnlink())
+        code, refused = controller.report(result)
+    assert code == 1 and refused["refusal"]["code"] == "stub-not-red"
+    return repo, refused
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="needs named pipes")
+def test_a_leftover_turned_into_a_special_file_keeps_blocking(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, refused = _leftover_run(tmp_path, monkeypatch, _stub_plan())
+    (repo / "test_calc.py").unlink()
+    os.mkfifo(repo / "test_calc.py")
+    code, blocked = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and blocked["refusal"]["code"] == "recovery-leftovers", blocked
+
+
+def test_a_leftover_behind_a_swapped_parent_keeps_blocking(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo, refused = _leftover_run(tmp_path, monkeypatch, _stub_plan("d/test_calc.py"))
+    shutil.rmtree(repo / "d")
+    (repo / "elsewhere").mkdir()
+    (repo / "d").symlink_to("elsewhere")
+    code, blocked = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and blocked["refusal"]["code"] == "recovery-leftovers", blocked
+
+
+def test_a_leftover_name_is_shown_escaped(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    evil = tmp_path / "repo" / ("ev" + chr(7) + "il.txt")
+    body = f"open({str(evil)!r}, 'w').write('x')\n"
+    repo, refused = _leftover_run(tmp_path, monkeypatch, _stub_plan(body=body))
+    _, blocked = h.run_cli(repo, "next", SPEC)
+    assert blocked["refusal"]["code"] == "recovery-leftovers"
+    for detail in (refused["refusal"]["detail"], blocked["refusal"]["detail"]):
+        assert "ev?il.txt" in detail and chr(7) not in detail
+
+
+def test_status_surfaces_the_recorded_decisions(tmp_path: Path) -> None:
+    repo, controller, _head = _closed(tmp_path)
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB), "utf-8")
+    request = _confirmation(repo)
+    ref = "owner:feedfacefeed"
+    assert controller.report(_answer(request, "decline-replan", ref))[0] == 0
+    _, status = h.run_cli(repo, "status", SPEC)
+    assert status["recovery_decisions"] == [{
+        "request_id": request["request_id"], "decision": "decline-replan",
+        "authority_ref": ref, "selection_key": request["selection_key"],
+    }]
+
+
+def test_a_diff_too_large_to_show_is_refused_not_truncated(tmp_path: Path) -> None:
+    def filler(tag: str) -> str:
+        return "".join(f"{tag} {n:06d} " + "x" * 64 + "\n" for n in range(30000))
+
+    base = _stub_plan().replace("Build it.\n", filler("a"), 1)
+    repo, controller, head = _closed(tmp_path, base)
+    fixed = _stub_plan(body=sup.STUB).replace("Build it.\n", filler("b"), 1)
+    _plan_path(repo).write_text(fixed, "utf-8")
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and payload["refusal"]["code"] == "replan-diff-too-large", payload
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    _plan_path(repo).write_text(_stub_plan(body=sup.STUB).replace("Build it.\n", filler("a"), 1),
+                                "utf-8")
+    request = _confirmation(repo)
+    assert len(request["diff"]) <= 4 * 1024 * 1024

@@ -19,6 +19,19 @@ foreign ``delivery/`` edit, or a change set touching the spec directory or a
 cited record, then commits through the builder. A refused ``report`` writes
 nothing.
 
+After a ``write-stub`` result is refused as not red, the next change to a trusted
+file is not committed on the controller's word. ``decide`` opens a
+``human-decision`` carrying the diff and a digest of the exact bytes; ``report``
+commits the ``replan`` only when a named human confirms it, the uncommitted change
+set is exactly the files that digest binds, and their bytes still match it. This
+confirmation is the one ``human-decision`` ``report`` accepts over uncommitted
+trusted-file edits. A decline commits nothing, and ``next`` refuses until the
+trusted files match ``HEAD`` again, whatever they hold meanwhile. The restore brings
+back the fence that was not red, so ``next`` reissues ``write-stub`` and the stub runs
+again; only after that attempt closes again does a different edit open a new
+confirmation. A file the discard could not remove blocks every step until the
+controller removes it or restores it to ``HEAD``.
+
 Standard library only. Python 3.11+.
 """
 
@@ -348,6 +361,9 @@ def decide(ws: Workspace, state: State) -> Action:
         return Action("terminal")
     if state.intent == "spec-plan":
         return Action("terminal")
+    gate = _supervisor("_supervisor_recovery.py").gate(ws, state)
+    if gate is not None:
+        return gate
     cap = int(ws.policy["implementation_retry_cap"])
     if state.retry_count >= cap:
         return Action(
@@ -501,15 +517,15 @@ def _prepare(ws: Workspace) -> tuple[State, Refusal | None]:
         )
     ws.local.reconcile_events(state.run_id, state.commits)
     replan = _pending_replan(ws, state)
-    if replan:
+    recovery = _supervisor("_supervisor_recovery.py")
+    unowed = recovery.settle(ws, state, replan)
+    if replan and unowed:
         # Bound to HEAD as well as content, so returning to earlier content is a
         # new step rather than a skipped one.
-        digest = hashlib.sha256(state.head.encode() + b"\0")
-        for path in replan:
-            digest.update(path.encode() + b"\0" + (ws.git.read_working(path) or b"") + b"\0")
+        digest = recovery.replan_digest(state.head, recovery.read_contents(ws, replan))
         ws.git.build_commit(
             run_id=state.run_id,
-            step=f"replan:{digest.hexdigest()[:24]}",
+            step=f"replan:{digest[:24]}",
             operation="replan",
             paths=replan,
             summary="replan",
@@ -635,11 +651,14 @@ def accept_facts(result: dict[str, Any]) -> None:
         )
 
 
-def _refuse_protected_change(ws: Workspace, state: State) -> list[str]:
-    """Return the change set, refusing one that touches the spec directory or a cited record."""
+def _refuse_protected_change(ws: Workspace, state: State, *, exempt: bool = False) -> list[str]:
+    """Return the change set, refusing one that touches the spec directory or a cited record.
+
+    *exempt* skips that refusal for a replan confirmation, which checks its own change set.
+    """
     changed = ws.git.change_set()
     protected = [p for p in changed if p.startswith(ws.spec_rel + "/") or p in state.cited_paths]
-    if protected:
+    if protected and not exempt:
         raise Refusal(
             "protected-path-changed",
             "controller",
@@ -685,10 +704,14 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                     "controller",
                     "the result is not for the current request",
                 )
-            changed = _refuse_protected_change(ws, state)
             kind = checked["kind"]
+            recovery = _supervisor("_supervisor_recovery.py")
+            confirming = recovery.is_confirmation(current)
+            changed = _refuse_protected_change(ws, state, exempt=confirming)
             if kind in ("implement-task", "write-stub"):
                 outcome = tdd.report_task(ws, state, current, checked, changed)
+            elif confirming:
+                outcome = recovery.report_confirmation(ws, state, current, checked, changed)
             elif kind == "human-decision":
                 if changed:
                     raise Refusal(
@@ -756,6 +779,8 @@ def status(ws: Workspace) -> dict[str, Any]:
         "terminal": action.kind == "terminal",
         "retry_count": state.retry_count,
         "retry_cap": int(ws.policy["implementation_retry_cap"]),
+        "recovery_decisions": _supervisor("_supervisor_recovery.py").decisions(ws, state),
+        "recovery_leftovers": _supervisor("_supervisor_recovery.py").leftovers(ws, state),
         "readiness": _status_readiness(ws, state, readiness),
         "tasks": [
             {

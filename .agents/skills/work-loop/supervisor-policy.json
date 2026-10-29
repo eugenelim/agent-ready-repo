@@ -11,6 +11,7 @@
     "start_review_authority_ref": "plan-reviewer",
     "resolve_effect_authority_ref": "effect-authority",
     "risk_decision": "risk-owner",
-    "reselect_review": "owner"
+    "reselect_review": "owner",
+    "confirm_replan": "owner"
   }
 }
