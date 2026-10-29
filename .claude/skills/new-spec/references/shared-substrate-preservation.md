@@ -63,9 +63,15 @@ Stop when every reachable class has a preservation criterion or a named gap.
 - A class is unreachable only when the consumer map cites the search that found
   no reader.
 - Do not dismiss a reachable class because the new member seems not to affect
-  it. Give it a criterion that states the bound, or name a gap.
-- Write a named gap in the spec's `## Assumptions`. It blocks review while it
-  stands.
+  it. Give it a criterion that states the bound.
+- A consumer you can read gets a criterion even when code that feeds it is out
+  of view. Take its output on base-revision inputs as the oracle, state the
+  allowed delta, and record the unseen producer in `## Assumptions`, marked
+  as bounded by that criterion. It is not a gap and does not block review.
+- Name a gap only when no oracle can be built from the repository for a
+  reachable class, such as when the map cites a consumer whose code is out of
+  view. Write the gap in the spec's `## Assumptions`, marked as a named gap. It
+  blocks review while it stands.
 
 The rule counts behavior classes, never files or analogues.
 
@@ -83,6 +89,11 @@ preservation criterion under them. A preservation criterion adds four things:
 4. **A contradiction statement:** a sustained review finding against it
    contradicts it.
 
+When two paths build the same structure, such as a full build and an
+incremental build, the old behavior includes that they agree. Its oracle builds
+the same final state both ways with the new member present and compares the two
+results, in addition to comparing each with the base revision.
+
 Some evidence looks like preservation but is not:
 
 - A test that only proves the new member can be created says nothing about
@@ -95,7 +106,10 @@ Some evidence looks like preservation but is not:
 ## Where the consumer map lives
 
 The consumer map is task-local working material. Put it in the plan's
-`## Design (LLD)` or in review notes, never in `spec.md`. Use one row per class:
+`## Design (LLD)` or in review notes, never in `spec.md`. Open the map with
+one sentence saying it is working material and that deleting or rebuilding it
+changes no criterion. A plan kept long-term does not make its map accepted
+scope. Use one row per class:
 
 | Class | Consumer evidence | Criterion or gap |
 | --- | --- | --- |

@@ -4048,6 +4048,12 @@ consumer = "roster check that writers stop registering repo-origin intents and b
 owner = 9
 
 [[row]]
+pattern = "docs/specs/grounding-preservation-authoring-reproducibility/*"
+class = "contract"
+consumer = "implementing spec whose plan Touches the registry for its own registration"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/grounding-preservation-review/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
