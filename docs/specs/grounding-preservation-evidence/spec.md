@@ -1,6 +1,6 @@
 # Spec: Independent preservation evidence
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none

@@ -1,7 +1,7 @@
 # Plan: Independent preservation evidence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `packs/core/.apm/skills/work-loop/SKILL.md`
   § Conditional-reference routing; the conditional-reference pattern of
   `packs/core/.apm/skills/new-spec/references/shared-substrate-preservation.md`
@@ -198,3 +198,6 @@ prints `1`.
 it ran against, and the AC-0015 run holds every assertion.
 
 ## Changelog
+
+- 2026-10-29: spec approved by the owner (Platform Core)
+- 2026-10-29: plan approved by the owner (Platform Core)
