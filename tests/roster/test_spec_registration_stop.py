@@ -256,13 +256,13 @@ def test_intent_amendment_is_dated_owned_and_linked(rel: str) -> None:
     raise AssertionError(f"{rel}: no qualifying owner amendment")
 
 
-def _approval_rows(rel: str) -> list[tuple[str, str]]:
+def _approval_rows(rel: str) -> list[tuple[str, str, str]]:
     rows = []
     for line in (_REPO / rel).read_text(encoding="utf-8").splitlines():
         match = re.search(r"eugenelim \(owner\), (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}[+-]\d{2}:\d{2})", line)
         target = re.match(r"\| `([^`]+)`", line)
         if match and target:
-            rows.append((target.group(1), match.group(1)))
+            rows.append((target.group(1), match.group(1), line))
     return rows
 
 
@@ -275,6 +275,9 @@ def _first_author_date(rel: str, literal: str) -> str | None:
     dates = result.stdout.split()
     return dates[0] if dates else None
 
+
+# A re-approval row names its own changed text, checked against the commit that added it.
+_REAPPROVED = ("The tracker-origin spec entries",)
 
 _APPROVED_LITERAL = {
     "docs/rfc/0064-ini-001-ai-native-ecosystem.md": "Spec writer rows stop registering repo-origin specs",
@@ -295,10 +298,11 @@ _APPROVED_LITERAL = {
 def test_each_approval_precedes_the_commit_that_adds_its_text(ledger: str) -> None:
     from datetime import datetime
 
-    rows = [(t, ts) for t, ts in _approval_rows(ledger) if t in _APPROVED_LITERAL]
+    rows = [row for row in _approval_rows(ledger) if row[0] in _APPROVED_LITERAL]
     assert rows, f"{ledger} holds no approval rows"
-    for target, stamp in rows:
-        added = _first_author_date(target, _APPROVED_LITERAL[target])
+    for target, stamp, line in rows:
+        literal = next((lit for lit in _REAPPROVED if lit in line), _APPROVED_LITERAL[target])
+        added = _first_author_date(target, literal)
         if added is None:
             pytest.skip("history unavailable in this checkout")
         assert datetime.fromisoformat(stamp) < datetime.fromisoformat(added), (target, stamp, added)
