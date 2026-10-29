@@ -4046,3 +4046,9 @@ pattern = "tests/roster/test_intent_brief_registration_stop.py"
 class = "fixture"
 consumer = "roster check that writers stop registering repo-origin intents and briefs, and that the governance entries name the stop"
 owner = 9
+
+[[row]]
+pattern = "docs/specs/grounding-preservation-review/*"
+class = "historical"
+consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
+owner = "none"
