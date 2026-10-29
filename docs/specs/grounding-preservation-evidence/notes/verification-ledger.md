@@ -12,12 +12,17 @@
   counted as a failing oracle run.
 - After code review, the four lifecycle oracles read value nodes through the
   production `search(..., include_values=True)` path instead of the graph's
-  node table. The delete oracle also checks, through call resolution, that no
-  remaining call resolves to a definition in the removed file. No production
-  path exposes edges, so no oracle observes dangling edges. The edge part of
-  the delete term holds in this fixture only because value nodes never take
-  edges. After both changes, all ten
-  mutants still fail their own oracle, and the head source passes all ten.
+  node table.
+- Call resolution in both fixture implementations now follows call-site edges
+  to their definition. The delete oracle checks it for every remaining call: an
+  edge into the removed file shows up as a resolution there, and a dangling
+  edge raises. `test_delete_observes_left_over_edges_through_call_resolution`
+  pins this with a removal that keeps every edge. The ordinary-calls mutation
+  moved to where edges are built (`if node.kind == "def":` becomes
+  `if node.kind != "call":`), so a call can now link to a value node.
+- After these changes, `test_preservation_evidence.py` passes 62 tests.
+  All ten mutants still fail their own oracle, and the head source passes all
+  ten.
 - The bounded-work mutant as the implementation under test makes the producer
   emit `over-budget`, pinned in the AC-0008 tests. This covers the deferred
   review Nit about that outcome.

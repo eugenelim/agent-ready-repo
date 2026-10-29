@@ -109,14 +109,18 @@ def build(corpus: dict[str, str]) -> Graph:
 
 
 def resolve_call(graph: Graph, name: str) -> Resolution | None:
-    """Resolve a call name to its first definition, or None."""
-    candidates = sorted(
-        (n for n in graph.nodes.values() if n.name == name and n.kind == "def"),
+    """Follow the edges of a name's call sites to the first definition, or None.
+
+    An edge whose target node is gone raises ``KeyError``.
+    """
+    sites = {n.id for n in graph.nodes.values() if n.kind == "call" and n.name == name}
+    targets = sorted(
+        (graph.nodes[target] for source, target in graph.edges if source in sites),
         key=lambda n: (n.file, n.id),
     )
-    if not candidates:
+    if not targets:
         return None
-    return Resolution(target=candidates[0].name, file=candidates[0].file)
+    return Resolution(target=targets[0].name, file=targets[0].file)
 
 
 def search(

@@ -234,9 +234,8 @@ def check_delete(impl: ModuleType) -> bool:
     remaining = {f: t for f, t in CORPUS.items() if f != REMOVED_FILE}
     if any(file == REMOVED_FILE for file, _ in _searched_values(impl, graph)):
         return False
-    # No production path exposes edges. Values are observed through search and the
-    # removed file's definitions through call resolution; the edge clause holds here
-    # because value nodes never take edges, not because an observation shows it.
+    # Call resolution follows call edges, so a remaining edge into the removed file,
+    # or one left dangling, shows up here.
     for name in sorted(_names(remaining, "call")):
         resolved = impl.resolve_call(graph, name)
         if resolved is not None and resolved.file == REMOVED_FILE:
@@ -333,8 +332,8 @@ ORACLES: tuple[Oracle, ...] = (
         P_CALLS,
         "differential-resolver",
         check_ordinary_calls,
-        'if n.name == name and n.kind == "def"',
-        "if n.name == name",
+        'if node.kind == "def":',
+        'if node.kind != "call":',
     ),
     _o(
         P_SEARCH,
@@ -654,6 +653,16 @@ def test_lifecycle_terms_pass_on_head_and_read_names_from_text() -> None:
     assert _names(EDITED, "value") == {"shared", "delta", "extra"}
     for check in (check_create, check_update, check_delete, check_rebuild):
         assert check(HEAD), check.__name__
+
+
+def test_delete_observes_left_over_edges_through_call_resolution() -> None:
+    """AC-0006 delete: a removal that leaves its edges behind fails through call resolution."""
+    keep_edges = HEAD_SOURCE.replace(
+        "self.edges = {e for e in self.edges if e[0] not in ids and e[1] not in ids}",
+        "self.edges = set(self.edges)",
+    )
+    assert keep_edges != HEAD_SOURCE
+    assert not _run(check_delete, keep_edges)
 
 
 def test_compatibility_snippet_compiles_and_runs_against_head() -> None:
