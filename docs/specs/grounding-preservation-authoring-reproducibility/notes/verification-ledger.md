@@ -32,3 +32,61 @@ each task's dispatch receipt is recorded as `human-directed`.
   for 3.1.38 on `main` at `b1be32193`, so it is pre-existing and outside this
   diff; captured as `docs/product/captured/pre-existing-check-core-release-now-anchor.md`
   and treated as a known skip. No CI workflow or Makefile target runs it.
+
+## T3 — graded runs, 2026-10-29
+
+**Method.** Each run is one fresh `general-purpose` subagent given only
+`notes/graded-runs/run-brief-template.txt` filled with its directories and the
+case prompt. A separate `general-purpose` grader read only the output file and
+the case assertions (`grader-pos.txt`, `grader-neg.txt`). Run copies are built
+by `notes/graded-runs/mkrun.py`: `git archive <rev> .claude/skills
+.claude/agents`, keeping only skill directories with a
+`packs/core/.apm/skills/<name>/SKILL.md` and agent files under
+`packs/core/.apm/agents/` at that revision, then deleting `adapt-to-project`
+and every `evals/` directory.
+
+**Tool set (AC-0006).** Run agents were the `general-purpose` subagent type,
+which carries this session's standard tool set (Bash, Read, Edit, Write, Glob,
+Grep, web and skill tools); the brief forbade the Skill tool and any read
+outside the copy. The session exposes no Pi tool and no code-intelligence
+capability, so neither was available to any run.
+
+**Copy contents (AC-0005).** Every final-projection run copy held exactly the
+Core entries at revision `b45be95c4` (Core 3.1.39) less `adapt-to-project`:
+
+- skills (20): author-brief author-delivery-brief bug-fix close-work contract-acquisition explain-diff init-project intake-intent navigate-intents new-spec operational-safety project-knowledge receive-brief repository-exploration repository-grounding security-checklists security-checklists-reference work-intake work-loop workspace-status
+- agents (6): adversarial-reviewer.md finding-adjudicator.md implementer.md quality-engineer.md security-reviewer.md shaping-reviewer.md
+
+`mkrun.py` compared both lists with the `packs/core/.apm/` listing at that
+revision (`skills==core-less-adapt: True; agents==core: True` for all four
+copies), and `find <copy> -type d -name evals` printed nothing for each; the
+per-copy output is `notes/graded-runs/head-isolation.txt`.
+
+### Results
+
+| Run | Projection | Case | Score |
+| --- | --- | --- | ---: |
+| `pos-head1` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 |
+| `pos-head2` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 |
+| `pos-head3` | final, `b45be95c4`, Core 3.1.39 | positive | 6/6 |
+| `neg-head1` | final, `b45be95c4`, Core 3.1.39 | negative | 4/4 |
+| `pos-base` | base, `b1be32193`, Core 3.1.38 | positive | 5/6 |
+| `neg-base` | base, `b1be32193`, Core 3.1.38 | negative | 4/4 |
+| `pos-spike` | spike, Edits 1–2 on a `/tmp` copy of 3.1.38 | positive | 5/6 |
+| `pos-spike2` | spike, Edits 1–3 on a `/tmp` copy of 3.1.38 | positive | 6/6 |
+| `pos-spike3` | spike, Edits 1–3 on a `/tmp` copy of 3.1.38 | positive | 6/6 |
+
+These nine are every graded run made under this spec. Outputs and grades are
+`notes/graded-runs/<run>.md` and `<run>-grade.md`.
+
+- **Base positive** missed assertion 5 only: the map was never called
+  disposable. Its invalidation criterion held this time.
+- **Spike 1** stated disposability and bounded `invalidated_files`, but
+  checked the full and incremental builds each against its own golden; that
+  miss produced Edit 3.
+- **Every final-projection positive run** opened its consumer map with the
+  working-material sentence, wrote an `invalidated_files` criterion with the
+  absent `dependencies` producer recorded as a bounded assumption, and wrote a
+  criterion comparing full and incremental builds with each other.
+- Base and spike copies were built the same way (spike copies from the working
+  tree's `.claude/`), and `find` found no `evals` directory in any of them.

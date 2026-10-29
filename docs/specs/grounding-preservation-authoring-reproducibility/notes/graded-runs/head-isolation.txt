@@ -1,0 +1,20 @@
+rev=b45be95c4 dir=/tmp/gpar-head-pos1
+skills(20)=author-brief author-delivery-brief bug-fix close-work contract-acquisition explain-diff init-project intake-intent navigate-intents new-spec operational-safety project-knowledge receive-brief repository-exploration repository-grounding security-checklists security-checklists-reference work-intake work-loop workspace-status
+agents(6)=adversarial-reviewer.md finding-adjudicator.md implementer.md quality-engineer.md security-reviewer.md shaping-reviewer.md
+skills==core-less-adapt: True; agents==core: True
+find evals output: ''
+rev=b45be95c4 dir=/tmp/gpar-head-pos2
+skills(20)=author-brief author-delivery-brief bug-fix close-work contract-acquisition explain-diff init-project intake-intent navigate-intents new-spec operational-safety project-knowledge receive-brief repository-exploration repository-grounding security-checklists security-checklists-reference work-intake work-loop workspace-status
+agents(6)=adversarial-reviewer.md finding-adjudicator.md implementer.md quality-engineer.md security-reviewer.md shaping-reviewer.md
+skills==core-less-adapt: True; agents==core: True
+find evals output: ''
+rev=b45be95c4 dir=/tmp/gpar-head-pos3
+skills(20)=author-brief author-delivery-brief bug-fix close-work contract-acquisition explain-diff init-project intake-intent navigate-intents new-spec operational-safety project-knowledge receive-brief repository-exploration repository-grounding security-checklists security-checklists-reference work-intake work-loop workspace-status
+agents(6)=adversarial-reviewer.md finding-adjudicator.md implementer.md quality-engineer.md security-reviewer.md shaping-reviewer.md
+skills==core-less-adapt: True; agents==core: True
+find evals output: ''
+rev=b45be95c4 dir=/tmp/gpar-head-neg1
+skills(20)=author-brief author-delivery-brief bug-fix close-work contract-acquisition explain-diff init-project intake-intent navigate-intents new-spec operational-safety project-knowledge receive-brief repository-exploration repository-grounding security-checklists security-checklists-reference work-intake work-loop workspace-status
+agents(6)=adversarial-reviewer.md finding-adjudicator.md implementer.md quality-engineer.md security-reviewer.md shaping-reviewer.md
+skills==core-less-adapt: True; agents==core: True
+find evals output: ''
