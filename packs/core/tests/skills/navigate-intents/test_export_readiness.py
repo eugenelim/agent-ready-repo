@@ -1,9 +1,10 @@
 """Construction tests for the readiness bridge.
 
-``intent_readiness.py`` reads untrusted ``workspace-status`` bytes.  The first
-half drives its ``read``, ``check``, ``start`` and ``project`` with named byte
-streams and read descriptors.  The second half drives ``export --readiness -``
-through ``run_export`` and child interpreters.  The oracle for each case is the
+``intent_readiness.py`` reads untrusted bytes: the output of work-loop's argless
+``dispatch.py --root``.  The first half drives its ``read``, ``check``, ``start`` and
+``project`` with named byte streams and read descriptors.  The second half drives
+``export --readiness -`` through ``run_export`` and child interpreters, and runs the
+real ``dispatch.py`` over the replay suite's case trees.  The oracle for each case is the
 reason or value the spec names; no expected reason is read from the module.
 """
 
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import ast
 import atexit
+import collections
 import contextlib
 import copy
 import datetime
@@ -37,6 +39,8 @@ sys.dont_write_bytecode = True
 _PACK = pathlib.Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
 _ENGINE = _PACK / ".apm" / "skills" / "workspace-status" / "scripts" / "workspace_status_engine.py"
+_DISPATCH = _PACK / ".apm" / "skills" / "work-loop" / "scripts" / "dispatch.py"
+_REPLAY = _PACK / "tests" / "skills" / "work-loop" / "test_header_derived_dispatch_replay.py"
 
 
 def _load(path: pathlib.Path, module_name: str) -> Any:
@@ -66,31 +70,62 @@ PATH_TO_ID = {
 }
 OTHER = "docs/product/intents/FEAT-0001-bravo-feat.md"
 DEP_ACTION = "Complete or explicitly revise the dependency."
+_ABSENT = object()
 
 
-def finding(code: str = "unsatisfied_dependency", action: str = DEP_ACTION, **extra: Any):
-    return {"code": code, "dispatchable": False, "next_action": action, **extra}
+def finding(
+    code: str = "unsatisfied_dependency",
+    action: str = DEP_ACTION,
+    path: str | None = None,
+    **extra: Any,
+) -> dict[str, Any]:
+    """A finding with exactly the four members dispatch.py prints (plus any ``extra``)."""
+    return {"code": code, "path": path, "dispatchable": False, "next_action": action, **extra}
 
 
-def entry(path: str, dispatchable: bool = True, findings: list | None = None, **extra: Any):
-    return {"path": path, "dispatchable": dispatchable, "findings": findings or [], **extra}
+def entry(path: str, findings: list | None = None, **extra: Any) -> dict[str, Any]:
+    """An item with exactly the four members dispatch.py prints (plus any ``extra``)."""
+    base = {"path": path, "slug": "a-slug", "status": "Approved", "findings": findings or []}
+    return {**base, **extra}
 
 
-def status(ready=None, active=None, blocked=None, findings=None) -> dict[str, Any]:
-    """Return a status object holding one ready, one active and one blocked entry by default."""
+def argless_decision(active: list[dict], ready: list[dict]) -> dict[str, Any]:
+    """The decision dispatch.py derives with no selector, written from the spec's definition."""
+    act, rdy = [i["path"] for i in active], [i["path"] for i in ready]
+    if len(act) == 1:
+        action, path, cands = "resume", act[0], []
+    elif act:
+        action, path, cands = "ask", None, act
+    elif len(rdy) == 1:
+        action, path, cands = "start", rdy[0], []
+    elif rdy:
+        action, path, cands = "ask", None, rdy
+    else:
+        action, path, cands = "none", None, []
+    return {"action": action, "path": path, "candidates": cands, "findings": []}
+
+
+def decision_of(action: str, path: str | None = None, candidates=None, findings=None) -> dict:
+    return {
+        "action": action, "path": path,
+        "candidates": candidates or [], "findings": findings or [],
+    }
+
+
+def dispatch_json(
+    ready=None, active=None, blocked=None, findings=None, decision=None
+) -> dict[str, Any]:
+    """Return dispatch output holding one ready, one active and one blocked item by default."""
+    ready = [entry(READY)] if ready is None else ready
+    active = [entry(ACTIVE)] if active is None else active
+    blocked = [entry(BLOCKED, [finding()])] if blocked is None else blocked
     return {
         "schema_version": 1,
-        "mode": "status",
-        "workspace_present": True,
-        "workspace_root": ".",
-        "canonical": {
-            "performed": True,
-            "bounded": True,
-            "findings": [] if findings is None else findings,
-            "ready": [entry(READY)] if ready is None else ready,
-            "active": [entry(ACTIVE)] if active is None else active,
-            "blocked": ([entry(BLOCKED, False, [finding()])] if blocked is None else blocked),
-        },
+        "ready": ready,
+        "active": active,
+        "blocked": blocked,
+        "findings": [] if findings is None else findings,
+        "decision": argless_decision(active, ready) if decision is None else decision,
     }
 
 
@@ -100,19 +135,14 @@ def encode(obj: Any) -> bytes:
 
 BASE = {
     "schema_version": 1,
-    "mode": "status",
-    "workspace_present": True,
-    "workspace_root": ".",
-    "canonical": {
-        "performed": True,
-        "bounded": True,
-        "findings": [],
-        "ready": [],
-        "active": [],
-        "blocked": [],
-    },
+    "ready": [],
+    "active": [],
+    "blocked": [],
+    "findings": [],
+    "decision": {"action": "none", "path": None, "candidates": [], "findings": []},
 }
 BASE_BYTES = encode(BASE)
+assert dispatch_json(ready=[], active=[], blocked=[]) == BASE
 
 
 def feed(data: bytes) -> tuple[Callable[[], int], Callable[[], None]]:
@@ -155,86 +185,105 @@ def reason_or_checked(outcome: Any) -> str:
     return outcome if isinstance(outcome, str) else "checked"
 
 
-# --- AC-0006 to AC-0011: the table of named byte streams ------------------------------
+# --- AC-0001 to AC-0006: the table of named byte streams ------------------------------
 
 
 def mutated(mutate: Callable[[dict], None], obj: dict | None = None) -> bytes:
-    data = copy.deepcopy(
-        obj if obj is not None else status(blocked=[entry(BLOCKED, False, [finding()])])
-    )
+    data = copy.deepcopy(obj if obj is not None else dispatch_json())
     mutate(data)
     return encode(data)
 
 
-def canonical_set(key: str, value: Any) -> Callable[[dict], None]:
-    def apply(data: dict) -> None:
-        if value is _ABSENT:
-            del data["canonical"][key]
-        else:
-            data["canonical"][key] = value
-
-    return apply
+def _set(target: dict, key: str, value: Any) -> None:
+    if value is _ABSENT:
+        del target[key]
+    else:
+        target[key] = value
 
 
 def top_set(key: str, value: Any) -> Callable[[dict], None]:
-    def apply(data: dict) -> None:
-        if value is _ABSENT:
-            del data[key]
-        else:
-            data[key] = value
-
-    return apply
+    return lambda data: _set(data, key, value)
 
 
 def blocked_finding_set(key: str, value: Any) -> Callable[[dict], None]:
-    def apply(data: dict) -> None:
-        item = data["canonical"]["blocked"][0]["findings"][0]
-        if value is _ABSENT:
-            del item[key]
-        else:
-            item[key] = value
-
-    return apply
+    return lambda data: _set(data["blocked"][0]["findings"][0], key, value)
 
 
 def blocked_entry_set(key: str, value: Any) -> Callable[[dict], None]:
-    def apply(data: dict) -> None:
-        item = data["canonical"]["blocked"][0]
-        if value is _ABSENT:
-            del item[key]
-        else:
-            item[key] = value
+    return lambda data: _set(data["blocked"][0], key, value)
 
-    return apply
+
+def ready_entry_set(key: str, value: Any) -> Callable[[dict], None]:
+    return lambda data: _set(data["ready"][0], key, value)
+
+
+def decision_set(key: str, value: Any) -> Callable[[dict], None]:
+    return lambda data: _set(data["decision"], key, value)
 
 
 def top_finding_set(key: str, value: Any) -> Callable[[dict], None]:
     def apply(data: dict) -> None:
-        data["canonical"]["findings"] = [finding()]
-        if value is _ABSENT:
-            del data["canonical"]["findings"][0][key]
-        else:
-            data["canonical"]["findings"][0][key] = value
+        data["findings"] = [finding()]
+        _set(data["findings"][0], key, value)
 
     return apply
 
 
-_ABSENT = object()
+def decision_finding_set(key: str, value: Any) -> Callable[[dict], None]:
+    """Plant a finding in ``decision.findings`` on an argless refusal, then change it."""
+
+    def apply(data: dict) -> None:
+        data.update(dispatch_json(ready=[], active=[], blocked=[]))
+        data["decision"] = decision_of("refuse", findings=[finding("invalid_workspace", "x")])
+        _set(data["decision"]["findings"][0], key, value)
+
+    return apply
+
+
+def built(**lists: Any) -> bytes:
+    """Dispatch output over the given lists, with the decision recomputed from them."""
+    return encode(dispatch_json(**lists))
 
 
 def with_extra_member(raw: str) -> bytes:
-    """Return the base status with ``"x": <raw>`` appended as a raw JSON text member."""
+    """Return the base input with ``"x": <raw>`` appended as a raw JSON text member."""
     text = BASE_BYTES.decode("utf-8")
     return (text[:-1] + ', "x": ' + raw + "}").encode("utf-8")
 
 
+def workspace_status_output() -> bytes:
+    """The stdout of ``workspace-status status``, which is not dispatch output."""
+    return encode({
+        "schema_version": 1, "mode": "status", "workspace_present": True, "workspace_root": ".",
+        "canonical": {
+            "performed": True, "bounded": True, "findings": [],
+            "ready": [{"path": READY, "dispatchable": True, "findings": []}],
+            "active": [], "blocked": [],
+        },
+    })
+
+
 NESTED = "[" * 100_000 + "]" * 100_000
+WORKSPACE_FAILURES = ("invalid_workspace", "configuration_mismatch", "unsafe_path")
+REFUSAL = decision_of("refuse", findings=[finding("invalid_workspace", "Correct workspace.toml.")])
+
+
+def refusal_output(**changes: Any) -> bytes:
+    """The output dispatch.py prints with no selector when it cannot use workspace.toml."""
+    data = dispatch_json(ready=[], active=[], blocked=[], decision=REFUSAL)
+    data["findings"] = [finding("invalid_workspace", "Correct workspace.toml.")]
+    data.update(changes)
+    return encode(data)
+
+
+def _two_ready() -> dict[str, Any]:
+    return dispatch_json(ready=[entry(READY), entry(BLOCKED)], active=[], blocked=[])
+
 
 CHECK_CASES: list[tuple[str, bytes, str]] = [
-    # AC-0007
+    # AC-0006: the early reasons
     ("zero_bytes", b"", "empty"),
     ("only_whitespace", b" \t\r\n \n", "empty"),
-    # AC-0008
     ("invalid_utf8", b"\xff\xfe" + BASE_BYTES, "not_json"),
     ("byte_order_mark", b"\xef\xbb\xbf" + BASE_BYTES, "not_json"),
     ("array_top_level", b"[1, 2]", "not_json"),
@@ -242,14 +291,10 @@ CHECK_CASES: list[tuple[str, bytes, str]] = [
     ("number_top_level", b"1", "not_json"),
     ("null_top_level", b"null", "not_json"),
     ("truncated_object", BASE_BYTES[:-5], "not_json"),
-    (
-        "repeated_name_top",
-        BASE_BYTES[:-1] + b', "mode": "status"}',
-        "not_json",
-    ),
+    ("repeated_name_top", BASE_BYTES[:-1] + b', "ready": []}', "not_json"),
     (
         "repeated_name_nested",
-        BASE_BYTES.replace(b'"performed": true', b'"performed": true, "performed": true'),
+        BASE_BYTES.replace(b'"candidates": []', b'"candidates": [], "candidates": []'),
         "not_json",
     ),
     ("nan", with_extra_member("NaN"), "not_json"),
@@ -258,237 +303,301 @@ CHECK_CASES: list[tuple[str, bytes, str]] = [
     ("second_value", BASE_BYTES + b" " + BASE_BYTES, "not_json"),
     ("second_value_adjacent", BASE_BYTES + b"{}", "not_json"),
     ("nested_100000_deep", with_extra_member(NESTED), "not_json"),
-    # AC-0012: a repeated name wins over a wrong schema_version
     (
         "repeated_name_and_schema_version_2",
-        b'{"schema_version": 2, "schema_version": 2, "mode": "status"}',
+        b'{"schema_version": 2, "schema_version": 2, "ready": []}',
         "not_json",
     ),
-    # AC-0009
-    (
-        "workspace_absent_output",
-        b'{"mode": "status", "schema_version": 1, "workspace_present": false,'
-        b' "workspace_root": "."}',
-        "no_workspace",
-    ),
-    ("workspace_present_false_only", b'{"workspace_present": false}', "no_workspace"),
-    (
-        "workspace_present_false_error_mode",
-        b'{"schema_version": 2, "mode": "error", "workspace_present": false}',
-        "no_workspace",
-    ),
-    # AC-0010
-    ("workspace_present_absent", mutated(top_set("workspace_present", _ABSENT)), "wrong_schema"),
-    ("workspace_present_string", mutated(top_set("workspace_present", "true")), "wrong_schema"),
-    ("workspace_present_null", mutated(top_set("workspace_present", None)), "wrong_schema"),
-    ("workspace_present_one", mutated(top_set("workspace_present", 1)), "wrong_schema"),
+    # AC-0001: the top level
+    ("top_key_absent_decision", mutated(top_set("decision", _ABSENT)), "wrong_schema"),
+    ("top_key_absent_findings", mutated(top_set("findings", _ABSENT)), "wrong_schema"),
+    ("top_key_added", mutated(top_set("mode", "status")), "wrong_schema"),
+    ("top_key_added_null", mutated(top_set("workspace_present", None)), "wrong_schema"),
     ("schema_version_true", mutated(top_set("schema_version", True)), "wrong_schema"),
     ("schema_version_float", mutated(top_set("schema_version", 1.0)), "wrong_schema"),
     ("schema_version_string", mutated(top_set("schema_version", "1")), "wrong_schema"),
     ("schema_version_2", mutated(top_set("schema_version", 2)), "wrong_schema"),
     ("schema_version_absent", mutated(top_set("schema_version", _ABSENT)), "wrong_schema"),
-    ("mode_reconcile", mutated(top_set("mode", "reconcile")), "wrong_schema"),
-    ("mode_explain", mutated(top_set("mode", "explain")), "wrong_schema"),
-    ("mode_error", mutated(top_set("mode", "error")), "wrong_schema"),
-    ("mode_absent", mutated(top_set("mode", _ABSENT)), "wrong_schema"),
-    ("workspace_root_other", mutated(top_set("workspace_root", "/repo")), "wrong_schema"),
-    ("workspace_root_absent", mutated(top_set("workspace_root", _ABSENT)), "wrong_schema"),
-    ("canonical_absent", mutated(top_set("canonical", _ABSENT)), "wrong_schema"),
-    ("canonical_list", mutated(top_set("canonical", [])), "wrong_schema"),
-    ("performed_false", mutated(canonical_set("performed", False)), "wrong_schema"),
-    ("performed_absent", mutated(canonical_set("performed", _ABSENT)), "wrong_schema"),
-    ("performed_one", mutated(canonical_set("performed", 1)), "wrong_schema"),
     *[
-        (f"{key}_{label}", mutated(canonical_set(key, value)), "wrong_schema")
+        (f"{key}_{label}", mutated(top_set(key, value)), "wrong_schema")
         for key in ("ready", "active", "blocked", "findings")
-        for label, value in (("absent", _ABSENT), ("object", {}), ("null", None))
+        for label, value in (("absent", _ABSENT), ("object", {}), ("null", None), ("str", "x"))
     ],
-    ("entry_not_object", mutated(canonical_set("ready", ["x"])), "wrong_schema"),
-    ("entry_path_absent", mutated(blocked_entry_set("path", _ABSENT)), "wrong_schema"),
-    ("entry_path_number", mutated(blocked_entry_set("path", 7)), "wrong_schema"),
+    # AC-0001: items
+    ("item_not_object", built(blocked=["x"]), "wrong_schema"),
+    ("item_key_absent_slug", mutated(blocked_entry_set("slug", _ABSENT)), "wrong_schema"),
+    ("item_key_absent_status", mutated(blocked_entry_set("status", _ABSENT)), "wrong_schema"),
+    ("item_key_absent_findings", mutated(blocked_entry_set("findings", _ABSENT)), "wrong_schema"),
+    ("item_key_added", mutated(blocked_entry_set("dispatchable", False)), "wrong_schema"),
+    ("item_path_absent", mutated(blocked_entry_set("path", _ABSENT)), "wrong_schema"),
+    ("item_path_number", mutated(blocked_entry_set("path", 7)), "wrong_schema"),
+    ("item_path_null", mutated(blocked_entry_set("path", None)), "wrong_schema"),
+    ("item_slug_number", mutated(blocked_entry_set("slug", 7)), "wrong_schema"),
+    ("item_slug_null", mutated(blocked_entry_set("slug", None)), "wrong_schema"),
+    ("item_status_number", mutated(blocked_entry_set("status", 7)), "wrong_schema"),
+    ("item_status_bool", mutated(blocked_entry_set("status", False)), "wrong_schema"),
+    ("item_status_list", mutated(blocked_entry_set("status", [])), "wrong_schema"),
+    ("item_findings_object", mutated(blocked_entry_set("findings", {})), "wrong_schema"),
+    ("item_findings_null", mutated(blocked_entry_set("findings", None)), "wrong_schema"),
+    ("ready_item_with_a_finding", built(ready=[entry(READY, [finding()])]), "wrong_schema"),
+    ("active_item_with_a_finding", built(active=[entry(ACTIVE, [finding()])]), "wrong_schema"),
+    ("ready_item_status_number", mutated(ready_entry_set("status", 1)), "wrong_schema"),
+    ("path_in_ready_and_active", built(active=[entry(READY)]), "wrong_schema"),
+    ("path_in_ready_and_blocked", built(blocked=[entry(READY, [finding()])]), "wrong_schema"),
+    ("path_in_active_and_blocked", built(blocked=[entry(ACTIVE, [finding()])]), "wrong_schema"),
     (
-        "entry_dispatchable_absent",
-        mutated(blocked_entry_set("dispatchable", _ABSENT)),
+        "path_twice_in_ready",
+        built(ready=[entry(READY), entry(READY)], active=[], blocked=[]),
         "wrong_schema",
     ),
     (
-        "entry_dispatchable_string",
-        mutated(blocked_entry_set("dispatchable", "false")),
+        "path_twice_in_active",
+        built(ready=[], active=[entry(ACTIVE), entry(ACTIVE)], blocked=[]),
         "wrong_schema",
     ),
-    ("entry_dispatchable_zero", mutated(blocked_entry_set("dispatchable", 0)), "wrong_schema"),
-    ("entry_findings_absent", mutated(blocked_entry_set("findings", _ABSENT)), "wrong_schema"),
-    ("entry_findings_object", mutated(blocked_entry_set("findings", {})), "wrong_schema"),
-    ("finding_not_object", mutated(blocked_entry_set("findings", ["x"])), "wrong_schema"),
-    ("top_finding_not_object", mutated(canonical_set("findings", [3])), "wrong_schema"),
-    ("finding_code_absent", mutated(blocked_finding_set("code", _ABSENT)), "wrong_schema"),
-    ("finding_code_number", mutated(blocked_finding_set("code", 3)), "wrong_schema"),
-    ("finding_code_empty", mutated(blocked_finding_set("code", "")), "wrong_schema"),
-    ("finding_code_uppercase_start", mutated(blocked_finding_set("code", "Bad")), "wrong_schema"),
-    ("finding_code_digit_start", mutated(blocked_finding_set("code", "1bad")), "wrong_schema"),
-    (
-        "finding_code_65_chars",
-        mutated(blocked_finding_set("code", "a" * 65)),
-        "wrong_schema",
-    ),
-    (
-        "finding_code_plus_space",
-        mutated(blocked_finding_set("code", "missing_plan ")),
-        "wrong_schema",
-    ),
-    (
-        "finding_code_plus_dash",
-        mutated(blocked_finding_set("code", "missing_plan-")),
-        "wrong_schema",
-    ),
-    (
-        "finding_code_plus_uppercase",
-        mutated(blocked_finding_set("code", "missing_planX")),
-        "wrong_schema",
-    ),
-    (
-        "finding_code_plus_non_ascii",
-        mutated(blocked_finding_set("code", "missing_plan\u00e9")),
-        "wrong_schema",
-    ),
-    (
-        "finding_code_plus_line_feed",
-        mutated(blocked_finding_set("code", "missing_plan\n")),
-        "wrong_schema",
-    ),
-    (
-        "top_finding_code_plus_line_feed",
-        mutated(top_finding_set("code", "missing_plan\n")),
-        "wrong_schema",
-    ),
-    (
-        "finding_dispatchable_absent",
-        mutated(blocked_finding_set("dispatchable", _ABSENT)),
-        "wrong_schema",
-    ),
-    (
-        "finding_dispatchable_string",
-        mutated(blocked_finding_set("dispatchable", "no")),
-        "wrong_schema",
-    ),
-    (
-        "top_finding_dispatchable_null",
-        mutated(top_finding_set("dispatchable", None)),
-        "wrong_schema",
-    ),
-    ("next_action_absent", mutated(blocked_finding_set("next_action", _ABSENT)), "wrong_schema"),
-    ("next_action_number", mutated(blocked_finding_set("next_action", 1)), "wrong_schema"),
-    ("next_action_501", mutated(blocked_finding_set("next_action", "x" * 501)), "wrong_schema"),
-    (
-        "next_action_lone_high_surrogate",
-        mutated(blocked_finding_set("next_action", "a\ud800b")),
-        "wrong_schema",
-    ),
-    (
-        "next_action_lone_low_surrogate",
-        mutated(blocked_finding_set("next_action", "\udfff")),
-        "wrong_schema",
-    ),
-    (
-        "top_next_action_absent",
-        mutated(top_finding_set("next_action", _ABSENT)),
-        "wrong_schema",
-    ),
-    (
-        "ready_item_not_ready_has_finding",
-        mutated(canonical_set("ready", [entry(READY, True, [finding()])])),
-        "wrong_schema",
-    ),
-    (
-        "ready_item_not_dispatchable",
-        mutated(canonical_set("ready", [entry(READY, False)])),
-        "wrong_schema",
-    ),
-    (
-        "active_item_has_finding",
-        mutated(canonical_set("active", [entry(ACTIVE, True, [finding()])])),
-        "wrong_schema",
-    ),
-    (
-        "blocked_item_without_finding",
-        mutated(canonical_set("blocked", [entry(BLOCKED, False)])),
-        "wrong_schema",
-    ),
-    (
-        "blocked_item_dispatchable",
-        mutated(canonical_set("blocked", [entry(BLOCKED, True, [finding()])])),
-        "wrong_schema",
-    ),
-    (
-        "path_in_ready_and_active",
-        mutated(canonical_set("active", [entry(READY)])),
-        "wrong_schema",
-    ),
-    (
-        "path_in_ready_and_blocked",
-        mutated(canonical_set("blocked", [entry(READY, False, [finding()])])),
-        "wrong_schema",
-    ),
-    (
-        "path_in_active_and_blocked",
-        mutated(canonical_set("blocked", [entry(ACTIVE, False, [finding()])])),
-        "wrong_schema",
-    ),
-    # AC-0011: the three workspace failure codes, as workspace-status prints them
+    # AC-0002: findings, in each of the three places
     *[
-        (
-            f"workspace_failure_{code}",
-            mutated(
-                canonical_set(
-                    "blocked",
-                    [
-                        entry(
-                            "workspace.toml",
-                            False,
-                            [finding(code, "Fix it.", path="workspace.toml")],
-                        )
-                    ],
-                )
-            ),
-            "bad_workspace",
+        (f"{place}_{label}", mutated(mutate(key, value)), "wrong_schema")
+        for place, mutate in (
+            ("blocked_finding", blocked_finding_set),
+            ("top_finding", top_finding_set),
+            ("decision_finding", decision_finding_set),
         )
-        for code in ("invalid_workspace", "configuration_mismatch", "unsafe_path")
+        for label, key, value in (
+            ("key_absent_code", "code", _ABSENT),
+            ("key_absent_path", "path", _ABSENT),
+            ("key_absent_dispatchable", "dispatchable", _ABSENT),
+            ("key_absent_next_action", "next_action", _ABSENT),
+            ("key_added", "detail", "marker"),
+            ("code_number", "code", 3),
+            ("code_empty", "code", ""),
+            ("code_uppercase_start", "code", "Bad"),
+            ("code_digit_start", "code", "1bad"),
+            ("code_65_chars", "code", "a" * 65),
+            ("code_plus_space", "code", "missing_plan "),
+            ("code_plus_dash", "code", "missing_plan-"),
+            ("code_plus_uppercase", "code", "missing_planX"),
+            ("code_plus_non_ascii", "code", "missing_plané"),
+            ("code_plus_line_feed", "code", "missing_plan\n"),
+            ("path_number", "path", 3),
+            ("path_list", "path", []),
+            ("dispatchable_string", "dispatchable", "no"),
+            ("dispatchable_null", "dispatchable", None),
+            ("dispatchable_zero", "dispatchable", 0),
+            ("next_action_number", "next_action", 1),
+            ("next_action_null", "next_action", None),
+            ("next_action_501", "next_action", "x" * 501),
+            ("next_action_high_surrogate", "next_action", "a\ud800b"),
+            ("next_action_low_surrogate", "next_action", "\udfff"),
+        )
     ],
+    ("blocked_finding_not_object", mutated(blocked_entry_set("findings", ["x"])), "wrong_schema"),
+    ("top_finding_not_object", mutated(top_set("findings", [3])), "wrong_schema"),
     (
-        "workspace_failure_top_level_only",
-        mutated(canonical_set("findings", [finding("unsafe_path", "Replace it.")])),
+        "decision_finding_not_object",
+        mutated(top_set("decision", decision_of("none", findings=[3]))),
+        "wrong_schema",
+    ),
+    # AC-0003: the decision
+    ("decision_absent", mutated(top_set("decision", _ABSENT)), "wrong_schema"),
+    ("decision_list", mutated(top_set("decision", [])), "wrong_schema"),
+    ("decision_null", mutated(top_set("decision", None)), "wrong_schema"),
+    ("decision_key_absent_action", mutated(decision_set("action", _ABSENT)), "wrong_schema"),
+    ("decision_key_absent_path", mutated(decision_set("path", _ABSENT)), "wrong_schema"),
+    ("decision_key_absent_candidates", mutated(decision_set("candidates", _ABSENT)), "wrong_schema"),
+    ("decision_key_absent_findings", mutated(decision_set("findings", _ABSENT)), "wrong_schema"),
+    ("decision_key_added", mutated(decision_set("reason", "x")), "wrong_schema"),
+    *[
+        (f"decision_action_{name}", mutated(decision_set("action", value)), "wrong_schema")
+        for name, value in (
+            ("other", "invalid_selector"), ("capital", "Start"), ("empty", ""),
+            ("number", 1), ("null", None), ("list", ["none"]),
+        )
+    ],
+    ("decision_path_number", mutated(decision_set("path", 3)), "wrong_schema"),
+    ("decision_path_list", mutated(decision_set("path", [])), "wrong_schema"),
+    ("decision_candidates_null", mutated(decision_set("candidates", None)), "wrong_schema"),
+    ("decision_candidates_object", mutated(decision_set("candidates", {})), "wrong_schema"),
+    ("decision_candidates_numbers", mutated(decision_set("candidates", [1])), "wrong_schema"),
+    ("decision_candidates_null_member", mutated(decision_set("candidates", [None])), "wrong_schema"),
+    ("decision_findings_object", mutated(decision_set("findings", {})), "wrong_schema"),
+    ("workspace_status_status_output", workspace_status_output(), "wrong_schema"),
+    # AC-0004: the decision must be the argless decision or the argless refusal
+    (
+        "start_names_a_blocked_item",
+        built(ready=[], active=[], blocked=[entry(BLOCKED, [finding()])],
+              decision=decision_of("start", BLOCKED)),
+        "wrong_schema",
+    ),
+    (
+        "start_names_a_path_in_no_list",
+        built(decision=decision_of("start", "docs/specs/nowhere/spec.md")),
+        "wrong_schema",
+    ),
+    (
+        "start_over_one_ready_and_one_active",
+        built(decision=decision_of("start", READY)),
+        "wrong_schema",
+    ),
+    (
+        "resume_names_a_ready_item",
+        built(ready=[entry(READY)], active=[], blocked=[], decision=decision_of("resume", READY)),
+        "wrong_schema",
+    ),
+    (
+        "ask_omits_a_ready_path",
+        built(ready=[entry(READY), entry(BLOCKED)], active=[], blocked=[],
+              decision=decision_of("ask", None, [READY])),
+        "wrong_schema",
+    ),
+    (
+        "ask_in_the_wrong_order",
+        built(ready=[entry(READY), entry(BLOCKED)], active=[], blocked=[],
+              decision=decision_of("ask", None, [BLOCKED, READY])),
+        "wrong_schema",
+    ),
+    (
+        "ask_over_ready_while_one_is_active",
+        built(decision=decision_of("ask", None, [READY])),
+        "wrong_schema",
+    ),
+    (
+        "none_with_a_ready_item",
+        built(ready=[entry(READY)], active=[], blocked=[], decision=decision_of("none")),
+        "wrong_schema",
+    ),
+    (
+        "none_carrying_a_finding",
+        built(ready=[], active=[], blocked=[],
+              decision=decision_of("none", findings=[finding("missing_artifact", "x")])),
+        "wrong_schema",
+    ),
+    (
+        "start_carrying_a_finding",
+        built(ready=[entry(READY)], active=[], blocked=[],
+              decision=decision_of("start", READY, findings=[finding("missing_artifact", "x")])),
+        "wrong_schema",
+    ),
+    (
+        "start_with_a_candidate",
+        built(ready=[entry(READY)], active=[], blocked=[],
+              decision=decision_of("start", READY, [READY])),
+        "wrong_schema",
+    ),
+    (
+        "named_start_over_two_ready",
+        encode({**_two_ready(), "decision": decision_of("start", READY)}),
+        "wrong_schema",
+    ),
+    (
+        "named_start_no_such_usable_workspace",
+        built(ready=[entry(READY)], active=[], blocked=[],
+              decision=decision_of("refuse", findings=[finding("missing_artifact", "Create it.")])),
+        "wrong_schema",
+    ),
+    (
+        "named_start_no_such_no_workspace_toml",
+        built(ready=[], active=[], blocked=[],
+              decision=decision_of("refuse", findings=[finding("missing_artifact", "Create it.")])),
+        "wrong_schema",
+    ),
+    ("refusal_with_a_ready_item", refusal_output(ready=[entry(READY)]), "wrong_schema"),
+    ("refusal_with_a_blocked_item", refusal_output(blocked=[entry(BLOCKED, [finding()])]), "wrong_schema"),
+    (
+        "refusal_with_a_path",
+        refusal_output(decision=decision_of("refuse", READY, findings=REFUSAL["findings"])),
+        "wrong_schema",
+    ),
+    (
+        "refusal_with_a_candidate",
+        refusal_output(decision=decision_of("refuse", None, [READY], REFUSAL["findings"])),
+        "wrong_schema",
+    ),
+    (
+        "refusal_with_no_finding",
+        refusal_output(decision=decision_of("refuse")),
+        "wrong_schema",
+    ),
+    (
+        "refusal_with_two_findings",
+        refusal_output(decision=decision_of("refuse", findings=[
+            finding("invalid_workspace", "a"), finding("invalid_workspace", "b")])),
+        "wrong_schema",
+    ),
+    (
+        "refusal_with_another_code",
+        refusal_output(decision=decision_of("refuse", findings=[finding("missing_plan", "a")])),
+        "wrong_schema",
+    ),
+    # AC-0005: the three workspace failure codes
+    ("argless_refusal", refusal_output(), "bad_workspace"),
+    (
+        "argless_refusal_with_empty_top_findings",
+        refusal_output(findings=[]),
         "bad_workspace",
     ),
-    # a lone failure code beats nothing else: wrong schema is checked first (AC-0012)
+    *[
+        (
+            f"workspace_failure_{code}_in_a_blocked_item",
+            built(blocked=[entry("workspace.toml", [finding(code, "Fix it.", "workspace.toml")])]),
+            "bad_workspace",
+        )
+        for code in WORKSPACE_FAILURES
+    ],
+    *[
+        (
+            f"workspace_failure_{code}_top_level_only",
+            built(findings=[finding(code, "Replace it.")]),
+            "bad_workspace",
+        )
+        for code in WORKSPACE_FAILURES
+    ],
+    (
+        "workspace_failure_in_a_refusal_beside_a_top_level_one",
+        refusal_output(findings=[finding("unsafe_path", "Replace it.")]),
+        "bad_workspace",
+    ),
+    # AC-0006: wrong schema is checked before bad workspace
     (
         "wrong_schema_beats_bad_workspace",
-        mutated(
-            lambda d: (
-                d.update(schema_version=2),
-                d["canonical"].update(findings=[finding("unsafe_path", "Replace it.")]),
-            )
-        ),
+        mutated(lambda d: (d.update(schema_version=2),
+                           d.update(findings=[finding("unsafe_path", "Replace it.")]))),
+        "wrong_schema",
+    ),
+    (
+        "wrong_schema_decision_beats_bad_workspace",
+        built(findings=[finding("unsafe_path", "x")], decision=decision_of("none")),
         "wrong_schema",
     ),
     # accepted inputs
-    ("base_status", BASE_BYTES, "checked"),
-    ("populated_status", encode(status()), "checked"),
+    ("base_input", BASE_BYTES, "checked"),
+    ("populated_input", encode(dispatch_json()), "checked"),
     ("leading_and_trailing_whitespace", b" \r\n" + BASE_BYTES + b"\n\t ", "checked"),
-    (
-        "extra_members_ignored",
-        encode({**BASE, "scan": {"x": 1}, "locator": {"kind": "path"}}),
-        "checked",
-    ),
+    ("blocked_item_with_a_null_status", built(blocked=[entry(BLOCKED, [finding()], status=None)]), "checked"),
+    ("ready_item_with_a_null_status", built(ready=[entry(READY, status=None)]), "checked"),
     ("next_action_500", mutated(blocked_finding_set("next_action", "x" * 500)), "checked"),
     ("finding_code_64_chars", mutated(blocked_finding_set("code", "a" * 64)), "checked"),
+    ("finding_path_null", mutated(blocked_finding_set("path", None)), "checked"),
+    ("finding_path_string", mutated(blocked_finding_set("path", "anything")), "checked"),
+    ("two_ready_ask", encode(_two_ready()), "checked"),
+    (
+        "two_active_ask",
+        built(ready=[entry(READY)], active=[entry(ACTIVE), entry(BLOCKED)], blocked=[]),
+        "checked",
+    ),
+    (
+        "one_ready_only_start",
+        built(ready=[entry(READY)], active=[], blocked=[]),
+        "checked",
+    ),
     (
         "lawful_repeat_in_blocked",
-        mutated(
-            canonical_set(
-                "blocked",
-                [entry(BLOCKED, False, [finding()]), entry(BLOCKED, False, [finding()])],
-            )
-        ),
+        built(blocked=[entry(BLOCKED, [finding()]), entry(BLOCKED, [finding()])]),
+        "checked",
+    ),
+    (
+        "blocked_waiter_beside_a_ready_dependency",
+        built(ready=[entry(READY)], active=[], blocked=[entry(BLOCKED, [finding(path=READY)])]),
         "checked",
     ),
 ]
@@ -510,13 +619,18 @@ def test_every_case_gives_the_same_reason_through_a_pipe(data: bytes, expected: 
     assert reason_or_checked(through_pipe(data)) == expected
 
 
+def test_case_names_are_unique() -> None:
+    names = [name for name, _, _ in CHECK_CASES]
+    assert len(names) == len(set(names))
+
+
 def test_surrogate_pair_next_action_is_not_a_lone_surrogate() -> None:
     data = mutated(blocked_finding_set("next_action", "\U0001f600"))
-    assert isinstance(rd.check(data), tuple)
+    assert not isinstance(rd.check(data), str)
 
 
 def test_check_never_raises_on_hostile_json_shapes() -> None:
-    for raw in (b"{}", b"[]", b'{"canonical": 1}', b'{"workspace_present": true}', b"0"):
+    for raw in (b"{}", b"[]", b'{"decision": 1}', b'{"ready": true}', b"0"):
         assert isinstance(rd.check(raw), str)
 
 
@@ -701,7 +815,7 @@ def test_terminal_is_empty_and_nothing_is_read(monkeypatch) -> None:
     assert slave not in reads
 
 
-# --- AC-0021 and AC-0049: the argless work-loop mark ----------------------------------
+# --- AC-0009: the argless work-loop mark ----------------------------------------------
 
 
 def checked_of(obj: dict) -> Any:
@@ -710,131 +824,82 @@ def checked_of(obj: dict) -> Any:
     return checked
 
 
-def test_start_is_decided_before_an_unloaded_first_ready_is_dropped() -> None:
-    obj = status(
-        ready=[entry("docs/specs/absent-spec/spec.md"), entry(READY)], active=[], blocked=[]
-    )
-    checked = checked_of(obj)
-    projection = rd.project(checked, PATH_TO_ID)
+def mark(**lists: Any) -> dict[str, Any]:
+    return rd.start(checked_of(dispatch_json(**lists)), PATH_TO_ID)
+
+
+def test_one_ready_item_outside_the_export_starts_nothing_marked() -> None:
+    obj = dispatch_json(ready=[entry("docs/specs/absent-spec/spec.md")], active=[], blocked=[])
+    projection = rd.project(checked_of(obj), PATH_TO_ID)
     assert projection["start"] == {"rule": "start", "id": None, "held": False, "active_count": 0}
-    assert projection["ready"] == ["spec:bravo-spec"]
+    assert projection["ready"] == []
 
 
-def test_one_active_entry_resumes() -> None:
-    checked = checked_of(status(ready=[entry(READY)], active=[entry(ACTIVE)], blocked=[]))
-    assert rd.start(checked, PATH_TO_ID) == {
-        "rule": "resume",
-        "id": "spec:charlie-spec",
-        "held": False,
-        "active_count": 1,
+def test_the_four_marks() -> None:
+    assert mark(ready=[entry(READY)], active=[entry(ACTIVE)], blocked=[]) == {
+        "rule": "resume", "id": "spec:charlie-spec", "held": False, "active_count": 1,
+    }
+    assert mark(ready=[entry(READY)], active=[], blocked=[]) == {
+        "rule": "start", "id": "spec:bravo-spec", "held": False, "active_count": 0,
+    }
+    assert mark(ready=[entry(READY), entry(BLOCKED)], active=[], blocked=[]) == {
+        "rule": "ask", "id": None, "held": False, "active_count": 0,
+    }
+    assert mark(ready=[], active=[], blocked=[]) == {
+        "rule": "none", "id": None, "held": False, "active_count": 0,
     }
 
 
-def test_one_active_entry_outside_the_export_resumes_nothing_marked() -> None:
-    checked = checked_of(status(ready=[entry(READY)], active=[entry("elsewhere.md")], blocked=[]))
-    assert rd.start(checked, PATH_TO_ID) == {
-        "rule": "resume",
-        "id": None,
-        "held": False,
-        "active_count": 1,
+def test_one_active_item_outside_the_export_resumes_nothing_marked() -> None:
+    assert mark(ready=[entry(READY)], active=[entry("elsewhere.md")], blocked=[]) == {
+        "rule": "resume", "id": None, "held": False, "active_count": 1,
     }
 
 
-def test_two_active_entries_ask_even_when_one_path_is_unloaded() -> None:
-    checked = checked_of(
-        status(ready=[entry(READY)], active=[entry(ACTIVE), entry("elsewhere.md")], blocked=[])
-    )
+def test_two_active_items_ask_even_when_one_path_is_unloaded() -> None:
+    obj = dispatch_json(ready=[entry(READY)], active=[entry(ACTIVE), entry("elsewhere.md")], blocked=[])
+    checked = checked_of(obj)
     assert rd.start(checked, PATH_TO_ID) == {
-        "rule": "ask",
-        "id": None,
-        "held": False,
-        "active_count": 2,
+        "rule": "ask", "id": None, "held": False, "active_count": 2,
     }
     assert rd.project(checked, PATH_TO_ID)["active"] == ["spec:charlie-spec"]
 
 
-def test_first_ready_entry_starts() -> None:
-    checked = checked_of(status(ready=[entry(READY), entry(BLOCKED)], active=[], blocked=[]))
-    assert rd.start(checked, PATH_TO_ID) == {
-        "rule": "start",
-        "id": "spec:bravo-spec",
-        "held": False,
-        "active_count": 0,
-    }
-
-
-def test_nothing_ready_or_active_is_none() -> None:
-    checked = checked_of(status(ready=[], active=[]))
-    assert rd.start(checked, PATH_TO_ID) == {
-        "rule": "none",
-        "id": None,
-        "held": False,
-        "active_count": 0,
-    }
-
-
-def test_a_top_level_finding_about_the_ready_path_holds_the_mark() -> None:
-    obj = status(
-        ready=[entry(READY)],
-        active=[],
-        blocked=[],
-        findings=[finding("unsatisfied_dependency", DEP_ACTION, path=READY)],
+def test_the_dep_spec_open_shape_starts_the_ready_dependency() -> None:
+    """A ready bravo-spec and a blocked waiter whose finding names bravo-spec still start."""
+    got = mark(
+        ready=[entry(READY)], active=[],
+        blocked=[entry(BLOCKED, [finding(path=READY)])],
     )
-    projection = rd.project(checked_of(obj), PATH_TO_ID)
-    assert projection["start"] == {"rule": "start", "id": None, "held": True, "active_count": 0}
-    assert projection["ready"] == ["spec:bravo-spec"]
+    assert got == {"rule": "start", "id": "spec:bravo-spec", "held": False, "active_count": 0}
 
 
-def test_a_finding_in_another_entrys_findings_holds_the_mark() -> None:
-    obj = status(
-        ready=[entry(READY)],
-        active=[],
-        blocked=[entry(BLOCKED, False, [finding(path=READY)])],
-    )
-    assert rd.start(checked_of(obj), PATH_TO_ID) == {
-        "rule": "start",
-        "id": None,
-        "held": True,
-        "active_count": 0,
-    }
+def test_a_top_level_finding_about_the_resumed_path_does_not_hold_the_mark() -> None:
+    got = mark(ready=[], active=[entry(ACTIVE)], blocked=[], findings=[finding(path=ACTIVE)])
+    assert (got["rule"], got["id"], got["held"]) == ("resume", "spec:charlie-spec", False)
 
 
-def test_a_finding_about_the_active_path_holds_a_resume() -> None:
-    obj = status(
-        ready=[],
-        active=[entry(ACTIVE)],
-        blocked=[entry(BLOCKED, False, [finding(path=ACTIVE)])],
-    )
-    start = rd.start(checked_of(obj), PATH_TO_ID)
-    assert (start["rule"], start["id"], start["held"]) == ("resume", None, True)
+def test_ask_over_two_ready_items_marks_nothing() -> None:
+    got = mark(ready=[entry(READY), entry(BLOCKED)], active=[], blocked=[])
+    assert (got["rule"], got["id"], got["held"], got["active_count"]) == ("ask", None, False, 0)
 
 
-def test_a_finding_about_another_path_does_not_hold_the_mark() -> None:
-    obj = status(ready=[entry(READY)], active=[], blocked=[], findings=[finding(path=ACTIVE)])
-    start = rd.start(checked_of(obj), PATH_TO_ID)
-    assert (start["rule"], start["id"], start["held"]) == ("start", "spec:bravo-spec", False)
+def test_start_reads_the_checked_decision() -> None:
+    checked = checked_of(dispatch_json(ready=[entry(READY)], active=[], blocked=[]))
+    assert checked.decision == decision_of("start", READY)
+    forged = checked._replace(decision=decision_of("start", ACTIVE))
+    assert rd.start(forged, PATH_TO_ID)["id"] == "spec:charlie-spec"
 
 
-def test_ask_and_none_are_never_held() -> None:
-    obj = status(
-        ready=[],
-        active=[entry(ACTIVE), entry(READY)],
-        blocked=[],
-        findings=[finding(path=ACTIVE)],
-    )
-    start = rd.start(checked_of(obj), PATH_TO_ID)
-    assert (start["rule"], start["id"], start["held"]) == ("ask", None, False)
-
-
-# --- AC-0014, AC-0017, AC-0018: the projection ----------------------------------------
+# --- the projection ---------------------------------------------------------------------
 
 
 def test_projection_has_exactly_the_allowlisted_members() -> None:
-    obj = status(
-        ready=[entry(READY, slug="s", locator={"value": "/home/u/marker"})],
-        active=[entry(ACTIVE, refresh={"available": False})],
-        blocked=[entry(BLOCKED, False, [finding(path="marker-path", detail="marker")])],
-        findings=[finding(path="marker")],
+    obj = dispatch_json(
+        ready=[entry(READY, slug="marker-slug-r", status="marker-status-r")],
+        active=[entry(ACTIVE, slug="marker-slug-a", status=None)],
+        blocked=[entry(BLOCKED, [finding(path="marker-path")], slug="marker-slug-b")],
+        findings=[finding(path="marker-top")],
     )
     projection = rd.project(checked_of(obj), PATH_TO_ID)
     assert set(projection) == {"checked", "active", "ready", "blocked", "start"}
@@ -849,49 +914,44 @@ def test_projection_has_exactly_the_allowlisted_members() -> None:
             ],
         }
     ]
-    assert set(projection["start"]) == {"rule", "id", "held", "active_count"}
+    assert list(projection["start"]) == ["rule", "id", "held", "active_count"]
     assert "marker" not in json.dumps(projection)
 
 
+DROPPED = [
+    "/etc/passwd",
+    "C:\\x\\spec.md",
+    "../x/spec.md",
+    "docs/specs/../../x/spec.md",
+    "docs/specs//bravo-spec/spec.md",
+    "no-such-slug",
+    "docs/specs/absent-spec/spec.md",
+    "docs/specs/bravo-spec/spec.md/",
+    "docs/specs/Bravo-Spec/spec.md",
+    "workspace.toml",
+]
+
+
 def test_only_exact_loaded_paths_are_kept() -> None:
-    dropped = [
-        "/etc/passwd",
-        "C:\\x\\spec.md",
-        "../x/spec.md",
-        "docs/specs/../../x/spec.md",
-        "docs/specs//bravo-spec/spec.md",
-        "no-such-slug",
-        "docs/specs/absent-spec/spec.md",
-        "docs/specs/bravo-spec/spec.md/",
-        "docs/specs/Bravo-Spec/spec.md",
-        "workspace.toml",
-    ]
-    as_ready = status(ready=[entry(p) for p in dropped], active=[], blocked=[])
-    as_active = status(ready=[], active=[entry(p) for p in dropped], blocked=[])
-    as_blocked = status(
-        ready=[], active=[], blocked=[entry(p, False, [finding()]) for p in dropped]
-    )
+    as_ready = dispatch_json(ready=[entry(p) for p in DROPPED], active=[], blocked=[])
+    as_active = dispatch_json(ready=[], active=[entry(p) for p in DROPPED], blocked=[])
+    as_blocked = dispatch_json(ready=[], active=[], blocked=[entry(p, [finding()]) for p in DROPPED])
     assert rd.project(checked_of(as_ready), PATH_TO_ID)["ready"] == []
     assert rd.project(checked_of(as_active), PATH_TO_ID)["active"] == []
     assert rd.project(checked_of(as_blocked), PATH_TO_ID)["blocked"] == []
 
 
 def test_lists_keep_input_order() -> None:
-    obj = status(ready=[entry(BLOCKED), entry(READY)], active=[], blocked=[])
+    obj = dispatch_json(ready=[entry(BLOCKED), entry(READY)], active=[], blocked=[])
     assert rd.project(checked_of(obj), PATH_TO_ID)["ready"] == ["spec:golf-new", "spec:bravo-spec"]
 
 
 def test_a_repeated_blocked_path_appears_once_with_codes_in_input_order() -> None:
     blocked = [
+        entry(BLOCKED, [finding("missing_plan", "Create and approve the plan before dispatch.")]),
+        entry(OTHER, [finding()]),
         entry(
             BLOCKED,
-            False,
-            [finding("missing_plan", "Create and approve the plan before dispatch.")],
-        ),
-        entry(OTHER, False, [finding()]),
-        entry(
-            BLOCKED,
-            False,
             [
                 finding("unsatisfied_dependency"),
                 finding("missing_plan", "Create and approve the plan before dispatch."),
@@ -899,11 +959,12 @@ def test_a_repeated_blocked_path_appears_once_with_codes_in_input_order() -> Non
         ),
         entry(
             BLOCKED,
-            False,
             [finding("dependency_cycle", "Break the cycle through an explicit plan change.")],
         ),
     ]
-    projection = rd.project(checked_of(status(ready=[], active=[], blocked=blocked)), PATH_TO_ID)
+    projection = rd.project(
+        checked_of(dispatch_json(ready=[], active=[], blocked=blocked)), PATH_TO_ID
+    )
     assert [b["id"] for b in projection["blocked"]] == ["spec:golf-new", "intent:bravo-feat"]
     codes = [f["code"] for f in projection["blocked"][0]["findings"]]
     assert codes == ["missing_plan", "unsatisfied_dependency", "dependency_cycle"]
@@ -912,18 +973,16 @@ def test_a_repeated_blocked_path_appears_once_with_codes_in_input_order() -> Non
 def test_known_is_true_only_for_a_pair_in_the_finding_table() -> None:
     table = rd._KNOWN_FINDINGS
     assert table
-    # The two workspace-failure codes refuse the whole input, so they never project.
-    pairs = [
-        (code, action)
-        for code, action in table.items()
-        if code not in {"invalid_workspace", "configuration_mismatch"}
-    ]
+    # The workspace-failure codes refuse the whole input, so they never project.
+    pairs = [(c, a) for c, a in table.items() if c not in WORKSPACE_FAILURES]
     blocked = [
-        entry(BLOCKED, False, [finding(code, action) for code, action in pairs]),
-        entry(READY, False, [finding(pairs[0][0], "another sentence")]),
-        entry(ACTIVE, False, [finding("brand_new_code", pairs[0][1])]),
+        entry(BLOCKED, [finding(code, action) for code, action in pairs]),
+        entry(READY, [finding(pairs[0][0], "another sentence")]),
+        entry(ACTIVE, [finding("brand_new_code", pairs[0][1])]),
     ]
-    projection = rd.project(checked_of(status(ready=[], active=[], blocked=blocked)), PATH_TO_ID)
+    projection = rd.project(
+        checked_of(dispatch_json(ready=[], active=[], blocked=blocked)), PATH_TO_ID
+    )
     by_id = {b["id"]: b["findings"] for b in projection["blocked"]}
     assert all(f["known"] is True for f in by_id["spec:golf-new"])
     assert [f["code"] for f in by_id["spec:golf-new"]] == [c for c, _ in pairs]
@@ -934,8 +993,8 @@ def test_known_is_true_only_for_a_pair_in_the_finding_table() -> None:
 
 def test_member_wraps_a_refusal_and_a_projection_failure() -> None:
     assert rd.member(b"", PATH_TO_ID) == {"checked": False, "reason": "empty"}
-    assert rd.member(encode(status()), PATH_TO_ID)["checked"] is True
-    assert rd.member(encode(status()), None) == {  # type: ignore[arg-type]
+    assert rd.member(encode(dispatch_json()), PATH_TO_ID)["checked"] is True
+    assert rd.member(encode(dispatch_json()), None) == {  # type: ignore[arg-type]
         "checked": False,
         "reason": "wrong_schema",
     }
@@ -950,15 +1009,15 @@ def test_reason_set_matches_the_spec() -> None:
         "too_large",
         "empty",
         "not_json",
-        "no_workspace",
         "wrong_schema",
         "bad_workspace",
         "page_too_big",
     )
+    assert "no_workspace" not in rd.REASONS
     assert max(map(len, rd.REASONS)) <= len("not_requested")
 
 
-# --- AC-0018: the finding vocabulary copy ---------------------------------------------
+# --- the finding vocabulary copy --------------------------------------------------------
 
 
 def test_readiness_vocabulary_matches_workspace_status() -> None:
@@ -1203,9 +1262,9 @@ def fail_export(tmp_path: pathlib.Path, case: FailingCase, monkeypatch: Any) -> 
 
 
 def hostile_checked_status() -> bytes:
-    """A checked status whose not-known next actions are multi-byte text."""
+    """A checked input whose not-known next actions are multi-byte text."""
     action = "\u2192 \u00e9\u00e8 " * 40
-    return encode(status(blocked=[entry(BLOCKED, False, [finding("custom_code", action)])]))
+    return encode(dispatch_json(blocked=[entry(BLOCKED, [finding("custom_code", action)])]))
 
 
 # --- AC-0001 and AC-0002: the flag value, in a child with a never-written stdin ----------
@@ -1341,7 +1400,7 @@ def test_without_the_flag_readiness_is_not_requested(tmp_path) -> None:
 
 
 def test_checked_readiness_gives_a_null_reason_and_the_projected_member(tmp_path) -> None:
-    ran = export(tmp_path, encode(status()))
+    ran = export(tmp_path, encode(dispatch_json()))
     assert ran.payload is not None
     assert list(ran.payload) == _PAYLOAD_KEYS
     assert ran.result["readiness"] == {"checked": True, "reason": None}
@@ -1398,11 +1457,10 @@ def test_a_page_that_fails_to_render_with_readiness_still_exports(tmp_path, pinn
 def test_many_distinct_codes_on_one_record_project_in_one_pass() -> None:
     path = "docs/specs/bravo-spec/spec.md"
     count = 50_000
-    findings = [{"code": f"c{i}", "dispatchable": False, "next_action": "x"} for i in range(count)]
-    status = copy.deepcopy(BASE)
-    status["canonical"]["blocked"] = [{"path": path, "dispatchable": False, "findings": findings}]
+    findings = [finding(f"c{i}", "x") for i in range(count)]
+    obj = dispatch_json(ready=[], active=[], blocked=[entry(path, findings)])
     started = time.monotonic()
-    got = rd.member(encode(status), {path: "spec:bravo-spec"})
+    got = rd.member(encode(obj), {path: "spec:bravo-spec"})
     # One pass takes well under a second; a scan of the codes already kept per finding
     # would take minutes at this size.
     assert time.monotonic() - started < 10
@@ -1516,26 +1574,12 @@ def visible_text(html: str) -> str:
     return "\n".join(parser.text)
 
 
-DROPPED = [
-    "/etc/passwd",
-    "C:\\x\\spec.md",
-    "../x/spec.md",
-    "docs/specs/../../x/spec.md",
-    "docs/specs//bravo-spec/spec.md",
-    "no-such-slug",
-    "docs/specs/absent-spec/spec.md",
-    "docs/specs/bravo-spec/spec.md/",
-    "docs/specs/Bravo-Spec/spec.md",
-    "workspace.toml",
-]
-
-
 def test_entries_naming_nothing_loaded_are_dropped_from_data_and_text(tmp_path) -> None:
-    obj = status(
+    obj = dispatch_json(
         ready=[entry(p) for p in DROPPED] + [entry(READY)],
         active=[],
-        blocked=[entry(f"{p}#b", False, [finding()]) for p in DROPPED]
-        + [entry(BLOCKED, False, [finding()])],
+        blocked=[entry(f"{p}#b", [finding()]) for p in DROPPED]
+        + [entry(BLOCKED, [finding()])],
     )
     ran = export(tmp_path, encode(obj))
     assert ran.payload is not None and ran.html is not None
@@ -1543,19 +1587,19 @@ def test_entries_naming_nothing_loaded_are_dropped_from_data_and_text(tmp_path) 
     assert member["checked"] is True
     assert member["ready"] == ["spec:bravo-spec"]
     assert [b["id"] for b in member["blocked"]] == ["spec:golf-new"]
-    # the first ready entry, /etc/passwd, is dropped, so the mark names nothing
-    assert member["start"] == {"rule": "start", "id": None, "held": False, "active_count": 0}
+    # several items are ready, so work-loop asks and nothing is marked
+    assert member["start"] == {"rule": "ask", "id": None, "held": False, "active_count": 0}
     block = json.dumps(member)
     text = visible_text(ran.html)
     for path in DROPPED:
         assert path not in block, path
         assert path not in text, path
-    # the static text does not depend on the status input at all
+    # the static text does not depend on the readiness input at all
     assert visible_text(export(tmp_path).html or "") == text
 
 
 def test_a_loaded_path_outside_the_from_scope_is_dropped(tmp_path) -> None:
-    ran = export(tmp_path, encode(status(active=[], blocked=[])), from_id="intent:india-none")
+    ran = export(tmp_path, encode(dispatch_json(active=[], blocked=[])), from_id="intent:india-none")
     assert ran.payload is not None and ran.html is not None
     member = ran.payload["readiness"]
     assert member["checked"] is True
@@ -1564,30 +1608,41 @@ def test_a_loaded_path_outside_the_from_scope_is_dropped(tmp_path) -> None:
     assert "docs/specs/bravo-spec/spec.md" not in json.dumps(member)
 
 
-def test_extra_members_never_reach_the_html(tmp_path) -> None:
-    def extras(level: str) -> dict[str, Any]:
-        out: dict[str, Any] = {
-            name: f"marker-{level}-{name}"
-            for name in ("slug", "summary", "refresh", "ini_slug", "collection", "initiatives")
-        }
-        out["locator"] = {"kind": "path", "value": f"/home/user/marker-{level}-locator"}
-        return out
-
-    obj = status(
-        ready=[entry(READY, **extras("ready"))],
-        active=[entry(ACTIVE, **extras("active"))],
-        blocked=[
-            entry(BLOCKED, False, [finding(path="marker-finding-path", **extras("finding"))],
-                  **extras("blocked"))
-        ],
-        findings=[finding("top_code", "top", path="marker-top-finding-path", **extras("top"))],
+def test_marker_strings_never_reach_the_html(tmp_path) -> None:
+    """AC-0008: slug, status, finding paths, and the code and next action the page drops."""
+    blocked = [
+        entry(BLOCKED, [finding(path="marker-blocked-finding-path")],
+              slug="marker-blocked-slug", status="marker-blocked-status"),
+        entry("docs/specs/absent-spec/spec.md",
+              [finding("marker_unloaded_code", "marker-unloaded-next-action",
+                       path="marker-unloaded-finding-path")],
+              slug="marker-unloaded-slug", status="marker-unloaded-status"),
+    ]
+    obj = dispatch_json(
+        ready=[entry(READY, slug="marker-ready-slug", status="marker-ready-status")],
+        active=[entry(ACTIVE, slug="marker-active-slug", status="marker-active-status")],
+        blocked=blocked,
+        findings=[finding("marker_top_code", "marker-top-next-action", path="marker-top-path")],
     )
-    obj.update(extras("top"))
-    obj["canonical"].update(extras("canonical"))
     ran = export(tmp_path, encode(obj))
     assert ran.html is not None and ran.payload is not None
     assert ran.payload["readiness"]["checked"] is True
-    assert "marker-" not in ran.html
+    assert "marker-" not in ran.html and "marker_" not in ran.html
+
+
+def test_a_repeated_blocked_path_reaches_the_payload_once(tmp_path) -> None:
+    obj = dispatch_json(
+        ready=[], active=[],
+        blocked=[
+            entry(BLOCKED, [finding("missing_plan", "p"), finding("a_code", "q")]),
+            entry(BLOCKED, [finding("a_code", "q"), finding("b_code", "r")]),
+        ],
+    )
+    ran = export(tmp_path, encode(obj))
+    assert ran.payload is not None
+    blocked = ran.payload["readiness"]["blocked"]
+    assert [b["id"] for b in blocked] == ["spec:golf-new"]
+    assert [f["code"] for f in blocked[0]["findings"]] == ["missing_plan", "a_code", "b_code"]
 
 
 HOSTILE_ACTIONS = [
@@ -1602,7 +1657,7 @@ HOSTILE_ACTIONS = [
 
 def test_hostile_next_actions_stay_inside_the_data_block(tmp_path) -> None:
     findings = [finding(f"hostile_{i}", action) for i, action in enumerate(HOSTILE_ACTIONS)]
-    data = encode(status(blocked=[entry(BLOCKED, False, findings)]))
+    data = encode(dispatch_json(blocked=[entry(BLOCKED, findings)]))
     ran = export(tmp_path, data)
     assert ran.html is not None and ran.payload is not None
     outside = outside_data_block(ran.html)
@@ -1629,7 +1684,7 @@ _HOSTILE_TOML = _HOSTILE_WORKSPACE.read_text(encoding="utf-8")
 def test_workspace_toml_states_give_one_payload(tmp_path) -> None:
     root = tmp_path / "root"
     shutil.copytree(_MIXED, root)
-    data = encode(status())
+    data = encode(dispatch_json())
     toml = root / "workspace.toml"
     payloads = {}
     payloads["absent"] = export(tmp_path, data, root=root).payload
@@ -1651,37 +1706,6 @@ def test_workspace_toml_states_give_one_payload(tmp_path) -> None:
         got = copy.deepcopy(payload)
         got["provenance"].pop("generated_at")
         assert got == base, state
-
-
-# --- AC-0038: hostile workspace.toml through the real workspace-status -----------------------
-
-_STATUS_SCRIPT = _PACK / ".apm" / "skills" / "workspace-status" / "scripts" / "workspace_status.py"
-
-
-def test_real_workspace_status_over_a_hostile_workspace_toml_exports_safely(tmp_path) -> None:
-    root = tmp_path / "root"
-    shutil.copytree(_MIXED, root)
-    shutil.copy(_HOSTILE_WORKSPACE, root / "workspace.toml")
-    ws = _load(_STATUS_SCRIPT, "core_workspace_status_readiness_t")
-    captured = io.StringIO()
-    with contextlib.redirect_stdout(captured):
-        code = ws.main(["status", "--root", str(root)])
-    output = captured.getvalue()
-    assert code == 0
-    # The fixture must keep exercising the drop: every hostile string is in the real output
-    # (JSON writes the control characters as escapes, so match their escaped form).
-    for needle in HOSTILE_NEEDLES:
-        assert needle in output or json.dumps(needle)[1:-1] in output, needle
-    ran = export(tmp_path, output.encode("utf-8"), root=root)
-    assert ran.result["status"] == "ok"
-    assert ran.result["readiness"] == {"checked": True, "reason": None}
-    assert ran.payload is not None and ran.html is not None
-    assert len(ran.payload["readiness"]["blocked"]) >= 1
-    # The whole file, data block included: no hostile string reaches the page at all.
-    assert ran.html is not None
-    for needle in HOSTILE_NEEDLES:
-        assert needle not in ran.html, needle
-        assert json.dumps(needle)[1:-1] not in ran.html, needle
 
 
 # --- AC-0020: no extra process and no extra file --------------------------------------------
@@ -1722,7 +1746,7 @@ def _audited(tmp_path: pathlib.Path, label: str, flag: str) -> set[tuple[str, st
     dest.mkdir()
     done = subprocess.run(
         [sys.executable, "-I", "-c", _AUDIT_CHILD, str(_SCRIPT), str(_MIXED), str(dest), flag,
-         encode(status()).decode("utf-8")],
+         encode(dispatch_json()).decode("utf-8")],
         capture_output=True, text=True, timeout=60,
     )
     assert done.returncode == 0, done.stderr
@@ -1747,27 +1771,163 @@ def test_the_flag_starts_no_process_and_opens_no_file_the_plain_export_does_not(
     assert piped == plain
 
 
-_SKILL_MD = _PACK / ".apm" / "skills" / "navigate-intents" / "SKILL.md"
+# --- AC-0034: the help text --------------------------------------------------------------
 
 
-def _skill_section(title: str) -> str:
-    """The text of one ``## <title>`` section of the skill's instructions."""
-    text = _SKILL_MD.read_text(encoding="utf-8")
-    match = re.search(rf"^## {re.escape(title)}\n(.*?)(?=^## |\Z)", text, re.S | re.M)
-    assert match is not None, f"section {title!r} is missing"
-    return " ".join(match.group(1).split())
+def test_export_help_gives_the_dispatch_command_for_readiness(monkeypatch, capsys) -> None:
+    monkeypatch.setenv("COLUMNS", "400")
+    assert nav.main(["export", "--help"]) == 0
+    text = " ".join(capsys.readouterr().out.split())
+    assert "Pass - to read the output of work-loop's dispatch.py --root from standard input." in text
+    assert "workspace-status" not in text
 
 
-def test_skill_export_section_gives_the_pipe_command_with_the_status_subcommand() -> None:
-    section = _skill_section("Export an offline view")
-    assert re.search(r"workspace_status\.py'? status --root \S+ \\ \| python3 scripts/navigate_intents\.py "
-                     r"export --root \S+ --readiness -", section)
-    assert "never runs `workspace-status`" in section
+# --- AC-0011: the hand-built hostile input -----------------------------------------------
+
+_HOSTILE_ALL = " ".join(HOSTILE_ACTIONS)
 
 
-def test_skill_safety_section_allows_only_status_piped_and_unread() -> None:
-    section = _skill_section("Safety controls")
-    assert "Pipe only `workspace-status`'s ``status`` subcommand" in section
-    assert "Never pipe any other `workspace-status` subcommand" in section
-    assert "straight into the export without reading it or acting on its contents" in section
-    assert "never runs `workspace-status`" in section
+def test_a_hand_built_hostile_input_exports_safely(tmp_path) -> None:
+    unloaded = "docs/specs/absent-spec/spec.md " + _HOSTILE_ALL
+    obj = dispatch_json(
+        ready=[entry(READY, slug=_HOSTILE_ALL, status=_HOSTILE_ALL)],
+        active=[entry(ACTIVE, slug=_HOSTILE_ALL, status=_HOSTILE_ALL)],
+        blocked=[
+            entry(BLOCKED, [finding("custom_code", _HOSTILE_ALL, path=_HOSTILE_ALL)],
+                  slug=_HOSTILE_ALL, status=_HOSTILE_ALL),
+            entry(unloaded, [finding("custom_code", _HOSTILE_ALL, path=_HOSTILE_ALL)],
+                  slug=_HOSTILE_ALL, status=_HOSTILE_ALL),
+        ],
+        findings=[finding("custom_top", _HOSTILE_ALL, path=_HOSTILE_ALL)],
+    )
+    ran = export(tmp_path, encode(obj))
+    assert ran.code == 0 and ran.result["status"] == "ok", ran.result
+    assert ran.result["readiness"] == {"checked": True, "reason": None}
+    assert ran.html is not None and ran.payload is not None
+    assert [b["id"] for b in ran.payload["readiness"]["blocked"]] == ["spec:golf-new"]
+    outside = outside_data_block(ran.html)
+    for needle in HOSTILE_NEEDLES:
+        assert needle not in outside, needle
+    assert unloaded not in ran.html
+
+
+# --- AC-0010 and AC-0011: the real dispatch.py output ------------------------------------
+
+replay = _load(_REPLAY, "core_navigate_intents_readiness_replay_t")
+_COUNTER = iter(range(10**9))
+
+
+@pytest.fixture(scope="module")
+def dispatch_mod(tmp_path_factory) -> Any:
+    """``dispatch.py`` loaded from a planted copy of its skills, under a unique name."""
+    skills = replay.TD._copy_skills(tmp_path_factory.mktemp("readiness-dispatch"))
+    return replay.TD._load(skills / "work-loop" / "scripts" / "dispatch.py")
+
+
+def dispatch_stdout(dispatch_mod: Any, root: pathlib.Path) -> bytes:
+    """The bytes ``dispatch.py --root <root>`` prints, captured in process."""
+    captured = io.StringIO()
+    with contextlib.redirect_stdout(captured):
+        code = dispatch_mod.main(["--root", str(root)])
+    assert code == 0
+    return captured.getvalue().encode("utf-8")
+
+
+def loaded_ids(root: pathlib.Path) -> dict[str, str]:
+    specs = root / "docs" / "specs"
+    if not specs.is_dir():
+        return {}
+    return {
+        f"docs/specs/{c.name}/spec.md": f"spec:{c.name}"
+        for c in sorted(specs.iterdir())
+        if os.path.lexists(c / "spec.md")
+    }
+
+
+def _is_argless_refusal(output: dict[str, Any]) -> bool:
+    decision = output["decision"]
+    return decision["action"] == "refuse" and not (
+        output["ready"] or output["active"] or output["blocked"]
+    )
+
+
+def test_the_planted_invalid_toml_tree_gives_an_argless_refusal(dispatch_mod, tmp_path) -> None:
+    root = tmp_path / "invalid-toml"
+    (root / "docs" / "specs").mkdir(parents=True)
+    (root / "workspace.toml").write_text("this is = = not toml\n", encoding="utf-8")
+    data = dispatch_stdout(dispatch_mod, root)
+    output = json.loads(data)
+    assert output["decision"]["action"] == "refuse"
+    assert [f["code"] for f in output["decision"]["findings"]] == ["invalid_workspace"]
+    assert rd.member(data, {}) == {"checked": False, "reason": "bad_workspace"}
+
+
+def test_every_replay_case_tree_and_the_planted_refusal_give_a_checked_member_or_bad_workspace(
+    dispatch_mod, tmp_path, capsys
+) -> None:
+    reasons: collections.Counter[str] = collections.Counter()
+    actions: collections.Counter[str] = collections.Counter()
+    bad: list[str] = []
+    trees: list[tuple[str, pathlib.Path]] = []
+    for case in replay.CASES:
+        if replay.IS_ROOT and case.name in replay.SKIP_AS_ROOT:
+            continue
+        root = tmp_path / case.name
+        replay._plant(case, root, "header")
+        trees.append((case.name, root))
+    planted = tmp_path / "planted-invalid-toml"
+    (planted / "docs" / "specs").mkdir(parents=True)
+    (planted / "workspace.toml").write_text("[unterminated\n", encoding="utf-8")
+    trees.append(("planted-invalid-toml", planted))
+    try:
+        for name, root in trees:
+            data = dispatch_stdout(dispatch_mod, root)
+            output = json.loads(data)
+            path_to_id = loaded_ids(root)
+            got = rd.member(data, path_to_id)
+            actions[output["decision"]["action"]] += 1
+            if _is_argless_refusal(output):
+                assert got == {"checked": False, "reason": "bad_workspace"}, name
+                reasons["bad_workspace"] += 1
+                bad.append(name)
+                continue
+            assert got["checked"] is True, (name, got)
+            reasons["checked"] += 1
+            assert got["active"] == [path_to_id[i["path"]] for i in output["active"]
+                                     if i["path"] in path_to_id], name
+            assert got["ready"] == [path_to_id[i["path"]] for i in output["ready"]
+                                    if i["path"] in path_to_id], name
+            unique = dict.fromkeys(i["path"] for i in output["blocked"] if i["path"] in path_to_id)
+            assert [b["id"] for b in got["blocked"]] == [path_to_id[p] for p in unique], name
+    finally:
+        for _, root in trees:
+            for path in root.rglob("*"):
+                if path.is_file() and not path.is_symlink():
+                    path.chmod(0o644)
+    assert bad == ["planted-invalid-toml"], bad
+    with capsys.disabled():
+        print(f"\nreadiness corpus: {len(trees)} trees")
+        print("  per reason:", dict(sorted(reasons.items())))
+        print("  per decision action:", dict(sorted(actions.items())))
+
+
+def test_dispatch_over_a_hostile_workspace_toml_exports_safely(dispatch_mod, tmp_path, capsys) -> None:
+    root = tmp_path / "root"
+    shutil.copytree(_MIXED, root)
+    shutil.copy(_HOSTILE_WORKSPACE, root / "workspace.toml")
+    data = dispatch_stdout(dispatch_mod, root)
+    output = data.decode("utf-8")
+    present = [
+        needle for needle in HOSTILE_NEEDLES
+        if needle in output or json.dumps(needle)[1:-1] in output
+    ]
+    with capsys.disabled():
+        print(f"\nhostile fixture: dispatch.py output holds {len(present)} of "
+              f"{len(HOSTILE_NEEDLES)} hostile strings")
+    ran = export(tmp_path, data, root=root)
+    assert ran.result["status"] == "ok"
+    assert ran.result["readiness"] == {"checked": True, "reason": None}
+    assert ran.html is not None
+    outside = outside_data_block(ran.html)
+    for needle in HOSTILE_NEEDLES:
+        assert needle not in outside, needle
