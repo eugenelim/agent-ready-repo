@@ -175,24 +175,24 @@ The command prints one JSON object. On success it carries `status: ok`, `path` (
 
 ### Show what is ready to work on
 
-The view can show what `workspace-status` says is ready. Pipe its status command into the export:
+The view can show what `work-loop` says is ready. Pipe its argless dispatch command into the export:
 
 ```bash
-python3 '<workspace-status-dir>/scripts/workspace_status.py' status --root <repo-root> \
+python3 '<work-loop-skill-dir>/scripts/dispatch.py' --root <repo-root> \
   | python3 <skill-dir>/scripts/navigate_intents.py export --root <repo-root> --readiness -
 ```
 
-Use the same `<repo-root>` on both sides. The command works in POSIX shells and in PowerShell 7; Windows PowerShell 5.1 can re-encode the pipe, and the export then reads it as not valid JSON. The export never runs `workspace-status` and never reads `workspace.toml`. It reads only what you pipe in.
+Use the same `<repo-root>` on both sides. The command works in POSIX shells and in PowerShell 7; Windows PowerShell 5.1 can re-encode the pipe, and the export then reads it as not valid JSON. The export never runs `dispatch.py` and never reads `workspace.toml`. It reads only what you pipe in.
 
-With readiness checked, "What can I work on next?" lists the items `workspace-status` calls active, ready and blocked, in that order. Each blocked row shows the finding codes that stop it. One row can say "work-loop with no spec named resumes this" or "starts this". That row is the item `work-loop` picks when you start it without naming a spec. It reflects how `work-loop` chooses, not a priority. No row is marked when more than one item is active, because `work-loop` then asks which one to resume. No row is marked either when `workspace-status` reports a finding about the item it would pick. "What is broken?" also lists each workspace finding.
+With readiness checked, "What can I work on next?" lists the items `dispatch.py` reports as active, ready and blocked, in that order. Each blocked row shows the finding codes that stop it. One row can say "work-loop with no spec named resumes this" or "starts this". That row is the item `work-loop` picks when you start it without naming a spec. It reflects how `work-loop` chooses, not a priority. The mark is copied from the decision `dispatch.py` reports, so no row is marked when `work-loop` would ask: when more than one item is active, or when none is active and more than one is ready. No row is marked either when the decided item is not in the export. "What is broken?" also lists each workspace finding.
 
 Without `--readiness -`, "What can I work on next?" lists open work in a startable stage and says readiness is not checked in the snapshot.
 
-If readiness cannot be checked, the export still writes the page. The page says readiness could not be checked and why: standard input could not be read, the input did not finish arriving within 60 seconds, the input was over 4 MiB, nothing was piped in, it was not valid JSON, the repository has no `workspace.toml`, it was not `workspace-status` status output, `workspace-status` reported a problem with `workspace.toml` itself, or the page would have been too large with it. The export's JSON result says the same in its `readiness` field.
+If readiness cannot be checked, the export still writes the page. The page says readiness could not be checked and why: standard input could not be read, the input did not finish arriving within 60 seconds, the input was over 4 MiB, nothing was piped in, it was not valid JSON, it was not argless `dispatch.py` output, the workspace configuration has a problem, or the page would have been too large with it. The export's JSON result says the same in its `readiness` field.
 
 The page takes only a few facts from the piped input: which list each item is in, its finding codes and their next-action text. It shows an item only if the view already loaded that file, and shows that file's own name and state. Anything else in the input is dropped.
 
-Pipe only the `status` subcommand, and pass its output straight into the export. The export refuses every other subcommand's output, and some of those subcommands change files.
+Pipe only the argless `dispatch.py --root` output, and pass it straight into the export. Never pipe `--start` or `--resume` output; those can change files, and the export refuses it.
 
 ### What the file contains
 

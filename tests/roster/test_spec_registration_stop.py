@@ -456,3 +456,108 @@ def test_tracker_matrices_are_byte_identical_to_the_base(rel: str) -> None:
     if result.returncode != 0:
         pytest.skip(f"commit {_BASELINE} is not available in this checkout")
     assert (_REPO / rel).read_bytes() == result.stdout
+
+
+# readiness-bridge-dispatch-input AC-0019 to AC-0021: the bridge's input is argless dispatch output.
+_NAVIGATE_SKILL = "packs/core/.apm/skills/navigate-intents/SKILL.md"
+_NAVIGATE_GUIDE = "guides/core/how-to/navigate-intents.md"
+_NAVIGATE_EVALS = "packs/core/.apm/skills/navigate-intents/evals/eval_queries.json"
+_DESIGN = "packs/core/DESIGN.md"
+_PIPE = "scripts/dispatch.py' --root"
+
+# (file, section heading or paragraph opening, banned tokens, required phrases).
+_BRIDGE_INPUT: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
+    (
+        _NAVIGATE_SKILL,
+        "## Export an offline view",
+        (
+            "workspace-status",
+            "workspace_status.py",
+            "no ``workspace.toml``",
+            "not ``status`` output",
+            "a finding about the item that would be picked",
+        ),
+        (_PIPE, "--readiness -"),
+    ),
+    (
+        _NAVIGATE_SKILL,
+        "## Safety controls",
+        ("workspace-status",),
+        ("dispatch.py",),
+    ),
+    (
+        _NAVIGATE_GUIDE,
+        "### Show what is ready to work on",
+        (
+            "workspace-status",
+            "workspace_status.py",
+            "the repository has no",
+            "a finding about the item it would pick",
+            "Pipe only the `status` subcommand",
+        ),
+        (_PIPE, "--readiness -"),
+    ),
+    (
+        _DESIGN,
+        "The export has one piped input",
+        ("workspace-status", "status mode", "strict status object"),
+        ("dispatch.py",),
+    ),
+)
+
+
+def _scoped(text: str, opening: str) -> str:
+    """The whitespace-normalised section, or paragraph, that begins at ``opening``."""
+    if opening.startswith("#"):
+        level = len(opening) - len(opening.lstrip("#"))
+        lines, taken, fenced = text.splitlines(), [], False
+        for line in lines:
+            if line.lstrip().startswith("```"):
+                fenced = not fenced
+            heading = not fenced and re.match(rf"#{{1,{level}}} ", line)
+            if taken and heading:
+                break
+            if taken or line == opening:
+                taken.append(line)
+        body = "\n".join(taken)
+        assert taken, opening
+    else:
+        start = text.index(opening)
+        end = text.find("\n\n", start)
+        body = text[start:] if end == -1 else text[start:end]
+    return _flat_text(body)
+
+
+def _base_text(rel: str) -> str:
+    result = subprocess.run(
+        ["git", "show", f"{_BASELINE}:{rel}"], cwd=_REPO, capture_output=True, text=True, check=False
+    )
+    if result.returncode != 0:
+        pytest.skip(f"commit {_BASELINE} is not available in this checkout")
+    return result.stdout
+
+
+@pytest.mark.parametrize(("rel", "opening", "banned", "required"), _BRIDGE_INPUT)
+def test_bridge_input_instructions_name_dispatch(
+    rel: str, opening: str, banned: tuple[str, ...], required: tuple[str, ...]
+) -> None:
+    head = _scoped((_REPO / rel).read_text(encoding="utf-8"), opening)
+    base = _scoped(_base_text(rel), opening)
+    for phrase in banned:
+        assert phrase in base, f"{rel} {opening}: {phrase!r} absent at the baseline"
+        assert phrase not in head, f"{rel} {opening} still holds {phrase!r}"
+    for phrase in required:
+        assert phrase in head, f"{rel} {opening} lacks {phrase!r}"
+
+
+def test_navigate_evals_name_dispatch_not_workspace_status() -> None:
+    """AC-0020: the retired readiness query is gone and a dispatch query triggers."""
+    text = (_REPO / _NAVIGATE_EVALS).read_text(encoding="utf-8")
+    assert "readiness from workspace-status" in _base_text(_NAVIGATE_EVALS)
+    assert "readiness from workspace-status" not in text
+    cases = json.loads(text)
+    cases = cases if isinstance(cases, list) else next(v for v in cases.values() if isinstance(v, list))
+    assert any(
+        c["should_trigger"] is True and "work-loop" in c["query"] and "dispatch" in c["query"]
+        for c in cases
+    )
