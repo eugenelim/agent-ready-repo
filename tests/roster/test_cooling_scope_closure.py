@@ -955,9 +955,10 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
     """AC23: every frozen dependency retains its approved byte digest."""
     expected_digests = {
         # Re-pinned 2026-10-29 (docs/specs/header-derived-dispatch/spec.md): only
-        # the optional `parent` field was added to cooling.py and to the schema.
+        # the optional `parent` field was added to cooling.py and to the schema,
+        # and the `parent` reader's HTML-comment pattern gained `re.DOTALL`.
         "packs/core/.apm/skills/close-work/scripts/cooling.py": (
-            "8476f8c70acef2bb12823a02eb6f4fb90f3c95d2826b1ec8852e16b9c62ae3bc"
+            "fd1f2cb6a8c38341099c420f5ad87c508a7a52e6d9c0d31a8106bd73ed916215"
         ),
         "contracts/jsonschema/delivery-lifecycle-record.schema.json": (
             "f44b5536ff18657c007b402897cecc99aeef042c0fc8947cef5e052727a06bc3"

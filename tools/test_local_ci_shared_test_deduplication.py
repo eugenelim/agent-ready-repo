@@ -307,6 +307,10 @@ FIRST_TOOL_BATCH = (
     # `lint-ci-parity` disposes it NO_PR_GATE: the comparison has no CI job by
     # owner decision (FEAT-0034 § Registry comparison).
     "tools/test_compare_registry.py",
+    # Added 2026-10-29 with the dispatch replay tool (spec header-derived-dispatch).
+    # Membership only: appended to this existing batch, so no group count moves.
+    # `lint-ci-parity` disposes it NO_PR_GATE, as for the registry comparison.
+    "tools/test_replay_dispatch.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -1091,11 +1095,17 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `tools/test_intent_corpus_gate.py`; no line was added, removed or reordered.
 # Prior pins were current: origin/main's Makefile, which lacks only that path,
 # passes this test against `ccd2669c…` and `c311c2a9…`.
+# Re-pinned 2026-10-29 for the dispatch replay tool suite. Sole cause: the path
+# `tools/test_replay_dispatch.py` appended to the same tools batch, after
+# `tools/test_compare_registry.py`; no line was added, removed or reordered.
+# Prior pins were current: origin/main's Makefile, which lacks only that path,
+# returns no drift from `_effective_composition_errors()` against `aefb2404…`
+# and `2716968f…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "aefb240472c8ad5720c19410ed3a517b4ad7b5e281e85cea5d8b61f7c5e8f8cd"
+    "e44c7a9845f7cfb8cc47b898f4bb6e5517e34a02d71db27dc95f79fad0880f7d"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "2716968f266cbf08bd6c260743ec2c8a96814747873cff0901e231d338c55042"
+    "56e555fca556e8d31942720e693641475b9ac626b21c1283d82230f20b9ee4f8"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
