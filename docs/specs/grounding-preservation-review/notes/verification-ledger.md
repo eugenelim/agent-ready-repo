@@ -93,4 +93,20 @@ assertions and the outputs, labelled `output1` and `output2` in the order in
   missed the invalidation assertion only. C1's single graded run of this case
   held 6 of 6 on Core 3.1.33.
 
+- **Run conditions held for every listed run.** For every head, base, and
+  rerun output in `graded-runs/`, the copy held only Core's projected skills
+  and agents with no `adapt-to-project`. The agent had no code-intelligence
+  capability and no Pi. Each run used a general-purpose agent confined to a
+  `/tmp` copy with no code-intelligence or Pi tool.
+- **Head-run replacements.** The two reviewer cases' `-r2` runs replace their
+  `-r1` runs. The guidance change is commit `fe2421c44`, which set the typed
+  report section's finding `schema_version` to "the integer `1`". The positive
+  authoring case's second head run (`-r2`) is recorded only, with no pass
+  requirement. Its rerun is not a replacement under the rule, because the
+  `new-spec` guidance is unchanged.
+- **Pass result.** The admitted head runs of AC-0022's four pass-required
+  cases hold every assertion (4/4, 5/5, 6/6, 6/6). The positive authoring
+  case's scores are recorded without a pass requirement, per the owner's
+  amendment.
+
 Outputs and grades: [`graded-runs/`](graded-runs/).
