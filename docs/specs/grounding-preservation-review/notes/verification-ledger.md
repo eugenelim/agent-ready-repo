@@ -117,7 +117,7 @@ assertions and the outputs, labelled `output1` and `output2` in the order in
   held 6 of 6 on Core 3.1.33.
 
 - **Run inventory.** Pack versions are in the Method paragraph, and the
-  Head-run replacements bullet owns what each guidance commit changed. Head
+  Head-run replacements bullet owns what `fe2421c44` and `c1cf109a6` changed. Head
   outputs by guidance state: `-r1` ran on the guidance at `50c2019c3`; `-r2` ran
   after `fe2421c44`; `-r3` ran after `c1cf109a6`. The two unsuffixed head
   outputs (`isolated-private-change-does-not-expand-preservation-proof` and
