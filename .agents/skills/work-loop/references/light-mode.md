@@ -82,7 +82,7 @@ these hold.
 | Expected to complete in the current session | Escalate to durable work. |
 | No current full-mode risk trigger | Use full mode. |
 | No need for queueing, assignment, cross-session resumption, parallel coordination, or a durable product contract | Use the durable path. |
-| No conflict with a canonical queued or active workspace item | Surface the conflict; do not start untracked parallel work. |
+| No conflict with a spec in the `ready`, `active` or `blocked` list of `scripts/dispatch.py` | Surface the conflict; do not start untracked parallel work. |
 | No supplied governing spec for the same work | Use that existing spec. |
 
 Durability is a disjunction: **any one** of these routes the work to the

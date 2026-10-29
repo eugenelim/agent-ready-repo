@@ -1520,8 +1520,12 @@ _WL_FINISH_END = r'Conventional commit format'
 # Moved for captured-item-files: the shaping-item guard paragraph matches
 # `captured.items` instead of the registry shaping lists. The engine guard
 # moved with it (`check_shaping_guard` reads the captured-item file).
+# Moved for spec-registration-stop T6: Step 0 runs `scripts/dispatch.py` and acts
+# on its `decision` instead of reading `canonical.ready`/`canonical.active`. The
+# engine is unchanged: dispatch.py hands the same engine its input, and the
+# shaping-item guard still reads `captured.items`; ownership is unchanged.
 _WORK_LOOP_CONTRACT_HASH = (
-    "3da97f3239db08c08d97008a548e3228066e2cb1e903fede2be1561b2daf5458"
+    "3a1faea1019b6b5f0fe5cfbeda14547bc98c70152d124785bdc3f1201da2e0bc"
 )
 # Reconciled for spec-registration-stop T2: the supplied-spec-path bullet no longer
 # names the retired `unregistered_work` finding; ownership is unchanged.

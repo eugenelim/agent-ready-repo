@@ -20,10 +20,8 @@ _SECURITY_REVIEWER = _WORK_LOOP.parents[2] / "agents" / "security-reviewer.md"
 
 def test_missing_contract_fails_closed() -> None:
     body = _WORK_LOOP.read_text(encoding="utf-8")
-    assert "canonical.ready" in body
-    assert "canonical.active" in body
-    assert "missing_plan" in body
-    assert "unapproved_spec" in body
+    assert "scripts/dispatch.py" in body
+    assert "decision" in body
     assert "never reconstruct" in body.lower()
 
 
@@ -91,7 +89,7 @@ def test_direct_light_is_session_local_and_fail_closed() -> None:
 
     # These two stay in Step 0, which owns invocation-shape routing.
     for required in (
-        "A matching or conflicting canonical item surfaces the conflict",
+        "a matching or conflicting spec surfaces the conflict",
         "A direct-light run is not resumable through `workspace-status`",
     ):
         assert _normalized(required) in operative, required
@@ -182,7 +180,7 @@ _ELIGIBILITY_CONJUNCTS = (
     "No current full-mode risk trigger",
     "No need for queueing, assignment, cross-session resumption, parallel"
     " coordination, or a durable product contract",
-    "No conflict with a canonical queued or active workspace item",
+    "No conflict with a spec in the `ready`, `active` or `blocked` list of `scripts/dispatch.py`",
     "No supplied governing spec for the same work",
 )
 

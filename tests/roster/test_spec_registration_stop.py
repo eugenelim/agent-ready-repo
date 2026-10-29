@@ -14,6 +14,7 @@ Standard library only; the checks read files and git history and write nothing.
 from __future__ import annotations
 
 import ast
+import json
 import subprocess
 from pathlib import Path
 
@@ -204,6 +205,53 @@ _PRESENT.update({
         "when a slice adds, removes or rewords a finding code",
     ),
 })
+
+_WORK_LOOP = "packs/core/.apm/skills/work-loop/SKILL.md"
+_WORK_LOOP_EVALS = "packs/core/.apm/skills/work-loop/evals/evals.json"
+_ABSENT[_WORK_LOOP] = (
+    # T6 (AC-0001): Step 0 dispatches from dispatch.py, not canonical.* lists.
+    "canonical.ready",
+    "canonical.active",
+    "canonical.blocked",
+    "select only the first",
+    "If `workspace.toml` is present, read it and Surface",
+    "If `workspace.toml` is absent, an explicit current request",
+)
+_PRESENT[_WORK_LOOP] = ("scripts/dispatch.py", "decision", "candidates", "--start", "--resume")
+
+_DISPATCH_EVAL_IDS = (
+    "step0-dispatch-start",
+    "step0-dispatch-resume",
+    "step0-dispatch-ask",
+    "step0-dispatch-none",
+    "step0-dispatch-refuse",
+    "step0-supplied-path-start",
+    "step0-supplied-path-resume-refused",
+    "step0-explicit-request-conflict",
+    "step0-no-registry-start",
+)
+_RETIRED_EVAL_PHRASES = (
+    "canonical.ready",
+    "canonical.active",
+    "canonical workspace-status preflight",
+    "untracked live specs",
+)
+
+
+def test_work_loop_evals_hold_the_dispatch_cases_and_no_retired_phrase() -> None:
+    """AC-0002 and AC-0043: the nine dispatch cases exist; no case holds a retired phrase."""
+    payload = json.loads((_REPO / _WORK_LOOP_EVALS).read_text(encoding="utf-8"))
+    cases = {case["id"]: case for case in payload["evals"]}
+    for case_id in _DISPATCH_EVAL_IDS:
+        case = cases[case_id]
+        assert str(case["expected_output"]).strip(), case_id
+        assert case["assertions"] and all(str(a).strip() for a in case["assertions"]), case_id
+    for case in payload["evals"]:
+        for field in ("prompt", "expected_output", "assertions"):
+            text = json.dumps(case.get(field, ""), ensure_ascii=False).lower()
+            for phrase in _RETIRED_EVAL_PHRASES:
+                assert phrase not in text, f"{case['id']}.{field} holds {phrase!r}"
+
 
 _LEDGERS = (
     "docs/specs/spec-registration-stop/notes/verification-ledger.md",

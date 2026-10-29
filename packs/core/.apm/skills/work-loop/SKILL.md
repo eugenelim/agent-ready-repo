@@ -181,44 +181,44 @@ enter direct-light only through the decision record and eligibility routing
 in [`references/light-mode.md`](references/light-mode.md).
 An argless queued start and a fresh-session `resume` remain workspace dispatch;
 they never infer a direct-light authority from workspace comments, old chat,
-branch names, or surrounding prose. A supplied spec path remains subject to
-canonical preflight.
+branch names, or surrounding prose. A supplied spec path is decided by
+`scripts/dispatch.py`.
 
-If `workspace.toml` is present, read it and Surface an orientation block:
+Run the dispatch command whether or not `workspace.toml` exists. It reads each
+spec's own `Status:` header, its sibling `plan.md` and its dependencies, and it
+writes nothing:
+
+```bash
+python '<skill-dir>/scripts/dispatch.py' --root .
+```
+
+For a supplied spec path, add `--start <spec>` for a new start or
+`--resume <spec>` for a resume. Read the JSON `decision` object and act on
+`decision.action`:
+
+- `start` or `resume`: read the named spec's `spec.md` and sibling `plan.md`,
+  then proceed to PLAN.
+- `ask`: list every path in `decision.candidates` and ask the user to pick one.
+  Stop; never choose between candidates yourself.
+- `none` or `refuse`: stop. Surface each entry of `decision.findings` with its
+  `code`, `path` and `next_action`.
+
+Raw `[work].queue` or `[work].active` membership never authorizes PLAN, and
+never reconstruct requirements from comments, summaries, list order, or
+surrounding prose. The `ready`, `active` and `blocked` lists of the same output
+are what an explicit request is checked against below.
+
+If `workspace.toml` is present, also Surface an orientation block:
    - **Initiative:** `name` from `["ini-NNN"]` (all `status = "active"` sections).
    - **Milestone:** `milestone` from `["ini-NNN"]`.
-   - **Canonical preflight:** use `workspace-status` canonical reconciliation output for
-     dispatch decisions and active-resume selection. `canonical.ready` is the only
-     queue-ready set; it already means an existing Approved `spec.md` has an
-     existing sibling `plan.md`, valid provenance, satisfied hard dependencies,
-     and no fail-closed finding. `canonical.active` is the only resumable set.
-     Any matching `canonical.blocked` or `canonical.findings` entry blocks
-     autonomous start with its stable `code`, `path`, and `next_action`;
-     `missing_plan`, `unapproved_spec`, and comment-only changes are refusals.
-     Former legacy entries surface as `unsupported_legacy` findings and never dispatch. Old shaping entries still appear in the information-only shaping lists until rewritten.
-     - Supplied spec path: continue only when the path has a matching
-       `canonical.ready` evaluation for a new start or matching `canonical.active`
-       evaluation for a resume. Otherwise stop and surface the matching canonical
-       finding.
-     - Argless queued start: select only the first `canonical.ready` item. Raw
-       workspace `[work].queue` membership never authorizes PLAN.
-     - Active resume: accept only a matching `canonical.active` item. Raw
-       `[work].active` membership never authorizes PLAN when canonical findings,
-       legacy membership, missing artifact, missing plan, unapproved spec, or any
-       other canonical refusal is present.
-   - **Active spec** (argless queued starts and fresh-session resumes only; skip
-     when an explicit current request or spec path was given):
-     collect all items from `canonical.active`, not raw `workspace.toml`. If exactly
-     one, include "Resuming `docs/specs/<slug>/spec.md`" in this orientation block.
-     - Zero → use `canonical.ready` for a queued start; if no item exists, surface "No canonical ready or active spec found — run `workspace-status` to see blocked findings." Stop.
-     - More than one → list all canonical active items and ask the user to pick. Stop.
-   - **Stale-queue check.** Use the `workspace-status` reconciliation/canonical
-     findings for drift warnings. Do not re-read raw `[work].queue` or
-     `[work].active` membership to authorize start or resume; raw membership is
-     advisory only after canonical preflight has accepted the item. Never reconstruct
-     requirements from comments, summaries, list order, or surrounding prose.
+   - When the decision is `start` or `resume` (argless starts and fresh-session
+     resumes only), include "Resuming `docs/specs/<slug>/spec.md`" or
+     "Starting `docs/specs/<slug>/spec.md`" for the named path.
+   - **Stale-queue check.** Use the findings in the dispatch output for drift
+     warnings. Raw membership is advisory only after dispatch has accepted the
+     spec. The orientation block is information; dispatch never depends on the file.
 
-Then apply the **Shaping-item guard** when a workspace-resolved or supplied slug
+Then apply the **Shaping-item guard** when a dispatch-named or supplied slug
 exists. Derive slug (strip `docs/specs/` prefix + trailing `/`). Match it against
 `captured.items` in the `workspace-status` status output. When the matching item
 has a non-null `routes_to`, stop: "This is a shaping item (`Type: <type>`); use
@@ -230,29 +230,20 @@ item is `invalid` or `unreadable`, stop and surface its finding from
 `captured.findings`. Otherwise continue.
 
 After orientation, route by invocation shape. **Order matters: an explicit
-current request is decided before the workspace-dispatch branches, which exist
-only for an argless start or a fresh-session `resume`.** A canonical active item
-must never capture an explicit request for different work.
+current request is decided before the dispatch decision, which governs only an
+argless start, a fresh-session `resume`, or a supplied spec path.** A spec that
+dispatch lists as active must never capture an explicit request for different
+work.
 
-- If a spec path was supplied and matched `canonical.ready` or `canonical.active`, use
-  that canonical evaluation and proceed to PLAN.
-- Otherwise, for an **explicit current request**: with no matching
-  `canonical.ready`, `canonical.active`, or `canonical.blocked` item, proceed to
-  the direct-light decision record. A matching or conflicting canonical item
+- For an **explicit current request**: when its scope matches a path in
+  dispatch's `ready`, `active` or `blocked` list, a matching or conflicting spec
   surfaces the conflict rather than starting untracked parallel implementation,
   and an explicit request that names existing durable work uses that spec.
-- Otherwise, for an **argless start or fresh-session `resume`** only: exactly one
-  canonical active item → read its `spec.md` and `plan.md`, then proceed to PLAN.
-- Otherwise, for an **argless start** only: exactly one selected canonical ready
-  item → read its `spec.md` and `plan.md`, then proceed to PLAN.
-- Otherwise, stop. A direct-light run is not resumable through
-  `workspace-status`; a bare `resume` in a fresh context requires a matching
-  `canonical.active` item.
-
-If `workspace.toml` is absent, an explicit current request may still proceed to
-the direct-light decision record. An argless queued start, a fresh-session
-`resume`, or a supplied spec path has no canonical preflight result and must
-Surface rather than infer authority.
+  Otherwise proceed to the direct-light decision record.
+- For an **argless start, fresh-session `resume`, or supplied spec path**: act on
+  `decision.action` as above. A direct-light run is not resumable through
+  `workspace-status`; a bare `resume` in a fresh context needs a spec that
+  dispatch accepts for resume.
 
 ## Step 1. PLAN
 
