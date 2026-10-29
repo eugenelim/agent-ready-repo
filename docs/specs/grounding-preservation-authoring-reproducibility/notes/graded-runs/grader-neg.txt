@@ -1,0 +1,8 @@
+You are a blind grader. Read only the file OUTPUT and nothing else: do not read, list, or search any other path. The file is one agent's response to this task: "Draft a spec and plan for refactoring the private helper in the supplied fixture. Determine from the supplied files whether this should trigger a shared-substrate preservation expansion. Neither adapt-to-project nor any code-intelligence provider is installed."
+
+Grade it against each assertion below. An assertion passes only when the output itself shows it; do not give credit for what the agent might have meant. Reply with exactly a Markdown table with columns `#`, `Assertion`, `Grade` (PASS or FAIL), and `Reason` (quote the output's words that decide it), then one line `Total: N/4 pass`.
+
+1. Does not trigger the shared-substrate expansion for the bounded private refactor
+2. Uses normal local repository anchors and tests instead of inventing a consumer map or preservation matrix
+3. Confirms the isolation boundary with bounded repository-native evidence
+4. Does not require adapt-to-project or code intelligence

@@ -43,7 +43,7 @@ assertions.
   member present, besides comparing each with the base revision.
 - New content pins for the three rules in
   `packs/core/tests/skills/new-spec/test_shared_substrate_preservation.py`.
-- A Core patch release and its changelog fragment, at the version AC-0007
+- A Core patch release and its changelog fragment, at the version AC-0008
   states.
 - The frozen case `shared-substrate-change-expands-preservation-proof`, its
   fixture, and the negative control
@@ -55,8 +55,8 @@ assertions.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Current product truth | The brief's C3 positive-fixture proof rests on this spec | The brief's Spec map row and its C3 "Pass the integrated positive fixture" bullet; `docs/product/captured/new-spec-positive-case-reproducibility.md` | Platform Core | The row resolves this spec; the bullet links this spec's ledger; the captured item reads `Closed` and has no `[backlog].open` entry | The row derives `Shipped` and the bullet resolves |
-| Release history | Any `packs/core/` change ships under a new Core version | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, a fragment in `docs/product/changelog.d/` | Core pack release maintainers | The version AC-0007 states | AC-0007 and AC-0008 hold |
-| Reusable learning | The repeated runs are the reproducibility evidence later work reuses | `notes/verification-ledger.md` in this spec directory | Platform Core | Every graded run of either case on every projection, spike runs included, with its output, grade, pack version, and revision; one base run of each case as the baseline | The ledger records every graded run of either case on every projection, spike runs and base baselines included |
+| Release history | Any `packs/core/` change ships under a new Core version | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, a fragment in `docs/product/changelog.d/` | Core pack release maintainers | The version AC-0008 states | AC-0008 and AC-0009 hold |
+| Reusable learning | The repeated runs are the reproducibility evidence later work reuses | `notes/verification-ledger.md` in this spec directory | Platform Core | Every graded run made under this spec — the pre-approval spike runs, one base run of each case as the baseline, and every AC-0001 to AC-0004 run — with its output, grade, pack version, and revision | The ledger records every graded run made under this spec |
 
 The adopter guide `guides/core/how-to/plan-and-execute-non-trivial-work.md`
 names the path's purpose and links the reference without restating its rules,
@@ -70,15 +70,15 @@ so it needs no change.
   self-host.
 - Keep the reference portable: no catalogue-internal records or repository-only
   paths.
-- Record every graded run of either case, on every projection; a run that
-  misses an assertion is recorded, never dropped or replaced by a rerun.
+- Record every graded run made under this spec, on every projection; a run
+  that misses an assertion is recorded, never dropped or replaced by a rerun.
 
 ### Ask first
 
-- Any edit under `packs/core/.apm/skills/new-spec/` other than the reference,
-  such as `SKILL.md` or `assets/`, or any edit under
+- Any edit under `packs/core/.apm/skills/new-spec/` other than the reference
+  and `evals/`, such as `SKILL.md` or `assets/`, or any edit under
   `packs/core/.apm/skills/work-loop/`. Approval takes a controlled amendment
-  that revises AC-0009.
+  that revises AC-0010.
 
 ### Never do
 
@@ -91,17 +91,17 @@ so it needs no change.
 
 ## Testing Strategy
 
-- **Positive and negative runs (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005):** visual / manual QA of
+- **Positive and negative runs (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006):** visual / manual QA of
   the rebuilt agent artifact. No CI gate grades eval output, so the behavior is
   proved by graded runs, repeated for the positive case because a single run
   has already passed and then failed to reproduce.
-- **Eval harness (AC-0006):** goal-based. The frozen case is the harness for
+- **Eval harness (AC-0007):** goal-based. The frozen case is the harness for
   all three edits: its assertion 4 covers the gap rule and path agreement, and
-  its assertion 5 covers the disposability sentence. So `packs/AGENTS.md`
-  § Security and authoring rules ("A non-cosmetic pack update also updates that
-  pack's eval harness") is met with the harness unchanged; the owner, Platform
-  Core, confirmed keeping the case frozen on 2026-10-29.
-- **Release (AC-0007, AC-0008), scope (AC-0009):** goal-based; one command
+  its assertion 5 covers the disposability sentence. Platform Core, the owner,
+  waives `packs/AGENTS.md` § Security and authoring rules ("A non-cosmetic pack
+  update also updates that pack's eval harness") for this change on that
+  ground, decided 2026-10-29.
+- **Release (AC-0008, AC-0009), scope (AC-0010):** goal-based; one command
   each.
 
 ## Acceptance Criteria
@@ -133,17 +133,21 @@ Terms:
 - [ ] **AC-0004.** At least one graded run of
   `isolated-private-change-does-not-expand-preservation-proof` against the
   final rebuilt projection is recorded in `notes/verification-ledger.md`.
-- [ ] **AC-0005.** For every run AC-0001, AC-0002, AC-0003, and AC-0004 count, the ledger records
-  that its copy held only Core's projected entries with no `evals/` directory
-  and no `adapt-to-project`, and that its agent had no Pi and no
-  code-intelligence capability.
-- [ ] **AC-0006.** `git diff --exit-code <base> HEAD -- packs/core/.apm/skills/new-spec/evals/`
+- [ ] **AC-0005.** For every run AC-0001, AC-0002, AC-0003, and AC-0004
+  count, the ledger lists the skill and agent entries its copy held, and that
+  list equals the entries under `packs/core/.apm/skills/` and
+  `packs/core/.apm/agents/` at the run's revision, less `adapt-to-project`,
+  with no `evals/` directory inside the copy.
+- [ ] **AC-0006.** For every run AC-0001, AC-0002, AC-0003, and AC-0004
+  count, the ledger names the agent type and tool set the run agent was given,
+  and that set holds no Pi tool and no code-intelligence capability.
+- [ ] **AC-0007.** `git diff --exit-code <base> HEAD -- packs/core/.apm/skills/new-spec/evals/`
   exits 0.
-- [ ] **AC-0007.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
+- [ ] **AC-0008.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json`
   both read the patch version one above `packs/core/pack.toml` at the base.
-- [ ] **AC-0008.** A `docs/product/changelog.d/` fragment names `core` at the
-  version AC-0007 states.
-- [ ] **AC-0009.** `git diff --name-only <base> HEAD` lists no path under
+- [ ] **AC-0009.** A `docs/product/changelog.d/` fragment names `core` at the
+  version AC-0008 states.
+- [ ] **AC-0010.** `git diff --name-only <base> HEAD` lists no path under
   `contracts/`, and its only path under `packs/core/.apm/` is
   `packs/core/.apm/skills/new-spec/references/shared-substrate-preservation.md`.
 
@@ -154,8 +158,8 @@ Terms:
 
 ## Assumptions
 
-- Technical: all three edits were designed against the same frozen case that
-  AC-0001 grades, and no held-out positive case tests them on another
-  substrate; only the negative control guards against over-triggering. If this
-  risk is not acceptable, a second positive case and its criterion join this
-  spec (settled by: Platform Core, at spec approval).
+- Technical (accepted risk): all three edits were designed against the same
+  frozen case that AC-0001 grades, and no held-out positive case tests them on
+  another substrate; only the negative control guards against over-triggering.
+  Platform Core accepted this risk on 2026-10-29, because each edit is a
+  generic rule rather than fixture-specific wording.

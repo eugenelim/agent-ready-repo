@@ -39,7 +39,7 @@ misses, the reference is revised and every final-projection run is redone.
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | Current product truth — brief Spec map row, C3 bullet, captured item | T2, T4 | Row added; spec `Brief:` line; bullet links the ledger; captured item `Closed` | Row derives `Shipped`; no `[backlog].open` entry names the captured item |
-| Release history — the Core patch AC-0007 states | T2 | Manifests and fragment | AC-0007, AC-0008 |
+| Release history — the Core patch AC-0008 states | T2 | Manifests and fragment | AC-0008, AC-0009 |
 | Reusable learning — verification ledger | T3 | Every graded run recorded | The spec's Reusable learning closeout condition |
 
 ## Design (LLD)
@@ -119,11 +119,11 @@ code-intelligence tool; the run brief forbids reading or invoking any skill or
 guidance outside the copy. A fresh subagent gets only the case prompt, the two directory paths,
 and an instruction to stay inside them. A separate grader subagent gets only
 the output text and the case's assertions, and returns one PASS or FAIL with a
-quoted reason per assertion. The ledger notes, per run, the revision, Core
-version, kept-entry counts, and that no `evals/` directory remains. Outputs and
-grades are stored under `notes/graded-runs/`.
+quoted reason per assertion. The ledger records, per run, the revision, the
+Core version, and the AC-0005 and AC-0006 conditions. Outputs and grades are
+stored under `notes/graded-runs/`.
 
-Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005 · none.
+Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006 · none.
 
 Owned by: T3.
 
@@ -158,7 +158,7 @@ reference.
 **Mode:** goal-based.
 
 **Tests:**
-- AC-0006, AC-0007, AC-0008, AC-0009 commands.
+- AC-0007, AC-0008, AC-0009, AC-0010 commands.
 - `agentbundle catalogue self-host --root . --write --force` leaves no diff on
   re-run.
 - `python3 tools/check-core-release.py`,
@@ -179,10 +179,10 @@ reference.
 **Tests:**
 - The AC-0001, AC-0002, AC-0003, and AC-0004 runs, one base run of each case, and the
   pre-approval spike runs, recorded in `notes/verification-ledger.md` with
-  outputs and grades under `notes/graded-runs/` and the AC-0005 conditions per
-  run.
+  outputs and grades under `notes/graded-runs/` and the AC-0005 and AC-0006
+  conditions per run.
 
-**Done when:** every `Tests:` bullet holds, and AC-0001, AC-0002, AC-0003, AC-0004, and AC-0005 hold.
+**Done when:** every `Tests:` bullet holds, and AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, and AC-0006 hold.
 
 ### T4: Close the captured item and point the brief at the evidence
 
