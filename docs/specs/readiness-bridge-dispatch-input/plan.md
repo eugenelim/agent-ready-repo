@@ -50,7 +50,7 @@ Checks first, wording second, records last. T2 rewrites the input checks and the
 Owned by: T2
 
 - `_walk` checks the exact key sets AC-0001 to AC-0003 name and returns `Checked(active, ready, blocked, findings, decision)`. `_typed_list` keeps the per-list rule that a `ready` or `active` item carries no finding, which every `dispatch.py` output meets because the engine's `dispatchable` requires an evaluation with no finding.
-- The argless-decision check recomputes the decision from the checked `active` and `ready` paths in input order and compares it with the input's, so the mark can only name a spec the checked lists already hold. The only other decision admitted is the argless refusal, which `bad_workspace` then catches; every named invocation's output is `wrong_schema`, because the bridge reads argless dispatch only.
+- The argless-decision check recomputes the decision from the checked `active` and `ready` paths in input order and compares it with the input's, so the mark can only name a spec the checked lists already hold. The only other decision admitted is the argless refusal, which `bad_workspace` then catches; a named invocation's output passes only when it equals the argless decision or an argless refusal, because the bridge reads argless dispatch only.
 - `start` reads the checked decision; `held` stays in the start object for the payload's shape and is always `false`, because a finding naming the decided path, such as a blocked waiter's `unsatisfied_dependency`, does not stop `work-loop` acting on a checked `start` or `resume`.
 - `REASONS` drops `no_workspace`; `_WORKSPACE_FAILURE_CODES` is unchanged and is also read in `decision.findings`.
 
@@ -86,8 +86,8 @@ Owned by: T6
 
 - **Depends on:** T2
 - **Verification mode:** scripted browser check
-- **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0032: `view_browser_checks.py`'s readiness cases with the new literals, the title, the empty state and the `outstanding`-unavailable count, the `ask` note for zero and non-zero `active_count`, every reason's notice, the checked and unchecked Key, the label and glyph sets over the `hostile` fixture, and a search of the rendered text outside `next_action` for `workspace-status`.
-- **Done when:** those browser cases pass.
+- **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0032: `view_browser_checks.py`'s readiness cases with the new literals, the title, the empty state and the `outstanding`-unavailable count, the `ask` note for zero and non-zero `active_count`, every reason's notice, the checked and unchecked Key, the label and glyph sets over the `hostile` fixture, a search of the rendered text outside `next_action` and record text for `workspace-status`; and the shared readiness input builders and every carried readiness case (hand-over 0024, 0025, 0027, 0030, 0032, 0035 to 0037, 0039, 0040, and the record-owners readiness export) rewritten to the base input with their assertions kept.
+- **Done when:** the full `view_browser_checks.py` pass succeeds with none skipped.
 
 ### T4: Instructions, eval and design note
 
