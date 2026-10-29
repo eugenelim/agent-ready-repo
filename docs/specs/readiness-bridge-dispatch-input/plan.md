@@ -1,7 +1,7 @@
 # Plan: The readiness bridge reads work-loop's dispatch output
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0108 D3 and its errata; RFC-0105 D3's 2026-10-12 erratum; RFC-0106 D1 and D3; RFC-0055; ADR-0074.
   - `docs/specs/intent-view-readiness-handover/spec.md` and `plan.md`: the Shipped contract this spec amends, its terms, and its test and browser-check layout.
@@ -123,3 +123,5 @@ Owned by: T6
 ## Changelog
 
 - 2026-10-29: spec and plan approved by eugenelim at `67addcade`.
+- 2026-10-29: spec re-approved by eugenelim at `b1f1a0528` after the controlled amendment.
+- 2026-10-29: plan re-approved by eugenelim at `b1f1a0528` after the controlled amendment.
