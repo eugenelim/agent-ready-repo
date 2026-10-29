@@ -68,3 +68,12 @@ Every difference falls under a case that the [`header-derived-dispatch`](../../h
 | Target | Wording | Approval |
 | --- | --- | --- |
 | `cooled_child_scope_unknown` next action (AC-0005): `packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py`, its packaged copy, `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`, `packs/core/.apm/skills/workspace-status/SKILL.md`, `guides/core/reference/workspace-toml-schema.md` | "Set parent on the spec's lifecycle record: a resolving brief path, or none only when that spec has no parent brief; a tracker-origin entry declares source.parent instead." | eugenelim (owner), 2026-10-29T14:31-05:00 |
+| `docs/rfc/0064-ini-001-ai-native-ecosystem.md` § Errata, Current state row 13 and History (AC-0027) | the 2026-10-29 "Spec writer rows stop registering repo-origin specs" entry, as shown to the owner | eugenelim (owner), 2026-10-29T15:19-05:00 |
+| `docs/rfc/0106-stop-registering-derivable-work.md` § Errata (AC-0027) | the 2026-10-29 spec registration stop entry: the spec entry removal, the readiness bridge's first-ready mark, tracker-origin | eugenelim (owner), 2026-10-29T15:19-05:00 |
+| `docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md` § Errata (AC-0027) | the 2026-10-29 "Revisit if (1) met" entry | eugenelim (owner), 2026-10-29T15:19-05:00 |
+| `docs/adr/0076-briefs-persist-dispatch-starts-from-specs.md` new § Errata (AC-0027) | the 2026-10-29 "D3, D4, D6 and D7 read through a spec's own headers" entry | eugenelim (owner), 2026-10-29T15:19-05:00 |
+| `docs/product/intents/FEAT-0005-lifecycle-and-closure.md` amendment (AC-0028) | "no terminal registration move for a repo-origin spec" | eugenelim (owner), 2026-10-29T15:19-05:00 |
+| `docs/product/intents/FEAT-0007-work-item-promotion-routing.md` amendment (AC-0028) | "the start and remember routes register no repo-origin spec" | eugenelim (owner), 2026-10-29T15:19-05:00 |
+| `docs/product/AGENTS.md` § Status has one home (AC-0029) | "A spec's own `Brief:` header is the confirmation evidence…" | eugenelim (owner), 2026-10-29T15:19-05:00 |
+| `docs/product/briefs/agent-skill-engineering.md` (AC-0030) | the three registration phrases rewritten as shown | eugenelim (owner), 2026-10-29T15:19-05:00 |
+| `docs/product/briefs/workspace-registry-retirement-delivery.md` Non-goals (AC-0045) | "…adds, removes or rewords a finding code…" | eugenelim (owner), 2026-10-29T15:19-05:00 |
