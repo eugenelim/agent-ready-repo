@@ -6,8 +6,21 @@ with a code its fence declares as red. Red proof belongs to the task and its
 stub digest. When the stub bytes are already in ``HEAD`` (the task was revised
 after its stub commit), the supervisor runs them on a scratch copy of ``HEAD``
 and commits a ``red`` step itself. A stub that already passes is refused with
-``stub-not-red``; the plan author makes the ``stub`` fence fail for the
-intended reason or removes it. A task with no stubs needs no red proof.
+``stub-not-red``. When that refusal answers a worker's ``write-stub`` result and
+the attempt checks and the post-launch check find no difference, the attempt
+closes: the files the attempt and its launch changed are discarded, nothing from
+the result is committed, and the supervisor records in its store that a named
+human's confirmation is owed. The next change to a trusted file is then opened
+as a ``human-decision`` with its diff instead of being committed as a replan, so
+the plan author fixes the fence (fails for the intended reason, moves, or is
+removed) and a human confirms those exact bytes. A decline commits nothing:
+``next`` refuses until the trusted files match ``HEAD`` again, whatever they hold
+meanwhile. Restoring them brings back the fence that was not red, so ``next``
+reissues ``write-stub`` and the stub runs again; only after that attempt is refused
+and closed again does a different fence edit open a new confirmation. A file the
+discard could not remove is listed in the refusal and blocks the next step until the
+controller removes it or restores it to ``HEAD``. The recovery lifecycle lives in
+``_supervisor_recovery``. A task with no stubs needs no red proof.
 
 Standard library only. Python 3.11+.
 """
@@ -200,13 +213,35 @@ def _all_red(task: dict[str, Any], observed: list[tuple[str, int | None]]) -> bo
     return all(code is not None and code in by_path[path]["red_exit"] for path, code in observed)
 
 
-def _not_red(task: dict[str, Any], observed: list[tuple[str, int | None]]) -> Any:
+def _not_red(
+    task: dict[str, Any],
+    observed: list[tuple[str, int | None]],
+    leftovers: dict[str, str] | None = None,
+    *,
+    closed: bool = False,
+) -> Any:
     detail = ", ".join(f"{p} exited {c}" for p, c in observed)
+    message = f"{task['position']} stubs are not red ({detail}); "
+    if not closed:
+        return Refusal(
+            "stub-not-red",
+            "plan author",
+            message + "make the `stub` fence fail for the intended reason or remove it",
+        )
+    message += "the attempt is closed and nothing from it is committed. "
+    if leftovers:
+        message += (
+            "These files could not be discarded and must be removed or restored to "
+            "HEAD before the run continues: " + _loop._attempt._named(leftovers) + ". "
+        )
+    else:
+        message += "Its files are discarded. "
     return Refusal(
         "stub-not-red",
         "plan author",
-        f"{task['position']} stubs are not red ({detail}); make the `stub` fence "
-        "fail for the intended reason or remove it",
+        message + "Make the `stub` fence fail for the intended reason, move it, or remove it: "
+        "the next `next` shows that plan change and its diff for a named human to confirm "
+        "or decline before it is committed",
     )
 
 
@@ -280,7 +315,10 @@ def report_task(
         with ws.attempts.launched(state, f"stub:{task['task_id']}:{task['stub_digest']}"):
             observed = observe(ws, task, overlay)
         if not _all_red(task, observed):
-            raise _not_red(task, observed)
+            leftovers = _supervisor("_supervisor_recovery.py").close_not_red(
+                ws, state, request["request_id"], changed
+            )
+            raise _not_red(task, observed, leftovers, closed=True)
         evidence = ws.evidence_append([_red_receipt(ws, state, step, task)])
         ws.git.build_commit(
             run_id=state.run_id,

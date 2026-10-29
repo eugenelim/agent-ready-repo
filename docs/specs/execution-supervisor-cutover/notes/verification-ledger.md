@@ -49,3 +49,41 @@ fresh receipts when they start.
 AC-0013's active signal is exposed as `run_active` in `workspace_status`,
 because `workspace_status` already returns an `active` list of resumable specs
 and a same-named field would overwrite it.
+
+## T2: AC-0026 extends two delivery contracts additively
+
+AC-0026's replan confirmation is a `human-decision` request and result, and
+`contracts/delivery/execution-request.v1` and `execution-result.v1` set
+`additionalProperties: false`. The request gains an optional `diff` string; the
+result's decision enum gains `confirm-replan` and `decline-replan`, shaped like
+`reselect-review` (a `selection_key`, no `finding_ids`). Every record that
+validated before still validates, so the schemas stay v1. The owner, eugenelim,
+approved amending the spec's `Contract:` line for this on 2026-10-29.
+
+## T2: AC-0026 red proof
+
+Command, before production code:
+`WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_tdd.py -q`
+Result: 9 failed, 12 passed. The closure test failed because the refused stub
+file stayed in the tree, and each recovery test failed with `attempt-residue`
+on `docs/specs/calc/plan.md`, today's behaviour. The 12 passing cases are the
+existing suite plus three regression guards that hold before and after.
+
+## T2: the supervisor store is the trust root for the owed confirmation
+
+The owed confirmation lives in `recovery.json` in the run store under the Git
+directory. AC-0026 requires that deleting the journal, `run.json`, or
+`security-events.jsonl` cannot clear it, and the code meets that. A writer that
+can delete records in the Git-directory store itself could clear it, but that
+store is the attempt-security trust root, and protecting it is outside this
+spec. The security reviewer's AC-0026 pass recorded this as out of scope.
+
+## Deferred review Nits (T2, AC-0026 slice)
+
+- Quality, Nit: the `close_not_red` docstring says a retry repeats the steps, but a crash after discard needs the reissued `write-stub` redone. Status: deferred.
+- Quality, Nit: when `close_not_red` is a no-op, the `stub-not-red` text still says the attempt closed. Status: deferred.
+- Quality, Nit: the authority and digest refusal test asserts only the exit code. Status: deferred.
+- Quality, Nit: a comment in the local-state wipe test sits above the wrong line. Status: deferred.
+- Quality, Nit: `exempt=True` makes `_refuse_protected_change` read as a skipped check. Status: deferred.
+- Quality, Nit: a leftover at a path that is a symlink in HEAD never clears, because `_at_head` matches only regular files or absence. It fails closed. Status: deferred.
+- Security, Not checked: two older `unexpected-change` refusals in `_supervisor_loop.py` still join paths without `_named`; they predate this change. Status: deferred.

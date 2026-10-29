@@ -191,7 +191,9 @@
           "type": "string",
           "enum": [
             "reselect-review",
-            "accept-risk"
+            "accept-risk",
+            "confirm-replan",
+            "decline-replan"
           ]
         },
         "authority_ref": {
@@ -220,7 +222,11 @@
         {
           "properties": {
             "decision": {
-              "const": "reselect-review"
+              "enum": [
+                "reselect-review",
+                "confirm-replan",
+                "decline-replan"
+              ]
             }
           },
           "required": [
