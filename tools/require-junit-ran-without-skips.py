@@ -17,6 +17,7 @@ from pathlib import Path
 def check(report: Path) -> list[str]:
     """Return the reasons the report does not prove the suite ran, or an empty list."""
     try:
+        # nosemgrep: python.lang.security.use-defused-xml-parse.use-defused-xml-parse  # trusted
         root = ET.parse(report).getroot()  # noqa: S314  # nosec B314  # parses the JUnit report this workflow's own pytest step writes
     except (OSError, ET.ParseError) as exc:
         return [f"cannot read {report}: {exc}"]
