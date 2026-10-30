@@ -154,3 +154,4 @@
 | 0150 | [The TDD red test is written at EXECUTE, and mechanism lives in the plan's design, not the contract](0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md) | Accepted | 2026-10-27 |
 | 0151 | [After the whole-plan lock retires, the stub fence is a task-start revision and an implementation-discovered means is a working-plan change](0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md) | Accepted | 2026-10-28 |
 | 0152 | [Confined writes are path-checked on hosts without descriptor walking, and the one race they leave is accepted](0152-path-checked-confined-writes-on-hosts-without-descriptor-walking.md) | Accepted | 2026-10-29 |
+| 0153 | [The work-loop product result is a protected Git ref that only the supervisor advances by compare-and-swap](0153-work-loop-product-result-is-a-protected-ref.md) | Proposed | 2026-10-30 |

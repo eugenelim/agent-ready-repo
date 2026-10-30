@@ -8,7 +8,7 @@
 - **Supersedes:** ADR-0125
 - **Supersedes in part:** ADR-0061 D1,D2,D8; ADR-0064 D1,D2,D5,D6
 - **Superseded by:** none
-- **Superseded in part:** ADR-0151 D3,D11
+- **Superseded in part:** ADR-0151 D3,D11; ADR-0153 D9
 - **Related:** RFC-0028 (the TDD stub vehicle this keeps — stubs still live in the plan's task `Tests:`, and the guard here enforces what that RFC left to prose); ADR-0014 (light mode runs no engine — unchanged here); ADR-0005 (parallel-write gating — untouched; Slice 7 owns it); ADR-0042 / ADR-0047 (which reviewers run — unchanged in meaning, now expressed as review-policy data); FEAT-0036 (the review-gate cutover this record absorbs); ADR-0115 (the telemetry exporter — unaffected, because it reads the same event file shape)
 
 ## Decision summary
