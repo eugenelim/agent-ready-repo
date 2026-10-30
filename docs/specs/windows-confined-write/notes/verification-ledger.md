@@ -44,3 +44,7 @@ exactly the bytes supplied.
 ## Evals
 
 No work-loop eval covers the confined-mutation helper.
+
+## Deferred nits
+
+Deferred Nit (security review): superscript device names (COM¹ to COM³, LPT¹ to LPT³) are outside AC-0004's list. A device target still fails the regular-file check before any byte. Status: deferred.

@@ -612,13 +612,18 @@ def _untrusted_unsafe_host_refusal(
     admission = _supervisor("_supervisor_admission.py")
     if admission.sibling("_confined_mutation.py").race_free_mutation():
         return None
-    trust = (
-        args.code_trust
-        if args.verb == "start"
-        else admission.committed_code_trust(workspace)
-    )
+    cause = ""
+    if args.verb == "start":
+        trust: str | None = args.code_trust
+    else:
+
+        def log_git_error(exc: Any) -> None:
+            if exc.unverifiable:
+                _log_unverifiable(workspace, exc.code)
+
+        trust, cause = admission.committed_code_trust(workspace, log_git_error)
     try:
-        admission.refuse_untrusted_on_unsafe_host(trust)
+        admission.refuse_untrusted_on_unsafe_host(trust, cause)
     except admission.Refusal as exc:
         return exc.as_dict()
     return None

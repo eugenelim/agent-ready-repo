@@ -381,32 +381,50 @@ def _status_refusals(ws: Workspace, spec_text: str, plan_text: str, intent: str)
         )
 
 
-def committed_code_trust(ws: Workspace) -> str | None:
-    """The ``code_trust`` of the latest approval pair at ``HEAD``, or ``None`` when undetermined.
+def committed_code_trust(
+    ws: Workspace,
+    on_git_error: Callable[[Any], None] | None = None,
+) -> tuple[str | None, str]:
+    """``(trust, cause)``: the ``code_trust`` of the latest approval pair at ``HEAD``.
 
-    Read through the hardened Git helper, so the working copy never counts. A
-    file that is absent, unreadable, or malformed, or that has no parseable
-    latest pair, is undetermined.
+    Read through the hardened Git helper, so the working copy never counts. When
+    the trust cannot be determined, *trust* is ``None`` and *cause* names why:
+    the file is absent, malformed, or unreadable, the value is unknown, or Git
+    failed (*on_git_error* is called with that failure first). A determined
+    trust has an empty *cause*.
     """
     try:
         approvals = ws.approvals()
-    except Exception:  # noqa: BLE001 - any failure to read the record leaves it undetermined
-        return None
+    except _git.SupervisorGitError as exc:
+        if on_git_error is not None:
+            on_git_error(exc)
+        return None, f"a Git error ({exc.code})"
+    except Refusal:
+        return None, "approvals.jsonl is malformed"
+    except Exception:  # noqa: BLE001 - any other failure to read the record leaves it undetermined
+        return None, "approvals.jsonl is unreadable"
     if not approvals:
-        return None
+        return None, "approvals.jsonl is absent at HEAD"
     trust = approvals[-1].get("code_trust")
-    return trust if trust in CODE_TRUST else None
+    if trust not in CODE_TRUST:
+        return None, "the latest approval carries an unknown value"
+    return trust, ""
 
 
-def refuse_untrusted_on_unsafe_host(code_trust: str | None) -> None:
+def refuse_untrusted_on_unsafe_host(code_trust: str | None, cause: str = "") -> None:
     """Refuse untrusted or undetermined code on a host whose writes can race."""
     if code_trust == "trusted" or sibling("_confined_mutation.py").race_free_mutation():
         return
+    why = (
+        'the code trust is "untrusted"'
+        if code_trust == "untrusted"
+        else f'the code trust is "undetermined": {cause or "no cause recorded"}'
+    )
     raise Refusal(
         "untrusted-unsafe-host",
         "owner",
-        "this host cannot make confined writes race-free, so only a run approved as "
-        "trusted may proceed on it",
+        f"{why}; this host cannot make confined writes race-free, so only a run "
+        "approved as trusted may proceed on it",
     )
 
 

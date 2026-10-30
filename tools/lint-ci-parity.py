@@ -527,6 +527,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest merge-driver behaviour (AC2-AC4)":
         LOCAL("test-after-build-check"),
+    "pytest JUnit no-skip gate checker (windows-confined-write)":
+        LOCAL("test-after-build-check"),
     "Pull-request template installer and release checker":
         LOCAL("test-after-build-check"),
         "pytest guides sidebar generation":
@@ -1053,6 +1055,7 @@ _GATE_MAIN_CHECKS = (
     "pytest import-time path leaks (collector sys.path guard)",
     "pytest gitattributes merge-driver scope (AC1)",
     "pytest merge-driver behaviour (AC2-AC4)",
+    "pytest JUnit no-skip gate checker (windows-confined-write)",
     "Pull-request template installer and release checker",
     "pytest guides sidebar generation",
     "pytest journey editorial decisions",
@@ -1734,6 +1737,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Tests a maintainer-run comparison that has no CI job by owner decision "
             "(FEAT-0034 Registry comparison). `make test` runs it; CI reaches it "
             "through the dispatch-only test-corpus.yml."
+        ),
+    'tools/test_require_junit_ran_without_skips.py':
+        PR_GATED(
+            "build-check.yml / gate-main / "
+            "pytest JUnit no-skip gate checker (windows-confined-write)"
         ),
     'tools/test_replay_dispatch.py':
         NO_PR_GATE(

@@ -173,12 +173,21 @@ LEXICAL = [
 ]
 
 
+def _lexical_target(root: Path, form: str) -> Path:
+    """The target the module is given for one lexical form, never a pathlib join.
+
+    A join reinterprets drive-relative and rooted forms, and pathlib folds a
+    doubled separator, so a form that starts with two backslashes (UNC, device,
+    extended-length) is passed as the whole target; every other form is
+    appended to the root as raw text on whatever drive the runner uses.
+    """
+    return Path(form) if form.startswith("\\\\") else Path(str(root) + "\\" + form)
+
+
 @pytest.mark.parametrize("op", OPS)
-@pytest.mark.parametrize("relative", LEXICAL)
-def test_lexical_forms_refused(root: Path, op: str, relative: str) -> None:
-    # A form that replaces the root when joined (drive, UNC, device) is outside it,
-    # which refuses the same way; the rest reach the lexical checks.
-    assert _denial(op, root, root / relative) == "denied-path-violation"
+@pytest.mark.parametrize("form", LEXICAL)
+def test_lexical_forms_refused(root: Path, op: str, form: str) -> None:
+    assert _denial(op, root, _lexical_target(root, form)) == "denied-path-violation"
     assert _names(root) == []
 
 

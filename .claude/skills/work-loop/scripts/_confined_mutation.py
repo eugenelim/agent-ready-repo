@@ -142,18 +142,29 @@ def race_free_mutation() -> bool:
     return _host_mode() == "descriptor"
 
 
-def _require_descriptor_walk() -> None:
-    """Refuse before staging any bytes if descriptor walk is unavailable.
+def _prepare(
+    root: Path, path: Path, content: bytes, max_bytes: int | None
+) -> tuple[str, Path, str]:
+    """Choose the host mode once for a call, and return ``(mode, root, relative)``.
 
-    Reads remain safe with path-check fallback; mutations do not because any
-    path component between confinement check and OS write is a race window.
+    Refuses before staging any bytes on a host with neither descriptor walking
+    nor reparse attributes.  Reads remain safe with the path-check fallback;
+    mutations do not there because any path component between the confinement
+    check and the OS write is a race window.
     """
-    if _host_mode() != "descriptor":
+    mode = _host_mode()
+    if mode == "path-checked":
+        root, relative = _pc_relative(root, path)
+    elif mode == "descriptor":
+        relative = _validate_relative_path(root, path)
+    else:
         raise MutationDenied(
             "denied-unsafe-host",
             "confined mutation requires descriptor-bound parent walk; "
             "reads remain safe on this host but mutations are not",
         )
+    _check_size(content, max_bytes, relative=relative)
+    return mode, root, relative
 
 
 def _check_size(content: bytes, max_bytes: int | None, *, relative: str) -> None:
@@ -244,7 +255,7 @@ def _do_temp_write_rename(
 
     try:
         with _fs._open_confined_parent(root, path, relative=relative) as (parent_fd, leaf):
-            # parent_fd is guaranteed non-None: _require_descriptor_walk() passed.
+            # parent_fd is guaranteed non-None: the descriptor mode was chosen.
             if parent_fd is None:
                 # Defensive: should be unreachable; the descriptor-walk gate caught it.
                 raise MutationDenied(
@@ -416,6 +427,39 @@ def _rollback_failed(message: str) -> MutationDenied:
     return MutationDenied("denied-rollback-failed", message)
 
 
+_INVALID_NAME_CHARS: Final[frozenset[str]] = frozenset('<>:"|?*')
+
+
+def _check_component(part: str, whole: str) -> None:
+    """Refuse one path component that is a Windows stream, device, or invalid name."""
+    if part in ("", ".", ".."):
+        raise _violation(f"empty or dot segment in {whole!r}")
+    if part.startswith("\\\\"):
+        raise _violation(f"UNC or device path form refused: {whole!r}")
+    if ":" in part:
+        raise _violation(f"stream or drive form refused: {whole!r}")
+    if _INVALID_NAME_CHARS & set(part) or any(ord(c) < 32 for c in part):
+        raise _violation(f"invalid character in a name refused: {whole!r}")
+    if part.endswith((".", " ")):
+        raise _violation(f"trailing dot or space refused: {whole!r}")
+    if part.split(".", 1)[0].rstrip(" ").upper() in _RESERVED_DEVICES:
+        raise _violation(f"reserved device name refused: {whole!r}")
+
+
+def _lexical_target(path: Path) -> None:
+    """Check the target's own text, every component after the drive anchor.
+
+    Runs before any filesystem call, so it holds even when the root is given in
+    a different form than the target and must be resolved afterwards.
+    """
+    text = os.fspath(path)
+    if text.startswith("\\\\"):
+        raise _violation(f"UNC or device path form refused: {text!r}")
+    parts = path.parts[1:] if path.anchor else path.parts
+    for part in parts:
+        _check_component(part, text)
+
+
 def _lexical_parts(relative: str) -> list[str]:
     """Split a root-relative path into components, refusing Windows-special forms.
 
@@ -427,14 +471,7 @@ def _lexical_parts(relative: str) -> list[str]:
         raise _violation(f"UNC or device path form refused: {relative!r}")
     parts = relative.replace("\\", "/").split("/")
     for part in parts:
-        if part in ("", ".", ".."):
-            raise _violation(f"empty or dot segment in {relative!r}")
-        if ":" in part:
-            raise _violation(f"stream or drive form refused: {relative!r}")
-        if part.endswith((".", " ")):
-            raise _violation(f"trailing dot or space refused: {relative!r}")
-        if part.split(".", 1)[0].rstrip(" ").upper() in _RESERVED_DEVICES:
-            raise _violation(f"reserved device name refused: {relative!r}")
+        _check_component(part, relative)
     return parts
 
 
@@ -523,6 +560,7 @@ def _pc_relative(root: Path, path: Path) -> tuple[Path, str]:
     is *root* resolved, which lets a root passed as a short-name alias match a
     target written in long form. A root that is itself a link is refused.
     """
+    _lexical_target(path)
     try:
         return root, path.relative_to(root).as_posix()
     except ValueError:
@@ -539,6 +577,16 @@ def _pc_relative(root: Path, path: Path) -> tuple[Path, str]:
         return resolved, path.relative_to(resolved).as_posix()
     except ValueError:
         raise outside from None
+
+
+def _remove_if_ours(path: Path, created: tuple[int, int] | None) -> None:
+    """Remove *path* only while it is still the file this call created."""
+    if created is None:
+        return
+    with contextlib.suppress(OSError):
+        info = os.lstat(path)
+        if _identity(info) == created and stat.S_ISREG(info.st_mode):
+            path.unlink()
 
 
 def _call_hook(target: Path) -> None:
@@ -571,9 +619,11 @@ def _pc_create_or_replace(
 
     committed = False
     stage_identity: tuple[int, int] = (0, 0)
+    created: tuple[int, int] | None = None
     try:
         try:
             opened = os.fstat(fd)
+            created = _identity(opened)
             by_path = os.lstat(stage)
             if (
                 _identity(opened) != _identity(by_path)
@@ -627,8 +677,7 @@ def _pc_create_or_replace(
             committed = True
     except BaseException:
         if not committed:
-            with contextlib.suppress(OSError):
-                stage.unlink()
+            _remove_if_ours(stage, created)
         raise
 
     try:
@@ -724,15 +773,8 @@ def confined_create(
     Raises:
         MutationDenied: with a stable denial code on any refusal.
     """
-    path_checked = _host_mode() == "path-checked"
-    if not path_checked:
-        _require_descriptor_walk()
-    if path_checked:
-        root, relative = _pc_relative(root, path)
-    else:
-        relative = _validate_relative_path(root, path)
-    _check_size(content, max_bytes, relative=relative)
-    if path_checked:
+    mode, root, relative = _prepare(root, path, content, max_bytes)
+    if mode == "path-checked":
         _pc_create_or_replace(root, path, content, relative=relative, exclusive=True)
         return
     _do_temp_write_rename(root, path, content, relative=relative, exclusive=True)
@@ -767,15 +809,8 @@ def confined_append(
     Raises:
         MutationDenied: with a stable denial code on any refusal.
     """
-    path_checked = _host_mode() == "path-checked"
-    if not path_checked:
-        _require_descriptor_walk()
-    if path_checked:
-        root, relative = _pc_relative(root, path)
-    else:
-        relative = _validate_relative_path(root, path)
-    _check_size(content, max_bytes, relative=relative)
-    if path_checked:
+    mode, root, relative = _prepare(root, path, content, max_bytes)
+    if mode == "path-checked":
         _pc_append(root, path, content, relative=relative)
         return
 
@@ -894,15 +929,8 @@ def confined_atomic_replace(
     Raises:
         MutationDenied: with a stable denial code on any refusal.
     """
-    path_checked = _host_mode() == "path-checked"
-    if not path_checked:
-        _require_descriptor_walk()
-    if path_checked:
-        root, relative = _pc_relative(root, path)
-    else:
-        relative = _validate_relative_path(root, path)
-    _check_size(content, max_bytes, relative=relative)
-    if path_checked:
+    mode, root, relative = _prepare(root, path, content, max_bytes)
+    if mode == "path-checked":
         _pc_create_or_replace(root, path, content, relative=relative, exclusive=False)
         return
     _do_temp_write_rename(root, path, content, relative=relative, exclusive=False)

@@ -189,3 +189,80 @@ def test_trusted_run_proceeds(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, q
 def test_untrusted_run_proceeds_when_the_host_is_race_free(tmp_path: Path) -> None:
     repo = h.make_repo(tmp_path)
     assert _admit(repo, tmp_path, "untrusted")["status"] == "admitted"
+
+
+# ── the refusal says why ─────────────────────────────────────────────────────
+
+
+def _detail(repo: Path, argv: list[str]) -> str:
+    code, out = h.run_cli(repo, *argv)
+    assert code == 1 and out["refusal"]["code"] == CODE, out
+    return out["refusal"]["detail"]
+
+
+def test_detail_names_untrusted_when_head_says_untrusted(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _admit(repo, tmp_path, "untrusted")
+    _race_free(monkeypatch, query, False)
+    detail = _detail(repo, _argv(repo, "next", tmp_path))
+    assert '"untrusted"' in detail and "undetermined" not in detail
+
+
+def test_detail_names_untrusted_for_start(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _race_free(monkeypatch, query, False)
+    assert '"untrusted"' in _detail(repo, _argv(repo, "start", tmp_path, "untrusted"))
+
+
+def test_detail_names_absent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object) -> None:
+    repo = h.make_repo(tmp_path)
+    _race_free(monkeypatch, query, False)
+    detail = _detail(repo, _argv(repo, "next", tmp_path))
+    assert '"undetermined"' in detail and "absent" in detail
+
+
+def test_detail_names_malformed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _commit_approvals(repo, "{not json\n")
+    _race_free(monkeypatch, query, False)
+    detail = _detail(repo, _argv(repo, "next", tmp_path))
+    assert '"undetermined"' in detail and "malformed" in detail
+
+
+def test_detail_names_unknown_value(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _admit(repo, tmp_path, "trusted")
+    path = repo / h.SPEC_DIR / "delivery" / "approvals.jsonl"
+    path.write_text(path.read_text(encoding="utf-8").replace('"trusted"', '"bogus"'),
+                    encoding="utf-8")
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "tamper")
+    _race_free(monkeypatch, query, False)
+    detail = _detail(repo, _argv(repo, "next", tmp_path))
+    assert '"undetermined"' in detail and "unknown value" in detail
+
+
+def test_git_error_is_named_and_logged_as_unverifiable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _admit(repo, tmp_path, "untrusted")
+    _race_free(monkeypatch, query, False)
+    git_error = h.commit_module.SupervisorGitError
+
+    def broken(self: object, *a: object, **k: object) -> bytes:
+        raise git_error("denied-git-control-state", "control state changed", unverifiable=True)
+
+    monkeypatch.setattr(h.commit_module.GitPort, "show", broken)
+    detail = _detail(repo, _argv(repo, "next", tmp_path))
+    assert '"undetermined"' in detail and "git" in detail.lower()
+    log = (repo / h.SPEC_DIR / ".supervisor" / "security-events.jsonl").read_text(encoding="utf-8")
+    assert "denied-git-control-state" in log
