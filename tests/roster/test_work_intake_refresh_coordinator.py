@@ -2420,19 +2420,19 @@ def test_coordinator_rejects_source_authority_byte_injection(
     assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 
-def test_coordinator_artifact_replace_failure_leaves_both_files_unchanged(
+def test_coordinator_workspace_replace_failure_rolls_back_semantic_pair(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
     original_replace = Path.replace
 
-    def fail_artifact_replace(source: Path, target: Path) -> Path:
-        if source.name.startswith(".spec.md."):
+    def fail_workspace_replace(source: Path, target: Path) -> Path:
+        if source.name.startswith(".workspace.toml."):
             raise OSError("injected")
         return original_replace(source, target)
 
-    monkeypatch.setattr(Path, "replace", fail_artifact_replace)
+    monkeypatch.setattr(Path, "replace", fail_workspace_replace)
 
     result = refresh.coordinate_local_refresh(
         repository_root=fixture["repo"],
@@ -2454,7 +2454,44 @@ def test_coordinator_artifact_replace_failure_leaves_both_files_unchanged(
     assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 
-def test_guarded_pair_write_reports_artifact_replace_failure(
+def test_coordinator_reports_inconsistent_pair_when_rollback_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    calls = 0
+    original_replace = Path.replace
+
+    def fail_commit_and_rollback(source: Path, target: Path) -> Path:
+        nonlocal calls
+        calls += 1
+        if calls >= 2:
+            raise OSError("injected")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_commit_and_rollback)
+    result = refresh.coordinate_local_refresh(
+        repository_root=fixture["repo"],
+        comparison=fixture["comparison"],
+        authority=fixture["authority"],
+        policy=refresh.parse_refresh_authorization_policy(_policy()),
+        approver=_approver(refresh),
+        decisions={"Outcome": "revise-both"},
+        expected_artifact_digest=fixture["artifact_digest"],
+        expected_workspace_digest=fixture["workspace_digest"],
+        artifact_bytes=fixture["proposed_artifact"],
+        workspace_bytes=fixture["proposed_workspace"],
+        now=datetime(2026, 8, 17, tzinfo=UTC),
+    )
+
+    assert result.code == "local_write_inconsistent"
+    assert result.local_mutation == "inconsistent"
+    assert result.as_record()["local_mutation"] != "refused"
+    assert fixture["artifact"].read_bytes() != fixture["before_artifact"]
+    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+
+
+def test_guarded_pair_write_rolls_back_workspace_replace_failure(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     refresh = _load_refresh()
@@ -2469,22 +2506,57 @@ def test_guarded_pair_write_reports_artifact_replace_failure(
 
     original_replace = Path.replace
 
-    def fail_artifact_replace(source: Path, target: Path) -> Path:
-        if source.name.startswith(".spec.md."):
+    def fail_workspace_replace(source: Path, target: Path) -> Path:
+        if source.name.startswith(".workspace.toml."):
             raise OSError("injected")
         return original_replace(source, target)
 
-    monkeypatch.setattr(Path, "replace", fail_artifact_replace)
+    monkeypatch.setattr(Path, "replace", fail_workspace_replace)
     result = refresh.guarded_write_pair(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(before_artifact),
         expected_workspace_digest=refresh.digest_bytes(before_workspace),
         artifact_bytes=b"after artifact\n",
+        workspace_bytes=b"after workspace\n",
     )
     assert result.code == "local_write_failed"
     assert artifact.read_bytes() == before_artifact
     assert workspace.read_bytes() == before_workspace
+
+
+def test_guarded_pair_write_redacts_rollback_failure(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    refresh = _load_refresh()
+    repo = tmp_path / "repo"
+    artifact = repo / "docs/specs/example/spec.md"
+    workspace = repo / "workspace.toml"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text("before artifact\n", encoding="utf-8")
+    workspace.write_text("before workspace\n", encoding="utf-8")
+    calls = 0
+    original_replace = Path.replace
+
+    def fail_commit_and_rollback(source: Path, target: Path) -> Path:
+        nonlocal calls
+        calls += 1
+        if calls >= 2:
+            raise OSError("injected")
+        return original_replace(source, target)
+
+    monkeypatch.setattr(Path, "replace", fail_commit_and_rollback)
+    result = refresh.guarded_write_pair(
+        repository_root=repo,
+        artifact_path="docs/specs/example/spec.md",
+        expected_artifact_digest=refresh.digest_bytes(b"before artifact\n"),
+        expected_workspace_digest=refresh.digest_bytes(b"before workspace\n"),
+        artifact_bytes=b"after artifact\n",
+        workspace_bytes=b"after workspace\n",
+    )
+    assert result.code == "local_write_inconsistent"
+    assert artifact.read_bytes() == b"after artifact\n"
+    assert workspace.read_bytes() == b"before workspace\n"
 
 
 def test_guarded_pair_write_respects_shared_workspace_lock(tmp_path: Path) -> None:
@@ -2504,6 +2576,7 @@ def test_guarded_pair_write_respects_shared_workspace_lock(tmp_path: Path) -> No
         expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
         expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
         artifact_bytes=b"after artifact\n",
+        workspace_bytes=b"after workspace\n",
     )
 
     assert result.code == "lock_busy"
@@ -2512,7 +2585,7 @@ def test_guarded_pair_write_respects_shared_workspace_lock(tmp_path: Path) -> No
     assert workspace.read_text(encoding="utf-8") == "before workspace\n"
 
 
-def test_guarded_write_rechecks_the_workspace_fingerprint_immediately_before_replace(
+def test_guarded_pair_rechecks_both_fingerprints_immediately_before_replace(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -2530,7 +2603,7 @@ def test_guarded_write_rechecks_the_workspace_fingerprint_immediately_before_rep
         nonlocal stage_count
         stage_count += 1
         result = original_mkstemp(*args, **kwargs)
-        if stage_count == 1:
+        if stage_count == 2:
             workspace.write_text("concurrent workspace\n", encoding="utf-8")
         return result
 
@@ -2541,6 +2614,7 @@ def test_guarded_write_rechecks_the_workspace_fingerprint_immediately_before_rep
         expected_artifact_digest=refresh.digest_bytes(b"before artifact\n"),
         expected_workspace_digest=refresh.digest_bytes(b"before workspace\n"),
         artifact_bytes=b"after artifact\n",
+        workspace_bytes=b"after workspace\n",
     )
 
     assert result.code == "fingerprint_mismatch"
@@ -2566,6 +2640,7 @@ def test_guarded_pair_write_preserves_existing_file_modes(tmp_path: Path) -> Non
         expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
         expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
         artifact_bytes=b"after artifact\n",
+        workspace_bytes=b"after workspace\n",
     )
     assert result.code == "written"
     assert artifact.stat().st_mode & 0o777 == 0o640
@@ -2591,6 +2666,7 @@ def test_guarded_pair_write_rejects_symlink_escape(tmp_path: Path) -> None:
         expected_artifact_digest=refresh.digest_bytes(b"outside\n"),
         expected_workspace_digest=refresh.digest_bytes(b"workspace\n"),
         artifact_bytes=b"changed\n",
+        workspace_bytes=b"changed\n",
     )
     assert result.code == "invalid_target"
     assert outside.read_text(encoding="utf-8") == "outside\n"
@@ -2610,6 +2686,7 @@ def test_guarded_pair_write_rejects_stale_fingerprint_and_traversal(tmp_path: Pa
         expected_artifact_digest="0" * 64,
         expected_workspace_digest=refresh.digest_bytes(b"workspace\n"),
         artifact_bytes=b"changed\n",
+        workspace_bytes=b"changed\n",
     )
     traversing = refresh.guarded_write_pair(
         repository_root=repo,
@@ -2617,6 +2694,7 @@ def test_guarded_pair_write_rejects_stale_fingerprint_and_traversal(tmp_path: Pa
         expected_artifact_digest=refresh.digest_bytes(b"workspace\n"),
         expected_workspace_digest=refresh.digest_bytes(b"workspace\n"),
         artifact_bytes=b"changed\n",
+        workspace_bytes=b"changed\n",
     )
     assert stale.code == "fingerprint_mismatch"
     assert traversing.code == "invalid_target"

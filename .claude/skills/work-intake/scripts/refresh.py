@@ -1405,12 +1405,9 @@ def guarded_write_pair(
     expected_artifact_digest: str,
     expected_workspace_digest: str,
     artifact_bytes: bytes,
+    workspace_bytes: bytes,
 ) -> GuardedWriteResult:
-    """Replace an artifact under the shared workspace lock.
-
-    ``workspace.toml`` is never written; its digest is re-checked under the
-    guard so a concurrent workspace change still refuses the write.
-    """
+    """Replace an artifact and workspace file under the shared workspace lock."""
 
     temp_paths: list[Path] = []
     artifact: Path | None = None
@@ -1418,6 +1415,10 @@ def guarded_write_pair(
     lock_path: Path | None = None
     lock_fd = -1
     lock_acquired = False
+    before_artifact = b""
+    before_workspace = b""
+    artifact_replaced = False
+    workspace_replaced = False
     try:
         resolved_root = repository_root.resolve(strict=True)
         if not resolved_root.is_dir():
@@ -1462,6 +1463,7 @@ def guarded_write_pair(
             return staged
 
         staged_artifact = stage(artifact, artifact_bytes)
+        staged_workspace = stage(workspace, workspace_bytes)
 
         # Authenticate both exact targets again after staging, immediately
         # before the first replacement. Cooperative writers are serialized by
@@ -1479,11 +1481,28 @@ def guarded_write_pair(
         ):
             return GuardedWriteResult("fingerprint_mismatch")
         staged_artifact.replace(artifact)
+        artifact_replaced = True
         temp_paths.remove(staged_artifact)
+        staged_workspace.replace(workspace)
+        workspace_replaced = True
+        temp_paths.remove(staged_workspace)
         return GuardedWriteResult("written")
     except RefreshRefusal:
         return GuardedWriteResult("invalid_target")
     except OSError:
+        try:
+            if artifact is not None and artifact_replaced:
+                staged_artifact = stage(artifact, before_artifact)
+                staged_artifact.replace(artifact)
+                temp_paths.remove(staged_artifact)
+            if workspace is not None and workspace_replaced:
+                staged_workspace = stage(workspace, before_workspace)
+                staged_workspace.replace(workspace)
+                temp_paths.remove(staged_workspace)
+        except OSError:
+            # A failed rollback leaves the reviewed pair inconsistent.  Do
+            # not report this as the recoverable, clean-rollback outcome.
+            return GuardedWriteResult("local_write_inconsistent")
         return GuardedWriteResult("local_write_failed")
     finally:
         for path in temp_paths:
@@ -1570,13 +1589,15 @@ def write_remote_action_receipt(
         else:
             raise RefreshRefusal("invalid_remote_receipt")
         updated_text = _replace_source_authority(current_text, updated)
-        # The guard also authenticates an unchanged workspace fingerprint.
+        # The paired guard also authenticates an unchanged workspace fingerprint,
+        # while the exact original workspace bytes are written back unchanged.
         result = guarded_write_pair(
             repository_root=resolved_root,
             artifact_path=artifact_path,
             expected_artifact_digest=expected_artifact_digest,
             expected_workspace_digest=expected_workspace_digest,
             artifact_bytes=updated_text.encode("utf-8"),
+            workspace_bytes=current_workspace,
         )
         if result.code != "written":
             return RemoteReceiptWriteResult(result.code)
@@ -2057,6 +2078,7 @@ def coordinate_local_refresh(
         expected_artifact_digest=expected_artifact_digest,
         expected_workspace_digest=expected_workspace_digest,
         artifact_bytes=committed_artifact_bytes,
+        workspace_bytes=workspace_bytes,
     )
     if write_result.code != "written":
         local_mutation = (
