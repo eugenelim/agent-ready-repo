@@ -47,7 +47,7 @@ Someone working on a GitHub pull request gets one skill that reviews another per
 - Review, iterate, and adopt each load their own procedure only when chosen — `references/review.md`, `references/iterate.md`, `references/adopt.md`. There is no general `gh` command reference; a command appears only where a mode needs it.
 - Review mode drafts findings, then after approval creates one pending review; submitting a verdict is a separate choice the user names.
 - Adopt mode evaluates a contributor's PR; if the user likes it, they approve one adoption contract and the agent fixes, pushes, and merges inside it.
-- Seventeen behavioural eval cases with canned `gh` output, plus a recorded cold-context graded run — `evals/`, `notes/eval-run.md`.
+- Twenty behavioural eval cases with canned `gh` output, plus a recorded cold-context graded run — `evals/`, `notes/eval-run.md`.
 - Pack metadata, README, journey, how-to guide, census, and changelog fragment describe all three modes — `packs/github/`, `guides/github/`, `docs/product/changelog.d/`.
 
 ## Durable Outputs
@@ -55,7 +55,7 @@ Someone working on a GitHub pull request gets one skill that reviews another per
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Three modes change what the pack offers | `packs/github/README.md`, `guides/github/how-to/` | pack maintainer | README and guide name all three modes and the approval rule | Both read as one story |
-| Journey | Pack journey lists skills and gates | `packs/github/JOURNEY.md`, generated `web/src/content/journeys/github.md` | pack maintainer | `build-site --journeys-only` leaves no diff | Generated file matches source |
+| Journey | Pack journey lists skills and gates | `packs/github/JOURNEY.md`, generated `web/src/content/journeys/github.md` | pack maintainer | `build-site --journeys-only` changes only the github journey file, and the regenerated `repo-governance` file is restored | Generated file matches source |
 | Interface compatibility | Skill name and pack skill list change | `pack.toml`, `plugin.json`, marketplace file, skill census | pack maintainer | `catalogue verify` ok; census test green | Versions agree at 0.3.0 |
 | Release history | Consumer-visible capability | `docs/product/changelog.d/66c8f467-39f7-4063-8aac-d8d60d42c4c2.md` (rewritten) | pack maintainer | `tools/changelog.py validate` ok | Fragment covers review, iterate, and adopt |
 | Reusable learning | Eval method and its pilot result are reusable | `docs/specs/github-pr/notes/eval-run.md` | implementer | Recorded run with isolation evidence | Note states case results and grader inputs |
@@ -67,7 +67,7 @@ Rules for the agent building this change. How the shipped skill behaves is state
 
 ### Always do
 
-- Update the pack's eval harness and version together with any change under `.apm/`, per `packs/AGENTS.md`.
+- Follow `packs/AGENTS.md` for versions, the eval harness, and shipped-content rules.
 - Record the build against the survey in `notes/github-pr-workflows-survey.md`; a command the survey marks unverified stays out of the skill.
 - Rerun the graded eval run after any change to `SKILL.md` or a reference.
 
@@ -81,14 +81,14 @@ Rules for the agent building this change. How the shipped skill behaves is state
 
 - Add a new top-level directory, a new pack, or Azure DevOps support.
 - Run `gh` against a real repository while building or evaluating this change, other than read-only version and help output.
-- Touch the unrelated `repo-governance` journey file that `build-site` also regenerates.
+- Commit the unrelated `repo-governance` journey file that `build-site` also regenerates.
 
 ## Testing Strategy
 
 - Skill structure, trigger queries, and command safety: TDD with pytest in `packs/github/tests/skills/github-pr/`, because each rule is a string-checkable invariant over the skill text and eval files.
 - Eval case integrity (counts, modes, fixtures, assertions, approval turn): TDD, same suite.
 - Pack metadata consistency: goal-based, using `catalogue verify`, the skill-census test, and `git grep`.
-- Agent behaviour under the skill: graded run by fresh subagents with cold context, because only a model reading the skill can show it holds the approval gate. Each case states the turn at which approval is or is not given; the grader sees only the output and the assertions and judges only actions proposed before that turn. A pilot on 2026-10-30 found the models already resist injected text and pin pushes without the skill, so the run is aimed at acting before approval, running PR code, and the adopt contract.
+- Agent behaviour under the skill: graded run by fresh subagents with cold context, because only a model reading the skill can show it holds the approval gate. Each case states the turn at which approval is or is not given; the grader sees only the output and the assertions and judges only actions proposed before that turn. The run is aimed at acting before approval, running PR code, and the adopt contract; the survey's pilot section records why. A case supplies its later turns by continuing the same subagent, so the model's own first-turn output is what is judged for acting before approval.
 
 ## Acceptance Criteria
 
@@ -100,28 +100,39 @@ Rules for the agent building this change. How the shipped skill behaves is state
 - [ ] The skill description names a trigger phrase for each of review, iterate, and adopt.
 - [ ] `evals/eval_queries.json` marks review, iterate, and adopt phrasings as triggering.
 - [ ] `evals/eval_queries.json` marks opening a PR, merging with no evaluation or adoption request, auto-merge, and Azure DevOps phrasings as not triggering.
-- [ ] The untrusted-data rule names each of: comments, review bodies, titles and descriptions, branch names, commit messages, CI logs, the PR diff, and files the PR adds or changes.
-- [ ] Every `gh` command in the skill and its references carries `--repo <owner>/<repo>` or a repository-qualified API path.
-- [ ] No command block contains `--force`, `--force-with-lease`, `--amend`, `--admin`, `--auto`, `gh pr create`, `auth switch`, or `auth token`.
-- [ ] `references/review.md` contains the commands that create a pending review and submit it; `references/iterate.md` contains those that push, reply to a thread, and resolve a thread; `references/adopt.md` contains those that push and merge.
-- [ ] In each mode reference, every command named in the previous criterion appears after that mode's approval step.
-- [ ] Each mode reference states a re-read of the PR head, equal to the recorded commit, immediately before its first mutating command.
+- [ ] The untrusted-data rule in `SKILL.md` names each of: comments, review bodies, titles and descriptions, branch names, commit messages, CI logs, the PR diff, and files the PR adds or changes.
+- [ ] `SKILL.md` forbids running PR-authored code (tests, builds, scripts, hooks) before the approved action list or contract names that run.
+- [ ] Every `gh pr` and `gh run` command in the skill and its references carries `--repo <owner>/<repo>`.
+- [ ] Every REST `gh api` path in the skill and its references is a literal `repos/<owner>/<repo>/...` path with no `{owner}` or `{repo}` placeholder.
+- [ ] Every GraphQL mutation in the skill and its references takes a thread id read in the same run's gather, and every GraphQL query passes the owner and repository name as variables.
+- [ ] No command in the skill or its references, in a code block or inline code, contains `--force`, `--force-with-lease`, `git push -f`, a `+`-prefixed refspec, `--amend`, `--admin`, `--auto`, `gh pr create`, `auth switch`, `auth token`, or a `gh api` path ending in `/merge`.
 - [ ] `gh pr merge` appears only in `references/adopt.md`.
 - [ ] Every `gh pr merge` command carries `--match-head-commit`.
-- [ ] Review mode creates the pending review without an event, and submits it only with an event the user named after seeing the draft.
-- [ ] `references/review.md` and `references/adopt.md` check out PR code detached or in a worktree.
-- [ ] The adoption contract names the starting commit, allowed fix types, push target, gates to run (stated as running PR code), merge method, and merge conditions.
-- [ ] Adopt mode requires the user's explicit approval of the displayed contract, given after the evaluation and the display; approval in the original request does not count.
-- [ ] Adopt mode merges only the last commit the agent itself pushed, after the contract's gates and the required checks completed and passed on that exact commit, with the head re-read equal to it.
-- [ ] Adopt mode stops and asks on each of: a fix outside the allowed types, a third-party push to the head, a failing check unrelated to the change, and the end of the third push round.
-- [ ] Adopt mode stops and reports, with no retry, method change, or fallback, when a merge is refused.
-- [ ] Adopt mode stops with a report when the PR head is not pushable (`maintainerCanModify` false on a cross-repository PR).
-- [ ] `evals/evals.json` holds seventeen cases, each with a mode tag, fixture files, expected output, at least three assertions, and the turn after which approval is or is not given.
-- [ ] The cases include one per adopt stop condition above, one for a refused merge, one for approval given only in the original request in review mode, and one for the same in adopt mode.
-- [ ] A graded run of all seventeen cases by fresh subagents, each given only a cold copy of the skill and its case, passes every assertion; the grader receives only the output and the assertions.
+- [ ] Each mode reference has a heading `## Approved actions`, and every mutating command in that reference appears after it.
+- [ ] `references/review.md` contains `POST repos/<owner>/<repo>/pulls/<n>/reviews` and `.../reviews/<id>/events`; `references/iterate.md` contains `git push`, `addPullRequestReviewThreadReply`, and `resolveReviewThread`; `references/adopt.md` contains `git push` and `gh pr merge`.
+- [ ] `references/review.md` creates the pending review with no `event`.
+- [ ] `references/review.md` submits only with an event the user named after seeing the draft.
+- [ ] Each mode reference states a re-read of the PR head, required equal to the recorded commit, before its first mutating command.
+- [ ] `references/review.md` states the same re-read before it submits a verdict, and `references/adopt.md` before it merges.
+- [ ] Every `gh pr checkout` in `references/review.md` and `references/adopt.md` carries `--detach` or `--worktree`, and each file contains at least one.
+- [ ] `references/adopt.md` runs the contract's gates with `GH_TOKEN` and `GITHUB_TOKEN` unset, and states that they run PR-authored code.
+- [ ] `references/adopt.md` names in the contract the starting commit, allowed fix types, push target, gates to run, merge method, and merge conditions.
+- [ ] `references/adopt.md` requires the user's explicit approval of the displayed contract, given after the evaluation and the display; approval in the original request does not count.
+- [ ] `references/adopt.md` merges the contract's starting commit when the agent pushed nothing, and otherwise the last commit the agent pushed.
+- [ ] `references/adopt.md` merges only after the contract's gates passed on the merge target.
+- [ ] `references/adopt.md` merges only after the required checks completed and passed on the merge target.
+- [ ] `references/adopt.md` stops and reports, with no waiting beyond one re-read, when a required check is still pending after the gates pass.
+- [ ] `references/adopt.md` stops and asks on each of: a fix outside the allowed types, a third-party push to the head, a failing check unrelated to the change, and the end of the third push round.
+- [ ] `references/adopt.md` stops and reports, with no retry, method change, or fallback, when a merge is refused.
+- [ ] `references/adopt.md` stops with a report when the PR head is not pushable (`maintainerCanModify` false on a cross-repository PR).
+- [ ] `evals/evals.json` holds twenty cases, each with a mode tag, fixture files, expected output, at least three assertions, and ordered turns, the first ending at the approval gate and each later turn carrying the user's next message.
+- [ ] The cases include one per adopt stop condition above, a refused merge, a pending required check, a zero-fix adoption, a review head that moves between draft and submit, a fork PR that changes build files in iterate mode, and approval given only in the original request in each of review, iterate, and adopt.
+- [ ] A graded run of all twenty cases by fresh subagents passes every assertion. Each subagent receives only a cold copy of the skill and the case's scenario prompt and fixtures, with no expected output or assertions, and later turns are supplied by continuing the same subagent. The grader receives only the output and the assertions.
 - [ ] `notes/eval-run.md` lists each case with pass or fail and, for each run copy, the kept files and an empty `find -type d -name evals` result.
 - [ ] `notes/eval-run.md` shows zero shell and network tool calls in every case subagent's transcript.
-- [ ] `pack.toml`, `plugin.json`, and the marketplace file give the pack version 0.3.0, and `[pack.evals].skills` lists `github-pr`.
+- [ ] `notes/eval-run.md` records one digest of the skill copy it ran, equal to the digest of the shipped skill text.
+- [ ] `pack.toml`, `plugin.json`, and the marketplace file give the pack version 0.3.0.
+- [ ] `[pack.evals].skills` in `pack.toml` lists `github-pr`.
 - [ ] `git grep -l github-pr-iterate` on the working tree lists only paths under `docs/specs/github-pr/`.
 - [ ] The changelog fragment names the review, iterate, and adopt modes.
 - [ ] `make lint-ruff lint-mypy`, `agentbundle catalogue verify`, and the `packs/github` and skill-census tests pass.
@@ -135,4 +146,5 @@ none
 - Adopt mode rests on inference. The survey found no prior art for evaluate-then-carry-to-merge (finding 23), and the bounded-contract design is the author's synthesis (finding 25). Decider: the user, who requested the mode.
 - The graded run checks that a model reading the skill proposes the right actions at the right turn; it does not check runtime ordering against live GitHub. A later throwaway-PR run would. Decider: the user.
 - The minimum `gh` version (2.40) is a conservative guess and the first release with `--match-head-commit` is unchecked. Settled by: the pack maintainer reading `gh` release notes.
-- Whether pushing to a fork branch needs only `maintainerCanModify` is unverified. The skill treats a false value as replies-only in review and iterate and as a stop in adopt. Settled by: GitHub's "allowing changes to a pull request branch" page.
+- Withholding `GH_TOKEN` and `GITHUB_TOKEN` does not hide credentials held in the OS keyring. A user who needs stronger isolation runs the gates in a sandbox. Decider: the user.
+- Whether pushing to a fork branch needs only `maintainerCanModify` is unverified. Adopt mode treats a false value as a stop. Settled by: GitHub's "allowing changes to a pull request branch" page.

@@ -44,7 +44,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 
 ## Constraints
 
-Pack rules in `packs/AGENTS.md` apply: version bump with `.apm/` changes, no repository-internal citations in shipped text, eval harness updated with the pack. Pack tests may not read `guides/`. The survey in `notes/github-pr-workflows-survey.md` grounds command names; adopt mode rests on inference and the spec records that.
+`packs/AGENTS.md` applies. Pack tests may not read `guides/`. The survey in `notes/github-pr-workflows-survey.md` grounds command names; adopt mode rests on inference and the spec records that.
 
 ## Construction tests
 
@@ -56,7 +56,7 @@ Pack rules in `packs/AGENTS.md` apply: version bump with `.apm/` changes, no rep
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | User-facing promise: README, guide | T3 | README and guide diff | all three modes named |
-| Journey and generated web copy | T3 | `build-site --journeys-only` clean | generated file matches source |
+| Journey and generated web copy | T3 | `build-site --journeys-only` diff limited to the github journey | generated file matches source |
 | Interface compatibility: manifests, census | T3 | `catalogue verify`, census test | versions agree at 0.3.0 |
 | Release history: changelog fragment | T3 | `tools/changelog.py validate` | fragment covers all three modes |
 | Reusable learning: eval run record | T5 | `notes/eval-run.md` | grader inputs and isolation evidence present |
@@ -69,17 +69,17 @@ Pack rules in `packs/AGENTS.md` apply: version bump with `.apm/` changes, no rep
 - **The approval gate binds an action list to a head commit.** Each mode records `headRefOid` at gather time and re-reads it before its first mutating command. Owned by: T1. Rests on: `headRefOid` is readable (survey finding on `gh pr view --json`).
 - **Review uses the REST pending review.** `POST .../pulls/{n}/reviews` without `event` creates it; submit is a separate call. Owned by: T1. Basis: survey findings 1 and 2.
 - **Iterate replies and resolves through GraphQL thread mutations.** Owned by: T1. Basis: survey findings 9 and 10.
-- **Adopt is a bounded standing approval.** The contract is shown after evaluation and approved explicitly. The agent loops up to three push rounds. The merge pins `--match-head-commit` to the last commit the agent pushed, after the contract's gates and required checks passed on that exact commit and the head re-read equals it. A refused merge stops and reports. Owned by: T1. Basis: survey findings 19, 24, 25; `gh pr merge --help` on gh 2.103.2.
+- **Adopt is a bounded standing approval.** The contract is shown after evaluation and approved explicitly. The agent loops up to three push rounds, runs gates with `GH_TOKEN` and `GITHUB_TOKEN` unset, and merges the starting commit (no fixes) or the last commit it pushed, pinned with `--match-head-commit`, after gates and required checks passed on it and the head re-read equals it. A pending check, a refused merge, or any stop condition stops and reports. Owned by: T1. Basis: survey findings 19, 24, 25; `gh pr merge --help` on gh 2.103.2.
 - **No `gh` command reference and no helper script.** Models already know `gh` (pilot); a script would add a dependency surface (cut-before-adding rung 1). Owned by: T1.
-- **Evals are one-shot transcripts with a stated approval turn.** Each case gives the subagent a scenario with canned read outputs and names the turn after which approval is or is not given; the grader judges only actions proposed before that turn. This checks that a model reading the skill proposes the right actions, not runtime ordering. Subagents get no shell: the record counts tool calls per transcript and requires zero shell or network calls. Owned by: T2, T5.
+- **Evals are scripted turns.** Each case holds ordered turns. Turn 1 is the request plus canned read outputs and ends at the approval gate; later turns carry the user's next message and are sent by continuing the same subagent, so the model's own turn-1 output is judged for acting before approval. Subagents get no shell: the record counts tool calls per transcript. The run copy's digest is recorded and compared with the shipped skill. This checks that a model reading the skill proposes the right actions, not runtime ordering. Owned by: T2, T5.
 
 ## Tasks
 
 ### T1: the three-mode skill meets its structural and safety contract
 **Depends on:** none
-**Touches:** packs/github/.apm/skills/github-pr/**, packs/github/tests/skills/github-pr/**
+**Touches:** packs/github/.apm/skills/github-pr-iterate/**, packs/github/.apm/skills/github-pr/**, packs/github/tests/skills/github-pr-iterate/**, packs/github/tests/skills/github-pr/**
 **Tests:**
-- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`: the structure criteria (line limit, links, load-only-chosen, table of contents, description size and triggers), the command-safety criteria (`--repo`, forbidden strings, mutating commands present and after the approval step, head re-read, `gh pr merge` placement and pin, detached checkout), and the review and adopt content criteria (pending review then named event, contract fields, post-display approval, merge-pin wording, four stop conditions, refused-merge stop, not-pushable stop).
+- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion group: structure, trust and untrusted-data (checked within that rule's own section of `SKILL.md`), command safety, and the review and adopt content criteria. The `## Approved actions` heading is the marker each mode test measures mutating commands against.
 **Approach:** `git mv` the skill directory and the test folder to the new name, write the tests red, then the skill text.
 **Done when:** the T1 test file is green and `git grep -l github-pr-iterate` outside this spec directory returns nothing for the skill and test paths.
 
@@ -88,14 +88,14 @@ Pack rules in `packs/AGENTS.md` apply: version bump with `.apm/` changes, no rep
 **Touches:** packs/github/.apm/skills/github-pr/evals/**, packs/github/tests/skills/github-pr/test_evals.py
 **Tests:**
 - TDD, pytest at `packs/github/tests/skills/github-pr/test_evals.py`: the eval-case and trigger-query criteria, including the case-coverage criterion for the four stop conditions, the refused merge, and the two original-request-only approval cases.
-**Approach:** cases — review: normal, injection in description, approval only in the original request, PR edits `AGENTS.md`; iterate: normal, partial approval, comment injection, head moved, gate failure after an approved edit; adopt: happy path to merge, approval only in the original request, fix outside allowed types, third-party push, unrelated failing check, not pushable, third round spent, merge refused. Fixtures are canned `gh` outputs under `evals/files/<case>/`.
+**Approach:** cases — review (4): normal, injection hidden in the description, approval only in the original request, head moves between draft and submit; iterate (6): normal, partial approval, head moved, gate failure after an approved edit, approval only in the original request, fork PR changing build files; adopt (10): fix then merge, zero-fix merge, approval only in the original request, fix outside allowed types, third-party push, unrelated failing check, not pushable, third round spent, merge refused, required check pending. Fixtures are canned `gh` outputs under `evals/files/<case>/`.
 **Done when:** the T2 test file is green.
 
 ### T3: pack metadata, docs, census, and changelog describe all three modes
 **Depends on:** T1
 **Touches:** packs/github/pack.toml, packs/github/.claude-plugin/plugin.json, packs/github/README.md, packs/github/JOURNEY.md, packs/github/.apm/skills/github-pr/manifest.json, guides/github/**, web/src/content/journeys/github.md, packs/agent-skill-engineering/tests/fixtures/skill-census.json, .claude-plugin/marketplace.json, docs/product/changelog.d/66c8f467-39f7-4063-8aac-d8d60d42c4c2.md
 **Tests:**
-- Goal-based: `catalogue verify` ok, skill-census test green, `build-site --journeys-only` leaves no diff beyond the github journey, `tools/changelog.py validate` ok, the fragment text names review, iterate, and adopt.
+- Goal-based: `catalogue verify` ok, skill-census test green, `build-site --journeys-only` changes only the github journey (restore the regenerated `repo-governance` file), `tools/changelog.py validate` ok, the fragment text names review, iterate, and adopt.
 **Done when:** those checks pass.
 
 ### T4: repository gates are green after the rename
@@ -109,9 +109,9 @@ Pack rules in `packs/AGENTS.md` apply: version bump with `.apm/` changes, no rep
 **Depends on:** T4
 **Touches:** docs/specs/github-pr/notes/eval-run.md
 **Tests:**
-- Visual / manual QA: build cold copies of the skill only, with no `evals/` directory; run one fresh subagent per case with no shell; extract each `SubagentHandback` verbatim; grade with a separate subagent given only the output and the assertions; record per-case results, per-copy kept files, an empty `find -type d -name evals` result, and zero shell or network tool calls per transcript in `notes/eval-run.md`.
-**Approach:** a failed assertion sends its cause back to T1 and the affected cases rerun; the record keeps the final run.
-**Done when:** `notes/eval-run.md` shows all seventeen cases passing with the isolation evidence.
+- Visual / manual QA: the graded-run and run-record criteria, executed by the controller with cold copies of the skill and no `evals/` directory, one fresh subagent per case, each `SubagentHandback` extracted verbatim.
+**Approach:** any change to the skill text after a run sends the work back to T1 and reruns T4 and all twenty cases; the record keeps only a run whose digest equals the shipped skill.
+**Done when:** `notes/eval-run.md` shows all twenty cases passing with the isolation evidence and matching digest.
 
 ## Changelog
 
