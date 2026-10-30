@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** ADR-0153 governs once Accepted; ADR-0144 D11 stands.
+- **Repository anchors:** ADR-0153 governs once Accepted; it supersedes ADR-0144 D9 and D11 in part.
   - **Commit builder:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`
     (`GitPort.build_commit` moves `HEAD` by `update-ref HEAD new old`, with
     kill points `commit-built`, `head-moved`, `synced`; `record_made` and
@@ -184,9 +184,11 @@ applies:
 | State | Attempt open | Action |
 | --- | --- | --- |
 | No recorded product ref, no approval at `HEAD` | either | `start` records and creates it in the approval transaction |
-| No recorded product ref, approvals at `HEAD` | no | AC-0006: create at `HEAD` when it is the latest made commit, else `history-adoption` |
-| No recorded product ref, approvals at `HEAD` | yes | wait: no ref change until the attempt closes |
-| Ref missing, symbolic, or not the recorded or pending value | either | `product-ref-diverged` (AC-0005) |
+| `extensions.refStorage` is not `files` | either | `start` refuses `unsupported-ref-storage` (AC-0022); later verbs refuse the same |
+| No recorded product ref, approvals at `HEAD` | no | AC-0006: create at `HEAD` when it is the latest made commit, else `history-adoption` against the latest made commit |
+| No recorded product ref, approvals at `HEAD` | yes | no ref change; the step that closes the attempt creates the ref at its commit |
+| Ref missing, symbolic, or not the recorded or pending value | no | `product-ref-diverged` (AC-0005) |
+| Same | yes | the attempt guard has already answered (AC-0015) |
 | One ref at the pending commit, the other at the commit before | either | complete the move (AC-0008) and clear pending |
 | `HEAD` = ref | either | continue |
 | Ref descends from `HEAD` through made commits only | no | project forward (AC-0009, AC-0010) |
@@ -244,7 +246,7 @@ Owned by: T1.
 ### T1: The product ref ships in shadow, and every boundary converges
 
 - **Depends on:** none (ADR-0153 Accepted before `start`)
-- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0020, AC-0021; TDD, and goal-based for the corpus and CI.
+- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0020, AC-0021, AC-0022; TDD, and goal-based for the corpus and CI.
 - **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`, `_supervisor_loop.py`, `_supervisor_admission.py`, `_supervisor_attempt.py`, `_supervisor_recovery.py`, `_supervisor_readiness.py`, `work-supervisor.py`, `supervisor-policy.json`, `SKILL.md`, `references/supervisor.md`, `evals/evals.json`; `contracts/delivery/execution-request.v1.schema.json`, `execution-result.v1.schema.json`; `packs/core/tests/skills/work-loop/`; `.github/workflows/catalogue-tooling-ci-gates.yml`, `.github/workflows/build-check-windows.yml`; Core manifests and `docs/product/changelog.md`.
 - **Verification mode:** TDD
 - **Tests:**
@@ -253,26 +255,30 @@ Owned by: T1.
     of the product ref equals `HEAD` and `git symbolic-ref HEAD` still names
     the starting branch; two worktrees admitted from one commit, and one run
     re-admitted after its store is retired, record different names.
-  - **VI-0512 (AC-0003, AC-0004):** the AC-0003 seam moves the product ref to
+  - **VI-0512 (AC-0003, AC-0004):** in `test_supervisor_product_ref.py`, the AC-0003 seam moves the product ref to
     a commit descending from the source commit; `report` refuses
     `integration-conflict`; both refs, the index, and `delivery/` bytes equal
     their pre-report values; `next` answers `attempt-residue`; after the test
     restores the ref, `next` re-issues the same request id and reporting it
     commits the kept bytes.
-  - **VI-0513 (AC-0005, AC-0006):** a deleted, symbolic, rolled-back (to an
+  - **VI-0513 (AC-0005, AC-0006, AC-0022):** in `test_supervisor_product_ref.py`, a deleted, symbolic, rolled-back (to an
     older made commit), and planted (a foreign commit with a forged
     `Supervisor-Product-Ref` trailer) product ref each refuse
     `product-ref-diverged` with a denial line and the recorded value; restoring
     the ref clears it. A trailer-free run pinned to the previous Core crosses
     by `regenerate` and gains its ref; the same run with a foreign commit on
-    top gets `history-adoption`.
-  - **VI-0514 (AC-0008, AC-0009, AC-0010):** `git reset --hard`, `--soft`, and
+    top, and the same run reset to an older made commit, each get
+    `history-adoption`, and an `owner` answer lets each reach `terminal`; a
+    `delivery/` change in that foreign commit refuses adoption. A repository
+    with `extensions.refStorage=reftable` refuses `start` with
+    `unsupported-ref-storage` and has no product ref.
+  - **VI-0514 (AC-0008, AC-0009, AC-0010):** in `test_supervisor_product_ref.py`, `git reset --hard`, `--soft`, and
     `--mixed` two steps back each converge at the next `next` with the
     working tree equal to the ref's tree; a partial transaction (only one ref
     moved) completes, with the attempt open and with it closed; a reset plus
     an edit to a file those steps changed refuses `projection-blocked` and
     leaves the edit's bytes and the index.
-  - **VI-0516 (AC-0011, AC-0012, AC-0013, AC-0014):** the existing rebase
+  - **VI-0516 (AC-0011, AC-0012, AC-0013, AC-0014):** in `test_supervisor_product_ref.py`, the existing rebase
     scenario, an amend that keeps trailers and edits a product file, and a
     controller commit on top each issue `history-adoption` naming the changed
     paths and commit nothing; the amended edit is absent from the ref's tree;
