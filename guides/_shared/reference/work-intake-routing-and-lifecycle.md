@@ -47,10 +47,10 @@ owned.
 
 | Content and evidence | Artifact | Initial membership | Processor | Dispatchable |
 | --- | --- | --- | --- | --- |
-| Minimal opportunity | intent | none for a repo-origin intent; repository backlog for a tracker-origin one | `none` | No |
-| One independently shippable behavior | spec | none for a repo-origin spec (ready once approved with a sibling plan); `work.queue` for a tracker-origin one | `new-spec` | Yes after gates |
-| One coherent outcome needing several specs | brief | none for a repo-origin brief (its `Status: Draft`); `brief_queue.draft` for a tracker-origin one | `author-delivery-brief create` | Yes for drafting; not for implementation |
-| Cross-repository outcome | one linked local brief per repository | none for a repo-origin brief; `brief_queue.draft` for a tracker-origin one | `author-delivery-brief create` | Yes for each local slice |
+| Minimal opportunity | intent | none | `none` | No |
+| One independently shippable behavior | spec | none (ready once approved with a sibling plan) | `new-spec` | Yes after gates |
+| One coherent outcome needing several specs | brief | none (its `Status: Draft`) | `author-delivery-brief create` | Yes for drafting; not for implementation |
+| Cross-repository outcome | one linked local brief per repository | none | `author-delivery-brief create` | Yes for each local slice |
 | Unrelated collection or incoherent view | separate units, view-only result, or Draft with named gaps | none or non-dispatchable Draft | `none` | No |
 | Regression with durable expected-behavior evidence | captured-item file under `docs/product/captured/` | none | `bug-fix` | Yes after context exists |
 | Claimed defect without that evidence | Draft with a named evidence gap | non-dispatchable | `none` | No |
@@ -61,8 +61,7 @@ comment, or previous collection cannot override these routes.
 ## Remember and status
 
 Remember materializes the smallest safe Draft artifact and stops. A repo-origin
-intent or brief is its file alone and gets no registry entry. A spec, and a
-tracker-origin intent or brief, is registered after the artifact exists. A
+intent or brief is its file alone and gets no registry entry. A spec is its file alone too; a tracker-origin brief or spec carries its tracker profile in its own record. A
 remembered defect, design, or research item is written as its own file under
 `docs/product/captured/` and gets no registry entry. Closing it is an edit to
 that file alone.

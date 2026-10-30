@@ -70,8 +70,7 @@ confidentiality question, then continue with the named processor.
 
 ## Refresh registered Jira or Jira Align work
 
-Use refresh only after intake has created and registered a tracker-origin
-artifact:
+Use refresh only after intake has created a tracker-origin artifact whose `source-authority` record carries its tracker profile:
 
 :::tip[YOU SAY]
 Refresh docs/specs/example/spec.md from its registered Jira source. Show every

@@ -83,7 +83,7 @@ packUrl: /packs/linear/
 
 ### 3. Refresh or coordinate later
 
-- **You provide:** the registered tracker-origin artifact to compare.
+- **You provide:** the tracker-origin artifact to compare.
 - **Agent does:** applies lifecycle locks and presents authorized local field
   decisions. Remote coordination remains a separate confirmation.
 - **You decide:** approve local fields, then confirm one exact remote action.

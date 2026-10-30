@@ -50,9 +50,7 @@ Say:
 Remember that export retries need idempotent replay. Do not implement it now.
 ```
 
-The agent creates the smallest safe Draft artifact and stops. A spec or a
-tracker-origin item also gets a non-dispatchable entry; a repo-origin intent or
-brief is its file alone. A defect, design, or research item is the same: the
+The agent creates the smallest safe Draft artifact and stops. It gets no `workspace.toml` entry: an intent, brief or spec is its file alone. A defect, design, or research item is the same: the
 agent writes it as its own file under `docs/product/captured/` and adds no
 entry. Use `work-intake` in new prompts.
 
@@ -78,8 +76,7 @@ only if a prior operation is recorded in `.workspace-migrations.json`.
 
 ## Refresh tracked requirements
 
-Use refresh only when a canonical repository artifact already exists and is
-registered as tracker-origin. Ask for the comparison before any write:
+Use refresh only when a canonical repository artifact already exists and carries a tracker-origin `source-authority` record with a `tracker_profile` table. Ask for the comparison before any write:
 
 ```text
 Refresh docs/specs/export-retention/spec.md from its registered tracker source.

@@ -484,8 +484,9 @@ def test_close_guide_names_the_lifecycle_record_parent() -> None:
     assert "spec's `Brief:` header" in flat
 
 
-# spec-registration-stop AC-0013: the four tracker intake matrices are untouched
-# (a pack test may not read above its own pack, so this repository-level check lives here).
+# spec-registration-stop AC-0013, narrowed by tracker-origin-registration-stop AC-0009: the four
+# tracker intake matrices differ from the base only in the registration fields of an expected
+# route (a pack test may not read above its own pack, so this repository-level check lives here).
 _TRACKER_MATRICES = (
     "packs/atlassian/.apm/skills/jira-brief-intake/evals/files/intake/matrix.json",
     "packs/atlassian/.apm/skills/jira-align-brief-intake/evals/files/intake/matrix.json",
@@ -495,13 +496,20 @@ _TRACKER_MATRICES = (
 
 
 @pytest.mark.parametrize("rel", _TRACKER_MATRICES)
-def test_tracker_matrices_are_byte_identical_to_the_base(rel: str) -> None:
+def test_tracker_matrices_differ_from_the_base_only_in_registration_fields(rel: str) -> None:
     result = subprocess.run(
         ["git", "show", f"{_BASELINE}:{rel}"], cwd=_REPO, capture_output=True, check=False
     )
     if result.returncode != 0:
         pytest.skip(f"commit {_BASELINE} is not available in this checkout")
-    assert (_REPO / rel).read_bytes() == result.stdout
+    base = json.loads(result.stdout)
+    current = json.loads((_REPO / rel).read_text(encoding="utf-8"))
+    for matrix in (base, current):
+        for case in matrix["cases"]:
+            route = case.get("expected_route", {})
+            route.pop("lifecycle_membership", None)
+            route.pop("mutation", None)
+    assert current == base
 
 
 # readiness-bridge-dispatch-input AC-0019 to AC-0021: the bridge's input is argless dispatch output.

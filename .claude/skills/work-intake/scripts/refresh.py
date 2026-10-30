@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import copy
 import hashlib
 import importlib
 import importlib.util
@@ -81,6 +80,7 @@ class SourceAuthority:
     local_receipts: tuple[Mapping[str, object], ...] = ()
     remote_actions: tuple[Mapping[str, object], ...] = ()
     mode: str = "tracker-origin"
+    tracker_profile: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -464,6 +464,7 @@ _TOP_AUTHORITY_KEYS = {
     "source_ref",
     "source_revision",
     "accepted_revision",
+    "tracker_profile",
     "owned_fields",
     "acceptance",
     "source_decisions",
@@ -529,6 +530,26 @@ def _digest(value: object, code: str) -> str:
     if re.fullmatch(r"[a-f0-9]{64}", text) is None:
         raise RefreshRefusal(code)
     return text
+
+
+_PROFILE_BOUNDS = {"id": 200, "version": 100}
+
+
+def _profile_table(value: object) -> dict[str, str]:
+    """Validate a profile table: exactly ``id`` and ``version``, bounded, one line."""
+
+    if not isinstance(value, dict) or set(value) != set(_PROFILE_BOUNDS):
+        raise RefreshRefusal("invalid_source_authority")
+    for key, maximum in _PROFILE_BOUNDS.items():
+        item = value[key]
+        if (
+            not isinstance(item, str)
+            or not 1 <= len(item) <= maximum
+            or "\r" in item
+            or "\n" in item
+        ):
+            raise RefreshRefusal("invalid_source_authority")
+    return {key: value[key] for key in _PROFILE_BOUNDS}
 
 
 def parse_source_authority(markdown: str) -> SourceAuthority:
@@ -758,6 +779,11 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
                 if "accepted_revision" in data
                 else None
             ),
+            tracker_profile=(
+                _profile_table(data["tracker_profile"])
+                if "tracker_profile" in data
+                else None
+            ),
             owned_fields=dict(owned),
             acceptance=approval,
             source_decisions=decisions,
@@ -800,6 +826,16 @@ def render_source_authority(authority: SourceAuthority) -> str:
     if authority.accepted_revision is not None:
         lines.append(
             f'accepted_revision = {_toml_string(authority.accepted_revision)}'
+        )
+    if authority.tracker_profile is not None:
+        profile = _profile_table(authority.tracker_profile)
+        lines.extend(
+            (
+                "",
+                "[tracker_profile]",
+                f"id = {_toml_string(profile['id'])}",
+                f"version = {_toml_string(profile['version'])}",
+            )
         )
 
     record_orders = (
@@ -883,6 +919,93 @@ def render_source_authority(authority: SourceAuthority) -> str:
     if parse_source_authority(rendered) != authority:
         raise RefreshRefusal("invalid_source_authority")
     return rendered
+
+
+_LOCATOR_SHAPE = re.compile(
+    r"[a-z][a-z0-9+.-]+:"
+    r"(?://[A-Za-z0-9._-]+(?:/[A-Za-z0-9._:-]+)*|[A-Za-z0-9][A-Za-z0-9._:-]*)",
+    re.ASCII,
+)
+_LOCATOR_SECRET = re.compile(
+    r"(?i)(?:password|passwd|pwd|secret|api[_ -]?key|access[_ -]?token|token)"
+    r"\s*[:=]"
+)
+
+
+_NUMERIC_HOST_PART = re.compile(r"[0-9]*|0x[0-9a-f]*")
+
+
+def _locator_host(locator: str) -> str:
+    """The host of a ``scheme://host[/path]`` locator, lowercased, trailing dots dropped."""
+    _, separator, rest = locator.partition("://")
+    return rest.split("/", 1)[0].lower().rstrip(".") if separator else ""
+
+
+def _is_local_host(host: str) -> bool:
+    """Whether a normalised host names this machine or its file system."""
+    return (
+        host in {"localhost", "file"}
+        or host.endswith(".localhost")
+        or host.startswith("localhost.")
+        or (host != "" and all(_NUMERIC_HOST_PART.fullmatch(part) for part in host.split(".")))
+    )
+
+
+def _require_minimal_locator(locator: str) -> str:
+    """Return the locator unchanged when its shape is allowed, or refuse it.
+
+    The first record is committed to the repository, so only an ASCII
+    ``scheme://host[/path]`` or ``scheme:ID`` locator is accepted: a scheme
+    that starts with a lowercase letter and has two or more lowercase
+    letters, digits or ``+.-``, then letters, digits and ``-._:/``. That keeps
+    whitespace, invisible characters, ``@``, ``?``, ``#``, ``%``, ``~``,
+    backslashes and drive letters out. A ``file:`` scheme, a ``localhost``
+    host (including ``localhost.`` and ``*.localhost`` forms), a ``file``
+    host, a numeric host (decimal or ``0x`` hex parts), a ``.`` or ``..``
+    segment, and a secret keyword followed by ``:`` or ``=`` anywhere in a
+    name are refused too.
+    """
+
+    if (
+        not _LOCATOR_SHAPE.fullmatch(locator)
+        or locator.startswith("file:")
+        or _is_local_host(_locator_host(locator))
+        or any(part in {".", ".."} for part in locator.split("/"))
+        or _LOCATOR_SECRET.search(locator)
+    ):
+        raise RefreshRefusal("invalid_source_authority")
+    return locator
+
+
+def render_first_source_authority(
+    *,
+    mode: str,
+    locator: str,
+    revision: str,
+    profile: dict[str, str] | None,
+) -> str:
+    """Render a first record for a tracker-origin source, or refuse with no output.
+
+    The record carries the locator, revision and declared profile and an empty
+    ``[owned_fields]`` table. A source that is not tracker-origin, has no
+    profile, or holds a value the renderer refuses, including a locator in a
+    class ``_require_minimal_locator`` refuses, raises ``RefreshRefusal``.
+    """
+
+    if mode != "tracker-origin" or profile is None:
+        raise RefreshRefusal("invalid_source_authority")
+    return render_source_authority(
+        SourceAuthority(
+            source_ref=_require_minimal_locator(
+                _bounded_string(locator, 1000, "invalid_source_authority")
+            ),
+            source_revision=_bounded_string(revision, 200, "invalid_source_authority"),
+            accepted_revision=None,
+            owned_fields={},
+            acceptance=None,
+            tracker_profile=profile,
+        )
+    )
 
 
 def _replace_source_authority(markdown: str, authority: SourceAuthority) -> str:
@@ -1703,12 +1826,6 @@ def _intake_guard_callable(name: str) -> Callable[[str], str]:
     return redactor
 
 
-def _workspace_entry_parser() -> Callable[[object], tuple[object, list[object]]]:
-    """Load the canonical Group 3 workspace-entry parser."""
-
-    return _workspace_status_callable("parse_workspace_entry")
-
-
 def _artifact_sections(
     markdown: str,
 ) -> tuple[
@@ -1848,6 +1965,25 @@ def _validate_artifact_field_update(
             raise RefreshRefusal("invalid_local_update")
 
 
+def _artifact_kind(markdown: str) -> str:
+    """Return the artifact kind from its first title line after front matter."""
+
+    lines = markdown.splitlines()
+    if lines and lines[0] == "---":
+        for index in range(1, len(lines)):
+            if lines[index] == "---":
+                lines = lines[index + 1 :]
+                break
+    for line in lines:
+        if line.startswith("# "):
+            if line.startswith("# Spec:"):
+                return "spec"
+            if line.startswith("# Brief:"):
+                return "brief"
+            break
+    return "intent"
+
+
 def coordinate_local_refresh(
     *,
     repository_root: Path,
@@ -1916,118 +2052,29 @@ def coordinate_local_refresh(
             comparison=comparison,
             result=result,
         )
-        current_workspace_root = tomllib.loads(current_workspace_bytes.decode("utf-8"))
-        proposed_workspace_root = tomllib.loads(workspace_bytes.decode("utf-8"))
-
-        def matching_entry(root: object) -> Mapping[str, object]:
-            entries: list[Mapping[str, object]] = []
-            pending: list[object] = [root]
-            visited = 0
-            while pending:
-                current = pending.pop()
-                visited += 1
-                if visited > 10_000:
-                    raise RefreshRefusal("invalid_local_update")
-                if isinstance(current, dict):
-                    if current.get("path") == comparison.artifact_path:
-                        entries.append(current)
-                    pending.extend(current.values())
-                elif isinstance(current, list):
-                    pending.extend(current)
-            if len(entries) != 1:
-                raise RefreshRefusal("invalid_local_update")
-            return entries[0]
-
-        current_entry = matching_entry(current_workspace_root)
-        entry = matching_entry(proposed_workspace_root)
-        entry_parser = _workspace_entry_parser()
-        parsed_current, current_findings = entry_parser(dict(current_entry))
-        parsed_entry, entry_findings = entry_parser(dict(entry))
+        if current_workspace_bytes != workspace_bytes:
+            raise RefreshRefusal("invalid_local_update")
+        current_profile = current_authority.tracker_profile
         if (
-            parsed_current is None
-            or current_findings
-            or parsed_entry is None
-            or entry_findings
-        ):
-            raise RefreshRefusal("invalid_local_update")
-        current_source = current_entry.get("source")
-        source = entry.get("source")
-        if not isinstance(current_source, dict) or not isinstance(source, dict):
-            raise RefreshRefusal("invalid_local_update")
-        expected_workspace_root = copy.deepcopy(current_workspace_root)
-        expected_entry = matching_entry(expected_workspace_root)
-        expected_source = expected_entry.get("source")
-        if not isinstance(expected_source, dict):
-            raise RefreshRefusal("invalid_local_update")
-        expected_source["revision"] = result.compared_revision
-        if expected_workspace_root != proposed_workspace_root:
-            raise RefreshRefusal("invalid_local_update")
-        if comparison.current_revision == result.compared_revision:
-            if current_workspace_bytes != workspace_bytes:
-                raise RefreshRefusal("invalid_local_update")
-        else:
-            current_revision_bytes = comparison.current_revision.encode("utf-8")
-            compared_revision_bytes = result.compared_revision.encode("utf-8")
-            offsets: list[int] = []
-            start = 0
-            while len(offsets) <= 10_000:
-                offset = current_workspace_bytes.find(current_revision_bytes, start)
-                if offset < 0:
-                    break
-                offsets.append(offset)
-                start = offset + 1
-            if len(offsets) > 10_000:
-                raise RefreshRefusal("invalid_local_update")
-            matching_replacements = sum(
-                current_workspace_bytes[:offset]
-                + compared_revision_bytes
-                + current_workspace_bytes[offset + len(current_revision_bytes) :]
-                == workspace_bytes
-                for offset in offsets
-            )
-            if matching_replacements != 1:
-                raise RefreshRefusal("invalid_local_update")
-        current_profile = current_source.get("tracker_profile")
-        profile = source.get("tracker_profile")
-        if not isinstance(current_profile, dict) or not isinstance(profile, dict):
-            raise RefreshRefusal("invalid_local_update")
-        current_source_without_revision = {
-            key: value for key, value in current_source.items() if key != "revision"
-        }
-        proposed_source_without_revision = {
-            key: value for key, value in source.items() if key != "revision"
-        }
-        if (
-            (
-                comparison.lifecycle in _ACCEPTED_LIFECYCLES
-                and any(
-                    authority.owned_fields[change.name] != "local"
-                    for change in comparison.changed_fields
-                )
-            )
-            or current_entry.get("kind") != comparison.artifact_kind
-            or entry.get("kind") != current_entry.get("kind")
-            or entry.get("summary") != current_entry.get("summary")
-            or current_entry.get("needs") != entry.get("needs")
-            or current_source.get("mode") != "tracker-origin"
-            or current_source.get("ref") != authority.source_ref
-            or current_source.get("revision") != comparison.current_revision
+            current_profile is None
             or current_profile.get("id") != comparison.profile_id
             or current_profile.get("version") != comparison.profile_version
-            or proposed_source_without_revision != current_source_without_revision
-            or tuple(
-                match.group("body")
-                for match in _COORDINATION_FENCE.finditer(current_artifact_text)
+            or proposed_authority.tracker_profile != current_profile
+            or _artifact_kind(current_artifact_text) != comparison.artifact_kind
+        ):
+            raise RefreshRefusal("invalid_local_update")
+        if (
+            comparison.lifecycle in _ACCEPTED_LIFECYCLES
+            and any(
+                authority.owned_fields[change.name] != "local"
+                for change in comparison.changed_fields
             )
-            != tuple(
-                match.group("body")
-                for match in _COORDINATION_FENCE.finditer(proposed_artifact_text)
-            )
-            or source.get("mode") != "tracker-origin"
-            or source.get("ref") != authority.source_ref
-            or source.get("revision") != result.compared_revision
-            or profile.get("id") != comparison.profile_id
-            or profile.get("version") != comparison.profile_version
+        ) or tuple(
+            match.group("body")
+            for match in _COORDINATION_FENCE.finditer(current_artifact_text)
+        ) != tuple(
+            match.group("body")
+            for match in _COORDINATION_FENCE.finditer(proposed_artifact_text)
         ):
             raise RefreshRefusal("invalid_local_update")
 

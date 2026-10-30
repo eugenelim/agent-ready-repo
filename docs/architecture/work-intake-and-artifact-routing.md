@@ -111,7 +111,7 @@ nowhere else to put and rolls up delivery across the per-component slices.
 | --- | --- | --- | --- |
 | Canonical requirements and decisions | `docs/product/`, `docs/specs/`, and other registered artifact paths | Owning artifact workflow | Processors, reviewers, reconciliation |
 | Lifecycle index | `workspace.toml` | `work-intake`, selected workflows, and reviewed migration/repair effects | `workspace-status`, execution, review |
-| Tracker-origin authority | One closed `source-authority.v1` block in the canonical artifact, mirrored by structured workspace source fields | Accepted intake/refresh workflow | Refresh and reconciliation |
+| Tracker-origin authority | One closed `source-authority.v1` block in the canonical artifact; its optional `tracker_profile` table (`id`, `version`) is the one home of the tracker profile | Accepted intake/refresh workflow | Refresh and reconciliation |
 | Refresh receipts | Authority block plus guarded artifact/workspace pair | Exact configured refresh processor | Status and later refresh |
 | Migration ledger | `.workspace-migrations.json` | Authorized `workspace-status` migration transaction | Recovery, rollback, audit |
 | Selection and confirmation | Human-authored repository-relative JSON supplied out of band | Human reviewer/approver | Migration planner/effect only |
@@ -136,7 +136,7 @@ spec's deferral marker is the loop contract's
 
 ### Delivery-brief lifecycle
 
-A repo-origin brief's lifecycle is its `Status:` alone; a tracker-origin brief's entry carries the same state. Child
+A brief's lifecycle is its `Status:` alone, repo-origin or tracker-origin. Child
 specs constrain that state but never change automatically and are never
 rewritten during brief closeout.
 
@@ -168,8 +168,7 @@ surfaces remain coherent as wholes.
 Source adapters may acquire and normalize external input. Only `work-intake`
 classifies that input. Artifact processors receive the selected route after the
 artifact and workspace state exist; they do not reconstruct a contract from
-index prose. Refresh processors receive an existing registered artifact, exact
-profile identity, lifecycle, authority, and revision pair.
+index prose. Refresh processors receive an existing tracker-origin artifact, the exact profile identity read from its record's `tracker_profile` table, lifecycle, authority, and revision pair.
 
 Repository-origin work is locally authoritative. Tracker-origin work has a
 closed per-field `source`/`local` ownership map and compared/accepted revisions.
@@ -254,8 +253,7 @@ invocation already supplies bounded content at the matching pinned revision.
     references, obligations, dependencies, completion event, and independent
     authority facts. It does not close or disposition the work.
     When a brief-backed child first reaches `Implementing`, or when a shipped
-    child proves execution has occurred, the brief must be `Executing` in
-    its `Status:` (and, for a tracker-origin brief, its entry); reconciliation fails closed on a mismatch.
+    child proves execution has occurred, the brief must be `Executing` in its `Status:`; reconciliation fails closed on a mismatch.
 11. `close-work` reacquires evidence, inventories the plan's Design/LLD and
     implementation findings, and requires human whole-surface freshness review.
     Unowned non-inferable truth, a stale surface, or a live obligation blocks.

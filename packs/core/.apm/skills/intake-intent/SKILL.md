@@ -126,9 +126,8 @@ destination, not permission to write or register it.
    supported by the source. For an existing one, do not render: apply the
    missing required fields to that artifact with `Edit`.
 6. Write the confined artifact — the rendered new file, or the in-place edit —
-   then, for a tracker-origin intent only, let the calling intake workflow add
-   its one non-dispatchable `workspace.toml` entry when registration was
-   requested. A repo-origin intent is its file alone and is not registered. An
+   then stop: an intent, repo-origin or tracker-origin, is its file alone and is
+   not registered. An
    existing repo-origin intent that still holds an entry goes to the
    `workspace-status` `intent-brief-drop` repair before this skill edits it.
 7. Run the shaping-review gate below before an intent can become `Accepted`.
