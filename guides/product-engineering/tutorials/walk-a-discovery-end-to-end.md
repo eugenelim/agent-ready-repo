@@ -81,7 +81,7 @@ If Core is unavailable or older, you should see the same portable rendered
 handoff with no machine object. Save or pass that output to a compatible
 delivery environment; the discovery is still complete.
 
-The ordered, dependency-aware backlog remains intact; `loop-cohort` orders it
+The ordered, dependency-aware backlog remains intact; the plan's `Depends on:` order sequences it
 and `work-loop` pulls only an approved delivery item. You're done when the
 handoff role, bounded fields, provenance, and next approval gate are visible.
 

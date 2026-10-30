@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.59.0
+
+The workspace bridge now reads a supervisor run's status file only. The old
+engine-state fallback is removed, so a spec directory with no supervisor status
+shows no run and no pending gate, and `gate_question` is a framed object or null.
+
 ## What's new in 0.58.1
 
 The workspace MCP bridge understands supervisor runs. While a spec has a

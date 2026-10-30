@@ -114,10 +114,10 @@ C4 = (
     "a defect blocked on a decision, an instrument, elapsed time, or a "
     "dependency is captured as a `work-item`; a ride-along-eligible "
     "defect is dispatched now, grouped with related fixes sharing a "
-    "file or a seam, over the human gate's `blocker-applied` return "
-    "edge; a ready-now defect that is not ride-along eligible becomes "
-    "the next independently reviewed unit in this session, over that "
-    "same edge, where ready-now means it can be finished this session "
+    "file or a seam; a ready-now defect that is not ride-along eligible "
+    "becomes the next independently reviewed unit in this session (in full "
+    "mode, a task the controller adds to the plan while no attempt is open), "
+    "where ready-now means it can be finished this session "
     "without a decision nobody present will make; and a defect the "
     "razor refuses — one an existing artifact already covers, or one no "
     "capture criterion admits — is refused, non-silently, rather than "
@@ -677,7 +677,7 @@ def test_dedup_exclusion() -> None:
     raw = _text(SUPERVISOR_MODE)
     start = raw.find("**Lift `Bundled fixes:` into the PR body.**")
     assert start != -1, "supervisor-mode.md is missing the lifting-step marker"
-    end = raw.find("6. **Clean up worktrees.**", start)
+    end = raw.find("## Parallel-dispatch discipline", start)
     assert end != -1, "supervisor-mode.md is missing the step that bounds the lifting step"
     section = re.sub(r"\s+", " ", raw[start:end])
     assert C7 in section, "supervisor-mode.md's lifting step does not contain C7 exactly"

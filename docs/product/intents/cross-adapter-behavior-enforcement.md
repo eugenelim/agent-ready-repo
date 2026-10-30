@@ -23,8 +23,10 @@ catch a defect on its first run.
 
 **1. Teach.** Policy families are data in a skill directory, which projects to
 every host with no special handling — `evals/evals.json` is the existing proof.
-Selection is keyed to **`engine-state.json.state`**, the FSM phase, because it
-is the only phase signal recorded as tool-written data; `Shape:`, task
+Selection is keyed to **the supervisor's `stage`** (`admitted`, `implementing`,
+`gating`, `reviewing`, `awaiting-human`, `terminal`), read from
+`work-supervisor.py status`, because it is the only phase signal recorded as
+tool-written data; `Shape:`, task
 verification mode and task flavour are agent-selected prose with no mechanical
 reader. Delivery reuses the shipped `Module index → select matching reference →
 inline into the brief` pattern.
@@ -219,11 +221,11 @@ that are owner decisions rather than delivery gaps.
   `packs/core/.apm/skills/work-loop/SKILL.md` and force full mode under "Risk
   triggers — any one routes the work to full mode",
   contradicting the light path's purpose.
-- Repair rounds re-entering `CODE-IMPLEMENTATION` also stay inline. Three of
-  the four re-entry edges in
-  `packs/core/.apm/skills/work-loop/scripts/loop-engine.py` —
-  `gates-failed`, `findings-remain`, and `blocker-applied` — carry repair
-  rather than a plan task and do not dispatch.
+- Repair rounds also stay inline. When a gate fails or a supported finding
+  becomes a `repair-request`, the supervisor reissues the task it repairs, in
+  the `implementing` stage, rather than issuing a new plan task, so a repair
+  round does not dispatch a fresh plan-task agent
+  (`packs/core/.apm/skills/work-loop/references/supervisor.md`).
 
 The effect size, the comparison, and the two-adapter requirement are
 unchanged; only the population is narrowed, and it is narrowed to what the
@@ -343,8 +345,8 @@ what**, not by dependency alone.
 3. `phase-scoped-policy-delivery` — extends the existing mechanism rather than
    inventing one. The `Module index → select matching reference → inline into
    the subagent brief` pattern already exists; the addition is keying selection
-   to **`engine-state.json.state`**, the FSM phase, which is the only
-   phase signal already recorded as tool-written data. `Shape:`, task
+   to **the supervisor's `stage`**, read from `work-supervisor.py status`, which
+   is the only phase signal already recorded as tool-written data. `Shape:`, task
    verification mode and task flavour are all agent-selected prose with no
    mechanical reader. Evidence:
    [`phase-scoped-policy-delivery.md`](../research/phase-scoped-policy-delivery.md).

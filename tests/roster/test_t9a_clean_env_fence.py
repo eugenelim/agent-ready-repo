@@ -8,10 +8,10 @@
      "let any work-loop runtime module import a Python module other than the
      standard library or a sibling module in its own skill scripts/ directory."
 
-2. Subprocess fence: the projected work-loop compatibility path (a loop-engine.py
-   transition with WORK_LOOP_SHADOW_SERVICES=1) runs in a subprocess where
-   ``agentbundle`` is not importable, after first proving it is not importable
-   there, and the path completes successfully.
+2. Subprocess fence: the projected work-loop supervisor (`work-supervisor.py start`
+   then `next`) runs in a subprocess where ``agentbundle`` is not importable,
+   after first proving it is not importable there, and the path completes
+   successfully.
 
 Each check is accompanied by a red-evidence test that mutates its input in a
 scratch copy and asserts the mutation is detected.
@@ -38,8 +38,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # (the .agents/ copy is byte-identical by test_t9a_conformance_rollup.py).
 _PROJECTED_SCRIPTS = REPO_ROOT / ".claude" / "skills" / "work-loop" / "scripts"
 
-_ENGINE = _PROJECTED_SCRIPTS / "loop-engine.py"
-_COHORT = _PROJECTED_SCRIPTS / "loop-cohort.py"
+_SUPERVISOR = _PROJECTED_SCRIPTS / "work-supervisor.py"
 
 # Python 3.10+ exposes stdlib_module_names; fall back to a curated set on older.
 try:
@@ -293,23 +292,21 @@ class TestSubprocessCleanEnvFence:
             f"stdout: {r.stdout!r}\nstderr: {r.stderr!r}"
         )
 
-    def test_compatibility_path_completes_in_agentbundle_free_environment(
+    def test_supervisor_path_completes_in_agentbundle_free_environment(
         self, tmp_path: Path
     ) -> None:
-        """The work-loop happy path completes where agentbundle is not importable.
+        """The supervisor's start and next complete where agentbundle is not importable.
 
         Steps:
         1. Prove agentbundle is not importable in the subprocess env (guard).
-        2. Create a temporary git repository with a throwaway spec directory.
-        3. Run loop-engine.py init → spec-ready transition with
-           WORK_LOOP_SHADOW_SERVICES=1 through the projected scripts.
-        4. Assert all commands exit 0.
+        2. Build a committed fixture repository with an approved spec and plan.
+        3. Run `work-supervisor.py start` then `next` through the projected scripts.
+        4. Assert both commands exit 0 and print one JSON object.
 
         Proves the Never-do rule holds at runtime: no shipped script imports
-        agentbundle, so the compatibility path succeeds in a clean environment.
+        agentbundle, so the supervisor succeeds in a clean environment.
         """
         env = _clean_env()
-        env["WORK_LOOP_SHADOW_SERVICES"] = "1"
 
         # Guard: confirm agentbundle not importable
         r = _subprocess_python(
@@ -321,74 +318,35 @@ class TestSubprocessCleanEnvFence:
             "the test would not prove anything if it were."
         )
 
-        # Build a minimal git repo with a throwaway spec dir
-        git_repo = tmp_path / "fence-repo"
-        git_repo.mkdir()
-        subprocess.run(["git", "init", "-q", str(git_repo)], check=True, capture_output=True)
-        spec_dir = git_repo / "docs" / "specs" / "fence-feature"
-        spec_dir.mkdir(parents=True)
-        (spec_dir / "spec.md").write_text(
-            "# Spec: fence\n\n- **Status:** Approved\n\n"
-            "## Acceptance Criteria\n\n- [ ] AC-fence-001. Fence criterion.\n",
-            encoding="utf-8",
-        )
+        import importlib.util
 
-        engine = str(_ENGINE)
-        cohort = str(_COHORT)
+        harness_path = (
+            REPO_ROOT / "packs" / "core" / "tests" / "skills" / "work-loop" / "supervisor_harness.py"
+        )
+        spec = importlib.util.spec_from_file_location("supervisor_harness_for_fence", harness_path)
+        assert spec is not None and spec.loader is not None
+        harness = importlib.util.module_from_spec(spec)
+        sys.modules["supervisor_harness_for_fence"] = harness
+        spec.loader.exec_module(harness)
+        repo = harness.make_repo(tmp_path)
 
-        # 1. engine init
-        r = subprocess.run(
-            [sys.executable, "-S", engine, "init", str(spec_dir), "--mode", "code", "--json"],
-            capture_output=True, text=True, encoding="utf-8",
-            env=env, cwd=str(git_repo),
-        )
-        assert r.returncode == 0, (
-            f"loop-engine init failed in clean env (agentbundle-free):\n"
-            f"stdout: {r.stdout!r}\nstderr: {r.stderr!r}"
-        )
-        run_data = json.loads(r.stdout)
-        assert "run_id" in run_data, f"no run_id in engine init output: {r.stdout!r}"
+        def run(*args: str) -> dict:
+            result = subprocess.run(
+                [sys.executable, "-S", str(_SUPERVISOR), *args],
+                capture_output=True, text=True, encoding="utf-8",
+                env=env, cwd=str(repo),
+            )
+            assert result.returncode == 0, (
+                f"work-supervisor {args[0]} failed in clean env (agentbundle-free):\n"
+                f"stdout: {result.stdout!r}\nstderr: {result.stderr!r}"
+            )
+            return json.loads(result.stdout)
 
-        # 2. cohort init
-        r = subprocess.run(
-            [sys.executable, "-S", cohort, "init", str(spec_dir),
-             "--run-id", run_data["run_id"]],
-            capture_output=True, text=True, encoding="utf-8",
-            env=env, cwd=str(git_repo),
+        started = run(
+            "start", harness.SPEC_DIR, "--intent", "code", "--code-trust", "trusted",
+            "--authority-ref", "owner:0123456789ab",
+            "--review-authority-ref", "plan-reviewer:0123456789ab",
         )
-        assert r.returncode == 0, (
-            f"loop-cohort init failed in clean env:\n"
-            f"stdout: {r.stdout!r}\nstderr: {r.stderr!r}"
-        )
-
-        # 3. spec-ready transition (exercises shadow_call_on_transition)
-        r = subprocess.run(
-            [sys.executable, "-S", engine, "transition", str(spec_dir), "spec-ready"],
-            capture_output=True, text=True, encoding="utf-8",
-            env=env, cwd=str(git_repo),
-        )
-        assert r.returncode == 0, (
-            f"loop-engine transition spec-ready failed in clean env:\n"
-            f"stdout: {r.stdout!r}\nstderr: {r.stderr!r}"
-        )
-
-        # Confirm shadow evidence was written (shadow is ON)
-        shadow_dir = spec_dir / ".shadow-acceptance"
-        evidence_log = shadow_dir / "shadow-evidence.log"
-        assert evidence_log.exists(), (
-            "Shadow shadow-evidence.log not written despite WORK_LOOP_SHADOW_SERVICES=1; "
-            "the compatibility path may not have run."
-        )
-        first_frame = json.loads(evidence_log.read_text("utf-8").splitlines()[0])
-        # EvidenceStore frame format: {"tx": {...}, "records": [...]}
-        assert "records" in first_frame, (
-            f"shadow-evidence.log first line must be an EvidenceStore frame: {first_frame}"
-        )
-        first_receipt = first_frame["records"][0]
-        selector_term = first_receipt.get("selector", {}).get("term", "")
-        assert selector_term == "engine-transition:spec-ready", (
-            f"Expected selector.term='engine-transition:spec-ready'; got {selector_term!r}"
-        )
-        assert "authoritative" not in first_receipt, (
-            "Shadow receipt must not carry an 'authoritative' field (legacy authority holds)"
-        )
+        assert started["status"] == "admitted", started
+        issued = run("next", harness.SPEC_DIR)
+        assert "request" in issued, issued

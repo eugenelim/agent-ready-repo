@@ -203,7 +203,7 @@ build-check-unleased:
 #              an 8-char derivation cache key), a documented non-security digest
 #              annotated `usedforsecurity=False`; Bandit B324 is satisfied,
 #              Semgrep's rule can't read the kwarg. Bandit B324 still flags any
-#              new sha1. The second site (loop-cohort.py's review fingerprint)
+#              new sha1. The second site (the work-loop's review fingerprint)
 #              was FIXED in core 2.3.0 rather than suppressed — a real fix
 #              satisfies Bandit, Semgrep and the org's Snyk scan, which no
 #              exclusion here can reach. Retire this exclusion entirely once

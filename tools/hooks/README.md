@@ -66,9 +66,10 @@ Runs before a PR opens. The **shipped** hook runs:
    Capture step appends to. Both the file and its linter ship with
    `core`, so the gate applies to an adopter's tree as much as to this one.
    Skipped when the file is absent.
-2. `.claude/skills/work-loop/scripts/loop-cohort.py check <spec-dir>`
-   against every `docs/specs/*/` that owns a `state.json`, in both
-   `--phase implement` and `--phase review` modes — the work-loop caps gate.
+2. `.claude/skills/work-loop/scripts/work-supervisor.py status <spec-dir> --check`
+   against every `docs/specs/*/` that holds `delivery/approvals.jsonl` — the
+   supervisor's readiness check. It fails on any non-zero exit, and fails when an
+   approved run exists but the script cannot be found.
 3. Your project's own lint / typecheck / test commands, wired into the stub
    in `pre-pr.py` (the `adapt-to-project` skill can fill these in).
 
@@ -189,7 +190,7 @@ with repository tooling lives under `tests/roster/`:
   malformed-line warning, the `KNOWLEDGE_FILE` override, and the
   empty/missing-file silent-exit paths.
 - `tests/roster/test_core_pre_pr_hook.py` — asserts the **shipped** `pre-pr.py` is adopter-clean
-  (references no catalogue linter, runs the knowledge lint + loop-cohort +
+  (references no catalogue linter, runs the knowledge lint + the supervisor check +
   a wire-your-gate stub, degrades gracefully) and that the catalogue hook
   runs its own checks + delegates.
 
@@ -205,7 +206,7 @@ versions, but their sandbox setup remains bash:
 The umbrella `tools/test-all.py` runs a **curated** list of self-tests, not
 every `tools/test-*` script — several are gated elsewhere instead (the
 catalogue aggregator and `tools/repo/build_gate_chain.py` each run their own
-set). Run it by hand whenever a linter, hook, or `loop-cohort.py` changes. It
+set). Run it by hand whenever a linter, hook, or `work-supervisor.py` changes. It
 is hand-run only; nothing invokes it in CI, which is how two entries naming
 absent files went unnoticed for weeks. What *is* gated is its manifest:
 `tools/test-test-all.py` runs in the `build-check` chain and fails if any

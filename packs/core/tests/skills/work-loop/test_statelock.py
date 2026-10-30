@@ -200,7 +200,7 @@ def test_errors_are_not_oserror() -> None:
     if bad:
         fail("errors-not-oserror",
              f"{bad} derive from OSError; a broad `except OSError` in "
-             "loop-cohort.py/loop-engine.py would swallow them")
+             "a caller's broad except would swallow them")
         return
     if not all(issubclass(c, mod.StateLockError) for c in classes[1:]):
         fail("errors-not-oserror", "not every lock error shares one base")

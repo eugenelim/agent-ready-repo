@@ -1,246 +1,84 @@
-# Work-loop state
+# Work-loop run records
 
-A spec-driven loop carries a small amount of session-scoped state — which
-plan was approved, what wave is current, what findings the last review
-surfaced. Putting that in prose ("we cap at 5 iterations…") leaves it
-un-enforceable. Putting it on disk as data lets small tools gate each
-phase. Two tools own this in Phase 1:
+A full-mode run keeps its state where it can be checked: in Git commits, in
+committed records, and in a few local files. Putting a counter in prose ("we
+cap at 5 iterations…") leaves it un-enforceable; putting it in records one
+writer owns lets `work-supervisor.py status` derive the same answer every time.
 
-- **`scripts/loop-engine.py`** — FSM phase tracker; writes `engine-state.json`
-  (gitignored); read-only except for `init`, `transition`, and `reset`.
-- **`scripts/loop-cohort.py`** — sole writer of `state.json`; owns all cohort
-  counters, hashes, and scheduling state.
+One tool owns these records: **`scripts/work-supervisor.py`**. Nothing else
+writes them, and nothing is edited by hand. `status` reads them without writing,
+and every other verb derives the current action from them before it acts. Light
+mode and direct-light keep none of them.
 
-A third module reads this state but never writes it:
+## Where a run's facts live
 
-- **`scripts/_loop_guards.py`** — the shared read-only guard API. Every guard
-  decision the FSM needs lives here once and is called by three surfaces:
+| Record | Written by | Committed | What it holds |
+| --- | --- | --- | --- |
+| Git history | each admitted step | yes | One commit per step (`implement`, `gate-fail`, `replan`, `review`, `terminal`, and the rest), each trailered with the run id. The supervisor re-derives the run from these on every call. |
+| `<spec-dir>/delivery/approvals.jsonl` | `start` | yes | The approval pair: the scope owner's and the plan reviewer's authority references, the run id, and the reviewed-envelope fingerprint and terminal intent they approved. |
+| `<spec-dir>/delivery/evidence.jsonl` | `report` | yes | Evidence receipts for gates, criteria, and review findings. Readiness is evaluated from these on every call. |
+| `<spec-dir>/delivery/review-selections.jsonl` | `report` | yes | One line per delivery subject and changed-path digest: the conditional reviewer roles selected and each omission with its reason. |
+| `<spec-dir>/delivery/review-decisions.jsonl` | `report` | yes | Reviewer reselections and accepted risks, each under the named human's authority reference. |
+| `<spec-dir>/delivery/effect-resolutions.jsonl` | `resolve-effect` | yes | A named human's decision about an external effect whose outcome could not be established. |
+| `<spec-dir>/.supervisor/run.json` | `start`, `next` | no | The status view below. Deleting it loses nothing. |
+| `<spec-dir>/.supervisor/journal.jsonl`, `security-events.jsonl` | `next`, refusals | no | The local request journal, and a line for each check that could not be verified. Deleting either neither reopens a closed attempt nor clears an owed confirmation. |
+| `<git-dir>/agentbundle-supervisor/<run-id>/` | `start`, `next`, `report` | no | The pinned digests of the installed supervisor files, the open attempt's manifest, issuance marks, and the not-red recovery record. |
+| `.loop-run/events.jsonl` | every admitted step | no | One line per supervisor step, in the event envelope that observers read. |
 
-      loop-engine transition
-          -> in-process read-only guard API
-              -> safe state/artifact reads and validation
-                    `- lint-spec-status.py (the one canonical status parser)
+Never edit a record under `delivery/` by hand: an edit by anything but the
+supervisor refuses the next verb with `foreign-delivery-edit`.
 
-      loop-cohort / check-spec-status CLI
-          -> the same read-only guard API
-              -> CLI-specific printing and exit codes
-
-  It is deliberately absent from the writers above: it mutates nothing, creates no
-  file, and never takes a lock. `loop-engine.py` used to reach these decisions by
-  spawning `loop-cohort.py` and `check-spec-status.py` as child interpreters — up to
-  three per transition — so one transition is now one Python process. Reads are
-  bounded (8 MiB cap, `O_NOFOLLOW`, `O_NONBLOCK`, regular-file and dev/ino checks)
-  because the child process's subprocess timeout used to supply that bound, and an
-  unbounded read inside the engine's critical section can outlast the lock's
-  stale-after threshold.
-
-State mutation is owned exclusively by these tools. Do not edit either JSON
-file by hand or bypass the `--expect-run-id` guard — the tools guarantee
-atomic writes, fingerprint algorithm consistency, and hash-first /
-write-second ordering.
-
-**Fields in `state.json` (Phase 1):**
-
-| Field | Meaning |
-|---|---|
-| `schema_version` | Must be `2`. Forward-mismatch check on every cohort-state read. Unsupported values are handled asymmetrically, on purpose. **The exit tolerates the class:** `check --phase wave-exit` passes any state whose `schema_version` is not `2`, before reading any other field, so a run already in flight when receipts shipped still reaches its wave boundary. **The verb refuses it:** `dispatch-receipt`, like every mutation verb, stops with `unsupported schema_version=… (expected 2); run \`loop-cohort reset\` then \`loop-engine reset\`` and writes nothing. **End to end the run stops anyway:** `wave advance` refuses on the same check, so the cohort wave pointer never moves and no record can be written to satisfy a later exit — that run cannot pass the next wave boundary without that reset order. This version belongs only to cohort `state.json`; `engine-state.json` remains schema version `1`. |
-| `run_id` | UUID generated by `loop-engine init`, copied into cohort by `loop-cohort init --run-id`. Both files must carry the same `run_id`; mismatches abort every mutation. |
-| `feature` | Spec directory name (informational). |
-| `plan_review_status` | `pending` until `approve-plan`; `approved` after. Checked by `plan check-current`. |
-| `approved_spec_hash` | `sha256(canonical_contract(spec.md))` at the time of `approve-plan`. Canonical form: see *What the pin covers* below. |
-| `approved_plan_hash` | `sha256(canonical_contract(plan.md))` at the time of `approve-plan`. Canonical form: see *What the pin covers* below. |
-| `plan_hash` | `sha256(canonical_contract(plan.md))` at the time of `schedule`. Canonical form: see *What the pin covers* below. `schedule check-current` verifies plan.md hasn't changed since scheduling. |
-| `schedule_waves` | List of waves (each a list of task IDs), produced by `schedule`. Empty until `schedule` runs. |
-| `current_wave_index` | 0-based index into `schedule_waves`. Advanced by `wave advance`, whose advancing branch refuses a wave whose tasks are not accounted for — see `dispatch_receipts`. |
-| `dispatch_receipts` | The receipts container: one durable record per plan task of who the controller says implemented it, written only by `dispatch-receipt`. Nested under three JSON object keys — the partition digest, the wave index as a decimal string, then the task identifier — so a record written against a superseded partition accounts for nothing. Each record is either a `receipt` (an `implementer` subagent implemented the task) or a `decline` carrying one of `no-implementer-installed` or `human-directed`. A record with no `superseded` member is live and counts as accounted for; a record whose `superseded` member is `True` was marked by `wave reopen` and accounts for nothing. **Absence of `superseded` means live:** every `state.json` written before `wave reopen` shipped reads as it did before that change — no backfill is needed. **An absent container means the guard does not enforce:** cohort state written before receipts existed carries no container, so `check --phase wave-exit` passes and says so on stdout, and `wave advance` applies no accounting check. `loop-cohort status` reports `dispatch_receipts_enforced` as false for that state. `init` creates the container empty and `schedule` creates or restores it when absent, so a run started on this version is enforced from the beginning: every task in the wave being exited needs a live record, and an empty container accounts for nothing. The exemption above therefore covers only cohort state written by a version that predates the container, not a new run that has yet to write its first record. A record is an assertion, not a proof: `--expect-run-id` pairs the caller to the run but establishes no identity. `loop-cohort status` also reports `wave_dispatch_accounting`: one entry per wave in `schedule_waves`, each counting that wave's live receipts, live declines, superseded records and unaccounted task positions, so a wave whose every task was declined no longer reads identically to one whose every task was implemented. Counts are taken once per task POSITION in the wave, so a wave listing one identifier twice counts it twice and a container key naming a task the wave does not list counts for nothing. Through `status`, a `null` entry has two causes. Every entry is `null` when the receipts container is absent, which is the pre-container state the wave-exit exemption exists for and which `dispatch_receipts_enforced: false` reports beside it; a single `null` entry among non-null ones means the wave at that index is not a non-empty list of task identifiers. Two other inputs leave a wave's accounting undefined but cannot show up as `null` here: a `schedule_waves` that is not a list yields `[]` for the whole value, and an out-of-range index is never asked for. **It reports the live partition at the time of the call, not what any past wave exit saw:** `schedule` keeps only the records filed under the current partition digest, so after a repartition a completed wave's records are gone and that wave reports its tasks as unaccounted. Read it beside `current_wave_index` in the same payload, which is what separates a wave the run has not reached from one it reached and left unaccounted. |
-| `completed_task_ids` | Ordered task IDs completed before a controlled contract amendment. Preserved across reapproval. |
-| `completed_task_section_hashes` | Exact SHA-256 pins for completed task sections. `approve-plan` and `schedule` refuse an amended plan that edits, removes, or renames one. |
-| `completed_task_evidence` | Stable bounded gate/review evidence references keyed by completed task ID. Every completed task must retain at least one reference across amendment. |
-| `transition_history` | Ordered replay ledger for cohort effects applied as part of engine transitions. The last entry is the only replay baseline consulted for `applied`; older entries are audit history and may be truncated. Every entry records `transition_id`, `pre_transition_sequence`, `event`, canonical `args`, and the effect audit snapshot. A `contract-amendment` entry also carries completed-task section hashes and evidence so status can re-read `plan.md` and reject drift. The ledger may exceed 20 entries; when needed, the writer drops oldest entries until the compact UTF-8 serialization of the whole state is at most 1,048,576 bytes. The newest entry is never discarded; if it cannot fit as the sole history entry, the mutation refuses without changing state. |
-| `pending_transition` | Short-lived marker for a prepared transition whose cohort effect may not yet be durable. It is either `null` or an object with `transition_id`, `pre_transition_sequence`, `event`, canonical `args`, and `opened_at`. A repeated prepare compares only the durable identity fields (`transition_id`, `pre_transition_sequence`, `event`, and canonical `args`); a replay with a fresh timestamp returns prepared and preserves the original marker bytes. Replay status does not use this marker to decide `applied`; clearing it after a successful commit does not make the effect look absent. |
-| `implementation_retry_count` | Number of distinct implementation cycles, incremented by `record-attempt`. |
-| `max_implementation_retries` | Cap; `check --phase gates-failed` exits non-zero when `implementation_retry_count >= max`. Default: `5`. |
-| `last_record_attempt_cycle_id` | `<run_id>:<seq>` of the last recorded attempt; used for idempotency — a repeated cycle-id is a no-op. |
-| `review_round_count` | Total review rounds (all outcomes), incremented by the registered CODE-REVIEW effects or by direct `review record` forms: `--fingerprint`, either raw-clean form (`--direct-clean-file`, `--structural-clean-file`), `--report`, and `--all-skipped`. |
-| `review_retry_count` | Findings-only review rounds; incremented by the registered CODE-REVIEW `findings-remain` effect or direct `review record --fingerprint` (not either raw-clean form, `--report`, or `--all-skipped`). The engine guard and the cohort writer both enforce `max_review_retries`; a replay of an already-recorded round is exempt because it writes nothing. |
-| `last_review_clean_source` | Which form closed the most recent clean round: `"direct-clean"`, `"structural-clean"`, or `"report"`. `null` until a clean round is recorded. Resumption reads this to replay the original form; artifact presence cannot answer it, because an evicted artifact and a direct clean look identical on disk. |
-| `last_review_clean_digest` | SHA-256 of the artifact that clean round rested on — the raw reviewer return for either raw-clean form, the adjudication report for `--report`. `null` until a clean round is recorded, and `null` for a `--report` round whose file became unreadable after classification. |
-| `last_review_record_operation_id` | Operation id of the most recently recorded keyed round, or `null`. A direct or pre-EXECUTE `review record` uses caller-supplied `<run_id>:<transition_sequence>`. A registered CODE-REVIEW `findings-remain` or `reviewers-clean` effect uses its lowercase 64-character SHA-256 `transition_id`; `loop-cohort.py` receives that id from the engine and never reads `engine-state.json`. Either shape is read back with `last_review_record_payload_digest` to tell a completed write from one that never landed. |
-| `last_review_record_payload_digest` | `sha256("<form>\n<payload>")` of the payload recorded under that id: the sorted deduplicated fingerprint list, the artifact digest for either clean form, or the empty string for `--all-skipped`. Stored, never derived on read — a recording round overwrites `finding_fingerprints` and leaves `last_review_clean_source` untouched, so `state.json` stops describing an earlier round's payload as soon as the next round lands. A repeat under the same id with a matching digest is a completed write and changes nothing; a differing digest is refused. A round whose digest cannot be computed is refused rather than recorded, so no recorded id is ever undecidable. |
-| `max_review_retries` | Cap. Default: `5`. See `review_retry_count` for the two verbs that enforce it, and *Changing a cap* below for the two ways past it. |
-| `finding_fingerprints` | `sha256("<file>\|<line>\|<title>")` per finding in the last findings round. Written by the registered CODE-REVIEW `findings-remain` effect or direct `review record --fingerprint`; compared across rounds by `review inspect`. Two parts of that preimage move while the finding does not: `<line>` shifts when a repair edits above it, and `<title>` carries the finding's ordinal from the reviewer's numbered list, so retiring an earlier finding renumbers the survivors. Equality across rounds is therefore rare even when the findings recur. |
-| `previous_finding_fingerprints` | `finding_fingerprints` from the round before last. Rotated atomically with `finding_fingerprints` by `review record`. |
-| `auto_parallel` | Always `false` in Phase 1; `dispatch-decision` and `auto-parallel` verbs are disabled. |
-| `last_commit_sha` | Latest commit SHA (informational; set externally). |
-| `worktrees` | Always `[]` in Phase 1; `worktree` verbs are disabled. |
-
-**Fields absent in Phase 1 (reserved for Phase 2):**
-
-`token_budget_used_pct`, `token_budget_cap_pct`, `consecutive_same_error_count`,
-`consecutive_same_error_threshold`, `iteration_count`, `max_iterations`.
-
-A `state.json` that contains any Phase-2 field was written by a pre-Phase-1
-tool. Run `loop-cohort reset` then `loop-engine reset` and re-init.
-
-**Fields in `engine-state.json` (Phase 1):**
-
-| Field | Meaning |
-|---|---|
-| `schema_version` | Must be `1`. |
-| `run_id` | Same UUID as `state.json.run_id`. Set at `loop-engine init`. |
-| `feature` | Spec directory name. |
-| `mode` | `code` or `spec-plan`. Fixed at init; drives FSM table selection. |
-| `state` | Current FSM state. Legal values: `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW`, `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `SPEC-PLAN-APPROVED`, `CODE-IMPLEMENTATION`, `CODE-VERIFICATION`, `CODE-REVIEW`, `CODE-HUMAN-GATE`, `DONE`. |
-| `last_event` | Most recent FSM event. Legal values: `null` (initial state before any transition), `spec-ready`, `reviewers-clean`, `spec-approved`, `spec-rejected`, `plan-approved`, `plan-rejected`, `plan-locked`, `contract-amendment`, `wave-complete`, `wave-passed`, `gates-clean`, `gates-failed`, `findings-remain`, `blocker-applied`, `done`. |
-| `last_event_context` | Event-specific payload. Registered effects include `pre_transition_sequence`; `wave-passed` also includes `completed_wave_index`, `contract-amendment` includes its transition/amendment id plus bounded authority, reason, and task evidence, and CODE-REVIEW `findings-remain`/`reviewers-clean` include their canonical review payload. Other events use `null`. |
-| `transition_sequence` | Monotonically increasing counter, incremented on every successful transition. |
-| `last_transition_at` | ISO-8601 UTC timestamp of the last transition. |
-
-**Human-wait states.** `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, and `CODE-HUMAN-GATE`
-are in `_HUMAN_WAIT_STATES`; `loop-engine status` reports `pending_human_wait: true`
-while in any of these states. `SPEC-PLAN-APPROVED` is **not** in `_HUMAN_WAIT_STATES`
-— it is a durable intermediate state reached after both approvals, allowing the agent
-to proceed to cohort operations without another human signal.
-
-**Key event semantics:**
-- `spec-approved` — scope decision accepted; fires from `SPEC-HUMAN-GATE`; guard: `spec.md Status == Approved`.
-- `plan-approved` — build-strategy accepted; fires from `PLAN-HUMAN-GATE`; guard: `plan.md Status == Approved`.
-- `plan-locked` — approved baseline sealed; fires from `SPEC-PLAN-APPROVED`; guard (code mode): `spec.md Status == Approved` + `plan check-current --require-schedule`; guard (spec-plan mode): `spec.md Status == Approved` + `plan check-current`.
-- `spec-rejected` — scope rejected; fires from `SPEC-HUMAN-GATE`; no guard; target: `SPEC-PLAN-DRAFTING`.
-- `plan-rejected` — build strategy rejected; fires from `PLAN-HUMAN-GATE`; no guard; target: `SPEC-PLAN-DRAFTING`.
-- `contract-amendment` — code-mode-only return from `CODE-IMPLEMENTATION` to `SPEC-PLAN-DRAFTING`; requires explicit owner-authority, stable follow-on reason, and at least one stable evidence reference for every completed task. Each repeated CLI reference uses `Tn=<stable-ref>`. It snapshots and pins completed work, clears only remaining approval/schedule state, and reuses the ordinary review, human-gate, approval, scheduling, and `plan-locked` path. Exact replay completes either cross-file crash window without a second history entry.
-
-**Fields on each `.loop-run/events.jsonl` line.** `loop-engine transition`
-appends one line per transition. The first seven fields identify the
-transition; the rest let a consumer answer questions the transition alone
-cannot.
+## `run.json`
 
 | Field | Meaning |
 | --- | --- |
-| `seq` | Transition sequence number, starting at 1. |
-| `run_id` | The run's UUID; matches both state files. |
-| `spec` | Spec directory, repository-relative where resolvable. |
-| `from` | State being left. |
-| `event` | FSM event fired. |
-| `to` | State entered. |
-| `at` | When the transition happened, `%Y-%m-%dT%H:%M:%SZ`. |
-| `phase_started_at` | When the `from` state was entered, so consecutive phases abut. On the first line this is what `init` wrote, which is the run's start. |
-| `phase_s` | Whole seconds spent in `from`. Never negative. `null` when either timestamp is unusable. |
-| `result` | What the gate decided: `success` or `failure`. `null` when the transition is a handoff or wave boundary rather than a decision. |
-| `awaiting_input` | `true` when `to` is a state that waits on a human decision. |
-| `waived` | `true` when this transition carried `--allow-retry-cap-override`. |
-| `budgets` | The cohort retry counters and their caps at transition time: `implementation_retry_count`, `max_implementation_retries`, `review_retry_count`, `max_review_retries`. |
+| `run_id` | The run's identity, `run-` and 16 hexadecimal characters. |
+| `active` | `true` while the run has a run id and is not terminal. |
+| `stage` | `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, or `terminal`. |
+| `gate_pending` | `true` while an open `human-decision` request waits for an answer. |
+| `gate_question` | The question that request puts to the human; supervisor-authored text. |
+| `refusal` | The standing refusal (`code`, `owner`, `detail`) or an empty object. |
 
-`result` records a decision and nothing about attempt counts. How many
-attempts a run has taken comes from counting the events themselves — a
-per-line count would be a second home for a fact this log already answers.
+`status --json` adds `terminal`, `retry_count` and `retry_cap`, `readiness`, the
+`tasks` (`task_id`, `position`, `title`, `complete`), `recovery_decisions`,
+`recovery_leftovers`, and the current `request`.
 
-**A cap reached without an override writes no line.** A run that exhausts its
-budget therefore goes quiet rather than saying why it stopped, so to a reader
-of this log alone that case is indistinguishable from a stall. Check the cohort
-state when a run ends without a terminal transition.
+## What the plan contributes
 
-**The caps are the enforced values.** The guard resolves an absent cap to its
-default and enforces it, and the snapshot resolves it the same way, so a line
-never shows no cap for a capped run. A cap `state.json` holds in a form the
-guard refuses (negative, boolean, or not an integer) reports `null`. A retry
-count that nothing has recorded also reports `null`, which is how a consumer
-tells "not recorded" from zero.
+The supervisor projects tasks from the plan's `### T<n>:` sections: `Depends on:`,
+`Touches:`, `Tests:` with any `stub` fences, `Done when:`, and `Effects:`. A
+task's identity is derived from its title without its number, and its revision
+is a digest of the content that decides what the task asks for, stub fences
+included. A task is complete when the commits and receipts the supervisor made
+for its current revision say so, so a change to a task's text makes a new
+revision, while a change elsewhere in the plan leaves finished tasks finished.
 
-Two properties consumers depend on. A field that cannot be determined is
-`null` and is still present, because a key that disappears reads as zero to
-anything summing durations or comparing a counter against its cap. And the
-counters are *copied* here, not owned here — `loop-engine transition` moves
-none of them, so a line records the values as they stood when it was written.
+What the approval covers is the **reviewed execution envelope** and the terminal
+intent. A plan edit that leaves both unchanged is committed by `next` as a
+`replan` step with no approval. A change to either is refused, naming the
+amendment or the plan-review authority that owns it.
 
-Timestamps are whole seconds, so `phase_s` is a whole-second figure. That is
-adequate for agent-paced phases and not for anything shorter.
+## The retry count
 
-**Exit contract — `check`.** `loop-cohort check --phase <phase>` exits 0 when
-the phase is satisfied and non-zero when it isn't, with a one-line reason on
-stderr. Treat non-zero as "stop and surface."
+`retry_count` counts `gate-fail` steps in the run's history. At the cap
+(`implementation_retry_cap` in `supervisor-policy.json`, five by default) the
+run is stopped with a `retry-cap` decision that no replan, amendment, or new
+approval resets, and `status --check` exits 3.
 
-**Exit contract — `plan check-current`.** A separate read-only verb with its
-own contract: exits 1 with `plan_review_status: pending` during PLAN (the
-expected cue to run pre-EXECUTE reviewers — not a stop signal), and exits 0
-after the G-plan sequence completes (`spec-approved` → `plan-approved` →
-`approve-plan` → (code mode) `schedule` → `plan-locked`).
+## Repeated findings
 
-A third exit-1 mode: the verb also refuses when a pinned artifact's status
-token has regressed out of its legal post-approval set (spec.md must be
-`Approved` / `Implementing` / `Shipped`; plan.md `Approved` / `Executing` /
-`Done`). An absent or unparseable token is skipped, not stopped. This replaces
-the status-regression detection the byte hash used to provide incidentally.
+`review-artifact.py inspect --run-id <uuid> --json`, which pre-approval and
+light-mode review use, returns `matches_previous_round: true` when a round's
+fingerprint set equals the previous round's exactly. Surface it; it starts no
+transition and stops no loop. It is not a stasis detector and bounds nothing —
+`max_review_retries` is what bounds a review loop. In a full-mode run the
+supervisor assesses each finding afresh, and the retry count above is the only
+cap.
 
-**What the pin covers.** The approved baseline pins the *scope a human
-approved*, not the loop's own **bookkeeping**. **Canonical form** = CRLF→LF +
-strip trailing whitespace per line + normalize the preamble `**Status:**`
-*token* (a span-bounded splice of the token only) + normalize checkbox bracket
-contents (`[x]`→`[ ]`). Checkbox scope follows the artifact: in `spec.md` only
-inside the Acceptance Criteria section, since a checkbox elsewhere would be a
-`Never do` item; in `plan.md` file-wide, because a plan has no such section and
-its checkboxes are task progress. The preamble status token and
-progress checkboxes are normalized out, because this skill mandates writing
-them after approval (`Status: Implementing` before code, `Shipped` and every
-AC `[x]` at finish, plan `Done`) — pinning them made these verbs fail by
-construction one step after `approve-plan`. Everything else stays pinned:
-acceptance-criterion text, task text, `Depends on:` edges, a `(deferred:
-<slug>)` annotation, a re-indented criterion, and any free text appended
-after the status token on the status line.
+## Troubleshooting
 
-**Repeated findings.** `review inspect --json` returns
-`matches_previous_round: true` when a round's fingerprint set equals the
-previous round's exactly. Surface it; it starts no transition and stops no
-loop. It is not a stasis detector and bounds nothing — `max_review_retries`
-is what bounds a review loop.
-
-**Atomic writes.** Both tools update their JSON files through
-`tempfile.mkstemp` + `os.replace`. A partial-write cannot present as malformed
-JSON and falsely stop the loop.
-
-**State lock.** Atomic writes are not enough on their own: a *verb* reads, then
-decides, then writes, and a concurrent verb's write landing inside that window
-is lost silently. So every mutating verb holds a sibling lockfile
-(`state.json.lock`, `engine-state.json.lock`) across its whole read-decide-write,
-and `loop-engine transition` holds it through the outbox append as well. Both
-files are gitignored, lockfile included.
-
-What you may see:
-
-- **`could not acquire … within 10s (recorded holder pid N)`** — another verb is
-  mid-mutation. The verb refuses without writing; re-run it.
-- **`a lock path must be a regular file`** — something other than a lockfile sits
-  at that path (a stray directory or symlink). Refused at once rather than
-  waited on; remove it.
-- **`lost … mid-mutation`** — this run's lock was reclaimed as stale while it was
-  working, so its write may have been overwritten. Re-read the state before
-  trusting it.
-
-A lock left behind by a killed process is reclaimed automatically after
-**5 minutes**; to clear one sooner, delete the `.lock` file beside the state file
-it names. A lockfile whose contents this tool did not write is never deleted
-automatically — it is reported so a human can look.
-
-**Lifecycle.** Both `state.json` and `engine-state.json` are run-local
-(survives session boundaries; gitignored). A resuming session reads them via
-`loop-engine status` and `loop-cohort identity` / `loop-cohort status`. For
-corrupt-pair recovery or a deliberate new run, reset first: run `loop-cohort reset` then
-`loop-engine reset` before `init`. The template for `state.json` is at
-[`assets/state.json`](../assets/state.json); `engine-state.json` has no
-template — `loop-engine init` writes it from code.
-
-**Changing a cap.** Edit `assets/state.json` to change the starting value for
-newly-initialized specs. To change the cap for a running spec, edit that
-spec's own (gitignored) `docs/specs/<feature>/state.json` directly — the only
-sanctioned by-hand write; all other mutations go through `loop-cohort`.
-
-**Going past the review cap once, without changing it.** Pass
-`--allow-retry-cap-override` to
-`loop-engine transition <spec-dir> findings-remain` together with the same
-`--fingerprint` payload the round is meant to record. The engine owns the
-registered CODE-REVIEW review effect and passes the transition id as the cohort
-review operation id before writing engine-state. The waiver covers one round, so
-a second deliberate round needs the flag again. It exists for a human who has
-looked at why the loop is not converging; an agent running unattended stops and
-surfaces the cap instead. The
-implementation cap at `gates-failed` has no equivalent — reset is its only exit.
+| Symptom | Cause and answer |
+| --- | --- |
+| A refusal `code` | Look it up in [`supervisor.md`](supervisor.md#refusals-and-their-owners): its one table lists every code, its cause, and the answer. |
+| `run.json` missing or unreadable | Run `status` or `next`; both rewrite it from Git history and the committed records. |
+| Records written by an earlier release | Nothing reads them. The supervisor re-derives the run from the spec, the plan, Git history, and the committed records; a task counts as incomplete until the loop re-runs or replans it. |

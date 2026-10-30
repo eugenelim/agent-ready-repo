@@ -39,21 +39,11 @@ on:
       - 'packs/core/tests/skills/work-loop/test_append_knowledge.py'
       - 'profiles/**'
       - 'packs/**'
-      - '.claude/skills/work-loop/scripts/loop-cohort.py'
-      - '.claude/skills/work-loop/scripts/loop-engine.py'
-      - '.claude/skills/work-loop/scripts/check-spec-status.py'
       # The state lock. `packs/**` below covers the pack copy; the `.claude/`
       # projection needs naming explicitly.
       - '.claude/skills/work-loop/scripts/_statelock.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/loop-cohort.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/loop-engine.py'
-      - 'packs/core/.apm/skills/work-loop/scripts/check-spec-status.py'
       - 'packs/core/.apm/skills/work-loop/scripts/_statelock.py'
-      - 'packs/core/tests/skills/work-loop/test_loop_cohort.py'
-      - 'packs/core/tests/skills/work-loop/test_loop_engine.py'
       - 'packs/core/tests/skills/work-loop/test_statelock.py'
-      - 'packs/core/tests/skills/work-loop/test_loop_concurrency.py'
-      - 'packs/core/tests/skills/work-loop/test_loop_cohort_cli.py'
       - 'tests/roster/test_work_loop_root_validation.py'
       - 'packs/core/tests/skills/work-loop/test_fingerprint_width.py'
       - 'packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py'
@@ -221,8 +211,8 @@ jobs:
       - name: append-knowledge self-test
         run: python3 -m pytest packs/core/tests/skills/work-loop/test_append_knowledge.py -q
 
-  loop-cohort:
-    name: Caps enforcer self-test
+  work-loop-scripts:
+    name: Work-loop script self-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
@@ -235,16 +225,8 @@ jobs:
           python-version: "3.11"
       - name: Install pytest
         run: python -m pip install pytest
-      - name: Self-test loop-cohort Phase-1 (schema, init pair, check verbs, review)
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10
-      - name: Python test suite — loop-cohort
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_cohort.py -q --durations=10
-      - name: Python test suite — loop-engine FSM
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_engine.py -q --durations=10
       - name: Python test suite — loop state lock
         run: python3 -m pytest packs/core/tests/skills/work-loop/test_statelock.py -q --durations=10
-      - name: Python test suite — loop concurrency
-        run: python3 -m pytest packs/core/tests/skills/work-loop/test_loop_concurrency.py -q --durations=10
       - name: Python test suite — base freshness
         run: python3 -m pytest packs/core/tests/skills/work-loop/test_check_base_freshness.py -q --durations=10
       - name: Python test suite — CLI path-argument boundary validators
@@ -294,18 +276,6 @@ jobs:
           fetch-depth: 0
       - name: Install tools dependencies
         run: pip install -r tools/requirements.txt
-      - name: Seed a healthy state.json so the aggregator exercises loop-cohort check
-        run: |
-          mkdir -p docs/specs/_ci-smoke
-          python3 -c "
-          import json, pathlib, uuid
-          d = json.loads(pathlib.Path('.claude/skills/work-loop/assets/state.json').read_text())
-          d['run_id'] = str(uuid.uuid4())
-          d['plan_review_status'] = 'approved'
-          d['implementation_retry_count'] = 0
-          d['review_retry_count'] = 0
-          pathlib.Path('docs/specs/_ci-smoke/state.json').write_text(json.dumps(d, indent=2))
-          "
       - name: Run pre-pr aggregator (mirrors local enforcement triplet)
         run: PYTHONPATH=packages/agentbundle python tools/catalogue/pre_pr_catalogue.py
       - name: Self-test the aggregator (each layer corruption surfaces)

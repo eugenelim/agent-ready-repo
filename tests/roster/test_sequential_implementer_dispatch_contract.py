@@ -37,14 +37,12 @@ def test_dispatch_surfaces_name_implementer_and_keep_the_fallback() -> None:
     # Pin the dispatch clause per surface, not the bare token: every one of these
     # files names `implementer` for other reasons, so a token check stays green
     # when the dispatch rule itself is deleted.
-    assert "dispatches each plan task in topological" in supervisor
+    assert "one `implement-task` request at\na time, in the plan's dependency order" in supervisor
     # The sequential limit itself, which the retired seeded document used to
     # carry alongside the reference. Its one live home is the reference.
     assert "one `implementer` at a time" in supervisor
     assert "controller-supplied execution root" in implementer
-    fallback = supervisor.split("## Single-agent fallback", 1)[1].split(
-        "## Cross-references", 1
-    )[0]
+    fallback = supervisor.split("## Single-agent fallback", 1)[1]
     assert "no `implementer`-matching subagent is installed" in fallback
     assert "single-agent mode" in fallback
     record = next(
@@ -57,14 +55,12 @@ def test_dispatch_surfaces_name_implementer_and_keep_the_fallback() -> None:
     expected = record["expected_output"]
     assert "Dispatch `implementer` tasks sequentially" in expected
     assert "one implementer at a time" in expected
+    assert "one `implement-task` request at a time" in expected
 
 
-def test_guide_keeps_the_phase_one_limit_and_explains_dispatch() -> None:
-    """The public guide explains the current sequential behavior, not Phase 2."""
+def test_guide_keeps_the_sequential_limit_and_explains_dispatch() -> None:
+    """The public guide explains the current sequential behavior, not parallel fan-out."""
     guide = GUIDE.read_text(encoding="utf-8")
-    assert (
-        "Parallel fan-out (`dispatch-decision`, `worktree`, `auto-parallel`) is "
-        "disabled in Phase 1"
-    ) in guide
+    assert "issues one `implement-task` request at a time" in guide
     assert "controller dispatches each plan task sequentially" in guide
     assert "one implementer at a time" in guide

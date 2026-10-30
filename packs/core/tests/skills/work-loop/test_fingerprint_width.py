@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Pytest fingerprint algorithm + width contract for loop-cohort.py (core 2.3.0).
+"""Pytest fingerprint algorithm + width contract for review-artifact.py.
 
 Review-finding fingerprints moved from SHA-1 to SHA-256. They are opaque
 tokens compared set-wise for stasis detection, never displayed and never a key
 into anything external, so the switch is behaviour-preserving — with one edge:
-a cohort that was mid-review when core upgraded holds 40-hex values in its
-state.json, and `review record --fingerprint` would hard-reject them if the
+a review that was mid-flight when core upgraded holds 40-hex values in its
+records, and `record --fingerprint` would hard-reject them if the
 validator only accepted the new width.
 
 These algorithm-specific cases stay in their focused pytest module rather than
@@ -29,12 +29,13 @@ sys.stdout.reconfigure(encoding="utf-8", errors="strict")
 sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
 
 _SKILL_DIR = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop"
-COHORT = _SKILL_DIR / "scripts" / "loop-cohort.py"
-if not COHORT.is_file():
-    raise SystemExit(f"subject not found at {COHORT} — check the parents[] depth")
+REVIEW_ARTIFACT = _SKILL_DIR / "scripts" / "review-artifact.py"
+if not REVIEW_ARTIFACT.is_file():
+    raise SystemExit(f"subject not found at {REVIEW_ARTIFACT} — check the parents[] depth")
 
-_spec = importlib.util.spec_from_file_location("loop_cohort_under_test", COHORT)
+_spec = importlib.util.spec_from_file_location("review_artifact_under_test", REVIEW_ARTIFACT)
 lc = importlib.util.module_from_spec(_spec)
+sys.modules["review_artifact_under_test"] = lc  # a `@dataclass` resolves its module by name
 _spec.loader.exec_module(lc)
 
 
@@ -83,13 +84,13 @@ def test_distinct_findings_differ() -> None:
 
 
 def test_validator_accepts_both_widths() -> None:
-    """64-hex is current; 40-hex stays valid for cohorts straddling the upgrade."""
+    """64-hex is current; 40-hex stays valid for reviews straddling the upgrade."""
     for width, label in ((64, "sha256 (current)"), (40, "sha1 (legacy, in-flight)")):
         name = f"validator accepts {width}-hex — {label}"
         if lc._RE_FINGERPRINT.match("a" * width):
             ok(name)
         else:
-            fail(name, f"{width}-hex rejected; an in-flight cohort would hard-fail")
+            fail(name, f"{width}-hex rejected; an in-flight review would hard-fail")
 
 
 def test_validator_rejects_other_widths() -> None:

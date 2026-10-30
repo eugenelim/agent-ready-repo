@@ -19,7 +19,7 @@ the dispositions that stage owns: ``repair-request`` for a supported material
 finding, ``fixed-by`` after a fresh report for the replacement subject no longer
 carries it, and ``accept-risk`` only from an admitted ``risk-owner`` decision.
 Every record goes through ``_review_disposition.append_finding_disposition`` into
-the ``_evidence_store`` evidence log. Legacy review events map through ``_review_compat.py``.
+the ``_evidence_store`` evidence log.
 
 Standard library only. Python 3.11+.
 """
@@ -88,7 +88,6 @@ __all__ = [
     "admit_selection",
     "candidates",
     "current_policy",
-    "ingest_legacy_event",
     "load_rules",
     "record_dispositions",
     "resolve_policy",
@@ -829,36 +828,3 @@ def accept_risk_evidence(ws: Any, state: Any, record: dict[str, Any]) -> bytes:
     except Exception as exc:  # noqa: BLE001 - every disposition refusal names its own code
         code = getattr(exc, "denial_code", None) or type(exc).__name__
         raise Refusal("review-record-refused", "controller", str(code)) from exc
-
-
-# ── legacy ingest ───────────────────────────────────────────────────────────
-
-
-def ingest_legacy_event(
-    store: Any,
-    source_event: dict[str, Any],
-    *,
-    legacy_state: dict[str, Any],
-    review_subject: dict[str, Any],
-    review_policy: dict[str, Any],
-    issuer: Any,
-    grant: Any,
-    audit_sink: Any,
-) -> dict[str, Any]:
-    """Map one legacy review event to its structured result.
-
-    The four-value mapping (``clean``, ``findings``, ``indeterminate``,
-    ``unable``) and the acknowledgement rules stay owned by ``_review_compat.py``,
-    which this calls; nothing here copies them.
-    """
-    result: dict[str, Any] = _supervisor("_review_compat.py").reconcile_review_source_event(
-        store,
-        source_event,
-        legacy_state=legacy_state,
-        review_subject=review_subject,
-        review_policy=review_policy,
-        issuer=issuer,
-        grant=grant,
-        audit_sink=audit_sink,
-    )
-    return result

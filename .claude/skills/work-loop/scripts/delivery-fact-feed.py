@@ -5,7 +5,7 @@ Usage:
     delivery-fact-feed.py [--root <repo-dir>] [--continuation <token>]
 
 Writes one ``delivery-fact-feed.v1`` page to standard output: an ordered
-snapshot of the facts in each spec's shadow evidence log, each with its
+snapshot of the facts in each spec's committed ``delivery/evidence.jsonl``, each with its
 ``knowledge-observation.v1`` candidate or an explicit ``none``.  The page is
 machine input for project-knowledge's candidate mode, so pipe it there
 rather than reading it.  Every free-text field in it is untrusted data.
@@ -14,9 +14,7 @@ The first page's ``continuation`` token, when not null, fetches the next page
 of the same snapshot.  A token whose snapshot can no longer be reproduced is
 refused with no page.
 
-Read only: never writes, truncates, repairs, or locks a log.  With
-``WORK_LOOP_SHADOW_SERVICES`` unset the page is a complete, empty snapshot and
-the filesystem is not listed.
+Read only: never writes, truncates, repairs, or locks a log.
 
 Exit 0 and one page on stdout, or exit 2 with nothing on stdout and
 ``delivery-fact-feed: refused: <code>`` on stderr.  An unexpected fault is

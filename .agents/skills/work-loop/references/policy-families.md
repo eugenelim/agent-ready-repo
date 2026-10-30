@@ -39,39 +39,23 @@ the resolution root.
 
 ## What a selection key means
 
-The key is `engine-state.json.state` whenever a loop exists. Every legal FSM
-state has an entry; the state set is owned by
-[`scripts/loop-engine.py`](../scripts/loop-engine.py)'s transition tables. Adding
-a state there without adding an entry here is a defect — the selector has no
+The key is the supervisor's `stage` whenever a full-mode run exists: `admitted`,
+`implementing`, `gating`, `reviewing`, `awaiting-human`, and `terminal`, read from
+`work-supervisor.py status` or `<spec-dir>/.supervisor/run.json`. Adding a stage
+to the supervisor without adding an entry here is a defect — the selector has no
 answer for that phase and refuses.
 
-The supervisor reports a stage instead of an engine state, and the stage is also
-a key: `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, and
-`terminal`. Each selects what the engine states it replaces select, and the
-engine-state entries stay as they were:
-
-| Stage key | Engine states it replaces |
-| --- | --- |
-| `PRE-APPROVAL` (declared constant) | `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW` |
-| `admitted` | `SPEC-PLAN-APPROVED` |
-| `implementing` | `CODE-IMPLEMENTATION` |
-| `gating` | `CODE-VERIFICATION` |
-| `reviewing` | `CODE-REVIEW` |
-| `awaiting-human` | `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `CODE-HUMAN-GATE` |
-| `terminal` | `DONE` |
-
 `DIRECT-LIGHT` and `PRE-APPROVAL` are the two declared constants. The light path
-creates no engine state, and the supervisor has no stage before approval, so
+starts no supervisor run, and the supervisor has no stage before approval, so
 neither has a value to key on — each token is declared, never an inference from
 prose.
 
-An empty list is a deliberate answer, not a gap. The human-gate and terminal
-states (`SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `SPEC-PLAN-APPROVED`,
-`CODE-HUMAN-GATE`, `DONE`, and the stage keys `admitted`, `awaiting-human`,
-`terminal`) select nothing because no agent authors an artifact
-while the loop waits in them. Emptying any *other* key silently stops delivering
-policy for that phase, so pin the map's expected contents in whatever test suite
-covers this registry rather than trusting a review to notice.
+An empty list is a deliberate answer, not a gap. The `admitted`,
+`awaiting-human`, and `terminal` stage keys select nothing because no agent
+authors an artifact while the loop waits in them. Emptying any *other* key
+silently stops delivering policy for that stage, so pin the map's expected
+contents in whatever test suite covers this registry rather than trusting a
+review to notice.
 
 ## The registry
 
@@ -106,41 +90,10 @@ covers this registry rather than trusting a review to notice.
     }
   ],
   "selection": {
-    "SPEC-PLAN-DRAFTING": [
-      "observable-outcome",
-      "repository-anchoring",
-      "new-spec-step-5a",
-      "the-razor",
-      "cognitive-load"
-    ],
-    "SPEC-PLAN-REVIEW": [
-      "observable-outcome",
-      "repository-anchoring",
-      "new-spec-step-5a",
-      "the-razor",
-      "cognitive-load"
-    ],
-    "CODE-IMPLEMENTATION": [
-      "the-razor",
-      "cognitive-load"
-    ],
-    "CODE-VERIFICATION": [
-      "the-razor",
-      "cognitive-load"
-    ],
-    "CODE-REVIEW": [
-      "the-razor",
-      "cognitive-load"
-    ],
     "DIRECT-LIGHT": [
       "the-razor",
       "cognitive-load"
     ],
-    "SPEC-HUMAN-GATE": [],
-    "PLAN-HUMAN-GATE": [],
-    "SPEC-PLAN-APPROVED": [],
-    "CODE-HUMAN-GATE": [],
-    "DONE": [],
     "PRE-APPROVAL": [
       "observable-outcome",
       "repository-anchoring",

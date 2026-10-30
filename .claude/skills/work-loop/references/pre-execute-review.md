@@ -3,16 +3,17 @@
 > **Loaded when:** a pre-EXECUTE review trigger fires during PLAN — a **spec
 > amendment** or a **structural change** (adversarial), or the
 > **security-boundary** trigger (secure-design). `SKILL.md` keeps the triggers
-> and the one-line dispatch; the depth — how the reviewer measures, the re-plan
-> re-fire, the gate mechanism, the Profile-A opt-out, and the infra-mandatory
-> secure-design pass — lives here.
+> and the one-line dispatch; the depth — how the reviewer measures, the plan
+> change rules, the approval path, the Profile-A opt-out, and the infra-mandatory
+> secure-design pass — lives here. Pre-EXECUTE review happens before `start`, so
+> it keeps no supervisor state: its artifacts are the ignored session files below.
 > **Why progressive disclosure:** the *triggers* are evaluated every full-mode
 > PLAN, but this depth only matters once a trigger actually fires on a given
 > loop, so it loads on demand rather than sitting inline.
 
 ## Finding-adjudication gateway
 
-Persist every completed pre-EXECUTE reviewer report, then run `review
+Persist every completed pre-EXECUTE reviewer report, then run `review-artifact.py
 raw-classify --report <path> --json`. `clean` requires the sentinel line
 exactly once, zero parsed findings, and nothing else but blank lines; do not
 dispatch `finding-adjudicator`. A report carrying a `## Not checked` footer is
@@ -31,8 +32,8 @@ controller delivers it once: exactness is decided by reading the artifact, never
 by classifying output before anyone has written it down.
 
 Route every `findings` report through the same independent gateway before
-classifying or acting on it, revising the spec or plan, or firing a review
-transition. This applies to adversarial, security, design-intent, and frontend
+classifying or acting on it, revising the spec or plan, or recording a review
+round. This applies to adversarial, security, design-intent, and frontend
 pre-flight reports whenever those reviewers are warranted. Malformed or mixed
 output is not clean. A missing adjudicator on this path is a loud stop; it is
 never a named clean skip.
@@ -45,11 +46,11 @@ rubric paths. The adjudicator can verify the reviewer's artifact-relative
 `design-reviewer` trigger.
 
 `<round>` here is a per-run, per-stage ordinal the orchestrator keeps: 1 for the
-first pre-EXECUTE pass, incremented on each `spec-ready` re-entry and each
-evidence replacement attempt. Do not derive it from the cohort's
-`review_round_count`: ordinary pre-EXECUTE results do not call `review record`,
-while the bounded evidence path deliberately does, so that shared counter is
-not this artifact namespace.
+first pre-EXECUTE pass, incremented on each re-review of a revised spec or plan and
+each evidence replacement attempt. `<run-id>` is one ephemeral lowercase canonical
+UUID for the pre-EXECUTE review (generate it as
+[`finding-adjudication.md`](finding-adjudication.md) shows); the supervisor's own
+run id does not exist yet.
 
 The orchestrator assigns the canonical reviewer-role slug and persists the raw
 report under the ignored session root as:
@@ -101,19 +102,19 @@ Validate that artifact with the same command using `--kind adjudication`, then
 classify its envelope before any pre-EXECUTE decision:
 
 ```bash
-python '<skill-dir>/scripts/loop-cohort.py' review inspect <spec-dir> \
-  --report <pre-execute-adjudication-path> --adjudication --json
+python '<skill-dir>/scripts/review-artifact.py' classify \
+  --report <pre-execute-adjudication-path> --json
 ```
 
 An `invalid` classification is a fail-closed stop except for the exact bounded
 machine-checkable evidence route below. Otherwise do not revise the spec or plan
-and do not call `review record`. Evict the raw report prose and consume only the
+and do not record a round. Evict the raw report prose and consume only the
 strict classifier's `## Main-loop result`. Only sustained findings may drive a
 spec/plan revision or the iterate-to-clean branch. A refuted-only result is the
 existing exact `Clean — ready to commit.` result and does not consume a repair
 round. An indeterminate stop for owner choice, conflicting authority, or a
 non-machine-checkable claim remains terminal and is never recorded as clean.
-Keep all artifacts for the final audit without adding cohort state.
+Keep all artifacts for the final audit.
 
 ### Pre-EXECUTE evidence variant
 
@@ -139,24 +140,18 @@ and derive fresh paths:
 
 After the shared non-executing eligibility, artifact-excluding read-allowlist,
 fresh-path, containment, capture-cap, and exclusive-create preflight succeeds,
-run the retry-cap transition, confirm it succeeded, and record the validated
-first-adjudication digest; a refused transition records and executes nothing:
+record the validated first-adjudication digest against the review budget; a
+refused record executes nothing:
 
 ```bash
-# The transition prints `(seq=N)`. Record only if it succeeded, and pass that
-# N: a resuming session reads the same value from `loop-engine status`, so the
-# operation id it recomputes matches and the round is not written twice.
-python '<skill-dir>/scripts/loop-engine.py' transition <spec-dir> findings-remain
-python '<skill-dir>/scripts/loop-cohort.py' review record <spec-dir> \
-    --fingerprint <validated-adjudication-sha256> --expect-run-id <run-id> \
-    --operation-id <run-id>:<seq>
+python '<skill-dir>/scripts/review-artifact.py' record --run-id <run-id> \
+    --fingerprint <validated-adjudication-sha256>
 ```
 
 After the record succeeds, run the literal catalog entry under its declared
 controls, exclusively persist and validate `--kind evidence`, and immediately
-revalidate it with `--expected-sha256 <first-validator-digest>`. Fire
-`spec-ready` to re-enter `SPEC-PLAN-REVIEW`; do not revise the unchanged target
-or let the controller compose prior verdicts. Dispatch the adjudicator with the
+revalidate it with `--expected-sha256 <first-validator-digest>`. Re-enter
+review on the unchanged target; do not revise it or let the controller compose prior verdicts. Dispatch the adjudicator with the
 unchanged raw path and source-finding set plus the evidence path and expected
 provenance. Persist, validate, and strictly classify one complete replacement
 adjudication. A further evidence attempt repeats this entire guarded path; an
@@ -202,21 +197,18 @@ the core pack's file layout. Tentative or contradictory evidence is an
 assurance gap, not a repository rule. The check asks for confirmation or a
 reasoned deviation; it does not silently redesign the proposal.
 
-## Mid-EXECUTE re-plan — Phase-1 note
+## Plan changes during EXECUTE
 
-In Phase 1 approved `spec.md` and `plan.md` are **immutable in substance**:
-`loop-cohort schedule check-current` guards every `CODE-*` transition against
-the scheduled `plan_hash`. Lifecycle **bookkeeping** is exempt — the preamble status token and
-progress checkboxes are normalized out of the hash, because this skill mandates
-writing them. Any *substantive* edit to `spec.md` or `plan.md` after
-`approve-plan` — task text, a `Depends on:` edge, a re-ordering — still causes a
-refusal.
-
-If EXECUTE discovers a plan
-error, surface to the human and stop — do not edit `plan.md` in-flight. The
-full mid-EXECUTE re-plan path (structural-change re-fire, reviewer re-run, new
-approval) is a Phase-2 feature; this section will be updated when it ships.
-For an execution observation rather than a plan error, follow the
+After `start`, the approval covers the spec's protected sections, its terminal
+intent, and the reviewed execution envelope. A plan change that leaves them
+unchanged — tasks, tests, stubs, design, approach — is a working-plan edit: the
+controller makes it while no attempt is open, and the supervisor commits it as a
+`replan` with no approval and no pre-EXECUTE re-review. A change to a protected
+section or the terminal intent is refused with its owner named; it takes the
+controlled amendment in
+[`delivery-contract-lifecycle.md`](delivery-contract-lifecycle.md), which
+returns through this review and both approvals. A worker's result never edits
+the plan. For an execution observation rather than a plan error, follow the
 [verification-ledger procedure](delivery-contract-lifecycle.md#verification-ledger).
 
 ## Why early, and the gate mechanism
@@ -224,14 +216,12 @@ For an execution observation rather than a plan error, follow the
 Cheap-to-fix-early applies harder to specs and structural decisions than to code
 — catching a vague behavior, a missing `Depends on:`, a mismatched verification
 mode, or a misplaced module boundary here costs a sentence; catching it
-post-EXECUTE costs a re-do. Gate mechanism in Phase 1: the plan approver writes `Status: Approved` in
-`plan.md` and the agent fires `plan-approved` (PLAN-HUMAN-GATE →
-SPEC-PLAN-APPROVED). The `loop-cohort approve-plan` verb then writes
-`approved_plan_hash` to `state.json`; `loop-cohort plan check-current`
-(with `--require-schedule` for `code` mode) verifies the hash; `plan-locked`
-fires to transition to CODE-IMPLEMENTATION. No new state fields. **Both
-triggers respect the Profile-A opt-out:** skip if the project doesn't use the
-reviewer at all.
+post-EXECUTE costs a re-do. Gate mechanism: the spec approver writes
+`Status: Approved` in `spec.md`, the plan approver writes `Status: Approved` in
+`plan.md`, each with its Changelog entry, and `work-supervisor.py start` records
+both approvals with their authority references and binds them to the reviewed
+execution envelope and the terminal intent. **Both triggers respect the Profile-A
+opt-out:** skip if the project doesn't use the reviewer at all.
 
 ## Secure-design review — net-new wiring and the infra-mandatory pass
 
@@ -258,7 +248,3 @@ Profile-A / missing-subagent interaction all live in that REVIEW bullet — this
 the spec-stage half of the same non-skippable, both-stages pass. (Full
 infra-mandatory detail: [`infra-verification.md`](infra-verification.md) §
 *REVIEW — mandatory, multi-module security on infra-flavored work*.)
-
-Unrelated but adjacent: `loop-cohort.py`'s `_resolve_spec_dir` is a lexical
-`..` check, not path confinement — don't cite it as the pattern for a new
-path-taking verb.

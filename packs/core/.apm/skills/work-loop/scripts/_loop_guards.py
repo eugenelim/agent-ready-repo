@@ -1,33 +1,22 @@
-"""_loop_guards — the work-loop's shared read-only guard API.
+"""_loop_guards — the work-loop's shared read-only guard helpers.
 
-`loop-engine.py transition` used to shell out to `loop-cohort.py` and
-`check-spec-status.py` for every read-only FSM guard, costing up to three extra
-Python interpreters per transition. The guard *decisions* live here now, so the
-engine and those CLIs call one implementation and cannot drift into disagreeing
-about whether a transition is legal.
+What lives here: the bounded, symlink-safe readers; the canonical contract hash of
+`spec.md` and `plan.md`; the status-token parse; the artifact-status guard that
+`lint-spec-status.py` and `lint-traceability.py` call; and the plan grammar the
+supervisor's projector shares (the task-section walk and the `Depends on:` parse).
 
-Contract — every public function in this module:
+Contract — every public guard in this module:
 
   * takes explicit typed arguments and returns a `GuardResult`;
   * prints NOTHING to stdout or stderr, and carries no CLI prefix in `reason`
-    or `message` — each adapter adds its own, so the layer cannot double it
-    (which it did once, caught by the golden capture);
+    or `message` — each adapter adds its own, so the layer cannot double it;
   * parses no arguments, reads no `sys.argv`, never calls `sys.exit`;
   * mutates no state file and creates no file anywhere;
   * never spawns a process and never opens a socket.
 
-Two named exceptions to the first bullet, kept because their six mutation-verb
-callers consume a reason string directly and rewriting those call sites is out of
-scope: `validate_run_id` and `assert_status_legal` return `str | None`.
-
 `spec_dir` precondition: callers pass an absolute, already-resolved,
-already-confined `Path`. Confinement stays with the caller that owns it —
-`loop-engine._resolve_spec_dir` and `loop-cohort._resolve_spec_dir` (both
-repo-root anchored), and `check-spec-status.py`'s bare `resolve()`, which is the
-weakest of the three and stays that way under its frozen argument surface. What a
+already-confined `Path`. Confinement stays with the caller that owns it. What a
 callee can actually check, it does: that `spec_dir` exists and is a directory.
-Re-testing "absolute, no `..`" would be dead code, because every caller resolves
-first.
 
 NOTE ON `from __future__ import annotations` — deliberately absent, unlike every
 sibling script. `GuardResult` is a frozen dataclass, and under future-annotations
@@ -61,9 +50,10 @@ import re
 import stat
 import sys
 from collections import namedtuple
-from collections.abc import Container, Mapping
+from collections.abc import Container
 from dataclasses import dataclass
 from pathlib import Path
+from types import MappingProxyType
 
 __all__ = [
     # result type
@@ -72,55 +62,21 @@ __all__ = [
     "ManagedContentError",
     "read_managed_json",
     "read_managed_text",
-    "read_state",
-    "state_path_for",
     # canonical contract hashing
     "canonical_contract",
     "sha256_canonical_contract",
     # status parsing + legality
     "UnreadableArtifact",
     "read_md_status",
-    "assert_status_legal",
-    "validate_run_id",
     "contained",
     "contained_reason",
-    # shared state defaults
     "DEFAULTS",
-    "SCHEMA_VERSION",
-    # dispatch-receipt data model, declared once for the guard and the CLI
-    "RECEIPTS_KEY",
-    "RECEIPT_KEY_PATH",
-    "RECEIPT_KIND",
-    "SUPERSEDED_KEY",
-    "accounts_for_task",
-    "unaccounted_breakdown",
-    "DECLINE_KIND",
-    "DECLINE_REASONS",
-    "partition_digest",
-    "is_dispatch_record",
-    "malformed_receipts_position",
-    "receipts_for_partition",
-    "wave_is_well_formed",
-    "unaccounted_wave_tasks",
-    "superseded_wave_tasks",
-    "wave_accounting_summary",
-    "bounded_id_list",
-    # the six read-only guards
-    "check_identity",
-    "check_plan_current",
-    "check_schedule_current",
-    "check_phase",
-    "check_wave",
     "check_artifact_status",
 ]
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-TEMPLATE_PATH = SCRIPT_DIR.parent / "assets" / "state.json"
 # Each standalone CLI retains a local declaration so its schema validation gains no
-# new load dependency. The alignment test keeps these declarations and the template
-# on one schema version.
-SCHEMA_VERSION = 2
-RESET_PAIR_ORDER = "run `loop-cohort reset` then `loop-engine reset`"
+# new load dependency.
 
 
 # ── result type ───────────────────────────────────────────────────────────
@@ -132,19 +88,17 @@ RESET_PAIR_ORDER = "run `loop-cohort reset` then `loop-engine reset`"
 INTERNAL_ERROR = "internal-error"
 
 # Bound on ONE interpolated external scalar, not on the whole reason. Several
-# authored reasons are deliberately long \u2014 `_BOTH_CAUSES` is a ~900-char recovery
-# runbook \u2014 and capping the assembled string clipped it mid-sentence, losing the
+# authored reasons may be deliberately long, and capping the assembled string
+# clipped it mid-sentence, losing the
 # steps an operator needs. So the bound sits where untrusted length actually
 # enters: `_scalar()`, at each interpolation of state-file or argv data.
 _MAX_SCALAR_CHARS = 120
 
 # Backstop, and load-bearing rather than theoretical: the audit that introduced
-# `_scalar` MISSED `check_identity`'s success message, where a 100 KB `run_id`
+# `_scalar` MISSED a success message, where a 100 KB value
 # reached stdout at exactly this cap. Treat it as what holds when a site is
 # missed, not as evidence that none is. Set well above the longest
-# authored reason (`_BOTH_CAUSES` plus two digests, ~1050 chars) so it cannot
-# truncate legitimate text \u2014 `test_the_longest_authored_reason_survives_intact`
-# pins that separation.
+# authored reason so it cannot truncate legitimate text.
 _MAX_REASON_CHARS = 4000
 
 
@@ -153,7 +107,7 @@ class ManagedContentError(ValueError):
 
     Distinct from the structural failures sharing the same `ValueError` vocabulary
     (unopenable, non-regular, replaced mid-read), and the distinction is load-bearing
-    rather than cosmetic: `loop-engine._recover_pending` DELETES `events.pending` — a
+    rather than cosmetic: `the phase engine's _recover_pending` DELETES `events.pending` — a
     durable audit record — only when its content is invalid, and must keep it when the
     read merely failed. That decision was previously made by substring-matching
     `str(exc)` against a hand-listed set of message fragments, duplicated at two call
@@ -172,7 +126,7 @@ def _scalar(value: object) -> str:
 
     Use at every site that interpolates data the tool did not author \u2014 a run-id
     from argv, a `schema_version` or status token from a state file, a `--file`
-    argument. A 100 KB `run_id` in `state.json` otherwise becomes a 100 KB
+    argument. A 100 KB `run_id` in a state file otherwise becomes a 100 KB
     "one-line" stderr message.
     """
     text = repr(value)
@@ -185,7 +139,7 @@ def _scalar(value: object) -> str:
 # `str.split()` already consumes the whitespace ones; what survives is the dangerous
 # half, most importantly ESC. Reasons and messages are printed to a stream a
 # supervising agent captures and logs, so a `run_id` of "aaa\x1b[2J\x1b[31mFAKE-OK"
-# in state.json otherwise emits a real screen-clear and colour change into that
+# in a state file otherwise emits a real screen-clear and colour change into that
 # transcript. Collapsing whitespace alone does not stop it.
 _CONTROL_ESCAPES = str.maketrans({c: f"\\x{c:02x}" for c in [*range(32), 127]})
 
@@ -265,7 +219,7 @@ class GuardResult:
     """The outcome of one read-only guard.
 
     `ok` and `reason` cannot disagree: `__post_init__` raises when they do. That
-    matters because the pre-existing convention in `loop-engine.py` was "None on
+    matters because the pre-existing convention in the phase engine was "None on
     success, a non-empty string on failure", so an adapter written `if
     result.reason:` would read an `ok=False, reason=None` result — the natural
     output of a containment bug or a missed branch — as success. Adapters branch on
@@ -290,7 +244,7 @@ class GuardResult:
         # through — not only in `contained`'s except arm, which is where it lived
         # and which covers just the crash path. Policy refusals interpolate
         # attacker-influenceable values (`stored={run_id!r}`, a status token, a
-        # filename), and a 100 KB `run_id` in state.json produced a 100,055-character
+        # filename), and a 100 KB `run_id` in a state file produced a 100,055-character
         # reason on the agent-captured stderr. For an agentic surface that is a
         # context flood and a carrier into the supervising agent's window.
         if self.reason is not None:
@@ -326,7 +280,7 @@ def contained(fn):
     `Exception` only. `BaseException` — `KeyboardInterrupt`, `SystemExit` — passes
     through untouched. Lock-integrity exceptions need no clause here: this module
     never acquires a lock, so `_statelock`'s `StateLockLost` cannot originate inside
-    a contained call; `loop-cohort.with_state_lock`'s own handler remains its only
+    a contained call; `the cohort writer's with_state_lock`'s own handler remains its only
     one. Naming the class would force this layer to import the lock module, which
     its import allowlist forbids.
 
@@ -357,94 +311,14 @@ def contained(fn):
 _MAX_MANAGED_JSON_BYTES = 8 * 1024 * 1024
 
 
-# ── template readers + DEFAULTS ─────────────────────────────────────────
+# ── DEFAULTS ────────────────────────────────────────────────────────────
 
-def _template_retry_cap(field: str, fallback: int) -> int:
-    """Read one retry cap from the bundled `assets/state.json` template.
-
-    The cap is single-sourced in the template — the adopter-visible knob — so this
-    reads it rather than hard-coding a duplicate. The `fallback` default is the one
-    sanctioned duplicate, and `test_loop_cohort_max_iter_single_source.py` polices it
-    against the template.
-
-    `FileNotFoundError` ONLY falls back. The original caught
-    `(FileNotFoundError, OSError, KeyError, TypeError, ValueError)`, and routing this
-    read through the bounded reader would have folded every integrity failure —
-    oversized, non-regular, symlinked, replaced mid-read — into that same silent
-    5/5 default. That is the identical fail-open shape as the parser's old
-    `except ImportError: return None`, so it refuses instead. A genuinely absent
-    template (an adopter tree that ships none) still falls back.
-    """
-    try:
-        raw = read_managed_json(TEMPLATE_PATH, "assets/state.json")
-    except FileNotFoundError:
-        return fallback
-    try:
-        return int(raw[field])
-    except (KeyError, TypeError, ValueError) as exc:
-        raise ValueError(
-            f"assets/state.json has no usable {field}: {exc}"
-        ) from exc
-
-
-def _template_max_implementation_retries(fallback: int = 5) -> int:
-    """Read max_implementation_retries from the bundled state.json template."""
-    return _template_retry_cap("max_implementation_retries", fallback)
-
-
-def _template_max_review_retries(fallback: int = 5) -> int:
-    """Read max_review_retries from the bundled state.json template."""
-    return _template_retry_cap("max_review_retries", fallback)
-
-
-class _LazyDefaults(Mapping):
-    """Eagerly BOUND, lazily POPULATED.
-
-    Both properties are required and they pull against each other. Eager binding:
-    `test_loop_cohort_max_iter_single_source.py` does `mod.DEFAULTS[...]` immediately
-    after `exec_module`, with no verb invoked, so a plain function or
-    `cached_property` breaks it. Lazy population: importing this module must perform
-    no file I/O, because the first guard call happens inside the engine's critical
-    section and an uncapped template read there is exactly the unbounded hold this
-    change exists to remove.
-
-    A `Mapping` rather than a dict subclass so there is no way to end up with a
-    half-populated dict that reads as complete.
-    """
-
-    _KEYS = ("max_implementation_retries", "max_review_retries")
-
-    def __init__(self):
-        self._values: dict | None = None
-
-    def _load(self) -> dict:
-        if self._values is None:
-            self._values = {
-                "max_implementation_retries": _template_max_implementation_retries(),
-                "max_review_retries": _template_max_review_retries(),
-            }
-        return self._values
-
-    def __getitem__(self, key):
-        return self._load()[key]
-
-    def __iter__(self):
-        return iter(self._KEYS)
-
-    def __len__(self):
-        return len(self._KEYS)
-
-    def __repr__(self):
-        return f"_LazyDefaults({self._values!r})" if self._values else "_LazyDefaults(unloaded)"
-
-
-DEFAULTS = _LazyDefaults()
+# The two retry caps a guard falls back to when the caller supplies none. They were
+# read from a bundled template; the template is gone, so the values live here.
+DEFAULTS = MappingProxyType({"max_implementation_retries": 5, "max_review_retries": 5})
 
 
 # ── state paths + managed JSON read ─────────────────────────────────────
-
-def state_path_for(spec_dir: Path) -> Path:
-    return spec_dir / "state.json"
 
 
 def _read_managed_bytes(path: Path, label: str) -> bytes:
@@ -605,14 +479,6 @@ def read_managed_text(path: Path, label: str) -> str:
         raise ManagedContentError(f"{label} is not valid UTF-8") from exc
 
 
-def read_state(spec_dir: Path) -> dict:
-    path = state_path_for(spec_dir)
-    try:
-        return read_managed_json(path, "state.json")
-    except FileNotFoundError as exc:
-        raise FileNotFoundError(f"state.json missing at {path}") from exc
-
-
 # ── parser loader + sha helper ──────────────────────────────────────────
 
 _lint_module: object | None = None
@@ -717,6 +583,7 @@ def _sha256_bytes(data: bytes) -> str:
 
 # ── canonical contract ──────────────────────────────────────────────────
 
+# Hashed into every approved digest, so its bytes never change.
 _STATUS_PLACEHOLDER = "<loop-cohort:status>"
 # A heading, or the bold prose lead-in two specs here use instead. Missing the
 # latter would leave those specs with no normalization at all — i.e. AC5
@@ -736,24 +603,6 @@ _AC_HEADING_RE = re.compile(
 _HEADING_RE = re.compile(r"^ {0,3}(#{1,6})[ \t]")
 _BOLD_LEAD_RE = re.compile(r"^ {0,3}\*\*")
 _BOLD_DEPTH = 7
-
-# AC10: a mismatch has two possible causes and the verb cannot tell them apart,
-# so it names both rather than asserting the one that is usually wrong.
-_BOTH_CAUSES = (
-    "either the approved scope changed, or this baseline was pinned before "
-    "canonical hashing landed. For the second case, recover the cohort only: "
-    "(1) restore `Status: Approved` in BOTH spec.md and plan.md — approve-plan "
-    "refuses unless both read Approved; (2) `loop-cohort reset <spec-dir>`; "
-    "(3) `loop-cohort init <spec-dir> --run-id <run_id>`, taking run_id from "
-    "`loop-engine status <spec-dir> --json`; (4) `loop-cohort approve-plan "
-    "<spec-dir> --expect-run-id <run_id>` then `loop-cohort schedule <spec-dir> "
-    "--expect-run-id <run_id>`; "
-    "(5) restore the Status you were on. Do NOT run `loop-engine reset` — "
-    "`plan-locked` is legal only from SPEC-PLAN-APPROVED and the engine has no "
-    "state-setting verb, so resetting it strands the run. Note the reset clears "
-    "the retry counters and the stasis baseline, and re-running approve-plan "
-    "re-pins whatever is on disk, so it is a re-approval in substance"
-)
 
 
 def canonical_contract(text: str, *, ac_section_only: bool = True) -> str:
@@ -887,36 +736,6 @@ def _sha256_canonical_text(text: str, *, artifact_name: str) -> str:
     return _sha256_bytes(canonical.encode("utf-8"))
 
 
-# ── run-id validation ───────────────────────────────────────────────────
-
-@contained_reason
-def validate_run_id(state: dict, expect_run_id: str, *, verb: str) -> str | None:
-    """Return None when the run-id pairing is legal, else a one-line reason.
-
-    `None` means "proceed", so this uses `contained_reason` rather than `contained`:
-    a `GuardResult` would be read as a failure by every caller, and a containment
-    that resolved to `None` would be `approve-plan` proceeding past a check that
-    never ran. Callers convert the reason; the six mutation verbs that use this keep
-    their `stop(...)` mapping in `loop-cohort.py`.
-
-    Distinct from `check_identity`'s messages on purpose — two different decisions
-    with two different message sets, which must not be merged.
-    """
-    sv = state.get("schema_version")
-    if sv != SCHEMA_VERSION:
-        return (
-            f"{verb}: unsupported schema_version={_scalar(sv)} "
-            f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
-        )
-    stored = state.get("run_id")
-    if stored != expect_run_id:
-        return (
-            f"{verb}: --expect-run-id mismatch (stored={_scalar(stored)}, "
-            f"supplied={_scalar(expect_run_id)})"
-        )
-    return None
-
-
 # ── status legality ─────────────────────────────────────────────────────
 
 class UnreadableArtifact(Exception):
@@ -958,63 +777,10 @@ def read_md_status(path: Path) -> str | None:
         ) from exc
 
 
-# Normalizing the status token out of the hash also removed the incidental
-# detection of a *regressed* status: an approved run whose spec.md went back to
-# Draft used to trip the byte compare. Assert it directly instead, at every verb
-# that reads a pinned artifact — a compensating control that covers one of three
-# call sites is not a compensating control.
+# ── artifact status guard ──────────────────────────────────────────────────
 #
-# An absent or unparseable token is skipped, not stopped: plan fixtures
-# legitimately carry no status line, and this must not become a new way for a
-# CODE-* pre-guard to go red.
-_LEGAL_AFTER_APPROVAL = {
-    "spec.md": ("Approved", "Implementing", "Shipped"),
-    "plan.md": ("Approved", "Executing", "Done"),
-}
-
-
-@contained_reason
-def assert_status_legal(verb: str, *paths: Path) -> str | None:
-    """Return None when every pinned artifact's status is legal, else a reason.
-
-    Same `None`-means-proceed shape as `validate_run_id`, and wrapped with
-    `contained_reason` for the same reason.
-
-    An artifact that does not exist is skipped, as before — but note the asymmetry
-    this preserves: `Path.exists()` is False for a broken symlink, so a dangling link
-    is skipped here and caught by the reader when the artifact is actually needed.
-    """
-    for path in paths:
-        allowed = _LEGAL_AFTER_APPROVAL.get(path.name)
-        if allowed is None or not path.exists():
-            continue
-        try:
-            token = read_md_status(path)
-        except UnreadableArtifact as exc:
-            return f"{verb}: {exc}"
-        # `extract_status_token` returns "" — not None — when the value is only
-        # an HTML comment, so `is not None` would stop on it. AC9's promise is
-        # that an absent *or unparseable* token is skipped, and that promise is
-        # the whole safety argument for wiring this into a CODE-* pre-guard.
-        if token and token not in allowed:
-            return (
-                f"{verb}: {path.name} Status is {_scalar(token)}; expected one of "
-                f"{list(allowed)} after approval"
-            )
-    return None
-
-
-# ── the six read-only guards ───────────────────────────────────────────────
-#
-# One implementation each, called by `loop-engine.py` in-process, by the matching
-# `loop-cohort.py` / `check-spec-status.py` CLI verb, and by tests. Every reason and
-# success string is the verb's existing text verbatim, minus the CLI's own prefix —
-# the adapters add that back, and T0's goldens hold the pre-change literals.
-#
-# Each guard reads the files it needs at call time. Three guards in one transition
-# therefore perform three fresh bounded reads, exactly as three child processes did.
-# A shared snapshot is the one change that could alter behaviour under concurrent
-# cohort mutation, so it is deliberately absent.
+# Reads the file it needs at call time. Reasons carry no CLI prefix: each caller
+# adds its own.
 
 
 def _require_spec_dir(spec_dir: Path) -> str | None:
@@ -1031,194 +797,6 @@ def _require_spec_dir(spec_dir: Path) -> str | None:
     if not stat.S_ISDIR(info.st_mode):
         return f"spec-dir is not a directory: {spec_dir}"
     return None
-
-
-def _state_or_reason(spec_dir: Path) -> tuple[dict | None, str | None]:
-    """Read `state.json`, mapping its failure vocabulary to a reason."""
-    problem = _require_spec_dir(spec_dir)
-    if problem is not None:
-        return None, problem
-    try:
-        return read_state(spec_dir), None
-    except (FileNotFoundError, ValueError) as exc:
-        return None, str(exc)
-
-
-@contained
-def check_identity(spec_dir: Path, *, expect_run_id: str | None) -> GuardResult:
-    """Engine/cohort run-ID pairing, plus the cohort schema version."""
-    state, reason = _state_or_reason(spec_dir)
-    if reason is not None:
-        return GuardResult(ok=False, reason=reason)
-    if state.get("schema_version") != SCHEMA_VERSION:
-        sv = state.get("schema_version")
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"identity: unsupported schema_version={_scalar(sv)} "
-                f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
-            ),
-        )
-    stored = state.get("run_id")
-    if expect_run_id is not None and stored != expect_run_id:
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"identity: run_id mismatch (stored={_scalar(stored)}, "
-                f"expected={_scalar(expect_run_id)})"
-            ),
-        )
-    return GuardResult(
-        ok=True,
-        message=(
-            f"run_id={_bounded(stored)} "
-            f"schema_version={_bounded(state.get('schema_version'))}"
-        ),
-        data={"run_id": stored, "schema_version": state.get("schema_version")},
-    )
-
-
-@contained
-def check_plan_current(spec_dir: Path, *, require_schedule: bool = False) -> GuardResult:
-    """Approved spec and plan baselines still match what is on disk."""
-    state, reason = _state_or_reason(spec_dir)
-    if reason is not None:
-        return GuardResult(ok=False, reason=reason)
-
-    if state.get("plan_review_status") != "approved":
-        # Deliberately unprefixed, as it has always been. The engine reads exit
-        # status, and the skill documents this exact string as the cue to run
-        # pre-EXECUTE review rather than as a termination signal.
-        return GuardResult(ok=False, reason="plan_review_status: pending")
-
-    spec_path = spec_dir / "spec.md"
-    plan_path = spec_dir / "plan.md"
-    if not spec_path.exists():
-        return GuardResult(
-            ok=False, reason=f"plan check-current: spec.md not found at {spec_path}"
-        )
-    if not plan_path.exists():
-        return GuardResult(
-            ok=False, reason=f"plan check-current: plan.md not found at {plan_path}"
-        )
-
-    legality = assert_status_legal("plan check-current", spec_path, plan_path)
-    if legality is not None:
-        return GuardResult(ok=False, reason=legality)
-
-    current_spec_hash = sha256_canonical_contract(spec_path)
-    if state.get("approved_spec_hash") != current_spec_hash:
-        return GuardResult(
-            ok=False,
-            reason=(
-                "plan check-current: spec.md no longer matches the approved baseline — "
-                + _BOTH_CAUSES
-                + f" (approved={_scalar(state.get('approved_spec_hash', 'null'))} "
-                f"current={current_spec_hash!r})"
-            ),
-        )
-
-    current_plan_hash = sha256_canonical_contract(plan_path)
-    if state.get("approved_plan_hash") != current_plan_hash:
-        return GuardResult(
-            ok=False,
-            reason=(
-                "plan check-current: plan.md no longer matches the approved baseline — "
-                + _BOTH_CAUSES
-                + f" (approved={_scalar(state.get('approved_plan_hash', 'null'))} "
-                f"current={current_plan_hash!r})"
-            ),
-        )
-
-    if require_schedule:
-        if state.get("plan_hash") != state.get("approved_plan_hash"):
-            return GuardResult(
-                ok=False,
-                reason=(
-                    "plan check-current: plan_hash != approved_plan_hash "
-                    "(schedule not run or run on a different plan version); "
-                    + _BOTH_CAUSES
-                ),
-            )
-        waves = state.get("schedule_waves", [])
-        if not waves:
-            return GuardResult(
-                ok=False,
-                reason="plan check-current: schedule_waves is empty (run schedule first)",
-            )
-        idx = non_negative_int(state, "current_wave_index", 0)
-        if isinstance(idx, str):
-            return GuardResult(ok=False, reason=f"plan check-current: {idx}")
-        if not (0 <= idx < len(waves)):
-            return GuardResult(
-                ok=False,
-                reason=(
-                    f"plan check-current: current_wave_index={_scalar(idx)} out of range "
-                    f"[0, {len(waves)})"
-                ),
-            )
-
-    return GuardResult(
-        ok=True, message=f"plan check-current OK for {spec_dir.name}"
-    )
-
-
-@contained
-def check_schedule_current(
-    spec_dir: Path, *, include_snapshot: bool = False
-) -> GuardResult:
-    """Validate and optionally return the exact scheduled state/plan snapshot."""
-    state, reason = _state_or_reason(spec_dir)
-    if reason is not None:
-        return GuardResult(
-            ok=False,
-            reason=reason,
-            data={"failure_kind": "state-unreadable"},
-        )
-    plan_path = spec_dir / "plan.md"
-    if not plan_path.exists():
-        return GuardResult(
-            ok=False,
-            reason=f"schedule check-current: plan.md not found at {plan_path}",
-            data={"failure_kind": "plan-missing"},
-        )
-    try:
-        plan_text = read_managed_text(plan_path, plan_path.name)
-        token = _lint_spec_status().parse_status(plan_text)
-    except (OSError, UnicodeDecodeError, ValueError, ImportError) as exc:
-        return GuardResult(
-            ok=False,
-            reason=f"schedule check-current: cannot read plan.md: {exc}",
-            data={"failure_kind": "plan-status-illegal"},
-        )
-    allowed = _LEGAL_AFTER_APPROVAL[plan_path.name]
-    if token and token not in allowed:
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"schedule check-current: plan.md Status is {_scalar(token)}; "
-                f"expected one of {list(allowed)} after approval"
-            ),
-            data={"failure_kind": "plan-status-illegal"},
-        )
-    current = _sha256_canonical_text(plan_text, artifact_name=plan_path.name)
-    stored = state.get("plan_hash")
-    if stored != current:
-        return GuardResult(
-            ok=False,
-            reason=(
-                "schedule check-current: plan.md no longer matches the scheduled "
-                "baseline — " + _BOTH_CAUSES
-                + f" (stored={_scalar(stored)} current={current!r})"
-            ),
-            data={"failure_kind": "plan-hash-stale"},
-        )
-    data = {"state": state, "plan_text": plan_text} if include_snapshot else None
-    return GuardResult(
-        ok=True,
-        message=f"schedule check-current OK for {spec_dir.name}",
-        data=data,
-    )
 
 
 def non_negative_int(state: dict, field: str, default):
@@ -1238,633 +816,6 @@ def non_negative_int(state: dict, field: str, default):
     return raw
 
 
-# ── dispatch-receipt data model ───────────────────────────────────────────
-#
-# One durable, per-task assertion of who the controller says implemented a plan
-# task. A record is an assertion, not a proof: `--expect-run-id` pairs the caller
-# to the run and excludes a caller from another one, but it establishes no
-# identity, so any actor that can read `run_id` can write a record.
-#
-# This block is the SINGLE home for the data model. It lives in the guard layer
-# rather than in `loop-cohort.py` because the dependency runs one way — the CLI
-# loads this module, this module cannot load the CLI — and both the read-only
-# `check --phase wave-exit` guard and the `dispatch-receipt` / `wave advance`
-# mutations have to agree about the container key, the record shape and what
-# "accounted for" means. `loop-cohort.py` re-binds these names beside
-# `non_negative_int`, so a second declaration cannot exist to drift from this one.
-RECEIPTS_KEY = "dispatch_receipts"
-# The container's key path, declared ONCE here. Everything that walks the
-# container derives its nesting depth from `len(RECEIPT_KEY_PATH)` rather than
-# from a literal: a restated depth is how a two-key predicate came to be checked
-# against a three-key data model, which classifies every valid container
-# malformed. On disk all three are JSON object-member names — the partition
-# digest text, the wave index in decimal string form, and the task identifier.
-RECEIPT_KEY_PATH = ("partition digest", "wave index", "task identifier")
-# Closed sets. Adding a decline reason changes what a wave exit will excuse and
-# needs sign-off, so this is deliberately not configurable.
-RECEIPT_KIND = "receipt"
-# A record carrying `superseded: True` stays a record and stops accounting for its
-# task. The member is absent on every record written before repair-round scoping
-# shipped, and absence means live — so no state on disk changes meaning. The test
-# is `is True` rather than truthiness: a record is data another process wrote, and
-# a stray non-empty string must not silently disable accounting for a task.
-SUPERSEDED_KEY = "superseded"
-DECLINE_KIND = "decline"
-DECLINE_REASONS = ("no-implementer-installed", "human-directed")
-
-
-def partition_digest(waves: object) -> str:
-    """Stable digest of one wave partition, a function of that value alone.
-
-    Records are held under this digest so a record written against a superseded
-    partition accounts for nothing. `default=repr` keeps the function total over
-    any value `schedule_waves` can hold, because a refusal that names the
-    malformed field must not be pre-empted by a serialization error.
-    """
-    payload = json.dumps(waves, sort_keys=True, separators=(",", ":"), default=repr)
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
-
-
-def is_dispatch_record(value: object) -> bool:
-    """Total over any value: is this a record at all?
-
-    A mapping whose `kind` is `receipt`, or `decline` carrying a reason from the
-    closed set. Nothing else is a record. `isinstance` before the membership test
-    rather than a `try`: a non-string reason is *not* in the closed set, and that
-    is an answer, not an error — `x in frozenset` raises for an unhashable `x`.
-    """
-    if not isinstance(value, dict):
-        return False
-    kind = value.get("kind")
-    if kind == RECEIPT_KIND:
-        return True
-    if kind == DECLINE_KIND:
-        reason = value.get("reason")
-        return isinstance(reason, str) and reason in DECLINE_REASONS
-    return False
-
-
-def accounts_for_task(value: object) -> bool:
-    """Does this value discharge its task's dispatch assertion? Total over any value.
-
-    A record accounts for its task unless it has been superseded by a wave reopen.
-    Declared here, beside `is_dispatch_record`, because the two answer different
-    questions about the same value and a caller that conflates them either treats a
-    superseded record as live or treats it as malformed.
-    """
-    return is_dispatch_record(value) and value.get(SUPERSEDED_KEY) is not True
-
-
-def superseded_wave_tasks(state: dict, wave_index: int) -> list[str]:
-    """Tasks in wave `wave_index` whose record is superseded (present but not live).
-
-    A superseded task has a record that `is_dispatch_record` accepts but
-    `accounts_for_task` rejects — i.e., its `superseded` member is ``True``.
-    Returns only tasks from `unaccounted_wave_tasks`'s result that carry such a
-    record; tasks with no record at all are not returned. Used to categorise the
-    unaccounted list into two groups so a refusal can distinguish the two cases.
-
-    Derived from `unaccounted_wave_tasks`: all precondition checks (container
-    presence, schedule_waves validity, pointer range, wave shape) are inherited
-    from that call, so the two cannot disagree about which tasks need accounting.
-    The container walk below is a SECOND statement of the one in
-    `unaccounted_wave_tasks`, and that is a real seam: if only one of them changes,
-    this function falls through to `[]` and every superseded task is reported as
-    having no record — the original defect, quietly. What covers it:
-    `test_superseded_wave_tasks_is_a_subset_of_unaccounted` in the roster parity
-    check drives `set(superseded) <= set(unaccounted)` over that check's whole
-    domain, so a walk that changes in one place only shows up as a state where
-    the subset fails or the superseded list empties while records remain.
-    """
-    unaccounted = unaccounted_wave_tasks(state, wave_index)
-    if not unaccounted:
-        return []
-    # Unaccounted is non-empty → RECEIPTS_KEY is in state and waves/wave are valid.
-    # One traversal to distinguish tasks with a superseded record from absent ones.
-    waves = state.get("schedule_waves", [])
-    held = state.get(RECEIPTS_KEY)
-    for key in (partition_digest(waves), str(wave_index)):
-        held = held.get(key) if isinstance(held, dict) else None
-    if not isinstance(held, dict):
-        # Subtree absent: all unaccounted tasks lack a record entirely.
-        return []
-    return [task for task in unaccounted if is_dispatch_record(held.get(task))]
-
-
-def unaccounted_breakdown(state: dict, wave_index: int) -> str:
-    """Render the unaccounted tasks of one wave, split into superseded and absent.
-
-    Declared ONCE and called by both consumers of the accounting predicate — the
-    wave-exit verdict and `wave advance`'s advancing branch. The two used to
-    compose this fragment separately, which is the same duplicated-predicate seam
-    the receipts design exists to close: the two renderings could drift in
-    grouping, label or order while each consumer's own test stayed green.
-
-    Returns the fragment only, never the whole refusal, because each consumer
-    names its own verb and remedy around it.
-    """
-    # No early return for an empty `unaccounted`: it would change no output for
-    # any state — an empty list forces `superseded` and `absent` empty too, and
-    # `"; ".join([])` is already `""` — so the clause could be deleted with every
-    # test still green. A clause that cannot fail does not belong in a guard this
-    # delivery ships under a no-survivors mutation criterion.
-    unaccounted = unaccounted_wave_tasks(state, wave_index)
-    superseded = set(superseded_wave_tasks(state, wave_index))
-    absent = [task for task in unaccounted if task not in superseded]
-    parts = []
-    if superseded:
-        parts.append(
-            f"superseded: {bounded_id_list([t for t in unaccounted if t in superseded])}"
-        )
-    if absent:
-        parts.append(f"no dispatch receipt: {bounded_id_list(absent)}")
-    return "; ".join(parts)
-
-
-def malformed_receipts_position(container: object, depth: int | None = None) -> str | None:
-    """Name the first malformed position in the container, or None if well-formed.
-
-    Depth comes from `RECEIPT_KEY_PATH`, never from a literal. Total over every
-    value any position can hold, so a caller names a position instead of raising
-    an exception type at it.
-    """
-    if depth is None:
-        depth = len(RECEIPT_KEY_PATH)
-    level = len(RECEIPT_KEY_PATH) - depth
-    if depth == 0:
-        return None if is_dispatch_record(container) else "a record"
-    if not isinstance(container, dict):
-        return f"a mapping keyed by {RECEIPT_KEY_PATH[level]}"
-    for value in container.values():
-        nested = malformed_receipts_position(value, depth - 1)
-        if nested is not None:
-            return nested
-    return None
-
-
-def receipts_for_partition(container: object, digest: str) -> dict:
-    """The records `digest` holds, with every other partition's records dropped.
-
-    A record under any other partition digest accounts for no task, so `schedule`
-    persists only the live partition's subtree. A container that is not a mapping
-    is replaced rather than repaired in place: `schedule` writes the partition
-    these records are keyed by, so it is the one verb for which an unusable
-    container is not a state it must preserve.
-    """
-    if not isinstance(container, dict):
-        return {}
-    held = container.get(digest)
-    return {digest: held} if isinstance(held, dict) else {}
-
-
-def wave_is_well_formed(wave: object) -> bool:
-    """A wave is a non-empty list of task identifiers. Total over any value.
-
-    Non-empty matters and is not fussiness: an empty wave makes "every task in
-    the current wave is accounted for" vacuously true over zero tasks, so the
-    exit would pass silently on a partition the amendment crash window can
-    leave behind.
-    """
-    return (
-        isinstance(wave, list)
-        and bool(wave)
-        and all(isinstance(task, str) for task in wave)
-    )
-
-
-def unaccounted_wave_tasks(state: dict, wave_index: int) -> list[str]:
-    """Every task in wave `wave_index` that no record accounts for.
-
-    THE accounting predicate, declared once. `check --phase wave-exit` and
-    `loop-cohort wave advance`'s advancing branch both consult this function, so
-    the two cannot disagree about whether a wave is accounted for.
-
-    The absent-container exemption lives HERE, inside the predicate, rather than
-    beside it in either consumer: cohort state written before receipts existed
-    carries no container, and a run already in flight when this shipped has to
-    be able to finish. Every consumer inherits the exemption by calling this.
-
-    Precondition, which both consumers establish by refusing first and which each
-    covers with its own named row: `schedule_waves` is a non-empty list, the
-    container is absent or well-formed, `wave_index` is a valid index into the
-    partition, and the wave there is well-formed. For a state that violates it
-    this returns no tasks, so no consumer may reach this function before its own
-    malformed and pointer rows have run.
-    """
-    if RECEIPTS_KEY not in state:
-        return []
-    waves = state.get("schedule_waves", [])
-    if not isinstance(waves, list) or not 0 <= wave_index < len(waves):
-        return []
-    wave = waves[wave_index]
-    if not wave_is_well_formed(wave):
-        return []
-    held = state.get(RECEIPTS_KEY)
-    # Keyed by the declared path, read total: any level that is not a mapping
-    # holds no record, which leaves every task in the wave unaccounted rather
-    # than raising at a position a caller has already refused by name.
-    for key in (partition_digest(waves), str(wave_index)):
-        held = held.get(key) if isinstance(held, dict) else None
-    if not isinstance(held, dict):
-        return list(wave)
-    return [task for task in wave if not accounts_for_task(held.get(task))]
-
-
-def wave_accounting_summary(state: dict, wave_index: int) -> dict | None:
-    """Count one wave's dispatch records, or None when its accounting is undefined.
-
-    Returns None exactly when `unaccounted_wave_tasks`'s precondition fails —
-    container key absent, `schedule_waves` not a list, index out of range, or the
-    wave malformed. That block is restated here rather than derived, because the
-    predicate returns an empty list both for a precondition violation and for a
-    fully accounted wave and so cannot distinguish them. `test_wave_accounting_walk.py`
-    is the control: for every generated state it requires an absent summary to
-    coincide with the predicate reporting nothing outstanding, so the two
-    statements cannot disagree about which states are violations.
-
-    Every figure is counted once per POSITION in the wave, on the predicate's own
-    basis. A key-based count over the container subtree would diverge from it on a
-    wave listing one identifier twice and on a container key naming a task the
-    wave does not list, and `receipts + declines + unaccounted == tasks` would then
-    fail on a correct implementation.
-
-    `receipts` and `declines` count only records `accounts_for_task` admits, so a
-    superseded record falls to `unaccounted` and to neither. Classifying on `kind`
-    alone would count it twice; `superseded` is read through the same predicate
-    rather than by truthiness, because the declared check is `is not True`.
-    """
-    if RECEIPTS_KEY not in state:
-        return None
-    waves = state.get("schedule_waves", [])
-    if not isinstance(waves, list) or not 0 <= wave_index < len(waves):
-        return None
-    wave = waves[wave_index]
-    if not wave_is_well_formed(wave):
-        return None
-
-    held = state.get(RECEIPTS_KEY)
-    for key in (partition_digest(waves), str(wave_index)):
-        held = held.get(key) if isinstance(held, dict) else None
-    records = held if isinstance(held, dict) else {}
-
-    receipts = declines = 0
-    for task in wave:
-        value = records.get(task)
-        if not accounts_for_task(value):
-            continue
-        if value.get("kind") == RECEIPT_KIND:
-            receipts += 1
-        else:
-            declines += 1
-    return {
-        "tasks": len(wave),
-        "receipts": receipts,
-        "declines": declines,
-        "superseded": len(superseded_wave_tasks(state, wave_index)),
-        "unaccounted": len(unaccounted_wave_tasks(state, wave_index)),
-    }
-
-
-def bounded_id_list(ids: list) -> str:
-    """Whole identifiers from a state-derived list, bounded and honest about it.
-
-    Every identifier reaches the stream through `_scalar`, which is where the
-    per-value bound lives; this function only chooses how many WHOLE identifiers
-    fit under it and discloses when it dropped any. A raw join would be cut
-    mid-identifier by that bound and present a fragment as a task name.
-    """
-    shown: list[str] = []
-    for candidate in ids:
-        attempt = ", ".join([*shown, str(candidate)])
-        if _scalar(attempt) != repr(attempt):  # the bound would have truncated it
-            break
-        shown.append(str(candidate))
-    rendered = _scalar(", ".join(shown))
-    if len(shown) < len(ids):
-        return f"{rendered} (partial list: {len(shown)} of {len(ids)} shown)"
-    return rendered
-
-
-# The phases that skip cohort schema validation, so a pre-Phase-1 `state.json`
-# does not break the always-run pre-PR hook. `implement` has always been exempt;
-# `wave-exit` joins it because it guards the `wave-complete` transition that
-# `implement` used to guard, and a run in flight from before receipts existed must
-# reach the verdict table rather than being refused on its schema version.
-_SCHEMA_EXEMPT_PHASES = frozenset({"implement", "wave-exit", "wave-reopen"})
-
-
-def _wave_exit_verdict(state: dict) -> GuardResult:
-    """The wave-exit verdict table, one row per precondition set.
-
-    Each row's precondition is written to stand alone rather than to negate the
-    rows above it: the contract is that exactly one row applies to any cohort
-    state, and branch order here is an optimisation rather than the thing that
-    decides behaviour. `notes/walk_verdict_partition.py` in this feature's spec
-    directory is the committed oracle for that partition.
-
-    Called only for a READABLE state: the read-refusal row is decided upstream,
-    by `_state_or_reason`, whose refusal vocabulary is wider than this table
-    reads.
-    """
-    # The unsupported-schema row passes BEFORE any shape is read, not merely
-    # reaching the table. Sharing `implement`'s exemption from schema validation
-    # only guarantees the state gets here; `implement` returns ok for any readable
-    # state, so the table could otherwise land a state it passes today on a
-    # refusing row below, using the shape of a field an unsupported schema leaves
-    # unspecified. That is the breakage this row exists to prevent.
-    if state.get("schema_version") != SCHEMA_VERSION:
-        return GuardResult(ok=True, message="")
-
-    waves = state.get("schedule_waves", [])
-    if not isinstance(waves, list) or not waves:
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"wave exit: schedule_waves is malformed ({_scalar(waves)}); "
-                "expected a non-empty list of waves — run schedule to persist a "
-                "partition, or if pending_transition is set, complete the amendment "
-                "with approve-plan and then schedule"
-            ),
-        )
-    container_absent = RECEIPTS_KEY not in state
-    if not container_absent:
-        malformed = malformed_receipts_position(state.get(RECEIPTS_KEY))
-        if malformed is not None:
-            return GuardResult(
-                ok=False,
-                reason=(
-                    f"wave exit: {RECEIPTS_KEY} is malformed — expected {malformed} "
-                    f"at the {'/'.join(RECEIPT_KEY_PATH)} key path; run reset to "
-                    "rebuild cohort state"
-                ),
-            )
-    # The absent-container row is decided after well-formedness so the two cannot
-    # both apply, and its notice rides the passing result's `message`, which
-    # `cmd_check` prints on stdout. The engine cannot surface it: a passing
-    # `GuardResult` may not carry a `reason`, and `_guard_reason` returns None for
-    # any passing result — which is why the skill runs this check immediately
-    # before firing the transition rather than relying on the transition alone.
-    if container_absent:
-        return GuardResult(
-            ok=True,
-            message=(
-                f"wave exit: {RECEIPTS_KEY} is absent, so dispatch receipts are "
-                "not enforced for this run"
-            ),
-        )
-
-    index = non_negative_int(state, "current_wave_index", 0)
-    if isinstance(index, str):
-        # `non_negative_int` returns its reason as a string. It names the field
-        # and the bad value but owns no recovery route, so add the one every
-        # sibling refusal here names: the value is in cohort state, which only
-        # `reset` rebuilds.
-        return GuardResult(
-            ok=False,
-            reason=f"wave exit: {index}; run reset to rebuild cohort state",
-        )
-    if index >= len(waves):
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"wave exit: current_wave_index={_scalar(index)} is not an index "
-                f"into schedule_waves (len={len(waves)}); run reset to rebuild "
-                "cohort state"
-            ),
-        )
-
-    wave = waves[index]
-    if not wave_is_well_formed(wave):
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"wave exit: schedule_waves[{index}] is malformed "
-                f"({_scalar(wave)}); expected a non-empty list of task "
-                "identifiers — run schedule to rebuild the partition, or reset "
-                "to rebuild cohort state"
-            ),
-        )
-
-    unaccounted = unaccounted_wave_tasks(state, index)
-    if unaccounted:
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"wave exit: wave {index} has tasks with no live record — "
-                f"{unaccounted_breakdown(state, index)}; "
-                "run `loop-cohort dispatch-receipt` to record each"
-            ),
-        )
-    return GuardResult(ok=True, message="")
-
-
-def _repair_round_verdict(state: dict) -> GuardResult:
-    """Does a repair round still owe this wave a fresh dispatch assertion?
-
-    Refuses ONLY where a live record for the current wave is positively
-    established; every state it cannot read that far passes. That direction is
-    deliberate and is the opposite of `_wave_exit_verdict`'s. Mirroring that
-    table's refusals would make a malformed partition refuse at both this guard
-    and the reopen verb, stranding a run that re-enters code implementation today
-    and leaving only the destructive reset pair. The wave exit stays the
-    fail-closed gate; this one demands a reopen only where a stale record could
-    actually discharge something.
-
-    Called only for a READABLE state — the read refusal is decided upstream by
-    `_state_or_reason`, exactly as it is for the wave-exit verdict.
-    """
-    if state.get("schema_version") != SCHEMA_VERSION:
-        return GuardResult(ok=True, message="")
-    if RECEIPTS_KEY not in state:
-        return GuardResult(ok=True, message="")
-    if malformed_receipts_position(state.get(RECEIPTS_KEY)) is not None:
-        return GuardResult(ok=True, message="")
-    waves = state.get("schedule_waves", [])
-    if not isinstance(waves, list) or not waves:
-        return GuardResult(ok=True, message="")
-    index = non_negative_int(state, "current_wave_index", 0)
-    if isinstance(index, str) or index >= len(waves):
-        return GuardResult(ok=True, message="")
-    wave = waves[index]
-    if not wave_is_well_formed(wave):
-        return GuardResult(ok=True, message="")
-
-    # Through the declared accounting predicate, not a second reading of the
-    # container: a task is live here exactly when it is accounted for at the wave
-    # exit, so the two cannot disagree about what a repair round still owes.
-    unaccounted = set(unaccounted_wave_tasks(state, index))
-    live = [task for task in wave if task not in unaccounted]
-    if live:
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"repair round: wave {index} still holds live dispatch records "
-                f"for: {bounded_id_list(live)}; supersede them with `loop-cohort "
-                "wave reopen` so this round records its own"
-            ),
-        )
-    return GuardResult(ok=True, message="")
-
-
-@contained
-def check_phase(spec_dir: Path, *, phase: str,
-                allow_review_retry_cap_override: bool = False) -> GuardResult:
-    """Implementation and review retry caps, and the wave-exit verdict table.
-
-    Reads state FIRST, for every phase including `implement`. `cmd_check` has always
-    called `read_state` before reaching the `implement` stub, so `check --phase
-    implement` is not a total no-op: it refuses on a missing or malformed
-    `state.json`. Returning `ok` unconditionally for `implement` would drop a live
-    refusal that `tools/hooks/pre-pr.py` depends on — that hook runs this phase for
-    every `docs/specs/*/state.json` on every push, ungated by engine state, and
-    consumes the exit code, so `implement`'s verdict is a repository-wide pre-PR and
-    pull-request gate and must not move.
-
-    `wave-exit` is the phase the `wave-complete` transition out of
-    CODE-IMPLEMENTATION consults. It carries the per-task dispatch-receipt
-    accounting, which deliberately does NOT live in `implement` for the reason
-    above.
-
-    `allow_review_retry_cap_override` waives the **review** cap only, and only for
-    a caller that asked for it. It is named for that one cap rather than for both
-    because only `findings-remain` plumbs it through: `review record` has the
-    matching flag, and a human going past the review cap has to clear the
-    transition and the recording together or the two halves desync. The
-    implementation cap at `gates-failed` has no such pair and no way to set this,
-    so it is deliberately not consulted here.
-    """
-    state, reason = _state_or_reason(spec_dir)
-    if reason is not None:
-        return GuardResult(ok=False, reason=reason)
-
-    # The exempt phases skip schema validation so pre-Phase-1 state files do not
-    # break the hook; phases that actually evaluate counters reject incompatible state.
-    if phase not in _SCHEMA_EXEMPT_PHASES and state.get("schema_version") != SCHEMA_VERSION:
-        sv = state.get("schema_version")
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"check: unsupported schema_version={_scalar(sv)} "
-                f"(expected {SCHEMA_VERSION}); {RESET_PAIR_ORDER}"
-            ),
-        )
-
-    if phase == "implement":
-        # Phase-1 compatibility stub: exits 0 for any readable Phase-1 state.
-        return GuardResult(ok=True, message="")
-
-    if phase == "wave-exit":
-        # The whole verdict table lives in one function, including its
-        # unsupported-schema row, so no row is decided in two places.
-        return _wave_exit_verdict(state)
-
-    if phase == "wave-reopen":
-        # Whole verdict in one function, its unsupported-schema row included, so
-        # no row is decided in two places. The phase is in `_SCHEMA_EXEMPT_PHASES`
-        # for that reason: without membership the dispatcher's schema refusal above
-        # would pre-empt the row and the exemption would be unreachable from the CLI.
-        return _repair_round_verdict(state)
-
-    if phase == "gates-failed":
-        count = non_negative_int(state, "implementation_retry_count", 0)
-        cap = non_negative_int(state, "max_implementation_retries",
-                                DEFAULTS["max_implementation_retries"])
-        for value in (count, cap):
-            if isinstance(value, str):
-                return GuardResult(ok=False, reason=f"check: {value}")
-        if count >= cap:
-            return GuardResult(
-                ok=False,
-                reason=(
-                    f"implementation retry cap reached ({_scalar(count)}/{_scalar(cap)}); "
-                    "reset and start a new run"
-                ),
-            )
-        return GuardResult(ok=True, message="")
-
-    if phase == "review":
-        count = non_negative_int(state, "review_retry_count", 0)
-        cap = non_negative_int(state, "max_review_retries",
-                                DEFAULTS["max_review_retries"])
-        for value in (count, cap):
-            if isinstance(value, str):
-                return GuardResult(ok=False, reason=f"check: {value}")
-        if count >= cap and not allow_review_retry_cap_override:
-            # Wording unchanged, deliberately. This reason is printed by
-            # `loop-cohort check --phase review`, which accepts no override, as
-            # well as by the `findings-remain` transition, which does -- so the
-            # shared text names no flag and each adapter appends its own remedy.
-            return GuardResult(
-                ok=False,
-                reason=(
-                    f"review retry cap reached ({_scalar(count)}/{_scalar(cap)}); "
-                    "reset and start a new run"
-                ),
-            )
-        return GuardResult(ok=True, message="")
-
-    return GuardResult(ok=False, reason=f"unknown phase {_scalar(phase)}")
-
-
-@contained
-def check_wave(spec_dir: Path, *, expect: str, wave_index: int | None = None) -> GuardResult:
-    """Current wave index, and whether more waves remain."""
-    state, reason = _state_or_reason(spec_dir)
-    if reason is not None:
-        return GuardResult(ok=False, reason=reason)
-
-    waves = state.get("schedule_waves", [])
-    idx = non_negative_int(state, "current_wave_index", 0)
-    if isinstance(idx, str):
-        return GuardResult(ok=False, reason=f"wave check: {idx}")
-    total = len(waves)
-
-    if wave_index is not None and idx != wave_index:
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"wave check: current_wave_index={_scalar(idx)} does not match "
-                f"--wave-index {_scalar(wave_index)}"
-            ),
-        )
-
-    if expect == "more":
-        if idx < total - 1:
-            return GuardResult(
-                ok=True,
-                message=(
-                    f"wave check more — wave_index={_scalar(idx)} has more waves "
-                    f"(total={_scalar(total)})"
-                ),
-            )
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"wave check more: no more waves "
-                f"(current={_scalar(idx)}, total={_scalar(total)})"
-            ),
-        )
-
-    if expect == "last":
-        if idx == total - 1:
-            return GuardResult(
-                ok=True,
-                message=(
-                    f"wave check last — wave_index={_scalar(idx)} is the last wave "
-                    f"(total={_scalar(total)})"
-                ),
-            )
-        return GuardResult(
-            ok=False,
-            reason=(
-                f"wave check last: not the last wave "
-                f"(current={_scalar(idx)}, total={_scalar(total)})"
-            ),
-        )
-
-    return GuardResult(ok=False, reason=f"wave check: unknown --expect value {_scalar(expect)}")
-
-
 _FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 
 
@@ -1872,9 +823,9 @@ _FILENAME_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 def check_artifact_status(spec_dir: Path, *, filename: str, expect: str) -> GuardResult:
     """A spec or plan artifact carries the expected `**Status:**` value.
 
-    Reasons here are PREFIX-FREE, like every other guard's. `check-spec-status.py`
-    prints its own `check-spec-status: ` prefix, and the engine composes its own —
-    so embedding one in the reason produced `check-spec-status: check-spec-status:
+    Reasons here are PREFIX-FREE, like every other guard's. the status checker
+    prints its own `status-check: ` prefix, and the engine composes its own —
+    so embedding one in the reason produced `status-check: status-check:
     …`, which the pre-change goldens caught immediately. A CLI prefix inside the
     guard layer is exactly the CLI concern this layer is supposed to be free of.
 

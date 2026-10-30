@@ -27,12 +27,13 @@ def _assert_lifecycle_routes(reference: str) -> None:
     """Assert the observation and error routes have distinct destinations."""
 
     assert "`implementation-discovered`" in reference
-    assert "goes in the verification ledger" in reference
-    assert "amends neither approved artifact" in reference
+    assert "is a controller edit of the plan's `## Design (LLD)`" in reference
+    assert "in-envelope working-plan change" in reference
+    assert "goes in the verification ledger" not in reference
     assert "approval settled a design decision and execution falsifies it" in reference
     assert "plan is wrong" in reference
-    assert "controlled amendment procedure above" in reference
-    assert "not a route for a settled decision that execution falsified" in reference
+    assert "takes the amendment above" in reference
+    assert "never resolves it; only a corrected plan does" in reference
 
 
 def _approval_digest(guards, text: str) -> str:
@@ -66,8 +67,8 @@ def test_lifecycle_route_assertion_red_on_in_memory_mutation() -> None:
     """Removing the error-route wording makes the lifecycle assertion fail."""
     reference = " ".join(LIFECYCLE.read_text(encoding="utf-8").split())
     mutated = reference.replace(
-        "The verification ledger is not a route for a settled decision that execution falsified.",
-        "The verification ledger records the settled decision.",
+        "the plan is wrong: Surface the evidence",
+        "the plan is fine: record the evidence",
     )
 
     with pytest.raises(AssertionError):

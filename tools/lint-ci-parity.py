@@ -714,13 +714,13 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest navigate-decisions file_safety mirror (roster-owned)":
         LOCAL("test-after-build-check"),
-    "pytest repair-round predicate parity (spec contract vs shipped guard)":
+    "pytest installed-skill supervisor run (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest retired-name pinned sites (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest spec-retirement candidate contract (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest spec-retirement candidate CLI (roster-owned)":
-        LOCAL("test-after-build-check"),
-    "pytest loop-cohort wave-decision contract (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest brief lifecycle single home (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -1115,10 +1115,10 @@ _GATE_MAIN_CHECKS = (
     "pytest new-rfc governance surfaces (roster-owned)",
     "pytest new-rfc governance script (pack suite)",
     "pytest navigate-decisions file_safety mirror (roster-owned)",
-    "pytest repair-round predicate parity (spec contract vs shipped guard)",
+    "pytest installed-skill supervisor run (roster-owned)",
+    "pytest retired-name pinned sites (roster-owned)",
     "pytest spec-retirement candidate contract (roster-owned)",
     "pytest spec-retirement candidate CLI (roster-owned)",
-    "pytest loop-cohort wave-decision contract (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest workspace retirement inventory (roster-owned)",
     "pytest depends-on headers instructions (roster-owned)",
@@ -1975,7 +1975,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         ),
     'tools/lint-pack-test-boundary.py':
         PR_GATED_IF(
-            "docs.yml / loop-cohort / Pack runtime boundary (no pack's .apm/ carries tests; "
+            "docs.yml / work-loop-scripts / Pack runtime boundary (no pack's .apm/ carries tests; "
             "projection is clean)",
             _WHY_PATH_FILTERED,
         ),

@@ -8,8 +8,8 @@ counts as residual risk.
 
 After dispositions and required gates are known, emit exactly one fenced
 `json review-verdict.v1` block in the user handoff. In full mode, copy the
-byte-identical pre-human-gate block into the PR body's `Review verdict` section.
-The pre-gate record uses `human_gate_status: "pending"`; after a human decision,
+byte-identical pre-merge block into the PR body's `Review verdict` section.
+The pre-merge record uses `human_gate_status: "pending"`; after the human merge decision,
 re-emit it with the observed `approved` or `changes-requested` status.
 
 ```json review-verdict.v1
@@ -69,7 +69,8 @@ Each is closed on the same terms as the top level.
   promotes a Nit before acting on a repair that crosses its blast-radius rule.
   The disposition table under State precedence is authoritative for what a given
   combination contributes. `status` is
-  `unresolved | resolved | rejected | deferred`. Sustained findings from the
+  `unresolved | resolved | rejected | deferred`. In full mode the findings come from the supervisor's review readiness: each finding a current
+  report carries, with the supervisor's assessment of its actual failure and its disposition. In light mode and pre-approval review, sustained findings from the
   adjudicator gateway enter this array, plus one exception the Nit rule requires:
   a strictly classified Nit-only raw report deferred without dispatch enters it
   with its citation and `status: deferred`. Without that exception a deferred Nit
@@ -155,8 +156,8 @@ and cannot override the categorical state.
 
 ## Mode semantics are unchanged
 
-Full mode still iterates every warranted reviewer until no unresolved Blocker or
-Concern remains. Light mode still runs its `adversarial-reviewer` rounds, which
+Full mode still runs every warranted reviewer until no unresolved Blocker or
+Concern remains, as the supervisor's review readiness reports it. Light mode still runs its `adversarial-reviewer` rounds, which
 [`light-mode.md`](light-mode.md) defines, and a light non-Blocker disposition
 reaches `READY_WITH_RESIDUAL_RISK` only when the record names the accepted
 residual and all required light-mode gates passed.

@@ -30,7 +30,7 @@ allowed-scopes = ["repo"]
 [[pack.dependencies.recommended]]
 catalogue = "agent-ready-repo"
 pack = "core"
-version = "^3.0"
+version = "^4.0"
 
 # Consolidated pack layout: the repo-scope default for the [adr] section of an
 # adopter-owned `agentbundle-layout.toml`. The install seeds it by append-if-exists

@@ -1,8 +1,8 @@
 """Tests for the shipped (adopter-facing) pre-pr hook.
 
 The shipped `pre-pr.py` runs only gates over files that ship with the pack —
-the knowledge lint over `docs/knowledge/patterns.jsonl` and the work-loop caps
-gate (`loop-cohort.py check`) — plus a wire-your-gate stub. It references
+the knowledge lint over `docs/knowledge/patterns.jsonl` and the supervisor
+readiness gate (`work-supervisor.py status --check`) — plus a wire-your-gate stub. It references
 **none** of this catalogue's artifact linters, and degrades gracefully (a
 missing tool is a skip, never a crash). The catalogue's own gate lives in the
 repo-native `tools/catalogue/pre_pr_catalogue.py` (tested separately).
@@ -18,7 +18,6 @@ Windows (Gate A-tests runs it on all three).
 from __future__ import annotations
 
 import importlib.util
-import json
 import re
 import shutil
 import subprocess
@@ -190,36 +189,26 @@ def test_pre_pr_adopter_tree_no_tooling_is_graceful(tmp_path: Path) -> None:
     assert "pre-pr: all checks passed" in result.stdout
 
 
-def test_pre_pr_fails_on_unapproved_state(sandbox: Path) -> None:
-    """Phase 1: an active state.json with review retry cap exceeded fails the
-    pre-pr review check — the one gate the shipped hook keeps in Phase 1.
-    (check --phase implement is a Phase-1 stub; review cap is the active gate.)"""
-    spec_dir = sandbox / "docs" / "specs" / "example"
-    spec_dir.mkdir(parents=True, exist_ok=True)
-    template = sandbox / ".claude" / "skills" / "work-loop" / "assets" / "state.json"
-    state = json.loads(template.read_text())
-    max_retries = int(state["max_review_retries"])
-    state["review_retry_count"] = max_retries  # at cap → check --phase review fails
-    (spec_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+def test_pre_pr_fails_on_an_approved_run_that_cannot_be_checked(sandbox: Path) -> None:
+    """A spec holding `delivery/approvals.jsonl` with no run behind it fails the
+    supervisor check: the hook discovers runs from the committed record."""
+    delivery = sandbox / "docs" / "specs" / "example" / "delivery"
+    delivery.mkdir(parents=True, exist_ok=True)
+    (delivery / "approvals.jsonl").write_text("{}\n", encoding="utf-8")
     result = _run(sandbox)
     assert result.returncode != 0
-    assert "pre-pr: ✖ loop-cohort check" in result.stderr
+    assert "pre-pr: ✖ supervisor status docs/specs/example --check failed" in result.stderr
 
 
-def test_pre_pr_passes_on_approved_state(sandbox: Path) -> None:
-    """Positive path: an active, healthy (approved) state → loop-cohort runs
-    and the hook exits 0. Guards against a regression that crashes/mis-handles a
-    healthy active spec (which the unapproved-state test wouldn't catch)."""
+def test_pre_pr_passes_when_no_spec_holds_approvals(sandbox: Path) -> None:
+    """Positive path: a spec directory with no `delivery/approvals.jsonl` adds no
+    supervisor failure, and the hook exits 0."""
     spec_dir = sandbox / "docs" / "specs" / "example"
     spec_dir.mkdir(parents=True, exist_ok=True)
-    template = sandbox / ".claude" / "skills" / "work-loop" / "assets" / "state.json"
-    state = json.loads(template.read_text())
-    state["plan_review_status"] = "approved"
-    state["iteration_count"] = 0
-    (spec_dir / "state.json").write_text(json.dumps(state), encoding="utf-8")
+    (spec_dir / "spec.md").write_text("# Spec\n", encoding="utf-8")
     result = _run(sandbox)
     assert result.returncode == 0, f"stdout: {result.stdout}\nstderr: {result.stderr}"
-    assert "pre-pr: ✓ loop-cohort check" in result.stdout
+    assert "skipping supervisor check" in result.stdout
     assert "pre-pr: all checks passed" in result.stdout
 
 
@@ -252,22 +241,22 @@ def test_find_work_loop_script_discovers_non_claude_root(
     Codex's `.agents/skills/`) is still found — the hook must not assume Claude
     Code's `.claude/` layout. Guards the adopter-agnostic contract."""
     mod = _load_hook()
-    skill = tmp_path / ".agents" / "skills" / "work-loop" / "scripts" / "loop-cohort.py"
+    skill = tmp_path / ".agents" / "skills" / "work-loop" / "scripts" / "work-supervisor.py"
     skill.parent.mkdir(parents=True)
     skill.write_text("# stub", encoding="utf-8")
     monkeypatch.chdir(tmp_path)
-    found = mod._find_work_loop_script("loop-cohort.py")
-    assert found == Path(".agents/skills/work-loop/scripts/loop-cohort.py")
+    found = mod._find_work_loop_script("work-supervisor.py")
+    assert found == Path(".agents/skills/work-loop/scripts/work-supervisor.py")
 
 
 def test_find_work_loop_script_returns_none_when_absent(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """No work-loop skill under any adapter root → None (caps check is then
-    skipped, not failed)."""
+    """No work-loop skill under any adapter root → None (the supervisor check
+    then fails only when a run was approved)."""
     mod = _load_hook()
     monkeypatch.chdir(tmp_path)
-    assert mod._find_work_loop_script("loop-cohort.py") is None
+    assert mod._find_work_loop_script("work-supervisor.py") is None
     assert mod._find_work_loop_script("lint-knowledge.py") is None
 
 

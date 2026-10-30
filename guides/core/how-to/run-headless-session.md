@@ -187,10 +187,11 @@ Key fields in the `workspace_status()` response:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `current_state` | string \| null | Work-loop FSM phase; null when idle |
+| `current_state` | string \| null | The supervisor run's stage: `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, or `terminal`; null when no run |
 | `gate_pending` | bool | True when human input is required before work continues |
-| `gate` | string \| null | Gate name — e.g. `SPEC-HUMAN-GATE`, `REVIEW-HUMAN-GATE` |
-| `gate_question` | string \| null | The specific question the work-loop is asking |
+| `gate` | string \| null | `human-decision` while the supervisor waits on a person; null otherwise |
+| `gate_question` | object \| null | The question, framed as untrusted display text (`untrusted`, `admitted`, `field`, `value`, `notice`); `value` is a fixed placeholder when the question failed the content-safety check |
+| `run_active` | bool \| null | True from the run's first admitted `start` until it reaches `terminal` |
 | `ready` | array | Build items (type: work) dispatchable now |
 | `shaping` | array | Non-FSM items (research, design, shape, strategy); entries with `unmet_needs` are blocked; entries with `available: false` need their `required_pack` installed |
 | `active` | array | Items currently in progress |
@@ -229,7 +230,7 @@ The agent then sends `elicitation/create` and blocks until the harness resolves 
 4. The `elicit()` call unblocks and the work-loop continues
 
 :::caution
-**`CODE-HUMAN-GATE` — wait for actual merge before responding.** When `gate` is `CODE-HUMAN-GATE`, the gate question is "Are these changes correct and ready to merge?" — it does not include the PR URL. **Stage 1 PR URL limitation:** no workspace-mcp tool exposes the branch name or PR URL at this gate: the elicitation message is fixed text with no URL, `workspace_status()` does not expose `pr_url` or branch name, `git_status()` returns `git status --short` (file statuses only, no branch), `git_branch` is blocked in FSM mode, and the `gate-pr-ready` notification is not yet implemented. Retrieve the PR URL entirely out-of-band — for example, by listening for VCS push/PR-open webhooks, or by polling your VCS API using the spec path or author as a search key. Poll until the PR is merged, then respond to the elicitation. Responding before the actual merge marks the work-loop run DONE while the PR remains open.
+**A terminal run is not a merged PR.** The supervisor reaches `terminal` when review readiness holds and its finish effects are done; merging happens outside the run. No workspace-mcp tool exposes the branch name or PR URL, so retrieve the PR out-of-band — for example, from VCS push or PR-open webhooks, or by polling your VCS API using the spec path or author as a search key.
 :::
 
 :::caution

@@ -105,9 +105,8 @@ def test_supervisor_mode_pointer_routes_fan_out_rules() -> None:
         "single message (one Agent use per target)",
         "Barrier-wait",
         "missing report = `failed`",
-        "parallel fan-out",
-        "those verbs exit non-zero",
-        "wave-complete",
+        "Dispatch is sequential",
+        "one `implement-task` request at\na time",
     ):
         assert statement in reference
 
@@ -128,31 +127,29 @@ def test_unattended_loops_pointer_routes_eligibility_rules() -> None:
         assert statement in reference
 
 
-# --- Relocated full-mode engine sequences -----------------------------------
+# --- Relocated full-mode supervisor sequences -------------------------------
 #
-# The `loop-engine` / `loop-cohort` sequences moved out of SKILL.md into
-# `references/full-mode-engine.md`. Every control over their CONTENT now reads
-# the reference, so none of them can see the reference go unreachable: delete a
+# The supervisor's verbs, request kinds, and refusals live in
+# `references/supervisor.md`. Every control over their CONTENT reads the
+# reference, so none of them can see the reference go unreachable: delete a
 # step's pointer and the commands are still present, still correct, and no
 # longer findable from the step that fires them.
 #
 # Per owning step, not per file. A file-wide search stays green while one
 # step's pointer is deleted, because the other steps carry the same
 # destination.
-_ENGINE_REFERENCE = "](references/full-mode-engine.md)"
+_SUPERVISOR_REFERENCE = "](references/supervisor.md)"
 
 _RELOCATED_SEQUENCES = (
     # (owning step start, step end, section cue named by the pointer)
-    ("10. **Full mode:** run the init pair", "11. **Run every fired",
-     "PLAN — init pair, or resume"),
-    ("Transitions for this step:", "12. **Full mode:**",
-     "PLAN — pre-EXECUTE review transitions"),
     ("12. **Full mode:** the **G-plan sequence**", "### Project-knowledge integration",
-     "PLAN — the G-plan sequence"),
-    ("**Full mode — wave routing.**", "**Pre-existing failure triage.**",
-     "GATES — wave routing"),
-    ("**A spec-backed run** normally writes", "**A direct-light run**",
-     "REVIEW and the human gate"),
+     "Before `start`"),
+    ("**Full mode — the supervisor's loop.**", "Match discipline to verification mode:",
+     "The loop"),
+    ("**Full mode — gates through the supervisor.**", "**Pre-existing failure triage.**",
+     "The loop"),
+    ("**A full-mode run** is ready when", "**A direct-light run**",
+     "Status, resume, and the retry cap"),
 )
 
 # A pointer summarises the sequence it replaces, and a summary is new prose --
@@ -160,10 +157,10 @@ _RELOCATED_SEQUENCES = (
 # qualifiers whose loss changes what the step requires, pinned per owning step.
 # Narrow phrases, not a byte-pin: the surrounding wording stays editable.
 _LOAD_BEARING_QUALIFIERS = (
-    ("**A spec-backed run** normally writes", "**A direct-light run**",
-     "with the clean-review payload on the engine transition"),
-    ("10. **Full mode:** run the init pair", "11. **Run every fired",
-     "the destructive reset pair"),
+    ("**A full-mode run** is ready when", "**A direct-light run**",
+     "never from a stored verdict"),
+    ("10. **Full mode:** the supervisor starts only after", "11. **Run every fired",
+     "instead of starting again"),
 )
 
 
@@ -177,17 +174,17 @@ def test_every_relocated_sequence_is_reachable_from_its_owning_step() -> None:
         assert start in raw, f"owning-step anchor vanished: {start!r}"
         assert end in raw, f"owning-step end anchor vanished: {end!r}"
         step = _flatten(raw[raw.index(start) : raw.index(end, raw.index(start))])
-        assert _ENGINE_REFERENCE in step, f"{start!r} no longer routes to the engine reference"
+        assert _SUPERVISOR_REFERENCE in step, f"{start!r} no longer routes to the supervisor reference"
         assert cue in step, f"{start!r} no longer names its section: {cue!r}"
 
 
-def test_every_named_engine_section_exists_in_the_reference() -> None:
+def test_every_named_supervisor_section_exists_in_the_reference() -> None:
     """A pointer naming a section the reference lacks is a dead end.
 
     Paired with the arm above: that one proves the step points somewhere, this
     one proves the somewhere is real.
     """
-    body = (REFERENCES / "full-mode-engine.md").read_text(encoding="utf-8")
+    body = (REFERENCES / "supervisor.md").read_text(encoding="utf-8")
     headings = [ln.lstrip("# ").strip() for ln in body.splitlines() if ln.startswith("## ")]
     for _, _, cue in _RELOCATED_SEQUENCES:
         assert any(h.startswith(cue) for h in headings), f"no section for cue {cue!r}"
@@ -196,10 +193,8 @@ def test_every_named_engine_section_exists_in_the_reference() -> None:
 def test_each_pointer_keeps_its_load_bearing_qualifier() -> None:
     """Unconditional prose in a pointer is how a relocated rule loses its edge.
 
-    Dropping "with the clean-review payload on the engine transition" revives
-    the retired separate-record protocol and its crash window;
-    widening "the destructive reset pair" to any reset gates unrelated work.
-    Both shipped during this relocation and were caught only by review.
+    Dropping "never from a stored verdict" lets readiness rest on a remembered
+    answer, and dropping the resume qualifier restarts a run that exists.
     """
     raw = _skill_text()
     for start, end, qualifier in _LOAD_BEARING_QUALIFIERS:

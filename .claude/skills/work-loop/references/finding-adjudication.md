@@ -1,14 +1,14 @@
 # Finding-adjudication path protocol
 
-Use this reference for every raw report classified `findings`, except a Nit-only
-report the implementation thread does not intend to mutate. Defer each such Nit
+Use this reference, in pre-approval review and in light mode, for every raw report classified `findings`, except a Nit-only
+report the implementation thread does not intend to mutate. Full-mode code review does not use it: the supervisor's `review-role` and `assess-finding` requests close that review ([`supervisor.md`](supervisor.md) § *Review*). Defer each such Nit
 in the verdict record with its citation; intended Nit mutations require dispatch.
 Pre-EXECUTE reviews use the parallel protocol in `pre-execute-review.md`.
 
 ## Raw-clean fast path
 
 Persist and validate the completed reviewer's return exactly as it arrived, then
-run `review raw-classify --report <path> --json`. `clean` requires the
+run `review-artifact.py raw-classify --report <path> --json`. `clean` requires the
 sentinel line exactly once, zero parsed findings, and nothing else but blank
 lines; it skips `finding-adjudicator` and paired artifacts. A report carrying a
 `## Not checked` footer never takes that fast path however clean it looks — the
@@ -20,15 +20,11 @@ artifact with `--structural-clean-file`. `findings` follows this protocol;
 ## Artifact identity and validation
 
 For a dispatched report, `<round>` is the 1-based ordinal of the review pass being conducted, not a count
-of completed ones: in full mode it is `review_round_count + 1`. The validator
-refuses `--round 0`, and `review_round_count` is `0` until the first
-`review record`, so deriving the round from the raw counter fails on every run's
-first report.
+of completed ones. The validator refuses `--round 0`.
 
-Full mode uses the engine `run_id`. Light mode — including direct-light, which
-has no persisted spec — generates one ephemeral lowercase canonical UUID for its
-review and numbers each round from `1` upward for as long as that review runs;
-it initializes no cohort state. The validator enforces
+Pre-approval review and light mode — including direct-light, which
+has no persisted spec — generate one ephemeral lowercase canonical UUID for the review and number each round from `1` upward for as long as that review runs;
+none starts a supervisor run. The validator enforces
 canonical lowercase form and refuses with a content-free code that will not tell
 you case was the cause, so generate it with
 `python3 -c 'import uuid; print(uuid.uuid4())'` — `uuidgen` emits uppercase on
@@ -85,7 +81,7 @@ missing adjudicator is a loud stop; never make it a named skip.
 Persist its complete output at the paired adjudication path. The adjudicator
 returns its verdict to you and cannot write it itself, so this step is yours:
 an authored verdict that was never written is an incomplete review unit, and
-`review inspect` will reject it.
+`review-artifact.py inspect` will reject it.
 
 The `finding-adjudicator` must carry pre-existing approved provenance: a
 self-supplied adjudicator — one added or modified by the diff being adjudicated
@@ -152,16 +148,11 @@ existing review budget using the validated adjudication SHA-256 as the
 fingerprint:
 
 ```bash
-# When the engine is in CODE-REVIEW (post-GATES): run wave reopen first.
-python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
-    --expect-run-id <run-id>
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> \
-    findings-remain --fingerprint <validated-adjudication-sha256>
+python '<skill-dir>/scripts/review-artifact.py' record --run-id <run-id> \
+    --fingerprint <validated-adjudication-sha256>
 ```
 
-The transition records the review effect before returning to implementation. A
-refused transition or exhausted retry budget stops with no review record and no
-gate execution. Keep the original validated raw report path unchanged;
+A refused record or exhausted retry budget stops with no gate execution. Keep the original validated raw report path unchanged;
 the preflight-derived paths are:
 
 ```text
@@ -190,11 +181,7 @@ python '<skill-dir>/scripts/review-artifact.py' validate \
   --expected-sha256 <first-validator-digest>
 ```
 
-Run `loop-cohort check <spec-dir> --phase wave-exit` immediately before that
-transition: it reads the dispatch receipts, refuses a wave exit whose tasks are
-unaccounted for, and prints the absent-container notice the transition cannot.
-Re-enter the existing post-GATES path: fire `wave-complete`, run GATES, and
-return through `gates-clean` to REVIEW. Then dispatch the adjudicator with the
+Re-enter review on the unchanged target. Then dispatch the adjudicator with the
 unchanged raw report, target/scope, reviewer role, governing authority, and the
 validated evidence path plus the expected gate ID, source revision, isolation
 posture, and validator digest. The agent must cover the unchanged complete
@@ -205,8 +192,7 @@ line, audit record, indeterminate signal, or clean sentinel.
 Validate and strictly classify only that complete replacement. If evidence is
 still insufficient, another attempt must pass this same guarded accounting
 path. Keep the original raw/first-adjudication artifacts and every
-evidence/replacement pair until handoff; store none of their paths in cohort
-state.
+evidence/replacement pair until handoff; store none of their paths in a record.
 
 ## Strict classification
 
@@ -216,23 +202,15 @@ and sustained-entry-only main result. Numbered findings in either audit,
 `ADJUDICATION-INDETERMINATE`, or any non-`None.` indeterminate audit is
 `invalid` before fingerprinting. The flagless parser remains legacy-only.
 
-Full mode:
+Pre-approval review and light mode — including direct-light — hold no run state
+and must classify before every clean, apply, defer, or next-round decision:
 
 ```bash
-python '<skill-dir>/scripts/loop-cohort.py' review inspect docs/specs/<feature> \
-  --report <adjudication-report-path> --adjudication --json
-```
-
-Light mode — including direct-light — has no cohort state and must classify
-before every clean, apply, defer, or next-round decision:
-
-```bash
-python '<skill-dir>/scripts/loop-cohort.py' review classify \
+python '<skill-dir>/scripts/review-artifact.py' classify \
   --report <adjudication-report-path> --json
 ```
 
-Never substitute stateful inspect in light mode, omit `--adjudication` in
-full mode, or pass `--report <raw-report-path>`.
+Never pass `--report <raw-report-path>`.
 
 Classification payloads include `families`: the sorted, de-duplicated set of
 SHA-256 hex digests over the parsed findings, in the same canonical form as
@@ -249,28 +227,23 @@ entry for entry. Nothing consumes it yet.
 | `invalid` | Surface and stop without state change or mutation, except the exact machine-checkable evidence route above. |
 | `clean` | Raw classifier accepted the closed sentinel/footer grammar; run remaining reviewers. |
 | `findings` | Use only sustained entries and returned fingerprints. |
-| `matches_previous_round=true` | Surface it, and continue the round sequence; this never stops a loop. Full mode only — light mode holds no prior-round fingerprints. |
+| `matches_previous_round=true` | Surface it, and continue the round sequence; this never stops a loop. Not produced by `classify` — light mode holds no prior-round fingerprints. |
 
-Route each sustained finding through DECIDE's requiredness test before firing
-a repair transition. A sustained finding the accepted intent does not
+Route each sustained finding through DECIDE's requiredness test before recording
+a repair round. A sustained finding the accepted intent does not
 require, and which does not show this change is incorrect or unsafe, is
 resolved against that intent and opens no repair round: it must not consume
-`findings-remain`, FIX, or retry capacity.
+FIX or retry capacity.
 
-For the sustained findings that remain in CODE-REVIEW, reopen the wave first,
-then pass the fingerprints on the engine transition itself. The transition
-carries the review-retry cap guard and the cohort review effect; if it refuses,
-no review round is recorded. Do not run a separate `loop-cohort review record`.
+For the sustained findings that remain, record the round with its fingerprints,
+which carry the review-retry cap:
 
 ```bash
-python '<skill-dir>/scripts/loop-cohort.py' wave reopen docs/specs/<feature> \
-    --expect-run-id <run-id>
-python '<skill-dir>/scripts/loop-engine.py' transition docs/specs/<feature> findings-remain \
+python '<skill-dir>/scripts/review-artifact.py' record --run-id <run-id> \
     --fingerprint <fp1> --fingerprint <fp2> ...
 ```
 
-Then FIX, run `loop-cohort check <spec-dir> --phase wave-exit`, fire
-`wave-complete`, rerun GATES, and re-enter REVIEW. Do not record
+Then FIX, rerun GATES, and re-enter REVIEW. Do not record
 an adversarial clean before specialist reviewers finish. On final raw clean, use
 `--direct-clean-file` only for the byte-exact sentinel; use
 `--structural-clean-file` only after its own raw classification accepts the
@@ -279,7 +252,7 @@ closed footer grammar. A refuted-only adjudication uses the paired
 recording forms do not.
 
 Keep each raw/adjudication pair until handoff but never commit it or store its
-paths in cohort state. After recording, evict both bodies from controller
+paths in a record. After recording, evict both bodies from controller
 context. Re-read only the adjudication artifact when FIX needs a sustained
 finding's detail, or when light mode's divergence checkpoint reads the trend
 across rounds from those adjudication artifacts; DECIDE determines which sustained findings remain open.

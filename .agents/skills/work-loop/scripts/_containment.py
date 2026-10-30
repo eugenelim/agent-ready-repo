@@ -124,9 +124,8 @@ DELIVERY_CONTROL_PATHS: Final[tuple[str, ...]] = (
     ".git/",
     # Shadow acceptance delivery-control record directory.
     ".shadow-acceptance/",
-    # Loop-run event directory: the engine writes events.jsonl and events.pending
-    # here and reads events.pending back during recovery.  Untrusted grants must
-    # not write to this directory.
+    # Loop-run event directory: the supervisor appends events.jsonl here.
+    # Untrusted grants must not write to this directory.
     ".loop-run/",
 )
 
@@ -134,6 +133,8 @@ DELIVERY_CONTROL_PATHS: Final[tuple[str, ...]] = (
 # must never write to, regardless of which directory they appear in.
 _DELIVERY_CONTROL_FILENAMES: Final[frozenset[str]] = frozenset({
     "state.json",
+    # A file an earlier release wrote. Kept so a worker cannot plant one for a 3.x
+    # rollback to read.
     "engine-state.json",
 })
 

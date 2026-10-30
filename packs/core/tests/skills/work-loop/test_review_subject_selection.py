@@ -53,24 +53,6 @@ def review_selection() -> ModuleType:
     return _load_review_selection_module()
 
 
-@pytest.fixture(scope="module")
-def loop_engine() -> ModuleType:
-    """Load loop-engine so VI-1004 exercises its compatibility caller."""
-    path = SCRIPTS / "loop-engine.py"
-    info = os.lstat(path)
-    assert stat.S_ISREG(info.st_mode), f"not a regular file: {path}"
-    previous = sys.dont_write_bytecode
-    try:
-        sys.dont_write_bytecode = True
-        spec = importlib.util.spec_from_file_location("loop_engine_under_test", str(path))
-        assert spec is not None and spec.loader is not None
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
-    finally:
-        sys.dont_write_bytecode = previous
-
-
 def _delivery_subject(
     *,
     task_revision: str,
@@ -145,100 +127,6 @@ def _manifest() -> list[dict]:
 
 def _ordered_obligation_summary(obligations: list[dict]) -> list[tuple[str, str]]:
     return [(item["role"], item["kind"]) for item in obligations]
-
-
-def test_current_engine_and_synthetic_adapter_select_same_ordered_obligations(
-    loop_engine: ModuleType, review_selection: ModuleType
-) -> None:
-    """Plan/task provenance must not change current-engine obligations."""
-    baseline_subject = review_selection.project_review_subject(
-        _delivery_subject(task_revision="baseline-task-rev", task_hash="baseline-task-hash"),
-        changed_paths=_manifest(),
-        review_policy_fingerprint="review-policy-v1",
-    )
-    policy = _policy_with_waiver(baseline_subject)
-    engine_subject, engine_obligations = (
-        loop_engine.project_current_engine_review_obligations(
-            _delivery_subject(
-                task_revision="engine-task-rev-a",
-                task_hash="engine-task-hash-a",
-            ),
-            changed_paths=_manifest(),
-            review_policy=policy,
-            plan_digest="plan-digest-current-engine",
-            task_projection_revision="engine-task-rev-a",
-            adapter_event_id="current-engine-event",
-        )
-    )
-    synthetic_subject, synthetic_obligations = review_selection.synthetic_review_obligations(
-        _delivery_subject(
-            task_revision="synthetic-task-rev-b",
-            task_hash="synthetic-task-hash-b",
-        ),
-        changed_paths=list(reversed(_manifest())),
-        review_policy=policy,
-        plan_digest="plan-digest-synthetic",
-        task_projection_revision="synthetic-task-rev-b",
-        adapter_event_id="synthetic-adapter-event",
-    )
-
-    assert engine_subject["review_subject_fingerprint"] == (
-        synthetic_subject["review_subject_fingerprint"]
-    )
-
-    assert _ordered_obligation_summary(engine_obligations) == [
-        ("adversarial-reviewer", "waived"),
-        ("security-reviewer", "optional"),
-        ("quality-engineer", "mandatory"),
-    ]
-    assert engine_obligations == synthetic_obligations
-
-
-@pytest.mark.parametrize(
-    "field,value",
-    [
-        ("plan_digest", "plan-digest-other"),
-        ("task_projection_revision", "task-rev-other"),
-        ("task_hash", "task-hash-other"),
-    ],
-)
-def test_engine_and_synthetic_parity_independently_ignores_provenance(
-    loop_engine: ModuleType, review_selection: ModuleType, field: str, value: str
-) -> None:
-    """Each provenance-only field varies without changing selected obligations."""
-    policy = _policy()
-    subject_kwargs = {"task_revision": "task-rev-base", "task_hash": "task-hash-base"}
-    engine_kwargs = {
-        "plan_digest": "plan-digest-base",
-        "task_projection_revision": "task-rev-base",
-        "adapter_event_id": "engine-event-base",
-    }
-    if field == "task_hash":
-        subject_kwargs["task_hash"] = value
-    else:
-        engine_kwargs[field] = value
-
-    engine_subject, engine_obligations = (
-        loop_engine.project_current_engine_review_obligations(
-            _delivery_subject(**subject_kwargs),
-            changed_paths=_manifest(),
-            review_policy=policy,
-            **engine_kwargs,
-        )
-    )
-    synthetic_subject, synthetic_obligations = review_selection.synthetic_review_obligations(
-        _delivery_subject(task_revision="task-rev-base", task_hash="task-hash-base"),
-        changed_paths=_manifest(),
-        review_policy=policy,
-        plan_digest="plan-digest-base",
-        task_projection_revision="task-rev-base",
-        adapter_event_id="synthetic-event-base",
-    )
-
-    assert engine_subject["review_subject_fingerprint"] == (
-        synthetic_subject["review_subject_fingerprint"]
-    )
-    assert engine_obligations == synthetic_obligations
 
 
 def _subject(review_selection: ModuleType) -> dict:
@@ -1022,25 +910,3 @@ def test_policy_parse_refuses_malformed_containers_stably(
     with pytest.raises(review_selection.ReviewSelectionRefused) as excinfo:
         review_selection.select_review_obligations(subject, policy)
     assert excinfo.value.denial_code == expected_code
-
-
-@pytest.mark.parametrize("caller", ["current-engine", "synthetic"])
-def test_adapter_callers_refuse_malformed_policy_stably(
-    loop_engine: ModuleType, review_selection: ModuleType, caller: str
-) -> None:
-    """Both adapter entry points use the same typed policy parse path."""
-    with pytest.raises(Exception) as excinfo:
-        if caller == "current-engine":
-            loop_engine.project_current_engine_review_obligations(
-                _delivery_subject(task_revision="task-a", task_hash="task-hash-a"),
-                changed_paths=_manifest(),
-                review_policy=None,
-            )
-        else:
-            review_selection.synthetic_review_obligations(
-                _delivery_subject(task_revision="task-a", task_hash="task-hash-a"),
-                changed_paths=_manifest(),
-                review_policy=None,
-            )
-    assert type(excinfo.value).__name__ == "ReviewSelectionRefused"
-    assert excinfo.value.denial_code == "denied-review-policy-not-a-dict"

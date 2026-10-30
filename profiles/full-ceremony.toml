@@ -6,7 +6,7 @@
 #   agentbundle install --profile full-ceremony <catalogue>
 #
 # Lint invariants (tools/lint-profiles.py): scope-homogeneous (every pack is
-# repo-scope), dependency-complete (core satisfies every addon's core ^3.0 dependency, required or recommended),
+# repo-scope), dependency-complete (core satisfies every addon's core ^4.0 dependency, required or recommended),
 # deps-first ordered (core before its dependents).
 
 scope = "repo"

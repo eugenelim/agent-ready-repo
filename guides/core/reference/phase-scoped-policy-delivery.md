@@ -80,7 +80,7 @@ selection key:
 python3 .claude/skills/work-loop/scripts/select-policy-families.py \
   --registry .claude/skills/work-loop/references/policy-families.md \
   --root . \
-  CODE-IMPLEMENTATION
+  implementing
 ```
 
 Every refusal prints to stderr with a `select-policy-families:` prefix and exits
@@ -89,7 +89,7 @@ parser is safe.
 
 | What you see | What it means |
 | --- | --- |
-| `unknown selection key 'X'` | `X` is not an `engine-state.json.state` value, a stage key, or a declared constant. Selection never infers a phase from prose — check what the engine actually recorded. |
+| `unknown selection key 'X'` | `X` is not a supervisor stage key or a declared constant. Selection never infers a phase from prose — check what `work-supervisor.py status` actually reports. |
 | `module 'Y' resolves to no file confined to Z` | Either the file is not installed under `--root`, or it exists but is **reached from outside the boundary** — through `..`, an absolute path, a symlink that leaves the root, or a hard link to a file outside it. The second cause is the common one in a monorepo: check what the locator resolves to before assuming the file is missing. |
 | `info string ... disagrees with schema_version` | The fence's version token and the block's `schema_version` diverged. Both must move together. |
 | `unsupported schema_version` | The registry was written for a newer selector than the one installed. |
@@ -101,22 +101,13 @@ the skill, while `seed:` rules live at your repository root. Pointing `--root` a
 a projection output directory makes every `seed:` family unresolvable — pass the
 repository root instead.
 
-**Stage keys select the same families as the states they replace.** The
-supervisor's `status --json` reports a `stage`, and the selector accepts it as
-the key:
-
-| Stage key | Engine states it replaces |
-| --- | --- |
-| `PRE-APPROVAL` | `SPEC-PLAN-DRAFTING`, `SPEC-PLAN-REVIEW` |
-| `admitted` | `SPEC-PLAN-APPROVED` |
-| `implementing` | `CODE-IMPLEMENTATION` |
-| `gating` | `CODE-VERIFICATION` |
-| `reviewing` | `CODE-REVIEW` |
-| `awaiting-human` | `SPEC-HUMAN-GATE`, `PLAN-HUMAN-GATE`, `CODE-HUMAN-GATE` |
-| `terminal` | `DONE` |
+**The key is the supervisor stage.** The supervisor's `status --json` reports a
+`stage`, and the selector accepts it as the key: `admitted`, `implementing`,
+`gating`, `reviewing`, `awaiting-human`, or `terminal`. `PRE-APPROVAL` covers
+the work before the first approval.
 
 **The light path uses `DIRECT-LIGHT`, and pre-approval work uses
-`PRE-APPROVAL`.** A direct-light change creates no engine state, and the
+`PRE-APPROVAL`.** A direct-light change starts no supervisor run, and the
 supervisor has no stage before approval, so neither has a value to key on. Both
 are declared constants, and they are the only reserved tokens.
 

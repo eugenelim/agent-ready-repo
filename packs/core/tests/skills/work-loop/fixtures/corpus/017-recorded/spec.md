@@ -17,7 +17,7 @@
 
 ## Named deviation from full mode
 
-The `loop-engine` / `loop-cohort` state machine was not run, and there is no
+The `phase-engine` / `cohort-writer` state machine was not run, and there is no
 `plan.md`. The two human approval gates it sequences were **granted up front by the
 requester** as a standing instruction to carry this through to merge.
 `adversarial-reviewer`

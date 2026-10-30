@@ -33,7 +33,7 @@ def test_policy_registry_projects_and_still_selects_on_both_adapters() -> None:
     `--root` stays the repository while `--registry` moves to the projected
     copy. They are necessarily different trees: an adapter projection carries the
     skill, while seeds reach a consumer through the separate `scaffold` command,
-    and every family `CODE-IMPLEMENTATION` selects is a `seed:` locator.
+    and every family `implementing` selects is a `seed:` locator.
     """
     if not CORE_PACK.is_dir():
         # Return rather than skip. This tree is published: the export-boundary
@@ -58,7 +58,7 @@ def test_policy_registry_projects_and_still_selects_on_both_adapters() -> None:
 
             proc = subprocess.run(
                 [sys.executable, str(SELECTOR), "--registry", str(landed),
-                 "--root", str(ROOT), "CODE-IMPLEMENTATION"],
+                 "--root", str(ROOT), "implementing"],
                 capture_output=True, text=True, check=False,
             )
             assert proc.returncode == 0, f"{adapter}: {proc.stderr}"

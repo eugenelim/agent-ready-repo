@@ -34,16 +34,29 @@ it as a finding and sharpen the spec rather than writing a hollow `TODO` test.
 
 A seam the plan cannot ground before code exists is recorded
 `implementation-discovered` with its discovery predicate, constraint, required
-outcome, and verification mode. Do not invent a helper, fixture, module, path,
+outcome, and verification mode. When code grounds it, the controller writes the
+grounding into the plan's `## Design (LLD)` as a working-plan edit. Do not invent a helper, fixture, module, path,
 or symbol to manufacture a test.
 
 ## The `stub` fence — supervisor red-proof input
 
-The approved plan does not require a `stub` fence. Where a supervisor run
-executes a TDD task, the plan author carries its fence in the approved task;
-the supervisor materializes it unchanged and proves it red before the
-implementer attempt. A supervisor task without a fence gets no engine-observed
-red proof, and EXECUTE's red-first rule still applies to it.
+Where a supervisor run executes a TDD task, the task's `Tests:` carries a `stub`
+fence, and the supervisor materializes it unchanged and proves it red before the
+implementer attempt. The **controller**, never an implementer attempt, writes
+that fence as a **task-start revision**: an edit to the task's `Tests:` made
+after the previous request's result is reported and before the `next` that
+issues the task's first request. The supervisor commits the edit as one in-envelope
+`replan` with no approval request, issues `write-stub`, runs the fence in a
+scratch copy of the committed tree, and commits the stub only when it is red;
+only then does `implement-task` follow. The approved plan does not need to
+carry the fence, so plan review never has to guess it.
+
+**Make no plan edit while an attempt is open**
+([`supervisor.md`](supervisor.md#the-open-attempt-rule--when-the-plan-may-change)).
+An implementer attempt that adds or changes a fence in its result is refused, and
+nothing from that result is committed. A
+supervisor task without a fence gets no supervisor-observed red proof, and
+EXECUTE's red-first rule still applies to it.
 
 A fence uses the `stub` info string inside the task's `Tests:` subsection, with
 the path, the command that runs it, and the exit codes that count as red:
@@ -71,7 +84,16 @@ the path, the command that runs it, and the exit codes that count as red:
 
 A task may carry several `stub` fences; each must be red. A fence the
 supervisor refuses as `stub-not-red` is either made to fail for the intended
-reason or removed.
+reason or removed, and the recovery has its own steps: the refusal closes the
+`write-stub` attempt with nothing from it committed, the supervisor discards the
+files the attempt left (a path it could not remove is named in `status` and
+blocks every step until you remove it or restore it to `HEAD`), and the next
+edit to the plan opens a `human-decision` carrying that edit's diff. A named
+human confirms or declines those exact bytes; a confirmed edit is committed as
+a `replan`, and a declined one is recorded and committed nowhere, so restore the
+files to `HEAD` before the stub runs again.
+[`supervisor.md`](supervisor.md) § *Recovering from a stub that is not red* has
+the commands.
 
 ## What a stub is — the stub-fullness rule
 

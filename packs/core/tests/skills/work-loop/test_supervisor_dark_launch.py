@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import subprocess
 import sys
 import sysconfig
@@ -90,14 +91,26 @@ def test_uninterrupted_run_completes_on_the_standard_library_alone(
     assert (tmp_path / "effects.log").read_text("utf-8").split() == [f"{started['run_id']}:push"]
 
 
-def test_nothing_in_the_skill_but_the_supervisor_invokes_it() -> None:
+def test_nothing_in_the_skill_but_its_text_and_the_supervisor_names_it() -> None:
+    """After the cutover the skill text drives the supervisor; no other script does."""
     own = {"work-supervisor.py", "supervisor-policy.json"} | {
         p.name for p in sup.SCRIPTS.glob("_supervisor_*.py")}
+    text_homes = {"SKILL.md"}
+    # The delivery feed reads committed evidence through the hardened Git helper, and
+    # names no other supervisor file.
+    git_helper_users = {"_delivery_feed.py"}
     offenders = []
     for path in sorted(SKILL.rglob("*")):
+        relative = path.relative_to(SKILL)
         if not path.is_file() or path.name in own or "__pycache__" in path.parts:
             continue
+        if relative.name in text_homes or relative.parts[0] in {"references", "evals"}:
+            continue
         text = path.read_bytes().decode("utf-8", "replace")
-        if "work-supervisor" in text or "_supervisor_" in text:
-            offenders.append(str(path.relative_to(SKILL)))
+        if path.name in git_helper_users:
+            named = set(re.findall(r"_supervisor_\w+", text))
+            if "work-supervisor" in text or named != {"_supervisor_git"}:
+                offenders.append(str(relative))
+        elif "work-supervisor" in text or "_supervisor_" in text:
+            offenders.append(str(relative))
     assert offenders == []

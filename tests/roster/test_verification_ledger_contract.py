@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import importlib.util
 import json
-import pathlib
 import re
 from pathlib import Path
 from types import ModuleType
@@ -132,16 +131,25 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
         "### A spec directory freezes as a unit, when the spec ships",
         (
-            "only while the plan is `Drafting`, and ends when the plan is approved",
-            "both `spec.md` and `plan.md` are pinned in substance",
+            "after approval it covers only the working-plan changes above",
+            "the protected sections and terminal intent are *protected*",
         ),
-        ("An observation produced by execution belongs in the sibling `notes/verification-ledger.md`",),
+        (),
+    ),
+    (
+        "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
+        "### What needs an amendment after approval",
+        (
+            "A change to any of those needs an amendment",
+            "A change to the plan's tasks, tests, stubs, design, or approach needs none",
+        ),
+        ("belongs in the sibling `notes/verification-ledger.md`",),
     ),
     (
         "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
         "**`plan.md` is the implementation strategy.**",
         (
-            "It may change substantively only while `Drafting`; once approved, both it and `spec.md` are pinned except for lifecycle bookkeeping",
+            "needs an **amendment**; a change to the plan's tasks, tests, stubs, design, or approach does not",
         ),
         (),
     ),
@@ -149,7 +157,7 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
         "**Lifecycle:** specs are",
         (
-            "from approval onward the correction is the controlled-amendment path, not an in-flight edit",
+            "from approval onward a correction to a protected section is the controlled-amendment path, not an in-flight edit",
             # A rule clause, not a router: this paragraph names the ledger in
             # words and never carries its path, so it is pinned here rather than
             # asserted against LEDGER_DESTINATIONS. Widening that tuple to admit
@@ -163,8 +171,8 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         "packs/core/.apm/skills/new-spec/assets/plan.md",
         "> **Plan contract:**",
         (
-            "It may change substantively only while its Status is `Drafting`",
-            "After approval, `spec.md` and `plan.md` are pinned in substance",
+            "a change needs an **amendment** only when it touches the spec's protected sections",
+            "A change to tasks, tests, stubs, design, or approach needs none",
             # The authority layering: only the gate-read fields are pinned, and
             # the working-material fields are correctable without an amendment.
             # Without this phrase the template can silently lose the distinction
@@ -173,7 +181,7 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
             "`Grounding` stays *recorded*",
         ),
         (
-            "execution observations belong in `docs/specs/<feature>/notes/verification-ledger.md`",
+            "Execution observations belong in `docs/specs/<feature>/notes/verification-ledger.md`",
         ),
     ),
     (
@@ -206,7 +214,7 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
             # approval belongs here at any point in the lifecycle.
             "Approvals, and nothing else",
             # The post-approval half, unchanged in substance.
-            "After approval this section is pinned like the rest of the plan",
+            "After approval this section still holds approvals only",
             # Rule clause, not a router: names the ledger in words, no path. The
             # template's path lives in its `Plan contract` region. One contiguous
             # span including the prohibition -- pinning the redirection alone is
@@ -221,8 +229,8 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         ("The approved `spec.md` and `plan.md` retain obligations only",),
         (
             "notes/verification-ledger.md",
-            "The ledger is not hash-pinned",
-            "needs no amendment to either approved artifact",
+            "The ledger is outside the reviewed envelope",
+            "needs no amendment and no plan edit",
         ),
     ),
     (
@@ -233,58 +241,20 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
     ),
     (
         "packs/core/.apm/skills/work-loop/references/pre-execute-review.md",
-        "## Mid-EXECUTE re-plan — Phase-1 note",
+        "## Plan changes during EXECUTE",
         (
-            "approved `spec.md` and `plan.md` are **immutable in substance**",
-            "still causes a refusal",
+            "the controller makes it while no attempt is open",
+            "A change to a protected section or the terminal intent is refused with its owner named",
         ),
         ("For an execution observation rather than a plan error, follow the",),
     ),
     (
         "packs/core/.apm/skills/work-loop/references/state-schema.md",
-        "**What the pin covers.**",
-        ("Everything else stays pinned",),
+        "## What the plan contributes",
+        ("What the approval covers is the **reviewed execution envelope** and the terminal intent",),
         (),
     ),
 )
-
-
-def test_the_status_guard_admits_executing_and_refuses_a_regressed_token(
-    tmp_path,
-) -> None:
-    """Call the real status guard, not its data table.
-
-    Asserting that `"Executing"` appears in `_LEGAL_AFTER_APPROVAL` proves a
-    string is present, not that the guard admits the status. Minimal fixtures
-    are used rather than this delivery's own artifacts, so a later edit to them
-    cannot make this pass or fail for a reason unrelated to the guard.
-    """
-    guards = _load_guards()
-
-    def _write(spec_status: str, plan_status: str) -> pathlib.Path:
-        directory = tmp_path / f"{spec_status}-{plan_status}"
-        directory.mkdir()
-        (directory / "spec.md").write_text(
-            f"# Spec: fixture\n\n- **Status:** {spec_status}\n", encoding="utf-8"
-        )
-        (directory / "plan.md").write_text(
-            f"# Plan: fixture\n\n- **Status:** {plan_status}\n", encoding="utf-8"
-        )
-        return directory
-
-    legal = _write("Implementing", "Executing")
-    assert (
-        guards.assert_status_legal("probe", legal / "spec.md", legal / "plan.md") is None
-    ), "the guard must admit an Executing plan beside an Implementing spec"
-
-    regressed = _write("Implementing", "Drafting")
-    reason = guards.assert_status_legal(
-        "probe", regressed / "spec.md", regressed / "plan.md"
-    )
-    assert reason is not None and "Drafting" in reason, (
-        "the guard must refuse a plan whose status regressed out of the "
-        f"post-approval set; got {reason!r}"
-    )
 
 
 def test_a_substantive_edit_moves_the_pin_but_bookkeeping_does_not() -> None:
@@ -347,18 +317,17 @@ def test_no_governing_source_carries_a_retired_edit_licence() -> None:
             )
 
 
-def test_how_to_keeps_immutability_and_routes_to_the_ledger() -> None:
+def test_how_to_states_the_amendment_boundary_and_routes_to_the_ledger() -> None:
     """The public how-to keeps its own rule and names the ledger destination."""
     relative = "guides/core/how-to/plan-and-execute-non-trivial-work.md"
     flat = _flat(_section(relative, "### Spec amendment mid-flight"))
 
-    assert "the approved plan is immutable in substance" in flat, (
-        f"{relative}: the retained immutability statement is gone"
+    assert "A change to tasks, tests, stubs, design, or approach is a working-plan edit" in flat, (
+        f"{relative}: the working-plan statement is gone"
     )
     assert (
-        "Anything else — task text, a `Depends on:` edge, re-indenting a criterion, "
-        "or free text appended after the status token — invalidates it." in flat
-    ), f"{relative}: the enumeration of invalidating edits must stay one contiguous clause"
+        "A change to a protected section or the terminal intent is refused and names its owner" in flat
+    ), f"{relative}: the protected-change refusal clause is gone"
     assert "verification-ledger procedure" in flat, (
         f"{relative}: missing the ledger-routing clause"
     )
@@ -420,6 +389,7 @@ def test_the_core_release_surfaces_agree() -> None:
 #: enumerated here too.
 AC3_REQUIRED_REGIONS = (
     ("packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md", "### A spec directory freezes as a unit, when the spec ships"),
+    ("packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md", "### What needs an amendment after approval"),
     ("packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md", "**`plan.md` is the implementation strategy.**"),
     ("packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md", "**Lifecycle:** specs are"),
     ("packs/core/.apm/skills/new-spec/assets/plan.md", "> **Plan contract:**"),
@@ -427,8 +397,8 @@ AC3_REQUIRED_REGIONS = (
     ("packs/core/.apm/skills/new-spec/assets/plan.md", "## Changelog"),
     ("packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md", "## Verification ledger"),
     ("guides/core/explanation/why-the-plan-owns-the-lld.md", "## The shape of the answer"),
-    ("packs/core/.apm/skills/work-loop/references/pre-execute-review.md", "## Mid-EXECUTE re-plan — Phase-1 note"),
-    ("packs/core/.apm/skills/work-loop/references/state-schema.md", "**What the pin covers.**"),
+    ("packs/core/.apm/skills/work-loop/references/pre-execute-review.md", "## Plan changes during EXECUTE"),
+    ("packs/core/.apm/skills/work-loop/references/state-schema.md", "## What the plan contributes"),
 )
 
 #: AC3's closed set, pinned independently of `SOURCES` so deleting a row from

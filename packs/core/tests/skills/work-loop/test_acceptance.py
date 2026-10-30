@@ -15,7 +15,6 @@ module remains unregistered in sys.modules between test sessions.
 from __future__ import annotations
 
 import importlib.util
-import json
 import os
 import stat
 import sys
@@ -476,85 +475,6 @@ class TestVerdictEvaluation:
         )
         assert verdict["verdict"] == "supported"
         assert verdict["evaluation_fingerprint"]
-
-    def test_verdict_derives_from_evidence_log_ignoring_cached_verdict(
-        self, acc: ModuleType, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
-        """Verdict is re-derived from the evidence log; a planted cached-verdict is ignored.
-
-        Proves AC-0007 through the persisted path: the facade writes a receipt to
-        the shadow evidence log, EvidenceStore reads it back, and evaluate_verdict
-        returns 'supported' even when shadow-verdict.json beside the log says 'unapproved'.
-        Deleting state.json and engine-state.json (mechanical state) does not change
-        the result.
-        """
-        facade = _load_module("facade_t4a", SCRIPTS / "_compat_facade.py")
-        es_mod = _load_module("es_t4a", SCRIPTS / "_evidence_store.py")
-
-        monkeypatch.setenv(facade.SHADOW_ENV_VAR, "1")
-        spec_dir = tmp_path / "persist-spec"
-        spec_dir.mkdir()
-        engine_state = {"feature": "persist-spec", "run_id": "persist-run"}
-        pending = {
-            "seq": 1, "event": "spec-ready",
-            "from": "SPEC-PLAN-DRAFTING", "to": "SPEC-PLAN-REVIEW",
-            "run_id": "persist-run", "at": "2026-01-01T00:00:00Z",
-        }
-        facade.shadow_call_on_transition(spec_dir, engine_state, pending)
-
-        shadow_dir = spec_dir / facade.SHADOW_SUBDIR
-        log_path = shadow_dir / "shadow-evidence.log"
-        assert log_path.exists(), "evidence log must be written by shadow_call_on_transition"
-
-        # First plant a cached verdict that disagrees, and create then delete the
-        # mechanical state beside the store, so the read below happens after both.
-        (shadow_dir / "shadow-verdict.json").write_text(
-            json.dumps({"verdict": "unapproved"}), encoding="utf-8"
-        )
-        for name in ("state.json", "engine-state.json"):
-            (spec_dir / name).write_text('{"state": "DONE"}', encoding="utf-8")
-        for name in ("state.json", "engine-state.json"):
-            (spec_dir / name).unlink()
-
-        # Re-derive from the persisted evidence log through a fresh store open.
-        store = es_mod.EvidenceStore(log_path)
-        store.open()
-        receipts = store.get_all_active_receipts()
-        assert len(receipts) == 1, "one receipt per transition event"
-        acceptance_fp = receipts[0]["acceptance_fingerprint"]
-
-        property_record = {
-            "schema_version": 1,
-            "property_id": "prop-persist-001",
-            "authority_ref": "approval:persist-test:v1",
-            "satisfaction_rule": {"expression": "any"},
-            "required_observations": [
-                {"term": "engine-transition:spec-ready", "outcomes": ["observed"]},
-            ],
-            "contradiction_rule": {"expression": "none"},
-        }
-        verdict = acc.evaluate_verdict(
-            property_record=property_record,
-            receipts=receipts,
-            current_acceptance_fingerprint=acceptance_fp,
-            adapter="sequential-reference",
-        )
-        assert verdict["verdict"] == "supported", (
-            "AC-0007: verdict from the evidence log must be 'supported'; "
-            f"got {verdict['verdict']!r}; the planted 'unapproved' cached-verdict is ignored"
-        )
-
-        # Mutation proof: changing receipt outcome changes the verdict.
-        bad_receipt = {**receipts[0], "outcome": "not-observed"}
-        v_bad = acc.evaluate_verdict(
-            property_record=property_record,
-            receipts=[bad_receipt],
-            current_acceptance_fingerprint=acceptance_fp,
-            adapter="sequential-reference",
-        )
-        assert v_bad["verdict"] != "supported", (
-            "AC-0007: mutating receipt outcome must change the verdict"
-        )
 
     def test_verdict_ignores_task_projection_field_on_receipt(
         self, acc: ModuleType

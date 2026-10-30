@@ -285,7 +285,7 @@ def _build_tree_broken(root: Path) -> None:
         description: Body references a sibling skill by install path; lint must refuse.
         ---
 
-        See `.claude/skills/work-loop/scripts/loop-cohort.py` for the state machine.
+        See `.claude/skills/work-loop/scripts/work-supervisor.py` for the state machine.
         """))
 
     _write(skills / "self-skill-path" / "SKILL.md", textwrap.dedent("""\

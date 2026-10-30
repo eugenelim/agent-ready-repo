@@ -2,16 +2,6 @@
   "skill_name": "work-loop",
   "evals": [
     {
-      "id": "schedule-plan-is-canonical",
-      "prompt": "I want to schedule work-loop using an alternate plan file. Can I pass its path with `loop-cohort schedule --plan`?",
-      "expected_output": "No. The `--plan` value must be `<spec-dir>/plan.md`. Passing that canonical path is equivalent to omitting the option; an alternate path is refused because schedule checks and hashes the canonical plan file.",
-      "assertions": [
-        "Response says `--plan` must be `<spec-dir>/plan.md`",
-        "Response says an alternate path is refused",
-        "Response does not claim the option selects a different plan"
-      ]
-    },
-    {
       "id": "capture-learnings-quality-attributes",
       "prompt": "You have completed a work-loop and are at Capture. What should you ask, and is speed the deciding criterion?",
       "expected_output": "Ask what would have made the work materially better across relevant quality attributes: correctness or completeness, reliability or recoverability, security or privacy, determinism or reproducibility, operability, maintainability or reviewability, efficiency, and independence from hidden context. Speed is one useful signal, not the objective. Capture a generalizable learning only when it would materially change a future approach.",
@@ -35,77 +25,49 @@
       ]
     },
     {
-      "id": "phase1-sequential-wave-routing",
-      "prompt": "You are running the work-loop in code mode (Phase 1). The schedule has 3 waves. Wave 0 is complete. What is the correct next action to advance to wave 1 and begin implementing it?",
-      "expected_output": "Fire `loop-engine transition <spec-dir> wave-passed --wave-index 0`. The engine guard validates that wave 0 is complete, then the registered transition effect advances the cohort wave pointer before the engine commits its own state. The transition refuses unless every task in wave 0 already carries a `loop-cohort dispatch-receipt` record — `--receipt` or `--decline <reason>`. Do not run a separate `loop-cohort wave advance`, and do NOT use `worktree`, `dispatch-decision`, or `auto-parallel`.",
+      "id": "supervisor-loop-next-report",
+      "prompt": "You are running a full-mode code run that `start` has admitted. After one task's result is reported, what is the correct next action, and how does the run advance to the following task?",
+      "expected_output": "Run `python '<skill-dir>/scripts/work-supervisor.py' next <spec-dir>`. The supervisor derives the one current action from committed facts and answers a `request`, `terminal`, or a `refusal`; the controller answers the request by its `kind`, writes the result to a file outside the spec directory, and runs `work-supervisor.py report <spec-dir> <result.json>`. There is no wave, phase, or dispatch record to advance by hand: `next` issues the following task when the previous one is complete and its dependencies are met.",
       "assertions": [
-        "Response mentions `loop-engine transition` with the `wave-passed` event",
-        "Response says the registered `wave-passed` effect advances the cohort wave pointer",
-        "Response does NOT call `loop-cohort wave advance` separately",
-        "Response does NOT invoke `worktree`, `dispatch-decision`, or `auto-parallel`",
-        "Response follows the sequential path (one wave at a time)",
-        "Response does NOT call `loop-cohort wave check` as a prerequisite (engine guard handles this)",
-        "Response states the accounting precondition: the transition refuses a wave whose tasks are not accounted for"
+        "Response runs `work-supervisor.py next` to get the current request",
+        "Response answers the request by its kind and runs `work-supervisor.py report` with a result file",
+        "Response says the supervisor, not the controller, derives which task comes next",
+        "Response does NOT advance a wave, fire a phase transition, or record a dispatch receipt by hand",
+        "Response handles a `refusal` or `terminal` answer rather than ignoring it"
       ]
     },
     {
       "id": "phase1-disabled-parallel-commands",
-      "prompt": "You are in Phase-1 code mode of the work-loop. You have 4 independent tasks. What dispatch strategy should you use and why?",
-      "expected_output": "Dispatch `implementer` tasks sequentially using the schedule order from `loop-cohort schedule`. Parallel dispatch (`dispatch-decision`, `worktree`, `auto-parallel`) is disabled in Phase 1 and exits non-zero. Run one implementer at a time in wave order.",
+      "prompt": "You are in a full-mode code run with 4 independent tasks. What dispatch strategy should you use and why?",
+      "expected_output": "Dispatch `implementer` tasks sequentially, one `implement-task` request at a time, in the order `work-supervisor.py next` issues them. The supervisor issues one request at a time and refuses a result whose change set it did not compute itself, so there is no parallel implementer fan-out, no worktree per task, and no dispatch decision to make. Run one implementer at a time, run the gates in the primary tree, and report `gate.passed`.",
       "assertions": [
-        "Response does NOT instruct calling `dispatch-decision`",
-        "Response does NOT instruct calling `worktree`",
-        "Response does NOT instruct calling `auto-parallel`",
-        "Response explains sequential execution as the required strategy",
-        "Response mentions the schedule or wave ordering"
+        "Response does NOT instruct parallel implementer dispatch or a worktree per task",
+        "Response explains sequential execution, one implementer at a time, as the required strategy",
+        "Response orders tasks by the requests `work-supervisor.py next` issues",
+        "Response says the controller runs the gates and reports the result"
       ]
     },
     {
-      "id": "phase1-identity-status-first-resumption",
-      "prompt": "You are resuming a work-loop session mid-implementation. The spec-dir is `docs/specs/my-feature`. What is the correct first sequence of commands to orient yourself before mutating any state?",
-      "expected_output": "First run `loop-engine status <spec-dir>` to read the current FSM state and last_event, then `loop-cohort identity <spec-dir> --expect-run-id <run_id>` to verify the run_id matches, then `loop-cohort status <spec-dir> --json` to read current cohort state. Only after these read-only checks should you issue any mutating command.",
+      "id": "resume-reads-status-first",
+      "prompt": "You are resuming a work-loop session mid-implementation. The spec-dir is `docs/specs/my-feature`. What is the correct first command to orient yourself before changing anything?",
+      "expected_output": "Run `python '<skill-dir>/scripts/work-supervisor.py' status docs/specs/my-feature --json`. It is read-only and prints the run id, stage, retry count, each task's completion, the current request, and any refusal; the supervisor derives all of it from Git history and the committed records, so a lost session or a deleted `run.json` loses nothing. Deal with a refusal first, then run `next` and answer what it issues. Do not run `start` again to find out whether a run exists.",
       "assertions": [
-        "Response mentions `loop-engine status` as the first step",
-        "Response mentions `loop-cohort identity` to verify the run_id",
-        "Response mentions `loop-cohort status` to read cohort state",
-        "Response establishes orientation (read-only steps) before any mutation",
+        "Response starts with `work-supervisor.py status`, a read-only verb",
+        "Response reads the stage, retry count, tasks, request, and refusal from it",
+        "Response says the run is derived from Git history and committed records",
+        "Response handles a refusal before issuing `next`",
         "Response does not start with a mutating command"
       ]
     },
     {
-      "id": "durable-transition-wave-passed-replay",
-      "prompt": "You resume a work-loop session after `loop-engine transition <spec-dir> wave-passed --wave-index 0` was interrupted. `loop-engine status` still shows the pre-transition engine state, but cohort `state.json` may already contain the effect. What is the correct replay action?",
-      "expected_output": "Re-run the same `loop-engine transition <spec-dir> wave-passed --wave-index 0` command. Do not run `loop-cohort wave advance` separately. The engine recomputes the same transition id from the run id, persisted pre-transition sequence, event, and canonical args; `loop-cohort.py` classifies the last `transition_history` entry under the cohort lock, applies the effect only when absent, clears `pending_transition`, and then the engine writes engine-state last. The expected result is one wave advance, one matching history entry, and no duplicate cohort effect.",
+      "id": "resume-after-interrupted-report",
+      "prompt": "A `work-supervisor.py report` call was interrupted. You cannot tell whether its result was admitted. What do you do?",
+      "expected_output": "Run `work-supervisor.py next <spec-dir>`, not the same `report`. Every admitted step is a Git commit, so `next` derives the current request from what landed: if the result was admitted it issues the following request, and if it was not it reissues the same request with the same identity. A repeated `report` for a request that was already reported is refused as `not-current-attempt` and commits nothing, so nothing is duplicated either way.",
       "assertions": [
-        "Response re-runs the same `loop-engine transition` command",
-        "Response does not run `loop-cohort wave advance` separately",
-        "Response names `transition_history` as the replay authority",
-        "Response states that the engine writes engine-state last",
-        "Response expects exactly one cohort effect after replay"
-      ]
-    },
-    {
-      "id": "durable-transition-findings-remain-replay",
-      "prompt": "You fired `loop-engine transition <spec-dir> findings-remain --fingerprint <fp>`. The process crashed after the cohort review effect may have landed but before engine-state advanced. What do you do?",
-      "expected_output": "Re-run the same `loop-engine transition` with the same fingerprint payload. Do not call `loop-cohort review record` separately and do not ask for manual replay authorization. On the CODE-REVIEW edge, the engine passes the transition id as the cohort review operation id, so replay either observes the matching last `transition_history` entry or records the review effect once under the same id before committing engine-state. A SPEC-PLAN-REVIEW `findings-remain` edge is different: it has no cohort review effect and stays payload-free.",
-      "assertions": [
-        "Response re-runs the same engine transition with the same fingerprint",
-        "Response does not call `loop-cohort review record` separately",
-        "Response does not require manual replay authorization",
-        "Response states that the transition id is the review operation id",
-        "Response distinguishes CODE-REVIEW effects from SPEC-PLAN-REVIEW pre-execute transitions"
-      ]
-    },
-    {
-      "id": "durable-transition-reviewers-clean-replay",
-      "prompt": "A CODE-REVIEW `reviewers-clean` transition with `--direct-clean-file <raw-report-path>` crashed after the cohort review effect may have landed. The clean signal is the same as before. What must you do before replaying it, and how would the command differ if clean came from adjudication?",
-      "expected_output": "Re-run the same `loop-engine transition <spec-dir> reviewers-clean` command with the same clean evidence; no extra human replay authorization is required. Exact raw clean keeps `--direct-clean-file <raw-report-path>`, structural clean uses `--structural-clean-file`, adjudicated clean uses `--report <adjudication-report-path> --adjudication`, and an all-skipped clean requires explicit `--all-skipped`. The engine uses the transition id as the review operation id and records the review effect at most once before engine-state advances.",
-      "assertions": [
-        "Response re-runs `loop-engine transition reviewers-clean` rather than a cohort verb",
-        "Response says no extra human replay authorization is required",
-        "Response preserves the clean evidence form on replay",
-        "Response requires explicit `--all-skipped` for an all-skipped clean result",
-        "Response states that the transition id is the review operation id"
+        "Response runs `next` to re-derive the current request",
+        "Response says an admitted step is a Git commit the supervisor reads back",
+        "Response says a repeated report for an already reported request is refused and commits nothing",
+        "Response does not hand-edit any record under `.supervisor/` or `delivery/`"
       ]
     },
     {
@@ -232,35 +194,35 @@
       ]
     },
     {
-      "id": "two-gate-resumption-spec-human-gate-auto-fire",
-      "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `last_event: reviewers-clean`, `pending_human_wait: true`. You read spec.md and find `Status: Approved`. What should you do?",
-      "expected_output": "Fire `spec-approved` immediately — this is crash-recovery for the window where the spec approver wrote `Status: Approved` in spec.md but the session ended before the engine transition ran. Do NOT wait for another human signal. Run `loop-engine transition <spec-dir> spec-approved` to advance to PLAN-HUMAN-GATE, then apply the plan-gate status check.",
+      "id": "approved-without-start-resumption",
+      "prompt": "You are resuming a work-loop session. There is no `delivery/approvals.jsonl` in the spec directory. spec.md shows `Status: Approved` and plan.md shows `Status: Approved` with both approval entries in its Changelog. What should you do?",
+      "expected_output": "The humans approved and `start` did not run. Do not wait for another approval. Confirm the plan's Changelog carries both entries, request the `spec-approved` capture if it was not made, write `Implementing` in spec.md and `Executing` in plan.md, commit them, and run `work-supervisor.py start <spec-dir> --intent code --code-trust ... --authority-ref owner... --review-authority-ref plan-reviewer...` with the approvers' own authority references. Then request the `plan-locked` capture once `start` answers `admitted`.",
       "assertions": [
-        "Response fires `spec-approved` immediately without waiting for a new human signal",
-        "Response identifies this as crash-recovery for the approval window",
-        "Response does NOT instruct waiting when Status is already Approved",
-        "Response references transitioning to PLAN-HUMAN-GATE as the next state"
+        "Response runs `work-supervisor.py start` rather than waiting for another approval",
+        "Response checks that the plan's Changelog carries both approval entries first",
+        "Response takes the authority references from the approvers, not from a worker",
+        "Response requests the `spec-approved` capture before `start` and the `plan-locked` capture at `start`"
       ]
     },
     {
-      "id": "two-gate-resumption-plan-human-gate-auto-fire",
-      "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: PLAN-HUMAN-GATE`, `last_event: spec-approved`, `pending_human_wait: true`. You read plan.md and find `Status: Approved`. What should you do?",
-      "expected_output": "Fire `plan-approved` immediately — crash-recovery for the window where the plan approver wrote `Status: Approved` in plan.md but the session ended. Do NOT wait. Run `loop-engine transition <spec-dir> plan-approved` to advance to SPEC-PLAN-APPROVED, then proceed to cohort operations (`approve-plan`, and in code mode `schedule`, then `plan-locked`).",
+      "id": "approved-with-missing-changelog-entry",
+      "prompt": "You are resuming a work-loop session with no `delivery/approvals.jsonl`. plan.md shows `Status: Approved` but its Changelog carries no plan-approval entry. What should you do?",
+      "expected_output": "Surface and stop. The approver's handle cannot be inferred from the status alone, and `start` records the approval pair under authority references that must come from the humans who approved. Describe the state and wait for the approver to add the entry or for the owner's direction; do not run `start` on a guess.",
       "assertions": [
-        "Response fires `plan-approved` immediately without waiting",
-        "Response identifies this as crash-recovery",
-        "Response proceeds to SPEC-PLAN-APPROVED state",
-        "Response mentions cohort operations (approve-plan) as the next step"
+        "Response surfaces the missing approval entry to the human and stops",
+        "Response does NOT run `start` or invent an authority reference",
+        "Response says the approver's handle cannot be inferred from the status",
+        "Response waits for direction"
       ]
     },
     {
-      "id": "two-gate-resumption-incompatible-spec-status",
-      "prompt": "You are resuming a work-loop session. `loop-engine status` shows `state: SPEC-HUMAN-GATE`, `pending_human_wait: true`. spec.md shows `Status: Implementing`. What should you do?",
-      "expected_output": "Surface to the human and stop. `Status: Implementing` at SPEC-HUMAN-GATE is incompatible — it means the spec advanced past the approval gate without completing the plan gate. Describe the state (SPEC-HUMAN-GATE with Status: Implementing in spec.md), explain the contradiction, and wait for explicit human direction before taking any action.",
+      "id": "resume-incompatible-spec-status",
+      "prompt": "You are resuming a work-loop session with no `delivery/approvals.jsonl`. spec.md shows `Status: Archived`. What should you do?",
+      "expected_output": "Surface to the human and stop. `Archived` is terminal: this spec will not proceed to approval or `start`. Describe the contradiction between the status and the request to resume, and wait for explicit human direction before taking any action; do not run `start`.",
       "assertions": [
         "Response surfaces the incompatible state to the human",
-        "Response does NOT fire any transition automatically",
-        "Response describes the contradiction (Implementing status at a human-gate state)",
+        "Response does NOT run `start` or any mutating verb",
+        "Response says `Archived` is terminal",
         "Response waits for human direction"
       ]
     },
@@ -287,10 +249,10 @@
     },
     {
       "id": "spec-approved-capture-only-boundary",
-      "prompt": "The spec approver writes Status: Approved and the spec-approved transition succeeds. Scratch contains a reusable assumption-check lesson and normative acceptance criteria. Which project-knowledge action is allowed? What happens for draft, review-failing, rejected, abandoned, or stale states?",
-      "expected_output": "Only after the approved successful spec-approved transition, capture reusable spec-authoring practice and keep normative acceptance criteria in spec.md. This gate never distils or transfers receipts to plan-locked. Draft, review-failing, rejected, abandoned, and stale-or-failed-baseline states perform no capture.",
+      "prompt": "The spec approver writes Status: Approved. `start` has not run. Scratch contains a reusable assumption-check lesson and normative acceptance criteria. Which project-knowledge action is allowed, and when? What happens for draft, review-failing, rejected, abandoned, or stale states?",
+      "expected_output": "After the approved `Status: Approved` write and before `start`, request the `spec-approved` capture of reusable spec-authoring practice, and keep normative acceptance criteria in spec.md. This gate never distils or transfers receipts to `plan-locked`. Draft, review-failing, rejected, abandoned, and stale-or-failed-baseline states perform no capture.",
       "assertions": [
-        "Requires both Status: Approved and a successful spec-approved transition before capture",
+        "Requires Status: Approved before the `spec-approved` capture and runs it before `start`",
         "Keeps normative scope and acceptance criteria solely in spec.md",
         "Makes spec-approved capture only, with no distillation or receipt transfer",
         "Performs no capture for draft, review-failing, rejected, abandoned, or stale-or-failed-baseline states"
@@ -298,14 +260,14 @@
     },
     {
       "id": "plan-locked-receipt-scoped-terminal-gate",
-      "prompt": "A plan approver writes Status: Approved, plan-approved succeeds, approve-plan seals an unchanged baseline, and plan-locked succeeds. There are receipts from spec-approved and new plan-locked receipts. What may be captured and distilled? What happens if the baseline is stale or the work is rejected or abandoned?",
-      "expected_output": "Only after the complete approved, unchanged-baseline, successful plan-locked sequence, capture reusable planning practice while keeping normative strategy in plan.md. Terminal distillation uses only receipts returned by plan-locked; spec-approved receipts are ineligible. A stale or failed baseline seal, rejection, abandonment, or incomplete approval sequence performs no capture or distillation.",
+      "prompt": "A plan approver writes Status: Approved and `work-supervisor.py start` answers `admitted`. There are receipts from the spec-approved capture and new plan-locked receipts. What may be captured and distilled? What happens if `start` refuses, or the work is rejected or abandoned?",
+      "expected_output": "Only once `start` answers `admitted` (or `terminal` for a `spec-plan` intent), request the `plan-locked` capture of reusable planning practice while keeping normative strategy in plan.md. Terminal distillation uses only receipts returned by the `plan-locked` capture; spec-approved receipts are ineligible. A refused `start`, a rejection, an abandonment, or an incomplete approval sequence performs no capture or distillation.",
       "assertions": [
-        "Requires Status: Approved, plan-approved, unchanged approve-plan baseline, and successful plan-locked",
+        "Requires Status: Approved and an `admitted` (or `terminal` for spec-plan) answer from `start`",
         "Keeps normative strategy solely in plan.md",
         "Limits terminal distillation to receipts returned by plan-locked",
         "Rejects spec-approved receipts from terminal distillation",
-        "Performs no capture or distillation after stale or failed sealing, rejection, abandonment, or incomplete approval"
+        "Performs no capture or distillation after a refused start, rejection, abandonment, or incomplete approval"
       ]
     },
     {
@@ -407,13 +369,13 @@
     },
     {
       "id": "script-invocation-from-repository-root",
-      "prompt": "You are running work-loop from the repository root. How do you invoke loop-engine.py when there is no repository-root scripts directory?",
-      "expected_output": "Resolve `<skill-dir>` as the directory containing the active work-loop SKILL.md, keep the working directory at the repository root, and run `python '<skill-dir>/scripts/loop-engine.py' ...`, replacing the placeholder with the actual installer- or harness-supplied skill directory. Pass the resolved script path as one discrete argument when the tool supports an argument vector; never run the bare-relative `python scripts/loop-engine.py` form.",
+      "prompt": "You are running work-loop from the repository root. How do you invoke work-supervisor.py when there is no repository-root scripts directory?",
+      "expected_output": "Resolve `<skill-dir>` as the directory containing the active work-loop SKILL.md, keep the working directory at the repository root, and run `python '<skill-dir>/scripts/work-supervisor.py' ...`, replacing the placeholder with the actual installer- or harness-supplied skill directory. Pass the resolved script path as one discrete argument when the tool supports an argument vector; never run the bare-relative `python scripts/work-supervisor.py` form.",
       "assertions": [
         "Defines `<skill-dir>` as the directory containing the active SKILL.md",
         "Keeps the process working directory at the repository root",
-        "Uses the resolved `<skill-dir>/scripts/loop-engine.py` path",
-        "Does not use a bare-relative `python scripts/loop-engine.py` command",
+        "Uses the resolved `<skill-dir>/scripts/work-supervisor.py` path",
+        "Does not use a bare-relative `python scripts/work-supervisor.py` command",
         "Passes the resolved script path as one argument when supported"
       ]
     },
@@ -596,15 +558,15 @@
     {
       "id": "finding-adjudication-evidence-resolved",
       "prompt": "A pre-EXECUTE reviewer report is persisted at `.context/reviews/00000000-0000-4000-8000-000000000001/1-pre-execute-adversarial-reviewer-raw.md`. It claims required `config/policy.yaml` is absent. The first adjudication cannot prove the filename-only absence with Read/Grep and names that one machine-checkable fact. Before the raw report existed, effective repository guidance separately declared `policy-manifest-presence` in its Evidence gate catalog with a literal non-shell argv, confined cwd, clean environment, bound revision, read-only filesystem, a process-level read allowlist that excludes `.context/reviews/` and all review artifacts, disabled network, five-second timeout, and bounded capture. Its declared measured fact is tracked policy-manifest presence. Route the evidence attempt and state what the main loop may consume after the gate confirms the file is absent.",
-      "expected_output": "Validate the first adjudication and use its SHA-256 as the retry fingerprint. Select only the predeclared `policy-manifest-presence` entry, derive fresh unused artifact paths, and complete every non-executing catalog, revision, artifact-excluding read-confinement, containment, capture-cap, and exclusive-create preflight before state changes. Then chain the guarded `findings-remain` transition and `review record --fingerprint`; if either fails, run no gate. Execute the literal argv once under the declared controls, exclusively create the fresh evidence artifact, validate it, and immediately revalidate the same digest. Re-enter the existing pre-EXECUTE review state with `spec-ready`. Dispatch `finding-adjudicator` with the unchanged raw report and source-finding set plus the validated evidence path and expected provenance. The adjudicator independently authors one complete replacement report; the controller carries forward or merges no verdict. The replacement records the proposed-mechanism outcome and returns one `sustained` finding because the evidence confirms the required file is absent. The literal indeterminate stop token appeared only as the first adjudication's exact main-loop signal and is never quoted in either audit or replacement prose.",
+      "expected_output": "Validate the first adjudication and use its SHA-256 as the retry fingerprint. Select only the predeclared `policy-manifest-presence` entry, derive fresh unused artifact paths, and complete every non-executing catalog, revision, artifact-excluding read-confinement, containment, capture-cap, and exclusive-create preflight before state changes. Then run `review-artifact.py record --run-id <run-id> --fingerprint <that digest>`; if it refuses, run no gate. Execute the literal argv once under the declared controls, exclusively create the fresh evidence artifact, validate it, and immediately revalidate the same digest. Re-enter pre-EXECUTE review on the unchanged target. Dispatch `finding-adjudicator` with the unchanged raw report and source-finding set plus the validated evidence path and expected provenance. The adjudicator independently authors one complete replacement report; the controller carries forward or merges no verdict. The replacement records the proposed-mechanism outcome and returns one `sustained` finding because the evidence confirms the required file is absent. The literal indeterminate stop token appeared only as the first adjudication's exact main-loop signal and is never quoted in either audit or replacement prose.",
       "assertions": [
         "Uses only the pre-report closed-catalog gate and no artifact-derived command value",
         "Uses effective repository guidance as valid pre-EXECUTE catalog authority",
         "Excludes the review session and every artifact from the gate read allowlist",
         "Completes refusal-only preflight before retry state changes",
-        "Chains the retry-cap transition and fingerprint record before one gate execution",
+        "Records the fingerprint against the review budget before one gate execution",
         "Exclusively creates, validates, and digest-rebinds the evidence artifact",
-        "Re-enters the existing verification and review path without new state",
+        "Re-enters review on the unchanged target without new state",
         "Supplies the validated evidence as the adjudicator's fifth path class",
         "Requires an independently authored complete replacement over every unchanged source finding",
         "Returns one sustained finding after the evidence establishes absence",
@@ -639,14 +601,13 @@
     },
     {
       "id": "wave4-contract-amendment-preserves-completed-work",
-      "prompt": "During full-mode implementation, the scope owner agrees that one unfinished AC is separable and work-intake has created a stable follow-on artifact. How does the loop amend and resume?",
-      "expected_output": "From code-mode CODE-IMPLEMENTATION, before editing the contract, invoke contract-amendment with the stable owner-authority reference, follow-on reason reference, and repeated Tn=<stable-ref> evidence entries so every completed task has task-bound evidence. The event snapshots prior approved fingerprints and immutable completed task sections/evidence, preserves run identity and review counters, clears only remaining approval/schedule state, and returns to drafting. Amend the final AC set, plan, and non-AC Follow-ons entry; rerun fired pre-execution reviews and both human gates; approve and schedule only unfinished tasks; resume through the ordinary plan-locked edge. Required work, session end, retry caps, stasis, or model judgment cannot invoke it automatically.",
+      "prompt": "During a full-mode run, the scope owner agrees that one unfinished AC is separable and work-intake has created a stable follow-on artifact. How does the loop amend and resume?",
+      "expected_output": "Obtain the owner's authority and the follow-on's stable reference. While no attempt is open, set spec and plan back to Draft and Drafting, amend the final AC set, the plan, and the non-AC Follow-ons entry, and rerun the fired pre-execution reviews and both human approvals. Then write Implementing and Executing again and run `work-supervisor.py start` with the approvers' references: it appends a new approval pair under the same run. Completed tasks stay complete, because the supervisor derives completion from commits and receipts for each task's current revision, and only unfinished tasks run. Until `start` runs, `next` refuses a protected edit and names its owner. Required work, session end, retry caps, stasis, or model judgment cannot invoke it automatically, and the retry count never resets.",
       "assertions": [
         "Requires explicit owner authority and a stable follow-on reference",
-        "Is legal only from code-mode CODE-IMPLEMENTATION",
-        "Preserves completed task sections, evidence, counters, and run identity",
-        "Reruns normal reviews and human approval on the amended fingerprint",
-        "Schedules only unfinished tasks",
+        "Is done while no attempt is open, by editing the protected sections and rerunning reviews and both approvals",
+        "Runs `work-supervisor.py start` to append a new approval pair under the same run",
+        "Keeps completed tasks complete and runs only unfinished tasks",
         "Rejects automatic amendment from time, retry, stasis, or model judgment"
       ]
     },
@@ -695,7 +656,7 @@
     {
       "id": "tdd-stub-replaces-prose-or-records-no-stub-reason",
       "prompt": "In a full-mode plan, AC3 is a concrete TDD-mode obligation whose red test is `test_rejects_duplicate_keys`, but the task's `Tests:` entry still carries only a vague prose bullet. AC4 is concrete and manual-QA mode. AC5 is concrete and TDD-mode, but its only true surface is a CLI exit code. How should the task record these three obligations?",
-      "expected_output": "Rewrite AC3's `Tests:` entry to name the behavior (duplicate keys are rejected), the boundary it is checked at, and the verification mode (TDD); the plan carries no test code and no stub. The red test `test_rejects_duplicate_keys (AC3)` is written at EXECUTE, at the real test location, and proven red for the intended reason before production code changes; where a spec exists, the red's command and failing output go to the verification ledger. Record AC4 with its manual-QA mode and the check to run; it has no red test. For AC5, name the nearest in-process data contract as the boundary and carry the exit-code check as a separate assertion; an out-of-process surface does not exempt a TDD task from the red-first rule. Do not treat AC4 or AC5 as under-specified.",
+      "expected_output": "Rewrite AC3's `Tests:` entry to name the behavior (duplicate keys are rejected), the boundary it is checked at, and the verification mode (TDD); the approved plan carries no test code or stub, and a supervisor task's `stub` fence is added later by the controller. The red test `test_rejects_duplicate_keys (AC3)` is written at EXECUTE, at the real test location, and proven red for the intended reason before production code changes; where a spec exists, the red's command and failing output go to the verification ledger. Record AC4 with its manual-QA mode and the check to run; it has no red test. For AC5, name the nearest in-process data contract as the boundary and carry the exit-code check as a separate assertion; an out-of-process surface does not exempt a TDD task from the red-first rule. Do not treat AC4 or AC5 as under-specified.",
       "assertions": [
         "Names behavior, boundary, and verification mode in AC3's `Tests:` entry rather than test code",
         "Says the red test is written at EXECUTE at the real test location and proven red before production code changes",
@@ -707,14 +668,14 @@
     },
     {
       "id": "durable-review-operation-id-crash-window",
-      "prompt": "You fired `loop-engine transition <spec-dir> findings-remain --fingerprint <fp1> --fingerprint <fp2>`. The session died before engine-state advanced, so you do not know whether the cohort review effect landed. What do you do?",
-      "expected_output": "Re-run the identical engine transition with the same fingerprints. Do not issue a separate `loop-cohort review record`, do not mint a new operation id, and do not ask a person to authorize replay. The registered CODE-REVIEW effect uses the transition id as the review operation id, and `loop-cohort.py` reclassifies from the last `transition_history` entry under the cohort lock before appending history or clearing the marker.",
+      "prompt": "A full-mode review round was interrupted while you were reporting a reviewer's report for a `review-role` request. You do not know whether the supervisor admitted it. What do you do?",
+      "expected_output": "Run `work-supervisor.py next` and answer what it issues. The supervisor records each admitted report as a Git commit and a delivery record, so `next` either issues the following request or reissues the same `review-role` request with the same identity. Do not mint a new request identity, do not hand-edit `delivery/`, and do not ask a person to authorize a replay: a second report for an already admitted request is refused as `not-current-attempt` and writes nothing.",
       "assertions": [
-        "Response re-runs the identical engine transition",
-        "Response does not issue a separate `loop-cohort review record`",
-        "Response does not mint a new operation id",
-        "Response does not ask for manual replay authorization",
-        "Response says the transition id is the review operation id"
+        "Response runs `next` rather than repeating the report",
+        "Response says the admitted report is a Git commit and delivery record the supervisor reads back",
+        "Response does not mint a new request identity",
+        "Response does not hand-edit `delivery/` or ask for manual replay authorization",
+        "Response says a repeated report for an admitted request is refused and writes nothing"
       ]
     },
     {
@@ -781,25 +742,13 @@
     },
     {
       "id": "schedule-implementer-dispatch-reminder",
-      "prompt": "`loop-cohort schedule` prints the topological order and its dispatch reminder. What should the controller do when an implementer subagent is installed, what is the fallback when it is not, and who retains orchestration responsibility?",
-      "expected_output": "Treat the output as a dispatch reminder. When an implementer subagent is installed, send each scheduled task to one implementer subagent, one at a time. When no implementer is installed, the controller runs the tasks itself and notes the degradation in the final summary. In both cases, scheduling, gates, review, and state stay with the controller. The reminder does not enforce or verify dispatch.",
+      "prompt": "`work-supervisor.py next` issues an `implement-task` request. What should the controller do when an implementer subagent is installed, what is the fallback when it is not, and who retains orchestration responsibility?",
+      "expected_output": "When an implementer subagent is installed, send the task to one implementer subagent, one at a time, with the execution root. When none is installed, the controller implements the task itself and notes the degradation in the final summary. In both cases the controller runs the gates and reports `gate.passed`; scheduling, the change set, and the commit stay with the supervisor, and plan edits, review, and every human's answer stay with the controller. The implementer never calls `report` and never edits the spec, the plan, or `delivery/`.",
       "assertions": [
-        "Sends each scheduled task to one implementer subagent at a time when that agent is installed",
-        "Runs the tasks and notes the degradation in the final summary when no implementer is installed",
-        "Keeps scheduling, gates, review, and state with the controller",
-        "Does not claim the reminder enforces or verifies dispatch"
-      ]
-    },
-    {
-      "id": "schedule-refuses-unknown-dependency",
-      "prompt": "My plan's T3 says `**Depends on:** T7` but there is no T7 task in the plan. What does `loop-cohort schedule` do?",
-      "expected_output": "It refuses. `schedule` stops, names the offending `T3->T7` pair on stderr, and persists no state, because a dependency naming a task the plan does not contain would otherwise be dropped silently and collapse the waves that the per-wave gate run is keyed to. A forward reference is different: a dependency authored later in the file warns on stderr, is reordered so the dependency runs first, and the run continues.",
-      "assertions": [
-        "Response says schedule refuses or stops rather than warning",
-        "Response says the offending task-to-dependency pair is named",
-        "Response says no state is persisted",
-        "Response does not claim the unknown dependency is dropped or ignored",
-        "Response distinguishes the forward-reference case, which warns and continues"
+        "Sends the task to one implementer subagent at a time when that agent is installed",
+        "Implements the task itself and notes the degradation in the final summary when no implementer is installed",
+        "Keeps the gates of record, plan edits, review, and human answers with the controller",
+        "Says the supervisor, not the implementer, computes the change set and commits"
       ]
     },
     {
@@ -851,40 +800,15 @@
       ]
     },
     {
-      "id": "dispatch-decision-consumes-a-merge-tree-verdict",
-      "prompt": "In the supervisor-mode parallel path, does `dispatch-decision` establish that a wave's branches are file-disjoint? Explain what it checks.",
-      "expected_output": "No. `dispatch_decision(categories, merge_tree_clean=...)` consumes a merge-tree verdict its caller supplies; it does not compute one. No shipped script runs `git merge-tree`, so the producer of that verdict is unbuilt and the preview cannot establish disjointness. The merge-tree check enforced at the merge step, where `git merge --no-ff` aborts on any collision, stays the sole authority.",
-      "assertions": [
-        "Says `dispatch_decision` consumes a merge-tree verdict rather than computing one",
-        "Says no shipped script invokes `git merge-tree`, so that producer is unbuilt",
-        "Keeps the merge step as the sole authority for disjointness",
-        "Does NOT claim a `wave_is_disjoint` check exists",
-        "Does NOT treat the preview as a greenlight for parallel dispatch"
-      ]
-    },
-    {
-      "id": "dispatch-receipt-authorship-and-decline-codes",
-      "prompt": "In full-mode supervisor work, which command records that a plan task was implemented, who runs it, and what do you record for a task you had to implement yourself?",
-      "expected_output": "`loop-cohort dispatch-receipt <spec-dir> --task <task-id> --wave-index <n> (--receipt | --decline <reason>) --expect-run-id <run_id>`, once per plan task. The controller records it; an `implementer` subagent never records its own, because the receipt is the controller's assertion about who it dispatched. Use `--receipt` when an `implementer` implemented the task. For a task you implemented yourself, record a decline with one of exactly two reasons: `no-implementer-installed` when no `implementer`-matching subagent is installed, or `human-directed` when a human instructed you to skip implementer dispatch (that one has no testable precondition). A receipt and a decline both count as accounted for, which is what `check --phase wave-exit` and the advancing branch of `wave advance` require.",
-      "assertions": [
-        "Response names `loop-cohort dispatch-receipt` with `--task`, `--wave-index`, and `--expect-run-id`",
-        "Response says the controller records it and an `implementer` does not record its own",
-        "Response names `--receipt` for an implementer-run task",
-        "Response names both decline reasons, `no-implementer-installed` and `human-directed`, and no third reason",
-        "Response says a decline counts as accounted for at the wave exit"
-      ]
-    },
-    {
       "id": "falsified-settled-design-requires-controlled-amendment",
-      "prompt": "The approved plan settled a design decision that an adapter receives normalized input. During execution, the real dependency rejects normalized input and accepts only raw input, falsifying that decision. The plan did not mark this seam `implementation-discovered`. Can you record the dependency output and switch to raw input in the verification ledger so you can avoid reopening approval?",
-      "expected_output": "No. This is a plan error: approval settled the design decision and execution falsified it. The verification ledger is not a route for it. Before editing the approved plan, take the controlled-amendment procedure, amend the design decision, and rerun the required reviews and human approvals before resealing and scheduling the unfinished work. An in-place edit to the approved plan is refused because its whole-file hash changes. The ledger would be appropriate only for grounding that the plan predicted as `implementation-discovered`.",
+      "prompt": "The approved plan settled a design decision that an adapter receives normalized input. During execution, the real dependency rejects normalized input and accepts only raw input, falsifying that decision. The plan did not mark this seam `implementation-discovered`. Can you record the dependency output and switch to raw input in the verification ledger so you can avoid reopening anything?",
+      "expected_output": "No. This is a plan error: approval settled the design decision and execution falsified it, and the verification ledger is not a route for it. Surface the evidence and get the owner's agreement, then correct the plan. A correction that stays inside tasks, tests, stubs, design, and approach is a working-plan edit of the plan's `## Design (LLD)`, made by the controller while no attempt is open and committed as a `replan`; one that reaches a protected spec section or the terminal intent takes the controlled amendment, with renewed reviews and approvals. The ledger keeps the dependency's observed output, and the predicted `implementation-discovered` case is grounded in the design the same way.",
       "assertions": [
         "Response classifies the falsified settled decision as a plan error",
         "Response does NOT route the falsified decision to the verification ledger",
-        "Response requires controlled amendment before changing the approved plan",
-        "Response requires renewed review and human approval before unfinished work resumes",
-        "Response says an in-place edit changes the whole-plan hash and is refused",
-        "Response distinguishes the predicted `implementation-discovered` case as a ledger observation"
+        "Response corrects the plan as a working-plan edit while no attempt is open, or the controlled amendment when a protected section is reached",
+        "Response requires the owner's agreement before the correction",
+        "Response keeps only the observed dependency output in the ledger"
       ]
     },
     {
@@ -996,17 +920,17 @@
     {
       "id": "work-frontier-requiredness-is-not-circular",
       "prompt": "A reviewer sustains a Concern that the accepted intent does not require and that does not show your change is incorrect or unsafe. A skill rule says every finding must be disposed of. Does that rule make the finding required work?",
-      "expected_output": "No. Routing the finding out as not required is itself a disposal: it is resolved, with the accepted intent as its referent, which satisfies the duty rather than failing it. Ask what the intent needs, not what the procedure obliges you to do about a finding you already have. Apply that test before firing a repair transition, so the finding consumes no repair round and no retry capacity.",
+      "expected_output": "No. Routing the finding out as not required is itself a disposal: it is resolved, with the accepted intent as its referent, which satisfies the duty rather than failing it. Ask what the intent needs, not what the procedure obliges you to do about a finding you already have. Apply that test before recording a repair round, so the finding consumes no repair round and no retry capacity.",
       "assertions": [
         "Response answers that the disposal duty does not make the finding required",
         "Response treats routing the finding out as a disposal that resolves it against the accepted intent",
-        "Response applies the test before firing a repair transition, so no repair round or retry capacity is consumed"
+        "Response applies the test before recording a repair round, so no repair round or retry capacity is consumed"
       ]
     },
     {
       "id": "quality-engineer-not-warranted-on-low-risk-full-mode",
       "prompt": "Full mode fired because my change edits a published interface. It touches no infrastructure, no persistent state, and adds no module boundary. Does `quality-engineer` review it?",
-      "expected_output": "No. `quality-engineer` is warranted only on high-risk work: the change warrants at least one `operational-safety` module, it is structural per the pre-EXECUTE footnote, or a human asks. None fires here, so the loop records `quality-engineer: not warranted`. That ships the change without testability, reliability, observability, maintenance-cost and test-strength review, which `adversarial-reviewer` does not cover — ask for the pass if that trade is wrong.",
+      "expected_output": "No. The rules file decides, and none of the conditions that fire `quality-engineer` holds here: no `operational-safety` module is warranted, the change is not structural per the pre-EXECUTE footnote, and no human asked. So the loop records `quality-engineer: not warranted`. That ships the change without testability, reliability, observability, maintenance-cost and test-strength review, which `adversarial-reviewer` does not cover — ask for the pass if that trade is wrong.",
       "assertions": [
         "Response says `quality-engineer` is not warranted",
         "Response names the three high-risk conditions",
@@ -1059,7 +983,7 @@
     {
       "id": "ready-now-defect-dispatches-at-decide-not-at-capture",
       "prompt": "I'm at DECIDE. A scratch note from this pass names a specific, real defect in a file the change already touches. It can be finished this session and needs no decision from anyone who isn't here. Do I settle where it goes now, or write it down and let Capture route it once the loop closes?",
-      "expected_output": "Settle it in this pass. A ready-now defect is loop work, and DECIDE is where its route is settled. Which route it takes is the routing already stated for a scratch note: a ride-along-eligible defect is dispatched now, grouped with related fixes sharing a file or a seam, over the human gate's `blocker-applied` return edge; one that is not ride-along eligible becomes the session's next independently reviewed unit over that same edge. Do not write it down for Capture to settle later.",
+      "expected_output": "Settle it in this pass. A ready-now defect is loop work, and DECIDE is where its route is settled. Which route it takes is the routing already stated for a scratch note: a ride-along-eligible defect is dispatched now, grouped with related fixes sharing a file or a seam, as a task the controller adds to the plan while no attempt is open; one that is not ride-along eligible becomes the session's next independently reviewed unit, added the same way. Do not write it down for Capture to settle later.",
       "assertions": [
         "Response settles the route in the DECIDE pass rather than deferring the decision to Capture",
         "Response decides the route by ride-along eligibility under the bundled-fixes carve-out",
@@ -1085,7 +1009,7 @@
     {
       "id": "reviewer-dispatch-depth-is-conditionally-routed",
       "prompt": "I am dispatching `security-reviewer` on an infra-flavored change. Step 4 of `work-loop` SKILL.md tells me to route via the `security-checklists` Module index, but it never says which modules are force-loaded on infra work, and it no longer lists the framework lens. Did those rules get deleted?",
-      "expected_output": "No. They are not on the entrypoint by design; they are reached through `## Conditional-reference routing`, whose row `Selecting reviewers, briefing one for dispatch, or weighing the lens the default roster gives up` points at `references/reviewer-roster.md`. You are briefing a reviewer for dispatch, so that predicate fires and you load the reference now. It carries `security-reviewer`'s current lens (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25 + STRIDE + LINDDUN open pass, complementing rather than replacing SAST/SCA), the inline-its-depth rule that you detect the crossed trust boundaries and inline the matching modules into the subagent's brief because the subagent has no Skill tool, and the infra-flavored force-load set: non-skippable, run at spec stage and on diff, `config-misconfig` always, plus `access-control` / `secrets-and-crypto` / `outbound-ssrf` / `supply-chain` as the diff trips each module's entry. It also carries `quality-engineer`'s `operational-safety` module inlining, the reliability-vs-security carve, and independent contract re-derivation. What stays on the entrypoint is each role's firing condition, the Module index routing sentence, and the loud blocker for a missing `security-reviewer` on infra work. An entrypoint without the depth means the depth is routed, not removed.",
+      "expected_output": "No. They are not on the entrypoint by design; they are reached through `## Conditional-reference routing`, whose row `Selecting reviewers, briefing one for dispatch, or weighing the lens the default roster gives up` points at `references/reviewer-roster.md`. You are briefing a reviewer for dispatch, so that predicate fires and you load the reference now. It carries `security-reviewer`'s current lens (OWASP Top 10:2025, ASVS 5.0, API Security Top 10:2023, LLM Top 10:2025, CWE Top 25 + STRIDE + LINDDUN open pass, complementing rather than replacing SAST/SCA), the inline-its-depth rule that you detect the crossed trust boundaries and inline the matching modules into the subagent's brief because the subagent has no Skill tool, and the infra-flavored force-load set: non-skippable, run at spec stage and on diff, `config-misconfig` always, plus `access-control` / `secrets-and-crypto` / `outbound-ssrf` / `supply-chain` as the diff trips each module's entry. It also carries the module-inlining rule for `quality-engineer`, the line between reliability and security findings, and how contracts are re-derived independently. What stays on the entrypoint is each role's firing condition, the Module index routing sentence, and the loud blocker for a missing `security-reviewer` on infra work. An entrypoint without the depth means the depth is routed, not removed.",
       "assertions": [
         "Response says the rules still exist and are reached through the conditional-reference routing table",
         "Response names `references/reviewer-roster.md` as the destination",
@@ -1136,75 +1060,14 @@
       ]
     },
     {
-      "id": "repo-root-resolved-once-per-invocation",
-      "prompt": "Do `loop-engine.py` and `loop-cohort.py` run `git rev-parse --show-toplevel` every time they need the repository root?",
-      "expected_output": "No. Both tools' `_get_repo_root()` functions cache the resolved root per process working directory, so one invocation runs `git rev-parse` once however many times the root is needed. Only successful resolutions are cached: a failure re-runs `git` on the next call, and the working directory is part of the key so a process that changes directory gets the new directory's root rather than a stale one.",
+      "id": "gate-failure-reports-and-retries",
+      "prompt": "You are running the work-loop in full mode. The gates fail after an `implement-task` attempt. What do you report, and what does the supervisor do?",
+      "expected_output": "Report the result with `{\"gate\": {\"passed\": false}}`. The supervisor commits a `gate-fail` step, which counts toward the implementation retry cap, and `next` reissues the task. Fix the failure, run the gates again, and report. At the cap, `next` opens a `retry-cap` human decision, `status --check` exits 3, and the run stops: Surface it, because no replan, amendment, or approval resets the count. Do not run a wave reopen or fire a transition; the supervisor has none.",
       "assertions": [
-        "Response says both tools cache the resolved root",
-        "Response says the resolved root is cached per process working directory",
-        "Response says a failed resolution is not cached and re-runs `git`",
-        "Response does not claim the cache is shared across different working directories"
-      ]
-    },
-    {
-      "id": "wave-decision-screen-is-not-dispatch-admission",
-      "prompt": "`loop-cohort wave-decision --json` reports two tasks as `parallel-capable`, includes pair rows marked `disjoint`, and another run refuses with a JSON object on stdout. May I dispatch the capable tasks concurrently from that output, and does the refusal carry `admission_pending`?",
-      "expected_output": "No. `wave-decision` is a read-only pre-dispatch screen. `parallel-capable` means the task is a candidate whose admission is still pending; every verdict envelope carries `admission_pending: true`, and the populated-branch post-write gate still owns any later greenlight for concurrent execution. Pair rows never admit tasks and carry only `disjoint`, `overlapping`, or `unknown`; admission is reported only on task rows. A refusal envelope is not a verdict, so it has `payload_version`, `refusal`, and public-safe `detail`, but no `admission_pending` field.",
-      "assertions": [
-        "Response says `parallel-capable` is pending rather than a dispatch authorization",
-        "Response says the populated-branch post-write gate still owns the greenlight",
-        "Response says pair rows do not admit tasks",
-        "Response says pair rows carry only the touches relation values",
-        "Response says verdict envelopes carry `admission_pending: true`",
-        "Response says refusal envelopes have no `admission_pending` field"
-      ]
-    },
-    {
-      "id": "transition-commits-against-the-state-it-read",
-      "prompt": "Can a `loop-engine transition` commit against cohort state that changed after its guards ran?",
-      "expected_output": "No. `cmd_transition` fingerprints cohort `state.json` before its first cohort read and re-reads it under the cohort lock before committing, refusing when it moved. The exception is the registered cohort-effect edge being committed: `contract-amendment`, `wave-passed`, `gates-failed`, and the CODE-REVIEW `findings-remain`/`reviewers-clean` edges mutate cohort state through `loop-cohort.py` before the engine-state write, so they use the durable transition marker/history instead of the fingerprint comparison. SPEC-PLAN-REVIEW review transitions have no cohort effect and stay on the fingerprint rail. The fingerprint is over the whole parsed state rather than selected fields, and it is read through the guard layer's exported bounded reader rather than a raw open.",
-      "assertions": [
-        "Response says the fingerprint is captured before the transition's first cohort read",
-        "Response says the re-read happens while the cohort lock is held",
-        "Response names the registered effect edges as the fingerprint exception",
-        "Response distinguishes CODE-REVIEW review effects from SPEC-PLAN-REVIEW review transitions",
-        "Response does not claim the check covers a selected subset of cohort fields",
-        "Response does not claim `gates-clean` reads dispatch receipts"
-      ]
-    },
-    {
-      "id": "repair-round-reopen-before-edge",
-      "prompt": "You are running the work-loop in full mode. Gates failed on a repair round and you need to fire `gates-failed` to return to implementation. What command must you run before the transition, and why?",
-      "expected_output": "Run `loop-cohort wave reopen <spec-dir> --expect-run-id <run_id>` before firing `gates-failed`. The reopen marks every dispatch record in the current wave superseded, so they account for nothing. Without it, the `gates-failed` transition is refused because live records remain for the current wave. The same obligation applies to `findings-remain` from `CODE-REVIEW` and `blocker-applied` from `CODE-HUMAN-GATE`: each of those three edges requires a reopen before the transition. The reopen is idempotent, so running it when the wave is already wholly superseded is safe and exits zero.",
-      "assertions": [
-        "Response names `loop-cohort wave reopen` as the required command",
-        "Response says the reopen must run before the transition, not after",
-        "Response explains that live dispatch records cause the refusal",
-        "Response names all three guarded edges: gates-failed, findings-remain, and blocker-applied",
-        "Response does not claim wave reopen is required before wave-passed or gates-clean"
-      ]
-    },
-    {
-      "id": "status-wave-dispatch-accounting",
-      "prompt": "A work-loop run has finished. Reading `loop-cohort status`, how do you tell a wave whose every task was declined from one whose every task was implemented, and what does that field NOT tell you?",
-      "expected_output": "Read `wave_dispatch_accounting`, not `dispatch_receipts_enforced`. The flag reports only whether the receipts container is present, so it reads the same for both waves. `wave_dispatch_accounting` carries one entry per wave in `schedule_waves`, each counting that wave's live receipts, live declines, superseded records and unaccounted task positions: an all-declined wave shows declines equal to its task count and receipts zero, an implemented wave the reverse. What it does not tell you: what any PAST wave exit saw. It reports the partition live at the time of the call, and `schedule` keeps only the records filed under the current partition digest, so after a repartition a completed wave's records are gone and that wave reports its tasks as unaccounted. Read it beside `current_wave_index` to separate a wave the run never reached from one it reached and left unaccounted.",
-      "assertions": [
-        "Response names `wave_dispatch_accounting` as the field to read",
-        "Response says `dispatch_receipts_enforced` reports container presence and reads the same for both waves",
-        "Response names the per-wave counts: live receipts, live declines, superseded records and unaccounted task positions",
-        "Response says the value reflects the live partition at the time of the call, not what any past wave exit saw",
-        "Response names `current_wave_index` as what separates a wave never reached from one reached and left unaccounted"
-      ]
-    },
-    {
-      "id": "event-line-budgets-report-the-enforced-cap",
-      "prompt": "A work-loop run's `state.json` records no `max_review_retries`. Its latest `events.jsonl` line shows `budgets.max_review_retries` and `budgets.review_retry_count`. What do the two values mean, and is the run uncapped?",
-      "expected_output": "The run is not uncapped. An absent cap is enforced at the guard layer's default, and the event line reports that same enforced value, so `budgets.max_review_retries` shows the default (5) rather than null. The two fields resolve differently on purpose: an absent cap is still enforced at the default, so it is never genuinely absent (only a malformed cap, which the guard refuses, reports null), while a retry count that nothing has recorded reports null, which is how a consumer tells \"not recorded\" from zero.",
-      "assertions": [
-        "Response says the run is not uncapped",
-        "Response says `budgets.max_review_retries` reports the enforced default rather than null",
-        "Response says an unrecorded retry count still reports null",
-        "Response explains that null for a count distinguishes \"not recorded\" from zero"
+        "Response reports `gate.passed: false` on the `implement-task` result",
+        "Response says the supervisor commits a `gate-fail` step that counts toward the retry cap and reissues the task",
+        "Response says the run stops at the cap and the count never resets",
+        "Response does NOT run a wave reopen or fire a phase transition"
       ]
     },
     {
@@ -1254,17 +1117,6 @@
       ]
     },
     {
-      "id": "refused-transition-leaves-no-pending-marker",
-      "prompt": "`loop-engine transition <spec-dir> contract-amendment` stopped with `completed task has no evidence binding: T1`. Is a pending_transition marker now sitting in state.json, and what do I run next?",
-      "expected_output": "No marker was written. The cohort validates a registered effect against current state before it writes the marker, in the same lock acquisition, so a refused input leaves state.json byte-identical. Re-run the corrected command — here, the same transition with a --completed-evidence-ref for each completed task. Do not hand-edit state.json.",
-      "assertions": [
-        "Says no pending_transition marker was written",
-        "Says the effect is validated before the marker is written",
-        "Tells the user to re-run the corrected command",
-        "Does not suggest hand-editing state.json"
-      ]
-    },
-    {
       "id": "plan-touch-list-routes-dependents-to-exploration",
       "prompt": "You are in work-loop PLAN for renaming a public helper that other modules import. Write the assumption trio. repository-exploration is installed. No language-server, code-graph, or MCP capability is exposed.",
       "expected_output": "The touch list rests on dependents evidence for the helper, or names that evidence as still to be gathered because no code is supplied, through repository-exploration or repository search, with no new gate, reviewer, or workflow state.",
@@ -1298,13 +1150,13 @@
       ]
     },
     {
-      "id": "delivery-fact-feed-shadow-flag-unset",
-      "prompt": "WORK_LOOP_SHADOW_SERVICES is not set and I run the delivery fact feed. What do I get, and does it list docs/specs?",
-      "expected_output": "A complete, valid, empty snapshot with `shadow_services: disabled`, no entries, and a null continuation. The feed decides this before touching the filesystem, so it lists nothing and reads nothing. Only `WORK_LOOP_SHADOW_SERVICES=1` turns the scan on.",
+      "id": "delivery-fact-feed-reads-committed-evidence",
+      "prompt": "I run the delivery fact feed in a repository where no spec holds a delivery/evidence.jsonl. What do I get, and is any setting needed?",
+      "expected_output": "A complete, valid, empty snapshot: no entries and a null continuation. The feed lists docs/specs and reads each spec's committed `delivery/evidence.jsonl`; a spec without one contributes nothing, and no environment setting turns the scan on.",
       "assertions": [
         "Says the result is a complete, empty snapshot",
-        "Says nothing is listed or read when the flag is unset",
-        "Says the flag must be exactly 1 to enable the scan"
+        "Says each spec's committed `delivery/evidence.jsonl` is what the feed reads",
+        "Says no environment setting is needed to enable the scan"
       ]
     },
     {
@@ -1320,15 +1172,14 @@
     },
     {
       "id": "tdd-stub-uses-the-stub-fence",
-      "prompt": "A supervisor run executes a TDD task whose test lives at tests/test_orders.py and runs with `python -m pytest -q`. How does the plan author give the engine a red proof, and what must not count as red?",
-      "files": [],
-      "expected_output": "The plan does not require a fence, and the red test is still written at EXECUTE. Where a supervisor run executes the task, the plan author carries an optional `stub` fence in the approved task: a fenced block whose info string is `stub path=tests/test_orders.py run=\"python -m pytest -q {path}\" red-exit=1`. The red-exit list names only the exit code of a failing test, so pytest's collection-error exit (2) is not red. A task without a fence gets no engine-observed red proof, and EXECUTE's red-first rule still applies to it.",
+      "prompt": "A supervisor run executes a TDD task whose test lives at tests/test_orders.py and runs with `python -m pytest -q`. Who gives the supervisor a red proof, when, and what must not count as red?",
+      "expected_output": "The controller, never an implementer attempt, writes the `stub` fence into the task's `Tests:` as a task-start revision: after the previous request's result is reported and before the `next` that issues the task's first request, and never while an attempt is open. The plan does not need to carry the fence when it is approved, and the red test is still written at EXECUTE. The fence's info string is `stub path=tests/test_orders.py run=\"python -m pytest -q {path}\" red-exit=1`. The red-exit list names only the exit code of a failing test, so pytest's collection-error exit (2) is not red. The supervisor commits the edit as a `replan` with no approval, writes the stub, and proves it red before `implement-task`. A task without a fence gets no supervisor-observed red proof, and EXECUTE's red-first rule still applies to it.",
       "assertions": [
-        "Treats the `stub` fence as optional and says the red test is written at EXECUTE",
-        "Uses a `stub` fence with `path=`, `run=`, and `red-exit=` attributes",
-        "Uses `{path}` in the run command rather than repeating the path",
+        "Has the controller, not an implementer attempt, write the `stub` fence as a task-start revision",
+        "Places the edit after the previous result is reported and before the `next` that issues the task's first request, with no attempt open",
+        "Uses a `stub` fence with `path=`, `run=`, and `red-exit=` attributes and `{path}` in the run command",
         "Keeps `red-exit` to the failing-test exit code, excluding collection or setup errors",
-        "Says a supervisor task without a fence gets no engine-observed red proof but the red-first rule still applies"
+        "Does not require the fence in the approved plan, and says the red-first rule still applies without one"
       ]
     },
     {
@@ -1370,23 +1221,21 @@
     },
     {
       "id": "review-artifact-adjudication-commands",
-      "prompt": "A spec-plan reviewer returned a report and you need to classify it before recording the round. Which script runs the finding-adjudication commands today, and which subcommand do you use for an adjudication report, a raw reviewer return, a read-only look against the previous round, and recording the round?",
-      "files": [],
-      "expected_output": "`review-artifact.py` carries the commands: `classify --report <path>` for an adjudication report, `raw-classify --report <path>` for a raw reviewer return, `inspect <spec-dir> --report <path> [--adjudication]` for a read-only classification against the previous round's fingerprints, and `record <spec-dir> ... --expect-run-id <uuid>` to record the round. With cohort state they print what `loop-cohort.py review <verb>` prints and update `state.json` the same way, so the `loop-cohort.py review` verbs stay valid and call the same code.",
+      "prompt": "A pre-approval reviewer returned a report and you need to classify it before recording the round. Which script runs the finding-adjudication commands, and which subcommand do you use for an adjudication report, a raw reviewer return, a read-only look against the previous round, and recording the round?",
+      "expected_output": "`review-artifact.py` carries the commands: `classify --report <path>` for an adjudication report, `raw-classify --report <path>` for a raw reviewer return, `inspect --run-id <uuid> --report <path> [--adjudication]` for a read-only classification against the previous round's fingerprints, and `record --run-id <uuid> ...` to record the round. Pre-approval and light-mode review hold no supervisor run, so each is keyed by an ephemeral run id.",
       "assertions": [
         "Names `review-artifact.py` as the script that holds `classify`, `raw-classify`, `inspect`, and `record`",
         "Maps an adjudication report to `classify`, a raw reviewer return to `raw-classify`, a read-only look to `inspect`, and recording to `record`",
-        "Says that with cohort state the output and the `state.json` update match the `loop-cohort.py review` verbs",
+        "Keys the commands by an ephemeral run id rather than a supervisor run",
         "Does not invent a different recording command"
       ]
     },
     {
       "id": "review-artifact-record-without-cohort-state",
-      "prompt": "There is no cohort `state.json` for this run, only a run id. How do you record a findings round and read the previous round's fingerprints, and where does the round count come from?",
-      "files": [],
-      "expected_output": "Pass `--run-id <canonical lowercase uuid>` instead of a spec directory: `review-artifact.py record --run-id <uuid> --fingerprint <hex> ...` writes one `.context/reviews/<run-id>/<round>-record.md` artifact per round, and `review-artifact.py inspect --run-id <uuid> --report <path>` reads the previous round's fingerprints from those artifacts. The round and the review retry count come from `record` artifacts only, so a persisted raw or adjudication report that was never recorded does not count. A malformed record or a gap in the round numbers refuses the command.",
+      "prompt": "There is no supervisor run for this review, only a run id. How do you record a findings round and read the previous round's fingerprints, and where does the round count come from?",
+      "expected_output": "Pass `--run-id <canonical lowercase uuid>`: `review-artifact.py record --run-id <uuid> --fingerprint <hex> ...` writes one `.context/reviews/<run-id>/<round>-record.md` artifact per round, and `review-artifact.py inspect --run-id <uuid> --report <path>` reads the previous round's fingerprints from those artifacts. The round and the review retry count come from `record` artifacts only, so a persisted raw or adjudication report that was never recorded does not count. A malformed record or a gap in the round numbers refuses the command.",
       "assertions": [
-        "Uses `--run-id <uuid>` in place of a spec directory for `record` and `inspect`",
+        "Uses `--run-id <uuid>` for `record` and `inspect`",
         "Says each recorded round becomes one `<round>-record.md` artifact under `.context/reviews/<run-id>/`",
         "Says `inspect --run-id` reads the previous fingerprints from the `record` artifacts",
         "Says the budget counts `record` artifacts only, so an unrecorded round does not count",
@@ -1395,15 +1244,13 @@
     },
     {
       "id": "review-artifact-retry-cap-override",
-      "prompt": "With no cohort state, a findings round would exceed `max_review_retries`. What happens, and what does it take to record that round anyway?",
-      "files": [],
-      "expected_output": "`review-artifact.py record --run-id <uuid>` refuses the round that would exceed `max_review_retries` from `review-rules.json`. A human who has looked may pass `--allow-retry-cap-override` together with `--authority-ref` holding an `owner` authority reference (`owner` or `owner:<hex>`). The `record` artifact then stores the override and the reference. An override with no reference or with any other role's reference, such as `risk-owner`, refuses the round. With cohort state the override keeps its bare-flag behaviour.",
+      "prompt": "In a pre-approval or light-mode review, a findings round would exceed `max_review_retries`. What happens, and what does it take to record that round anyway?",
+      "expected_output": "`review-artifact.py record --run-id <uuid>` refuses the round that would exceed `max_review_retries` from `review-rules.json`. A human who has looked may pass `--allow-retry-cap-override` together with `--authority-ref` holding an `owner` authority reference (`owner` or `owner:<hex>`). The `record` artifact then stores the override and the reference. An override with no reference or with any other role's reference, such as `risk-owner`, refuses the round.",
       "assertions": [
         "Says the round that would exceed `max_review_retries` is refused",
         "Requires `--allow-retry-cap-override` together with `--authority-ref` holding an `owner` authority reference",
         "Says the artifact stores the override and the reference",
-        "Says a missing reference or a `risk-owner` reference refuses the round",
-        "Says the cohort-state override keeps its pre-change bare-flag behaviour"
+        "Says a missing reference or a `risk-owner` reference refuses the round"
       ]
     },
     {
@@ -1444,14 +1291,13 @@
     },
     {
       "id": "blocked-design-misfit-is-a-shape-sign",
-      "prompt": "You are running a full-mode work-loop. The implementer for T3 returns `blocked` with a `design-misfit` deviation: the only way to finish the task is to add a lock around a cache that the plan's Design (LLD) says has a single writer. T4 is next in the schedule. What do you do?",
-      "files": [],
-      "expected_output": "Treat the blocked misfit as a sign that the design shape is wrong, and because the single-writer assumption is a settled decision in the approved Design (LLD), act on this one sign without waiting for another. Do not dispatch T4, and do not answer by revising or redispatching only T3. Surface the evidence — the lock T3 would need, and the single-writer assumption in the named Design (LLD) sub-section — and wait for the owner. If the owner agrees, take the controlled amendment and redesign from what was built, keeping completed task sections sealed and making the new design smaller before it grows.",
+      "prompt": "You are running a full-mode work-loop. The implementer for T3 returns `blocked` with a `design-misfit` deviation: the only way to finish the task is to add a lock around a cache that the plan's Design (LLD) says has a single writer. T4 is next. What do you do?",
+      "expected_output": "Treat the blocked misfit as a sign that the design shape is wrong, and because the single-writer assumption is a settled decision in the approved Design (LLD), act on this one sign without waiting for another. Do not start T4 by running `next` again, and do not answer by revising or redispatching only T3. Surface the evidence — the lock T3 would need, and the single-writer assumption in the named Design (LLD) sub-section — and wait for the owner. If the owner agrees, correct the plan: a working-plan edit of tasks and design while no attempt is open, or the controlled amendment if a protected section is reached; redesign from what was built, and make the new design smaller before it grows. Finished tasks stay finished.",
       "assertions": [
-        "Response does not dispatch T4 before the owner decides",
+        "Response does not start T4 before the owner decides",
         "Response does not fix the problem by revising or redispatching only T3",
         "Response names the single-writer assumption in the Design (LLD) as the falsified decision",
-        "Response routes an agreed redesign through the controlled amendment, not a direct edit to the sealed plan"
+        "Response routes an agreed redesign through a working-plan edit made while no attempt is open, or the controlled amendment for a protected section"
       ]
     },
     {

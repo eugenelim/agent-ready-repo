@@ -67,9 +67,9 @@ capturing a ready-now item is a loss.
   Take the first row that applies and stop: a defect blocked on a decision, an
   instrument, elapsed time, or a dependency is captured as a `work-item`; a
   ride-along-eligible defect is dispatched now, grouped with related fixes
-  sharing a file or a seam, over the human gate's `blocker-applied` return
-  edge; a ready-now defect that is not ride-along eligible becomes the next
-  independently reviewed unit in this session, over that same edge, where
+  sharing a file or a seam; a ready-now defect that is not ride-along eligible
+  becomes the next independently reviewed unit in this session (in full mode,
+  a task the controller adds to the plan while no attempt is open), where
   ready-now means it can be finished this session without a decision nobody
   present will make; and a defect the razor refuses — one an existing
   artifact already covers, or one no capture criterion admits — is refused,

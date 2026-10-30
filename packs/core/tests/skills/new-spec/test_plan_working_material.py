@@ -14,10 +14,16 @@ WORKING_MATERIAL = re.compile(
     r"^> \*\*Not every field is contract\.\*\*(?P<body>.*?)(?=^\s*$)",
     re.MULTILINE | re.DOTALL,
 )
-PRE_APPROVAL_BOUND = "corrects in place only\n> before approval"
-COMPLETION_GATE_CLAIM = "`Touches`, `Tests` and `Done when` are what a\n> completion gate reads, and they are pinned."
-LEDGER_ROUTE = "`implementation-discovered` goes to the\n> verification ledger"
-AMENDMENT_ROUTE = "settled design decision that execution falsified is a\n> plan error that follows the controlled-amendment procedure"
+# Flattened: the paragraph is a blockquote wrapped at 80 columns.
+WORKING_MATERIAL_BOUND = "the controller corrects in place, before or after approval, while no attempt is open"
+COMPLETION_GATE_CLAIM = "`Touches`, `Tests` and `Done when` are what a completion gate reads."
+DESIGN_ROUTE = "is a controller edit of the plan's `## Design (LLD)`, never a ledger line"
+AMENDMENT_ROUTE = "settled design decision that execution falsified is a plan error the owner agrees to, corrected the same way unless it reaches a protected section"
+
+
+def _flatten(paragraph: str) -> str:
+    """Drop blockquote markers and collapse whitespace."""
+    return " ".join(re.sub(r"^>[ ]?", "", paragraph, flags=re.MULTILINE).split())
 
 
 def _working_material_paragraph(text: str) -> str:
@@ -28,22 +34,24 @@ def _working_material_paragraph(text: str) -> str:
 
 
 def _assert_working_material_lifecycle(text: str) -> None:
-    """Assert the lifecycle boundary and post-approval routes stay explicit."""
-    paragraph = _working_material_paragraph(text)
+    """Assert the working-material bound and its post-approval routes stay explicit."""
+    paragraph = _flatten(_working_material_paragraph(text))
 
-    assert PRE_APPROVAL_BOUND in paragraph
+    assert WORKING_MATERIAL_BOUND in paragraph
     assert COMPLETION_GATE_CLAIM in paragraph
-    assert LEDGER_ROUTE in paragraph
+    assert DESIGN_ROUTE in paragraph
     assert AMENDMENT_ROUTE in paragraph
+    assert "goes to the verification ledger" not in paragraph
 
 
-def test_working_material_is_bounded_before_approval() -> None:
+def test_working_material_is_bounded_by_the_open_attempt() -> None:
     _assert_working_material_lifecycle(PLAN_ASSET.read_text(encoding="utf-8"))
 
 
-def test_working_material_rejects_removing_the_pre_approval_bound() -> None:
+def test_working_material_rejects_removing_the_open_attempt_bound() -> None:
     text = PLAN_ASSET.read_text(encoding="utf-8")
-    mutated = text.replace(" only\n> before approval", "", 1)
+    mutated = text.replace("while no\n> attempt is open", "at any time", 1)
+    assert mutated != text
 
     with pytest.raises(AssertionError):
         _assert_working_material_lifecycle(mutated)

@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agent-ready-repo.invalid/contracts/jsonschema/loop-run-event.schema.json",
   "title": "Loop run event line",
-  "$comment": "One line of .loop-run/events.jsonl, written by packs/core/.apm/skills/work-loop/scripts/loop-engine.py on every FSM transition. The contract this pins is owned by docs/specs/loop-telemetry-export/spec.md; docs/architecture/telemetry.md section 5.1 describes the envelope. `schema` is absent on records written before it shipped, so it is optional here and constrained only when present -- a replayed legacy record is appended unchanged and must still validate.",
+  "$comment": "One line of .loop-run/events.jsonl, written by packs/core/.apm/skills/work-loop/scripts/work-supervisor.py on every committed supervisor step. The contract this pins is owned by docs/specs/loop-telemetry-export/spec.md; docs/architecture/telemetry.md section 5.1 describes the envelope. `schema` is absent on records written before it shipped, so it is optional here and constrained only when present -- a replayed legacy record is appended unchanged and must still validate.",
   "type": "object",
   "required": ["seq", "run_id", "spec", "from", "event", "to", "at"],
   "properties": {
@@ -69,7 +69,7 @@
     },
     "budgets": {
       "type": "object",
-      "description": "The cohort retry counters as they stood one transition ago, copied (loop-cohort owns them and moves them afterwards), and the retry caps: the guard's default when state.json records none, the recorded value when it is a non-negative integer, and null when it is malformed, which the guard refuses.",
+      "description": "The cohort retry counters as they stood one transition ago, copied (the retry counters move afterwards), and the retry caps: the default when none is recorded, the recorded value when it is a non-negative integer, and null when it is malformed.",
       "properties": {
         "implementation_retry_count": {"type": ["integer", "null"], "minimum": 0},
         "max_implementation_retries": {"type": ["integer", "null"], "minimum": 0},

@@ -159,13 +159,12 @@ when everything it touches is unchanged.
 No trigger fires → **light mode**.
 <!-- risk-triggers:end -->
 
-**Light mode** runs the full loop spine, without the `loop-cohort` state
-machine, and with an eligible current request running **direct-light**
+**Light mode** runs the full loop spine, without the supervisor, and with an eligible current request running **direct-light**
 in-session rather than creating a durable artifact. Load
 [`references/light-mode.md`](references/light-mode.md) for its procedure,
 eligibility and durability routing, review rounds, and trims.
 
-**Full mode**: any risk trigger fires. Full `new-spec` with all sections, `loop-cohort` state machine, `adversarial-reviewer` iterated to direct or adjudicated Clean, `quality-engineer` on high-risk work, iteration cap. Everything below is full mode unless marked otherwise; light mode reuses those steps except the trims in that reference.
+**Full mode**: any risk trigger fires. Full `new-spec` with all sections, the supervisor, `adversarial-reviewer` iterated to direct or adjudicated Clean, `quality-engineer` on high-risk work, iteration cap. Everything below is full mode unless marked otherwise; light mode reuses those steps except the trims in that reference.
 
 **Script paths.** `<skill-dir>` is the installer- or harness-supplied directory
 containing this `SKILL.md`. From the repository root, invoke every Python script
@@ -309,12 +308,12 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
 9. **Determine which pre-EXECUTE gates fire:**
 
-   | Work shape | Gate | Reviewer |
-   |-----------|------|---------|
-   | Spec amended or structural change¹ | Spec/plan adversarial review | `adversarial-reviewer` |
-   | Security boundary² | Secure-design review | `security-reviewer` |
-   | User-facing surface³ | Design-intent pass | `creative-direction` / `design-review` |
-   | HTML/CSS/JS primary output | Frontend pre-flight | `frontend-engineering` (named skip if absent) |
+   | Work shape | Gate |
+   |-----------|------|
+   | Spec amended or structural change¹ | Spec/plan adversarial review |
+   | Security boundary² | Secure-design review |
+   | User-facing surface³ | Design-intent pass |
+   | HTML/CSS/JS primary output | Frontend pre-flight |
 
    ¹ Structural: new module boundary, new dependency, new abstraction layer, new top-level directory.
    ² Auth, secrets, untrusted input, deserialization, or a changed file/network trust boundary, data flow, or guarding security control. Infra work: mandatory. Dispatch in spec-stage secure-design mode; inline boundary-matching modules from [`security-checklists` Module index](../security-checklists/SKILL.md#module-index).
@@ -324,26 +323,34 @@ hard failure. Never require whole-repository ingestion or a new durable file.
    work-loop, treat its report as another fired pre-EXECUTE reviewer report and
    route it through finding adjudication. This adds no core reviewer trigger.
 
-10. **Full mode:** run the init pair, or resume an existing run. An existing
-    `engine-state.json` means resume; an orphaned `state.json` without one is a
-    Surface-and-wait before the destructive reset pair. Load [`references/full-mode-engine.md`](references/full-mode-engine.md)
-    § *PLAN — init pair, or resume*.
-11. **Run every fired pre-EXECUTE reviewer to direct, structural, or adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Persist and validate each raw report, then run `review raw-classify --report <path> --json`: `clean` skips adjudication, `findings` dispatches it, and `invalid` stops loudly. A report carrying a `## Not checked` footer is never fast-pathed however clean it looks — the footer is prose, and prose is what the adjudicator reads; only security-reviewer emits one. Byte equality remains the distinct direct-clean recording form. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). A machine-checkable indeterminate may use only that reference's closed-catalog evidence retry: guarded transition then retry record before one gate, fresh validated evidence, normal review re-entry, and one complete replacement adjudication over the unchanged source findings. Every other indeterminate stops. When the adjudication sustains findings, fire `findings-remain` (SPEC-PLAN-REVIEW → SPEC-PLAN-DRAFTING), revise the spec/plan from sustained findings only, then fire `spec-ready` (SPEC-PLAN-DRAFTING → SPEC-PLAN-REVIEW) before the next reviewer pass:
-    Transitions for this step: [`references/full-mode-engine.md`](references/full-mode-engine.md) § *PLAN — pre-EXECUTE review transitions*.
+10. **Full mode:** the supervisor starts only after both approvals in step 12, so PLAN holds no run state before then. When `<spec-dir>/delivery/approvals.jsonl` or `<spec-dir>/.supervisor/run.json` already exists, this is a resume: run `python '<skill-dir>/scripts/work-supervisor.py' status <spec-dir> --json` and follow [`references/session-resumption.md`](references/session-resumption.md) instead of starting again.
+11. **Run every fired pre-EXECUTE reviewer to direct, structural, or adjudicated `Clean`.** An absent mandatory reviewer is recorded as `missing`, emits `BLOCKED`, and stops readiness; only an absent non-mandatory reviewer may proceed as a named skip. Infra security review is always mandatory when fired. Persist and validate each raw report, then run `review-artifact.py raw-classify --report <path> --json`: `clean` skips adjudication, `findings` dispatches it, and `invalid` stops loudly. A report carrying a `## Not checked` footer is never fast-pathed however clean it looks — the footer is prose, and prose is what the adjudicator reads; only security-reviewer emits one. Byte equality remains the distinct direct-clean recording form. Full conditions and the path protocol: [`references/pre-execute-review.md`](references/pre-execute-review.md). A machine-checkable indeterminate may use only that reference's closed-catalog evidence retry: the retry record, then one gate, fresh validated evidence, normal review re-entry, and one complete replacement adjudication over the unchanged source findings. Every other indeterminate stops. When the adjudication sustains findings, revise the spec/plan from sustained findings only, then run the next reviewer pass.
 12. **Full mode:** the **G-plan sequence** — two human approvals, run in
-    order. `spec-approved` is the scope decision, `plan-approved` the
-    build-strategy decision, `plan-locked` seals the baseline. Each approver
-    writes `Status: Approved` and its Changelog entry; the loaded sequence
-    states which of them must do both in one edit, and why. Commands, and
-    the `code` / `spec-plan` branch: load [`references/full-mode-engine.md`](references/full-mode-engine.md)
-    § *PLAN — the G-plan sequence and its two human approvals*.
+    order, then `start`. `spec-approved` is the scope decision and
+    `plan-approved` the build-strategy decision. Each approver writes
+    `Status: Approved` and its Changelog entry. Then the supervisor takes over:
+    1. Request the `spec-approved` capture (below), after the spec approver
+       writes `Status: Approved` and before `start`.
+    2. Write `Implementing` in `spec.md` and `Executing` in `plan.md`, commit
+       both, and run `python '<skill-dir>/scripts/work-supervisor.py' start <spec-dir> --intent code|spec-plan --code-trust trusted|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>]`.
+       `start` records the approval pair, with the two humans' authority
+       references, and answers `admitted`, `current` (already running), or
+       `terminal` (a `spec-plan` intent, which ends here). No whole-plan hash
+       seals the plan: later plan edits inside the reviewed envelope need no
+       approval.
+    3. Request the `plan-locked` capture at `start`, once it answers
+       `admitted`, or `terminal` for a `spec-plan` intent.
+
+    Arguments, authority references, and the Git settings `start` refuses: load
+    [`references/supervisor.md`](references/supervisor.md) § *Before `start`*.
+
     ### Project-knowledge integration
 
     Project knowledge is never authority and enquiry is never automatic.
 
-    - After `spec-approved`, admit only reusable spec-authoring practice accumulated since the preceding gate. Normative scope, boundaries, tests, and acceptance criteria remain solely in `spec.md`. This gate captures but does not distil.
+    - At `spec-approved` (after the spec approver writes `Status: Approved`, before `start`), admit only reusable spec-authoring practice accumulated since the preceding gate. Normative scope, boundaries, tests, and acceptance criteria remain solely in `spec.md`. This gate captures but does not distil.
     - Before scope approval, a separately declared `CQ-CHANGE` enquiry may use one query and at most one refinement.
-    - After `plan-locked`, admit only reusable planning, verification, recovery, or navigation practice accumulated since the spec gate. Normative strategy remains solely in `plan.md`. Distil only receipts returned by this gate.
+    - At `plan-locked` (at `start`, once it answers `admitted`, or `terminal` for a `spec-plan` intent), admit only reusable planning, verification, recovery, or navigation practice accumulated since the spec gate. Normative strategy remains solely in `plan.md`. Distil only receipts returned by this gate.
     - While designing construction tests, a separately declared `CQ-VERIFY` enquiry may use one query and at most one refinement.
     - At each capture gate, admit only generalizable practice; discard incident-only notes.
 
@@ -351,10 +358,9 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 
     A capture's journal diff returns through the next applicable verification and review barrier before persistence is claimed; a named no-diff outcome needs no extra review.
 
-    Any other result surfaces and blocks. Never edit `state.json` by hand. Schema: [`references/state-schema.md`](references/state-schema.md).
+    Any other result surfaces and blocks. Never edit anything under `<spec-dir>/.supervisor/` or `<spec-dir>/delivery/` by hand. Run records: [`references/state-schema.md`](references/state-schema.md).
 
-    Rejected spec and plan gates use the exact reset commands in
-    [`references/delivery-contract-lifecycle.md`](references/delivery-contract-lifecycle.md).
+    A rejected spec or plan has no run to reset before `start`: revise the pair, set the statuses back to `Draft` and `Drafting`, review again, and approve again, as [`references/delivery-contract-lifecycle.md`](references/delivery-contract-lifecycle.md) describes.
 
     ### Skill-engineering reference integration
 
@@ -366,18 +372,25 @@ For durable work, write the plan to disk — don't keep it in memory across turn
 
 **When a spec exists, bump its status to `Implementing`** if currently `Draft` or `Approved`. Do this before writing any code. Direct-light has no spec status to write; its decision record must already be complete before the first implementation write.
 
-**Sequential implementer dispatch.** In full mode, when `loop-cohort schedule`
-emits a plan task and an `implementer` subagent is installed, dispatch it once per plan task, with one implementer at a time. The controller supplies the execution root and retains scheduling, state transitions, final gates, review, retry, and closeout — including one `loop-cohort dispatch-receipt` once per plan task, `--receipt` when an `implementer` implemented it and `--decline <reason>` when none did. The controller records it; an `implementer` does not record its own, because the receipt is the controller's assertion about who it dispatched, and a subagent asserting its own dispatch records nothing the controller did not already know.
+**Full mode — the supervisor's loop.** After `start`, EXECUTE, GATES, and REVIEW are one loop. Run `python '<skill-dir>/scripts/work-supervisor.py' next <spec-dir>`, answer the one request it issues, write the result to a file outside the spec directory, and run `python '<skill-dir>/scripts/work-supervisor.py' report <spec-dir> <result.json>`, until `next` answers `terminal`. The request kinds, result shapes, and refusals are in [`references/supervisor.md`](references/supervisor.md) § *The loop*; the controller keeps what a worker cannot be trusted with: plan edits, subagent dispatch, the gates of record, and every human's answer.
+
+- **`implement-task`:** when an `implementer` subagent is installed, dispatch it once per request, with one implementer at a time, and supply the execution root; otherwise implement the task yourself. Run the gates in the primary tree and report `gate.passed`. An implementer's own gate results are advisory, it never calls `report`, and it never edits the spec, the plan, or `delivery/`.
+- **`write-stub`:** write the stub files the request names, with exactly the plan's bytes. The supervisor runs them and commits them only when each is red.
+- **`run-gates`, `review-role`, `assess-finding`:** see GATES and REVIEW below.
+- **`human-decision`:** put the question to the named human and report only the answers `references/supervisor.md` lists for that reason; surface every other reason. **`resolve-effect`** carries an effect's human decision.
+- **A refusal** from any verb stops the loop. Read its `owner` and follow the reference; never work around it.
+
+The controller changes the plan only while no attempt is open ([`references/supervisor.md`](references/supervisor.md) § *The open-attempt rule — when the plan may change*).
 
 Match discipline to verification mode:
-- **TDD** — red-green-refactor; commit each step if non-trivial. Write the red test at the real test location and run it; it fails for the intended reason before production code changes. A `stub` fence the plan carries for a supervisor run is materialized unchanged. Then fill deferred assertions; don't rewrite from scratch.
+- **TDD** — red-green-refactor; commit each step if non-trivial. Write the red test at the real test location and run it; it fails for the intended reason before production code changes. In a supervisor run, the controller — never an implementer attempt — writes the task's `stub` fence into its `Tests:` as a task-start revision, after the previous request's result is reported and before the `next` that issues the task's first request. The supervisor writes the fence unchanged through `write-stub` and proves it red before `implement-task`; the plan does not need to carry the fence when it is approved. Then fill deferred assertions; don't rewrite from scratch.
 - **Goal-based check** — write code, run the `Done when:` one-liner.
 - **Visual / manual QA** — implement, exercise the real artifact end-to-end, record observed output.
 - **Behavior pin** — pin green on the base commit first, keep it green after each step, revert a restructure that removes no branch, layer, or invalid state.
 - **Measurement** — baseline on the base commit, then the after run with the same command, data, and environment.
 - **infra/deploy** — implement, then drive the deploy and read real environment output (run apply, smoke probe, log pull, teardown; read their actual output — don't reason about what they'd say). Anti-pattern: a human pasting deploy errors back by hand. Craft in [`references/infra-verification.md`](references/infra-verification.md).
 
-**Controlled full-mode amendment:** use the exact authority, evidence, recovery, reapproval, and rescheduling [contract](references/delivery-contract-lifecycle.md).
+**Controlled full-mode amendment:** a change to a protected section of the spec or to the terminal intent takes the exact authority, evidence, recovery, reapproval, and rescheduling [contract](references/delivery-contract-lifecycle.md). A change to tasks, tests, stubs, design, or approach is a working-plan edit and needs no amendment.
 
 **Execution observations:** follow the [verification-ledger procedure](references/delivery-contract-lifecycle.md#verification-ledger).
 
@@ -421,7 +434,7 @@ carve-out.
 
 **Scale with a tool** when a task spans many similar items: write a script with a resumable tracking file (`pending`/`done`/`failed`), iterate idempotently. Full playbook: [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md).
 
-For EXECUTE or REVIEW fan-out, supervisor waves, or Phase-1 sequencing, load the [Supervisor and fan-out procedure](references/supervisor-mode.md).
+For reviewer fan-out or an implementer's dispatch brief, load the [Supervisor and fan-out procedure](references/supervisor-mode.md).
 
 ## Step 3. GATES
 
@@ -435,16 +448,11 @@ Run in order; proceed only if each passes:
 
 Don't move past a failing gate by editing the gate. On failure → FIX.
 
-**Full mode — wave routing.** After gates pass, more waves remain means
-`wave-passed`; the engine records the cohort wave advance and then writes
-engine state. The final wave fires `gates-clean` and proceeds to REVIEW. A
-failure runs `wave reopen`, fires `gates-failed` (which records the attempt),
-and returns to EXECUTE. Commands and the accounting
-precondition: load [`references/full-mode-engine.md`](references/full-mode-engine.md)
-§ *GATES — wave routing*.
+**Full mode — gates through the supervisor.** The gates of record run in the primary tree and are reported through the supervisor: `gate.passed` on an `implement-task` result, and `gate` with one `criteria` outcome per acceptance criterion on a `run-gates` result. A failed `implement-task` gate commits a `gate-fail` step that counts toward the retry cap, and the supervisor reissues the task. Fix the failure and return to EXECUTE. At the cap, `next` opens a `retry-cap` decision and the run stops: Surface it. Result shapes: [`references/supervisor.md`](references/supervisor.md) § *The loop*.
+
 **Pre-existing failure triage.** Failure on a file not in the diff = pre-existing (file-not-in-diff is confirmation enough). If the failing file IS in the diff but failure looks unrelated, confirm with `git show HEAD:<file>` or a worktree-check (not a stash — the stash stack is shared across worktrees). Pre-existing: grep `docs/product/captured/` for the test/file name; if no captured-item file exists, write `docs/product/captured/pre-existing-<short-name>.md` (`Kind: defect`, `Status: Open`) and register nothing, treat as known-skip (continue, don't go to FIX). If the diff made the failure worse → in-scope, go to FIX. Full schema and three-condition heuristic: [`references/pre-flight-failures.md`](references/pre-flight-failures.md).
 
-**Mechanical doc-drift check.** `scripts/lint-spec-status.py` (sibling to `loop-cohort.py`) checks: status vocabulary, every AC checked at a new ship transition, dangling references (warn-only), and historical deferral anchors resolving through `[backlog].open` or an open intent, brief or spec file. A `(deferred: <slug>)` marker no longer makes a newly shipped AC valid. Run at the finish-time checklist (below). No-ops without Python. Do not wire into `pre-pr.py`. Warn-only findings are counted, not listed, unless you pass `--verbose`; a run with a hard violation always lists everything.
+**Mechanical doc-drift check.** `scripts/lint-spec-status.py` (sibling to the supervisor) checks: status vocabulary, every AC checked at a new ship transition, dangling references (warn-only), and historical deferral anchors resolving through `[backlog].open` or an open intent, brief or spec file. A `(deferred: <slug>)` marker no longer makes a newly shipped AC valid. Run at the finish-time checklist (below). No-ops without Python. Do not wire into `pre-pr.py`. Warn-only findings are counted, not listed, unless you pass `--verbose`; a run with a hard violation always lists everything.
 
 ## Step 4. REVIEW
 
@@ -456,8 +464,8 @@ Adjudicated sustained findings come back grouped by severity (Blockers /
 Concerns / Nits), each with a one-sentence `Fix:`. Refuted findings remain only
 in the paired audit; an indeterminate stops unless the evidence retry admits it.
 
-- **Full mode:** iterate `adversarial-reviewer` until no unresolved Blocker or Concern remains.
-- **Light mode:** classify the persisted report with `review raw-classify`; a `clean` result without a `## Not checked` footer records directly, and every other report is adjudicated. Then follow the rounds rule in [`references/light-mode.md`](references/light-mode.md), which owns both disposition and when the next round opens.
+- **Full mode:** the supervisor closes review from structured review readiness alone, never from a reviewer's prose or a raw classification. It asks for a reviewer selection, then one report per selected role, then an assessment of each finding, and reissues review until no unresolved Blocker or Concern remains. [`references/supervisor.md`](references/supervisor.md) § *Review* owns the requests, and `review-rules.json` owns the roster.
+- **Light mode:** classify the persisted report with `review-artifact.py raw-classify`; a `clean` result without a `## Not checked` footer records directly, and every other report is adjudicated. Then follow the rounds rule in [`references/light-mode.md`](references/light-mode.md), which owns both disposition and when the next round opens.
 
 Select a subagent matching `adversarial-reviewer`. Pass the diff and spec path.
 Fallback if no subagent is installed: record the mandatory reviewer outcome as
@@ -466,8 +474,8 @@ adversarial evidence into a summary-only or named-skip path.
 
 ### Finding-adjudication gateway
 
-For every warranted reviewer role, persist the completed report to the ignored
-session path first. Persistence is unconditional. Then run `review raw-classify
+In pre-approval review and light mode, for every warranted reviewer role, persist the completed report to the ignored
+session path first. Persistence is unconditional. Then run `review-artifact.py raw-classify
 --report <path> --json`: `clean` skips the `finding-adjudicator` dispatch, the paired artifacts, and the adjudication classifier — but never the raw artifact itself — and records with
 `--direct-clean-file` only for byte equality or `--structural-clean-file` for a
 footer-free clean report whose bytes differ only in trailing whitespace;
@@ -490,9 +498,8 @@ and context eviction. The invariant is short:
    adjudicator dispatch is conditional on raw classification; the artifact is not.
 2. Dispatch the adjudicator by path with the unchanged target, reviewer role,
    and governing authority paths; persist and validate its paired output.
-3. Classify only the adjudication artifact: stateful `review inspect
-   --adjudication` in full mode, state-free `review classify` in light mode
-   (including direct-light).
+3. Classify only the adjudication artifact with state-free `review-artifact.py classify` in light mode
+   (including direct-light) and pre-approval review.
 4. Route only sustained findings. Refuted-only is an *adjudicated* clean result and consumes no retry; record it with `--report … --adjudication`, never either raw-clean form. A machine-checkable indeterminate may follow the reference's guarded, closed-catalog evidence retry; every other indeterminate stops before transition, recording, execution, or mutation.
 
 Keep the raw report opaque after persistence, pass only artifact paths, and
@@ -501,83 +508,25 @@ the adjudication artifact when FIX needs its detail. (There is no pre-filtered "
 
 **Specialist reviewers — run after the adversarial requirement is satisfied:**
 
-- Full mode: the reviewer's adjudicated main-loop result returned Clean, or its absence is an allowed named skip.
+- Full mode: the supervisor's review stage has the adversarial reviewer's current report with every finding assessed, or its absence is an allowed named skip.
 - Light mode: the `adversarial-reviewer` rounds completed and their findings were disposed. Missing adversarial evidence is a mandatory `missing` outcome and emits `BLOCKED`.
 
 An absent or non-Clean adversarial reviewer must not suppress another warranted reviewer. Missing `security-reviewer` on infra-flavored work still surfaces and blocks.
 
 Dispatch reviewers the diff warrants; don't run all by default. Select each via "subagent matching `<role>`".
 
-**`select_reviewers(task)` — the whole roster rule.** `adversarial-reviewer` is
-the default and covers correctness and scope. Each row adds a lens only when the
-change reaches it; each role's bullet below owns its exact boundary, this table
-owns the roster and what high-risk means. A row that does not fire is recorded
-`<role>: not warranted`, never dropped. What the default roster gives up where
-`quality-engineer` does not fire: [`references/reviewer-roster.md`](references/reviewer-roster.md).
-
-| The change reaches | Adds |
-|---|---|
-| *(always)* | `adversarial-reviewer` |
-| a security boundary, data flow, or guarding control | `security-reviewer` |
-| what a reader or adopter sees | `experience-reviewer` (full mode) |
-| HTML/CSS/JS as its primary output | `frontend-reviewer` (full mode) |
-| an architecture artifact an architect-pack integration activates | `design-reviewer` |
-| **high-risk work** | `quality-engineer` |
-
-**High-risk work** means any one of three conditions, and this is its only
-definition. (1) The change warrants at least one module from [`operational-safety`'s Module
-index](../operational-safety/SKILL.md#module-index), already the deterministic
-failure-mode→module routing authority; that condition subsumes persistent state,
-infrastructure, and reliability-critical behaviour, so none of the three is a
-separate predicate. (2) The change is structural exactly as the pre-EXECUTE
-footnote 1 defines it — new module boundary, new dependency, new abstraction
-layer, new top-level directory. (3) A human asks for the pass, which warrants it in either mode and is the
-light-mode exception's sibling — light mode otherwise runs no `quality-engineer`
-pass except under the adopter exception in
-[`references/light-mode.md`](references/light-mode.md). Act on the observed
-change surface; don't scan for config files.
-
-- **`security-reviewer`** — the diff changes a security boundary, data flow, or guarding control: auth, secrets, untrusted input, deserialization, dependency trust, or file/network validation, confinement, redirect policy, timeout/resource limits, or metadata/internal-range blocking. For LLM/agent code, dispatch only when authority, untrusted-input handling, tool exposure, permissions, sandboxing, or data handling changes; ordinary prompt wording with none of those effects does not fire this reviewer. Route via [`security-checklists` Module index](../security-checklists/SKILL.md#module-index); load only modules the diff crosses, never a flat march. Missing `security-reviewer` on infra work = loud blocker; run both reviewer and scanner. Its framework lens, the inline-the-depth rule, and the infra-flavored force-load set are in [`references/reviewer-roster.md`](references/reviewer-roster.md).
-
-- **`quality-engineer`** — testability, observability, reliability, maintainability lens; raised quality floor (universal maintainability smells + mutation-testing mindset). Also drafts contract or construction tests on request. Its `operational-safety` module inlining, the reliability-vs-security carve, and independent contract re-derivation are in [`references/reviewer-roster.md`](references/reviewer-roster.md).
-
-- **`experience-reviewer`** — diff changes what a reader or adopter sees (full-mode only). Pass rendered output + grounded aesthetic reference and constraints — not the code diff. Its confirm-before-reviewing gate requires the grounded reference. For web: run the build, describe key pages from output. Fallback absent: named skip.
-
-- **`frontend-reviewer`** — primary HTML/CSS/JS output diffs (full-mode only). Pass diff + surface's evidence manifest state + **the rendered-page capture set and its recorded observations**, plus the adopter-named routes. Lens: CSS token drift, ARIA mutation completeness, state coverage regression, WCAG 2.2 AA Target Size, AAA Focus Appearance, CWV regression signals, reader-visible layout failure read from the page. Withholding the captures leaves it reviewing a diff, and no diff shows one element covering another. Fallback absent: named skip.
-
-- **`design-reviewer`** — only when an architect-pack integration explicitly
-  activates it for an architecture artifact inside this work-loop. Pass the
-  named artifact, accepted concept/constraints, and governing rubric paths;
-  route its report through finding adjudication. This adds no core trigger.
+**The roster lives in `review-rules.json`.** That file carries every reviewer role: the change surface that fires it, its boundary and fallback, whether it is mandatory, the modes it is limited to, the review budget, and the definition of high-risk work. In full mode the supervisor reads it, asks which conditional roles the change reaches, and records each omission with its reason. In light mode and pre-approval review, read the same file and select the same way: the adversarial reviewer is the default and covers correctness and scope, and each other role is added only when the change reaches its lens. A role that does not fire is recorded `<role>: not warranted`, never dropped. Act on the observed change surface; don't scan for config files. What the default roster gives up where the high-risk pass does not fire: [`references/reviewer-roster.md`](references/reviewer-roster.md).
 
 **When every warranted mandatory reviewer has completed with no unresolved Blocker or Concern — clean, or carrying only deferred Nits recorded with their citations — and every non-mandatory reviewer is in that state or a named skip**, the review unit's reviewer requirement is satisfied. A mandatory named skip blocks that conclusion; do not let verdict emission discover the failure only after the state machine has advanced.
 
-**A spec-backed run** normally writes `Status: Shipped` in `spec.md`, fires
-`reviewers-clean` with the clean-review payload on the engine transition, and
-walks the `CODE-HUMAN-GATE`.
-Before waiting at that gate on a final unit, complete the
-[Finish checklist](#finish-checklist) and open the PR. An intermediate unit
-under an incomplete accepted intent stays at `Status: Implementing` and
-declares that boundary rather than finishing. Transition order, the four
-recording forms, the intermediate-unit opt-out, the approve/changes-requested
-edges, and the specialist-findings path: load
-[`references/full-mode-engine.md`](references/full-mode-engine.md) § *REVIEW and the human gate*.
+**A full-mode run** is ready when `next` answers `terminal` and `python '<skill-dir>/scripts/work-supervisor.py' status <spec-dir> --check` exits 0; the supervisor derives that from criteria evidence and review readiness, never from a stored verdict ([`references/supervisor.md`](references/supervisor.md) § *Status, resume, and the retry cap*). Then write `Status: Shipped` in `spec.md` and `Done` in `plan.md`, complete the [Finish checklist](#finish-checklist), and open the PR; the human merge decision happens outside the loop. An intermediate unit under an incomplete accepted intent stays at `Status: Implementing` and declares that boundary rather than finishing. When review sustains findings, the supervisor itself returns to `implement-task` for each supported finding and asks for a fresh report; the controller applies the fix, runs the gates, and reports.
 
-**A direct-light run** has no spec status to write and fires no engine or
-cohort transition. Once the rounds rule in
+**A direct-light run** has no spec status to write and starts no supervisor. Once the rounds rule in
 [`references/light-mode.md`](references/light-mode.md) is satisfied, it
 continues through DECIDE, completes the Finish checklist, and produces the
 five-field final handoff.
 
-If a specialist adjudication sustains findings, run `wave reopen`, then exit
-`CODE-REVIEW` via `findings-remain` with only their fingerprints on that engine
-transition before applying the fixes; then return through `wave-complete` to
-`CODE-VERIFICATION`, re-run GATES, and re-enter REVIEW. Commands and the
-retry-cap interaction:
-[`references/full-mode-engine.md`](references/full-mode-engine.md)
-§ *REVIEW and the human gate*.
-
-**Dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
+**In pre-approval review and light mode, dispatch multiple reviewers in parallel** per the [parallel-dispatch discipline](references/supervisor-mode.md#parallel-dispatch-discipline), persisting each completed report and classifying it with `review-artifact.py raw-classify`; adjudicate every report that is not footer-free `clean` independently before aggregation. Group and deduplicate only sustained main-loop results by severity. Fingerprint computation runs once per fan-out round over those sustained results. Evict raw and merged prose after recording.
 
 **Spec-less review** (refactor, etc.) — self-review against:
 - Does the diff match the plan?
@@ -625,8 +574,7 @@ obligation; routing on it is what opens a frontier that never closes.
 Only the owner may narrow or waive an accepted intent. A required discovery
 may share the current review unit only when the accepted contract authorizes it
 and it qualifies under the bundled-fixes carve-out. Otherwise, it is the next
-independently reviewed unit in the same session: use the existing human-gate
-`blocker-applied` return edge, then run GATES, REVIEW, and the human gate again.
+independently reviewed unit in the same session: in full mode, add it to the plan as a task by a working-plan edit, so the supervisor runs it through gates and review; in light mode and pre-approval review, run GATES, REVIEW, and the human gate again.
 
 **Execution-path check.** Before routing any finding to `apply`: confirm the fix reaches a live code path — trace the entry point or find its callers; `repository-exploration` can gather that caller evidence when one search will not settle it. A guard that no caller exercises doesn't close a finding; a test that drives a mock seam instead of the real entry point doesn't count.
 
@@ -637,9 +585,11 @@ tasks named in the implicated sub-section's `Owned by:` field. Traverse only
 down from the LLD decision to those tasks, never tasks up to the LLD. Route a
 correction by its kind, per
 [delivery-contract-lifecycle.md](references/delivery-contract-lifecycle.md):
-grounding arriving for an `implementation-discovered` seam goes to
-the verification ledger, and a settled decision the work falsified is a plan
-error taking controlled amendment. Neither edits the sealed plan.
+grounding arriving for an `implementation-discovered` seam or design means,
+and each later correction, is a controller edit of the plan's `## Design (LLD)`
+made as an in-envelope working-plan change, and a
+settled decision the work falsified is a plan error taking controlled
+amendment. The verification ledger keeps execution observations, never either.
 
 An author answering a sustained finding walks this ladder in order. Take the
 first answer that applies, then stop; do not evaluate the rest. A sustained
@@ -739,7 +689,7 @@ open. [Capture](#capture) maps where a note goes; it does not reopen one.
 
 ### Review verdict record
 
-Emit exactly one fenced `json review-verdict.v1` block per review unit; full mode copies the pre-gate block byte-identical into the PR `Review verdict` section. States are `BLOCKED` → `CHANGES_REQUIRED` → `READY_WITH_RESIDUAL_RISK` → `READY`; no score is a gate; it never replaces the human merge decision. Load schema, state precedence, and residual-eligibility from [`references/review-verdict-record.md`](references/review-verdict-record.md).
+Emit exactly one fenced `json review-verdict.v1` block per review unit; full mode copies the pre-human-decision block byte-identical into the PR `Review verdict` section. States are `BLOCKED` → `CHANGES_REQUIRED` → `READY_WITH_RESIDUAL_RISK` → `READY`; no score is a gate; it never replaces the human merge decision. Load schema, state precedence, and residual-eligibility from [`references/review-verdict-record.md`](references/review-verdict-record.md).
 
 **Completion handoff:** produce the bounded evidence [record](references/delivery-contract-lifecycle.md); it never performs closeout or grants authority.
 
@@ -768,11 +718,11 @@ runs after the loop closes, under [Capture](#capture).
   - **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
 
 - [ ] **Review passed, residuals surfaced.**
-  - **Full mode:** every warranted reviewer (`adversarial-reviewer` always; `security-reviewer` on security-boundary diffs; `quality-engineer` per the REVIEW trigger; `experience-reviewer` on user-facing diffs; `frontend-reviewer` on HTML/CSS/JS primary-output diffs; `design-reviewer` when an architect-pack integration activated it) has no unresolved Blocker or Concern or, only when non-mandatory, is a named skip. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
+  - **Full mode:** the supervisor's review readiness is satisfied: every role it selected from `review-rules.json` has a current report and has no unresolved Blocker or Concern, every finding has an assessment, and every supported finding is fixed or accepted as a risk by its named owner. A role is a named skip only when `review-rules.json` marks it non-mandatory. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.
   - **Light mode:** the reviewer obligations in [`references/light-mode.md`](references/light-mode.md) are satisfied.
-  - Whole-spec `quality-engineer` pass (final loop of a multi-loop spec only, and only when the spec's whole change surface is high-risk): same select-or-note rule.
+  - Whole-spec high-risk pass (final loop of a multi-loop spec only, and only when the spec's whole change surface is high-risk): same select-or-note rule.
   - The resolve-vs-surface disposition record exists: every REVIEW Blocker and Concern is resolved, and every unacted Nit is deferred with its citation.
-  - One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block; no score altered state.
+  - One `json review-verdict.v1` record was emitted per [`references/review-verdict-record.md`](references/review-verdict-record.md); in full mode byte-identical to the PR `Review verdict` block, its findings taken from the supervisor's reports and assessments; no score altered state.
   - **Review-shape check completed.** Inspect raw diff lines, material volume,
     and reviewable behavior and test lines for each intended PR or stack layer.
     Apply PLAN step 5's independence question and its size heuristic; this
@@ -830,7 +780,7 @@ runs after the loop closes, under [Capture](#capture).
    A sustained finding carrying a command: run the command before the fix and record it failing, then run it after the fix and record it passing. A command that passes before the fix is Surfaced instead of fixed. Failing means its exit status or printed output shows the defect; passing means it no longer does.
 2. Split by shape: if diagnosing the failure hands you a ≤30-line fix (a missing flag, a wrong base URL, a leaked interval), implement it yourself, test it, commit it — diagnosis is the fix. If the fix is a well-specced multi-file unit, write a complete brief and dispatch it. Orchestrator context is the most expensive resource; spend it on diagnosis and judgment, not bulk edits.
 3. Re-run GATES. Every fix gets the same adversarial verification as worker output — run the suite it could plausibly break. When CI disagrees with your machine, believe CI and reproduce in a clean clone before concluding anything.
-4. **Full mode:** after any applied sustained REVIEW finding, re-run the reviewer or reviewer set that produced it; accept a footer-free `clean` classification directly and adjudicate every other report. Continue until no unresolved Blocker or Concern remains.
+4. **Full mode:** after a fix, report its gate result and run `next`: the supervisor issues a fresh `review-role` request for the replacement subject and closes the finding only when that report no longer carries it. Continue until `next` answers `terminal` or a request or refusal needs a human.
 5. **Light mode:** return to GATES, then re-review under the rounds rule in [`references/light-mode.md`](references/light-mode.md).
 
 ## Capture
@@ -846,6 +796,11 @@ What a kept note should say, and how to write it, is in [`references/capture.md`
 The discriminator a captured item must carry, and the table that routes a
 DECIDE scratch note to its destination, are in that reference under
 [Capturing and routing a note](references/capture.md#capturing-and-routing-a-note).
+
+**Close step.** When the run closes, the one explicit close-time capture for a
+specific, real defect blocked on a decision, an instrument, elapsed time, or a
+dependency is a `work-item` capture: [`references/work-item-capture.md`](references/work-item-capture.md)
+states what it must carry and how a refusal reads. No other step writes one.
 
 ## Context hygiene
 
@@ -870,7 +825,7 @@ For unattended execution, load [Unattended-loop eligibility](references/unattend
 - **Editing the test until it passes.** Fix the code. If the test is wrong, fix it in a separate commit with justification.
 - **Deferring a test because the code fails it.** Fix the code. "Flaky / out of scope / covered elsewhere" is how regressions ship. If genuinely wrong, separate commit with reason; if the code can't pass it this session, surface it, don't bury it.
 - **Declaring victory because gates pass.** Gates are necessary, not sufficient; review catches what gates can't.
-- **Declaring spec-complete from per-task gates.** Where the spec's whole change surface is high-risk, run `quality-engineer` against it before the final loop's DECIDE — per-task gates verify N contracts; this is the pass that verifies the integrated journey.
+- **Declaring spec-complete from per-task gates.** Where the spec's whole change surface is high-risk, run the high-risk reviewer pass against it before the final loop's DECIDE — per-task gates verify N contracts; this is the pass that verifies the integrated journey.
 - **Running an unattended loop on a fresh task.** Do at least one in-session pass first to validate the approach.
 - **Grepping top-level keys in structured config.** `grep '^key' file.toml` matches `key` under every section, not just the top level — the same trap applies to YAML and JSON. Parse structured config with its native library rather than using line-pattern greps.
 - **Judging a gate through `tail` or `grep`.** `<gate> | tail -2` reports the *filter's* exit code, not the gate's, and truncates away the per-item errors. Run every gate unfiltered and read its exit code.
@@ -887,13 +842,13 @@ Load when the predicate fires; don't load speculatively.
 | A task needs local-infra-equivalents | [`fidelity-ladder`](../operational-safety/references/fidelity-ladder.md) |
 | TDD mode, need red stub mechanics | [`references/tdd-stubs.md`](references/tdd-stubs.md) |
 | Pre-existing gate failure suspected | [`references/pre-flight-failures.md`](references/pre-flight-failures.md) |
-| Pre-EXECUTE review full conditions or `approve-plan` gate | [`references/pre-execute-review.md`](references/pre-execute-review.md) |
+| Pre-EXECUTE review full conditions or the approvals before `start` | [`references/pre-execute-review.md`](references/pre-execute-review.md) |
 | Scale-with-a-tool needed | [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md) |
 | HTML/CSS/JS primary output | Inline `frontend-engineering` craft into the implementer dispatch brief when that pack is installed; when it is absent, record the named skip and continue without that craft. |
-| EXECUTE or REVIEW fan-out, supervisor waves, worktrees, or Phase-1 sequencing | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
+| Reviewer fan-out, or briefing an implementer | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
 | Considering native unattended execution | [`references/unattended-loops.md`](references/unattended-loops.md) |
-| Full mode needs to fire a transition or record cohort state | [`references/full-mode-engine.md`](references/full-mode-engine.md) |
-| Full mode needs state-field, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
+| Full mode starts, drives, or resumes a run, or must answer a supervisor request, refusal, or human decision | [`references/supervisor.md`](references/supervisor.md) |
+| Full mode needs run-record, mutation, or troubleshooting detail | [`references/state-schema.md`](references/state-schema.md) |
 | A repair or claimed fix needs mutation proof | [`references/mutation-proof.md`](references/mutation-proof.md) |
 | Accepted criteria include a preservation property: an existing behavior to keep, its allowed change, and an oracle | [`references/preservation-evidence.md`](references/preservation-evidence.md) |
 | Selecting reviewers, briefing one for dispatch, or weighing the lens the default roster gives up | [`references/reviewer-roster.md`](references/reviewer-roster.md) |

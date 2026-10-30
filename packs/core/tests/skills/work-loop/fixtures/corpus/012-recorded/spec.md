@@ -7,7 +7,7 @@
 - **Constrained by:**
   - [ADR-0017](../../adr/0017-adopt-bandit-pip-audit-semgrep-sast-gate.md) — fix source before suppressing a finding
   - [`pack-script-root-boundary-validation`](../pack-script-root-boundary-validation/spec.md) — prior argv-path hardening and its now-disproved scanner assumption
-  - [`loop-cohort-state-lock`](../loop-cohort-state-lock/spec.md) — fail-closed lock ownership and no-follow semantics
+  - [`cohort-writer-state-lock`](../cohort-writer-state-lock/spec.md) — fail-closed lock ownership and no-follow semantics
 - **Contract:** none; existing CLI arguments, valid-input output, and state schemas stay compatible
 - **Shape:** service
 
@@ -34,13 +34,13 @@ the following disposition:
 | `append-knowledge.py` | `os.link(stale, lock)` | Reported argv flow is confined to `docs/knowledge`; adjacent custom lock reads can follow a symlink and will be replaced by the hardened shipped lock helper. |
 | `lint-spec-status.py` | root-relative path operations | Valid class: `workspace.toml`, `contracts/REGISTRY.md`, and Markdown/code reference probes are not uniformly resolve-then-confine. |
 | `lint-traceability.py` | `os.walk` / path probes | Highlighted configured-layout path is checked; adjacent default and component-marker probes check existence before confinement. |
-| `loop-engine.py` | `.loop-run` path construction | Environment-to-directory flow is false positive; adjacent state and pending-event reads can follow symlinks and expose target JSON through status output. |
+| `phase-engine.py` | `.loop-run` path construction | Environment-to-directory flow is false positive; adjacent state and pending-event reads can follow symlinks and expose target JSON through status output. |
 | `workspace_status.py` | temporary-file `Path` | False positive: the workspace path is confined and the temporary name is created by `mkstemp` in its parent. |
 | `check-spec-status.py` | `spec_dir / args.file` | False positive: the resolved target is immediately required to be below the resolved spec directory. |
 | `lint-knowledge.py` | `os.chdir(repo_root)` | False positive: Git location variables are stripped before discovering the repository; its optional file argument intentionally selects an operator-owned input. |
 
-The same-class sweep also found `loop-cohort.py` reading managed `state.json`
-through a symlink and `loop-engine.py` following a dangling `events.jsonl`
+The same-class sweep also found `cohort-writer.py` reading managed `state.json`
+through a symlink and `phase-engine.py` following a dangling `events.jsonl`
 symlink while creating the event log. They are in scope because they share the
 work-loop state trust boundary and can expose or mutate external files.
 Unrelated argv-to-path sites remain in the existing
@@ -90,7 +90,7 @@ Unrelated argv-to-path sites remain in the existing
   reported IDs only from canonical confined paths. An outside-root symlink or
   junction cannot affect the graph or diagnostics; configured valid layouts
   still work.
-- [x] **AC3 — Managed-state files.** `loop-engine.py` and `loop-cohort.py`
+- [x] **AC3 — Managed-state files.** `phase-engine.py` and `cohort-writer.py`
   reject symlinked, non-regular, over-8-MiB, or identity-changing state and
   pending-event files without printing or acting on the external target's
   content; recovery also rejects a linked or non-directory `.loop-run` parent
@@ -108,7 +108,7 @@ Unrelated argv-to-path sites remain in the existing
 - [x] **AC5 — Reported false positives.** The evidence table in this spec is
   the source-level disposition for the already-safe boundaries in
   `check-spec-status.py`, `workspace_status.py`, `lint-knowledge.py`, and the
-  reported `loop-engine.py` root derivation; those scripts are not changed
+  reported `phase-engine.py` root derivation; those scripts are not changed
   merely to alter scanner dataflow. No valid operator-selected path is
   restricted solely to appease a taint engine.
 - [x] **AC6 — Security regressions.** Tests create real traversal and symlink

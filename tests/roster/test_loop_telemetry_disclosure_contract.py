@@ -40,21 +40,20 @@ def _section(text: str, heading: str) -> str:
     return re.split(r"\n#{1,6} ", body, maxsplit=1)[0]
 
 
-# The envelope suite lives in the pack tree and owns the recipe for driving one
-# real transition. This file is repository-level -- it compares an architecture
-# document against an emitted line -- so it cannot sit beside that suite and
-# import it as a sibling. Loading it by path keeps ONE copy of the recipe; a
-# second copy here would drift from the engine the moment the setup changed.
-def _envelope_suite():
+# The supervisor harness lives in the pack tree and owns the recipe for driving one
+# real run. This file is repository-level -- it compares an architecture document
+# against an emitted line -- so it cannot sit beside that harness and import it as a
+# sibling. Loading it by path keeps ONE copy of the recipe.
+def _harness():
     import importlib.util
     import sys
 
-    path = _REPO / "packs/core/tests/skills/work-loop/test_loop_engine_events_jsonl.py"
-    name = "loop_engine_events_jsonl_helpers_for_disclosure_contract"
+    path = _REPO / "packs/core/tests/skills/work-loop/supervisor_harness.py"
+    name = "supervisor_harness_for_disclosure_contract"
     if name in sys.modules:
         return sys.modules[name]
     spec = importlib.util.spec_from_file_location(name, path)
-    assert spec and spec.loader, f"cannot load the envelope suite from {path}"
+    assert spec and spec.loader, f"cannot load the supervisor harness from {path}"
     module = importlib.util.module_from_spec(spec)
     # Registered before execution: the module resolves its own dataclasses
     # against `sys.modules[__name__]` while it is being executed.
@@ -64,17 +63,10 @@ def _envelope_suite():
 
 
 def _emitted_line_key_count(tmp_path: Path) -> int:
-    helpers = _envelope_suite()
-    _LOOP_ENGINE = helpers._LOOP_ENGINE
-    _engine_init = helpers._engine_init
-    _init_git_repo = helpers._init_git_repo
-    _make_spec_dir = helpers._make_spec_dir
-    _run = helpers._run
-
-    repo = _init_git_repo(tmp_path)
-    spec_dir = _make_spec_dir(repo)
-    _engine_init(repo, spec_dir)
-    _run(_LOOP_ENGINE, "transition", str(spec_dir), "spec-ready", cwd=repo)
+    h = _harness()
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    h.run_cli(repo, "next", h.SPEC_DIR)
     line = (repo / ".loop-run" / "events.jsonl").read_text().splitlines()[-1]
     return len(json.loads(line))
 
@@ -137,7 +129,7 @@ def test_every_agentbundle_anchor_cited_by_telemetry_resolves() -> None:
 
 # --- AC-0051 -----------------------------------------------------------------
 
-def test_section_5_1_field_count_equals_what_the_engine_emits(tmp_path: Path) -> None:
+def test_section_5_1_field_count_equals_what_the_supervisor_emits(tmp_path: Path) -> None:
     section = _section(_TELEMETRY.read_text(encoding="utf-8"), "### 5.1 What a line holds")
     match = re.search(r"Each line carries (\w+) fields", section)
     assert match, "section 5.1 no longer states a field count in the expected form"

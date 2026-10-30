@@ -105,8 +105,11 @@ jobs:
         # first failure.
         run: agentbundle catalogue self-host --check --windows --root .
 
-      - name: pytest loop-cohort CLI portability
-        run: python -m pytest packs/core/tests/skills/work-loop/test_loop_cohort_cli.py -q --durations=10
+      - name: pytest installed-skill supervisor run (Windows)
+        # The synthetic full code run through the installed work-loop skill, under
+        # `python -I -S` with an import fence: it must reach readiness on Windows
+        # with only the standard library and the skill's scripts directory.
+        run: python -m pytest tests/roster/test_supervisor_installed_skill_run.py -q --durations=10
 
       - name: pytest repository-grounding locator reader (Windows placement)
         # Verifies that the locator reader's placement rules, drive-letter URI

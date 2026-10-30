@@ -5,7 +5,7 @@
 # copy of the repo, invoke the catalogue hook against it, and assert it fails
 # with the matching `pre-pr: ✖ <label> failed` line. Catches the regression
 # where a refactor silently drops a layer. (Covers the 4 linters it corrupts +
-# loop-cohort; the other catalogue checks are covered by their own CI jobs.)
+# the supervisor check; the other catalogue checks are covered by their own CI jobs.)
 
 set -uo pipefail
 
@@ -124,13 +124,6 @@ run_corruption "skill-spec-fail" \
 run_corruption "knowledge-fail" \
   "printf '%s\n' '{not json' > docs/knowledge/patterns.jsonl" \
   'pre-pr: ✖ knowledge lint failed'
-
-# 4. loop-cohort check — plant a state.json with review_retry_count at cap,
-#    which trips the check --phase review gate.
-#    Drops the test if pre-pr ever stops iterating state.json files.
-run_corruption "loop-cohort-fail" \
-  "mkdir -p docs/specs/example && python3 -c \"import json,pathlib; p=pathlib.Path('.claude/skills/work-loop/assets/state.json'); s=json.loads(p.read_text()); s['review_retry_count']=int(s['max_review_retries']); pathlib.Path('docs/specs/example/state.json').write_text(json.dumps(s))\"" \
-  'pre-pr: ✖ loop-cohort check'
 
 # 5. supervisor readiness check — plant a spec holding delivery/approvals.jsonl
 #    with no run behind it, which makes `work-supervisor.py status --check`

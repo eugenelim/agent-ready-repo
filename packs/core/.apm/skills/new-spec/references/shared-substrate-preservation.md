@@ -124,5 +124,5 @@ A consumer found after approval may change accepted behavior, scope, a public
 contract, a durable output, or accepted risk. If it does, it takes the
 controlled amendment and fresh review. A discovery that changes only task
 order, local method, or test shape stays plan-level: it goes into the plan
-before approval, or the verification ledger after, and gains no approval
-authority.
+before approval, or into the plan's tasks and design as a working-plan change
+after, and gains no approval authority.

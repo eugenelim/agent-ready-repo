@@ -99,8 +99,8 @@ def test_work_loop_keeps_detail_in_a_linked_reference() -> None:
     assert len(skill.splitlines()) <= 1000
     assert skill.count("references/delivery-contract-lifecycle.md") >= 3
     for token in (
-        "contract-amendment",
-        "completed-evidence-ref",
+        "Controlled full-mode contract amendment",
+        "appends a new approval pair",
         "Completion evidence handoff",
         "local-only",
         "PR-only",

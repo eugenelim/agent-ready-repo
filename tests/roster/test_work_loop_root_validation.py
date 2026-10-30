@@ -3,7 +3,7 @@
 
 Covers the three scripts that read a filesystem path from argv:
 `lint-traceability.py --root`, `lint-spec-status.py --root`, and
-`loop-cohort.py review inspect --report`.
+`review-artifact.py inspect --report`.
 
 Two properties are asserted, and they pull in opposite directions:
 
@@ -44,13 +44,11 @@ if not SCRIPT_DIR.is_dir():  # wrong parents[] depth after a move
 
 TRACEABILITY = SCRIPT_DIR / "lint-traceability.py"
 SPEC_STATUS = SCRIPT_DIR / "lint-spec-status.py"
-LOOP_COHORT = SCRIPT_DIR / "loop-cohort.py"
-# The `review` verbs of `loop-cohort.py` delegate to `review-artifact.py`, which
-# now holds every `--report` call site.
+# `review-artifact.py` holds every `--report` call site.
 REVIEW_ARTIFACT = SCRIPT_DIR / "review-artifact.py"
 
-# The two `--root` scripts. `loop-cohort.py` takes `--report` and is driven
-# separately because it needs a subcommand and cohort state.
+# The two `--root` scripts. `review-artifact.py` takes `--report` and is driven
+# separately because it needs a subcommand and a run id.
 ROOT_SCRIPTS = [("lint-traceability", TRACEABILITY), ("lint-spec-status", SPEC_STATUS)]
 
 
@@ -122,29 +120,21 @@ def test_file_valued_root_exits_nonzero() -> None:
 
 
 def test_missing_report_classifies_invalid_not_crash(git_repo: Path) -> None:
-    """`review inspect --report <missing>` yields `invalid`, and still exits 0.
+    """`inspect --report <missing>` yields `invalid`, and still exits 0.
 
     `--report` is normalise-only at the boundary, unlike the two `--root`
     scripts. SKILL.md defines `invalid` as a Surface signal for a malformed
-    reviewer report, and `review inspect` exits 0 for every report-content
+    reviewer report, and `inspect` exits 0 for every report-content
     outcome. Raising on an unreadable path would convert that defined outcome
     into an operational error.
 
-    This case needs a REAL initialised cohort. Pointing at an empty directory
-    would exit non-zero on the missing `state.json` before the report path is
-    ever read — green for a reason that has nothing to do with `--report`.
+    A run id makes the call reach the report path; without one the command
+    refuses before the report is ever read.
     """
-    name = "loop-cohort: missing --report classifies invalid (exit 0)"
-    spec_dir = git_repo / "spec"
-    spec_dir.mkdir()
-    run_id = "00000000-1111-2222-3333-444444444444"
-    rc, out, err = run(LOOP_COHORT, "init", str(spec_dir), "--run-id", run_id)
-    if rc != 0 or not (spec_dir / "state.json").is_file():
-        fail(name, f"could not initialise a cohort fixture (rc={rc} err={err!r})")
-        return
-
+    name = "review-artifact: missing --report classifies invalid (exit 0)"
+    run_id = "00000000-1111-4222-8333-444444444444"
     rc, out, err = run(
-        LOOP_COHORT, "review", "inspect", str(spec_dir),
+        REVIEW_ARTIFACT, "inspect", "--run-id", run_id, "--root", str(git_repo),
         "--report", "no-such-report.md", "--json",
         cwd=git_repo,
     )
@@ -187,10 +177,10 @@ def test_report_sites_route_through_resolver() -> None:
     # a live call site.
     routed = src.count("= _resolved_report(args.report)")
     bare = src.count("= Path(args.report)")
-    # One site per `--report`-taking verb: `inspect`, `record`, and `classify`.
-    # `raw-classify` and the no-cohort record path pass the resolved path inline. Adding a verb should bump this deliberately, which
-    # is the point of counting rather than asserting "at least one".
-    expected_sites = 3
+    # Two assignment sites remain; `inspect` and `raw-classify` pass the resolved
+    # path inline. Adding a verb should bump this deliberately, which is the point
+    # of counting rather than asserting "at least one".
+    expected_sites = 2
     if routed != expected_sites:
         fail(name, f"expected {expected_sites} routed call sites, found {routed}")
     elif bare:

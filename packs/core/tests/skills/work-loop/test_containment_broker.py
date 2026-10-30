@@ -273,7 +273,7 @@ class TestDeliveryControlPathGuard:
         """is_delivery_control_path returns True for pack source paths."""
         cn = containment
         assert cn.is_delivery_control_path("packs/core/.apm/skills/work-loop/SKILL.md")
-        assert cn.is_delivery_control_path("packs/core/.apm/skills/work-loop/scripts/loop-engine.py")
+        assert cn.is_delivery_control_path("packs/core/.apm/skills/work-loop/scripts/work-supervisor.py")
 
     def test_is_delivery_control_path_detects_claude_projection(
         self, containment: ModuleType
@@ -281,7 +281,7 @@ class TestDeliveryControlPathGuard:
         """is_delivery_control_path returns True for .claude/skills/work-loop/ paths."""
         cn = containment
         assert cn.is_delivery_control_path(".claude/skills/work-loop/SKILL.md")
-        assert cn.is_delivery_control_path(".claude/skills/work-loop/scripts/loop-engine.py")
+        assert cn.is_delivery_control_path(".claude/skills/work-loop/scripts/work-supervisor.py")
 
     def test_is_delivery_control_path_detects_kiro_projection(
         self, containment: ModuleType
@@ -325,10 +325,10 @@ class TestDeliveryControlPathGuard:
 
     @pytest.mark.parametrize("delivery_path", [
         "packs/core/.apm/skills/work-loop/SKILL.md",
-        "packs/core/.apm/skills/work-loop/scripts/loop-engine.py",
+        "packs/core/.apm/skills/work-loop/scripts/work-supervisor.py",
         "packs/core/.apm/skills/work-loop/scripts/_security_capability.py",
         ".claude/skills/work-loop/SKILL.md",
-        ".claude/skills/work-loop/scripts/loop-engine.py",
+        ".claude/skills/work-loop/scripts/work-supervisor.py",
         ".kiro/skills/work-loop/SKILL.md",
         ".agents/skills/work-loop/SKILL.md",
         # Creating a new copy: attempting a new path under the projection root
@@ -1378,7 +1378,6 @@ class TestDeliveryControlPathForgerySpellings:
         "/spec/.shadow-acceptance/result.json",
         # Engine state filenames.
         "state.json",
-        "engine-state.json",
         "/some/dir/state.json",
     ])
     def test_forgery_spelling_is_detected(
@@ -1393,6 +1392,14 @@ class TestDeliveryControlPathForgerySpellings:
         assert cn.is_delivery_control_path(delivery_path), (
             f"delivery-control path not detected with spelling: {delivery_path!r}"
         )
+
+    def test_every_delivery_control_filename_is_detected(self, containment: ModuleType) -> None:
+        """Each name on the filename deny-list is refused, at the root and in a directory."""
+        cn = containment
+        assert cn._DELIVERY_CONTROL_FILENAMES
+        for name in cn._DELIVERY_CONTROL_FILENAMES:
+            assert cn.is_delivery_control_path(name), name
+            assert cn.is_delivery_control_path(f"docs/specs/example/{name}"), name
 
     def test_dot_slash_prefix_specifically_detected(self, containment: ModuleType) -> None:
         """Specifically: ./.claude/... must be detected (lstrip-bug regression guard).

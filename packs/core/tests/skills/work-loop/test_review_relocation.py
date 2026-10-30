@@ -1,22 +1,17 @@
 """The finding-adjudication commands live in `review-artifact.py`.
 
-VI-6001 runs every comparison-corpus case through both command sets and holds
-the output, exit code, and counters to the golden outputs recorded from the
-`loop-cohort.py review` verbs before they delegated. VI-6002 covers the
-no-cohort path: the retry budget, the owner override, `validate` for `record`
-artifacts, and run-id and record-file confinement. VI-6003 covers a replayed
-`--operation-id`. VI-6004 keeps the two copies of the review cap in step.
+VI-6002 covers the run-id path: the retry budget, the owner override, `validate`
+for `record` artifacts, and run-id and record-file confinement. VI-6003 covers a
+replayed `--operation-id`. VI-6004 keeps the review cap in `review-rules.json`
+and the guard layer's default in step.
 
 Standard library and pytest only; the scripts load by path under unique names.
 """
 
 from __future__ import annotations
 
-import contextlib
 import json
 import os
-import subprocess
-import sys
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -35,91 +30,12 @@ FP_3 = "e" * 64
 
 
 @pytest.fixture(scope="module")
-def cohort() -> ModuleType:
-    """The `loop-cohort.py review` verbs, loaded once."""
-    return support.load_script("core_work_loop_relocation_cohort", SCRIPTS / "loop-cohort.py")
-
-
-@pytest.fixture(scope="module")
 def artifact() -> ModuleType:
     """`review-artifact.py`, loaded once."""
     return support.load_script("core_work_loop_relocation_artifact", SCRIPTS / "review-artifact.py")
 
 
-@pytest.fixture(scope="module")
-def golden() -> dict[str, Any]:
-    """The outputs recorded from the pre-change verbs."""
-    return json.loads(support.GOLDEN.read_text(encoding="utf-8"))
-
-
-def _run_case(
-    tmp_path: Path, case: dict[str, Any], cohort: ModuleType, module: ModuleType, *, legacy: bool
-) -> tuple[list[dict[str, Any]], Path, Path]:
-    """Run one corpus case in a fresh repository; return records, root, spec dir."""
-    root = tmp_path.resolve()
-    spec, files = support.seed_repo(root, case, cohort)
-    with contextlib.chdir(root):
-        records = support.run_case(module, case, spec, files, legacy=legacy)
-    return records, root, spec
-
-
-@pytest.mark.parametrize("case", support.CASES, ids=[c["id"] for c in support.CASES])
-def test_vi6001_corpus_case_matches_golden_through_both_command_sets(
-    case: dict[str, Any],
-    tmp_path: Path,
-    cohort: ModuleType,
-    artifact: ModuleType,
-    golden: dict[str, Any],
-) -> None:
-    """VI-6001: both command sets reproduce the recorded output and counters.
-
-    Output, exit code, and the counters in `state.json` after every step equal
-    the golden values for the `loop-cohort.py review` verbs and for
-    `review-artifact.py`; the two leave byte-equal `state.json` files; and the
-    artifact script writes no `record` artifact when cohort state exists.
-    """
-    expected = golden[case["id"]]
-    legacy_records, _, legacy_spec = _run_case(tmp_path / "legacy", case, cohort, cohort, legacy=True)
-    new_records, new_root, new_spec = _run_case(tmp_path / "new", case, cohort, artifact, legacy=False)
-
-    assert legacy_records == expected
-    assert new_records == expected
-    assert (new_spec / "state.json").read_bytes() == (legacy_spec / "state.json").read_bytes()
-    assert not list(new_root.glob(".context/reviews/**/*-record.md"))
-
-
-def test_vi6001_review_artifact_script_runs_the_cohort_path_as_a_process(
-    tmp_path: Path, cohort: ModuleType, golden: dict[str, Any]
-) -> None:
-    """VI-6001: the script, run as a process, loads cohort I/O and matches golden."""
-    case = next(c for c in support.CASES if c["id"] == "record-fingerprint")
-    root = tmp_path.resolve()
-    spec, files = support.seed_repo(root, case, cohort)
-    records = []
-    for kind, argv in case["steps"]:
-        assert kind == "cli"
-        expanded = support._expand(argv, spec, files)
-        completed = subprocess.run(
-            [sys.executable, str(SCRIPTS / "review-artifact.py"), *expanded],
-            cwd=root,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            check=False,
-        )
-        state = support.read_state(spec)
-        records.append(
-            {
-                "exit_code": completed.returncode,
-                "stdout": support._scrub(completed.stdout, spec, files),
-                "stderr": support._scrub(completed.stderr, spec, files),
-                "counters": {name: state.get(name) for name in support.COUNTER_FIELDS},
-            }
-        )
-    assert records == golden["record-fingerprint"]
-
-
-# ── no cohort state ────────────────────────────────────────────────────────
+# ── review runs ────────────────────────────────────────────────────────────
 
 
 class Repo:
@@ -246,7 +162,7 @@ def test_vi6002_unrecorded_round_does_not_count(repo: Repo) -> None:
 
 
 def test_vi6002_clean_rounds_do_not_spend_the_budget(repo: Repo) -> None:
-    """VI-6002: only findings rounds count, as `loop-cohort.py review record` counts them."""
+    """VI-6002: only findings rounds count, as the earlier cohort writer counted them."""
     assert repo.record("--all-skipped")[0] == 0
     assert repo.record("--direct-clean-file", str(repo.files / "exact-sentinel.txt"))[0] == 0
     assert repo.record("--fingerprint", FP_1)[0] == 0
@@ -264,24 +180,6 @@ def test_vi6002_inspect_reads_the_previous_round_from_the_record(repo: Repo) -> 
     assert json.loads(repo.inspect("adj-findings-b.md")[1])["matches_previous_round"] is False
     repo.record("--all-skipped")
     assert json.loads(repo.inspect("adj-findings-a.md")[1])["matches_previous_round"] is False
-
-
-def test_vi6002_spec_dir_without_state_takes_the_run_path(
-    repo: Repo, monkeypatch: pytest.MonkeyPatch
-) -> None:
-    """VI-6002: a spec directory that holds no `state.json` is no cohort state."""
-    subprocess.run(["git", "init", "-q", str(repo.root)], check=True, capture_output=True)
-    monkeypatch.chdir(repo.root)
-    spec = repo.root / "spec-without-state"
-    spec.mkdir()
-    code, out, _ = repo.run(
-        "record", str(spec), "--run-id", NO_COHORT_RUN, "--root", str(repo.root),
-        "--fingerprint", FP_1,
-    )
-
-    assert code == 0
-    assert out.startswith("loop-cohort: review record (findings) round=1 retry=1")
-    assert repo.records() == ["1-record.md"]
 
 
 def test_vi6002_validate_accepts_a_record_and_refuses_any_other_name(repo: Repo) -> None:
@@ -471,7 +369,7 @@ def test_vi6002_record_body_is_strict_json_with_every_field(repo: Repo) -> None:
         "max_review_retries": 2,
         "override": False,
         "authority_ref": None,
-        "stdout": f"loop-cohort: review record (findings) round=1 retry=1 fingerprints=2 for {NO_COHORT_RUN}",
+        "stdout": f"review-artifact: review record (findings) round=1 retry=1 fingerprints=2 for {NO_COHORT_RUN}",
     }
 
 
@@ -514,40 +412,38 @@ def test_vi6003_operation_id_must_name_this_run(repo: Repo) -> None:
     assert repo.records() == []
 
 
-def _cap_parity_problems(skill: Path) -> list[str]:
-    """Return what is wrong with the two copies of the review cap under `skill`."""
-    template = json.loads((skill / "assets" / "state.json").read_text(encoding="utf-8"))
+def _cap_parity_problems(skill: Path, default_cap: int) -> list[str]:
+    """Return what is wrong with the review cap in `skill/review-rules.json`."""
     rules = json.loads((skill / "review-rules.json").read_text(encoding="utf-8"))
     problems = []
     if not isinstance(rules.get("rules_version"), str) or not rules["rules_version"]:
         problems.append("review-rules.json has no rules_version")
-    if rules.get("max_review_retries") != template.get("max_review_retries"):
+    if rules.get("max_review_retries") != default_cap:
         problems.append(
-            "assets/state.json and review-rules.json disagree on max_review_retries; "
-            "change both together"
+            "review-rules.json and the guard layer's default disagree on "
+            "max_review_retries; change both together"
         )
     return problems
 
 
+def _guard_default_cap() -> int:
+    guards = support.load_script("core_work_loop_relocation_guards", SCRIPTS / "_loop_guards.py")
+    return int(guards.DEFAULTS["max_review_retries"])
+
+
 def test_vi6004_the_two_copies_of_the_review_cap_agree() -> None:
-    """VI-6004: `assets/state.json` and `review-rules.json` hold one `max_review_retries`."""
-    assert _cap_parity_problems(SKILL) == []
+    """VI-6004: `review-rules.json` and the guard layer hold one `max_review_retries`."""
+    assert _cap_parity_problems(SKILL, _guard_default_cap()) == []
 
 
 def test_vi6004_a_one_sided_edit_fails_the_parity_check(tmp_path: Path) -> None:
-    """VI-6004: changing the cap in `assets/state.json` alone fails the same check."""
-    (tmp_path / "assets").mkdir()
-    template_path = tmp_path / "assets" / "state.json"
-    template = json.loads((SKILL / "assets" / "state.json").read_text(encoding="utf-8"))
-    (tmp_path / "review-rules.json").write_bytes((SKILL / "review-rules.json").read_bytes())
-    template_path.write_text(json.dumps(template), encoding="utf-8")
-    assert _cap_parity_problems(tmp_path) == []
-
-    template["max_review_retries"] += 1
-    template_path.write_text(json.dumps(template), encoding="utf-8")
-    assert _cap_parity_problems(tmp_path) == [
-        "assets/state.json and review-rules.json disagree on max_review_retries; "
-        "change both together"
+    """VI-6004: changing the cap in the rules file alone fails the same check."""
+    rules = json.loads((SKILL / "review-rules.json").read_text(encoding="utf-8"))
+    rules["max_review_retries"] += 1
+    (tmp_path / "review-rules.json").write_text(json.dumps(rules), encoding="utf-8")
+    assert _cap_parity_problems(tmp_path, _guard_default_cap()) == [
+        "review-rules.json and the guard layer's default disagree on "
+        "max_review_retries; change both together"
     ]
 
 
