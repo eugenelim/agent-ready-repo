@@ -31,7 +31,7 @@ The record comes first, because every later surface reads or writes it: T1 adds 
 
 ## Construction tests
 
-- **Dispatch identity (T4):** `dispatch.py --root <tree>` stdout digests before and after `repair-apply --yes` on each planted repair tree. A throwaway probe on 2026-10-30 showed byte-identical output for an Approved tracker-origin spec with and without its `work.queue` entry: `dispatch.py` judges a spec from its headers either way.
+- **Dispatch identity (T4, T12):** `dispatch.py --root <tree>` stdout before and after `repair-apply --yes` on each planted repair tree, compared as AC-0015 states, including its Archived-tree exception. A throwaway probe on 2026-10-30 showed byte-identical output for an Approved tracker-origin spec with and without its `work.queue` entry: `dispatch.py` judges a spec from its headers either way.
 - **Manual verification:** the owner's approvals in T6 and T7 are Ask-first gates, recorded in the ledger.
 
 ## Durable-output map
@@ -154,7 +154,7 @@ Owned by: T3
 
 ### T9: Release
 
-- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11
+- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12
 - **Verification mode:** goal-based
 - **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`; `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main` exiting `0` on the pull-request branch, which is one squashed commit carrying `Engine-Change-RFC: 0106` and the `Spec:` trailer, because the supervisor's own commits carry no trailer (owner decision, 2026-10-30; the full supervisor history is pushed as a separate evidence branch); the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** each passes.
@@ -179,6 +179,13 @@ Owned by: T3
   - The `test_registration_stop_routes.py` `_UNCHANGED` comment and test name, and the coordinator dependency-pin test name and fixture knob, say what they check now, with assertions unchanged.
 - **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass, and `make build-self` leaves no diff.
 
+### T12: The Archived-tree dispatch difference
+
+- **Depends on:** T11
+- **Verification mode:** TDD
+- **Tests:** for AC-0015: `test_dispatch_output_is_identical_across_apply_on_an_archived_tracker_spec` in `packs/core/tests/skills/workspace-status/test_tracker_entry_drop.py` is renamed `test_dispatch_output_differs_only_by_the_archived_spec_blocked_item`, loses its `xfail`, asserts that the before output's `blocked` list holds the Archived spec's item with an `unapproved_spec` finding, and asserts that the two outputs, parsed as JSON, are equal once that one item is removed from the before output's `blocked` list, with nothing else removed.
+- **Done when:** the suite passes.
+
 ## Rollout
 
 - **Delivery:** one patch release each of `core`, `atlassian`, `github` and `linear`. An adopter's tracker-origin artifact refuses refresh, naming the repair, until they run `repair-plan` and `repair-apply`.
@@ -195,3 +202,4 @@ Owned by: T3
 - 2026-10-30: plan approved by eugenelim at `f273a7659` (rebased `d9d91adf0`).
 - 2026-10-30: spec and plan re-approved by eugenelim after the AC-0008 controlled amendment and task T10.
 - 2026-10-30: spec and plan re-approved by eugenelim after the `cooling-state-unavailable` amendment and task T11.
+- 2026-10-30: spec and plan re-approved by eugenelim after the AC-0015 Archived-tree amendment and task T12.
