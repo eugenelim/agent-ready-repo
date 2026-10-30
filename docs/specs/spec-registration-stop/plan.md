@@ -1,7 +1,7 @@
 # Plan: Specs stop being registered
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and D3; RFC-0105 D3; RFC-0064 D4; ADR-0110; ADR-0076; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-loop/scripts/dispatch.py` and its suites `packs/core/tests/skills/work-loop/test_dispatch.py` and `test_header_derived_dispatch_replay.py`: the dispatch this spec switches to, unchanged.
@@ -198,3 +198,5 @@ Owned by: T10
 - 2026-10-29: spec and plan approved by eugenelim at `64d25cc5c`.
 - 2026-10-29: spec re-approved by eugenelim at `0f04b53a1` after the controlled amendment.
 - 2026-10-29: plan re-approved by eugenelim at `0f04b53a1` after the controlled amendment.
+- 2026-10-29: the re-approved spec and plan bytes of `0f04b53a1` are those of the rebased `77d16b0e3`.
+- 2026-10-29: shipped in core 3.1.40; every task done, the post-gates reviews clean.
