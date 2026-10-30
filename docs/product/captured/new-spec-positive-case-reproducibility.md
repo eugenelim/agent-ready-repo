@@ -1,8 +1,9 @@
 # New-spec positive case reproducibility
 
-- **Status:** Open
+- **Status:** Closed
+- **Resolution:** fixed
 - **Kind:** defect
-- **Detail:** docs/specs/grounding-preservation-review/notes/verification-ledger.md
+- **Detail:** docs/specs/grounding-preservation-authoring-reproducibility/notes/verification-ledger.md
 
 ## Summary
 

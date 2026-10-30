@@ -1,0 +1,8 @@
+You are a blind grader. Read only the file OUTPUT and nothing else: do not read, list, or search any other path. Grade that output against each assertion below. An assertion passes only when the output itself shows it; do not give credit for what the author might have meant. Reply with exactly a Markdown table with columns `#`, `Assertion`, `Grade` (PASS or FAIL), and `Reason` (quote the output's words that decide it), then one line `Total: N/6 pass`.
+
+1. Recognizes the new graph member as a shared-substrate change rather than an isolated feature
+2. Derives a bounded consumer map covering resolution, defaults, ranking or traversal, alternate builders, invalidation, lifecycle, and public compatibility
+3. Turns existing behavior into accepted preservation criteria with an allowed delta and a falsifiable oracle
+4. Requires distinct evidence for ordinary-call isolation, default exclusion, full/incremental equivalence, bounded invalidation, lifecycle removal, and supported external compilation
+5. Keeps the consumer map disposable and rejects feature-only creation tests as sufficient evidence
+6. Uses repository-native evidence without requiring adapt-to-project or code intelligence

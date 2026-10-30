@@ -216,6 +216,9 @@ active  = [
   {path = "docs/specs/execution-supervisor-cutover/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/acceptance-centered-work-loop.md", parent = "docs/product/briefs/acceptance-centered-work-loop.md"}, summary = "Switch full-mode work-loop to the supervisor, remove the old engine and legacy review path, and repoint every caller in the next Core major", needs = []},
 ]
 shipped = [
+  # Shipped 2026-10-29 as core 3.1.39: closes the new-spec positive-case reproducibility defect for
+  # repository-grounding-preservation C3. Evidence is in notes/verification-ledger.md.
+  {path = "docs/specs/grounding-preservation-authoring-reproducibility/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Make every graded run of new-spec's frozen shared-graph case hold 6 of 6 by tightening the shared-substrate preservation reference", needs = []},
   # Shipped 2026-10-29 as core 3.1.38: slice C3 of repository-grounding-preservation, typed review
   # with the preservation lens checks. Evidence is in notes/verification-ledger.md.
   {path = "docs/specs/grounding-preservation-review/spec.md", kind = "spec", source = {mode = "repo-origin", ref = "docs/product/briefs/repository-grounding-preservation.md", parent = "docs/product/briefs/repository-grounding-preservation.md"}, summary = "Give adversarial-reviewer and quality-engineer a generic typed report and the shared-substrate reachability and preservation-evidence questions, proved through the shipped review and evidence modules", needs = []},
@@ -2161,8 +2164,6 @@ open = [
   # Pre-existing on HEAD 2026-10-11: tools/test-check-contract-drift.py case A fails (fixture anchors
   # `core` where the checker expects `frontend-engineering`); the real tools/repo/check_contract_drift.py exits 0.
   { slug = "pre-existing-check-contract-drift-selftest", source = "pre-flight/2026-10-11" },
-  # Follow-on of grounding-preservation-review (C3): the brief's C3 positive-fixture proof.
-  {path = "docs/product/captured/new-spec-positive-case-reproducibility.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/grounding-preservation-review/spec.md"}, summary = "The frozen new-spec shared-substrate positive case does not reproduce its 6 of 6 on unchanged guidance, leaving the repository-grounding-preservation C3 positive-fixture proof unmet", needs = []},
 ]
 
 
