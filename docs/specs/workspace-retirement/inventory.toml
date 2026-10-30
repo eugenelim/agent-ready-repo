@@ -444,6 +444,12 @@ consumer = "released changelog entry that cites the registry"
 owner = "none"
 
 [[row]]
+pattern = "docs/product/changelog.d/b5c800b4-7797-4c8c-bb0b-b0c71d118fbe.md"
+class = "historical"
+consumer = "released changelog entry that cites the registry"
+owner = "none"
+
+[[row]]
 pattern = "docs/product/changelog.d/868cb1ff-0805-46fa-aaf5-0c700bc1ba80.md"
 class = "historical"
 consumer = "released changelog entry that cites the registry"
