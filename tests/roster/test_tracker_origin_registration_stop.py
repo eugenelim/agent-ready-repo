@@ -331,8 +331,9 @@ _RECORD = "docs/specs/workspace-retirement/retirement-record.md"
 def test_retirement_record_names_the_profile_home_and_the_closure() -> None:
     text = (_REPO / _RECORD).read_text(encoding="utf-8")
     disposition = text[text.index("## Disposition") : text.index("## Equivalence")]
-    for row in ("source.tracker_profile", "source.tracker_profile.id", "source.tracker_profile.version"):
-        line = next(l for l in disposition.splitlines() if l.startswith(f"| `{row}` |"))
+    rows = ("source.tracker_profile", "source.tracker_profile.id", "source.tracker_profile.version")
+    for row in rows:
+        line = next(r for r in disposition.splitlines() if r.startswith(f"| `{row}` |"))
         assert "`tracker_profile` table" in line and "`source-authority` record" in line, row
     for stale in (
         "tracker-origin spec entries, and their writers, stay until slice 9",
