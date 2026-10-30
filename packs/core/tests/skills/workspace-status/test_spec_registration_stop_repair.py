@@ -700,6 +700,9 @@ def migrate_legacy_entry(
     """Apply the legacy migration to the one legacy queue entry, through the CLI."""
     import datetime
 
+    # `WS._engine` stays None until a CLI call binds it; bind it here so the
+    # helper does not depend on test order.
+    assert WS._bind_engine() is True
     engine = WS._engine
     workspace_path = root / "workspace.toml"
     workspace_bytes = workspace_path.read_bytes()

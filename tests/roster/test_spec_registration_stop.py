@@ -319,7 +319,7 @@ _DISPATCH_OUTCOME_LITERALS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] =
     ),
     "step0-no-registry-start": (
         ("my-feature/spec.md", "workspace.toml", "PLAN"),
-        ("starts docs/specs/my-feature/spec.md", "workspace.toml"),
+        ("Response starts", "my-feature/spec.md", "workspace.toml"),
     ),
 }
 
