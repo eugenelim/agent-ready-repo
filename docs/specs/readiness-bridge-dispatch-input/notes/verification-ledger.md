@@ -147,6 +147,40 @@ The line below the list header reads "work-loop with no spec named asks which of
 
 `.context/browser-venv/bin/python -m pytest packs/core/tests/skills/navigate-intents/view_browser_checks.py -q -rs -n 4 -p no:cacheprovider` at `d7f440ad7`: 509 passed, none skipped, in 339.87 s. The `test-corpus.yml` dispatch half of AC-0029 is not recorded here.
 
+### Re-run at the final code commit (AC-0016, AC-0017, AC-0018, AC-0029)
+
+The runs above name `d7f440ad7`, which the rebase replaced with `55836bdf7`, and code changed after them. On 2026-10-29 the owner (eugenelim) decided that all four be re-run at the final code commit and recorded here, with the runs above kept. Every run below ran against `0c7ad40be433886e4749ce83eb10857a1f035a6b` (`git rev-parse HEAD`; clean tree), the last commit on this branch that changes code or tests, between 23:50 on 29 October and 00:18 on 30 October 2026, US Central, on the machine named above, with the same scripts (`count.py` SHA-256 `140ca8c3...4273`, `gen_max.py` SHA-256 `ad6cb84c...c6fc1`).
+
+**AC-0016.** `dispatch.py --root .`: exit 0, 16,576 bytes, SHA-256 `26da81d4f074d7edd000dd9225880008ec029967f99b39098b4b24df50fb03b3`. `workspace_status.py status --root .`: 55,065 bytes, SHA-256 `89894b8da2e21016fc5fc103c538c7ee2d4363f932cbd4c5c690cf39e15796a8`. The export with the dispatch bytes: `ok`, 818,125 bytes, `readiness` `{"checked": true, "reason": null}`. `count.py` printed `MATCH` over 806 loaded records: 4 active, 0 ready, 0 blocked, start `ask`, `id` null, `held` false, `active_count` 4, for script and export alike. The export with the `workspace-status status` bytes: `ok`, `readiness` `{"checked": false, "reason": "wrong_schema"}`. Result: pass.
+
+**AC-0017, scale.** `view_bench.py --source . --counts 1 10 25 50 --readiness <the AC-0016 dispatch bytes>`, exit 0:
+
+| Copies | Outstanding available | Default rows | File bytes | Startup ms | Search ms | Heap MiB | Meets all | Readiness |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | yes | 0 | 808,522 | 23 | 32 | 6 | yes | checked, reason null |
+| 10 | no (`resource_limit`, files) | 0 | 5,656,753 | 90 | 88 | 11 | yes | checked, reason null |
+| 25 | no (`resource_limit`, files) | 0 | 13,906,307 | 137 | 68 | 28 | yes | checked, reason null |
+| 50 | no (`resource_limit`, files) | 0 | 27,655,560 | 222 | 90 | 54 | yes | checked, reason null |
+
+**AC-0017, largest input.** `gen_max.py` wrote 4,194,304 bytes (SHA-256 `2d374cff5e332bb4dca38a2e90282b3cc6198796563bb856b5043622f71f4534`): 15,247 blocked items over this repository's 608 spec paths. Every export run exited 0 with `ok`, `readiness` `{"checked": true, "reason": null}` and 917,411 bytes.
+
+| Run | Load average (1 minute) | Seconds | Within 5 s |
+| --- | --- | --- | --- |
+| 1 | 15.9 | 7.92 | no |
+| 2 | 16.0 | 10.44 | no |
+| 3 | 17.6 | 5.99 | no |
+| no-flag baseline | 17.4 | 5.19 | no |
+| 4 | 10.5 | 2.33 | yes |
+| 5 | 10.3 | 2.20 | yes |
+| 6 | 10.3 | 3.68 | yes |
+| no-flag baseline | 10.3 | 2.04 | yes |
+
+Runs 1 to 3 came while other work held the load average near 17. The baseline export with no readiness input also took over 5 seconds then, so the delay was the machine's and not the input's. Runs 4 to 6, at a load average near 10, each finished within 5 seconds. Result: pass.
+
+**AC-0018.** The AC-0016 export in headless Chromium through `.context/browser-venv/bin/python` (Playwright), viewport 1280 by 900, with no page errors. "What can I work on next?" shows 4 rows under the heading "Active", each marked Active, with rail count 4, matching the 4 readiness records. "What is broken?" shows 0 rows ("Nothing is broken.") with rail count 0, because `readiness.blocked` holds no finding. The line below the list header reads "work-loop with no spec named asks which of the 4 active items to resume, so none is marked." Result: pass.
+
+**AC-0029.** `.context/browser-venv/bin/python -m pytest packs/core/tests/skills/navigate-intents/view_browser_checks.py -q -rs -n 4 -p no:cacheprovider`: 515 passed, none skipped, in 450.70 s. The `test-corpus.yml` dispatch at the same commit succeeded: https://github.com/eugenelim/agent-ready-repo/actions/runs/41004989341. The `pack-javascript.yml` dispatch also succeeded: https://github.com/eugenelim/agent-ready-repo/actions/runs/41004993444. Result: pass.
+
 ### AC-0011: the hostile workspace.toml through dispatch
 
 A copy of the `mixed` fixture with `fixtures/hostile_workspace/workspace.toml` as its `workspace.toml`. `dispatch.py --root <copy>` exited 0. Its stdout holds 0 of the 10 hostile strings (`</script><script>`, `<img src=x`, `onerror`, `javascript:`, `"><svg`, `alert(1)`, U+2028, U+2029, U+202E, U+200F), counted both raw and JSON-escaped. `export --root <copy> --readiness -` with those bytes returned `ok`, 173,281 bytes, `readiness` `{"checked": true, "reason": null}`, and none of the 10 strings appears outside the data block. Result: pass.
