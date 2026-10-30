@@ -154,7 +154,7 @@ Owned by: T3
 
 ### T9: Release
 
-- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12
+- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13
 - **Verification mode:** goal-based
 - **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`; `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main` exiting `0` on the pull-request branch, which is one squashed commit carrying `Engine-Change-RFC: 0106` and the `Spec:` trailer, because the supervisor's own commits carry no trailer (owner decision, 2026-10-30; the full supervisor history is pushed as a separate evidence branch); the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** each passes.
@@ -172,7 +172,7 @@ Owned by: T3
 - **Verification mode:** TDD
 - **Tests:** for AC-0004, AC-0008, AC-0009, AC-0011, AC-0013, AC-0014, AC-0015, AC-0025, AC-0028 and AC-0029, from the implementation review's supported findings (records under `.context/reviews/tracker-origin-registration-stop-impl-r1/`):
   - `invoke_refresh` reads and parses the record before any signal-profile check, returns `add-record-tracker-profile` for a record with no profile table whatever profile the signals carry, resolves the processor from the record's table, and checks only a signal or request profile that is present against it; a front-door case whose signals carry no profile.
-  - `render_first_source_authority` refuses, with no output, every locator `intent_renderer.py`'s locator minimizer would refuse or change (control characters, an absolute or personal local path, a `.` or `..` segment, a backslash, an email or secret pattern, a query or fragment), so the intake transaction ends at `source_authority_write` with no dispatch; one refusal case per class in `test_intake_transaction.py`.
+  - `render_first_source_authority` refuses, with no output, every locator in the named sensitive classes (control characters, an absolute or personal local path, a `.` or `..` segment, a backslash, an email or secret pattern, userinfo, a query or fragment), and accepts every other locator byte for byte, so the intake transaction ends at `source_authority_write` with no dispatch; one refusal case per class in `test_intake_transaction.py`.
   - `test_tracker_entry_drop.py`: the before-and-after `dispatch.py` comparison on every planted tree AC-0015 names; an `invoke_refresh` call on each migrated artifact resolving the entry's former profile; one planted case each for the apply refusals `entry_held`, `cooling_state_unavailable`, `record_not_writable` and `artifact_write_failed`, set up after planning, asserting the entry and the artifact unchanged; the plan-time `cooling-state-unavailable` manual item; exactly one manual item per planted unmatched entry.
   - `work-intake` SKILL.md: § 7 describes the two-file guarded write and keeps the `local_write_inconsistent` operator-repair instruction; the source-record paragraph no longer names the deleted `intake_guard.py` helper. Checked by new cases in `tests/roster/test_tracker_origin_registration_stop.py`, each red on the current text: § 7 holds `local_write_inconsistent` and no longer holds `replaces the artifact only`; the file holds no `intake_guard.py` source-record instruction.
   - `workspace-status` `references/mutate.md`: every tracker-origin entry is evaluated whatever its collection; the manual reasons include `cooling-state-unavailable`; `artifact_write_failed` is in the apply reason list. Checked by new cases in the same roster file, each red on the current text: the file no longer holds ``in a `work.` or `backlog.` collection`` and holds `cooling-state-unavailable` and `artifact_write_failed`.
@@ -185,6 +185,16 @@ Owned by: T3
 - **Verification mode:** TDD
 - **Tests:** for AC-0015: `test_dispatch_output_is_identical_across_apply_on_an_archived_tracker_spec` in `packs/core/tests/skills/workspace-status/test_tracker_entry_drop.py` is renamed `test_dispatch_output_differs_only_by_the_archived_spec_blocked_item`, loses its `xfail`, asserts that the before output's `blocked` list holds the Archived spec's item with an `unapproved_spec` finding, and asserts that the two outputs, parsed as JSON, are equal once that one item is removed from the before output's `blocked` list, with nothing else removed.
 - **Done when:** the suite passes.
+
+### T13: Second review repairs
+
+- **Depends on:** T11, T12
+- **Verification mode:** TDD
+- **Tests:** for AC-0005, AC-0025 and AC-0029, from the second implementation review's supported findings (records under `.context/reviews/tracker-origin-registration-stop-impl-r2/`):
+  - `render_first_source_authority` drops the canonical-form equality refusal and refuses only the named sensitive classes; its secret check matches a credential keyword followed by `:` or `=` at any word boundary, as the removed registration helper did. `test_intake_transaction.py` gains one committing case per adapter locator shape (`jira://EX-101`, `jira://boards/7`, `jira-align://…`, `gh://items/101`, `linear://items/…`, a no-host `tracker:TEAM-42`), each with `source_ref` equal to the locator, and refusal cases for `https://t.example/i/1,api_key=SECRET` and `PROJ-1 token=abc`.
+  - `invoke_refresh` returns `refresh-unavailable` with zero effects, before any resolve or acquire, when `request.profile_id` or `request.profile_version` differs from the record's profile, whatever the signals carry; `invalid-refresh-request` stays for path, kind and mode mismatches. A front-door case with no-profile signals and a mismatched request profile pins it.
+  - `work-intake` SKILL.md's locator paragraph names exactly the refused classes.
+- **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass, and `make build-self` leaves no diff.
 
 ## Rollout
 
