@@ -588,6 +588,8 @@ def test_ac0029_a_refused_source_rolls_back_leaving_no_artifact_and_no_dispatch(
         "https://2130706433/Users/n",
         "https://0.0.0.0/Users/n",
         "vscode://file./Users/n",
+        "https://0x7f000001/x",
+        "https://0x7f.1/x",
     ),
     ids=(
         "control-character",
@@ -633,6 +635,8 @@ def test_ac0029_a_refused_source_rolls_back_leaving_no_artifact_and_no_dispatch(
         "decimal-loopback-host",
         "unspecified-address-host",
         "file-host-trailing-dot",
+        "hex-loopback-host",
+        "dotted-hex-loopback-host",
     ),
 )
 def test_ac0029_a_locator_in_a_refused_class_rolls_back(

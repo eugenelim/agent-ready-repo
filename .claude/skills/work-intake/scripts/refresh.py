@@ -932,6 +932,9 @@ _LOCATOR_SECRET = re.compile(
 )
 
 
+_NUMERIC_HOST_PART = re.compile(r"[0-9]*|0x[0-9a-f]*")
+
+
 def _locator_host(locator: str) -> str:
     """The host of a ``scheme://host[/path]`` locator, lowercased, trailing dots dropped."""
     _, separator, rest = locator.partition("://")
@@ -944,7 +947,7 @@ def _is_local_host(host: str) -> bool:
         host in {"localhost", "file"}
         or host.endswith(".localhost")
         or host.startswith("localhost.")
-        or (host != "" and set(host) <= set("0123456789."))
+        or (host != "" and all(_NUMERIC_HOST_PART.fullmatch(part) for part in host.split(".")))
     )
 
 
@@ -952,14 +955,15 @@ def _require_minimal_locator(locator: str) -> str:
     """Return the locator unchanged when its shape is allowed, or refuse it.
 
     The first record is committed to the repository, so only an ASCII
-    ``scheme://host[/path]`` or ``scheme:ID`` locator is accepted: a scheme that
-    starts with a lowercase letter and has two or more lowercase letters,
-    digits or ``+.-``, then letters, digits and ``-._:/``. That keeps whitespace, invisible characters, ``@``, ``?``,
-    ``#``, ``%``, ``~``, backslashes and drive letters out. A ``file:`` scheme,
-    a ``localhost`` host (including ``localhost.`` and ``*.localhost`` forms),
-    a ``file`` host, a host made only of digits and dots, a ``.`` or ``..`` segment, and
-    a secret keyword followed by ``:`` or ``=`` anywhere in a name are refused
-    too.
+    ``scheme://host[/path]`` or ``scheme:ID`` locator is accepted: a scheme
+    that starts with a lowercase letter and has two or more lowercase
+    letters, digits or ``+.-``, then letters, digits and ``-._:/``. That keeps
+    whitespace, invisible characters, ``@``, ``?``, ``#``, ``%``, ``~``,
+    backslashes and drive letters out. A ``file:`` scheme, a ``localhost``
+    host (including ``localhost.`` and ``*.localhost`` forms), a ``file``
+    host, a numeric host (decimal or ``0x`` hex parts), a ``.`` or ``..``
+    segment, and a secret keyword followed by ``:`` or ``=`` anywhere in a
+    name are refused too.
     """
 
     if (
