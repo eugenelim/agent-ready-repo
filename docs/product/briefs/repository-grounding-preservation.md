@@ -3,8 +3,8 @@
 - **Slug:** `repository-grounding-preservation`
 - **Received:** 2026-10-01
 - **Owner:** Platform Core
-- **Status:** Executing
-- **Cut-closed:** <!-- Set only after the final slice cut and its evidence are confirmed. -->
+- **Status:** Shipped
+- **Cut-closed:** 2026-10-29 The four confirmed slices C0 to C3 shipped (#1640, #1644, #1647, #1650). `grounding-preservation-authoring-reproducibility` (#1652) repaired C3's positive-fixture proof inside C3's scope and added no slice. No further slice is intended; see § Closeout.
 - **Source / provenance:** Maintainer corrections to `mikeparcewski/wicked-estate`
   PR 207, comparing original commit `3124d82` with corrected commit `3257648`,
   plus the acceptance-centered work-loop architecture and brief at pi-mono
@@ -340,6 +340,9 @@ green without optional packs.
 Confirming the cut does not start a slice. Each slice gets its spec only when
 its required input above is met.
 
+This order held. C3 shipped in Core 3.1.38 (#1650) before the Slice 4 cutover
+switch merged, so the C3-before-Slice-4 gate is discharged.
+
 ## Relationships to existing work
 
 - `agent-authoring-input-quality` owns general acceptance-criterion selection,
@@ -351,8 +354,9 @@ its required input above is met.
   bounded consumer map is task-local and disposable.
 - The acceptance-centered work-loop brief in the pi-mono worktree owns
   acceptance authority, evidence, typed review, and supervisor migration. This
-  brief consumes those boundaries and must complete before supervisor
-  inversion; it does not join or renumber that migration's eight slices.
+  brief consumed those boundaries and completed before supervisor inversion,
+  as § Closeout records; it does not join or renumber that migration's eight
+  slices.
 - The code-graph review benchmark remains a separate question about review-time
   finding yield. Neither a favorable benchmark nor a code-intelligence install
   is a prerequisite here.
@@ -421,3 +425,68 @@ its required input above is met.
 | `grounding-preservation-evidence` | <auto> |
 | `grounding-preservation-review` | <auto> |
 | `grounding-preservation-authoring-reproducibility` | <auto> |
+
+## Closeout — 2026-10-29
+
+Closed by Platform Core at the owner's request. All five mapped specs are
+terminal, so the closure check is **eligible**. The brief has no parent intent,
+so no intent closure record is due.
+
+### Success metrics
+
+Four metrics are met. Two are met in part, and each names its gap.
+
+1. **Met — six preservation properties stated.** Three graded runs of the
+   frozen shared-graph case on Core 3.1.39 each held 6 of 6
+   ([reproducibility ledger § T3](../../specs/grounding-preservation-authoring-reproducibility/notes/verification-ledger.md)).
+   C1's run on Core 3.1.33 also held 6 of 6
+   ([C1 ledger § T4](../../specs/grounding-preservation-authoring/notes/verification-ledger.md)).
+   Limit: no held-out positive case on another substrate exists; the
+   reproducibility spec accepts this as an assumption.
+2. **Met — consumer classes from repository-native reads.** The "repository-native
+   evidence only" assertion held in every graded authoring run. Every counted run
+   had `adapt-to-project` removed and no Pi or code-intelligence tool
+   (reproducibility ledger § T3, "Tool set" and "Copy contents").
+3. **Met — feature-only tests are not enough.** The `work-loop` feature-tests
+   case went from 3 of 5 on the base to 5 of 5
+   ([C2 ledger § T4](../../specs/grounding-preservation-evidence/notes/verification-ledger.md)),
+   and held 5 of 5 again in C3
+   ([C3 ledger § T5](../../specs/grounding-preservation-review/notes/verification-ledger.md)).
+   Each of C2's ten named mutants fails its own oracle (C2 ledger § T1). Limit:
+   the graded runs checked what the guidance tells an agent, not evidence
+   produced in a real repository.
+4. **Met — the consumer map and task list carry no authority.**
+   `test_consumer_map_disposable.py` shows a plan-resident map is disposable,
+   with a mutation seen red (C1 ledger § T2). C3's AC-0016 deletes the map,
+   rebuilds it in another order, and replaces the task list; the acceptance
+   fingerprint, review obligations, report, and verdicts stay unchanged (C3
+   ledger § T2).
+5. **Met in part — precise trigger.** The private-helper negative control held
+   4 of 4 in C1, C3, and the reproducibility runs. **Gap:** no graded authoring
+   case covers a new entity behind an explicit filter. Only a content pin on the
+   `new-spec` reference
+   (`test_shared_substrate_preservation.py`, "filter exclusion") and C3's
+   reviewer assertion of no finding on a filtered search path cover it.
+6. **Met in part — checks pass without optional packs.** `packs/core/pack.toml`
+   has no `[dependencies]` table (C3 AC-0019), and `agentbundle catalogue verify`
+   exits 0 (C3 AC-0020, ledger § T4). **Gap:** no shipped spec or ledger names or
+   records a default-selection check.
+
+### Follow-ons and residue
+
+- Each spec's follow-on is discharged. C0, C1, and C2 pointed at the later
+  slices, which shipped. C3's positive-fixture follow-on was fixed by the
+  reproducibility spec, and
+  [`new-spec-positive-case-reproducibility`](../captured/new-spec-positive-case-reproducibility.md)
+  is `Closed`, `fixed`. The reproducibility spec's follow-on is this closeout.
+- C1's deferred review Nits stay with their ledger (C1 ledger § Amendment
+  review and § Code review). They are wording repairs and gate nothing.
+- The two metric gaps above are named, not routed. Each needs an owner decision
+  before it becomes work.
+- [RFC-0079](../../rfc/0079-codebase-context-pack.md) still calls this brief
+  "ready". That RFC is Accepted and was left unchanged.
+
+### Disposition
+
+Retain the brief and the five spec directories. This section cites their
+verification ledgers as closeout evidence, so none is eligible for disposal.
