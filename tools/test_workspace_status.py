@@ -1689,7 +1689,7 @@ _WORK_LOOP_CONTRACT_HASH = (
 # Reviewed as the pin requires, and the engine needs no edit: the bullet still
 # runs the read-only spec-status lint and mutates no workspace.toml array.
 _WORK_LOOP_FINISH_HASH = (
-    "e982579dfeba575f1add76c2efc6edb89ed38af42c459003cc6fa4bd15763753"
+    "f246811ea42fa608de1a4aa3355f49f9425359f78d8870f8062ff478a00cf05f"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

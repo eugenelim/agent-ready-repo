@@ -35,35 +35,8 @@ HARNESS = REPO_ROOT / "packs" / "core" / "tests" / "skills" / "work-loop" / "sup
 # is allowed when it sits, by whole path components, inside the skill's scripts
 # directory, the platform's extension-module directory, or the standard library
 # directory outside any site-packages.
-_FENCE_RULE = """
-import os
-
-
-def _real(path):
-    return os.path.normcase(os.path.realpath(path))
-
-
-def _inside(path, root):
-    try:
-        return os.path.commonpath([path, root]) == root
-    except ValueError:
-        return False
-
-
-def make_allowed(stdlib, extension_dir, scripts):
-    stdlib, extension_dir, scripts = _real(stdlib), _real(extension_dir), _real(scripts)
-
-    def allowed(path):
-        real = _real(path)
-        if _inside(real, scripts) or _inside(real, extension_dir):
-            return True
-        if not _inside(real, stdlib):
-            return False
-        parts = os.path.relpath(real, stdlib).split(os.sep)
-        return not {"site-packages", "dist-packages"} & set(parts)
-
-    return allowed
-"""
+_FENCE_RULE_PATH = Path(__file__).resolve().with_name("supervisor_fence_rule.py")
+_FENCE_RULE = _FENCE_RULE_PATH.read_text(encoding="utf-8")
 
 # Runs one verb with an import fence. The fence resolves each import with the normal
 # path finder and refuses any file module the rule does not allow, so a stray import
@@ -188,14 +161,16 @@ def test_extension_modules_import_under_the_fence(tmp_path: Path) -> None:
 
 
 def _rule(tmp_path: Path):
-    scope: dict[str, Any] = {}
-    exec(_FENCE_RULE, scope)  # noqa: S102 - the rule is this module's own source string
+    spec = importlib.util.spec_from_file_location("roster_supervisor_fence_rule", _FENCE_RULE_PATH)
+    assert spec is not None and spec.loader is not None
+    rule = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rule)
     stdlib = tmp_path / "lib" / "python3.99"
     extension = stdlib / "lib-dynload"
     scripts = tmp_path / "skill" / "scripts"
     for directory in (stdlib / "site-packages", extension, scripts, tmp_path / "lib" / "python3.99-sibling"):
         directory.mkdir(parents=True)
-    return scope["make_allowed"](str(stdlib), str(extension), str(scripts)), stdlib, extension, scripts
+    return rule.make_allowed(str(stdlib), str(extension), str(scripts)), stdlib, extension, scripts
 
 
 def test_the_rule_admits_the_stdlib_the_extension_directory_and_scripts(tmp_path: Path) -> None:

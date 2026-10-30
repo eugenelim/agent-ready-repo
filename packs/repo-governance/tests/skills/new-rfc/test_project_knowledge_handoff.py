@@ -151,7 +151,7 @@ def test_governance_handoff_metadata_is_descriptive_and_keeps_absence() -> None:
         for item in manifest["pack"]["dependencies"]["recommended"]
         if item["pack"] == "core"
     )
-    assert dependency["version"] == "^3.0"
+    assert dependency["version"] == "^4.0"
     handoff = next(
         item
         for item in manifest["pack"]["integrations"]
