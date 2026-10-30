@@ -494,15 +494,7 @@ def test_an_archived_tracker_spec_in_the_queue_gets_no_queue_remove(
     assert_refresh_resolves_former_profile(repo, tracked, "spec")
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason=(
-        "dispatch.py lists an Archived spec as blocked (unapproved_spec) only while a queue "
-        "entry names it, so removing the entry removes that item; the base queue-remove "
-        "does the same"
-    ),
-)
-def test_dispatch_output_is_identical_across_apply_on_an_archived_tracker_spec(
+def test_dispatch_output_differs_only_by_the_archived_spec_blocked_item(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     # Alone in the queue: another entry's own queue-remove would move the output.
@@ -517,7 +509,16 @@ def test_dispatch_output_is_identical_across_apply_on_an_archived_tracker_spec(
         },
     )
     assert [op["path"] for op in drops(plan(repo, capsys))] == [tracked]
-    assert_dispatch_unchanged_by_apply(repo, capsys)
+    before = json.loads(dispatch_stdout(repo, capsys))
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    after = json.loads(dispatch_stdout(repo, capsys))
+    # dispatch.py lists an Archived spec as blocked only while a queue entry names
+    # it, so the one allowed difference is that item leaving the blocked list.
+    [archived] = [item for item in before["blocked"] if item["path"] == tracked]
+    assert "unapproved_spec" in [finding["code"] for finding in archived["findings"]]
+    before["blocked"] = [item for item in before["blocked"] if item is not archived]
+    assert after == before
     assert tracked not in registry_text(repo)
 
 
