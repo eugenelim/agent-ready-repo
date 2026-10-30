@@ -100,7 +100,38 @@ Plan: `plan_id` `8e62a2e96129b382264224494d68bdf9070cfa081aebb1fefbc1dfcb64c2bc9
 | `type1-untracked` items | 0 |
 | `spec-entry-drop` operations | 243 (214 `work.shipped`, 20 `backlog.open`, 5 `work.queue`, 4 `work.active`) |
 
-Apply: exit `0`, `applied: true`, `operations_applied: 243`; 243 entries removed; `workspace.toml` SHA-256 `777a6c01f31f322884bede5d743da02f222b15ca2b228601f63da7a903f07fb0` before, `f9ebb555f640a756e487d9e6112af626f9ce85f9580d16b89764c9c9c820ec09` after. A following `repair-plan` holds no operation and no manual item. No repo-origin spec table is left in `workspace.toml`, and `tools/compare-registry.py --root .` still passes.
+Apply: exit `0`, `applied: true`, `operations_applied: 243`; 243 entries removed; `workspace.toml` SHA-256 `777a6c01f31f322884bede5d743da02f222b15ca2b228601f63da7a903f07fb0` before, `f9ebb555f640a756e487d9e6112af626f9ce85f9580d16b89764c9c9c820ec09` after. A following `repair-plan` held no operation and no manual item, and `tools/compare-registry.py --root .` still passed. The rebase onto `7933d2fcb635ab3373281756bf2e878fbd6747c9` then brought in two more repo-origin spec entries, which the second run below removed.
+
+| Stdout of | SHA-256 before the apply | SHA-256 after the apply |
+| --- | --- | --- |
+| `dispatch.py --root .` | `96d8f586fcb5315e3187f56734d8832eb35397b7119541c25f47a69c6c9f3a7f` | `96d8f586fcb5315e3187f56734d8832eb35397b7119541c25f47a69c6c9f3a7f` |
+| `dispatch.py --root . --resume docs/specs/spec-registration-stop/spec.md` | `06d395d484a0e49c3c7a2c8360adcb072dd42810af27ce90ed05b74f633c622d` | `06d395d484a0e49c3c7a2c8360adcb072dd42810af27ce90ed05b74f633c622d` |
+
+Both pairs are equal, and the plan held no needs operation and no held entry.
+
+### Second run, after the rebase onto `7933d2fcb`
+
+Run 2026-10-29 on this branch at commit `3f436fab9c57c32cb7ecc069ea90d81531d2d2ea`. The rebase had added two repo-origin spec entries to `workspace.toml`, both in `["ini-002".work].shipped` with `needs = []`.
+
+```
+python3 packs/core/.apm/skills/workspace-status/scripts/workspace_status.py repair-plan --root . --plan-file .context/repair/plan-r2.json
+python3 packs/core/.apm/skills/workspace-status/scripts/workspace_status.py repair-apply --root . --plan-file .context/repair/plan-r2.json --yes
+```
+
+Plan: `plan_id` `e242f4e04336d84dbfc6ac3b20c04d772ab74054a9ef82458a95729446f644ac`, file SHA-256 `fe6a0f93ac7c620a771ef49f52fc46f46e94a6a0c01327100a4c71759298c243`, workspace fingerprint `197dc322ca9c4c081dd45be81f1077c8bc6ffa5d93f391e27377e9d318da17cd`. The owner was shown the plan file path, its SHA-256, its 2 operations and its 0 manual items, and approved the apply before it ran (2026-10-29, eugenelim).
+
+| Planned | Count |
+| --- | ---: |
+| `needs-to-header` operations | 0 |
+| `needs-drop-cooled` operations | 0 |
+| held entries | 0 |
+| needs manual items | 0 |
+| `type1-untracked` items | 0 |
+| `spec-entry-drop` operations | 2 (2 `work.shipped`: `docs/specs/grounding-preservation-authoring-reproducibility/spec.md`, `docs/specs/grounding-preservation-review/spec.md`) |
+
+Apply: exit `0`, `applied: true`, `operations_applied: 2`; `workspace.toml` SHA-256 `197dc322ca9c4c081dd45be81f1077c8bc6ffa5d93f391e27377e9d318da17cd` before, `1213450dbc24a77a77b524033e6c92b80c9cfcc29be9fd5da238e739c6a45603` after. A following `repair-plan` (`.context/repair/plan-r3.json`, SHA-256 `1d26e9b02fc2bd902d447636f4cdfa5c84c839347bd617ded7af856ab40452b8`) holds 0 automatic operations and 0 manual findings. No repo-origin spec table is left in `workspace.toml`; the only `kind = "spec"` text is the template comment on line 11. `tools/compare-registry.py --root .` passes.
+
+The digests below were taken in the same shell command as the apply, immediately before and immediately after it.
 
 | Stdout of | SHA-256 before the apply | SHA-256 after the apply |
 | --- | --- | --- |
