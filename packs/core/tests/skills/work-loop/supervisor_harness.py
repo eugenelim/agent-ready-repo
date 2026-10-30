@@ -96,9 +96,11 @@ def make_repo(root: Path, *, plan: str = sup.PLAN, spec: str = sup.SPEC) -> Path
     (repo / ".gitignore").write_text("*.log\n.loop-run/\n__pycache__/\n", **_LF)
     (repo / "README.md").write_text("base\n", **_LF)
     git(repo, "init", "-q", "-b", "main")
-    # Byte-stable on every host: a Windows runner's system autocrlf would
-    # otherwise turn the plan's LF stub fences into CRLF on checkout.
-    git(repo, "config", "core.autocrlf", "false")
+    if os.name == "nt":
+        # A Windows runner's system autocrlf would turn the plan's LF stub
+        # fences into CRLF on checkout. Elsewhere the caller's own config
+        # stands, so a test can still carry an autocrlf setting in.
+        git(repo, "config", "core.autocrlf", "false")
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "base")
     return repo

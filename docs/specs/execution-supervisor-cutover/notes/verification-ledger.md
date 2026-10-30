@@ -296,8 +296,9 @@ Core stays at 4.0.0.
 With #1655 merged, the Windows installed-skill run (AC-0012) got past `start`.
 It then stopped on `invalid-stub-fence` ("a plan with stub fences must use LF
 line endings"), because the harness wrote `plan.md` in text mode, which emits
-CRLF on Windows. The harness now writes every fixture file with LF and sets
-`core.autocrlf false` in its repository.
+CRLF on Windows. The harness now writes every fixture file with LF and, on
+Windows only, sets `core.autocrlf false` in its repository; elsewhere the
+caller's own Git config stands, so the autocrlf carry test still proves its case.
 
 Observation, outside this spec: the supervisor honours a repository's
 `core.autocrlf`, so a Windows adopter whose plan checks out with CRLF gets
