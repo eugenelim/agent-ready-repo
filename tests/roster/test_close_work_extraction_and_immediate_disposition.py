@@ -916,23 +916,27 @@ def test_wave4_spec_plan_and_workspace_lifecycle_are_aligned() -> None:
     assert plan_status == expected[spec_status][0]
     # The spec index was retired by ADR-0112; the spec's own fields are the source.
     assert "RFC-0096" in spec_path.read_text(encoding="utf-8")
-    assert memberships == expected[spec_status][1]
+    # Since the spec registration stop (RFC-0106 D1) the spec-entry-drop repair
+    # removes a repo-origin spec's entry; its Status alone is its lifecycle state.
+    assert memberships <= expected[spec_status][1]
 
     # A shipped spec carries no unchecked acceptance criterion; a separable
     # follow-on lives outside the AC list with its own owner.
     if spec_status == "Shipped":
         assert "- [ ] **AC" not in spec_path.read_text(encoding="utf-8")
 
-    # Exactly one membership row, RFC-pinned, with no hard dependency.
+    # At most one membership row; while one exists it is RFC-pinned with no hard
+    # dependency. The spec-entry-drop repair removes it (RFC-0106 D1).
     rows = [
         item
         for item in work[next(iter(expected[spec_status][1]))]
         if isinstance(item, dict) and item.get("path") == locator
     ]
-    assert len(rows) == 1
-    assert rows[0]["source"] == {
-        "mode": "repo-origin",
-        "ref": "docs/rfc/0096-portable-delivery-artifact-lifecycle.md",
-        "revision": "6e984d67b583b36798efddbb2717ce5784572a49",
-    }
-    assert rows[0]["needs"] == []
+    assert len(rows) <= 1
+    for row in rows:
+        assert row["source"] == {
+            "mode": "repo-origin",
+            "ref": "docs/rfc/0096-portable-delivery-artifact-lifecycle.md",
+            "revision": "6e984d67b583b36798efddbb2717ce5784572a49",
+        }
+        assert row["needs"] == []

@@ -1684,8 +1684,12 @@ _WORK_LOOP_CONTRACT_HASH = (
 # read-only lint, writes no spec.md field, and mutates no workspace.toml array.
 # Re-pinned again the same day: the bullet's exit-1 advice now names the fix for
 # each code. Same review result, and the engine needs no edit.
+# Re-pinned 2026-10-29 for spec-registration-stop: a historical deferral anchor
+# now resolves through `[backlog].open` or an open intent, brief or spec file.
+# Reviewed as the pin requires, and the engine needs no edit: the bullet still
+# runs the read-only spec-status lint and mutates no workspace.toml array.
 _WORK_LOOP_FINISH_HASH = (
-    "2f7f3d8408e4fc0fa35323a3ceb6d05df501f67cf347444e15f3afa2a0544303"
+    "e982579dfeba575f1add76c2efc6edb89ed38af42c459003cc6fa4bd15763753"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
