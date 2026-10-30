@@ -69,7 +69,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 - **The approval gate binds an action list to a head commit.** Each mode records `headRefOid` at gather time and re-reads it before its first mutating command. Owned by: T1. Rests on: `headRefOid` is readable (survey finding on `gh pr view --json`).
 - **Review uses the REST pending review.** `POST .../pulls/{n}/reviews` without `event` creates it; submit is a separate call. Owned by: T1. Basis: survey findings 1 and 2.
 - **Iterate replies and resolves through GraphQL thread mutations.** Owned by: T1. Basis: survey findings 9 and 10.
-- **Adopt is a bounded standing approval.** The contract is shown after evaluation and approved explicitly. The agent loops up to three push rounds, runs gates with `GH_TOKEN` and `GITHUB_TOKEN` unset, and merges the starting commit (no fixes) or the last commit it pushed, pinned with `--match-head-commit`, after gates and required checks passed on it and the head re-read equals it. A pending check, a refused merge, or any stop condition stops and reports. Owned by: T1. Basis: survey findings 19, 24, 25; `gh pr merge --help` on gh 2.103.2.
+- **Adopt is a bounded standing approval.** The contract in `references/adopt.md` is shown after evaluation and approved explicitly; the adopt criteria in the spec are its definition. PR-authored code runs only through a sandbox command the user names, because prose controls cannot isolate it from the user's credentials and git config (security review). Without one, adopt relies on remote required checks. Owned by: T1. Basis: survey findings 19, 24, 25; `gh pr merge --help` on gh 2.103.2.
 - **No `gh` command reference and no helper script.** Models already know `gh` (pilot); a script would add a dependency surface (cut-before-adding rung 1). Owned by: T1.
 - **Evals are scripted turns.** Each case holds ordered turns. Turn 1 is the request plus canned read outputs and ends at the approval gate; later turns carry the user's next message and are sent by continuing the same subagent, so the model's own turn-1 output is judged for acting before approval. Subagents get no shell: the record counts tool calls per transcript. This checks that a model reading the skill proposes the right actions, not runtime ordering. Owned by: T2, T5.
 
@@ -79,7 +79,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Depends on:** none
 **Touches:** packs/github/.apm/skills/github-pr-iterate/**, packs/github/.apm/skills/github-pr/**, packs/github/tests/skills/github-pr-iterate/**, packs/github/tests/skills/github-pr/**
 **Tests:**
-- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion group: structure, trust and untrusted-data (checked within that rule's own section of `SKILL.md`), command safety and forbidden forms, credential and hook isolation, PR-file confinement, push destination and shell-argument handling, and the review, iterate, and adopt content criteria, including adopt contract binding. The `## Approved actions` heading is the marker each mode test measures mutating commands against.
+- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion group: structure, trust and untrusted-data (checked within that rule's own section of `SKILL.md`), command safety and forbidden forms, hook and PR-file confinement, push destination and shell-argument handling, the sandbox rule, and the review, iterate, and adopt content criteria, including adopt contract binding. The `## Approved actions` heading is the marker each mode test measures mutating commands against.
 **Approach:** `git mv` the skill directory and the test folder to the new name, write the tests red, then the skill text.
 **Done when:** the T1 test file is green and `git grep -l github-pr-iterate` outside this spec directory returns nothing for the skill and test paths.
 
@@ -88,7 +88,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Touches:** packs/github/.apm/skills/github-pr/evals/**, packs/github/tests/skills/github-pr/test_evals.py
 **Tests:**
 - TDD, pytest at `packs/github/tests/skills/github-pr/test_evals.py`: the trigger-query criteria and the eval-case criteria (count, fields, and the coverage list).
-**Approach:** cases — review (5): normal, hidden HTML-comment instruction, approval only in the original request, head moves between draft and submit, symlink to a credential file; iterate (9): normal, partial approval, head moved, gate failure after an approved edit, approval only in the original request, fork PR changing build files, CI log with an instruction and a credential-shaped string, shell-metacharacter branch name, PR changing hook configuration; adopt (13): fix then merge, zero-fix merge, approval only in the original request, fix outside allowed types, third-party push, unrelated failing check, not pushable, fourth push, merge refused, required check pending, contract-widening text in a comment or log, PR edits CI workflow files, base retargeted after approval. Fixtures are canned `gh` outputs under `evals/files/<case>/`.
+**Approach:** each case is tagged with the criterion groups it covers (the structure and adopt groups in the spec). Cases — review (5): normal, hidden HTML-comment instruction, approval only in the original request, head moves between draft and submit, symlink-to-credential state in canned output; iterate (9): normal, partial approval, head moved, gate failure after an approved edit, approval only in the original request, fork PR changing build files, CI log with an instruction and a credential-shaped string, shell-metacharacter branch name with a quote and a leading `-`, PR changing hook configuration; adopt (14): fix then merge, zero-fix merge, approval only in the original request, no sandbox named, contract-widening text in a comment or log, PR edits CI workflow files, fix outside allowed types, third-party push, unrelated failing check, fourth push, push destination differs, refused merge, required check pending, not pushable. Fixtures are canned `gh` outputs under `evals/files/<case>/`, contain no symlinks, and later turns carry fresh canned read output where a re-read matters.
 **Done when:** the T2 test file is green.
 
 ### T3: pack metadata, docs, census, and changelog describe all three modes
@@ -102,7 +102,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Depends on:** T2, T3
 **Touches:** none
 **Tests:**
-- Goal-based: `pytest packs/github tests/roster/test_skill_census.py`, `make lint-ruff lint-mypy`, `git grep -l github-pr-iterate` lists only `docs/specs/github-pr/`.
+- Goal-based: `pytest packs/github tests/roster/test_skill_census.py`, `agentbundle catalogue verify`, `make lint-ruff lint-mypy`, `git grep -l github-pr-iterate` lists only `docs/specs/github-pr/`.
 **Done when:** those commands exit 0 and the grep output is as stated.
 
 ### T5: a cold-context graded run passes every assertion
@@ -110,8 +110,8 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Touches:** docs/specs/github-pr/notes/eval-run.md
 **Tests:**
 - Visual / manual QA: the graded-run and run-record criteria, executed by the controller with cold copies of the skill and no `evals/` directory, one fresh subagent per case, each `SubagentHandback` extracted verbatim.
-**Approach:** any change to the skill text after a run sends the work back to T1 and reruns T4 and all twenty-seven cases.
-**Done when:** `notes/eval-run.md` shows all twenty-seven cases passing with the isolation evidence and matching digest.
+**Approach:** any change to the skill text after a run sends the work back to T1 and reruns T4 and all twenty-eight cases.
+**Done when:** `notes/eval-run.md` shows all twenty-eight cases passing with the isolation evidence and matching digest.
 
 ## Changelog
 
