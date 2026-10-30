@@ -90,7 +90,7 @@ A reader of a saved architecture assessment is oriented first on the whole syste
 
 ## Follow-ons
 
-- eugenelim: [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) — the HTML renderer that consumes these sections.
+- eugenelim: HTML report renderer — a stdlib script that renders a saved `assessment.md`, with these sections, into one offline HTML file; drafted separately and not part of this change.
 
 ## Assumptions
 
