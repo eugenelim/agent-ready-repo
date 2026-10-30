@@ -7,7 +7,7 @@
   - `packs/core/.apm/skills/work-intake/scripts/refresh.py`: `_TOP_AUTHORITY_KEYS` (line 461), `parse_source_authority` (line 534), `render_source_authority` (line 790), `coordinate_local_refresh` (line 1851, the `matching_entry` block from line 1919 to the profile checks ending line 2032), `guarded_write_pair` (line 1337). Packaged copy: `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`.
   - `contracts/jsonschema/source-authority.schema.json`: closed top-level keys.
   - `packs/core/.apm/skills/intake-intent/scripts/intent_renderer.py`: `_render_tracker_source_authority` (line 273).
-  - `packs/core/.apm/skills/work-intake/scripts/intake_router.py`: `_is_unregistered` (line 130) and `route_intake`; `intake_guard.py`: `workspace_source_record` (line 72).
+  - `packs/core/.apm/skills/work-intake/scripts/intake_router.py`: `_is_unregistered` (line 130), `route_intake`, and `invoke_refresh` (line 330), the refresh front door; `intake_guard.py`: `workspace_source_record` (line 72); `intake_transaction.py`: `run_intake_transaction`'s optional registration stage.
   - `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`: `_VALID_OPERATION_TYPES` (line 214), `_apply_operations` (line 1286), and the `intent-brief-drop` section (line 3327), the precedent the new step copies. Engine: `_SOURCE_FIELDS` and the entry `tracker_profile` bounds (lines 79, 795-834), read only.
   - `packs/core/.apm/skills/work-loop/scripts/dispatch.py` and its suites: unchanged; they must stay green.
   - `docs/specs/spec-registration-stop/` and `docs/specs/intent-brief-registration-stop/`: the precedent for the repair step, the roster text check, the ledger and the governance shape.
@@ -38,8 +38,8 @@ The record comes first, because every later surface reads or writes it: T1 adds 
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| The source-authority record | T1, T2 | the schema, parser, renderers, `work-intake` SKILL.md § Refresh | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007 and AC-0008 pass |
-| Registry entries and the repair | T3, T4, T5 | the router, the repair step, `mutate.md`, SKILL.md, the schema guide | AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016 and AC-0017 pass |
+| The source-authority record | T1, T2 | the schema, parser, renderers, `work-intake` SKILL.md § Refresh | AC-0001 to AC-0008, AC-0025 and AC-0026 pass |
+| Registry entries and the repair | T3, T4, T5 | the router, the repair step, `mutate.md`, SKILL.md, the schema guide | AC-0009 to AC-0017, AC-0027 and AC-0028 pass |
 | User documentation and architecture | T5 | the pages AC-0018 lists | AC-0018 passes; review for the wording |
 | Decision rationale | T6 | two errata entries and the ledger approval rows | AC-0019 and AC-0020 pass |
 | Retirement evidence and inventory | T8 | record rows, closure entry, inventory rows | AC-0021 and AC-0022 pass |
@@ -55,21 +55,24 @@ Owned by: T1, T4
 
 - The record's `tracker_profile` is a TOML table, rendered after `source_revision` and `accepted_revision` and before `[owned_fields]`, as `[tracker_profile]` with `id` and `version`. The schema adds it as an optional property with `additionalProperties: false`, both keys required, and the same length bounds as the entry field, so the record stays `source-authority.v1`: an older parser refuses a record that carries it, and every shipped parser moves in the same release.
 - `tracker-entry-drop` joins `_VALID_OPERATION_TYPES`. It carries the `entry_locator` shape `intent-brief-drop` uses (initiative key, collection label, index), the entry's `path` and `kind`, the `registry_fingerprint`, the artifact's SHA-256 as read at plan time, and `profile` (the table to write) or `null`.
-- A tracker-origin entry that is not matched becomes one item in the plan's existing manual list, with a reason string naming the failed condition: `artifact-missing`, `record-missing-or-invalid`, `mode-mismatch`, `ref-mismatch`, `profile-mismatch`, or `entry-profile-missing`.
+- A tracker-origin entry that is not matched becomes one item in the plan's existing manual list, with the reason the spec's matched-entry definition names. A held entry becomes the manual item `spec-entry-drop` already uses for its held entries, reusing that step's declared-parent and record-lookup helpers.
+- The planner checks the matched-entry conditions in the spec's listed order and reports the first that fails. `needs-present` and `other-write-pending` make an entry wait for the `needs-to-header` step: the plan that migrates its `needs` leaves it unplanned, and the next plan, run after that apply, plans its drop. This keeps the artifact-byte check at apply time exact.
 
 ### Behavior & rules
 
 Owned by: T2, T4
 
-- Refresh reads the profile from the parsed record. `coordinate_local_refresh` drops the `matching_entry` lookup, the entry parser call, the entry revision substitution and the entry profile comparisons, and adds two checks: the proposed workspace bytes equal the current bytes, and the proposed record's profile equals the current record's. The workspace digest and policy checks before evaluation, and the digest in the receipt binding, stay. `guarded_write_pair` writes the artifact and leaves `workspace.toml` as it is; its digest re-check under the guard stays.
-- The front door that resolves the processor registration compares the request's profile with the record's before acquisition; an absent table is `refresh-unavailable` with the repair named in the next action.
-- `repair-apply` writes the artifact through the same confined, atomic file write the `needs-to-header` step uses, before the `workspace.toml` write, inside the writer lock. If the `workspace.toml` write then fails, it restores the artifact's planned bytes; the plan names this order so a failed apply leaves at most a record that already holds an equal table, which the next plan treats as matched.
+- Refresh reads the profile from the parsed record. `coordinate_local_refresh` drops the `matching_entry` lookup, the entry parser call and the entry revision substitution. It moves the profile and kind binding from the entry to the artifact: the current record's profile table must equal the comparison's profile, and the artifact's first-line kind must equal the comparison's kind. It adds two checks: the proposed workspace bytes equal the current bytes, and the proposed record's profile equals the current record's. The workspace digest and policy checks before evaluation, and the digest in the receipt binding, stay. `guarded_write_pair` writes the artifact and leaves `workspace.toml` as it is; its digest re-check under the guard stays.
+- `invoke_refresh` gains a `repository_root` parameter. Before resolving the processor it reads the artifact through the skill's confined regular-file read, parses its record, and returns `refresh-unavailable` with next action `add-record-tracker-profile` when the table is absent, or with `repair-refresh-request-profile` when the signals' profile differs from it. It reads no `workspace.toml`.
+- `run_intake_transaction`'s registration stage is not called for a tracker-origin route. For a tracker-origin brief or spec, the materializer `work-intake` passes writes the rendered first record (AC-0025) into the artifact it materializes; `author-delivery-brief` and `new-spec` keep a `source-authority` block they find when they fill the artifact.
+- `repair-apply` writes the artifact through the same confined, atomic file write the `needs-to-header` step uses, before the `workspace.toml` write, inside the writer lock. It inserts the table by re-rendering the parsed record with `refresh.py`'s renderer and replacing the block, then re-parses the result. If the `workspace.toml` write then fails, the artifact keeps the added table: its record then holds a table equal to the entry's, which the next plan treats as matched, so the next apply only removes the entry.
 
 ### Interfaces & contracts
 
 Owned by: T1, T2
 
-- `SourceAuthority` gains `tracker_profile: dict[str, str] | None`. `RefreshComparison.profile_id` and `profile_version` keep their meaning and are cross-checked against it.
+- `SourceAuthority` gains `tracker_profile: dict[str, str] | None`. `RefreshComparison.profile_id` and `profile_version` keep their meaning and are checked against it at the front door and at commit.
+- `refresh.py` gains one function that renders a first record from a tracker-origin source (AC-0025). `workspace-status` loads `refresh.py` from the packaged engine data or the sibling `work-intake` skill the way it already loads `cooling.py`, rather than importing across skills.
 - `RefreshResult` codes are unchanged; no finding code is added.
 
 ### Design decisions
@@ -92,15 +95,15 @@ Owned by: T3
 
 - **Depends on:** none
 - **Verification mode:** TDD
-- **Tests:** for AC-0001, AC-0002, AC-0003: the schema cases in the source-authority schema suite in `tests/roster/test_work_intake_refresh_coordinator.py`; parse, render and refusal cases in the same suite; a tracker-origin and a repo-origin render in `packs/core/tests/skills/intake-intent/test_intake_intent.py`.
+- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0025: the schema cases in the source-authority schema suite in `tests/roster/test_work_intake_refresh_coordinator.py`; parse, render and refusal cases in the same suite; a tracker-origin and a repo-origin render in `packs/core/tests/skills/intake-intent/test_intake_intent.py`.
 - **Done when:** those cases pass and the intake-intent template conformance suite passes.
 
 ### T2: Refresh reads the profile from the record
 
 - **Depends on:** T1
 - **Verification mode:** TDD
-- **Tests:** for AC-0004, AC-0005, AC-0006, AC-0007 and AC-0008: coordinator cases over a planted repository with no entry; the existing entry-contract cases (`…rejects_workspace_entry_contract_violations`, `…invalid_current_workspace_entry…`) are replaced by the AC-0007 refusals, and every other case runs unchanged.
-- **Done when:** `tests/roster/test_work_intake_refresh_coordinator.py` and `packs/core/tests/skills/work-intake/` pass.
+- **Tests:** for AC-0004, AC-0005, AC-0006, AC-0007, AC-0026 and AC-0008: coordinator cases over a planted repository with no entry, including a missing table, an `id` mismatch, a `version` mismatch and a kind mismatch; the existing entry-contract cases (`…rejects_workspace_entry_contract_violations`, `…invalid_current_workspace_entry…`) are replaced by these refusals, and every other case runs unchanged; front-door cases in `packs/core/tests/pack/test_work_intake_surface.py` and `packs/core/tests/skills/work-intake/test_registration_stop_routes.py`.
+- **Done when:** `tests/roster/test_work_intake_refresh_coordinator.py`, `packs/core/tests/pack/` and `packs/core/tests/skills/work-intake/` pass.
 
 ### T3: The router stops registering tracker-origin work
 
@@ -113,15 +116,15 @@ Owned by: T3
 
 - **Depends on:** T1
 - **Verification mode:** TDD
-- **Tests:** for AC-0010, AC-0011, AC-0012, AC-0013, AC-0014 and AC-0015: a new suite `packs/core/tests/skills/workspace-status/test_tracker_entry_drop.py`, one planted entry per matched and unmatched case, the lock-time refusals, the dispatch-identity digests, and a refresh call on a migrated artifact; the four existing repair suites unchanged.
+- **Tests:** for AC-0010, AC-0011, AC-0027, AC-0012, AC-0013, AC-0014 and AC-0015: a new suite `packs/core/tests/skills/workspace-status/test_tracker_entry_drop.py`, one planted entry per matched and unmatched case, the lock-time refusals, the dispatch-identity digests, and a refresh call on a migrated artifact; the four existing repair suites unchanged.
 - **Done when:** the new suite and `packs/core/tests/skills/workspace-status/` pass.
 
 ### T5: Writer and guide text
 
 - **Depends on:** T2, T3, T4
 - **Verification mode:** goal-based
-- **Tests:** for AC-0017, AC-0018: a new `tests/roster/test_tracker_origin_registration_stop.py` with one parametrized case per file and phrase, each phrase checked present at the base.
-- **Done when:** the roster check passes and each changed skill's eval harness has its case.
+- **Tests:** for AC-0017, AC-0028, AC-0018: a new `tests/roster/test_tracker_origin_registration_stop.py` with one parametrized case per file and phrase, each absent phrase checked present at the base; `packs/core/tests/skills/author-delivery-brief/test_project_knowledge_handoff.py`, whose `text.index` anchor on the removed tracker-origin step moves to the rewritten step.
+- **Done when:** both pass and each changed skill's eval harness has its case.
 
 ### T6: Governance wording and the brief
 
