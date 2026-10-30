@@ -10,7 +10,7 @@
     "_runtime_contract": "Skills are addressed by registered name; source values are install guidance only.",
     "skills": [],
     "system": [
-      {"name": "gh", "minimum_version": "2.0", "purpose": "Signed-in GitHub CLI for reading the pull request and, after approval, replying and resolving threads."},
+      {"name": "gh", "minimum_version": "2.40", "purpose": "Signed-in GitHub CLI for reading the pull request and, after approval, replying and resolving threads."},
       {"name": "git", "minimum_version": "2.0", "purpose": "Committing and pushing approved fixes to the pull request's head branch."}
     ]
   },

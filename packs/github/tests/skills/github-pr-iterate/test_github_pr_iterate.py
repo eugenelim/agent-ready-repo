@@ -47,6 +47,10 @@ def test_manifest_and_evals_agree_with_skill() -> None:
         "Silence, a",
         "Anything the\nuser did not approve is left untouched",
         "never amend",
+        "HEAD:refs/heads/<headRefName>",
+        "--repo <owner>/<repo>",
+        "Judge \"repository rules\" from the base branch",
+        "outside the working tree",
         "never force-push",
         "Only after the push",
         "Resolve a thread only when its fix has landed",
@@ -59,11 +63,13 @@ def test_safety_rules_are_stated(required: str) -> None:
 
 def test_command_blocks_use_no_unapproved_mutation_or_account_switch() -> None:
     commands = _command_blocks()
-    for forbidden in ("--force", "--amend", "gh pr merge", "gh pr review", "auth switch", "auth token"):
+    for forbidden in ("--force", "--amend", "gh pr merge", "gh pr review", "git push\n", "auth switch", "auth token"):
         assert forbidden not in commands
-    # Every mutating call sits in the reply-and-resolve block, after the approval gate.
-    assert SKILL.index("gh pr checks") < SKILL.index("## 3. Plan, then wait")
-    assert SKILL.index("## 3. Plan, then wait") < SKILL.index("resolveReviewThread")
+    # Reads precede the approval gate; every mutating call follows it.
+    gate = SKILL.index("## 3. Plan, then wait")
+    assert SKILL.index("gh pr checks") < gate
+    for mutation in ("git push https://", "addPullRequestReviewThreadReply", "gh pr comment", "resolveReviewThread"):
+        assert SKILL.index(mutation) > gate, mutation
 
 
 def test_scope_excludes_other_hosts_and_open_mode() -> None:
