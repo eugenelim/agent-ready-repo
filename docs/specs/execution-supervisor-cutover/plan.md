@@ -1,7 +1,7 @@
 # Plan: Execution supervisor cutover
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0144 governs.
   - **Procedure:** `packs/core/.apm/skills/work-loop/SKILL.md` and `references/`.
   - **Callers:**

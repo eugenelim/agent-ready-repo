@@ -1,6 +1,6 @@
 # Spec: Execution supervisor cutover
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0150, ADR-0151, ADR-0064, ADR-0014
@@ -139,14 +139,14 @@ review rules.
 
 Skill switch, light mode, and removal
 
-- [ ] **AC-0001.** In `SKILL.md` and its references, every engine-owned action
+- [x] **AC-0001.** In `SKILL.md` and its references, every engine-owned action
   names a `work-supervisor.py` verb.
-- [ ] **AC-0002.** No file in the skill other than `review-rules.json` and
+- [x] **AC-0002.** No file in the skill other than `review-rules.json` and
   `references/light-mode.md` contains a table row or list item that names a role
   from `review-rules.json` together with its condition or boundary text.
-- [ ] **AC-0003.** A direct-light run and a durable light-mode run invoke no
+- [x] **AC-0003.** A direct-light run and a durable light-mode run invoke no
   `work-supervisor.py` command and create no `<spec>/.supervisor/`.
-- [ ] **AC-0004.** Light-mode text differs from its pre-change text only by the
+- [x] **AC-0004.** Light-mode text differs from its pre-change text only by the
   command swaps, by qualifiers that limit a clause shared with full-mode code
   review to light mode and pre-approval, and by edits AC-0002 forces: a
   reviewer roster becomes a pointer to `review-rules.json`, a table drops a
@@ -157,13 +157,13 @@ Skill switch, light mode, and removal
   of the clause unchanged.
   No shipped skill line names a bare `review <verb>` without
   `review-artifact.py`.
-- [ ] **AC-0005.** `packs/core/tests/skills/work-intake/test_direct_light_no_writes.py`
+- [x] **AC-0005.** `packs/core/tests/skills/work-intake/test_direct_light_no_writes.py`
   and `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py` pass with
   no change other than the command swaps.
-- [ ] **AC-0006.** `loop-engine.py`, `loop-cohort.py`, `_compat_facade.py`,
+- [x] **AC-0006.** `loop-engine.py`, `loop-cohort.py`, `_compat_facade.py`,
   `_review_compat.py`, `assets/state.json`, and `references/full-mode-engine.md`
   are absent from the skill source and its generated copies.
-- [ ] **AC-0007.** Outside history paths, no file in `packs/`, `tools/`,
+- [x] **AC-0007.** Outside history paths, no file in `packs/`, `tools/`,
   `packages/`, `tests/`, `guides/`, `contracts/`, `.github/`,
   `docs/product/intents/`, `docs/product/briefs/`, `Makefile`, `.snyk`, or
   `workspace.toml` names `loop-engine`, `loop-cohort`, `engine-state.json`,
@@ -174,89 +174,89 @@ Skill switch, light mode, and removal
   on any site outside its list. `tests/roster/test_retired_name_pinned_sites.py` itself is outside
   the search, because it must spell the terms to search for them, and so is a
   reference to a `docs/specs/<slug>` path, which points into a history path.
-- [ ] **AC-0008.** `contracts/jsonschema/loop-cohort-wave-decision.schema.json`
+- [x] **AC-0008.** `contracts/jsonschema/loop-cohort-wave-decision.schema.json`
   is absent, and no file outside history paths names it.
-- [ ] **AC-0009.** No remaining script in `work-loop/scripts/` was invoked only
+- [x] **AC-0009.** No remaining script in `work-loop/scripts/` was invoked only
   by removed files.
-- [ ] **AC-0010.** `SKILL.md`'s close step names the explicit close-time
+- [x] **AC-0010.** `SKILL.md`'s close step names the explicit close-time
   `work-item` capture.
 
 Runtime
 
-- [ ] **AC-0011.** The installed skill's `work-supervisor.py` completes a
+- [x] **AC-0011.** The installed skill's `work-supervisor.py` completes a
   synthetic full code run to readiness with only the standard library and the
   skill's `scripts/` directory importable.
-- [ ] **AC-0012.** The Windows CI job runs the same synthetic run to readiness.
-- [ ] **AC-0013.** The workspace bridge binds a supervisor run's id and active
+- [x] **AC-0012.** The Windows CI job runs the same synthetic run to readiness.
+- [x] **AC-0013.** The workspace bridge binds a supervisor run's id and active
   signal from `run.json`, read through the repository's confined regular-file
   read with a size bound. A `run.json` that is a link, not a regular file,
   oversized, unreadable, or malformed leaves the bridge with no run and no gate.
   The bridge only displays `run.json` fields. A human answer reaches the
   supervisor only through the supervisor's own open `human-decision` request,
   never on the bridge's word.
-- [ ] **AC-0014.** The bridge marks a gate pending with its question while
+- [x] **AC-0014.** The bridge marks a gate pending with its question while
   `run.json` reports an open `human-decision`, and clears it once that request
   resolves.
-- [ ] **AC-0015.** The bridge admits a gate question through a Slice 1
+- [x] **AC-0015.** The bridge admits a gate question through a Slice 1
   content-safety check under a named profile, and shows an admitted question
   only inside inert framing, in both the status field and the gate-pending
   notification. A rejected or oversized question is never shown; only a fixed
   placeholder is. The content-safety code the bridge runs ships inside the
   `agentbundle` package and is never loaded from a repository or skill path.
-- [ ] **AC-0016.** In a repository whose ignore rules omit `.supervisor/` and
+- [x] **AC-0016.** In a repository whose ignore rules omit `.supervisor/` and
   `.loop-run/`, a full run reaches readiness and no supervisor commit touches
   either.
 
 Hooks
 
-- [ ] **AC-0017.** `packs/core/.apm/hooks/pre-pr.py` and `tools/hooks/pre-pr.py`
+- [x] **AC-0017.** `packs/core/.apm/hooks/pre-pr.py` and `tools/hooks/pre-pr.py`
   run `work-supervisor.py status --check` for each spec holding
   `delivery/approvals.jsonl`, and fail when any such run exits non-zero. They
   discover only spec directories and `approvals.jsonl` files that resolve inside
   the repository and are not links. When at least one spec holds
   `delivery/approvals.jsonl` and `work-supervisor.py` cannot be located, the
   hooks fail.
-- [ ] **AC-0018.** The hooks' supervisor check adds no failure when every such
+- [x] **AC-0018.** The hooks' supervisor check adds no failure when every such
   run exits 0, including a terminal run that reached the retry cap, or when no
   spec holds `delivery/approvals.jsonl`.
 
 Knowledge
 
-- [ ] **AC-0019.** The rewritten skill still requests a reusable capture at the
+- [x] **AC-0019.** The rewritten skill still requests a reusable capture at the
   `spec-approved` gate before `start` and at the `plan-locked` gate at `start`,
   under those gate names, and project-knowledge accepts each exactly as Slice
   3's AC-0006 fixtures require.
-- [ ] **AC-0020.** `delivery-fact-feed.py` reads each spec's committed
+- [x] **AC-0020.** `delivery-fact-feed.py` reads each spec's committed
   `delivery/evidence.jsonl` with no shadow-services setting, and returns a
   candidate for a supervisor run's review-failure receipt.
-- [ ] **AC-0021.** A full code run reaches readiness with project-knowledge
+- [x] **AC-0021.** A full code run reaches readiness with project-knowledge
   absent.
 
 Post-lock plan routes
 
-- [ ] **AC-0022.** `SKILL.md` and `references/tdd-stubs.md` have the controller,
+- [x] **AC-0022.** `SKILL.md` and `references/tdd-stubs.md` have the controller,
   never an implementer attempt, write a supervisor TDD task's `stub` fence as a
   task-start revision, and no shipped line in the work-loop or new-spec skill
   requires the fence to be in the approved plan.
-- [ ] **AC-0023.** In a synthetic run through the installed skill, a task-start
+- [x] **AC-0023.** In a synthetic run through the installed skill, a task-start
   revision is committed as a `replan` step with no approval request, and the
   supervisor records red for its fence before the task's `implement` step. The
   same fence added by an implementer attempt's result is refused, and nothing
   from that result is committed. `SKILL.md` and `references/tdd-stubs.md` tell
   the controller to make no plan edit while an attempt is open.
-- [ ] **AC-0024.** `references/delivery-contract-lifecycle.md`, new-spec's
+- [x] **AC-0024.** `references/delivery-contract-lifecycle.md`, new-spec's
   `assets/plan.md`, and `references/spec-and-plan-contract.md` route the
   grounding of an `implementation-discovered` seam or design means, and each
   later correction, to a controller edit of the plan's `## Design (LLD)` made as
   an in-envelope working-plan change while no attempt is open, and no shipped
   line in the work-loop or new-spec skill routes either to the verification
   ledger.
-- [ ] **AC-0025.** In a synthetic run through the installed skill, a controller
+- [x] **AC-0025.** In a synthetic run through the installed skill, a controller
   edit confined to the plan's `## Design (LLD)`, made after `start` while no
   attempt is open, is committed as a `replan` step with no approval request, and
   every task completed before it stays complete. The same edit made while an
   attempt is open refuses that attempt with `attempt-residue`.
-- [ ] **AC-0026.** When the supervisor refuses a `write-stub` result with
+- [x] **AC-0026.** When the supervisor refuses a `write-stub` result with
   `stub-not-red`, and the report's attempt checks and the post-launch check find
   no difference, the attempt closes. No other refusal closes an attempt, and an
   attempt that is also refused for residue stays refused until its residue

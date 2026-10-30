@@ -507,3 +507,27 @@ Across the roster and conformance suites that read these paths, 1,845 pass,
 1 is skipped, and 10 fail. The 10 failures are all in
 `test_tracker_refresh_lifecycle_matrix.py`, and they fail the same way on
 `main`.
+
+## Close-out (2026-10-30)
+
+The cutover shipped in four merges:
+- #1643: T1, the bridge and the pre-PR hooks (core 3.1.32).
+- #1648: the AC-0026 not-red recovery (core 3.1.36).
+- #1651: the T2 switch (core 4.0.0, `49a239a72`), after #1655 made confined writes work on Windows (core 3.1.41).
+- #1649: T3, the architecture pages, ADR-0151 to Accepted, and the `workspace.toml` and briefs clean-up (`07c978100`).
+
+On `main` at `07c978100`, the criteria's verifying suites pass: 350 passed in 3m28s with `WORK_SUPERVISOR_INTEGRATION=1`. The evidence for each criterion:
+- AC-0001, AC-0002, AC-0010: `test_supervisor_cutover_source_checks.py`.
+- AC-0003, AC-0004, AC-0005: `test_direct_light_no_writes.py`, `test_work_intake_dispatch.py`, and the light-mode edits listed above.
+- AC-0006, AC-0007, AC-0008, AC-0009: `tests/roster/test_retired_name_pinned_sites.py` and the source checks, plus T3's VI-7031 search over `workspace.toml` and the briefs.
+- AC-0011, AC-0021: `tests/roster/test_supervisor_installed_skill_run.py`.
+- AC-0012: the `build-check-windows` run of that test on PR #1651, which reached readiness.
+- AC-0013, AC-0014, AC-0015: `test_workspace_mcp_supervisor_run.py`.
+- AC-0016: `test_supervisor_ignore_rules.py`.
+- AC-0017, AC-0018: `test_pre_pr_supervisor_check.py` and `test_core_pre_pr_hook.py`.
+- AC-0019: `test_work_loop_skill_capture_sequence.py`.
+- AC-0020: `test_delivery_fact_feed.py` and `test_delivery_fact_feed_head.py`.
+- AC-0022, AC-0024: `test_tdd_stub_lifecycle_contract.py`.
+- AC-0023, AC-0025, AC-0026: `test_supervisor_tdd.py`, which covers VI-7023 and VI-7024.
+
+The run the old engine tracked ends with these merges. Its engine no longer ships, so under ADR-0144 D7 it is re-derived, not resumed.
