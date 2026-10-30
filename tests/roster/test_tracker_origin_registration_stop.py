@@ -214,3 +214,35 @@ def test_every_tracker_origin_example_sits_in_a_section_that_names_the_repair() 
             seen += 1
             assert "tracker-entry-drop" in "\n".join(lines), lines[:3]
     assert seen > 0
+
+
+_DELIVERY_BRIEF = "docs/product/briefs/workspace-registry-retirement-delivery.md"
+# AC-0023: the brief's slice 9 names the work after the execution-supervisor cutover.
+_SLICE_9_AFTER_CUTOVER = (
+    "move the engine rules `dispatch.py` still needs into `work-loop`",
+    "shrink `workspace-status` to the repair",
+    "remove the legacy registry entries",
+    "re-point the spec-status lint's deferral anchors",
+    "give the `[authorization.refresh]` and `[authorization.migration]` policy tables a home",
+    "record the certification",
+    "then delete `workspace.toml`",
+)
+
+
+def _slice_9(text: str) -> str:
+    """The brief's slice 9 item, read up to the next heading."""
+    start = text.index("9. **Compatibility closure and deletion.**")
+    return text[start : text.index("\n## ", start)]
+
+
+def test_brief_spec_map_lists_this_spec() -> None:
+    assert "| `tracker-origin-registration-stop` |" in (_REPO / _DELIVERY_BRIEF).read_text(
+        encoding="utf-8"
+    )
+
+
+@pytest.mark.parametrize("phrase", _SLICE_9_AFTER_CUTOVER, ids=lambda p: p[:40])
+def test_brief_slice_9_names_the_post_cutover_work(phrase: str) -> None:
+    slice_9 = _slice_9((_REPO / _DELIVERY_BRIEF).read_text(encoding="utf-8"))
+    after = slice_9[slice_9.index("**After the cutover:**") :]
+    assert phrase in _flat_text(after)
