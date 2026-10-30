@@ -295,3 +295,19 @@ a3ae7f0cbecf57c1efad730c0b2f83aab4499ee005d620cfce097cc498e013ca checked-start-2
 7f869bc6b706540b8d158800a69d992deda10b41ee08be75e52858121cbf3ccd checked-start-320-dark.png
 174125523fa1c7367d7e7fc312863ac7d60e43b2556df3de1193c6129151211e checked-start-320-light.png
 ```
+
+## Design review result (AC-0030)
+
+An `experience-reviewer` pass over the 32 screenshots, against RFC-0108 D1 rules 1 to 10 as corrected and the `skill-html-views` direction's ranked goals, returned no Blocker and no Major finding: 3 Minors and 4 Advisories. After adjudication every finding is refuted, so none remains:
+
+| Finding | Severity | Disposition |
+| --- | --- | --- |
+| E1, detail placeholder captured mid-fade | Minor | Refuted: the screenshots were re-captured with reduced motion (SHA-256 values above) and the placeholder is settled |
+| E2, start tag shares the meta style with the owner line | Minor | Refuted: the owner line is the cell `intent-view-record-owners` AC-0008 requires; a styling preference with no named rule |
+| E3, rows carry a second owner line | Minor | Refuted: moving the owner cell would break `intent-view-record-owners` AC-0008, which this spec does not change |
+| E4, first answer sits low at 320 px | Advisory | Refuted: the first screen at 320 px holds the list header, the note and the first row (D1 rule 1) |
+| E5, two broken rows look alike | Advisory | Refuted: one entry per workspace finding, each with its own code (AC-0015) |
+| E6, failure notice apart from the lead line | Advisory | Refuted: the notice sits above the list as AC-0014 states |
+| E7, empty band at 2560 px | Advisory | Refuted: all four widths were captured; no D1 rule is broken |
+
+Records: `.context/reviews/f020b46e-afb2-45b9-89ba-5e179f11f89e/1-post-gates-experience-reviewer-raw.md` and `-adjudication.md`.
