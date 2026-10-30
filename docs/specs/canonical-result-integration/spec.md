@@ -59,7 +59,7 @@ change reaches a run in flight.
 | --- | --- | --- | --- | --- | --- |
 | Decision rationale | Result authority moves only under an accepted record. | `docs/adr/0153-work-loop-product-result-is-a-protected-ref.md`; ADR-0144's `Superseded in part` mirror; the ADR index | Platform Core decision-maker | ADR shape lint | ADR-0153 is `Accepted` and ADR-0144 lists `D9` and `D11` as superseded in part by it. |
 | Current architecture | The result boundary changes. | `ARCHITECTURE.md`; `docs/architecture/` `work-loop-result-integration.md`, `work-loop-authority-migration.md`, `work-loop-execution-supervisor.md`, `acceptance-centered-work-loop.md`, `work-loop-acceptance-evidence.md`, `work-loop-review-disposition.md`, `runtime-security-primitives.md` § 11 | Platform Core | Architecture review recorded in the ledger | Each page describes the product ref as the result boundary, and `work-loop-result-integration.md` separates what ships from what Slice 7 adds. |
-| Maintainer procedure | The controller meets new refusals and a new human decision. | `work-loop/SKILL.md` and `work-loop/references/supervisor.md` | Core pack maintainers | Skill evals | The supervisor reference's refusal and human-decision tables name `integration-conflict`, `product-ref-diverged`, `projection-blocked`, and `history-adoption` with the controller's next action, including restoring a product ref to its recorded value. |
+| Maintainer procedure | The controller meets new refusals and a new human decision. | `work-loop/SKILL.md` and `work-loop/references/supervisor.md` | Core pack maintainers | Skill evals | The supervisor reference's refusal and human-decision tables name `integration-conflict`, `product-ref-diverged`, `projection-blocked`, `adoption-refused`, `unsupported-ref-storage`, and `history-adoption` with the controller's next action, including restoring a product ref to its recorded value. |
 | Interface compatibility | The policy file gains a key; two delivery schemas gain values. | `work-loop/supervisor-policy.json`; `contracts/delivery/` | Core pack and `agentbundle` contract maintainers | Delivery contract tests | Every existing subject, request, and result record still validates. |
 | Release history | Two releases change run behavior. | Core `pack.toml`, `plugin.json`, and `docs/product/changelog.md` | Core pack release maintainers | Version parity | Each release has an entry; the switch entry says which runs it reaches. |
 | Product coordination | The slice closes. | The brief's Spec map | Platform Core | Brief-coverage lint | The map's `canonical-result-integration` row reports `Shipped`. |
@@ -92,8 +92,8 @@ change reaches a run in flight.
 - **Integration boundary, conflict, and identity (AC-0001, AC-0002, AC-0003, AC-0004):**
   TDD at the supervisor's `start`, `next`, and `report` boundary over a real
   Git repository, because each is a compressible invariant on refs and trees.
-- **Product-ref trust (AC-0005, AC-0006):** TDD at every verb over missing,
-  symbolic, rolled-back, and planted refs, and over a trailer-free run that
+- **Product-ref trust (AC-0005, AC-0006, AC-0022):** TDD at every verb over
+  missing, symbolic, rolled-back, and planted refs, a reftable repository, and over a trailer-free run that
   crosses to this release by `regenerate`.
 - **Crash and lag repair (AC-0007, AC-0008, AC-0009, AC-0010):** goal-based
   kill-point corpus, exercised as integration tests that kill the supervisor
@@ -104,7 +104,7 @@ change reaches a run in flight.
   forged-`delivery/` fixtures.
 - **Worker forgery (AC-0015, AC-0016):** TDD on the attempt check, including
   a two-worktree fixture.
-- **Parity, switch, and reversal (AC-0017, AC-0018, AC-0019, AC-0020, AC-0022):**
+- **Parity, switch, and reversal (AC-0017, AC-0018, AC-0019, AC-0020):**
   goal-based synthetic full runs through the supervisor harness, crossing an
   authority change by the `regenerate` route, because parity and reversal are
   facts of whole runs.
@@ -166,11 +166,13 @@ Product-ref trust
   value, writes a denial line to the run's security log, and moves no ref.
   Restoring the ref to its recorded value clears the refusal. While an
   attempt is open, AC-0015's answer applies instead.
-- [ ] **AC-0006.** A run with no recorded product ref, at its first verb with
-  no attempt open, gains one naming `HEAD` when `HEAD` is its latest made
-  commit, and otherwise `next` issues the AC-0011 decision. A step committed
-  while such a run's attempt is open creates the product ref at that step's
-  commit.
+- [ ] **AC-0006.** A run with no recorded product ref, at its first verb
+  other than `status` with no attempt open, gains one naming its latest made
+  commit when `HEAD` is that commit or that commit descends from `HEAD`
+  through made commits only, after which AC-0009 and AC-0010 apply.
+  Otherwise `next` issues the AC-0011 decision, and no verb creates the ref
+  until an `adopt-history` answer does. Steps committed while such a run's
+  attempt is open create no ref.
 
 Crash and lag repair
 
@@ -196,7 +198,7 @@ Crash and lag repair
 Divergence and adoption
 
 - [ ] **AC-0011.** With no attempt open, when `HEAD` differs from the anchor
-  in a way AC-0008 and AC-0009 do not repair, and the anchor is intact, `next`
+  in a way AC-0008 and AC-0009 do not repair, and AC-0005 does not refuse, `next`
   issues a `history-adoption`
   `human-decision` naming the `HEAD` commit, the count and at most 20 of the
   product paths adoption would change relative to the anchor, and whether it
@@ -206,8 +208,10 @@ Divergence and adoption
   on `HEAD`, recording the anchor and the authority reference, and moves
   both refs to it, creating the product ref when none is recorded; the next `next` issues no
   `history-adoption` for that history. An answer naming any other commit, or
-  with another authority role, refuses and commits nothing.
-- [ ] **AC-0013.** An `adopt-history` answer refuses and commits nothing when
+  with another authority role, refuses with `adoption-refused`, owner
+  `controller`, and commits nothing.
+- [ ] **AC-0013.** An `adopt-history` answer refuses with `adoption-refused`,
+  owner `controller`, and commits nothing when
   the adopted history changes any `delivery/` file relative to the anchor.
 - [ ] **AC-0014.** After a `reanchor` that changes the product manifest or a
   file in the spec directory, no evidence or review recorded before it counts
@@ -242,9 +246,9 @@ Parity, switch, and reversal
 - [ ] **AC-0020.** `start` refuses with `invalid-policy`, owner
   `skill maintainer`, when the installed policy's `result_authority` is
   missing or names neither authority.
-- [ ] **AC-0022.** `start` refuses with `unsupported-ref-storage`, owner
-  `owner`, in a repository whose ref storage is not Git's files backend, and
-  creates no ref.
+- [ ] **AC-0022.** In a repository whose ref storage is not Git's files
+  backend, `start` and every later verb but `status` refuse with
+  `unsupported-ref-storage`, owner `owner`, and create no ref.
 
 Portability
 
