@@ -453,10 +453,15 @@ def test_mixed_plan_is_built_validated_and_applied_by_type(
     write(repo, "docs/lifecycle/cooled.json", lifecycle_record("cooled", OTHER))
     data = plan(repo, capsys)
     kinds = [op["operation_type"] for op in data["automatic_operations"]]
-    assert sorted(kinds) == ["needs-drop-cooled", "needs-to-header", "queue-to-shipped"]
+    # Each entry's `needs` is empty or emptied by this plan, so each is also dropped
+    # and the shipped entry gets no queue operation.
+    assert sorted(kinds) == [
+        "needs-drop-cooled", "needs-to-header",
+        "spec-entry-drop", "spec-entry-drop", "spec-entry-drop",
+    ]
     assert WS._validate_plan_structure(plan_file(repo)) is None
     code, result = apply(repo, capsys)
-    assert code == 0 and result["operations_applied"] == 3, result
+    assert code == 0 and result["operations_applied"] == 5, result
     assert all(item["applied"] for item in result["per_operation"])
     text = (repo / "workspace.toml").read_text(encoding="utf-8")
     assert "needs = [{" not in text
@@ -480,9 +485,10 @@ def test_apply_changes_only_the_needs_arrays_and_the_added_lines(
     plan(repo, capsys)
     code, result = apply(repo, capsys)
     assert code == 0 and result["edges_equal"] is True, result
+    # The waiting entry's `needs` empties, so the same run drops the entry.
     assert (repo / "workspace.toml").read_text(encoding="utf-8") == original.replace(
         needs(edge_a, edge_b), "[]"
-    )
+    ).replace(entry(WAITER), "")
     old_lines = waiter_before.splitlines(keepends=True)
     new_lines = (repo / WAITER).read_text(encoding="utf-8").splitlines(keepends=True)
     opcodes = difflib.SequenceMatcher(a=old_lines, b=new_lines).get_opcodes()
@@ -559,7 +565,9 @@ def test_cooled_operation_is_refused_when_the_record_is_gone(
     (repo / "docs/lifecycle/cooled.json").unlink()
     workspace_before = (repo / "workspace.toml").read_bytes()
     _code, result = apply(repo, capsys)
-    reasons = {item["path"]: item.get("reason") for item in result["per_operation"]}
+    reasons: dict[str, Any] = {}
+    for item in result["per_operation"]:
+        reasons.setdefault(item["path"], item.get("reason"))
     assert reasons[WAITER] == "no_longer_cooled"
     assert result["per_operation"][0]["applied"] is False
     waiter_entry_kept = "needs = [{" in (repo / "workspace.toml").read_text(encoding="utf-8")
@@ -644,7 +652,8 @@ def test_interrupted_apply_then_clean_rerun_holds_each_item_once(
 
     plan(repo, capsys)
     code, result = apply(repo, capsys)
-    assert code == 0 and result["operations_applied"] == 2 and result["edges_equal"] is True
+    # Two header writes and the two entries they empty.
+    assert code == 0 and result["operations_applied"] == 4 and result["edges_equal"] is True
     assert (repo / WAITER).read_text(encoding="utf-8").count("spec:peer") == 1
     assert (repo / second).read_text(encoding="utf-8").count("spec:other") == 1
     assert "needs = [{" not in (repo / "workspace.toml").read_text(encoding="utf-8")

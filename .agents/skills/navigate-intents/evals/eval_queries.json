@@ -228,7 +228,7 @@
     "should_trigger": true
   },
   {
-    "query": "Export the intent view with readiness from workspace-status, so it shows what is ready to work on",
+    "query": "Export the intent view with readiness from work-loop's dispatch, so it shows what is ready to work on",
     "should_trigger": true
   },
   {

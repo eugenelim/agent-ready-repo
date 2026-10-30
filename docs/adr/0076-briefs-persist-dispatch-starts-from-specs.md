@@ -188,3 +188,7 @@ requirements change.
 - [ADR-0019](0019-product-intent-ontology-and-brief-projection.md)
 - [ADR-0033](0033-intent-level-open-recognized-set-decoupled-from-scale.md)
 - [ADR-0051](0051-workspace-toml-toml-format-and-main-branch-coordination.md)
+
+## Errata
+
+- 2026-10-29 (Decision-maker: eugenelim) — D3, D4, D6 and D7 read through a spec's own headers. [RFC-0106](../rfc/0106-stop-registering-derivable-work.md) D1 stops registering repo-origin specs. A derived spec's `Brief:` header is its provenance, with no workspace source index to match. No structured work entry is added for it. `work-loop`'s `dispatch.py` routes from the spec's `Status:`, its sibling `plan.md`, and its `Depends on:` header. Briefs persisting without specs (D1, D2) is unchanged.

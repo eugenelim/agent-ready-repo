@@ -6,20 +6,14 @@
 [[row]]
 pattern = "docs/rfc/0064-ini-001-ai-native-ecosystem.md"
 class = "contract"
-consumer = "RFC-0064 registry contract: D2-D9 schema, D4 and its work-loop writer rows, the receive-brief writer row"
-owner = 8
-
-[[row]]
-pattern = "docs/product/AGENTS.md"
-class = "contract"
-consumer = "product docs rule: registered spec membership is the brief coverage confirmation evidence"
-owner = 8
+consumer = "RFC-0064 registry contract: D2-D9 schema, D4 and its work-loop writer rows, the receive-brief writer row; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md"
 class = "contract"
-consumer = "FEAT-0005 lifecycle contract: close-work moves registrations at a terminal transition"
-owner = 8
+consumer = "FEAT-0005 lifecycle contract: close-work moves registrations at a terminal transition; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0001-intent-identity-and-registration.md"
@@ -206,8 +200,8 @@ owner = "none"
 [[row]]
 pattern = "docs/adr/0076-briefs-persist-dispatch-starts-from-specs.md"
 class = "contract"
-consumer = "ADR-0076: briefs persist and dispatch starts from specs registered in workspace.toml"
-owner = 8
+consumer = "ADR-0076: briefs persist and dispatch starts from specs registered in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/adr/0077-feature-projection-and-tracker-authority.md"
@@ -224,8 +218,8 @@ owner = 9
 [[row]]
 pattern = "docs/adr/0092-direct-light-execution-session-local-boundary.md"
 class = "contract"
-consumer = "ADR-0092: direct-light execution never registers itself in workspace.toml or workspace dispatch"
-owner = 8
+consumer = "ADR-0092: direct-light execution never registers itself in workspace.toml or workspace dispatch; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md"
@@ -236,8 +230,8 @@ owner = 2
 [[row]]
 pattern = "docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md"
 class = "contract"
-consumer = "ADR-0110: a cooled spec declares its child scope on its workspace.toml entry"
-owner = 8
+consumer = "ADR-0110: a cooled spec declares its child scope on its workspace.toml entry; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/adr/0114-prune-success-requires-a-two-sided-post-mutation-invariant.md"
@@ -396,12 +390,6 @@ consumer = "product docs index pointing at the workspace.toml dependency referen
 owner = 9
 
 [[row]]
-pattern = "docs/product/briefs/agent-skill-engineering.md"
-class = "contract"
-consumer = "live brief: approved specs register in workspace.toml through work-intake"
-owner = 8
-
-[[row]]
 pattern = "docs/product/briefs/guidance-activation-measurement.md"
 class = "contract"
 consumer = "live brief that names workspace-status as a measured representative"
@@ -410,8 +398,8 @@ owner = 9
 [[row]]
 pattern = "docs/product/briefs/intent-lifecycle-and-closure.md"
 class = "contract"
-consumer = "live brief tracing whether the closure check touches workspace.toml"
-owner = 8
+consumer = "live brief tracing whether the closure check touches workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/product/briefs/stage-input-readiness.md"
@@ -451,6 +439,12 @@ owner = "none"
 
 [[row]]
 pattern = "docs/product/changelog.d/d72c4440-6bb7-493d-b523-8b30b46b384d.md"
+class = "historical"
+consumer = "released changelog entry that cites the registry"
+owner = "none"
+
+[[row]]
+pattern = "docs/product/changelog.d/b5c800b4-7797-4c8c-bb0b-b0c71d118fbe.md"
 class = "historical"
 consumer = "released changelog entry that cites the registry"
 owner = "none"
@@ -560,8 +554,8 @@ owner = "none"
 [[row]]
 pattern = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"
 class = "contract"
-consumer = "FEAT-0007: promotion routing that still registers spec entries and reads workspace-status scripts"
-owner = 8
+consumer = "FEAT-0007: promotion routing that still registers spec entries and reads workspace-status scripts; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0009-duplicate-coverage-check.md"
@@ -614,8 +608,8 @@ owner = 9
 [[row]]
 pattern = "docs/product/intents/brief-backlink-provenance-lints.md"
 class = "contract"
-consumer = "live intent: brief back-link lints and the coverage lint"
-owner = 8
+consumer = "live intent: brief back-link lints and the coverage lint; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/product/intents/catalogue-wave7-marketing-evaluator.md"
@@ -674,8 +668,8 @@ owner = 9
 [[row]]
 pattern = "docs/product/intents/work-loop-delivery-efficiency.md"
 class = "contract"
-consumer = "live intent: queue membership lives in workspace.toml and the status payload is large"
-owner = 8
+consumer = "live intent: queue membership lives in workspace.toml and the status payload is large; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/product/intents/workspace-mcp-production-readiness.md"
@@ -710,8 +704,8 @@ owner = 9
 [[row]]
 pattern = "docs/product/journeys/engineer-runs-work-loop.md"
 class = "guide"
-consumer = "journey: work-loop picks up a canonical ready or active spec from workspace-status"
-owner = 8
+consumer = "journey: work-loop picks up a canonical ready or active spec from workspace-status; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/product/journeys/engineer-scales-to-swarm.md"
@@ -974,14 +968,14 @@ owner = "none"
 [[row]]
 pattern = "docs/rfc/0093-intent-scoped-completion.md"
 class = "contract"
-consumer = "RFC-0093: work-loop stops its own workspace.toml backlog write"
-owner = 8
+consumer = "RFC-0093: work-loop stops its own workspace.toml backlog write; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/rfc/0094-direct-light-execution-without-durable-planning-artifacts.md"
 class = "contract"
-consumer = "RFC-0094: direct-light execution never registers itself in workspace.toml"
-owner = 8
+consumer = "RFC-0094: direct-light execution never registers itself in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/rfc/0095-changelog-entry-obligation.md"
@@ -1016,8 +1010,8 @@ owner = 9
 [[row]]
 pattern = "docs/rfc/0103-cross-artifact-reference-grammar.md"
 class = "contract"
-consumer = "RFC-0103: workspace_status_engine reads the Brief header on the dispatch path"
-owner = 8
+consumer = "RFC-0103: workspace_status_engine reads the Brief header on the dispatch path; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md"
@@ -1040,8 +1034,8 @@ owner = 9
 [[row]]
 pattern = "docs/rfc/0108-skill-html-view-standard.md"
 class = "contract"
-consumer = "RFC-0108: the navigate-intents readiness bridge embeds a workspace-status projection"
-owner = 8
+consumer = "RFC-0108: the navigate-intents readiness bridge embeds a workspace-status projection; its readiness input is dispatch.py's output, which still loads the workspace-status engine"
+owner = 9
 
 [[row]]
 pattern = "docs/rfc/README.md"
@@ -1136,8 +1130,8 @@ owner = 9
 [[row]]
 pattern = "guides/core/how-to/close-and-disposition-work.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 8
+consumer = "how-to or reference telling agents how to register or route work through workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "guides/core/how-to/intake-an-external-brief.md"
@@ -1154,8 +1148,8 @@ owner = 9
 [[row]]
 pattern = "guides/core/how-to/navigate-intents.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register or route work through workspace.toml"
-owner = 8
+consumer = "how-to or reference telling agents how to register or route work through workspace.toml; its readiness input is dispatch.py's output, which still loads the workspace-status engine"
+owner = 9
 
 [[row]]
 pattern = "guides/core/how-to/orient-at-session-start.md"
@@ -1185,8 +1179,8 @@ reads_order = true
 [[row]]
 pattern = "guides/core/how-to/start-or-remember-work.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
-owner = 8
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "guides/core/reference/work-intake-routing-and-lifecycle.md"
@@ -1252,8 +1246,8 @@ owner = 9
 [[row]]
 pattern = "guides/product-engineering/how-to/rename-an-intent.md"
 class = "guide"
-consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml"
-owner = 8
+consumer = "how-to or reference telling agents how to register spec and tracker-origin work in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "guides/product-strategy/how-to/cascade-okrs-into-the-shaping-queue.md"
@@ -1553,8 +1547,8 @@ owner = 9
 [[row]]
 pattern = "tests/roster/test_close_work_extraction_and_immediate_disposition.py"
 class = "fixture"
-consumer = "roster test test_close_work_extraction_and_immediate_disposition.py that exercises the registry consumers of its feature"
-owner = 8
+consumer = "roster test test_close_work_extraction_and_immediate_disposition.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_cognitive_load_repository_contract.py"
@@ -1565,14 +1559,20 @@ owner = 9
 [[row]]
 pattern = "tests/roster/test_cooling_brief_child_scope_closure.py"
 class = "fixture"
-consumer = "roster test test_cooling_brief_child_scope_closure.py that exercises the registry consumers of its feature"
-owner = 8
+consumer = "roster test test_cooling_brief_child_scope_closure.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
+
+[[row]]
+pattern = "tests/roster/test_spec_registration_stop.py"
+class = "fixture"
+consumer = "roster test test_spec_registration_stop.py: the closed phrase lists of the spec registration stop and the readiness bridge input"
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_cooling_scope_closure.py"
 class = "fixture"
-consumer = "roster test test_cooling_scope_closure.py that exercises the registry consumers of its feature"
-owner = 8
+consumer = "roster test test_cooling_scope_closure.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_credential_broker_contract_docs.py"
@@ -1877,8 +1877,8 @@ owner = 9
 [[row]]
 pattern = "packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py"
 class = "reader"
-consumer = "navigate-intents readiness bridge: reads workspace-status status output and marks the first ready item"
-owner = 8
+consumer = "navigate-intents readiness bridge: reads dispatch.py's output, which still loads the workspace-status engine until slice 9"
+owner = 9
 reads_order = true
 
 [[row]]
@@ -1945,21 +1945,21 @@ reads_order = true
 [[row]]
 pattern = "packs/core/.apm/skills/work-loop/*"
 class = "writer"
-consumer = "work-loop dispatch and finish: selects the first canonical ready item and writes spec registrations"
-owner = 8
+consumer = "work-loop dispatch and finish: selects the first canonical ready item and writes spec registrations; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 reads_order = true
 
 [[row]]
 pattern = "packs/core/.apm/skills/close-work/*"
 class = "writer"
-consumer = "close-work closure index, spec collection moves, and the tracker-origin brief terminal move in workspace.toml"
-owner = 8
+consumer = "close-work closure index, spec collection moves, and the tracker-origin brief terminal move in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "packs/core/.apm/skills/navigate-intents/*"
 class = "reader"
-consumer = "navigate-intents view code that renders the workspace-status readiness projection"
-owner = 8
+consumer = "navigate-intents view code that renders the workspace-status readiness projection; its readiness input is dispatch.py's output, which still loads the workspace-status engine"
+owner = 9
 
 [[row]]
 pattern = "packs/core/.apm/skills/work-intake/*"
@@ -1990,8 +1990,8 @@ source = "packs/core/.apm/skills/intake-intent/*"
 [[row]]
 pattern = "packs/core/.apm/skills/author-delivery-brief/*"
 class = "writer"
-consumer = "author-delivery-brief registration and Draft-to-Ready move of a tracker-origin brief entry in workspace.toml"
-owner = 8
+consumer = "author-delivery-brief registration and Draft-to-Ready move of a tracker-origin brief entry in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "packs/core/.apm/skills/new-spec/*"
@@ -2116,20 +2116,20 @@ owner = 9
 [[row]]
 pattern = "packs/core/tests/skills/work-loop/*"
 class = "fixture"
-consumer = "work-loop tests, evals contract, and recorded corpus specs that cite workspace.toml"
-owner = 8
+consumer = "work-loop tests, evals contract, and recorded corpus specs that cite workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/close-work/*"
 class = "fixture"
-consumer = "close-work tests of the closure packet and pause receipts"
-owner = 8
+consumer = "close-work tests of the closure packet and pause receipts; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/navigate-intents/*"
 class = "fixture"
-consumer = "navigate-intents tests of the readiness bridge and registry independence"
-owner = 8
+consumer = "navigate-intents tests of the readiness bridge and registry independence; its readiness input is dispatch.py's output, which still loads the workspace-status engine"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/work-intake/*"
@@ -2140,8 +2140,8 @@ owner = 9
 [[row]]
 pattern = "packs/core/tests/skills/author-delivery-brief/*"
 class = "fixture"
-consumer = "author-delivery-brief tests of the coverage lint and the entry move"
-owner = 8
+consumer = "author-delivery-brief tests of the coverage lint and the entry move; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "packs/core/tests/skills/new-spec/*"
@@ -2164,29 +2164,29 @@ owner = 9
 [[row]]
 pattern = ".claude/skills/author-delivery-brief/*"
 class = "projection"
-consumer = "generated .claude projection of the author-delivery-brief skill"
-owner = 8
+consumer = "generated .claude projection of the author-delivery-brief skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 source = "packs/core/.apm/skills/author-delivery-brief/*"
 
 [[row]]
 pattern = ".agents/skills/author-delivery-brief/*"
 class = "projection"
-consumer = "generated .agents projection of the author-delivery-brief skill"
-owner = 8
+consumer = "generated .agents projection of the author-delivery-brief skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 source = "packs/core/.apm/skills/author-delivery-brief/*"
 
 [[row]]
 pattern = ".claude/skills/close-work/*"
 class = "projection"
-consumer = "generated .claude projection of the close-work skill"
-owner = 8
+consumer = "generated .claude projection of the close-work skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 source = "packs/core/.apm/skills/close-work/*"
 
 [[row]]
 pattern = ".agents/skills/close-work/*"
 class = "projection"
-consumer = "generated .agents projection of the close-work skill"
-owner = 8
+consumer = "generated .agents projection of the close-work skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 source = "packs/core/.apm/skills/close-work/*"
 
 [[row]]
@@ -2206,15 +2206,15 @@ source = "packs/repo-governance/.apm/skills/navigate-decisions/*"
 [[row]]
 pattern = ".claude/skills/navigate-intents/*"
 class = "projection"
-consumer = "generated .claude projection of the navigate-intents skill"
-owner = 8
+consumer = "generated .claude projection of the navigate-intents skill; its readiness input is dispatch.py's output, which still loads the workspace-status engine"
+owner = 9
 source = "packs/core/.apm/skills/navigate-intents/*"
 
 [[row]]
 pattern = ".agents/skills/navigate-intents/*"
 class = "projection"
-consumer = "generated .agents projection of the navigate-intents skill"
-owner = 8
+consumer = "generated .agents projection of the navigate-intents skill; its readiness input is dispatch.py's output, which still loads the workspace-status engine"
+owner = 9
 source = "packs/core/.apm/skills/navigate-intents/*"
 
 [[row]]
@@ -2276,15 +2276,15 @@ source = "packs/core/.apm/skills/work-intake/*"
 [[row]]
 pattern = ".claude/skills/work-loop/*"
 class = "projection"
-consumer = "generated .claude projection of the work-loop skill"
-owner = 8
+consumer = "generated .claude projection of the work-loop skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 source = "packs/core/.apm/skills/work-loop/*"
 
 [[row]]
 pattern = ".agents/skills/work-loop/*"
 class = "projection"
-consumer = "generated .agents projection of the work-loop skill"
-owner = 8
+consumer = "generated .agents projection of the work-loop skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 source = "packs/core/.apm/skills/work-loop/*"
 
 [[row]]
@@ -2435,9 +2435,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/brief-lifecycle-contract/*"
-class = "contract"
-consumer = "brief lifecycle contract: workspace.toml records brief state and coverage"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/build-check-coverage-gaps/*"
@@ -2459,9 +2459,9 @@ owner = 9
 
 [[row]]
 pattern = "docs/specs/capture-work/*"
-class = "contract"
-consumer = "capture-work contract: queue writes and the workspace-status build/shape/brief labels"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/catalogue-curation-qa-coverage/*"
@@ -2597,21 +2597,21 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/close-work-extraction-and-immediate-disposition/*"
-class = "contract"
-consumer = "close-work extraction: phase ownership and the workspace-status read-only projection"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/close-work-intent-graph-convergence/*"
-class = "contract"
-consumer = "close-work rule: never read workspace.toml for a parent edge"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/closure-eligibility-check/*"
-class = "contract"
-consumer = "closure check: never writes workspace.toml and reports the closing intent registration"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/code-intelligence-golden-composition-example/*"
@@ -2651,9 +2651,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/cooling-brief-child-scope-closure/*"
-class = "contract"
-consumer = "frozen record: cooled-brief child scope reads source.parent, a registry fact kept until spec registration stops"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/cooling-untrusted-input-refusals/*"
@@ -2722,10 +2722,22 @@ consumer = "captured-item registration stop: writers write only the file, the cl
 owner = 3
 
 [[row]]
-pattern = "docs/specs/header-derived-dispatch/*"
+pattern = "docs/specs/spec-registration-stop/*"
 class = "contract"
-consumer = "header-derived dispatch: the read-only work-loop dispatch command over spec headers, the lifecycle record parent, and the replay against canonical dispatch"
+consumer = "spec registration stop: the spec-entry-drop repair, the stopped spec writers, and the dispatch switch to dispatch.py"
 owner = 8
+
+[[row]]
+pattern = "docs/specs/readiness-bridge-dispatch-input/*"
+class = "contract"
+consumer = "readiness bridge input: the navigate-intents export reads argless work-loop dispatch output in place of workspace-status status"
+owner = 8
+
+[[row]]
+pattern = "docs/specs/header-derived-dispatch/*"
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-brief-registration-stop/*"
@@ -2766,14 +2778,14 @@ owner = 5
 [[row]]
 pattern = "tools/replay-dispatch.py"
 class = "reader"
-consumer = "the live replay tool: reads workspace.toml read-only through the base engine to list where header-derived dispatch differs from it"
-owner = 8
+consumer = "the live replay tool: reads workspace.toml read-only through the base engine to list where header-derived dispatch differs from it; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "tools/test_replay_dispatch.py"
 class = "fixture"
-consumer = "the live replay suite: its planted trees carry a workspace.toml the base engine reads"
-owner = 8
+consumer = "the live replay suite: its planted trees carry a workspace.toml the base engine reads; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+owner = 9
 
 [[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
@@ -2813,9 +2825,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/direct-light-execution/*"
-class = "contract"
-consumer = "direct-light rule: workspace-status owns workspace.toml updates and a direct run never registers"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/direct-skill-lifecycle/*"
@@ -3029,15 +3041,15 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-navigation-export/*"
-class = "contract"
-consumer = "navigate-intents export contract and registry independence"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the readiness bridge's dispatch input"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-navigation/*"
-class = "contract"
-consumer = "navigate-intents contract: never read workspace.toml or call workspace-status for inventory"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the readiness bridge's dispatch input"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-preamble-lifecycle-records/*"
@@ -3047,9 +3059,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-reference-grammar-migration/*"
-class = "contract"
-consumer = "typed reference grammar read by the workspace-status engine on dispatch"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-rename-transaction/*"
@@ -3078,8 +3090,8 @@ owner = "none"
 [[row]]
 pattern = "docs/specs/intent-view-readiness-handover/*"
 class = "contract"
-consumer = "readiness bridge contract: the export reads piped workspace-status output only"
-owner = 8
+consumer = "readiness bridge contract: carried criteria stay live; its input is work-loop dispatch.py's output, which still loads the workspace-status engine"
+owner = 9
 
 [[row]]
 pattern = "docs/specs/intent-view-record-owners/*"
@@ -3089,9 +3101,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-view-session-start/*"
-class = "contract"
-consumer = "session-start view contract: no readiness, no workspace-status call, no workspace.toml read"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-view-source-and-style/*"
@@ -3347,9 +3359,9 @@ owner = 9
 
 [[row]]
 pattern = "docs/specs/new-rfc-followon-queue-write/*"
-class = "contract"
-consumer = "new-rfc guard that checks workspace.toml before queuing follow-on specs"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/nonjson-guard-all-read-paths/*"
@@ -3719,9 +3731,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/shaping-intake-handoff/*"
-class = "contract"
-consumer = "work-loop and workspace-status keep local artifact-backed dispatch"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/silent-domain-gap/*"
@@ -3761,9 +3773,9 @@ owner = 9
 
 [[row]]
 pattern = "docs/specs/spec-C-workloop-argless-resume/*"
-class = "contract"
-consumer = "work-loop argless resume from the workspace.toml active spec"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/spec-D-pack-workflow-guide/*"
@@ -3911,9 +3923,9 @@ owner = 9
 
 [[row]]
 pattern = "docs/specs/work-intake-surface/*"
-class = "contract"
-consumer = "work-intake surface: workspace-status passthrough and unchanged workspace.toml checksum"
-owner = 8
+class = "historical"
+consumer = "shipped spec superseded in part by the spec registration stop"
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/work-item-capture/*"

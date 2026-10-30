@@ -1,7 +1,7 @@
-"""Read, check and project ``workspace-status`` status output for the intent view.
+"""Read, check and project ``work-loop`` dispatch output for the intent view.
 
 The export gains one untrusted input: bytes a maintainer pipes in from
-``workspace-status status``.  Everything here is a pure function over those
+``dispatch.py --root``.  Everything here is a pure function over those
 bytes, or a bounded read of one file descriptor, so the whole trust boundary
 sits in this file.
 
@@ -39,7 +39,6 @@ REASONS: tuple[str, ...] = (
     "too_large",
     "empty",
     "not_json",
-    "no_workspace",
     "wrong_schema",
     "bad_workspace",
     "page_too_big",
@@ -76,15 +75,15 @@ _KNOWN_FINDINGS: dict[str, str] = {
     ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
-    "unregistered_work": "Register or reconcile the canonical entry explicitly.",
     "duplicate_membership": ("Remove the duplicate after choosing the authoritative membership."),
     "impossible_transition": ("Correct the artifact or membership through a reviewed transition."),
     "provenance_mismatch": (
         "Resolve provenance in the canonical artifact and mirror it deliberately."
     ),
     "cooled_child_scope_unknown": (
-        "Declare source.parent on the entry: a resolving brief path, or none "
-        "only when that spec has no parent brief."
+        "Set parent on the spec's lifecycle record: a resolving brief path, or "
+        "none only when that spec has no parent brief; a tracker-origin entry "
+        "declares source.parent instead."
     ),
     "refresh_conflict": "Resolve the conflict through the artifact's authority workflow.",
     "unsatisfied_dependency": "Complete or explicitly revise the dependency.",
@@ -129,12 +128,13 @@ class ReadResult(NamedTuple):
 
 
 class Checked(NamedTuple):
-    """Status lists that passed every check, before any entry is dropped."""
+    """Dispatch lists that passed every check, before any item is dropped."""
 
     active: list[dict[str, Any]]
     ready: list[dict[str, Any]]
     blocked: list[dict[str, Any]]
     findings: list[dict[str, Any]]
+    decision: dict[str, Any]
 
 
 class _Refusal(Exception):
@@ -231,14 +231,23 @@ def _is_bool(value: object) -> bool:
     return isinstance(value, bool)
 
 
+_TOP_KEYS = frozenset({"schema_version", "ready", "active", "blocked", "findings", "decision"})
+_ITEM_KEYS = frozenset({"path", "slug", "status", "findings"})
+_FINDING_KEYS = frozenset({"code", "path", "dispatchable", "next_action"})
+_DECISION_KEYS = frozenset({"action", "path", "candidates", "findings"})
+_ACTIONS = frozenset({"start", "resume", "ask", "none", "refuse"})
+
+
 def _typed_finding(finding: object) -> dict[str, Any]:
-    if not isinstance(finding, dict):
+    if not isinstance(finding, dict) or set(finding) != _FINDING_KEYS:
         raise _Refusal("wrong_schema")
-    code = finding.get("code")
-    action = finding.get("next_action")
+    code = finding["code"]
+    action = finding["next_action"]
     if not isinstance(code, str) or _CODE_RE.fullmatch(code) is None:
         raise _Refusal("wrong_schema")
-    if not _is_bool(finding.get("dispatchable")):
+    if finding["path"] is not None and not isinstance(finding["path"], str):
+        raise _Refusal("wrong_schema")
+    if not _is_bool(finding["dispatchable"]):
         raise _Refusal("wrong_schema")
     if not isinstance(action, str) or len(action) > _NEXT_ACTION_MAX:
         raise _Refusal("wrong_schema")
@@ -247,78 +256,120 @@ def _typed_finding(finding: object) -> dict[str, Any]:
     return finding
 
 
-def _typed_list(canonical: dict[str, Any], name: str, kind: str) -> list[dict[str, Any]]:
-    items = canonical.get(name)
+def _typed_findings(findings: object) -> list[dict[str, Any]]:
+    if not isinstance(findings, list):
+        raise _Refusal("wrong_schema")
+    for finding in findings:
+        _typed_finding(finding)
+    return findings
+
+
+def _typed_list(top: dict[str, Any], name: str) -> list[dict[str, Any]]:
+    """Check one item list; a ``ready`` or ``active`` item holds no finding."""
+    items = top[name]
     if not isinstance(items, list):
         raise _Refusal("wrong_schema")
-    for entry in items:
-        if not isinstance(entry, dict) or not isinstance(entry.get("path"), str):
+    for item in items:
+        if not isinstance(item, dict) or set(item) != _ITEM_KEYS:
             raise _Refusal("wrong_schema")
-        if not _is_bool(entry.get("dispatchable")):
+        if not isinstance(item["path"], str) or not isinstance(item["slug"], str):
             raise _Refusal("wrong_schema")
-        findings = entry.get("findings")
-        if not isinstance(findings, list):
+        if item["status"] is not None and not isinstance(item["status"], str):
             raise _Refusal("wrong_schema")
-        for finding in findings:
-            _typed_finding(finding)
-        dispatchable = entry["dispatchable"]
-        if kind == "ready" and not (dispatchable is True and not findings):
-            raise _Refusal("wrong_schema")
-        if kind == "active" and findings:
-            raise _Refusal("wrong_schema")
-        if kind == "blocked" and not (dispatchable is False and findings):
+        findings = _typed_findings(item["findings"])
+        if name != "blocked" and findings:
             raise _Refusal("wrong_schema")
     return items
 
 
+def _argless_decision(active: list[str], ready: list[str]) -> dict[str, Any]:
+    """Recompute the decision ``dispatch.py`` derives with no selector."""
+    action, path, candidates = "none", None, []
+    if len(active) == 1:
+        action, path = "resume", active[0]
+    elif active:
+        action, candidates = "ask", active
+    elif len(ready) == 1:
+        action, path = "start", ready[0]
+    elif ready:
+        action, candidates = "ask", ready
+    return {"action": action, "path": path, "candidates": candidates, "findings": []}
+
+
+def _typed_decision(top: dict[str, Any]) -> dict[str, Any]:
+    decision = top["decision"]
+    if not isinstance(decision, dict) or set(decision) != _DECISION_KEYS:
+        raise _Refusal("wrong_schema")
+    if decision["action"] not in _ACTIONS:
+        raise _Refusal("wrong_schema")
+    if decision["path"] is not None and not isinstance(decision["path"], str):
+        raise _Refusal("wrong_schema")
+    candidates = decision["candidates"]
+    if not isinstance(candidates, list) or not all(isinstance(c, str) for c in candidates):
+        raise _Refusal("wrong_schema")
+    _typed_findings(decision["findings"])
+    return decision
+
+
+def _is_argless_refusal(top: dict[str, Any], decision: dict[str, Any]) -> bool:
+    findings = decision["findings"]
+    return (
+        decision["action"] == "refuse"
+        and decision["path"] is None
+        and decision["candidates"] == []
+        and len(findings) == 1
+        and findings[0]["code"] == "invalid_workspace"
+        and not (top["ready"] or top["active"] or top["blocked"])
+    )
+
+
 def _walk(top: dict[str, Any]) -> Checked:
-    """Apply the typed checks and return the checked lists."""
-    version = top.get("schema_version")
+    """Apply the typed checks and return the checked lists and decision."""
+    if set(top) != _TOP_KEYS:
+        raise _Refusal("wrong_schema")
+    version = top["schema_version"]
     if type(version) is not int or version != 1:
         raise _Refusal("wrong_schema")
-    if top.get("mode") != "status" or top.get("workspace_root") != ".":
+    ready = _typed_list(top, "ready")
+    active = _typed_list(top, "active")
+    blocked = _typed_list(top, "blocked")
+    top_findings = _typed_findings(top["findings"])
+    decision = _typed_decision(top)
+    ready_paths = [item["path"] for item in ready]
+    active_paths = [item["path"] for item in active]
+    blocked_paths = {item["path"] for item in blocked}
+    if len(set(ready_paths)) != len(ready_paths) or len(set(active_paths)) != len(active_paths):
         raise _Refusal("wrong_schema")
-    if top.get("workspace_present") is not True:
+    if (
+        set(ready_paths) & set(active_paths)
+        or set(ready_paths) & blocked_paths
+        or set(active_paths) & blocked_paths
+    ):
         raise _Refusal("wrong_schema")
-    canonical = top.get("canonical")
-    if not isinstance(canonical, dict) or canonical.get("performed") is not True:
+    if decision != _argless_decision(active_paths, ready_paths) and not _is_argless_refusal(
+        top, decision
+    ):
         raise _Refusal("wrong_schema")
-    top_findings = canonical.get("findings")
-    if not isinstance(top_findings, list):
-        raise _Refusal("wrong_schema")
-    for finding in top_findings:
-        _typed_finding(finding)
-    ready = _typed_list(canonical, "ready", "ready")
-    active = _typed_list(canonical, "active", "active")
-    blocked = _typed_list(canonical, "blocked", "blocked")
-    ready_paths = {entry["path"] for entry in ready}
-    active_paths = {entry["path"] for entry in active}
-    blocked_paths = {entry["path"] for entry in blocked}
-    if ready_paths & active_paths or ready_paths & blocked_paths or active_paths & blocked_paths:
-        raise _Refusal("wrong_schema")
-    return Checked(active, ready, blocked, top_findings)
+    return Checked(active, ready, blocked, top_findings, decision)
 
 
 def _all_findings(checked: Checked) -> list[dict[str, Any]]:
-    findings = list(checked.findings)
-    for entries in (checked.active, checked.ready, checked.blocked):
-        for entry in entries:
-            findings.extend(entry["findings"])
+    findings = list(checked.findings) + list(checked.decision["findings"])
+    for items in (checked.active, checked.ready, checked.blocked):
+        for item in items:
+            findings.extend(item["findings"])
     return findings
 
 
 def check(data: bytes) -> Checked | str:
-    """Check status bytes and return the checked lists, or the reason for refusing.
+    """Check dispatch bytes and return the checked lists, or the reason for refusing.
 
     Checks run in a fixed order: empty, strict UTF-8 and JSON, a top-level
-    object, ``workspace_present`` false, the typed walk, then the workspace
-    failure codes.  An unexpected exception gives ``wrong_schema``.
+    object, the typed walk with the decision tied to the lists, then the
+    workspace failure codes.  An unexpected exception gives ``wrong_schema``.
     """
     try:
-        top = _parse(data)
-        if top.get("workspace_present") is False:
-            return "no_workspace"
-        checked = _walk(top)
+        checked = _walk(_parse(data))
         if any(f["code"] in _WORKSPACE_FAILURE_CODES for f in _all_findings(checked)):
             return "bad_workspace"
         return checked
@@ -329,37 +380,28 @@ def check(data: bytes) -> Checked | str:
 
 
 def start(checked: Checked, path_to_id: Mapping[str, str]) -> dict[str, Any]:
-    """Return the mark an argless ``work-loop`` would act on, from the checked lists.
+    """Return the mark an argless ``work-loop`` would act on, from the checked decision.
 
-    ``rule`` is ``resume`` for exactly one active entry, ``ask`` for more,
-    ``start`` when a ready entry exists and ``none`` otherwise.  For ``resume``
-    and ``start``, ``held`` is true when any finding names the chosen entry's
-    path, and ``id`` is its node id only when it is loaded and not held.
+    ``rule`` is the decision's action.  For ``start`` and ``resume``, ``id`` is
+    the decided path's node id when that path is loaded.  ``held`` is always
+    false: a checked ``start`` or ``resume`` is what ``work-loop`` acts on.
     """
-    active_count = len(checked.active)
-    chosen: dict[str, Any] | None = None
-    if active_count == 1:
-        rule, chosen = "resume", checked.active[0]
-    elif active_count > 1:
-        rule = "ask"
-    elif checked.ready:
-        rule, chosen = "start", checked.ready[0]
-    else:
-        rule = "none"
+    decision = checked.decision
     node_id: str | None = None
-    held = False
-    if chosen is not None:
-        path = chosen["path"]
-        held = any(f.get("path") == path for f in _all_findings(checked))
-        if not held:
-            node_id = path_to_id.get(path)
-    return {"rule": rule, "id": node_id, "held": held, "active_count": active_count}
+    if decision["action"] in ("start", "resume"):
+        node_id = path_to_id.get(decision["path"])
+    return {
+        "rule": decision["action"],
+        "id": node_id,
+        "held": False,
+        "active_count": len(checked.active),
+    }
 
 
 def project(checked: Checked, path_to_id: Mapping[str, str]) -> dict[str, Any]:
     """Return the readiness member for checked lists, keeping only loaded records.
 
-    An entry appears only when its ``path`` is exactly a key of ``path_to_id``.
+    An item appears only when its ``path`` is exactly a key of ``path_to_id``.
     A blocked path that occurs more than once appears once, with its findings in
     input order and a repeated code removed.  One pass with a set lookup per
     finding keeps the cost linear in the input, however many codes one record holds.
@@ -391,7 +433,7 @@ def project(checked: Checked, path_to_id: Mapping[str, str]) -> dict[str, Any]:
 
 
 def member(data: bytes, path_to_id: Mapping[str, str]) -> dict[str, Any]:
-    """Return the payload's readiness member for status bytes.
+    """Return the payload's readiness member for dispatch bytes.
 
     Runs ``check`` then ``project``; a refusal, or an unexpected exception from
     the projection, gives the unchecked member with its reason.

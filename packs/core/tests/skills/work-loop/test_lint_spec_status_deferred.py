@@ -317,3 +317,79 @@ def test_status_line_after_section_heading_does_not_resolve(tmp_path: Path) -> N
 def test_anchor_nothing_resolves_is_violation(tmp_path: Path) -> None:
     _plant_spec(tmp_path)
     assert _violations(tmp_path)
+
+
+# --- AC-0021: an open spec file also resolves an anchor ----------------------
+
+
+def _plant_open_spec(root: Path, status: str, anchor: str = _ANCHOR) -> Path:
+    directory = root / "docs" / "specs" / anchor
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / "spec.md"
+    path.write_text(f"# Spec\n\n- **Status:** {status}\n\n## Body\n", encoding="utf-8")
+    return path
+
+
+def test_open_spec_files_resolve_anchor(tmp_path: Path) -> None:
+    for index, status in enumerate(
+        ("Draft", "Approved", "Implementing", "Implementing (2026-01-01)")
+    ):
+        root = tmp_path / str(index)
+        root.mkdir()
+        _plant_spec(root)
+        _plant_open_spec(root, status)
+        assert _violations(root) == [], status
+
+
+def test_closed_spec_files_do_not_resolve_anchor(tmp_path: Path) -> None:
+    for status in ("Shipped (2026-01-01)", "Archived"):
+        root = tmp_path / status.split()[0]
+        root.mkdir()
+        _plant_spec(root)
+        _plant_open_spec(root, status)
+        assert _violations(root), status
+
+
+def test_spec_status_after_heading_does_not_resolve(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    directory = tmp_path / "docs" / "specs" / _ANCHOR
+    directory.mkdir(parents=True)
+    (directory / "spec.md").write_text("# S\n\n## Notes\n\n- **Status:** Draft\n", encoding="utf-8")
+    assert _violations(tmp_path)
+
+
+def test_symlinked_spec_file_does_not_resolve_anchor(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    target = tmp_path / "elsewhere.md"
+    target.write_text("- **Status:** Draft\n", encoding="utf-8")
+    directory = tmp_path / "docs" / "specs" / _ANCHOR
+    directory.mkdir(parents=True)
+    (directory / "spec.md").symlink_to(target)
+    assert _violations(tmp_path)
+
+
+def test_symlinked_spec_directory_does_not_resolve_anchor(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    real = tmp_path / "elsewhere"
+    real.mkdir()
+    (real / "spec.md").write_text("- **Status:** Draft\n", encoding="utf-8")
+    (tmp_path / "docs" / "specs" / _ANCHOR).symlink_to(real, target_is_directory=True)
+    assert _violations(tmp_path)
+
+
+def test_symlinked_specs_directory_does_not_resolve_anchor(tmp_path: Path) -> None:
+    real = tmp_path / "elsewhere"
+    _plant_open_spec(real, "Draft")
+    (real / "docs").rename(tmp_path / "moved")
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "specs").symlink_to(tmp_path / "moved" / "specs", target_is_directory=True)
+    assert not _load_lint_module().open_spec_resolves(tmp_path, _ANCHOR)
+
+
+def test_base_cases_keep_results(tmp_path: Path) -> None:
+    _plant_spec(tmp_path)
+    assert _violations(tmp_path)
+    (tmp_path / "workspace.toml").write_text(
+        f'[backlog]\nopen = [{{slug = "{_ANCHOR}"}}]\n', encoding="utf-8"
+    )
+    assert _violations(tmp_path) == []

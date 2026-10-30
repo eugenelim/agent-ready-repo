@@ -169,10 +169,10 @@ Return to the loop. It completes its remaining tasks, runs gates, and routes to 
 Follow the loop's commit and PR instructions. When the PR merges:
 
 1. The spec's **Status** updates to `Shipped` in `spec.md`.
-2. Move the entry in `workspace.toml` from `["ini-001".work].queue` to `["ini-001".work].shipped`.
-3. Run `workspace-status` to confirm the queue state.
+2. Nothing else needs moving: a repo-origin spec has no `workspace.toml` entry, so its `Status:` is the whole record.
+3. Run `workspace-status` to confirm the state.
 
-**You should see:** `workspace-core` no longer in the Ready section, and `workspace-status-phase2` now unblocked — ready to start.
+**You should see:** `workspace-core` shown as shipped, and `workspace-status-phase2` now unblocked — ready to start.
 
 Shipping is not closeout. Before the delivery contract itself is disposed of, ask
 `close-work` for a mutation-free preview of what the spec and plan still hold that

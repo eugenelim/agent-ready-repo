@@ -39,6 +39,7 @@ import stat
 import sys
 import tempfile
 import tomllib
+from collections.abc import Callable
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -217,6 +218,7 @@ _VALID_OPERATION_TYPES = frozenset({
     "needs-drop-cooled",
     "captured-to-file",
     "intent-brief-drop",
+    "spec-entry-drop",
 })
 
 
@@ -703,17 +705,7 @@ def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
                 "selector_status": "not_found",
                 "findings": matching_findings,
             }
-        return public_selector, {
-            "selector_status": "not_found",
-            "findings": [{
-                "code": "unregistered_work",
-                "path": canonical_path,
-                "dispatchable": False,
-                "next_action": (
-                    "Register or reconcile the canonical entry explicitly."
-                ),
-            }],
-        }
+        return public_selector, {"selector_status": "not_found", "findings": []}
     if len(by_initiative) > 1:
         return public_selector, {
             "selector_status": "ambiguous",
@@ -1126,8 +1118,25 @@ def _build_repair_plan_json(
         finding["code"] in {"invalid_workspace", "configuration_mismatch"}
         for finding in base["canonical"]["findings"]
     )
+    needs_operations: list[dict] = []
+    needs_findings: list[dict] = []
+    spec_drops: list[dict] = []
+    held_findings: list[dict] = []
+    candidate_queue_keys: frozenset[tuple[str, str]] = frozenset()
+    if not canonical_failed:
+        if workspace_bytes is None:
+            workspace_bytes = _migration_read_bytes(root, "workspace.toml")
+        if workspace_bytes is None:
+            raise UnsafeMigrationPathError
+        needs_operations, needs_findings = _build_needs_operations(root, workspace_bytes)
+        spec_drops, held_findings, candidate_queue_keys = _build_spec_drop_operations(
+            root, workspace_bytes, needs_operations
+        )
     automatic_operations: list[dict] = []
     for operation in [] if canonical_failed else plan.automatic_operations:
+        # A drop candidate leaves through `spec-entry-drop` (or stays, when held).
+        if (operation.ini_slug, operation.spec_path) in candidate_queue_keys:
+            continue
         item = dataclasses.asdict(operation)
         public_path = _public_canonical_path(item["spec_path"])
         item["ini_slug"] = _public_ini_slug(item["ini_slug"])
@@ -1157,11 +1166,6 @@ def _build_repair_plan_json(
         )
         manual_findings.append(item)
     if not canonical_failed:
-        if workspace_bytes is None:
-            workspace_bytes = _migration_read_bytes(root, "workspace.toml")
-        if workspace_bytes is None:
-            raise UnsafeMigrationPathError
-        needs_operations, needs_findings = _build_needs_operations(root, workspace_bytes)
         automatic_operations.extend(needs_operations)
         manual_findings.extend(needs_findings)
         captured_operations, captured_findings = _build_captured_operations(
@@ -1170,6 +1174,8 @@ def _build_repair_plan_json(
         automatic_operations.extend(captured_operations)
         manual_findings.extend(captured_findings)
         automatic_operations.extend(_build_drop_operations(workspace_bytes))
+        automatic_operations.extend(spec_drops)
+        manual_findings.extend(held_findings)
     base["workspace_fingerprint"] = plan.workspace_fingerprint
     base["automatic_operations"] = automatic_operations
     base["manual_findings"] = manual_findings
@@ -1245,7 +1251,7 @@ def _validate_plan_structure(data: dict) -> str | None:
             if captured_reason:
                 return captured_reason
             continue
-        if op_type == _INTENT_BRIEF_DROP:
+        if op_type in _DROP_OPERATION_TYPES:
             drop_reason = _validate_drop_operation(op)
             if drop_reason:
                 return drop_reason
@@ -1306,20 +1312,44 @@ def _apply_operations(
     drop_operations = [
         op for op in operations if op.get("operation_type") == _INTENT_BRIEF_DROP
     ]
+    spec_drop_operations = [
+        op for op in operations if op.get("operation_type") == _SPEC_ENTRY_DROP
+    ]
     operations = [
         op for op in operations
         if op.get("operation_type")
-        not in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE, _INTENT_BRIEF_DROP}
+        not in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE} | _DROP_OPERATION_TYPES
     ]
     # Every drop locator is checked against the registry read under the lock, and
     # bound to its entry object, before any operation below changes `doc`.
-    bound_drops, drop_refusals = _bind_drop_entries(doc, workspace_toml_bytes, drop_operations)
+    bound_drops, drop_refusals = _bind_drop_entries(
+        doc, workspace_toml_bytes, drop_operations, _intent_brief_acceptance
+    )
+    bound_spec_drops, spec_drop_refusals = _bind_drop_entries(
+        doc,
+        workspace_toml_bytes,
+        spec_drop_operations,
+        _spec_entry_acceptance(root, spec_drop_operations, needs_operations),
+    )
+    bound_drops.extend(bound_spec_drops)
     per_op.extend(drop_refusals)
     # Re-derived before any write of this run, so a source an earlier operation
     # in the same plan rewrites cannot change what the records are checked against.
     captured_plan = (
         _plan_captured_items(root, workspace_toml_bytes) if captured_operations else None
     )
+
+    # Waiting files are replaced first, one atomic replace each; `needs` is
+    # cleared in the one workspace.toml write below, only for operations that
+    # applied. An interruption in between leaves `needs` in place.
+    if needs_operations:
+        needs_per_op, needs_applied, report = _apply_needs_operations(
+            root, doc, workspace_toml_bytes, needs_operations
+        )
+        per_op.extend(needs_per_op)
+        applied += needs_applied
+        if edge_report is not None:
+            edge_report.update(report)
 
     for op in operations:
         spec_path = op["spec_path"]
@@ -1452,18 +1482,6 @@ def _apply_operations(
         ))
         applied += 1
 
-    # Waiting files are replaced first, one atomic replace each; `needs` is
-    # cleared in the one workspace.toml write below, only for operations that
-    # applied. An interruption in between leaves `needs` in place.
-    if needs_operations:
-        needs_per_op, needs_applied, report = _apply_needs_operations(
-            root, doc, workspace_toml_bytes, needs_operations
-        )
-        per_op.extend(needs_per_op)
-        applied += needs_applied
-        if edge_report is not None:
-            edge_report.update(report)
-
     # Records are created first; `doc` is written once below, so an interruption
     # between the two leaves records that the rerun re-derives and keeps.
     if captured_plan is not None:
@@ -1478,6 +1496,7 @@ def _apply_operations(
             edge_report.update(captured_report)
 
     # Drops run last, so each sees the `needs` its own run cleared.
+    per_op.extend(spec_drop_refusals)
     drop_per_op, drop_applied = _apply_bound_drops(bound_drops)
     per_op.extend(drop_per_op)
     applied += drop_applied
@@ -1823,7 +1842,7 @@ def _echo_repair_plan(data: dict) -> dict:
     findings = data.get("manual_findings", [])
     if not any(
         op.get("operation_type")
-        in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE, _INTENT_BRIEF_DROP}
+        in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE} | _DROP_OPERATION_TYPES
         for op in operations
     ) and not any(f.get("finding_type") == _CAPTURED_FINDING_TYPE for f in findings):
         return data
@@ -1832,7 +1851,7 @@ def _echo_repair_plan(data: dict) -> dict:
         if op.get("operation_type") == _CAPTURED_TO_FILE:
             echoed.append(_echo_captured_operation(op))
             continue
-        if op.get("operation_type") == _INTENT_BRIEF_DROP:
+        if op.get("operation_type") in _DROP_OPERATION_TYPES:
             echoed.append(_echo_drop_operation(op))
             continue
         if op.get("operation_type") not in _NEEDS_OPERATION_TYPES:
@@ -3378,13 +3397,22 @@ def _doc_entry_list(doc, ini_slug: str, collection: str):
     return entries
 
 
+def _intent_brief_acceptance(membership) -> str | None:
+    """The refusal reason for an `intent-brief-drop` entry, or `None`."""
+    return None if _is_droppable(membership.entry) else "entry_not_droppable"
+
+
 def _bind_drop_entries(
-    doc, workspace_bytes: bytes, operations: list[dict]
+    doc,
+    workspace_bytes: bytes,
+    operations: list[dict],
+    acceptance: Callable[[Any], str | None],
 ) -> tuple[list[tuple[dict, str, Any, Any]], list[dict]]:
     """Check each drop against the registry read under the lock; bind its entry.
 
-    Returns `(op, shown path, list, entry)` for each drop that passes, and the
-    refusals of the rest.
+    `acceptance` returns the refusal reason for a membership the operation's
+    type will not drop, or `None`. Returns `(op, shown path, list, entry)` for
+    each drop that passes, and the refusals of the rest.
     """
     if not operations:
         return [], []
@@ -3413,8 +3441,9 @@ def _bind_drop_entries(
         ):
             refusals.append({"path": shown, "applied": False, "reason": "entry_locator_mismatch"})
             continue
-        if not _is_droppable(membership.entry):
-            refusals.append({"path": shown, "applied": False, "reason": "entry_not_droppable"})
+        reason = acceptance(membership)
+        if reason is not None:
+            refusals.append({"path": shown, "applied": False, "reason": reason})
             continue
         entries = _doc_entry_list(doc, key[0], key[1])
         entry = entries[key[2]] if entries is not None and key[2] < len(entries) else None
@@ -3462,6 +3491,7 @@ def _echo_drop_operation(op: dict) -> dict:
 
 def _validate_drop_operation(op: dict) -> str | None:
     """Shape-check one drop operation; its entry is re-checked at apply."""
+    kinds = _DROP_KINDS if op.get("operation_type") == _INTENT_BRIEF_DROP else _SPEC_DROP_KINDS
     path = op.get("path")
     locator = op.get("entry_locator")
     if (
@@ -3472,7 +3502,7 @@ def _validate_drop_operation(op: dict) -> str | None:
         or _has_control_character(path)
         or ".." in PurePosixPath(path).parts
         or PurePosixPath(path).is_absolute()
-        or op.get("kind") not in _DROP_KINDS
+        or op.get("kind") not in kinds
         or not isinstance(op.get("registry_fingerprint"), str)
         or _SHA256_RE.fullmatch(op["registry_fingerprint"]) is None
         or not isinstance(locator, dict)
@@ -3484,6 +3514,167 @@ def _validate_drop_operation(op: dict) -> str | None:
     ):
         return "plan_invalid"
     return None
+
+
+# ── spec-entry-drop repair ────────────────────────────────────────────────────
+#
+# A spec is registered by its own header, so `repair-plan` holds one operation
+# for each repo-origin spec entry in a `work.` or `backlog.` collection whose
+# `needs` is empty, or that the same plan empties. A cooled entry that declares
+# a parent its lifecycle record lacks is held instead: the repair never writes
+# a record, and dropping the entry would leave the record's scope unknown.
+
+_SPEC_ENTRY_DROP = "spec-entry-drop"
+_DROP_OPERATION_TYPES = frozenset({_INTENT_BRIEF_DROP, _SPEC_ENTRY_DROP})
+_SPEC_DROP_KINDS = frozenset({"spec"})
+_SPEC_DROP_COLLECTION_PREFIXES = ("work.", "backlog.")
+_HELD_FINDING_TYPE = 6
+_DECLARED_PARENT_RE = re.compile(r"docs/product/briefs/[a-z0-9][a-z0-9-]{0,127}\.md")
+
+
+def _is_spec_drop_candidate(membership, emptied: frozenset[str]) -> bool:
+    """True for a registered repo-origin spec whose `needs` is, or becomes, empty."""
+    entry = membership.entry
+    return (
+        entry.kind == "spec"
+        and entry.path is not None
+        and entry.source.mode == "repo-origin"
+        and membership.collection.startswith(_SPEC_DROP_COLLECTION_PREFIXES)
+        and (not entry.needs or entry.path in emptied)
+    )
+
+
+def _declared_parent(root: Path, raw_parent: str | None) -> str | None:
+    """The parent a cooled entry declares: `none`, a brief file path, or `None`."""
+    if raw_parent is None:
+        return None
+    resolved = _engine._resolved_provenance_parent(raw_parent, require_local_brief=True)
+    if resolved is None:
+        return "none"
+    if _DECLARED_PARENT_RE.fullmatch(resolved) and resolved in _engine._listed_brief_files(root):
+        return resolved
+    return None
+
+
+class _CoolingContext:
+    """The cooled set and lifecycle records one planning or locking step reads."""
+
+    def __init__(self, root: Path) -> None:
+        records: list[Any] = []
+        self.root = root
+        self.cooled, findings = _engine._resolve_cooled_state(root, records)
+        self.records = records
+        self.unavailable = any(f.code == "cooling_state_unavailable" for f in findings)
+
+    def records_for(self, path: str) -> list[Any]:
+        """Cooling records, ordered by delivery ID, whose locator or alias is `path`."""
+        target = _engine._confined_artifact_path(self.root, path)
+        found = []
+        for record in self.records:
+            if (record.disposition, record.post_closeout_result) not in _engine._COOLING_PAIRS:
+                continue
+            for locator in (record.locator, *record.aliases):
+                try:
+                    if (self.root / locator).resolve() == target:
+                        found.append(record)
+                        break
+                except (OSError, RuntimeError):
+                    continue
+        return sorted(found, key=lambda record: record.delivery_id)
+
+
+def _spec_hold(membership, context: _CoolingContext) -> tuple[str, str] | None:
+    """`(record path, parent to add)` for a held entry, else `None`."""
+    entry = membership.entry
+    if not _engine._membership_is_cooled(membership, context.root, context.cooled):
+        return None
+    declared = _declared_parent(context.root, entry.source.parent)
+    records = context.records_for(entry.path)
+    if declared is None or not records:
+        return None
+    if any(getattr(record, "parent", None) is not None for record in records):
+        return None
+    return f"docs/lifecycle/{records[0].delivery_id}.json", declared
+
+
+def _build_spec_drop_operations(
+    root: Path, workspace_bytes: bytes, needs_operations: list[dict]
+) -> tuple[list[dict], list[dict], frozenset[tuple[str, str]]]:
+    """Plan `spec-entry-drop` operations and one manual item per held entry.
+
+    Also returns the `(initiative key, path)` of every drop candidate in
+    `work.queue`, whose queue operations the plan leaves out.
+    """
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    memberships = _engine._extract_canonical_memberships(workspace)[0]
+    emptied = frozenset(op["waiting_path"] for op in needs_operations)
+    candidates = [m for m in memberships if _is_spec_drop_candidate(m, emptied)]
+    queue_keys = frozenset(
+        (m.ini_slug, m.entry.path) for m in candidates if m.collection == "work.queue"
+    )
+    if not candidates:
+        return [], [], frozenset()
+    context = _CoolingContext(root)
+    if context.unavailable:
+        # No drop is planned, but a candidate still gets no queue operation.
+        return [], [], queue_keys
+    raw_entries = {
+        (ini, collection, position): raw
+        for ini, collection, position, raw in _raw_registry_entries(workspace)
+    }
+    operations: list[dict] = []
+    held: list[dict] = []
+    for membership in candidates:
+        entry = membership.entry
+        hold = _spec_hold(membership, context)
+        if hold is not None:
+            shown = _echo_path(entry.path, None)
+            ini_slug = _public_ini_slug(membership.ini_slug, allow_empty=True)
+            held.append({
+                "finding_type": _HELD_FINDING_TYPE,
+                "spec_path": shown,
+                "spec_status": "",
+                "ini_slug": ini_slug,
+                "list_name": membership.collection,
+                "reason": "held-record-lacks-parent",
+                "record_path": hold[0],
+                "parent": hold[1],
+                "finding_id": (
+                    f"type{_HELD_FINDING_TYPE}:{ini_slug}:{membership.collection}:{shown}"
+                ),
+            })
+            continue
+        locator = (membership.ini_slug, membership.collection, membership.entry_index)
+        operations.append({
+            "operation_type": _SPEC_ENTRY_DROP,
+            "entry_locator": {
+                "ini_slug": locator[0],
+                "collection": locator[1],
+                "index": locator[2],
+            },
+            "path": entry.path,
+            "kind": entry.kind,
+            "registry_fingerprint": _entry_fingerprint(*locator, raw_entries.get(locator)),
+        })
+    return operations, held, queue_keys
+
+
+def _spec_entry_acceptance(
+    root: Path, operations: list[dict], needs_operations: list[dict]
+) -> Callable[[Any], str | None]:
+    """Re-derive candidacy and the hold under the lock, as the plan stage did."""
+    emptied = frozenset(op["waiting_path"] for op in needs_operations)
+    context = _CoolingContext(root) if operations else None
+
+    def acceptance(membership) -> str | None:
+        if not _is_spec_drop_candidate(membership, emptied):
+            return "entry_not_droppable"
+        assert context is not None
+        if context.unavailable:
+            return "cooling_state_unavailable"
+        return "entry_held" if _spec_hold(membership, context) is not None else None
+
+    return acceptance
 
 
 # ── Legacy migration transaction ─────────────────────────────────────────────

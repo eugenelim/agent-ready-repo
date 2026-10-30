@@ -2,10 +2,10 @@
 
 Load this when the chosen mode is `reconcile`. `status` never needs it.
 
-`reconcile` runs the Type 1 walk that `status` skips, so it is the mode that
-finds work nobody registered.
+`reconcile` is the full audit of stale and premature entries. Its Type 1 audit
+reports nothing for specs, because a spec needs no workspace entry.
 
-**`reconcile`** — use when you suspect specs have been approved or put in-progress without being added to `workspace.toml`. The Type 1 walk reads every `spec.md` in `docs/specs/` and reports any Approved/Implementing spec not listed in any initiative.
+**`reconcile`** — use when you suspect queue or active entries have gone stale, or shipped entries have drifted from their specs.
 
 #### 1b. Coordination receipts
 

@@ -39,7 +39,7 @@ def test_ac0002_one_choice_per_active_spec() -> None:
     """AC-0002: the active-spec choice covers every active spec, picking none."""
     section = _next_actions()
     assert any(
-        "for each entry in" in line and "canonical.active" in line
+        "for each entry in" in line and "dispatch.py" in line and "`active` list" in line
         for line in section.splitlines()
     )
     assert "first entry in" not in section
@@ -51,3 +51,13 @@ def test_ac0003_graph_offer_and_final_choice_remain() -> None:
     for step in ("**5b.", "**5c.", "**5d."):
         assert step in section
     assert "`work-intake`" in section
+
+
+def test_start_and_resume_choices_name_dispatch_py() -> None:
+    """AC-0025: the start and resume lines name `dispatch.py`, not the status lists."""
+    section = _next_actions()
+    for label in ("**Start a ready spec:**", "**Active spec:**"):
+        line = next(ln for ln in section.splitlines() if label in ln)
+        assert "dispatch.py" in line, label
+        assert "canonical.ready" not in line and "canonical.active" not in line, label
+    assert "first entry in" not in section

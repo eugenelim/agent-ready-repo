@@ -15,7 +15,7 @@ updated: 2026-08-21
 
 # Journey: Engineer runs the work-loop
 
-**Use it when:** you're starting one explicit bounded change now or picking up a canonical ready/active spec from `workspace-status`.
+**Use it when:** you're starting one explicit bounded change now or picking up a ready or active spec that `work-loop`'s `dispatch.py` names.
 **You provide:** the current request or registered spec, and your judgment at the plan and gate-failure moments.
 **You receive:** a shipped spec, a PR passing its gates, and the next ready item surfaced.
 **Your decisions:** approve the plan; handle gate failures; approve PR submission.

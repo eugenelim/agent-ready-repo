@@ -5308,7 +5308,7 @@ def test_handover_ac_0018_reduced_motion_keeps_the_prompt_block_still(
 
 # ---------------------------------------------------------------------------
 # "What can I work on next?" with readiness (readiness-handover AC-0015, AC-0022 .. AC-0029,
-# AC-0036, AC-0037)
+# AC-0036, AC-0037; readiness-bridge-dispatch-input AC-0012 .. AC-0015, AC-0032, AC-0033)
 # ---------------------------------------------------------------------------
 
 import os  # noqa: E402
@@ -5327,9 +5327,8 @@ _R_REASON_TEXT = {
     "too_large": "the piped input was larger than 4 MiB",
     "empty": "nothing was piped in",
     "not_json": "the piped input was not valid JSON",
-    "no_workspace": "this repository has no workspace.toml",
-    "wrong_schema": "the piped input was not workspace-status status output this view reads",
-    "bad_workspace": "workspace-status reported a problem with workspace.toml itself",
+    "wrong_schema": "the piped input was not argless work-loop dispatch output this view reads",
+    "bad_workspace": "work-loop's dispatch could not use workspace.toml",
     "page_too_big": "the page would have been too large with it",
 }
 _START = "work-loop with no spec named"
@@ -5348,15 +5347,26 @@ _DROPPED_PATHS = [
 
 
 def _r_finding(code: str = "unsatisfied_dependency", action: str = _DEP_ACTION, **extra: Any) -> dict[str, Any]:
-    return {"code": code, "dispatchable": False, "next_action": action, **extra}
+    return {"code": code, "path": None, "dispatchable": False, "next_action": action, **extra}
 
 
-def _r_entry(path: str, dispatchable: bool = True, findings: list[Any] | None = None) -> dict[str, Any]:
-    return {"path": path, "dispatchable": dispatchable, "findings": findings or []}
+def _r_entry(path: str, findings: list[Any] | None = None) -> dict[str, Any]:
+    """An item of dispatch.py's output: the slug is the path's directory name."""
+    slug = path.rsplit("/", 2)[-2] if path.count("/") >= 2 else path
+    return {"path": path, "slug": slug, "status": "Approved", "findings": findings or []}
 
 
 def _r_blocked(path: str, *codes: str) -> dict[str, Any]:
-    return _r_entry(path, False, [_r_finding(c) for c in codes or ("unsatisfied_dependency",)])
+    return _r_entry(path, [_r_finding(c) for c in codes or ("unsatisfied_dependency",)])
+
+
+def _r_decision(active: list[Any], ready: list[Any]) -> dict[str, Any]:
+    """The argless decision dispatch.py derives from the active and ready paths."""
+    paths = [i["path"] for i in active] or [i["path"] for i in ready]
+    if len(paths) > 1:
+        return {"action": "ask", "path": None, "candidates": paths, "findings": []}
+    action = "none" if not paths else ("resume" if active else "start")
+    return {"action": action, "path": paths[0] if paths else None, "candidates": [], "findings": []}
 
 
 def _r_status(
@@ -5365,33 +5375,30 @@ def _r_status(
     blocked: list[Any] | None = None,
     findings: list[Any] | None = None,
 ) -> dict[str, Any]:
+    """An argless dispatch.py output: the base input of the spec's terms, with the argless decision."""
     return {
         "schema_version": 1,
-        "mode": "status",
-        "workspace_present": True,
-        "workspace_root": ".",
-        "canonical": {
-            "performed": True,
-            "bounded": True,
-            "findings": findings or [],
-            "ready": ready or [],
-            "active": active or [],
-            "blocked": blocked or [],
-        },
+        "ready": ready or [],
+        "active": active or [],
+        "blocked": blocked or [],
+        "findings": findings or [],
+        "decision": _r_decision(active or [], ready or []),
     }
 
 
 _NAMED_STATUS: dict[str, Any] = {
     "start": _r_status(
-        ready=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)],
-        blocked=[_r_blocked(_R_GOLF, "unsatisfied_dependency", "missing_plan")],
+        ready=[_r_entry(_R_BRAVO)],
+        blocked=[_r_blocked(_R_GOLF, "unsatisfied_dependency", "missing_plan"), _r_blocked(_R_CHARLIE, "missing_plan")],
     ),
     "resume": _r_status(active=[_r_entry(_R_CHARLIE)], ready=[_r_entry(_R_BRAVO)]),
     "ask": _r_status(active=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)], ready=[_r_entry(_R_DELIVERY)]),
-    "outside": _r_status(ready=[_r_entry("docs/specs/absent-spec/spec.md"), _r_entry(_R_BRAVO)]),
-    "held": _r_status(
-        ready=[_r_entry(_R_BRAVO)], findings=[_r_finding(path=_R_BRAVO)]
-    ),
+    "ask_ready": _r_status(ready=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)]),
+    "outside": _r_status(ready=[_r_entry("docs/specs/absent-spec/spec.md")], blocked=[_r_blocked(_R_GOLF)]),
+    # The only active item is not in the export: the page renders rule resume with no id.
+    "resume_outside": _r_status(active=[_r_entry("docs/specs/absent-spec/spec.md")], blocked=[_r_blocked(_R_GOLF)]),
+    # A top-level finding naming the decided path stops nothing: the mark stays (held is always false).
+    "findingpath": _r_status(ready=[_r_entry(_R_BRAVO)], findings=[_r_finding(path=_R_BRAVO)]),
     "none": _r_status(blocked=[_r_blocked(_R_GOLF), _r_blocked(_R_CHARLIE, "missing_plan")]),
     "empty_lists": _r_status(),
     "all_dropped": _r_status(
@@ -5403,7 +5410,7 @@ _NAMED_STATUS: dict[str, Any] = {
     # A not-known next action holds both readiness glyphs; it is text, never a state mark.
     "glyph_text": _r_status(
         ready=[_r_entry(_R_BRAVO)],
-        blocked=[_r_entry(_R_GOLF, False, [_r_finding("custom_code", "\u25B6 \u25A0 go \u25B6 \u25A0")])],
+        blocked=[_r_entry(_R_GOLF, [_r_finding("custom_code", "\u25B6 \u25A0 go \u25B6 \u25A0")])],
     ),
 }
 _CHECKED_NAMES = list(_NAMED_STATUS)
@@ -5467,9 +5474,6 @@ def _failing_exports(out: pathlib.Path) -> dict[str, pathlib.Path]:
     found["too_large"] = _with_readiness(out, "r_too_large.html", base + b" " * (4_194_305 - len(base)))
     found["empty"] = _with_readiness(out, "r_empty.html", b" \n\t ")
     found["not_json"] = _with_readiness(out, "r_not_json.html", b"{not json")
-    found["no_workspace"] = _with_readiness(
-        out, "r_no_workspace.html", {**_r_status(), "workspace_present": False}
-    )
     found["wrong_schema"] = _with_readiness(out, "r_wrong_schema.html", {"mode": "reconcile"})
     found["bad_workspace"] = _with_readiness(
         out, "r_bad_workspace.html", _r_status(findings=[_r_finding("invalid_workspace")])
@@ -5525,8 +5529,10 @@ def test_readiness_payload_fixtures_have_the_intended_shape(rx: dict[str, pathli
     assert start["start"] == {"rule": "start", "id": "spec:bravo-spec", "held": False, "active_count": 0}
     assert start["resume"] == {"rule": "resume", "id": "spec:charlie-spec", "held": False, "active_count": 1}
     assert start["ask"] == {"rule": "ask", "id": None, "held": False, "active_count": 2}
+    assert start["ask_ready"] == {"rule": "ask", "id": None, "held": False, "active_count": 0}
     assert start["outside"] == {"rule": "start", "id": None, "held": False, "active_count": 0}
-    assert start["held"] == {"rule": "start", "id": None, "held": True, "active_count": 0}
+    assert start["resume_outside"] == {"rule": "resume", "id": None, "held": False, "active_count": 1}
+    assert start["findingpath"] == {"rule": "start", "id": "spec:bravo-spec", "held": False, "active_count": 0}
     assert start["none"]["rule"] == "none"
     for name in _CHECKED_NAMES:
         assert _readiness_of(rx[name])["checked"] is True, name
@@ -5573,8 +5579,8 @@ def test_readiness_ac_0023_title_lead_and_sort_key(opener: Any, rx: dict[str, pa
     page = opener(rx[name]).page
     assert _text(page, "#list-question") == "What can I work on next?"
     assert _text(page, "#list-title") == "Active, ready and blocked"
-    assert _text(page, "#list-lead") == "Readiness from workspace-status, read when this snapshot was made."
-    assert _text(page, "#list-sort") == "Active, then ready, then blocked, in workspace-status order"
+    assert _text(page, "#list-lead") == "Readiness from work-loop's dispatch, read when this snapshot was made."
+    assert _text(page, "#list-sort") == "Active, then ready, then blocked, in dispatch order"
     # No other question's header changes.
     other = opener(rx[name])
     _choose(other, "capabilities")
@@ -5649,15 +5655,12 @@ def _expected_line(start: dict[str, Any]) -> str | None:
     if start["id"] is not None:
         return None
     verb = "resume" if start["rule"] == "resume" else "start"
-    if start["rule"] == "ask":
+    if start["rule"] == "ask" and start["active_count"] > 0:
         return f"{_START} asks which of the {start['active_count']} active items to resume, so none is marked."
+    if start["rule"] == "ask":
+        return f"{_START} asks which ready item to start, so none is marked."
     if start["rule"] == "none":
         return f"{_START} finds nothing to start or resume."
-    if start["held"]:
-        return (
-            f"{_START} may refuse the item it would {verb}, because workspace-status reports a finding "
-            "about it, so none is marked."
-        )
     return f"{_START} would {verb} an item outside this export, so none is marked."
 
 
@@ -5680,12 +5683,15 @@ def test_readiness_ac_0026_start_line_text_by_case(rx: dict[str, pathlib.Path]) 
     assert _expected_line(_readiness_of(rx["ask"])["start"]) == (
         "work-loop with no spec named asks which of the 2 active items to resume, so none is marked."
     )
-    assert _expected_line(_readiness_of(rx["held"])["start"]) == (
-        "work-loop with no spec named may refuse the item it would start, because workspace-status "
-        "reports a finding about it, so none is marked."
+    assert _expected_line(_readiness_of(rx["ask_ready"])["start"]) == (
+        "work-loop with no spec named asks which ready item to start, so none is marked."
     )
+    assert _expected_line(_readiness_of(rx["findingpath"])["start"]) is None
     assert _expected_line(_readiness_of(rx["outside"])["start"]) == (
         "work-loop with no spec named would start an item outside this export, so none is marked."
+    )
+    assert _expected_line(_readiness_of(rx["resume_outside"])["start"]) == (
+        "work-loop with no spec named would resume an item outside this export, so none is marked."
     )
     assert _expected_line(_readiness_of(rx["none"])["start"]) == (
         "work-loop with no spec named finds nothing to start or resume."
@@ -5763,7 +5769,7 @@ def test_readiness_ac_0028_nothing_listed(opener: Any, rx: dict[str, pathlib.Pat
     item = opener(rx[name])
     page = item.page
     assert _ids(page) == [] and page.locator("#list h3.group-head, #list ul.rows").count() == 0
-    assert _text(page, "#list .empty") == "workspace-status lists nothing active, ready or blocked in this export."
+    assert _text(page, "#list .empty") == "work-loop's dispatch lists nothing active, ready or blocked in this export."
     assert _count_text(page) == "0 items" and _rail_counts(page)["next"] == "0"
     assert page.locator("#list .empty").count() == 1
 
@@ -5775,7 +5781,7 @@ def test_readiness_ac_0028_count_is_a_number_while_outstanding_is_unavailable(
     assert payload_of(path)["outstanding"]["available"] is False
     item = opener(path)
     page = item.page
-    assert _ids(page) == ["spec:bravo-spec", "spec:charlie-spec", "spec:golf-new"]
+    assert _ids(page) == ["spec:bravo-spec", "spec:golf-new", "spec:charlie-spec"]
     assert _count_text(page) == "3 items" and _rail_counts(page)["next"] == "3"
     assert page.locator("#list .notice").count() == 0
     # The other questions keep their unknown counts.
@@ -5783,7 +5789,7 @@ def test_readiness_ac_0028_count_is_a_number_while_outstanding_is_unavailable(
     empty = _with_readiness(tmp_path, "unavailable_empty.html", _r_status(), _delivery_provider=_incomplete)
     page = opener(empty).page
     assert _count_text(page) == "0 items" and _rail_counts(page)["next"] == "0"
-    assert _text(page, "#list .empty") == "workspace-status lists nothing active, ready or blocked in this export."
+    assert _text(page, "#list .empty") == "work-loop's dispatch lists nothing active, ready or blocked in this export."
 
 
 @pytest.mark.parametrize("name", [*_FAIL_NAMES, "noflag"])
@@ -5807,7 +5813,7 @@ def test_readiness_ac_0029_unchecked_keeps_the_startable_list(
     else:
         assert notices == [
             f"Readiness could not be checked: {_R_REASON_TEXT[name]}. "
-            "Run the workspace-status skill to see what is ready."
+            "Run work-loop's dispatch to see what is ready."
         ]
         assert page.evaluate("document.getElementById('list').firstElementChild.className") == "notice"
     assert [g for g, _w, _h in _marks(page, "#list")] == [
@@ -5841,7 +5847,7 @@ def test_readiness_ac_0029_a_hand_edited_member_reads_as_wrong_schema_never_dama
         assert _ids(page) == Model(payload_of(path)).startable(), label
         assert _text(page, "#list > p.notice") == (
             f"Readiness could not be checked: {_R_REASON_TEXT['wrong_schema']}. "
-            "Run the workspace-status skill to see what is ready."
+            "Run work-loop's dispatch to see what is ready."
         ), label
     # An export made before the member existed carries none: unchecked, with no notice at all.
     old = _rewrite(rx["noflag"], tmp_path / "old.html", edit(lambda p: p.pop("readiness")))
@@ -5985,7 +5991,7 @@ def _ws_rows(page: Page) -> list[tuple[str, str]]:
 
 _MIXED_STATUS = _r_status(
     blocked=[
-        _r_entry(_R_GOLF, False, [_r_finding(), _r_finding("custom_code", "Do the thing.")]),
+        _r_entry(_R_GOLF, [_r_finding(), _r_finding("custom_code", "Do the thing.")]),
         _r_blocked(_R_CHARLIE, "missing_plan"),
     ],
     ready=[_r_entry(_R_BRAVO)],
@@ -6017,11 +6023,6 @@ def test_readiness_ac_0030_each_code_is_a_broken_entry_held_by_its_record(
     holders = [n for n, _c in rows]
     assert holders == Model(payload).by_name(holders)
     assert _rail_counts(page)["broken"] == str(len(rows)) and _count_text(page) == f"{len(rows)} entries"
-    # The lead names workspace-status as a source while the list holds its findings.
-    assert _text(page, "#list-lead") == (
-        "Pointers that did not resolve, parent or dependency loops made of resolved pointers, "
-        "problems the delivery resolver found, and findings workspace-status reported."
-    )
     if unavailable:
         assert page.locator("#list .notice").count() == 1
 
@@ -6032,7 +6033,6 @@ def test_readiness_ac_0030_unchecked_page_lists_no_workspace_entry(opener: Any, 
         _choose(item, "broken")
         assert _ws_rows(item.page) == [], name
         assert "workspace finding" not in item.page.inner_text("body").lower(), name
-        assert "workspace-status reported" not in _text(item.page, "#list-lead"), name
 
 
 def test_readiness_ac_0031_detail_part_reads_known_and_not_known_findings(
@@ -6049,8 +6049,8 @@ def test_readiness_ac_0031_detail_part_reads_known_and_not_known_findings(
     assert lines.count() == 2
     first, second = lines.all_inner_texts()
     assert first == f"Workspace finding unsatisfied_dependency: {_DEP_ACTION}"
-    assert second.startswith("Workspace finding custom_code.") and second.index("Note from workspace-status:") > 0
-    assert lines.nth(1).locator(".field").inner_text() == "Note from workspace-status:"
+    assert second.startswith("Workspace finding custom_code.") and second.index("Note from work-loop's dispatch:") > 0
+    assert lines.nth(1).locator(".field").inner_text() == "Note from work-loop's dispatch:"
     assert lines.nth(1).locator(".value").inner_text() == "Do the thing."
     assert part.locator("li.edge a, li.edge img, li.edge script").count() == 0
     meta = _text(page, ".state-meta")
@@ -6064,7 +6064,7 @@ def test_readiness_ac_0031_detail_part_reads_known_and_not_known_findings(
 def test_readiness_ac_0032_a_findings_own_path_marks_nothing(opener: Any, tmp_path: pathlib.Path) -> None:
     status_obj = _r_status(
         blocked=[
-            _r_entry(_R_BRAVO, False, [_r_finding(path="docs/product/intents/FEAT-0005-india-none.md")])
+            _r_entry(_R_BRAVO, [_r_finding(path="docs/product/intents/FEAT-0005-india-none.md")])
         ],
         findings=[_r_finding(path=_R_CHARLIE)],
     )
@@ -6080,7 +6080,7 @@ def test_readiness_ac_0032_a_findings_own_path_marks_nothing(opener: Any, tmp_pa
     assert "Workspace finding unsatisfied_dependency" in _text(page, "#detail-body")
 
 
-_WS_LABELS = {"Active", "Ready", "Blocked", "Workspace finding", "Note from workspace-status"}
+_WS_LABELS = {"Active", "Ready", "Blocked", "Workspace finding", "Note from work-loop's dispatch"}
 _ALL_GLYPHS = set("●◆◇✕△✓▶■")
 
 
@@ -6092,9 +6092,9 @@ def test_readiness_ac_0033_key_explains_readiness_only_while_checked(
     facts = item.page.eval_on_selector_all("#key .fact", "els => els.map(e => e.innerText)")
     for word, glyph in (("Active", "●"), ("Ready", "▶"), ("Blocked", "■")):
         hit = [f for f in facts if f.split("\n")[:2] == [glyph, word]]
-        assert len(hit) == 1 and "Readiness from workspace-status" in hit[0], (word, facts)
+        assert len(hit) == 1 and "Readiness from work-loop's dispatch" in hit[0], (word, facts)
     finding = [f for f in facts if f.startswith("Workspace finding")]
-    assert len(finding) == 1 and "workspace-status reported" in finding[0]
+    assert len(finding) == 1 and "work-loop's dispatch reported" in finding[0]
     for name in ("noflag", "bad_workspace", "wrong_schema", "not_json"):
         plain = opener(rx[name])
         plain.page.locator("#key summary").click()
@@ -6107,7 +6107,7 @@ def test_readiness_ac_0033_key_explains_readiness_only_while_checked(
 
 def test_readiness_ac_0033_closed_label_set_over_the_hostile_export(opener: Any, tmp_path: pathlib.Path) -> None:
     status_obj = _r_status(
-        blocked=[_r_entry(_R_HOSTILE_SPEC, False, [_r_finding(), _r_finding("custom_code", "</script> go")])],
+        blocked=[_r_entry(_R_HOSTILE_SPEC, [_r_finding(), _r_finding("custom_code", "</script> go")])],
         ready=[_r_entry("docs/product/intents/FEAT-0001-hostile-root.md")],
     )
     path = _with_readiness(tmp_path, "ws33.html", status_obj, root=_FIXTURES / "hostile")
@@ -6131,12 +6131,102 @@ def test_readiness_ac_0033_closed_label_set_over_the_hostile_export(opener: Any,
     assert rendered["label-state"] <= set(_STATES)
     assert rendered["label-trust"] <= set(_TRUST)
     assert rendered["label-form"] <= set(_FORMS)
-    assert "Note from workspace-status:" in fields
+    assert "Note from work-loop's dispatch:" in fields
     assert {f.rstrip(":") for f in fields if f.startswith(("Note", "Workspace"))} <= _WS_LABELS
     assert glyphs <= _ALL_GLYPHS and {"▶", "■"} <= glyphs
     words = set(item.page.eval_on_selector_all("#key .mark-w", "e => e.map(x => x.textContent)"))
     assert {"Active", "Ready", "Blocked"} <= words
     assert item.errors == [] and set(item.requests) == {item.url}
+
+
+_BROKEN_LEAD_PLAIN = (
+    "Pointers that did not resolve, parent or dependency loops made of resolved pointers, "
+    "and problems the delivery resolver found."
+)
+_BROKEN_LEAD_CHECKED = (
+    "Pointers that did not resolve, parent or dependency loops made of resolved pointers, "
+    "problems the delivery resolver found, and findings work-loop's dispatch reported."
+)
+
+
+def test_readiness_ac_0033_broken_lead_names_the_dispatch_while_findings_are_listed(
+    opener: Any, rx: dict[str, pathlib.Path], tmp_path: pathlib.Path
+) -> None:
+    path = _with_readiness(tmp_path, "ws33_lead.html", _MIXED_STATUS)
+    item = opener(path)
+    _choose(item, "broken")
+    assert _text(item.page, "#list-lead") == _BROKEN_LEAD_CHECKED
+    # Checked, but with no workspace finding to list: the shipped lead.
+    plain = opener(rx["resume"])
+    _choose(plain, "broken")
+    assert _text(plain.page, "#list-lead") == _BROKEN_LEAD_PLAIN
+    for name in ("noflag", "bad_workspace", "wrong_schema"):
+        unchecked = opener(rx[name])
+        _choose(unchecked, "broken")
+        assert _text(unchecked.page, "#list-lead") == _BROKEN_LEAD_PLAIN, name
+
+
+def test_readiness_ac_0033_key_entries_and_mark_help_read_as_owner_approved(
+    opener: Any, rx: dict[str, pathlib.Path]
+) -> None:
+    item = opener(rx["start"])
+    item.page.locator("#key summary").click()
+    facts = item.page.eval_on_selector_all("#key .fact", "els => els.map(e => e.innerText.split('\\n'))")
+    by_word = {f[1]: f[-1] for f in facts if len(f) >= 3 and f[0] in "●▶■"}
+    assert by_word["Active"] != "" and facts  # the progress mark keeps its own entry
+    assert by_word["Ready"] == "Readiness from work-loop's dispatch: it lists this item as ready."
+    assert by_word["Blocked"] == "Readiness from work-loop's dispatch: it lists this item as blocked."
+    active = [f for f in facts if f[:2] == ["●", "Active"]]
+    assert active and active[0][-1] == "Readiness from work-loop's dispatch: it lists this item as active."
+    finding = [f for f in facts if f[0] == "Workspace finding"]
+    assert [f[-1] for f in finding] == [
+        "A finding work-loop's dispatch reported about a blocked item, shown with its code."
+    ]
+    # The mark help for the two readiness marks is not drawn on the page; the shipped script holds it.
+    source = rx["start"].read_text(encoding="utf-8")
+    assert "Ready, as work-loop\\'s dispatch reports it." in source
+    assert "Blocked, as work-loop\\'s dispatch reports it." in source
+
+
+@pytest.mark.parametrize("name", _CHECKED_NAMES)
+def test_readiness_ac_0015_no_rendered_text_holds_workspace_status(
+    opener: Any, rx: dict[str, pathlib.Path], name: str
+) -> None:
+    item = opener(rx[name])
+    item.page.locator("#key summary").click()
+    payload = payload_of(rx[name])
+    for key in _QUESTIONS:
+        _choose(item, key)
+        assert "workspace-status" not in item.page.inner_text("body"), key
+        for node in payload["nodes"]:
+            _choose(item, key, node=node["id"])
+            assert "workspace-status" not in item.page.inner_text("body"), (key, node["id"])
+
+
+def test_readiness_ac_0015_hostile_export_text_holds_no_workspace_status_outside_records(
+    opener: Any, tmp_path: pathlib.Path
+) -> None:
+    status_obj = _r_status(
+        blocked=[_r_entry(_R_HOSTILE_SPEC, [_r_finding(), _r_finding("custom_code", "run workspace-status now")])],
+        ready=[_r_entry("docs/product/intents/FEAT-0001-hostile-root.md")],
+    )
+    path = _with_readiness(tmp_path, "ws15.html", status_obj, root=_FIXTURES / "hostile")
+    payload = payload_of(path)
+    item = opener(path)
+    item.page.locator("#key summary").click()
+    hits: list[str] = []
+    for key in _QUESTIONS:
+        _choose(item, key)
+        for node in payload["nodes"]:
+            _choose(item, key, node=node["id"])
+            # Only a next_action line (a .diag-raw element) and text the payload takes from a record may hold it.
+            hits += item.page.evaluate(
+                """() => Array.from(document.querySelectorAll('body *:not(script)'))
+                  .filter((e) => !e.closest('.diag-raw') && !e.closest('details.record')
+                    && Array.from(e.childNodes).some((n) => n.nodeType === 3 && n.textContent.includes('workspace-status')))
+                  .map((e) => e.className + ': ' + e.textContent.slice(0, 60))"""
+            )
+    assert hits == [], hits
 
 
 def test_readiness_ac_0035_unsafe_code_points_in_next_actions_show_as_escapes(
@@ -6145,7 +6235,7 @@ def test_readiness_ac_0035_unsafe_code_points_in_next_actions_show_as_escapes(
     chars = sorted(nav._UNSAFE_CHARS)
     chunks = ["".join(chars[i : i + 40]) for i in range(0, len(chars), 40)]
     findings = [_r_finding(f"custom_{n}", f"a{chunk}z") for n, chunk in enumerate(chunks)]
-    path = _with_readiness(tmp_path, "ws35.html", _r_status(blocked=[_r_entry(_R_GOLF, False, findings)]))
+    path = _with_readiness(tmp_path, "ws35.html", _r_status(blocked=[_r_entry(_R_GOLF, findings)]))
     payload = payload_of(path)
     carried = "".join(f["next_action"] for _h, f in _ws_findings(payload))
     assert all(c in carried for c in chars) and not any(f["known"] for _h, f in _ws_findings(payload))
@@ -6171,7 +6261,7 @@ def test_readiness_ac_0035_unsafe_code_points_in_next_actions_show_as_escapes(
 
 _LONG_CODE = "a" + "b0_" * 21  # 64 characters, no break opportunity
 _LONG_NOTE = ("Run " + "x" * 160 + " then read the plan and rerun the check. " * 20)[:500]  # 500 code points
-_LAYOUT_BLOCKED = _r_entry(_R_GOLF, False, [_r_finding(_LONG_CODE, _LONG_NOTE), _r_finding()])
+_LAYOUT_BLOCKED = _r_entry(_R_GOLF, [_r_finding(_LONG_CODE, _LONG_NOTE), _r_finding()])
 _LAYOUT_STATUS = _r_status(
     active=[_r_entry(_R_CHARLIE)], ready=[_r_entry(_R_BRAVO)], blocked=[_LAYOUT_BLOCKED]
 )

@@ -1,5 +1,5 @@
   // -------------------------------------------------------------- readiness
-  // The payload's readiness member is workspace-status's view of the work, read once when the
+  // The payload's readiness member is work-loop's dispatch view of the work, read once when the
   // snapshot was made.  It holds ids of loaded records, finding codes and plain sentences; every
   // string is shown as text through the element helpers and never reaches a link or a prompt.
   var START_PHRASE = 'work-loop with no spec named';
@@ -10,20 +10,19 @@
     too_large: 'the piped input was larger than 4 MiB',
     empty: 'nothing was piped in',
     not_json: 'the piped input was not valid JSON',
-    no_workspace: 'this repository has no workspace.toml',
-    wrong_schema: 'the piped input was not workspace-status status output this view reads',
-    bad_workspace: 'workspace-status reported a problem with workspace.toml itself',
+    wrong_schema: 'the piped input was not argless work-loop dispatch output this view reads',
+    bad_workspace: 'work-loop\'s dispatch could not use workspace.toml',
     page_too_big: 'the page would have been too large with it'
   };
   var START_RULES = { resume: true, start: true, ask: true, none: true };
   var READINESS_GROUPS = [['active', 'Active'], ['ready', 'Ready'], ['blocked', 'Blocked']];
   // "What is broken?" while it holds workspace findings: the shipped lead, naming that source too.
   var BROKEN_WITH_FINDINGS = 'Pointers that did not resolve, parent or dependency loops made of resolved ' +
-    'pointers, problems the delivery resolver found, and findings workspace-status reported.';
+    'pointers, problems the delivery resolver found, and findings work-loop\'s dispatch reported.';
   var CHECKED_NEXT = { title: 'Active, ready and blocked',
-    lead: 'Readiness from workspace-status, read when this snapshot was made.',
-    sort: 'Active, then ready, then blocked, in workspace-status order',
-    empty: 'workspace-status lists nothing active, ready or blocked in this export.' };
+    lead: 'Readiness from work-loop\'s dispatch, read when this snapshot was made.',
+    sort: 'Active, then ready, then blocked, in dispatch order',
+    empty: 'work-loop\'s dispatch lists nothing active, ready or blocked in this export.' };
 
   function readinessChecked() { return readiness !== null && readiness.checked === true; }
 
@@ -97,12 +96,12 @@
     if (!readinessChecked() || s.id !== null) { return ''; }
     var verb = s.rule === 'resume' ? 'resume' : 'start';
     if (s.rule === 'ask') {
-      return START_PHRASE + ' asks which of the ' + s.active_count + ' active items to resume, so none is marked.';
+      return START_PHRASE + (s.active_count > 0
+        ? ' asks which of the ' + s.active_count + ' active items to resume, so none is marked.'
+        : ' asks which ready item to start, so none is marked.');
     }
     if (s.rule === 'none') { return START_PHRASE + ' finds nothing to start or resume.'; }
-    return START_PHRASE + (s.held
-      ? ' may refuse the item it would ' + verb + ', because workspace-status reports a finding about it, so none is marked.'
-      : ' would ' + verb + ' an item outside this export, so none is marked.');
+    return START_PHRASE + ' would ' + verb + ' an item outside this export, so none is marked.';
   }
   // The notice or the start line that sits above the first list.
   function readinessPreface() {
@@ -112,7 +111,7 @@
       if (line !== '') { add(frag, el('p', 'note', line)); }
     } else if (readiness !== null && readiness.reason !== 'not_requested') {
       add(frag, el('p', 'notice', 'Readiness could not be checked: ' + own(REASON_TEXT, readiness.reason) +
-        '. Run the workspace-status skill to see what is ready.'));
+        '. Run work-loop\'s dispatch to see what is ready.'));
     }
     return frag;
   }

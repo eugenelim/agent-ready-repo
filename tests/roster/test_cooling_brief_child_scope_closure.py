@@ -345,7 +345,7 @@ def _table_row(text: str, first_cell: str) -> str:
 def test_the_adopter_closeout_procedure_states_the_precondition() -> None:
     """*AC24*: the `cool-30-days` row names the obligation before cooling."""
     row = _table_row(CLOSEOUT_GUIDE.read_text(encoding="utf-8"), "`cool-30-days`")
-    assert "declare source.parent on its workspace entry" in row
+    assert "lifecycle record's `parent`" in row
 
 
 def test_the_parent_field_reference_states_the_cooling_interaction() -> None:

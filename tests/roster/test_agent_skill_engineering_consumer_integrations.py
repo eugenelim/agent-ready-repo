@@ -707,8 +707,14 @@ def test_ac14_spec_is_registered_with_derived_shape_and_counts() -> None:
         ]
         for room in ("active", "queue", "shipped")
     }
-    assert sum(len(v) for v in rooms.values()) == 1, rooms  # same-slice
-    assert len(rooms[expected_room]) == 1, (status, expected_room, rooms)  # same-slice
+    # Since the spec registration stop (RFC-0106 D1) a repo-origin spec has no
+    # entry: its own Status is its room, and the spec-entry-drop repair removed
+    # the entry this criterion first checked. No entry, or exactly one in the
+    # room its Status names, is consistent.
+    assert sum(len(v) for v in rooms.values()) in (0, 1), rooms  # same-slice
+    assert expected_room
+    if any(rooms.values()):
+        assert len(rooms[expected_room]) == 1, (status, expected_room, rooms)  # same-slice
 
     # ADR-0112 retired the spec index, so the cross-check that compared these
     # counts against an index row has no counterpart. `shape`, `criteria` and

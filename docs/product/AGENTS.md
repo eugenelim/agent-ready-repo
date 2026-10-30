@@ -48,9 +48,9 @@ projection that owns it. Link to that home instead of restating the status in
 prose—not in a sibling brief, not in the parent intent, and not in the owning
 brief's preamble. A delivery brief's coverage map owns spec status through its
 `Status` column; `author-delivery-brief` owns the coverage and its rollups.
-Registered spec membership in `workspace.toml` is the confirmation evidence
-surfaced in that map, so a confirmed slice without a registered entry leaves
-the parent brief with no execution evidence. A slice's `Gating` cell owns its
+A spec's own `Brief:` header is the confirmation evidence surfaced in that
+map, so a confirmed slice whose spec does not name the brief leaves the parent
+brief with no execution evidence. A slice's `Gating` cell owns its
 gating, and a brief's `- **Status:**` line owns its lifecycle state.
 
 Reasoning about a dependency is not the same as asserting its state. An

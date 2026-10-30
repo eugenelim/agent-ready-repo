@@ -51,11 +51,12 @@ BODY_LINE_CEILING = 500
 # `workspace_status_engine.py` was re-pinned when the shaping route renamed to `intent`,
 # and again when blocking moved from `needs` to the `Depends on:` header. Both
 # `workspace_status.py` and the engine were re-pinned for the needs-to-header repair and again for its code-review corrections, and both for the captured-item listing, and the engine again for the captured-item switch and again for the file-based shaping guard, and both when the captured-item repair landed and its comments dropped spec citations, and both again for the post-gates review fixes, and the engine again for the unregistered captured item's closed state.
+# 2026-10-29, spec-registration-stop: both re-pinned for the spec-entry-drop repair, the retired `unregistered_work` and Type 1 audit, and the reworded cooled-child next action. Both re-pinned again when queue moves stayed off drop candidates while cooling is unreadable.
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "71c41cc6af99d15dc02cb5863b3bf11d26cab8078e017fb5b08b11690adcf7fb",
+        "1fa9adf473eb22f795a70d874130271dceb251ed602fd492ce7c90afa810d41b",
     "workspace_status_engine.py":
-        "64d6a191f187ba0ec81e5d9ffe9ca91036e1ad650344ec6be86dc7d49d88cedc",
+        "7d22cb905af4464cb2d1778610d2e5e53a23604ed5b847d6d7dcd71b9dd0221b",
     "workspace_status_prune.py":
         "88395b684b69af04b00694c830e79d72a4a3b3194fa72d276fb2763f3f28e95a",
     "workspace_mcp_server.py":

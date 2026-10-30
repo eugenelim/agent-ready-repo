@@ -115,7 +115,6 @@ _FINDING_NEXT_ACTIONS = {
     ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
-    "unregistered_work": "Register or reconcile the canonical entry explicitly.",
     "duplicate_membership": (
         "Remove the duplicate after choosing the authoritative membership."
     ),
@@ -126,8 +125,9 @@ _FINDING_NEXT_ACTIONS = {
         "Resolve provenance in the canonical artifact and mirror it deliberately."
     ),
     "cooled_child_scope_unknown": (
-        "Declare source.parent on the entry: a resolving brief path, or none "
-        "only when that spec has no parent brief."
+        "Set parent on the spec's lifecycle record: a resolving brief path, or "
+        "none only when that spec has no parent brief; a tracker-origin entry "
+        "declares source.parent instead."
     ),
     "refresh_conflict": "Resolve the conflict through the artifact's authority workflow.",
     "unsatisfied_dependency": "Complete or explicitly revise the dependency.",
@@ -5445,10 +5445,12 @@ def classify_shaping_entries(
 
 def _run_type1_scan(
     root: Path,
-    all_tracked: set[str],
     cooled: frozenset[Path] = frozenset(),
 ) -> tuple[list[ReconciliationFinding], int]:
-    """Type 1: Forward scan — untracked live specs. Returns (findings, files_read).
+    """Type 1 audit: counts the spec files it walks and reports nothing.
+
+    A spec needs no workspace entry, so a spec no entry names is not a finding.
+    Returns (findings, files_read) with findings always empty.
 
     Two callers: run_reconciliation and analyze. Never called by analyze_bounded.
     """
@@ -5456,8 +5458,8 @@ def _run_type1_scan(
     files_read = 0
     specs_dir = root / "docs" / "specs"
 
-    # Recurse the full specs tree so nested specs (e.g. docs/specs/group/live/)
-    # are discovered; slug is the parent path relative to specs_dir.
+    # The walk and its `files_read` counter stay so the reconciliation output
+    # still reports how many spec files the audit covered, though it reports none.
     # os.walk(followlinks=False) prevents escaping the repo via symlinked dirs
     # found DURING traversal (rglob follows symlinks on Python 3.11/3.12).
     # The root-confinement check guards against docs/specs or docs/ itself being
@@ -5473,10 +5475,9 @@ def _run_type1_scan(
         _specs_root_resolved = specs_dir.resolve()
         _visited: set[Path] = set()
         for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
-            # Guard: skip this directory if already visited (in-root junction to a
-            # previously-scanned sibling). Must run before processing filenames so a
-            # junction alias doesn't produce duplicate Type 1 findings for the
-            # real directory's spec.md. dirnames.clear() prevents further descent.
+            # Skip a directory already visited (in-root junction to a previously
+            # scanned sibling) so its spec.md is not counted twice.
+            # dirnames.clear() prevents further descent.
             # RuntimeError guards against circular symlinks on Python 3.11/3.12.
             try:
                 _current_resolved = Path(dirpath).resolve()
@@ -5509,32 +5510,9 @@ def _run_type1_scan(
             spec_file = Path(dirpath) / "spec.md"
             if spec_file.is_symlink():
                 continue
-            # Derive the slug from the resolved path so NTFS junction aliases
-            # that sort before their real target still produce the canonical slug.
-            try:
-                rel = _current_resolved.relative_to(_specs_root_resolved)
-            except ValueError:
-                continue
-            slug = rel.as_posix()
-            slug_path = Path(slug)
-            if slug_path.is_absolute() or ".." in slug_path.parts:
-                continue
             if _current_resolved / "spec.md" in cooled:
                 continue
             files_read += 1
-            status = extract_spec_status(spec_file)
-            if status not in ("Approved", "Implementing"):
-                continue
-            legacy_path = f"spec/{slug}"
-            target_path = f"docs/specs/{slug}/spec.md"
-            if not {legacy_path, target_path}.intersection(all_tracked):
-                findings.append(ReconciliationFinding(
-                    finding_type=1,
-                    spec_path=legacy_path,
-                    spec_status=status or "",
-                    ini_slug="",
-                    list_name="",
-                ))
     return findings, files_read
 
 
@@ -5600,12 +5578,7 @@ def run_reconciliation(
     cooled: frozenset[Path] = frozenset(),
 ) -> tuple[list[ReconciliationFinding], int]:
     """Run all three reconciliation scan types. Returns (findings, files_read)."""
-    all_tracked: set[str] = set()
-    for ini in initiatives:
-        for e in ini.work.queue + ini.work.active + ini.work.shipped:
-            all_tracked.add(e.path)
-
-    type1_findings, type1_files = _run_type1_scan(root, all_tracked, cooled)
+    type1_findings, type1_files = _run_type1_scan(root, cooled)
     type23_findings, type23_files = _run_type23_scan(root, initiatives, cooled)
     return type1_findings + type23_findings, type1_files + type23_files
 
@@ -5661,14 +5634,8 @@ def analyze(
         all_classifications.extend(classify_entries(ini, initiatives))
         all_shaping.extend(classify_shaping_entries(ini, initiatives))
 
-    # Build all_tracked for the Type 1 scan
-    all_tracked: set[str] = set()
-    for ini in initiatives:
-        for e in ini.work.queue + ini.work.active + ini.work.shipped:
-            all_tracked.add(e.path)
-
     # Call helpers directly (not via run_reconciliation) to obtain split file counts
-    type1_findings, type1_files = _run_type1_scan(root, all_tracked, cooled)
+    type1_findings, type1_files = _run_type1_scan(root, cooled)
     type23_findings, type23_files = _run_type23_scan(root, initiatives, cooled)
     reconciliation = type1_findings + type23_findings
 
@@ -7255,14 +7222,6 @@ def compute_repair_plan(
             key = (f.ini_slug, f.spec_path)
             queue_counts[key] = queue_counts.get(key, 0) + 1
     duplicate_keys = {k for k, n in queue_counts.items() if n > 1}
-
-    for f in result.type1:
-        fid = f"type1:{f.ini_slug}:{f.list_name}:{f.spec_path}"
-        manual.append(ManualFinding(
-            finding_type=1, spec_path=f.spec_path, spec_status=f.spec_status,
-            ini_slug=f.ini_slug, list_name=f.list_name, reason="type1-untracked",
-            finding_id=fid,
-        ))
 
     for f in result.type2:
         if f.list_name == "queue" and (f.ini_slug, f.spec_path) in duplicate_keys:

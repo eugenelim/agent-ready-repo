@@ -176,15 +176,17 @@ def test_t3_work_loop_step0_requires_canonical_preflight() -> None:
     )
 
     normalized = " ".join(skill.split())
-    assert "canonical.ready" in normalized
-    assert "only queue-ready set" in normalized
-    assert "matching `canonical.ready` evaluation" in normalized
-    assert "matching `canonical.active`" in normalized
-    assert "Raw workspace `[work].queue` membership never authorizes PLAN" in normalized
-    assert "Raw `[work].active` membership never authorizes PLAN" in normalized
+    # Superseded by spec-registration-stop AC-0001 and RFC-0106 D1/D3: Step 0 runs
+    # dispatch.py and acts on its decision instead of reading canonical.* lists.
+    assert "scripts/dispatch.py" in normalized
+    assert "`decision.action`" in normalized
+    assert "`decision.candidates`" in normalized
+    assert "`--start <spec>`" in normalized
+    assert "`--resume <spec>`" in normalized
+    assert "canonical.ready" not in normalized
+    assert "Raw `[work].queue` or `[work].active` membership never authorizes PLAN" in normalized
     assert "collect all paths in `[\"ini-NNN\".work].active`" not in skill
     assert "use it and proceed to PLAN" not in skill
-    assert "Do not re-read raw `[work].queue` or `[work].active`" in normalized
 
 
 def test_packaged_engine_projection_matches_canonical_source() -> None:

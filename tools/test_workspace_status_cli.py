@@ -111,6 +111,8 @@ backlog = []
 _MALFORMED_TOML = "this is not valid toml {{{ ]]"
 
 # Fixture workspace.toml for repair-plan/repair-apply tests
+# The shipped entry keeps a need the repair refuses, so it is no `spec-entry-drop`
+# candidate and still gets its `queue-to-shipped` operation.
 _REPAIR_TOML = """\
 ["ini-001"]
 name      = "Repair Test"
@@ -118,7 +120,7 @@ status    = "active"
 milestone = "M1"
 
 ["ini-001".work]
-queue   = [{path = "docs/specs/shipped-feature/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Structured shipped feature", needs = []}, "spec/archived-feature"]
+queue   = [{path = "docs/specs/shipped-feature/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Structured shipped feature", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}, "spec/archived-feature"]
 active  = []
 shipped = []
 
@@ -644,12 +646,8 @@ backlog = []
         self.assertEqual(result.returncode, 0, result.stderr)
         data = json.loads(result.stdout)
         self.assertEqual(data["selector_status"], "not_found")
-        self.assertEqual(data["findings"], [{
-            "code": "unregistered_work",
-            "path": "docs/specs/unregistered/spec.md",
-            "dispatchable": False,
-            "next_action": "Register or reconcile the canonical entry explicitly.",
-        }])
+        self.assertEqual(data["findings"], [])
+        self.assertNotIn("unregistered_work", result.stdout)
 
     def test_explain_malformed_registered_target_preserves_its_refusal(self) -> None:
         root = self._write_workspace(
@@ -693,12 +691,9 @@ backlog = []
         data = json.loads(result.stdout)
         # Former legacy selector is not_found: legacy entries are unsupported_legacy
         # in ordinary reconciliation and no longer appear in evaluations or
-        # legacy_memberships.  The explain result carries an unregistered_work finding.
+        # legacy_memberships.  The explain result carries no findings.
         self.assertEqual(data["selector_status"], "not_found")
-        self.assertIn(
-            "unregistered_work",
-            {finding["code"] for finding in data["findings"]},
-        )
+        self.assertEqual(data["findings"], [])
 
     def test_parse_error_is_sanitized_canonical_deny(self) -> None:
         root = self._write_workspace(
@@ -2340,12 +2335,9 @@ class SubcommandTests(_CliBase):
         self.assertEqual(r.returncode, 0)
         data = json.loads(r.stdout)
         self.assertEqual(data.get("mode"), "explain")
-        # spec/alpha is a legacy string → unsupported_legacy → not_found with unregistered_work
+        # spec/alpha is a legacy string → unsupported_legacy → not_found, no findings
         self.assertEqual(data.get("selector_status"), "not_found")
-        self.assertIn(
-            "unregistered_work",
-            {finding["code"] for finding in data.get("findings", [])},
-        )
+        self.assertEqual(data.get("findings"), [])
         # AC10 explain coverage
         self.assertEqual(data.get("scan", {}).get("global_scan_spec_files_read"), 0)
 
@@ -2358,12 +2350,12 @@ class SubcommandTests(_CliBase):
         self.assertEqual(data.get("selector_status"), "not_found")
 
     def test_explain_cli_ambiguous_exit0(self) -> None:
-        """AC14: former ambiguous-legacy selector → exit 0, not_found with unregistered_work.
+        """AC14: former ambiguous-legacy selector → exit 0, not_found with no findings.
 
         Both initiatives carry `spec/shared-slug` as a legacy string.  Legacy
         entries are unsupported_legacy in ordinary reconciliation and never reach
         the candidates set in _canonical_explain, so no ambiguity can be reported.
-        The result is not_found with an unregistered_work finding.
+        The result is not_found with an empty findings list.
         """
         root = self._write_workspace(_TWO_INI_SHARED_SLUG_TOML)
         r = self._run_explain(root, "shared-slug")
@@ -2371,10 +2363,7 @@ class SubcommandTests(_CliBase):
                          f"not_found must be exit 0, got {r.returncode}: {r.stderr}")
         data = json.loads(r.stdout)
         self.assertEqual(data.get("selector_status"), "not_found")
-        self.assertIn(
-            "unregistered_work",
-            {finding["code"] for finding in data.get("findings", [])},
-        )
+        self.assertEqual(data.get("findings"), [])
 
     def test_explain_cli_canonical_ambiguous_exit0(self) -> None:
         """Canonical path under two initiatives → exit 0, ambiguous, two matches.
@@ -2778,16 +2767,9 @@ backlog = []
         ]
         self.assertNotIn("docs/specs/inline-shipped/spec.md", paths_in_queue)
         self.assertIn("spec/keep-me", paths_in_queue)
-        shipped = ws["ini-001"]["work"]["shipped"]
-        moved = next(
-            e for e in shipped
-            if isinstance(e, dict) and e.get("path") == "docs/specs/inline-shipped/spec.md"
-        )
-        self.assertEqual(moved["kind"], "spec")
-        self.assertEqual(moved["summary"], "Keep structured context")
-        self.assertEqual(moved["source"]["mode"], "repo-origin")
-        # The same plan migrates the entry's typed `needs` to the waiting item.
-        self.assertEqual(moved["needs"], [])
+        # The same plan migrates the entry's typed `needs` to the waiting item, which
+        # empties them, so the entry is dropped rather than moved to shipped.
+        self.assertEqual(ws["ini-001"]["work"]["shipped"], [])
         self.assertIn(
             "- **Depends on:** spec:other",
             (root / "docs/specs/inline-shipped/spec.md").read_text(encoding="utf-8"),
@@ -2806,7 +2788,7 @@ status    = "active"
 milestone = "M1"
 
 ["ini-001".work]
-queue   = [{path = "docs/specs/racy/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Racy", needs = []}]
+queue   = [{path = "docs/specs/racy/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Racy", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 active  = []
 shipped = []
 
@@ -2959,7 +2941,7 @@ status    = "active"
 milestone = "M1"
 
 ["ini-001".work]
-queue   = [{path = "docs/specs/prov-drift/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/right.md"}, summary = "Provenance drift", needs = []}]
+queue   = [{path = "docs/specs/prov-drift/spec.md", kind = "spec", source = {mode = "repo-origin", parent = "docs/product/briefs/right.md"}, summary = "Provenance drift", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 active  = []
 shipped = []
 
@@ -3011,7 +2993,7 @@ status    = "active"
 milestone = "M1"
 
 ["ini-001".work]
-queue   = [{path = "docs/specs/plan-drift/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Plan drift", needs = []}]
+queue   = [{path = "docs/specs/plan-drift/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Plan drift", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 active  = []
 shipped = []
 
@@ -3281,7 +3263,7 @@ status    = "active"
 milestone = "M1"
 
 ["ini-001".work]
-queue   = [{path = "docs/specs/feat-a/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Feature A", needs = []}]
+queue   = [{path = "docs/specs/feat-a/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Feature A", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 active  = []
 shipped = []
 
@@ -3295,7 +3277,7 @@ status    = "active"
 milestone = "M2"
 
 ["ini-002".work]
-queue   = [{path = "docs/specs/feat-b/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Feature B", needs = []}]
+queue   = [{path = "docs/specs/feat-b/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Feature B", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 active  = []
 shipped = []
 
@@ -3345,9 +3327,9 @@ status    = "active"
 milestone = "M1"
 
 ["ini-001".work]
-queue   = [{path = "docs/specs/already-there/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Already there", needs = []}]
+queue   = [{path = "docs/specs/already-there/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Already there", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 active  = []
-shipped = [{path = "docs/specs/already-there/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Already there", needs = []}]
+shipped = [{path = "docs/specs/already-there/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Already there", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 
 ["ini-001".shaping_queue]
 active  = []
@@ -3538,7 +3520,7 @@ status    = "active"
 milestone = "M1"
 
 ["ini-001".work]
-queue   = [{path = "docs/specs/live-shipped/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Live shipped", needs = []}]
+queue   = [{path = "docs/specs/live-shipped/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "Live shipped", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 active  = ["spec/live-shipped"]
 shipped = []
 
@@ -3799,7 +3781,7 @@ status    = "active"
 milestone = "M1"
 
 ["ini-001".work]
-queue   = [{path = "docs/specs/new-shipped/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "New shipped", needs = []}]
+queue   = [{path = "docs/specs/new-shipped/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "New shipped", needs = [{type = "local", kind = "brief", path = "docs/product/briefs/absent.md"}]}]
 active  = []
 
 ["ini-001".shaping_queue]

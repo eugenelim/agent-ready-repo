@@ -710,7 +710,7 @@ def test_cooled_dependency_does_not_block_its_dependant(tmp_path, engine) -> Non
 
 
 def test_cooled_spec_raises_no_type1_finding(tmp_path, engine) -> None:
-    """AC15: the global scan omits cooled, untracked specs."""
+    """AC-0041: the Type 1 audit is empty for a cooled tree as for a control tree."""
     control = _tree(tmp_path / "control", lifecycle=False, specs=())
     cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
     for root in (control, cooled):
@@ -719,8 +719,8 @@ def test_cooled_spec_raises_no_type1_finding(tmp_path, engine) -> None:
 
     control_findings = _reconcile_json(control, engine)["reconciliation"]["type1"]
     cooled_findings = _reconcile_json(cooled, engine)["reconciliation"]["type1"]
-    assert [item["spec_path"] for item in control_findings] == ["spec/alpha"]
-    assert all(item["spec_path"] != "spec/alpha" for item in cooled_findings)
+    assert control_findings == []
+    assert cooled_findings == []
 
 
 def test_global_scan_counter_moves_by_exactly_one(tmp_path, engine) -> None:
@@ -738,7 +738,7 @@ def test_global_scan_counter_moves_by_exactly_one(tmp_path, engine) -> None:
         cooled_json["scan"]["global_scan_spec_files_read"]
         == control_json["scan"]["global_scan_spec_files_read"] - 1
     )
-    assert [item["spec_path"] for item in cooled_json["reconciliation"]["type1"]] == ["spec/gamma"]
+    assert cooled_json["reconciliation"]["type1"] == []
 
 
 def test_cooled_queue_entry_never_becomes_dispatchable(tmp_path, engine) -> None:
@@ -1658,9 +1658,11 @@ def test_repair_plan_keeps_its_pre_wave6_cooling_posture(tmp_path, engine, capsy
     # `automatic_operations` is the observable that moves: the entry itself is
     # echoed either way, so asserting the path appears anywhere in the JSON
     # cannot distinguish the two postures.
+    # Since the spec registration stop the reach is a `spec-entry-drop` of the
+    # repo-origin entry rather than a queue move; either still proves the reach.
     assert [
         op for op in plan["automatic_operations"]
-        if op.get("spec_path") == "docs/specs/alpha/spec.md"
+        if "docs/specs/alpha/spec.md" in (op.get("spec_path"), op.get("path"))
     ], "repair-plan lost its pre-Wave-6 reach into a cooled entry"
     # Ordinary orientation excludes the same entry, so the assertion above is
     # about the deferral rather than about cooling never doing anything here.

@@ -225,9 +225,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      `author-delivery-brief continue`, which passes a confirmed slice into this skill. Set
      it to `brief:<slug>`, the only form to write. Readers still accept a
      legacy repository path in older specs. Leave it blank
-     or `none` for a spec authored directly. The workspace entry for a
-     brief-derived spec carries the same parent provenance; a direct spec
-     omits that brief parent. A spec without it stays valid — the field is
+     or `none` for a spec authored directly. A brief-derived
+     spec's `Brief:` header is its parent provenance, and its lifecycle record
+     carries the same parent once it cools; a direct spec omits that brief
+     parent. A spec without it stays valid — the field is
      additive.
    - Stamp the optional `Discovery:` header **only** when this spec
      descended from an upstream discovery artifact (a decision brief /

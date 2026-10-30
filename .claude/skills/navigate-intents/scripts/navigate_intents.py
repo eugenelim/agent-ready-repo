@@ -2592,7 +2592,8 @@ def _build_cli_parser() -> argparse.ArgumentParser:
     e.add_argument("--from", dest="from_id", metavar="IDENTITY", default=None,
                    help="Limit the view to the subtree under this intent.")
     e.add_argument("--readiness", metavar="-", default=None,
-                   help="Pass - to read workspace-status status output from standard input.")
+                   help="Pass - to read the output of work-loop's dispatch.py --root "
+                        "from standard input.")
     return parser
 
 

@@ -817,7 +817,7 @@ def case_type1_untracked_live_spec() -> None:
         # Tracked specs
         write_spec(root, "tracked-shipped", "Shipped")
         write_spec(root, "tracked-queued", "Draft")
-        # Untracked specs that SHOULD generate Type 1
+        # Untracked specs: a spec needs no entry, so none is a Type 1 finding
         write_spec(root, "untracked-approved", "Approved")
         write_spec(root, "untracked-implementing", "Implementing")
         # Untracked spec with non-live status (should NOT generate Type 1)
@@ -832,18 +832,9 @@ def case_type1_untracked_live_spec() -> None:
         type1 = [f for f in findings if f.finding_type == 1]
         type1_paths = {f.spec_path for f in type1}
 
-        expect("spec/untracked-approved" in type1_paths,
-               "[AC2l] untracked-approved should be Type 1")
-        expect("spec/untracked-implementing" in type1_paths,
-               "[AC2l] untracked-implementing should be Type 1")
-        expect("spec/untracked-draft" not in type1_paths,
-               "[AC2l] untracked-draft should NOT be Type 1 (Draft is not live)")
-        expect("spec/untracked-shipped" not in type1_paths,
-               "[AC2l] untracked-shipped should NOT be Type 1 (Shipped is not live)")
-        expect("spec/tracked-shipped" not in type1_paths,
-               "[AC2l] tracked-shipped should NOT be Type 1 (tracked)")
-        expect("spec/group/nested-approved" in type1_paths,
-               "[AC2l] nested spec (group/nested-approved) should be Type 1")
+        expect(type1 == [], f"[AC-0041] Type 1 must report nothing; got {type1_paths}")
+        expect(not [f for f in findings if f.spec_path.startswith("spec/untracked")],
+               "[AC-0041] no finding names an untracked spec")
 
 
 # ── AC2m: Stale queue/active entries (Type 2) ────────────────────────────────
@@ -1482,10 +1473,9 @@ def case_full_analyze() -> None:
         expect("spec/blocked-queued" in blocked_paths,
                f"[integration] spec/blocked-queued should be blocked; blocked={blocked_paths}")
 
-        # Type 1: untracked-approved
-        type1_paths = {f.spec_path for f in result.type1}
-        expect("spec/untracked-approved" in type1_paths,
-               f"[integration] untracked-approved should be Type 1; type1={type1_paths}")
+        # Type 1 reports nothing: an untracked Approved spec needs no entry
+        expect(result.type1 == [],
+               f"[integration] type1 must be empty; type1={result.type1}")
 
 
 # ── Contract anchor — SKILL.md drift guard ───────────────────────────────────
@@ -1530,9 +1520,15 @@ _WL_FINISH_END = r'Conventional commit format'
 # Moved for captured-item-files: the shaping-item guard paragraph matches
 # `captured.items` instead of the registry shaping lists. The engine guard
 # moved with it (`check_shaping_guard` reads the captured-item file).
+# Moved for spec-registration-stop T6: Step 0 runs `scripts/dispatch.py` and acts
+# on its `decision` instead of reading `canonical.ready`/`canonical.active`. The
+# engine is unchanged: dispatch.py hands the same engine its input, and the
+# shaping-item guard still reads `captured.items`; ownership is unchanged.
 _WORK_LOOP_CONTRACT_HASH = (
-    "c3c4129cc7197fc16252dc3787a8c1aad91afb2aa7730024854e5cd1a5cc39c4"
+    "3a1faea1019b6b5f0fe5cfbeda14547bc98c70152d124785bdc3f1201da2e0bc"
 )
+# Reconciled for spec-registration-stop T2: the supplied-spec-path bullet no longer
+# names the retired `unregistered_work` finding; ownership is unchanged.
 # Reconciled 2026-08-21: the finish-time lint now resolves from the installed
 # skill directory. Status ownership is unchanged, so the engine needs no edit.
 # Reconciled 2026-08-24: the full-mode and light-mode reviewer bullets now
@@ -1688,8 +1684,12 @@ _WORK_LOOP_CONTRACT_HASH = (
 # read-only lint, writes no spec.md field, and mutates no workspace.toml array.
 # Re-pinned again the same day: the bullet's exit-1 advice now names the fix for
 # each code. Same review result, and the engine needs no edit.
+# Re-pinned 2026-10-29 for spec-registration-stop: a historical deferral anchor
+# now resolves through `[backlog].open` or an open intent, brief or spec file.
+# Reviewed as the pin requires, and the engine needs no edit: the bullet still
+# runs the read-only spec-status lint and mutates no workspace.toml array.
 _WORK_LOOP_FINISH_HASH = (
-    "2f7f3d8408e4fc0fa35323a3ceb6d05df501f67cf347444e15f3afa2a0544303"
+    "e982579dfeba575f1add76c2efc6edb89ed38af42c459003cc6fa4bd15763753"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
@@ -3050,12 +3050,16 @@ def case_compute_repair_plan_type1_manual():
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
         (root / "workspace.toml").write_bytes(b"[ini-001]\n")
-        f = _make_finding(1, "spec/untracked", "Approved", "ini-001", "")
-        result = _make_result(type1=[f])
-        plan = compute_repair_plan(result, root / "workspace.toml")
+        write_spec(root, "untracked", "Approved")
+        # A planted Approved spec no entry names gives an empty repair plan (AC-0041).
+        plan = compute_repair_plan(analyze(root), root / "workspace.toml")
         expect(len(plan.automatic_operations) == 0, "2B type1: expected 0 auto ops")
-        expect(len(plan.manual_findings) == 1, "2B type1: expected 1 manual")
-        expect(plan.manual_findings[0].reason == "type1-untracked", "2B type1: reason")
+        expect(not [m for m in plan.manual_findings if m.reason == "type1-untracked"],
+               "2B type1: no type1-untracked manual item")
+        # Even a hand-built Type 1 finding yields no manual item.
+        f = _make_finding(1, "spec/untracked", "Approved", "ini-001", "")
+        plan = compute_repair_plan(_make_result(type1=[f]), root / "workspace.toml")
+        expect(plan.manual_findings == [], "2B type1: hand-built finding yields no manual item")
 
 
 def case_compute_repair_plan_type3_manual():

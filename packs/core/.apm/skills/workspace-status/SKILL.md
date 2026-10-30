@@ -51,7 +51,7 @@ Pick one mode, then load only that mode's reference.
 | Mode | Subcommand | When to use | Type 1 walk | Writes |
 |------|-----------|-------------|-------------|--------|
 | status | `status` (default) | Session start, queue check — fast bounded scan | No | — |
-| reconcile | `reconcile` | Full audit: find untracked live specs in addition to stale/premature entries | Yes | — |
+| reconcile | `reconcile` | Full audit of stale and premature entries | Yes | — |
 | explain | `explain --item <selector>` | Investigate a specific item (slug or `spec/` path) | No | — |
 | reconcile | `retirement-candidates --run-date <YYYY-MM-DD>` | Report which delivery contracts are retirement candidates and every blocker holding each one back | Yes | — |
 | mutate | `selected-membership --spec-dir docs/specs/<slug>` | Report membership for each explicitly selected spec directory; repeat the flag to preserve selection order | No | — |
@@ -110,7 +110,7 @@ Run the production backend via **argument vector** (the canonical and only safe 
 ["<python>", "<skill-dir>/scripts/workspace_status.py", "status", "--root", "<repo-root>"]
 ```
 
-The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global spec walk). Use `reconcile` for a full audit that also finds untracked live specs (Type 1). Use `explain` to investigate a specific item. See **Mode selection** above.
+The `status` subcommand runs a bounded scan (Type 2 + Type 3 only — no global spec walk). Use `reconcile` for a full audit of stale and premature entries. The Type 1 audit reports nothing for specs, because a spec needs no entry. Use `explain` to investigate a specific item. See **Mode selection** above.
 
 To inspect workspace membership for an explicit selection of spec directories,
 repeat `--spec-dir` once per directory:
@@ -172,7 +172,7 @@ shaping.ready  — list of ready shaping entries (from active AND backlog); each
 shaping.signals — list of active-context signal entries; each carries ini_slug
 shaping.blocked — list of blocked shaping entries (backlog only); each carries ini_slug and blocking_needs
 shaping.active_entries — list of all shaping_queue.active entries; each carries slug, ini_slug, and entry_type (signals included)
-reconciliation.type1             — untracked live specs (empty in status/explain; 1 not in types_performed)
+reconciliation.type1             — always empty: a spec needs no entry, so the Type 1 audit reports nothing
 reconciliation.type2             — stale queue/active entries
 reconciliation.type3             — prematurely-shipped entries
 reconciliation.type2_cleanup_ops — non-authoritative Type 2 repair descriptors
@@ -223,11 +223,10 @@ identifier to the repository root without checking it is a path first.
 | `unmigrated_captured_item` | A captured item is registered at a path outside `docs/product/captured/`. | Run workspace-status repair-plan to move this captured item into its own file under docs/product/captured/. |
 | `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
 | `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
-| `unregistered_work` | Supplied or active spec has no unique matching workspace membership. | Register or reconcile the canonical entry explicitly. |
 | `duplicate_membership` | One artifact occurs more than once across lifecycle memberships. A surviving historical alias for the same artifact path is one cause: the canonical entry is blocked while the alias survives anywhere in the workspace. | Remove the duplicate after choosing the authoritative membership. If a legacy alias is the cause, tell the user to delete the alias from `workspace.toml`. |
 | `impossible_transition` | Artifact status and lifecycle membership cannot coexist. | Correct the artifact or membership through a reviewed transition. |
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
-| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names neither a brief file nor a brief entry. | Declare `source.parent` on the named entry — the path of a brief file under `docs/product/briefs/` (or of a brief entry), or an empty value (`none`) only when that spec has no parent brief. A value naming neither does not clear it. A value naming the wrong brief does clear it, and misattributes the spec silently, because once the spec has cooled the declaration is trusted rather than verified. |
+| `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names neither a brief file nor a brief entry. | Set parent on the spec's lifecycle record: a resolving brief path, or none only when that spec has no parent brief; a tracker-origin entry declares source.parent instead. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
 | `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |
@@ -261,25 +260,16 @@ user to rewrite the entry in canonical form by hand.
 
 For status and reconcile modes only, continue:
 
-**Type 1 audit notice:** when `1` is not in `reconciliation.types_performed` (status mode only), always render the following line unconditionally — even when reconciliation is otherwise clean (N = 0):
+**Type 1 audit:** it reports nothing for specs, because a spec needs no workspace entry. Render no notice and no subsection for it.
 
-> _Type 1 scan not performed — run `reconcile` to also check for untracked live specs._
-
-If the reconciliation block is non-empty (any type1/type2/type3 findings), output it first:
+If the reconciliation block is non-empty (any type2/type3 findings), output it first:
 
 **Reconciliation:**
 
-Let N = total count across all three finding types. When N > 0, output before the main sections; omit subsections with no entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`):
+Let N = total count across the type 2 and type 3 findings. When N > 0, output before the main sections; omit subsections with no entries; name the initiative for each stale/shipped entry (e.g. `[ini-002 work]`):
 
 ```
 **Reconciliation** — N inconsistenc(y/ies) detected:
-
-  Untracked live specs (Approved or Implementing, not in any initiative list):
-  [Gate: render this subsection only when 1 is in reconciliation.types_performed.
-   When absent: omit this subsection — the global Type 1 audit notice at the top
-   of **Surface results** already informs the user; do not emit a second notice
-   here.]
-  - `spec/<slug>` (Status: Approved) — add to [work].queue through `work-intake`
 
   Stale queue/active entries (spec shows Shipped or Archived):
   - `spec/<slug>` in [ini-002 work].queue — Status: Shipped
@@ -319,7 +309,7 @@ active-list findings manual, revalidates canonical eligibility, and performs a
 comment-preserving atomic write. Never edit `workspace.toml` directly as a
 fallback for a skipped or manual finding. Captured items registered outside `docs/product/captured/` are refused with `unmigrated_captured_item` until the `captured-to-file` repair moves them; `status` lists every captured-item file under its `captured` section.
 
-Intent and brief entries need no registry entry: `repair-plan` also holds an `intent-brief-drop` operation for each repo-origin entry for an intent under `docs/product/intents/` or a brief under `docs/product/briefs/` (never a captured item's entry), and `repair-apply --yes` removes it after the `needs` operations, keeping any entry whose `needs` remain. Details are in `references/mutate.md`.
+Intent and brief entries need no registry entry: `repair-plan` also holds an `intent-brief-drop` operation for each repo-origin entry for an intent under `docs/product/intents/` or a brief under `docs/product/briefs/` (never a captured item's entry), and `repair-apply --yes` removes it after the `needs` operations, keeping any entry whose `needs` remain. A spec needs no registry entry either: `repair-plan` holds a `spec-entry-drop` operation for each repo-origin spec entry in a `work.` or `backlog.` collection whose `needs` is, or becomes, empty, and gives it no queue operation. A cooled entry that declares a parent its lifecycle record lacks is held instead, with one manual item naming the entry, the record, and the `parent` to add; the repair never writes a record. Details are in `references/mutate.md`.
 
 **Main output sections:**
 
@@ -363,9 +353,10 @@ anyway shows the reader a blank where a name should be.
 
 **Needs-resolution modes (`analyze_bounded` / `is_need_satisfied`):** `workspace_status()` (used by workspace-mcp) calls `analyze_bounded(autonomous_dispatch=True)`, which applies conservative semantics. All other callers use `autonomous_dispatch=False` (default, human-session semantics). The difference:
 
-Autonomous dispatch consumers must use `canonical.ready` as the ready set. A
-valid `work.active` item appears in `canonical.active` as resumable context,
-not queue-ready. Invalid entries
+Autonomous dispatch consumers take the ready and resumable specs from
+`work-loop`'s `dispatch.py`, which reads each spec's own headers. A valid
+`work.active` item appears in `canonical.active` as resumable context, not
+queue-ready. Invalid entries
 and `unsupported_legacy` entries remain visible under `canonical.findings`,
 but never dispatch.
 
@@ -436,12 +427,11 @@ Using the JSON data from Step 1 — do not re-read `workspace.toml` or recompute
 
 From the JSON result:
 
-- `active` = all entries in `canonical.active`
-- `unblocked` = all entries in `canonical.ready`
+- Run `work-loop`'s `dispatch.py --root .` (read-only) for the ready and resumable specs. Its `ready` list is the `unblocked` set and its `active` list is the `active` set. This status JSON does not decide either.
 
 Ready to start already lists every ready item with its command, so the user picks among them.
 
-**Path resolution:** entries in `canonical.ready`, `canonical.active`, etc. carry a `path` field (e.g. `"docs/specs/<slug>/spec.md"`). Strip `docs/specs/` and trailing `/spec.md` to get the slug; use `docs/specs/<slug>/` for file-system commands.
+**Path resolution:** entries in `canonical.blocked` and each `dispatch.py` list carry a `path` field (e.g. `"docs/specs/<slug>/spec.md"`). Strip `docs/specs/` and trailing `/spec.md` to get the slug; use `docs/specs/<slug>/` for file-system commands.
 
 **5b. ASCII dependency graph (when ≥2 unblocked work items)**
 
@@ -456,7 +446,7 @@ Work queue — parallel opportunities:
 ```
 
 - Right-pad the slug column to the longest slug for alignment. Use each canonical item's `path` field.
-- Entries in `canonical.ready`: annotate `[ready]`.
+- Entries in `dispatch.py`'s `ready` list: annotate `[ready]`.
 - Entries in `canonical.blocked`: annotate with the first finding `code`; surface its `next_action` instead of recomputing a dependency reason.
 
 **5c. Harness detection and parallel-session offer (when graph rendered)**
@@ -470,14 +460,14 @@ When the graph was rendered, offer a parallel-session choice as the **first** nu
 
 Emit the following choices in order. Omit any whose source is empty; renumber sequentially. The parallel-session offer from 5c (when present) occupies the first slot and the remaining choices follow.
 
-- **Active spec:** one numbered choice for each entry in `canonical.active`: `work-loop docs/specs/<slug>/` — continue this active spec. Present when `active` is non-empty.
+- **Start a ready spec:** one numbered choice for each spec in `dispatch.py`'s `ready` list: `work-loop docs/specs/<slug>/` — start this spec. Present when `unblocked` is non-empty.
+- **Active spec:** one numbered choice for each entry in `dispatch.py`'s `active` list: `work-loop docs/specs/<slug>/` — continue this active spec. Present when `active` is non-empty.
 - **Start or remember work (always — final choice):** `work-intake`
 
 ## Never
 
-- Infer dispatchability. `canonical.ready` is the only queue-ready set and
-  `canonical.active` the only resumable one; never derive either from raw
-  `[work]` membership.
+- Infer dispatchability. `work-loop`'s `dispatch.py` is the source of ready and
+  resumable specs; never derive either from raw `[work]` membership.
 - Mutate the workspace during `status`, `reconcile`, or `explain`. Every
   mutating subcommand — `prune`, `repair-apply`, `repair-rollback` — needs
   explicit human confirmation first, and reaching one from an orientation run
