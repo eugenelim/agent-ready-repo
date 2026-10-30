@@ -70,7 +70,15 @@ _projector = _supervisor("_supervisor_projector.py")
 _attempt = _supervisor("_supervisor_attempt.py")
 sibling = _commit.sibling
 
-__all__ = ["Refusal", "Workspace", "check_authority_ref", "check_git_config", "start"]
+__all__ = [
+    "Refusal",
+    "Workspace",
+    "check_authority_ref",
+    "check_git_config",
+    "committed_code_trust",
+    "refuse_untrusted_on_unsafe_host",
+    "start",
+]
 
 _POLICY_PATH = _SCRIPTS_DIR.parent / "supervisor-policy.json"
 _MAX_TEXT_BYTES = 4 * 1024 * 1024
@@ -373,6 +381,48 @@ def _status_refusals(ws: Workspace, spec_text: str, plan_text: str, intent: str)
         )
 
 
+def committed_code_trust(ws: Workspace) -> tuple[str | None, str]:
+    """``(trust, cause)``: the ``code_trust`` of the latest approval pair at ``HEAD``.
+
+    Read through the hardened Git helper, so the working copy never counts. When
+    the trust cannot be determined, *trust* is ``None`` and *cause* names why:
+    the file is absent, malformed, or unreadable, the value is unknown, or Git
+    failed. Nothing is written, so a refusal built from it writes nothing. A determined
+    trust has an empty *cause*.
+    """
+    try:
+        approvals = ws.approvals()
+    except _git.SupervisorGitError as exc:
+        return None, f"a Git error ({exc.code})"
+    except Refusal:
+        return None, "approvals.jsonl is malformed"
+    except Exception:  # noqa: BLE001 - any other failure to read the record leaves it undetermined
+        return None, "approvals.jsonl is unreadable"
+    if not approvals:
+        return None, "approvals.jsonl is absent at HEAD"
+    trust = approvals[-1].get("code_trust")
+    if trust not in CODE_TRUST:
+        return None, "the latest approval carries an unknown value"
+    return trust, ""
+
+
+def refuse_untrusted_on_unsafe_host(code_trust: str | None, cause: str = "") -> None:
+    """Refuse untrusted or undetermined code on a host whose writes can race."""
+    if code_trust == "trusted" or sibling("_confined_mutation.py").race_free_mutation():
+        return
+    why = (
+        'the code trust is "untrusted"'
+        if code_trust == "untrusted"
+        else f'the code trust is "undetermined": {cause or "no cause recorded"}'
+    )
+    raise Refusal(
+        "untrusted-unsafe-host",
+        "owner",
+        f"{why}; this host cannot make confined writes race-free, so only a run "
+        "approved as trusted may proceed on it",
+    )
+
+
 def _identified(
     record: dict[str, Any],
     key: str,
@@ -413,6 +463,7 @@ def start(
         )
     if intent not in INTENTS or code_trust not in CODE_TRUST:
         raise Refusal("invalid-argument", "owner", "unknown intent or code-trust value")
+    refuse_untrusted_on_unsafe_host(code_trust)
     check_git_config(ws)
     spec_text, plan_text = ws.spec_text(), ws.plan_text()
     _status_refusals(ws, spec_text, plan_text, intent)

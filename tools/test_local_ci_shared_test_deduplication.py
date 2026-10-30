@@ -311,6 +311,10 @@ FIRST_TOOL_BATCH = (
     # Membership only: appended to this existing batch, so no group count moves.
     # `lint-ci-parity` disposes it NO_PR_GATE, as for the registry comparison.
     "tools/test_replay_dispatch.py",
+    # Added 2026-10-30 with the JUnit no-skip checker (spec windows-confined-write).
+    # Membership only: appended to this existing batch, so no group count moves.
+    # `lint-ci-parity` disposes it PR_GATED through its own build-check.yml step.
+    "tools/test_require_junit_ran_without_skips.py",
 )
 
 RETAINED_TOOL_SINGLETONS = (
@@ -1101,11 +1105,16 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # Prior pins were current: origin/main's Makefile, which lacks only that path,
 # returns no drift from `_effective_composition_errors()` against `aefb2404…`
 # and `2716968f…`.
+# Re-pinned 2026-10-30 for the JUnit no-skip checker suite. Sole cause: the path
+# `tools/test_require_junit_ran_without_skips.py` appended to the same tools
+# batch, after `tools/test_replay_dispatch.py`; no line was added, removed or
+# reordered. Prior pins were current: origin/main's Makefile, which lacks only
+# that path, matches `e44c7a98…` and `56e555fc…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "e44c7a9845f7cfb8cc47b898f4bb6e5517e34a02d71db27dc95f79fad0880f7d"
+    "9d8022f1c4f2515eda4c113be98470e171cf5b821ce728fc252560bfe9860997"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "56e555fca556e8d31942720e693641475b9ac626b21c1283d82230f20b9ee4f8"
+    "1470603e2fda73004fa56a53a0ea01aae1187ecf85d49384167c6df24e884998"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

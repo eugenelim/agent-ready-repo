@@ -121,6 +121,23 @@ jobs:
         # job termination on timeout.
         run: python -m pytest packs/core/tests/skills/work-loop/test_process_safety_windows.py -q -rs --durations=10
 
+      - name: pytest confined writes on a real Windows host (path-checked mode)
+        # Gating: the module runs unpatched on NTFS with real junctions and hard
+        # links. New directories need short names for the alias case, so the
+        # volume holding the runner temp directory has 8.3 name creation turned
+        # on first. The module skips itself off Windows, so the report is checked:
+        # a skipped case, or zero tests, fails the step.
+        shell: pwsh
+        run: |
+          $drive = (Get-Item $env:RUNNER_TEMP).PSDrive.Name + ":"
+          fsutil 8dot3name set $drive 0
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $base = Join-Path $env:RUNNER_TEMP "confined-write"
+          python -m pytest packs/core/tests/skills/work-loop/test_confined_mutation_windows.py -q -rs --basetemp="$base" --junitxml="$env:RUNNER_TEMP\confined-write-junit.xml"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/require-junit-ran-without-skips.py "$env:RUNNER_TEMP\confined-write-junit.xml"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: pytest safe-process POSIX suite on Windows (evidence only)
         # Not a gate: this suite was written for POSIX hosts. Its Windows
         # result is recorded as evidence for the Job Object launch path, and a
