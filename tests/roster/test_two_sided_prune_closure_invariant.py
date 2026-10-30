@@ -1302,9 +1302,8 @@ def test_every_participating_writer_is_mutually_exclusive_in_both_orders(
             expected_artifact_digest=refresh.digest_bytes(refresh_artifact.read_bytes()),
             expected_workspace_digest=refresh.digest_bytes(refresh_workspace.read_bytes()),
             artifact_bytes=b"# refreshed\n",
-            workspace_bytes=refresh_workspace.read_bytes(),
         )
-    assert refresh_result.code == "written" and refresh_observed == [True, True]
+    assert refresh_result.code == "written" and refresh_observed == [True]
 
     refresh_prune_root = repository("refresh-prune-first", "refresh")
 
@@ -1317,7 +1316,6 @@ def test_every_participating_writer_is_mutually_exclusive_in_both_orders(
             expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
             expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
             artifact_bytes=b"must not write\n",
-            workspace_bytes=workspace.read_bytes(),
         )
         assert result.code == "lock_busy"
 

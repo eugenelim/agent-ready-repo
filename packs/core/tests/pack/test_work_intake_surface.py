@@ -233,6 +233,60 @@ def test_route_expectations_cover_no_mutation() -> None:
         assert cases[case_id]["mutation"] == "none"
 
 
+def test_refresh_front_door_without_a_record_profile_is_unavailable(tmp_path: Path) -> None:
+    """The front door reads only the artifact's record, never workspace.toml."""
+
+    router = _load_router()
+    artifact = tmp_path / "docs/specs/example/spec.md"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text(
+        "# Spec: Example\n\n```toml source-authority\n"
+        'contract_version = "source-authority.v1"\nmode = "tracker-origin"\n'
+        'source_ref = "example-service://work/ITEM-1"\nsource_revision = "rev-1"\n'
+        "\n[owned_fields]\n```\n",
+        encoding="utf-8",
+    )
+
+    class Resolver:
+        def resolve(self, profile_id, profile_version, capability=None):
+            raise AssertionError("no processor resolution may precede the record check")
+
+    class Registered:
+        name = "example-refresh"
+
+    class RegisteredResolver(Resolver):
+        def resolve(self, profile_id, profile_version, capability=None):
+            if capability == "acquire":
+                raise AssertionError("acquisition must not be reached")
+            return Registered()
+
+    class Request:
+        artifact_path = "docs/specs/example/spec.md"
+        artifact_kind = "spec"
+        lifecycle = "Approved"
+        authority_mode = "tracker-origin"
+        current_revision = "rev-1"
+        compared_revision = "rev-2"
+        profile_id = "example-service"
+        profile_version = "1.0"
+
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact=Request.artifact_path,
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+        profile_id="example-service",
+        profile_version="1.0",
+    )
+    result = router.invoke_refresh(signals, RegisteredResolver(), Request(), tmp_path)
+
+    assert (result.code, result.remediation) == (
+        "refresh-unavailable",
+        "add-record-tracker-profile",
+    )
+    assert not (tmp_path / "workspace.toml").exists()
+
+
 def test_eval_allowlist_has_balanced_activation_sets() -> None:
     manifest = tomllib.loads((_PACK_ROOT / "pack.toml").read_text(encoding="utf-8"))
     assert set(manifest["pack"]["evals"]["skills"]) == set(_EVAL_QUERY_FILES)

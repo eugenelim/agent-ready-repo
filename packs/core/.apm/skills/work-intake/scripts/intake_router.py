@@ -331,8 +331,13 @@ def invoke_refresh(
     signals: RoutingSignals,
     refresh_processors: RefreshProcessorResolver,
     request: RefreshRequest,
+    repository_root: Path,
 ) -> RefreshFrontDoorResult:
-    """Resolve and invoke one configured refresh processor through work-intake."""
+    """Resolve and invoke one configured refresh processor through work-intake.
+
+    The processor is resolved from the profile table on the artifact's own
+    source-authority record, read through the confined regular-file read.
+    """
 
     if signals.action != "refresh":
         raise ValueError("refresh invocation requires refresh routing signals")
@@ -358,6 +363,31 @@ def invoke_refresh(
             route,
             "invalid-refresh-request",
             "repair-refresh-request-profile",
+        )
+    try:
+        file_safety = _sibling_module("file_safety")
+        refresh = _sibling_module("refresh")
+        root = Path(repository_root).resolve(strict=True)
+        text = file_safety.read_confined_regular_file(
+            root, root / request.artifact_path
+        ).decode("utf-8")
+        record_profile = refresh.parse_source_authority(text).tracker_profile
+    except (OSError, ValueError, RuntimeError, LookupError):
+        return RefreshFrontDoorResult(
+            route,
+            "refresh-unavailable",
+            "repair-or-rerun-refresh-record-read",
+        )
+    if record_profile is None:
+        return RefreshFrontDoorResult(
+            route, "refresh-unavailable", "add-record-tracker-profile"
+        )
+    if (
+        record_profile.get("id") != signals.profile_id
+        or record_profile.get("version") != signals.profile_version
+    ):
+        return RefreshFrontDoorResult(
+            route, "refresh-unavailable", "repair-refresh-request-profile"
         )
     try:
         processor = refresh_processors.resolve(
@@ -477,6 +507,27 @@ def _handoff_route(
         next_action=next_action,
         surface_resolution=surface_resolution,
     )
+
+
+def _sibling_module(name: str) -> ModuleType:
+    """Load a sibling script of this skill under a collision-proof name."""
+
+    module_name = f"core_work_intake_router_{name}"
+    loaded = sys.modules.get(module_name)
+    if loaded is not None:
+        return loaded
+    module_path = Path(__file__).resolve().with_name(f"{name}.py")
+    spec = importlib.util.spec_from_file_location(module_name, module_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"cannot locate sibling module {name!r}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module_name] = module
+    try:
+        spec.loader.exec_module(module)
+    except BaseException:
+        sys.modules.pop(module_name, None)
+        raise
+    return module
 
 
 def _surface_resolver_module() -> ModuleType:

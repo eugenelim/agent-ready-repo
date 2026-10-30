@@ -148,3 +148,131 @@ def test_tracker_origin_routes_match_the_pre_change_route(
 ) -> None:
     router = _load_router()
     assert _outcome(router, signals) == expected
+
+
+# Refresh front door: the profile comes from the artifact's own record.
+_ARTIFACT = "docs/specs/example/spec.md"
+_PROFILE_TABLE = '\n[tracker_profile]\nid = "example-service"\nversion = "1.0"\n'
+
+
+def _record(*, profile: str) -> str:
+    return (
+        "# Spec: Example\n\n```toml source-authority\n"
+        'contract_version = "source-authority.v1"\nmode = "tracker-origin"\n'
+        'source_ref = "example-service://work/ITEM-1"\nsource_revision = "rev-1"\n'
+        f"{profile}\n[owned_fields]\n```\n"
+    )
+
+
+class _Resolver:
+    """Counts acquisition-capable resolutions; none may happen in refusals."""
+
+    def __init__(self) -> None:
+        self.acquire_resolutions = 0
+
+    def resolve(self, profile_id: str, profile_version: str, capability: str | None = None) -> Any:
+        if capability == "acquire":
+            self.acquire_resolutions += 1
+        raise ValueError("no registration")
+
+
+class _Request:
+    artifact_path = _ARTIFACT
+    artifact_kind = "spec"
+    lifecycle = "Approved"
+    authority_mode = "tracker-origin"
+    current_revision = "rev-1"
+    compared_revision = "rev-2"
+    profile_id = "example-service"
+    profile_version = "1.0"
+
+
+def _refresh_signals(router: Any, **overrides: str) -> Any:
+    fields = {
+        "action": "refresh",
+        "artifact": _ARTIFACT,
+        "artifact_kind": "spec",
+        "authority_mode": "tracker-origin",
+        "profile_id": "example-service",
+        "profile_version": "1.0",
+        **overrides,
+    }
+    return router.RoutingSignals(**fields)
+
+
+class _Registered:
+    name = "example-refresh"
+
+
+class _RegisteredResolver(_Resolver):
+    def resolve(self, profile_id: str, profile_version: str, capability: str | None = None) -> Any:
+        if capability == "acquire":
+            self.acquire_resolutions += 1
+            raise ValueError("stop before acquisition")
+        return _Registered()
+
+
+def _plant(tmp_path: Path, text: str | None) -> Path:
+    if text is not None:
+        target = tmp_path / _ARTIFACT
+        target.parent.mkdir(parents=True)
+        target.write_text(text, encoding="utf-8")
+    return tmp_path
+
+
+def test_ac0004_record_without_profile_table_is_refresh_unavailable(tmp_path: Path) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    result = router.invoke_refresh(
+        _refresh_signals(router), resolver, _Request(), _plant(tmp_path, _record(profile=""))
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.remediation == "add-record-tracker-profile"
+    assert result.invocation is None
+    assert resolver.acquire_resolutions == 0
+
+
+@pytest.mark.parametrize("field", ["profile_id", "profile_version"])
+def test_ac0005_signals_naming_a_different_profile_are_refresh_unavailable(
+    tmp_path: Path, field: str
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    signals = _refresh_signals(router, **{field: "other"})
+    request = type("Req", (_Request,), {field: "other"})()
+    result = router.invoke_refresh(
+        signals, resolver, request, _plant(tmp_path, _record(profile=_PROFILE_TABLE))
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.invocation is None
+    assert resolver.acquire_resolutions == 0
+
+
+def test_ac0005_matching_record_profile_reaches_the_processor_resolution(
+    tmp_path: Path,
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    result = router.invoke_refresh(
+        _refresh_signals(router),
+        resolver,
+        _Request(),
+        _plant(tmp_path, _record(profile=_PROFILE_TABLE)),
+    )
+    assert resolver.acquire_resolutions == 1
+    assert result.code == "refresh-unavailable"
+
+
+@pytest.mark.parametrize("text", [None, "not a record\n"])
+def test_unreadable_or_unparseable_record_is_a_named_no_effect_result(
+    tmp_path: Path, text: str | None
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    result = router.invoke_refresh(
+        _refresh_signals(router), resolver, _Request(), _plant(tmp_path, text)
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.remediation == "repair-or-rerun-refresh-record-read"
+    assert resolver.acquire_resolutions == 0
+    assert not (tmp_path / "workspace.toml").exists()
