@@ -1,6 +1,6 @@
 # GitHub
 
-Your agent can start repository work from a GitHub Issue or Milestone, then refresh it later with changes you confirm.
+Your agent can start repository work from a GitHub Issue or Milestone, refresh it later with changes you confirm, and work through review feedback on an open pull request.
 
 ## Install
 
@@ -24,19 +24,23 @@ You also need the [`gh` CLI](https://cli.github.com), signed in for any reposito
 - Turn it into the right local artifact. Content decides: an Issue is not always a spec, and a Milestone is not always a brief.
 - Refresh a tracked artifact and show you the field-by-field delta before anything local changes.
 - Write coordination back to GitHub, such as a trace link, pull-request link, status label, comment, or closure, after you confirm that exact change.
+- Read an open pull request's review comments and failing checks, judge which comments are right, and show you a per-item plan. After you approve it, it pushes the fixes, replies, and resolves the threads that were fixed.
 
 ## Skills
 
 - **`github-brief-intake`** — Brings GitHub work into the repository's intake route.
 - **`github-refresh`** — Reviews a refresh and writes confirmed coordination changes back.
+- **`github-pr-iterate`** — Turns review comments and CI results on an open pull request into a plan you approve, then applies it.
 
 ## Works with
 
-Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. It hands its records to `work-intake` in [Core](../core/README.md), so install Core in your repository. Other trackers: [Linear](../linear/README.md) and [Atlassian](../atlassian/README.md). See [Connect your tracker](../../guides/github/how-to/intake-a-github-milestone-as-a-brief.md) and [Use work intake](../../guides/_shared/how-to/use-work-intake.md).
+Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE. The intake skills hand their records to `work-intake` in [Core](../core/README.md), so install Core in your repository; `github-pr-iterate` needs only `gh` and `git`. Other trackers: [Linear](../linear/README.md) and [Atlassian](../atlassian/README.md). See [Connect your tracker](../../guides/github/how-to/intake-a-github-milestone-as-a-brief.md) and [Use work intake](../../guides/_shared/how-to/use-work-intake.md).
 
 ## Questions
 
 **Will intake change anything on GitHub?** No. Intake cannot comment, label, close, create, or edit GitHub work. A later refresh can, but only after a separate confirmation for that exact change.
+
+**Will it push or reply on my pull request without asking?** No. `github-pr-iterate` reads first, shows a plan with options, and pushes, replies, or resolves only what you approve. Comment and log text is treated as data, never as instructions. It works with GitHub only and does not open, merge, or approve pull requests.
 
 **Can it rewrite an Issue body or requirements?** No. Requirement and Issue-body rewrites are not supported.
 
@@ -46,4 +50,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE.
 
 ## Details
 
-Scope: user (default), repo · Version: 0.2.3 · Source: [packs/github](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/github)
+Scope: user (default), repo · Version: 0.3.0 · Source: [packs/github](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/github)

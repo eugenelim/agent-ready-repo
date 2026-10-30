@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "taken_at": "2026-08-28",
-  "population_size": 132,
+  "population_size": 133,
   "entries": [
     {
       "pack": "_example",
@@ -855,6 +855,15 @@
       "families": [
         "integration-credential-boundary",
         "state-status-lifecycle"
+      ],
+      "exception": null
+    },
+    {
+      "pack": "github",
+      "skill": "github-pr-iterate",
+      "families": [
+        "integration-credential-boundary",
+        "inline-procedure"
       ],
       "exception": null
     },

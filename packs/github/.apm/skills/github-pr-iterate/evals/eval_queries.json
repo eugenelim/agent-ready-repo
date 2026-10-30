@@ -1,0 +1,13 @@
+[
+  {"query": "Address the review comments on PR 42", "should_trigger": true},
+  {"query": "Iterate on this pull request, CI is red and a reviewer asked for changes", "should_trigger": true},
+  {"query": "Go through the feedback on my PR and tell me which comments are right", "should_trigger": true},
+  {"query": "Reply to the reviewer questions on pull request 118 and resolve the fixed threads", "should_trigger": true},
+  {"query": "Why is the check failing on my open PR?", "should_trigger": true},
+  {"query": "Open a pull request for this branch", "should_trigger": false},
+  {"query": "Address the review comments on my Azure DevOps pull request", "should_trigger": false},
+  {"query": "Merge PR 42", "should_trigger": false},
+  {"query": "Intake GitHub issue 123 as repository work", "should_trigger": false},
+  {"query": "Refresh this spec from its GitHub issue", "should_trigger": false},
+  {"query": "Review this diff for bugs before I open a PR", "should_trigger": false}
+]

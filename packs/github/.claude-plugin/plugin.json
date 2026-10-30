@@ -1,5 +1,5 @@
 {
   "name": "github",
-  "version": "0.2.4",
-  "description": "Read GitHub Issues or Milestones into repository intake, then review refresh deltas and confirm narrow coordination write-back."
+  "version": "0.3.0",
+  "description": "Start repository work from a GitHub Issue or Milestone, keep it in step with GitHub, and work through review comments and failing checks on an open pull request. Nothing changes on GitHub until you approve the exact step."
 }
