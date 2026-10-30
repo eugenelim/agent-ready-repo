@@ -1439,9 +1439,12 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
     entry_level: int | None = None
     # Level of the Highlights heading whose bullets we are collecting, if any.
     highlights_level: int | None = None
-    # A blank line has followed the last bullet. CommonMark then ends the list
-    # item at the next unindented line, which is how the rendered changelog's
-    # `<a id="..."></a>` anchor before each release stays out of the bullet.
+    # Content column of the open Highlights bullet, or None once it has ended.
+    # After a blank line CommonMark continues a list item only with text
+    # indented to that column; anything shallower ends the item for good. That
+    # keeps the rendered changelog's `<a id="..."></a>` anchor before each
+    # release out of the previous release's last bullet.
+    bullet_column: int | None = None
     blank_after_bullet = False
     in_fence = False
     fence_opened_at: int | None = None
@@ -1531,13 +1534,17 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
                     body = bullet.group(1).strip()
                     if body:
                         current["highlights"].append(body)
+                    bullet_column = bullet.start(1) if body else None
                     blank_after_bullet = False
                 elif not raw.strip():
                     blank_after_bullet = True
-                elif blank_after_bullet and not raw[:1].isspace():
-                    # Not part of the bullet: a paragraph or HTML after the list.
+                elif bullet_column is None:
                     pass
-                elif current["highlights"]:
+                elif blank_after_bullet and len(raw) - len(raw.lstrip()) < bullet_column:
+                    # A paragraph or HTML after the list ends the item.
+                    bullet_column = None
+                else:
+                    blank_after_bullet = False
                     # A continuation line of the previous bullet: changelog
                     # bullets wrap, and dropping the tail would truncate copy
                     # mid-sentence on the public page.
@@ -1553,6 +1560,7 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
 
         while stack and stack[-1][0] >= level:
             stack.pop()
+        bullet_column = None
         blank_after_bullet = False
         if highlights_level is not None and level <= highlights_level:
             highlights_level = None

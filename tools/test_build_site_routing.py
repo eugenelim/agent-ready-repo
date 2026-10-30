@@ -20,6 +20,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+import pytest
+
 # build-site.py uses a hyphen, so plain `import build_site` won't work.
 _SCRIPT = Path(__file__).resolve().parent / "build-site.py"
 _spec = importlib.util.spec_from_file_location("build_site", _SCRIPT)
@@ -2097,6 +2099,28 @@ def test_a_blank_line_ends_the_last_bullet_before_the_next_release_anchor():
     assert _bullets(groups[1]) == [
         "The older highlight, wrapped. A second paragraph of the same bullet."
     ]
+
+
+@pytest.mark.parametrize(
+    "after",
+    [
+        "Outside para.\n\n  indented after outside.\n",
+        "Outside para\n  lazy indented.\n",
+        " one-space para.\n",
+    ],
+)
+def test_text_after_a_bullet_has_ended_stays_out_of_it(after: str):
+    """Once a shallower line ends the item, later indented text is not the bullet's."""
+    text = f"""# Changelog
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- A.
+
+{after}"""
+    assert _bullets(_groups(text)[0]) == ["A."]
 
 
 def test_the_projection_payload_matches_a_frozen_expectation():
