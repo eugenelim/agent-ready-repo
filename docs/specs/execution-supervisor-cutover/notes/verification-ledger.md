@@ -303,3 +303,207 @@ caller's own Git config stands, so the autocrlf carry test still proves its case
 Observation, outside this spec: the supervisor honours a repository's
 `core.autocrlf`, so a Windows adopter whose plan checks out with CRLF gets
 `invalid-stub-fence` for a plan that carries stub fences.
+
+## T3: backlog dispositions
+
+The search covered every `[backlog].open` entry's values, plus the captured
+file each one points to, for `loop-engine`, `loop-cohort`, `engine-state.json`,
+`full-mode-engine`, and a cohort `state.json`. It found six entries. Four are
+retired as superseded through `close-work`: each captured item is now
+`Status: Closed` with `Resolution: superseded`, and its entry has left
+`workspace.toml`. One is rewritten, and one is kept.
+
+- **Retired:** `docs/product/captured/agent-loop-otel-envelope-survey.md`.
+  Follow-ons 1, 3, 4, and 5 concern the engine's line writer and its cohort
+  counters, and both are removed. The supervisor's line carries `schema: 1`,
+  and the retry count re-derives from supervisor commits. Follow-on 2 was
+  already resolved in core 2.27.11. For follow-on 6, executing reader tests
+  now exist: `test_workspace_mcp_supervisor_run.py` has 30 and
+  `test_workspace_mcp_events_poller.py` has 3. For follow-on 7, the line's
+  canonical schema is `contracts/jsonschema/loop-run-event.schema.json`, and
+  ADR-0064's prose is frozen.
+- **Retired:** `docs/product/captured/record-attempt-lock-contention-under-load.md`.
+  `record-attempt` and its concurrency test belong to `loop-cohort.py`. The
+  shared lock's remaining hazard is tracked by `reclaim-residual`.
+- **Retired:** `cohort-seal-blocks-in-phase-plan-correction`. The whole-plan
+  seal is removed. An in-envelope plan edit now commits as a `replan` step with
+  no approval (ADR-0144 D3).
+- **Retired:** `pre-existing-recover-engine-state-deep-nesting`. Its failing
+  case lives in `test_loop_engine.py`, which the switch deletes.
+- **Rewritten:** `docs/product/captured/loop-cohort.md` is now
+  `docs/product/captured/supervisor-duplicate-task-heading.md`, sourced from
+  `_supervisor_projector.py`. The defect survives the switch in a new form. A
+  plan with two `### T1:` sections and a `T2` that depends on `T1` projects
+  three tasks. Both T1 sections get the second one's identity, and T2 lists
+  that identity twice. Nothing refuses the plan. This was reproduced against
+  `project_plan` at 7dc7e9231.
+- **Kept:** `docs/product/captured/reclaim-residual.md`. Its entry names none
+  of the terms; only its detail note lives under a `loop-cohort-state-lock`
+  spec path. `_statelock.py` remains the supervisor's run lock, so the reclaim
+  race still applies.
+
+No other `[backlog].open` value names a term. Each remaining mention in
+`workspace.toml` is a comment, or a `path` or `ref` that points into a history
+path. The brief's Spec map is projected (`<auto>`) and already lists all seven
+specs, so it needs no edit.
+
+## T3: decision records
+
+ADR-0125 was already `Superseded` by ADR-0144. The mirrors on ADR-0061
+(`ADR-0144 D1,D2,D8`) and ADR-0064 (`ADR-0144 D1,D2,D5,D6`) match ADR-0144's
+`Supersedes in part:`. ADR-0150's mirror matches ADR-0151's
+(`ADR-0151 D3,D5`), and so does ADR-0144's (`ADR-0151 D3,D11`). ADR-0151 and
+its index row move to `Accepted` in a separate final commit. ADR-0151 D4 makes
+the routes take effect when the switch ships, so the owner confirms that
+commit at merge time.
+
+## T3: a telemetry pin that waits on the switch
+
+`tests/roster/test_loop_telemetry_disclosure_contract.py::test_section_5_1_field_count_equals_what_the_engine_emits`
+compares `telemetry.md` §5.1's stated count with a line `loop-engine.py`
+writes. After T3, the page states the supervisor's line: ten keys, from
+`_supervisor_journal.py` `_project_events`. Before the switch, the engine's
+line has 14 keys, so the test fails. T2 removes `loop-engine.py`, so T2 owns
+pointing that helper at a supervisor line. With that change the count is ten
+and the test passes. Nothing else in the T3-touched roster and conformance
+suites fails: 1,388 pass and 2 skip.
+
+## T3: VI-7020
+
+The search ran over the 14 architecture pages that T3 owns, the spec's
+"Current architecture" and "Knowledge architecture" rows minus
+`packs/core/DESIGN.md`: `ARCHITECTURE.md`, and under `docs/architecture/`,
+`loop-infrastructure.md`, `loop-contract.md`, `loop-parallelism.md`,
+`work-loop-execution-supervisor.md`, `work-loop-authority-migration.md`,
+`work-loop-review-disposition.md`, `acceptance-centered-work-loop.md`,
+`telemetry.md`, `verification-graph.md`, `README.md`,
+`workspace-mcp/design.md`, `work-loop-knowledge-handoff.md`, and
+`knowledge-capture.md`. It looked for these terms: `loop-engine`,
+`loop-cohort`, `_compat_facade`, `_review_compat`, `assets/state.json`,
+`full-mode-engine`, `wave-decision`, `engine-state`, `legacy-result-ack`,
+`build-work-supervisor`, `supervisor-bundle`, `work_supervisor`,
+`legacy_result`, the shadow-log names, `packages/agentbundle`, and a `tools/`
+supervisor path.
+
+Result: every hit names its item as removed, retired, rejected, or never read.
+No hit describes one as current. `packs/core/DESIGN.md:114` and `:500` still
+name `loop-cohort` as current, and `plan.md` gives that file to T2. So the
+"Current architecture" row closes only when T2 lands.
+
+## T3: architecture review
+
+Two reviewers ran on the T3 diff, `7dc7e9231..HEAD`: `adversarial-reviewer`,
+and the architect pack's `design-reviewer` in verdict mode. There were five
+rounds. The `finding-adjudicator` tested rounds 1 to 3 against the source.
+
+| Round | Design verdict | Findings | Sustained | Refuted | Indeterminate |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 1 | MAJOR REWRITE | 27 | 17 | 10 | 0 |
+| 2 | SHIP WITH CHANGES | 28 | 22 | 5 | 1 |
+| 3 | SHIP WITH CHANGES | 14 | 8 | 6 | 0 |
+| 4 | SHIP IT | 3 | not adjudicated | — | — |
+| 5 | adversarial only | 3 | not adjudicated | — | — |
+
+Every sustained finding is fixed:
+
+- **Round 1:** the supervisor mechanism now has one home,
+  `work-loop-execution-supervisor.md`. Review records are evidence-store
+  records. The run-lock verb set is corrected, and unbuilt rows carry
+  `STATUS: PLANNED`.
+- **Round 2:** `run.json` refusal reach is corrected, and restated rules now
+  link their owner.
+- **Round 3:** the telemetry claims about refusals and waits are narrowed, and
+  ADR-0151's moves are mapped.
+
+Rounds 4 and 5 were applied without adjudication, and every finding is fixed:
+
+- **Round 4:** both reviewers raised the same `status --check` finding
+  independently. The adversarial reviewer reproduced it with a run: `next`
+  refused `foreign-delivery-edit` and exited 1, while `status --check` exited
+  0. The design reviewer added the supervisor's own red-run refusal and a list
+  that read as complete.
+- **Round 5:** the adversarial reviewer found that the hook-gap note left out
+  a standing `attempt-residue`. It also found that this record miscounted G21
+  and the number of rounds.
+
+Outcomes recorded here for traceability:
+
+- **Round 1, `packs/core/DESIGN.md` (refuted):** T2 owns it (see VI-7020
+  above).
+- **Round 2, G21 (indeterminate, deferred as a Nit):** the finding is the
+  "FSM" wording in `workspace-mcp/design.md`. The bridge code itself names that
+  mode (`get_fsm_state`, "binds an FSM session").
+
+Two discoveries outside T3 go to the owner:
+
+- **Pre-PR hook gap:** `status --check` exits 0 while `next` keeps refusing.
+  Three cases are known: a standing `attempt-residue`, since `status` never
+  runs the attempt guard; a `foreign-delivery-edit` from the delivery-record
+  sync; and a supervisor-run `stub-not-red`. The last two are visible in
+  `run.json`. Each such run passes the pre-PR hooks.
+- **Leftover import:** `_supervisor_review.py:854` still loads
+  `_review_compat.py`. T2 must repoint that call before it deletes the file.
+
+## T3: VI-7031
+
+The owner moved the AC-0007 clean-up of `workspace.toml` and
+`docs/product/briefs/` into T3 on 2026-10-29. The search covered those two
+paths for `loop-engine`, `loop-cohort`, `engine-state.json`,
+`full-mode-engine`, and a cohort `state.json`.
+
+- **`workspace.toml`:** 0 non-comment hits, and every remaining mention is a
+  comment. One more open entry was about the removed engine:
+  `contract-amendment-prepare-strands-the-run`, which concerned
+  `loop-engine transition … contract-amendment`, `pending_transition`, and
+  `approve-plan`. It is retired as superseded, with its captured item now
+  `Status: Closed` and `Resolution: superseded`. The supervisor has no
+  pending-transition marker. A protected-edit refusal followed by an amendment
+  and a second `start` keeps the run (execution-supervisor-core AC-0030).
+- **`docs/product/briefs/`:** 7 briefs had 26 matching lines before the clean-up
+  (`git grep -n -E 'loop-engine|loop-cohort|engine-state\.json|full-mode-engine|state\.json' 66aae17e9^ -- docs/product/briefs/`). Every hit that remains
+  either describes past delivery or a past measurement, now marked "before
+  Core 4.0.0" or "when this brief was written", or is a removal note. Links
+  to the removed scripts became plain text. `policy-arrival-validator.md`'s
+  search command now covers `work-supervisor.py`, `_supervisor_*.py`, and
+  `_loop_guards.py`, and still finds nothing.
+
+Three design anchors were marked removed rather than re-decided. Their brief
+owners must decide each one:
+
+- **`phase-scoped-policy-delivery`:** its selection key was
+  `engine-state.json.state`. The candidate replacement is `run.json`'s `stage`.
+- **`stage-input-readiness`:** B2b was settled as a `loop-engine init` guard.
+  The candidate replacement is the supervisor's `start` admission.
+- **`spec-author-agent`:** its re-entry edges into `SPEC-PLAN-DRAFTING` have
+  no direct supervisor counterpart; the supervisor's request order is what the
+  owner would map them onto.
+
+The brief-coverage lint and workspace reconcile both exit 0, with no
+captured-item findings.
+
+The plan amendment that adds `docs/product/briefs/` to T3's Touches and
+defines VI-7031 is the switch session's. It lives on branch
+`feat/cutover-switch`, because `plan.md` is outside T3's write scope. Until
+that branch lands, this section is the only in-tree record of VI-7031.
+
+## T3: after the switch merged
+
+T3 is rebased onto `main` after the switch merged (#1651, `49a239a72`).
+`telemetry.md` §5.1 is now `main`'s text from the switch. The field-count pin,
+`test_loop_telemetry_disclosure_contract.py`, now passes, along with
+`test_retired_name_pinned_sites.py`. The amendment that adds
+`docs/product/briefs/` to T3 and defines VI-7031 is now on `main`, in
+`plan.md`.
+
+On the rebased tree, VI-7020, VI-7030, and VI-7031 hold:
+
+- Every script the T3 pages name exists, apart from `handoff_store.py`, which
+  is named as never built.
+- The ADR shape lint reads 152 records and refuses none.
+- The brief-coverage lint and workspace reconcile both exit 0.
+- `workspace.toml` has 0 non-comment hits.
+
+Across the roster and conformance suites that read these paths, 1,845 pass,
+1 is skipped, and 10 fail. The 10 failures are all in
+`test_tracker_refresh_lifecycle_matrix.py`, and they fail the same way on
+`main`.

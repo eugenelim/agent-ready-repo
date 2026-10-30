@@ -152,5 +152,5 @@
 | 0148 | [The completion receipt rides on the waiting item's `Dependency receipts:` header line](0148-completion-receipt-rides-on-the-waiting-items-header.md) | Accepted | 2026-10-26 |
 | 0149 | [Accept three mcp advisories in the SAST toolchain until Semgrep allows a fixed release](0149-accept-three-mcp-advisories-in-the-sast-toolchain.md) | Accepted | 2026-10-27 |
 | 0150 | [The TDD red test is written at EXECUTE, and mechanism lives in the plan's design, not the contract](0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md) | Accepted | 2026-10-27 |
-| 0151 | [After the whole-plan lock retires, the stub fence is a task-start revision and an implementation-discovered means is a working-plan change](0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md) | Proposed | 2026-10-28 |
+| 0151 | [After the whole-plan lock retires, the stub fence is a task-start revision and an implementation-discovered means is a working-plan change](0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md) | Accepted | 2026-10-28 |
 | 0152 | [Confined writes are path-checked on hosts without descriptor walking, and the one race they leave is accepted](0152-path-checked-confined-writes-on-hosts-without-descriptor-walking.md) | Accepted | 2026-10-29 |

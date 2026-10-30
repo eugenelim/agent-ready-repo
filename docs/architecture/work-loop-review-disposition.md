@@ -4,7 +4,7 @@
 reports, actual-failure findings, and explicit dispositions.
 **Author(s):** Platform Core maintainers
 **Status:** Implemented
-**Last updated:** 2026-10-10
+**Last updated:** 2026-10-29
 **Reviewers:** Core reviewer-role maintainers
 
 ## 1. Scope and Context
@@ -29,15 +29,14 @@ reports, actual-failure findings, and explicit dispositions.
 
 Review simplification follows acceptance authority because it consumes the
 approved `delivery-subject.v1`, `semantic-evidence-transaction.v1`, and shared
-content-safety port. Until protected-ref integration exists, a compatibility
-projector derives the same review subject from the current canonical result.
-The current harness may keep invoking reviewers; neither the new supervisor,
-parallel scheduler, nor knowledge intake is required.
+content-safety port. Until protected-ref integration exists, the supervisor
+derives the review subject from the run's `HEAD` tree. Neither a parallel
+scheduler nor knowledge intake is required.
 
 Review and knowledge both expose typed producer boundaries, but only review
 persists acceptance-critical delivery records. Knowledge observations are
-derived from existing facts; optional notification and later capture can fail
-without blocking delivery.
+derived from existing facts and found by pull scan, with no notification;
+capture can fail without blocking delivery.
 
 ## 2. Structural Model
 
@@ -196,10 +195,12 @@ supported or unsupported assessment replaces it. Disposition cannot redefine
 validity.
 
 The example's `subject` fingerprints the complete canonical
-`review-subject.v1`, not only a tree. In slices 1–4, base and result come from
-the active `subject-source.v1` provider: `legacy-worktree-snapshot` at an
-existing-engine acknowledged result boundary. From slice 5,
-`protected-product-ref` supplies the result.
+`review-subject.v1`, not only a tree. Under the supervisor, base and result
+come from the run itself: `_supervisor_readiness.py` projects the delivery
+subject from the `HEAD` tree with the spec directory excluded, under the
+`work-supervisor` provider, and the changed paths are those the run's own
+`stub` and `implement` commits touched. **STATUS: PLANNED** (Slice 5; see the
+[brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)): `protected-product-ref` will supply the result.
 
 Host merge bases, default branches,
 and unacknowledged checkouts never substitute for either manifest.
@@ -211,17 +212,17 @@ and unacknowledged checkouts never substitute for either manifest.
 | Selector and evaluator | Stateless | n/a | Same facts produce same obligations and validity result |
 | Invoker | Attempts and opaque session handles | Started, completed, abandoned | Never treated as reviewer verdict |
 | Raw reviewer output | Optional adapter-private log outside Git | Retained for a declared bounded period, then deleted | Semantic review state never depends on raw output |
-| Reviewer-report store | Validated reports under `docs/specs/<feature>/delivery/reviews/` | Port assigns the next per-role-and-subject sequence and supersedes the unique lineage tip atomically | Validator is sole writer; forks, duplicate sequences, and incomplete files never become current |
+| Reviewer-report store | Validated `review-report.v1` semantic records in `docs/specs/<feature>/delivery/evidence.jsonl` | Port assigns the next per-role-and-subject sequence and supersedes the unique lineage tip atomically | Validator is sole writer; forks, duplicate sequences, and incomplete files never become current |
 | Review subject | Base/result tree fingerprints and normalized changes embedded in obligations and reports | Derived, fingerprinted, retained with reports | Rehydration recomputes the same fingerprint or leaves obligations unsatisfied |
 | Assessment view | Disposable index rebuilt from `semantic-evidence-transaction.v1` records in `evidence.jsonl` | Projected, replaced, deleted, rebuilt | Never authoritative; tooling or named authority remains recorded in each source record |
-| Disposition ledger | Accept-risk, repair-request, and fixed-by records | Open, accepted, repair requested, linked to replacement subject | Only supported findings enter; fixed-by requires a fresh replacement report |
+| Disposition ledger | Accept-risk, repair-request, and fixed-by `finding-disposition.v1` records in `evidence.jsonl` | Open, accepted, repair requested, linked to replacement subject | Only supported findings enter; fixed-by requires a fresh replacement report |
 
 ## 6. Deployment and Operations
 
 | Unit | Runs as | Scaling | Observability |
 | --- | --- | --- | --- |
 | Review policy | Projected skill logic | Up to 100,000 changed paths; refuse larger or ambiguous subjects without truncation | Selected roles and reasons |
-| Invoker | Harness adapter | One attempt per obligation, runtime-dependent concurrency | Role, attempt, latency, terminal status |
+| Invoker | Harness adapter | One `review-role` attempt per obligation, issued one request at a time by the supervisor | Role, attempt, latency, terminal status |
 | Content-validation port | Harness boundary before every semantic review write | Per report, assessment, and disposition | Rejected size, privacy, secret, classification, and injection-shape counts |
 | Reviewer-report store | Repository semantic-state port | One current report per role and subject, plus retained audit reports | Current, stale, invalid, and recovery counts |
 | Finding assessment | Pure predicates, independent judgment adapter, and evidence transaction log | Per finding after report persistence | Mechanical, judgment, unsupported, indeterminate, and transaction-recovery counts |
@@ -242,27 +243,27 @@ and unacknowledged checkouts never substitute for either manifest.
 | Supported finding requests repair | Repair-request and fixed-by invariants require a replacement subject and fresh report | Zero old-subject repair records masquerade as current dispositions | Replacement-subject fixture |
 | Supported finding receives `accept-risk` | Evidence port retains the contradictory receipt for each affected criterion | Zero dispositions convert contradiction into support | Review-to-evidence fixture |
 | Host chooses a different default base | Projector uses the approved starting product tree or refuses | Identical subject across hosts | Dirty-tree and hostile-default-base fixtures |
-| Legacy review output crosses the slice-2 adapter | Deterministic projection or closed refusal dual-writes before acknowledgement | Zero silent clean or split old/new acknowledgement | Clean, findings, paired-audit, invalid, and crash fixtures |
 | Diff exceeds 100,000 changed paths | Projector refuses selection without truncating | Refusal within 5 s on the CI reference worker | Diff-volume stress fixture |
 
 ## 8. Implementation Mapping
 
-The Slice 2 structured review boundary shipped as self-contained standard-library
-Python modules under `packs/core/.apm/skills/work-loop/scripts/`. These replace
-the proposed `packages/agentbundle/agentbundle/work_supervisor/*` locations for
-the review boundary. The review-authority cutover that switches the engine review
-gate to structured readiness is owned by the FEAT-0036 review-authority cutover
-follow-on; the current legacy review path remains authoritative until that cutover.
+The structured review boundary is self-contained standard-library Python under
+`packs/core/.apm/skills/work-loop/scripts/`. In full mode, `_supervisor_review.py`
+selects reviewer roles from `review-rules.json` and closes code review only from
+structured review readiness (ADR-0144 D8). Light mode and pre-approval review
+keep `review-artifact.py` and its `validate`, `classify`, `raw-classify`,
+`inspect`, and `record` verbs.
 
 | Element | Source owner | Build unit | Verification |
 | --- | --- | --- | --- |
 | Review contracts and shared validators | `_review_contracts.py` | Core pack | Schema corpus, no-copy, and traceability tests |
 | Review-subject projector and obligation selector | `_review_selection.py` | Core pack | Diff normalization, policy evals, and policy-leakage source check |
 | Report validator and persistence store | `_review_persistence.py` | Core pack | Atomic persistence, current-role, and recovery tests |
-| Finding evaluator and assessment view | `_review_assessment.py` | Core pack | Finding truth-table and atomic-transaction tests |
+| Assessment recording and current-assessment selection | `_supervisor_readiness.py` records an `assess-finding` result; `_review_bridge.py` selects the current assessment | Core pack | `test_review_bridge.py` and the `test_supervisor_review*.py` suites |
 | Assessment-to-evidence bridge | `_review_bridge.py` | Core pack | Bridge lifecycle and supersession tests |
 | Disposition ledger and review readiness | `_review_disposition.py` | Core pack | Disposition truth-table and readiness matrix tests |
-| Compatibility adapter | `_review_compat.py` beside the authoritative legacy review path | Core pack | Deterministic projection, closed-refusal, crash-reconcile, authority-isolation, and no-`agentbundle` tests |
+| Full-mode selection, policy resolver, and review closure | `_supervisor_review.py` over `review-rules.json` | Core pack | Supervisor review-gate suites |
+| Light-mode and pre-approval classification and adjudication | `review-artifact.py` | Core pack | Light-mode review suites |
 | Evidence store semantic lifecycle | `_evidence_store.py` (Slice 1) | Core pack | Existing Slice 1 evidence-store suite |
 | Obligation, report, finding, and disposition schemas | Authoritative `contracts/delivery/`, no runtime copy in Core | Contract source; test-time only | Schema-parity and no-runtime-load suite |
 
@@ -270,8 +271,9 @@ follow-on; the current legacy review path remains authoritative until that cutov
 
 - **Decision:** Reviewers are opaque report producers.
 - **Alternative:** Keep raw classification and paired adjudication reports.
-  **Rejected because:** work-loop remains coupled to reviewer prose and engine
-  transitions.
+  **Rejected because:** work-loop remains coupled to reviewer prose and
+  procedure transitions. Light mode and pre-approval review keep this
+  classifier on `review-artifact.py`.
 - **Alternative:** Encode each reviewer workflow in work-loop. **Rejected
   because:** adding a role changes the portable loop and leaks model procedure
   into delivery policy.
@@ -288,26 +290,16 @@ follow-on; the current legacy review path remains authoritative until that cutov
 
 ## 10. Rollout, Migration, and Reversal
 
-The compatibility adapter (`_review_compat.py`) runs beside the authoritative
-legacy review path. It writes validated new records to its evidence store first,
-then acknowledges only after both the current structured result and the legacy
-result exist. Source digest and producer event ID reconcile a crash. Exact
-direct-clean maps to `clean`; conforming findings and paired audits map to
-reports and assessments.
+Core 4.0.0 moved full-mode review authority to structured readiness in one
+step for every reviewer role (ADR-0144 D8). The supervisor's
+`_supervisor_review.py` decides closure, and which roles run is
+`review-rules.json` data. No compatibility adapter or reverse reader ships
+(ADR-0144 D7). Reversal is reinstalling the prior Core major.
 
 Ambiguous, unsafe, invalid, or unpaired input yields `unable` or `indeterminate`
-and cannot close an obligation. The adapter imports only Slice 1 contracts and
-retains the current invoker and subject-source provider.
-
-Moving review authority—retiring the legacy classify-and-adjudicate path and
-switching the engine review gate to structured readiness—belongs to the
-[review-authority cutover follow-on](../../product/intents/FEAT-0036-review-authority-cutover.md).
-That follow-on owns the engine switch, its owner cutover receipt, the reversal
-path, and removal of reviewer-specific procedure from the canonical work-loop
-skill. Rollback, if needed before cutover, replays preserved raw reports through
-the compatibility adapter.
+and cannot close an obligation.
 
 | Responsibility | Owner |
 | --- | --- |
-| Review-authority cutover and policy switch | FEAT-0036 review-authority cutover follow-on |
+| Review-rules data and policy | Core reviewer-role maintainers |
 | Rollback authorization | Core reviewer-role maintainer after conformance or freshness failure |

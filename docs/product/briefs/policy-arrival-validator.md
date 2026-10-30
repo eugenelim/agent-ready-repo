@@ -84,10 +84,10 @@ rg -n "inlined.{0,40}(brief|prompt)|brief.{0,40}inlined|prompt.{0,40}module|sele
 # exit 1: no matches
 
 rg -n "developer_instructions|\bprompt\b|\bbrief\b" \
-  packs/core/.apm/skills/work-loop/scripts/loop-cohort.py \
-  packs/core/.apm/skills/work-loop/scripts/loop-engine.py \
+  packs/core/.apm/skills/work-loop/scripts/work-supervisor.py \
+  packs/core/.apm/skills/work-loop/scripts/_supervisor_*.py \
   packs/core/.apm/skills/work-loop/scripts/_loop_guards.py
-# exit 1: no matches
+# exit 1: no matches (re-run over the supervisor scripts on 2026-10-29)
 ```
 
 `review-artifact.py` is the existing safe artifact boundary. It derives a

@@ -72,16 +72,16 @@ This evidence was measured on 2026-09-15 against the tree with `origin/main` at 
   "controller-supplied execution root"; the file contains zero
   `Depends on: none` matches. The controller can dispatch `implementer` for a
   scheduled task without that plan-text restriction.
-- **[Measured]** [`work-loop/SKILL.md`](../../../packs/core/.apm/skills/work-loop/SKILL.md)
-  § "Step 2. EXECUTE" declares
+- **[Measured, before Core 4.0.0]** [`work-loop/SKILL.md`](../../../packs/core/.apm/skills/work-loop/SKILL.md)
+  § "Step 2. EXECUTE" declared
   **"Sequential implementer dispatch."**
   [`supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md)
-  states **"Default is sequential implementer dispatch."** The
+  stated **"Default is sequential implementer dispatch."** The
   `cmd_dispatch_decision`, `cmd_worktree_preflight` through
-  `cmd_worktree_cleanup`, and `cmd_auto_parallel` handlers in
-  [`loop-cohort.py`](../../../packs/core/.apm/skills/work-loop/scripts/loop-cohort.py)
-  return `_disabled(...)`; the supervisor contract says those verbs exit
-  non-zero.
+  `cmd_worktree_cleanup`, and `cmd_auto_parallel` handlers in `loop-cohort.py`
+  returned `_disabled(...)`; the supervisor contract said those verbs exit
+  non-zero. The execution-supervisor cutover (Core 4.0.0, ADR-0144) removed
+  `loop-cohort.py`; the supervisor now dispatches one request at a time.
 - **[Measured]** Sequential execution is owned by `supervisor-mode.md` §
   "Phase 1 supervisor procedure", which says "Dispatch `implementer` tasks
   sequentially". Its § "Single-agent fallback" remains scoped to a consumer
@@ -105,8 +105,9 @@ This evidence was measured on 2026-09-15 against the tree with `origin/main` at 
   parallel worktree merge or collision decision, so **[inferred]** it needs no
   Phase-2 decision. See
   [`ADR-0061`](../../adr/0061-loop-infrastructure-phase-1.md).
-- **[Measured]** `pending_transition` is absent from both the Phase-1 state
-  schema and state asset. The bounded search was:
+- **[Measured, before Core 4.0.0]** `pending_transition` was absent from both
+  the Phase-1 state schema and the cohort state asset, which the
+  execution-supervisor cutover later removed. The bounded search was:
 
   ```bash
   rg -n 'pending_transition' packs/core/.apm/skills/work-loop/references/state-schema.md packs/core/.apm/skills/work-loop/assets/state.json
@@ -144,10 +145,11 @@ This evidence was measured on 2026-09-15 against the tree with `origin/main` at 
 
 - Sequential implementer dispatch for spec-backed `CODE-IMPLEMENTATION` **plan
   tasks** — the first pass over each task in the schedule.
-- **Repair rounds stay inline.** `CODE-IMPLEMENTATION` has four re-entry edges
-  in
-  [`loop-engine.py`](../../../packs/core/.apm/skills/work-loop/scripts/loop-engine.py).
-  Three carry repair work rather than a plan task and do **not** dispatch:
+- **Repair rounds stay inline.** When this brief was written,
+  `CODE-IMPLEMENTATION` had four re-entry edges in `loop-engine.py`, which the
+  execution-supervisor cutover (Core 4.0.0, ADR-0144) later removed; the
+  supervisor's [request order](../../architecture/work-loop-execution-supervisor.md#request-order)
+  replaced them. Three carry repair work rather than a plan task and do **not** dispatch:
   `gates-failed`, `findings-remain`, and `blocker-applied`. The fourth,
   `wave-passed`, re-enters with the next wave's plan
   tasks and **does** dispatch. The existing rule already points this way:

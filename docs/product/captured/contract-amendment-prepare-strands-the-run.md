@@ -1,4 +1,5 @@
 # Contract amendment prepare strands the run
 
-- **Status:** Open
+- **Status:** Closed
+- **Resolution:** superseded
 - **Kind:** defect

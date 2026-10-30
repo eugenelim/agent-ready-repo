@@ -1,6 +1,6 @@
 # ADR-0151: After the whole-plan lock retires, the stub fence is a task-start revision and an implementation-discovered means is a working-plan change
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-28
 - **Areas:** work-loop, orchestration
 - **Reversibility:** high

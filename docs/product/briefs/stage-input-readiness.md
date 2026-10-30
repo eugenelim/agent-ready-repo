@@ -232,7 +232,7 @@ None is confirmed and no spec is authored. Slice sizes use the targets owned by
 | --- | --- | --- | --- | --- | --- | --- |
 | B1 | The declared-shape gate — a standing check of **`Brief:` resolution only** | a lint over the existing `Brief:` field | the lint fails a spec whose non-`none` `Brief:` does not resolve or is `Draft`/`Withdrawn`/`Cancelled`, and passes all current back-links | `guides/core/reference/product-brief-fields.md` | 7 | **none — unblocked** |
 | B2a | The record field for the ask's answer and the direct-authoring justification | the spec template, `new-spec`'s stamping instruction, and `docs/CONVENTIONS.md` § Spec metadata contract | a spec stamped with a justification that cites no durability trigger fails the check | `guides/core/reference/product-brief-fields.md` | 7 | after M reports |
-| B2b | The routing ask and its spike-or-redirect disposition | a guard on `loop-engine init` — see § "B2b is one surface: the init guard" | the guard refuses initialisation for a spec whose routing answer is absent from B2a's field, and admits one whose answer is present | `guides/core/reference/work-intake-routing-and-lifecycle.md` | 10 | after B2a |
+| B2b | The routing ask and its spike-or-redirect disposition | a guard on loop initialisation (`loop-engine init` when settled; see § "B2b is one surface: the init guard" for its removal) | the guard refuses initialisation for a spec whose routing answer is absent from B2a's field, and admits one whose answer is present | `guides/core/reference/work-intake-routing-and-lifecycle.md` | 10 | after B2a |
 | B3 | Readiness of `new-spec`'s input — **owns the readiness predicate** | `packs/core/.apm/skills/new-spec/SKILL.md` | the predicate fires on an artifact an author wrote, and a recorded answer that names no durability trigger fails | `guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md` | 6 | none |
 | B4 | Readiness of a spec and plan handed to an implementer | `packs/core/.apm/agents/implementer.md`, which cites B3's predicate | a dispatch whose spec or plan fails B3's predicate returns `blocked` before work starts | `guides/core/how-to/plan-and-execute-non-trivial-work.md` | 6 | after B3 |
 | B5 | Review sequencing | the pre-EXECUTE review round in `work-loop` | the readiness gate is observably evaluated before the review round runs | none — re-sequences an existing round | 6 | after B4 |
@@ -306,7 +306,8 @@ consequence rather than a scope change:
 **A deterministic guard does not need to know whether prose binds.** B2b was
 gated on M's report while the ask was prose in a routing surface, and M's local
 floor still carries `work-intake`'s public routing precedence as the
-representative for that class. As a `loop-engine init` guard, B2b asserts a
+representative for that class. As an initialisation guard (see § "B2b is one
+surface: the init guard"), B2b asserts a
 recorded field and refuses initialisation, so no activation verdict changes what
 it does. The dependency is withdrawn; only B2a remains upstream.
 
@@ -315,8 +316,15 @@ as a routing-surface representative; it simply no longer has B2b as a consumer.
 
 ### B2b is one surface: the init guard
 
-B2b adds a guard to `loop-engine init`, so its primary surface is that verb.
-The answer it reads lives in B2a's recorded field, which makes B2a a
+As settled, B2b adds a guard to `loop-engine init`, so its primary surface is
+that verb. **The execution-supervisor cutover (Core 4.0.0, ADR-0144) removed
+`loop-engine.py` and its `init` verb.** The nearest surface now is the
+supervisor's `start`, which admits a run only for an approved spec and plan and
+already refuses on recorded inputs
+([admission](../../architecture/work-loop-execution-supervisor.md#admission)).
+Moving B2b's guard there is the brief owner's decision to re-make; every other
+mention of the `init` guard in this brief refers to this note, and the owner
+decision below predates the removal. The answer it reads lives in B2a's recorded field, which makes B2a a
 prerequisite rather than a second surface — the same owner-and-citer shape B3
 uses with B4.
 
@@ -405,7 +413,8 @@ checks only the pre-existing `Brief:` field and needs neither half.
 ## Ready gaps (Draft only)
 
 - **Settled — B2b fires as a `loop-engine init` guard** (owner decision,
-  2026-09-03). The routing decision is the only point in the lifecycle with no
+  2026-09-03, made before the Core 4.0.0 cutover removed that verb; see
+  § "B2b is one surface: the init guard"). The routing decision is the only point in the lifecycle with no
   dispatched agent, so B2b cannot use the parent's inlining mechanism and must
   not stay prose in a rule file, which the parent records as the mechanism that
   does not bind. It uses the established dispatcher instead: `work-loop` owns
@@ -425,7 +434,9 @@ checks only the pre-existing `Brief:` field and needs neither half.
   whose `Brief:` does not resolve. Neither subsumes the other.
 - **Settled — B's slices take their activation contract from M, not from the
   registry.** Every check here is mechanical: B1 is a standing lint, B2a is a
-  spec metadata field, B2b is a `loop-engine init` guard, and B3, B4 and B5 are
+  spec metadata field, B2b is a `loop-engine init` guard (settled before the
+  cutover removed `loop-engine.py`; see § "B2b is one surface: the init
+  guard"), and B3, B4 and B5 are
   readiness predicates over declared inputs. None consumes a policy family, so
   none waits on `phase-scoped-policy-delivery` or `policy-arrival-validator`.
   The three-part activation contract they each carry is

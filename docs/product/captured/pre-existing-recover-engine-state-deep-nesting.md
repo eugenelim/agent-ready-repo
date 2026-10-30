@@ -1,4 +1,5 @@
 # Pre existing recover engine state deep nesting
 
-- **Status:** Open
+- **Status:** Closed
+- **Resolution:** superseded
 - **Kind:** defect

@@ -4,9 +4,9 @@
 
 The loop contract is the pair of artifacts a work loop runs against: `spec.md`,
 which states what done means, and `plan.md`, which states how it gets built and
-verified. [Loop infrastructure](loop-infrastructure.md) records that the harness
-"does not create requirements or implement work. It consumes approved
-specification and plan artifacts." This page owns those artifacts — what each
+verified. The full-mode supervisor consumes an approved spec and plan and
+creates neither ([loop infrastructure](loop-infrastructure.md)). This page owns
+those artifacts — what each
 one holds, how the items inside them are identified, and how that identity
 survives a loop that rewrites them.
 
@@ -16,8 +16,8 @@ iteration by an agent that cannot tell a stale reference from a live one, so a
 broken cross-reference is a defect rather than untidiness, and identity has to
 outlive editing.
 
-Out of scope: how the loop advances between phases ([loop
-infrastructure](loop-infrastructure.md)); how work reaches an artifact in the
+Out of scope: how the supervisor advances a run from request to request
+([execution supervisor](work-loop-execution-supervisor.md)); how work reaches an artifact in the
 first place ([work intake and artifact
 routing](work-intake-and-artifact-routing.md)); and what verifies the repository
 ([verification facts](verification-graph.md)).
@@ -88,7 +88,7 @@ renumbers the survivors.
 ## 4. Change detection
 
 > **STATUS: PLANNED**, for the *per-item* mechanism this section describes.
-> Nothing in the skill implements that; a whole-artifact approval pin is
+> Nothing in the skill implements that; a section-level approval fingerprint is
 > shipped and is described at the end of this section. It is recorded here
 > because the pairing is what the identity decision is *for*; the decision
 > itself is
@@ -151,48 +151,49 @@ the signal. That is the deliberate exception to the rule against storing a value
 a check reads, and it only holds while the stored side is the baseline and never
 the answer.
 
-### What is shipped: the whole-artifact approval pin
+### What is shipped: the reviewed-envelope fingerprint
 
-The per-item fingerprint above is unbuilt. A **whole-artifact** one is not, and
+The per-item fingerprint above is unbuilt. A **section-level** one is not, and
 reading this section without that distinction leaves the impression that
 nothing compares a contract against its approved form.
 
-`approve-plan` records a digest of each artifact's canonical form, and
-`plan check-current` is the verb that recomputes both and compares them against
-those recorded digests. The other two users of the canonical form do something
-narrower: `schedule` computes and stores a fresh `plan_hash` of its own rather
-than comparing with the approved one, and `schedule check-current` compares
-against *that* scheduled hash. Approval drift and schedule drift are separate
-questions, answered by separate values.
+The full-mode supervisor's `start` commits one approval pair to the spec's
+`delivery/approvals.jsonl`. The pair binds a fingerprint over the spec's
+protected sections, the decision section of each record its `Constrained by:`
+value cites, and the terminal intent. A change to any of them refuses and
+names its owner. Which other edits commit as a `replan` step, and when, has one
+home: the supervisor page's
+[replanning section](work-loop-execution-supervisor.md#replanning). The plan
+as a whole is not pinned.
 
-The canonical form normalises exactly four things:
+Each protected section is canonicalised before it is hashed, by
+`canonical_contract` in the work-loop skill's `_loop_guards.py`. The canonical
+form normalises exactly four things:
 
 - CRLF and CR to LF;
 - per-line trailing whitespace;
 - the status **token** only, on the preamble status line only;
-- the **bracket contents** only of a ticked checkbox.
+- the **bracket contents** only of a ticked checkbox, inside the
+  acceptance-criteria region.
 
 What it refuses to normalise carries as much weight. Leading whitespace and the
 bullet run are preserved byte-for-byte, so re-indenting a criterion — which
-changes what the list contains — still moves the digest. Checkbox
-normalisation is scoped by artifact: a spec's applies only inside its
-acceptance-criteria region, so a checkbox anywhere else in the spec stays
-pinned, while a plan has no such region and its checkboxes are task progress,
-so a plan normalises file-wide. The pin recognises that region more loosely
-than the lint does — a lower-case or `###` heading, or a bold lead-in, opens
-it — so the two agree on typical specs without agreeing by construction.
+changes what the list contains — still moves the digest. The fingerprint
+recognises the acceptance-criteria region more loosely than the lint does — a
+lower-case or `###` heading, or a bold lead-in, opens it — so the two agree on
+typical specs without agreeing by construction.
 
-The contract this buys: **lifecycle bookkeeping does not break an approval pin;
-substantive edits do.** Bumping a spec through `Approved → Implementing →
-Shipped`, or ticking criteria off as they land, leaves the pin intact. Changing
-what a criterion says does not.
+The contract this buys: **lifecycle bookkeeping does not break the approval;
+substantive edits to protected sections do.** Bumping a spec through
+`Approved → Implementing → Shipped`, or ticking criteria off as they land,
+leaves the pair current. Changing what a criterion says does not.
 
-The status and checkbox recognisers are imported from the spec-status lint
+The status and checkbox recognisers are shared with the spec-status lint
 rather than re-implemented, which keeps one definition of what a status line
-and a ticked box look like. It does not make the two identical: the pin has to
-map its match back to a raw line number, so it strips HTML comments
-newline-preservingly where the lint strips them outright, and a multi-line
-comment before the status line can be read differently by each.
+and a ticked box look like. It does not make the two identical: the
+canonicaliser has to map its match back to a raw line number, so it strips HTML
+comments newline-preservingly where the lint strips them outright, and a
+multi-line comment before the status line can be read differently by each.
 
 ## 5. Grounding: which probes run when
 
@@ -254,8 +255,14 @@ and no source converges on a universal one.
 
 - Every acceptance criterion is a task-list item, and a newly shipped spec has
   none open.
-- Both artifacts are pinned in substance once the plan is approved; an
-  observation produced by execution goes to the sibling verification ledger.
+- Once the supervisor admits a run, the spec's protected sections and the
+  terminal intent are pinned by the reviewed-envelope fingerprint; the plan is a
+  working plan. The grounding of an `implementation-discovered` seam or design
+  means, and each correction, is a controller edit to the plan's
+  `## Design (LLD)`
+  ([ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
+  D2). An observation produced by execution goes to the sibling verification
+  ledger.
 - A rule that governs criterion authoring appears in exactly one of the skill's
   four authoring surfaces; the pack-local discipline suite enforces this per
   pinned sentence.

@@ -14,6 +14,7 @@ live in [RFCs](../rfc/).
 - [`agentbundle.md`](agentbundle.md) — CLI, build, install, and adaptation.
 - [`lifecycle-flow.md`](lifecycle-flow.md) — how work moves across the packs from idea to production, and its public projections.
 - [`loop-infrastructure.md`](loop-infrastructure.md) — work-loop execution state and controls.
+- [`work-loop-execution-supervisor.md`](work-loop-execution-supervisor.md) — the supervisor that owns full-mode procedure.
 - [`loop-contract.md`](loop-contract.md) — the spec/plan pair the loop runs against: artifact ownership and item identity.
 - [`work-intake-and-artifact-routing.md`](work-intake-and-artifact-routing.md) — intake, artifacts, and workspace routing.
 - [`workspace-mcp/design.md`](workspace-mcp/design.md) — per-session workspace MCP service.
@@ -39,21 +40,18 @@ rules live with that split.
 - **STATUS: PLANNED** — [Binder publishing](binder-publishing/README.md) is
   designed but not implemented. [ADR-0073](../adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.
-- **STATUS: §§ 1, 2, AND 4 IMPLEMENTED; § 3 PLANNED** — [Durable transitions and within-wave parallelism](loop-parallelism.md)
-  ships the unified `pending_transition`/`transition_history` replay protocol
-  for five registered cohort effects (§ 1) and the cohort-state identity check
-  that serialises non-effect transition commits against concurrent cohort
-  mutation (§ 2). Cohort schema 2 refuses in-flight schema-1 state; engine state
-  remains schema 1. [ADR-0125](../adr/0125-engine-invoked-cohort-mutations.md)
-  D1-D3 authorize the engine-invoked, closed-registry,
-  `loop-cohort.py`-written effect boundary.
-  § 4 ships the read-only `wave-decision` screen: a JSON verdict naming, per
-  wave, which tasks are candidates for concurrent dispatch, with a coded reason
-  for every refusal and the colliding peer and glob where one exists. Raising
-  plan width (§ 3) remains planned.
-  [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D5 still defers
-  parallel-wave orchestration — it is D5's *Revisit if* clause, not D5 itself,
-  that names the bounded round cap.
+- **STATUS: § 1 IMPLEMENTED; §§ 2 AND 3 PLANNED** — [Loop concurrency and plan width](loop-parallelism.md) records
+  that the work-loop supervisor dispatches one request at a time and that
+  parallel task scheduling belongs to a later slice. The cohort effect registry
+  and the `wave-decision` screen it once described were removed with the phase
+  engine in Core 4.0.0 ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md)
+  supersedes [ADR-0125](../adr/0125-engine-invoked-cohort-mutations.md)).
+- **STATUS: PARTLY IMPLEMENTED** — [Acceptance-centered work loop](acceptance-centered-work-loop.md)
+  is the parent design for the work-loop refactor. Its rows marked
+  `STATUS: PLANNED` (runtime extensions, leases, and the protected product ref)
+  are later slices; the
+  [brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
+  owns each slice's status.
 - **STATUS: PLANNED** — [Agent skill engineering](agent-skill-engineering.md)
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by

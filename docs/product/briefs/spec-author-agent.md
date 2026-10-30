@@ -332,9 +332,18 @@ other three spec-plan edges are instructed in
 [`delivery-contract-lifecycle.md`](../../../packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md)
 its `spec-rejected`, `plan-rejected` and `contract-amendment` instructions.
 
-**The re-entry edges into `SPEC-PLAN-DRAFTING`, each assigned.** Read from
-[`loop-engine.py`](../../../packs/core/.apm/skills/work-loop/scripts/loop-engine.py)
-`_BOTH_TRANSITIONS`, `_CODE_TRANSITIONS` and `_SPEC_PLAN_TRANSITIONS`; all are S2's. S1 dispatches on none. Enumerated because three of
+**The re-entry edges into `SPEC-PLAN-DRAFTING`, each assigned.** Read, when
+this brief was written, from `loop-engine.py`'s `_BOTH_TRANSITIONS`,
+`_CODE_TRANSITIONS` and `_SPEC_PLAN_TRANSITIONS`; all are S2's. **The
+execution-supervisor cutover (Core 4.0.0, ADR-0144) removed the phase engine,
+these transition tables, and the `SPEC-PLAN-DRAFTING` state.** The supervisor
+admits an approved pair at `start` and has no drafting state, so the edges this
+brief enumerates no longer exist as engine data and have no direct supervisor
+counterpart; the supervisor's
+[request order](../../architecture/work-loop-execution-supervisor.md#request-order)
+is what the owner would map them onto. Re-deciding which re-entry points S1 and S2 cover is
+the brief owner's call, and later engine-state names in this brief refer to
+this note. S1 dispatches on none. Enumerated because three of
 the four carry no adjudicated finding set, so a slice scoped to "repair" drops
 them — and because the count is mode-dependent, so an AC asserting a fixed four
 cannot fire on the fourth.
@@ -390,8 +399,9 @@ The edges below remain owed to other owners, and none blocks S1:
   drafting turn that the author does not own.
 - **[Owner decision, 2026-09-03]** Every request kind's payload is named before
   S1 ships rather than deferred to S2, so no edge is left unexpressible.
-- **[Measured]** **`spec-ready` carries no guard.** It is the only event leaving
-  `SPEC-PLAN-DRAFTING`, and `loop-engine.py`'s `_GUARDS` registry holds 14
+- **[Measured, before Core 4.0.0]** **`spec-ready` carried no guard.** It was
+  the only event leaving `SPEC-PLAN-DRAFTING`, and `loop-engine.py`'s `_GUARDS`
+  registry held 14
   `(mode, event)` entries over 10 events without it — an entry can guard more
   than one transition, so the entry count is not a transition count. So nothing stops a controller firing it
   over a half-authored pair: the file-existence and metadata check is a

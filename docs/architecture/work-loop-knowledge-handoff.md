@@ -4,12 +4,12 @@
 facts it already owns, while project-knowledge owns every capture, admission,
 storage, and enquiry concern and delivery owns no knowledge state.
 **Author:** Platform Core
-**Status:** Draft
-**Last updated:** 2026-10-13
+**Status:** Current
+**Last updated:** 2026-10-29
 **Reviewers:** Core and project-knowledge maintainers
 
 Slice 3 of the [acceptance-centered work loop](acceptance-centered-work-loop.md)
-ships this boundary beside the current capture gates. A pull scan lists
+ships this boundary beside the retained capture gates. A pull scan lists
 `review-failure` receipts as unadmitted `gotcha` candidates, and a person or
 agent keeps one by running the ordinary `--capture`. Nothing is queued,
 acknowledged, deduplicated, or revoked by delivery.
@@ -18,11 +18,11 @@ acknowledged, deduplicated, or revoked by delivery.
 
 | In scope | Out of scope | Why |
 | --- | --- | --- |
-| A read-only, shadow-scoped feed of eligible committed delivery facts | Knowledge admission, distillation, taxonomy, and retention | Project knowledge owns its lifecycle |
+| A read-only feed of eligible facts in each spec's committed `delivery/evidence.jsonl` | Knowledge admission, distillation, taxonomy, and retention | Project knowledge owns its lifecycle |
 | A pure projector from one eligible fact to one `knowledge-observation.v1` candidate or none | Any delivery-owned queue, cursor, retry, acknowledgement, skip log, admission record, or revocation record | Knowledge failure cannot become delivery state |
 | A read-only candidate mode in project-knowledge that checks a feed page and stores nothing | Automatic capture of a candidate, a `lesson`, or a privacy attestation supplied on a person's behalf | A capture needs a human-written lesson and attestation |
 | Per-record read quarantine on the read-only knowledge paths | Changing any writer, admission, retention, or storage rule | Writers keep refusing against an invalid record |
-| The retained `spec-approved` and `plan-locked` capture gates and the close-time `work-item` path | Removing those gates | Slice 8 `legacy-engine-cutover` owns removal |
+| The retained `spec-approved` and `plan-locked` capture gates and the close-time `work-item` path | Removing those gates | Slice 8 owns removal |
 
 **Goals**
 
@@ -42,7 +42,7 @@ acknowledged, deduplicated, or revoked by delivery.
 
 | Element | Type | Responsibility | State |
 | --- | --- | --- | --- |
-| Delivery fact feed (`delivery-fact-feed.py`, `_delivery_feed.py`) | Read-only command | Read each spec's shadow evidence log through the work-loop confined file helpers and print one `delivery-fact-feed.v1` page of a reproducible snapshot | Stateless |
+| Delivery fact feed (`delivery-fact-feed.py`, `_delivery_feed.py`) | Read-only command | Read each spec's committed `delivery/evidence.jsonl` through the work-loop confined file helpers and print one `delivery-fact-feed.v1` page of a reproducible snapshot | Stateless |
 | Observation projector (`_knowledge_projection.py`) | Pure component | Map an eligible `review-failure` receipt to one `gotcha` candidate or none | Stateless |
 | Candidate mode (`project_knowledge.py --candidates`) | Read-only project-knowledge mode | Validate one feed page, check each candidate, and print the survivors in an inert `knowledge-candidates.v1` frame | Stateless; writes no file |
 | Capture (`project_knowledge.py --capture`) | Existing writer | Validate, identify, and journal a request a person or agent wrote | Knowledge store |
@@ -56,17 +56,16 @@ other, and neither imports `agentbundle`.
 
 **Normal sequence**
 
-1. With `WORK_LOOP_SHADOW_SERVICES=1`, a run writes Slice 1 evidence frames to
-   `docs/specs/<feature>/.shadow-acceptance/shadow-evidence.log`. Slice 2's review
-   bridge writes `review-failure` receipts there once the FEAT-0036 cutover
-   reaches production; until then only fixtures do.
+1. Every full-mode run's supervisor commits Slice 1 evidence frames, including
+   Slice 2's `review-failure` receipts, to
+   `docs/specs/<feature>/delivery/evidence.jsonl`. No setting turns this on,
+   and light mode writes no log.
 2. A maintainer runs `delivery-fact-feed.py` and pipes its page into
    `project_knowledge.py --candidates`.
-3. The feed lists `docs/specs/` and reads each log only when its directory
-   holds the writer's exact self-ignoring `.gitignore` marker. It replays
-   complete committed frames through the Slice 1 store's own admission rules,
-   without opening the store for writing, and cuts a torn final frame off
-   the read bytes.
+3. The feed lists `docs/specs/` and reads each spec's `delivery/evidence.jsonl`
+   that exists. It replays complete frames through the Slice 1 store's own
+   `replay_admitted_frames` admission rules, without opening the store for
+   writing, and cuts a torn final frame off the read bytes.
 4. The projector turns each `review-failure` receipt that no supersession
    names into a candidate carrying the receipt's acceptance fingerprint and
    its source report's review-policy fingerprint. Every other receipt kind is
@@ -83,8 +82,8 @@ other, and neither imports `agentbundle`.
 **Failure and recovery sequence**
 
 1. Absent, disabled, unavailable, timing-out, or failing knowledge tooling
-   changes no delivery decision; the engine never calls it.
-2. A missing, different, or linked marker, a linked or oversized or
+   changes no delivery decision; the supervisor never calls it.
+2. A linked or oversized or
    checksum-invalid log, or a log whose read is refused becomes an unread
    source with a closed reason code and yields no candidate. A refused or
    link-like `docs/specs/` root refuses the whole scan.
@@ -114,7 +113,7 @@ nothing under that directory at runtime.
 Only a Slice 2 `review-failure` receipt is eligible. Adding a source kind, an
 observation kind, or a projection-policy version needs owner approval and new
 fixtures. Reviewed-envelope, initial-plan-review, plan, task-projection,
-mutation-classification, and `engine-transition` records are never candidates.
+mutation-classification, and supervisor step records are never candidates.
 A candidate is a past lesson, so a later change to the acceptance subject or
 review policy does not hide it; the two fingerprints it carries show which
 subject and policy it came from.
@@ -150,11 +149,11 @@ The maintainer commands are in the
 
 | Stimulus | Mechanism and response | Target | Verification |
 | --- | --- | --- | --- |
-| Knowledge tooling is absent, disabled, unavailable, timing out, refusing, or failing | The engine never calls it, so every decision matches the absent run | Identical spec, plan, review, acceptance, readiness, and closeout decisions and files | `test_delivery_knowledge_isolation.py` |
-| The shadow flag is unset | The feed returns a complete empty snapshot without listing | Unchanged files, state, and decisions | `test_delivery_knowledge_isolation.py`, `test_delivery_fact_feed.py` |
+| Knowledge tooling is absent, disabled, unavailable, timing out, refusing, or failing | The supervisor never calls it, so every decision matches the absent run | Identical spec, plan, review, acceptance, readiness, and closeout decisions and files | `test_delivery_knowledge_isolation.py` |
+| A spec has no `delivery/evidence.jsonl` | The feed lists no fact for it | Unchanged files, state, and decisions | `test_delivery_fact_feed.py` |
 | A scan runs with no notification | Pull scanning presents every projected candidate | Zero dependency on a signal | `test_delivery_fact_feed.py`, `test_candidate_mode.py` |
 | A scan repeats or overlaps | The same deterministic candidates return | Zero cursor, deduplication, or acknowledgement state; knowledge store byte-identical | `test_candidate_mode.py` |
-| A log is linked, oversized, torn, unmarked, or checksum-invalid | The log is an unread source or its torn frame is invisible | No fact from it; every log byte-identical | `test_delivery_fact_feed_confinement.py` |
+| A log is linked, oversized, torn, or checksum-invalid | The log is an unread source or its torn frame is invisible | No fact from it; every log byte-identical | `test_delivery_fact_feed_confinement.py` |
 | A receipt is superseded | The next scan presents no candidate for it | Zero stale candidates | `test_knowledge_projection.py`, `test_delivery_fact_feed.py` |
 | A feed page or candidate is malformed or hostile | Whole-page refusal, or omission with a closed code | Zero candidate text outside the inert frame | `test_candidate_mode.py`, the differential corpus in `test_delivery_contract_bundle.py` |
 | A merge introduces an invalid knowledge record | Enquiry and the pending page exclude it and report a location and code | Zero invalid records in an answer; committed bytes unchanged | `test_read_quarantine.py` |
@@ -170,7 +169,7 @@ The maintainer commands are in the
 | Observation schema and projection policy | `contracts/delivery/knowledge-observation.v1.schema.json`; `_knowledge_projection.py` | Core pack, `work-loop` skill | `test_knowledge_projection.py`; schema parity in `tests/roster/test_delivery_contract_bundle.py` |
 | Read-only candidate mode | `--candidates` in `packs/core/.apm/skills/project-knowledge/scripts/project_knowledge.py` | Core pack, `project-knowledge` skill | `packs/core/tests/skills/project-knowledge/test_candidate_mode.py` |
 | Committed-record read validation | Read-only entry points in `knowledge_store.py` | Core pack, `project-knowledge` skill | `test_read_quarantine.py` and `test_quarantine_write_paths.py` |
-| Readiness isolation | No production module; engine and cohort never name knowledge tooling | Core pack, `work-loop` skill | `packs/core/tests/skills/work-loop/test_delivery_knowledge_isolation.py` |
+| Readiness isolation | No production module; the supervisor never names knowledge tooling | Core pack, `work-loop` skill | `packs/core/tests/skills/work-loop/test_delivery_knowledge_isolation.py` |
 | Retained capture gates | `project-knowledge --capture --producer-profile work-loop` at `spec-approved` and `plan-locked` | Core pack and `work-loop` | `test_retained_capture_paths.py` |
 | Retained close-time `work-item` | Plain `project-knowledge --capture` with `semantic_gate.name: close-time`, `knowledge-captured-observation.v2`, and a per-item cold reasoning verdict, as in `packs/core/.apm/skills/work-loop/references/work-item-capture.md` | Core pack and `close-work` | `test_retained_capture_paths.py` and the existing `work-item` suites |
 
@@ -204,7 +203,7 @@ notification port, or collector is built.
   **Rejected because:** it changes storage and admission behavior, and a write
   would run against a reduced view.
 - **Risk:** Evidence-log frame checksums are not keyed, so a contributor who
-  force-adds a crafted `.shadow-acceptance/` log can present invented
+  commits a crafted `delivery/evidence.jsonl` can present invented
   candidates. **Mitigation:** candidates are marked as unverified local claims,
   stay in the inert frame, pass the persistable-text and path checks, and
   reach the store only through an ordinary `--capture`. Revisit at Slice 8.
@@ -217,17 +216,17 @@ notification port, or collector is built.
   **Mitigation:** the read paths report its location and reason code.
 - **Risk:** No candidate arrives without a person capturing it.
   **Mitigation:** accepted trade for an unchanged capture contract.
-- **Risk:** Production writes no `review-failure` receipt until the FEAT-0036
-  cutover, so yield is low today. **Mitigation:** the boundary is proven on
-  contract fixtures, and real yield arrives with the later cutovers.
 
 ## 10. Rollout, Migration, and Reversal
 
 Slice 3 ships the feed, projector, candidate mode, and read quarantine beside
-the current capture gates. The `spec-approved` and `plan-locked` capture gates
-are retained unchanged, and their removal is owned by Slice 8
-`legacy-engine-cutover`, once delivery facts are written by default. Explicit
-close-time `work-item` capture stays for specific blocked residue.
+the capture gates. The Core 4.0.0 cutover points the feed at committed
+`delivery/evidence.jsonl`, so every full-mode run now writes delivery facts by
+default. The `spec-approved` capture gate before the supervisor's `start` and
+the `plan-locked` gate at `start` remain under those names. Slice 8 of the
+[acceptance-centered work-loop brief](../product/briefs/acceptance-centered-work-loop.md)
+removes them. Explicit close-time `work-item` capture stays for specific
+blocked residue.
 
 Rollback stops running the candidate mode and reverts the read-path change.
 It restores no queue or delivery state because none exists, and no Slice 1 or
@@ -237,5 +236,5 @@ Slice 2 writer changed.
 | --- | --- |
 | Feed, projector, and candidate mode | Core maintainers |
 | Capture, admission, retention, revocation, and read quarantine | Project-knowledge maintainers |
-| Reusable capture-gate removal | Slice 8 `legacy-engine-cutover` |
+| Reusable capture-gate removal | Slice 8 |
 | Rollback authorization | Project-knowledge maintainer after a projection or provenance failure |
