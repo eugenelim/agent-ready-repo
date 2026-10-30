@@ -60,11 +60,11 @@ Owned by: T1, T4
 
 ### Behavior & rules
 
-Owned by: T2, T4
+Owned by: T1, T2, T4, T5
 
 - Refresh reads the profile from the parsed record. `coordinate_local_refresh` drops the `matching_entry` lookup, the entry parser call and the entry revision substitution. It moves the profile and kind binding from the entry to the artifact: the current record's profile table must equal the comparison's profile, and the artifact's first-line kind must equal the comparison's kind. It adds two checks: the proposed workspace bytes equal the current bytes, and the proposed record's profile equals the current record's. The workspace digest and policy checks before evaluation, and the digest in the receipt binding, stay. `guarded_write_pair` writes the artifact and leaves `workspace.toml` as it is; its digest re-check under the guard stays.
 - `invoke_refresh` gains a `repository_root` parameter. Before resolving the processor it reads the artifact through the skill's confined regular-file read, parses its record, and returns `refresh-unavailable` with next action `add-record-tracker-profile` when the table is absent, or with `repair-refresh-request-profile` when the signals' profile differs from it. It reads no `workspace.toml`.
-- `run_intake_transaction` gains an optional `tracker_source` argument (locator, revision, profile). When it is set, the stage that ran `register_workspace_entry` instead appends the AC-0025 record to the confined target, under the same lock, then re-reads the file and parses it; any refusal, a second record, or a value mismatch takes the existing `_recover_partial_state` path with `failed_stage="source_authority_write"`. The agent passes values as Python arguments, never through a shell string. `register_workspace_entry` stays for callers that pass it, and `work-intake` SKILL.md § 5 stops telling anyone to pass it.
+- `run_intake_transaction` gains an optional `tracker_source` argument (locator, revision, profile). When it is set, the stage that ran `register_workspace_entry` instead appends the AC-0025 record to the target through `write_confined_regular_file`, under the same lock, then re-reads it through `read_confined_regular_file` and parses it, so a link, non-regular file or identity change at the target is a refusal; any refusal, a second record, or a value mismatch takes the existing `_recover_partial_state` path with `failed_stage="source_authority_write"`. The agent passes values as Python arguments, never through a shell string. `register_workspace_entry` stays for callers that pass it, and `work-intake` SKILL.md § 5 stops telling anyone to pass it.
 - `intake_transaction.py` loads `refresh.py` from its own skill directory by file path, the way `intent_rename_request.py` loads `intake_transaction`.
 - `author-delivery-brief` and `new-spec` keep an existing block byte for byte when they fill the artifact.
 - The coordinator's kind check strips one leading front-matter block (a `---` line through the next `---` line) before reading the first `# ` line.
@@ -100,7 +100,7 @@ Owned by: T3
 
 - **Depends on:** none
 - **Verification mode:** TDD
-- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0025, AC-0029: the transaction cases in `packs/core/tests/skills/work-intake/test_intake_transaction.py` (a committed tracker-origin brief and spec, a materializer that writes its own record, a refused source); the schema cases in the source-authority schema suite in `tests/roster/test_work_intake_refresh_coordinator.py`; parse, render and refusal cases in the same suite; a tracker-origin and a repo-origin render in `packs/core/tests/skills/intake-intent/test_intake_intent.py`.
+- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0025, AC-0029: the transaction cases in `packs/core/tests/skills/work-intake/test_intake_transaction.py` (a committed tracker-origin brief and spec, a materializer that writes its own record, a materializer that leaves a symlink at the target, a refused source); the schema cases in the source-authority schema suite in `tests/roster/test_work_intake_refresh_coordinator.py`; parse, render and refusal cases in the same suite; a tracker-origin and a repo-origin render in `packs/core/tests/skills/intake-intent/test_intake_intent.py`.
 - **Done when:** those cases pass and the intake-intent template conformance suite passes.
 
 ### T2: Refresh reads the profile from the record
