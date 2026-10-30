@@ -74,8 +74,8 @@ _UNCHANGED = [
     ('status-passthrough', {'action': 'status', 'artifact': 'workspace.toml', 'artifact_kind': 'workspace-status', 'authority_mode': 'read-only'}, ('workspace.toml', 'workspace-status', 'passthrough', 'workspace-status', 'read-only', 'none')),
     ('refresh-unavailable', {'action': 'refresh', 'artifact': 'docs/specs/example/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'repo-origin'}, ('docs/specs/example/spec.md', 'spec', 'resolved-existing', 'none', 'repo-origin', 'none')),
     ('ambiguity', {'action': 'start', 'artifact': 'docs/product/intents/work-intake.md', 'artifact_kind': 'intent', 'authority_mode': 'repo-origin', 'named_gaps': True}, ('docs/product/intents/work-intake.md', 'intent', 'draft-with-gaps', 'none', 'repo-origin', 'ask-or-draft-only')),
-    ('direct-spec', {'action': 'start', 'artifact': 'docs/specs/export-retention/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, ('docs/specs/export-retention/spec.md', 'spec', 'work.queue', 'new-spec', 'tracker-origin', 'materialize-and-register')),
-    ('multi-spec-brief', {'action': 'start', 'artifact': 'docs/product/briefs/account-recovery.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/briefs/account-recovery.md', 'brief', 'brief_queue.draft', 'author-delivery-brief create', 'tracker-origin', 'materialize-and-register')),
+    ('direct-spec', {'action': 'start', 'artifact': 'docs/specs/export-retention/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, ('docs/specs/export-retention/spec.md', 'spec', 'none', 'new-spec', 'tracker-origin', 'materialize-and-dispatch')),
+    ('multi-spec-brief', {'action': 'start', 'artifact': 'docs/product/briefs/account-recovery.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/briefs/account-recovery.md', 'brief', 'none', 'author-delivery-brief create', 'tracker-origin', 'materialize-and-dispatch')),
     ('incoherent-collection', {'action': 'start', 'artifact': 'docs/product/intents/board-selection.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin', 'named_gaps': True}, ('docs/product/intents/board-selection.md', 'intent', 'draft-with-gaps', 'none', 'tracker-origin', 'ask-or-draft-only')),
     ('claimed-defect-without-evidence', {'action': 'start', 'artifact': 'docs/specs/login-investigation/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin', 'named_gaps': True}, ('docs/specs/login-investigation/spec.md', 'spec', 'draft-with-gaps', 'none', 'tracker-origin', 'ask-or-draft-only')),
 ]
@@ -119,35 +119,43 @@ def _outcome(router: Any, signals: dict[str, Any]) -> Any:
 
 
 # Tracker-origin start, remember, and ready-brief signals of each kind, as
-# returned at ff33d0dcc (AC-0014); "ValueError" marks a refused signal shape.
+# compared with the repo-origin route of the same signal (AC-0009).
 _TRACKER_ORIGIN = [
-    ('tracker-start-intent', {'action': 'start', 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/intent-item.md', 'intent', 'shaping_queue.backlog', 'intake-intent', 'tracker-origin', 'materialize-and-register')),
-    ('tracker-remember-intent', {'action': 'remember', 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/intent-item.md', 'intent', 'backlog.open', 'intake-intent', 'tracker-origin', 'materialize-draft-and-register-non-dispatchable')),
-    ('tracker-ready-brief-intent', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-start-brief', {'action': 'start', 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/brief-item.md', 'brief', 'brief_queue.draft', 'author-delivery-brief create', 'tracker-origin', 'materialize-and-register')),
-    ('tracker-remember-brief', {'action': 'remember', 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/brief-item.md', 'brief', 'backlog.open', 'none', 'tracker-origin', 'materialize-draft-and-register-non-dispatchable')),
-    ('tracker-ready-brief-brief', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/brief-item.md', 'brief', 'brief_queue.ready', 'author-delivery-brief continue', 'tracker-origin', 'none')),
-    ('tracker-start-spec', {'action': 'start', 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/spec-item.md', 'spec', 'work.queue', 'new-spec', 'tracker-origin', 'materialize-and-register')),
-    ('tracker-remember-spec', {'action': 'remember', 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/spec-item.md', 'spec', 'backlog.open', 'none', 'tracker-origin', 'materialize-draft-and-register-non-dispatchable')),
-    ('tracker-ready-brief-spec', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-start-defect', {'action': 'start', 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/defect-item.md', 'defect', 'none', 'bug-fix', 'tracker-origin', 'materialize-and-dispatch')),
-    ('tracker-remember-defect', {'action': 'remember', 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/defect-item.md', 'defect', 'none', 'none', 'tracker-origin', 'materialize-draft-non-dispatchable')),
-    ('tracker-ready-brief-defect', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-start-design', {'action': 'start', 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-remember-design', {'action': 'remember', 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/design-item.md', 'design', 'none', 'none', 'tracker-origin', 'materialize-draft-non-dispatchable')),
-    ('tracker-ready-brief-design', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-start-research', {'action': 'start', 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-remember-research', {'action': 'remember', 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/research-item.md', 'research', 'none', 'none', 'tracker-origin', 'materialize-draft-non-dispatchable')),
-    ('tracker-ready-brief-research', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}, 'ValueError'),
+    ('tracker-start-intent', {'action': 'start', 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-intent', {'action': 'remember', 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-intent', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-brief', {'action': 'start', 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-brief', {'action': 'remember', 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-brief', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-spec', {'action': 'start', 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-spec', {'action': 'remember', 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-spec', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-defect', {'action': 'start', 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-defect', {'action': 'remember', 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-defect', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-design', {'action': 'start', 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-design', {'action': 'remember', 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-design', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-research', {'action': 'start', 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-research', {'action': 'remember', 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-research', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}),
 ]
 
 
-@pytest.mark.parametrize(("case_id", "signals", "expected"), _TRACKER_ORIGIN, ids=[c[0] for c in _TRACKER_ORIGIN])
-def test_tracker_origin_routes_match_the_pre_change_route(
-    case_id: str, signals: dict[str, Any], expected: Any
+@pytest.mark.parametrize(("case_id", "signals"), _TRACKER_ORIGIN, ids=[c[0] for c in _TRACKER_ORIGIN])
+def test_tracker_origin_routes_match_the_repo_origin_route(
+    case_id: str, signals: dict[str, Any]
 ) -> None:
     router = _load_router()
-    assert _outcome(router, signals) == expected
+    tracker = _outcome(router, signals)
+    repo = _outcome(router, {**signals, "authority_mode": "repo-origin"})
+    if repo == "ValueError":
+        assert tracker == "ValueError"
+        return
+    assert tracker[:4] == repo[:4]
+    assert tracker[4] == "tracker-origin"
+    assert tracker[5:] == repo[5:]
+    assert "register" not in tracker[5]
 
 
 # Refresh front door: the profile comes from the artifact's own record.

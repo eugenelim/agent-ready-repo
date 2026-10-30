@@ -7,17 +7,6 @@ import re
 import stat
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Protocol
-from urllib.parse import urlsplit, urlunsplit
-
-
-class NormalizedSourceLike(Protocol):
-    """Validated normalized-source fields used at the workspace boundary."""
-
-    mode: str
-    locator: str
-    revision: str
-    tracker_profile: dict[str, str] | None
 
 
 @dataclass(frozen=True)
@@ -47,7 +36,6 @@ _INSTRUCTION_RE = re.compile(
     r"(?i)\b(ignore (?:all |any )?(?:previous|prior) instructions|"
     r"mark this ready|dispatch this|change the rules|write the raw payload)\b"
 )
-_ABSOLUTE_LOCAL_RE = re.compile(r"(?i)^(?:/|[a-z]:[/\\]|\\\\)")
 
 
 def check_destination_confidentiality(
@@ -67,57 +55,6 @@ def check_destination_confidentiality(
     if _CONFIDENTIALITY_RANK[source] > _CONFIDENTIALITY_RANK[destination_confidentiality]:
         return GuardResult(False, "confidentiality_mismatch")
     return GuardResult(True, "allowed")
-
-
-def workspace_source_record(source: NormalizedSourceLike) -> dict[str, object]:
-    """Map normalized provenance names to the workspace-entry contract."""
-
-    record: dict[str, object] = {
-        "mode": source.mode,
-        "ref": _minimize_workspace_source_locator(source.locator),
-        "revision": source.revision,
-    }
-    if source.tracker_profile is not None:
-        record["tracker_profile"] = dict(source.tracker_profile)
-    return record
-
-
-def _minimize_workspace_source_locator(locator: str) -> str:
-    """Return one non-secret source identity without dereferencing it."""
-
-    if (
-        not isinstance(locator, str)
-        or not locator
-        or any(character in locator for character in ("\x00", "\r", "\n"))
-        or _ABSOLUTE_LOCAL_RE.match(locator)
-        or "\\" in locator
-        or any(part in {".", ".."} for part in locator.split("/"))
-        or _EMAIL_RE.search(locator)
-        or _SECRET_RE.search(locator)
-    ):
-        raise ValueError("unsafe_source_locator")
-    if "://" not in locator:
-        minimized = locator.split("?", 1)[0].split("#", 1)[0].strip()
-    else:
-        try:
-            parsed = urlsplit(locator)
-            if parsed.scheme.lower() == "file" or not parsed.hostname:
-                raise ValueError
-            if parsed.path in {"", "/"} and (parsed.query or parsed.fragment):
-                raise ValueError
-            host = parsed.hostname
-            port = parsed.port
-        except (TypeError, ValueError) as error:
-            raise ValueError("unsafe_source_locator") from error
-        if ":" in host and not host.startswith("["):
-            host = f"[{host}]"
-        netloc = f"{host}:{port}" if port is not None else host
-        minimized = urlunsplit(
-            (parsed.scheme.lower(), netloc, parsed.path or "/", "", "")
-        )
-    if not minimized or minimized in {"/", "."}:
-        raise ValueError("source_identity_lost")
-    return minimized
 
 
 def read_handoff_repository_content(
