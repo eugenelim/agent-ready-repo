@@ -1,7 +1,7 @@
 # Plan: Windows confined write
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0152 governs.
   - **The helper:** `packs/core/.apm/skills/work-loop/scripts/_confined_mutation.py`,
     which refuses at `_require_descriptor_walk` and loads the byte-identical

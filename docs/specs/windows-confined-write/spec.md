@@ -1,6 +1,6 @@
 # Spec: Windows confined write
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0152, ADR-0144
@@ -98,41 +98,41 @@ accepted by its owner for trusted runs.
 
 ### Criteria
 
-- [ ] **AC-0001.** On a path-checked host, each of the three operations returns
+- [x] **AC-0001.** On a path-checked host, each of the three operations returns
   without raising, and the target holds exactly the supplied bytes, or for
   append the prior bytes followed by the supplied bytes.
-- [ ] **AC-0002.** On a path-checked host, each of the three operations refuses
+- [x] **AC-0002.** On a path-checked host, each of the three operations refuses
   with `denied-path-violation`, leaves any prior target byte-identical, and
   writes nothing, when the target or any component below the root is a link or
   a reparse point.
-- [ ] **AC-0003.** On a path-checked host, each of the three operations refuses
+- [x] **AC-0003.** On a path-checked host, each of the three operations refuses
   with `denied-path-violation`, leaving any prior target byte-identical, when the
   target is not a regular file or has more than one link.
-- [ ] **AC-0004.** On a path-checked host, each of the three operations refuses
+- [x] **AC-0004.** On a path-checked host, each of the three operations refuses
   with `denied-path-violation` before any filesystem call when the target's path
   relative to its root has a component that is an alternate data stream
   (contains `:`), a reserved device name with or without an extension (`CON`,
   `PRN`, `AUX`, `NUL`, `COM1` to `COM9`, `LPT1` to `LPT9`, `CONIN$`, `CONOUT$`),
   or ends in a dot or a space, or when that relative path is itself absolute,
   drive-relative, or starts with `\\?\`, `\\.\`, or `\\`.
-- [ ] **AC-0005.** On a path-checked host, containment compares the
+- [x] **AC-0005.** On a path-checked host, containment compares the
   case-normalised, fully resolved long-name paths of the target and the root,
   so a short name or a different letter case cannot place a target outside the
   root.
-- [ ] **AC-0006.** On a path-checked host, when a newly created staging file
+- [x] **AC-0006.** On a path-checked host, when a newly created staging file
   fails its identity, link-count, reparse, or containment check, the operation
   refuses with `denied-path-violation` before writing any byte, and removes only
   the file it created.
-- [ ] **AC-0007.** On a path-checked host, a late detection raises
+- [x] **AC-0007.** On a path-checked host, a late detection raises
   `denied-rollback-failed` and never returns success, for each of the three
   operations. For create and replace that means the committed target is not a
   regular file with exactly one link that is the file the operation wrote, or
   an ancestor's identity differs from its recorded identity. For append it
   means the open file's identity differs from the in-root path's identity, or
   an ancestor's identity differs.
-- [ ] **AC-0008.** A host with neither descriptor-relative walking nor reparse
+- [x] **AC-0008.** A host with neither descriptor-relative walking nor reparse
   attributes refuses each of the three operations with `denied-unsafe-host`.
-- [ ] **AC-0009.** The Windows CI job runs
+- [x] **AC-0009.** The Windows CI job runs
   `packs/core/tests/skills/work-loop/test_confined_mutation_windows.py` on a
   real Windows host with the host-capability mode not patched, with no case skipped, and it passes. The
   module covers AC-0001, AC-0002 with a real junction ancestor, AC-0003 with a
@@ -141,9 +141,9 @@ accepted by its owner for trusted runs.
   the target in long form,
   and AC-0007 with an ancestor swapped for a real junction between the last
   pre-write check and the commit call.
-- [ ] **AC-0010.** `race_free_mutation()` in `_confined_mutation.py` returns
+- [x] **AC-0010.** `race_free_mutation()` in `_confined_mutation.py` returns
   `True` on a descriptor-walk host and `False` on every other host.
-- [ ] **AC-0011.** When `race_free_mutation()` returns `False`, every
+- [x] **AC-0011.** When `race_free_mutation()` returns `False`, every
   `work-supervisor.py` verb refuses with refusal code `untrusted-unsafe-host`
   and writes nothing (no file in the working tree, `<spec>/.supervisor/`, or the
   Git directory changes) when the run's code trust is untrusted or cannot be
@@ -152,7 +152,7 @@ accepted by its owner for trusted runs.
   the latest pair in `delivery/approvals.jsonl` as committed at `HEAD`; a file
   absent at `HEAD`, or present but unreadable, malformed, or without a parseable
   latest pair, leaves it undetermined.
-- [ ] **AC-0012.** The confined-mutation tests in
+- [x] **AC-0012.** The confined-mutation tests in
   `packs/core/tests/skills/work-loop/test_security_primitives.py` pass
   unchanged.
 

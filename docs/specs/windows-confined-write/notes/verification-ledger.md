@@ -48,3 +48,7 @@ No work-loop eval covers the confined-mutation helper.
 ## Deferred nits
 
 Deferred Nit (security review): superscript device names (COM¹ to COM³, LPT¹ to LPT³) are outside AC-0004's list. A device target still fails the regular-file check before any byte. Status: deferred.
+
+## Real-host proof (AC-0009)
+
+The `build-check-windows` job on PR #1655 ran `test_confined_mutation_windows.py` on a real Windows host with 8.3 names enabled, and it passed, with the JUnit no-skip checker passing too. The final commit, `8ef6461ae`, passed all 37 checks, with 1 skipped.
