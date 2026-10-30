@@ -19,7 +19,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 from typing import Callable, ClassVar, Collection, Mapping
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 
 class RefreshRefusal(ValueError):
@@ -923,8 +923,8 @@ def render_source_authority(authority: SourceAuthority) -> str:
 
 _LOCATOR_EMAIL = re.compile(r"\b[^\s/@]+@[^\s/@]+\.[^\s/@]+\b")
 _LOCATOR_SECRET = re.compile(
-    r"(?i)(?:^|[/;])(?:password|passwd|pwd|secret|api[_-]?key|"
-    r"access[_-]?token|token)(?:[:=]|/)[^/?#]+"
+    r"(?i)\b(?:password|passwd|pwd|secret|api[_ -]?key|access[_ -]?token|token)"
+    r"\s*[:=]"
 )
 _LOCATOR_PERSONAL_ABSOLUTE = re.compile(
     r"(?i)^(?:/(?:users|home|private)/|[a-z]:[/\\]users[/\\])"
@@ -933,14 +933,12 @@ _LOCATOR_ABSOLUTE = re.compile(r"(?i)^(?:/|[a-z]:[/\\]|\\\\)")
 
 
 def _require_minimal_locator(locator: str) -> str:
-    """Refuse a locator that carries more than its identity, or return it as given.
+    """Refuse a locator that carries a sensitive class, or return it as given.
 
     The first record is committed to the repository, so a locator holding a
-    control character, a local or personal path, a ``.`` or ``..`` segment, a
-    backslash, an email or secret pattern, credentials, a query, or a fragment
-    is refused rather than rewritten. A locator whose canonical form differs
-    from the declared one is refused too, so the record never holds bytes the
-    owner did not declare.
+    control character, a local or personal path (including ``file:``), a ``.``
+    or ``..`` segment, a backslash, an email, a secret, credentials, a query,
+    or a fragment is refused. Every other locator is accepted byte for byte.
     """
 
     code = "invalid_source_authority"
@@ -949,30 +947,21 @@ def _require_minimal_locator(locator: str) -> str:
     if (
         _LOCATOR_PERSONAL_ABSOLUTE.match(locator)
         or _LOCATOR_ABSOLUTE.match(locator)
+        or locator.lower().startswith("file:")
         or "\\" in locator
         or any(part in {".", ".."} for part in locator.split("/"))
         or _LOCATOR_EMAIL.search(locator)
         or _LOCATOR_SECRET.search(locator)
+        or "?" in locator
+        or "#" in locator
     ):
         raise RefreshRefusal(code)
     try:
         parsed = urlsplit(locator)
-        if parsed.scheme:
-            host = parsed.hostname
-            port = parsed.port
-            if parsed.scheme.lower() == "file" or not host:
-                raise RefreshRefusal(code)
-            if ":" in host and not host.startswith("["):
-                host = f"[{host}]"
-            netloc = f"{host}:{port}" if port is not None else host
-            canonical = urlunsplit(
-                (parsed.scheme.lower(), netloc, parsed.path or "/", "", "")
-            )
-        else:
-            canonical = locator.split("?", 1)[0].split("#", 1)[0].strip()
+        parsed.port  # noqa: B018  # a malformed port is refused below
     except ValueError as exc:
         raise RefreshRefusal(code) from exc
-    if canonical != locator:
+    if parsed.username is not None or parsed.password is not None:
         raise RefreshRefusal(code)
     return locator
 

@@ -377,11 +377,16 @@ def invoke_refresh(
             "configure-compatible-refresh-processor",
         )
     if (
+        request.profile_id != profile_id
+        or request.profile_version != profile_version
+    ):
+        return RefreshFrontDoorResult(
+            route, "refresh-unavailable", "repair-refresh-request-profile"
+        )
+    if (
         request.artifact_path != signals.artifact
         or request.artifact_kind != signals.artifact_kind
         or request.authority_mode != signals.authority_mode
-        or request.profile_id != profile_id
-        or request.profile_version != profile_version
     ):
         return RefreshFrontDoorResult(
             route,

@@ -325,3 +325,23 @@ def test_ac0005_signals_without_a_profile_resolve_the_record_profile(
     )
     assert resolver.acquire_resolutions == 1
     assert result.remediation == "configure-compatible-refresh-processor"
+
+
+def test_ac0005_no_profile_signals_with_a_mismatched_request_profile_are_unavailable(
+    tmp_path: Path,
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact=_ARTIFACT,
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+    )
+    request = type("Req", (_Request,), {"profile_id": "other"})()
+    result = router.invoke_refresh(
+        signals, resolver, request, _plant(tmp_path, _record(profile=_PROFILE_TABLE))
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.invocation is None
+    assert resolver.acquire_resolutions == 0

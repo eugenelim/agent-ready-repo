@@ -553,6 +553,8 @@ def test_ac0029_a_refused_source_rolls_back_leaving_no_artifact_and_no_dispatch(
         "example-service://work\\ITEM-1",
         "example-service://work/someone@example.com",
         "example-service://work/access_token=abc123",
+        "https://t.example/i/1,api_key=SECRET",
+        "PROJ-1 token=abc",
         "example-service://work/ITEM-1?view=full",
         "example-service://work/ITEM-1#section",
     ),
@@ -565,6 +567,8 @@ def test_ac0029_a_refused_source_rolls_back_leaving_no_artifact_and_no_dispatch(
         "backslash",
         "email",
         "secret",
+        "secret-after-comma",
+        "secret-after-space",
         "query",
         "fragment",
     ),
@@ -637,3 +641,27 @@ def test_ac0029_tracker_source_replaces_the_registration_stage(tmp_path: Path) -
 
     assert result.status is transaction.TransactionStatus.COMMITTED
     assert trace == ["dispatch"]
+
+
+@pytest.mark.parametrize(
+    "locator",
+    (
+        "jira://EX-101",
+        "jira://boards/7",
+        "jira-align://epics/7",
+        "gh://items/101",
+        "linear://issues/ABC-1",
+        "tracker:TEAM-42",
+    ),
+)
+def test_ac0029_every_adapter_locator_shape_commits_byte_for_byte(
+    tmp_path: Path, locator: str
+) -> None:
+    refresh = _load_refresh_module()
+    transaction, result, _trace, artifact = _run_tracker_transaction(
+        tmp_path, body="# Brief\n", source_kwargs={"locator": locator}
+    )
+
+    assert result.status is transaction.TransactionStatus.COMMITTED
+    authority = refresh.parse_source_authority(artifact.read_text(encoding="utf-8"))
+    assert authority.source_ref == locator

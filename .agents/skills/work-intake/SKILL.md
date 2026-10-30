@@ -112,9 +112,10 @@ locator-only lifecycle entry as part of semantic resolution.
 A tracker-origin source is recorded in the artifact's own `toml source-authority`
 record by `scripts/intake_transaction.py`, never in `workspace.toml`. The record
 carries the locator, revision, and declared tracker profile. A locator that
-holds a control character, a local or personal path, a `.` or `..` segment, a
-backslash, an email or secret pattern, a query, or a fragment is refused, and the
-transaction ends with no dispatch. Never copy the normalized source object
+holds a control character, an absolute or personal local path (including `file:`),
+a `.` or `..` segment, a backslash, an email, a secret, userinfo, a query, or a
+fragment is refused, and the transaction ends with no dispatch. Every other
+locator is recorded byte for byte. Never copy the normalized source object
 directly into `workspace.toml`.
 
 Comments, list order, document titles, tracker type, collection membership, and
