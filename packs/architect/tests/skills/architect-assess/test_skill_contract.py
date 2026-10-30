@@ -259,3 +259,21 @@ def test_cannot_pause_exception_is_stated_at_each_checkpoint_rule() -> None:
         section = text[start : text.index("\n### ", start + 1)]
         assert "Checkpoints: accepted-without-pause" in section
     assert text.count("not user-confirmed") >= 2
+
+
+def test_orientation_reference_routes_to_the_owning_skills() -> None:
+    text = (SKILL_ROOT / "references" / "orientation-views.md").read_text(
+        encoding="utf-8"
+    )
+    assert "architect-diagram" in text
+    assert "physical-bom.md" in text
+    assert "not assessed" in text
+
+
+def test_orientation_evals_exist() -> None:
+    import json
+
+    evals = json.loads((SKILL_ROOT / "evals" / "evals.json").read_text("utf-8"))
+    joined = json.dumps(evals["evals"])
+    assert "accepted-without-pause" in joined and "not user-confirmed" in joined
+    assert "begins with the line `not assessed`" in joined

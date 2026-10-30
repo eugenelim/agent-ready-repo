@@ -137,6 +137,29 @@
         "Asks for an exact directory or offers chat-only",
         "Invokes no write"
       ]
+    },
+    {
+      "id": 13,
+      "prompt": "Run architect-assess on this repository in a headless session that cannot ask me anything. Skip no stage, and save the assessment.",
+      "expected_output": "A saved assessment whose charter records that the Map and Focus checkpoints were accepted without a pause, whose checkpoint subsections say they were not user-confirmed, and whose orientation subsections each end with a Sources checked table.",
+      "assertions": [
+        "Charter contains `Checkpoints: accepted-without-pause`",
+        "The Map checkpoint subsection holds the line `not user-confirmed`",
+        "The Focus checkpoint subsection holds the line `not user-confirmed`",
+        "Does not invent a user answer or say the user continued",
+        "Overall architecture, Architecture by subsystem, and Physical architecture each end with a Sources checked table"
+      ]
+    },
+    {
+      "id": 14,
+      "prompt": "Assess the architecture of this repository, which has source and tests but no Dockerfile, manifests, infrastructure code, or deployment documentation.",
+      "expected_output": "A report whose Physical architecture subsection begins with `not assessed`, names the missing deployment evidence, invents no component, and still ends with a Sources checked table listing what was searched.",
+      "assertions": [
+        "Physical architecture subsection begins with the line `not assessed`",
+        "Names the deployment evidence that is missing",
+        "Names no host, cluster, cloud service, or network component that no source shows",
+        "Physical architecture subsection ends with a Sources checked table"
+      ]
     }
   ]
 }

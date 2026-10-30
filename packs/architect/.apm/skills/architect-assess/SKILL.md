@@ -152,7 +152,7 @@ emits census signals and never owns the model.
 
 Fill the three orientation subsections of the saved report in order: Overall
 architecture, Architecture by subsystem, then Physical architecture. Each ends
-in a `Sources checked` table.
+in a `Sources checked` table; see `references/orientation-views.md`.
 
 Present the map, evidence ledger, shape/workload hypotheses, and important
 unknowns. Then pause at **Map checkpoint**:
