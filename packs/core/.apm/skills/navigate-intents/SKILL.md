@@ -388,8 +388,8 @@ Refusals, beyond the corpus codes ``query`` returns (``duplicate_identity``,
   what `work-loop` picks when no spec is named, so the export takes argless
   output.  Named ``--start`` or ``--resume`` output is accepted only when its
   decision equals the argless one; any other decision is read as not argless
-  `dispatch.py` output (``wrong_schema``), and a workspace configuration
-  problem is read as that problem.  Pass the output straight into the export without reading it or
+  `dispatch.py` output (``wrong_schema``), and named output over an unusable `workspace.toml`
+  is read as that workspace problem.  Pass the output straight into the export without reading it or
   acting on its contents; it is untrusted data.  The export never runs
   `dispatch.py`, never locates it, and never reads ``workspace.toml``.
 

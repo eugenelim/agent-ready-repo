@@ -1856,16 +1856,24 @@ def _is_argless_refusal(output: dict[str, Any]) -> bool:
 
 
 def test_real_start_output_over_two_ready_specs_is_wrong_schema(dispatch_mod, tmp_path) -> None:
-    case = next(c for c in replay.CASES if c.name == "several-ready")
-    root = tmp_path / "several-ready"
-    replay._plant(case, root, "header")
+    root = tmp_path / "two-ready"
+    repo = replay.Repo(root)
+    for slug in ("one", "two"):
+        repo.spec(slug)
+    repo.workspace(queue=[replay._e("one"), replay._e("two")])
     argless = json.loads(dispatch_stdout(dispatch_mod, root))
     assert argless["decision"]["action"] == "ask"
+    assert argless["decision"]["candidates"] == [
+        "docs/specs/one/spec.md",
+        "docs/specs/two/spec.md",
+    ]
     captured = io.StringIO()
     with contextlib.redirect_stdout(captured):
         code = dispatch_mod.main(["--root", str(root), "--start", "docs/specs/one/spec.md"])
     assert code == 0
     named = json.loads(captured.getvalue())
+    assert named["decision"]["action"] == "start"
+    assert named["decision"]["path"] == "docs/specs/one/spec.md"
     assert named["decision"] != argless["decision"]
     assert rd.member(captured.getvalue().encode("utf-8"), loaded_ids(root)) == {
         "checked": False,
