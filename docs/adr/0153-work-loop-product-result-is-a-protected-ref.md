@@ -6,10 +6,10 @@
 - **Reversibility:** high
 - **Decision-makers:** eugenelim
 - **Supersedes:** none
-- **Supersedes in part:** ADR-0144 D9
+- **Supersedes in part:** ADR-0144 D9,D11
 - **Superseded by:** none
 - **Superseded in part:** none
-- **Related:** ADR-0144 (D9 kept the worktree as the product result boundary until this record; D11 keeps worker attempts untrusted and is unchanged); ADR-0005 and ADR-0061 D5 (parallel writes stay sequential; a later parallelism record owns three-tree apply); spec `canonical-result-integration`
+- **Related:** ADR-0144 (D9 kept the worktree as the product result boundary until this record; D11 keeps worker attempts untrusted, and this record adds one named-human decision to the ones it lists); ADR-0005 and ADR-0061 D5 (parallel writes stay sequential; a later parallelism record owns three-tree apply); spec `canonical-result-integration`
 
 ## Decision summary
 
@@ -35,9 +35,9 @@ has shipped.
 
 - **D1:** Each run admission names its own product ref, `refs/agentbundle/delivery/<run-id>/<token>/product`, with a fresh token recorded on the approval commit, so two runs never share one. Every supervisor step moves `HEAD` and the product ref to the same commit in one compare-and-swap transaction.
 - **D2:** A product result integrates only while the product ref still names the commit its request was issued from. Otherwise it refuses as a conflict, moves nothing, and keeps the worker's files until the ref is restored. No three-tree apply is performed.
-- **D3:** The product ref is trusted only while it is a regular ref naming a commit this run's supervisor recorded as made. Recovery moves a lagging `HEAD` or product ref forward only through such commits, and never overwrites a working-tree file that matches neither.
-- **D4:** History the supervisor did not make — a reset onto other work, a rebase, an amend, or a commit on top — enters the product ref only through one recorded step that a named owner authorizes for the exact `HEAD` commit. Nothing re-anchors automatically.
-- **D5:** A worker attempt that changes this run's product ref other than by the supervisor's own move has its result refused as a Git control-state change. Another run's product ref never counts against it.
+- **D3:** The run store records the product ref's name and its current value, and the pending commit while a step is committed. The ref is trusted only while it equals one of them; any other state, including a missing, symbolic, or rolled-back ref, refuses until the ref is restored. Recovery completes a step that moved one ref, and moves a lagging `HEAD` forward only through commits the supervisor made, never overwriting a working-tree file that matches neither version.
+- **D4:** History the supervisor did not make — a reset onto other work, a rebase, an amend, or a commit on top — enters the product ref only through one recorded `reanchor` step that a named owner authorizes for the exact `HEAD` commit, after seeing which product paths it changes. Adoption never admits a change to committed `delivery/` records. Nothing re-anchors automatically. This adds a history-adoption decision to the named-human decisions ADR-0144 D11 lists; like them, its authority reference is recorded, not cryptographically enforced.
+- **D5:** A worker attempt during which this run's product ref leaves its recorded or pending value has its result refused as a Git control-state change. Another run's product ref never counts against it.
 - **D6:** `supervisor-policy.json`'s `result_authority` selects the delivery subject's provider: `legacy-worktree` reads `HEAD`, and `protected-product-ref` reads the product ref. Both write the product ref identically. The value is pinned with the policy at `start`, so it changes for a run in flight only through `regenerate`, and setting it back is the reversal. `protected-product-ref` ships only after a release with `legacy-worktree`.
 
 ## Consequences
