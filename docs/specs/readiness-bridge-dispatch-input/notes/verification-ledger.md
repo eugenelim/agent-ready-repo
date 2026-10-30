@@ -256,3 +256,42 @@ with sync_playwright() as pw:
 for png in sorted(out.glob("*.png")):
     print(hashlib.sha256(png.read_bytes()).hexdigest(), png.name)
 ```
+
+### Re-capture with reduced motion
+
+Re-captured 2026-10-29 at code commit `9262782c7` with the same script plus `reduced_motion="reduce"` on each browser context, so the detail fade cannot be caught partway (experience-reviewer Minor 1). These SHA-256 values replace the list above:
+
+```
+f2a21c4c36c4bdcd2332e1ce7ed32744d8e402ba25b7749b30e51a0026e8726a broken-findings-1280-dark.png
+98cda9ebcf82513ade0231ac1b4bcebd65053003ceaed159c52615a091402a44 broken-findings-1280-light.png
+715876be05b1d6d6cfdd9d6044fffdbacdb79a7eda5fe723ded1ed4fed302e1e broken-findings-1680-dark.png
+23330a7ad03f487e132c936476ab61f15d09d52b382c12a388accf98a76dd5b3 broken-findings-1680-light.png
+50049f4b49abdfbc5d1feb654378104e314b0beb000d183f70d0236f06bf9e3a broken-findings-2560-dark.png
+c54bf1e45c01666d8027774131aaf76ccf673b661b24f2a258748e71f56937b3 broken-findings-2560-light.png
+2d7ef59580663a7bb298c2897e427376ee874ca7c24f0a69bee8072001ff478e broken-findings-320-dark.png
+a7dec8f014cf5d4d05937c28f8f25aafae46432d204d2139dfc0310926fe0f59 broken-findings-320-light.png
+1bdd626e3e2f877cb0cbb7b15007de03c651d57b012cb5366e2f644f06e05b62 check-failed-1280-dark.png
+4d7cb32e003e0900033820b4122caef957d66c099847a1408674a4dbc0bc65ba check-failed-1280-light.png
+07a1543ed97aec16335e791483a75cc95f4afa7630d602cd8e663028ccd86c82 check-failed-1680-dark.png
+95fb5343232c6c06b405ad0e94534983c2300e50c7cf98ae3262db815781079b check-failed-1680-light.png
+3e350459ec0efc1375fb4587d5356874c196bdd95f77f3b32f19e04e0d15a6a6 check-failed-2560-dark.png
+5516424849b48fafeca8067267b31036b4b15a85775a807cdfa0733f48ea58bd check-failed-2560-light.png
+492a444a86e52421c290cc846145c4d7041db0c377a12696fb5340b78971b461 check-failed-320-dark.png
+40440d56ebb3128665e1280724ffa94708f660376fb7a35a240bcbe11cb408ac check-failed-320-light.png
+89fbf43100e8839d65d0f344f955797b8e5e58bb309042b3e09463d0fc7a71e2 checked-ask-1280-dark.png
+6bc6ee94189c6842cf0c24092ffe0467919dc718e833936ccb39fd5cbc70add3 checked-ask-1280-light.png
+dbc3b65d1947d11ec000f69cfb90eab582b70e65e93dfd09bcd6328b4af99bd6 checked-ask-1680-dark.png
+fdc4264b66270520fcaeaa637f5bea79a09ad8d1d1800adae9b78ca4e0034e92 checked-ask-1680-light.png
+1d53026bebfea9eab8af2fd47ee3f5471943e37f44790cad17076298ffeb2e15 checked-ask-2560-dark.png
+98ca50e76dace239a76dc948018aa6609c359f80807ec83423154fedec6df8d7 checked-ask-2560-light.png
+c5fbb20930ed43a5c1820b26f809e8312a445c72bf3ffb3d5b9991347f0bd0a5 checked-ask-320-dark.png
+f5757f7d471c9582f6daa4a857d8ced6a973feb7d0c169a05533be08cc6ab02b checked-ask-320-light.png
+28419a7dda705a82066768ddb83bc657bbce914c6b2ee612345a19403111963d checked-start-1280-dark.png
+2cf8a60ea1685e2be37b304b031b4b6951c74a4407c84e08ff45d04ba073d03e checked-start-1280-light.png
+d2b30631e87b8e082bc3dbdefb2a941e42af2856fce5c28a055f69edfd75c045 checked-start-1680-dark.png
+77278f31b72c00b844ca49ba3a87943bbae409998508be9a33f2358085a6e867 checked-start-1680-light.png
+a3ae7f0cbecf57c1efad730c0b2f83aab4499ee005d620cfce097cc498e013ca checked-start-2560-dark.png
+2e5c289eb6498de9695f4fe95e5a0c4059cd7ca2896137cf23e7d639d2ceda14 checked-start-2560-light.png
+7f869bc6b706540b8d158800a69d992deda10b41ee08be75e52858121cbf3ccd checked-start-320-dark.png
+174125523fa1c7367d7e7fc312863ac7d60e43b2556df3de1193c6129151211e checked-start-320-light.png
+```
