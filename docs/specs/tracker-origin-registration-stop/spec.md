@@ -1,6 +1,7 @@
 # Spec: Tracker-origin work stops being registered
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-30 by eugenelim, spec and plan at `f273a7659` (the same bytes as the rebased `d9d91adf0`), after four spec-mode shaping, adversarial and spec-stage security review rounds, each adjudicated, with the round-4 repairs accepted unreviewed; records under `.context/reviews/tracker-origin-registration-stop-spec-r1/` to `-r4/`. The `## Terminal Intent` section was added on 2026-10-30 with the owner's approval, before `start`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D1, a type's registration stops once every responsibility its entries carry has a replacement, and the contracts requiring it change in that release), RFC-0105 (D3, the retirement gates and the one retirement record), RFC-0083 (work intake, the source-authority record, and refresh), RFC-0055 (errata entries on an Accepted RFC), ADR-0074 (standard-library skill scripts)
@@ -196,6 +197,10 @@ Terms used below.
 **This repository**
 
 - [ ] **AC-0024.** The ledger holds the `repair-plan` output on this repository at this branch, with its count of `tracker-entry-drop` operations and tracker-origin manual items, each `0`.
+
+## Terminal Intent
+
+`code` — stop registering tracker-origin work, add the `tracker-entry-drop` repair, and release `core`, `atlassian`, `github` and `linear`.
 
 ## Follow-ons
 

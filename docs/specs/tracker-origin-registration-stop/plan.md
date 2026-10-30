@@ -1,7 +1,7 @@
 # Plan: Tracker-origin work stops being registered
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and § Errata; RFC-0105 D3; RFC-0083 and § Errata; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-intake/scripts/refresh.py`: `_TOP_AUTHORITY_KEYS` (line 461), `parse_source_authority` (line 534), `render_source_authority` (line 790), `coordinate_local_refresh` (line 1851, the `matching_entry` block from line 1919 to the profile checks ending line 2032), `guarded_write_pair` (line 1337). Packaged copy: `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`.
@@ -170,3 +170,6 @@ Owned by: T3
 - Refresh still binds `workspace.toml`'s digest, so any unrelated registry edit between comparison and commit refuses the refresh, as at the base.
 
 ## Changelog
+
+- 2026-10-30: spec approved by eugenelim at `f273a7659` (rebased `d9d91adf0`); `## Terminal Intent` added with the owner's approval before `start`.
+- 2026-10-30: plan approved by eugenelim at `f273a7659` (rebased `d9d91adf0`).
