@@ -557,6 +557,12 @@ def test_ac0029_a_refused_source_rolls_back_leaving_no_artifact_and_no_dispatch(
         "PROJ-1 token=abc",
         "example-service://work/ITEM-1?view=full",
         "example-service://work/ITEM-1#section",
+        " /Users/name/notes.md",
+        " file:///home/name/x",
+        "\xa0/Users/name/x",
+        "file:notes/x",
+        "user:pw@jira/x",
+        "https:///Users/name/x",
     ),
     ids=(
         "control-character",
@@ -571,9 +577,15 @@ def test_ac0029_a_refused_source_rolls_back_leaving_no_artifact_and_no_dispatch(
         "secret-after-space",
         "query",
         "fragment",
+        "leading-space-personal-path",
+        "leading-space-file",
+        "leading-nbsp-personal-path",
+        "file-scheme-only",
+        "userinfo-without-authority",
+        "empty-host-absolute-path",
     ),
 )
-def test_ac0029_a_locator_the_minimizer_would_refuse_or_change_rolls_back(
+def test_ac0029_a_locator_in_a_refused_class_rolls_back(
     tmp_path: Path, locator: str
 ) -> None:
     transaction, result, trace, artifact = _run_tracker_transaction(

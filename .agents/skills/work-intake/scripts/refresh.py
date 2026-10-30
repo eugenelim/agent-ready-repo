@@ -936,13 +936,17 @@ def _require_minimal_locator(locator: str) -> str:
     """Refuse a locator that carries a sensitive class, or return it as given.
 
     The first record is committed to the repository, so a locator holding a
-    control character, a local or personal path (including ``file:``), a ``.``
-    or ``..`` segment, a backslash, an email, a secret, credentials, a query,
-    or a fragment is refused. Every other locator is accepted byte for byte.
+    control character, surrounding whitespace, a local or personal path
+    (including ``file:`` and a URL with an empty host and an absolute path), a
+    ``.`` or ``..`` segment, a backslash, an ``@`` (an email or credentials), a
+    secret, a query, or a fragment is refused. The classes are checked on the
+    locator text as written. Every other locator is accepted byte for byte.
     """
 
     code = "invalid_source_authority"
     if any(ord(character) < 0x20 or ord(character) == 0x7F for character in locator):
+        raise RefreshRefusal(code)
+    if locator != locator.strip():
         raise RefreshRefusal(code)
     if (
         _LOCATOR_PERSONAL_ABSOLUTE.match(locator)
@@ -952,6 +956,7 @@ def _require_minimal_locator(locator: str) -> str:
         or any(part in {".", ".."} for part in locator.split("/"))
         or _LOCATOR_EMAIL.search(locator)
         or _LOCATOR_SECRET.search(locator)
+        or "@" in locator
         or "?" in locator
         or "#" in locator
     ):
@@ -962,6 +967,8 @@ def _require_minimal_locator(locator: str) -> str:
     except ValueError as exc:
         raise RefreshRefusal(code) from exc
     if parsed.username is not None or parsed.password is not None:
+        raise RefreshRefusal(code)
+    if "://" in locator and not parsed.netloc and _LOCATOR_ABSOLUTE.match(parsed.path):
         raise RefreshRefusal(code)
     return locator
 
@@ -977,8 +984,8 @@ def render_first_source_authority(
 
     The record carries the locator, revision and declared profile and an empty
     ``[owned_fields]`` table. A source that is not tracker-origin, has no
-    profile, or holds a value the renderer refuses, including a locator that
-    is not already in minimal form, raises ``RefreshRefusal``.
+    profile, or holds a value the renderer refuses, including a locator in a
+    class ``_require_minimal_locator`` refuses, raises ``RefreshRefusal``.
     """
 
     if mode != "tracker-origin" or profile is None:
