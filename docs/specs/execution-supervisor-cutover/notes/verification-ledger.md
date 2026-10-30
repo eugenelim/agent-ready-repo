@@ -277,3 +277,16 @@ branch was in progress, #1650 (grounding-preservation-review) shipped
 its spec. AC-0009 asks only that no kept script was called solely by removed
 files; like `_effect_broker.py`, these now have test callers. Both modules and
 `test_review_assessment.py` are restored unchanged from main.
+
+## T2: rebased onto windows-confined-write
+
+The switch is rebased onto `main` after #1655 (windows-confined-write, core
+3.1.41), which makes the supervisor's confined writes succeed on Windows, the
+fix AC-0012 waited on. The rebase changed three things:
+- `SKILL.md`'s doc-drift line keeps both `main`'s anchor wording and the
+  supervisor swap.
+- `references/supervisor.md` gains the `untrusted-unsafe-host` refusal row that
+  #1655 introduced.
+- `tools/test_workspace_status.py` re-pins the finish-checklist hash for the
+  merged section, which makes no workspace-ownership claim.
+Core stays at 4.0.0.
