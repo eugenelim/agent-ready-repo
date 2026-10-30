@@ -25,7 +25,7 @@ The record comes first, because every later surface reads or writes it: T1 adds 
 - `core`, `atlassian`, `github` and `linear` each take one patch bump in `pack.toml` and `.claude-plugin/plugin.json`, at the next free patch above fetched `origin/main` at merge time, and each changed skill's eval harness gains or updates a case.
 - Shipped pack text states its rules directly and cites no internal record.
 - An accepted RFC changes through § Errata (RFC-0055). A brief changes through `author-delivery-brief`.
-- The new roster text check runs in the dispatched `test-roster.yml` and gets no `build-check.yml` step, so that this change edits no CI workflow. Its `docs/specs/tracker-origin-registration-stop` literal needs one line in `.workspace-prune-protected.toml`, which is an Ask-first edit.
+- The new roster text check gets a named `build-check.yml` step above the bulk `tests/` step and a `tools/lint-ci-parity.py` `STEP_DISPOSITION` entry, as `tests/AGENTS.md` requires; the owner approved that workflow edit on 2026-10-30 after open PR #1651 merged. Its `docs/specs/tracker-origin-registration-stop` literal needs one line in `.workspace-prune-protected.toml`, which the owner approved with the spec on 2026-10-30.
 - Every file this change adds or edits that names `workspace.toml`, `workspace-status` or `workspace_status` outside an inventoried directory needs an inventory row.
 - This repository holds no tracker-origin entry and this spec gets no `workspace.toml` entry. The brief stays `Executing`.
 
@@ -154,9 +154,9 @@ Owned by: T3
 
 ### T9: Release
 
-- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10
+- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11
 - **Verification mode:** goal-based
-- **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`, the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
+- **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`; `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main` exiting `0` on the pull-request branch, which is one squashed commit carrying `Engine-Change-RFC: 0106` and the `Spec:` trailer, because the supervisor's own commits carry no trailer (owner decision, 2026-10-30; the full supervisor history is pushed as a separate evidence branch); the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** each passes.
 
 ### T10: Restore the paired write's base interface
@@ -165,6 +165,19 @@ Owned by: T3
 - **Verification mode:** behavior pin
 - **Tests:** for AC-0008: the base file's `guarded_write_pair` cases (`…rolls_back_workspace_replace_failure`, `…redacts_rollback_failure`, `…respects_shared_workspace_lock`, `…rechecks_both_fingerprints_immediately_before_replace`, `…preserves_existing_file_modes`, `…rejects_symlink_escape`, `…rejects_stale_fingerprint_and_traversal`) restored to `tests/roster/test_work_intake_refresh_coordinator.py` byte for byte and passing; the coordinator suite and `tests/roster/test_two_sided_prune_closure_invariant.py` passing; `tests/roster/test_workspace_status_progressive_disclosure.py`'s `workspace_status.py` digest updated to the T4 bytes, with a dated note naming this spec added to that file's re-pin comment; the T2-added `test_guarded_pair_write_reports_artifact_replace_failure`, `test_guarded_pair_write_respects_shared_workspace_lock` and `test_guarded_write_rechecks_the_workspace_fingerprint_immediately_before_replace` removed in favour of their restored base counterparts.
 - **Done when:** those suites pass and `make build-self` leaves no diff.
+
+### T11: Review repairs
+
+- **Depends on:** T1, T2, T4, T5, T10
+- **Verification mode:** TDD
+- **Tests:** for AC-0004, AC-0008, AC-0009, AC-0011, AC-0013, AC-0014, AC-0015, AC-0025, AC-0028 and AC-0029, from the implementation review's supported findings (records under `.context/reviews/tracker-origin-registration-stop-impl-r1/`):
+  - `invoke_refresh` reads and parses the record before any signal-profile check, returns `add-record-tracker-profile` for a record with no profile table whatever profile the signals carry, resolves the processor from the record's table, and checks only a signal or request profile that is present against it; a front-door case whose signals carry no profile.
+  - `render_first_source_authority` refuses, with no output, every locator `intent_renderer.py`'s locator minimizer would refuse or change (control characters, an absolute or personal local path, a `.` or `..` segment, a backslash, an email or secret pattern, a query or fragment), so the intake transaction ends at `source_authority_write` with no dispatch; one refusal case per class in `test_intake_transaction.py`.
+  - `test_tracker_entry_drop.py`: the before-and-after `dispatch.py` comparison on every planted tree AC-0015 names; an `invoke_refresh` call on each migrated artifact resolving the entry's former profile; one planted case each for the apply refusals `entry_held`, `cooling_state_unavailable`, `record_not_writable` and `artifact_write_failed`, set up after planning, asserting the entry and the artifact unchanged; the plan-time `cooling-state-unavailable` manual item; exactly one manual item per planted unmatched entry.
+  - `work-intake` SKILL.md: § 7 describes the two-file guarded write and keeps the `local_write_inconsistent` operator-repair instruction; the source-record paragraph no longer names the deleted `intake_guard.py` helper. Checked by new cases in `tests/roster/test_tracker_origin_registration_stop.py`, each red on the current text: § 7 holds `local_write_inconsistent` and no longer holds `replaces the artifact only`; the file holds no `intake_guard.py` source-record instruction.
+  - `workspace-status` `references/mutate.md`: every tracker-origin entry is evaluated whatever its collection; the manual reasons include `cooling-state-unavailable`; `artifact_write_failed` is in the apply reason list. Checked by new cases in the same roster file, each red on the current text: the file no longer holds ``in a `work.` or `backlog.` collection`` and holds `cooling-state-unavailable` and `artifact_write_failed`.
+  - The `test_registration_stop_routes.py` `_UNCHANGED` comment and test name, and the coordinator dependency-pin test name and fixture knob, say what they check now, with assertions unchanged.
+- **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass, and `make build-self` leaves no diff.
 
 ## Rollout
 
@@ -181,3 +194,4 @@ Owned by: T3
 - 2026-10-30: spec approved by eugenelim at `f273a7659` (rebased `d9d91adf0`); `## Terminal Intent` added with the owner's approval before `start`.
 - 2026-10-30: plan approved by eugenelim at `f273a7659` (rebased `d9d91adf0`).
 - 2026-10-30: spec and plan re-approved by eugenelim after the AC-0008 controlled amendment and task T10.
+- 2026-10-30: spec and plan re-approved by eugenelim after the `cooling-state-unavailable` amendment and task T11.
