@@ -154,7 +154,7 @@ Owned by: T3
 
 ### T9: Release
 
-- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13
+- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13, T14
 - **Verification mode:** goal-based
 - **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`; `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main` exiting `0` on the pull-request branch, which is one squashed commit carrying `Engine-Change-RFC: 0106` and the `Spec:` trailer, because the supervisor's own commits carry no trailer (owner decision, 2026-10-30; the full supervisor history is pushed as a separate evidence branch); the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** each passes.
@@ -194,6 +194,16 @@ Owned by: T3
   - `render_first_source_authority` drops the canonical-form equality refusal and refuses only the named sensitive classes; its secret check matches a credential keyword followed by `:` or `=` at any word boundary, as the removed registration helper did. `test_intake_transaction.py` gains one committing case per adapter locator shape (`jira://EX-101`, `jira://boards/7`, `jira-align://…`, `gh://items/101`, `linear://items/…`, a no-host `tracker:TEAM-42`), each with `source_ref` equal to the locator, and refusal cases for `https://t.example/i/1,api_key=SECRET` and `PROJ-1 token=abc`.
   - `invoke_refresh` returns `refresh-unavailable` with zero effects, before any resolve or acquire, when `request.profile_id` or `request.profile_version` differs from the record's profile, whatever the signals carry; `invalid-refresh-request` stays for path, kind and mode mismatches. A front-door case with no-profile signals and a mismatched request profile pins it.
   - `work-intake` SKILL.md's locator paragraph names exactly the refused classes.
+- **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass, and `make build-self` leaves no diff.
+
+### T14: Third review repairs
+
+- **Depends on:** T13
+- **Verification mode:** TDD
+- **Tests:** for AC-0005, AC-0025 and AC-0029, from the third implementation review's supported findings (records under `.context/reviews/tracker-origin-registration-stop-impl-r3/`):
+  - `_require_minimal_locator` refuses a locator with leading or trailing whitespace (Unicode included), any `@` (as the normalized-intake `safeLocator` pattern does), and a scheme-bearing locator with an empty host whose path is absolute; refusal cases in `test_intake_transaction.py` for `' /Users/name/notes.md'`, `' file:///home/name/x'`, `'\xa0/Users/name/x'`, `'user:pw@jira/x'`, `'https:///Users/name/x'`, and one case each that only the `file:` branch and only the `@` rule refuses; every adapter locator shape still commits.
+  - The no-profile-signal mismatch case in `test_registration_stop_routes.py` covers both `profile_id` and `profile_version`.
+  - `render_first_source_authority`'s docstring names the refused classes, and the work-intake SKILL.md locator paragraph says the classes are checked on the locator text as written, including `@`.
 - **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass, and `make build-self` leaves no diff.
 
 ## Rollout
