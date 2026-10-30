@@ -2065,6 +2065,40 @@ def test_a_wrapped_bullet_keeps_its_continuation_text():
     ]
 
 
+def test_a_blank_line_ends_the_last_bullet_before_the_next_release_anchor():
+    """The rendered changelog puts an anchor line, after a blank, before each release.
+
+    That anchor is not bullet text; appending it put raw HTML into the last
+    highlight and broke `tools/check-core-release.py` for every Core release.
+    """
+    text = """# Changelog
+
+<a id="pkg200--2026-08-06-aaaa"></a>
+
+## [pkg][2.0.0] — 2026-08-06
+
+### Highlights
+
+- The newer highlight.
+
+<a id="pkg100--2026-08-05-bbbb"></a>
+
+## [pkg][1.0.0] — 2026-08-05
+
+### Highlights
+
+- The older highlight,
+  wrapped.
+
+  A second paragraph of the same bullet.
+"""
+    groups = _groups(text)
+    assert _bullets(groups[0]) == ["The newer highlight."]
+    assert _bullets(groups[1]) == [
+        "The older highlight, wrapped. A second paragraph of the same bullet."
+    ]
+
+
 def test_the_projection_payload_matches_a_frozen_expectation():
     """Pin the exact payload shape, not merely that a pure function is pure.
 

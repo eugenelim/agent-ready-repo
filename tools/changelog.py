@@ -1439,6 +1439,10 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
     entry_level: int | None = None
     # Level of the Highlights heading whose bullets we are collecting, if any.
     highlights_level: int | None = None
+    # A blank line has followed the last bullet. CommonMark then ends the list
+    # item at the next unindented line, which is how the rendered changelog's
+    # `<a id="..."></a>` anchor before each release stays out of the bullet.
+    blank_after_bullet = False
     in_fence = False
     fence_opened_at: int | None = None
     fence_marker: str | None = None
@@ -1527,7 +1531,13 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
                     body = bullet.group(1).strip()
                     if body:
                         current["highlights"].append(body)
-                elif raw.strip() and current["highlights"]:
+                    blank_after_bullet = False
+                elif not raw.strip():
+                    blank_after_bullet = True
+                elif blank_after_bullet and not raw[:1].isspace():
+                    # Not part of the bullet: a paragraph or HTML after the list.
+                    pass
+                elif current["highlights"]:
                     # A continuation line of the previous bullet: changelog
                     # bullets wrap, and dropping the tail would truncate copy
                     # mid-sentence on the public page.
@@ -1543,6 +1553,7 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
 
         while stack and stack[-1][0] >= level:
             stack.pop()
+        blank_after_bullet = False
         if highlights_level is not None and level <= highlights_level:
             highlights_level = None
         # A heading at or above the open entry's level ends that entry, whatever
