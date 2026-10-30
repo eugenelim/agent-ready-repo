@@ -64,8 +64,9 @@ Owned by: T2, T4
 
 - Refresh reads the profile from the parsed record. `coordinate_local_refresh` drops the `matching_entry` lookup, the entry parser call and the entry revision substitution. It moves the profile and kind binding from the entry to the artifact: the current record's profile table must equal the comparison's profile, and the artifact's first-line kind must equal the comparison's kind. It adds two checks: the proposed workspace bytes equal the current bytes, and the proposed record's profile equals the current record's. The workspace digest and policy checks before evaluation, and the digest in the receipt binding, stay. `guarded_write_pair` writes the artifact and leaves `workspace.toml` as it is; its digest re-check under the guard stays.
 - `invoke_refresh` gains a `repository_root` parameter. Before resolving the processor it reads the artifact through the skill's confined regular-file read, parses its record, and returns `refresh-unavailable` with next action `add-record-tracker-profile` when the table is absent, or with `repair-refresh-request-profile` when the signals' profile differs from it. It reads no `workspace.toml`.
-- `run_intake_transaction`'s registration stage is not called for a tracker-origin route. `work-intake` SKILL.md § 5 tells the agent, for a tracker-origin brief or spec, to run `scripts/refresh.py first-record` with the intake's declared locator, revision and profile and to append its stdout to the artifact inside the materializer callback, so the record lands under the same lock as the artifact. `author-delivery-brief` and `new-spec` keep an existing block byte for byte when they fill the artifact.
-- `first-record` is a subcommand of a small `argparse` entry point added to `refresh.py`; the entry point reconfigures stdout and stderr to UTF-8 before printing, as `packs/AGENTS.md` requires.
+- `run_intake_transaction` gains an optional `tracker_source` argument (locator, revision, profile). When it is set, the stage that ran `register_workspace_entry` instead appends the AC-0025 record to the confined target, under the same lock, then re-reads the file and parses it; any refusal, a second record, or a value mismatch takes the existing `_recover_partial_state` path with `failed_stage="source_authority_write"`. The agent passes values as Python arguments, never through a shell string. `register_workspace_entry` stays for callers that pass it, and `work-intake` SKILL.md § 5 stops telling anyone to pass it.
+- `intake_transaction.py` loads `refresh.py` from its own skill directory by file path, the way `intent_rename_request.py` loads `intake_transaction`.
+- `author-delivery-brief` and `new-spec` keep an existing block byte for byte when they fill the artifact.
 - The coordinator's kind check strips one leading front-matter block (a `---` line through the next `---` line) before reading the first `# ` line.
 - A held entry uses the same declared-parent resolver `spec-entry-drop` uses, called on the tracker-origin entry; the planner reuses that step's record lookup and manual-item shape.
 - `candidate_queue_keys`, the seam `_build_repair_plan_json` already uses to skip queue moves for repo-origin drop candidates (`workspace_status.py:1136`), also takes each matched tracker-origin entry.
@@ -76,7 +77,7 @@ Owned by: T2, T4
 Owned by: T1, T2
 
 - `SourceAuthority` gains `tracker_profile: dict[str, str] | None`. `RefreshComparison.profile_id` and `profile_version` keep their meaning and are checked against it at the front door and at commit.
-- `refresh.py` gains one function that renders a first record from a tracker-origin source (AC-0025). `workspace-status` loads `refresh.py` from the packaged engine data or the sibling `work-intake` skill the way it already loads `cooling.py`, rather than importing across skills.
+- `refresh.py` gains one function that renders a first record from a tracker-origin source (AC-0025); the intake transaction is its only caller. `workspace-status` loads `refresh.py` from the packaged engine data or the sibling `work-intake` skill the way it already loads `cooling.py`, rather than importing across skills.
 - `RefreshResult` codes are unchanged; no finding code is added.
 
 ### Design decisions
@@ -99,7 +100,7 @@ Owned by: T3
 
 - **Depends on:** none
 - **Verification mode:** TDD
-- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0025 and the `first-record` command: the schema cases in the source-authority schema suite in `tests/roster/test_work_intake_refresh_coordinator.py`; parse, render and refusal cases in the same suite; a tracker-origin and a repo-origin render in `packs/core/tests/skills/intake-intent/test_intake_intent.py`.
+- **Tests:** for AC-0001, AC-0002, AC-0003, AC-0025, AC-0029: the transaction cases in `packs/core/tests/skills/work-intake/test_intake_transaction.py` (a committed tracker-origin brief and spec, a materializer that writes its own record, a refused source); the schema cases in the source-authority schema suite in `tests/roster/test_work_intake_refresh_coordinator.py`; parse, render and refusal cases in the same suite; a tracker-origin and a repo-origin render in `packs/core/tests/skills/intake-intent/test_intake_intent.py`.
 - **Done when:** those cases pass and the intake-intent template conformance suite passes.
 
 ### T2: Refresh reads the profile from the record
@@ -127,7 +128,7 @@ Owned by: T3
 
 - **Depends on:** T2, T3, T4
 - **Verification mode:** goal-based
-- **Tests:** for AC-0017, AC-0028, AC-0029, AC-0018 and AC-0004's SKILL.md mapping: a new `tests/roster/test_tracker_origin_registration_stop.py` with one parametrized case per file and phrase, each absent phrase checked present at the base; `packs/core/tests/skills/author-delivery-brief/test_project_knowledge_handoff.py`, whose `text.index` anchor on the removed tracker-origin step moves to the rewritten step.
+- **Tests:** for AC-0017, AC-0028, AC-0018: a new `tests/roster/test_tracker_origin_registration_stop.py` with one parametrized case per file and phrase, each absent phrase checked present at the base; `packs/core/tests/skills/author-delivery-brief/test_project_knowledge_handoff.py`, whose `text.index` anchor on the removed tracker-origin step moves to the rewritten step.
 - **Done when:** both pass and each changed skill's eval harness has its case.
 
 ### T6: Governance wording and the brief

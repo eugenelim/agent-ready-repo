@@ -28,7 +28,7 @@ A maintainer or agent who takes in, refreshes, or closes a tracker-origin intent
 ## What Changes
 
 - **Profile home.** The `source-authority` record gains an optional `tracker_profile` table with `id` and `version` — `contracts/jsonschema/source-authority.schema.json`, `work-intake`'s `scripts/refresh.py` parser and renderer, and `intake-intent`'s renderer, which writes it for a tracker-origin intent.
-- **Record writer for briefs and specs.** `work-intake`'s `scripts/refresh.py first-record` renders a first record from the intake's declared source, and `work-intake`'s materialization step writes it into a tracker-origin brief or spec; `author-delivery-brief` and `new-spec` keep a record they find.
+- **Record writer for briefs and specs.** `work-intake`'s intake transaction renders a first record from the intake's declared source with `scripts/refresh.py`'s renderer, writes it into a tracker-origin brief or spec in place of the registration stage, and checks it before dispatch; `author-delivery-brief` and `new-spec` keep a record they find.
 - **Refresh.** `scripts/refresh.py` takes the tracker profile from the artifact's record, refuses an artifact whose record has none, binds the comparison's profile and kind to the artifact at commit, and no longer finds, checks or rewrites a `workspace.toml` entry. It still reads the global `[authorization.refresh]` policy and binds the `workspace.toml` digest.
 - **Router.** `work-intake`'s router gives a tracker-origin signal the same route as a repo-origin one: no membership. The unused `workspace_source_record` helper goes.
 - **Repair.** A `workspace-status` step, `tracker-entry-drop`, copies each tracker-origin entry's profile into its artifact's record and removes the entry, or names the entry it cannot match or must hold.
@@ -67,7 +67,7 @@ the plan's `## Design (LLD)`, not here.
 
 ### Always do
 
-- Take a tracker profile only from the intake's declared profile or from the existing entry's `tracker_profile`; never from tracker content, labels, prose or the artifact's body outside its `source-authority` record.
+- Take a tracker profile only from the intake's declared profile, from the existing entry's `tracker_profile`, or from the owner's explicit answer when asked for it; never from tracker content, labels, prose or the artifact's body outside its `source-authority` record.
 - Regenerate the packaged and projected copies with `make build-self`, bump `core`, `atlassian`, `github` and `linear` once each, and carry the `Engine-Change-RFC: 0106` trailer on every commit that edits a file under `packages/agentbundle/`.
 - Run the `work-loop` dispatch, refresh coordinator and repair suites that exist at the base after each task, and keep them passing without editing a `work-loop` file.
 
@@ -86,11 +86,11 @@ the plan's `## Design (LLD)`, not here.
 
 ## Testing Strategy
 
-- **Record shape and first record (AC-0001, AC-0002, AC-0003, AC-0025): TDD.** The schema and the parser each red on a planted record with the new table before the change; malformed tables are refusal cases.
+- **Record shape and first record (AC-0001, AC-0002, AC-0003, AC-0025, AC-0029): TDD.** The schema and the parser each red on a planted record with the new table before the change; malformed tables are refusal cases.
 - **Refresh (AC-0004, AC-0005, AC-0006, AC-0007, AC-0026 and AC-0008): TDD, exercised by the refresh coordinator's integration suite and the front-door suites.** Each refusal and the entry-free commit is a coordinator call over a planted repository; the existing refusal cases that do not name the entry run unchanged.
 - **Router and matrices (AC-0009, AC-0016): TDD and goal-based.** `route_intake` is pure, so each tracker-origin route reds against the repo-origin route; each matrix's comparison suite passes.
 - **Repair (AC-0010, AC-0030, AC-0011, AC-0027, AC-0012, AC-0013, AC-0014 and AC-0015): TDD.** Each rule is a `repair-plan` or `repair-apply` result over a planted `workspace.toml` and artifact, one planted entry per case.
-- **Writer, guide and record text (AC-0017, AC-0028, AC-0029, AC-0018, AC-0021, AC-0022, AC-0023): goal-based.** A roster check over closed lists of files and phrases, each phrase that must be absent checked present at the base, which also reads AC-0004's SKILL.md mapping; AC-0029's command is a TDD case of the record suite; the inventory check and the brief coverage lint.
+- **Writer, guide and record text (AC-0017, AC-0028, AC-0018, AC-0021, AC-0022, AC-0023): goal-based.** A roster check over closed lists of files and phrases, each phrase that must be absent checked present at the base, the inventory check and the brief coverage lint.
 - **Governance (AC-0019, AC-0020): goal-based.** The roster check reads each errata entry and the ledger's approval rows.
 - **This repository (AC-0024): manual QA.** One repair run over real data, recorded in the ledger.
 
@@ -103,7 +103,7 @@ Terms used below.
 - **Profile table.** A record's `tracker_profile` table: exactly the keys `id` and `version`, each a non-empty string holding no carriage return or line feed, `id` at most 200 characters and `version` at most 100, the length bounds the engine applies to an entry's `tracker_profile` at the base.
 - **Tracker-origin entry.** An element of the first list the engine's `_extract_canonical_memberships` returns, as at the base, whose `source` is a table with `mode` exactly `"tracker-origin"`.
 - **Entry-level finding.** A `reconcile` finding whose code is one of `invalid_entry`, `duplicate_membership`, `impossible_transition`, `provenance_mismatch`, `cooled_child_scope_unknown` or `refresh_conflict` and whose path is the entry's `path`.
-- **Declared parent.** For a cooled tracker-origin `kind = "spec"` entry whose raw `source.parent` key is present: `none` when its value is `none` or an empty string; otherwise the path `_resolved_provenance_parent(source.parent, require_local_brief=True)` returns, when that path is a brief file and matches `^docs/product/briefs/[a-z0-9][a-z0-9-]{0,127}\.md$`. An absent key, or any other value, declares no parent. Cooled is as the [`depends-on-headers`](../depends-on-headers/spec.md) spec's Acceptance Criteria define it.
+- **Declared parent.** For a cooled tracker-origin `kind = "spec"` entry whose raw `source.parent` key is present: `none` when its value is `none` or an empty string; otherwise the path `_resolved_provenance_parent(source.parent, require_local_brief=True)` returns as at the base, when that path is a brief file and matches `^docs/product/briefs/[a-z0-9][a-z0-9-]{0,127}\.md$`. An absent key, or any other value, declares no parent. An entry is cooled when its collection and index are among the positions the engine's `cooled_work_entry_paths`, as at the base, returns for its initiative, the set `spec-entry-drop` reads.
 - **Held entry.** A cooled tracker-origin `kind = "spec"` entry that has a declared parent and whose lifecycle record carries no `parent`.
 - **Matched entry.** A tracker-origin entry, not a held entry, that meets each of these conditions; each is named by the reason a manual item gives when it fails:
   - `path-missing`: the entry has a `path`;
@@ -118,14 +118,14 @@ Terms used below.
 
 **The record**
 
-- [ ] **AC-0001.** `contracts/jsonschema/source-authority.schema.json` accepts every record its tests accept at the base, accepts each of those records with a profile table added, and rejects a record whose `tracker_profile` misses `id` or `version`, carries another key, holds a non-string or empty value, or exceeds either length bound.
+- [ ] **AC-0001.** `contracts/jsonschema/source-authority.schema.json` accepts every record its tests accept at the base, accepts each of those records with a profile table added, and rejects a record whose `tracker_profile` misses `id` or `version`, carries another key, holds a non-string or empty value, holds a value with a carriage return or line feed, or exceeds either length bound.
 - [ ] **AC-0002.** `scripts/refresh.py`'s parser accepts and its renderer writes the same records the schema accepts in AC-0001, a parse then render then parse returns an equal record, and the parser refuses each record the schema rejects there with `invalid_source_authority`.
 - [ ] **AC-0003.** `intake-intent`'s renderer writes, for a tracker-origin intake whose source carries a tracker profile, a record whose profile table equals that profile, and writes no record for a repo-origin intake, as at the base.
 - [ ] **AC-0025.** `scripts/refresh.py` renders, from a tracker-origin source's locator, revision and declared profile, a record that its parser accepts with `source_ref`, `source_revision` and profile table equal to those values and an empty `[owned_fields]`, and refuses, with no output, a source that is not tracker-origin, carries no profile, or whose values its renderer refuses.
 
 **Refresh**
 
-- [ ] **AC-0004.** For an artifact whose record has no profile table, refresh returns `refresh-unavailable` with zero effects before any acquisition and the next action `add-record-tracker-profile`, and `work-intake`'s SKILL.md maps that next action to running the `workspace-status` `tracker-entry-drop` repair when the item still has a `workspace.toml` entry, and otherwise to stopping and asking the owner for the profile `id` and `version`.
+- [ ] **AC-0004.** For an artifact whose record has no profile table, refresh returns `refresh-unavailable` with zero effects before any acquisition and the next action `add-record-tracker-profile`.
 - [ ] **AC-0005.** Refresh resolves the processor registration from the record's profile table, and returns `refresh-unavailable` with zero effects when a request names a different profile `id` or `version`.
 - [ ] **AC-0006.** `coordinate_local_refresh` commits a local refresh for an artifact that no `workspace.toml` entry names, and `workspace.toml`'s bytes are the same afterwards.
 - [ ] **AC-0007.** `coordinate_local_refresh` refuses with `invalid_local_update`, changing no file, when the proposed `workspace.toml` bytes differ from the current ones, or when the proposed record's profile table differs from the current record's.
@@ -157,14 +157,15 @@ Terms used below.
   - `packs/core/.apm/skills/intake-intent/SKILL.md`: `let the calling intake workflow add its one non-dispatchable`;
   - `packs/github/JOURNEY.md` and `packs/linear/JOURNEY.md`: `registered tracker-origin artifact`.
 - [ ] **AC-0028.** Read with each run of whitespace as one space, each of these files holds each phrase listed for it:
-  - `packs/core/.apm/skills/work-intake/SKILL.md`: `tracker-entry-drop`, `tracker_profile`, `add-record-tracker-profile`, `ask the owner for the profile`, and `never infer a processor from the artifact kind, tracker content, labels, or prose`;
+  - `packs/core/.apm/skills/work-intake/SKILL.md`: `tracker_profile`, `never infer a processor from the artifact kind, tracker content, labels, or prose`, and, in one paragraph, `add-record-tracker-profile`, `tracker-entry-drop`, and `ask the owner for the profile`;
+  - `packs/core/.apm/skills/author-delivery-brief/SKILL.md` and `packs/core/.apm/skills/new-spec/SKILL.md`: `keep an existing source-authority block byte for byte`;
   - `packs/core/.apm/skills/workspace-status/SKILL.md`, `packs/core/.apm/skills/workspace-status/references/mutate.md` and `guides/core/reference/workspace-toml-schema.md`: `tracker-entry-drop`;
-  - `docs/architecture/work-intake-and-artifact-routing.md`: `tracker_profile` and `source-authority`.
-- [ ] **AC-0029.** `scripts/refresh.py first-record`, given a tracker-origin source's locator, revision and declared profile, prints exactly AC-0025's record and exits `0`, and exits non-zero with no stdout for each source AC-0025 refuses; and, read with each run of whitespace as one space, `work-intake`'s SKILL.md holds `scripts/refresh.py first-record` in its materialization step for a tracker-origin brief or spec, and `author-delivery-brief`'s and `new-spec`'s SKILL.md each hold `keep an existing source-authority block byte for byte`.
+  - `docs/architecture/work-intake-and-artifact-routing.md`: `tracker_profile`.
+- [ ] **AC-0029.** `run_intake_transaction`, given a tracker-origin source, commits only when the artifact it materialized then holds exactly one record whose `source_ref`, `source_revision` and profile table equal that source's locator, revision and declared profile; otherwise, including when the materializer wrote a record of its own or AC-0025 refuses the source, it ends with `rolled_back` or `reconciliation_required`, leaves no new artifact, and starts no dispatch.
 
 **Guides**
 
-- [ ] **AC-0018.** Read with each run of whitespace as one space, none of these files holds the phrase listed for it:
+- [ ] **AC-0018.** Read with each run of whitespace as one space, none of these files holds the phrase listed for it, and the schema guide's section rule reads the file's raw lines, a heading being a line that starts `#` outside a fenced code block:
   - `guides/core/reference/workspace-toml-schema.md`: `tracker-origin intent and brief entries stay`, `A tracker-origin spec keeps its entry`, `For a tracker-origin brief entry`, or `tracker-origin entry moves to the matching collection`, and each line of it that holds `mode = "tracker-origin"` lies in a section, between two headings, that holds `tracker-entry-drop`;
   - `guides/core/how-to/intake-an-external-brief.md`: `keeps a registry entry`, `Brief file created and registered in`, or `If registration fails`;
   - `guides/core/reference/work-intake-routing-and-lifecycle.md`: `Only a spec or a tracker-origin intent or brief is registered`, `register it only when it is a spec or a tracker-origin`, or `A tracker-origin brief's entry sits in the collection that matches its status`;
@@ -177,7 +178,7 @@ Terms used below.
   - `guides/product-engineering/how-to/hand-an-intent-to-build.md`: `a spec or a tracker-origin artifact is also registered`;
   - `guides/atlassian/how-the-atlassian-pack-works.md`: `For registered tracker-origin work`;
   - `guides/atlassian/work-with-jira.md`: `created and registered a tracker-origin`;
-  - `docs/architecture/work-intake-and-artifact-routing.md`: `a tracker-origin brief's entry carries the same state` or `for a tracker-origin brief, its entry`.
+  - `docs/architecture/work-intake-and-artifact-routing.md`: `a tracker-origin brief's entry carries the same state`, `for a tracker-origin brief, its entry`, `mirrored by structured workspace source fields`, or `Refresh processors receive an existing registered artifact`.
 
 **Governance**
 
