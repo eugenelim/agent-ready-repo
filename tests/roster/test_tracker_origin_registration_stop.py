@@ -246,3 +246,99 @@ def test_brief_slice_9_names_the_post_cutover_work(phrase: str) -> None:
     slice_9 = _slice_9((_REPO / _DELIVERY_BRIEF).read_text(encoding="utf-8"))
     after = slice_9[slice_9.index("**After the cutover:**") :]
     assert phrase in _flat_text(after)
+
+
+# AC-0019: each § Errata holds a 2026-10-30-or-later entry that links RFC-0106 and its literals.
+_ERRATA: dict[str, tuple[str, ...]] = {
+    "docs/rfc/0106-stop-registering-derivable-work.md": (
+        "tracker-entry-drop",
+        "tracker_profile",
+        "source-authority",
+    ),
+    "docs/rfc/0083-work-intake-and-artifact-routing.md": ("tracker_profile", "refresh"),
+}
+_ENTRY_DATE = re.compile(r"^- (?:\*\*)?(\d{4}-\d{2}-\d{2})")
+
+
+def _errata_entries(text: str) -> list[str]:
+    """Each top-level bullet of the § Errata section, with its continuation lines."""
+    body = text[text.index("\n## Errata") :].split("\n## ", 2)[1]
+    entries: list[str] = []
+    for line in body.splitlines():
+        if line.startswith("- "):
+            entries.append(line)
+        elif entries and (line.startswith("  ") or not line.strip()):
+            entries[-1] += "\n" + line
+    return entries
+
+
+@pytest.mark.parametrize("rel", sorted(_ERRATA), ids=lambda r: Path(r).stem[:20])
+def test_errata_entry_names_the_stop(rel: str) -> None:
+    entries = _errata_entries((_REPO / rel).read_text(encoding="utf-8"))
+    matching = [
+        entry
+        for entry in entries
+        if (m := _ENTRY_DATE.match(entry)) is not None
+        and m.group(1) >= "2026-10-30"
+        and "0106-stop-registering-derivable-work.md" in entry
+        and all(literal in entry for literal in _ERRATA[rel])
+    ]
+    assert matching, rel
+
+
+_LEDGER = "docs/specs/tracker-origin-registration-stop/notes/verification-ledger.md"
+_APPROVAL = re.compile(r"eugenelim \(owner\), (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}[+-]\d{2}:\d{2})")
+# AC-0020: the file each approved text lands in, and a phrase that pins that text.
+_APPROVED_TEXT = {
+    "docs/rfc/0106-stop-registering-derivable-work.md": "tracker-entry-drop",
+    "docs/rfc/0083-work-intake-and-artifact-routing.md": "lives on the artifact, not in `workspace.toml`",
+    _DELIVERY_BRIEF: "lands in parts around the execution-supervisor cutover",
+}
+
+
+def _first_commit_adding(rel: str, phrase: str) -> str:
+    """Author date (ISO 8601) of the earliest commit whose diff adds *phrase* to *rel*."""
+    out = subprocess.run(
+        ["git", "log", "--reverse", "--format=%aI", "-S", phrase, "--", rel],
+        cwd=_REPO,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    assert out, (rel, phrase)
+    return out[0]
+
+
+@pytest.mark.parametrize("rel", sorted(_APPROVED_TEXT), ids=lambda r: Path(r).stem[:20])
+def test_ledger_approval_predates_the_commit_adding_the_text(rel: str) -> None:
+    from datetime import datetime
+
+    rows = [
+        line
+        for line in (_REPO / _LEDGER).read_text(encoding="utf-8").splitlines()
+        if line.startswith(f"| `{rel}`")
+    ]
+    assert len(rows) == 1, rel
+    approved = _APPROVAL.search(rows[0])
+    assert approved, rows[0]
+    committed = _first_commit_adding(rel, _APPROVED_TEXT[rel])
+    assert datetime.fromisoformat(approved.group(1)) < datetime.fromisoformat(committed)
+
+
+_RECORD = "docs/specs/workspace-retirement/retirement-record.md"
+
+
+def test_retirement_record_names_the_profile_home_and_the_closure() -> None:
+    text = (_REPO / _RECORD).read_text(encoding="utf-8")
+    disposition = text[text.index("## Disposition") : text.index("## Equivalence")]
+    for row in ("source.tracker_profile", "source.tracker_profile.id", "source.tracker_profile.version"):
+        line = next(l for l in disposition.splitlines() if l.startswith(f"| `{row}` |"))
+        assert "`tracker_profile` table" in line and "`source-authority` record" in line, row
+    for stale in (
+        "tracker-origin spec entries, and their writers, stay until slice 9",
+        "tracker-origin intent and brief entries stay until slice 9",
+    ):
+        assert stale not in disposition
+    closure = text[text.index("## Compatibility closure") : text.index("## Certification")]
+    assert "tracker-origin-registration-stop/spec.md" in closure
+    assert "tracker-entry-drop" in closure and "verification-ledger.md" in closure
