@@ -1,7 +1,7 @@
 # Plan: Canonical result integration
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0153 governs once Accepted; it supersedes ADR-0144 D9 and D11 in part.
   - **Commit builder:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`
     (`GitPort.build_commit` moves `HEAD` by `update-ref HEAD new old`, with
@@ -375,3 +375,6 @@ Owned by: T1.
 ## Changelog
 
 <!-- Approvals only. -->
+
+- 2026-10-30: spec approved by eugenelim
+- 2026-10-30: plan approved by eugenelim
