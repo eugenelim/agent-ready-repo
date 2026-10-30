@@ -38,7 +38,7 @@ The record comes first, because every later surface reads or writes it: T1 adds 
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| The source-authority record | T1, T2 | the schema, parser, renderers, `work-intake` SKILL.md § Refresh | AC-0001 to AC-0008, AC-0025, AC-0026 and AC-0029 pass |
+| The source-authority record | T1, T2, T10 | the schema, parser, renderers, `work-intake` SKILL.md § Refresh | AC-0001 to AC-0008, AC-0025, AC-0026 and AC-0029 pass; T10 restores the paired write |
 | Registry entries and the repair | T3, T4, T5 | the router, the repair step, `mutate.md`, SKILL.md, the schema guide | AC-0009 to AC-0017, AC-0027, AC-0028 and AC-0030 pass |
 | User documentation and architecture | T5 | the pages AC-0018 lists | AC-0018 passes; review for the wording |
 | Decision rationale | T6 | two errata entries and the ledger approval rows | AC-0019 and AC-0020 pass |
@@ -60,9 +60,9 @@ Owned by: T1, T4
 
 ### Behavior & rules
 
-Owned by: T1, T2, T4, T5
+Owned by: T1, T2, T4, T5, T10
 
-- Refresh reads the profile from the parsed record. `coordinate_local_refresh` drops the `matching_entry` lookup, the entry parser call and the entry revision substitution. It moves the profile and kind binding from the entry to the artifact: the current record's profile table must equal the comparison's profile, and the artifact's first-line kind must equal the comparison's kind. It adds two checks: the proposed workspace bytes equal the current bytes, and the proposed record's profile equals the current record's. The workspace digest and policy checks before evaluation, and the digest in the receipt binding, stay. `guarded_write_pair` writes the artifact and leaves `workspace.toml` as it is; its digest re-check under the guard stays.
+- Refresh reads the profile from the parsed record. `coordinate_local_refresh` drops the `matching_entry` lookup, the entry parser call and the entry revision substitution. It moves the profile and kind binding from the entry to the artifact: the current record's profile table must equal the comparison's profile, and the artifact's first-line kind must equal the comparison's kind. It adds two checks: the proposed workspace bytes equal the current bytes, and the proposed record's profile equals the current record's. The workspace digest and policy checks before evaluation, and the digest in the receipt binding, stay. `guarded_write_pair` keeps its base interface and two-file semantics; the coordinator passes it the current `workspace.toml` bytes, so it rewrites `workspace.toml` with those bytes under the guard (its replace-failure and rollback paths stay live) and the file's bytes are unchanged afterwards; its digest re-check under the guard stays.
 - `invoke_refresh` gains a `repository_root` parameter. Before resolving the processor it reads the artifact through the skill's confined regular-file read, parses its record, and returns `refresh-unavailable` with next action `add-record-tracker-profile` when the table is absent, or with `repair-refresh-request-profile` when the signals' profile differs from it. It reads no `workspace.toml`.
 - `run_intake_transaction` gains an optional `tracker_source` argument (locator, revision, profile). When it is set, the stage that ran `register_workspace_entry` instead appends the AC-0025 record to the target through `write_confined_regular_file`, under the same lock, then re-reads it through `read_confined_regular_file` and parses it, so a link, non-regular file or identity change at the target is a refusal; any refusal, a second record, or a value mismatch takes the existing `_recover_partial_state` path with `failed_stage="source_authority_write"`. The agent passes values as Python arguments, never through a shell string. `register_workspace_entry` stays for callers that pass it, and `work-intake` SKILL.md § 5 stops telling anyone to pass it.
 - `intake_transaction.py` loads `refresh.py` from its own skill directory by file path, the way `intent_rename_request.py` loads `intake_transaction`.
@@ -154,10 +154,17 @@ Owned by: T3
 
 ### T9: Release
 
-- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8
+- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10
 - **Verification mode:** goal-based
 - **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`, the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** each passes.
+
+### T10: Restore the paired write's base interface
+
+- **Depends on:** T2, T4
+- **Verification mode:** behavior pin
+- **Tests:** for AC-0008: the base file's `guarded_write_pair` cases (`…rolls_back_workspace_replace_failure`, `…redacts_rollback_failure`, `…respects_shared_workspace_lock`, `…rechecks_both_fingerprints_immediately_before_replace`, `…preserves_existing_file_modes`, `…rejects_symlink_escape`, `…rejects_stale_fingerprint_and_traversal`) restored to `tests/roster/test_work_intake_refresh_coordinator.py` byte for byte and passing; the coordinator suite and `tests/roster/test_two_sided_prune_closure_invariant.py` passing; `tests/roster/test_workspace_status_progressive_disclosure.py`'s `workspace_status.py` digest updated to the T4 bytes, with a dated note naming this spec added to that file's re-pin comment; the T2-added `test_guarded_pair_write_reports_artifact_replace_failure`, `test_guarded_pair_write_respects_shared_workspace_lock` and `test_guarded_write_rechecks_the_workspace_fingerprint_immediately_before_replace` removed in favour of their restored base counterparts.
+- **Done when:** those suites pass and `make build-self` leaves no diff.
 
 ## Rollout
 
@@ -173,3 +180,4 @@ Owned by: T3
 
 - 2026-10-30: spec approved by eugenelim at `f273a7659` (rebased `d9d91adf0`); `## Terminal Intent` added with the owner's approval before `start`.
 - 2026-10-30: plan approved by eugenelim at `f273a7659` (rebased `d9d91adf0`).
+- 2026-10-30: spec and plan re-approved by eugenelim after the AC-0008 controlled amendment and task T10.

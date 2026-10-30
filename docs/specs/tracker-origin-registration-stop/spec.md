@@ -1,7 +1,7 @@
 # Spec: Tracker-origin work stops being registered
 
 - **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-30 by eugenelim, spec and plan at `f273a7659` (the same bytes as the rebased `d9d91adf0`), after four spec-mode shaping, adversarial and spec-stage security review rounds, each adjudicated, with the round-4 repairs accepted unreviewed; records under `.context/reviews/tracker-origin-registration-stop-spec-r1/` to `-r4/`. The `## Terminal Intent` section was added on 2026-10-30 with the owner's approval, before `start`.
+- **Approved:** 2026-10-30 by eugenelim, spec and plan at `f273a7659` (the same bytes as the rebased `d9d91adf0`), after four spec-mode shaping, adversarial and spec-stage security review rounds, each adjudicated, with the round-4 repairs accepted unreviewed; records under `.context/reviews/tracker-origin-registration-stop-spec-r1/` to `-r4/`. The `## Terminal Intent` section was added on 2026-10-30 with the owner's approval, before `start`. Amended 2026-10-30 under controlled amendment: AC-0008 keeps each base `invoke_refresh` test's assertions and allows only the setup AC-0004 and AC-0005 force, and the Testing Strategy points to it, after an amendment adversarial review that came back clean in round 2 (records under `.context/reviews/tracker-origin-registration-stop-amend1/`); re-approved 2026-10-30 by eugenelim.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0106 (D1, a type's registration stops once every responsibility its entries carry has a replacement, and the contracts requiring it change in that release), RFC-0105 (D3, the retirement gates and the one retirement record), RFC-0083 (work intake, the source-authority record, and refresh), RFC-0055 (errata entries on an Accepted RFC), ADR-0074 (standard-library skill scripts)
@@ -88,7 +88,7 @@ the plan's `## Design (LLD)`, not here.
 ## Testing Strategy
 
 - **Record shape and first record (AC-0001, AC-0002, AC-0003, AC-0025, AC-0029): TDD.** The schema and the parser each red on a planted record with the new table before the change; malformed tables are refusal cases.
-- **Refresh (AC-0004, AC-0005, AC-0006, AC-0007, AC-0026 and AC-0008): TDD, exercised by the refresh coordinator's integration suite and the front-door suites.** Each refusal and the entry-free commit is a coordinator call over a planted repository; the existing refusal cases that do not name the entry run unchanged.
+- **Refresh (AC-0004, AC-0005, AC-0006, AC-0007, AC-0026 and AC-0008): TDD, exercised by the refresh coordinator's integration suite and the front-door suites.** Each refusal and the entry-free commit is a coordinator call over a planted repository; AC-0008 says which existing cases run unchanged.
 - **Router and matrices (AC-0009, AC-0016): TDD and goal-based.** `route_intake` is pure, so each tracker-origin route reds against the repo-origin route; each matrix's comparison suite passes.
 - **Repair (AC-0010, AC-0030, AC-0011, AC-0027, AC-0012, AC-0013, AC-0014 and AC-0015): TDD.** Each rule is a `repair-plan` or `repair-apply` result over a planted `workspace.toml` and artifact, one planted entry per case.
 - **Writer, guide and record text (AC-0017, AC-0028, AC-0018, AC-0021, AC-0022, AC-0023): goal-based.** A roster check over closed lists of files and phrases, each phrase that must be absent checked present at the base, the inventory check and the brief coverage lint.
@@ -131,7 +131,7 @@ Terms used below.
 - [ ] **AC-0006.** `coordinate_local_refresh` commits a local refresh for an artifact that no `workspace.toml` entry names, and `workspace.toml`'s bytes are the same afterwards.
 - [ ] **AC-0007.** `coordinate_local_refresh` refuses with `invalid_local_update`, changing no file, when the proposed `workspace.toml` bytes differ from the current ones, or when the proposed record's profile table differs from the current record's.
 - [ ] **AC-0026.** `coordinate_local_refresh` refuses with `invalid_local_update`, changing no file, when the current record read from disk has no profile table, when that table's `id` or `version` differs from the comparison's `profile_id` or `profile_version`, or when the comparison's `artifact_kind` differs from the artifact's kind, read from its first line that starts `# ` after an optional leading front-matter block that opens and closes with a `---` line: `spec` when that line starts `# Spec:`, `brief` when it starts `# Brief:`, and `intent` otherwise.
-- [ ] **AC-0008.** Every refresh coordinator test at the base that does not construct, alter or assert on a `workspace.toml` entry passes unchanged, including the workspace digest and the missing or substituted policy cases.
+- [ ] **AC-0008.** Every refresh coordinator test at the base that does not construct, alter or assert on a `workspace.toml` entry passes with its assertions unchanged. A test that calls `invoke_refresh` changes only the setup AC-0004 and AC-0005 force: a planted record whose profile table matches the request, and the `repository_root` argument. Every other such test passes unchanged, including the workspace digest, the missing or substituted policy, and every `guarded_write_pair` case.
 
 **The router**
 
