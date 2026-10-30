@@ -71,7 +71,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 - **Iterate replies and resolves through GraphQL thread mutations.** Owned by: T1. Basis: survey findings 9 and 10.
 - **Adopt is a bounded standing approval.** The contract is shown after evaluation and approved explicitly. The agent loops up to three push rounds, runs gates with `GH_TOKEN` and `GITHUB_TOKEN` unset, and merges the starting commit (no fixes) or the last commit it pushed, pinned with `--match-head-commit`, after gates and required checks passed on it and the head re-read equals it. A pending check, a refused merge, or any stop condition stops and reports. Owned by: T1. Basis: survey findings 19, 24, 25; `gh pr merge --help` on gh 2.103.2.
 - **No `gh` command reference and no helper script.** Models already know `gh` (pilot); a script would add a dependency surface (cut-before-adding rung 1). Owned by: T1.
-- **Evals are scripted turns.** Each case holds ordered turns. Turn 1 is the request plus canned read outputs and ends at the approval gate; later turns carry the user's next message and are sent by continuing the same subagent, so the model's own turn-1 output is judged for acting before approval. Subagents get no shell: the record counts tool calls per transcript. The run copy's digest is recorded and compared with the shipped skill. This checks that a model reading the skill proposes the right actions, not runtime ordering. Owned by: T2, T5.
+- **Evals are scripted turns.** Each case holds ordered turns. Turn 1 is the request plus canned read outputs and ends at the approval gate; later turns carry the user's next message and are sent by continuing the same subagent, so the model's own turn-1 output is judged for acting before approval. Subagents get no shell: the record counts tool calls per transcript. This checks that a model reading the skill proposes the right actions, not runtime ordering. Owned by: T2, T5.
 
 ## Tasks
 
@@ -79,7 +79,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Depends on:** none
 **Touches:** packs/github/.apm/skills/github-pr-iterate/**, packs/github/.apm/skills/github-pr/**, packs/github/tests/skills/github-pr-iterate/**, packs/github/tests/skills/github-pr/**
 **Tests:**
-- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion group: structure, trust and untrusted-data (checked within that rule's own section of `SKILL.md`), command safety, and the review and adopt content criteria. The `## Approved actions` heading is the marker each mode test measures mutating commands against.
+- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion group: structure, trust and untrusted-data (checked within that rule's own section of `SKILL.md`), command safety, and the review, iterate, and adopt content criteria. The `## Approved actions` heading is the marker each mode test measures mutating commands against.
 **Approach:** `git mv` the skill directory and the test folder to the new name, write the tests red, then the skill text.
 **Done when:** the T1 test file is green and `git grep -l github-pr-iterate` outside this spec directory returns nothing for the skill and test paths.
 
@@ -87,7 +87,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Depends on:** T1
 **Touches:** packs/github/.apm/skills/github-pr/evals/**, packs/github/tests/skills/github-pr/test_evals.py
 **Tests:**
-- TDD, pytest at `packs/github/tests/skills/github-pr/test_evals.py`: the eval-case and trigger-query criteria, including the case-coverage criterion for the four stop conditions, the refused merge, and the two original-request-only approval cases.
+- TDD, pytest at `packs/github/tests/skills/github-pr/test_evals.py`: the trigger-query criteria and the eval-case criteria (count, fields, and the coverage list).
 **Approach:** cases — review (4): normal, injection hidden in the description, approval only in the original request, head moves between draft and submit; iterate (6): normal, partial approval, head moved, gate failure after an approved edit, approval only in the original request, fork PR changing build files; adopt (10): fix then merge, zero-fix merge, approval only in the original request, fix outside allowed types, third-party push, unrelated failing check, not pushable, third round spent, merge refused, required check pending. Fixtures are canned `gh` outputs under `evals/files/<case>/`.
 **Done when:** the T2 test file is green.
 
@@ -110,7 +110,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Touches:** docs/specs/github-pr/notes/eval-run.md
 **Tests:**
 - Visual / manual QA: the graded-run and run-record criteria, executed by the controller with cold copies of the skill and no `evals/` directory, one fresh subagent per case, each `SubagentHandback` extracted verbatim.
-**Approach:** any change to the skill text after a run sends the work back to T1 and reruns T4 and all twenty cases; the record keeps only a run whose digest equals the shipped skill.
+**Approach:** any change to the skill text after a run sends the work back to T1 and reruns T4 and all twenty cases.
 **Done when:** `notes/eval-run.md` shows all twenty cases passing with the isolation evidence and matching digest.
 
 ## Changelog
