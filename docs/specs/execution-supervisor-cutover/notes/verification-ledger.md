@@ -485,3 +485,25 @@ The plan amendment that adds `docs/product/briefs/` to T3's Touches and
 defines VI-7031 is the switch session's. It lives on branch
 `feat/cutover-switch`, because `plan.md` is outside T3's write scope. Until
 that branch lands, this section is the only in-tree record of VI-7031.
+
+## T3: after the switch merged
+
+T3 is rebased onto `main` after the switch merged (#1651, `49a239a72`).
+`telemetry.md` §5.1 is now `main`'s text from the switch. The field-count pin,
+`test_loop_telemetry_disclosure_contract.py`, now passes, along with
+`test_retired_name_pinned_sites.py`. The amendment that adds
+`docs/product/briefs/` to T3 and defines VI-7031 is now on `main`, in
+`plan.md`.
+
+On the rebased tree, VI-7020, VI-7030, and VI-7031 hold:
+
+- Every script the T3 pages name exists, apart from `handoff_store.py`, which
+  is named as never built.
+- The ADR shape lint reads 152 records and refuses none.
+- The brief-coverage lint and workspace reconcile both exit 0.
+- `workspace.toml` has 0 non-comment hits.
+
+Across the roster and conformance suites that read these paths, 1,845 pass,
+1 is skipped, and 10 fail. The 10 failures are all in
+`test_tracker_refresh_lifecycle_matrix.py`, and they fail the same way on
+`main`.
