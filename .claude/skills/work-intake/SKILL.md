@@ -112,9 +112,11 @@ locator-only lifecycle entry as part of semantic resolution.
 A tracker-origin source is recorded in the artifact's own `toml source-authority`
 record by `scripts/intake_transaction.py`, never in `workspace.toml`. The record
 carries the locator, revision, and declared tracker profile. Only an ASCII
-`scheme://host[/path]` or `scheme:ID` locator is accepted: a scheme of two or more
-lowercase letters, digits or `+.-`, then letters, digits and `-._:/`. A `file:`
-scheme, a `localhost`, loopback or `file` host, a `.` or `..` segment, or a secret
+`scheme://host[/path]` or `scheme:ID` locator is accepted: a scheme that starts
+with a lowercase letter and has two or more lowercase letters, digits or `+.-`,
+then letters, digits and `-._:/`. A `file:` scheme, a `localhost` host (including
+`localhost.` and `*.localhost` forms), a `file` host, a host made only of digits
+and dots, a `.` or `..` segment, or a secret
 keyword followed by `:` or `=` anywhere in a name is refused as well. So
 whitespace, invisible characters, `@`, `?`, `#`, `%`, `~`, backslashes and drive
 letters never reach the record. A
