@@ -599,6 +599,31 @@ def _log_unverifiable(workspace: Any, code: str) -> None:
     se.emit_denial_best_effort(workspace.local.security_sink(), event)
 
 
+def _untrusted_unsafe_host_refusal(
+    args: argparse.Namespace, workspace: Any
+) -> dict[str, str] | None:
+    """The refusal for untrusted or undetermined code on a host whose writes can race.
+
+    Runs once the installed files are verified and before any verb or run lock,
+    so a refusal writes nothing. ``start`` is judged by the trust it would
+    record; every other verb by the latest approval pair committed at ``HEAD``.
+    A host with race-free writes skips the check.
+    """
+    admission = _supervisor("_supervisor_admission.py")
+    if admission.sibling("_confined_mutation.py").race_free_mutation():
+        return None
+    trust = (
+        args.code_trust
+        if args.verb == "start"
+        else admission.committed_code_trust(workspace)
+    )
+    try:
+        admission.refuse_untrusted_on_unsafe_host(trust)
+    except admission.Refusal as exc:
+        return exc.as_dict()
+    return None
+
+
 def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
@@ -637,6 +662,10 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     statelock = commit.sibling("_statelock.py")
     workspace = admission.Workspace(root, spec_rel)
     workspace.attempts.installed = installed
+    unsafe = _untrusted_unsafe_host_refusal(args, workspace)
+    if unsafe is not None:
+        _emit({"refusal": unsafe})
+        return EXIT_REFUSED
     try:
         workspace.attempts.check_pins(args.verb)
         if args.verb == "start":

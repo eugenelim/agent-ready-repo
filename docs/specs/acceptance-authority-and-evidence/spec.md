@@ -1,8 +1,6 @@
 # Spec: Acceptance authority and evidence
 
-- **Status:** Shipped (the verification ledger's security-review-stop-rule register anchor
-  [`acceptance-authority-and-evidence-verification-ledger`](../../product/captured/acceptance-authority-and-evidence-verification-ledger.md)
-  was closed as fixed in Core 3.1.34; not a supersession — every decision here stands)
+- **Status:** Shipped (superseded in part by ADR-0152 — confined writes on hosts without descriptor walking detect identity changes after the write and report state unknown; everything else stands)
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0005, ADR-0061, ADR-0125

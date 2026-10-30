@@ -3,11 +3,21 @@
 Builds on the work-loop skill's local ``file_safety.py`` copy (left unchanged).
 
 Read operations remain safe with the path-check fallback that ``file_safety``
-already provides.  Mutation operations (create, append, atomic-replace) require
-the descriptor-bound parent-walk that ``file_safety._supports_descriptor_walk``
-gates: without it, any path component between the confinement check and the
-OS write could be replaced by an adversary, so mutations refuse with the stable
-denial code ``denied-unsafe-host`` before staging any bytes.
+already provides.  Mutation operations (create, append, atomic-replace) run in
+one of three host modes, chosen by ``_host_mode()``:
+
+  descriptor    the descriptor-bound parent walk that
+                ``file_safety._supports_descriptor_walk`` gates; race-free.
+  path-checked  no descriptor walk, but ``os.lstat`` reports reparse-point
+                attributes (Windows).  Each write is checked by path before the
+                bytes are committed and again after; a difference seen after the
+                commit raises ``denied-rollback-failed`` and the caller treats
+                the state as unknown.  One race stays open: an ancestor swapped
+                for a link between the last pre-write check and the commit call
+                can redirect that one write.  ``race_free_mutation()`` is False
+                here so callers can refuse untrusted work.
+  unsafe        neither; mutations refuse with ``denied-unsafe-host`` before
+                staging any bytes.
 
 Denial codes (stable, no payload bytes):
   denied-unsafe-host      — descriptor walk not supported; mutation unsafe.
@@ -29,6 +39,7 @@ import os
 import secrets
 import stat
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
 from typing import Final
@@ -44,6 +55,7 @@ __all__ = [
     "confined_append",
     "confined_atomic_replace",
     "DENIAL_CODES",
+    "race_free_mutation",
     "validate_confined_file_dict",
 ]
 
@@ -111,13 +123,32 @@ class MutationDenied(Exception):
 # ── Internal helpers ──────────────────────────────────────────────────────────
 
 
+def _host_mode() -> str:
+    """The write mode this host supports; the one host-capability point.
+
+    ``"descriptor"`` when each path component can be bound to a directory
+    descriptor, ``"path-checked"`` when it cannot but ``os.lstat`` reports
+    reparse-point attributes, otherwise ``"unsafe"``.  Makes no filesystem call.
+    """
+    if _fs._supports_descriptor_walk():
+        return "descriptor"
+    if hasattr(os.stat_result, "st_file_attributes"):
+        return "path-checked"
+    return "unsafe"
+
+
+def race_free_mutation() -> bool:
+    """Whether this host's mutations are free of the path-check race window."""
+    return _host_mode() == "descriptor"
+
+
 def _require_descriptor_walk() -> None:
     """Refuse before staging any bytes if descriptor walk is unavailable.
 
     Reads remain safe with path-check fallback; mutations do not because any
     path component between confinement check and OS write is a race window.
     """
-    if not _fs._supports_descriptor_walk():
+    if _host_mode() != "descriptor":
         raise MutationDenied(
             "denied-unsafe-host",
             "confined mutation requires descriptor-bound parent walk; "
@@ -356,6 +387,319 @@ def _do_temp_write_rename(
                 os.close(temp_fd)
 
 
+# ── Path-checked mode ─────────────────────────────────────────────────────────
+#
+# Used only where descriptor walking is unavailable and ``os.lstat`` reports
+# reparse points.  Every check is by path, so each one narrows the window in
+# which a same-user process could swap an ancestor, and none closes it; the
+# checks after the commit detect a swap that is still in place, but cannot
+# undo the write.
+
+# Test seam, settable only in-process: called with the target path just before
+# each commit call (the replace, the link, or the append's write).
+_PRE_COMMIT_HOOK: Callable[[Path], None] | None = None
+
+_REPARSE_POINT: Final[int] = 0x400
+_O_BINARY: Final[int] = getattr(os, "O_BINARY", 0)
+_RESERVED_DEVICES: Final[frozenset[str]] = frozenset(
+    {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+    | {f"COM{n}" for n in range(1, 10)}
+    | {f"LPT{n}" for n in range(1, 10)}
+)
+
+
+def _violation(message: str) -> MutationDenied:
+    return MutationDenied("denied-path-violation", message)
+
+
+def _rollback_failed(message: str) -> MutationDenied:
+    return MutationDenied("denied-rollback-failed", message)
+
+
+def _lexical_parts(relative: str) -> list[str]:
+    """Split a root-relative path into components, refusing Windows-special forms.
+
+    Runs before any filesystem call.  Refuses a UNC, device, or extended-length
+    prefix, an absolute or drive-relative form, a stream (``:``), a reserved
+    device name with or without an extension, and a trailing dot or space.
+    """
+    if relative.startswith("\\\\"):
+        raise _violation(f"UNC or device path form refused: {relative!r}")
+    parts = relative.replace("\\", "/").split("/")
+    for part in parts:
+        if part in ("", ".", ".."):
+            raise _violation(f"empty or dot segment in {relative!r}")
+        if ":" in part:
+            raise _violation(f"stream or drive form refused: {relative!r}")
+        if part.endswith((".", " ")):
+            raise _violation(f"trailing dot or space refused: {relative!r}")
+        if part.split(".", 1)[0].rstrip(" ").upper() in _RESERVED_DEVICES:
+            raise _violation(f"reserved device name refused: {relative!r}")
+    return parts
+
+
+def _is_link(info: os.stat_result) -> bool:
+    """A symlink or a reparse point (junction, mount point, or Windows symlink)."""
+    return stat.S_ISLNK(info.st_mode) or bool(
+        getattr(info, "st_file_attributes", 0) & _REPARSE_POINT
+    )
+
+
+def _identity(info: os.stat_result) -> tuple[int, int]:
+    return (info.st_dev, info.st_ino)
+
+
+def _lstat(path: Path, *, relative: str) -> os.stat_result:
+    try:
+        return os.lstat(path)
+    except FileNotFoundError:
+        raise
+    except OSError as exc:
+        raise MutationDenied(
+            "denied-staging-failed", f"cannot stat {relative}: {exc}"
+        ) from exc
+
+
+def _record_chain(
+    root: Path, directories: list[str], *, relative: str
+) -> list[tuple[Path, tuple[int, int]]]:
+    """Record ``(path, identity)`` for the root and each ancestor, refusing links."""
+    chain: list[tuple[Path, tuple[int, int]]] = []
+    current = root
+    for name in [None, *directories]:
+        if name is not None:
+            current = current / name
+        try:
+            info = _lstat(current, relative=relative)
+        except FileNotFoundError:
+            raise MutationDenied(
+                "denied-staging-failed", f"directory does not exist for {relative}"
+            ) from None
+        if _is_link(info) or not stat.S_ISDIR(info.st_mode):
+            raise _violation(f"link or non-directory in the path of {relative}")
+        chain.append((current, _identity(info)))
+    return chain
+
+
+def _recheck_chain(chain: list[tuple[Path, tuple[int, int]]], *, relative: str) -> None:
+    """After the write: every recorded directory must be the same, unlinked directory."""
+    for path, recorded in chain:
+        try:
+            info = os.lstat(path)
+        except OSError as exc:
+            raise _rollback_failed(
+                f"a directory changed during the write to {relative}: {exc}"
+            ) from exc
+        if _is_link(info) or _identity(info) != recorded:
+            raise _rollback_failed(f"a directory changed during the write to {relative}")
+
+
+def _inside(root: Path, candidate: Path) -> bool:
+    base = os.path.normcase(os.path.realpath(root))
+    other = os.path.normcase(os.path.realpath(candidate))
+    return other == base or other.startswith(base.rstrip(os.sep) + os.sep)
+
+
+def _regular_clean(info: os.stat_result) -> bool:
+    return stat.S_ISREG(info.st_mode) and not _is_link(info) and info.st_nlink == 1
+
+
+def _check_existing_target(target: Path, *, relative: str) -> os.stat_result | None:
+    """The target's lstat, or None when absent; refuses a link, special file, or extra link."""
+    try:
+        info = _lstat(target, relative=relative)
+    except FileNotFoundError:
+        return None
+    if not _regular_clean(info):
+        raise _violation(f"target is a link, special file, or multiply linked: {relative}")
+    return info
+
+
+def _pc_relative(root: Path, path: Path) -> tuple[Path, str]:
+    """The effective root and the target's root-relative path.
+
+    The target's own text is never resolved, so a link inside it stays visible to
+    the directory checks. Only when the text does not sit under *root* as given
+    is *root* resolved, which lets a root passed as a short-name alias match a
+    target written in long form. A root that is itself a link is refused.
+    """
+    try:
+        return root, path.relative_to(root).as_posix()
+    except ValueError:
+        pass
+    outside = _violation(f"path {str(path)!r} is outside declared root {str(root)!r}")
+    try:
+        info = os.lstat(root)
+    except OSError:
+        raise outside from None
+    if _is_link(info):
+        raise _violation(f"root is a link: {str(root)!r}")
+    resolved = Path(os.path.realpath(root))
+    try:
+        return resolved, path.relative_to(resolved).as_posix()
+    except ValueError:
+        raise outside from None
+
+
+def _call_hook(target: Path) -> None:
+    if _PRE_COMMIT_HOOK is not None:
+        _PRE_COMMIT_HOOK(target)
+
+
+def _pc_create_or_replace(
+    root: Path, path: Path, content: bytes, *, relative: str, exclusive: bool
+) -> None:
+    """Stage, then commit, with the checks before the first byte and after the commit."""
+    parts = _lexical_parts(relative)
+    chain = _record_chain(root, parts[:-1], relative=relative)
+    parent = chain[-1][0]
+    target = parent / parts[-1]
+    if not _inside(root, parent):
+        raise _violation(f"parent resolves outside the root: {relative}")
+    existing = _check_existing_target(target, relative=relative)
+    if existing is not None and exclusive:
+        raise MutationDenied("denied-already-exists", f"file already exists: {relative}")
+
+    stage = parent / f".wl-tmp-{secrets.token_hex(8)}"
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | _O_BINARY | getattr(os, "O_CLOEXEC", 0)
+    try:
+        fd = os.open(stage, flags, 0o600)
+    except OSError as exc:
+        raise MutationDenied(
+            "denied-staging-failed", f"cannot create temp file for {relative}: {exc}"
+        ) from exc
+
+    committed = False
+    stage_identity: tuple[int, int] = (0, 0)
+    try:
+        try:
+            opened = os.fstat(fd)
+            by_path = os.lstat(stage)
+            if (
+                _identity(opened) != _identity(by_path)
+                or not _regular_clean(opened)
+                or not _regular_clean(by_path)
+                or not _inside(root, stage)
+            ):
+                raise _violation(f"staging file failed its checks for {relative}")
+            stage_identity = _identity(opened)
+            _write_all(fd, content, relative=relative)
+            try:
+                os.fsync(fd)
+            except OSError:
+                raise MutationDenied(
+                    "denied-staging-failed", f"fsync failed for temp file of {relative}"
+                ) from None
+        except OSError as exc:
+            raise MutationDenied("denied-staging-failed", str(exc)) from exc
+        finally:
+            with contextlib.suppress(OSError):
+                os.close(fd)
+
+        _call_hook(target)
+        if exclusive:
+            try:
+                os.link(stage, target)
+            except FileExistsError:
+                raise MutationDenied(
+                    "denied-already-exists", f"file already exists: {relative}"
+                ) from None
+            except OSError as exc:
+                raise MutationDenied(
+                    "denied-staging-failed", f"exclusive create failed for {relative}: {exc}"
+                ) from exc
+            committed = True
+            try:
+                stage.unlink()
+            except OSError as exc:
+                with contextlib.suppress(OSError):
+                    target.unlink()
+                raise _rollback_failed(
+                    f"exclusive create cleanup failed for {relative}: {exc}"
+                ) from exc
+        else:
+            try:
+                stage.replace(target)
+            except OSError as exc:
+                raise MutationDenied(
+                    "denied-staging-failed", f"replace failed for {relative}: {exc}"
+                ) from exc
+            committed = True
+    except BaseException:
+        if not committed:
+            with contextlib.suppress(OSError):
+                stage.unlink()
+        raise
+
+    try:
+        after = os.lstat(target)
+    except OSError as exc:
+        raise _rollback_failed(f"target not readable after commit: {relative}: {exc}") from exc
+    if not _regular_clean(after) or _identity(after) != stage_identity:
+        raise _rollback_failed(f"target differs from the file written: {relative}")
+    _recheck_chain(chain, relative=relative)
+
+
+def _pc_append(root: Path, path: Path, content: bytes, *, relative: str) -> None:
+    """Append by path, checking the open file against the path before and after."""
+    parts = _lexical_parts(relative)
+    chain = _record_chain(root, parts[:-1], relative=relative)
+    parent = chain[-1][0]
+    target = parent / parts[-1]
+    if not _inside(root, parent):
+        raise _violation(f"parent resolves outside the root: {relative}")
+    before = _check_existing_target(target, relative=relative)
+    if before is None:
+        raise MutationDenied("denied-not-found", f"target does not exist: {relative}")
+
+    flags = os.O_WRONLY | os.O_APPEND | _O_BINARY
+    for flag in ("O_CLOEXEC", "O_NOFOLLOW", "O_NONBLOCK"):
+        flags |= getattr(os, flag, 0)
+    try:
+        fd = os.open(target, flags)
+    except OSError as exc:
+        raise MutationDenied(
+            "denied-staging-failed", f"cannot open for append {relative}: {exc}"
+        ) from exc
+    try:
+        try:
+            opened = os.fstat(fd)
+        except OSError as exc:
+            raise MutationDenied(
+                "denied-staging-failed", f"fstat after open failed {relative}: {exc}"
+            ) from exc
+        if not _regular_clean(opened) or _identity(opened) != _identity(before):
+            raise _violation(f"identity changed between stat and open: {relative}")
+        if not _inside(root, target):
+            raise _violation(f"target resolves outside the root: {relative}")
+        pre_len = opened.st_size
+
+        _call_hook(target)
+        try:
+            _write_all(fd, content, relative=relative)
+        except MutationDenied:
+            _rollback_append(fd, pre_len, relative)
+            raise
+        try:
+            os.fsync(fd)
+        except OSError:
+            _rollback_append(fd, pre_len, relative)
+            raise MutationDenied(
+                "denied-staging-failed", f"fsync failed for append to {relative}"
+            ) from None
+
+        try:
+            now = os.lstat(target)
+        except OSError as exc:
+            raise _rollback_failed(f"target not readable after append: {relative}: {exc}") from exc
+        if _is_link(now) or _identity(now) != _identity(opened):
+            raise _rollback_failed(f"target differs from the file appended to: {relative}")
+        _recheck_chain(chain, relative=relative)
+    finally:
+        with contextlib.suppress(OSError):
+            os.close(fd)
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 
@@ -380,9 +724,17 @@ def confined_create(
     Raises:
         MutationDenied: with a stable denial code on any refusal.
     """
-    _require_descriptor_walk()
-    relative = _validate_relative_path(root, path)
+    path_checked = _host_mode() == "path-checked"
+    if not path_checked:
+        _require_descriptor_walk()
+    if path_checked:
+        root, relative = _pc_relative(root, path)
+    else:
+        relative = _validate_relative_path(root, path)
     _check_size(content, max_bytes, relative=relative)
+    if path_checked:
+        _pc_create_or_replace(root, path, content, relative=relative, exclusive=True)
+        return
     _do_temp_write_rename(root, path, content, relative=relative, exclusive=True)
 
 
@@ -415,9 +767,17 @@ def confined_append(
     Raises:
         MutationDenied: with a stable denial code on any refusal.
     """
-    _require_descriptor_walk()
-    relative = _validate_relative_path(root, path)
+    path_checked = _host_mode() == "path-checked"
+    if not path_checked:
+        _require_descriptor_walk()
+    if path_checked:
+        root, relative = _pc_relative(root, path)
+    else:
+        relative = _validate_relative_path(root, path)
     _check_size(content, max_bytes, relative=relative)
+    if path_checked:
+        _pc_append(root, path, content, relative=relative)
+        return
 
     append_flags = os.O_WRONLY | os.O_APPEND
     for flag in ("O_CLOEXEC", "O_NOFOLLOW", "O_NONBLOCK"):
@@ -534,9 +894,17 @@ def confined_atomic_replace(
     Raises:
         MutationDenied: with a stable denial code on any refusal.
     """
-    _require_descriptor_walk()
-    relative = _validate_relative_path(root, path)
+    path_checked = _host_mode() == "path-checked"
+    if not path_checked:
+        _require_descriptor_walk()
+    if path_checked:
+        root, relative = _pc_relative(root, path)
+    else:
+        relative = _validate_relative_path(root, path)
     _check_size(content, max_bytes, relative=relative)
+    if path_checked:
+        _pc_create_or_replace(root, path, content, relative=relative, exclusive=False)
+        return
     _do_temp_write_rename(root, path, content, relative=relative, exclusive=False)
 
 

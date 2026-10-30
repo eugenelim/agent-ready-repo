@@ -1,6 +1,6 @@
 # ADR-0152: Confined writes are path-checked on hosts without descriptor walking, and the one race they leave is accepted
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-29
 - **Areas:** work-loop, security
 - **Reversibility:** high

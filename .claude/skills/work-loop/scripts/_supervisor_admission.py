@@ -70,7 +70,15 @@ _projector = _supervisor("_supervisor_projector.py")
 _attempt = _supervisor("_supervisor_attempt.py")
 sibling = _commit.sibling
 
-__all__ = ["Refusal", "Workspace", "check_authority_ref", "check_git_config", "start"]
+__all__ = [
+    "Refusal",
+    "Workspace",
+    "check_authority_ref",
+    "check_git_config",
+    "committed_code_trust",
+    "refuse_untrusted_on_unsafe_host",
+    "start",
+]
 
 _POLICY_PATH = _SCRIPTS_DIR.parent / "supervisor-policy.json"
 _MAX_TEXT_BYTES = 4 * 1024 * 1024
@@ -373,6 +381,35 @@ def _status_refusals(ws: Workspace, spec_text: str, plan_text: str, intent: str)
         )
 
 
+def committed_code_trust(ws: Workspace) -> str | None:
+    """The ``code_trust`` of the latest approval pair at ``HEAD``, or ``None`` when undetermined.
+
+    Read through the hardened Git helper, so the working copy never counts. A
+    file that is absent, unreadable, or malformed, or that has no parseable
+    latest pair, is undetermined.
+    """
+    try:
+        approvals = ws.approvals()
+    except Exception:  # noqa: BLE001 - any failure to read the record leaves it undetermined
+        return None
+    if not approvals:
+        return None
+    trust = approvals[-1].get("code_trust")
+    return trust if trust in CODE_TRUST else None
+
+
+def refuse_untrusted_on_unsafe_host(code_trust: str | None) -> None:
+    """Refuse untrusted or undetermined code on a host whose writes can race."""
+    if code_trust == "trusted" or sibling("_confined_mutation.py").race_free_mutation():
+        return
+    raise Refusal(
+        "untrusted-unsafe-host",
+        "owner",
+        "this host cannot make confined writes race-free, so only a run approved as "
+        "trusted may proceed on it",
+    )
+
+
 def _identified(
     record: dict[str, Any],
     key: str,
@@ -413,6 +450,7 @@ def start(
         )
     if intent not in INTENTS or code_trust not in CODE_TRUST:
         raise Refusal("invalid-argument", "owner", "unknown intent or code-trust value")
+    refuse_untrusted_on_unsafe_host(code_trust)
     check_git_config(ws)
     spec_text, plan_text = ws.spec_text(), ws.plan_text()
     _status_refusals(ws, spec_text, plan_text, intent)

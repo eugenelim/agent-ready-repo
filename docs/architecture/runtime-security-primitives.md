@@ -208,6 +208,14 @@ protected ref.
 - **Risk:** Platform-specific link semantics weaken a guarantee. **Mitigation:**
   unsupported operations fail closed and conformance declares each platform's
   exact capability set.
+- **Risk:** A host has no descriptor-relative directory walking, which in practice
+  means Windows. **Mitigation:** the work-loop confined create, append, and replace
+  run in a path-checked mode there: they check every component and the staged
+  file's identity by path before writing, re-check identities after, and report
+  state unknown on a difference. One race stays open, an ancestor swapped for a
+  junction just before the commit call, accepted for trusted runs in ADR-0152.
+  `race_free_mutation()` is false on such hosts, and every supervisor verb refuses
+  untrusted or undetermined code there.
 - **Risk:** The broker or audit sink is unavailable at 3 a.m. **Mitigation:**
   security-sensitive effects refuse, staged mutations discard cleanly, and
   operators receive a redacted denial code rather than a partial success.
