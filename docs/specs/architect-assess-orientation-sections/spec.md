@@ -1,6 +1,6 @@
 # Spec: architect-assess orientation sections and per-section provenance
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/specs/architect-assessment/spec.md`](../architect-assessment/spec.md) — its saved-report section order (Bottom line through Next decision) stays unchanged. This spec adds subsections inside `Conceptual current state` and one charter field, and amends one rule: the Map and Focus checkpoints pause for the user only on a host that can pause; on a host that cannot, the run proceeds and records `Checkpoints: accepted-without-pause`.
@@ -67,22 +67,22 @@ A reader of a saved architecture assessment is oriented first on the whole syste
 
 ## Acceptance Criteria
 
-- [ ] `assets/assessment.md` contains, between `## Conceptual current state` and `### Map checkpoint`, the headings `### Overall architecture`, `### Architecture by subsystem`, and `### Physical architecture` in that order.
-- [ ] The existing template order test in `test_skill_contract.py` still passes unchanged.
-- [ ] Each of the three subsections in the template ends with a `Sources checked` table whose header is `Source | Locator | Evidence class | Limit`.
-- [ ] The template's `Evidence class` comment lists `observed`, `inferred`, `reported`, and `unknown`, and cites `references/evidence-method.md` § Claim calibration as their definition.
-- [ ] No `.md` file under `packs/architect/.apm/skills/architect-assess/` other than `references/evidence-method.md` has a line matching `^\s*(?:[-*]\s+|\d+\.\s+)?\*\*(Observed|Inferred|Reported|Unknown)\*\*`.
-- [ ] The template comment states that an unassessed subsection begins with the line `not assessed` followed by a reason, and still ends with its `Sources checked` table.
-- [ ] The template's `Assessment charter` block contains a `Checkpoints:` line with the values `confirmed | accepted-without-pause`.
-- [ ] `SKILL.md` defines a host that cannot pause as one with no interactive channel to the user (a headless or scheduled run), and states that an interactive session never skips the pause.
-- [ ] `SKILL.md` states, at each of its Map and Focus checkpoint rules, that on a host that cannot pause the run proceeds and records `Checkpoints: accepted-without-pause`.
-- [ ] `SKILL.md` states that in that case the `### Map checkpoint` and `### Focus checkpoint` subsections each hold the line `not user-confirmed`.
-- [ ] `docs/specs/architect-assessment/spec.md` carries, at its Map and Focus checkpoint rules, a note that links to this spec and states the cannot-pause exception.
-- [ ] `evals/evals.json` contains a case whose prompt says the session cannot pause, with assertions that the report records `Checkpoints: accepted-without-pause` and that both checkpoint subsections hold `not user-confirmed`.
-- [ ] `evals/evals.json` contains a case whose repository has no deployment evidence, with assertions that the Physical architecture subsection begins `not assessed`, names no invented component, and ends with a `Sources checked` table.
-- [ ] `guides/architect/reference/architecture-assessment.md` names the three subsections, the `Sources checked` table, and the `Checkpoints:` field.
-- [ ] `pack.toml` and `.claude-plugin/plugin.json` carry the same version, one patch above the version on fetched main.
-- [ ] `tools/changelog.py validate` passes with the new fragment present.
+- [x] `assets/assessment.md` contains, between `## Conceptual current state` and `### Map checkpoint`, the headings `### Overall architecture`, `### Architecture by subsystem`, and `### Physical architecture` in that order.
+- [x] The existing template order test in `test_skill_contract.py` still passes unchanged.
+- [x] Each of the three subsections in the template ends with a `Sources checked` table whose header is `Source | Locator | Evidence class | Limit`.
+- [x] The template's `Evidence class` comment lists `observed`, `inferred`, `reported`, and `unknown`, and cites `references/evidence-method.md` § Claim calibration as their definition.
+- [x] No `.md` file under `packs/architect/.apm/skills/architect-assess/` other than `references/evidence-method.md` has a line matching `^\s*(?:[-*]\s+|\d+\.\s+)?\*\*(Observed|Inferred|Reported|Unknown)\*\*`.
+- [x] The template comment states that an unassessed subsection begins with the line `not assessed` followed by a reason, and still ends with its `Sources checked` table.
+- [x] The template's `Assessment charter` block contains a `Checkpoints:` line with the values `confirmed | accepted-without-pause`.
+- [x] `SKILL.md` defines a host that cannot pause as one with no interactive channel to the user (a headless or scheduled run), and states that an interactive session never skips the pause.
+- [x] `SKILL.md` states, at each of its Map and Focus checkpoint rules, that on a host that cannot pause the run proceeds and records `Checkpoints: accepted-without-pause`.
+- [x] `SKILL.md` states that in that case the `### Map checkpoint` and `### Focus checkpoint` subsections each hold the line `not user-confirmed`.
+- [x] `docs/specs/architect-assessment/spec.md` carries, at its Map and Focus checkpoint rules, a note that links to this spec and states the cannot-pause exception.
+- [x] `evals/evals.json` contains a case whose prompt says the session cannot pause, with assertions that the report records `Checkpoints: accepted-without-pause` and that both checkpoint subsections hold `not user-confirmed`.
+- [x] `evals/evals.json` contains a case whose repository has no deployment evidence, with assertions that the Physical architecture subsection begins `not assessed`, names no invented component, and ends with a `Sources checked` table.
+- [x] `guides/architect/reference/architecture-assessment.md` names the three subsections, the `Sources checked` table, and the `Checkpoints:` field.
+- [x] `pack.toml` and `.claude-plugin/plugin.json` carry the same version, one patch above the version on fetched main.
+- [x] `tools/changelog.py validate` passes with the new fragment present.
 
 ## Terminal Intent
 

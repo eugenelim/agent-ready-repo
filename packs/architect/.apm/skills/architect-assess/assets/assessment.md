@@ -27,8 +27,8 @@ on each subsystem, then on the physical deployment. Each ends with a
 `Sources checked` table. `Evidence class` takes one of `observed`, `inferred`,
 `reported`, or `unknown`, defined in `references/evidence-method.md`
 § Claim calibration. A subsection that cannot be assessed begins with the line
-`not assessed` followed by a reason and still ends with its table. A survey-mode
-report uses that form for any subsection it did not reach.
+`not assessed` on its own, with the reason on the next line, and still ends with
+its table.
 
 ### Overall architecture
 
@@ -53,7 +53,8 @@ Sources checked:
 
 <Where each deployable runs: hosts, clusters, networks, stores, external
 services, and the links between them. Without deployment evidence, write
-`not assessed` and name what is missing; do not invent components.>
+`not assessed` on its own line, then name what is missing; do not invent
+components.>
 
 Sources checked:
 

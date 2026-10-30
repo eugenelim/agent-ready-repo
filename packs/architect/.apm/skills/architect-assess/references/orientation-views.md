@@ -25,12 +25,16 @@ fit this skill.
 
 ## Physical architecture
 
-Hand the physical view to `architect-design`'s `references/physical-bom.md`.
-That reference starts from the deployment evidence and never invents an
-identifier, a version, or a price. When the repository has no deployment
-evidence, begin the subsection with the line `not assessed`, name the missing
-evidence, and leave the `Sources checked` table showing what was searched. Do
-not draw components that no source shows.
+Take the deployment evidence from the repository: container files, manifests,
+infrastructure code, and deployment documentation. Apply the identifier and
+price rules in `../architect-design/references/physical-bom.md`: take each
+identifier from the repository, a lock file, or a manifest, write a visible
+placeholder rather than invent one, and never take a version or a price from
+memory. Its rule to start from a design does not apply, because an assessment
+describes what exists. When the repository has no deployment evidence, make
+the first line of the subsection `not assessed` on its own, then name the
+missing evidence on the next line, and leave the `Sources checked` table showing
+what was searched. Do not draw components that no source shows.
 
 ## Subsystems
 

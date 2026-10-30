@@ -207,7 +207,7 @@ without that primitive fails closed and can still use stdout.
 Each orientation subsection ends with a `Sources checked` table whose columns
 are Source, Locator, Evidence class, and Limit. Evidence class is `observed`,
 `inferred`, `reported`, or `unknown`. A subsection the run could not assess
-begins with the line `not assessed` and a reason, and still ends with its table.
+has the line `not assessed` on its own as its first line, the reason on the next line, and still ends with its table.
 The charter's `Checkpoints:` line is `confirmed` or `accepted-without-pause`.
 
 For the task flow and realistic repository variations, see

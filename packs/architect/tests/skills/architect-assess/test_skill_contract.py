@@ -219,9 +219,11 @@ def test_each_orientation_subsection_ends_with_a_sources_checked_table() -> None
         ("### Architecture by subsystem", "### Physical architecture"),
         ("### Physical architecture", "### Map checkpoint"),
     ):
-        block = report[report.index(start) : report.index(end)]
-        assert "Sources checked" in block
-        assert "| Source | Locator | Evidence class | Limit |" in block
+        lines = report[report.index(start) : report.index(end)].rstrip().splitlines()
+        assert lines[-1].startswith("| --- |")
+        assert lines[-2] == "| Source | Locator | Evidence class | Limit |"
+        assert lines[-3] == ""
+        assert lines[-4] == "Sources checked:"
 
 
 def test_template_cites_the_one_evidence_class_definition() -> None:
@@ -230,7 +232,8 @@ def test_template_cites_the_one_evidence_class_definition() -> None:
         assert word in report
     assert "references/evidence-method.md" in report
     assert "Claim calibration" in report
-    assert "begins with the line `not assessed`" in report
+    assert "begins with the line `not assessed` on its own" in report
+    assert "still ends with its table" in report
 
 
 def test_no_second_definition_of_the_evidence_classes() -> None:
@@ -258,7 +261,7 @@ def test_cannot_pause_exception_is_stated_at_each_checkpoint_rule() -> None:
         start = text.index(heading)
         section = text[start : text.index("\n### ", start + 1)]
         assert "Checkpoints: accepted-without-pause" in section
-    assert text.count("not user-confirmed") >= 2
+        assert "not user-confirmed" in section
 
 
 def test_orientation_reference_routes_to_the_owning_skills() -> None:
@@ -273,7 +276,15 @@ def test_orientation_reference_routes_to_the_owning_skills() -> None:
 def test_orientation_evals_exist() -> None:
     import json
 
-    evals = json.loads((SKILL_ROOT / "evals" / "evals.json").read_text("utf-8"))
-    joined = json.dumps(evals["evals"])
-    assert "accepted-without-pause" in joined and "not user-confirmed" in joined
-    assert "begins with the line `not assessed`" in joined
+    evals = json.loads((SKILL_ROOT / "evals" / "evals.json").read_text("utf-8"))["evals"]
+    by_prompt = {case["prompt"]: case for case in evals}
+    pause = next(c for p, c in by_prompt.items() if "cannot ask me anything" in p)
+    assertions = " ".join(pause["assertions"])
+    assert "Checkpoints: accepted-without-pause" in assertions
+    assert assertions.count("not user-confirmed") == 2
+    assert "Writes no file" in assertions
+    physical = next(c for p, c in by_prompt.items() if "no Dockerfile" in p)
+    assertions = " ".join(physical["assertions"])
+    assert "begins with the line `not assessed`" in assertions
+    assert "Names no host, cluster, cloud service, or network component" in assertions
+    assert "ends with a Sources checked table" in assertions

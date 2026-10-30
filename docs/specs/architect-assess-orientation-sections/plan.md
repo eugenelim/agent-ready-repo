@@ -1,7 +1,7 @@
 # Plan: architect-assess orientation sections and per-section provenance
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** template and its order test in `packs/architect/tests/skills/architect-assess/test_skill_contract.py`; Map step in `packs/architect/.apm/skills/architect-assess/SKILL.md`; physical view rules in `packs/architect/.apm/skills/architect-design/references/physical-bom.md`; release steps in `packs/AGENTS.md` and `packs/AGENTS.local.md`.
 
 > **Plan contract:** `Touches`, `Tests` and `Done when` are what a completion gate
