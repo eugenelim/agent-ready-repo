@@ -131,8 +131,8 @@ Owned by: T1, T2.
 - **Adoption needs the owner.** Every piece of foreign history enters the
   product ref through one owner-authorized `reanchor` step; nothing
   re-anchors automatically, because a rewrite can keep trailers while
-  changing content. Foreign history is measured against the product ref, so
-  a `reanchor` ends it.
+  changing content. Foreign history is measured against the anchor, so a
+  `reanchor` ends it.
 
 ### Data & schema
 
@@ -145,7 +145,7 @@ Owned by: T1, T2.
   latest supervisor commit of the run.
 - `approval` step: gains trailer `Supervisor-Product-Ref: <ref name>`.
 - `reanchor` step: operation `reanchor`, trailers `Supervisor-Reanchor-From:
-  <prior product ref commit>` and `Supervisor-Authority-Ref`, tree equal to the
+  <anchor>` and `Supervisor-Authority-Ref`, tree equal to the
   adopted `HEAD`'s, no `delivery/` append.
 - `execution-request.v1`: `human-decision` `reason` gains `history-adoption`,
   carrying the `HEAD` commit id, the changed product path count and up to 20
@@ -161,8 +161,9 @@ Owned by: T1, T2.
 
 Owned by: T1.
 
-- New refusal codes, all owner `controller`: `integration-conflict`,
-  `product-ref-diverged`, `projection-blocked`. Existing `invalid-policy`
+- New refusal codes, owner `controller`: `integration-conflict`,
+  `product-ref-diverged`, `projection-blocked`, `adoption-refused`; owner
+  `owner`: `unsupported-ref-storage`. Existing `invalid-policy`
   keeps owner `skill maintainer`; `load_policy` gains the `result_authority`
   check. Existing attempt codes are unchanged: `report` refuses
   `attempt-refused`, `next` answers `attempt-residue`.
@@ -183,10 +184,10 @@ applies:
 
 | State | Attempt open | Action |
 | --- | --- | --- |
+| `extensions.refStorage` is not `files` | either | refuse `unsupported-ref-storage` (AC-0022); `status` reports it |
 | No recorded product ref, no approval at `HEAD` | either | `start` records and creates it in the approval transaction |
-| `extensions.refStorage` is not `files` | either | `start` refuses `unsupported-ref-storage` (AC-0022); later verbs refuse the same |
-| No recorded product ref, approvals at `HEAD` | no | AC-0006: create at `HEAD` when it is the latest made commit, else `history-adoption` against the latest made commit |
-| No recorded product ref, approvals at `HEAD` | yes | no ref change; the step that closes the attempt creates the ref at its commit |
+| No recorded product ref, approvals at `HEAD` | no | AC-0006: create at the anchor when `HEAD` is it or reaches it through made commits only (then project forward), else `history-adoption` |
+| No recorded product ref, approvals at `HEAD` | yes | no ref change; steps commit without one, and the next verb with no attempt open applies the row above |
 | Ref missing, symbolic, or not the recorded or pending value | no | `product-ref-diverged` (AC-0005) |
 | Same | yes | the attempt guard has already answered (AC-0015) |
 | One ref at the pending commit, the other at the commit before | either | complete the move (AC-0008) and clear pending |
@@ -267,11 +268,12 @@ Owned by: T1.
     `product-ref-diverged` with a denial line and the recorded value; restoring
     the ref clears it. A trailer-free run pinned to the previous Core crosses
     by `regenerate` and gains its ref; the same run with a foreign commit on
-    top, and the same run reset to an older made commit, each get
-    `history-adoption`, and an `owner` answer lets each reach `terminal`; a
-    `delivery/` change in that foreign commit refuses adoption. A repository
-    with `extensions.refStorage=reftable` refuses `start` with
-    `unsupported-ref-storage` and has no product ref.
+    top gets `history-adoption`, and an `owner` answer lets it reach
+    `terminal`; a `delivery/` change in that foreign commit refuses
+    `adoption-refused`; the same run reset to an older made commit gains its
+    ref at the latest made commit and projects forward with no decision. A
+    repository with `extensions.refStorage=reftable` refuses `start` and
+    `next` with `unsupported-ref-storage` and has no product ref.
   - **VI-0514 (AC-0008, AC-0009, AC-0010):** in `test_supervisor_product_ref.py`, `git reset --hard`, `--soft`, and
     `--mixed` two steps back each converge at the next `next` with the
     working tree equal to the ref's tree; a partial transaction (only one ref
