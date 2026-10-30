@@ -2107,6 +2107,7 @@ def test_a_blank_line_ends_the_last_bullet_before_the_next_release_anchor():
         "Outside para.\n\n  indented after outside.\n",
         "Outside para\n  lazy indented.\n",
         " one-space para.\n",
+        "```\nx\n```\n  more.\n",
     ],
 )
 def test_text_after_a_bullet_has_ended_stays_out_of_it(after: str):

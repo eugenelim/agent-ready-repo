@@ -1505,6 +1505,9 @@ def parse_changelog_releases(text: str) -> ParsedChangelog:
 
         opener = _FENCE_RE_CHANGELOG.match(raw)
         if opener is not None:
+            # A fence shallower than the open bullet's content ends that item.
+            if bullet_column is not None and len(opener.group(1)) < bullet_column:
+                bullet_column = None
             # A `<!--` that left this fence marker behind was in its info string,
             # so it is sample text rather than cross-line comment state.
             # The opener is matched LOOSELY on indentation. A fence indented four
