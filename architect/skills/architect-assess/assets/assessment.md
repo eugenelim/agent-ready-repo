@@ -14,6 +14,7 @@ Mode: <survey | standard | deep>
 Decision supported: <decision and stakeholder>
 Permitted evidence: <reads/checks/private retrieval>
 Excluded: <explicit non-scope>
+Checkpoints: <confirmed | accepted-without-pause>
 
 ## Conceptual current state
 
@@ -21,9 +22,49 @@ Excluded: <explicit non-scope>
 delivery/operations, and trust/identity views. Label observed, inferred,
 reported, and unknown.>
 
+The three subsections below orient the reader first on the whole system, then
+on each subsystem, then on the physical deployment. Each ends with a
+`Sources checked` table. `Evidence class` takes one of `observed`, `inferred`,
+`reported`, or `unknown`, defined in `references/evidence-method.md`
+§ Claim calibration. A subsection that cannot be assessed begins with the line
+`not assessed` on its own, with the reason on the next line, and still ends with
+its table.
+
+### Overall architecture
+
+<The system in one view: what it is, its major parts, and how they relate.>
+
+Sources checked:
+
+| Source | Locator | Evidence class | Limit |
+| --- | --- | --- | --- |
+
+### Architecture by subsystem
+
+<One entry per subsystem: purpose, responsibility, key interfaces, and
+dependencies.>
+
+Sources checked:
+
+| Source | Locator | Evidence class | Limit |
+| --- | --- | --- | --- |
+
+### Physical architecture
+
+<Where each deployable runs: hosts, clusters, networks, stores, external
+services, and the links between them. Without deployment evidence, write
+`not assessed` on its own line, then name what is missing; do not invent
+components.>
+
+Sources checked:
+
+| Source | Locator | Evidence class | Limit |
+| --- | --- | --- | --- |
+
 ### Map checkpoint
 
-<User correction or `continue`; resulting accepted boundary.>
+<User correction or `continue`; resulting accepted boundary. On a host that
+cannot pause, write `not user-confirmed`.>
 
 ## Evidence coverage
 
@@ -50,7 +91,8 @@ not finding severity. Each dimension is `low`, `medium`, `high`, or `unknown`.
 
 ### Focus checkpoint
 
-<User correction or `continue`; accepted hotspot set.>
+<User correction or `continue`; accepted hotspot set. On a host that cannot
+pause, write `not user-confirmed`.>
 
 ## Hotspot drill-downs
 

@@ -343,7 +343,7 @@ with the round/cost counters reset.
   never silently green.
 - **The backlog bridge:** the decision brief decomposes into an ordered,
   dependency-aware backlog (parked sub-ideas carried as **first-class entries**);
-  `loop-cohort` orders it; `work-loop` pulls one item at a time.
+  the plan's `Depends on:` order sequences it; `work-loop` pulls one item at a time.
 
 ### Capability-negotiated G3 handoff
 

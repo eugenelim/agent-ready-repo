@@ -102,7 +102,7 @@ verdict; the verdict goes to the append-only attested log). Full transitions:
   roster (required) + the self-coverage gate (full battery) + the traceability lint
   before you call it converged.
 - **G3** — decompose into an ordered, dependency-aware backlog (parked sub-ideas as
-  first-class entries); `loop-cohort` orders it; hand off through `work-intake`.
+  first-class entries); the plan's `Depends on:` order sequences it; hand off through `work-intake`.
 
 ## Anti-patterns to refuse
 
