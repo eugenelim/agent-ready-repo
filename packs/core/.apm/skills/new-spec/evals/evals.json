@@ -325,6 +325,15 @@
         "Does not route either to the verification ledger",
         "Keeps execution observations in the ledger"
       ]
+    },
+    {
+      "id": "tracker-origin-spec-keeps-source-authority-block",
+      "prompt": "Fill the spec that work-intake just created for a tracker-origin delivery item; it already holds a source-authority block with a tracker_profile table.",
+      "expected_output": "The agent fills the spec body, keeps the existing source-authority block byte for byte, and adds no workspace.toml entry.",
+      "assertions": [
+        "Keeps the existing source-authority block byte for byte",
+        "Adds no workspace.toml entry"
+      ]
     }
   ]
 }

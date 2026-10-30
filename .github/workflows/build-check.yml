@@ -768,6 +768,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_spec_registration_stop.py
 
+      # AC-0017, AC-0018 and AC-0028 of tracker-origin-registration-stop: no writer,
+      # guide or page tells anyone to register a tracker-origin artifact, and the
+      # record-profile and repair text is present. Sits ABOVE the bulk tests/ step.
+      - name: pytest tracker-origin registration stop (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_tracker_origin_registration_stop.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a

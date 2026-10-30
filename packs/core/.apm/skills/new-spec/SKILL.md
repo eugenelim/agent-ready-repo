@@ -68,6 +68,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    `docs/specs/<feature>/plan.md`. (Paths are skill-relative — the
    `assets/` folder lives next to this `SKILL.md` wherever your
    installer placed the skill.)
+   When the intake transaction already wrote a `toml source-authority` block
+   into a tracker-origin spec, keep an existing source-authority block byte for
+   byte as you fill the spec, and add no `workspace.toml` entry: refresh reads
+   the tracker profile from that block.
 
 3. **Surface assumptions before writing any spec body — and verify each
    candidate first.** With the directory scaffolded, stop. The
