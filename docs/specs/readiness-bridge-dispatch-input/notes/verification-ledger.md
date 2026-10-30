@@ -150,3 +150,109 @@ The line below the list header reads "work-loop with no spec named asks which of
 ### AC-0011: the hostile workspace.toml through dispatch
 
 A copy of the `mixed` fixture with `fixtures/hostile_workspace/workspace.toml` as its `workspace.toml`. `dispatch.py --root <copy>` exited 0. Its stdout holds 0 of the 10 hostile strings (`</script><script>`, `<img src=x`, `onerror`, `javascript:`, `"><svg`, `alert(1)`, U+2028, U+2029, U+202E, U+200F), counted both raw and JSON-escaped. `export --root <copy> --readiness -` with those bytes returned `ok`, 173,281 bytes, `readiness` `{"checked": true, "reason": null}`, and none of the 10 strings appears outside the data block. Result: pass.
+
+### Design review screenshots (AC-0030)
+
+Thirty-two PNGs in `screens/`, named `<state>-<width>-<theme>.png`, taken at commit `b575c1908` with `.context/browser-venv/bin/python .context/rbd-shots/screenshots.py <repo root> <out dir>` (script SHA-256 `9455af39ed26bae7dccbb5ff62920598d4c2ddf264103f4137adbc8e69b6d26c`, below). Each is a true viewport capture in headless Chromium: widths 320 (height 900), 1280 (900), 1680 (1000) and 2560 (1400), each with `color_scheme` light and dark, over real exports of the `mixed` fixture made with `export --readiness -`.
+
+- `checked-start`: one ready item (bravo-spec) and one blocked item (golf-new, codes `unsatisfied_dependency` and `missing_plan`).
+- `checked-ask`: `_NAMED_STATUS["ask_ready"]`, two ready items, so `active_count` is 0 and the note reads "asks which ready item to start, so none is marked."
+- `check-failed`: the stdout shape of `workspace-status status` piped in, giving `wrong_schema` and the "Readiness could not be checked" notice.
+- `broken-findings`: the `checked-start` input, opened at `#q=broken`.
+
+The `experience-reviewer` pass and each finding's disposition are not recorded here yet.
+
+| SHA-256 | File |
+| --- | --- |
+| `205697e1dc8d9ff8e9dc724a58e16d41cdeefb159dc90391d9dcca7112c9f5f1` | `screens/broken-findings-1280-dark.png` |
+| `c5bd2714995458e19ffc74e07e6106e1c785fc7b2be4171a19567e6f373f5de4` | `screens/broken-findings-1280-light.png` |
+| `e0cb5eed9369230b3d207f124471783dd02281fb805d424284d8ce9f76721b3b` | `screens/broken-findings-1680-dark.png` |
+| `00e1c12665894a930d5fe1775fe2e97662ff3ca072463dd69b9676e61a74e51c` | `screens/broken-findings-1680-light.png` |
+| `c2543a42aa7905861b1a30af937626c3b5ab85ad5c87e44455fa03190ab4a6c5` | `screens/broken-findings-2560-dark.png` |
+| `148f1188c69e95b87e0374f6d5d60d5c7de986a2d55c218675069a3d9a4a879c` | `screens/broken-findings-2560-light.png` |
+| `7eb10fa12625ab359d255c6d843d8dce3dd2ad266b49e4750dab0be68e0ab6cc` | `screens/broken-findings-320-dark.png` |
+| `6c02b7406e224d92d496403ade79802374b9df52749c6162366134bc673cccea` | `screens/broken-findings-320-light.png` |
+| `d707e41067accebb6dcfa86bf539487a25b6598864eb5275556a91d0e8d1c379` | `screens/check-failed-1280-dark.png` |
+| `96de58f0452098089a670a90f1bfde52c4345210151fb5d4d67f9a7be069d91d` | `screens/check-failed-1280-light.png` |
+| `9871ae0c00ea11cc8b0659ed3ed61339a6a8908d96d83b8c0561f552d4eef0d2` | `screens/check-failed-1680-dark.png` |
+| `bbd5b00b98f0cddf3754845ba4c072d46ed98ac000d9ca4b483225fd18d8a1a2` | `screens/check-failed-1680-light.png` |
+| `fd64075f3eb03e8e0d11212b5acf5651dceb0c67a7d743841ee53d5f3e5c114f` | `screens/check-failed-2560-dark.png` |
+| `f88bbb272701a5faaf197c9886b7b7ac617993ac4f50f78019b81cb112e648ec` | `screens/check-failed-2560-light.png` |
+| `a3b761514ec54c479fb4818bed36ac8f0a0805313b1d3133372fd1cb05fa8596` | `screens/check-failed-320-dark.png` |
+| `6cd754f98330ef124752fa20ca0c8334ce7db53ad88b66891b4c3cd43a7d635d` | `screens/check-failed-320-light.png` |
+| `22e6c78d40cee8c3456b931c1080196053e62ce84b6555e059a8746c46aa1ae3` | `screens/checked-ask-1280-dark.png` |
+| `40d2a2f4d5230b4e08111de9b8f7e1c4b528dd0e2163cba540e2a921545892b7` | `screens/checked-ask-1280-light.png` |
+| `91ba38c7f23889f37abd22009b3dd6fbe0d4bd5a5918c16606b7008fb7f09957` | `screens/checked-ask-1680-dark.png` |
+| `871a9d7cecda3e59e826b77c31126897b7b48568f3b9125baa5d3be40da3a3f6` | `screens/checked-ask-1680-light.png` |
+| `8dc5302b3a6194bb9df77973e99161138f126672a540e18e9967075a51af1647` | `screens/checked-ask-2560-dark.png` |
+| `bc1a38c1ad483f3a74f9300db720183e6b3f9e483d6c6556cb287debca287a42` | `screens/checked-ask-2560-light.png` |
+| `47ae7c7ca2637a50dc4402237ccc43e673b223e12c7f8dee9b820b46c4dfeb47` | `screens/checked-ask-320-dark.png` |
+| `05866b4a0c760f65cd853601e06ed6c000a28cf3fb05594fa4ea0de8aa86fdac` | `screens/checked-ask-320-light.png` |
+| `596d97fbd7435705f5a62eeddfab3f2952e0aa3e81bcb5811c56c878dc354152` | `screens/checked-start-1280-dark.png` |
+| `ee2b8599c6356bb953a51fc0c1ed56e4ed304ec386ccf50972fb8312e670f414` | `screens/checked-start-1280-light.png` |
+| `b519934b17e47c7671e70c5bf822008bfbf4735338e583aaba41dbb77dcc40b3` | `screens/checked-start-1680-dark.png` |
+| `57c9d453ee3a54998ad2483d15860b70bbcf303f1c751f7ede05ed460823817f` | `screens/checked-start-1680-light.png` |
+| `bb45182dbe703f9b5d69fd1aa652a3bd015895da90cad5346527dce3285c3d4b` | `screens/checked-start-2560-dark.png` |
+| `b5c79e4245d57dff2cbfa6d1d3cfeab7d74e1984c130cb2baad168c4627f13fe` | `screens/checked-start-2560-light.png` |
+| `b83cfda66164bcd3feddfe013ddc169e6dc04030173f54f28f378094c43964ac` | `screens/checked-start-320-dark.png` |
+| `4cc837ecedf299dc5018b7f55776f57f964bd6e301f8264bb11a71a6dcedf6c3` | `screens/checked-start-320-light.png` |
+
+Script:
+
+```python
+"""Usage: python screenshots.py <repo root> <out dir>
+
+AC-0030: 4 states x widths 320/1280/1680/2560 x light/dark = 32 PNGs over real exports of the
+`mixed` fixture made with `export --readiness -`.  Base inputs come from the `_r_*` builders in
+view_browser_checks.py.  Prints each file's SHA-256.
+"""
+import hashlib, json, pathlib, subprocess, sys, tempfile
+from playwright.sync_api import sync_playwright
+
+root, out = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve()
+sys.path.insert(0, str(root / "packs/core/tests/skills/navigate-intents"))
+import view_browser_checks as v  # noqa: E402
+
+script = root / "packs/core/.apm/skills/navigate-intents/scripts/navigate_intents.py"
+fixture = root / "packs/core/tests/skills/navigate-intents/fixtures/mixed"
+# workspace-status `status` stdout: not this spec's input, so the check fails with wrong_schema.
+WS_STATUS = json.dumps({
+    "schema_version": 1, "mode": "status", "workspace_present": True, "workspace_root": ".",
+    "canonical": {"performed": True, "bounded": True, "findings": [],
+                  "ready": [], "active": [], "blocked": []},
+}).encode()
+start = v._r_status(ready=[v._r_entry(v._R_BRAVO)],
+                    blocked=[v._r_blocked(v._R_GOLF, "unsatisfied_dependency", "missing_plan")])
+INPUTS = {
+    "checked-start": (v._r_bytes(start), "#q=next"),
+    "checked-ask": (v._r_bytes(v._NAMED_STATUS["ask_ready"]), "#q=next"),
+    "check-failed": (WS_STATUS, "#q=next"),
+    "broken-findings": (v._r_bytes(start), "#q=broken"),
+}
+WIDTHS = {320: 900, 1280: 900, 1680: 1000, 2560: 1400}
+READY = "() => performance.getEntriesByName('view-ready').length > 0"
+out.mkdir(parents=True, exist_ok=True)
+tmp = pathlib.Path(tempfile.mkdtemp())
+pages = {}
+for state, (data, _f) in INPUTS.items():
+    proc = subprocess.run(
+        [sys.executable, str(script), "export", "--root", str(fixture), "--destination", str(tmp),
+         "--name", f"{state}.html", "--readiness", "-"], input=data, capture_output=True, check=True)
+    result = json.loads(proc.stdout)
+    assert result["status"] == "ok", result
+    pages[state] = pathlib.Path(result["path"])
+with sync_playwright() as pw:
+    browser = pw.chromium.launch()
+    for state, (_d, fragment) in INPUTS.items():
+        for width, height in WIDTHS.items():
+            for theme in ("light", "dark"):
+                ctx = browser.new_context(viewport={"width": width, "height": height}, color_scheme=theme)
+                page = ctx.new_page()
+                page.goto(pages[state].as_uri() + fragment)
+                page.wait_for_function(READY)
+                page.screenshot(path=str(out / f"{state}-{width}-{theme}.png"))
+                ctx.close()
+    browser.close()
+for png in sorted(out.glob("*.png")):
+    print(hashlib.sha256(png.read_bytes()).hexdigest(), png.name)
+```
