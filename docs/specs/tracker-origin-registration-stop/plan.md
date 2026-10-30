@@ -154,7 +154,7 @@ Owned by: T3
 
 ### T9: Release
 
-- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13, T14, T15, T16, T17
+- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13, T14, T15, T16, T17, T18
 - **Verification mode:** goal-based
 - **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`; `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main` exiting `0` on the pull-request branch, which is one squashed commit carrying `Engine-Change-RFC: 0106` and the `Spec:` trailer, because the supervisor's own commits carry no trailer (owner decision, 2026-10-30; the full supervisor history is pushed as a separate evidence branch); the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** each passes.
@@ -230,6 +230,13 @@ Owned by: T3
 - **Verification mode:** TDD
 - **Tests:** for AC-0025 and AC-0029, from the sixth implementation review's supported findings (records under `.context/reviews/tracker-origin-registration-stop-impl-r6/`): `_require_minimal_locator` normalises the host (lowercase, trailing dots dropped) and refuses `localhost`, a `.localhost` suffix, a `localhost.` prefix, a `file` host, and a host made only of digits and dots. Refusal cases in `test_intake_transaction.py` for `https://localhost./Users/n`, `https://app.localhost/Users/n`, `https://localhost.localdomain/Users/n`, `https://LOCALHOST/Users/n`, `https://0/Users/n`, `https://2130706433/Users/n`, `https://0.0.0.0/Users/n` and `vscode://file./Users/n`; every adapter locator shape still commits. The SKILL.md locator paragraph and the docstring say the scheme starts with a lowercase letter and name the host refusals.
 - **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass, and `make build-self` leaves no diff.
+
+### T18: Lint and hex hosts
+
+- **Depends on:** T17
+- **Verification mode:** TDD
+- **Tests:** for AC-0025 and AC-0029, from the seventh implementation review's supported findings (records under `.context/reviews/tracker-origin-registration-stop-impl-r7/`): the `_require_minimal_locator` docstring is rewrapped within 99 characters so `make lint-ruff` exits `0`; `_is_local_host` also refuses a host whose dot-separated parts are all decimal or `0x` hex numbers, with refusal cases for `https://0x7f000001/x` and `https://0x7f.1/x`; the SKILL.md locator paragraph says "a numeric host".
+- **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass (each gate's exit code read on its own), and `make build-self` leaves no diff.
 
 ## Rollout
 
