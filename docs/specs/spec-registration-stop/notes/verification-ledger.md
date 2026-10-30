@@ -63,6 +63,54 @@ Every difference falls under a case that the [`header-derived-dispatch`](../../h
 | `docs/specs/plan-evolution-experiments/spec.md` | `active` | `false` | `true` | `unregistered-implementing` | accepted removal (RFC-0106 D1) |
 | `docs/specs/plan-evolution-experiments/spec.md` | `resume` | `refuse` | `resume` | `unregistered-implementing` | accepted removal (RFC-0106 D1) |
 
+## Re-run over the current merge base (AC-0035)
+
+The rebase moved the merge base to `7933d2fcb635ab3373281756bf2e878fbd6747c9`. On 2026-10-29 the owner (eugenelim) decided that both runs above be repeated over it and recorded here, with the earlier runs kept. Both re-runs use a `git worktree` of `7933d2fcb635ab3373281756bf2e878fbd6747c9`, with this branch's `tools/compare-registry.py`, `tools/replay-dispatch.py` and `dispatch.py` (git blob `e2e4942c6a3dc3a0abb434ccad8762bfe706979f`, the same at the merge base and on this branch at `1001047732a979c2078ca3a81f3f482f6d8c5e9f`). The worktree's registry has every writer unstopped, as the merge base ships it.
+
+```
+python3 tools/compare-registry.py --root <worktree>
+```
+
+Exit code: `0`.
+
+```
+registry comparison: pass
+captured_item 0
+legacy_shape 0
+registry_stale 0
+registry_closed_stale 0
+registry_omission 163
+registry_live_only 0
+result_terminal 0
+unclassified 0
+commit 7933d2fcb635ab3373281756bf2e878fbd6747c9
+workspace.toml sha256 2e80de6c6e41ccfa136d7a453a3c0751e11b6c6d93263a2680d1105e07abf914
+```
+
+```
+python3 tools/replay-dispatch.py --root <worktree> --base-engine <worktree>/packs/core/.apm/skills/workspace-status/scripts/workspace_status.py
+```
+
+Exit code: `0`.
+
+```
+base canonical.ready 0 []
+base canonical.active 2 ["docs/specs/execution-supervisor-cutover/spec.md", "docs/specs/workspace-retirement/spec.md"]
+dispatch ready 0 []
+dispatch active 3 ["docs/specs/execution-supervisor-cutover/spec.md", "docs/specs/plan-evolution-experiments/spec.md", "docs/specs/workspace-retirement/spec.md"]
+workspace.toml sha256 2e80de6c6e41ccfa136d7a453a3c0751e11b6c6d93263a2680d1105e07abf914
+lifecycle records 0
+differing specs 2
+DIFF * argless_start base={"action": "ask", "path": null, "candidates": ["docs/specs/execution-supervisor-cutover/spec.md", "docs/specs/workspace-retirement/spec.md"]} dispatch={"action": "ask", "path": null, "candidates": ["docs/specs/execution-supervisor-cutover/spec.md", "docs/specs/plan-evolution-experiments/spec.md", "docs/specs/workspace-retirement/spec.md"]}
+DIFF * argless_resume base={"action": "ask", "path": null, "candidates": ["docs/specs/execution-supervisor-cutover/spec.md", "docs/specs/workspace-retirement/spec.md"]} dispatch={"action": "ask", "path": null, "candidates": ["docs/specs/execution-supervisor-cutover/spec.md", "docs/specs/plan-evolution-experiments/spec.md", "docs/specs/workspace-retirement/spec.md"]}
+DIFF docs/specs/experience-pack-0.6.0/spec.md start base={"action": "refuse", "path": null, "candidates": []} dispatch={"action": "invalid_selector", "path": null, "candidates": []}
+DIFF docs/specs/experience-pack-0.6.0/spec.md resume base={"action": "refuse", "path": null, "candidates": []} dispatch={"action": "invalid_selector", "path": null, "candidates": []}
+DIFF docs/specs/plan-evolution-experiments/spec.md active base=false dispatch=true
+DIFF docs/specs/plan-evolution-experiments/spec.md resume base={"action": "refuse", "path": null, "candidates": []} dispatch={"action": "resume", "path": "docs/specs/plan-evolution-experiments/spec.md", "candidates": []}
+```
+
+The comparison passes with no unclassified item; it reports 163 omissions where the first run reported 164. The replay's six differences are the same six, over the same two specs, as the first replay, so each takes the class the Classification table above gives it. No difference is unclassified.
+
 ## Owner approvals of wording (AC-0031)
 
 | Target | Wording | Approval |
