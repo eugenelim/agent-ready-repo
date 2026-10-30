@@ -81,6 +81,7 @@ class SourceAuthority:
     local_receipts: tuple[Mapping[str, object], ...] = ()
     remote_actions: tuple[Mapping[str, object], ...] = ()
     mode: str = "tracker-origin"
+    tracker_profile: dict[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -464,6 +465,7 @@ _TOP_AUTHORITY_KEYS = {
     "source_ref",
     "source_revision",
     "accepted_revision",
+    "tracker_profile",
     "owned_fields",
     "acceptance",
     "source_decisions",
@@ -529,6 +531,26 @@ def _digest(value: object, code: str) -> str:
     if re.fullmatch(r"[a-f0-9]{64}", text) is None:
         raise RefreshRefusal(code)
     return text
+
+
+_PROFILE_BOUNDS = {"id": 200, "version": 100}
+
+
+def _profile_table(value: object) -> dict[str, str]:
+    """Validate a profile table: exactly ``id`` and ``version``, bounded, one line."""
+
+    if not isinstance(value, dict) or set(value) != set(_PROFILE_BOUNDS):
+        raise RefreshRefusal("invalid_source_authority")
+    for key, maximum in _PROFILE_BOUNDS.items():
+        item = value[key]
+        if (
+            not isinstance(item, str)
+            or not 1 <= len(item) <= maximum
+            or "\r" in item
+            or "\n" in item
+        ):
+            raise RefreshRefusal("invalid_source_authority")
+    return {key: value[key] for key in _PROFILE_BOUNDS}
 
 
 def parse_source_authority(markdown: str) -> SourceAuthority:
@@ -758,6 +780,11 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
                 if "accepted_revision" in data
                 else None
             ),
+            tracker_profile=(
+                _profile_table(data["tracker_profile"])
+                if "tracker_profile" in data
+                else None
+            ),
             owned_fields=dict(owned),
             acceptance=approval,
             source_decisions=decisions,
@@ -800,6 +827,16 @@ def render_source_authority(authority: SourceAuthority) -> str:
     if authority.accepted_revision is not None:
         lines.append(
             f'accepted_revision = {_toml_string(authority.accepted_revision)}'
+        )
+    if authority.tracker_profile is not None:
+        profile = _profile_table(authority.tracker_profile)
+        lines.extend(
+            (
+                "",
+                "[tracker_profile]",
+                f"id = {_toml_string(profile['id'])}",
+                f"version = {_toml_string(profile['version'])}",
+            )
         )
 
     record_orders = (
@@ -883,6 +920,34 @@ def render_source_authority(authority: SourceAuthority) -> str:
     if parse_source_authority(rendered) != authority:
         raise RefreshRefusal("invalid_source_authority")
     return rendered
+
+
+def render_first_source_authority(
+    *,
+    mode: str,
+    locator: str,
+    revision: str,
+    profile: dict[str, str] | None,
+) -> str:
+    """Render a first record for a tracker-origin source, or refuse with no output.
+
+    The record carries the locator, revision and declared profile and an empty
+    ``[owned_fields]`` table. A source that is not tracker-origin, has no
+    profile, or holds a value the renderer refuses raises ``RefreshRefusal``.
+    """
+
+    if mode != "tracker-origin" or profile is None:
+        raise RefreshRefusal("invalid_source_authority")
+    return render_source_authority(
+        SourceAuthority(
+            source_ref=_bounded_string(locator, 1000, "invalid_source_authority"),
+            source_revision=_bounded_string(revision, 200, "invalid_source_authority"),
+            accepted_revision=None,
+            owned_fields={},
+            acceptance=None,
+            tracker_profile=profile,
+        )
+    )
 
 
 def _replace_source_authority(markdown: str, authority: SourceAuthority) -> str:

@@ -370,3 +370,229 @@ def test_no_registration_step_writes_dispatches_and_leaves_workspace_untouched(
     assert (tmp_path / artifact_target).read_text(encoding="utf-8") == "artifact"
     assert not (tmp_path / transaction.WORKSPACE_LOCK_FILE).exists()
     assert workspace.read_bytes() == before
+
+
+# ── Tracker-origin source: the record replaces the registration stage ─────────
+
+_TRACKER_LOCATOR = "example-service://work/ITEM-1"
+_TRACKER_REVISION = "rev-1"
+_TRACKER_PROFILE = {"id": "example-tracker", "version": "1.0"}
+_FOREIGN_RECORD = (
+    "```toml source-authority\n"
+    'contract_version = "source-authority.v1"\n'
+    'mode = "tracker-origin"\n'
+    'source_ref = "example-service://work/OTHER"\n'
+    'source_revision = "rev-9"\n\n[owned_fields]\n```\n'
+)
+
+
+def _load_refresh_module():
+    path = _TRANSACTION_PATH.with_name("refresh.py")
+    spec = importlib.util.spec_from_file_location("test_tx_tracker_refresh", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["test_tx_tracker_refresh"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def _run_tracker_transaction(
+    tmp_path: Path,
+    *,
+    body: str,
+    source_kwargs: dict | None = None,
+    materialize=None,
+    target_name: str = "intent.md",
+):
+    transaction = _load_transaction_module()
+    parent = tmp_path / "docs" / "product" / "intents"
+    parent.mkdir(parents=True)
+    artifact_target = f"docs/product/intents/{target_name}"
+    artifact = tmp_path / artifact_target
+    trace: list[str] = []
+
+    def default_materialize(target: Path) -> None:
+        trace.append("materialize")
+        target.write_text(body, encoding="utf-8")
+
+    def rollback() -> None:
+        trace.append("rollback")
+        artifact.unlink(missing_ok=True)
+
+    source = transaction.TrackerSource(
+        **{
+            "locator": _TRACKER_LOCATOR,
+            "revision": _TRACKER_REVISION,
+            "profile": dict(_TRACKER_PROFILE),
+            **(source_kwargs or {}),
+        }
+    )
+    result = transaction.run_intake_transaction(
+        repository_root=tmp_path,
+        configured_parent="docs/product/intents",
+        artifact_target=artifact_target,
+        materialize_artifact=materialize or default_materialize,
+        rollback_partial_state=rollback,
+        record_reconciliation=lambda stage: trace.append(f"reconcile:{stage}"),
+        dispatch_processor=lambda: trace.append("dispatch"),
+        tracker_source=source,
+    )
+    return transaction, result, trace, artifact
+
+
+@pytest.mark.parametrize(
+    "body",
+    (
+        "# Brief\n\nBody text.\n",
+        "# Spec\n\n- **Status:** Draft\n\nNo record yet.\n",
+    ),
+    ids=("brief", "spec"),
+)
+def test_ac0029_tracker_source_commits_one_record_equal_to_the_declared_values(
+    tmp_path: Path, body: str
+) -> None:
+    refresh = _load_refresh_module()
+    transaction, result, trace, artifact = _run_tracker_transaction(tmp_path, body=body)
+
+    assert result.status is transaction.TransactionStatus.COMMITTED
+    assert result.dispatch_started is True
+    assert trace == ["materialize", "dispatch"]
+    written = artifact.read_text(encoding="utf-8")
+    assert written.startswith(body)
+    authority = refresh.parse_source_authority(written)
+    assert authority.source_ref == _TRACKER_LOCATOR
+    assert authority.source_revision == _TRACKER_REVISION
+    assert authority.tracker_profile == _TRACKER_PROFILE
+    assert dict(authority.owned_fields) == {}
+    assert not (tmp_path / transaction.WORKSPACE_LOCK_FILE).exists()
+
+
+def test_ac0029_a_materializer_record_of_its_own_rolls_back_without_dispatch(
+    tmp_path: Path,
+) -> None:
+    transaction, result, trace, artifact = _run_tracker_transaction(
+        tmp_path, body="# Brief\n\n" + _FOREIGN_RECORD
+    )
+
+    assert result.status is transaction.TransactionStatus.ROLLED_BACK
+    assert result.failed_stage == "source_authority_write"
+    assert result.dispatch_started is False
+    assert trace == ["materialize", "rollback"]
+    assert not artifact.exists()
+    assert not (tmp_path / transaction.WORKSPACE_LOCK_FILE).exists()
+
+
+def test_ac0029_a_symlink_left_at_the_target_rolls_back_without_dispatch(
+    tmp_path: Path,
+) -> None:
+    outside = tmp_path / "elsewhere.md"
+    outside.write_text("# Elsewhere\n", encoding="utf-8")
+    trace: list[str] = []
+
+    def materialize(target: Path) -> None:
+        trace.append("materialize")
+        target.symlink_to(outside)
+
+    transaction, result, trace2, artifact = _run_tracker_transaction(
+        tmp_path, body="", materialize=materialize
+    )
+
+    assert result.status is transaction.TransactionStatus.ROLLED_BACK
+    assert result.failed_stage == "source_authority_write"
+    assert result.dispatch_started is False
+    assert trace2 == ["rollback"]
+    assert not artifact.is_symlink() and not artifact.exists()
+    assert outside.read_text(encoding="utf-8") == "# Elsewhere\n"
+
+
+def test_ac0029_a_materializer_that_wrote_nothing_rolls_back_without_dispatch(
+    tmp_path: Path,
+) -> None:
+    transaction, result, trace, artifact = _run_tracker_transaction(
+        tmp_path, body="", materialize=lambda target: None
+    )
+
+    assert result.failed_stage == "source_authority_write"
+    assert result.dispatch_started is False
+    assert trace == ["rollback"]
+    assert not artifact.exists()
+
+
+@pytest.mark.parametrize(
+    "source_kwargs",
+    (
+        {"profile": None},
+        {"profile": {"id": "example-tracker"}},
+        {"profile": {"id": "bad\nid", "version": "1.0"}},
+        {"mode": "repo-origin"},
+        {"locator": "example-service://work/ITEM-1\nuntrusted"},
+    ),
+    ids=repr,
+)
+def test_ac0029_a_refused_source_rolls_back_leaving_no_artifact_and_no_dispatch(
+    tmp_path: Path, source_kwargs: dict
+) -> None:
+    transaction, result, trace, artifact = _run_tracker_transaction(
+        tmp_path, body="# Brief\n", source_kwargs=source_kwargs
+    )
+
+    assert result.status is transaction.TransactionStatus.ROLLED_BACK
+    assert result.failed_stage == "source_authority_write"
+    assert result.dispatch_started is False
+    assert trace == ["materialize", "rollback"]
+    assert not artifact.exists()
+
+
+def test_ac0029_a_failed_rollback_reports_reconciliation_and_never_dispatches(
+    tmp_path: Path,
+) -> None:
+    transaction = _load_transaction_module()
+    (tmp_path / "docs" / "product" / "intents").mkdir(parents=True)
+    trace: list[str] = []
+
+    def failing_rollback() -> None:
+        raise OSError("injected")
+
+    result = transaction.run_intake_transaction(
+        repository_root=tmp_path,
+        configured_parent="docs/product/intents",
+        artifact_target="docs/product/intents/intent.md",
+        materialize_artifact=lambda target: target.write_text(
+            "# Brief\n" + _FOREIGN_RECORD, encoding="utf-8"
+        ),
+        rollback_partial_state=failing_rollback,
+        record_reconciliation=lambda stage: trace.append(f"reconcile:{stage}"),
+        dispatch_processor=lambda: trace.append("dispatch"),
+        tracker_source=transaction.TrackerSource(
+            locator=_TRACKER_LOCATOR,
+            revision=_TRACKER_REVISION,
+            profile=dict(_TRACKER_PROFILE),
+        ),
+    )
+
+    assert result.status is transaction.TransactionStatus.RECONCILIATION_REQUIRED
+    assert result.failed_stage == "source_authority_write"
+    assert trace == ["reconcile:source_authority_write"]
+
+
+def test_ac0029_tracker_source_replaces_the_registration_stage(tmp_path: Path) -> None:
+    transaction = _load_transaction_module()
+    (tmp_path / "docs" / "product" / "intents").mkdir(parents=True)
+    trace: list[str] = []
+    result = transaction.run_intake_transaction(
+        repository_root=tmp_path,
+        configured_parent="docs/product/intents",
+        artifact_target="docs/product/intents/intent.md",
+        materialize_artifact=lambda target: target.write_text("# Brief\n", encoding="utf-8"),
+        rollback_partial_state=lambda: trace.append("rollback"),
+        record_reconciliation=lambda stage: trace.append("reconcile"),
+        dispatch_processor=lambda: trace.append("dispatch"),
+        register_workspace_entry=lambda: trace.append("register"),
+        tracker_source=transaction.TrackerSource(
+            locator=_TRACKER_LOCATOR,
+            revision=_TRACKER_REVISION,
+            profile=dict(_TRACKER_PROFILE),
+        ),
+    )
+
+    assert result.status is transaction.TransactionStatus.COMMITTED
+    assert trace == ["dispatch"]

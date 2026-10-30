@@ -189,6 +189,178 @@ def test_authority_block_is_unique_closed_and_structured() -> None:
         refresh.parse_source_authority(_authority_block(extra='unknown = "value"'))
 
 
+_PROFILE_BASE_RECORD = {
+    "contract_version": "source-authority.v1",
+    "mode": "tracker-origin",
+    "source_ref": "example-service://work/ITEM-1",
+    "source_revision": "rev-1",
+    "owned_fields": {},
+}
+_VALID_PROFILES: tuple[object, ...] = (
+    {"id": "example-tracker", "version": "1.0"},
+    {"id": "x" * 200, "version": "v" * 100},
+    {"id": "a", "version": "b"},
+)
+_INVALID_PROFILES: tuple[object, ...] = (
+    {"id": "example-tracker"},
+    {"version": "1.0"},
+    {},
+    {"id": "example-tracker", "version": "1.0", "extra": "x"},
+    {"id": 7, "version": "1.0"},
+    {"id": "example-tracker", "version": 1},
+    {"id": "", "version": "1.0"},
+    {"id": "example-tracker", "version": ""},
+    {"id": "bad\nid", "version": "1.0"},
+    {"id": "bad\rid", "version": "1.0"},
+    {"id": "example-tracker", "version": "1\r\n"},
+    {"id": "example-tracker", "version": "1.0\n"},
+    {"id": "x" * 201, "version": "1.0"},
+    {"id": "example-tracker", "version": "v" * 101},
+    "example-tracker",
+)
+
+
+def _profile_authority_schema_validator() -> Draft202012Validator:
+    schema = json.loads((_CONTRACT_ROOT / "source-authority.schema.json").read_text())
+    return Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+
+
+def _record_with_profile_markdown(profile: object) -> str:
+    """Hand-write a record so malformed tables reach the parser unrendered."""
+    if isinstance(profile, dict):
+        table = "\n[tracker_profile]\n" + "".join(
+            f"{key} = {json.dumps(value)}\n" for key, value in profile.items()
+        )
+    else:
+        table = f"tracker_profile = {json.dumps(profile)}\n"
+    body = (
+        'contract_version = "source-authority.v1"\nmode = "tracker-origin"\n'
+        'source_ref = "example-service://work/ITEM-1"\nsource_revision = "rev-1"\n'
+        f"{table}\n[owned_fields]\n"
+    )
+    return f"```toml source-authority\n{body}```\n"
+
+
+def test_ac0001_schema_accepts_base_records_with_or_without_a_profile() -> None:
+    validator = _profile_authority_schema_validator()
+    validator.validate(dict(_PROFILE_BASE_RECORD))
+    for profile in _VALID_PROFILES:
+        validator.validate({**_PROFILE_BASE_RECORD, "tracker_profile": profile})
+
+
+@pytest.mark.parametrize("profile", _INVALID_PROFILES, ids=repr)
+def test_ac0001_schema_rejects_a_malformed_profile_table(profile: object) -> None:
+    validator = _profile_authority_schema_validator()
+    assert not validator.is_valid({**_PROFILE_BASE_RECORD, "tracker_profile": profile})
+
+
+@pytest.mark.parametrize("profile", _VALID_PROFILES, ids=repr)
+def test_ac0002_parser_and_renderer_accept_each_schema_valid_profile(
+    profile: dict[str, str],
+) -> None:
+    refresh = _load_refresh()
+    authority = refresh.parse_source_authority(_record_with_profile_markdown(profile))
+    assert authority.tracker_profile == profile
+    rendered = refresh.render_source_authority(authority)
+    assert rendered.index("[tracker_profile]") < rendered.index("[owned_fields]")
+    assert rendered.index("source_revision") < rendered.index("[tracker_profile]")
+    assert refresh.parse_source_authority(rendered) == authority
+
+
+def test_ac0002_profile_renders_after_accepted_revision_and_round_trips_with_acceptance() -> None:
+    refresh = _load_refresh()
+    authority = replace(
+        refresh.parse_source_authority(_authority_block()),
+        tracker_profile={"id": "example-tracker", "version": "1.0"},
+    )
+    rendered = refresh.render_source_authority(authority)
+    assert rendered.index("accepted_revision") < rendered.index("[tracker_profile]")
+    assert rendered.index("[tracker_profile]") < rendered.index("[owned_fields]")
+    assert refresh.parse_source_authority(rendered) == authority
+    assert refresh.parse_source_authority(_authority_block()).tracker_profile is None
+
+
+@pytest.mark.parametrize("profile", _INVALID_PROFILES, ids=repr)
+def test_ac0002_parser_refuses_each_schema_invalid_profile(profile: object) -> None:
+    refresh = _load_refresh()
+    with pytest.raises(refresh.RefreshRefusal, match="invalid_source_authority"):
+        refresh.parse_source_authority(_record_with_profile_markdown(profile))
+
+
+@pytest.mark.parametrize("profile", _INVALID_PROFILES, ids=repr)
+def test_ac0002_renderer_refuses_each_schema_invalid_profile(profile: object) -> None:
+    refresh = _load_refresh()
+    authority = replace(
+        refresh.parse_source_authority(_authority_block()), tracker_profile=profile
+    )
+    with pytest.raises(refresh.RefreshRefusal, match="invalid_source_authority"):
+        refresh.render_source_authority(authority)
+
+
+_TRACKER_SOURCE = (
+    "example-service://work/ITEM-1",
+    "rev-1",
+    {"id": "example-tracker", "version": "1.0"},
+)
+
+
+def test_ac0025_first_record_carries_locator_revision_profile_and_no_owned_fields() -> None:
+    refresh = _load_refresh()
+    locator, revision, profile = _TRACKER_SOURCE
+    rendered = refresh.render_first_source_authority(
+        mode="tracker-origin", locator=locator, revision=revision, profile=profile
+    )
+    authority = refresh.parse_source_authority(rendered)
+    assert authority.source_ref == locator
+    assert authority.source_revision == revision
+    assert authority.tracker_profile == profile
+    assert dict(authority.owned_fields) == {}
+    assert authority.accepted_revision is None and authority.acceptance is None
+    assert _validator_accepts_authority(authority)
+
+
+def _validator_accepts_authority(authority: Any) -> bool:
+    return _profile_authority_schema_validator().is_valid(
+        {
+            "contract_version": "source-authority.v1",
+            "mode": authority.mode,
+            "source_ref": authority.source_ref,
+            "source_revision": authority.source_revision,
+            "tracker_profile": authority.tracker_profile,
+            "owned_fields": dict(authority.owned_fields),
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    (
+        {"mode": "repo-origin"},
+        {"mode": ""},
+        {"profile": None},
+        {"profile": {"id": "example-tracker"}},
+        {"profile": {"id": "bad\nid", "version": "1.0"}},
+        {"locator": "example-service://work/ITEM-1\nuntrusted"},
+        {"locator": ""},
+        {"revision": "rev\r1"},
+        {"revision": "r" * 201},
+    ),
+    ids=repr,
+)
+def test_ac0025_first_record_refuses_without_output(kwargs: dict[str, object]) -> None:
+    refresh = _load_refresh()
+    locator, revision, profile = _TRACKER_SOURCE
+    arguments: dict[str, object] = {
+        "mode": "tracker-origin",
+        "locator": locator,
+        "revision": revision,
+        "profile": profile,
+        **kwargs,
+    }
+    with pytest.raises(refresh.RefreshRefusal, match="invalid_source_authority"):
+        refresh.render_first_source_authority(**arguments)
+
+
 def test_adopter_guide_source_authority_fence_is_parseable() -> None:
     refresh = _load_refresh()
     guide = (_ROOT / "guides/_shared/how-to/use-work-intake.md").read_text(
