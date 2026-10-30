@@ -96,8 +96,22 @@ class Run:
     def head(self) -> str:
         return h.git(self.repo, "rev-parse", "HEAD")
 
-    def finish(self) -> dict[str, Any]:
-        return h.Controller(self.repo, self.tmp / "effects.log").drive()
+    def finish(self, decide: Any = None) -> dict[str, Any]:
+        return h.Controller(self.repo, self.tmp / "effects.log", decide=decide).drive()
+
+
+def _adopt(c: h.Controller, request: dict[str, Any]) -> bool:
+    """Answer a history-adoption decision as the owner would; a rebase is foreign history."""
+    if request.get("reason") != "history-adoption":
+        return False
+    code, out = c.report({
+        "schema_version": 1, "request_id": request["request_id"],
+        "run_id": request["run_id"], "kind": "human-decision",
+        "decision": {"decision": "adopt-history", "authority_ref": "owner:0123456789ab",
+                     "commit": request["head_commit"]},
+    })
+    assert code == 0, out
+    return True
 
 
 def _query(run: Run) -> dict[str, Any]:
@@ -314,8 +328,8 @@ class Worker(h.Controller):
         return super().work(request)
 
 
-def _exactly_once(run: Run) -> None:
-    end = Worker(run.repo, run.tmp / "effects.log").drive()
+def _exactly_once(run: Run, decide: Any = None) -> None:
+    end = Worker(run.repo, run.tmp / "effects.log", decide=decide).drive()
     assert end.get("terminal"), end
     log = (run.tmp / "effects.log").read_text("utf-8").split()
     assert len(log) == len(set(log)), log
@@ -365,7 +379,7 @@ def test_a_rebase_after_the_push_does_not_reopen_it(tmp_path: Path) -> None:
     h.git(run.repo, "commit", "-q", "-m", "upstream")
     h.git(run.repo, "checkout", "-q", "main")
     h.git(run.repo, "rebase", "-q", "upstream")
-    _exactly_once(run)
+    _exactly_once(run, decide=_adopt)
 
 
 def test_a_finish_push_runs_once_and_survives_a_rewrite(tmp_path: Path) -> None:
@@ -383,7 +397,7 @@ def test_a_finish_push_runs_once_and_survives_a_rewrite(tmp_path: Path) -> None:
     h.git(run.repo, "rebase", "-q", "--force-rebase", root)
     h.git(run.repo, "reflog", "expire", "--expire=now", "--all")
     h.git(run.repo, "gc", "-q", "--prune=now")
-    assert run.finish().get("terminal")
+    assert run.finish(decide=_adopt).get("terminal")
     log = (run.tmp / "effects.log").read_text("utf-8").split()
     assert sorted(key.rsplit(":", 2)[-2] if key.count(":") > 1 else key.split(":")[-1]
                   for key in log) == ["push", "ship"]

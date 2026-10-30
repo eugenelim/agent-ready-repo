@@ -76,6 +76,7 @@ __all__ = [
     "check_authority_ref",
     "check_git_config",
     "committed_code_trust",
+    "refuse_unsupported_ref_storage",
     "refuse_untrusted_on_unsafe_host",
     "start",
 ]
@@ -102,6 +103,7 @@ _APPROVAL_FIELDS = frozenset({
 _RECORD_FIELDS = {
     "effect-resolutions.jsonl": frozenset({"entry", "operation_key", "run_id", "effect", "scope"}),
 }
+RESULT_AUTHORITIES = ("legacy-worktree", "protected-product-ref")
 INTENTS = ("code", "spec-plan")
 CODE_TRUST = ("trusted", "untrusted")
 
@@ -144,6 +146,12 @@ def load_policy() -> dict[str, Any]:
     # The run lock's own rule: a contender's wait < the longest hold < the stale
     # window. Red proof is the longest hold, so its budget plus a margin for the
     # git work around it must end before the lock can be judged stale.
+    if data.get("result_authority") not in RESULT_AUTHORITIES:
+        raise Refusal(
+            "invalid-policy",
+            "skill maintainer",
+            "result_authority must be legacy-worktree or protected-product-ref",
+        )
     wait = float(data["run_lock_timeout_seconds"])
     hold = float(data["red_proof_budget_seconds"]) + _LOCK_MARGIN_SECONDS
     if not wait < hold < float(data["run_lock_stale_seconds"]):
@@ -168,6 +176,8 @@ class Workspace:
     spec_rel: str
     clock: Callable[[], str] | None = None
     policy: dict[str, Any] = field(default_factory=lambda: load_policy())
+    # Set by ``reconcile`` for one verb: history only the owner can admit, or ``None``.
+    divergence: Any = field(default=None, repr=False)
 
     def __post_init__(self) -> None:
         if self.clock is None:
@@ -362,6 +372,23 @@ def check_git_config(ws: Workspace) -> None:
             )
 
 
+def refuse_unsupported_ref_storage(ws: Workspace) -> None:
+    """Refuse a repository whose ref storage is not Git's files backend.
+
+    Read from the effective config, before any ref is read or written, because the
+    product ref's direct file reads and its transaction assume loose and packed refs.
+    """
+    config = {e.key: e.value for e in ws.git.hardened.config_entries()}
+    storage = config.get("extensions.refstorage")
+    if storage is not None and storage.strip().lower() != "files":
+        raise Refusal(
+            "unsupported-ref-storage",
+            "owner",
+            "this repository does not use Git's files ref storage, which the supervisor "
+            "needs to keep its product ref; use a repository with files ref storage",
+        )
+
+
 def _status_refusals(ws: Workspace, spec_text: str, plan_text: str, intent: str) -> None:
     spec_status = _projector.spec_status(spec_text)
     if spec_status not in _SPEC_STATUSES:
@@ -472,10 +499,12 @@ def start(
     envelope = acceptance.derive_envelope(refs)
     approvals = ws.approvals()
     head = ws.git.head()
+    product_ref: str | None = None
     if approvals:
         run_id = approvals[0]["run_id"]
         base = approvals[0]["base"]
         latest = approvals[-1]
+        _supervisor("_supervisor_recovery.py").reconcile(ws, "start")
         commits = ws.git.supervisor_commits(run_id)
         foreign = ws.git.sync(commits[-1].sha if commits else None)
         if foreign:
@@ -491,6 +520,14 @@ def start(
     else:
         run_id = "run-" + hashlib.sha256(f"{ws.spec_rel}\0{head}".encode()).hexdigest()[:16]
         base = head
+        product_ref = ws.git.new_product_name(run_id)
+    if approvals and ws.divergence is not None:
+        raise Refusal(
+            "product-ref-diverged",
+            "controller",
+            "HEAD holds history the run's product ref does not; run next to decide "
+            "whether to adopt it before amending the approval",
+        )
     sequence = len(approvals) + 1
     pi = sibling("_policy_import.py")
     issuer, grant = ws.grant(["delivery/policy-import"])
@@ -536,8 +573,10 @@ def start(
         run_id=run_id,
         step=f"approval:{sequence}",
         operation="approval",
+        trailers={"Supervisor-Product-Ref": product_ref} if product_ref else None,
         appends={"approvals.jsonl": canonical_line(line)},
         summary=f"admit approval pair {sequence}",
+        create_ref=product_ref,
     )
     if not approvals:
         # Only an admitted start records the installed supervisor's digests, once.

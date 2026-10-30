@@ -88,7 +88,7 @@ def test_repeated_start_on_a_current_pair_is_a_no_op(tmp_path: Path) -> None:
     assert len(_approval_lines(repo)) == 1 and len(_commits(repo)) == 2
 
 
-@pytest.mark.parametrize("point", ["commit-built", "head-moved", "synced"])
+@pytest.mark.parametrize("point", ["commit-built", "refs-moved", "synced"])
 def test_interrupted_start_leaves_no_partial_line_and_reruns(tmp_path: Path, point: str) -> None:
     repo = h.make_repo(tmp_path)
 

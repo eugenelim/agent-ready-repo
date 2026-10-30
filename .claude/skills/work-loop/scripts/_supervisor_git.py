@@ -43,6 +43,7 @@ __all__ = [
     "code_running_keys",
     "defined_filters",
     "discover",
+    "set_update_hook",
 ]
 
 GIT_TIMEOUT_S = 60.0
@@ -71,6 +72,17 @@ _CODE_RUNNING_FIXED = frozenset({
     "gpg.ssh.defaultkeycommand",
     "include.path",
 })
+
+
+# A test seam: called after the control check and before ``git update-ref`` launches,
+# so a test can move a ref in the one window the control check cannot see.
+_UPDATE_HOOK: Callable[[], None] | None = None
+
+
+def set_update_hook(hook: Callable[[], None] | None) -> None:
+    """Install a callable run just before each ``git update-ref`` launches."""
+    global _UPDATE_HOOK
+    _UPDATE_HOOK = hook
 
 
 class SupervisorGitError(Exception):
@@ -507,6 +519,8 @@ class HardenedGit:
         """Run ``git <args>`` against the pinned directories and return stdout bytes."""
         environment = hardened_env(env)
         self.verify_control_state()
+        if args[0] == "update-ref" and _UPDATE_HOOK is not None:
+            _UPDATE_HOOK()
         pins = self.pins
         diffing = ["--no-ext-diff", "--no-textconv"] if args[0] in _DIFFING else []
         argv = [

@@ -166,6 +166,18 @@ A supported finding becomes a `repair-request`: the supervisor returns to
 `implement-task` for it, then asks for a fresh report on the replacement subject.
 `review-not-eligible` opens a `human-decision` when the review cannot close.
 
+### The product ref
+
+`start` also creates the run's product ref, `refs/agentbundle/delivery/<run-id>/<token>/product`,
+with a fresh token for each admission. Every supervisor step moves `HEAD` (through
+the branch it names) and this ref together in one compare-and-swap, so both always
+name the same commit after a step. Only the supervisor moves it. Before each verb it
+compares `HEAD` with the ref: it finishes a step a crash cut in half, moves `HEAD`
+forward to the ref after a reset, and stops with `product-ref-diverged`,
+`projection-blocked`, or a `history-adoption` decision when it cannot do either safely.
+A run that had no ref before this feature gains one at its latest commit the supervisor
+made. Repositories whose ref storage is not Git's files backend are refused.
+
 ### Human decisions
 
 A `human-decision` request carries `reason`, `question`, and sometimes
@@ -177,6 +189,7 @@ human's authority reference; never invent one.
 | --- | --- | --- |
 | `review-not-eligible` | `owner` for `reselect-review`, a `risk-owner` for `accept-risk` | Report `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`, or `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": [...]}}`. |
 | `replan-confirmation` | `owner` | See [Recovering from a stub that is not red](#recovering-from-a-stub-that-is-not-red). |
+| `history-adoption` | `owner` | `HEAD` holds history the run did not make: a rebase, an amend, a reset past a step, or a commit of yours. The request names the `HEAD` commit (`head_commit`), how many product paths adoption would change (`changed_path_count`, with at most 20 in `changed_paths`), and whether it would change a file in the spec directory (`spec_dir_changed`). Nothing is committed until the owner answers. Report `{"decision": {"decision": "adopt-history", "authority_ref": "owner:<hex>", "commit": "<head_commit>"}}`, or restore the branch to the run's last commit and run `next`. Adopting records one `reanchor` step; if it changes the product or the spec directory, gates and reviews run again. |
 | `retry-cap` | no one | The count never resets. Surface; the run stops. |
 | `gates-failed`, `criteria-unsupported`, `uncommitted-changes` | no one through `report` | Fix the cause in the working tree or the plan, restore stray files, or stop; then `next` again. |
 | `untrusted-code` | `owner` | Start the run again with `--code-trust trusted` and an owner reference, or supply verified containment. |
@@ -207,6 +220,11 @@ who acts next, and the rows group codes that share one answer.
 
 | `code` | Cause and answer |
 | --- | --- |
+| `integration-conflict` | The run's product ref moved after the result's source commit was issued, while the supervisor was committing the result. Nothing was committed and your files are kept. Restore the product ref to the value the detail names (`git update-ref <ref> <value>`); `next` re-issues the same request, and reporting it commits the kept files. |
+| `product-ref-diverged` | The run's product ref is missing, symbolic, or names a commit other than the one the supervisor recorded. Nothing moved. Restore it with the command in the detail (`git update-ref <ref> <recorded value>`, with `--no-deref` when it is symbolic); the refusal clears. Do not point it at any other commit. |
+| `projection-blocked` | After a reset or similar, moving `HEAD` forward to the product ref would overwrite files that match neither `HEAD` nor the product ref. Nothing changed. Restore or move the named files aside, then `next`. |
+| `adoption-refused` | An `adopt-history` answer named a commit other than the current `HEAD`, came from a role other than `owner`, or the adopted history changes files under `delivery/`. Nothing was committed. Correct the answer, or restore the branch and `delivery/` to the run's last commit. |
+| `unsupported-ref-storage` | The repository uses a ref storage format other than Git's files backend (for example reftable). The owner moves the work to a repository that uses files ref storage. `status` still reports it. |
 | `attempt-residue` | A trusted file or Git control state changed while a request was open. Restore the named paths, then `next` clears it. |
 | `attempt-refused` | `report` found the same change `attempt-residue` names. Nothing from the result is committed; restore the paths. |
 | `protected-path-changed` | A result touched the spec, plan, cited records, installed skill, Git control state, or `delivery/`. Nothing from it is committed; restore the paths. |
@@ -228,7 +246,7 @@ who acts next, and the rows group codes that share one answer.
 | `foreign-delivery-edit`, `malformed-record`, `evidence-rewritten`, `invalid-approval-record` | Something other than the supervisor edited `delivery/`, or a record there is malformed or was rewritten. Restore it from `HEAD`. |
 | `supervisor-changed` | The installed skill differs from the pins taken at `start`. Restore the installed skill; if the difference is intended, Surface it to the owner. `status` in a checkout with no store directory for the run is not a refusal: it answers from the committed records. In a checkout that ran the supervisor, once a later release changes the installed supervisor, a finished run's `status` refuses on its pins until its store directory (`<git-dir>/agentbundle-supervisor/<run-id>/`) is removed. |
 | `unsupported-git-config` | A setting runs code, or a filter is defined. See [Git settings the supervisor does not support](#git-settings-the-supervisor-does-not-support). |
-| `denied-git-config`, `denied-git-control-state`, `denied-git-discovery`, `denied-git-failed`, `denied-git-unavailable`, `denied-invalid-run-id`, `denied-invalid-trailer`, `denied-not-a-directory`, `denied-store-spec`, `denied-unsafe-path` | The hardened Git helper refused: Git control state moved, a Git call failed or is unavailable, or a path, run id, or trailer is unsafe. Read the `detail`, restore the named state, and retry. |
+| `denied-git-config`, `denied-git-control-state`, `denied-git-discovery`, `denied-git-failed`, `denied-git-unavailable`, `denied-integration-state`, `denied-invalid-run-id`, `denied-invalid-trailer`, `denied-not-a-directory`, `denied-product-record`, `denied-store-spec`, `denied-unsafe-path` | The hardened Git helper refused: Git control state moved, a Git call failed or is unavailable, `HEAD` and the product ref were not reconciled when a step began (run `next`), the product ref record is damaged, or a path, run id, or trailer is unsafe. Read the `detail`, restore the named state, and retry. |
 | `invalid-argument`, `invalid-policy` | An argument value is unknown, or `supervisor-policy.json` is malformed. Correct it; a malformed policy goes to the skill maintainer. |
 | `no-open-effect` | `resolve-effect` named an operation with no open effect. Check `status` for the operation key. |
 | `run-locked` | Another process holds the run lock. Wait, then retry. |

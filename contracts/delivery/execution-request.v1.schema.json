@@ -255,6 +255,30 @@
       "type": "string",
       "maxLength": 4194304,
       "description": "A replan confirmation's unified diff of the trusted files against HEAD, shown to the human."
+    },
+    "head_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])",
+      "description": "A history-adoption decision: the HEAD commit the owner is asked to adopt."
+    },
+    "changed_path_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "A history-adoption decision: how many product paths adoption would change relative to the run's anchor."
+    },
+    "changed_paths": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "description": "A history-adoption decision: at most 20 of the product paths adoption would change."
+    },
+    "spec_dir_changed": {
+      "type": "boolean",
+      "description": "A history-adoption decision: whether adoption would change any file in the spec directory."
     }
   },
   "allOf": [
@@ -422,6 +446,26 @@
         "required": [
           "reason",
           "question"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason": {
+            "const": "history-adoption"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "then": {
+        "required": [
+          "head_commit",
+          "changed_path_count",
+          "changed_paths",
+          "spec_dir_changed"
         ]
       }
     }

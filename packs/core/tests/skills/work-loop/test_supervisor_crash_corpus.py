@@ -1,6 +1,7 @@
-"""VI-4901: the crash corpus on the real supervisor modules.
+"""VI-4901 and VI-0501: the crash corpus on the real supervisor modules.
 
-AC-0015, AC-0016, AC-0017, AC-0018, AC-0026, AC-0032. A synthetic three-task
+AC-0015, AC-0016, AC-0017, AC-0018, AC-0026, AC-0032; and, for the product ref,
+AC-0007 and AC-0017. A synthetic three-task
 code run — one TDD task, one task declaring an external effect, one plain task
 whose first gate fails — with one review round carrying a finding, run once
 uninterrupted and then once per variant: killed at each kill point, the
@@ -11,6 +12,7 @@ from __future__ import annotations
 
 import collections
 import importlib.util
+import itertools
 import json
 import sys
 from collections.abc import Callable
@@ -48,15 +50,23 @@ pytestmark = sup.INTEGRATION
 EVENT_FIELDS = {"seq": int, "run_id": str, "spec": str, "from": str, "event": str, "to": str,
                 "at": str, "schema": int, "step_id": str, "awaiting_input": bool}
 ATTEMPT_KINDS = ("write-stub", "implement-task", "run-gates", "review-role", "assess-finding")
-STEP_KINDS = {"approval", "replan", "stub", "red", "implement", "evidence", "gate-fail", "review",
+STEP_KINDS = {"approval", "replan", "reanchor", "stub", "red", "implement", "evidence", "gate-fail", "review",
               "effect-intent", "effect-dispatch", "effect-receipt", "claim", "resolution",
               "terminal"}
 RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}
 STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "terminal"}
-# Kill points in the uninterrupted run: 13 steps x (built, moved, synced, event),
-# 11 journal appends, and 1 effect dispatch. The reviewer-selection exchange is
-# one of those steps and one of those appends.
-BOUNDARIES = 65
+# Kill points in the uninterrupted run: 13 steps x (built, pending recorded, refs
+# moved, synced, event), 11 journal appends, and 1 effect dispatch. The
+# reviewer-selection exchange is one of those steps and one of those appends.
+BOUNDARIES = 78
+
+
+def _run_store(repo: Path) -> Path:
+    """The run's store directory, never a leftover temporary one."""
+    runs = [p for p in (repo / ".git" / "agentbundle-supervisor").iterdir()
+            if p.name.startswith("run-")]
+    assert len(runs) == 1
+    return runs[0]
 
 
 class Recorder:
@@ -67,10 +77,20 @@ class Recorder:
         self.seen: list[str] = []
         self.staged_after_sync: list[list[str]] = []
 
+    def check_product_ref(self) -> None:
+        """After a step: ``HEAD`` stays on its branch and both refs carry the same tree."""
+        store = _run_store(self.repo)
+        record = json.loads((store / "product-ref").read_text("utf-8"))
+        head = h.git(self.repo, "rev-parse", "HEAD").strip()
+        assert h.git(self.repo, "symbolic-ref", "HEAD").strip() == "refs/heads/main"
+        assert h.git(self.repo, "rev-parse", record["name"]).strip() == head
+        assert record["recorded"] == head and record["pending"] is None
+
     def __call__(self, name: str) -> None:
         self.seen.append(name)
         n = len(self.seen)
         if name == "synced":
+            self.check_product_ref()
             staged = h.git(self.repo, "diff", "--cached", "--name-only").split()
             if staged:
                 self.staged_after_sync.append(staged)
@@ -97,6 +117,22 @@ def _check_run_json(repo: Path, payload: dict[str, Any], problems: list[str]) ->
         problems.append(f"run.json {run} for {payload}")
 
 
+def adopt(c: h.Controller, request: dict[str, Any]) -> bool:
+    """Answer a history-adoption decision the way the owner's controller would."""
+    if request.get("reason") != "history-adoption":
+        return False
+    code, out = c.report({
+        "schema_version": 1,
+        "request_id": request["request_id"],
+        "run_id": request["run_id"],
+        "kind": "human-decision",
+        "decision": {"decision": "adopt-history", "authority_ref": "owner:0123456789ab",
+                     "commit": request["head_commit"]},
+    })
+    assert code == 0, out
+    return True
+
+
 def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
                 between: Callable[..., None] | None = None) -> dict[str, Any]:
     repo = h.make_repo(tmp)
@@ -107,7 +143,7 @@ def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
     crashes = 0
     try:
         for _ in range(4):
-            controller = h.Controller(repo, tmp / "effects.log", between=between)
+            controller = h.Controller(repo, tmp / "effects.log", between=between, decide=adopt)
             original_cli = h.run_cli
 
             def checked(r: Path, *argv: str, _orig: Any = original_cli) -> tuple[int, dict]:
@@ -195,7 +231,23 @@ def summarize(repo: Path, effect_log: Path, end: dict[str, Any], log: list[dict[
         if request.get("kind") in ATTEMPT_KINDS and request["request_id"] not in attempts:
             attempts.append(request["request_id"])
     _, view = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    store = _run_store(repo)
+    product = json.loads((store / "product-ref").read_text("utf-8"))["name"]
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    product_ref = {
+        "commit": h.git(repo, "rev-parse", product).strip(),
+        "tree": h.git(repo, "rev-parse", f"{product}^{{tree}}").strip(),
+        "head_tree": h.git(repo, "rev-parse", "HEAD^{tree}").strip(),
+        "manifest": sorted(
+            line.split("\t", 1)[1] + line.split()[2] for line in
+            h.git(repo, "ls-tree", "-r", product).splitlines()
+            if f"\t{h.SPEC_DIR}/" not in line
+        ),
+        "head": head,
+        "branch": h.git(repo, "symbolic-ref", "HEAD").strip(),
+    }
     return {
+        "product_ref": product_ref,
         "working_matches_head": working_matches_head,
         "attempts": attempts,
         "retry_count": view["retry_count"],
@@ -215,8 +267,16 @@ def summarize(repo: Path, effect_log: Path, end: dict[str, Any], log: list[dict[
     }
 
 
-def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool = True) -> None:
+def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool = True,
+                     adopted: int = 0) -> None:
     assert run["end"] == "terminal"
+    ref = run["product_ref"]
+    assert ref["commit"] == ref["head"] and ref["tree"] == ref["head_tree"]
+    assert ref["branch"] == "refs/heads/main"
+    if trees:
+        # The product manifest; the spec directory's records differ by design when
+        # a kill makes the effect source be asked again.
+        assert ref["manifest"] == base["product_ref"]["manifest"]
     if trees:
         assert run["done"] == base["done"]
     else:
@@ -228,7 +288,9 @@ def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool =
         # fingerprint; the records must otherwise be the same.
         assert _unfingerprinted(run["delivery"]) == _unfingerprinted(base["delivery"])
     assert run["effects"] == base["effects"] == {next(iter(base["effects"])): 1}
-    assert run["decisions"] == base["decisions"]
+    # A kill during adoption re-issues the same decision once after the restart.
+    asked = [reason for reason, _ in itertools.groupby(run["decisions"])]
+    assert asked == base["decisions"] + ["history-adoption"] * adopted
     assert run["events_ok"]
     assert run["working_matches_head"]
     assert run["retry_count"] == base["retry_count"] == 1
@@ -339,4 +401,73 @@ def test_rebase_preserving_messages_converges(baseline: dict[str, Any], tmp_path
 
     run = run_variant(tmp_path, between=between)
     assert rebased == [True]
-    assert_converged(baseline, run, trees=False)
+    assert_converged(baseline, run, trees=False, adopted=1)
+
+
+def _reset_two_back(c: h.Controller, request: dict[str, Any], phase: str, done: list[int],
+                    recorder_box: list[Recorder]) -> None:
+    if phase == "reported" and _first("implement-task", "Calculator")(request) and not done:
+        h.git(c.repo, "reset", "-q", "--hard", "HEAD~2")
+        done.append(len(recorder_box[0].seen) if recorder_box else 0)
+
+
+def _rebase_between(c: h.Controller, request: dict[str, Any], phase: str, done: list[int],
+                    recorder_box: list[Recorder]) -> None:
+    if phase == "reported" and _first("implement-task", "Calculator")(request) and not done:
+        root = h.git(c.repo, "rev-list", "--max-parents=0", "HEAD").strip()
+        h.git(c.repo, "checkout", "-q", "-b", "upstream", root)
+        (c.repo / "OTHER.md").write_text("upstream\n", "utf-8")
+        h.git(c.repo, "add", "OTHER.md")
+        h.git(c.repo, "commit", "-q", "-m", "unrelated upstream change")
+        h.git(c.repo, "checkout", "-q", "main")
+        h.git(c.repo, "rebase", "-q", "upstream")
+        done.append(len(recorder_box[0].seen) if recorder_box else 0)
+
+
+SCENARIOS = {"lag-repair": (_reset_two_back, 0), "adoption": (_rebase_between, 1)}
+
+
+def _scenario(tmp: Path, name: str, *, kill_at: int = 0) -> tuple[dict[str, Any], int]:
+    """Run the full synthetic run with a diversion in the middle; return it and where it struck."""
+    divert, _adopted = SCENARIOS[name]
+    done: list[int] = []
+    box: list[Recorder] = []
+    original = Recorder.__init__
+
+    def remember(self: Recorder, *a: Any, **kw: Any) -> None:
+        original(self, *a, **kw)
+        box.append(self)
+
+    Recorder.__init__ = remember  # type: ignore[method-assign]
+    try:
+        run = run_variant(tmp, kill_at=kill_at,
+                          between=lambda c, r, p: divert(c, r, p, done, box))
+    finally:
+        Recorder.__init__ = original  # type: ignore[method-assign]
+    return run, (done[0] if done else 0)
+
+
+@pytest.fixture(scope="module", params=sorted(SCENARIOS))
+def diverted(request: pytest.FixtureRequest,
+             tmp_path_factory: pytest.TempPathFactory) -> tuple[str, dict[str, Any], int]:
+    run, at = _scenario(tmp_path_factory.mktemp(request.param), request.param)
+    return request.param, run, at
+
+
+def test_a_reset_or_a_rebase_converges_uninterrupted(baseline: dict[str, Any],
+                                                     diverted: tuple[str, dict[str, Any], int]
+                                                     ) -> None:
+    name, run, _at = diverted
+    adopted = SCENARIOS[name][1]
+    assert_converged(baseline, run, trees=name == "lag-repair", adopted=adopted)
+
+
+@pytest.mark.parametrize("offset", range(1, 13))
+def test_every_write_of_lag_repair_and_adoption_converges(
+    baseline: dict[str, Any], diverted: tuple[str, dict[str, Any], int], tmp_path: Path,
+    offset: int,
+) -> None:
+    name, _run, at = diverted
+    run, _ = _scenario(tmp_path, name, kill_at=at + offset)
+    assert run["crashes"] == 1
+    assert_converged(baseline, run, trees=name == "lag-repair", adopted=SCENARIOS[name][1])

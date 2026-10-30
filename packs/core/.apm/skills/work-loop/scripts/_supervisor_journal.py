@@ -71,6 +71,7 @@ STAGES = ("admitted", "implementing", "gating", "reviewing", "awaiting-human", "
 OPERATION_STAGE: dict[str, str | None] = {
     "approval": "admitted",
     "replan": None,
+    "reanchor": None,
     "stub": "implementing",
     "red": "implementing",
     "implement": "implementing",

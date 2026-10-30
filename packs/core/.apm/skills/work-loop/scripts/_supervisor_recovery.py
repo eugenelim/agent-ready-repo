@@ -1,4 +1,4 @@
-"""_supervisor_recovery — recovery after a stub result that is not red.
+"""_supervisor_recovery — recovery after a not-red stub, and product-ref integration.
 
 A ``write-stub`` result refused as not red closes its attempt. This module owns
 what follows: it observes and discards the files the attempt and its launch left,
@@ -15,6 +15,13 @@ not remove is recorded, shown in ``status``, and blocks every step until the
 controller removes it or restores it to ``HEAD``; rewriting it to other bytes does not
 clear it.
 
+The second half of this module classifies how ``HEAD`` and the run's product ref
+relate before every verb derives anything. It completes a transaction that moved
+one ref, creates the ref for a run that has none, moves ``HEAD`` forward over
+commits the supervisor made, refuses a ref that is not at its recorded value, and
+turns any other difference into an owner decision, ``history-adoption``, whose
+answer commits one ``reanchor`` step.
+
 Standard library only. Python 3.11+.
 """
 
@@ -26,6 +33,7 @@ import importlib.util
 import os
 import stat
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -70,12 +78,17 @@ Refusal = _loop.Refusal
 Action = _loop.Action
 
 __all__ = [
+    "Divergence",
+    "adoption_action",
     "close_not_red",
     "decisions",
     "gate",
+    "is_adoption",
     "is_confirmation",
     "leftovers",
     "read_contents",
+    "reconcile",
+    "report_adoption",
     "replan_digest",
     "report_confirmation",
     "settle",
@@ -411,3 +424,335 @@ def close_not_red(
     return ws.attempts.close_not_red(  # type: ignore[no-any-return]
         state, request_id, lambda: _discard(ws, observed)
     )
+
+
+# ── the product ref ─────────────────────────────────────────────────────────
+
+ADOPTION_REASON = "history-adoption"
+_SHOWN_PATHS = 20
+_admission = _loop._admission
+
+
+@dataclass
+class Divergence:
+    """How ``HEAD`` differs from the anchor in a way only the owner can admit."""
+
+    head: str
+    anchor: str
+    paths: list[str]
+    spec_dir_changed: bool
+    spec_files_changed: bool
+    delivery_changed: bool
+
+    @property
+    def product_paths(self) -> list[str]:
+        return self.paths
+
+    @property
+    def changed(self) -> str:
+        """Whether adoption changes the product, the spec directory's files, both, or neither."""
+        hits = (("product", self.paths), ("spec", self.spec_files_changed))
+        kinds = [kind for kind, hit in hits if hit]
+        return "+".join(kinds) or "none"
+
+
+def is_adoption(request: dict[str, Any]) -> bool:
+    """Whether *request* is a history-adoption decision."""
+    return request.get("kind") == "human-decision" and request.get("reason") == ADOPTION_REASON
+
+
+def _diverged(ws: Any, record: Any, kind: str, value: str) -> Any:
+    ws.attempts._log("product-ref-diverged")
+    shown = value if kind == "commit" else kind
+    flag = "--no-deref " if kind == "symbolic" else ""
+    return Refusal(
+        "product-ref-diverged",
+        "controller",
+        f"the product ref {record.name} is {shown}, not its recorded value {record.recorded}; "
+        f"restore it with: git update-ref {flag}{record.name} {record.recorded}",
+    )
+
+
+def _divergence(ws: Any, head: str, anchor: str) -> Divergence:
+    out = ws.git.run("diff", "--name-only", "-z", "--no-renames", anchor, head)
+    paths = [p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p]
+    spec = ws.spec_rel + "/"
+    delivery = ws.git.delivery_rel + "/"
+    return Divergence(
+        head=head,
+        anchor=anchor,
+        paths=sorted(p for p in paths if not p.startswith(spec)),
+        spec_dir_changed=any(p.startswith(spec) for p in paths),
+        spec_files_changed=any(p.startswith(spec) and not p.startswith(delivery) for p in paths),
+        delivery_changed=any(p.startswith(delivery) for p in paths),
+    )
+
+
+def _latest_made(ws: Any, run_id: str) -> str | None:
+    """The run's latest made commit that still exists as a commit object."""
+    for sha in reversed(ws.git.made_list(run_id)):
+        found = ws.git.text("rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}", check=False)
+        if found.strip() == sha:
+            return sha
+    return None
+
+
+def _create(ws: Any, run_id: str, head: str) -> Any:
+    """Give a run that records no product ref one at its latest made commit, or report why not."""
+    git = ws.git
+    latest = _latest_made(ws, run_id)
+    if latest is None:
+        return None
+    if latest != head and not git.made_only(run_id, head, latest):
+        return _divergence(ws, head, latest)
+    record = _commit.ProductRecord(git.new_product_name(run_id), None, latest)
+    git.write_product_record(run_id, record)
+    _commit.kill_point("pending-recorded")
+    git.run("update-ref", "-m", "work-supervisor: create product ref", record.name, latest,
+            "0" * len(latest))
+    _commit.kill_point("repaired")
+    done = _commit.ProductRecord(record.name, latest, None)
+    git.write_product_record(run_id, done)
+    return done
+
+
+def _complete(ws: Any, run_id: str, record: Any, value: str, head: str) -> Any:
+    """Finish a transaction that moved one ref, and clear the pending commit."""
+    git = ws.git
+    if value == record.pending and head == record.recorded:
+        git.run("update-ref", "-m", "work-supervisor: complete step", "HEAD", value, head)
+    elif value == record.recorded and head == record.pending:
+        git.run("update-ref", "-m", "work-supervisor: complete step", record.name,
+                record.pending, value)
+        value = record.pending
+    git._head = None
+    _commit.kill_point("repaired")
+    done = _commit.ProductRecord(record.name, value, None)
+    git.write_product_record(run_id, done)
+    return done
+
+
+def reconcile(ws: Any, verb: str = "") -> Divergence | None:
+    """Classify ``HEAD`` against the product ref before a verb derives; repair or refuse.
+
+    Returns a ``Divergence`` when only the owner can admit the difference; the
+    caller issues the adoption decision. Refuses ``product-ref-diverged`` when the
+    ref is not at its recorded or pending value, and ``projection-blocked`` when
+    forward projection would overwrite a file. With an attempt open, the attempt
+    guard has already answered and only an interrupted transaction is completed.
+    """
+    _admission.refuse_unsupported_ref_storage(ws)
+    ws.divergence = None
+    try:
+        approvals = ws.approvals()
+    except Refusal:
+        return None
+    if not approvals:
+        return None
+    run_id = approvals[0]["run_id"]
+    git = ws.git
+    open_attempt = ws.attempts.open is not None
+    head = git.head()
+    record = git.product_record(run_id)
+    if record is None:
+        if open_attempt:
+            return None
+        made = _create(ws, run_id, head)
+        if isinstance(made, Divergence):
+            ws.divergence = made
+            return made
+        if made is None:
+            return None
+        record = made
+    kind, value = git.read_ref(record.name)
+    if kind == "missing" and record.recorded is None and record.pending is not None:
+        git.run("update-ref", "-m", "work-supervisor: create product ref", record.name,
+                record.pending, "0" * len(record.pending))
+        kind, value = "commit", record.pending
+    trusted = {v for v in (record.recorded, record.pending) if v is not None}
+    if kind != "commit" or value not in trusted:
+        if open_attempt:
+            return None
+        raise _diverged(ws, record, kind, value)
+    if record.pending is not None:
+        record = _complete(ws, run_id, record, value, head)
+        head = git.head()
+    anchor = record.recorded
+    assert anchor is not None
+    if head == anchor or open_attempt:
+        return None
+    if git.made_only(run_id, head, anchor):
+        _project_forward(ws, head, anchor)
+        return None
+    ws.divergence = _divergence(ws, head, anchor)
+    return ws.divergence  # type: ignore[no-any-return]
+
+
+def _index_oids(ws: Any, paths: list[str]) -> dict[str, str | None]:
+    """The index's object id for each path (``None`` when absent, ``"conflict"`` when unmerged)."""
+    out = ws.git.run(
+        "ls-files", "-s", "-z", "--", *paths, literal_pathspecs=True
+    )
+    found: dict[str, str | None] = dict.fromkeys(paths)
+    for entry in out.split(b"\0"):
+        if not entry:
+            continue
+        meta, _, path = entry.partition(b"\t")
+        _mode, oid, stage = meta.decode().split()
+        name = path.decode("utf-8", "surrogateescape")
+        found[name] = oid if stage == "0" and found.get(name) is None else "conflict"
+    return found
+
+
+def _project_forward(ws: Any, head: str, target: str) -> None:
+    """Bring the working tree and index to *target*'s tree, then move ``HEAD`` to it.
+
+    Every path the skipped commits changed (``delivery/`` aside, which the lag sync
+    owns) must hold ``HEAD``'s or the target's version in both the working tree and
+    the index; otherwise the verb refuses and changes nothing. Git writes the
+    target's version, and only then does ``HEAD`` move by compare-and-swap, so a
+    crash before the move repeats on the same inputs.
+    """
+    git = ws.git
+    out = git.run("diff", "--name-only", "-z", "--no-renames", head, target)
+    delivery = git.delivery_rel + "/"
+    paths = sorted(
+        p
+        for p in (x.decode("utf-8", "surrogateescape") for x in out.split(b"\0") if x)
+        if not p.startswith(delivery)
+    )
+    if paths:
+        indexed = _index_oids(ws, paths)
+        old, new = git._tree(head), git._tree(target)
+        blocked = []
+        for rel in paths:
+            try:
+                working = git.read_working(rel)
+            except _commit.SupervisorGitError:
+                blocked.append(rel)
+                continue
+            if working not in (git.show(rel, head), git.show(rel, target)) or indexed[rel] not in (
+                old.get(rel),
+                new.get(rel),
+            ):
+                blocked.append(rel)
+        if blocked:
+            raise Refusal(
+                "projection-blocked",
+                "controller",
+                "these files differ from both HEAD and the product ref, so the run cannot "
+                "move HEAD forward to the product ref without overwriting them; restore or "
+                "move them aside: " + _named(blocked),
+            )
+        writes = [p for p in paths if p in new]
+        removes = [p for p in paths if p not in new]
+        if writes:
+            git.run(
+                "restore", "--source", target, "--staged", "--worktree",
+                "--pathspec-from-file=-", "--pathspec-file-nul",
+                literal_pathspecs=True,
+                stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in writes),
+            )
+        if removes:
+            git.run(
+                "rm", "-q", "-f", "--ignore-unmatch",
+                "--pathspec-from-file=-", "--pathspec-file-nul",
+                literal_pathspecs=True,
+                stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in removes),
+            )
+    _commit.kill_point("projection-updated")
+    try:
+        git.run("update-ref", "-m", "work-supervisor: project product ref", "HEAD", target, head)
+    finally:
+        git._head = None
+    _commit.kill_point("repaired")
+
+
+# ── owner adoption of history the supervisor did not make ───────────────────
+
+
+def adoption_action(ws: Any, state: Any, div: Divergence) -> Any:
+    """The ``history-adoption`` decision for a ``HEAD`` the owner has not admitted."""
+    shown = div.paths[:_SHOWN_PATHS]
+    where = "and would change files in the spec directory" if div.spec_dir_changed else (
+        "and would change no file in the spec directory"
+    )
+    return Action(
+        "request",
+        _loop.human_decision(
+            ws,
+            state,
+            ADOPTION_REASON,
+            f"HEAD is {div.head}, which holds history this run did not make. Adopting it "
+            f"changes {len(div.paths)} product path(s) from the run's product ref "
+            f"({', '.join(shown)[:1200] or 'none'}) {where}. Answer adopt-history with an owner "
+            "authority reference and that commit id, or restore HEAD to the run's last commit.",
+            key=div.head,
+            head_commit=div.head,
+            changed_path_count=len(div.paths),
+            changed_paths=shown,
+            spec_dir_changed=div.spec_dir_changed,
+        ),
+    )
+
+
+def report_adoption(
+    ws: Any, state: Any, request: dict[str, Any], result: dict[str, Any]
+) -> str:
+    """Admit an ``adopt-history`` answer as one ``reanchor`` step, or refuse and commit nothing."""
+    div = ws.divergence
+    decision = result.get("decision")
+    if (
+        div is None
+        or not isinstance(decision, dict)
+        or set(decision) != {"decision", "authority_ref", "commit"}
+        or decision["decision"] != "adopt-history"
+    ):
+        raise Refusal(
+            "invalid-result",
+            "controller",
+            "an adoption answer needs decision, authority_ref, and commit",
+        )
+    role = ws.policy["authority_roles"]["adopt_history"]
+    if not _admission.check_authority_ref(decision["authority_ref"], role):
+        raise Refusal(
+            "adoption-refused",
+            "controller",
+            f"adopting history needs a {role} authority reference",
+        )
+    if decision["commit"] != div.head or ws.git.head() != div.head:
+        raise Refusal(
+            "adoption-refused",
+            "controller",
+            f"the answer must name the current HEAD, {div.head}",
+        )
+    if div.delivery_changed:
+        raise Refusal(
+            "adoption-refused",
+            "controller",
+            "the history changes files under delivery/, which only the supervisor writes; "
+            "restore them before adopting",
+        )
+    git = ws.git
+    record = git.product_record(state.run_id)
+    name = None if record is not None else git.new_product_name(state.run_id)
+    trailers = {
+        "Supervisor-Reanchor-From": div.anchor,
+        "Supervisor-Reanchor-Changed": div.changed,
+        "Supervisor-Authority-Ref": decision["authority_ref"],
+    }
+    if name is not None:
+        trailers["Supervisor-Product-Ref"] = name
+    git.build_commit(
+        run_id=state.run_id,
+        step=f"reanchor:{div.head}",
+        operation="reanchor",
+        trailers=trailers,
+        summary="adopt history",
+        known_steps=state.steps,
+        create_ref=name,
+        adopting=True,
+        product_old=div.anchor if record is not None else None,
+    )
+    ws.divergence = None
+    return "reanchor"

@@ -431,7 +431,7 @@ EXTRA_TASK = sup.task(
     done="release.txt says ready",
 )
 OPERATOR = "effect-authority:0123456789ab"
-KILL_POINTS = ["commit-built", "head-moved", "synced", "event"]
+KILL_POINTS = ["commit-built", "refs-moved", "synced", "event"]
 
 
 @pytest.fixture(scope="module")
@@ -737,3 +737,108 @@ def test_an_honest_attempt_that_imports_the_installed_scripts_passes(
     code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 0, out
     assert out["admitted"] == "stub"
+
+
+# ── VI-0517: the run's product ref during an open attempt (AC-0015, AC-0016) ─
+
+
+@pytest.fixture(scope="module")
+def product_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A run with an open ``implement-task`` attempt."""
+    base = tmp_path_factory.mktemp("product")
+    repo = h.make_repo(base)
+    assert h.start(repo)[0] == 0
+    assert _drive_to(repo, "implement-task", base)["kind"] == "implement-task"
+    return base
+
+
+def _product(repo: Path) -> tuple[str, str]:
+    git_dir = Path(h.git(repo, "rev-parse", "--absolute-git-dir").strip())
+    run = next(p for p in (git_dir / "agentbundle-supervisor").iterdir() if p.name.startswith("run-"))
+    record = json.loads((run / "product-ref").read_text("utf-8"))
+    return record["name"], record["recorded"]
+
+
+def _forged_product(repo: Path) -> str:
+    return _forged_commit(repo, h.git(repo, "rev-parse", "HEAD").strip(), _run_id(repo))
+
+
+def _create(repo: Path, name: str) -> None:
+    h.git(repo, "update-ref", "-d", name)
+    h.git(repo, "update-ref", name, _forged_product(repo))
+
+
+PRODUCT_FORGERIES: dict[str, Callable[[Path, str], None]] = {
+    "created": _create,
+    "moved": lambda repo, name: h.git(repo, "update-ref", name, _forged_product(repo)),
+    "symbolic": lambda repo, name: h.git(repo, "symbolic-ref", name, "refs/heads/main"),
+    "deleted": lambda repo, name: h.git(repo, "update-ref", "-d", name),
+}
+
+
+@pytest.mark.parametrize("name", sorted(PRODUCT_FORGERIES))
+def test_a_changed_product_ref_refuses_the_attempt_until_restored(
+    product_template: Path, tmp_path: Path, name: str
+) -> None:
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    ref, recorded = _product(repo)
+    PRODUCT_FORGERIES[name](repo, ref)
+    made = _made(repo)
+    code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 1 and out["refusal"]["code"] == "attempt-refused", out
+    assert ref in out["refusal"]["detail"]
+    assert _made(repo) == made
+    code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    h.git(repo, "update-ref", "--no-deref", ref, recorded)
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 0, admitted
+
+
+def test_the_supervisors_own_move_is_not_refused(product_template: Path, tmp_path: Path) -> None:
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    crashed: list[str] = []
+
+    def hook(point: str) -> None:
+        if point == "refs-moved" and not crashed:
+            crashed.append(point)
+            raise h.Crash(point)
+
+    h.commit_module.set_kill_hook(hook)
+    try:
+        with pytest.raises(h.Crash):
+            h.Controller(repo, tmp_path / "effects.log").report(result)
+    finally:
+        h.commit_module.set_kill_hook(None)
+    ref, _recorded = _product(repo)
+    assert h.git(repo, "rev-parse", ref).strip() == h.git(repo, "rev-parse", "HEAD").strip()
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 0, payload
+    assert _product(repo)[1] == h.git(repo, "rev-parse", "HEAD").strip()
+
+
+def test_a_sibling_worktrees_run_leaves_the_attempt_admissible(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    linked = tmp_path / "linked"
+    h.git(repo, "worktree", "add", "-q", "--detach", str(linked))
+    assert h.start(repo)[0] == 0
+    assert h.start(linked)[0] == 0
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    other = _current_request(linked)
+    before = _product(linked)[1]
+    assert h.Controller(linked, tmp_path / "linked.log").report(
+        h.Controller(linked, tmp_path / "linked.log").work(other)
+    )[0] == 0
+    h.git(linked, "rev-parse", "HEAD")
+    assert (
+        h.git(repo, "rev-parse", _product(linked)[0]).strip()
+        != before
+    )
+    code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 0, admitted

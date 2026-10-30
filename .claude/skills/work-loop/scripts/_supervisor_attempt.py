@@ -324,6 +324,32 @@ class Attempts:
                     state[f"{label}:packed-refs/replace"] = _digest("\n".join(lines).encode())
         return state
 
+    def product_ref_problems(self, run_id: str) -> list[str]:
+        """Labels naming this run's product ref when it is not at its recorded or pending value.
+
+        Direct file reads, no Git call. A run with no recorded product ref has none to
+        check. The supervisor's own move is accepted because the store records the
+        pending commit before the transaction and the new value after it.
+        """
+        record = self.ws.git.product_record(run_id)
+        if record is None:
+            return []
+        kind, value = self.ws.git.read_ref(record.name)
+        trusted = {v for v in (record.recorded, record.pending) if v is not None}
+        if kind == "commit" and value in trusted:
+            return []
+        if kind == "missing" and record.recorded is None and record.pending is not None:
+            return []  # the approval step's creation has not landed yet
+        state = value if kind == "commit" else kind
+        return [f"{record.name} is {state}; restore it to {record.recorded}"]
+
+    def source_commit(self, request_id: str) -> str | None:
+        """The commit the open attempt for *request_id* was issued against, if one is open."""
+        issuance = self.open
+        if issuance is not None and issuance.request_id == request_id:
+            return issuance.head
+        return None
+
     def head_state(self) -> tuple[str | None, str]:
         """``HEAD``'s symbolic ref (``None`` when detached) and the commit it resolves to."""
         pins = self.ws.git.hardened.pins
@@ -542,6 +568,7 @@ class Attempts:
         if manifest is None:
             return
         changed = differences(manifest.git, self.git_state())
+        changed += self.product_ref_problems(manifest.run_id)
         if changed:
             raise SupervisorGitError(
                 "denied-git-control-state",
@@ -564,12 +591,14 @@ class Attempts:
             # Git control state first, by direct file reads: no supervisor git call may
             # read state a worker changed, and a refusal here is still recorded.
             git_paths = differences(issuance.git, self.git_state())
+            product = self.product_ref_problems(issuance.run_id)
             if git_paths:
                 paths = sorted({*git_paths, *differences(issuance.trusted, self._files(issuance))})
             else:
                 current_ref, current = self.head_state()
                 bad = current != issuance.head and self._history(issuance, current)
                 paths = self._differences(issuance, current, current_ref, bad)
+            paths = sorted({*paths, *product})
             if issuance.refused:
                 if paths:
                     raise _refusal("attempt-residue", self._detail(paths, standing=True))

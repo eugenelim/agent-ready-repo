@@ -112,6 +112,21 @@ REFUSALS: dict[str, tuple[str, str, str, str, str]] = {
 }
 
 
+def _adopt(repo: Path, tmp_path: Path) -> None:
+    """Answer the history-adoption decision that a controller's commit on the run raises."""
+    code, asked = _next(repo)
+    request = asked["request"]
+    assert code == 0 and request["reason"] == "history-adoption"
+    result = tmp_path / "adopt.json"
+    result.write_text(json.dumps({
+        "schema_version": 1, "request_id": request["request_id"], "run_id": request["run_id"],
+        "kind": "human-decision",
+        "decision": {"decision": "adopt-history", "authority_ref": "owner:0123456789ab",
+                     "commit": request["head_commit"]},
+    }), "utf-8")
+    assert h.run_cli(repo, "report", SPEC, str(result))[0] == 0
+
+
 @pytest.mark.parametrize("committed", [False, True], ids=["uncommitted", "committed"])
 @pytest.mark.parametrize("name", sorted(REFUSALS))
 def test_refusal_row_writes_nothing(tmp_path: Path, name: str, committed: bool) -> None:
@@ -120,6 +135,7 @@ def test_refusal_row_writes_nothing(tmp_path: Path, name: str, committed: bool) 
     _edit(repo / rel, old, new)
     if committed:
         h.git(repo, "commit", "-qam", f"protected edit: {name}")
+        _adopt(repo, tmp_path)
     before = _snapshot(repo)
     code, payload = _next(repo)
     assert code == 1
@@ -267,6 +283,7 @@ def test_amendment_and_second_start_keep_run_facts(tmp_path: Path) -> None:
     code, refused = _next(repo)
     assert code == 1 and refused["refusal"]["code"] == "criteria-changed"
     h.git(repo, "commit", "-qam", "amend AC-0001")
+    _adopt(repo, tmp_path)  # the controller's commit is history the run did not make
     code, second = h.start(repo)
     assert code == 0 and second["run_id"] == first["run_id"] and second["sequence"] == 2
     _, after = h.run_cli(repo, "status", SPEC, "--json")

@@ -388,6 +388,24 @@ def _regenerate_result(request: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _adopt(repo: Path, spec: str = SPEC) -> None:
+    """Answer the history-adoption decision a controller's own commit on top of the run raises."""
+    code, out = h.run_cli(repo, "next", spec)
+    request = out.get("request", {})
+    assert code == 0 and request.get("reason") == "history-adoption", out
+    result = repo.parent / "adopt.json"
+    result.write_text(json.dumps({
+        "schema_version": 1,
+        "request_id": request["request_id"],
+        "run_id": request["run_id"],
+        "kind": "human-decision",
+        "decision": {"decision": "adopt-history", "authority_ref": "owner:0123456789ab",
+                     "commit": request["head_commit"]},
+    }), "utf-8")
+    code, out = h.run_cli(repo, "report", spec, str(result))
+    assert code == 0, out
+
+
 def test_a_tracked_install_waits_for_the_controller_to_commit_the_regenerated_skill(
     tmp_path: Path,
 ) -> None:
@@ -406,6 +424,7 @@ def test_a_tracked_install_waits_for_the_controller_to_commit_the_regenerated_sk
         assert asked["reason"] == "uncommitted-changes", out
         h.git(repo, "add", "-A")
         h.git(repo, "commit", "-q", "-m", "regenerate the installed skill")
+        _adopt(repo)  # the controller's commit is history the run did not make
         # The commit moved HEAD, so the run re-earns its evidence before it converges.
         kinds: list[str] = []
         for _ in range(12):
@@ -438,6 +457,7 @@ def test_a_committed_skill_that_differs_from_the_admitted_one_is_refused(tmp_pat
         _append(skill / "SKILL.md", "\n<!-- slipped in after admission -->\n")
         h.git(repo, "add", "-A")
         h.git(repo, "commit", "-q", "-m", "regenerate the installed skill")
+        _adopt(repo)
         code, out = h.run_cli(repo, "next", SPEC)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
 
@@ -747,7 +767,7 @@ def test_an_open_regenerate_is_honored_only_while_it_is_open(
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (mark, out)
 
 
-@pytest.mark.parametrize("point", ["commit-built", "head-moved"])
+@pytest.mark.parametrize("point", ["commit-built", "refs-moved"])
 def test_pins_come_only_from_an_admitted_start(tmp_path: Path, point: str) -> None:
     repo = h.make_repo(tmp_path)
 
@@ -981,6 +1001,7 @@ def _open_attempt_repo(template: Path, tmp_path: Path) -> Path:
     """Spec A has an open worker attempt and a second spec B exists, with no run."""
     repo = _copy_repo(template, tmp_path)
     _add_other_spec(repo)
+    _adopt(repo)
     code, out = h.run_cli(repo, "next", SPEC)
     assert code == 0 and out["request"]["kind"] in WORKER_KINDS, out
     return repo
