@@ -710,7 +710,7 @@ def test_cooled_dependency_does_not_block_its_dependant(tmp_path, engine) -> Non
 
 
 def test_cooled_spec_raises_no_type1_finding(tmp_path, engine) -> None:
-    """AC15: the global scan omits cooled, untracked specs (and, as AC-0041, reports no spec)."""
+    """AC-0041: the Type 1 audit is empty for a cooled tree as for a control tree."""
     control = _tree(tmp_path / "control", lifecycle=False, specs=())
     cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
     for root in (control, cooled):
@@ -720,7 +720,7 @@ def test_cooled_spec_raises_no_type1_finding(tmp_path, engine) -> None:
     control_findings = _reconcile_json(control, engine)["reconciliation"]["type1"]
     cooled_findings = _reconcile_json(cooled, engine)["reconciliation"]["type1"]
     assert control_findings == []
-    assert all(item["spec_path"] != "spec/alpha" for item in cooled_findings)
+    assert cooled_findings == []
 
 
 def test_global_scan_counter_moves_by_exactly_one(tmp_path, engine) -> None:

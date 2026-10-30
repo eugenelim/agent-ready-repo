@@ -1905,6 +1905,8 @@ def test_every_replay_case_tree_and_the_planted_refusal_give_a_checked_member_or
                 if path.is_file() and not path.is_symlink():
                     path.chmod(0o644)
     assert bad == ["planted-invalid-toml"], bad
+    for action in ("start", "resume", "ask", "none"):
+        assert actions[action] >= 1, (action, dict(actions))
     with capsys.disabled():
         print(f"\nreadiness corpus: {len(trees)} trees")
         print("  per reason:", dict(sorted(reasons.items())))

@@ -293,6 +293,37 @@ _RETIRED_EVAL_PHRASES = (
 )
 
 
+# The outcome literals AC-0002 lists per case id: (in expected_output, in assertions).
+_STOP_FIELDS = ("`code`", "`path`", "`next_action`")
+_SPEC_PLAN_PLAN = ("spec.md", "plan.md", "PLAN")
+_DISPATCH_OUTCOME_LITERALS: dict[str, tuple[tuple[str, ...], tuple[str, ...]]] = {
+    "step0-dispatch-start": (("`start`", *_SPEC_PLAN_PLAN), ("`start`", *_SPEC_PLAN_PLAN)),
+    "step0-dispatch-resume": (("`resume`", *_SPEC_PLAN_PLAN), ("`resume`", *_SPEC_PLAN_PLAN)),
+    "step0-dispatch-ask": (
+        ("`ask`", "`candidates`", "feature-a", "feature-b"),
+        ("`candidates`", "feature-a", "feature-b"),
+    ),
+    "step0-dispatch-none": (("`none`", "stop", *_STOP_FIELDS), ("stop", *_STOP_FIELDS)),
+    "step0-dispatch-refuse": (("`refuse`", "stop", *_STOP_FIELDS), ("stop", *_STOP_FIELDS)),
+    "step0-supplied-path-start": (
+        ("`dispatch.py --start`", "my-feature/spec.md", "PLAN"),
+        ("`dispatch.py --start`", "my-feature/spec.md", "PLAN"),
+    ),
+    "step0-supplied-path-resume-refused": (
+        ("`dispatch.py --resume`", "stop", *_STOP_FIELDS),
+        ("stops", *_STOP_FIELDS),
+    ),
+    "step0-explicit-request-conflict": (
+        ("exporter-retries/spec.md", "direct-light"),
+        ("exporter-retries/spec.md", "direct-light"),
+    ),
+    "step0-no-registry-start": (
+        ("my-feature/spec.md", "workspace.toml", "PLAN"),
+        ("starts docs/specs/my-feature/spec.md", "workspace.toml"),
+    ),
+}
+
+
 def test_work_loop_evals_hold_the_dispatch_cases_and_no_retired_phrase() -> None:
     """AC-0002 and AC-0043: the nine dispatch cases exist; no case holds a retired phrase."""
     payload = json.loads((_REPO / _WORK_LOOP_EVALS).read_text(encoding="utf-8"))
@@ -301,6 +332,12 @@ def test_work_loop_evals_hold_the_dispatch_cases_and_no_retired_phrase() -> None
         case = cases[case_id]
         assert str(case["expected_output"]).strip(), case_id
         assert case["assertions"] and all(str(a).strip() for a in case["assertions"]), case_id
+        in_output, in_assertions = _DISPATCH_OUTCOME_LITERALS[case_id]
+        for literal in in_output:
+            assert literal in case["expected_output"], (case_id, literal)
+        joined = "\n".join(case["assertions"])
+        for literal in in_assertions:
+            assert literal in joined, (case_id, literal)
     for case in payload["evals"]:
         for field in ("prompt", "expected_output", "assertions"):
             text = json.dumps(case.get(field, ""), ensure_ascii=False).lower()

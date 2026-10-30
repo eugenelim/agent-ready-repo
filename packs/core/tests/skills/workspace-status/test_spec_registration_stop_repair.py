@@ -382,6 +382,7 @@ def test_a_record_that_already_has_parent_does_not_hold_the_entry(
 def test_a_held_entry_in_work_queue_keeps_its_collection_through_apply(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    pytest.importorskip("tomlkit")
     repo = plant(
         tmp_path,
         queue=[row(spec_path("c"), parent="none"), row(spec_path("free"))],
@@ -454,6 +455,7 @@ def test_apply_removes_drops_in_one_write_and_keeps_comments(
 def test_a_plan_naming_a_spec_outside_work_and_backlog_is_refused_under_the_lock(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    pytest.importorskip("tomlkit")
     import tomllib
 
     repo = plant(
@@ -485,6 +487,7 @@ def test_a_plan_naming_a_spec_outside_work_and_backlog_is_refused_under_the_lock
 def test_a_drop_whose_entry_changed_or_moved_since_the_plan_is_refused(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    pytest.importorskip("tomlkit")
     repo = plant(
         tmp_path,
         queue=[row(spec_path("a")), row(spec_path("b"))],
@@ -496,13 +499,12 @@ def test_a_drop_whose_entry_changed_or_moved_since_the_plan_is_refused(
         op.update(path=spec_path("b")) for op in data["automatic_operations"]
         if op["entry_locator"]["index"] == 0
     ])
-    before = registry_text(repo)
     code, result = apply(repo, capsys)
     assert code == 0, result
     reasons = [item["reason"] for item in result["per_operation"] if not item["applied"]]
     assert reasons == ["entry_locator_mismatch"]
     assert spec_path("a") in registry_text(repo)
-    assert registry_text(repo) != before  # `b` still dropped
+    assert spec_path("b") not in registry_text(repo)  # `b` still dropped
 
 
 def test_a_drop_is_refused_when_needs_are_still_non_empty_at_that_point(
@@ -529,6 +531,7 @@ def test_a_drop_is_refused_when_needs_are_still_non_empty_at_that_point(
 def test_a_drop_is_refused_when_the_entry_is_held_at_lock_time(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    pytest.importorskip("tomlkit")
     repo = plant(
         tmp_path,
         queue=[row(spec_path("c"), parent=BRIEF)],
@@ -680,3 +683,147 @@ def test_dispatch_output_is_identical_across_a_held_entrys_second_run(
     second = dispatch_stdout(tmp_path, capsys)
     assert apply(tmp_path, capsys)[0] == 0
     assert dispatch_stdout(tmp_path, capsys) == second
+
+
+# ── AC-0015: entries the legacy migration writes are drop candidates ─────────
+
+_MIGRATION_AUTH = (
+    "[authorization.migration]\n"
+    'contract_version = "work-intake-migration-authorization.v1"\n'
+    'approver_roles = ["migration-approver"]\n\n'
+)
+
+
+def migrate_legacy_entry(
+    root: Path, capsys: pytest.CaptureFixture[str], slug: str, parent: str | None
+) -> None:
+    """Apply the legacy migration to the one legacy queue entry, through the CLI."""
+    import datetime
+
+    engine = WS._engine
+    workspace_path = root / "workspace.toml"
+    workspace_bytes = workspace_path.read_bytes()
+    [membership] = engine.extract_legacy_migration_memberships(
+        engine.parse_workspace(workspace_path)
+    )
+    finding = engine.build_migration_finding(workspace_bytes, membership)
+    source: dict[str, str] = {"mode": "repo-origin"}
+    if parent is not None:
+        source["parent"] = parent
+    selection = {
+        "contract_version": "work-intake-migration-selection.v1",
+        "legacy_finding_id": finding["legacy_finding_id"],
+        "workspace_fingerprint": hashlib.sha256(workspace_bytes).hexdigest(),
+        "source_membership": finding["source_membership"],
+        "target_entry": {
+            "path": spec_path(slug), "kind": "spec", "source": source,
+            "summary": "Reviewed target", "needs": [],
+        },
+        "target_membership": {"ini_slug": "ini-001", "collection": "work.queue"},
+        "owning_processor": "new-spec",
+        "provenance_reference": spec_path(slug),
+        "legacy_content_approved_for_ledger": True,
+    }
+    write(root, "selection.json", json.dumps(selection))
+    code, planned = run(
+        root, capsys, "repair-plan", "--migration-selection", "selection.json"
+    )
+    assert code == 0, planned
+    operation = planned["proposed_operation"]
+    now = datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
+    write(root, "confirmation.json", json.dumps({
+        "contract_version": "work-intake-migration-confirmation.v1",
+        "confirmation_id": "confirmation-" + "1" * 32,
+        "action": "apply",
+        "operation_id": operation["operation_id"],
+        "operation_digest": operation["operation_digest"],
+        "authorization_subject": "subject-" + "1" * 32,
+        "role": "migration-approver",
+        "confirmed_at": now,
+        "authorization_source": "current-human-session",
+    }))
+    code, applied = run(
+        root, capsys, "repair-apply", "--migration-selection", "selection.json",
+        "--operation-id", operation["operation_id"],
+        "--confirmation-file", "confirmation.json",
+    )
+    assert code == 0 and applied["migration"]["result_code"] == "applied", applied
+
+
+def plant_legacy(root: Path, files: dict[str, str]) -> None:
+    """A registry whose only entry is the legacy string `spec/alpha`."""
+    write(root, "workspace.toml", _MIGRATION_AUTH + (
+        '["ini-001"]\nname = "Test"\nstatus = "active"\nmilestone = "M1"\n\n'
+        '["ini-001".work]\nactive = []\nshipped = []\nqueue = ["spec/alpha"]\n\n'
+        '["ini-001".shaping_queue]\nactive = []\nbacklog = []\n'
+    ))
+    write(root, "AGENTS.md", "# Agents\n")
+    for rel, body in files.items():
+        write(root, rel, body)
+
+
+def test_a_migrated_entry_is_planned_as_a_spec_entry_drop(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    plant_legacy(tmp_path, spec_files("target"))
+    migrate_legacy_entry(tmp_path, capsys, "target", None)
+    assert spec_path("target") in registry_text(tmp_path)
+    data = plan(tmp_path, capsys)
+    assert drop_paths(data) == {spec_path("target")} and held(data) == []
+
+
+def test_a_migrated_entry_held_by_its_record_gets_the_type_6_manual_item(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    plant_legacy(tmp_path, cooled_files("target"))
+    migrate_legacy_entry(tmp_path, capsys, "target", "none")
+    data = plan(tmp_path, capsys)
+    assert drops(data) == []
+    [item] = held(data)
+    assert item["finding_type"] == 6 and item["spec_path"] == spec_path("target")
+    assert item["reason"] == "held-record-lacks-parent"
+
+
+# ── AC-0014: no queue operation for a drop candidate when cooling is unusable ─
+
+
+def unusable_lifecycle(root: Path, outside: Path) -> None:
+    """Make `docs/lifecycle/` a link out of the root, which cooling cannot trust."""
+    outside.mkdir()
+    (root / "docs").mkdir(exist_ok=True)
+    (root / "docs" / "lifecycle").symlink_to(outside, target_is_directory=True)
+
+
+def test_plan_with_unusable_cooling_plans_no_drop_item_or_queue_operation(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = plant(
+        tmp_path / "repo",
+        queue=[row(spec_path("done"))],
+        files=spec_files("done", status="Shipped"),
+    )
+    unusable_lifecycle(repo, tmp_path / "outside")
+    data = plan(repo, capsys)
+    assert drops(data) == [] and held(data) == []
+    assert all(f.get("finding_type") != 6 for f in data["manual_findings"])
+    assert queue_ops(data) == []
+
+
+def test_apply_refuses_a_drop_with_cooling_state_unavailable_and_keeps_the_entry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pytest.importorskip("tomlkit")
+    repo = plant(
+        tmp_path / "repo",
+        queue=[row(spec_path("a"))],
+        files=spec_files("a"),
+    )
+    assert drop_paths(plan(repo, capsys)) == {spec_path("a")}
+    unusable_lifecycle(repo, tmp_path / "outside")
+    before = registry_text(repo)
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert [item["reason"] for item in result["per_operation"]] == [
+        "cooling_state_unavailable"
+    ]
+    assert registry_text(repo) == before

@@ -1122,20 +1122,20 @@ def _build_repair_plan_json(
     needs_findings: list[dict] = []
     spec_drops: list[dict] = []
     held_findings: list[dict] = []
-    held_queue_keys: frozenset[tuple[str, str]] = frozenset()
+    candidate_queue_keys: frozenset[tuple[str, str]] = frozenset()
     if not canonical_failed:
         if workspace_bytes is None:
             workspace_bytes = _migration_read_bytes(root, "workspace.toml")
         if workspace_bytes is None:
             raise UnsafeMigrationPathError
         needs_operations, needs_findings = _build_needs_operations(root, workspace_bytes)
-        spec_drops, held_findings, held_queue_keys = _build_spec_drop_operations(
+        spec_drops, held_findings, candidate_queue_keys = _build_spec_drop_operations(
             root, workspace_bytes, needs_operations
         )
     automatic_operations: list[dict] = []
     for operation in [] if canonical_failed else plan.automatic_operations:
         # A drop candidate leaves through `spec-entry-drop` (or stays, when held).
-        if (operation.ini_slug, operation.spec_path) in held_queue_keys:
+        if (operation.ini_slug, operation.spec_path) in candidate_queue_keys:
             continue
         item = dataclasses.asdict(operation)
         public_path = _public_canonical_path(item["spec_path"])
@@ -3609,11 +3609,15 @@ def _build_spec_drop_operations(
     memberships = _engine._extract_canonical_memberships(workspace)[0]
     emptied = frozenset(op["waiting_path"] for op in needs_operations)
     candidates = [m for m in memberships if _is_spec_drop_candidate(m, emptied)]
+    queue_keys = frozenset(
+        (m.ini_slug, m.entry.path) for m in candidates if m.collection == "work.queue"
+    )
     if not candidates:
         return [], [], frozenset()
     context = _CoolingContext(root)
     if context.unavailable:
-        return [], [], frozenset()
+        # No drop is planned, but a candidate still gets no queue operation.
+        return [], [], queue_keys
     raw_entries = {
         (ini, collection, position): raw
         for ini, collection, position, raw in _raw_registry_entries(workspace)
@@ -3652,9 +3656,6 @@ def _build_spec_drop_operations(
             "kind": entry.kind,
             "registry_fingerprint": _entry_fingerprint(*locator, raw_entries.get(locator)),
         })
-    queue_keys = frozenset(
-        (m.ini_slug, m.entry.path) for m in candidates if m.collection == "work.queue"
-    )
     return operations, held, queue_keys
 
 

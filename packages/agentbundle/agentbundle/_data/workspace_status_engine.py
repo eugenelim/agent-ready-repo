@@ -5458,8 +5458,8 @@ def _run_type1_scan(
     files_read = 0
     specs_dir = root / "docs" / "specs"
 
-    # Recurse the full specs tree so nested specs (e.g. docs/specs/group/live/)
-    # are discovered; slug is the parent path relative to specs_dir.
+    # The walk and its `files_read` counter stay so the reconciliation output
+    # still reports how many spec files the audit covered, though it reports none.
     # os.walk(followlinks=False) prevents escaping the repo via symlinked dirs
     # found DURING traversal (rglob follows symlinks on Python 3.11/3.12).
     # The root-confinement check guards against docs/specs or docs/ itself being
@@ -5475,10 +5475,9 @@ def _run_type1_scan(
         _specs_root_resolved = specs_dir.resolve()
         _visited: set[Path] = set()
         for dirpath, dirnames, filenames in os.walk(str(specs_dir), followlinks=False):
-            # Guard: skip this directory if already visited (in-root junction to a
-            # previously-scanned sibling). Must run before processing filenames so a
-            # junction alias doesn't produce duplicate Type 1 findings for the
-            # real directory's spec.md. dirnames.clear() prevents further descent.
+            # Skip a directory already visited (in-root junction to a previously
+            # scanned sibling) so its spec.md is not counted twice.
+            # dirnames.clear() prevents further descent.
             # RuntimeError guards against circular symlinks on Python 3.11/3.12.
             try:
                 _current_resolved = Path(dirpath).resolve()
@@ -5510,16 +5509,6 @@ def _run_type1_scan(
                 continue
             spec_file = Path(dirpath) / "spec.md"
             if spec_file.is_symlink():
-                continue
-            # Derive the slug from the resolved path so NTFS junction aliases
-            # that sort before their real target still produce the canonical slug.
-            try:
-                rel = _current_resolved.relative_to(_specs_root_resolved)
-            except ValueError:
-                continue
-            slug = rel.as_posix()
-            slug_path = Path(slug)
-            if slug_path.is_absolute() or ".." in slug_path.parts:
                 continue
             if _current_resolved / "spec.md" in cooled:
                 continue
