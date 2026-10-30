@@ -16,7 +16,7 @@ import importlib.util
 import json
 import sys
 from pathlib import Path
-from types import ModuleType
+from types import ModuleType, SimpleNamespace
 from typing import Any, Callable
 
 import pytest
@@ -39,6 +39,7 @@ WS = _load(
 )
 DISPATCH = _load("dispatch_tracker_entry_drop", _SKILLS / "work-loop/scripts/dispatch.py")
 REFRESH = _load("work_intake_refresh_tracker_entry_drop", _SKILLS / "work-intake/scripts/refresh.py")
+ROUTER = _load("work_intake_router_tracker_entry_drop", _SKILLS / "work-intake/scripts/intake_router.py")
 
 PLAN = ".workspace-repair-plan.json"
 DROP = "tracker-entry-drop"
@@ -228,6 +229,55 @@ def dispatch_stdout(root: Path, capsys: pytest.CaptureFixture[str]) -> str:
     return capsys.readouterr().out
 
 
+class _RecordingResolver:
+    """Records each (id, version) asked for an acquisition-capable processor."""
+
+    def __init__(self) -> None:
+        self.asked: list[tuple[str, str]] = []
+
+    def resolve(self, profile_id: str, profile_version: str, capability: str | None = None) -> Any:
+        if capability == "acquire":
+            self.asked.append((profile_id, profile_version))
+            raise ValueError("stop before acquisition")
+        return SimpleNamespace(name="recording-processor")
+
+
+def assert_refresh_resolves_former_profile(root: Path, path: str, kind: str) -> None:
+    """Refresh on a migrated artifact asks the registry for the entry's former profile."""
+    resolver = _RecordingResolver()
+    signals = ROUTER.RoutingSignals(
+        action="refresh", artifact=path, artifact_kind=kind, authority_mode="tracker-origin"
+    )
+    request = SimpleNamespace(
+        artifact_path=path,
+        artifact_kind=kind,
+        lifecycle="Approved",
+        authority_mode="tracker-origin",
+        current_revision="r1",
+        compared_revision="r2",
+        profile_id=PROFILE["id"],
+        profile_version=PROFILE["version"],
+    )
+    result = ROUTER.invoke_refresh(signals, resolver, request, root)
+    assert result.remediation != "add-record-tracker-profile", result
+    assert resolver.asked == [(PROFILE["id"], PROFILE["version"])]
+
+
+def assert_dispatch_unchanged_by_apply(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Run ``repair-apply --yes`` and compare ``dispatch.py`` output before and after."""
+    before = dispatch_stdout(root, capsys)
+    code, result = apply(root, capsys)
+    assert code == 0, result
+    assert dispatch_stdout(root, capsys) == before
+
+
+def unusable_lifecycle(root: Path, outside: Path) -> None:
+    """Make ``docs/lifecycle/`` a link out of the root, which cooling cannot trust."""
+    outside.mkdir()
+    (root / "docs").mkdir(exist_ok=True)
+    (root / "docs" / "lifecycle").symlink_to(outside, target_is_directory=True)
+
+
 def matched_tree(root: Path, kind: str, *, profile: dict[str, str] | None = None) -> Path:
     path, collection, _ = KINDS[kind]
     # A spec is judged from its headers either way, once Approved.
@@ -279,6 +329,8 @@ def test_a_matched_entry_gets_an_operation_and_apply_moves_its_profile(
     # AC-0014: nothing left to plan, and refresh's parser reads the profile.
     again = plan(repo, capsys)
     assert drops(again) == [] and tracker_items(again) == []
+    # AC-0014: refresh on the migrated artifact resolves the entry's former profile.
+    assert_refresh_resolves_former_profile(repo, path, kind)
     # AC-0015
     assert dispatch_stdout(repo, capsys) == dispatch_before
 
@@ -292,10 +344,13 @@ def test_a_record_already_holding_an_equal_table_gets_an_operation_with_no_profi
     before = (repo / path).read_bytes()
     [op] = drops(plan(repo, capsys))
     assert op["profile"] is None
+    dispatch_before = dispatch_stdout(repo, capsys)
     code, result = apply(repo, capsys)
     assert code == 0 and result["operations_applied"] == 1, result
+    assert dispatch_stdout(repo, capsys) == dispatch_before
     assert (repo / path).read_bytes() == before
     assert path not in registry_text(repo)
+    assert_refresh_resolves_former_profile(repo, path, "brief")
 
 
 # ── AC-0011: manual items ────────────────────────────────────────────────────
@@ -303,10 +358,19 @@ def test_a_record_already_holding_an_equal_table_gets_an_operation_with_no_profi
 
 def _unmatched(tmp_path: Path, reason: str) -> tuple[Path, str | None]:
     """A tree with one tracker-origin brief entry that fails ``reason``; returns its path."""
+    tmp_path = tmp_path / "repo"
     path = KINDS["brief"][0]
     row = tracker_row(path, "brief")
     files = {path: artifact("brief")}
-    if reason == "path-missing":
+    collection = "brief_queue.draft"
+    if reason == "cooling-state-unavailable":
+        path, collection = KINDS["spec"][0], "work.queue"
+        row = tracker_row(path, "spec")
+        files = {
+            path: artifact("spec", status="Approved"),
+            "docs/specs/t-spec/plan.md": "# Plan\n\n- **Status:** Approved\n",
+        }
+    elif reason == "path-missing":
         row = tracker_row(None, "brief")
         files = {}
         path = None  # type: ignore[assignment]
@@ -327,7 +391,9 @@ def _unmatched(tmp_path: Path, reason: str) -> tuple[Path, str | None]:
         )
     elif reason == "other-write-pending":
         row = tracker_row(path, "brief") + ",\n  " + tracker_row(path, "brief")
-    plant(tmp_path, {"brief_queue.draft": [row]}, files)
+    plant(tmp_path, {collection: [row]}, files)
+    if reason == "cooling-state-unavailable":
+        unusable_lifecycle(tmp_path, tmp_path.parent / "outside")
     return tmp_path, path
 
 
@@ -341,6 +407,7 @@ def _unmatched(tmp_path: Path, reason: str) -> tuple[Path, str | None]:
         "profile-mismatch",
         "needs-present",
         "other-write-pending",
+        "cooling-state-unavailable",
     ],
 )
 def test_an_unmatched_entry_gets_one_manual_item_with_the_first_failing_reason(
@@ -350,10 +417,13 @@ def test_an_unmatched_entry_gets_one_manual_item_with_the_first_failing_reason(
     data = plan(repo, capsys)
     assert drops(data) == []
     items = tracker_items(data)
-    assert items and {item["reason"] for item in items} == {reason}
+    # One manual item per planted entry: the pending-write case plants two.
+    planted = 2 if reason == "other-write-pending" else 1
+    assert [item["reason"] for item in items] == [reason] * planted
+    expected = "work.queue" if reason == "cooling-state-unavailable" else "brief_queue.draft"
     for item in items:
         assert item["spec_path"] == (path or "")
-        assert item["entry_locator"]["collection"] == "brief_queue.draft"
+        assert item["entry_locator"]["collection"] == expected
 
 
 def test_an_entry_with_no_path_is_named_by_its_locator(tmp_path: Path) -> None:
@@ -372,23 +442,24 @@ def test_an_entry_with_no_path_is_named_by_its_locator(tmp_path: Path) -> None:
     }
 
 
+def _entry_finding_tree(root: Path) -> Path:
+    """A tracker-origin brief whose status disagrees with its collection.
+
+    The engine reports ``impossible_transition`` for it, and no other entry
+    holds an operation that would move the dispatch output.
+    """
+    path = KINDS["brief"][0]
+    return plant(
+        root,
+        {"brief_queue.draft": [tracker_row(path, "brief")]},
+        {path: artifact("brief", status="Ready")},
+    )
+
+
 def test_an_entry_with_an_entry_level_finding_gets_the_entry_finding_reason(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # Two entries share one path: the engine reports duplicate_membership for it,
-    # and the second sits in another collection so no pending write is involved.
-    path = KINDS["brief"][0]
-    repo = plant(
-        tmp_path,
-        {
-            "brief_queue.draft": [tracker_row(path, "brief")],
-            "shaping_queue.backlog": [
-                f'{{path = "{path}", kind = "brief", source = {{mode = "repo-origin"}}, '
-                'summary = "fixture", needs = []}'
-            ],
-        },
-        {path: artifact("brief")},
-    )
+    repo = _entry_finding_tree(tmp_path)
     data = plan(repo, capsys)
     assert drops(data) == []
     assert [item["reason"] for item in tracker_items(data)] == ["entry-finding"]
@@ -420,6 +491,34 @@ def test_an_archived_tracker_spec_in_the_queue_gets_no_queue_remove(
     assert code == 0, result
     assert tracked not in registry_text(repo)
     assert "tracker_profile" in (repo / tracked).read_text(encoding="utf-8")
+    assert_refresh_resolves_former_profile(repo, tracked, "spec")
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason=(
+        "dispatch.py lists an Archived spec as blocked (unapproved_spec) only while a queue "
+        "entry names it, so removing the entry removes that item; the base queue-remove "
+        "does the same"
+    ),
+)
+def test_dispatch_output_is_identical_across_apply_on_an_archived_tracker_spec(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # Alone in the queue: another entry's own queue-remove would move the output.
+    pytest.importorskip("tomlkit")
+    tracked = KINDS["spec"][0]
+    repo = plant(
+        tmp_path,
+        {"work.queue": [tracker_row(tracked, "spec")]},
+        {
+            tracked: artifact("spec", status="Archived"),
+            "docs/specs/t-spec/plan.md": "# Plan\n\n- **Status:** Approved\n",
+        },
+    )
+    assert [op["path"] for op in drops(plan(repo, capsys))] == [tracked]
+    assert_dispatch_unchanged_by_apply(repo, capsys)
+    assert tracked not in registry_text(repo)
 
 
 # ── AC-0027: held entries ────────────────────────────────────────────────────
@@ -456,6 +555,9 @@ def test_a_held_entry_gets_the_held_item_until_its_record_gains_parent(
     second = plan(repo, capsys)
     assert held(second) == []
     assert [op["path"] for op in drops(second)] == [path]
+    assert_dispatch_unchanged_by_apply(repo, capsys)
+    assert path not in registry_text(repo)
+    assert_refresh_resolves_former_profile(repo, path, "spec")
 
 
 # ── AC-0013: refusals under the lock ─────────────────────────────────────────
@@ -518,14 +620,134 @@ def test_apply_refuses_an_operation_whose_entry_is_no_longer_matched(
 # ── AC-0015: dispatch identity on each planted tree ──────────────────────────
 
 
-@pytest.mark.parametrize("reason", ["artifact-missing", "ref-mismatch", "needs-present"])
+@pytest.mark.parametrize(
+    "reason",
+    [
+        "artifact-missing",
+        "record-missing-or-invalid",
+        "ref-mismatch",
+        "entry-profile-invalid",
+        "profile-mismatch",
+        "needs-present",
+        "other-write-pending",
+        "cooling-state-unavailable",
+    ],
+)
 def test_dispatch_output_is_identical_across_apply_on_unmatched_trees(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], reason: str
 ) -> None:
     pytest.importorskip("tomlkit")
     repo, _ = _unmatched(tmp_path, reason)
     plan(repo, capsys)
+    assert_dispatch_unchanged_by_apply(repo, capsys)
+
+
+def test_dispatch_output_is_identical_across_apply_on_a_pathless_entry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # `repair-plan` cannot reach a pathless entry, so no plan exists to apply and
+    # `repair-apply` refuses; the output must still not move.
+    pytest.importorskip("tomlkit")
+    repo, _ = _unmatched(tmp_path, "path-missing")
     before = dispatch_stdout(repo, capsys)
+    apply(repo, capsys)
+    assert dispatch_stdout(repo, capsys) == before
+
+
+def test_dispatch_output_is_identical_across_apply_on_an_entry_finding_tree(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    pytest.importorskip("tomlkit")
+    repo = _entry_finding_tree(tmp_path)
+    plan(repo, capsys)
+    assert_dispatch_unchanged_by_apply(repo, capsys)
+
+
+# ── AC-0013: apply refusals for state that changes after the plan ────────────
+
+
+def _planned_spec(tmp_path: Path, capsys: pytest.CaptureFixture[str], *, parent: str | None = None):
+    """A matched tracker-origin spec in ``work.queue``, planned; returns repo, path, bytes."""
+    pytest.importorskip("tomlkit")
+    path = KINDS["spec"][0]
+    repo = plant(
+        tmp_path / "repo",
+        {"work.queue": [tracker_row(path, "spec", parent=parent)]},
+        {
+            path: artifact("spec", status="Approved").replace(
+                "- **Status:** Approved\n", f"- **Status:** Approved\n- **Brief:** {BRIEF}\n"
+            ) if parent else artifact("spec", status="Approved"),
+            "docs/specs/t-spec/plan.md": "# Plan\n\n- **Status:** Approved\n",
+            BRIEF: "# Brief: parent\n\n- **Status:** Ready\n",
+        },
+    )
+    assert [op["path"] for op in drops(plan(repo, capsys))] == [path]
+    return repo, path, (repo / path).read_bytes()
+
+
+def _assert_refused(
+    repo: Path, path: str, artifact_bytes: bytes, registry: str, result: dict[str, Any], reason: str
+) -> None:
+    assert [item["reason"] for item in result["per_operation"]] == [reason]
+    assert (repo / path).read_bytes() == artifact_bytes
+    assert registry_text(repo) == registry
+
+
+def test_apply_refuses_an_entry_held_after_the_plan(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo, path, before = _planned_spec(tmp_path, capsys, parent=BRIEF)
+    registry = registry_text(repo)
+    write(repo, "docs/lifecycle/t-spec.json", lifecycle("t-spec", path))
     code, result = apply(repo, capsys)
     assert code == 0, result
-    assert dispatch_stdout(repo, capsys) == before
+    _assert_refused(repo, path, before, registry, result, "entry_held")
+
+
+def test_apply_refuses_when_cooling_state_becomes_unreadable_after_the_plan(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo, path, before = _planned_spec(tmp_path, capsys)
+    registry = registry_text(repo)
+    unusable_lifecycle(repo, tmp_path / "outside")
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    _assert_refused(repo, path, before, registry, result, "cooling_state_unavailable")
+
+
+def test_apply_refuses_a_record_that_cannot_take_the_table(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, path, before = _planned_spec(tmp_path, capsys)
+    registry = registry_text(repo)
+    real = WS._load_refresh_module()
+
+    class DropsTheTable:
+        """The refresh module, whose renderer loses the table it was asked to add."""
+
+        def __getattr__(self, name: str) -> Any:
+            return getattr(real, name)
+
+        @staticmethod
+        def render_source_authority(authority: Any) -> str:
+            return real.render_source_authority(dataclasses.replace(authority, tracker_profile=None))
+
+    monkeypatch.setattr(WS, "_load_refresh_module", lambda: DropsTheTable())
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    _assert_refused(repo, path, before, registry, result, "record_not_writable")
+
+
+def test_apply_refuses_when_the_artifact_cannot_be_replaced(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, path, before = _planned_spec(tmp_path, capsys)
+    registry = registry_text(repo)
+
+    def fail(*args: Any, **kwargs: Any) -> None:
+        raise OSError("injected")
+
+    monkeypatch.setattr(WS, "_replace_waiting_file", fail)
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    _assert_refused(repo, path, before, registry, result, "artifact_write_failed")

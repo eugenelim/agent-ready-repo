@@ -1673,7 +1673,7 @@ def _semantic_refresh_pair(
     *,
     decision: str = "revise-both",
     proposed_owner: str = "local",
-    mutate_dependency: bool = False,
+    mutate_workspace: bool = False,
     mutate_coordination_receipt: bool = False,
     authority_injection: str = "",
     workspace_policy: str = _policy(),
@@ -1737,8 +1737,8 @@ active = []
         )
     proposed_artifact = proposed_artifact_text.encode()
     proposed_workspace = before_workspace
-    if mutate_dependency:
-        proposed_workspace = proposed_workspace + b"\n# dependency pin changed\n"
+    if mutate_workspace:
+        proposed_workspace = proposed_workspace + b"\n# workspace changed\n"
     comparison = refresh.RefreshComparison(
         artifact_path="docs/specs/example/spec.md",
         artifact_kind="spec",
@@ -1765,7 +1765,7 @@ active = []
     }
 
 
-def test_coordinator_commits_authority_mirror_receipt_and_dependency_pin(
+def test_coordinator_commits_authority_mirror_and_receipt_leaving_workspace_unchanged(
     tmp_path: Path,
 ) -> None:
     refresh = _load_refresh()
@@ -2041,19 +2041,19 @@ def test_coordinator_rejects_extra_authority_history(
 
 
 @pytest.mark.parametrize(
-    ("mutate_dependency", "mutate_coordination_receipt"),
+    ("mutate_workspace", "mutate_coordination_receipt"),
     [(True, False), (False, True)],
 )
-def test_coordinator_rejects_dependency_or_coordination_receipt_changes(
+def test_coordinator_rejects_workspace_or_coordination_receipt_changes(
     tmp_path: Path,
-    mutate_dependency: bool,
+    mutate_workspace: bool,
     mutate_coordination_receipt: bool,
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(
         refresh,
         tmp_path,
-        mutate_dependency=mutate_dependency,
+        mutate_workspace=mutate_workspace,
         mutate_coordination_receipt=mutate_coordination_receipt,
     )
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from types import ModuleType
 from typing import Protocol
@@ -339,34 +339,12 @@ def invoke_refresh(
     if signals.action != "refresh":
         raise ValueError("refresh invocation requires refresh routing signals")
     route = route_intake(signals, refresh_processors)
-    if (
-        signals.profile_id is None
-        or signals.profile_version is None
-        or route.processor == "none"
-    ):
-        return RefreshFrontDoorResult(
-            route,
-            "refresh-unavailable",
-            "configure-compatible-refresh-processor",
-        )
-    if (
-        request.artifact_path != signals.artifact
-        or request.artifact_kind != signals.artifact_kind
-        or request.authority_mode != signals.authority_mode
-        or request.profile_id != signals.profile_id
-        or request.profile_version != signals.profile_version
-    ):
-        return RefreshFrontDoorResult(
-            route,
-            "invalid-refresh-request",
-            "repair-refresh-request-profile",
-        )
     try:
         file_safety = _sibling_module("file_safety")
         refresh = _sibling_module("refresh")
         root = Path(repository_root).resolve(strict=True)
         text = file_safety.read_confined_regular_file(
-            root, root / request.artifact_path
+            root, root / signals.artifact
         ).decode("utf-8")
         record_profile = refresh.parse_source_authority(text).tracker_profile
     except (OSError, ValueError, RuntimeError, LookupError):
@@ -379,17 +357,41 @@ def invoke_refresh(
         return RefreshFrontDoorResult(
             route, "refresh-unavailable", "add-record-tracker-profile"
         )
+    profile_id = record_profile.get("id")
+    profile_version = record_profile.get("version")
     if (
-        record_profile.get("id") != signals.profile_id
-        or record_profile.get("version") != signals.profile_version
+        signals.profile_id not in (None, profile_id)
+        or signals.profile_version not in (None, profile_version)
     ):
         return RefreshFrontDoorResult(
             route, "refresh-unavailable", "repair-refresh-request-profile"
         )
+    route = route_intake(
+        replace(signals, profile_id=profile_id, profile_version=profile_version),
+        refresh_processors,
+    )
+    if route.processor == "none":
+        return RefreshFrontDoorResult(
+            route,
+            "refresh-unavailable",
+            "configure-compatible-refresh-processor",
+        )
+    if (
+        request.artifact_path != signals.artifact
+        or request.artifact_kind != signals.artifact_kind
+        or request.authority_mode != signals.authority_mode
+        or request.profile_id != profile_id
+        or request.profile_version != profile_version
+    ):
+        return RefreshFrontDoorResult(
+            route,
+            "invalid-refresh-request",
+            "repair-refresh-request-profile",
+        )
     try:
         processor = refresh_processors.resolve(
-            signals.profile_id,
-            signals.profile_version,
+            profile_id,
+            profile_version,
             "acquire",
         )
     except ValueError:

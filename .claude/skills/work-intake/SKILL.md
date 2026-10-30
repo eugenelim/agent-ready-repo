@@ -109,10 +109,12 @@ Locator-only entries are readable contract records but are not dispatchable:
 surface `configuration_mismatch` and stop. Do not create or register a
 locator-only lifecycle entry as part of semantic resolution.
 
-Use `scripts/intake_guard.py` to build the target `source` record. It maps the
-normalized `source.locator` field to workspace-entry `source.ref`, carries
-`mode`, `revision`, and any tracker profile, and omits normalized-only fields
-such as `locator` and `object_type`. Never copy the normalized source object
+A tracker-origin source is recorded in the artifact's own `toml source-authority`
+record by `scripts/intake_transaction.py`, never in `workspace.toml`. The record
+carries the locator, revision, and declared tracker profile. A locator that
+holds a control character, a local or personal path, a `.` or `..` segment, a
+backslash, an email or secret pattern, a query, or a fragment is refused, and the
+transaction ends with no dispatch. Never copy the normalized source object
 directly into `workspace.toml`.
 
 Comments, list order, document titles, tracker type, collection membership, and
@@ -494,9 +496,12 @@ is the exact requirement body to write; using the raw tracker value is refused.
 Before a local update, resolve both the artifact and `workspace.toml` by
 realpath, reject lexical or symlink escape, and revalidate exact SHA-256
 fingerprints immediately before the guarded write. Use `guarded_write_pair`; it
-replaces the artifact only and leaves `workspace.toml` as it is, and on a
-staging or replacement failure it restores the artifact's byte-identical
-pre-state and returns only its redacted stable code.
+writes two files under that guard: it replaces the artifact, then rewrites
+`workspace.toml` with its unchanged bytes so the registry digest stays bound. On
+a staging or replacement failure it restores both files' byte-identical
+pre-state and returns only its redacted stable code. If it returns
+`local_write_inconsistent`, the two files may not match: stop, make no remote
+write, and ask the operator to repair the local files before another refresh.
 
 Remote write-back is a separate post-local operation. For every individual
 mutation, show the exact artifact, source revision, profile, destination,

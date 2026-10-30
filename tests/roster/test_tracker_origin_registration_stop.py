@@ -216,6 +216,35 @@ def test_every_tracker_origin_example_sits_in_a_section_that_names_the_repair() 
     assert seen > 0
 
 
+_MUTATE = "packs/core/.apm/skills/workspace-status/references/mutate.md"
+
+
+def _section_7(text: str) -> str:
+    """The body of the `### 7.` section of work-intake, whitespace-normalised."""
+    bodies = [_flat_text("\n".join(lines)) for head, lines in _sections(text) if head.startswith("### 7.")]
+    assert len(bodies) == 1
+    return bodies[0]
+
+
+def test_section_7_describes_the_two_file_write_and_its_repair() -> None:
+    body = _section_7((_REPO / _INTAKE).read_text(encoding="utf-8"))
+    assert "local_write_inconsistent" in body
+    assert "replaces the artifact only" not in body
+
+
+def test_intake_does_not_send_the_source_record_to_intake_guard() -> None:
+    text = _flat(_INTAKE)
+    assert "build the target `source` record" not in text
+    assert "intake_guard.py` to build" not in text
+
+
+def test_mutate_evaluates_every_tracker_origin_entry_and_lists_its_reasons() -> None:
+    text = _flat(_MUTATE)
+    assert "in a `work.` or `backlog.` collection that matches its artifact" not in text
+    for phrase in ("cooling-state-unavailable", "artifact_write_failed"):
+        assert phrase in text, phrase
+
+
 _DELIVERY_BRIEF = "docs/product/briefs/workspace-registry-retirement-delivery.md"
 # AC-0023: the brief's slice 9 names the work after the execution-supervisor cutover.
 _SLICE_9_AFTER_CUTOVER = (

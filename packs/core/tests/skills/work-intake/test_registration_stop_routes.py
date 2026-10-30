@@ -67,7 +67,8 @@ def test_start_defect_dispatches_bug_fix_without_registration() -> None:
     assert route.mutation == "materialize-and-dispatch"
 
 
-# Routes the router returned at ff33d0dcc, recorded once as literals:
+# Routes recorded once as literals, with the tracker-origin rows updated for the
+# registration stop:
 # (artifact, artifact_kind, lifecycle_membership, processor, authority_mode, mutation).
 _UNCHANGED = [
     ('direct-light', {'action': 'start', 'artifact': '', 'artifact_kind': '', 'authority_mode': 'repo-origin', 'direct_light': True}, ('', '', 'none', 'work-loop', 'repo-origin', 'none')),
@@ -82,7 +83,7 @@ _UNCHANGED = [
 
 
 @pytest.mark.parametrize(("case_id", "signals", "expected"), _UNCHANGED, ids=[c[0] for c in _UNCHANGED])
-def test_every_other_route_matches_the_pre_change_route(
+def test_every_other_route_matches_its_recorded_route(
     case_id: str, signals: dict[str, Any], expected: tuple[str, ...]
 ) -> None:
     router = _load_router()
@@ -284,3 +285,43 @@ def test_unreadable_or_unparseable_record_is_a_named_no_effect_result(
     assert result.remediation == "repair-or-rerun-refresh-record-read"
     assert resolver.acquire_resolutions == 0
     assert not (tmp_path / "workspace.toml").exists()
+
+
+def test_ac0004_signals_without_a_profile_still_reach_the_record_check(
+    tmp_path: Path,
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact=_ARTIFACT,
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+    )
+    result = router.invoke_refresh(
+        signals, resolver, _Request(), _plant(tmp_path, _record(profile=""))
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.remediation == "add-record-tracker-profile"
+    assert resolver.acquire_resolutions == 0
+
+
+def test_ac0005_signals_without_a_profile_resolve_the_record_profile(
+    tmp_path: Path,
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact=_ARTIFACT,
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+    )
+    result = router.invoke_refresh(
+        signals,
+        resolver,
+        _Request(),
+        _plant(tmp_path, _record(profile=_PROFILE_TABLE)),
+    )
+    assert resolver.acquire_resolutions == 1
+    assert result.remediation == "configure-compatible-refresh-processor"

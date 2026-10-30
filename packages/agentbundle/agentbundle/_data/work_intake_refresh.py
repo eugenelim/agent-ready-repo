@@ -19,7 +19,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 from typing import Callable, ClassVar, Collection, Mapping
-from urllib.parse import urlsplit
+from urllib.parse import urlsplit, urlunsplit
 
 
 class RefreshRefusal(ValueError):
@@ -921,6 +921,62 @@ def render_source_authority(authority: SourceAuthority) -> str:
     return rendered
 
 
+_LOCATOR_EMAIL = re.compile(r"\b[^\s/@]+@[^\s/@]+\.[^\s/@]+\b")
+_LOCATOR_SECRET = re.compile(
+    r"(?i)(?:^|[/;])(?:password|passwd|pwd|secret|api[_-]?key|"
+    r"access[_-]?token|token)(?:[:=]|/)[^/?#]+"
+)
+_LOCATOR_PERSONAL_ABSOLUTE = re.compile(
+    r"(?i)^(?:/(?:users|home|private)/|[a-z]:[/\\]users[/\\])"
+)
+_LOCATOR_ABSOLUTE = re.compile(r"(?i)^(?:/|[a-z]:[/\\]|\\\\)")
+
+
+def _require_minimal_locator(locator: str) -> str:
+    """Refuse a locator that carries more than its identity, or return it as given.
+
+    The first record is committed to the repository, so a locator holding a
+    control character, a local or personal path, a ``.`` or ``..`` segment, a
+    backslash, an email or secret pattern, credentials, a query, or a fragment
+    is refused rather than rewritten. A locator whose canonical form differs
+    from the declared one is refused too, so the record never holds bytes the
+    owner did not declare.
+    """
+
+    code = "invalid_source_authority"
+    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in locator):
+        raise RefreshRefusal(code)
+    if (
+        _LOCATOR_PERSONAL_ABSOLUTE.match(locator)
+        or _LOCATOR_ABSOLUTE.match(locator)
+        or "\\" in locator
+        or any(part in {".", ".."} for part in locator.split("/"))
+        or _LOCATOR_EMAIL.search(locator)
+        or _LOCATOR_SECRET.search(locator)
+    ):
+        raise RefreshRefusal(code)
+    try:
+        parsed = urlsplit(locator)
+        if parsed.scheme:
+            host = parsed.hostname
+            port = parsed.port
+            if parsed.scheme.lower() == "file" or not host:
+                raise RefreshRefusal(code)
+            if ":" in host and not host.startswith("["):
+                host = f"[{host}]"
+            netloc = f"{host}:{port}" if port is not None else host
+            canonical = urlunsplit(
+                (parsed.scheme.lower(), netloc, parsed.path or "/", "", "")
+            )
+        else:
+            canonical = locator.split("?", 1)[0].split("#", 1)[0].strip()
+    except ValueError as exc:
+        raise RefreshRefusal(code) from exc
+    if canonical != locator:
+        raise RefreshRefusal(code)
+    return locator
+
+
 def render_first_source_authority(
     *,
     mode: str,
@@ -932,14 +988,17 @@ def render_first_source_authority(
 
     The record carries the locator, revision and declared profile and an empty
     ``[owned_fields]`` table. A source that is not tracker-origin, has no
-    profile, or holds a value the renderer refuses raises ``RefreshRefusal``.
+    profile, or holds a value the renderer refuses, including a locator that
+    is not already in minimal form, raises ``RefreshRefusal``.
     """
 
     if mode != "tracker-origin" or profile is None:
         raise RefreshRefusal("invalid_source_authority")
     return render_source_authority(
         SourceAuthority(
-            source_ref=_bounded_string(locator, 1000, "invalid_source_authority"),
+            source_ref=_require_minimal_locator(
+                _bounded_string(locator, 1000, "invalid_source_authority")
+            ),
             source_revision=_bounded_string(revision, 200, "invalid_source_authority"),
             accepted_revision=None,
             owned_fields={},

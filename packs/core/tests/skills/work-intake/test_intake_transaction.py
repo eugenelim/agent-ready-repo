@@ -542,6 +542,47 @@ def test_ac0029_a_refused_source_rolls_back_leaving_no_artifact_and_no_dispatch(
     assert not artifact.exists()
 
 
+@pytest.mark.parametrize(
+    "locator",
+    (
+        "example-service://work/ITEM-1\x07",
+        "/srv/work/ITEM-1",
+        "/Users/someone/work/ITEM-1",
+        "example-service://work/../ITEM-1",
+        "example-service://work/./ITEM-1",
+        "example-service://work\\ITEM-1",
+        "example-service://work/someone@example.com",
+        "example-service://work/access_token=abc123",
+        "example-service://work/ITEM-1?view=full",
+        "example-service://work/ITEM-1#section",
+    ),
+    ids=(
+        "control-character",
+        "absolute-path",
+        "personal-path",
+        "parent-segment",
+        "dot-segment",
+        "backslash",
+        "email",
+        "secret",
+        "query",
+        "fragment",
+    ),
+)
+def test_ac0029_a_locator_the_minimizer_would_refuse_or_change_rolls_back(
+    tmp_path: Path, locator: str
+) -> None:
+    transaction, result, trace, artifact = _run_tracker_transaction(
+        tmp_path, body="# Brief\n", source_kwargs={"locator": locator}
+    )
+
+    assert result.status is transaction.TransactionStatus.ROLLED_BACK
+    assert result.failed_stage == "source_authority_write"
+    assert result.dispatch_started is False
+    assert trace == ["materialize", "rollback"]
+    assert not artifact.exists()
+
+
 def test_ac0029_a_failed_rollback_reports_reconciliation_and_never_dispatches(
     tmp_path: Path,
 ) -> None:
