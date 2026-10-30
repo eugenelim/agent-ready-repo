@@ -79,7 +79,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Depends on:** none
 **Touches:** packs/github/.apm/skills/github-pr-iterate/**, packs/github/.apm/skills/github-pr/**, packs/github/tests/skills/github-pr-iterate/**, packs/github/tests/skills/github-pr/**
 **Tests:**
-- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion group: structure, trust and untrusted-data (checked within that rule's own section of `SKILL.md`), command safety and forbidden forms, hook and PR-file confinement, push destination and shell-argument handling, the sandbox rule, and the review, iterate, and adopt content criteria, including adopt contract binding. The `## Approved actions` heading is the marker each mode test measures mutating commands against.
+- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion prefix S, U, C, G, A. The `## Approved actions` heading marks where each mode test starts measuring, and the closed read-only set in the spec decides which commands count as mutating. U-group tests read only the untrusted-data rule's own section of `SKILL.md`.
 **Approach:** `git mv` the skill directory and the test folder to the new name, write the tests red, then the skill text.
 **Done when:** the T1 test file is green and `git grep -l github-pr-iterate` outside this spec directory returns nothing for the skill and test paths.
 
@@ -88,7 +88,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Touches:** packs/github/.apm/skills/github-pr/evals/**, packs/github/tests/skills/github-pr/test_evals.py
 **Tests:**
 - TDD, pytest at `packs/github/tests/skills/github-pr/test_evals.py`: the trigger-query criteria and the eval-case criteria (count, fields, and the coverage list).
-**Approach:** each case is tagged with the criterion groups it covers (the structure and adopt groups in the spec). Cases — review (5): normal, hidden HTML-comment instruction, approval only in the original request, head moves between draft and submit, symlink-to-credential state in canned output; iterate (9): normal, partial approval, head moved, gate failure after an approved edit, approval only in the original request, fork PR changing build files, CI log with an instruction and a credential-shaped string, shell-metacharacter branch name with a quote and a leading `-`, PR changing hook configuration; adopt (14): fix then merge, zero-fix merge, approval only in the original request, no sandbox named, contract-widening text in a comment or log, PR edits CI workflow files, fix outside allowed types, third-party push, unrelated failing check, fourth push, push destination differs, refused merge, required check pending, not pushable. Fixtures are canned `gh` outputs under `evals/files/<case>/`, contain no symlinks, and later turns carry fresh canned read output where a re-read matters.
+**Approach:** each case is tagged with criterion IDs, and E2 requires every **(B)** ID to appear. The case list is the union of spec E4 and E5, plus one case per remaining **(B)** criterion that those two lists leave untagged, found by running the E2 test red first. Mode split: review (normal; head moves between draft and submit; run-the-tests with no sandbox; instruction-file edit; hidden HTML instruction; symlink-to-credential state; host or repository mismatch; approval only in the original request), iterate (normal; partial approval; head moved; gate failure after an approved edit; fork PR changing build files; CI log with instruction and credential string; metacharacter branch name; hook configuration change; approval only in the original request), adopt (fix then merge; zero-fix merge; approval only in the original request; no sandbox; contract-widening text; CI workflow edit without a sandbox; fix outside allowed types; third-party push; base retargeted; unrelated failing check; fourth push; push destination differs; refused merge; pending required check; not pushable; zero required checks; sandbox alters a staged file; sandbox defined by a PR file). Fixtures are canned `gh` outputs under `evals/files/<case>/`, contain no symlinks, and later turns carry fresh canned read output where a re-read matters.
 **Done when:** the T2 test file is green.
 
 ### T3: pack metadata, docs, census, and changelog describe all three modes
@@ -110,8 +110,8 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Touches:** docs/specs/github-pr/notes/eval-run.md
 **Tests:**
 - Visual / manual QA: the graded-run and run-record criteria, executed by the controller with cold copies of the skill and no `evals/` directory, one fresh subagent per case, each `SubagentHandback` extracted verbatim.
-**Approach:** any change to the skill text after a run sends the work back to T1 and reruns T4 and all twenty-eight cases.
-**Done when:** `notes/eval-run.md` shows all twenty-eight cases passing with the isolation evidence and matching digest.
+**Approach:** any change to the skill text after a run sends the work back to T1 and reruns T4 and every case.
+**Done when:** `notes/eval-run.md` shows every case passing with the isolation evidence and matching digest.
 
 ## Changelog
 
