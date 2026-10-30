@@ -125,3 +125,5 @@ Owned by: T6
 - 2026-10-29: spec and plan approved by eugenelim at `67addcade`.
 - 2026-10-29: spec re-approved by eugenelim at `b1f1a0528` after the controlled amendment.
 - 2026-10-29: plan re-approved by eugenelim at `b1f1a0528` after the controlled amendment.
+- 2026-10-29: the approved spec and plan bytes of `67addcade` are those of the rebased `12f5a8fe8`, later `be25285e5`; the re-approved bytes of `b1f1a0528` are those of the rebased `e3e1b3200`.
+- 2026-10-30: shipped in core 3.1.40 (#1656).

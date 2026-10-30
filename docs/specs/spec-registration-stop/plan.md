@@ -198,3 +198,5 @@ Owned by: T10
 - 2026-10-29: spec and plan approved by eugenelim at `64d25cc5c`.
 - 2026-10-29: spec re-approved by eugenelim at `0f04b53a1` after the controlled amendment.
 - 2026-10-29: plan re-approved by eugenelim at `0f04b53a1` after the controlled amendment.
+- 2026-10-29: the approved spec and plan bytes of `64d25cc5c` are those of the rebased `3104ff24c`, later `063b9c32b`; the re-approved bytes of `0f04b53a1` are those of the rebased `26049ebd4`.
+- 2026-10-30: shipped in core 3.1.40 (#1656).
