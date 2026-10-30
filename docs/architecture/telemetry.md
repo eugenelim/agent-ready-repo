@@ -83,38 +83,27 @@ purpose.
 
 ### 5.1 What a line holds
 
-Each line carries ten fields, all written by the supervisor:
+Each line carries ten fields: the seven that identify the step (`seq`,
+`run_id`, `spec`, `from`, `event`, `to`, `at`), the envelope version
+(`schema`), `awaiting_input`, and `step_id`.
 
-| Field | Holds |
-| --- | --- |
-| `schema` | Envelope version, `1` |
-| `seq` | The step's position among the run's supervisor commits |
-| `run_id` | The run, not the agent and not the spec |
-| `spec` | Repository-relative spec directory |
-| `from` | The stage before the step |
-| `event` | The step kind, such as `stub`, `red`, `implement`, `gate-fail`, `review`, or `terminal` |
-| `to` | The stage after the step |
-| `at` | When the supervisor commit was made |
-| `awaiting_input` | True exactly when `to` is `awaiting-human` |
-| `step_id` | The supervisor step's identity, used to repair a lost append |
+Three rules govern the shape.
 
-The stages are `admitted`, `implementing`, `gating`, `reviewing`,
-`awaiting-human`, and `terminal`. A `replan` step keeps the stage it found.
+- **Every field is always present.** The supervisor derives each line from its
+  own commit, so it knows every value and never leaves a key out.
+- **`from`, `event`, and `to` are supervisor names.** `event` is the commit's
+  operation, such as `replan`, `stub`, `implement`, `gate-fail`, `review`, or
+  `terminal`. `from` and `to` are the run's stage before and after it:
+  `admitted`, `implementing`, `gating`, `reviewing`, `awaiting-human`, or
+  `terminal`.
+- **`awaiting_input` and `step_id` say where the run stands.**
+  `awaiting_input` is true exactly when the step leaves the run waiting on a
+  human. `step_id` names the supervisor commit the line was derived from, so a
+  reader can match a line to its commit. Retry counts and caps are not on the
+  line; `work-supervisor.py status --json` reports them.
 
-The envelope is still `loop-run-event.schema.json`. That schema requires only
-`seq`, `run_id`, `spec`, `from`, `event`, `to`, and `at`. It still lists
-`phase_started_at`, `phase_s`, `result`, `waived`, and `budgets` as optional
-fields; the supervisor writes none of them. So a line has no duration, no gate
-result, and no retry counters.
-
-The retry count is not on the line because it has one home: the supervisor
-re-derives it from its own commits. `work-supervisor.py status --check` reports
-reaching the cap that `implementation_retry_cap` in `supervisor-policy.json`
-sets, as the supervisor page's
-[exit codes](work-loop-execution-supervisor.md#exit-codes) state.
-
-The line is **always written** for a full-mode run. There is no switch. The
-file is local and gitignored, and nothing leaves the machine.
+The line is **always written**. There is no switch. The file is local and
+gitignored, and nothing leaves the machine.
 
 ### 5.2 Export is a separate concern, and it is off
 
