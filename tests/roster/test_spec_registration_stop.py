@@ -340,7 +340,11 @@ def test_work_loop_evals_hold_the_dispatch_cases_and_no_retired_phrase() -> None
             assert literal in joined, (case_id, literal)
     # AC-0002 "starting it": the start verb is directly followed by the exact spec path.
     assert any(
-        re.search(r"Response starts (?:\S*/)?my-feature/spec\.md(?![\w.])", a)
+        re.search(
+            r"Response starts (?:\S*/)?my-feature/spec\.md"
+            r"""(?=[.,;:!?)\]`'"]*(?:\s|$))""",
+            a,
+        )
         for a in cases["step0-no-registry-start"]["assertions"]
     ), "no step0-no-registry-start assertion has the start verb directly before the spec path"
     for case in payload["evals"]:
