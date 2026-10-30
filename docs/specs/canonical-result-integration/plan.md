@@ -186,7 +186,7 @@ applies:
 | --- | --- | --- |
 | `extensions.refStorage` is not `files` | either | refuse `unsupported-ref-storage` (AC-0022); `status` reports it |
 | No recorded product ref, no approval at `HEAD` | either | `start` records and creates it in the approval transaction |
-| No recorded product ref, approvals at `HEAD` | no | AC-0006: create at the anchor when `HEAD` is it or reaches it through made commits only (then project forward), else `history-adoption` |
+| No recorded product ref, approvals at `HEAD` | no | AC-0006: create at the anchor when `HEAD` is it or the anchor descends from `HEAD` through made commits only (then project forward), else `history-adoption`; checked again at every such verb |
 | No recorded product ref, approvals at `HEAD` | yes | no ref change; steps commit without one, and the next verb with no attempt open applies the row above |
 | Ref missing, symbolic, or not the recorded or pending value | no | `product-ref-diverged` (AC-0005) |
 | Same | yes | the attempt guard has already answered (AC-0015) |
@@ -271,9 +271,14 @@ Owned by: T1.
     top gets `history-adoption`, and an `owner` answer lets it reach
     `terminal`; a `delivery/` change in that foreign commit refuses
     `adoption-refused`; the same run reset to an older made commit gains its
-    ref at the latest made commit and projects forward with no decision. A
-    repository with `extensions.refStorage=reftable` refuses `start` and
-    `next` with `unsupported-ref-storage` and has no product ref.
+    ref at the latest made commit and projects forward with no decision; the
+    run with a foreign commit, once the controller resets it away instead of
+    answering, gains its ref at the next `next`. A repository with
+    `extensions.refStorage=reftable` refuses `start` with
+    `unsupported-ref-storage` and has no product ref; a run admitted before its
+    repository's config gains that setting has `next`, `report`, and
+    `resolve-effect` each refuse `unsupported-ref-storage` with no ref change,
+    while `status` reports it.
   - **VI-0514 (AC-0008, AC-0009, AC-0010):** in `test_supervisor_product_ref.py`, `git reset --hard`, `--soft`, and
     `--mixed` two steps back each converge at the next `next` with the
     working tree equal to the ref's tree; a partial transaction (only one ref

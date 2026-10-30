@@ -166,13 +166,12 @@ Product-ref trust
   value, writes a denial line to the run's security log, and moves no ref.
   Restoring the ref to its recorded value clears the refusal. While an
   attempt is open, AC-0015's answer applies instead.
-- [ ] **AC-0006.** A run with no recorded product ref, at its first verb
-  other than `status` with no attempt open, gains one naming its latest made
-  commit when `HEAD` is that commit or that commit descends from `HEAD`
-  through made commits only, after which AC-0009 and AC-0010 apply.
-  Otherwise `next` issues the AC-0011 decision, and no verb creates the ref
-  until an `adopt-history` answer does. Steps committed while such a run's
-  attempt is open create no ref.
+- [ ] **AC-0006.** A run with no recorded product ref, at every verb other
+  than `status` with no attempt open, gains one naming its latest made commit
+  when `HEAD` is that commit or that commit descends from `HEAD` through made
+  commits only, after which AC-0009 and AC-0010 apply; otherwise `next`
+  issues the AC-0011 decision and no ref is created. Steps committed while
+  such a run's attempt is open create no ref.
 
 Crash and lag repair
 
