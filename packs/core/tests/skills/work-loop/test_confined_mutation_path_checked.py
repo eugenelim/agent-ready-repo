@@ -554,7 +554,9 @@ def test_staging_cleanup_leaves_a_file_that_is_not_the_one_created(
 
 def _swap_stage_for_other_file(target: Path) -> None:
     (stage,) = [p for p in target.parent.iterdir() if p.name.startswith(".wl-tmp-")]
-    stage.unlink()
+    # Keep the original inode alive under another name, so the replacement can
+    # never be handed the same (st_dev, st_ino) by a filesystem that reuses them.
+    stage.rename(target.parent / "stage.kept")
     stage.write_bytes(b"a different file")
 
 
@@ -582,3 +584,95 @@ def test_append_whose_path_now_names_another_clean_file_is_late_detection(
     monkeypatch.setattr(cm, "_PRE_COMMIT_HOOK", hook)
     assert _denial("append", root, root / "f.txt") == "denied-rollback-failed"
     assert (root / "f.txt").read_bytes() == b"another file"
+
+
+# ── exclusive-create cleanup removes the target only while it is ours ────────
+
+
+def test_failed_stage_unlink_after_link_leaves_a_target_that_is_not_ours(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real_link, real_unlink = os.link, Path.unlink
+
+    def link(src: Any, dst: Any, *a: Any, **k: Any) -> None:
+        real_link(src, dst, *a, **k)
+        target = Path(os.fspath(dst))
+        target.rename(target.parent / "t.txt.ours")
+        target.write_bytes(b"someone else's file")
+
+    def unlink(self: Path, *a: Any, **k: Any) -> None:
+        if self.name.startswith(".wl-tmp-"):
+            raise PermissionError("simulated: staging name cannot be removed")
+        real_unlink(self, *a, **k)
+
+    monkeypatch.setattr(os, "link", link)
+    monkeypatch.setattr(Path, "unlink", unlink)
+    assert _denial("create", root, root / "t.txt") == "denied-rollback-failed"
+    monkeypatch.undo()
+    assert (root / "t.txt").read_bytes() == b"someone else's file"
+
+
+def test_failed_stage_unlink_after_link_still_removes_our_own_target(
+    root: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real_unlink = Path.unlink
+
+    def unlink(self: Path, *a: Any, **k: Any) -> None:
+        if self.name.startswith(".wl-tmp-"):
+            raise PermissionError("simulated: staging name cannot be removed")
+        real_unlink(self, *a, **k)
+
+    monkeypatch.setattr(Path, "unlink", unlink)
+    assert _denial("create", root, root / "t.txt") == "denied-rollback-failed"
+    monkeypatch.undo()
+    assert not (root / "t.txt").exists()
+
+
+# ── lexical refusals cover only the path below the root ──────────────────────
+
+
+@pytest.fixture(params=["aux", "release 1.0.", "con.d"])
+def odd_root(request: pytest.FixtureRequest, root: Path) -> Path:
+    base = root / request.param / "work"
+    base.mkdir(parents=True)
+    return base
+
+
+@pytest.mark.parametrize("op", OPS)
+def test_a_root_under_an_odd_name_accepts_an_ordinary_target(odd_root: Path, op: str) -> None:
+    if op != "create":
+        (odd_root / "f.txt").write_bytes(b"prior;")
+    _call(op, odd_root, odd_root / "f.txt", b"new")
+    expected = {"create": b"new", "append": b"prior;new", "replace": b"new"}[op]
+    assert (odd_root / "f.txt").read_bytes() == expected
+
+
+@pytest.mark.parametrize("op", OPS)
+@pytest.mark.parametrize("name", ["CON", "a:b", "name.", "bad?name"])
+def test_the_same_forms_below_an_odd_root_refuse_without_a_filesystem_call(
+    odd_root: Path, op: str, name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def trap(*a: Any, **k: Any) -> Any:
+        raise AssertionError("filesystem call")
+
+    with monkeypatch.context() as m:
+        for label in ("lstat", "stat", "open", "fstat"):
+            m.setattr(os, label, trap)
+        m.setattr(os.path, "realpath", trap)
+        assert _denial(op, odd_root, odd_root / name) == "denied-path-violation"
+
+
+@pytest.mark.parametrize("op", OPS)
+def test_a_unc_like_root_accepts_an_ordinary_target(
+    tmp_path: Path, op: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A root whose own text begins with two backslashes is not refused for that."""
+    monkeypatch.chdir(tmp_path)
+    unc = Path("\\\\srv\\share")
+    unc.mkdir()
+    monkeypatch.setattr(cm, "_host_mode", lambda: "path-checked")
+    if op != "create":
+        (unc / "f.txt").write_bytes(b"prior;")
+    _call(op, unc, unc / "f.txt", b"new")
+    expected = {"create": b"new", "append": b"prior;new", "replace": b"new"}[op]
+    assert (unc / "f.txt").read_bytes() == expected

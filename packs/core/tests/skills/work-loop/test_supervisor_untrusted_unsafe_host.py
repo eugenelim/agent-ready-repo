@@ -250,7 +250,7 @@ def test_detail_names_unknown_value(
     assert '"undetermined"' in detail and "unknown value" in detail
 
 
-def test_git_error_is_named_and_logged_as_unverifiable(
+def test_git_error_is_named_in_the_refusal_and_nothing_is_written(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object
 ) -> None:
     repo = h.make_repo(tmp_path)
@@ -262,7 +262,7 @@ def test_git_error_is_named_and_logged_as_unverifiable(
         raise git_error("denied-git-control-state", "control state changed", unverifiable=True)
 
     monkeypatch.setattr(h.commit_module.GitPort, "show", broken)
+    before = _snapshot(repo)
     detail = _detail(repo, _argv(repo, "next", tmp_path))
-    assert '"undetermined"' in detail and "git" in detail.lower()
-    log = (repo / h.SPEC_DIR / ".supervisor" / "security-events.jsonl").read_text(encoding="utf-8")
-    assert "denied-git-control-state" in log
+    assert '"undetermined"' in detail and "denied-git-control-state" in detail
+    assert _snapshot(repo) == before

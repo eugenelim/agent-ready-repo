@@ -446,18 +446,33 @@ def _check_component(part: str, whole: str) -> None:
         raise _violation(f"reserved device name refused: {whole!r}")
 
 
-def _lexical_target(path: Path) -> None:
-    """Check the target's own text, every component after the drive anchor.
+def _lexical_target(root: Path, path: Path) -> None:
+    """Check the target's components below the root, with no filesystem call.
 
-    Runs before any filesystem call, so it holds even when the root is given in
-    a different form than the target and must be resolved afterwards.
+    When the target's text sits under the root's text those are the
+    ``relative_to`` parts.  Otherwise (a root given in another form, such as a
+    short-name alias) they are the target's components after the longest
+    case-folded prefix it shares with the root; a target that shares none and
+    starts with two backslashes is a UNC, device, or extended-length form and
+    is refused.  The root's own components are never judged.
     """
-    text = os.fspath(path)
-    if text.startswith("\\\\"):
-        raise _violation(f"UNC or device path form refused: {text!r}")
-    parts = path.parts[1:] if path.anchor else path.parts
-    for part in parts:
-        _check_component(part, text)
+    try:
+        below = list(path.relative_to(root).parts)
+    except ValueError:
+        have, given = root.parts, path.parts
+        shared = 0
+        while (
+            shared < min(len(have), len(given))
+            and have[shared].casefold() == given[shared].casefold()
+        ):
+            shared += 1
+        if shared == 0 and os.fspath(path).startswith("\\\\"):
+            raise _violation(
+                f"UNC or device path form refused: {os.fspath(path)!r}"
+            ) from None
+        below = list(given[shared:] if shared or not path.anchor else given[1:])
+    for part in below:
+        _check_component(part, os.fspath(path))
 
 
 def _lexical_parts(relative: str) -> list[str]:
@@ -560,7 +575,7 @@ def _pc_relative(root: Path, path: Path) -> tuple[Path, str]:
     is *root* resolved, which lets a root passed as a short-name alias match a
     target written in long form. A root that is itself a link is refused.
     """
-    _lexical_target(path)
+    _lexical_target(root, path)
     try:
         return root, path.relative_to(root).as_posix()
     except ValueError:
@@ -662,8 +677,7 @@ def _pc_create_or_replace(
             try:
                 stage.unlink()
             except OSError as exc:
-                with contextlib.suppress(OSError):
-                    target.unlink()
+                _remove_if_ours(target, stage_identity)
                 raise _rollback_failed(
                     f"exclusive create cleanup failed for {relative}: {exc}"
                 ) from exc

@@ -381,23 +381,18 @@ def _status_refusals(ws: Workspace, spec_text: str, plan_text: str, intent: str)
         )
 
 
-def committed_code_trust(
-    ws: Workspace,
-    on_git_error: Callable[[Any], None] | None = None,
-) -> tuple[str | None, str]:
+def committed_code_trust(ws: Workspace) -> tuple[str | None, str]:
     """``(trust, cause)``: the ``code_trust`` of the latest approval pair at ``HEAD``.
 
     Read through the hardened Git helper, so the working copy never counts. When
     the trust cannot be determined, *trust* is ``None`` and *cause* names why:
     the file is absent, malformed, or unreadable, the value is unknown, or Git
-    failed (*on_git_error* is called with that failure first). A determined
+    failed. Nothing is written, so a refusal built from it writes nothing. A determined
     trust has an empty *cause*.
     """
     try:
         approvals = ws.approvals()
     except _git.SupervisorGitError as exc:
-        if on_git_error is not None:
-            on_git_error(exc)
         return None, f"a Git error ({exc.code})"
     except Refusal:
         return None, "approvals.jsonl is malformed"

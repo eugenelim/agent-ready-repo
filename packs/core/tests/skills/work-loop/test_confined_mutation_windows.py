@@ -180,6 +180,12 @@ def _lexical_target(root: Path, form: str) -> Path:
     doubled separator, so a form that starts with two backslashes (UNC, device,
     extended-length) is passed as the whole target; every other form is
     appended to the root as raw text on whatever drive the runner uses.
+
+    Such a form cannot reach the module as a component below the root: joined as
+    text, pathlib folds the doubled separator, so the extended-length form turns
+    into a name with a question mark and the device and UNC forms turn into
+    ordinary names. As the whole target it shares no prefix with the root, so the
+    module judges its components after that prefix and refuses the form.
     """
     return Path(form) if form.startswith("\\\\") else Path(str(root) + "\\" + form)
 

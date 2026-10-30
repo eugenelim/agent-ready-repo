@@ -10,14 +10,14 @@ empty success on the platform it exists to cover.
 from __future__ import annotations
 
 import sys
-import xml.etree.ElementTree as ET  # noqa: S405  # nosec B405 - parses the JUnit report this workflow's own pytest step writes
+import xml.etree.ElementTree as ET  # noqa: S405  # nosec B405  # parses the JUnit report this workflow's own pytest step writes
 from pathlib import Path
 
 
 def check(report: Path) -> list[str]:
     """Return the reasons the report does not prove the suite ran, or an empty list."""
     try:
-        root = ET.parse(report).getroot()  # noqa: S314  # nosec B314 - parses the JUnit report this workflow's own pytest step writes
+        root = ET.parse(report).getroot()  # noqa: S314  # nosec B314  # parses the JUnit report this workflow's own pytest step writes
     except (OSError, ET.ParseError) as exc:
         return [f"cannot read {report}: {exc}"]
     cases = list(root.iter("testcase"))

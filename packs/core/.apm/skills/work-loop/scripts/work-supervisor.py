@@ -616,12 +616,9 @@ def _untrusted_unsafe_host_refusal(
     if args.verb == "start":
         trust: str | None = args.code_trust
     else:
-
-        def log_git_error(exc: Any) -> None:
-            if exc.unverifiable:
-                _log_unverifiable(workspace, exc.code)
-
-        trust, cause = admission.committed_code_trust(workspace, log_git_error)
+        # The cause travels only in the refusal: logging it would write the
+        # security log through the very writes this refusal keeps untouched.
+        trust, cause = admission.committed_code_trust(workspace)
     try:
         admission.refuse_untrusted_on_unsafe_host(trust, cause)
     except admission.Refusal as exc:
