@@ -922,30 +922,41 @@ def render_source_authority(authority: SourceAuthority) -> str:
 
 
 _LOCATOR_SHAPE = re.compile(
-    r"[a-z][a-z0-9+.-]*:"
+    r"[a-z][a-z0-9+.-]+:"
     r"(?://[A-Za-z0-9._-]+(?:/[A-Za-z0-9._:-]+)*|[A-Za-z0-9][A-Za-z0-9._:-]*)",
     re.ASCII,
 )
+_LOCATOR_LOCAL_HOSTS = frozenset({"localhost", "file", "0.0.0.0"})
 _LOCATOR_SECRET = re.compile(
-    r"(?i)\b(?:password|passwd|pwd|secret|api[_ -]?key|access[_ -]?token|token)"
+    r"(?i)(?:password|passwd|pwd|secret|api[_ -]?key|access[_ -]?token|token)"
     r"\s*[:=]"
 )
+
+
+def _locator_host(locator: str) -> str:
+    """The lowercased host of a ``scheme://host[/path]`` locator, or ``""``."""
+    _, separator, rest = locator.partition("://")
+    return rest.split("/", 1)[0].lower() if separator else ""
 
 
 def _require_minimal_locator(locator: str) -> str:
     """Return the locator unchanged when its shape is allowed, or refuse it.
 
     The first record is committed to the repository, so only an ASCII
-    ``scheme://host[/path]`` or ``scheme:ID`` locator built from letters,
-    digits and ``-._:/`` is accepted, which keeps whitespace, invisible
-    characters, ``@``, ``?``, ``#``, ``%``, ``~``, backslashes and local paths
-    out. A ``file:`` scheme, a ``.`` or ``..`` segment, and a secret keyword
-    followed by ``:`` or ``=`` are refused too.
+    ``scheme://host[/path]`` or ``scheme:ID`` locator is accepted: a scheme of
+    two or more lowercase letters, digits or ``+.-``, then letters, digits and
+    ``-._:/``. That keeps whitespace, invisible characters, ``@``, ``?``,
+    ``#``, ``%``, ``~``, backslashes and drive letters out. A ``file:`` scheme,
+    a ``localhost``, loopback or ``file`` host, a ``.`` or ``..`` segment, and
+    a secret keyword followed by ``:`` or ``=`` anywhere in a name are refused
+    too.
     """
 
     if (
         not _LOCATOR_SHAPE.fullmatch(locator)
         or locator.startswith("file:")
+        or _locator_host(locator) in _LOCATOR_LOCAL_HOSTS
+        or _locator_host(locator).startswith("127.")
         or any(part in {".", ".."} for part in locator.split("/"))
         or _LOCATOR_SECRET.search(locator)
     ):
