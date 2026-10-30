@@ -79,7 +79,7 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Depends on:** none
 **Touches:** packs/github/.apm/skills/github-pr-iterate/**, packs/github/.apm/skills/github-pr/**, packs/github/tests/skills/github-pr-iterate/**, packs/github/tests/skills/github-pr/**
 **Tests:**
-- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion prefix S, U, C, G, A. The `## Approved actions` heading marks where each mode test starts measuring, and the closed read-only set in the spec decides which commands count as mutating. U-group tests read only the untrusted-data rule's own section of `SKILL.md`.
+- TDD, pytest over the skill text, at `packs/github/tests/skills/github-pr/test_github_pr.py`, one test group per criterion prefix S1-S6, U, C, G, A. The `## Approved actions` heading marks where each mode test starts measuring, and the closed read-only set in the spec decides which commands count as mutating. Only U1 reads the untrusted-data rule's own section of `SKILL.md`; the other U tests read all of `SKILL.md`, and U7 also the references.
 **Approach:** `git mv` the skill directory and the test folder to the new name, write the tests red, then the skill text.
 **Done when:** the T1 test file is green and `git grep -l github-pr-iterate` outside this spec directory returns nothing for the skill and test paths.
 
@@ -87,8 +87,8 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Depends on:** T1
 **Touches:** packs/github/.apm/skills/github-pr/evals/**, packs/github/tests/skills/github-pr/test_evals.py
 **Tests:**
-- TDD, pytest at `packs/github/tests/skills/github-pr/test_evals.py`: the trigger-query criteria and the eval-case criteria (count, fields, and the coverage list).
-**Approach:** each case is tagged with criterion IDs, and E2 requires every **(B)** ID to appear. The case list is the union of spec E4 and E5, plus one case per remaining **(B)** criterion that those two lists leave untagged, found by running the E2 test red first. Mode split: review (normal; head moves between draft and submit; run-the-tests with no sandbox; instruction-file edit; hidden HTML instruction; symlink-to-credential state; host or repository mismatch; approval only in the original request), iterate (normal; partial approval; head moved; gate failure after an approved edit; fork PR changing build files; CI log with instruction and credential string; metacharacter branch name; hook configuration change; approval only in the original request), adopt (fix then merge; zero-fix merge; approval only in the original request; no sandbox; contract-widening text; CI workflow edit without a sandbox; fix outside allowed types; third-party push; base retargeted; unrelated failing check; fourth push; push destination differs; refused merge; pending required check; not pushable; zero required checks; sandbox alters a staged file; sandbox defined by a PR file). Fixtures are canned `gh` outputs under `evals/files/<case>/`, contain no symlinks, and later turns carry fresh canned read output where a re-read matters.
+- TDD, pytest at `packs/github/tests/skills/github-pr/test_evals.py`: S7, S8, and E1 to E5; the E1 test reads each case's `turns` field and its `covers` tags.
+**Approach:** each case is tagged with criterion IDs, and E2 requires every **(B)** ID to appear. The case list is spec E4 and E5, plus one case per remaining **(B)** criterion those lists leave untagged, found by running the E2 test red first. Fixtures are canned `gh` outputs under `evals/files/<case>/`, contain no symlinks, and later turns carry fresh canned read output where a re-read matters.
 **Done when:** the T2 test file is green.
 
 ### T3: pack metadata, docs, census, and changelog describe all three modes
