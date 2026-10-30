@@ -154,7 +154,7 @@ Owned by: T3
 
 ### T9: Release
 
-- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13, T14
+- **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T10, T11, T12, T13, T14, T15
 - **Verification mode:** goal-based
 - **Tests:** for the release-history durable output: `python3 tools/check-core-release.py --base origin/main`; `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main` exiting `0` on the pull-request branch, which is one squashed commit carrying `Engine-Change-RFC: 0106` and the `Spec:` trailer, because the supervisor's own commits carry no trailer (owner decision, 2026-10-30; the full supervisor history is pushed as a separate evidence branch); the changelog-fragment checks, `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** each passes.
@@ -204,6 +204,15 @@ Owned by: T3
   - `_require_minimal_locator` refuses a locator with leading or trailing whitespace (Unicode included), any `@` (as the normalized-intake `safeLocator` pattern does), and a scheme-bearing locator with an empty host whose path is absolute; refusal cases in `test_intake_transaction.py` for `' /Users/name/notes.md'`, `' file:///home/name/x'`, `'\xa0/Users/name/x'`, `'user:pw@jira/x'`, `'https:///Users/name/x'`, and one case each that only the `file:` branch and only the `@` rule refuses; every adapter locator shape still commits.
   - The no-profile-signal mismatch case in `test_registration_stop_routes.py` covers both `profile_id` and `profile_version`.
   - `render_first_source_authority`'s docstring names the refused classes, and the work-intake SKILL.md locator paragraph says the classes are checked on the locator text as written, including `@`.
+- **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass, and `make build-self` leaves no diff.
+
+### T15: The locator allowlist
+
+- **Depends on:** T14
+- **Verification mode:** TDD
+- **Tests:** for AC-0025 and AC-0029, from the fourth implementation review's supported findings (records under `.context/reviews/tracker-origin-registration-stop-impl-r4/`) and the owner's 2026-10-30 choice of an allowlist:
+  - `_require_minimal_locator` accepts only an ASCII locator of the shape `scheme://host[/path]` or `scheme:ID`, built from letters, digits and `-._:/`, then still refuses a `file:` scheme, a `.` or `..` segment and a secret keyword followed by `:` or `=`; the unreachable userinfo check goes. Every adapter locator shape (`jira://EX-101`, `jira://boards/7`, `jira-align://epics/7`, `gh://items/101`, `linear://issues/ABC-1`, `tracker:TEAM-42`) still commits; refusal cases in `test_intake_transaction.py` for `https:/Users/name/x`, `jira:/home/name/x`, `https:Users/name/x`, a byte-order-mark prefix, a zero-width-space prefix, a bidi override, `~/notes`, `~name/x` and a percent-encoded locator, alongside the existing cases.
+  - The work-intake SKILL.md locator paragraph and the `_require_minimal_locator` docstring state the accepted shape and the remaining refusals.
 - **Done when:** those suites, the roster checks and `make lint-ruff lint-mypy` pass, and `make build-self` leaves no diff.
 
 ## Rollout
