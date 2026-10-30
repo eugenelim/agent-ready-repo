@@ -484,6 +484,10 @@ CHECK_CASES: list[tuple[str, bytes, str]] = [
               decision=decision_of("start", READY, [READY])),
         "wrong_schema",
     ),
+    # The named-invocation rows below are constructed by design (spec Testing Strategy: AC-0004 is a
+    # pure function of constructed bytes; real dispatch.py output is AC-0010's job). The check turns
+    # only on whether the decision equals the argless one (intent_readiness.py), so the bytes need not
+    # come from a real run. One real-output case sits beside AC-0010 below.
     (
         "named_start_over_two_ready",
         encode({**_two_ready(), "decision": decision_of("start", READY)}),
@@ -1849,6 +1853,24 @@ def _is_argless_refusal(output: dict[str, Any]) -> bool:
     return decision["action"] == "refuse" and not (
         output["ready"] or output["active"] or output["blocked"]
     )
+
+
+def test_real_start_output_over_two_ready_specs_is_wrong_schema(dispatch_mod, tmp_path) -> None:
+    case = next(c for c in replay.CASES if c.name == "several-ready")
+    root = tmp_path / "several-ready"
+    replay._plant(case, root, "header")
+    argless = json.loads(dispatch_stdout(dispatch_mod, root))
+    assert argless["decision"]["action"] == "ask"
+    captured = io.StringIO()
+    with contextlib.redirect_stdout(captured):
+        code = dispatch_mod.main(["--root", str(root), "--start", "docs/specs/one/spec.md"])
+    assert code == 0
+    named = json.loads(captured.getvalue())
+    assert named["decision"] != argless["decision"]
+    assert rd.member(captured.getvalue().encode("utf-8"), loaded_ids(root)) == {
+        "checked": False,
+        "reason": "wrong_schema",
+    }
 
 
 def test_the_planted_invalid_toml_tree_gives_an_argless_refusal(dispatch_mod, tmp_path) -> None:

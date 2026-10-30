@@ -192,7 +192,7 @@ If readiness cannot be checked, the export still writes the page. The page says 
 
 The page takes only a few facts from the piped input: which list each item is in, its finding codes and their next-action text. It shows an item only if the view already loaded that file, and shows that file's own name and state. Anything else in the input is dropped.
 
-Pipe only the argless `dispatch.py --root` output, and pass it straight into the export. Never pipe `--start` or `--resume` output; those can change files, and the export refuses it.
+Pipe only the argless `dispatch.py --root` output, and pass it straight into the export. Do not pipe `--start` or `--resume` output. The page marks the item `work-loop` picks when no spec is named, so the export wants argless output. Named `--start` or `--resume` output is accepted only when its decision matches the argless one. Any other decision is read as not argless `dispatch.py` output, and a workspace configuration problem is read as that problem.
 
 ### What the file contains
 

@@ -5395,6 +5395,8 @@ _NAMED_STATUS: dict[str, Any] = {
     "ask": _r_status(active=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)], ready=[_r_entry(_R_DELIVERY)]),
     "ask_ready": _r_status(ready=[_r_entry(_R_BRAVO), _r_entry(_R_CHARLIE)]),
     "outside": _r_status(ready=[_r_entry("docs/specs/absent-spec/spec.md")], blocked=[_r_blocked(_R_GOLF)]),
+    # The only active item is not in the export: the page renders rule resume with no id.
+    "resume_outside": _r_status(active=[_r_entry("docs/specs/absent-spec/spec.md")], blocked=[_r_blocked(_R_GOLF)]),
     # A top-level finding naming the decided path stops nothing: the mark stays (held is always false).
     "findingpath": _r_status(ready=[_r_entry(_R_BRAVO)], findings=[_r_finding(path=_R_BRAVO)]),
     "none": _r_status(blocked=[_r_blocked(_R_GOLF), _r_blocked(_R_CHARLIE, "missing_plan")]),
@@ -5529,6 +5531,7 @@ def test_readiness_payload_fixtures_have_the_intended_shape(rx: dict[str, pathli
     assert start["ask"] == {"rule": "ask", "id": None, "held": False, "active_count": 2}
     assert start["ask_ready"] == {"rule": "ask", "id": None, "held": False, "active_count": 0}
     assert start["outside"] == {"rule": "start", "id": None, "held": False, "active_count": 0}
+    assert start["resume_outside"] == {"rule": "resume", "id": None, "held": False, "active_count": 1}
     assert start["findingpath"] == {"rule": "start", "id": "spec:bravo-spec", "held": False, "active_count": 0}
     assert start["none"]["rule"] == "none"
     for name in _CHECKED_NAMES:
@@ -5686,6 +5689,9 @@ def test_readiness_ac_0026_start_line_text_by_case(rx: dict[str, pathlib.Path]) 
     assert _expected_line(_readiness_of(rx["findingpath"])["start"]) is None
     assert _expected_line(_readiness_of(rx["outside"])["start"]) == (
         "work-loop with no spec named would start an item outside this export, so none is marked."
+    )
+    assert _expected_line(_readiness_of(rx["resume_outside"])["start"]) == (
+        "work-loop with no spec named would resume an item outside this export, so none is marked."
     )
     assert _expected_line(_readiness_of(rx["none"])["start"]) == (
         "work-loop with no spec named finds nothing to start or resume."
