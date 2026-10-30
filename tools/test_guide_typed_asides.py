@@ -119,7 +119,11 @@ def test_release_handoff_records_the_completed_change_and_batch_closeout() -> No
         for entry in workspace["ini-002"]["work"]["shipped"]
         if isinstance(entry, dict) and entry.get("path") == spec_path
     ]
-    assert shipped_matches == [expected_shipped_entry]
+    # Since the spec registration stop (RFC-0106 D1) a repo-origin spec has no
+    # entry: its own Status is its room, and the spec-entry-drop repair removed
+    # the entry this check first pinned. No entry, or exactly this one, is
+    # consistent.
+    assert shipped_matches in ([], [expected_shipped_entry])
     prohibited_work_targets = {
         spec_path,
         "spec/guide-typed-asides-conversion",
