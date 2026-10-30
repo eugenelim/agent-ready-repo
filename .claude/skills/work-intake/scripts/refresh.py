@@ -921,55 +921,35 @@ def render_source_authority(authority: SourceAuthority) -> str:
     return rendered
 
 
-_LOCATOR_EMAIL = re.compile(r"\b[^\s/@]+@[^\s/@]+\.[^\s/@]+\b")
+_LOCATOR_SHAPE = re.compile(
+    r"[a-z][a-z0-9+.-]*:"
+    r"(?://[A-Za-z0-9._-]+(?:/[A-Za-z0-9._:-]+)*|[A-Za-z0-9][A-Za-z0-9._:-]*)",
+    re.ASCII,
+)
 _LOCATOR_SECRET = re.compile(
     r"(?i)\b(?:password|passwd|pwd|secret|api[_ -]?key|access[_ -]?token|token)"
     r"\s*[:=]"
 )
-_LOCATOR_PERSONAL_ABSOLUTE = re.compile(
-    r"(?i)^(?:/(?:users|home|private)/|[a-z]:[/\\]users[/\\])"
-)
-_LOCATOR_ABSOLUTE = re.compile(r"(?i)^(?:/|[a-z]:[/\\]|\\\\)")
 
 
 def _require_minimal_locator(locator: str) -> str:
-    """Refuse a locator that carries a sensitive class, or return it as given.
+    """Return the locator unchanged when its shape is allowed, or refuse it.
 
-    The first record is committed to the repository, so a locator holding a
-    control character, surrounding whitespace, a local or personal path
-    (including ``file:`` and a URL with an empty host and an absolute path), a
-    ``.`` or ``..`` segment, a backslash, an ``@`` (an email or credentials), a
-    secret, a query, or a fragment is refused. The classes are checked on the
-    locator text as written. Every other locator is accepted byte for byte.
+    The first record is committed to the repository, so only an ASCII
+    ``scheme://host[/path]`` or ``scheme:ID`` locator built from letters,
+    digits and ``-._:/`` is accepted, which keeps whitespace, invisible
+    characters, ``@``, ``?``, ``#``, ``%``, ``~``, backslashes and local paths
+    out. A ``file:`` scheme, a ``.`` or ``..`` segment, and a secret keyword
+    followed by ``:`` or ``=`` are refused too.
     """
 
-    code = "invalid_source_authority"
-    if any(ord(character) < 0x20 or ord(character) == 0x7F for character in locator):
-        raise RefreshRefusal(code)
-    if locator != locator.strip():
-        raise RefreshRefusal(code)
     if (
-        _LOCATOR_PERSONAL_ABSOLUTE.match(locator)
-        or _LOCATOR_ABSOLUTE.match(locator)
-        or locator.lower().startswith("file:")
-        or "\\" in locator
+        not _LOCATOR_SHAPE.fullmatch(locator)
+        or locator.startswith("file:")
         or any(part in {".", ".."} for part in locator.split("/"))
-        or _LOCATOR_EMAIL.search(locator)
         or _LOCATOR_SECRET.search(locator)
-        or "@" in locator
-        or "?" in locator
-        or "#" in locator
     ):
-        raise RefreshRefusal(code)
-    try:
-        parsed = urlsplit(locator)
-        parsed.port  # noqa: B018  # a malformed port is refused below
-    except ValueError as exc:
-        raise RefreshRefusal(code) from exc
-    if parsed.username is not None or parsed.password is not None:
-        raise RefreshRefusal(code)
-    if "://" in locator and not parsed.netloc and _LOCATOR_ABSOLUTE.match(parsed.path):
-        raise RefreshRefusal(code)
+        raise RefreshRefusal("invalid_source_authority")
     return locator
 
 
