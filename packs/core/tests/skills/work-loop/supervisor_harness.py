@@ -81,17 +81,24 @@ def git(repo: Path, *args: str) -> str:
     ).stdout
 
 
+# Every fixture file is written with LF endings, so its bytes match on every host.
+_LF = {"encoding": "utf-8", "newline": "\n"}
+
+
 def make_repo(root: Path, *, plan: str = sup.PLAN, spec: str = sup.SPEC) -> Path:
     """A committed repository with the fixture spec, plan, and ADR."""
     repo = root / "repo"
     (repo / SPEC_DIR).mkdir(parents=True)
     (repo / "docs" / "adr").mkdir(parents=True)
-    (repo / SPEC_DIR / "spec.md").write_text(spec, encoding="utf-8")
-    (repo / SPEC_DIR / "plan.md").write_text(plan, encoding="utf-8")
-    (repo / "docs" / "adr" / "0001-calculators-answer.md").write_text(sup.ADR, encoding="utf-8")
-    (repo / ".gitignore").write_text("*.log\n.loop-run/\n__pycache__/\n", encoding="utf-8")
-    (repo / "README.md").write_text("base\n", encoding="utf-8")
+    (repo / SPEC_DIR / "spec.md").write_text(spec, **_LF)
+    (repo / SPEC_DIR / "plan.md").write_text(plan, **_LF)
+    (repo / "docs" / "adr" / "0001-calculators-answer.md").write_text(sup.ADR, **_LF)
+    (repo / ".gitignore").write_text("*.log\n.loop-run/\n__pycache__/\n", **_LF)
+    (repo / "README.md").write_text("base\n", **_LF)
     git(repo, "init", "-q", "-b", "main")
+    # Byte-stable on every host: a Windows runner's system autocrlf would
+    # otherwise turn the plan's LF stub fences into CRLF on checkout.
+    git(repo, "config", "core.autocrlf", "false")
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "base")
     return repo
@@ -223,17 +230,17 @@ class Controller:
             title = request["task"]["title"]
             if title.startswith("Calculator"):
                 (self.repo / "calc.py").write_text(
-                    "def answer():\n    return 42\n", encoding="utf-8"
+                    "def answer():\n    return 42\n", **_LF
                 )
                 passed = True
             elif title.startswith("Release"):
-                (self.repo / "release.txt").write_text("ready\n", encoding="utf-8")
+                (self.repo / "release.txt").write_text("ready\n", **_LF)
                 passed = True
             else:
                 text = "wip\n" if request["attempt"] == 1 else "done\n"
-                (self.repo / "plain.txt").write_text(text, encoding="utf-8")
+                (self.repo / "plain.txt").write_text(text, **_LF)
                 passed = text == "done\n"
-            (self.repo / "scratch.log").write_text("ignored noise\n", encoding="utf-8")
+            (self.repo / "scratch.log").write_text("ignored noise\n", **_LF)
             result["gate"] = {"passed": passed}
         elif kind == "run-gates":
             result["gate"] = {"passed": True}
@@ -291,7 +298,7 @@ class Controller:
 
     def report(self, result: dict[str, Any]) -> tuple[int, dict[str, Any]]:
         path = self.results / "result.json"
-        path.write_text(json.dumps(result), encoding="utf-8")
+        path.write_text(json.dumps(result), **_LF)
         return run_cli(self.repo, "report", SPEC_DIR, str(path))
 
     def drive(self, limit: int = 200) -> dict[str, Any]:

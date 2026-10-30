@@ -290,3 +290,15 @@ fix AC-0012 waited on. The rebase changed three things:
 - `tools/test_workspace_status.py` re-pins the finish-checklist hash for the
   merged section, which makes no workspace-ownership claim.
 Core stays at 4.0.0.
+
+## T2: the Windows run fixture pins LF
+
+With #1655 merged, the Windows installed-skill run (AC-0012) got past `start`.
+It then stopped on `invalid-stub-fence` ("a plan with stub fences must use LF
+line endings"), because the harness wrote `plan.md` in text mode, which emits
+CRLF on Windows. The harness now writes every fixture file with LF and sets
+`core.autocrlf false` in its repository.
+
+Observation, outside this spec: the supervisor honours a repository's
+`core.autocrlf`, so a Windows adopter whose plan checks out with CRLF gets
+`invalid-stub-fence` for a plan that carries stub fences.
