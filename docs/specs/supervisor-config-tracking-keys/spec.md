@@ -29,7 +29,7 @@ Maintainers who run full-mode `work-loop` in a repository with many linked workt
 - The digest the attempt manifest records for each `config` and `config.worktree` file covers the file with its canonical tracking blocks removed, not its raw bytes — `work-loop/scripts/_supervisor_attempt.py`.
 - The same digest serves the hardened Git helper's pre-call control check — `work-loop/scripts/_supervisor_attempt.py` (`_control_check`).
 - A manifest entry is compared in the form it was recorded in, so a manifest recorded with the raw-file fingerprint is still compared against the raw file — `work-loop/scripts/_supervisor_attempt.py`.
-- A Git-free config-fingerprint suite runs on POSIX CI and on the Windows build-check job, each with a zero-skip check — `packs/core/tests/skills/work-loop/`, `.github/workflows/`.
+- A config-fingerprint suite that needs no repository runs on POSIX CI and on the Windows build-check job, each with a zero-skip check — `packs/core/tests/skills/work-loop/`, `.github/workflows/`.
 - The supervisor reference, the controller's effect guidance, and two architecture pages describe the config fingerprint — `work-loop/references/supervisor.md`, `docs/architecture/runtime-security-primitives.md` §11, `docs/architecture/work-loop-execution-supervisor.md` § Attempts.
 
 ## Scope and Non-goals
@@ -103,10 +103,13 @@ Non-goals:
 
 ## Testing Strategy
 
-- **Config fingerprint (AC-0001, AC-0002, AC-0003, AC-0004, AC-0006, AC-0014, AC-0015):**
-  TDD over config bytes in a Git-free suite, because the fingerprint is a pure
-  function of one read's bytes and the same suite must run on Windows, where the
-  git-backed supervisor suites do not run.
+- **Config fingerprint (AC-0001, AC-0002, AC-0003, AC-0004, AC-0006, AC-0014, AC-0015, AC-0016):**
+  TDD over config bytes in a suite that needs no repository and no supervisor
+  run, because the fingerprint is a pure function of one read's bytes and the
+  same suite must run on Windows, where the git-backed supervisor suites do not
+  run. Its only process is `git config --file` over AC-0003's files, which
+  checks that each shape means to Git what the case claims, on the POSIX CI Git
+  and on Git for Windows.
 - **Attempt check over a shared common directory (AC-0007, AC-0008, AC-0009):**
   TDD as integration tests in the git-backed attempt suite, with a real linked
   sibling worktree whose own `git push -u`, `git config`, and `git branch -D`
@@ -122,9 +125,13 @@ Non-goals:
 
 ### Definitions
 
-Bytes are split into lines only at `\n`; a line includes its `\n`, and a final
-segment with no `\n` is never part of a canonical tracking block. Every match
+Bytes are split into lines only at `\n`; a line includes its `\n`. Every match
 below is exact and case-sensitive, in the lower-case form Git writes.
+
+- **Strippable file.** A file that ends in `\n`, contains no `\r` byte anywhere,
+  and has no line whose last byte before `\n` is `\`. The precondition is
+  file-wide: when any part of the file fails it, nothing in the file is a
+  canonical tracking block.
 
 - **Excluded keys.** Exactly `branch.<name>.remote`, `branch.<name>.merge`,
   `branch.<name>.pushremote`, `branch.<name>.rebase`,
@@ -133,17 +140,15 @@ below is exact and case-sensitive, in the lower-case form Git writes.
   (0x00–0x1F), or 0x7F.
 - **Tracking value.** Zero or more bytes, none of them `"`, `\`, `;`, `#`, a
   control byte, or 0x7F.
-- **Canonical branch block.** A line exactly `[branch "<subsection>"]\n`,
-  followed by one or more lines each exactly `\t<key> = <tracking value>\n`
-  with `<key>` one of `remote`, `merge`, `pushremote`, `rebase`, `description`;
-  where the line before the header, if any, does not end in `\` before its
-  `\n`, and the line after the block begins with `[` or the block ends the file.
-- **Canonical gh-resolved line.** A line exactly
+- **Canonical branch block.** In a strippable file, a line exactly
+  `[branch "<subsection>"]\n`, followed by one or more lines each exactly
+  `\t<key> = <tracking value>\n` with `<key>` one of `remote`, `merge`,
+  `pushremote`, `rebase`, `description`, where the line after the block begins
+  with `[` or the block ends the file.
+- **Canonical gh-resolved line.** In a strippable file, a line exactly
   `\tgh-resolved = <tracking value>\n` that follows a line exactly
   `[remote "<subsection>"]\n`, where every line between them begins with `\t`
-  followed by a lower-case ASCII letter, and neither the line before the header
-  nor any line from the header up to the gh-resolved line ends in `\` before
-  its `\n`.
+  followed by a lower-case ASCII letter.
 - **Canonical tracking block.** A canonical branch block or a canonical
   gh-resolved line.
 - **Raw-file fingerprint.** The size-and-sha256 entry, `<size>:<sha256hex>`,
@@ -168,18 +173,29 @@ Config fingerprint
   `[remote "<name>"]` block as a canonical gh-resolved line, or a code-running
   key the start-time refusal names placed directly before or after a canonical
   tracking block.
-- [ ] **AC-0003.** Each of these shapes has nothing removed, so its config
+- [ ] **AC-0003.** Each of these files has nothing removed, so its config
   fingerprint is `config-view:` followed by the raw-file fingerprint form of the
-  whole file: a branch header with a second section on its line
-  (`[branch "x"][core]hooksPath = /evil`), an escaped subsection
-  (`[branch "x\\"][filter "y"]clean = "/evil"]`), a header followed by content
-  on its line (`[branch "x"] [remote "origin"]url = /evil`), `\r\n` line
-  endings, a `\r` inside a line, a byte-order mark before the first header,
-  `[Branch "x"]`, a `Remote =` key, `remote=origin`, a quoted value, a value
-  holding `;` or `#`, a value ending in `\`, an `include` or `includeIf`
-  section, a tracking key followed by a line that is not a header
-  (`[branch "x"]`, `\tremote = origin`, `\thookspath = /evil`), and a branch
-  block or gh-resolved line after a line ending in `\`.
+  whole file. Bytes are written as Python bytes literals.
+  - Header shapes: `[branch "x"][core]hooksPath = /evil\n`,
+    `[branch "x\\\\"][filter "y"]clean = "/evil"]\n`,
+    `[branch "x"] [remote "origin"]url = /evil\n`,
+    `[branch "x"]\r[core]\n\thookspath = /evil\n`, `[Branch "x"]\n\tremote = o\n`,
+    and a byte-order mark before the first header.
+  - Key and value shapes: `\tRemote = o\n`, `\tremote=o\n`, `\tremote = "o"\n`,
+    a value holding `;` or `#`, a value ending in `\`, an `include` or
+    `includeIf` section, and a tracking key followed by a line that is not a
+    header (`[branch "x"]\n\tremote = o\n\thookspath = /evil\n`).
+  - Continuation shapes, each with a canonical block after a line Git joins to
+    the next: `[remote "origin"]\n\turl = /x\\\r\n[branch "b"]\n\tremote = o\n[core]\n\thooksPath = /evil\n`;
+    `[remote "origin"]\n\turl = /x\\\r\n\tgh-resolved = base\n\tpushurl = /evil\n`;
+    `[remote "o"]\n\turl = /good\\\r\n[branch "b"]\n\tremote = one\n[core]\n\tbare = false\n`
+    and the same with `remote = two`;
+    `[remote "o"]\n\turl = /good\\\r\n\tgh-resolved = one\n` and the same with
+    `gh-resolved = two`;
+    `[include]\n\tpath = /x\\\r\n[branch "b"]\n\tremote = o\n[core]\n\tbare = false\n`;
+    and `[remote "o"]\n\turl = /good\\\n[branch "b"]\n\tremote = o\n[core]\n\tbare = false\n`.
+  - Line-ending shapes: a file with `\r\n` line endings, a `\r` inside a value,
+    and a file whose last byte is not `\n`.
 - [ ] **AC-0004.** Every config fingerprint begins `config-view:`, and no
   raw-file fingerprint does.
 - [ ] **AC-0006.** Computing Git control state creates no process.
@@ -187,9 +203,9 @@ Config fingerprint
   misses such as `gh-resolved-x`, `remotes`, `Merge`, and `gh-resolved` inside a
   `[branch "<name>"]` block stay in the config fingerprint.
 - [ ] **AC-0015.** The config fingerprint is computed from the bytes of the
-  single confined read the attempt check makes of that file, and a symlinked,
-  special, or oversized config entry keeps its `link:…`, `special`, or `unsafe`
-  value.
+  single confined read the attempt check makes of that file.
+- [ ] **AC-0016.** A symlinked, special, or oversized config entry keeps its
+  `link:…`, `special`, or `unsafe` value.
 
 Attempt check over a shared common directory
 
@@ -244,7 +260,7 @@ none
 
 `code` — implement the config fingerprint, its use in the attempt manifest and
 the hardened helper's pre-call check, form-preserving comparison for older
-manifests, the Git-free suite on both platforms, and the documentation updates.
+manifests, the config-fingerprint suite on both platforms, and the documentation updates.
 
 ## Accepted Risk
 
@@ -275,9 +291,11 @@ cost of keeping the excluded set and the canonical form narrow.
 
 Reinstalling an older core release is safe only when no attempt is open and no
 refusal stands; attempts close at `report`. If the older release is installed
-while an attempt is open, it cannot match a `config-view:` value and refuses
-with `attempt-residue` until the newer release is reinstalled, which is the
-permitted recovery. No store edit is a recovery.
+while an attempt is open, it cannot match a `config-view:` value, so it
+refuses that attempt and records the refusal in the store. Reinstalling the
+newer release leaves that refusal standing: `next` answers `attempt-residue`
+until the paths match and `next` clears it, and the attempt's work is then
+re-issued as a new request, not reported. No store edit is a recovery.
 
 The Platform Core decision-maker accepted this risk, in full, on 2026-10-31.
 

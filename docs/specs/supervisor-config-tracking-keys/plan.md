@@ -17,7 +17,7 @@
     (git-backed, `sup.INTEGRATION`, run only by the Ubuntu
     `supervisor-integration` lane of `catalogue-tooling-ci-gates.yml`), which
     holds `test_an_unparseable_git_config_is_refused_and_recorded_before_any_git_call`;
-    `.github/workflows/build-check-windows.yml`, which runs named Git-free
+    `.github/workflows/build-check-windows.yml`, which runs named
     suites on `windows-latest`.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -37,12 +37,12 @@
 ## Approach
 
 Build the config fingerprint as a pure function of one read's bytes inside
-`_supervisor_attempt.py`, proved first by a Git-free suite that also runs on
-Windows. Then route the `config` and `config.worktree` entries of `git_state`
+`_supervisor_attempt.py`, proved first by a suite that needs no repository and
+also runs on Windows. Then route the `config` and `config.worktree` entries of `git_state`
 through it, and make the manifest comparison form-preserving, so an entry
 recorded as a raw-file fingerprint is still compared against the raw file. The
-git-backed attempt suite then proves the sibling-worktree cases end to end and
-checks the pinned hostile shapes against real Git. Documentation, release, and
+git-backed attempt suite then proves the sibling-worktree cases end to end.
+Documentation, release, and
 the captured item close last. The riskiest part is the comparison change: it
 touches the code that decides every attempt, and a mistake there either admits a
 changed config or refuses every regeneration.
@@ -69,8 +69,8 @@ changed config or refuses every regeneration.
 Most construction tests live under **Tasks** below.
 
 **Integration tests:** the sibling-worktree cases in T2 span the fingerprint
-(T1) and the manifest comparison (T2); VI-0116 runs T1's pinned shapes through
-real Git.
+(T1) and the manifest comparison (T2); VI-0116 in T1 runs the pinned shapes
+through real Git on both platforms.
 **Manual verification:** none.
 
 ## Durable-output map
@@ -91,27 +91,32 @@ real Git.
 
 - **Strip canonical blocks; never parse.** The fingerprint removes only bytes in
   the exact form Git itself writes and keeps every other byte verbatim, so any
-  shape Git might read differently from a parser changes the digest as it does
-  today. Rejected: a "clean parse" grammar with a raw fallback, because its
-  tokenisation must match Git's to be safe, and review showed it does not
-  (`[branch "x"][core]hooksPath = /evil` is one header to a line regex and
-  `core.hookspath` to Git). Rejected: `git config --list`, a Git call inside the
-  helper's own pre-check. Rests on: Git writes tracking keys only as
-  `[branch "<name>"]\n` then `\t<key> = <value>\n`, and appends
-  `\tgh-resolved = <value>\n` inside the existing `[remote "<name>"]` block
-  (probe below). Traces to: AC-0001, AC-0002, AC-0003, AC-0014.
+  shape Git reads differently from a line pattern changes the digest as it does
+  today. Rejected: a grammar that classifies lines and falls back to the raw
+  file, because it is safe only if its tokenisation equals Git's, and Git reads
+  `[branch "x"][core]hooksPath = /evil` as `core.hookspath`. Rejected:
+  `git config --list`, a Git call inside the helper's own pre-check. Rests on:
+  Git writes tracking keys only as `[branch "<name>"]\n` then
+  `\t<key> = <value>\n`, and appends `\tgh-resolved = <value>\n` inside the
+  existing `[remote "<name>"]` block (probe below). Traces to: AC-0001,
+  AC-0002, AC-0003, AC-0014.
+- **A file-wide precondition stops joined lines.** Stripping removes anything
+  only from a strippable file: one that ends in `\n`, holds no `\r`, and has no
+  line ending in `\` before `\n`. Git joins a line ending in `\` to the next,
+  and it normalises `\r\n` before reading escapes, so `\` + `\r\n` also joins;
+  a canonical-looking block after a joined line is part of a value, and its
+  removal would shift what Git reads next. A per-line check cannot see every
+  way Git joins or splits, so the precondition is file-wide: any `\r` or
+  trailing `\` anywhere leaves the whole file in the digest. Traces to:
+  AC-0003.
 - **Block boundaries stop sections from moving.** A branch block is removed only
-  when the next line begins with `[` or the block ends the file, and no removal
-  happens after a line ending in `\`. Without the first rule, deleting
-  `[branch "x"]\n\tremote = origin\n` from
+  when the next line begins with `[` or the block ends the file. Otherwise
+  deleting `[branch "x"]\n\tremote = origin\n` from
   `[core]…[branch "x"]\n\tremote = origin\n\thookspath = /evil\n` leaves the same
-  stripped bytes as a file that sets `core.hookspath` (Git reads the first as
-  `branch.x.hookspath` and the second as `core.hookspath`). Without the second,
-  a `gh-resolved` line after `\turl = https://good.invalid/\` is part of the URL
-  value (Git reads `remote.o.url=https://good.invalid/<TAB>gh-resolved = base`).
-  The gh-resolved rule additionally requires every line from the remote header
-  to it to begin with `\t` and a lower-case letter, so an indented header cannot
-  end the block unseen. Traces to: AC-0002, AC-0003.
+  bytes as a file that sets `core.hookspath` (Git reads the first as
+  `branch.x.hookspath`). The gh-resolved rule requires every line from the
+  remote header to it to begin with `\t` and a lower-case letter, so an
+  indented header cannot end the block unseen. Traces to: AC-0002, AC-0003.
 - **Form-preserving comparison.** The manifest value's form selects the
   comparison, from a closed set: `config-view:` → the config fingerprint;
   `<size>:<sha256hex>` (exactly today's `_digest` value,
@@ -129,17 +134,26 @@ real Git.
   window between a read that is checked and a read that is digested. Traces
   to: AC-0015.
 
-Probe (read-only, `git config --file <f> --list` under Git 2.56.0 in a `mktemp`
-directory, with system and global config off): the canonical writes from
-`git push -u`, `git checkout -b … --track`, and `git config` produce exactly the
-canonical form; `[branch "x"][core]hookspath = /evil` → `core.hookspath`;
-`[branch "x"] [remote "origin"]url = …` → `remote.origin.url`;
-`[branch "x\\"][filter "y"]clean = "/evil"]` → `filter.y.clean`; a `\r` inside a
-line splits it; a leading byte-order mark makes Git exit 128. A throwaway
-implementation of the rule above removed nothing from each hostile shape and
-kept the payload bytes in every case. This repository's shared config (76
-lines, 21 branch sections across 24 linked worktrees) holds only canonical
-`remote` and `merge` blocks.
+Probe (read-only, 2026-10-31, `git config --file <f> --list` under Git 2.56.0
+in a `mktemp` directory with `GIT_CONFIG_GLOBAL=/dev/null` and
+`GIT_CONFIG_NOSYSTEM=1`):
+
+- `git push -u`, `git checkout -b … --track`, and `git config` write exactly the
+  canonical form.
+- `[branch "x"][core]hookspath = /evil` gives `core.hookspath`;
+  `[branch "x"] [remote "origin"]url = …` gives `remote.origin.url`;
+  `[branch "x\\"][filter "y"]clean = "/evil"]` gives `filter.y.clean`.
+- A `\r` inside a value line is a value byte
+  (`core.bare=false\r[core]hookspath=/evil`), but after a header Git reads the
+  content that follows `]`: `[branch "x"]\r[core]\n\thookspath = /evil` gives
+  `core.hookspath`.
+- A leading byte-order mark is skipped, with exit 0.
+- `\` + `\r\n` joins lines: `[remote "origin"]\n\turl = /x\\\r\n[branch "b"]\n\tremote = o\n[core]\n\thooksPath = /evil\n`
+  gives `remote.origin.url=/x[branch b]`, `remote.origin.remote=o`, and a live
+  `core.hookspath`; the `gh-resolved` and `include.path` variants join the same
+  way.
+- A throwaway implementation of the rules above removes nothing from any
+  AC-0003 file and removes only the tracking lines from a canonical file.
 
 Owned by: T1, T2.
 
@@ -188,10 +202,12 @@ Owned by: T1, T2.
 - A file that a writer rewrites from canonical to non-canonical form (or back)
   changes its retained bytes and therefore refuses, which is the fail-closed
   direction.
-- A downgrade with an attempt open refuses until the newer release is
-  reinstalled; the spec's Accepted Risk records this.
+- A downgrade with an attempt open refuses that attempt and records the
+  refusal. After the newer release is reinstalled the refusal stands until the
+  paths match and `next` clears it, and the attempt's work is re-issued as a
+  new request, not reported.
 
-Traces to: AC-0003, AC-0008, AC-0015.
+Traces to: AC-0003, AC-0008, AC-0016.
 
 Owned by: T1.
 
@@ -217,7 +233,7 @@ Owned by: T1.
 
 **Depends on:** none
 
-**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_attempt.py`, a new Git-free suite under `packs/core/tests/skills/work-loop/`, `.github/workflows/build-check-windows.yml`, the POSIX workflow that hosts the zero-skip step
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_attempt.py`, a new config-fingerprint suite under `packs/core/tests/skills/work-loop/` that needs no repository, `.github/workflows/build-check-windows.yml`, the POSIX workflow that hosts the zero-skip step
 
 **Verification mode:** TDD
 
@@ -232,9 +248,15 @@ Owned by: T1.
   including `uploadpack`, `receivepack`, `pushurl`, `vcs`, and `proxy` beside a
   canonical gh-resolved line, and each `_CODE_RUNNING_FIXED` key directly
   before and after a canonical block; each fingerprint differs from the base's.
-- **VI-0103 (AC-0003):** one case per pinned shape, with the bytes the probe in
-  `## Design (LLD)` used; each returns `"config-view:" + _digest(whole file)`,
-  computed in the test from the shipped `_digest`.
+- **VI-0103 (AC-0003):** one case per AC-0003 file, with the bytes the spec
+  lists; each returns `"config-view:" + _digest(whole file)`, computed in the
+  test from the shipped `_digest`.
+- **VI-0116 (AC-0003):** each VI-0103 file, and the canonical base, is read with
+  `git config --file <f> --list` under `GIT_CONFIG_GLOBAL` set to the null
+  device and `GIT_CONFIG_NOSYSTEM=1`; the keys and values Git reports equal the
+  case table's expected list, recorded from the probe in `## Design (LLD)`.
+  It runs in the same suite, so it runs on the POSIX CI Git and on Git for
+  Windows.
 - **VI-0104 (AC-0004):** every value from VI-0101 to VI-0103 begins
   `config-view:`, and the raw-file fingerprint of each case does not.
 - **VI-0106 (AC-0006):** `git_state()` over a prepared Git and common directory
@@ -242,9 +264,12 @@ Owned by: T1.
 - **VI-0114 (AC-0014):** near-miss cases (`gh-resolved-x`, `remotes`, `Merge`,
   `gh-resolved` in a branch block) each change the fingerprint when their value
   changes.
-- **VI-0115 (AC-0015):** the read-counting seam shows one read per config file
-  and a fingerprint of the returned bytes; a symlink, a FIFO where the platform
-  supports one, and an oversized file give `link:…`, `special`, and `unsafe`.
+- **VI-0115 (AC-0015, AC-0016):** the read-counting seam shows one read per
+  config file and a fingerprint of the returned bytes. An oversized file gives
+  `unsafe` on every platform. The symlink and FIFO cases give `link:…` and
+  `special`; their case list is built at collection time from what the platform
+  can create, so a platform without a file type never collects that case,
+  rather than skipping it.
 - **VI-0113 (AC-0013):** the suite runs as its own step on the Windows
   build-check job and on the POSIX lane, each with a JUnit report checked by
   `tools/require-junit-ran-without-skips.py`; both green.
@@ -256,7 +281,7 @@ Owned by: T1.
   canonical, or to VI-0103 when not. If neither runs offline, record that, and
   the fail-closed rule stands with no contract change.
 
-**Done when:** VI-0101–VI-0106 and VI-0114–VI-0115 pass locally, VI-0113's Windows and POSIX steps are green on the PR, and the security-reviewer returns clean on the fingerprint.
+**Done when:** VI-0101–VI-0106 and VI-0114–VI-0116 pass locally, VI-0113's Windows and POSIX steps are green on the PR, and the security-reviewer returns clean on the fingerprint.
 
 ### T2: An open attempt ignores sibling tracking writes and still refuses every other config change
 
@@ -283,15 +308,11 @@ Owned by: T1.
   one changed byte of an excluded key refuses the raw form, one changed byte
   outside a canonical block refuses the `config-view:` form, and a retargeted
   link refuses the `link:…` form.
-- **VI-0116 (AC-0003):** each VI-0103 shape is written to a file in `tmp_path`
-  and read with `git config --file <f> --list` through the hardened helper's
-  environment; Git reports the hostile key the shape carries, so the pinned
-  shapes stay real against the CI Git.
 - **VI-0110 (AC-0010):** the `supervisor-integration` lane's suites pass, and
   `git diff origin/main -- packs/core/tests/skills/work-loop/` shows no existing
   test function modified or removed.
 
-**Done when:** VI-0107–VI-0110 and VI-0116 pass in the `supervisor-integration` lane and the security-reviewer returns clean on the diff.
+**Done when:** VI-0107–VI-0110 pass in the `supervisor-integration` lane and the security-reviewer returns clean on the diff.
 
 ### T3: Adopters, controllers, and maintainers read the config fingerprint, and the release ships it
 
@@ -330,8 +351,9 @@ supervisor refuses `supervisor-changed` until regenerated, and the
 form-preserving comparison admits the regeneration's own attempt. Reversal is
 reinstalling the prior core release while no attempt is open and no refusal
 stands; attempts close at `report`. A downgrade with an attempt open refuses
-with `attempt-residue` until the newer release is reinstalled, as the spec's
-Accepted Risk records.
+that attempt; after the newer release is reinstalled, `next` clears the
+refusal once the paths match and re-issues the work, as the spec's Accepted
+Risk records.
 
 ## Risks
 
@@ -341,8 +363,8 @@ Accepted Risk records.
   the repositories that carry it; the spec's Accepted Risk accepts that cost.
 - The captured item is added by two branches; the second to merge resolves the
   overlap.
-- The Windows and POSIX steps add CI time; the suite is Git-free, so its cost is
-  in assertions, not processes.
+- The Windows and POSIX steps add CI time; the suite needs no repository, and
+  its only processes are VI-0116's `git config --file` reads.
 
 ## Changelog
 
