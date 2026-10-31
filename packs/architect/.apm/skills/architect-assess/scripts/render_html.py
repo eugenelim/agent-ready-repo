@@ -56,6 +56,7 @@ TOKEN_SOURCE_LARGE = "render_html: refused: source over the size cap"
 TOKEN_NOT_UTF8 = "render_html: refused: source is not valid UTF-8"
 TOKEN_EVIDENCE = "render_html: refused: evidence class outside the allowed set"
 TOKEN_PROVENANCE = "render_html: refused: no usable Sources checked table in"
+TOKEN_OUTPUT_LARGE = "render_html: refused: rendered page over the size cap"
 TOKEN_HOST = "render_html: refused: host lacks descriptor walking:"
 TOKEN_INTERNAL = "render_html: failed: internal error"
 
@@ -117,19 +118,20 @@ class Block(NamedTuple):
     rows: tuple[tuple[str, ...], ...] = ()
 
 
-_FENCE = re.compile(r"^(`{3,})([^`]*)$")
+_FENCE = re.compile(r"^( {0,3})(`{3,})([^`]*)$")
 _ULI = re.compile(r"^\s*[-*]\s+(.*)$")
 _OLI = re.compile(r"^\s*\d+\.\s+(.*)$")
 _HR = re.compile(r"^\s*-{3,}\s*$")
 _SEPARATOR_CELL = re.compile(r":?-{3,}:?")
-# Bounded quantifiers keep every inline scan linear in the source size.
+# Each alternative stops at the next delimiter it excludes (a backtick, an asterisk, a
+# bracket, or a parenthesis), so no start position rescans text an earlier one scanned
+# and parsing stays linear in the source size at any span length.
 _INLINE = re.compile(
-    r"(`[^`\n]{1,200}`)|(\*\*[^*\n]{1,200}\*\*)"
-    r"|(\[[^\]\n]{1,200}\]\([^)\n]{0,500}\))|(\*[^*\n]{1,200}\*)"
+    r"(`[^`\n]+`)|(\*\*[^*\n]+\*\*)"
+    r"|(\[[^\[\]\n]+\]\((?:[^()\n]|\([^()\n]*\))*\))|(\*[^*\n]+\*)"
 )
-_LINK = re.compile(r"^\[([^\]]+)\]\(([^)]*)\)$")
 _CONTROL = re.compile(r"[\x00-\x20\x7f]")
-_FORMAT_CHARS = re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
+_FORMAT_CHARS = re.compile("[\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
 
 
 def _esc(text: str) -> str:
@@ -158,10 +160,10 @@ def _inline(text: str) -> str:
         elif match.group(2):
             out.append(f"<strong>{_esc(token[2:-2])}</strong>")
         elif match.group(3):
-            link = _LINK.match(token)
-            if link and _safe_target(link.group(2)) and not _FORMAT_CHARS.search(token):
-                href = _esc(link.group(2).strip())
-                out.append(f'<a href="{href}">{_esc(link.group(1))}</a>')
+            split = token.index("](")
+            label, target = token[1:split], token[split + 2 : -1]
+            if _safe_target(target) and not _FORMAT_CHARS.search(token):
+                out.append(f'<a href="{_esc(target.strip())}">{_esc(label)}</a>')
             else:
                 out.append(_esc(token))
         else:
@@ -223,7 +225,7 @@ def parse(source: str) -> list[Block]:
         following = lines[i + 1] if i + 1 < len(lines) else None
         fence = _FENCE.match(line)
         if fence:
-            marker, info = fence.group(1), fence.group(2)
+            marker, info = fence.group(2), fence.group(3)
             body: list[str] = []
             i += 1
             while i < len(lines) and not (
@@ -257,17 +259,17 @@ def parse(source: str) -> list[Block]:
             continue
         for pattern, kind in ((_ULI, "ul"), (_OLI, "ol")):
             if pattern.match(line):
-                items: list[str] = []
+                parts: list[list[str]] = []
                 while i < len(lines):
                     item = pattern.match(lines[i])
                     if item:
-                        items.append(item.group(1))
-                    elif lines[i].startswith((" ", "\t")) and lines[i].strip() and items:
-                        items[-1] += " " + lines[i].strip()
+                        parts.append([item.group(1)])
+                    elif lines[i].startswith((" ", "\t")) and lines[i].strip() and parts:
+                        parts[-1].append(lines[i].strip())
                     else:
                         break
                     i += 1
-                blocks.append(Block(kind, items=tuple(items)))
+                blocks.append(Block(kind, items=tuple(" ".join(part) for part in parts)))
                 break
         else:
             paragraph = [line.strip()]
@@ -282,18 +284,43 @@ def parse(source: str) -> list[Block]:
     return blocks
 
 
-def _charter_checkpoint_confirmed(blocks: list[Block]) -> bool:
+def _scopes(blocks: list[Block]) -> list[tuple[str, str | None]]:
+    """Return (section, orientation) for every block; the one scope rule for the page.
+
+    `section` is the lowercased text of the last heading at level 1 or 2 (the first level-1
+    heading is the title and starts no section). `orientation` is the orientation subsection
+    that is open: one ends at the next heading whose level is at or above its own.
+    """
+    section, orientation, open_level = "", None, 0
+    seen_title = False
+    scopes: list[tuple[str, str | None]] = []
+    for block in blocks:
+        if block.kind == "h":
+            name = block.text.strip().lower()
+            if block.level == 1 and not seen_title:
+                seen_title = True
+            elif block.level <= 2:
+                section = name
+                orientation, open_level = (name, block.level) if name in ORIENTATION else (None, 0)
+            elif name in ORIENTATION:
+                orientation, open_level = name, block.level
+            elif orientation is not None and block.level <= open_level:
+                orientation = None
+        scopes.append((section, orientation))
+    return scopes
+
+
+def _charter_checkpoint_confirmed(
+    blocks: list[Block], scopes: list[tuple[str, str | None]]
+) -> bool:
     """Return True only when the charter holds exactly one `Checkpoints: confirmed`.
 
     Reads the parsed paragraph blocks of the `## Assessment charter` section, so a fenced
     block can never stand in for, or hide, the real charter line.
     """
-    in_charter = False
     values: list[str] = []
-    for block in blocks:
-        if block.kind == "h" and block.level == 2:
-            in_charter = block.text.strip().lower() == "assessment charter"
-        elif in_charter and block.kind == "p":
+    for block, (section, _) in zip(blocks, scopes, strict=True):
+        if section == "assessment charter" and block.kind == "p":
             for line in block.text.split("\n"):
                 if line.startswith("Checkpoints:"):
                     values.append(line[len("Checkpoints:") :].strip())
@@ -316,16 +343,18 @@ def _check_evidence_classes(table: Block) -> None:
 def _check_orientation(blocks: list[Block]) -> None:
     """Refuse an orientation subsection that lacks a usable, valid Sources checked table.
 
-    A heading counts at any level from 2 to 6, with closing `#` marks ignored. Every
+    A heading counts at any level, with closing `#` marks ignored and the title excluded. Every
     labeled table with the Sources checked header is validated, and the last block of
     the subsection must be one with at least one data row.
     """
+    seen_title = False
     for index, block in enumerate(blocks):
-        canonical = (
-            ORIENTATION.get(block.text.strip().lower())
-            if block.kind == "h" and block.level >= 2
-            else None
-        )
+        canonical = None
+        if block.kind == "h":
+            if block.level == 1 and not seen_title:
+                seen_title = True
+            else:
+                canonical = ORIENTATION.get(block.text.strip().lower())
         if canonical is None:
             continue
         end = index + 1
@@ -383,17 +412,15 @@ def _table(block: Block, sources: bool, heat: bool) -> str:
     return "".join(parts)
 
 
-def _body(blocks: list[Block]) -> tuple[str, str]:
+def _body(blocks: list[Block], scopes: list[tuple[str, str | None]]) -> tuple[str, str]:
     """Render blocks to HTML; return (title, html) with the first H1 as the title."""
     title = "Architecture assessment"
     out: list[str] = []
     used: set[str] = set()
     counters: dict[str, int] = {}
-    section = ""
-    subsection = ""
     seen_title = False
     previous: Block | None = None
-    for block in blocks:
+    for block, (section, orientation) in zip(blocks, scopes, strict=True):
         if block.kind == "h":
             if block.level == 1 and not seen_title:
                 title, seen_title = block.text, True
@@ -402,11 +429,6 @@ def _body(blocks: list[Block]) -> tuple[str, str]:
             level = min(block.level, 6)
             slug = _slug(block.text, used, counters)
             out.append(f'<h{level} id="{slug}">{_inline(block.text)}</h{level}>')
-            name = block.text.strip().lower()
-            if level == 2:
-                section, subsection = name, (name if name in ORIENTATION else "")
-            else:
-                subsection = name
         elif block.kind == "p":
             if section == "assessment charter":
                 lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
@@ -418,7 +440,7 @@ def _body(blocks: list[Block]) -> tuple[str, str]:
             out.append(f"<{block.kind}>{items}</{block.kind}>")
         elif block.kind == "table":
             sources = (
-                subsection in ORIENTATION
+                orientation is not None
                 and list(block.header) == SOURCES_HEADER
                 and previous is not None
                 and _is_sources_label(previous)
@@ -443,13 +465,14 @@ def render(source: str, effort_name: str, today: str) -> str:
     """Return the full HTML document for *source*, or raise Refusal."""
     blocks = parse(source)
     _check_orientation(blocks)
-    title, body = _body(blocks)
+    scopes = _scopes(blocks)
+    title, body = _body(blocks, scopes)
     digest = base64.b64encode(hashlib.sha256(CSS.encode("utf-8")).digest()).decode()
     policy = (
         f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"
     )
     banner = ""
-    if not _charter_checkpoint_confirmed(blocks):
+    if not _charter_checkpoint_confirmed(blocks, scopes):
         banner = f'<div class="banner-unconfirmed">{BANNER_TEXT}</div>'
     meta = (
         f'<p class="meta">Source: {_esc(effort_name)}/{SOURCE_NAME} · '
@@ -556,6 +579,10 @@ def _run(argv: list[str]) -> int:
     except Refusal as refusal:
         print(refusal.line, file=sys.stderr)
         return refusal.code
+    encoded = page.encode("utf-8")
+    if len(encoded) > MAX_EXISTING_OUTPUT_BYTES:
+        print(TOKEN_OUTPUT_LARGE, file=sys.stderr)
+        return 2
     destination = root / OUTPUT_NAME
     try:
         existing = None
@@ -567,9 +594,7 @@ def _run(argv: list[str]) -> int:
                 print(TOKEN_UNSAFE_PATH, file=sys.stderr)
                 return 3
             existing = helper.sha256_confined_regular_file(root, destination)
-        helper.write_confined_regular_file(
-            root, destination, page.encode("utf-8"), expect_sha256=existing
-        )
+        helper.write_confined_regular_file(root, destination, encoded, expect_sha256=existing)
     except (helper.UnsafeContentError, OSError):
         print(TOKEN_UNSAFE_PATH, file=sys.stderr)
         return 3

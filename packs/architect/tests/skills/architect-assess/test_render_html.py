@@ -414,6 +414,7 @@ def _only_fixed_tokens(out: str, err: str) -> None:
         "render_html: usage: render_html.py <effort-dir>",
         "render_html: refused: unsafe or missing path",
         "render_html: refused: source over the size cap",
+        "render_html: refused: rendered page over the size cap",
         "render_html: refused: source is not valid UTF-8",
         "render_html: refused: evidence class outside the allowed set",
         "render_html: failed: internal error",
@@ -637,7 +638,10 @@ def test_mermaid_fence_with_a_trailing_info_string_keeps_its_label(mod, tmp_path
 
 
 def test_links_with_bidi_or_format_characters_render_as_text(mod, tmp_path, capsys) -> None:
-    extra = "[evil\u202etxt](https://example.com) [ok](https://exa\u200bmple.com)\n"
+    extra = (
+        "[evil\u202etxt](https://example.com) [ok](https://exa\u200bmple.com) "
+        "[a\u061cb](https://x.example) [c](https://y.example\u061c)\n"
+    )
     text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
     hrefs = [v for tag, n, v in tree(text).attrs if tag == "a"]
     assert hrefs == []
@@ -689,6 +693,83 @@ def test_hostile_directory_name_never_reaches_stdout_or_stderr(mod, tmp_path, ca
     ],
 )
 def test_parsing_stays_linear_on_hostile_input(mod, hostile) -> None:
+    started = time.perf_counter()
+    mod.render(hostile, "e", "2026-01-01")
+    assert time.perf_counter() - started < 3.0
+
+
+# ---- round-two review repairs ------------------------------------------------------
+
+
+def test_table_under_a_child_heading_is_validated_and_shaded(mod, tmp_path, capsys) -> None:
+    source = (
+        "# T\n\n## Current\n\n### Overall architecture\n\ntext\n\n#### Detail\n\nmore\n\n"
+        f"Sources checked:\n\n{TABLE_HEAD}| a | b | observed | c |\n"
+    )
+    parsed = tree(page(tmp_path.resolve(), source, mod, capsys))
+    assert "ev-observed" in {c for _, c in parsed.classes}
+
+
+def test_second_level_one_heading_ends_the_charter_section(mod, tmp_path, capsys) -> None:
+    source = report().replace(
+        "## Conceptual current state",
+        "# Appendix\n\nCheckpoints: confirmed\n\n## Conceptual current state",
+        1,
+    )
+    text = page(tmp_path.resolve(), source, mod, capsys)
+    assert 'class="banner-unconfirmed"' not in text
+
+
+def test_non_title_level_one_orientation_heading_is_gated(mod, tmp_path, capsys) -> None:
+    code, err = _refused(mod, tmp_path, capsys, "# T\n\n# Overall architecture\n\nno table\n")
+    assert code == 2 and err.strip().endswith("Overall architecture")
+
+
+def test_long_links_and_code_spans_render_as_elements(mod, tmp_path, capsys) -> None:
+    target = "https://example.com/" + "a" * 600
+    extra = f"[long]({target}) `{'c' * 300}` [wiki](https://example.com/a_(b))\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    hrefs = [v for tag, n, v in tree(text).attrs if tag == "a"]
+    assert target in hrefs and "https://example.com/a_(b)" in hrefs
+    assert "<code>" + "c" * 300 + "</code>" in text
+
+
+def test_indented_mermaid_fence_gets_the_diagram_label(mod, tmp_path, capsys) -> None:
+    extra = "- Diagram:\n\n  ```mermaid\n  A --> B\n  ```\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    assert "Diagram source (not rendered)" in text
+
+
+def test_a_page_over_the_output_cap_is_refused_without_writing(
+    mod, tmp_path, capsys, monkeypatch
+) -> None:
+    monkeypatch.setattr(mod, "MAX_EXISTING_OUTPUT_BYTES", 1000)
+    tmp_path = tmp_path.resolve()
+    code, out, err = run(tmp_path, report(), mod, capsys)
+    assert code == 2 and err.strip() == "render_html: refused: rendered page over the size cap"
+    assert not (tmp_path / "effort" / "assessment.html").exists()
+
+
+@pytest.mark.parametrize(
+    "hostile",
+    [
+        "- i\n" + "  a\n" * 500_000,
+        "[" * 200_000 + "](" + "\n",
+        "[a](" * 60_000 + "\n",
+        "[a](http://x/(" * 40_000 + "\n",
+        "`a" + "*" * 200_000 + "\n",
+        "*a" * 150_000 + "\n",
+    ],
+    ids=[
+        "list-continuations",
+        "brackets-then-link",
+        "unclosed-links",
+        "nested-parens",
+        "code-star",
+        "stars",
+    ],
+)
+def test_round_two_hostile_shapes_stay_linear(mod, hostile) -> None:
     started = time.perf_counter()
     mod.render(hostile, "e", "2026-01-01")
     assert time.perf_counter() - started < 3.0
