@@ -35,3 +35,7 @@ The six `test_ac0038_`, `test_ac0039_` and `test_ac0040_` functions call `_build
 ## T5 — the texts' route
 
 2026-10-30. The owner's approvals live in this ledger, which no worker attempt may change, so T5's first attempt was reported as a failed gate (retry 2 of 5). The controller drafted the closure entry and the brief edits, the owner approved both, and they were committed with these rows between attempts. T5's next attempt adds the roster checks.
+
+## Implementation review — PCC-ADV-04 closure
+
+2026-10-30. The supervisor's review subject excludes this spec's directory, so it cannot observe the draft repair for PCC-ADV-04 and keeps the finding open. The owner, as risk owner, recorded `accept-risk` for PCC-ADV-04 on the condition of one independent review of the repaired paragraph. That review (round 3, delta `bdcfd8650..c08acd18c` of the draft) confirmed every claim of the repaired paragraph and initiative bullet against `workspace-status` and the RFC-0106 errata, and confirmed the draft's SHA-256 matches its approval row. It raised one non-material Nit, PCC-ADV-05 (the "does not move" sentence also loosely covers entries the repair removes, which the line before names), deferred with its citation `docs/specs/pre-cutover-closure/notes/upgrade-notes.md:32`.
