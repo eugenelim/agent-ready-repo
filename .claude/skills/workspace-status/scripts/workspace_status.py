@@ -221,6 +221,7 @@ _VALID_OPERATION_TYPES = frozenset({
     "spec-entry-drop",
     "tracker-entry-drop",
     "captured-entry-drop",
+    "refresh-policy-move",
 })
 
 
@@ -1190,6 +1191,9 @@ def _build_repair_plan_json(
         )
         automatic_operations.extend(captured_drops)
         manual_findings.extend(captured_drop_findings)
+        move_operations, move_findings = _build_policy_move_operations(root, workspace_bytes)
+        automatic_operations.extend(move_operations)
+        manual_findings.extend(move_findings)
     base["workspace_fingerprint"] = plan.workspace_fingerprint
     base["automatic_operations"] = automatic_operations
     base["manual_findings"] = manual_findings
@@ -1270,6 +1274,11 @@ def _validate_plan_structure(data: dict) -> str | None:
             if captured_drop_reason:
                 return captured_drop_reason
             continue
+        if op_type == _POLICY_MOVE:
+            move_reason = _validate_policy_move_operation(op)
+            if move_reason:
+                return move_reason
+            continue
         if op_type in _DROP_OPERATION_TYPES:
             drop_reason = _validate_drop_operation(op)
             if drop_reason:
@@ -1340,11 +1349,14 @@ def _apply_operations(
     captured_drop_operations = [
         op for op in operations if op.get("operation_type") == _CAPTURED_ENTRY_DROP
     ]
+    policy_move_operations = [
+        op for op in operations if op.get("operation_type") == _POLICY_MOVE
+    ]
     operations = [
         op for op in operations
         if op.get("operation_type")
         not in _NEEDS_OPERATION_TYPES
-        | {_CAPTURED_TO_FILE, _CAPTURED_ENTRY_DROP}
+        | {_CAPTURED_TO_FILE, _CAPTURED_ENTRY_DROP, _POLICY_MOVE}
         | _DROP_OPERATION_TYPES
     ]
     # Every drop locator is checked against the registry read under the lock, and
@@ -1555,6 +1567,15 @@ def _apply_operations(
     drop_per_op, drop_applied = _apply_bound_drops(bound_drops)
     per_op.extend(drop_per_op)
     applied += drop_applied
+
+    # The policy file is created before the one `workspace.toml` write below
+    # removes the table, so an interruption leaves a file the next plan keeps.
+    if policy_move_operations:
+        move_per_op, move_applied = _apply_policy_moves(
+            root, doc, workspace_toml_bytes, policy_move_operations
+        )
+        per_op.extend(move_per_op)
+        applied += move_applied
 
     # Only write when at least one operation succeeded
     if applied == 0:
@@ -1898,7 +1919,7 @@ def _echo_repair_plan(data: dict) -> dict:
     if not any(
         op.get("operation_type")
         in _NEEDS_OPERATION_TYPES
-        | {_CAPTURED_TO_FILE, _CAPTURED_ENTRY_DROP}
+        | {_CAPTURED_TO_FILE, _CAPTURED_ENTRY_DROP, _POLICY_MOVE}
         | _DROP_OPERATION_TYPES
         for op in operations
     ) and not any(f.get("finding_type") == _CAPTURED_FINDING_TYPE for f in findings):
@@ -1910,6 +1931,9 @@ def _echo_repair_plan(data: dict) -> dict:
             continue
         if op.get("operation_type") == _CAPTURED_ENTRY_DROP:
             echoed.append(_echo_captured_drop_operation(op))
+            continue
+        if op.get("operation_type") == _POLICY_MOVE:
+            echoed.append(_echo_policy_move_operation(op))
             continue
         if op.get("operation_type") in _DROP_OPERATION_TYPES:
             echoed.append(_echo_drop_operation(op))
@@ -4374,6 +4398,236 @@ def _release_backed_captured_drops(
         else:
             refusals.append({"path": shown, "applied": False, "reason": reason})
     return ready, refusals
+
+
+# ── refresh-policy-move repair ────────────────────────────────────────────────
+#
+# Refresh reads its role policy from `.work-intake.toml`, so `repair-plan` holds
+# one operation when `workspace.toml` still has an `[authorization.refresh]`
+# table that refresh accepts. With no policy file the operation creates it from
+# the table and removes the table; with a policy file whose parsed table equals
+# it, the operation only removes the table. Anything else is one manual item and
+# nothing moves: an existing `.work-intake.toml` is never overwritten.
+
+_POLICY_MOVE = "refresh-policy-move"
+_POLICY_FILE = ".work-intake.toml"
+_POLICY_MOVE_FINDING_TYPE = 9
+_POLICY_MOVE_ACTIONS = frozenset({"create-and-remove", "remove"})
+_POLICY_KEY_ORDER = (
+    "contract_version",
+    "draft_approver_roles",
+    "accepted_approver_roles",
+    "remote_mutation_approver_roles",
+)
+
+
+class _PolicyRefusal(Exception):
+    """One policy-file step the repair will not take; nothing else changes for it."""
+
+    def __init__(self, reason: str) -> None:
+        super().__init__(reason)
+        self.reason = reason
+
+
+def _refresh_module() -> Any:
+    """Load the sibling refresh module, whose parser defines what refresh accepts."""
+    name = "work_intake_refresh_policy"
+    module = sys.modules.get(name)
+    if module is not None:
+        return module
+    path = Path(__file__).resolve().parents[2] / "work-intake" / "scripts" / "refresh.py"
+    try:
+        spec = importlib.util.spec_from_file_location(name, path)
+        if spec is None or spec.loader is None:
+            return None
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    except Exception:
+        sys.modules.pop(name, None)
+        return None
+    return module
+
+
+def _policy_text(table: dict) -> str:
+    """The policy file's text for a table: the one table, fixed key order."""
+    lines = ["[authorization.refresh]"]
+    for key in _POLICY_KEY_ORDER:
+        value = table[key]
+        lines.append(f"{key} = {_policy_value(value)}")
+    return "\n".join(lines) + "\n"
+
+
+def _policy_value(value: object) -> str:
+    if isinstance(value, str):
+        return json.dumps(value, ensure_ascii=False)
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return "[" + ", ".join(json.dumps(item, ensure_ascii=False) for item in value) + "]"
+    raise ValueError("unserialisable")
+
+
+def _policy_table_of(text: str) -> dict | None:
+    """The `[authorization.refresh]` table of a policy file refresh accepts, else `None`."""
+    refresh = _refresh_module()
+    if refresh is None:
+        return None
+    try:
+        refresh.parse_refresh_authorization_policy(text)
+        return tomllib.loads(text)["authorization"]["refresh"]
+    except Exception:
+        return None
+
+
+def _derive_policy_move(
+    root: Path, workspace_bytes: bytes
+) -> tuple[dict | None, str, str]:
+    """`(operation, policy_text, "")`, `(None, "", "")` for no table, or `(None, "", reason)`."""
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    authorization = workspace.get("authorization")
+    if not isinstance(authorization, dict) or "refresh" not in authorization:
+        return None, "", ""
+    table = authorization["refresh"]
+    if not isinstance(table, dict):
+        return None, "", "table-not-accepted"
+    try:
+        text = _policy_text(table)
+    except (KeyError, ValueError):
+        return None, "", "table-not-accepted"
+    if _policy_table_of(text) != table:
+        return None, "", "table-not-accepted"
+    data = text.encode("utf-8")
+    action = "create-and-remove"
+    if os.path.lexists(root / _POLICY_FILE):
+        existing = _engine._migration_file_bytes(root, _POLICY_FILE)
+        if existing is None:
+            return None, "", "policy-file-unreadable"
+        try:
+            existing_table = _policy_table_of(existing.decode("utf-8"))
+        except UnicodeDecodeError:
+            existing_table = None
+        if existing_table is None:
+            return None, "", "policy-file-invalid"
+        if existing_table != table:
+            return None, "", "policy-file-differs"
+        data = existing
+        action = "remove"
+    return {
+        "operation_type": _POLICY_MOVE,
+        "action": action,
+        "policy_path": _POLICY_FILE,
+        "policy_sha256": hashlib.sha256(data).hexdigest(),
+        "table_sha256": hashlib.sha256(
+            json.dumps(table, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest(),
+    }, text, ""
+
+
+def _build_policy_move_operations(
+    root: Path, workspace_bytes: bytes
+) -> tuple[list[dict], list[dict]]:
+    """Plan the `refresh-policy-move` operation, or one manual item."""
+    operation, _text, reason = _derive_policy_move(root, workspace_bytes)
+    if operation is not None:
+        return [operation], []
+    if not reason:
+        return [], []
+    return [], [{
+        "finding_type": _POLICY_MOVE_FINDING_TYPE,
+        "spec_path": _POLICY_FILE,
+        "spec_status": "",
+        "ini_slug": "",
+        "list_name": "authorization.refresh",
+        "reason": reason,
+        "finding_id": f"type{_POLICY_MOVE_FINDING_TYPE}:authorization.refresh:{reason}",
+    }]
+
+
+def _validate_policy_move_operation(op: dict) -> str | None:
+    """Shape-check one `refresh-policy-move` operation; it is re-derived at apply."""
+    if (
+        op.get("action") not in _POLICY_MOVE_ACTIONS
+        or op.get("policy_path") != _POLICY_FILE
+        or not isinstance(op.get("policy_sha256"), str)
+        or _SHA256_RE.fullmatch(op["policy_sha256"]) is None
+        or not isinstance(op.get("table_sha256"), str)
+        or _SHA256_RE.fullmatch(op["table_sha256"]) is None
+    ):
+        return "plan_invalid"
+    return None
+
+
+def _echo_policy_move_operation(op: dict) -> dict:
+    return {
+        **op,
+        "action": op.get("action") if op.get("action") in _POLICY_MOVE_ACTIONS else "",
+        "policy_path": _POLICY_FILE,
+        "policy_sha256": _echo_sha(op.get("policy_sha256")),
+        "table_sha256": _echo_sha(op.get("table_sha256")),
+    }
+
+
+def _write_policy_file(root: Path, data: bytes) -> None:
+    """Create `.work-intake.toml` whole and exclusively; refuse if one now exists."""
+    if _engine.confine_migration_path(root, _POLICY_FILE) is None:
+        raise _PolicyRefusal("policy_path_unsafe")
+    directory = root.resolve()
+    target = directory / _POLICY_FILE
+    if os.path.lexists(target):
+        raise _PolicyRefusal("policy_file_exists")
+    temp_path: str | None = None
+    try:
+        descriptor, temp_path = tempfile.mkstemp(
+            dir=directory, prefix=f"{_POLICY_FILE}.", suffix=".tmp"
+        )
+        try:
+            _write_all(descriptor, data)
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+        Path(temp_path).chmod(0o644)
+        # A hard link appears whole or not at all, and fails if the name exists.
+        os.link(temp_path, target)
+    except FileExistsError:
+        raise _PolicyRefusal("policy_file_exists") from None
+    except OSError:
+        raise _PolicyRefusal("policy_write_failed") from None
+    finally:
+        if temp_path is not None:
+            with contextlib.suppress(OSError):
+                Path(temp_path).unlink()
+    _fsync_directory(directory)
+    if _engine._migration_file_bytes(root, _POLICY_FILE) != data:
+        raise _PolicyRefusal("policy_read_back_failed")
+
+
+def _apply_policy_moves(
+    root: Path, doc, workspace_bytes: bytes, operations: list[dict]
+) -> tuple[list[dict], int]:
+    """Re-derive the move under the lock, write the policy file, then drop the table in `doc`."""
+    derived, text, _reason = _derive_policy_move(root, workspace_bytes)
+    per_op: list[dict] = []
+    applied = 0
+    done = False
+    for op in operations:
+        row = {"path": _POLICY_FILE, "applied": False}
+        if (
+            derived is None
+            or done
+            or any(op.get(key) != derived[key] for key in derived)
+        ):
+            per_op.append({**row, "reason": "policy_move_mismatch"})
+            continue
+        if op["action"] == "create-and-remove":
+            try:
+                _write_policy_file(root, text.encode("utf-8"))
+            except _PolicyRefusal as refusal:
+                per_op.append({**row, "reason": refusal.reason})
+                continue
+        del doc["authorization"]["refresh"]
+        done = True
+        per_op.append({**row, "applied": True})
+        applied += 1
+    return per_op, applied
 
 
 # ── Legacy migration transaction ─────────────────────────────────────────────
