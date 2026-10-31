@@ -1,6 +1,6 @@
 {
   "name": "atlassian",
-  "version": "0.10.3",
+  "version": "0.10.4",
   "description": "Run Jira and Confluence from a conversation, including reviewed Jira or Jira Align refresh with capability-scoped write-back.",
   "hooks": {
     "SessionStart": [
