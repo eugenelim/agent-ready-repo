@@ -69,7 +69,7 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
 
 /* ---- Tracks: one column, then margin, text, and a flexible third track for wide blocks, with the contents rail beside them */
 @media (min-width: 64rem) {
-  .doc-section { display: grid; grid-template-columns: 12rem minmax(0, 68ch) minmax(0, 1fr); column-gap: var(--s-4); row-gap: 0; }
+  .doc-section { display: grid; grid-template-columns: 10rem minmax(0, 68ch) minmax(0, 1fr); column-gap: var(--s-4); row-gap: 0; }
   .margin-head { grid-column: 1; }
   .doc-body { display: contents; }
   .doc-body > * { grid-column: 2; min-width: 0; }
@@ -93,4 +93,9 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
   .table-scroll, .source-scroll { overflow: visible; }
   pre { overflow: visible; white-space: pre-wrap; width: auto; }
   tr { break-inside: avoid; }
+  /* Paper is light whatever the screen theme, so the page keeps system print colours, one column, and wrapped tables. */
+  :root { color-scheme: light; }
+  body, main, .doc-section, .page-header { display: block; color: CanvasText; background: Canvas; }
+  .heat-low, .heat-medium, .heat-high, .heat-unknown { white-space: normal; }
+  table { table-layout: fixed; overflow-wrap: anywhere; }
 }

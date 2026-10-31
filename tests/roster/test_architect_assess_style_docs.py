@@ -34,6 +34,7 @@ def test_token_file_records_the_report_view_rules() -> None:
     ):
         assert glyph in section
     assert "ranking" in section
+    assert "filled and the provenance pill is outlined on purpose" in section
     for level in ("low", "medium", "high", "unknown"):
         assert f"| {level} |" in section
     assert "none uses the ok, warn, bad, active or accent roles" in section

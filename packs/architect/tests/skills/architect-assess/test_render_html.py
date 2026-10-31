@@ -1056,12 +1056,27 @@ def test_meta_line_holds_name_date_version_state_and_the_source_tally(
     meta = re.search(r'<p class="meta">(.*?)</p>', text, re.S).group(1)
     assert "effort/assessment.md" in meta and f"Renderer version {mod.RENDERER_VERSION}" in meta
     assert re.search(r"Generated \d{4}-\d{2}-\d{2} UTC", meta)
-    assert 'data-mark="approved"' in meta and "Confirmed" in meta
+    assert re.search(
+        r'<span class="mark" data-mark="approved"><span class="mark-g" aria-hidden="true">[^<]*</span> Confirmed</span>',
+        meta,
+    )
     assert meta.endswith("Sources: 3 observed, 0 inferred, 0 reported, 0 unknown")
     unconfirmed = page(tmp_path.resolve(), report(checkpoints=None), mod, capsys)
     meta = re.search(r'<p class="meta">(.*?)</p>', unconfirmed, re.S).group(1)
-    assert 'data-mark="draft"' in meta and "Unconfirmed" in meta
-    assert 'aria-hidden="true"' in meta
+    assert re.search(
+        r'<span class="mark" data-mark="draft"><span class="mark-g" aria-hidden="true">[^<]*</span> Unconfirmed</span>',
+        meta,
+    )
+
+
+def test_the_tally_counts_every_class_across_all_labeled_orientation_tables(
+    mod, tmp_path, capsys
+) -> None:
+    # Three labeled tables (overall, one subsystem, physical) hold 14, 4, and 3 rows; the
+    # evidence-coverage table is unlabeled and its observed rows stay out of the count.
+    source = FIXTURE.read_text(encoding="utf-8")
+    text = page(tmp_path.resolve(), source, mod, capsys)
+    assert "Sources: 8 observed, 4 inferred, 4 reported, 5 unknown</p>" in text
 
 
 def test_the_tally_counts_only_labeled_orientation_tables(mod, tmp_path, capsys) -> None:
@@ -1379,8 +1394,6 @@ def test_heat_ramp_is_as_specified_and_distinct() -> None:
     glyphs = set()
     for level, (background, glyph) in expected.items():
         assert declared(f".heat-{level}", "background") == [background]
-        assert not [p for p in ("border", "border-left-width", "border-left-style")
-                    if declared(f".heat-{level}", p)]
         content = declared(f".heat-{level}::before", "content")
         assert content[0] == "none" and content[-1] == f'"{glyph}" / ""'
         glyphs.add(glyph)
@@ -1394,10 +1407,24 @@ def test_heat_cells_keep_glyph_and_word_on_one_line() -> None:
         assert declared(f".heat-{level}", "white-space") == ["nowrap"], level
 
 
+def test_no_rule_for_a_heat_class_declares_a_border_or_outline() -> None:
+    seen = 0
+    for _, selector, decls in layout_rules():
+        if "heat-" in selector:
+            seen += 1
+            for prop, _value in decls:
+                assert not prop.startswith(("border", "outline")), (selector, prop)
+    assert seen >= 8
+
+
 def test_heat_glyphs_match_no_evidence_or_state_glyph() -> None:
-    heat = {"\u2582", "\u2584", "\u2586", "?"}
+    heat = set()
+    for level in ("low", "medium", "high", "unknown"):
+        value = declared(f".heat-{level}::before", "content")[-1]
+        literal = re.fullmatch(r'"(.+)" / ""', value).group(1)
+        heat.add(re.sub(r"\\([0-9a-fA-F]{1,6})", lambda m: chr(int(m.group(1), 16)), literal))
     taken = set("\u25ae\u25af\u25cf\u25b6\u25c6\u25c7\u25a0\u2715\u25b3\u2713")
-    assert not heat & taken
+    assert len(heat) == 4 and not heat & taken
 
 
 def _tokens() -> dict[str, dict[str, str]]:
@@ -1449,7 +1476,7 @@ def test_rail_and_skip_links_reach_the_target_floor_and_the_skip_link_shows_on_f
 
 def test_tracks_breakpoints_and_the_contents_switch() -> None:
     tracks = declared(".doc-section", "grid-template-columns", "min-width: 64rem")
-    assert tracks == ["12rem minmax(0, 68ch) minmax(0, 1fr)"]
+    assert tracks == ["10rem minmax(0, 68ch) minmax(0, 1fr)"]
     assert declared(".doc-section", "grid-template-columns") == []
     assert declared(".doc-body > .table-scroll", "grid-column", "min-width: 64rem") == ["1 / -1"]
     assert declared(".doc-body > .source-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
@@ -1494,6 +1521,23 @@ def test_source_blocks_sit_in_keyboard_scrollable_regions(mod, tmp_path, capsys)
     assert regions == ["Source: Findings", "Source: Findings"]
     assert text.count("<pre>") == len(regions)
     assert declared(".source-scroll", "overflow-x") == ["auto"]
+
+
+def test_a_source_block_before_any_heading_is_labelled_plain_source(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), "```\nplain\n```\n\n" + report(), mod, capsys)
+    assert 'role="region" tabindex="0" aria-label="Source">' in text
+
+
+def test_print_uses_light_system_colours_one_column_and_wrapped_tables() -> None:
+    assert declared(":root", "color-scheme", "print") == ["light"]
+    for selector in ("body", "main", ".doc-section", ".page-header"):
+        assert declared(selector, "display", "print") == ["block"], selector
+        assert declared(selector, "color", "print") == ["CanvasText"], selector
+        assert declared(selector, "background", "print") == ["Canvas"], selector
+    for level in ("low", "medium", "high", "unknown"):
+        assert declared(f".heat-{level}", "white-space", "print") == ["normal"], level
+    assert declared("table", "table-layout", "print") == ["fixed"]
+    assert declared("table", "overflow-wrap", "print") == ["anywhere"]
 
 
 def test_print_lets_source_blocks_wrap_and_keeps_rows_together() -> None:

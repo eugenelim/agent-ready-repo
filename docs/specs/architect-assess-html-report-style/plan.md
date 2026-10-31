@@ -1,7 +1,7 @@
 # Plan: architect-assess HTML report in the maintainer-view style
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** the shared family stylesheet in `packs/core/.apm/skills/navigate-intents/scripts/view_assets/view-base.css` and its layout-file check `_layout_violations` in `packs/core/tests/skills/navigate-intents/test_export_html.py`; the decisions explorer's join of base plus layout into one hashed `<style>` and its asset placement beside the script in `packs/repo-governance/.apm/skills/navigate-decisions/scripts/explorer.py` and `explorer_assets/`; the family tokens in `docs/design/tokens/skill-html-views.md` (document view tracks, document density, interaction floor); the parity tool `tools/check_view_base_parity.py`, which finds every `view-base.css` under `packs/*/.apm/`; the renderer and its tests in `packs/architect/.apm/skills/architect-assess/scripts/render_html.py` and `packs/architect/tests/skills/architect-assess/test_render_html.py`. Deviation: the family's layout check bans `var(--c-` in a layout file; this report's layout file reads colour roles through it, because the family list-and-detail views have no tables, code blocks, provenance marks, or heat cells, and the owner decision is recorded in the token file.
 
 > **Plan contract:** `Touches`, `Tests` and `Done when` are what a completion gate
@@ -38,7 +38,7 @@ Copy the family stylesheet into `scripts/report_assets/` beside the renderer, ad
 
 - Stylesheet text is read at run time from `scripts/report_assets/` by the confined helper (family placement, beside the script), so the parity tool can byte-check the copy. `render(source, effort_name, today, css=None)` takes the joined text; `None` loads it, and `main` loads it first so an asset failure exits 3 before any render. Owned by: T1.
 - An asset is refused before inlining when missing, over 64 KiB, not UTF-8, or holding `</style`, `<!--`, `url(`, or `@import` case-insensitively, each with its own fixed token. Owned by: T1.
-- The page is a document view per the token file with one deviation recorded there: one column below 64rem, and from 64rem a margin track, a 68ch text track, and a `minmax(0, 1fr)` third track for tables and source blocks inside each section, plus a sticky 16rem contents rail in the page grid. The flexible third track receives only the space left after the text track reaches its 68ch, so prose is never starved; the body's `max-width` from 100rem bounds the page at wide screens. Below 64rem the contents control is the closed `details` above the text. Section heads are margin heads, inline above the section below 64rem. Document-density type sizes are set in the layout file as literals. Owned by: T3.
+- The page is a document view per the token file with one deviation recorded there: one column below 64rem, and from 64rem a margin track, a 68ch text track, and a `minmax(0, 1fr)` third track inside each section, a `10rem` margin track, and tables that span all three tracks, plus a sticky 16rem contents rail in the page grid. The flexible third track receives only the space left after the text track reaches its 68ch, so prose is never starved; the body's `max-width` from 100rem bounds the page at wide screens. Below 64rem the contents control is the closed `details` above the text. Section heads are margin heads, inline above the section below 64rem. Document-density type sizes are set in the layout file as literals. Owned by: T3.
 - Source order is skip link, header, nav, main; the skip link targets `main#report`, and `report` is reserved in the slug set so no heading can take it. Owned by: T2.
 - The rail is one `nav` holding a closed `details` list for narrow widths and a `ul.rail-wide` of the same links for wide ones, because `open` cannot be set by width without script; the layout file shows one and hides the other at 64rem. Owned by: T2, T3.
 - A section carries its heading's id and its `h2` carries none, so a followed rail link makes `.doc-section:target` match. Owned by: T2.
@@ -89,7 +89,7 @@ T5 ran the browser matrix and design passes and shipped the fixes they found in 
 
 Depends on: T4
 Verification mode: manual QA
-Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`
+Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`; its review findings also shipped `report.css` (heat `nowrap`, tables spanning the margin track, a `10rem` margin track, print colour and wrapping), the test file, and the token file.
 Tests: render the sample fixture and open it at 320 by 640, 1280 by 800, 1680, and 2560 CSS px in light and dark; read the first-screen, scrolled-rail, and first-Tab screenshots; then run `design-review` and `experience-reviewer` over the 1280 light, 1680 light, and 320 dark shots and adjudicate.
 Done when: the observations and review results are in the ledger.
 
@@ -105,7 +105,7 @@ Done when: the T6 tests pass.
 
 Depends on: T6
 Verification mode: manual QA
-Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`
+Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`; its review findings also shipped `report.css` (heat `nowrap`, tables spanning the margin track, a `10rem` margin track, print colour and wrapping), the test file, and the token file.
 Tests: render the sample fixture and open it at 320 by 640, 1280 by 800, 1680, and 2560 CSS px in light and dark, read the first-screen, scrolled-rail, first-Tab, and heat-map shots in both themes, then run `design-review` and `experience-reviewer` over the screenshot set the spec's design-review criterion names and adjudicate.
 Done when: the observations and review results are in the ledger.
 
