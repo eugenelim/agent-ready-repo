@@ -118,8 +118,7 @@ change reaches a run in flight.
   `refs/agentbundle/delivery/<run-id>/<token>/product`, where `<token>` is
   fresh for each run admission.
 - **Recorded value.** The product ref's name and the commit the run store
-  last recorded for it; while a step is being committed, the store also
-  records that step's pending commit.
+  last recorded for it.
 - **Product manifest.** The sorted `(path, object id)` pairs of a commit's
   tree outside the spec directory.
 - **Product result.** A `write-stub` or `implement-task` result `report`
@@ -160,8 +159,8 @@ Integration boundary and identity
 Product-ref trust
 
 - [ ] **AC-0005.** With no attempt open, when a recorded product ref is
-  missing, symbolic, or names a commit other than its recorded value or the
-  pending commit, every verb but `status` refuses with
+  missing, symbolic, or names a commit other than its recorded value, and the
+  AC-0008 state does not hold, every verb but `status` refuses with
   `product-ref-diverged`, owner `controller`, naming the ref and its recorded
   value, writes a denial line to the run's security log, and moves no ref.
   Restoring the ref to its recorded value clears the refusal. While an
@@ -180,14 +179,16 @@ Crash and lag repair
   `HEAD` tree, `delivery/` bytes, and supervisor step list as the
   uninterrupted run, with no step committed twice. At every kill point the
   product ref names either the commit before that write or the commit after
-  it. For a run with no recorded product ref, a kill after its transaction
-  moved `HEAD` and before the commit was recorded as made instead ends in the
-  AC-0011 decision, or in `attempt-residue` while an attempt is open, and
-  answering it converges.
-- [ ] **AC-0008.** When the product ref names a step's pending commit and
-  `HEAD` names the commit before it, the next verb moves `HEAD` to the
-  pending commit. A `HEAD` that names a pending commit the product ref does
-  not name is foreign history.
+  it. A kill after a step's transaction moved a ref and before its commit was
+  recorded as made instead ends in the AC-0008 state, and answering it
+  converges.
+- [ ] **AC-0008.** When the product ref, `HEAD`, or both name a commit the run
+  never recorded as made whose parent is the recorded value, no verb counts
+  that commit as made or moves a ref to it. With no attempt open, `next`
+  issues the AC-0011 decision naming it and every other verb but `status`
+  refuses `history-adoption-required`; both name the two exits: adopt it, or
+  restore the product ref and `HEAD` to the recorded value, after which the
+  step is rebuilt. While an attempt is open, AC-0015's answer applies.
 - [ ] **AC-0009.** With no attempt open, when the product ref names its
   recorded value and descends from `HEAD` through made commits only, the next
   verb moves `HEAD` to it, and every tracked product file those commits
@@ -223,7 +224,7 @@ Divergence and adoption
 Worker forgery
 
 - [ ] **AC-0015.** A worker attempt during which this run's product ref comes
-  to name anything other than its recorded or pending value — created,
+  to name anything other than its recorded value — created,
   moved, made symbolic, or deleted — has its result refused, `report` with
   `attempt-refused` and `next` with `attempt-residue`, until the ref is
   restored. The supervisor's own move while it commits that attempt's result
@@ -252,12 +253,11 @@ Parity, switch, and reversal
 - [ ] **AC-0022.** In a repository whose ref storage is not Git's files
   backend, `start` and every later verb but `status` refuse with
   `unsupported-ref-storage`, owner `owner`, and create no ref.
-- [ ] **AC-0023.** When the supervisor cannot complete a run-store write that
-  clears or settles a refused or interrupted step, the verb still answers with
-  the refusal that step raised, and from then on every verb but `status`
-  refuses with `denied-product-record`, owner `controller`, naming the
-  restore, until the store is consistent again; no commit counts as made or
-  moves either ref in between.
+- [ ] **AC-0023.** A run-store write that fails during a step never makes a
+  commit count as made and never moves a ref to a commit the run did not
+  record; the verb answers with the refusal the step raised, with the write
+  failure appended to its detail, and the run is left in the AC-0005 or
+  AC-0008 state.
 
 Portability
 

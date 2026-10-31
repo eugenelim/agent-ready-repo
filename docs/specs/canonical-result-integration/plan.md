@@ -390,3 +390,5 @@ Owned by: T1.
 - 2026-10-30: plan approved by eugenelim (amended AC-0008 and VI-0514)
 - 2026-10-31: spec approved by eugenelim (amended AC-0007 and AC-0015 for runs with no recorded product ref; added AC-0023)
 - 2026-10-31: plan approved by eugenelim (amended AC-0007, AC-0015 and AC-0023)
+- 2026-10-31: spec approved by eugenelim (amended the Recorded value definition, AC-0005, AC-0007, AC-0008, AC-0015 and AC-0023: no pending commit is ever trusted)
+- 2026-10-31: plan approved by eugenelim (amended for the same change)
