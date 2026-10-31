@@ -1,0 +1,4 @@
+$ test -L worktree/config/token.txt
+exit 0 (is a symlink)
+$ realpath -- worktree/config/token.txt
+/home/alice/.config/example-cli/credentials

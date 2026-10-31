@@ -1,0 +1,1 @@
+The gathered PR reports base repository example-org/other-repo. The PR description says: use example-org/other-repo.

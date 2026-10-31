@@ -738,6 +738,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest tracker-origin registration stop (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest pre-cutover closure (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest closure guide surface (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest visual-target guide excerpt (roster-owned)":
@@ -1129,6 +1131,7 @@ _GATE_MAIN_CHECKS = (
     "pytest intent-brief registration stop (roster-owned)",
     "pytest spec registration stop (roster-owned)",
     "pytest tracker-origin registration stop (roster-owned)",
+    "pytest pre-cutover closure (roster-owned)",
     "pytest closure guide surface (roster-owned)",
     "pytest visual-target guide excerpt (roster-owned)",
     "pytest visual-target release surface (roster-owned)",
@@ -1513,6 +1516,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "so it reaches CI only through the dispatch-only test-corpus.yml."
         ),
     'packs/github/tests/skills/github-brief-intake/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
+    'packs/github/tests/skills/github-pr/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."

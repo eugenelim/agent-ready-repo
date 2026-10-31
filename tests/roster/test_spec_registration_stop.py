@@ -637,16 +637,18 @@ _OWNER_8_EXACT = (
 
 
 def test_no_inventory_row_is_owner_8_outside_the_two_spec_directories() -> None:
-    """AC-0034 and the bridge's AC-0026: only the two contract rows keep owner 8."""
+    """AC-0034 and the bridge's AC-0026, as pre-cutover-closure re-owned them.
+
+    Slice 8 has shipped, so no row keeps owner 8 and its two spec directories
+    are historical rows.
+    """
     import tomllib
 
     rows = tomllib.loads((_REPO / _INVENTORY).read_text(encoding="utf-8"))["row"]
-    left = sorted(r["pattern"] for r in rows if r["owner"] == 8)
-    assert left == [
-        "docs/specs/readiness-bridge-dispatch-input/*",
-        "docs/specs/spec-registration-stop/*",
-    ]
-    assert all(r["class"] == "contract" for r in rows if r["owner"] == 8)
+    assert [r["pattern"] for r in rows if r["owner"] == 8] == []
+    by_pattern = {r["pattern"]: r for r in rows}
+    for pattern in ("docs/specs/readiness-bridge-dispatch-input/*", "docs/specs/spec-registration-stop/*"):
+        assert (by_pattern[pattern]["class"], by_pattern[pattern]["owner"]) == ("historical", "none"), pattern
     # Rows the bridge spec disposes are named by AC-0034; none may stay at 8.
     for r in rows:
         p = r["pattern"]

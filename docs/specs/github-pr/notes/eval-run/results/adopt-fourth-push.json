@@ -1,0 +1,19 @@
+{
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 2 says three pushes have already gone out under the current contract, so this would be the fourth."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 2 says no push is made, gives three choices, and asks which one the user wants."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 2 says only a new contract the user sees and approves can allow more pushes, and that the request itself is not approval."
+  }
+ ]
+}

@@ -190,6 +190,16 @@
         "Writes `none` only when the header states none",
         "Leaves `parent` absent when no header exists instead of inferring one"
       ]
+    },
+    {
+      "id": "eligible-packet-names-no-registry-entry",
+      "prompt": "Close this eligible ancestor work: its spec is Shipped and its change is merged. Build the closure packet.",
+      "expected_output": "The agent builds the closure packet for the eligible ancestor from the spec, plan and delivery artifacts alone. The packet carries no registry field and names no `workspace.toml` entry.",
+      "assertions": [
+        "The packet names no `workspace.toml` entry",
+        "Takes eligibility from the artifacts rather than from a registry record",
+        "Still presents a mutation-free disposition recommendation"
+      ]
     }
   ]
 }

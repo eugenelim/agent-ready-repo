@@ -1110,11 +1110,16 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # batch, after `tools/test_replay_dispatch.py`; no line was added, removed or
 # reordered. Prior pins were current: origin/main's Makefile, which lacks only
 # that path, matches `e44c7a98…` and `56e555fc…`.
+# Re-pinned 2026-10-31 for the github-pr skill suite. Sole cause: the path
+# `packs/github/tests/skills/github-pr/` added after
+# `packs/github/tests/skills/github-brief-intake/`; no other line changed.
+# Prior pins were current: origin/main's Makefile, which lacks only that line,
+# matches `9d8022f1…` and `1470603e…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "9d8022f1c4f2515eda4c113be98470e171cf5b821ce728fc252560bfe9860997"
+    "eca2ef48ad704579d1abd7df95ce118a5e23f5b12d1b0c5c0cd3a0b2b2a448bc"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "1470603e2fda73004fa56a53a0ea01aae1187ecf85d49384167c6df24e884998"
+    "cb2b7c58235596500b564fbb053df478a24771191eb442f93c709c2633fc35d6"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the

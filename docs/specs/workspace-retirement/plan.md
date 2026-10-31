@@ -218,6 +218,19 @@ Owned by: T1
 
 **Done when:** the new fixture tests red before the list admits the cases and pass after, and the real-repository record test passes.
 
+### T11: The owner rule
+
+**Depends on:** T10
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0029, AC-0003, AC-0018, AC-0022.
+- A fixture row owned by a slice below the brief's last slice fails AC-0029 alone; a row owned by the last slice passes; a row owned by a number outside the slice set still fails AC-0003 alone. The base fixture's readiness row moves to the last slice.
+- The real inventory passes every rule once its rows are owned by the last slice or by `none`.
+
+**Done when:** the new fixture tests red before the rule exists and pass after, and the real-repository tests pass. The `pre-cutover-closure` spec drives this task.
+
 ## Rollout
 
 - **Delivery:** one pull request. The check blocks a pull request that adds a registry mention outside an inventoried directory, and one that removes, renames, or deletes the last mention in a file a row names.

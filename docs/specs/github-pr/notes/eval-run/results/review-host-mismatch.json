@@ -1,0 +1,19 @@
+{
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "The output quotes the origin URL, names the host git.example.invalid, and says it is not github.com."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "The agent stops at repository pinning and tells the user the skill only works with github.com repositories."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "The agent proposes no commands and holds every gh command until the user answers."
+  }
+ ]
+}
