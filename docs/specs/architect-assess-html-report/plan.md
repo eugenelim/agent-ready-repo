@@ -104,6 +104,14 @@ Touches: `packs/architect/tests/skills/architect-assess/test_render_html.py`
 Tests: `make lint-ruff lint-mypy` passes and the architect pack tests still pass.
 Done when: the lint gate and the pack tests pass.
 
+### T8 — Repair round-two review findings
+
+Depends on: T7
+Verification mode: TDD
+Touches: `scripts/render_html.py`, `packs/architect/tests/skills/architect-assess/test_render_html.py`
+Tests: one scope rule decides which section and orientation subsection a block belongs to, and the gate, the body renderer, the heat shading, and the charter scan all use it, so a table under a deeper child heading is validated and shaded, a second level-1 heading ends the current section, and a non-title level-1 orientation heading is gated; a list item with 500,000 continuation lines parses under the time bound; a https link target over 500 characters and a code span over 200 characters render as elements while hostile unclosed-bracket, unclosed-link, and unclosed-code inputs stay under the bound; a Mermaid fence indented up to three spaces gets the diagram label; a page that would exceed 16 MiB is refused with exit 2 and a fixed token and no file, so a written page is always replaceable; U+061C in link text or target renders the link as text.
+Done when: the T8 tests pass.
+
 ## Review
 
 The change renders untrusted text as HTML and adds a confined write, so the work-loop's security-reviewer fires at REVIEW on T1 and T2 and must be clean before T4 releases.
