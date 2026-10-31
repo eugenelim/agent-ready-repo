@@ -2746,6 +2746,12 @@ consumer = "tracker-origin registration stop: the tracker profile in the source-
 owner = 9
 
 [[row]]
+pattern = "docs/specs/pre-cutover-closure/*"
+class = "contract"
+consumer = "pre-cutover compatibility closure: the retired close-work closure-packet registry field, the inventory re-owned to slice 9, and the adopter upgrade-notes draft"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/readiness-bridge-dispatch-input/*"
 class = "contract"
 consumer = "readiness bridge input: the navigate-intents export reads argless work-loop dispatch output in place of workspace-status status"
