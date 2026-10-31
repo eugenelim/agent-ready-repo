@@ -113,6 +113,29 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 **Approach:** any change to the skill text after a run sends the work back to T1 and reruns T4 and every case.
 **Done when:** `notes/eval-run.md` shows every case passing with the isolation evidence and matching digest.
 
+### T6: review findings are repaired in the skill text and docs
+**Depends on:** T5
+**Touches:** packs/github/.apm/skills/github-pr/SKILL.md, packs/github/.apm/skills/github-pr/references/**, packs/github/.apm/skills/github-pr/evals/**, packs/github/tests/skills/github-pr/**, guides/github/how-to/work-through-a-github-pull-request.md, docs/product/changelog.d/66c8f467-39f7-4063-8aac-d8d60d42c4c2.md, packs/agent-skill-engineering/tests/fixtures/skill-census.json
+**Tests:**
+- Goal-based: extend `packs/github/tests/skills/github-pr/test_github_pr.py` and `test_evals.py` where a repair is checkable in the skill text, then the T4 commands stay green.
+**Approach:** repair each supported finding, keeping every command in the closed read-only set and every approval rule intact.
+- F1: each mode's gather also reads the raw PR description (`body`); the eval fixtures supply that same command's output.
+- F2: iterate resolves only threads the approved plan names for resolution.
+- F3: the approved-edit record and the staged record are produced in the same comparable form, so a faithful run matches and an extra staged byte does not.
+- F4: each gates section names the exact commit it exports and checks, for a fix commit and for adopt's starting commit with no fix.
+- F5: review's head-moved path says what happens to the existing pending review, under approval, before a new one is created.
+- F6: the config hash set is built from the files git loads on this machine, not a fixed `/etc/gitconfig`.
+- F7: adopt detects a merge-queue or auto-merge outcome before merging, or reports the leftover state and leaves any undo to user approval.
+- F8: the guide says submitting is a separate choice the user names, matching review mode.
+- F10: the changelog fragment names review, iterate, and adopt.
+- S1: `allowed-tools` no longer pre-approves unscoped `Bash`, so the host permission layer still prompts for mutating commands.
+- S2: name one read-only way to read `origin`'s URL, add it to the closed read-only set, and require the host to equal `github.com` exactly for HTTPS and SSH forms.
+- S3: path-safety checks run on the absolute `<worktree>/<path>` that is later read or edited, compared with the resolved `<worktree>` root.
+- S4: the contract display flags self-hosted runners in the base and PR-head versions of every workflow a push would trigger.
+- S5 (non-material): the read-only checkout and diff do not apply PR-selected filter, LFS, textconv, external-diff or submodule behaviour, or the gap is named in `SKILL.md`.
+The controller handles F9 (eval record wording and read targets) and the eval rerun after this task, outside any attempt.
+**Done when:** every item above is visible in the shipped text, the T4 commands exit 0, and no file under `docs/specs/github-pr/` changed.
+
 ## Changelog
 
 - 2026-10-30: drafted.
