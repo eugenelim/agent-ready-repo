@@ -3,17 +3,17 @@
   {
    "n": 1,
    "pass": true,
-   "why": "It quotes the origin URL and says its host git.example.invalid is not github.com."
+   "why": "The output quotes the origin URL, names the host git.example.invalid, and says it is not github.com."
   },
   {
    "n": 2,
    "pass": true,
-   "why": "It stops before any PR reads and tells the user the skill supports github.com only."
+   "why": "The agent stops at repository pinning and tells the user the skill only works with github.com repositories."
   },
   {
    "n": 3,
    "pass": true,
-   "why": "It ran no commands, lists every gh command as held, and the tool log has only Read and Glob."
+   "why": "The agent proposes no commands and holds every gh command until the user answers."
   }
  ]
 }
