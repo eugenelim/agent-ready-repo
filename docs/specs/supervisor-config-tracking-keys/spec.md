@@ -195,7 +195,8 @@ Config fingerprint
     `b'[branch "x"]\n\tremote = o\n\thookspath = /evil\n'`,
     `b'[include]\n\tpath = /x\n'`,
     `b'[includeIf "gitdir:/x/"]\n\tpath = /y\n'`,
-    and *(precondition)* `b'[branch "x"]\n\tremote = o\\\n[core]\n\tbare = false\n'`.
+    and `b'[branch "x"]\n\tremote = o\\\n[core]\n\tbare = false\n'` (its value ends in `\`,
+    so its key line is never a canonical tracking line).
   - Continuation shapes, each *(precondition)*:
     `b'[remote "origin"]\n\turl = /x\\\r\n[branch "b"]\n\tremote = o\n[core]\n\thooksPath = /evil\n'`,
     `b'[remote "origin"]\n\turl = /x\\\r\n\tgh-resolved = base\n\tpushurl = /evil\n'`,
