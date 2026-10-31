@@ -247,7 +247,7 @@ Owned by: T1.
 ### T1: The product ref ships in shadow, and every boundary converges
 
 - **Depends on:** none (ADR-0153 Accepted before `start`)
-- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0020, AC-0021, AC-0022; TDD, and goal-based for the corpus and CI.
+- **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0020, AC-0021, AC-0022, AC-0023; TDD, and goal-based for the corpus and CI.
 - **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`, `_supervisor_loop.py`, `_supervisor_admission.py`, `_supervisor_attempt.py`, `_supervisor_recovery.py`, `_supervisor_readiness.py`, `work-supervisor.py`, `supervisor-policy.json`, `SKILL.md`, `references/supervisor.md`, `evals/evals.json`; `contracts/delivery/execution-request.v1.schema.json`, `execution-result.v1.schema.json`; `packs/core/tests/skills/work-loop/`; `.github/workflows/catalogue-tooling-ci-gates.yml`, `.github/workflows/build-check-windows.yml`; Core manifests and `docs/product/changelog.md`.
 - **Verification mode:** TDD
 - **Tests:**
@@ -304,6 +304,12 @@ Owned by: T1.
     `report` that commits with the attempt open, and a `refs-moved` kill
     inside it, are not refused; a second worktree's run advancing its own
     product ref during the attempt leaves it admissible.
+  - **VI-0520 (AC-0023):** in `test_supervisor_product_ref.py`, an injected
+    failure of each run-store write on a refusal or settle path (the product
+    record reset, the pending clear, the made append) keeps the original
+    refusal code, then every verb but `status` refuses `denied-product-record`
+    until the store is repaired, and a product ref or `HEAD` forged to the
+    refused commit never lands or counts as made.
   - **VI-0518 (AC-0020):** `start` with `result_authority` absent, or set to
     `other`, refuses `invalid-policy` with owner `skill maintainer`.
   - **VI-0501 (AC-0007, AC-0017)** passes under `legacy-worktree`.
@@ -382,3 +388,5 @@ Owned by: T1.
 - 2026-10-30: plan approved by eugenelim
 - 2026-10-30: spec approved by eugenelim (amended AC-0008 and the Made commit definition)
 - 2026-10-30: plan approved by eugenelim (amended AC-0008 and VI-0514)
+- 2026-10-31: spec approved by eugenelim (amended AC-0007 and AC-0015 for runs with no recorded product ref; added AC-0023)
+- 2026-10-31: plan approved by eugenelim (amended AC-0007, AC-0015 and AC-0023)

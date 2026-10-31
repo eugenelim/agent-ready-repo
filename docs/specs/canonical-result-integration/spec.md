@@ -92,7 +92,7 @@ change reaches a run in flight.
 - **Integration boundary, conflict, and identity (AC-0001, AC-0002, AC-0003, AC-0004):**
   TDD at the supervisor's `start`, `next`, and `report` boundary over a real
   Git repository, because each is a compressible invariant on refs and trees.
-- **Product-ref trust (AC-0005, AC-0006, AC-0022):** TDD at every verb over
+- **Product-ref trust (AC-0005, AC-0006, AC-0022, AC-0023):** TDD at every verb over
   missing, symbolic, rolled-back, and planted refs, a reftable repository, and over a trailer-free run that
   crosses to this release by `regenerate`.
 - **Crash and lag repair (AC-0007, AC-0008, AC-0009, AC-0010):** goal-based
@@ -180,7 +180,10 @@ Crash and lag repair
   `HEAD` tree, `delivery/` bytes, and supervisor step list as the
   uninterrupted run, with no step committed twice. At every kill point the
   product ref names either the commit before that write or the commit after
-  it.
+  it. For a run with no recorded product ref, a kill after its transaction
+  moved `HEAD` and before the commit was recorded as made instead ends in the
+  AC-0011 decision, or in `attempt-residue` while an attempt is open, and
+  answering it converges.
 - [ ] **AC-0008.** When the product ref names a step's pending commit and
   `HEAD` names the commit before it, the next verb moves `HEAD` to the
   pending commit. A `HEAD` that names a pending commit the product ref does
@@ -224,7 +227,7 @@ Worker forgery
   moved, made symbolic, or deleted — has its result refused, `report` with
   `attempt-refused` and `next` with `attempt-residue`, until the ref is
   restored. The supervisor's own move while it commits that attempt's result
-  is not refused.
+  is not refused within the invocation that made it.
 - [ ] **AC-0016.** Another run's product-ref change in a sibling worktree
   during this run's attempt leaves the attempt admissible.
 
@@ -249,6 +252,12 @@ Parity, switch, and reversal
 - [ ] **AC-0022.** In a repository whose ref storage is not Git's files
   backend, `start` and every later verb but `status` refuse with
   `unsupported-ref-storage`, owner `owner`, and create no ref.
+- [ ] **AC-0023.** When the supervisor cannot complete a run-store write that
+  clears or settles a refused or interrupted step, the verb still answers with
+  the refusal that step raised, and from then on every verb but `status`
+  refuses with `denied-product-record`, owner `controller`, naming the
+  restore, until the store is consistent again; no commit counts as made or
+  moves either ref in between.
 
 Portability
 
