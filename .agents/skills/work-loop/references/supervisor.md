@@ -68,7 +68,9 @@ repository. It also commits to Git, so run it from a clean branch.
 
 From the moment `start` is admitted the installed skill's scripts are pinned: if
 any supervisor file differs from the pinned digests, every verb refuses
-`supervisor-changed`. Do not edit the installed skill during a run; regenerate
+`supervisor-changed`. The one exception is `status` in a checkout with no store
+for the run, which answers from the committed records. Do not edit the installed
+skill during a run; regenerate
 it only when a `regenerate` request asks for it.
 
 ### Git settings the supervisor does not support
@@ -224,7 +226,7 @@ who acts next, and the rows group codes that share one answer.
 | `ambiguous-reference`, `unreadable-reference`, `untitled-task`, `dependency-cycle`, `duplicate-effect-name`, `invalid-effect-name`, `invalid-stub-fence`, `invalid-stub-path` | The spec or plan cannot be projected: a repeated heading, an unreadable cited record, a task without a title, tasks that wait on each other, or a malformed effect or stub line. Fix the plan or spec, then `next`. |
 | `review-selection-invalid`, `review-selection-missing`, `review-selection-exists`, `review-decision-invalid`, `review-record-refused`, `review-rules-invalid` | A review selection, decision record, or review record is malformed, absent, or already recorded for this subject, or `review-rules.json` is invalid. Answer the issued request again, or have the named owner decide. |
 | `foreign-delivery-edit`, `malformed-record`, `evidence-rewritten`, `invalid-approval-record` | Something other than the supervisor edited `delivery/`, or a record there is malformed or was rewritten. Restore it from `HEAD`. |
-| `supervisor-changed` | The installed skill differs from the pins taken at `start`. Restore the installed skill; if the difference is intended, Surface it to the owner. |
+| `supervisor-changed` | The installed skill differs from the pins taken at `start`. Restore the installed skill; if the difference is intended, Surface it to the owner. `status` in a checkout with no store directory for the run is not a refusal: it answers from the committed records. In a checkout that ran the supervisor, once a later release changes the installed supervisor, a finished run's `status` refuses on its pins until its store directory (`<git-dir>/agentbundle-supervisor/<run-id>/`) is removed. |
 | `unsupported-git-config` | A setting runs code, or a filter is defined. See [Git settings the supervisor does not support](#git-settings-the-supervisor-does-not-support). |
 | `denied-git-config`, `denied-git-control-state`, `denied-git-discovery`, `denied-git-failed`, `denied-git-unavailable`, `denied-invalid-run-id`, `denied-invalid-trailer`, `denied-not-a-directory`, `denied-store-spec`, `denied-unsafe-path` | The hardened Git helper refused: Git control state moved, a Git call failed or is unavailable, or a path, run id, or trailer is unsafe. Read the `detail`, restore the named state, and retry. |
 | `invalid-argument`, `invalid-policy` | An argument value is unknown, or `supervisor-policy.json` is malformed. Correct it; a malformed policy goes to the skill maintainer. |
@@ -325,7 +327,11 @@ deleted `run.json` loses nothing. Run `start` again only to learn the run is
 `current`.
 
 `status --check` is the gate the pre-PR hooks run: exit 0 sound or terminal, 1
-refusal, 3 retry cap reached (this wins over 1). The implementation retry cap counts failed gates
+refusal, 3 retry cap reached (this wins over 1). `status` also reports
+`verification`: `pinned` when it checked the supervisor against the pins in the
+run's store, or `committed-records-only` when the checkout has no store and it
+answered from the committed records alone. A fresh clone, CI, or a squash-merged
+`main` reports `committed-records-only`. The implementation retry cap counts failed gates
 and cannot be reset by a replan, an amendment, or a new approval; at the cap the
 run is stopped and Surfaced.
 
@@ -339,6 +345,9 @@ counts a task incomplete until the loop re-runs or replans it.
   decision records, written only by the supervisor.
 - `<spec-dir>/.supervisor/` — local run status, journal, and security log; not
   committed, safe to delete.
+- `<git-dir>/agentbundle-supervisor/<run-id>/` — the run store under the Git
+  directory: attempt manifests, pinned digests, recovery decisions. Local, not
+  committed; a checkout without it checks committed records only.
 - `.loop-run/events.jsonl` — one line per supervisor step.
 - Git commits trailered with the run id for every admitted step.
 
