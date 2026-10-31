@@ -161,6 +161,18 @@
         "Names no host, cluster, cloud service, or network component that no source shows",
         "Physical architecture subsection ends with a Sources checked table"
       ]
+    },
+    {
+      "id": 15,
+      "prompt": "I saved an assessment in the effort folder docs/architecture/shop/. Give me an HTML report of it.",
+      "expected_output": "The skill runs the renderer on the resolved effort directory after the write is approved, reports that assessment.html was written beside the report, and does not open a browser unless asked. If no assessment.md is saved there, it offers to save one first and runs nothing.",
+      "assertions": [
+        "Runs scripts/render_html.py on the effort directory and writes assessment.html beside assessment.md",
+        "The HTML contains a Sources checked table under each orientation subsection of the report",
+        "Does not open a browser unless asked",
+        "With no saved assessment.md, offers to save one first and runs nothing",
+        "The page uses the maintainer-view style with a contents rail and provenance marks for each evidence class"
+      ]
     }
   ]
 }

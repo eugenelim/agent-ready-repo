@@ -9,7 +9,7 @@ governed_by:
 
 # Design system: skill-emitted HTML views
 
-These are the values behind the shared style for the maintainer views that skills emit as HTML. Values are CSS custom properties. Each view joins this shared base with its own layout rules into the one hashed style element its policy names. The adopters are `navigate-intents`, `navigate-decisions`, `explain-diff` and `render-proof`; `markdown-to-html` keeps its author themes.
+These are the values behind the shared style for the maintainer views that skills emit as HTML. Values are CSS custom properties. Each view joins this shared base with its own layout rules into the one hashed style element its policy names. The adopters are `navigate-intents`, `navigate-decisions`, `explain-diff`, `render-proof` and `architect-assess`; `markdown-to-html` keeps its author themes.
 
 ## Authority and route
 
@@ -177,6 +177,8 @@ The rung is `approved-direction`: a rigid column grid, edge-aligned, filling the
 | 64rem to below 100rem | Margin `12rem`, text `minmax(0, 68ch)`, left-aligned after the margin. |
 | 100rem and up (1600px+) | Margin `12rem`, text `minmax(0, 68ch)`, contents `16rem` (sticky section list). |
 
+The architect report departs from this table: its margin track is `10rem`, its contents `16rem` track starts at 64rem, and each section adds a `minmax(0, 1fr)` third track. Tables span all three tracks, so a wide table starts under the margin heads and keeps its columns in view; source blocks and diagrams span the text and third tracks. The text track keeps its `68ch` first, so prose measures at least 480px at 1024px, with a section targeted and a 15px scrollbar showing.
+
 ## State marks
 
 Each state is a word plus a glyph inside a pill tinted by its state. Colour reinforces a mark but never carries it alone. The rung is `approved-direction` (simple shapes) and `owner-approved-prototype`.
@@ -193,6 +195,32 @@ Each state is a word plus a glyph inside a pill tinted by its state. Colour rein
 | done (terminal) | ✓ | Done | `--c-muted` | `--c-done-bg` |
 
 The glyph is hidden from assistive tech, and the word is read. Each view maps its own status vocabulary onto these eight marks and shows its own status word where it differs, for example "◆ Accepted".
+
+## Report view (`architect-assess`)
+
+The architect report is a document view with tables, source blocks, provenance marks and a heat map, none of which the list-and-detail views have. Its rung is `owner-approved-prototype` for the family roles and `derivation` for what follows.
+
+- **Layout-file colour rule.** The report's layout file may read colour roles through `var(--c-…)` for table rules, source blocks, provenance marks and heat tints. It declares no colour literal, no custom property and no token, and it takes every radius from `--r-N` and every margin, padding and gap from `--s-N`. The list-and-detail views keep all colour in the shared base; this view departs from that on purpose because the base styles no tables or source blocks. The owner approved the departure on 2026-10-31.
+- **Print.** Paper is light whatever the screen theme, so the print block sets `color-scheme: light` and the system colours `CanvasText` on `Canvas`, which are not palette literals, stacks the page in one column, and lets tables wrap to the page width. It redefines no token.
+- **Document density.** The layout file sets the document-density sizes from the Type table as literals on the page title, subsection heads, body text, meta line and labels, until the shared base carries a document-density variant.
+
+**Provenance marks.** An evidence class is not a lifecycle state, so it does not use the eight state marks. It uses a neutral pill (`--c-bg` fill, `--c-rule-strong` outline), the class word, and a bar glyph that shares no shape with the state glyphs. The glyph carries an empty alternative text so assistive technology reads the word only. The status pill is filled and the provenance pill is outlined on purpose: a fill says where a record stands, an outline says how well a claim is supported, so the two never read as one family of state. The bars imply a ranking from observed to unknown on purpose: the more bars, the more directly the claim was seen.
+
+| Class | Glyph | Word |
+| --- | --- | --- |
+| observed | ▮▮▮ | observed |
+| inferred | ▮▮▯ | inferred |
+| reported | ▮▯▯ | reported |
+| unknown | ▯▯▯ | unknown |
+
+**Heat ramp.** A heat cell always shows its word and a level glyph. The fill rises with heat, no cell has a border, and none uses the ok, warn, bad, active or accent roles, so heat does not read as severity or as a state. The glyph carries an empty alternative text and matches no evidence glyph or state glyph. The `high` fill equals the row rule colour, so the glyph and word carry the level there. `--c-text` keeps at least 4.5:1 on each fill in both themes. Unknown differs from low by its `?` glyph and italic word.
+
+| Level | Fill | Glyph |
+| --- | --- | --- |
+| low | `--c-bg` | ▂ |
+| medium | `--c-raised` | ▄ |
+| high | `--c-rule` | ▆ |
+| unknown | `--c-bg`, italic text | ? |
 
 ## What may adapt
 

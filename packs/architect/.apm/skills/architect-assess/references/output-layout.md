@@ -37,3 +37,8 @@ not fetched or coerced to local paths. After a local destination clears its
 mode-specific boundary, create `<destination>/<topic-slug>/assessment.md`, keep
 approved profiler evidence beside it, surface the absolute target, and retain
 the existing write approval. A repository handoff never reaches this write step.
+
+An HTML report is a derived file beside the report:
+`<destination>/<topic-slug>/assessment.html`, written by `scripts/render_html.py`
+under the same confined destination and write approval. It needs a saved
+`assessment.md` and runs only on a user request; see `references/html-report.md`.

@@ -183,6 +183,7 @@ Slice 2 of the delivery brief records here that each dependency-edge behavior ei
 Slice 9 of the delivery brief completes the closure checklist here.
 
 - **Tracker-origin registration (2026-10-30).** The [`tracker-origin-registration-stop`](../tracker-origin-registration-stop/spec.md) spec ends the last registration: a tracker-origin intent, brief or spec carries its tracker profile in its `source-authority` record, refresh reads it there, and no writer adds a `workspace.toml` entry. Adopters move existing entries with the `workspace-status` `tracker-entry-drop` repair. On this repository the repair plan held 0 `tracker-entry-drop` operations and 0 tracker-origin manual items, recorded in that spec's [verification ledger](../tracker-origin-registration-stop/notes/verification-ledger.md).
+- **Pre-cutover closure (2026-10-30).** The [`pre-cutover-closure`](../pre-cutover-closure/spec.md) spec finishes the items before the execution-supervisor cutover. `close-work`'s closure packet carries no `workspace_registration` field and `check_ancestor_closure` takes no registry lookup. Of the 19 inventory rows slices 2 to 8 owned, 10 are now `historical` rows with owner `none` (the nine shipped slice 2 to 8 spec directories and `FEAT-0002`) and 9 are re-owned to slice 9, each naming the after-cutover item that ends it; the inventory check refuses a numbered owner other than the brief's last slice. The adopter upgrade notes are drafted, unpublished, at `docs/specs/pre-cutover-closure/notes/upgrade-notes.md`.
 
 ## Certification
 
