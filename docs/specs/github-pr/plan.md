@@ -93,16 +93,16 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 
 ### T3: pack metadata, docs, census, and changelog describe all three modes
 **Depends on:** T1
-**Touches:** packs/github/pack.toml, packs/github/.claude-plugin/plugin.json, packs/github/README.md, packs/github/JOURNEY.md, packs/github/.apm/skills/github-pr/manifest.json, guides/github/**, web/src/content/journeys/github.md, packs/agent-skill-engineering/tests/fixtures/skill-census.json, .claude-plugin/marketplace.json, docs/product/changelog.d/66c8f467-39f7-4063-8aac-d8d60d42c4c2.md
+**Touches:** packs/github/pack.toml, packs/github/.claude-plugin/plugin.json, packs/github/README.md, packs/github/JOURNEY.md, packs/github/.apm/skills/github-pr/manifest.json, guides/github/**, web/src/content/journeys/github.md, packs/agent-skill-engineering/tests/fixtures/skill-census.json, .claude-plugin/marketplace.json, docs/product/changelog.d/66c8f467-39f7-4063-8aac-d8d60d42c4c2.md, Makefile, tools/lint-ci-parity.py
 **Tests:**
-- Goal-based: `catalogue verify` ok, skill-census test green, `build-site --journeys-only` changes only the github journey (restore the regenerated `repo-governance` file), `tools/changelog.py validate` ok, the fragment text names review, iterate, and adopt.
+- Goal-based: the `Makefile` github batch and `tools/lint-ci-parity.py` name `packs/github/tests/skills/github-pr/` where they named the old suite; `JOURNEY.md` adds no human gate (the shipped journey editorial ledger pins them), folding the new approvals into the existing confirm gate; `python3 tools/lint-pack-test-boundary.py` and `tools/test_journey_editorial_decisions.py` pass; `catalogue verify` ok, skill-census test green, `build-site --journeys-only` changes only the github journey (restore the regenerated `repo-governance` file), `tools/changelog.py validate` ok, the fragment text names review, iterate, and adopt.
 **Done when:** those checks pass.
 
 ### T4: repository gates are green after the rename
 **Depends on:** T2, T3
 **Touches:** none
 **Tests:**
-- Goal-based: `pytest packs/github tests/roster/test_skill_census.py`, `agentbundle catalogue verify`, `make lint-ruff lint-mypy`, `git grep -l github-pr-iterate` lists only `docs/specs/github-pr/`.
+- Goal-based: `pytest packs/github tests/roster/test_skill_census.py`, `agentbundle catalogue verify`, `python3 tools/lint-pack-test-boundary.py`, `python3 tools/lint-ci-parity.py`, `make lint-ruff lint-mypy`, `git grep -l github-pr-iterate` lists only `docs/specs/github-pr/`.
 **Done when:** those commands exit 0 and the grep output is as stated.
 
 ### T5: a cold-context graded run passes every assertion
