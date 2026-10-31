@@ -20,16 +20,16 @@ Copy the family stylesheet into `scripts/report_assets/` beside the renderer, ad
 ## Construction tests
 
 **Integration tests:** one test renders the sample fixture and checks the header, skip link, rail, sections, marks, wrappers, banner, notice, CSP hash, and both lists together.
-**Manual verification:** T5.
+**Manual verification:** T7; the T5 browser pass produced fixes but no ledger, so the T7 ledger is the only browser record.
 
 ## Durable-output map
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Token file additions | T4 | diff | grep for the rule, marks, and ramp |
+| Token file additions | T4, T6 | diff | grep for the rule, marks, ramp, glyphs, and the 64rem deviation |
 | Parent spec list criteria | T4 | diff | both cite this spec |
 | Reference, guide, eval | T4 | grep, eval JSON test | named in each |
-| Verification ledger | T5 | the ledger | screenshots and review results |
+| Verification ledger | T7 | the ledger | screenshots and review results |
 | Release surface | T4 | parity test, fragment | `validate` green |
 
 ## Design (LLD)
@@ -38,14 +38,14 @@ Copy the family stylesheet into `scripts/report_assets/` beside the renderer, ad
 
 - Stylesheet text is read at run time from `scripts/report_assets/` by the confined helper (family placement, beside the script), so the parity tool can byte-check the copy. `render(source, effort_name, today, css=None)` takes the joined text; `None` loads it, and `main` loads it first so an asset failure exits 3 before any render. Owned by: T1.
 - An asset is refused before inlining when missing, over 64 KiB, not UTF-8, or holding `</style`, `<!--`, `url(`, or `@import` case-insensitively, each with its own fixed token. Owned by: T1.
-- The page is a document view per the token file: tracks of one column below 64rem, margin plus a 68ch text column to 100rem, and margin, text, and a sticky 16rem contents rail from 100rem. Below 100rem the contents control is the closed `details` above the text. Section heads are margin heads, inline above the section below 64rem. Document-density type sizes are set in the layout file as literals. Owned by: T3.
+- The page is a document view per the token file with one deviation recorded there: one column below 64rem, and from 64rem a margin track, a 68ch text track, and a `minmax(0, 1fr)` third track for tables and source blocks inside each section, plus a sticky 16rem contents rail in the page grid. The flexible third track receives only the space left after the text track reaches its 68ch, so prose is never starved; the body's `max-width` from 100rem bounds the page at wide screens. Below 64rem the contents control is the closed `details` above the text. Section heads are margin heads, inline above the section below 64rem. Document-density type sizes are set in the layout file as literals. Owned by: T3.
 - Source order is skip link, header, nav, main; the skip link targets `main#report`, and `report` is reserved in the slug set so no heading can take it. Owned by: T2.
-- The rail is one `nav` holding a closed `details` list for narrow widths and a `ul.rail-wide` of the same links for wide ones, because `open` cannot be set by width without script; the layout file shows one and hides the other at 100rem. Owned by: T2, T3.
+- The rail is one `nav` holding a closed `details` list for narrow widths and a `ul.rail-wide` of the same links for wide ones, because `open` cannot be set by width without script; the layout file shows one and hides the other at 64rem. Owned by: T2, T3.
 - A section carries its heading's id and its `h2` carries none, so a followed rail link makes `.doc-section:target` match. Owned by: T2.
 - Rail link text and a table wrapper's label come from one plain-text reduction of the heading's Markdown. Owned by: T2.
 - A rail heading is a non-title heading at level 1 or 2, or an orientation heading at any level; one that is both gets one link. Link text is the heading's escaped plain text, never `_inline` output, so no anchor nests in an anchor. Owned by: T2.
 - Sections start at every non-title level-1 or level-2 heading, matching `_scopes`; blocks before the first start a leading section with no margin head. Owned by: T2.
-- Provenance marks reuse the base's `.mark` pill with a `--c-bg` fill and a `--c-rule-strong` outline; the glyphs are bars (▮▮▮, ▮▮▯, ▮▯▯, ▯▯▯) that share no shape with the family's eight state glyphs and carry empty alternative text. Heat cells use a ramp of surface, canvas, and raised fills with a left border that thickens from none to 2px to 4px, and a dashed border with italic for unknown, never the ok, warn, bad, active, or accent roles; the tables sit on the `--c-bg` surface. Owned by: T3.
+- Provenance marks reuse the base's `.mark` pill with a `--c-bg` fill and a `--c-rule-strong` outline; the glyphs are bars (▮▮▮, ▮▮▯, ▮▯▯, ▯▯▯) that share no shape with the family's eight state glyphs and carry empty alternative text. Heat cells use fills of surface, raised, and rule that rise in both themes, no border, and a level glyph (▂ ▄ ▆ ?) with empty alternative text that matches no evidence or state glyph, never the ok, warn, bad, active, or accent roles; the tables sit on the `--c-bg` surface. Owned by: T3.
 - Colour contrast of each heat tint is computed in a test from the stylesheet's own token values for both themes. Owned by: T3.
 - The snapshot line counts `Sources checked` rows by evidence class from the parsed tables. Owned by: T2.
 
@@ -85,18 +85,20 @@ Done when: the T4 tests pass, `FORCE=1 make build-self` leaves only the expected
 
 ### T5 — Browser QA and design review
 
+T5 ran the browser matrix and design passes and shipped the fixes they found in `render_html.py`, `report.css`, and the tests: source-block regions, print rules, the contents summary height, and the wide-screen body width. It wrote no ledger; T7 does.
+
 Depends on: T4
 Verification mode: manual QA
 Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`
 Tests: render the sample fixture and open it at 320 by 640, 1280 by 800, 1680, and 2560 CSS px in light and dark; read the first-screen, scrolled-rail, and first-Tab screenshots; then run `design-review` and `experience-reviewer` over the 1280 light, 1680 light, and 320 dark shots and adjudicate.
 Done when: the observations and review results are in the ledger.
 
-### T6 — Amended heat, contents, print, and source regions
+### T6 — Amended heat, tracks, and token file
 
 Depends on: T5
 Verification mode: TDD
-Touches: `scripts/render_html.py`, `scripts/report_assets/report.css`, the test file, `docs/design/tokens/skill-html-views.md`, `tests/roster/test_architect_assess_style_docs.py`
-Tests: heat fills as bg, raised, rule with no border and a distinct level glyph per class with empty alternative text and none equal to an evidence glyph; the contents track, sticky rail, and details switch at 64rem; the print block with source wrapping and row keeping; source blocks in `source-scroll` regions with the nearest-heading label; the contents summary target height and the wide-screen body width; the token file text for the heat ramp, glyphs, and the pill styles.
+Touches: `scripts/report_assets/report.css`, the test file, `docs/design/tokens/skill-html-views.md`, `tests/roster/test_architect_assess_style_docs.py`
+Tests: heat fills as bg, raised, rule with no border, and a distinct level glyph per class with empty alternative text and none appearing in an evidence or state glyph; the contrast computation re-run against the new fills in both themes; the section grid's third track as `minmax(0, 1fr)`; the page grid, contents track, sticky rail, and details switch at 64rem with the skip-link placement and the 110rem body width staying at 100rem; the prose column at least 480px at 1024px, measured by the T7 browser pass; the token file text for the heat ramp, glyphs, pill styles, and the 64rem deviation.
 Done when: the T6 tests pass.
 
 ### T7 — Browser QA and design review of the amended page
@@ -104,7 +106,7 @@ Done when: the T6 tests pass.
 Depends on: T6
 Verification mode: manual QA
 Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`
-Tests: render the sample fixture and open it at 320 by 640, 1280 by 800, 1680, and 2560 CSS px in light and dark, read the first-screen, scrolled-rail, first-Tab, and heat-map shots in both themes, then run `design-review` and `experience-reviewer` over the 1280 light, 1680 light, 320 dark, and dark heat shots and adjudicate.
+Tests: render the sample fixture and open it at 320 by 640, 1280 by 800, 1680, and 2560 CSS px in light and dark, read the first-screen, scrolled-rail, first-Tab, and heat-map shots in both themes, then run `design-review` and `experience-reviewer` over the screenshot set the spec's design-review criterion names and adjudicate.
 Done when: the observations and review results are in the ledger.
 
 ## Review

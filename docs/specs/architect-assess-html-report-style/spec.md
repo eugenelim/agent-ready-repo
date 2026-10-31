@@ -3,7 +3,7 @@
 - **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) — the renderer's security rules stay in force: escaped values, a CSP naming the one `<style>` by hash, no script, no network. This spec owns the closed element and attribute lists from now on and amends the parent's element and attribute criteria to cite it. The family token file [`docs/design/tokens/skill-html-views.md`](../../design/tokens/skill-html-views.md) supplies the document-view tracks, type, spacing, and interaction floor.
+- **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) — the renderer's security rules stay in force: escaped values, a CSP naming the one `<style>` by hash, no script, no network. This spec owns the closed element and attribute lists from now on and amends the parent's element and attribute criteria to cite it. The family token file [`docs/design/tokens/skill-html-views.md`](../../design/tokens/skill-html-views.md) supplies the document-view tracks, type, spacing, and interaction floor, except that this view starts its contents track at 64rem, not 100rem, and the token file records that deviation.
 - **Brief:** none
 - **Discovery:** none
 - **Depends on:** spec:architect-assess-html-report
@@ -25,9 +25,9 @@ A maintainer who opens an assessment report meets the same page family as the `n
 
 - The renderer's stylesheet becomes a byte copy of the shared `view-base.css` plus a report layout file, joined into the one `<style>` element the content-security policy names by hash — `packs/architect/.apm/skills/architect-assess/scripts/render_html.py`, `scripts/report_assets/view-base.css`, `scripts/report_assets/report.css`.
 - The page becomes a document view: a family header with a snapshot line, a skip link, a contents rail, and one flat section per heading with a margin head — `render_html.py`.
-- Evidence classes become provenance marks, heat cells become a neutral ramp, tables sit in keyboard-scrollable wrappers — `render_html.py`, `report.css`.
+- Evidence classes become provenance marks, heat cells become a neutral ramp with a level glyph, and tables and source blocks sit in keyboard-scrollable wrappers — `render_html.py`, `report.css`.
 - The element and attribute lists gain `header`, `nav`, and the attributes the page needs — `render_html.py`, the parent spec's list criteria.
-- The family token file gains the provenance marks and the layout-file colour rule — `docs/design/tokens/skill-html-views.md`.
+- The family token file gains the provenance marks, the heat ramp and its glyphs, the pill-style note, the 64rem contents track, and the layout-file colour rule — `docs/design/tokens/skill-html-views.md`.
 - The release surface and the eval — `pack.toml`, `plugin.json`, a changelog fragment, `evals/evals.json`, `references/html-report.md`.
 
 ## Durable Outputs
@@ -116,17 +116,24 @@ A maintainer who opens an assessment report meets the same page family as the `n
 - [ ] `report.css` gives each `ev-` class a `content: none` declaration followed by a `::before` `content` of its own bar glyph (▮▮▮, ▮▮▯, ▮▯▯, ▯▯▯) with an empty alternative text, a `var(--c-bg)` background, and a `var(--c-rule-strong)` border.
 - [ ] No `ev-` or `heat-` rule in `report.css` uses `--c-bad`, `--c-warn`, `--c-ok`, `--c-active`, or `--c-accent`.
 - [ ] `report.css` gives `heat-low` a `var(--c-bg)` background, `heat-medium` a `var(--c-raised)` background, `heat-high` a `var(--c-rule)` background, and `heat-unknown` a `var(--c-bg)` background with italic text, and none of the four a border.
-- [ ] `report.css` gives each heat class a `content: none` declaration followed by a `::before` `content` of its own level glyph (▁ for low, ▄ for medium, █ for high, ▫ for unknown) with an empty alternative text, and no heat glyph equals an evidence glyph.
+- [ ] `report.css` gives each heat class a `content: none` declaration followed by a `::before` `content` of its own level glyph (▂ for low, ▄ for medium, ▆ for high, ? for unknown) with an empty alternative text.
+- [ ] No heat glyph appears in any evidence glyph (▮ ▯) or in any of the family's eight state glyphs (● ▶ ◆ ◇ ■ ✕ △ ✓).
 - [ ] The text colour reaches a contrast ratio of at least 4.5:1 on each of the four heat backgrounds in the light and in the dark theme, computed from the stylesheet's token values.
 - [ ] `report.css` gives `.question-link` and `.skip-link` `display: inline-flex`, `align-items: center`, and a `min-height` of `var(--target)`.
 
 ### Layout and print
 
-- [ ] `report.css` sets one column below 64rem, a margin track and a `minmax(0, 68ch)` text track from 64rem, and a contents track of 16rem from 64rem, and makes the contents rail sticky from 64rem with a `max-height` and vertical overflow of `auto`.
+- [ ] `report.css` sets one column below 64rem, a margin track and a `minmax(0, 68ch)` text track from 64rem, a third track of `minmax(0, 1fr)` in each section grid, and a contents track of 16rem in the page grid from 64rem.
+- [ ] `report.css` makes the contents rail sticky from 64rem with a `max-height` and vertical overflow of `auto`.
 - [ ] `report.css` gives `.doc-section:target` a 3px solid left border in `var(--c-accent)`.
-- [ ] `report.css` has an `@media print` block that sets `display: none` on `.rail`, `.skip-link`, and the `details`, `overflow: visible` on `.table-scroll` and `.source-scroll`, and `overflow: visible` and `white-space: pre-wrap` on `pre`, and `break-inside: avoid` on `tr`.
-- [ ] Every code fence and every diagram source block sits inside a `div` with class `source-scroll`, `role` `region`, `tabindex` `0`, and an `aria-label` of `Source: ` followed by the plain text of the nearest preceding heading, or `Source` when none precedes it, and `report.css` gives that class horizontal overflow of `auto`.
-- [ ] `report.css` gives `.rail summary` a `min-height` of `var(--target)`, and from 100rem gives `body` a `max-width` of `110rem` with `margin-left` and `margin-right` of `auto`.
+- [ ] `report.css` has an `@media print` block that sets `display: none` on `.rail`, `.skip-link`, and the `details`.
+- [ ] The `@media print` block sets `overflow: visible` on `.table-scroll` and `.source-scroll`.
+- [ ] The `@media print` block sets `overflow: visible` and `white-space: pre-wrap` on `pre`.
+- [ ] The `@media print` block sets `break-inside: avoid` on `tr`.
+- [ ] Every code fence and every diagram source block sits inside a `div` with class `source-scroll`, `role` `region`, `tabindex` `0`, and an `aria-label` of `Source: ` followed by the plain text of the nearest preceding heading, or `Source` when none precedes it.
+- [ ] `report.css` gives `.source-scroll` horizontal overflow of `auto`.
+- [ ] `report.css` gives `.rail summary` a `min-height` of `var(--target)`.
+- [ ] From 100rem, `report.css` gives `body` a `max-width` of `110rem` with `margin-left` and `margin-right` of `auto`.
 - [ ] `report.css` gives `.page-title` `overflow-wrap: anywhere`.
 
 ### Fixture, docs, release
@@ -134,7 +141,7 @@ A maintainer who opens an assessment report meets the same page family as the `n
 - [ ] `packs/architect/tests/skills/architect-assess/testdata/html-style-sample.md` models a multi-subsystem system: at least six subsystem entries under `Architecture by subsystem`, with a deeper child heading under two of them; a `Sources checked` table of at least twelve rows under `Overall architecture` using all four evidence classes; a heat map of at least eight rows using all four heat values; a table cell holding an unbroken identifier of at least 80 characters; an unconfirmed charter; and at least two Mermaid fences of eight or more nodes each, one flowchart and one sequence diagram.
 - [ ] `references/html-report.md` and `guides/architect/reference/architecture-assessment.md` each state that the report uses the maintainer-view style with a contents rail.
 - [ ] The exit 3 row of `references/html-report.md` lists a missing, an oversized, a non-UTF-8, and a forbidden-string stylesheet asset.
-- [ ] `docs/design/tokens/skill-html-views.md` states the layout-file colour rule, the four provenance marks and that their bars imply a ranking from observed to unknown, the heat ramp with its fills and level glyphs, that the status pill is filled and the provenance pill outlined on purpose, the document-density literals this view sets, and `architect-assess` as an adopter.
+- [ ] `docs/design/tokens/skill-html-views.md` states the layout-file colour rule, the four provenance marks and that their bars imply a ranking from observed to unknown, the heat ramp with its fills and level glyphs, that the status pill is filled and the provenance pill outlined on purpose, that this view's contents track starts at 64rem as a deviation from the document-view table, the document-density literals this view sets, and `architect-assess` as an adopter.
 - [ ] `evals/evals.json` has an assertion on the HTML report case that the page uses the maintainer-view style with a contents rail and provenance marks.
 - [ ] `pack.toml` and `.claude-plugin/plugin.json` carry the same version, higher than the version on `origin/main`.
 - [ ] `tools/changelog.py validate` passes with the new fragment present.
@@ -143,10 +150,11 @@ A maintainer who opens an assessment report meets the same page family as the `n
 
 - [ ] Rendered from the fixture and opened in a real browser, the first screen at 320 by 640 CSS px and at 1280 by 800 CSS px, in light and dark, shows the title, the snapshot line, the banner, and the first section's margin head, with the closed contents control above the text at 320 px and the contents list beside the text at 1280 px, recorded with screenshots in the verification ledger.
 - [ ] At 320 CSS px in light and dark, the page is one column and the screenshot shows no content clipped at the right edge, recorded in the verification ledger.
+- [ ] At 1024 CSS px, in light and dark, the prose column measures at least 480 CSS px, recorded in the verification ledger.
 - [ ] At 1280, 1680, and 2560 CSS px the margin heads sit beside the text and the contents list is a third track that stays in view in a screenshot taken after scrolling past its first position, each in light and dark, recorded in the verification ledger.
 - [ ] The first Tab press at 320 and 1280 CSS px shows the skip link with the family focus ring, recorded in the verification ledger.
-- [ ] The page shows a pill with a bar glyph for each of the four evidence classes and four heat cells that differ from one another in greyscale and rise in fill from low to high in light and in dark, recorded with screenshots of the heat map in both themes in the verification ledger.
-- [ ] A `design-review` and an `experience-reviewer` pass over the 1280 px light, 1680 px light, and 320 px dark screenshots leave no finding at Major or Blocker after adjudication, recorded in the verification ledger.
+- [ ] The page shows a pill with a bar glyph for each of the four evidence classes, and the low, medium, and high heat cells rise in fill in light and in dark while the unknown cell differs from low by its glyph and italic text, recorded with screenshots of the heat map in both themes in the verification ledger.
+- [ ] A `design-review` and an `experience-reviewer` pass over the 1280 px light, 1680 px light, 320 px dark, and 1280 px dark heat-map screenshots leave no finding at Major or Blocker after adjudication, recorded in the verification ledger.
 
 ## Terminal Intent
 
@@ -158,6 +166,7 @@ A maintainer who opens an assessment report meets the same page family as the `n
 
 ## Assumptions
 
+- Technical: a `heat-high` cell's fill equals the row rule colour, so its bottom rule blends into the fill; the level glyph carries the level — whether that is acceptable (settled by: the owner, after the first look).
 - Technical: document-density type sizes from the token file are set in the layout file as literals because the shared base carries only worklist density — whether the base should gain a document-density variant in every copy (settled by: the owner, as a follow-on).
 - Product: the layout file reads colour roles through `var(--c-` where the family's list-and-detail layouts do not — whether to keep that rule or move the table and heat colours into the shared base (settled by: the owner; the token file records the rule).
 - Technical: diagrams in the fixture appear as labeled source blocks because drawing them is the open decision in `notes/diagram-rendering-decision.md` — whether and how the style slice should later draw them (settled by: the owner, in a later spec).
