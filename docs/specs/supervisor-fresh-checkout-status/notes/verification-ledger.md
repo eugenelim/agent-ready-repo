@@ -43,3 +43,7 @@ T4's first attempt found AC-0007 unsatisfiable inside the run: the roster case `
 - Plain fresh `git clone` of `dd15eab9c` from `origin`, no rebuild, no `.git/agentbundle-supervisor`: `status docs/specs/supervisor-fresh-checkout-status --check` exit `0`, `terminal: true`, `verification: committed-records-only`, empty `refusal`; shipped `pre-pr.py` exit `0`, `pre-pr: ✓ supervisor status docs/specs/supervisor-fresh-checkout-status` and `pre-pr: all checks passed`.
 - Pull request #1666, build-check run 41169153777 on `dd15eab9c`: `gate-main` step `pytest catalogue-test carve-out destinations (RFC-0082)` success, which runs `tests/roster/test_core_pre_pr_hook.py` including `test_shipped_pre_pr_runs_no_linter_labels` with this spec's `delivery/` in its sandbox; every check on the pull request passed.
 - Locally on `dd15eab9c`: `status --check` exit `0`, `verification: pinned`.
+
+## Release rebase (2026-10-31)
+
+`main` released core 4.0.2 (#1665) while this pull request was open, so the branch merged `origin/main` and re-released core as 4.0.3, one patch above the new merge base; the changelog fragment was replaced. `check-core-release.py --base origin/main` reports the release consistent.
