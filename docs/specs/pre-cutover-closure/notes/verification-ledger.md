@@ -21,6 +21,8 @@ The six `test_ac0038_`, `test_ac0039_` and `test_ac0040_` functions call `_build
 | 2026-10-30 | eugenelim | `workspace-retirement` spec and plan amendment (AC-0029, its four rule lists, task T11), approved before the `Approved:` line note was added | `docs/specs/workspace-retirement/spec.md` | `2e36f4c4568c934d912a2846002aa36aeb9b3d2e85f536bffe02dcc6a3b7f767` |
 | 2026-10-30 | eugenelim | `workspace-retirement` spec and plan amendment | `docs/specs/workspace-retirement/plan.md` | `769240e305b62c9faced0a2437a6ac493d081bb5ee8b916944bead0706fa5cfd` |
 | 2026-10-30 | eugenelim | upgrade-notes draft wording | `docs/specs/pre-cutover-closure/notes/upgrade-notes.md` | `155fae191ecd34a0069a2dd11d6cafde960d88fd66f159195f8d2de2eb38d52c` |
+| 2026-10-30 | eugenelim | § Compatibility closure entry | `docs/specs/workspace-retirement/retirement-record.md` | `6753959b21cdc9023d762d7b6b592d09abb5e5acc436c0754ec0b954d179d740` |
+| 2026-10-30 | eugenelim | brief Spec map row and slice 9 item text | `docs/product/briefs/workspace-registry-retirement-delivery.md` | `cccbd1ebd3cbf07469bfef50f9f437e89633418416ab5d052f49de429ab096f8` |
 
 ## T3 — the owner rule
 
@@ -29,3 +31,7 @@ The six `test_ac0038_`, `test_ac0039_` and `test_ac0040_` functions call `_build
 ## T4 — the draft's route
 
 2026-10-30. The supervisor refuses any worker change under `docs/specs/pre-cutover-closure/`, so an implementer attempt cannot write the draft. T4's first attempt was reported as a failed gate (retry 1 of 5); the controller then wrote the draft, the owner approved its wording, and it was committed between attempts, the same route the ledger takes. T4's next attempt adds the roster checks and the draft's inventory row.
+
+## T5 — the texts' route
+
+2026-10-30. The owner's approvals live in this ledger, which no worker attempt may change, so T5's first attempt was reported as a failed gate (retry 2 of 5). The controller drafted the closure entry and the brief edits, the owner approved both, and they were committed with these rows between attempts. T5's next attempt adds the roster checks.
