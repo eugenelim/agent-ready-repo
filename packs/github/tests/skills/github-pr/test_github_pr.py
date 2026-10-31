@@ -309,7 +309,7 @@ def test_f3_edit_record_and_staged_record_share_one_form(mode: str) -> None:
     assert not any("<approved-patch>" in c or "<edits-patch>" in c or "<staged-patch>" in c for c in cmds)
     raw = [c for _, c, _ in commands(ref)]
     recorded = [c for c in raw if "hash-object -- <worktree-relative " in c and c.endswith("> <edit-ids>")]
-    staged = [c for c in raw if re.search(r" rev-parse :<worktree-relative \S+-file>$", c)]
+    staged = [c for c in raw if re.search(r" rev-parse :<worktree-relative \S+-file>\)\" <worktree-relative \S+-file>$", c)]
     assert recorded and staged
     assert any(c == "git diff --cached --name-only" for c in cmds)
     assert has(ref, "each staged id must equal its recorded id")
@@ -336,8 +336,8 @@ def test_f5_review_head_moved_handles_the_pending_review() -> None:
 @pytest.mark.parametrize("mode", ["iterate", "adopt"])
 def test_f6_config_hash_set_comes_from_the_files_git_loads(mode: str) -> None:
     ref = REFS[mode]
-    cmds = [strip_globals(c) for _, c, _ in commands(ref)]
-    assert "git config --list --show-origin --name-only" in cmds
+    raw = [c for _, c, _ in commands(ref)]
+    assert any(c.endswith("config --list --show-origin --name-only | cut -f1 | sort -u") for c in raw)
     assert has(ref, "every distinct `file:` path the listing names")
     for fixed in ("/etc/gitconfig", "~/.gitconfig", "~/.config/git/config"):
         assert fixed not in ref
@@ -614,8 +614,6 @@ def test_g9a_config_hashes_compared_with_file_safety_commands(mode: str) -> None
         "system, global, and XDG configuration files",
         "every `include` and `includeIf` target",
         "config.worktree",
-        "`<git-common-dir>/hooks/`",
-        "`<git-common-dir>/info/`",
         "with the file-safety commands only, never a git command",
     )
     assert any(c.startswith("shasum -a 256 ") for _, c, _ in commands(ref))
@@ -801,7 +799,7 @@ def test_config_record_covers_presence_absence_and_every_loaded_file(mode: str) 
         "`<git-dir>/commondir`",
         "`<git-dir>/config.worktree`",
         "`absent <path>`",
-        "any new, changed, or removed entry",
+        "added, removed, or changed entry",
         "before the next git command",
     )
     cmds = [c for _, c, _ in commands(ref)]
@@ -821,14 +819,14 @@ def test_post_sandbox_stop_rule_runs_nothing_that_changes_state(mode: str) -> No
     )
     _, post = before_after(ref)
     gates = post[post.index("### Gates in a sandbox") : post.index("### Push")]
-    assert any("rev-parse :<worktree-relative" in c for _, c, _ in commands(gates))
+    assert any("rev-parse :<worktree-relative" in c and c.startswith("printf ") for _, c, _ in commands(gates))
 
 
 @pytest.mark.parametrize("mode", ["iterate", "adopt"])
 def test_edit_hash_record_keeps_one_hash_per_path(mode: str) -> None:
     ref = REFS[mode]
-    assert has(ref, "one line and one id per edited path")
-    assert any("hash-object -- <worktree-relative" in c and c.endswith(">> <edit-ids>") for _, c, _ in commands(ref))
+    assert has(ref, "one line per edited path, carrying the id and the path", "replaces exactly that path's line", "Compare line by line per path")
+    assert any(c.startswith("printf '%s  %s\\n' \"$(git") and "hash-object -- <worktree-relative" in c and c.endswith(">> <edit-ids>") for _, c, _ in commands(ref))
 
 
 def test_readme_says_only_named_threads_are_resolved() -> None:
@@ -851,16 +849,20 @@ def test_config_record_reads_keys_only_and_names_every_include_target(mode: str)
     cmds = [strip_globals(c) for _, c, _ in commands(ref)]
     assert "git config --list --show-origin" not in cmds
     assert any(c.startswith("git config --show-origin --get-regexp ^include(if") for c in cmds)
+    assert any("--get-regexp" in c and "| awk" in c for _, c, _ in commands(ref))
     assert has(
         ref,
-        "key names only, never values",
+        "so no key, subsection, or value reaches context",
+        "Its exit status 1 means no include\ntargets exist" if False else "exit status 1 means no include",
+        "relative include path against the\ndirectory that holds the including file" if False else "directory that holds the including file",
         "whether or not the file exists",
         "`GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM`",
         "`<git-common-dir>/objects/info/alternates`",
-        "`<git-common-dir>/refs/replace/`",
-        "the listings of `hooks/` and `info/`",
         "including a file created under `hooks/` or `info/`",
+        "the include query",
+        "never skip a\nlisting" if False else "never skip a listing",
     )
+    assert "key names only" not in norm(ref)
 
 
 @pytest.mark.parametrize("mode", ["iterate", "adopt"])
@@ -877,3 +879,38 @@ def test_lookalike_host_message_is_separate_from_userinfo_message() -> None:
 def test_readme_host_answer_names_the_origin_rule() -> None:
     readme = (Path(__file__).resolve().parents[3] / "README.md").read_text(encoding="utf-8")
     assert has(readme, "`github-pr` trusts only the host of the `origin` remote", "exactly `github.com`")
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_config_listing_pipes_to_origin_paths_only(mode: str) -> None:
+    raw = [c for _, c, _ in commands(REFS[mode])]
+    assert any(c.endswith("--name-only | cut -f1 | sort -u") for c in raw)
+    assert any(c.endswith("| awk 'NF{print $NF}'") and "--get-regexp" in c for c in raw)
+    assert not any(c.endswith("config --list --show-origin --name-only") for c in raw)
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_directory_records_use_globs_re_expanded_after_the_run(mode: str) -> None:
+    ref = REFS[mode]
+    raw = [c for _, c, _ in commands(ref)]
+    globs = next(c for c in raw if c.startswith("shasum -a 256 <git-common-dir>/hooks/*"))
+    for part in ("<git-common-dir>/hooks/*/*", "<git-common-dir>/info/*", "<git-common-dir>/refs/replace/*"):
+        assert part in globs
+    assert any(c.startswith("shasum -a 256 <git-dir>/hooks/*") for c in raw)
+    assert any(c.startswith("grep ' refs/replace/' <git-common-dir>/packed-refs | shasum") for c in raw)
+    assert has(ref, "re-expanding each glob", "never reusing the before list", "Compare them as sets")
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_reftable_repository_stops_the_record(mode: str) -> None:
+    ref = REFS[mode]
+    assert "test -d <git-common-dir>/reftable" in [c for _, c, _ in commands(ref)]
+    assert has(ref, "tell the user the record\ncannot see reftable refs" if False else "cannot see reftable refs", "If any record command cannot run, stop")
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_id_lines_carry_the_path(mode: str) -> None:
+    raw = [c for _, c, _ in commands(REFS[mode])]
+    printf = [c for c in raw if c.startswith("printf '%s  %s\\n'")]
+    assert len(printf) >= 3
+    assert all(re.search(r'<worktree-relative \S+-file>\)?"? <worktree-relative \S+-file>', c) for c in printf)
