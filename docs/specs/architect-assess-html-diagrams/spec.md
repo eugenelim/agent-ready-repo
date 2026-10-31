@@ -114,7 +114,7 @@ Each row is amended in place to read "except with `--diagrams`, which `docs/spec
 
 ### Eligibility
 
-Eligibility reads the fence text after one normalisation: the renderer refuses, as not drawable, any fence holding a character an HTML parser drops or rewrites (NUL, carriage return, U+FEFF, U+2028, U+2029, U+0085) or any other control character except tab and line feed, so the text the rules read equals the browser's `textContent`.
+Eligibility reads the fence text after one normalisation: the renderer refuses, as not drawable, any fence holding a character an HTML parser drops or rewrites (NUL, carriage return, U+FEFF, U+2028, U+2029, U+0085) any whitespace character other than ASCII space, tab, and line feed (so U+00A0, U+1680, U+2000–U+200A, U+202F, U+205F, and U+3000), or any other control character except tab and line feed, so the text the rules read equals the browser's `textContent`.
 
 - [ ] With `--diagrams`, a fence is drawn only when its first non-blank line, where blank means ASCII space, tab, and line feed only, starts with `flowchart`, `graph`, `sequenceDiagram`, `classDiagram`, `stateDiagram-v2`, or `erDiagram`, matched case-sensitively from the first character of that line.
 - [ ] With `--diagrams`, a fence is not drawn when any line contains `%%{`.
@@ -125,7 +125,7 @@ Eligibility reads the fence text after one normalisation: the renderer refuses, 
 - [ ] With `--diagrams`, a fence refused by a rule has no `diagram-drawn` class and the label `Diagram source (not drawn: unsafe)`.
 - [ ] With `--diagrams`, a fence that passes every rule but follows the first 20 has no `diagram-drawn` class and the label `Diagram source (not drawn: limit)`.
 - [ ] Without `--diagrams`, every Mermaid fence keeps the label `Diagram source (not rendered)`.
-- [ ] A hostile fence set holding a NUL-split `%%{`, a NUL-split `click`, a U+FEFF-led `---`, a U+00A0-led first line, `A-->B; click A href "x"`, a `link` line, a `callback` line, and a frontmatter block is refused by the rules above.
+- [ ] A hostile fence set holding a NUL-split `%%{`, a NUL-split `click`, a U+FEFF-led `---`, a U+00A0-led first line, a U+00A0-led `click` and a U+3000-led `link` after a semicolon, `A-->B; click A href "x"`, a `link` line, a `callback` line, and a frontmatter block is refused by the rules above.
 
 ### Script text rules (`diagrams.js`)
 
@@ -138,13 +138,16 @@ Eligibility reads the fence text after one normalisation: the renderer refuses, 
 ### Script behavior (ledger)
 
 - [ ] The inserted SVG holds no `style` element and no `style` attribute.
-- [ ] The inserted SVG holds only elements from a fixed list of SVG drawing elements, so no `a`, `use`, `image`, `foreignObject`, or `script`.
+- [ ] The inserted SVG holds only these elements: `svg`, `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `text`, `tspan`, `defs`, `marker`, `title`, `desc`, `clipPath`; any other element, such as `a`, `use`, `image`, `foreignObject`, or `script`, leaves the block as source.
+- [ ] Every `id` inside the inserted SVG starts with the SVG's render id, or the block stays as source.
 - [ ] The inserted SVG holds no `href`, `xlink:href`, `src`, or `on…` attribute, and no `url(` reference except to a fragment of the same document.
 - [ ] The page adopts a drawn SVG's stylesheet only when every rule is a style rule, a `@keyframes` rule, or a grouping rule (`@media`, `@supports`, `@layer` block, `@container`) whose contents pass the same test, and each style rule's selectors, split at top-level commas, start with exactly that SVG's `#id` followed by nothing, a descendant combinator, or a child combinator, and hold no `~` or `+`.
+- [ ] A style rule that holds a nested rule leaves the block as source.
+- [ ] A sheet that declares `position`, `inset`, `top`, `right`, `bottom`, `left`, `float`, `transform`, `z-index`, or `translate` in any rule leaves the block as source.
 - [ ] A sheet holding any other rule, such as `@import`, `@font-face`, `@namespace`, `@property`, or `@page`, or any unscoped rule, leaves the block as source.
 - [ ] `diagrams.js` treats the Mermaid global as missing unless `mermaid.initialize` and `mermaid.render` are functions, and any exception at any stage leaves the block as source.
 - [ ] On any failure, `diagrams.js` sets the block's label to `Diagram source (not drawn)` and removes every element Mermaid left in the document.
-- [ ] A heading whose slug equals a diagram render id format leaves the page outside the diagram unchanged.
+- [ ] A heading whose slug is `mermaid` leaves every drawn-eligible block labelled `Diagram source (not drawn)` and raises no uncaught script error when the CDN script is blocked.
 
 ### Asset and caps
 
@@ -158,10 +161,10 @@ Eligibility reads the fence text after one normalisation: the renderer refuses, 
 ### Real browser (ledger)
 
 - [ ] Opened with network access to `cdn.jsdelivr.net`, each `div.diagram-drawn` shows a drawn SVG above its source block in light and in dark, with node text legible, recorded with screenshots.
-- [ ] A fence using `classDef`, `style`, and `linkStyle` aimed at the notices, the banner, and the state mark leaves all three unchanged, recorded with screenshots.
+- [ ] A fence using `classDef`, `style`, and `linkStyle` aimed at the notices, the banner, and the state mark leaves all three visible, unchanged, and on top, recorded with screenshots.
 - [ ] A fence whose styles use sibling selectors leaves the label and the source block visible, recorded with a screenshot.
 - [ ] A fence label carrying a script payload that would set a visible sentinel leaves the sentinel unset, recorded in the ledger.
-- [ ] A C4 or class-diagram fence that carries a link leaves no navigating element in the page, recorded in the ledger.
+- [ ] With a stub `mermaid` whose `render` returns an SVG holding an `a`, an `image`, an `href`, an `onclick`, a `style` element, a nested style rule, an `@import`, a root rule with `position`, and a sibling selector, each case leaves its block as source and the page outside the block unchanged, recorded in the ledger.
 - [ ] A fence with a syntax error shows the label `Diagram source (not drawn)` and no other graphic, recorded with a screenshot.
 - [ ] With the `integrity` value altered, no diagram is drawn and each drawn-eligible block shows the label `Diagram source (not drawn)`, recorded with a screenshot.
 - [ ] With the network blocked, the report is fully readable and each drawn-eligible block shows the label `Diagram source (not drawn)`, recorded with a screenshot.
@@ -199,6 +202,7 @@ Eligibility reads the fence text after one normalisation: the renderer refuses, 
 
 - Product: drawing is opt-in, not the default — whether the default should flip once the owner has seen the page (settled by: the owner).
 - Technical: Mermaid 12.2.0 draws the fixture's flowchart and sequence diagram under the strict policy — settled by browser QA.
+- Technical: `@keyframes` names in an adopted sheet are page-wide, so one diagram can rename another's animation — whether to prefix them (settled by: the owner; no security effect).
 - Technical: a browser without constructable stylesheets shows source blocks only with the label `Diagram source (not drawn)` — whether that is acceptable (settled by: the owner).
 
 ## Changelog
