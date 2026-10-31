@@ -61,11 +61,13 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
 .heat-low { background: var(--c-bg); }
 .heat-medium { background: var(--c-raised); }
 .heat-high { background: var(--c-rule); }
+/* A background-coloured edge keeps neighbouring filled cells apart, and keeps the row rule from vanishing into the high fill */
+.heat-medium, .heat-high { border-right-width: 1px; border-right-style: solid; border-right-color: var(--c-bg); border-bottom-color: var(--c-bg); }
 .heat-unknown { background: var(--c-bg); font-style: italic; }
-.heat-low::before { content: none; content: "\2582" / ""; margin-right: var(--s-1); }
-.heat-medium::before { content: none; content: "\2584" / ""; margin-right: var(--s-1); }
-.heat-high::before { content: none; content: "\2586" / ""; margin-right: var(--s-1); }
-.heat-unknown::before { content: none; content: "?" / ""; margin-right: var(--s-1); }
+.heat-low::before { content: none; content: "\25D4" / ""; margin-right: var(--s-1); font-size: 1.25em; line-height: 1; }
+.heat-medium::before { content: none; content: "\25D1" / ""; margin-right: var(--s-1); font-size: 1.25em; line-height: 1; }
+.heat-high::before { content: none; content: "\25D5" / ""; margin-right: var(--s-1); font-size: 1.25em; line-height: 1; }
+.heat-unknown::before { content: none; content: "?" / ""; margin-right: var(--s-1); font-size: 1.25em; line-height: 1; }
 
 /* ---- Tracks: one column, then margin, text, and a flexible third track for wide blocks, with the contents rail beside them */
 @media (min-width: 64rem) {
