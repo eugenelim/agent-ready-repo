@@ -202,7 +202,18 @@ def test_pre_pr_fails_on_an_approved_run_that_cannot_be_checked(sandbox: Path) -
 
 def test_pre_pr_passes_when_no_spec_holds_approvals(sandbox: Path) -> None:
     """Positive path: a spec directory with no `delivery/approvals.jsonl` adds no
-    supervisor failure, and the hook exits 0."""
+    supervisor failure, and the hook exits 0.
+
+    The sandbox mirrors the working tree, so any spec there that already holds
+    committed `delivery/` records is removed first: this case is about a tree in
+    which no spec holds approvals.
+    """
+    for delivery in (sandbox / "docs" / "specs").glob("*/delivery"):
+        shutil.rmtree(delivery)
+    subprocess.run(
+        ["git", "-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qam", "no delivery"],
+        cwd=sandbox, check=False,
+    )
     spec_dir = sandbox / "docs" / "specs" / "example"
     spec_dir.mkdir(parents=True, exist_ok=True)
     (spec_dir / "spec.md").write_text("# Spec\n", encoding="utf-8")
