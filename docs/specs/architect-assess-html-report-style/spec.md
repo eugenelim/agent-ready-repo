@@ -1,6 +1,6 @@
 # Spec: architect-assess HTML report in the maintainer-view style
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) — the renderer's security rules stay in force: escaped values, a CSP naming the one `<style>` by hash, no script, no network. This spec owns the closed element and attribute lists from now on and amends the parent's element and attribute criteria to cite it. The family token file [`docs/design/tokens/skill-html-views.md`](../../design/tokens/skill-html-views.md) supplies the document-view tracks, type, spacing, and interaction floor, except that this view starts its contents track at 64rem, not 100rem, and the token file records that deviation.
@@ -178,3 +178,4 @@ A maintainer who opens an assessment report meets the same page family as the `n
 <!-- Approvals only. -->
 
 - 2026-10-31: spec approved by eugenelim (layout file reads colour tokens)
+- 2026-10-31: spec amendment approved by eugenelim (heat, contents track, print, source regions)
