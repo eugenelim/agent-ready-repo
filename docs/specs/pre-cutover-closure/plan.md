@@ -140,6 +140,14 @@ Owned by: T2, T4, T5
 - **Tests:** for AC-0007 and AC-0008: `test_no_inventory_row_is_owner_8_outside_the_two_spec_directories`, which pinned the `spec-registration-stop/*` and `readiness-bridge-dispatch-input/*` rows to `contract` and owner `8`, asserts instead that no row has owner `8` and that those two rows are `historical` with owner `none`; its other assertions stay.
 - **Done when:** `tests/roster/test_spec_registration_stop.py` and `tests/roster/test_workspace_retirement_inventory.py` pass.
 
+### T8: Implementation review repairs
+
+- **Depends on:** T2, T4
+- **Verification mode:** goal-based
+- **Touches:** `.github/workflows/build-check.yml`
+- **Tests:** for PCC-ADV-03: the comment above the `pytest pre-cutover closure (roster-owned)` step names every criterion `tests/roster/test_pre_cutover_closure.py` checks (AC-0005, AC-0006, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018); `tools/lint-ci-parity.py` passes. PCC-ADV-01 and PCC-ADV-02 are repaired in the draft, which only the controller may write; the owner re-approved it and the ledger row carries its new SHA-256, so the AC-0016 check covers it.
+- **Done when:** `tools/lint-ci-parity.py` and `tests/roster/test_pre_cutover_closure.py` pass.
+
 ## Rollout
 
 - **Delivery:** one `core` patch release. A caller passing `_workspace_lookup` gets a `TypeError`; no shipped caller does.
