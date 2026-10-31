@@ -18,6 +18,7 @@ import os
 import re
 import stat
 import sys
+import unicodedata
 from pathlib import Path
 from typing import Any, NamedTuple
 
@@ -128,10 +129,8 @@ _SEPARATOR_CELL = re.compile(r":?-{3,}:?")
 # and parsing stays linear in the source size at any span length.
 _INLINE = re.compile(
     r"(`[^`\n]+`)|(\*\*[^*\n]+\*\*)"
-    r"|(\[[^\[\]\n]+\]\((?:[^()\n]|\([^()\n]*\))*\))|(\*[^*\n]+\*)"
+    r"|(\[[^\[\]\n]+\]\((?:[^()\n]++|\([^()\n]*+\))*+\))|(\*[^*\n]+\*)"
 )
-_CONTROL = re.compile(r"[\x00-\x20\x7f]")
-_FORMAT_CHARS = re.compile("[\u061c\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
 
 
 def _esc(text: str) -> str:
@@ -139,13 +138,19 @@ def _esc(text: str) -> str:
     return html.escape(text, quote=True)
 
 
-def _safe_target(target: str) -> bool:
-    """Return True for an https, http, or in-document link with no whitespace."""
-    cleaned = target.strip()
-    lowered = cleaned.lower()
-    if _CONTROL.search(cleaned):
+def _safe_link(label: str, target: str) -> bool:
+    """Return True when a link may become an anchor.
+
+    The target, trimmed and lowercased, begins `https:`, `http:`, or `#`; it holds no
+    interior whitespace; and neither the text nor the target holds a character of Unicode
+    general category Cc or Cf (control, bidi, and other format characters).
+    """
+    if any(unicodedata.category(char) in ("Cc", "Cf") for char in label + target):
         return False
-    return lowered.startswith(("https:", "http:", "#"))
+    cleaned = target.strip()
+    if any(char.isspace() for char in cleaned):
+        return False
+    return cleaned.lower().startswith(("https:", "http:", "#"))
 
 
 def _inline(text: str) -> str:
@@ -162,7 +167,7 @@ def _inline(text: str) -> str:
         elif match.group(3):
             split = token.index("](")
             label, target = token[1:split], token[split + 2 : -1]
-            if _safe_target(target) and not _FORMAT_CHARS.search(token):
+            if _safe_link(label, target):
                 out.append(f'<a href="{_esc(target.strip())}">{_esc(label)}</a>')
             else:
                 out.append(_esc(token))
@@ -264,7 +269,12 @@ def parse(source: str) -> list[Block]:
                     item = pattern.match(lines[i])
                     if item:
                         parts.append([item.group(1)])
-                    elif lines[i].startswith((" ", "\t")) and lines[i].strip() and parts:
+                    elif (
+                        lines[i].startswith((" ", "\t"))
+                        and lines[i].strip()
+                        and parts
+                        and not _FENCE.match(lines[i])
+                    ):
                         parts[-1].append(lines[i].strip())
                     else:
                         break
@@ -284,29 +294,53 @@ def parse(source: str) -> list[Block]:
     return blocks
 
 
-def _scopes(blocks: list[Block]) -> list[tuple[str, str | None]]:
+def _title_index(blocks: list[Block]) -> int | None:
+    """Return the index of the title heading: the first heading block, if it is level 1."""
+    for index, block in enumerate(blocks):
+        if block.kind == "h":
+            return index if block.level == 1 else None
+    return None
+
+
+def _orientation_ranges(blocks: list[Block], title: int | None) -> list[tuple[int, int, str]]:
+    """Return (start, end, canonical heading) for every orientation subsection.
+
+    One rule everywhere: a subsection starts at its heading and ends at the next heading
+    whose level is at or above its own. A single pass with a stack keeps this linear.
+    """
+    ends: dict[int, int] = {}
+    open_headings: list[int] = []
+    for index, block in enumerate(blocks):
+        if block.kind != "h" or index == title:
+            continue
+        while open_headings and blocks[open_headings[-1]].level >= block.level:
+            ends[open_headings.pop()] = index
+        open_headings.append(index)
+    for index in open_headings:
+        ends[index] = len(blocks)
+    return [
+        (index, ends[index], ORIENTATION[blocks[index].text.strip().lower()])
+        for index in sorted(ends)
+        if blocks[index].text.strip().lower() in ORIENTATION
+    ]
+
+
+def _scopes(blocks: list[Block], title: int | None) -> list[tuple[str, str | None]]:
     """Return (section, orientation) for every block; the one scope rule for the page.
 
-    `section` is the lowercased text of the last heading at level 1 or 2 (the first level-1
-    heading is the title and starts no section). `orientation` is the orientation subsection
-    that is open: one ends at the next heading whose level is at or above its own.
+    `section` is the lowercased text of the last non-title heading at level 1 or 2.
+    `orientation` is the canonical name of the innermost open orientation subsection.
     """
-    section, orientation, open_level = "", None, 0
-    seen_title = False
+    orientation: list[str | None] = [None] * len(blocks)
+    for start, end, canonical in _orientation_ranges(blocks, title):
+        for index in range(start, end):
+            orientation[index] = canonical.lower()
+    section = ""
     scopes: list[tuple[str, str | None]] = []
-    for block in blocks:
-        if block.kind == "h":
-            name = block.text.strip().lower()
-            if block.level == 1 and not seen_title:
-                seen_title = True
-            elif block.level <= 2:
-                section = name
-                orientation, open_level = (name, block.level) if name in ORIENTATION else (None, 0)
-            elif name in ORIENTATION:
-                orientation, open_level = name, block.level
-            elif orientation is not None and block.level <= open_level:
-                orientation = None
-        scopes.append((section, orientation))
+    for index, block in enumerate(blocks):
+        if block.kind == "h" and index != title and block.level <= 2:
+            section = block.text.strip().lower()
+        scopes.append((section, orientation[index]))
     return scopes
 
 
@@ -340,29 +374,15 @@ def _check_evidence_classes(table: Block) -> None:
             raise Refusal(TOKEN_EVIDENCE)
 
 
-def _check_orientation(blocks: list[Block]) -> None:
+def _check_orientation(blocks: list[Block], title: int | None) -> None:
     """Refuse an orientation subsection that lacks a usable, valid Sources checked table.
 
-    A heading counts at any level, with closing `#` marks ignored and the title excluded. Every
-    labeled table with the Sources checked header is validated, and the last block of
+    A heading counts at any level, with closing `#` marks ignored and the title excluded.
+    Every labeled table with the Sources checked header is validated, and the last block of
     the subsection must be one with at least one data row.
     """
-    seen_title = False
-    for index, block in enumerate(blocks):
-        canonical = None
-        if block.kind == "h":
-            if block.level == 1 and not seen_title:
-                seen_title = True
-            else:
-                canonical = ORIENTATION.get(block.text.strip().lower())
-        if canonical is None:
-            continue
-        end = index + 1
-        while end < len(blocks) and not (
-            blocks[end].kind == "h" and blocks[end].level <= block.level
-        ):
-            end += 1
-        section = blocks[index + 1 : end]
+    for start, end, canonical in _orientation_ranges(blocks, title):
+        section = blocks[start + 1 : end]
         refusal = Refusal(f"{TOKEN_PROVENANCE} {canonical}")
         if len(section) < 2 or section[-1].kind != "table" or not _is_sources_label(section[-2]):
             raise refusal
@@ -412,18 +432,19 @@ def _table(block: Block, sources: bool, heat: bool) -> str:
     return "".join(parts)
 
 
-def _body(blocks: list[Block], scopes: list[tuple[str, str | None]]) -> tuple[str, str]:
+def _body(
+    blocks: list[Block], scopes: list[tuple[str, str | None]], title_at: int | None
+) -> tuple[str, str]:
     """Render blocks to HTML; return (title, html) with the first H1 as the title."""
     title = "Architecture assessment"
     out: list[str] = []
     used: set[str] = set()
     counters: dict[str, int] = {}
-    seen_title = False
     previous: Block | None = None
-    for block, (section, orientation) in zip(blocks, scopes, strict=True):
+    for index, (block, (section, orientation)) in enumerate(zip(blocks, scopes, strict=True)):
         if block.kind == "h":
-            if block.level == 1 and not seen_title:
-                title, seen_title = block.text, True
+            if index == title_at:
+                title = block.text
                 previous = block
                 continue
             level = min(block.level, 6)
@@ -464,9 +485,10 @@ def _body(blocks: list[Block], scopes: list[tuple[str, str | None]]) -> tuple[st
 def render(source: str, effort_name: str, today: str) -> str:
     """Return the full HTML document for *source*, or raise Refusal."""
     blocks = parse(source)
-    _check_orientation(blocks)
-    scopes = _scopes(blocks)
-    title, body = _body(blocks, scopes)
+    title_at = _title_index(blocks)
+    _check_orientation(blocks, title_at)
+    scopes = _scopes(blocks, title_at)
+    title, body = _body(blocks, scopes, title_at)
     digest = base64.b64encode(hashlib.sha256(CSS.encode("utf-8")).digest()).decode()
     policy = (
         f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"

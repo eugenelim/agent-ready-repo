@@ -16,7 +16,7 @@ replaces the existing `assessment.html`.
 | Exit | Meaning |
 | --- | --- |
 | 0 | The page was written. |
-| 2 | The report was refused: an orientation subsection lacks a usable `Sources checked` table, an evidence class is outside `observed`, `inferred`, `reported`, `unknown`, the source is over 2 MiB, or it is not UTF-8. The reason is on stderr. |
+| 2 | The report or the command was refused. The reasons are: a wrong argument count; an orientation subsection without a usable `Sources checked` table; an evidence class outside `observed`, `inferred`, `reported`, `unknown`; a source over 2 MiB; a source that is not UTF-8; and a rendered page over 16 MiB. The reason is on stderr. |
 | 3 | Confinement or environment failure: a missing source or directory, a symlink, an unexpected error, or a host without descriptor walking, Windows included. No report is written on such a host. |
 
 ## What the page holds

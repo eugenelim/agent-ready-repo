@@ -546,6 +546,7 @@ def test_imports_and_calls_stay_inside_the_allow_list() -> None:
         "stat",
         "sys",
         "typing",
+        "unicodedata",
     }
     for node in ast.walk(tree_):
         if isinstance(node, ast.Import):
@@ -773,3 +774,90 @@ def test_round_two_hostile_shapes_stay_linear(mod, hostile) -> None:
     started = time.perf_counter()
     mod.render(hostile, "e", "2026-01-01")
     assert time.perf_counter() - started < 3.0
+
+
+# ---- round-three review repairs -----------------------------------------------------
+
+
+def test_a_fence_inside_a_list_item_cannot_swallow_a_later_orientation_subsection(
+    mod, tmp_path, capsys
+) -> None:
+    source = "# T\n\n- item\n   ```\ncode\n   ```\n\n## Overall architecture\n\nno table\n"
+    code, err = _refused(mod, tmp_path, capsys, source)
+    assert code == 2 and err.strip().endswith("Overall architecture")
+
+
+def test_mermaid_fence_attached_to_a_list_item_gets_the_diagram_label(
+    mod, tmp_path, capsys
+) -> None:
+    extra = "- Diagram:\n  ```mermaid\n  A --> B\n  ```\n- next\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    assert "Diagram source (not rendered)" in text and "<li>next</li>" in text
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        f"# T\n\n## Overall architecture\n\nx\n\n### Notes\n\n{SOURCES}",
+        f"# T\n\n# Overall architecture\n\nx\n\n## Notes\n\n{SOURCES}",
+    ],
+    ids=["deeper-child-heading", "level-one-orientation-heading"],
+)
+def test_one_range_rule_validates_and_shades_the_same_table(mod, tmp_path, capsys, source) -> None:
+    parsed = tree(page(tmp_path.resolve(), source, mod, capsys))
+    assert "ev-observed" in {c for _, c in parsed.classes}
+
+
+def test_a_later_shallower_heading_ends_the_orientation_range(mod, tmp_path, capsys) -> None:
+    source = f"# T\n\n### Overall architecture\n\nx\n\n## Later\n\n{SOURCES}"
+    code, err = _refused(mod, tmp_path, capsys, source)
+    assert code == 2 and err.strip().endswith("Overall architecture")
+
+
+def test_only_the_first_heading_block_can_be_the_title(mod) -> None:
+    with pytest.raises(mod.Refusal):
+        mod.render("## Bottom\n\nx\n\n# Physical architecture\n\nno table\n", "e", "2026-01-01")
+
+
+def test_unterminated_link_target_stays_under_the_memory_bound(mod) -> None:
+    import tracemalloc
+
+    tracemalloc.start()
+    try:
+        mod.render("[a](" + "b" * 400_000 + "\n", "e", "2026-01-01")
+        peak = tracemalloc.get_traced_memory()[1]
+    finally:
+        tracemalloc.stop()
+    assert peak < 16 * 1024 * 1024
+
+
+@pytest.mark.parametrize(
+    ("source", "anchor"),
+    [
+        ("[a](https://e.x/a b)", False),
+        ("[a](https://e.x/a\u00a0b)", False),
+        ("[a\x01b](https://e.x)", False),
+        ("[a](https://e.x/\x85)", False),
+        ("[a](https://e.x/\u00ad)", False),
+        ("[a\U000e0041](https://e.x)", False),
+        ("[a](https://e.x/((y)))", False),
+        ("[a](https://e.x/(y))", True),
+        ("[a](\u00a0https://e.x)", True),
+    ],
+)
+def test_link_exclusions_by_character_class_and_depth(mod, source, anchor) -> None:
+    assert ("<a href=" in mod._inline(source)) is anchor
+
+
+def test_reference_lists_every_exit_two_reason() -> None:
+    lines = (SKILL_ROOT / "references" / "html-report.md").read_text(encoding="utf-8").splitlines()
+    row = next(line for line in lines if line.startswith("| 2 |"))
+    for reason in (
+        "wrong argument count",
+        "Sources checked",
+        "evidence class",
+        "2 MiB",
+        "not UTF-8",
+        "16 MiB",
+    ):
+        assert reason in row
