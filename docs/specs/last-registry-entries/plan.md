@@ -1,7 +1,7 @@
 # Plan: The last registry entries leave, and refresh gets its own policy file
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and § Errata; RFC-0105 D3; RFC-0083; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-intake/scripts/refresh.py`: `parse_refresh_authorization_policy` (line 1021), the `local_receipts` record shape (lines 671-694 and 867), and every `workspace.toml` read and digest binding (lines 1235, 1504, 1609, 1698, 1718, 2005). Packaged copy: `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`.
@@ -86,7 +86,7 @@ Owned by: T4
 
 - **Depends on:** T1, T3
 - **Verification mode:** TDD
-- **Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/test_refresh_policy_move.py`
+- **Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/test_refresh_policy_move.py`, `.claude/skills/workspace-status/**`, `.agents/skills/workspace-status/**`
 - **Tests:** for AC-0004, AC-0005: a new suite with one planted case each for move, absent table, invalid table, equal existing file, differing existing file, unparseable existing file, a parseable `.work-intake.toml` with an extra key (never overwritten), and an apply after a failed policy-file write.
 - **Done when:** the new suite and `packs/core/tests/skills/workspace-status/` pass.
 
@@ -94,7 +94,7 @@ Owned by: T4
 
 - **Depends on:** none
 - **Verification mode:** TDD
-- **Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/test_captured_entry_drop.py`
+- **Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/test_captured_entry_drop.py`, `.claude/skills/workspace-status/**`, `.agents/skills/workspace-status/**`
 - **Tests:** for AC-0001, AC-0002, AC-0003, AC-0005: a new suite with one planted entry per matched and unmatched case (readable file, missing file, unreadable or linked file, slug-only in `[backlog]` and in a shaping queue, with and without its file), a plan that also holds `captured-to-file` operations, the lock-time refusals, and a check that no captured file's bytes change.
 - **Done when:** the new suite and `packs/core/tests/skills/workspace-status/` pass.
 
@@ -149,3 +149,6 @@ Owned by: T4
 - A repository that edits `.work-intake.toml` while a refresh is open refuses that refresh, as a `workspace.toml` edit did before.
 
 ## Changelog
+
+- 2026-10-31: spec approved by eugenelim at `b920263b4`, after three spec-mode shaping and adversarial review rounds, with the round-3 repairs accepted unreviewed and the `workspace-status` projection globs added to T2 and T3 at approval.
+- 2026-10-31: plan approved by eugenelim at `b920263b4`.
