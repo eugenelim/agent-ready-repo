@@ -52,9 +52,10 @@ BODY_LINE_CEILING = 500
 # and again when blocking moved from `needs` to the `Depends on:` header. Both
 # `workspace_status.py` and the engine were re-pinned for the needs-to-header repair and again for its code-review corrections, and both for the captured-item listing, and the engine again for the captured-item switch and again for the file-based shaping guard, and both when the captured-item repair landed and its comments dropped spec citations, and both again for the post-gates review fixes, and the engine again for the unregistered captured item's closed state.
 # 2026-10-29, spec-registration-stop: both re-pinned for the spec-entry-drop repair, the retired `unregistered_work` and Type 1 audit, and the reworded cooled-child next action. Both re-pinned again when queue moves stayed off drop candidates while cooling is unreadable.
+# 2026-10-30, tracker-origin-registration-stop (docs/specs/tracker-origin-registration-stop): `workspace_status.py` re-pinned for the tracker-entry-drop repair.
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "1fa9adf473eb22f795a70d874130271dceb251ed602fd492ce7c90afa810d41b",
+        "6535889f0682ba8f8fa41359b9403aa39c1a37a0a9342b04acb594712e7d3984",
     "workspace_status_engine.py":
         "7d22cb905af4464cb2d1778610d2e5e53a23604ed5b847d6d7dcd71b9dd0221b",
     "workspace_status_prune.py":
