@@ -1,20 +1,19 @@
 {
- "case": "review-host-mismatch",
  "results": [
   {
    "n": 1,
    "pass": true,
-   "why": "States origin URL host is git.example.invalid, not github.com."
+   "why": "It quotes the origin URL and says its host git.example.invalid is not github.com."
   },
   {
    "n": 2,
    "pass": true,
-   "why": "Stops before using PR data and says skill supports github.com only."
+   "why": "It stops before any PR reads and tells the user the skill supports github.com only."
   },
   {
    "n": 3,
    "pass": true,
-   "why": "Proposes no commands; explicitly holds all gh calls."
+   "why": "It ran no commands, lists every gh command as held, and the tool log has only Read and Glob."
   }
  ]
 }

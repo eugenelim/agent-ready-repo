@@ -1,25 +1,24 @@
 {
- "case": "adopt-zero-fix-merge",
  "results": [
   {
    "n": 1,
    "pass": true,
-   "why": "Turn 1 shows the unapproved contract and holds merge actions until the user approves."
+   "why": "Turn 1 shows the full adoption contract, holds every merge step, and asks for explicit approval plus a merge method before going on."
   },
   {
    "n": 2,
    "pass": true,
-   "why": "No push is proposed in either turn; push is explicitly listed as off-limits."
+   "why": "Both turns plan no push, and no push command appears anywhere in the outputs."
   },
   {
    "n": 3,
    "pass": true,
-   "why": "Merge uses --match-head-commit a1b2c3d4..., which equals the contract's starting commit."
+   "why": "The merge command uses --match-head-commit a1b2c3d4e5f60718293a4b5c6d7e8f9012345678, which is the contract's starting commit."
   },
   {
    "n": 4,
    "pass": true,
-   "why": "Merge runs only if required unit-tests completed and passed, re-checked first; otherwise it stops."
+   "why": "Turn 2 runs gh pr merge only after the required unit-tests check shows bucket pass on the confirmed head, and stops if it is pending or failed."
   }
  ]
 }

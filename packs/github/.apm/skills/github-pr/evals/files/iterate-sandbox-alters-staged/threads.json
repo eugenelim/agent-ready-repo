@@ -24,7 +24,7 @@
                     "author": {
                       "login": "carol"
                     },
-                    "body": "This should round up, not down."
+                    "body": "Nit: rename `size` to `page_size` in `page_count`."
                   }
                 ]
               }
