@@ -39,7 +39,7 @@ Drawing is opt-in because a report is built from untrusted repository text, and 
 | Current product truth | The decision note is the open question this answers | `notes/diagram-rendering-decision.md` | eugenelim | diff | states the chosen option and that drawing is opt-in |
 | User-facing promise | The mode gains a flag and a privacy note | `references/html-report.md`, `SKILL.md`, `guides/architect/reference/architecture-assessment.md`, `guides/architect/how-to/assess-a-repository.md` | eugenelim | grep in `tests/roster` | each names `--diagrams`, the host, the offline default, and the sharing warning |
 | Verification record | Real-browser drawing, confinement, CSP, and fallbacks are manual | `docs/specs/architect-assess-html-diagrams/notes/verification-ledger.md` | eugenelim | the ledger | holds the observations, hash provenance, and review results |
-| Release history | A pack change ships by version bump | `pack.toml`, `plugin.json`, changelog fragment | eugenelim | parity test, fragment validates | minor bump (a new flag and asset) above `origin/main`, fragment `Highlights` set to `false` |
+| Release history | A pack change ships by version bump | `pack.toml`, `plugin.json`, changelog fragment | eugenelim | parity test, fragment validates | patch bump above `origin/main`; the flag and asset live inside an existing skill, so no new primitive |
 
 ## Amended parent rules
 
@@ -82,76 +82,110 @@ Each row is amended in place to read "except with `--diagrams`, which `docs/spec
 
 - Flag parsing, markup, eligibility rules, policy text, script-tag attributes, asset loading and refusals, privacy note, caps, list membership, and the text rules over `diagrams.js`: TDD, because each is an input-to-output rule over rendered HTML or a text rule over a file.
 - Parity of the pinned version, URL, and hash with the ADR and `docs-site`, and the amended parent text and doc names: goal-based roster checks outside the pack tree.
-- Drawing, theme, style confinement, hostile fences, integrity failure, offline fallback, syntax-error fence: manual QA in a real browser over the sample fixture, with `design-review` and `experience-reviewer` passes.
+- Drawing, theme, SVG and style confinement, hostile fences, integrity failure, offline fallback, missing stylesheet support, syntax-error fence: manual QA in a real browser over the sample fixture, run against hostile fixtures that fail if the behavior is wrong, with `design-review` and `experience-reviewer` passes. The script is an inline file with no module exports, so a node suite would test a copy; pack JavaScript elsewhere uses node suites, and this deviation is deliberate.
 
 ## Acceptance Criteria
 
 ### Arguments and default page
 
-- [ ] `render_html.py <dir>` and `render_html.py <dir> --diagrams` each exit 0 on a valid report.
-- [ ] Zero arguments, more than two arguments, or a second argument other than `--diagrams` exit 2 with the usage token `render_html: usage: render_html.py <effort-dir> [--diagrams]`; a first argument of `--diagrams` is treated as a path and refused as today.
-- [ ] Without `--diagrams`, the output has no `script` element and no `src` attribute.
+- [ ] `render_html.py <dir>` exits 0 on a valid report.
+- [ ] `render_html.py <dir> --diagrams` exits 0 on a valid report.
+- [ ] Zero arguments, more than two arguments, or a second argument other than `--diagrams` exit 2 with the usage token `render_html: usage: render_html.py <effort-dir> [--diagrams]`.
+- [ ] The first argument is always treated as the effort directory path, whatever its text.
+- [ ] Without `--diagrams`, the output has no `script` element.
+- [ ] Without `--diagrams`, the output has no `src` attribute.
 - [ ] Without `--diagrams`, the policy is `default-src 'none'; style-src 'sha256-` plus the hash of the page's own `<style>` text, then `'; base-uri 'none'; form-action 'none'`.
-- [ ] Without `--diagrams`, `diagrams.js` is not read, and a missing `diagrams.js` does not change the output or the exit code.
+- [ ] Without `--diagrams`, `diagrams.js` is not read.
+- [ ] Without `--diagrams`, a missing `diagrams.js` leaves the output and the exit code unchanged.
 
 ### Diagrams page markup
 
-- [ ] With `--diagrams`, the last two children of `body`, after `main`, are two `script` elements in this order: first external with `src` equal to the pinned URL, `integrity` equal to the pinned `sha384-` value, `crossorigin` equal to `anonymous`, and `referrerpolicy` equal to `no-referrer`; then inline holding the text of `report_assets/diagrams.js`.
-- [ ] With `--diagrams`, the policy's `script-src` holds exactly the `sha256-` hash of the inline script text and the pinned URL, and no other source.
+- [ ] With `--diagrams`, the last two children of `body`, after `main`, are two `script` elements, the external one first.
+- [ ] The external `script` has `src` equal to the pinned URL, `integrity` equal to the pinned `sha384-` value, `crossorigin` equal to `anonymous`, and `referrerpolicy` equal to `no-referrer`.
+- [ ] The inline `script` holds the text of `report_assets/diagrams.js`.
+- [ ] With `--diagrams`, the policy's `script-src` holds exactly the `sha256-` hash of the inline script text and the pinned URL.
 - [ ] With `--diagrams`, the policy's other directives equal the default page's, so `style-src` stays one `sha256-` hash.
 - [ ] With `--diagrams`, a `div` with class `note notice-diagrams` follows the untrusted-content notice and reads: `Diagrams are drawn by Mermaid <version>, loaded from cdn.jsdelivr.net. Opening this report sends your IP address, the time, and your browser details to that host; no report text and no page address is sent.`
-- [ ] The closed element list admits `script`, and the closed attribute list admits `src`, `integrity`, `crossorigin`, and `referrerpolicy` on a `script`, only in `--diagrams` output.
-- [ ] The pinned version equals the `mermaid` version in `docs-site/package.json`, and the pinned URL is `https://cdn.jsdelivr.net/npm/mermaid@<version>/dist/mermaid.min.js`, each a single constant in `render_html.py`, and a roster check confirms both.
-- [ ] The pinned `sha384-` value is a single constant in `render_html.py` equal to the value in the ADR, confirmed by a roster check.
+- [ ] The closed element list admits `script` only in `--diagrams` output.
+- [ ] The closed attribute list admits `src`, `integrity`, `crossorigin`, and `referrerpolicy` on a `script` only in `--diagrams` output.
+- [ ] The pinned version is one constant in `render_html.py` equal to the `mermaid` version in `docs-site/package.json`, confirmed by a roster check.
+- [ ] The pinned URL is `https://cdn.jsdelivr.net/npm/mermaid@<version>/dist/mermaid.min.js`, built from the version constant.
+- [ ] The pinned `sha384-` value is one constant in `render_html.py` equal to the value in the ADR, confirmed by a roster check.
 
 ### Eligibility
 
-- [ ] With `--diagrams`, a Mermaid fence is not drawn when its first non-blank line, after trimming whitespace, is `---`.
-- [ ] With `--diagrams`, a Mermaid fence is not drawn when any line contains `%%{`.
-- [ ] With `--diagrams`, a Mermaid fence is not drawn when the first word of any line, after trimming whitespace and ignoring case, is `click`, `link`, `links`, or `callback`.
-- [ ] With `--diagrams`, a Mermaid fence is not drawn when its text exceeds 50,000 UTF-8 bytes, and no more than 20 fences per page are drawn, the first 20 in document order.
-- [ ] With `--diagrams`, a fence that passes all rules has class `diagram-drawn` on its `div.diagram` and the label `Diagram (source below)`.
-- [ ] With `--diagrams`, a fence refused by a rule has no `diagram-drawn` class and the label `Diagram source (not drawn: unsafe)`, or `Diagram source (not drawn: limit)` for the twenty-first and later fences.
+Eligibility reads the fence text after one normalisation: the renderer refuses, as not drawable, any fence holding a character an HTML parser drops or rewrites (NUL, carriage return, U+FEFF, U+2028, U+2029, U+0085) or any other control character except tab and line feed, so the text the rules read equals the browser's `textContent`.
+
+- [ ] With `--diagrams`, a fence is drawn only when its first non-blank line, where blank means ASCII space, tab, and line feed only, starts with `flowchart`, `graph`, `sequenceDiagram`, `classDiagram`, `stateDiagram-v2`, or `erDiagram`, matched case-sensitively from the first character of that line.
+- [ ] With `--diagrams`, a fence is not drawn when any line contains `%%{`.
+- [ ] With `--diagrams`, a fence is not drawn when any statement starts with `click`, `link`, `links`, or `callback`, where a statement starts after a line start or a semicolon, after trimming ASCII whitespace, and the match ignores case.
+- [ ] With `--diagrams`, a fence is not drawn when its text exceeds 50,000 UTF-8 bytes.
+- [ ] With `--diagrams`, the first 20 fences in document order that pass every rule are drawn; a refused fence is not counted.
+- [ ] With `--diagrams`, a fence that passes every rule and is among the first 20 has class `diagram-drawn` on its `div.diagram` and the label `Diagram (source below)`.
+- [ ] With `--diagrams`, a fence refused by a rule has no `diagram-drawn` class and the label `Diagram source (not drawn: unsafe)`.
+- [ ] With `--diagrams`, a fence that passes every rule but follows the first 20 has no `diagram-drawn` class and the label `Diagram source (not drawn: limit)`.
 - [ ] Without `--diagrams`, every Mermaid fence keeps the label `Diagram source (not rendered)`.
-- [ ] For the fixture and for hostile fences holding CRLF, NUL, HTML entities, and Mermaid entity codes, the string the eligibility rules read equals the unescaped text of the emitted `code` element.
+- [ ] A hostile fence set holding a NUL-split `%%{`, a NUL-split `click`, a U+FEFF-led `---`, a U+00A0-led first line, `A-->B; click A href "x"`, a `link` line, a `callback` line, and a frontmatter block is refused by the rules above.
 
 ### Script text rules (`diagrams.js`)
 
-- [ ] `diagrams.js` calls `mermaid.initialize` with `securityLevel` `strict`, `startOnLoad` `false`, `suppressErrorRendering` `true`, `maxTextSize` `50000`, and `maxEdges` `500`.
+- [ ] `diagrams.js` calls `mermaid.initialize` with `securityLevel` `strict`, `startOnLoad` `false`, `suppressErrorRendering` `true`, `htmlLabels` `false`, `maxTextSize` `50000`, and `maxEdges` `500`.
 - [ ] `diagrams.js` chooses the theme `dark` when `prefers-color-scheme: dark` matches and `neutral` otherwise.
 - [ ] `diagrams.js` draws only `.diagram-drawn` blocks and passes `mermaid.render` exactly the `textContent` of the block's `code` element.
+- [ ] `diagrams.js` gives each render an id of the form `mmd_d<number>`, an id the page's heading ids can never take because they hold no underscore.
 - [ ] `diagrams.js` holds none of `innerHTML`, `insertAdjacentHTML`, `outerHTML`, `eval`, `Function(`, `document.write`.
-- [ ] `diagrams.js` removes every `style` attribute from the parsed SVG, and adds a drawn SVG's stylesheet to the page only when every rule is a style rule whose selectors all begin with that SVG's `#id`; otherwise it leaves the block as source.
-- [ ] On a render error, a missing `mermaid` global, or no constructable-stylesheet support, `diagrams.js` leaves the source block, adds a visible note `Diagram not drawn` to the block, and removes any element Mermaid left in the document.
+
+### Script behavior (ledger)
+
+- [ ] The inserted SVG holds no `style` element and no `style` attribute.
+- [ ] The inserted SVG holds only elements from a fixed list of SVG drawing elements, so no `a`, `use`, `image`, `foreignObject`, or `script`.
+- [ ] The inserted SVG holds no `href`, `xlink:href`, `src`, or `on…` attribute, and no `url(` reference except to a fragment of the same document.
+- [ ] The page adopts a drawn SVG's stylesheet only when every rule is a style rule, a `@keyframes` rule, or a grouping rule (`@media`, `@supports`, `@layer` block, `@container`) whose contents pass the same test, and each style rule's selectors, split at top-level commas, start with exactly that SVG's `#id` followed by nothing, a descendant combinator, or a child combinator, and hold no `~` or `+`.
+- [ ] A sheet holding any other rule, such as `@import`, `@font-face`, `@namespace`, `@property`, or `@page`, or any unscoped rule, leaves the block as source.
+- [ ] `diagrams.js` treats the Mermaid global as missing unless `mermaid.initialize` and `mermaid.render` are functions, and any exception at any stage leaves the block as source.
+- [ ] On any failure, `diagrams.js` sets the block's label to `Diagram source (not drawn)` and removes every element Mermaid left in the document.
+- [ ] A heading whose slug equals a diagram render id format leaves the page outside the diagram unchanged.
 
 ### Asset and caps
 
-- [ ] With `--diagrams`, a missing, over-64-KiB, non-UTF-8, symlinked, or non-regular `diagrams.js` is refused with exit 3 and a distinct fixed token each, none naming a stylesheet.
-- [ ] With `--diagrams`, a `diagrams.js` holding `</script`, `<!--`, or a carriage return, matched ignoring case, is refused with exit 3 and a fixed token.
-- [ ] The 2 MiB source cap, the 16 MiB page cap, and the asset-read rules of the parent specs hold with the flag.
+- [ ] With `--diagrams`, a `diagrams.js` the confinement helper reports as missing or unsafe, including a symlink or a non-regular file, is refused with exit 3 and the token `render_html: failed: script asset missing or unsafe`.
+- [ ] With `--diagrams`, a `diagrams.js` over 64 KiB is refused with exit 3 and the token `render_html: failed: script asset over the size cap`.
+- [ ] With `--diagrams`, a `diagrams.js` that is not UTF-8 is refused with exit 3 and the token `render_html: failed: script asset unreadable`.
+- [ ] With `--diagrams`, a `diagrams.js` holding `</script`, `<!--`, or a carriage return, matched ignoring case, is refused with exit 3 and the token `render_html: failed: script asset holds forbidden text`.
+- [ ] The 2 MiB source cap and the 16 MiB page cap hold with the flag.
 - [ ] Fence text and every attribute value stay escaped in both modes.
 
 ### Real browser (ledger)
 
 - [ ] Opened with network access to `cdn.jsdelivr.net`, each `div.diagram-drawn` shows a drawn SVG above its source block in light and in dark, with node text legible, recorded with screenshots.
 - [ ] A fence using `classDef`, `style`, and `linkStyle` aimed at the notices, the banner, and the state mark leaves all three unchanged, recorded with screenshots.
+- [ ] A fence whose styles use sibling selectors leaves the label and the source block visible, recorded with a screenshot.
 - [ ] A fence label carrying a script payload that would set a visible sentinel leaves the sentinel unset, recorded in the ledger.
-- [ ] A fence with a syntax error stays as source with the note `Diagram not drawn` and no other graphic, recorded with a screenshot.
-- [ ] With the `integrity` value altered, no diagram is drawn and each drawn-eligible block shows the note `Diagram not drawn`, recorded with a screenshot.
-- [ ] With the network blocked, the report is fully readable and each drawn-eligible block shows the note `Diagram not drawn`, recorded with a screenshot.
-- [ ] The ledger records that the tarball's integrity equals the `docs-site` lockfile value and that its `dist/mermaid.min.js` SHA-384 equals the constant and the bytes served by the CDN.
+- [ ] A C4 or class-diagram fence that carries a link leaves no navigating element in the page, recorded in the ledger.
+- [ ] A fence with a syntax error shows the label `Diagram source (not drawn)` and no other graphic, recorded with a screenshot.
+- [ ] With the `integrity` value altered, no diagram is drawn and each drawn-eligible block shows the label `Diagram source (not drawn)`, recorded with a screenshot.
+- [ ] With the network blocked, the report is fully readable and each drawn-eligible block shows the label `Diagram source (not drawn)`, recorded with a screenshot.
+- [ ] With `CSSStyleSheet` removed before the script runs, each drawn-eligible block shows the label `Diagram source (not drawn)`, recorded in the ledger.
+- [ ] The ledger records that the tarball's integrity equals the `docs-site` lockfile value.
+- [ ] The ledger records that the tarball's `dist/mermaid.min.js` SHA-384 equals the constant.
+- [ ] The ledger records that the bytes the CDN serves equal the tarball's `dist/mermaid.min.js`.
 - [ ] A `design-review` and an `experience-reviewer` pass over the light and dark screenshots of the drawn page leave no Major or Blocker after adjudication, recorded in the ledger.
 
 ### Docs and release
 
-- [ ] The ADR exists before the renderer change merges, and states the decision, version, URL, hash, that SRI binds the bytes, the opt-in rule, the policy, that `docs-site`'s audit covers the pinned version, and the revisit triggers: a published advisory against the pinned version, or a change to the CDN host.
+- [ ] The ADR has status Accepted with a date, and states the decision, version, URL, and hash.
+- [ ] The ADR states that SRI binds the bytes, that drawing is opt-in, the policy, that `docs-site`'s npm audit covers the pinned version, and the revisit triggers: a published advisory against the pinned version, or a change to the CDN host.
 - [ ] Each row of the Amended parent rules table carries the exception text and cites this spec, confirmed by a roster check.
-- [ ] `references/html-report.md` names `--diagrams`, the host, the offline default, the new usage token, and the new exit 3 reasons.
-- [ ] `SKILL.md`, the reference guide, and the how-to guide each name `--diagrams` and the host, and state that drawn reports contact the host and should not be shared with readers who expect the offline default.
+- [ ] `references/html-report.md` names `--diagrams`, the host, the offline default, the new usage token, and the new exit 3 tokens.
+- [ ] `references/html-report.md` scopes its statement that diagrams are source blocks, not drawings, to the page without `--diagrams`.
+- [ ] `SKILL.md`, the reference guide, and the how-to guide each name `--diagrams` and the host.
+- [ ] `SKILL.md`, the reference guide, and the how-to guide each state that drawn reports contact the host and should not be shared with readers who expect the offline default.
 - [ ] `SKILL.md` states that `--diagrams` is passed only when the user asks for drawn diagrams.
-- [ ] `evals/evals.json` holds one case that asks for drawn diagrams and asserts the flag is used, and one plain HTML request that asserts the flag is absent.
+- [ ] `evals/evals.json` holds one case that asks for drawn diagrams and asserts the flag is used.
+- [ ] `evals/evals.json` holds one plain HTML request that asserts the flag is absent.
 - [ ] The decision note states the chosen option and that drawing is opt-in.
-- [ ] `pack.toml` and `plugin.json` carry matching versions, a minor bump above `origin/main`, and a changelog fragment validates.
+- [ ] `pack.toml` and `plugin.json` carry matching versions, a patch bump above `origin/main`.
+- [ ] A changelog fragment for the release validates.
 
 ## Terminal Intent
 
@@ -165,7 +199,7 @@ Each row is amended in place to read "except with `--diagrams`, which `docs/spec
 
 - Product: drawing is opt-in, not the default — whether the default should flip once the owner has seen the page (settled by: the owner).
 - Technical: Mermaid 12.2.0 draws the fixture's flowchart and sequence diagram under the strict policy — settled by browser QA.
-- Technical: a browser without constructable stylesheets shows source blocks only and the note — whether that is acceptable (settled by: the owner).
+- Technical: a browser without constructable stylesheets shows source blocks only with the label `Diagram source (not drawn)` — whether that is acceptable (settled by: the owner).
 
 ## Changelog
 
