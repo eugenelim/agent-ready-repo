@@ -16,8 +16,14 @@ AC-0013: the draft names workspace-status, repair-plan, then repair-apply --yes.
 AC-0014: the draft names each removed behavior in backticks.
 AC-0015: the draft links the RFC errata and the retirement record, both tracked,
 and states the dates 2026-10-25 and 2026-10-30.
-AC-0016 (partial): the verification ledger's Approvals table binds the draft's
-current SHA-256 and holds the retirement spec and plan hashes.
+AC-0016: the verification ledger's Approvals table binds the draft's current
+SHA-256, holds the retirement spec and plan hashes, and holds hashes for the
+retirement record and the delivery brief.
+AC-0017: the retirement record's Compatibility closure section has one bullet
+naming the spec, the retired field, the 10 and 9 row counts and the draft.
+AC-0018: the delivery brief's Spec map lists pre-cutover-closure, the three
+pre-cutover items after the tracker-origin one name it, and the brief coverage
+lint exits 0.
 
 Needs PyYAML and jsonschema besides the standard library and pytest; the checks
 read files and write nothing.
@@ -29,6 +35,7 @@ import hashlib
 import json
 import re
 import subprocess
+import sys
 from pathlib import Path
 
 import jsonschema
@@ -72,6 +79,8 @@ def test_ac0006_eval_case_requires_no_registry_entry() -> None:
 
 _DRAFT = "docs/specs/pre-cutover-closure/notes/upgrade-notes.md"
 _LEDGER = "docs/specs/pre-cutover-closure/notes/verification-ledger.md"
+_RECORD = "docs/specs/workspace-retirement/retirement-record.md"
+_BRIEF = "docs/product/briefs/workspace-registry-retirement-delivery.md"
 _GUIDE_SCHEMA = "contracts/guide.schema.json"
 
 
@@ -171,3 +180,46 @@ def test_ac0016_ledger_binds_the_draft_hash_and_the_retirement_amendment() -> No
     for name in ("spec.md", "plan.md"):
         sha = rows.get(f"docs/specs/workspace-retirement/{name}", "")
         assert re.fullmatch(r"[0-9a-f]{64}", sha), name
+    for path in (_RECORD, _BRIEF):
+        assert re.fullmatch(r"[0-9a-f]{64}", rows.get(path, "")), path
+
+
+def _section(text: str, heading: str) -> str:
+    """Return the body of the ``## heading`` section, up to the next ``## ``."""
+    return text.split(f"\n## {heading}\n", 1)[1].split("\n## ", 1)[0]
+
+
+def test_ac0017_record_has_the_pre_cutover_closure_bullet() -> None:
+    """One bullet in Compatibility closure carries the spec link, field, counts, draft."""
+    text = (_REPO / _RECORD).read_text(encoding="utf-8")
+    bullets = re.split(r"\n(?=- )", _section(text, "Compatibility closure"))
+    hits = [
+        b
+        for b in bullets
+        if "../pre-cutover-closure/spec.md" in b
+        and "workspace_registration" in b
+        and re.search(r"\b10 are\b", b)
+        and re.search(r"\b9 are\b", b)
+        and _DRAFT in b
+    ]
+    assert len(hits) == 1
+
+
+def test_ac0018_brief_lists_the_spec_and_covers_the_items() -> None:
+    """The brief's Spec map row, the three items and the coverage lint all hold."""
+    text = (_REPO / _BRIEF).read_text(encoding="utf-8")
+    assert "\n| `pre-cutover-closure` |" in _section(text, "Spec map")
+    slices = _section(text, "Delivery slices")
+    after = slices.split("**Before the execution-supervisor cutover:**", 1)[1]
+    items = re.findall(r"^ {5}- .*$", after.split("**After the cutover:**", 1)[0], re.M)
+    assert len(items) == 4
+    assert "`tracker-origin-registration-stop`" in items[0]
+    for item in items[1:]:
+        assert "`pre-cutover-closure`" in item, item
+    script = _REPO / ".claude/skills/author-delivery-brief/scripts/lint-brief-coverage.py"
+    result = subprocess.run(
+        [sys.executable, str(script), "--root", str(_REPO)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
