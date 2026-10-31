@@ -2764,6 +2764,12 @@ consumer = "pre-cutover compatibility closure: the retired close-work closure-pa
 owner = 9
 
 [[row]]
+pattern = "docs/specs/last-registry-entries/*"
+class = "contract"
+consumer = "the last registry entries: the captured-entry-drop and refresh-policy-move repairs, refresh reading .work-intake.toml, and deferral anchors on captured-item files"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/readiness-bridge-dispatch-input/*"
 class = "historical"
 consumer = "readiness bridge input: the navigate-intents export reads argless work-loop dispatch output in place of workspace-status status"
