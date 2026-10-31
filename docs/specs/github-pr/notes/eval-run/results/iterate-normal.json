@@ -1,0 +1,29 @@
+{
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 1 gives R1-R3 an id, class and merit (R3 names the log read it needs), shows the push destination and the R1 reply text, changes nothing, and asks for approval."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 2 says the re-read head is still a1b2c3d4..., the commit recorded at gather, and posts the reply only after that check."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 2 says no edits were approved, so there is nothing to commit, and its commands include no staging or commit."
+  },
+  {
+   "n": 4,
+   "pass": true,
+   "why": "The R1 reply written in turn 2 matches the turn 1 text word for word, and no commit message is used."
+  },
+  {
+   "n": 5,
+   "pass": true,
+   "why": "The only push destination named is https://github.com/example-org/example-repo.git HEAD:refs/heads/fix/pagination, built from the gathered origin and branch fields."
+  }
+ ]
+}
