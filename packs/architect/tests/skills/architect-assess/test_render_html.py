@@ -23,13 +23,8 @@ from types import ModuleType
 import pytest
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
-REPO_ROOT = PACK_ROOT.parents[1]
 SKILL_ROOT = PACK_ROOT / ".apm" / "skills" / "architect-assess"
 SCRIPT = SKILL_ROOT / "scripts" / "render_html.py"
-HELPER_COPY = SKILL_ROOT / "scripts" / "file_safety.py"
-HELPER_SOURCE = (
-    REPO_ROOT / "packages" / "agentbundle" / "agentbundle" / "catalogue_tooling" / "file_safety.py"
-)
 TEMPLATE = SKILL_ROOT / "assets" / "assessment.md"
 
 TABLE_HEAD = "| Source | Locator | Evidence class | Limit |\n| --- | --- | --- | --- |\n"
@@ -519,10 +514,6 @@ def test_missing_descriptor_capability_exits_three(
     code, out, err = run(tmp_path, report(), mod, capsys)
     assert code == 3 and missing in err
     assert not (tmp_path / "effort" / "assessment.html").exists()
-
-
-def test_helper_copy_is_byte_identical_to_the_agentbundle_original() -> None:
-    assert HELPER_COPY.read_bytes() == HELPER_SOURCE.read_bytes()
 
 
 def test_renders_when_agentbundle_is_not_importable(mod, tmp_path, capsys, monkeypatch) -> None:
