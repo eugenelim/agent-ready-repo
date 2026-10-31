@@ -131,7 +131,7 @@ classification:
 { path = "docs/specs/example/spec.md", surface_role = "delivery-contract", locator = { kind = "external", value = "example-tracker:delivery/42" }, kind = "spec", source = { mode = "repo-origin" }, summary = "Delivery contract with external coordination", needs = [] }
 ```
 
-A locator-only entry is also contract-valid:
+A locator-only entry is also contract-valid. This tracker-origin example is the legacy shape the `workspace-status` `tracker-entry-drop` repair reads, because a tracker-origin artifact now gets no entry:
 
 ```toml
 { surface_role = "delivery-contract", locator = { kind = "external", value = "example-tracker:delivery/42" }, kind = "spec", source = { mode = "tracker-origin", ref = "example-tracker:delivery/42", revision = "revision-7" }, summary = "Externally located delivery contract", needs = [] }
@@ -156,6 +156,8 @@ availability, writability, or authority from it.
 source = { mode = "repo-origin", parent = "docs/product/briefs/account-recovery.md" }
 ```
 
+The next example is the legacy tracker-origin entry shape that the `tracker-entry-drop` repair reads. A new tracker-origin artifact carries its profile in its own record instead (see `tracker_profile` below).
+
 ```toml
 source = { mode = "tracker-origin", ref = "example-service://tickets/WORK-123", revision = "tracker-rev-42", tracker_profile = { id = "example-service/default", version = "2026-08" } }
 ```
@@ -166,7 +168,7 @@ Tracker-origin entries require both `ref` and `revision`. Optional fields are:
 | --- | --- |
 | `parent` | Local parent artifact such as a brief or intent. Declare it explicitly on a spec entry before that spec cools: the value is **unestablished once the spec has cooled** if the key is absent or names neither a brief file nor a brief entry, and reconciliation then refuses every **local** `kind = "brief"` dependency until it is declared, while a `cross-repo` brief dependency stays decided by its receipt. A literal `none` is a valid declaration meaning the spec has no parent brief. |
 | `coordination` | Cross-repository coordination reference. |
-| `tracker_profile` | Optional profile hint with `id` and `version`. |
+| `tracker_profile` | Optional profile hint with `id` and `version`. A tracker-origin artifact keeps the authoritative profile in the `tracker_profile` table of its own `source-authority` record; the `tracker-entry-drop` repair copies an existing entry's profile there. |
 
 `ref` is durable provenance, not a credential carrier. Userinfo (`@`), query
 strings, and fragments fail the contract; store a sanitized opaque source
@@ -258,9 +260,9 @@ Priority, affinity, rationale, and suggested order are not dependencies.
 Membership is lifecycle state. A target entry appears in exactly one lifecycle
 collection. A new captured item, meaning a defect, design, or research item, gets no entry; the defect, `research`, and `design` rows below describe only entries registered before captured items moved to their own files.
 
-A new repo-origin intent or brief gets no entry either: it is its file alone, and a brief's lifecycle is its `Status:`. The `workspace-status` `intent-brief-drop` repair removes existing repo-origin intent and brief entries. Captured items keep any entry they already have, and tracker-origin intent and brief entries stay, because refresh reads the tracker profile through the entry. The brief rows below describe those entries.
+A new repo-origin intent or brief gets no entry either: it is its file alone, and a brief's lifecycle is its `Status:`. The `workspace-status` `intent-brief-drop` repair removes existing repo-origin intent and brief entries. Captured items keep any entry they already have, and a tracker-origin intent, brief or spec gets no entry either: a tracker-origin artifact names its tracker profile in the `tracker_profile` table of its own `source-authority` record, and refresh reads it there. The `workspace-status` `tracker-entry-drop` repair copies an existing tracker-origin entry's profile into that record and removes the entry; an entry that does not match its artifact stays as a manual item with its reason. The tracker-origin rows in the example below show that legacy entry shape, which the repair reads.
 
-A repo-origin spec gets no entry either: its own `Status:` and `Depends on:` headers are its record. A tracker-origin spec keeps its entry. A repo-origin spec entry that remains in a `work.` or `backlog.` collection with no `needs` is removed by the `workspace-status` `spec-entry-drop` repair, which gives it no queue move.
+A repo-origin spec gets no entry either: its own `Status:` and `Depends on:` headers are its record. A repo-origin spec entry that remains in a `work.` or `backlog.` collection with no `needs` is removed by the `workspace-status` `spec-entry-drop` repair, which gives it no queue move.
 
 | Collection | Valid artifacts | Meaning |
 | --- | --- | --- |
@@ -336,13 +338,10 @@ visible in `workspace-status`, but it is not dispatchable. Implementation begins
 only when a selected slice has a spec, its sibling plan, Approved status, and a
 target entry in `work.queue`.
 
-For a tracker-origin brief entry, once a child reaches `Implementing` or `Shipped`,
-the entry sits in `executing`. A repo-origin brief has no entry and its `Status:`
-is its whole lifecycle. This includes programmes whose currently materialized children are
+A brief has no entry and its `Status:` is its whole lifecycle. This includes programmes whose currently materialized children are
 all Shipped while the next slice has not been materialized. Shipping every
 current row does not move the brief automatically. `Shipped`, `Withdrawn`, and
-`Cancelled` require explicit closeout and preserve child statuses; a
-tracker-origin entry moves to the matching collection.
+`Cancelled` require explicit closeout and preserve child statuses.
 
 Legacy four-state files need no immediate rewrite. Add empty `withdrawn` and
 `cancelled` lists when you next normalize the table, or add the relevant list

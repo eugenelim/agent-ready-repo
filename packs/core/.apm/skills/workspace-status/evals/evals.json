@@ -565,6 +565,17 @@
           "invalid_captured_item"
         ]
       }
+    },
+    {
+      "id": 21,
+      "prompt": "Run repair-plan. workspace.toml holds one tracker-origin spec entry whose artifact's source-authority record has the same source ref and no tracker_profile table, and a second tracker-origin entry whose record names a different source ref.",
+      "expected_output": "The agent runs repair-plan and shows the whole plan. It holds one tracker-entry-drop operation for the matching entry, which copies the entry's profile into the artifact's record and removes the entry, and one manual item with reason ref-mismatch for the other, which keeps its entry. It applies nothing until the owner confirms the plan file, and a tracker-origin artifact gets no entry afterward.",
+      "assertions": [
+        "Plans a tracker-entry-drop operation for the matching tracker-origin entry",
+        "Holds the non-matching entry as a manual item with reason ref-mismatch and keeps its entry",
+        "Applies nothing until the owner confirms the exact plan file",
+        "Does not edit workspace.toml directly"
+      ]
     }
   ]
 }
