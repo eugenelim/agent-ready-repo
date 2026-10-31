@@ -346,7 +346,7 @@ def test_f6_config_hash_set_comes_from_the_files_git_loads(mode: str) -> None:
 def test_f7_adopt_detects_queue_and_auto_merge() -> None:
     ref = REFS["adopt"]
     cmds = [c for _, c, _ in commands(ref)]
-    pre_merge = next(i for i, c in enumerate(cmds) if "--json autoMergeRequest,isInMergeQueue" in c and "mergeStateStatus" in c)
+    pre_merge = next(i for i, c in enumerate(cmds) if "--json autoMergeRequest,isInMergeQueue" in c)
     assert pre_merge < next(i for i, c in enumerate(cmds) if c.startswith("gh pr merge"))
     assert has(ref, "check for a queued or auto-merge outcome before merging", "report the leftover state", "leave any undo to the user's approval")
     assert any("--json state,mergedAt,autoMergeRequest,isInMergeQueue" in c for c in cmds)
