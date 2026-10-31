@@ -166,6 +166,7 @@ _BRANCH_KEY = re.compile(
 )
 _GH_RESOLVED = re.compile(rb"\tgh-resolved = " + _TRACKING_VALUE + rb"\n")
 _MEMBER_LINE = re.compile(rb"\t[a-z]")
+_RAW_ENTRY = re.compile(r"\d+:[0-9a-f]{64}")
 
 
 def _strip_tracking_blocks(data: bytes) -> bytes:
@@ -351,8 +352,16 @@ class Attempts:
             dirs.append(("common", pins.common_dir))
         return dirs
 
-    def git_state(self) -> dict[str, str]:
-        """Git control state by direct file reads; the refs ``HEAD`` names are not part of it."""
+    def git_state(self, recorded: dict[str, str] | None = None) -> dict[str, str]:
+        """Git control state by direct file reads; the refs ``HEAD`` names are not part of it.
+
+        A config entry is computed in the form *recorded* holds for it: a raw-file
+        fingerprint (``<size>:<sha256hex>``, as a release without the config
+        fingerprint wrote) is compared against the raw file, anything else against
+        the config fingerprint. Link, special, and unsafe values come out the same
+        in either form. With no *recorded* manifest every config entry is a config
+        fingerprint.
+        """
         pins = self.ws.git.hardened.pins
         state: dict[str, str] = {}
         dot_git = pins.root / ".git"
@@ -362,9 +371,10 @@ class Attempts:
                 state[".git"] = digest
         for label, directory in self._directories():
             for rel in ("config", "config.worktree", "commondir", "objects/info/alternates"):
-                digest = self._entry(
-                    directory, directory / rel, config=rel in ("config", "config.worktree")
-                )
+                is_config = rel in ("config", "config.worktree")
+                if is_config and recorded is not None:
+                    is_config = not _RAW_ENTRY.fullmatch(recorded.get(f"{label}:{rel}", ""))
+                digest = self._entry(directory, directory / rel, config=is_config)
                 if digest is not None:
                     state[f"{label}:{rel}"] = digest
             for rel in ("info", "hooks", "refs/replace"):
@@ -576,7 +586,7 @@ class Attempts:
     def _differences(
         self, issuance: Issuance, current: str, symref: str | None, bad: bool
     ) -> list[str]:
-        paths = differences(issuance.git, self.git_state())
+        paths = differences(issuance.git, self.git_state(issuance.git))
         paths += differences(issuance.trusted, self._files(issuance))
         if bad or symref != issuance.head_ref:
             paths.append("HEAD")
@@ -593,7 +603,7 @@ class Attempts:
         manifest = self._manifest
         if manifest is None:
             return
-        changed = differences(manifest.git, self.git_state())
+        changed = differences(manifest.git, self.git_state(manifest.git))
         if changed:
             raise SupervisorGitError(
                 "denied-git-control-state",
@@ -615,7 +625,7 @@ class Attempts:
                 continue
             # Git control state first, by direct file reads: no supervisor git call may
             # read state a worker changed, and a refusal here is still recorded.
-            git_paths = differences(issuance.git, self.git_state())
+            git_paths = differences(issuance.git, self.git_state(issuance.git))
             if git_paths:
                 paths = sorted({*git_paths, *differences(issuance.trusted, self._files(issuance))})
             else:
