@@ -88,7 +88,7 @@ Owned by: T2, T4, T5
 - **Depends on:** none
 - **Verification mode:** TDD
 - **Touches:** `packs/core/.apm/skills/close-work/scripts/closure_index.py`, `packs/core/tests/skills/close-work/test_closure_packet.py`, `.claude/skills/close-work/**`, `.agents/skills/close-work/**`, `docs/specs/pre-cutover-closure/notes/verification-ledger.md`
-- **Tests:** for AC-0001, AC-0002, AC-0003: a field-set test and a signature test in `test_closure_packet.py`, each with the base names frozen as literals, and a token scan of the module; for AC-0004 and AC-0020: the two criterion-0031 tests removed, `workspace_lookup` dropped from `_call_eligible` and its six callers, the suite run, and a throwaway `ast` comparison of each close-work test file with `git show f9bbf6ea1:<path>`, its output recorded in the ledger.
+- **Tests:** for AC-0001, AC-0002, AC-0003: a field-set test, a signature test and a token scan of the module, added to `test_closure_packet.py` as `test_pre_cutover_ac0001_…`, `test_pre_cutover_ac0002_…` and `test_pre_cutover_ac0003_…`, with the base names frozen as literals; for AC-0004 and AC-0020: the two criterion-0031 tests removed, `workspace_lookup` dropped from `_call_eligible` and its six callers, the suite run, and a throwaway `ast` comparison of each close-work test file with `git show f9bbf6ea1:<path>`, its output recorded in the ledger.
 - **Done when:** the three new tests red at the base and pass after, `packs/core/tests/skills/close-work/` passes, and the ledger holds the comparison.
 
 ### T2: The roster check, the closure-eligibility record and the eval case
