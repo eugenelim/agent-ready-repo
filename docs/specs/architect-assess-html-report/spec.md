@@ -48,7 +48,7 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 ### Ask first
 
 - Any `<script>` element in the output, which belongs to the diagram-rendering decision.
-- Raising the source-size cap.
+- Raising the source-size cap or the page-size cap.
 
 ### Never do
 
@@ -58,7 +58,8 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 
 ## Testing Strategy
 
-- Escaping, links, structure, banners, gate, shading, CSP, source blocks, size cap: TDD, because each is a pure input-to-output rule with a hostile-corpus oracle.
+- Resource bounds (time on hostile inputs, peak memory on one unterminated link target): TDD with a time bound and a `tracemalloc` bound.
+- Escaping, links, structure, banners, gate, shading, CSP, source blocks, size caps (source and page): TDD, because each is a pure input-to-output rule with a hostile-corpus oracle.
 - Confinement, imports, UTF-8, helper identity: goal-based check, a test that exercises a symlinked path, hides `agentbundle` in-process, parses the script's imports and calls, and compares the helper copy byte for byte. Tests load the script under a module name unique to its pack and skill.
 - Real-browser rendering: manual QA, because only a browser applies the CSP and the styling.
 - Skill routing and the eval: goal-based check through the contract tests and one eval case.
@@ -66,10 +67,14 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 ## Acceptance Criteria
 
 - [ ] `render_html.py <effort-dir>` reads `<effort-dir>/assessment.md`, writes exactly one file, `<effort-dir>/assessment.html`, and exits 0.
-- [ ] When `<effort-dir>/assessment.html` already exists as a regular file, the renderer replaces it with the new render.
+- [ ] When `<effort-dir>/assessment.html` already exists as a regular file of at most 16 MiB, the renderer replaces it with the new render.
+- [ ] When an existing `<effort-dir>/assessment.html` is larger than 16 MiB, the renderer exits 3 and leaves it unchanged.
 - [ ] A fixture report's headings, bullet lists, tables, fenced code, bold, and inline code appear as `<h2>`, `<ul>`, `<table>`, `<pre>`, `<strong>`, and `<code>` elements.
-- [ ] A Markdown link whose target, lowercased and trimmed, begins `https:`, `http:`, or `#` is emitted as an `<a href>` element.
-- [ ] A Markdown link with any other target is emitted as text with no `<a>` element.
+- [ ] A Markdown link whose target begins `https:`, `http:`, or `#` after trimming and lowercasing, and to which none of the exclusions below applies, is emitted as an `<a href>` element.
+- [ ] A Markdown link with a whitespace character inside its target, after trimming leading and trailing whitespace, is emitted as text with no `<a>` element.
+- [ ] A Markdown link with a character of Unicode general category Cc or Cf in its text or its target is emitted as text with no `<a>` element.
+- [ ] A Markdown link whose target nests parentheses two or more levels deep is emitted as text with no `<a>` element.
+- [ ] A Markdown link whose target, trimmed and lowercased, begins with any other scheme or with no scheme is emitted as text with no `<a>` element.
 - [ ] Every value that comes from the report or from the effort-directory path appears in the output only as escaped text, including values placed in `<title>` and in the metadata block.
 - [ ] A raw `<script>`, an `<img onerror>`, and a `"` attribute breakout in the source each appear in the output as escaped text.
 - [ ] Parsed with `html.parser`, every element in the output is one of `html`, `head`, `meta`, `title`, `style`, `body`, `main`, `section`, `div`, `span`, `p`, `h1`–`h6`, `ul`, `ol`, `li`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `strong`, `em`, `a`, `details`, `summary`, `br`, or `hr`.
@@ -94,6 +99,7 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 - [ ] Every report records the name of the effort directory, the generation date in ISO 8601 `YYYY-MM-DD` UTC, and the value of the script's `RENDERER_VERSION` constant.
 - [ ] The renderer's exit code is 0, 2, or 3 on every path, and a missing source, a missing or non-directory effort path, and any unexpected exception exit 3 while a wrong argument count exits 2.
 - [ ] On every path, stdout and stderr carry only tokens from a fixed set in the script and never text taken from the source or the path.
+- [ ] A rendered page larger than 16 MiB of UTF-8 bytes, measured before the write, makes the renderer exit 2, print a fixed token on stderr, and write no file.
 - [ ] A source that is not valid UTF-8 makes the renderer exit 2 and write no file.
 - [ ] A regular source larger than 2 MiB of raw bytes read makes the renderer exit 2 and write no file.
 - [ ] A source that fails confinement exits 3 whatever its size.
@@ -101,10 +107,13 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 - [ ] Before reading or writing, the renderer checks that `os.open`, `os.stat`, and `os.rename` are in `os.supports_dir_fd`, `os.stat` is in `os.supports_follow_symlinks`, and `os.O_DIRECTORY` and `os.O_NOFOLLOW` exist; when any check fails it exits 3 naming that reason and writes nothing.
 - [ ] `scripts/file_safety.py` equals `packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py` byte for byte.
 - [ ] The renderer reads, writes, and succeeds with `agentbundle` not importable.
-- [ ] Every import in `render_html.py` is one of `argparse`, `base64`, `datetime`, `hashlib`, `html`, `importlib.util`, `os`, `pathlib`, `re`, `stat`, `sys`, `typing`, and the file calls no `os` attribute named `system`, `popen`, `fork`, `posix_spawn`, or beginning `spawn` or `exec`.
+- [ ] Every import in `render_html.py` is one of `argparse`, `base64`, `datetime`, `hashlib`, `html`, `importlib.util`, `os`, `pathlib`, `re`, `stat`, `sys`, `typing`, `unicodedata`, and the file calls no `os` attribute named `system`, `popen`, `fork`, `posix_spawn`, or beginning `spawn` or `exec`.
+- [ ] On a 400 KB source made of one line holding an unterminated `[a](` followed by text with no closing parenthesis and no newline, `render` peaks under 16 MiB of `tracemalloc` memory.
+- [ ] `render` completes in under 3 seconds on each of these hostile inputs: a heading line followed by 300,000 spaces and a letter; one line of 300,000 `[`; one line of 60,000 repetitions of `[a](`; a table header, a separator row, and 300,000 spaces; 30,000 identical `## a` headings; a list item followed by 500,000 indented continuation lines.
 - [ ] The script sets stdout and stderr to UTF-8 before its first print.
 - [ ] `SKILL.md` names the HTML mode and `scripts/render_html.py`, states that it runs only on a user request, and states that with no saved `assessment.md` it offers to save one first and runs nothing.
 - [ ] `references/html-report.md` states that the renderer takes the resolved effort-directory path, and that hosts without descriptor walking, Windows included, get exit 3 and no report.
+- [ ] `references/html-report.md` lists every exit 2 reason: a wrong argument count, an orientation subsection without a usable table, an evidence class outside the set, a source over 2 MiB, a source that is not UTF-8, and a rendered page over 16 MiB.
 - [ ] `evals/evals.json` contains a case whose prompt asks for an HTML report and whose assertion checks the output contains a `Sources checked` table.
 - [ ] `guides/architect/reference/architecture-assessment.md` and `guides/architect/how-to/assess-a-repository.md` each name the HTML mode.
 - [ ] `packs/architect/DESIGN.md` states that the pack ships a second standard-library script and names it.
@@ -122,6 +131,7 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 
 ## Assumptions
 
+- Technical: a source under the 2 MiB cap can render past 16 MiB — a 2 MiB table row of single pipe characters under a one-column header renders to about 18 MiB (settled by: measurement; the page-cap criterion bounds it).
 - Product: a report saved before the `Checkpoints:` field existed shows the unconfirmed banner `Map and hotspot set not user-confirmed` — whether that is acceptable (settled by: the owner).
 
 ## Changelog
@@ -129,3 +139,4 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 <!-- Approvals only. -->
 
 - 2026-10-30: spec approved by eugenelim
+- 2026-10-30: spec approved by eugenelim (amended link, output-size, resource-bound, and exit-code criteria)
