@@ -823,6 +823,8 @@ def status(ws: Workspace) -> dict[str, Any]:
         recovery = _supervisor("_supervisor_recovery.py")
         state.refusal = recovery.inspect(ws)
         if state.refusal is None:
+            state.refusal = ws.attempts.standing_refusal()  # what next would answer
+        if state.refusal is None:
             ws.divergence = recovery.peek(ws)  # shown as the pending decision, nothing is issued
     if state.refusal is not None:
         return {

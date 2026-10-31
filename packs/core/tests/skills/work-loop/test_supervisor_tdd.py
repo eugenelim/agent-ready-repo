@@ -747,8 +747,8 @@ def _approvals(repo: Path) -> int:
 
 
 def _completed(repo: Path) -> list[str]:
-    _, status = h.run_cli(repo, "status", SPEC, "--json")
-    return [t["title"] for t in status["tasks"] if t["complete"]]
+    state = h.loop.derive(h.workspace(repo))  # status answers a standing refusal instead
+    return [t["title"] for t in state.tasks if state.is_complete(t)]
 
 
 def test_a_controller_added_fence_replans_then_stubs_then_implements(

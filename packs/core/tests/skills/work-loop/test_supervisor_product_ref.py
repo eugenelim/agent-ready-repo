@@ -835,18 +835,21 @@ def test_the_crash_corpus_shards_are_disjoint_nonempty_and_cover_every_test() ->
     assert sorted(flat) == sorted(everything), "a corpus test runs in no shard"
 
 
-def _refused_build(repo: Path) -> str:
-    """Build a step whose transaction is refused because ``HEAD`` moved under it."""
+def _refused_build(repo: Path) -> tuple[str, str]:
+    """Build a step whose transaction is refused because ``HEAD`` moved under it.
+
+    Returns the run id and the refused commit.
+    """
     ws = h.workspace(repo)
     run_id = ws.approvals()[0]["run_id"]
     tree = h.git(repo, "rev-parse", "HEAD^{tree}").strip()
     base = rev(repo, "HEAD")
     other = h.git(repo, "commit-tree", tree, "-p", base, "-m", "a racing commit").strip()
-    fired: list[bool] = []
+    pending: list[str] = []
 
     def hook() -> None:
-        if not fired:
-            fired.append(True)
+        if not pending:
+            pending.append((store_dir(repo) / "pending-commit").read_text("utf-8").strip())
             h.git(repo, "update-ref", "refs/heads/main", other)
 
     h.commit_module.set_update_hook(hook)
@@ -857,7 +860,7 @@ def _refused_build(repo: Path) -> str:
     finally:
         h.commit_module.set_update_hook(None)
     h.git(repo, "update-ref", "refs/heads/main", base)  # the race is undone
-    return run_id
+    return run_id, pending[0]
 
 
 def test_a_refused_commit_never_anchors_a_ref_less_run(tmp_path: Path) -> None:
@@ -865,33 +868,47 @@ def test_a_refused_commit_never_anchors_a_ref_less_run(tmp_path: Path) -> None:
     advance(repo, controller(repo, tmp_path), calc_implement)
     make_legacy(repo)
     base = rev(repo, "HEAD")
-    run_id = _refused_build(repo)
-    refused = (store_dir(repo) / "refused-commits").read_text("utf-8").split()
-    assert len(refused) == 1 and refused[0] in (store_dir(repo) / "made-commits").read_text("utf-8")
-    assert h.workspace(repo).git.made_commits(run_id).isdisjoint(refused)
+    run_id, refused = _refused_build(repo)
+    assert refused not in (store_dir(repo) / "made-commits").read_text("utf-8")
+    assert not (store_dir(repo) / "pending-commit").exists()
+    assert refused not in h.workspace(repo).git.made_commits(run_id)
     assert "request" in next_ok(repo)  # a recovery verb: it creates the missing ref
     assert record(repo)["recorded"] == base, "the refused commit anchored the run"
-    assert rev(repo, "HEAD") == base != refused[0]
+    assert rev(repo, "HEAD") == base != refused
     assert rev(repo, ref_name(repo)) == base
 
 
-def test_a_refused_commit_that_is_rebuilt_and_lands_is_not_refused(tmp_path: Path) -> None:
+@pytest.mark.parametrize("ref_less", [False, True])
+@pytest.mark.parametrize("point", ["refs-moved", "made-recorded", "pending-recorded"])
+def test_a_crash_around_the_move_converges(tmp_path: Path, ref_less: bool, point: str) -> None:
     repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    if ref_less:
+        make_legacy(repo)
     ws = h.workspace(repo)
     run_id = ws.approvals()[0]["run_id"]
     before = rev(repo, "HEAD")
-    built = ws.git.build_commit(run_id=run_id, step="step-a", operation="evidence", summary="a")
-    assert built is not None
-    ws.git.record_refused(run_id, built)  # as if an identical build had once been refused
-    assert built not in h.workspace(repo).git.made_commits(run_id)
-    # Undo the step, then build the same bytes again (the clock is fixed): it lands.
-    name = ref_name(repo)
-    h.git(repo, "update-ref", "HEAD", before)
-    h.git(repo, "update-ref", name, before)
-    ws2 = h.workspace(repo)
-    ws2.git.write_product_record(
-        run_id, h.commit_module.ProductRecord(name, before, None))
-    again = ws2.git.build_commit(run_id=run_id, step="step-a", operation="evidence", summary="a")
-    assert again == built
-    assert built in ws2.git.made_commits(run_id)
-    assert built not in ws2.git.refused_commits(run_id)
+
+    def hook(name: str) -> None:
+        if name == point:
+            raise h.Crash(name)
+
+    h.commit_module.set_kill_hook(hook)
+    try:
+        with pytest.raises(h.Crash):
+            ws.git.build_commit(run_id=run_id, step="crashed-step", operation="evidence",
+                                summary="cut off")
+    finally:
+        h.commit_module.set_kill_hook(None)
+    moved = point != "pending-recorded"
+    pending_file = store_dir(repo) / "pending-commit"
+    assert (rev(repo, "HEAD") != before) is moved
+    assert pending_file.exists() is (point != "made-recorded")
+    step = rev(repo, "HEAD") if moved else pending_file.read_text("utf-8").strip()
+    # A landed step counts as the supervisor's own before it is recorded; an unlanded one never does.
+    assert (step in h.workspace(repo).git.made_commits(run_id)) is moved
+    assert "request" in next_ok(repo)  # reconcile settles it first
+    assert not pending_file.exists()
+    assert (step in (store_dir(repo) / "made-commits").read_text("utf-8").split()) is moved
+    assert rev(repo, "HEAD") == (step if moved else before)
+    assert_parity(repo)

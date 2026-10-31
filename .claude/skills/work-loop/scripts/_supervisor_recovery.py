@@ -505,14 +505,13 @@ def _exists(ws: Any, sha: str) -> bool:
 def _latest_made(ws: Any, run_id: str, *, clean: bool) -> str | None:
     """The run's latest made commit that exists, and with *clean* that sits on a made-only chain.
 
-    A commit built on top of foreign history (one a refused step left behind) has a
-    foreign commit between it and the run's first step, so it never anchors a run.
+    A made commit has landed, so none is a refused step; a commit with a foreign
+    commit between it and the run's first step never anchors a run.
     """
     git = ws.git
     made = git.made_list(run_id)
-    refused = git.refused_commits(run_id)
     for sha in reversed(made):
-        if sha in refused or not _exists(ws, sha):
+        if not _exists(ws, sha):
             continue
         if not clean or (made and git.made_only(run_id, made[0], sha)):
             return sha
@@ -575,6 +574,8 @@ def reconcile(ws: Any) -> Divergence | None:
     run_id = approvals[0]["run_id"]
     git = ws.git
     open_attempt = ws.attempts.open is not None
+    # A step a crash cut off is recorded as made, or forgotten, before anything reads the list.
+    git.settle_pending(run_id)
     head = git.head()
     record = git.product_record(run_id)
     if record is None:
@@ -598,6 +599,7 @@ def reconcile(ws: Any) -> Divergence | None:
     if record.pending is not None:
         record = _complete(ws, run_id, record, value, head)
         head = git.head()
+        git.settle_pending(run_id)  # the finished move may be the pending step's landing
     anchor = record.recorded
     assert anchor is not None
     if head == anchor or open_attempt:

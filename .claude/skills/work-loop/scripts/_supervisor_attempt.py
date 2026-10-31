@@ -633,17 +633,7 @@ class Attempts:
         for issuance in self._latest():
             if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
                 continue
-            # Git control state first, by direct file reads: no supervisor git call may
-            # read state a worker changed, and a refusal here is still recorded.
-            git_paths = differences(issuance.git, self.git_state())
-            product = self.product_ref_problems(issuance.run_id)
-            if git_paths:
-                paths = sorted({*git_paths, *differences(issuance.trusted, self._files(issuance))})
-            else:
-                current_ref, current = self.head_state()
-                bad = current != issuance.head and self._history(issuance, current)
-                paths = self._differences(issuance, current, current_ref, bad)
-            paths = sorted({*paths, *product})
+            paths = self._paths(issuance)
             if issuance.refused:
                 if paths:
                     raise _refusal("attempt-residue", self._detail(paths, standing=True))
@@ -661,6 +651,33 @@ class Attempts:
                 self._refuse(issuance, paths, verb)
             self.open = self._manifest = issuance
         return self.open
+
+    def _paths(self, issuance: Issuance) -> list[str]:
+        """What differs now from *issuance*'s manifest; reads only, writes nothing."""
+        # Git control state first, by direct file reads: no supervisor git call may
+        # read state a worker changed, and a refusal here is still recorded.
+        git_paths = differences(issuance.git, self.git_state())
+        product = self.product_ref_problems(issuance.run_id)
+        if git_paths:
+            paths = sorted({*git_paths, *differences(issuance.trusted, self._files(issuance))})
+        else:
+            current_ref, current = self.head_state()
+            bad = current != issuance.head and self._history(issuance, current)
+            paths = self._differences(issuance, current, current_ref, bad)
+        return sorted({*paths, *product})
+
+    def standing_refusal(self) -> Exception | None:
+        """The refusal ``next`` would answer for an open or refused attempt; nothing is written.
+
+        For ``status``, which never marks, clears, or logs anything.
+        """
+        for issuance in self._latest():
+            if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
+                continue
+            paths = self._paths(issuance)
+            if paths:
+                return _refusal("attempt-residue", self._detail(paths, standing=issuance.refused))
+        return None
 
     @staticmethod
     def _detail(paths: list[str], *, standing: bool) -> str:

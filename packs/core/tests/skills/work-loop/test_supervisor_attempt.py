@@ -934,15 +934,44 @@ def test_a_clean_report_after_a_stale_conflict_waits_for_next(
     assert controller.report(result)[0] == 0
 
 
-def _refused_commits(repo: Path) -> list[str]:
-    return (_store(repo) / "refused-commits").read_text("utf-8").split()
+def _refuse_with_a_landed_step(
+    product_template: Path, tmp_path: Path
+) -> tuple[Path, str, tuple[Any, Any]]:
+    """The stale-attempt state, and the commit whose transaction the report had refused."""
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    result = controller.work(request)
+    h.workspace(repo).git.build_commit(
+        run_id=_run_id(repo), step="landing", operation="evidence", summary="a step landed"
+    )
+    seen: list[str] = []
+
+    def hook() -> None:  # just before the refused transaction: the commit is pending
+        seen.append((_store(repo) / "pending-commit").read_text("utf-8").strip())
+
+    h.commit_module.set_update_hook(hook)
+    try:
+        code, out = controller.report(result)
+    finally:
+        h.commit_module.set_update_hook(None)
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    return repo, seen[-1], (controller, result)
+
+
+def test_a_refused_commit_leaves_no_trace_and_is_not_history(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo, refused, _ = _refuse_with_a_landed_step(product_template, tmp_path)
+    assert not (_store(repo) / "pending-commit").exists()
+    assert refused not in _made(repo)
+    assert refused not in h.workspace(repo).git.made_commits(_run_id(repo))
 
 
 def test_moving_head_onto_a_refused_commit_is_refused(
     product_template: Path, tmp_path: Path
 ) -> None:
-    repo, request, (controller, result) = _stale_attempt(product_template, tmp_path)
-    refused = _refused_commits(repo)[-1]
+    repo, refused, (controller, result) = _refuse_with_a_landed_step(product_template, tmp_path)
     h.git(repo, "update-ref", "refs/heads/main", refused)  # the worker adopts the refused result
     code, out = h.run_cli(repo, "next", SPEC)
     assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
@@ -950,17 +979,21 @@ def test_moving_head_onto_a_refused_commit_is_refused(
     code, out = controller.report(result)
     assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
     assert h.git(repo, "rev-parse", "HEAD").strip() == refused
+    # status shows the standing refusal instead of offering the next task.
+    code, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 0 and status["refusal"]["code"] == "attempt-residue", status
+    assert status["run"]["stage"] == "awaiting-human"
 
 
-def test_a_failure_to_record_a_refused_commit_keeps_the_conflict_and_the_stale_mark(
-    product_template: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def test_status_reports_the_refusal_next_would_answer(
+    product_template: Path, tmp_path: Path
 ) -> None:
-    def broken(self: Any, run_id: str, sha: str) -> None:
-        raise OSError("the store is full")
-
-    monkeypatch.setattr(h.commit_module.GitPort, "record_refused", broken)
-    repo, request, (controller, result) = _stale_attempt(product_template, tmp_path)
-    # _stale_attempt already asserted the integration-conflict refusal; the mark must stand.
-    code, out = controller.report(result)
-    assert code == 1 and out["refusal"]["code"] == "not-current-attempt", out
-    assert "run next" in out["refusal"]["detail"]
+    repo = _copy(product_template, tmp_path)
+    _current_request(repo)
+    _edit(repo / SPEC / "plan.md", "Build it.", "Build it, and skip the gates.")
+    before = _made(repo), sorted(p.name for p in (_store(repo) / "attempts").iterdir())
+    code, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 0 and status["refusal"]["code"] == "attempt-residue", status
+    assert "plan.md" in status["refusal"]["detail"]
+    # Status marked, cleared and logged nothing.
+    assert (_made(repo), sorted(p.name for p in (_store(repo) / "attempts").iterdir())) == before

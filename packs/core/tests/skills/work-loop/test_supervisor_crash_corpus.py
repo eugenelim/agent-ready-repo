@@ -56,9 +56,9 @@ STEP_KINDS = {"approval", "replan", "reanchor", "stub", "red", "implement", "evi
 RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}
 STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "terminal"}
 # Kill points in the uninterrupted run: 13 steps x (built, pending recorded, refs
-# moved, synced, event), 11 journal appends, and 1 effect dispatch. The
+# moved, made recorded, synced, event), 11 journal appends, and 1 effect dispatch. The
 # reviewer-selection exchange is one of those steps and one of those appends.
-BOUNDARIES = 78
+BOUNDARIES = 91
 
 
 def _run_store(repo: Path) -> Path | None:
@@ -97,7 +97,7 @@ def assert_three_way_parity(repo: Path) -> None:
     assert _manifest(repo, "HEAD") == _manifest(repo, name) == working
 
 
-STEP_POINTS = ("commit-built", "pending-recorded", "refs-moved", "synced")
+STEP_POINTS = ("commit-built", "pending-recorded", "refs-moved", "made-recorded", "synced")
 # The recorder of each repository under test, so a diversion can read where it struck.
 _RECORDERS: dict[Path, Recorder] = {}
 
@@ -132,12 +132,12 @@ class Recorder:
             assert value == head and record["recorded"] == head and record["pending"] is None
 
     def _operation(self) -> str:
-        """The operation trailer of the latest commit this run built."""
+        """The operation trailer of the commit the step in flight is moving the refs to."""
         store = _run_store(self.repo)
-        made = (store / "made-commits").read_text("utf-8").split() if store else []
-        if not made:
+        pending = store / "pending-commit" if store else None
+        if pending is None or not pending.exists():
             return ""
-        body = h.git(self.repo, "log", "-1", "--format=%B", made[-1])
+        body = h.git(self.repo, "log", "-1", "--format=%B", pending.read_text("utf-8").strip())
         return next((x.split(": ", 1)[1] for x in body.splitlines()
                      if x.startswith("Supervisor-Operation: ")), "")
 
@@ -519,7 +519,7 @@ SCENARIOS = {"lag-repair": (_reset_two_back, 0), "adoption": (_rebase_between, 1
 # The kill points each scenario's own writes pass through.
 SCENARIO_POINTS = {
     "lag-repair": {"projection-updated", "repaired"},
-    "adoption": {"commit-built", "pending-recorded", "refs-moved", "synced"},
+    "adoption": {"commit-built", "pending-recorded", "refs-moved", "made-recorded", "synced"},
 }
 WINDOW = 12
 

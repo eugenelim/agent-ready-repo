@@ -15,7 +15,6 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import importlib.util
 import json
@@ -53,6 +52,7 @@ _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _COMMIT_ID_RE = re.compile(r"[0-9a-f]{40,64}")
 PRODUCT_REF_RE = re.compile(r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/product")
 _PRODUCT_FILE = "product-ref"
+_PENDING_FILE = "pending-commit"
 _SYMREF_RE = re.compile(r"ref: (\S+)\s*")
 
 _KILL_HOOK: Callable[[str], None] | None = None
@@ -223,15 +223,11 @@ class GitPort:
         return self.hardened.pins.git_dir / self._store_rel(run_id)
 
     def made_commits(self, run_id: str) -> set[str]:
-        """Ids of the commits this run's supervisor built and that were not refused.
+        """Ids of the commits this run's supervisor built that landed in its history."""
+        return set(self.made_list(run_id))
 
-        A commit whose transaction was refused never became history, so it does not
-        count as the supervisor's own: moving ``HEAD`` onto it is foreign.
-        """
-        return set(self.made_list(run_id)) - self.refused_commits(run_id)
-
-    def made_list(self, run_id: str) -> list[str]:
-        """The run's made commits in the order they were built."""
+    def _made_entries(self, run_id: str) -> list[str]:
+        """The made-commit file's entries, in order."""
         path = self._store_dir(run_id) / "made-commits"
         if not os.path.lexists(path):
             return []
@@ -242,6 +238,66 @@ class GitPort:
             raise SupervisorGitError("denied-unsafe-path", f"made-commits: {exc}") from exc
         words = bytes(data).decode("ascii", "replace").split()
         return [w for w in words if _COMMIT_ID_RE.fullmatch(w)]
+
+    def made_list(self, run_id: str) -> list[str]:
+        """The run's landed commits in the order they were built.
+
+        A commit becomes made only once its transaction has moved the refs. A step cut
+        off between that move and the append is still pending in the store, and counts
+        here once ``HEAD`` holds it, so no reader sees it as foreign. A refused step
+        leaves no trace: it is neither made nor pending.
+        """
+        entries = self._made_entries(run_id)
+        pending = self.pending_commit(run_id)
+        if (
+            pending is not None
+            and pending not in entries
+            and self.is_ancestor(pending, self.head())
+        ):
+            entries.append(pending)
+        return entries
+
+    def pending_commit(self, run_id: str) -> str | None:
+        """The commit a step's transaction is moving the refs to, while it is in flight."""
+        directory = self._store_dir(run_id)
+        path = directory / _PENDING_FILE
+        if not os.path.lexists(path):
+            return None
+        fs = sibling("_file_safety.py")
+        try:
+            data = fs.read_confined_regular_file(directory, path, max_bytes=256)
+        except fs.UnsafeContentError as exc:
+            raise SupervisorGitError("denied-unsafe-path", f"pending-commit: {exc}") from exc
+        sha = bytes(data).decode("ascii", "replace").strip()
+        return sha if _COMMIT_ID_RE.fullmatch(sha) else None
+
+    def _write_pending(self, run_id: str, sha: str) -> None:
+        directory = self.ensure_store(run_id)
+        sibling("_confined_mutation.py").confined_atomic_replace(
+            directory, directory / _PENDING_FILE, f"{sha}\n".encode("ascii")
+        )
+
+    def clear_pending(self, run_id: str) -> None:
+        """Forget the in-flight commit; a failure here is not hidden."""
+        (self._store_dir(run_id) / _PENDING_FILE).unlink(missing_ok=True)
+
+    def settle_pending(self, run_id: str) -> None:
+        """Resolve a step a crash cut off: record it as made if it landed, else forget it.
+
+        It landed when ``HEAD`` holds it. When it did not, it is kept while the product
+        ref record still names it pending, because ``reconcile`` finishes that move first.
+        """
+        pending = self.pending_commit(run_id)
+        if pending is None:
+            return
+        if self.is_ancestor(pending, self.head()):
+            if pending not in self._made_entries(run_id):
+                self.record_made(run_id, pending)
+            self.clear_pending(run_id)
+            return
+        record = self.product_record(run_id)
+        if record is None or record.pending != pending:
+            self.clear_pending(run_id)
 
     # ── the product ref ─────────────────────────────────────────────────────
 
@@ -491,33 +547,8 @@ class GitPort:
         cm.confined_append(directory, path, f"{sha}\n".encode("ascii"), max_bytes=_MAX_MADE_BYTES)
 
     def record_made(self, run_id: str, sha: str) -> None:
-        """Append *sha* to the run's made-commit list, before the commit can become HEAD."""
+        """Append *sha* to the run's made-commit list, once its transaction has moved the refs."""
         self._append_id(run_id, "made-commits", sha)
-
-    def record_refused(self, run_id: str, sha: str) -> None:
-        """Note that the transaction for made commit *sha* was refused, so it never landed."""
-        self._append_id(run_id, "refused-commits", sha)
-
-    def refused_commits(self, run_id: str) -> set[str]:
-        """Made commits whose transaction was refused and that never landed afterwards.
-
-        The file is a log: an id is refused when written bare and lands again when written
-        with a leading ``-``, so a commit rebuilt byte for byte and landed is not refused.
-        """
-        path = self._store_dir(run_id) / "refused-commits"
-        if not os.path.lexists(path):
-            return set()
-        fs = sibling("_file_safety.py")
-        try:
-            data = fs.read_confined_regular_file(path.parent, path, max_bytes=_MAX_MADE_BYTES)
-        except fs.UnsafeContentError as exc:
-            raise SupervisorGitError("denied-unsafe-path", f"refused-commits: {exc}") from exc
-        refused: set[str] = set()
-        for word in bytes(data).decode("ascii", "replace").split():
-            landed = word.startswith("-")
-            if _COMMIT_ID_RE.fullmatch(word.lstrip("-")):
-                (refused.discard if landed else refused.add)(word.lstrip("-"))
-        return refused
 
     def text(self, *args: str, **kwargs: object) -> str:
         return self.run(*args, **kwargs).decode("utf-8", "replace")  # type: ignore[arg-type]
@@ -760,19 +791,20 @@ class GitPort:
         new = self.text(
             "hash-object", "-t", "commit", "-w", "--stdin", stdin=body.encode("utf-8")
         ).strip()
-        self.record_made(run_id, new)
+        # Pending until the refs move: a refused or interrupted step is never history.
+        self._write_pending(run_id, new)
         kill_point("commit-built")
         try:
             self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
         except Exception:
-            # Recording is best effort: it never replaces the refusal being raised.
-            with contextlib.suppress(Exception):
-                self.record_refused(run_id, new)
+            self.clear_pending(run_id)
             raise
-        if new in self.refused_commits(run_id):
-            self._append_id(run_id, "refused-commits", "-" + new)  # it landed after all
         kill_point("refs-moved")
         self._settle_record(run_id, new)
+        if new not in self._made_entries(run_id):
+            self.record_made(run_id, new)
+        self.clear_pending(run_id)
+        kill_point("made-recorded")
         self.write_delivery(appended)
         self.refresh_index(path_list + sorted(exact) + sorted(appended))
         kill_point("synced")
@@ -793,6 +825,7 @@ class GitPort:
         record = self.product_record(run_id)
         try:
             if create_ref is None and record is None:
+                kill_point("pending-recorded")
                 self.move_head(new, old, f"work-supervisor: {step}")
                 return
             if create_ref is not None:
