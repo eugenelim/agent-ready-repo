@@ -22,19 +22,19 @@
 
 ## Outcome
 
-Maintainers who run full-mode `work-loop` in a repository with many linked worktrees get an open attempt that survives another session's branch-tracking writes to the shared Git config — `git push -u`, `git checkout -b <branch> origin/<branch>`, `gh pr checkout`, and `gh repo set-default` — so nobody edits the shared config or re-baselines a stored attempt digest to clear a false `attempt-residue`. Success is that those writes leave an open attempt admissible, while every other config change during an attempt still refuses it, and a config the supervisor cannot read with certainty still refuses on any byte change.
+Maintainers who run full-mode `work-loop` in a repository with many linked worktrees get an open attempt that survives another session's branch-tracking writes to the shared Git config — `git push -u`, `git checkout -b <branch> origin/<branch>`, `gh pr checkout`, and `gh repo set-default` — so nobody edits the shared config or re-baselines a stored attempt digest to clear a false `attempt-residue`. Success is that those writes, in the exact form Git writes them, leave an open attempt admissible, while every other byte change to a config file during an attempt still refuses it.
 
 ## What Changes
 
-- The digest the attempt manifest records for each `config` and `config.worktree` file covers a filtered view of the file, not its raw bytes — `work-loop/scripts/_supervisor_attempt.py`.
-- The same filtered digest serves the hardened Git helper's pre-call control check — `work-loop/scripts/_supervisor_attempt.py` (`_control_check`).
-- A manifest recorded with a raw-file digest is still compared against the raw file — `work-loop/scripts/_supervisor_attempt.py`.
-- A Git-free config-filter suite runs on POSIX CI and on the Windows build-check job — `packs/core/tests/skills/work-loop/`, `.github/workflows/build-check-windows.yml`.
-- The supervisor reference and the runtime security architecture describe the filtered fingerprint — `work-loop/references/supervisor.md`, `docs/architecture/runtime-security-primitives.md` §11.
+- The digest the attempt manifest records for each `config` and `config.worktree` file covers the file with its canonical tracking blocks removed, not its raw bytes — `work-loop/scripts/_supervisor_attempt.py`.
+- The same digest serves the hardened Git helper's pre-call control check — `work-loop/scripts/_supervisor_attempt.py` (`_control_check`).
+- A manifest entry is compared in the form it was recorded in, so a manifest recorded with the raw-file fingerprint is still compared against the raw file — `work-loop/scripts/_supervisor_attempt.py`.
+- A Git-free config-fingerprint suite runs on POSIX CI and on the Windows build-check job, each with a zero-skip check — `packs/core/tests/skills/work-loop/`, `.github/workflows/`.
+- The supervisor reference, the controller's effect guidance, and two architecture pages describe the config fingerprint — `work-loop/references/supervisor.md`, `docs/architecture/runtime-security-primitives.md` §11, `docs/architecture/work-loop-execution-supervisor.md` § Attempts.
 
 ## Scope and Non-goals
 
-This spec owns which config lines the attempt manifest fingerprints. It narrows
+This spec owns which config bytes the attempt manifest fingerprints. It narrows
 one term of the
 [`execution-supervisor-attempt-security`](../execution-supervisor-attempt-security/spec.md)
 contract — the "every repository and worktree `config` file" member of its Git
@@ -46,23 +46,26 @@ Non-goals:
 
 - The start-time refusal of code-running Git settings (`unsupported-git-config`)
   and the hardened helper's neutralising flags are unchanged.
-- No supervisor `git` call reads branch tracking or `gh` settings, so this spec
-  adds no control over what those keys mean to Git; it only stops counting them
-  as control state.
+- No supervisor action depends on an excluded key. The admission read of the
+  effective config reads them along with every other key, and nothing the
+  supervisor decides or runs uses their values; this spec stops counting them
+  as control state and adds no control over what they mean to Git.
 - `HEAD`, the branch ref, `packed-refs`, `refs/replace/`, `info/`, `hooks/`,
   `commondir`, `objects/info/alternates`, and the `.git` gitfile keep their
   current fingerprints.
-- A sibling session's writes to anything other than the allowlisted keys still
-  refuse an attempt; making the supervisor tolerant of other shared-state writes
-  is out of scope.
+- A sibling session's writes to anything other than a canonical tracking block
+  still refuse an attempt; making the supervisor tolerant of other shared-state
+  writes is out of scope.
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| User documentation | Adopters read which Git state an open attempt protects and why a sibling's tracking write no longer refuses. | `packs/core/.apm/skills/work-loop/references/supervisor.md` (the open-attempt rule and the `attempt-residue` refusal row) | Core pack maintainers | Link check; self-host projection current | The reference names the excluded keys and the raw-file fallback in one place. |
-| Current architecture | The attempt check's definition of Git control state narrows. | `docs/architecture/runtime-security-primitives.md` §11 | `agentbundle` security maintainers | Security-reviewer pass on the diff | §11 states the config fingerprint, the excluded keys, and the fail-closed fallback. |
-| Decision rationale | The contract this spec narrows has a single owner per fact. | This spec's Definitions (the owner) and a one-sentence pointer beside the Git control state definition in `docs/specs/execution-supervisor-attempt-security/spec.md`, with no criteria change there | Platform Core decision-maker | Shaping review; diff of the attempt-security spec limited to that sentence | The older definition points to this spec's config fingerprint and its criteria are unchanged. |
+| User documentation | Adopters read which Git state an open attempt protects and why a sibling's tracking write no longer refuses. | `packs/core/.apm/skills/work-loop/references/supervisor.md` (the open-attempt rule and the `attempt-residue` refusal row) | Core pack maintainers | Link check; self-host projection current | The reference names the excluded keys and states that any other byte change still refuses. |
+| Controller guidance | The Accepted Risk holds only while the controller pushes, pulls, and merges with explicit arguments. | `packs/core/.apm/skills/work-loop/references/supervisor.md` § External effects | Core pack maintainers | Self-host projection current | The section tells the controller to pass an explicit remote, ref, and pull request, or to verify them, for every push, pull, and merge. |
+| Current architecture | The attempt check's definition of Git control state narrows. | `docs/architecture/runtime-security-primitives.md` §11 | `agentbundle` security maintainers | Security-reviewer pass on the diff | §11 states the config fingerprint, the excluded keys, and that every other byte stays in the digest. |
+| Current architecture | The supervisor architecture states what a manifest records. | `docs/architecture/work-loop-execution-supervisor.md` § Attempts | Core pack maintainers | Diff of that section | The section says config entries record the config fingerprint, not size and digest. |
+| Decision rationale | The contract this spec narrows has a single owner per fact. | This spec's Definitions (the owner) and a pointer beside the Git control state and Manifest definitions in `docs/specs/execution-supervisor-attempt-security/spec.md`, with no criteria change there | Platform Core decision-maker | Diff of the attempt-security spec limited to that pointer | The older definitions point to this spec and say config entries record the config fingerprint instead of size and sha256; its criteria are unchanged. |
 | Release history | Live supervisor code changes. | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, a fragment created by `tools/changelog.py new` | Core pack release maintainers | AC-0011, AC-0012 | The release carries one changelog fragment naming the fix. |
 | Captured-item closure | The defect has a captured item, which this delivery adds to `main`. | `docs/product/captured/supervisor-common-config-residue.md` | Core pack maintainers | The item's status | The item exists on `main`, is closed, and points at this spec; whichever of this PR and the PR that first captured it merges second resolves the overlap. |
 
@@ -70,28 +73,28 @@ Non-goals:
 
 ### Always do
 
-- Fail closed: when any doubt exists about a config line, fingerprint the whole
-  raw file exactly as the raw-file fingerprint does.
-- Read config files directly, through the confined regular-file read the
-  attempt check already uses, so the check stays valid inside the hardened
-  helper's pre-call control check.
+- Fail closed: remove a byte from the digest only when it lies inside a
+  canonical tracking block; every other byte stays in, verbatim.
+- Compute the config fingerprint from the bytes of the confined regular-file
+  read the attempt check already makes, so the check stays valid inside the
+  hardened helper's pre-call control check.
 - Get a security-reviewer pass on the spec and on the implementation diff
   before merge.
 
 ### Ask first
 
-- Adding any key to the excluded set beyond the five branch-tracking variables
-  and `remote.<name>.gh-resolved`.
+- Adding any key to the excluded set, or widening the canonical form.
 - Changing the start-time code-running refusal list or the hardened helper's
   fixed flags.
-- Editing the shipped `execution-supervisor-attempt-security` spec beyond the one-sentence pointer to this spec's config fingerprint.
+- Editing the shipped `execution-supervisor-attempt-security` spec beyond the
+  pointer to this spec's config fingerprint.
 
 ### Never do
 
-- Launch a `git` process, or read effective config through Git, to compute a
+- Launch a process, or read effective config through Git, to compute a
   fingerprint.
-- Follow an include, or read any file other than the `config` or
-  `config.worktree` being fingerprinted.
+- Parse a config file into sections and keys, follow an include, or read any
+  file other than the `config` or `config.worktree` being fingerprinted.
 - Clear a refusal by editing a shared `.git/config` or rewriting a digest in the
   supervisor store, in a test or anywhere else; tests build their own temporary
   repositories.
@@ -100,18 +103,18 @@ Non-goals:
 
 ## Testing Strategy
 
-- **Config filter (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006):** TDD
-  over config bytes in a Git-free suite, because the filter is a pure function
-  of a file's bytes and the same suite must run on Windows, where the git-backed
-  supervisor suites do not run.
+- **Config fingerprint (AC-0001, AC-0002, AC-0003, AC-0004, AC-0006, AC-0014, AC-0015):**
+  TDD over config bytes in a Git-free suite, because the fingerprint is a pure
+  function of one read's bytes and the same suite must run on Windows, where the
+  git-backed supervisor suites do not run.
 - **Attempt check over a shared common directory (AC-0007, AC-0008, AC-0009):**
   TDD as integration tests in the git-backed attempt suite, with a real linked
   sibling worktree whose own `git push -u`, `git config`, and `git branch -D`
   write the common config during an open attempt.
 - **Regression and platforms (AC-0010, AC-0013):** goal-based: the existing
   git-backed supervisor suites pass unmodified in the `supervisor-integration`
-  lane, and the config-filter suite passes with no skipped case on POSIX CI and
-  on the Windows build-check job.
+  lane, and the config-fingerprint suite passes with a zero-skip check on POSIX
+  CI and on the Windows build-check job.
 - **Release (AC-0011, AC-0012):** goal-based: version parity and changelog
   validation, checked against freshly fetched `origin/main` right before push.
 
@@ -119,49 +122,74 @@ Non-goals:
 
 ### Definitions
 
-- **Branch-tracking key.** In a `[branch "<name>"]` section, the variable
-  `remote`, `merge`, `pushremote`, `rebase`, or `description`, compared
-  case-insensitively. A `[branch]` section with no subsection holds no
-  branch-tracking key.
-- **gh-resolved key.** `gh-resolved` in a `[remote "<name>"]` section, compared
-  case-insensitively.
-- **Excluded line.** A branch-tracking key line, a gh-resolved key line, a
-  `[branch "<name>"]` header, and a blank or comment line inside a
-  `[branch "<name>"]` section.
-- **Clean parse.** A config file parses cleanly when it decodes as UTF-8 and
-  every line, with a trailing `\n` or `\r\n` removed, is blank, a comment, a
-  `[section]` or `[section "subsection"]` header, or a `name` or `name = value`
-  line whose value has balanced double quotes and does not end in a
-  continuation backslash; when no section is `include` or `includeIf`; and when
-  every key inside a `[branch "<name>"]` section is a branch-tracking key.
+Bytes are split into lines only at `\n`; a line includes its `\n`, and a final
+segment with no `\n` is never part of a canonical tracking block. Every match
+below is exact and case-sensitive, in the lower-case form Git writes.
+
+- **Excluded keys.** Exactly `branch.<name>.remote`, `branch.<name>.merge`,
+  `branch.<name>.pushremote`, `branch.<name>.rebase`,
+  `branch.<name>.description`, and `remote.<name>.gh-resolved`.
+- **Subsection.** One or more bytes, none of them `"`, `\`, a control byte
+  (0x00–0x1F), or 0x7F.
+- **Tracking value.** Zero or more bytes, none of them `"`, `\`, `;`, `#`, a
+  control byte, or 0x7F.
+- **Canonical branch block.** A line exactly `[branch "<subsection>"]\n`,
+  followed by one or more lines each exactly `\t<key> = <tracking value>\n`
+  with `<key>` one of `remote`, `merge`, `pushremote`, `rebase`, `description`;
+  where the line before the header, if any, does not end in `\` before its
+  `\n`, and the line after the block begins with `[` or the block ends the file.
+- **Canonical gh-resolved line.** A line exactly
+  `\tgh-resolved = <tracking value>\n` that follows a line exactly
+  `[remote "<subsection>"]\n`, where every line between them begins with `\t`
+  followed by a lower-case ASCII letter, and neither the line before the header
+  nor any line from the header up to the gh-resolved line ends in `\` before
+  its `\n`.
+- **Canonical tracking block.** A canonical branch block or a canonical
+  gh-resolved line.
+- **Raw-file fingerprint.** The size-and-sha256 entry, `<size>:<sha256hex>`,
+  that the manifest records for every other Git control state file.
 - **Config fingerprint.** For a `config` or `config.worktree` file in the
-  pinned Git directory or common directory: when the file parses cleanly, the
-  digest of the file with every excluded line removed, in a form no raw-file
-  digest can equal; otherwise the raw-file fingerprint.
-- **Raw-file fingerprint.** The sha256 of the file's bytes, as the attempt
-  manifest records every other Git control state file.
+  pinned Git directory or common directory that the attempt check reads as a
+  regular file: `config-view:` followed by the raw-file fingerprint form of the
+  file's bytes with every canonical tracking block removed.
 
 ### Criteria
 
-Config filter
+Config fingerprint
 
-- [ ] **AC-0001.** Two config files that differ only in excluded lines have the
-  same config fingerprint.
-- [ ] **AC-0002.** Two cleanly parsing config files that differ in any line
-  that is not an excluded line — including `core.hooksPath`, `remote.origin.url`,
-  `remote.origin.fetch`, `user.email`, a `[branch]` section with no subsection,
-  and a `[core]` section placed after a `[branch "<name>"]` section — have
-  different config fingerprints.
-- [ ] **AC-0003.** A config file that does not parse cleanly — one holding a
-  continuation line, a multi-line quoted value, a `[branch.<name>]` legacy
-  header, an `include` or `includeIf` section, a key inside a
-  `[branch "<name>"]` section that is not a branch-tracking key, or bytes that
-  are not UTF-8 — has the raw-file fingerprint as its config fingerprint.
-- [ ] **AC-0004.** No cleanly parsing config file's config fingerprint equals
-  any file's raw-file fingerprint.
-- [ ] **AC-0005.** A config file and the same file with every `\n` replaced by
-  `\r\n` have the same config fingerprint.
-- [ ] **AC-0006.** Computing Git control state launches no process.
+- [ ] **AC-0001.** Two config files that differ only in canonical tracking
+  blocks have the same config fingerprint.
+- [ ] **AC-0002.** Two config files that differ in any byte outside canonical
+  tracking blocks have different config fingerprints, including when the
+  differing line is `core.hooksPath`, `remote.origin.url`,
+  `remote.origin.fetch`, `user.email`, a `[branch]` section with no
+  subsection, a `[core]` section placed after a canonical branch block, an
+  `uploadpack`, `receivepack`, `pushurl`, `vcs`, or `proxy` key in the same
+  `[remote "<name>"]` block as a canonical gh-resolved line, or a code-running
+  key the start-time refusal names placed directly before or after a canonical
+  tracking block.
+- [ ] **AC-0003.** Each of these shapes has nothing removed, so its config
+  fingerprint is `config-view:` followed by the raw-file fingerprint form of the
+  whole file: a branch header with a second section on its line
+  (`[branch "x"][core]hooksPath = /evil`), an escaped subsection
+  (`[branch "x\\"][filter "y"]clean = "/evil"]`), a header followed by content
+  on its line (`[branch "x"] [remote "origin"]url = /evil`), `\r\n` line
+  endings, a `\r` inside a line, a byte-order mark before the first header,
+  `[Branch "x"]`, a `Remote =` key, `remote=origin`, a quoted value, a value
+  holding `;` or `#`, a value ending in `\`, an `include` or `includeIf`
+  section, a tracking key followed by a line that is not a header
+  (`[branch "x"]`, `\tremote = origin`, `\thookspath = /evil`), and a branch
+  block or gh-resolved line after a line ending in `\`.
+- [ ] **AC-0004.** Every config fingerprint begins `config-view:`, and no
+  raw-file fingerprint does.
+- [ ] **AC-0006.** Computing Git control state creates no process.
+- [ ] **AC-0014.** A key is removed only under its exact excluded name; near
+  misses such as `gh-resolved-x`, `remotes`, `Merge`, and `gh-resolved` inside a
+  `[branch "<name>"]` block stay in the config fingerprint.
+- [ ] **AC-0015.** The config fingerprint is computed from the bytes of the
+  single confined read the attempt check makes of that file, and a symlinked,
+  special, or oversized config entry keeps its `link:…`, `special`, or `unsafe`
+  value.
 
 Attempt check over a shared common directory
 
@@ -171,20 +199,23 @@ Attempt check over a shared common directory
   `attempt-residue`: `git push -u` of a new branch, setting
   `branch.<name>.remote`, `merge`, `pushremote`, `rebase`, or `description`,
   setting `remote.origin.gh-resolved`, and `git branch -D` of a branch whose
-  section carries only branch-tracking keys.
+  section carries only excluded keys.
 - [ ] **AC-0008.** During an open attempt in a linked worktree, each of these
   changes to the common config or to the worktree's `config.worktree` refuses
   the attempt with `attempt-residue` at `next` and `attempt-refused` at
   `report`, naming that config file: setting `core.hooksPath`, adding
   `include.path`, changing `remote.origin.url`, changing `user.email`, adding a
-  `[core]` section after a `[branch "<name>"]` section, adding a non-tracking
-  key inside a `[branch "<name>"]` section, and, in a config that does not parse
-  cleanly, changing a branch-tracking key.
-- [ ] **AC-0009.** An open attempt whose manifest holds the raw-file
-  fingerprint for a config file — as one recorded by a supervisor release
-  without the config fingerprint does, including a `regenerate` request issued
-  before the installed skill is regenerated — is admissible when the file's
-  bytes are unchanged and refuses on any byte change to that file.
+  `[core]` section after a `[branch "<name>"]` block, adding a non-excluded key
+  inside a `[branch "<name>"]` block, and changing an excluded key written in a
+  non-canonical shape.
+- [ ] **AC-0009.** During an open attempt, each manifest entry for a config file
+  is compared in the form it was recorded in: a `config-view:` value against
+  the config fingerprint, a `<size>:<sha256hex>` value against the raw-file
+  fingerprint, and a `link:…`, `special`, or `unsafe` value against the attempt
+  check's current result for that entry; so a manifest recorded by a release
+  without the config fingerprint — including a `regenerate` request issued
+  before the installed skill is regenerated — admits unchanged bytes and
+  refuses any byte change.
 
 Regression, platforms, and release
 
@@ -196,8 +227,14 @@ Regression, platforms, and release
   `origin/main`.
 - [ ] **AC-0012.** `tools/changelog.py validate` passes with one new fragment
   for this change.
-- [ ] **AC-0013.** The config-filter suite passes with zero skipped cases on a
-  POSIX CI lane and on the Windows build-check job.
+- [ ] **AC-0013.** The config-fingerprint suite passes with zero skipped cases,
+  as `tools/require-junit-ran-without-skips.py` reports over its JUnit output,
+  on a POSIX CI lane and on the Windows build-check job.
+
+## Retired identifiers
+
+- AC-0005
+- VI-0105
 
 ## Follow-ons
 
@@ -206,27 +243,49 @@ none
 ## Terminal Intent
 
 `code` — implement the config fingerprint, its use in the attempt manifest and
-the hardened helper's pre-call check, the raw-file comparison for older
-manifests, the Git-free suite on both platforms, and the reference updates.
+the hardened helper's pre-call check, form-preserving comparison for older
+manifests, the Git-free suite on both platforms, and the documentation updates.
 
 ## Accepted Risk
 
-The excluded keys change what a later Git command run outside the supervisor
-does: `branch.<name>.pushremote` and `remote.<name>.gh-resolved` choose where a
-controller's own `git push` or `gh pr create` goes. A worker attempt can change
-them without refusal. No supervisor `git` call reads them, and the push and
-pull-request effects run outside the supervisor under controller authority, so
-this narrows what ADR-0144 D11 protects to state a supervisor call consumes.
-The controller is trusted and owns every push and pull request.
+A worker attempt can change any excluded key without refusal, and each one
+steers a later command the controller runs outside the supervisor:
 
-A `[branch "<name>"]` key outside the five branch-tracking variables — one a
-future `gh` release or an editor writes — makes the file fail the clean parse.
-The attempt then refuses on any change to that file, as it does without this
-spec; that false refusal is the accepted cost of keeping the excluded set
-narrow.
+- `branch.<name>.remote` sets where a bare `git push` or `git pull` goes, and
+  its value may be a URL rather than a remote name.
+- `branch.<name>.merge` sets the destination branch of a push under
+  `push.default=upstream`, and which pull request a `gh pr view`, `gh pr checks`,
+  or `gh pr merge` with no argument resolves.
+- `branch.<name>.pushremote` sets where a bare `git push` goes.
+- `branch.<name>.rebase` sets how `git pull` integrates; `interactive` opens an
+  editor.
+- `branch.<name>.description` is shown by `git branch` and used in
+  request-pull and format-patch cover text.
+- `remote.<name>.gh-resolved` sets the base repository `gh` uses.
 
-The Platform Core decision-maker accepted this risk on 2026-10-31.
+No supervisor action depends on these values. The risk is acceptable on one
+condition: the controller, which is trusted and owns every push, pull, and
+merge, passes an explicit remote, ref, and pull request to each, or verifies
+them before acting.
+
+A `[branch "<name>"]` key outside the excluded set, or an excluded key in a
+shape Git does not write, stays in the digest, so the attempt refuses on any
+change to it, as it does without this spec. That false refusal is the accepted
+cost of keeping the excluded set and the canonical form narrow.
+
+Reinstalling an older core release is safe only when no attempt is open and no
+refusal stands; attempts close at `report`. If the older release is installed
+while an attempt is open, it cannot match a `config-view:` value and refuses
+with `attempt-residue` until the newer release is reinstalled, which is the
+permitted recovery. No store edit is a recovery.
+
+The Platform Core decision-maker accepted this risk, in full, on 2026-10-31.
 
 ## Assumptions
 
-none
+- Technical: which `[branch "<name>"]` and `[remote "<name>"]` keys
+  `gh pr checkout` and `gh repo set-default` write, and in what form — a key
+  outside the excluded set, or a non-canonical form, keeps the false refusal for
+  repositories where those commands run (settled by: a T1 probe if `gh` can run
+  those commands offline; otherwise the fail-closed rule decides and nothing in
+  the contract moves).
