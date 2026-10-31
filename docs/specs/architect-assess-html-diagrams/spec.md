@@ -1,6 +1,6 @@
 # Spec: architect-assess HTML report draws diagrams on request
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) and [`docs/specs/architect-assess-html-report-style/spec.md`](../architect-assess-html-report-style/spec.md) — escaped values, closed element and attribute lists, one `<style>` named by a hash, confined I/O, fixed exit tokens. This spec relaxes the "no script, no network" rules only when the reader asks for diagrams, and the Amended parent rules table below lists every parent rule it touches. The decision record is [`docs/specs/architect-assess-html-report/notes/diagram-rendering-decision.md`](../architect-assess-html-report/notes/diagram-rendering-decision.md).
@@ -212,3 +212,4 @@ Eligibility reads the fence text after one normalisation: the renderer refuses, 
 
 <!-- Approvals only. -->
 - 2026-10-31: spec approved by eugenelim (opt-in flag, pinned CDN with integrity hash)
+- 2026-10-31: spec amendment approved by eugenelim (SVG elements, id rewrite, root-scoped ban, selector splitting, keyframe names)
