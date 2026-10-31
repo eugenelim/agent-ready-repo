@@ -399,6 +399,30 @@ Owned by: T2.
 
 **Done when:** VI-0111 and VI-0112 pass, `git diff origin/main -- docs/specs/execution-supervisor-attempt-security/spec.md` adds one sentence and changes no criterion, `agentbundle catalogue self-host --root . --write` leaves no drift, and every T3 row of the durable-output map is met.
 
+
+### T4: The zero-skip CI steps pass on POSIX and Windows
+
+**Depends on:** T3
+
+**Spec behavior:** AC-0013; goal-based.
+
+**Touches:** `tools/lint-ci-parity.py`, `packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py`
+
+**Verification mode:** goal-based
+
+**Tests:**
+- **VI-0117 (AC-0013):** `tools/test-lint-ci-parity.py` passes with the
+  `pytest supervisor config fingerprint (zero skips)` step registered in
+  `_LOCAL_STEP_DISPOSITION` (covered by `test-after-build-check`) and in the
+  `gate-main` check list.
+- **VI-0118 (AC-0013):** the VI-0115 link/special test is defined only when the
+  platform can create at least one such file kind, so a platform with none
+  collects no case for it rather than a skipped empty-parameter case; the
+  suite's JUnit output has zero skips on POSIX and on the Windows job.
+
+**Done when:** VI-0117 and VI-0118 pass and PR CI's `gate-main` and
+`AgentBundle compatibility (windows)` jobs pass.
+
 ## Rollout
 
 Delivery is a normal core patch release; there is no flag and no data
