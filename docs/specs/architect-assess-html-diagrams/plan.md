@@ -1,7 +1,7 @@
 # Plan: architect-assess HTML report draws diagrams on request
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 - **Repository anchors:** the renderer and its tests in `packs/architect/.apm/skills/architect-assess/scripts/render_html.py` and `packs/architect/tests/skills/architect-assess/test_render_html.py`; the stylesheet asset loader `load_stylesheet` and the `ASSET_NAMES` and `FORBIDDEN_ASSET_TEXT` constants, which the script asset follows; the exact-version CDN precedent in `docs/specs/cdn-sri-mermaid/spec.md`; the measured facts and options in `docs/specs/architect-assess-html-report/notes/diagram-rendering-decision.md`; the byte-identity roster tests in `tests/roster/test_architect_assess_*.py`.
 
 > **Plan contract:** `Touches`, `Tests` and `Done when` are what a completion gate
@@ -104,3 +104,4 @@ The change adds a third-party script to a generated page, so the security-review
 ## Changelog
 
 <!-- Approvals only. -->
+- 2026-10-31: plan approved by eugenelim
