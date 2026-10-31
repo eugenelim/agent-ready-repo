@@ -371,8 +371,10 @@ class GitPort:
         if not value:
             return f"git update-ref --no-deref -d {name}"
         if kind in ("symbolic", "malformed"):
-            return f"git update-ref --no-deref -d {name} && git update-ref {name} {value}"
-        return f"git update-ref {name} {value}"
+            return (
+                f"git update-ref --no-deref -d {name} && git update-ref --no-deref {name} {value}"
+            )
+        return f"git update-ref --no-deref {name} {value}"
 
     def create_ref(self, name: str, commit: str) -> None:
         """Create the product ref at *commit*, replacing and never following a symbolic ref."""
@@ -475,14 +477,34 @@ class GitPort:
                 "denied-store-spec", "the run's store records another spec"
             )
 
-    def record_made(self, run_id: str, sha: str) -> None:
-        """Append *sha* to the run's made-commit list, before the commit can become HEAD."""
+    def _append_id(self, run_id: str, name: str, sha: str) -> None:
         directory = self.ensure_store(run_id)
         cm = sibling("_confined_mutation.py")
-        path = directory / "made-commits"
+        path = directory / name
         if not os.path.lexists(path):
             cm.confined_create(directory, path, b"")
         cm.confined_append(directory, path, f"{sha}\n".encode("ascii"), max_bytes=_MAX_MADE_BYTES)
+
+    def record_made(self, run_id: str, sha: str) -> None:
+        """Append *sha* to the run's made-commit list, before the commit can become HEAD."""
+        self._append_id(run_id, "made-commits", sha)
+
+    def record_refused(self, run_id: str, sha: str) -> None:
+        """Note that the transaction for made commit *sha* was refused, so it never landed."""
+        self._append_id(run_id, "refused-commits", sha)
+
+    def refused_commits(self, run_id: str) -> set[str]:
+        """Made commits whose transaction was refused; none of them can anchor a run."""
+        path = self._store_dir(run_id) / "refused-commits"
+        if not os.path.lexists(path):
+            return set()
+        fs = sibling("_file_safety.py")
+        try:
+            data = fs.read_confined_regular_file(path.parent, path, max_bytes=_MAX_MADE_BYTES)
+        except fs.UnsafeContentError as exc:
+            raise SupervisorGitError("denied-unsafe-path", f"refused-commits: {exc}") from exc
+        return {w for w in bytes(data).decode("ascii", "replace").split()
+                if _COMMIT_ID_RE.fullmatch(w)}
 
     def text(self, *args: str, **kwargs: object) -> str:
         return self.run(*args, **kwargs).decode("utf-8", "replace")  # type: ignore[arg-type]
@@ -727,7 +749,11 @@ class GitPort:
         ).strip()
         self.record_made(run_id, new)
         kill_point("commit-built")
-        self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
+        try:
+            self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
+        except Exception:
+            self.record_refused(run_id, new)
+            raise
         kill_point("refs-moved")
         self._settle_record(run_id, new)
         self.write_delivery(appended)
@@ -770,12 +796,14 @@ class GitPort:
                 self.update_refs(new, old, name, expected)
             except SupervisorGitError as exc:
                 self.write_product_record(run_id, ProductRecord(name, recorded, None))
-                self._diagnose(exc, name, expected)
+                self._diagnose(exc, name, expected, recorded)
                 raise
         finally:
             self._head = None
 
-    def _diagnose(self, exc: SupervisorGitError, name: str, expected: str | None) -> None:
+    def _diagnose(
+        self, exc: SupervisorGitError, name: str, expected: str | None, recorded: str | None
+    ) -> None:
         """Turn a failed compare-and-swap on the product ref into ``integration-conflict``.
 
         Read by direct file reads: a Git call here would meet the attempt's control
@@ -786,14 +814,23 @@ class GitPort:
         kind, value = self.read_ref(name)
         if (kind, value) == (("commit", expected) if expected else ("missing", "")):
             return
-        now = f"commit {value}" if kind == "commit" else kind
         was = f"commit {expected}" if expected else "absent"
+        if kind == "commit" and value == recorded:
+            # A supervisor step moved the ref: nothing is wrong, the request is just old.
+            detail = (
+                f"{name} moved to commit {value}, which the run recorded, after this "
+                f"result's request was issued against {was}. Nothing was committed and your "
+                "files are kept; run next, which issues the request again"
+            )
+        else:
+            now = f"commit {value}" if kind == "commit" else kind
+            detail = (
+                f"{name} is {now}, not the run's recorded value {recorded}. Nothing was "
+                "committed and your files are kept; restore it with: "
+                f"{self.restore_command(name, kind, recorded)}"
+            )
         raise supervisor_module("_supervisor_admission.py").Refusal(
-            "integration-conflict",
-            "controller",
-            f"{name} is {now} but the result was issued against it at {was}. Nothing was "
-            f"committed and your files are kept; restore it with: "
-            f"{self.restore_command(name, kind, expected)}",
+            "integration-conflict", "controller", detail
         ) from exc
 
     def _settle_record(self, run_id: str, new: str) -> None:

@@ -510,8 +510,9 @@ def _latest_made(ws: Any, run_id: str, *, clean: bool) -> str | None:
     """
     git = ws.git
     made = git.made_list(run_id)
+    refused = git.refused_commits(run_id)
     for sha in reversed(made):
-        if not _exists(ws, sha):
+        if sha in refused or not _exists(ws, sha):
             continue
         if not clean or (made and git.made_only(run_id, made[0], sha)):
             return sha
@@ -634,6 +635,35 @@ def inspect(ws: Any) -> Any:
         if blocked:
             return _blocked_refusal(blocked)
     return None
+
+
+def peek(ws: Any) -> Divergence | None:
+    """The history-adoption ``reconcile`` would issue, found without writing; for ``status``.
+
+    Nothing is reported while an attempt is open, as ``reconcile`` does.
+    """
+    try:
+        approvals = ws.approvals()
+    except Refusal:
+        return None
+    if not approvals or ws.attempts.has_open_issuance():
+        return None
+    git = ws.git
+    run_id = approvals[0]["run_id"]
+    head = git.head()
+    record = git.product_record(run_id)
+    if record is None:
+        latest = _latest_made(ws, run_id, clean=True)
+        if latest is not None and (latest == head or git.made_only(run_id, head, latest)):
+            return None
+        anchor = latest or _latest_made(ws, run_id, clean=False)
+        return None if anchor is None else _divergence(ws, head, anchor)
+    if not git.product_ref_view(record)[2]:
+        return None  # ``inspect`` reports an untrusted ref
+    anchors = {v for v in (record.recorded, record.pending) if v is not None}
+    if head in anchors or any(git.made_only(run_id, head, a) for a in anchors):
+        return None
+    return _divergence(ws, head, record.recorded or record.pending or head)
 
 
 def _index_oids(ws: Any, paths: list[str]) -> dict[str, str | None]:

@@ -291,7 +291,7 @@ def _commit_result(ws: Any, request: dict[str, Any], **step: Any) -> None:
     """Commit a product result against the commit its request was issued at.
 
     A conflict that a supervisor step caused (the product ref still holds a recorded
-    value) ends the stale attempt, so the next verb issues the same request again.
+    value) marks the attempt stale, so the next verb issues the same request again.
     """
     try:
         ws.git.build_commit(
@@ -299,7 +299,7 @@ def _commit_result(ws: Any, request: dict[str, Any], **step: Any) -> None:
         )
     except Refusal as exc:
         if exc.code == "integration-conflict":
-            ws.attempts.release_if_stale()
+            ws.attempts.mark_stale_if_landed()
         raise
 
 

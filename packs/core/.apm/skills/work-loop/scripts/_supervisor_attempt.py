@@ -123,7 +123,7 @@ _MAX_PIN_BYTES = 1024 * 1024
 _SCHEMA_VERSION = 1
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _SHA_RE = re.compile(r"[0-9a-f]{40,64}")
-_FILE_RE = re.compile(r"(\d{6})(\.json|\.refused\.json|\.cleared|\.superseded|\.reported)")
+_FILE_RE = re.compile(r"(\d{6})(\.json|\.refused\.json|\.cleared|\.superseded|\.reported|\.stale)")
 _SYMREF_RE = re.compile(r"ref: (refs/[\x21-\x7e]+)\s*")
 _MAX_ENTRIES = 50_000
 _MAX_FILE_BYTES = 64 * 1024 * 1024
@@ -199,6 +199,11 @@ class Issuance:
     @property
     def reported(self) -> bool:
         return ".reported" in self.marks
+
+    @property
+    def stale(self) -> bool:
+        """A supervisor step landed after the issuance: its source commit is old."""
+        return ".stale" in self.marks
 
 
 class Attempts:
@@ -342,18 +347,46 @@ class Attempts:
         restore = git.restore_command(record.name, kind, record.recorded or record.pending)
         return [f"{record.name} is {shown}; restore it with: {restore}"]
 
-    def release_if_stale(self) -> None:
-        """Close the open attempt after a conflict that a supervisor step caused.
+    def mark_stale_if_landed(self) -> None:
+        """Mark the open attempt stale after a conflict that a supervisor step caused.
 
         When the product ref still sits at a value the run recorded, the attempt's
-        source commit is merely old, so its issuance is superseded and the next verb
-        issues the same request again. A ref the worker moved is left to the attempt
-        guard, which stands as residue until it is restored.
+        source commit is merely old. The issuance stays open, so the guard keeps
+        comparing the worker's files with its manifest, but no result is admitted
+        against it: ``next`` re-issues the request from a new source commit once the
+        guard passes. A ref the worker moved is left to the guard as residue.
         """
         issuance = self.open
         if issuance is not None and not self.product_ref_problems(issuance.run_id):
-            self._supersede(issuance)
-            self.open = self._manifest = None
+            self._mark(issuance, ".stale")
+
+    def require_open_issuance(self, request: dict[str, Any]) -> None:
+        """Refuse a result for an attempt kind unless its issuance is open, current, and passed.
+
+        The guard has already compared the open issuance with the working tree, so a
+        result is admitted only against a manifest that was just checked.
+        """
+        issuance = self.open
+        if (
+            issuance is None
+            or issuance.request_id != request["request_id"]
+            or issuance.kind != request["kind"]
+        ):
+            raise _refusal(
+                "not-current-attempt",
+                "no issuance is open for this request; run next to issue it, then report",
+            )
+        if issuance.stale:
+            raise _refusal(
+                "not-current-attempt",
+                "a step landed since this request was issued; run next to issue it again",
+            )
+
+    def has_open_issuance(self) -> bool:
+        """Whether any issuance of this spec is open, read without comparing or writing."""
+        return any(
+            not (i.superseded or i.reported or (i.refused and i.cleared)) for i in self._latest()
+        )
 
     def source_commit(self, request_id: str) -> str | None:
         """The commit the open attempt for *request_id* was issued against, if one is open."""
@@ -685,6 +718,8 @@ class Attempts:
         open_attempt = self.open
         if request is not None and request["kind"] in ATTEMPT_KINDS:
             if open_attempt is not None and open_attempt.request_id == request["request_id"]:
+                if open_attempt.stale:
+                    self._reissue(open_attempt)
                 return
             self._confirm_admitted_skill(state.run_id)
             if open_attempt is not None:
@@ -706,6 +741,28 @@ class Attempts:
         elif open_attempt is not None and (request is not None or action.kind == "terminal"):
             self._supersede(open_attempt)
             self.open = self._manifest = None
+
+    def _reissue(self, stale: Issuance) -> None:
+        """Issue a stale attempt's request again from the current commit.
+
+        The guard compared the working tree with the stale issuance's manifest in this
+        same verb, so the new issuance keeps that manifest and takes only a new source.
+        """
+        symref, head = self.head_state()
+        record = {
+            "schema_version": _SCHEMA_VERSION,
+            "spec": self.ws.spec_rel,
+            "run_id": stale.run_id,
+            "request_id": stale.request_id,
+            "kind": stale.kind,
+            "head": head,
+            "head_ref": symref,
+            "trusted": stale.trusted,
+            "git": stale.git,
+        }
+        self._write(stale.run_id, f"{stale.seq + 1:06d}.json", _json(record))
+        self._supersede(stale)
+        self.open = self._manifest = self._load(stale.run_id, stale.store)
 
     def _supersede(self, issuance: Issuance) -> None:
         """Mark *issuance* superseded; a ``regenerate`` request's recorded source goes with it."""

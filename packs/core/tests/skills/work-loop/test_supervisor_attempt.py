@@ -866,9 +866,69 @@ def test_a_supervisor_step_landing_during_the_attempt_refuses_the_result(
     assert landed != source
     code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    # The ref holds a value the run recorded: no restore command, `next` re-issues.
+    assert "run next" in out["refusal"]["detail"]
+    assert "update-ref" not in out["refusal"]["detail"]
     assert h.git(repo, "rev-parse", "HEAD").strip() == landed
     # The files are kept and the same request is issued again against the new commit.
     again = _current_request(repo)
     assert again["request_id"] == request["request_id"]
     code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 0, admitted
+
+
+def _stale_attempt(product_template: Path, tmp_path: Path) -> tuple[Path, dict[str, Any], Any]:
+    """An implement-task attempt whose first report met integration-conflict."""
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    result = controller.work(request)
+    h.workspace(repo).git.build_commit(
+        run_id=_run_id(repo), step="landing", operation="evidence", summary="a step landed"
+    )
+    code, out = controller.report(result)
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    return repo, request, (controller, result)
+
+
+def _edit_control_state(repo: Path) -> Callable[[], None]:
+    info = repo / ".git" / "info"
+    info.mkdir(exist_ok=True)
+    (info / "attributes").write_text("* filter=forged\n", encoding="utf-8")
+    return lambda: (info / "attributes").unlink()
+
+
+def _edit_trusted_file(repo: Path) -> Callable[[], None]:
+    plan = repo / SPEC / "plan.md"
+    original = plan.read_text("utf-8")
+    plan.write_text(original + "\nworker edit\n", encoding="utf-8")
+    return lambda: plan.write_text(original, encoding="utf-8")
+
+
+@pytest.mark.parametrize("edit", [_edit_control_state, _edit_trusted_file])
+def test_no_result_is_admitted_after_a_stale_conflict_without_next(
+    product_template: Path, tmp_path: Path, edit: Callable[[Path], Callable[[], None]]
+) -> None:
+    repo, request, (controller, result) = _stale_attempt(product_template, tmp_path)
+    undo = edit(repo)
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    code, out = controller.report(result)  # no next in between
+    assert code == 1 and out["refusal"]["code"] == "attempt-refused", out
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    undo()
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    code, admitted = controller.report(result)
+    assert code == 0, admitted
+
+
+def test_a_clean_report_after_a_stale_conflict_waits_for_next(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo, request, (controller, result) = _stale_attempt(product_template, tmp_path)
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    code, out = controller.report(result)
+    assert code == 1 and out["refusal"]["code"] == "not-current-attempt", out
+    assert "run next" in out["refusal"]["detail"]
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    assert controller.report(result)[0] == 0

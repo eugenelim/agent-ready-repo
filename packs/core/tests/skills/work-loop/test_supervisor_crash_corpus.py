@@ -97,6 +97,7 @@ def assert_three_way_parity(repo: Path) -> None:
     assert _manifest(repo, "HEAD") == _manifest(repo, name) == working
 
 
+STEP_POINTS = ("commit-built", "pending-recorded", "refs-moved", "synced")
 # The recorder of each repository under test, so a diversion can read where it struck.
 _RECORDERS: dict[Path, Recorder] = {}
 
@@ -107,6 +108,9 @@ class Recorder:
     def __init__(self, repo: Path, *, kill_at: int = 0, delete_at: int = 0) -> None:
         self.repo, self.kill_at, self.delete_at = repo, kill_at, delete_at
         self.seen: list[str] = []
+        # The operation of the step in flight at each kill point, "" outside a step.
+        self.ops: list[str] = []
+        self._op = ""
         self.staged_after_sync: list[list[str]] = []
 
     def check_product_ref(self, name: str) -> None:
@@ -127,8 +131,23 @@ class Recorder:
             assert h.git(self.repo, "symbolic-ref", "HEAD").strip() == "refs/heads/main"
             assert value == head and record["recorded"] == head and record["pending"] is None
 
+    def _operation(self) -> str:
+        """The operation trailer of the latest commit this run built."""
+        store = _run_store(self.repo)
+        made = (store / "made-commits").read_text("utf-8").split() if store else []
+        if not made:
+            return ""
+        body = h.git(self.repo, "log", "-1", "--format=%B", made[-1])
+        return next((x.split(": ", 1)[1] for x in body.splitlines()
+                     if x.startswith("Supervisor-Operation: ")), "")
+
     def __call__(self, name: str) -> None:
         self.seen.append(name)
+        if name == "commit-built":
+            self._op = self._operation()
+        self.ops.append(self._op if name in STEP_POINTS else "")
+        if name == "synced":
+            self._op = ""
         n = len(self.seen)
         self.check_product_ref(name)
         if name == "synced":
@@ -177,7 +196,7 @@ def adopt(c: h.Controller, request: dict[str, Any]) -> bool:
 def resumed_parity(repo: Path, *, allow_diverged: bool) -> None:
     """After a resumption the supervisor's repair has run: the three manifests agree.
 
-    A diversion scenario may still hold history the owner has yet to adopt.
+    Only the adoption scenario may still hold history the owner has yet to adopt.
     """
     store = _run_store(repo)
     assert store is not None
@@ -188,7 +207,8 @@ def resumed_parity(repo: Path, *, allow_diverged: bool) -> None:
 
 
 def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
-                between: Callable[..., None] | None = None) -> dict[str, Any]:
+                between: Callable[..., None] | None = None,
+                adopting: bool = False) -> dict[str, Any]:
     repo = h.make_repo(tmp)
     recorder = Recorder(repo, kill_at=kill_at, delete_at=delete_at)
     _RECORDERS[repo] = recorder
@@ -212,7 +232,7 @@ def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
                 code, started = h.start(repo)
                 assert code == 0, started
                 if crashes and (_run_store(repo) or Path()).joinpath("product-ref").exists():
-                    resumed_parity(repo, allow_diverged=between is not None)
+                    resumed_parity(repo, allow_diverged=adopting)
                 end = controller.drive()
                 log.extend(controller.log)
                 break
@@ -318,6 +338,7 @@ def summarize(repo: Path, effect_log: Path, end: dict[str, Any], log: list[dict[
         "staged_after_sync": recorder.staged_after_sync,
         "run_json_problems": problems,
         "seen": recorder.seen,
+        "ops": recorder.ops,
         "crashes": crashes,
         "log": log,
         "repo": repo,
@@ -377,12 +398,20 @@ def test_uninterrupted_run_reaches_terminal(baseline: dict[str, Any]) -> None:
     assert len(baseline["seen"]) == BOUNDARIES, collections.Counter(baseline["seen"])
 
 
-@pytest.mark.parametrize("mode", ["kill", "delete"])
+# The CI shards select these two test functions by name; keep the names apart from every
+# directory name in the test's path, and the VI-0519 test checks the split.
 @pytest.mark.parametrize("point", range(1, BOUNDARIES + 1))
-def test_variant_converges(baseline: dict[str, Any], tmp_path: Path, mode: str,
-                           point: int) -> None:
-    run = run_variant(tmp_path, **({"kill_at": point} if mode == "kill" else {"delete_at": point}))
-    assert run["crashes"] == (1 if mode == "kill" else 0)
+def test_kill_variant_converges(baseline: dict[str, Any], tmp_path: Path, point: int) -> None:
+    run = run_variant(tmp_path, kill_at=point)
+    assert run["crashes"] == 1
+    assert_converged(baseline, run)
+
+
+@pytest.mark.parametrize("point", range(1, BOUNDARIES + 1))
+def test_journal_delete_variant_converges(baseline: dict[str, Any], tmp_path: Path,
+                                          point: int) -> None:
+    run = run_variant(tmp_path, delete_at=point)
+    assert run["crashes"] == 0
     assert_converged(baseline, run)
 
 
@@ -461,7 +490,7 @@ def test_rebase_preserving_messages_converges(baseline: dict[str, Any], tmp_path
             h.git(c.repo, "rebase", "-q", "upstream")
             rebased.append(True)
 
-    run = run_variant(tmp_path, between=between)
+    run = run_variant(tmp_path, between=between, adopting=True)
     assert rebased == [True]
     assert_converged(baseline, run, trees=False, adopted=1)
 
@@ -499,7 +528,8 @@ def _scenario(tmp: Path, name: str, *, kill_at: int = 0) -> tuple[dict[str, Any]
     """Run the full synthetic run with a diversion in the middle; return it and where it struck."""
     divert, _adopted = SCENARIOS[name]
     done: list[int] = []
-    run = run_variant(tmp, kill_at=kill_at, between=lambda c, r, p: divert(c, r, p, done))
+    run = run_variant(tmp, kill_at=kill_at, between=lambda c, r, p: divert(c, r, p, done),
+                      adopting=name == "adoption")
     assert done, "the diversion never struck"
     return run, done[0]
 
@@ -520,6 +550,11 @@ def test_a_reset_or_a_rebase_converges_uninterrupted(baseline: dict[str, Any],
     # The window the kill tests walk covers every write the repair or adoption makes.
     struck = set(run["seen"][at:at + WINDOW])
     assert SCENARIO_POINTS[name] <= struck, (name, sorted(struck))
+    if name == "adoption":
+        # The window holds the reanchor step's own writes, not only another step's.
+        own = {point for point, op in zip(run["seen"][at:at + WINDOW], run["ops"][at:at + WINDOW], strict=True)
+               if op == "reanchor"}
+        assert set(STEP_POINTS) <= own, sorted(own)
 
 
 @pytest.mark.parametrize("offset", range(1, WINDOW + 1))
@@ -528,7 +563,8 @@ def test_every_write_of_lag_repair_and_adoption_converges(
     offset: int,
 ) -> None:
     name, base_run, at = diverted
-    run, _ = _scenario(tmp_path, name, kill_at=at + offset)
+    run, struck_at = _scenario(tmp_path, name, kill_at=at + offset)
     assert run["crashes"] == 1
+    assert struck_at == at, "the diversion struck at another point than in the uninterrupted run"
     assert run["seen"][at + offset - 1] == base_run["seen"][at + offset - 1], "struck elsewhere"
     assert_converged(baseline, run, trees=name == "lag-repair", adopted=SCENARIOS[name][1])

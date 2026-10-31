@@ -378,6 +378,11 @@ def test_a_run_from_before_the_product_ref_gains_one_across_a_regenerate(
     gained = json.loads((store / "product-ref").read_text("utf-8"))
     head = h.git(repo, "rev-parse", "HEAD").strip()
     assert gained["recorded"] == head == h.git(repo, "rev-parse", gained["name"]).strip()
+    # Nothing reads the approval commit's trailer: the run's new ref has a fresh name from
+    # the store, and the name the trailer still carries names no ref.
+    assert gained["name"] != name
+    assert f"Supervisor-Product-Ref: {name}" in h.git(repo, "log", "--format=%B", "--reverse")
+    assert not h.git(repo, "for-each-ref", name).strip()
 
 
 def _tracked_regenerate(tmp_path: Path) -> tuple[Path, Path, ModuleType, h.Controller, dict[str, Any]]:

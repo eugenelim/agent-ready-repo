@@ -733,6 +733,8 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
         _lagging, foreign = ws.git.delivery_lag()
         if foreign:
             raise Refusal("foreign-delivery-edit", "controller", ", ".join(foreign))
+        if checked["kind"] in _attempt.ATTEMPT_KINDS and checked["kind"] != "regenerate":
+            ws.attempts.require_open_issuance(checked)
         if checked["kind"] in ("external-effect", "effect-query"):
             _refuse_protected_change(ws, state)
             outcome = effects.report_effect(ws, state, checked)
@@ -818,7 +820,10 @@ def status(ws: Workspace) -> dict[str, Any]:
     state = derive(ws)
     if state.refusal is None:
         # What the next verb's ref check would refuse, found without repairing anything.
-        state.refusal = _supervisor("_supervisor_recovery.py").inspect(ws)
+        recovery = _supervisor("_supervisor_recovery.py")
+        state.refusal = recovery.inspect(ws)
+        if state.refusal is None:
+            ws.divergence = recovery.peek(ws)  # shown as the pending decision, nothing is issued
     if state.refusal is not None:
         return {
             "run": run_status(ws, state, None),

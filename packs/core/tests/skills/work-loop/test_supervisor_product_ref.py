@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -310,6 +311,12 @@ def _diverge_cases(repo: Path, name: str, older: str) -> dict[str, Callable[[], 
     }
 
 
+def _ref_and_store_snapshot(repo: Path) -> tuple[str, dict[str, bytes]]:
+    refs = git_ok(repo, "for-each-ref", "--format=%(refname) %(objectname)").stdout
+    store = {p.name: p.read_bytes() for p in store_dir(repo).iterdir() if p.is_file()}
+    return refs + rev(repo, "HEAD"), store
+
+
 def restore(repo: Path, name: str, value: str) -> None:
     """What the refusal tells the controller to run, for any kind of damage."""
     h.git(repo, "update-ref", "--no-deref", "-d", name)
@@ -452,8 +459,13 @@ def test_foreign_history_blocks_every_committing_verb(
         assert not (store_dir(repo) / "product-ref").exists()
     else:
         assert rev(repo, ref_name(repo)) != top
-    status_code, _ = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
-    assert status_code == 0
+    before = _ref_and_store_snapshot(repo)
+    status_code, status = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    assert status_code == 0 and status["terminal"] is False
+    assert status["request"]["reason"] == "history-adoption"
+    assert status["request"]["head_commit"] == top
+    assert status["run"]["gate_pending"] is True
+    assert _ref_and_store_snapshot(repo) == before, "status changed a ref or a store file"
 
 
 @pytest.mark.parametrize("verb", ["start", "report", "resolve-effect"])
@@ -784,3 +796,35 @@ def test_the_ci_jobs_list_the_product_ref_suites() -> None:
     assert 'WORK_SUPERVISOR_INTEGRATION: "1"' in job
     assert "timeout-minutes:" in job
     assert "supervisor-product-ref-windows" in windows.split("\n  build-check-windows:")[1]
+
+
+CORPUS = Path(__file__).resolve().parent / "test_supervisor_crash_corpus.py"
+
+
+def _collect(selector: str | None) -> list[str]:
+    """The corpus test ids pytest collects with *selector*, as the CI shard would."""
+    ids: list[str] = []
+
+    class Collect:
+        def pytest_collection_finish(self, session: Any) -> None:
+            # After ``-k`` has deselected: what the CI shard would run.
+            ids.extend(item.nodeid for item in session.items)
+
+    args = [str(CORPUS), "--collect-only", "-q", "-p", "no:cacheprovider"]
+    if selector is not None:
+        args += ["-k", selector]
+    assert pytest.main(args, plugins=[Collect()]) in (0, 5)
+    return ids
+
+
+def test_the_crash_corpus_shards_are_disjoint_nonempty_and_cover_every_test() -> None:
+    posix = _workflow("catalogue-tooling-ci-gates.yml")
+    job = posix.split("\n  supervisor-integration:")[1].split("\n  # ── Gate B")[0]
+    selectors = re.findall(r'selector: "([^"]+)"', job)
+    assert len(selectors) == 3, selectors
+    everything = _collect(None)
+    shards = [_collect(selector) for selector in selectors]
+    assert all(shards), [len(shard) for shard in shards]
+    flat = [item for shard in shards for item in shard]
+    assert len(flat) == len(set(flat)), "two shards run the same test"
+    assert sorted(flat) == sorted(everything), "a corpus test runs in no shard"
