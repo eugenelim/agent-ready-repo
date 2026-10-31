@@ -1,6 +1,6 @@
 # Spec: Pre-cutover compatibility closure
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-30 by eugenelim, spec and plan at `3ace13ecb`, after three spec-mode shaping and adversarial review rounds, each adjudicated, with the round-3 repair accepted unreviewed and AC-0020 kept at the deletion pass; records under `.context/reviews/87a629cd-91c6-435b-b8a2-edac5914679e/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
