@@ -905,3 +905,20 @@ def test_reference_exit_three_row_names_every_reason() -> None:
         "descriptor walking",
     ):
         assert reason in row
+
+
+# ---- round-five review repairs --------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "# T\n\n- a\n\t```mermaid\n\tA --> B\n\t```\n- next\n",
+        "# T\n\n- a\n  \t```mermaid\n  \tA --> B\n  \t```\n- next\n",
+    ],
+    ids=["tab", "spaces-then-tab"],
+)
+def test_tab_indented_mermaid_fence_under_a_list_item_is_labeled(mod, source) -> None:
+    out = mod.render(source, "e", "2026-01-01")
+    assert "Diagram source (not rendered)" in out and "<pre><code>A --&gt; B" in out
+    assert "<li>next</li>" in out

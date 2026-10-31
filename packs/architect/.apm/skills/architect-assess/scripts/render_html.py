@@ -119,7 +119,7 @@ class Block(NamedTuple):
     rows: tuple[tuple[str, ...], ...] = ()
 
 
-_FENCE = re.compile(r"^( *)(`{3,})([^`]*)$")
+_FENCE = re.compile(r"^([ \t]*)(`{3,})([^`]*)$")
 _ULI = re.compile(r"^\s*[-*]\s+(.*)$")
 _OLI = re.compile(r"^\s*\d+\.\s+(.*)$")
 _HR = re.compile(r"^\s*-{3,}\s*$")
@@ -236,7 +236,7 @@ def parse(source: str) -> list[Block]:
             while i < len(lines) and not (
                 lines[i].strip().startswith(marker) and set(lines[i].strip()) == {"`"}
             ):
-                body.append(lines[i][min(indent, len(lines[i]) - len(lines[i].lstrip(" "))) :])
+                body.append(lines[i][min(indent, len(lines[i]) - len(lines[i].lstrip(" \t"))) :])
                 i += 1
             i += 1
             blocks.append(Block("code", text="\n".join(body), header=(info.strip(),)))
