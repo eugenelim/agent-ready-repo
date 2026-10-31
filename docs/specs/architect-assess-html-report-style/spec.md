@@ -1,6 +1,6 @@
 # Spec: architect-assess HTML report in the maintainer-view style
 
-- **Status:** Draft
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) — the renderer's security rules stay in force: escaped values, a CSP naming the one `<style>` by hash, no script, no network. This spec owns the closed element and attribute lists from now on and amends the parent's element and attribute criteria to cite it. The family token file [`docs/design/tokens/skill-html-views.md`](../../design/tokens/skill-html-views.md) supplies the document-view tracks, type, spacing, and interaction floor.
@@ -145,6 +145,10 @@ A maintainer who opens an assessment report meets the same page family as the `n
 - [ ] The page shows a pill with a bar glyph for each of the four evidence classes and four heat cells that differ from one another in greyscale, in light and dark, recorded with screenshots in the verification ledger.
 - [ ] A `design-review` and an `experience-reviewer` pass over the 1280 px light, 1680 px light, and 320 px dark screenshots leave no finding at Major or Blocker after adjudication, recorded in the verification ledger.
 
+## Terminal Intent
+
+`code` — add the stylesheet assets, the document-view markup, the layout file, the docs and token-file updates, and the release surface.
+
 ## Follow-ons
 
 - eugenelim: [`docs/specs/architect-assess-html-report/notes/diagram-rendering-decision.md`](../architect-assess-html-report/notes/diagram-rendering-decision.md) — how diagrams are drawn in the browser.
@@ -156,3 +160,9 @@ A maintainer who opens an assessment report meets the same page family as the `n
 - Technical: diagrams in the fixture appear as labeled source blocks because drawing them is the open decision in `notes/diagram-rendering-decision.md` — whether and how the style slice should later draw them (settled by: the owner, in a later spec).
 - Technical: the contents rail has no current-section highlight because the page runs no script, and the narrow contents control is a closed `details` and a duplicate wide list because `open` cannot be set by width — whether that is enough (settled by: the owner after the first look).
 - Technical: older engines without alternative text on generated content show no glyph, since the fallback is `content: none` and the word carries the class — whether that is acceptable (settled by: the owner).
+
+## Changelog
+
+<!-- Approvals only. -->
+
+- 2026-10-31: spec approved by eugenelim (layout file reads colour tokens)

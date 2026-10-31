@@ -1,7 +1,7 @@
 # Plan: architect-assess HTML report in the maintainer-view style
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 - **Repository anchors:** the shared family stylesheet in `packs/core/.apm/skills/navigate-intents/scripts/view_assets/view-base.css` and its layout-file check `_layout_violations` in `packs/core/tests/skills/navigate-intents/test_export_html.py`; the decisions explorer's join of base plus layout into one hashed `<style>` and its asset placement beside the script in `packs/repo-governance/.apm/skills/navigate-decisions/scripts/explorer.py` and `explorer_assets/`; the family tokens in `docs/design/tokens/skill-html-views.md` (document view tracks, document density, interaction floor); the parity tool `tools/check_view_base_parity.py`, which finds every `view-base.css` under `packs/*/.apm/`; the renderer and its tests in `packs/architect/.apm/skills/architect-assess/scripts/render_html.py` and `packs/architect/tests/skills/architect-assess/test_render_html.py`. Deviation: the family's layout check bans `var(--c-` in a layout file; this report's layout file reads colour roles through it, because the family list-and-detail views have no tables, code blocks, provenance marks, or heat cells, and the owner decision is recorded in the token file.
 
 > **Plan contract:** `Touches`, `Tests` and `Done when` are what a completion gate
@@ -104,3 +104,5 @@ The change touches the page's security surface through the two lists, the asset 
 ## Changelog
 
 <!-- Approvals only. -->
+
+- 2026-10-31: plan approved by eugenelim
