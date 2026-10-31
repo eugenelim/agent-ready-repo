@@ -266,10 +266,9 @@ and no source converges on a universal one.
 - A rule that governs criterion authoring appears in exactly one of the skill's
   four authoring surfaces; the pack-local discipline suite enforces this per
   pinned sentence.
-- `workspace.toml` `[backlog].open` is the sole authoritative register for a
-  historical deferred marker; `docs/backlog.md` is not consulted. A marker
-  resolves through either a legacy `slug` field or a canonical artifact path
-  reduced to its canonical anchor. A `(deferred: <anchor>)` marker no longer
+- The captured-item file `docs/product/captured/<anchor>.md`, whatever its
+  status, resolves a historical deferred marker, as does an open intent, brief
+  or spec file; `workspace.toml` and `docs/backlog.md` are not consulted. A `(deferred: <anchor>)` marker no longer
   makes a *new* ship transition valid — separable work leaves the final
   criterion list through an approved amendment and a non-criterion follow-on.
 - The canonical status vocabulary is `{Draft, Approved, Implementing, Shipped,
@@ -315,7 +314,7 @@ together. Two allowances survive the freeze, and nothing else does.
 **A parenthetical on the existing `Status` token is the only edit the frozen
 body accepts**, in exactly two licensed shapes: a supersession pointer
 (`Shipped (superseded in part by ADR-NNNN — …)`), and a pointer recording that a
-`[backlog].open` anchor the body names has been closed. The linter truncates at
+deferral anchor the body names has been closed. The linter truncates at
 the first ` (`, so an annotated status still satisfies the vocabulary rule.
 There is no `Superseded` token, and `Archived` is not a substitute — a
 superseded spec usually shipped and is still live.

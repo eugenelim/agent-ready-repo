@@ -1,11 +1,8 @@
-"""Tests for lint-spec-status.py invariant (iv) — workspace.toml [backlog] resolution.
+"""Tests for lint-spec-status.py invariant (iv) -- captured-item file resolution.
 
-Tests:
-  (a) workspace-only slug passes check()
-  (c) slug-absent-from-workspace.toml is a HARD violation
-  (d) absent workspace.toml → backlog_open_slugs returns empty set
-  (e) malformed TOML drives through backlog_open_slugs (not just _regex helper)
-  (f) _regex_backlog_slugs directly resolves slugs from [backlog].open
+A `(deferred: <slug>)` marker resolves through `docs/product/captured/<slug>.md`
+(whatever its Status) or an open intent, brief or spec file; `workspace.toml`
+is never read for anchors.
 """
 
 from __future__ import annotations
@@ -26,172 +23,98 @@ def _load_lint_module() -> types.ModuleType:
     return mod
 
 
-def test_workspace_only_slug_passes_check(tmp_path: Path) -> None:
-    """(a) Slug in workspace.toml [backlog].open — check() has no HARD violation."""
-    lint = _load_lint_module()
-
-    workspace = tmp_path / "workspace.toml"
-    workspace.write_text(
-        '[backlog]\nopen = [{slug = "my-ws-only-slug"}]\n', encoding="utf-8", newline="\n"
-    )
-
-    specs = tmp_path / "docs" / "specs" / "my-spec"
+def _spec_deferring(root: Path, anchor: str) -> None:
+    specs = root / "docs" / "specs" / "my-spec"
     specs.mkdir(parents=True)
     (specs / "spec.md").write_text(
         "- **Status:** Approved\n\n## Acceptance Criteria\n\n"
-        "- [ ] do thing (deferred: my-ws-only-slug)\n",
+        f"- [ ] do thing (deferred: {anchor})\n",
         encoding="utf-8",
         newline="\n",
     )
 
-    hard, _warn = lint.check(tmp_path, base_ref=None)
-    # No HARD violation — slug resolves via workspace.toml
-    assert not any("my-ws-only-slug" in v for v in hard), (
-        f"Expected my-ws-only-slug to resolve; hard violations: {hard}"
-    )
+
+def _captured(root: Path, slug: str, text: str) -> Path:
+    path = root / "docs" / "product" / "captured" / f"{slug}.md"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8", newline="\n")
+    return path
 
 
-def test_slug_absent_from_workspace_is_hard_violation(tmp_path: Path) -> None:
-    """(c) Slug absent from workspace.toml [backlog].open → HARD violation."""
-    lint = _load_lint_module()
+def _hard(root: Path, anchor: str) -> list[str]:
+    hard, _warn = _load_lint_module().check(root, base_ref=None)
+    return [v for v in hard if anchor in v]
 
-    specs = tmp_path / "docs" / "specs" / "my-spec"
-    specs.mkdir(parents=True)
-    (specs / "spec.md").write_text(
-        "- **Status:** Approved\n\n## Acceptance Criteria\n\n"
-        "- [ ] do thing (deferred: nonexistent-slug)\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+
+def test_open_captured_file_resolves_anchor(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
+    _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Open\n")
+    assert _hard(tmp_path, "my-item") == []
+
+
+def test_closed_captured_file_resolves_anchor(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
+    _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Closed\n- **Resolution:** fixed\n")
+    assert _hard(tmp_path, "my-item") == []
+
+
+def test_backlog_open_entry_without_captured_file_is_refused(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
     (tmp_path / "workspace.toml").write_text(
-        "[backlog]\nopen = []\n", encoding="utf-8", newline="\n"
+        '[backlog]\nopen = [{slug = "my-item"}]\n', encoding="utf-8", newline="\n"
     )
-
-    hard, _warn = lint.check(tmp_path, base_ref=None)
-    assert any("nonexistent-slug" in v for v in hard)
+    assert _hard(tmp_path, "my-item")
 
 
-def test_absent_workspace_toml_returns_empty_slugs(tmp_path: Path) -> None:
-    """(d) workspace.toml absent → backlog_open_slugs returns empty set."""
-    lint = _load_lint_module()
-    slugs = lint.backlog_open_slugs(tmp_path / "workspace.toml")
-    assert slugs == set()
+def test_workspace_toml_is_not_opened_for_anchors(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
+    _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Open\n")
+    # A directory in place of the file would raise if the lint opened it.
+    (tmp_path / "workspace.toml").mkdir()
+    assert _hard(tmp_path, "my-item") == []
 
 
-def test_malformed_toml_falls_back_via_backlog_open_slugs(tmp_path: Path) -> None:
-    """(e) Malformed TOML — backlog_open_slugs catches parse error, falls back to regex."""
-    lint = _load_lint_module()
-
-    workspace = tmp_path / "workspace.toml"
-    # Well-formed enough for regex to find the slug line, but invalid as TOML
-    workspace.write_text(
-        '[backlog]\nopen = [\n  {slug = "alpha"},\n  invalid syntax here\n]\n',
-        encoding="utf-8",
-        newline="\n",
-    )
-    slugs = lint.backlog_open_slugs(workspace)
-    assert "alpha" in slugs
+def test_unresolved_message_names_captured_path(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
+    (violation,) = _hard(tmp_path, "my-item")
+    assert "docs/product/captured/my-item.md" in violation
+    assert "workspace.toml" not in violation
 
 
-def test_regex_backlog_slugs_helper(tmp_path: Path) -> None:
-    """(f) _regex_backlog_slugs directly resolves slugs from [backlog].open."""
-    lint = _load_lint_module()
-
-    text = '[backlog]\nopen = [\n  {slug = "alpha"},\n  {slug = "beta"},\n]\n'
-    slugs = lint._regex_backlog_slugs(text)
-    assert "alpha" in slugs
-    assert "beta" in slugs
+def test_captured_file_without_status_header_is_refused(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
+    _captured(tmp_path, "my-item", "# Item\n\nno header here\n")
+    assert _hard(tmp_path, "my-item")
 
 
-def test_canonical_entry_anchor_derivation() -> None:
-    """(g) A canonical entry's `path` reduces to the anchor its slug used to be."""
-    lint = _load_lint_module()
-
-    # Non-spec artifacts anchor on the file stem, which is exactly how the
-    # shaping slugs these entries replaced were already named.
-    assert lint.canonical_entry_anchor(
-        "docs/product/design/workspace-anchor-staleness-invariant.md"
-    ) == "workspace-anchor-staleness-invariant"
-    assert lint.canonical_entry_anchor(
-        "docs/product/intents/selftest-untracked-plant-window.md"
-    ) == "selftest-untracked-plant-window"
-    # A spec or plan anchors on its owning directory, never on "spec"/"plan".
-    assert lint.canonical_entry_anchor("docs/specs/my-feature/spec.md") == "my-feature"
-    assert lint.canonical_entry_anchor("docs/specs/my-feature/plan.md") == "my-feature"
-    # Degenerate input yields no anchor rather than a bogus one.
-    assert lint.canonical_entry_anchor("") is None
-    assert lint.canonical_entry_anchor("/") is None
+def test_symlinked_captured_file_is_refused(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
+    target = tmp_path / "elsewhere.md"
+    target.write_text("- **Status:** Open\n", encoding="utf-8")
+    directory = tmp_path / "docs" / "product" / "captured"
+    directory.mkdir(parents=True)
+    (directory / "my-item.md").symlink_to(target)
+    assert _hard(tmp_path, "my-item")
 
 
-def test_canonical_backlog_entry_resolves_deferral_anchor(tmp_path: Path) -> None:
-    """(h) A canonical `{path=...}` entry resolves invariant (iv).
-
-    Before this, only a legacy `{slug=...}` record could satisfy a deferral
-    anchor, so a spec that deferred was obliged to write a legacy-shaped
-    workspace record in order to pass a hard gate.
-    """
-    lint = _load_lint_module()
-
-    workspace = tmp_path / "workspace.toml"
-    workspace.write_text(
-        "[backlog]\nopen = [\n"
-        '  {path = "docs/product/captured/anchor-staleness.md", kind = "design", '
-        'source = {mode = "repo-origin"}, summary = "s", needs = []},\n'
-        "]\n",
-        encoding="utf-8",
-        newline="\n",
-    )
-
-    specs = tmp_path / "docs" / "specs" / "my-spec"
-    specs.mkdir(parents=True)
-    (specs / "spec.md").write_text(
-        "- **Status:** Approved\n\n## Acceptance Criteria\n\n"
-        "- [ ] do thing (deferred: anchor-staleness)\n",
-        encoding="utf-8",
-        newline="\n",
-    )
-
-    hard, _warn = lint.check(tmp_path, base_ref=None)
-    assert not any("anchor-staleness" in v for v in hard), (
-        f"canonical entry should resolve the anchor; hard violations: {hard}"
-    )
+def test_hard_linked_captured_file_is_refused(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
+    path = _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Open\n")
+    (tmp_path / "second-link.md").hardlink_to(path)
+    assert _hard(tmp_path, "my-item")
 
 
-def test_unresolvable_anchor_still_hard_with_canonical_entries(tmp_path: Path) -> None:
-    """(i) Broadening the resolver must not make invariant (iv) unfailable."""
-    lint = _load_lint_module()
-
-    workspace = tmp_path / "workspace.toml"
-    workspace.write_text(
-        "[backlog]\nopen = [\n"
-        '  {path = "docs/product/captured/present.md", kind = "design", '
-        'source = {mode = "repo-origin"}, summary = "s", needs = []},\n'
-        "]\n",
-        encoding="utf-8",
-        newline="\n",
-    )
-
-    specs = tmp_path / "docs" / "specs" / "my-spec"
-    specs.mkdir(parents=True)
-    (specs / "spec.md").write_text(
-        "- **Status:** Approved\n\n## Acceptance Criteria\n\n"
-        "- [ ] do thing (deferred: absent-anchor)\n",
-        encoding="utf-8",
-        newline="\n",
-    )
-
-    hard, _warn = lint.check(tmp_path, base_ref=None)
-    assert any("absent-anchor" in v for v in hard), (
-        f"expected a HARD violation for an unresolvable anchor; got: {hard}"
-    )
+def test_open_intent_still_resolves_anchor(tmp_path: Path) -> None:
+    _spec_deferring(tmp_path, "my-item")
+    directory = tmp_path / "docs" / "product" / "intents"
+    directory.mkdir(parents=True)
+    (directory / "my-item.md").write_text("# I\n\n- **Status:** Draft\n", encoding="utf-8")
+    assert _hard(tmp_path, "my-item") == []
 
 
 def test_bare_status_form_warns(tmp_path: Path) -> None:
     """(j) A bare `**Status:**` warns: the workspace engine reads it as absent."""
     lint = _load_lint_module()
-    (tmp_path / "workspace.toml").write_text(
-        "[backlog]\nopen = []\n", encoding="utf-8", newline="\n"
-    )
 
     for name, header in (
         ("bare-form", "**Status:** Shipped\n"),
@@ -224,7 +147,6 @@ def _plant_spec(root: Path, anchor: str = _ANCHOR) -> None:
         encoding="utf-8",
         newline="\n",
     )
-    (root / "workspace.toml").write_text("[backlog]\nopen = []\n", encoding="utf-8")
 
 
 def _plant_file(root: Path, kind: str, text: str, anchor: str = _ANCHOR) -> Path:
@@ -262,11 +184,9 @@ def test_draft_preamble_with_later_fulfilled_body_line_resolves(tmp_path: Path) 
     assert _violations(tmp_path) == []
 
 
-def test_backlog_open_entry_still_resolves(tmp_path: Path) -> None:
+def test_captured_file_still_resolves(tmp_path: Path) -> None:
     _plant_spec(tmp_path)
-    (tmp_path / "workspace.toml").write_text(
-        f'[backlog]\nopen = [{{slug = "{_ANCHOR}"}}]\n', encoding="utf-8"
-    )
+    _captured(tmp_path, _ANCHOR, "# Item\n\n- **Status:** Closed\n")
     assert _violations(tmp_path) == []
 
 
@@ -389,7 +309,5 @@ def test_symlinked_specs_directory_does_not_resolve_anchor(tmp_path: Path) -> No
 def test_base_cases_keep_results(tmp_path: Path) -> None:
     _plant_spec(tmp_path)
     assert _violations(tmp_path)
-    (tmp_path / "workspace.toml").write_text(
-        f'[backlog]\nopen = [{{slug = "{_ANCHOR}"}}]\n', encoding="utf-8"
-    )
+    _captured(tmp_path, _ANCHOR, "# Item\n\n- **Status:** Open\n")
     assert _violations(tmp_path) == []

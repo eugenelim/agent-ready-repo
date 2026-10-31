@@ -131,7 +131,8 @@ select a route, satisfy a dependency, or authorize dispatch.
 
 Repository-level open work is indexed in `workspace.toml` `[backlog].open`, and
 `workspace-status` projects that collection. What that register means for a
-spec's deferral marker is the loop contract's
+spec's deferral marker (it resolves through the captured-item file
+`docs/product/captured/<slug>.md`) is the loop contract's
 [§ 7](loop-contract.md#7-mechanical-invariants).
 
 ### Delivery-brief lifecycle

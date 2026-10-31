@@ -46,14 +46,11 @@ def write_spec(root: Path, name: str, status: str, acs: str) -> None:
     )
 
 
-def write_workspace_backlog(root: Path, slugs: list[str]) -> None:
-    p = root / "workspace.toml"
-    if slugs:
-        lines = "\n".join(f'  {{slug = "{s}"}},' for s in slugs)
-        body = f"[backlog]\nopen = [\n{lines}\n]\n"
-    else:
-        body = "[backlog]\nopen = []\n"
-    p.write_text(body, encoding="utf-8")
+def write_captured_item(root: Path, slug: str, status: str = "Open") -> None:
+    """Plant the captured-item file a `(deferred: <slug>)` marker resolves through."""
+    p = root / "docs" / "product" / "captured" / f"{slug}.md"
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(f"# {slug}\n\n- **Status:** {status}\n", encoding="utf-8")
 
 
 def run_lint(
@@ -269,7 +266,7 @@ def test_invariant_ii_transition_fails() -> None:
 def test_invariant_ii_transition_fails_when_deferred() -> None:
     with best_effort_tempdir() as tmp:
         root = Path(tmp)
-        write_workspace_backlog(root, ["later-work"])
+        write_captured_item(root, "later-work")
         write_spec(root, "shipping", "Draft", "- [ ] AC1 open\n")
         git_init_commit(root)
         write_spec(
@@ -313,30 +310,32 @@ def test_invariant_i_missing_status() -> None:
         expect("no `- **Status:**`" in err, f"expected missing-status msg: {err}")
 
 
-def test_invariant_iv_resolves_workspace_slug() -> None:
+def test_invariant_iv_resolves_captured_item() -> None:
     with best_effort_tempdir() as tmp:
         root = Path(tmp)
-        # A slug in workspace.toml [backlog].open must resolve a (deferred:) marker.
-        write_workspace_backlog(root, ["some-deferred-item"])
+        # A captured-item file must resolve a (deferred:) marker.
+        write_captured_item(root, "some-deferred-item")
         write_spec(root, "deferring", "Draft",
                    "- [ ] AC1 (deferred: some-deferred-item)\n")
         rc, _, err = run_lint(root)
-        expect(rc == 0, f"deferral to workspace.toml slug should resolve, got {rc}: {err}")
+        expect(rc == 0, f"deferral to a captured-item file should resolve, got {rc}: {err}")
 
 
 # STUB: AC1 — repository metadata must not be read through an outside symlink.
-def test_workspace_symlink_outside_root_does_not_resolve_deferral() -> None:
+def test_captured_symlink_outside_root_does_not_resolve_deferral() -> None:
     with best_effort_tempdir() as tmp:
         sandbox = Path(tmp)
         root = sandbox / "repo"
-        root.mkdir()
-        outside = sandbox / "outside-workspace.toml"
+        (root / "docs" / "product" / "captured").mkdir(parents=True)
+        outside = sandbox / "outside-captured.md"
         outside.write_text(
-            '# workspace-content-sentinel\n[[backlog.open]]\nslug = "outside-only-anchor"\n',
+            "# workspace-content-sentinel\n\n- **Status:** Open\n",
             encoding="utf-8",
         )
         if not symlink_or_skip(
-            "workspace symlink confinement", root / "workspace.toml", outside
+            "captured symlink confinement",
+            root / "docs" / "product" / "captured" / "outside-only-anchor.md",
+            outside,
         ):
             return
         write_spec(
@@ -1499,27 +1498,20 @@ def test_scoped_run_keeps_dangling_reference_warnings_repo_wide() -> None:
 
 
 def test_scoped_run_keeps_deferral_anchors_repo_wide() -> None:
-    """Invariant (iv)'s second input is workspace.toml, not the spec file.
+    """Invariant (iv)'s second input is the captured-item file, not the spec file.
 
-    Closing a `[backlog].open` entry -- the routine close-work operation --
-    invalidates the marker in every spec citing it, none of which need have
-    changed. Scoping (iv) to changed specs would let that land unreported, and
+    Removing a captured-item file invalidates the marker in every spec citing
+    it, none of which need have changed. Scoping (iv) to changed specs would let that land unreported, and
     it is a HARD invariant, so this is the case that keeps it out of scope.
     """
     with best_effort_tempdir() as tmp:
         root = Path(tmp)
         write_spec(root, "deferring", "Draft", "- [ ] AC2 (deferred: some-followup)\n")
-        (root / "workspace.toml").write_text(
-            '[backlog]\nopen = [{slug = "some-followup"}]\nclosed = []\n',
-            encoding="utf-8",
-        )
+        write_captured_item(root, "some-followup")
         git_init_commit(root)
 
-        # Close the entry and touch NO spec.
-        (root / "workspace.toml").write_text(
-            '[backlog]\nopen = []\nclosed = [{slug = "some-followup"}]\n',
-            encoding="utf-8",
-        )
+        # Remove the captured-item file and touch NO spec.
+        (root / "docs" / "product" / "captured" / "some-followup.md").unlink()
         rc, out, err = run_lint(root, base_ref="HEAD")
 
     assert rc == 1, f"a broken deferral anchor must fail the scoped run: {out}\n{err}"

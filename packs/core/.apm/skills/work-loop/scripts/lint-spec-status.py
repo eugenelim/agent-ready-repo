@@ -40,9 +40,9 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         exit code); promoting it to a hard invariant stays deferred pending
         the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
-        resolves against `workspace.toml [backlog].open`, in either entry
-        shape: a legacy record's `slug`, or a canonical record's `path`
-        reduced by `canonical_entry_anchor`. An open intent or brief file
+        resolves through its captured-item file `docs/product/captured/<anchor>.md`
+        (a regular, singly linked file with a readable `- **Status:**` header,
+        whatever the status, Closed included). An open intent or brief file
         (`docs/product/intents/<anchor>.md` or `docs/product/briefs/<anchor>.md`,
         a regular non-link file whose preamble status is not terminal) also
         resolves an anchor. So does an open spec file: `docs/specs/<anchor>/spec.md`
@@ -422,99 +422,6 @@ def status_uses_list_item_form(spec_text: str) -> bool:
         if _STATUS_RE.search(line):
             return line.lstrip().startswith("- **Status:**")
     return False
-
-
-def canonical_entry_anchor(path: str) -> str | None:
-    """Derive a deferral anchor from a canonical entry's `path`.
-
-    A canonical `[backlog].open` entry carries `path`/`kind` and no `slug`, so
-    resolving invariant (iv) from the `slug` key alone would oblige every
-    deferring spec to write a legacy-shaped record. A spec or plan path
-    (`docs/specs/<slug>/spec.md`) anchors on its owning directory; any other
-    artifact anchors on its file stem, which is how the shaping slugs these
-    entries replaced were already named.
-    """
-    if not path:
-        return None
-    parts = [part for part in path.split("/") if part]
-    if not parts:
-        return None
-    name = parts[-1]
-    stem = name.rsplit(".", 1)[0] if "." in name else name
-    if stem in {"spec", "plan"} and len(parts) >= 2:
-        return parts[-2] or None
-    return stem or None
-
-
-def _regex_backlog_slugs(workspace_text: str) -> set[str]:
-    """Extract [backlog].open anchors from workspace.toml text via regex fallback.
-
-    Used when tomllib/tomli is unavailable or the TOML is malformed. Scans the
-    [backlog] section for both `slug = "..."` (legacy shape) and `path = "..."`
-    (canonical shape). Without a parser this cannot separate an entry's own
-    `path` from a `needs` target, so it may over-collect; a fallback that is
-    too permissive only fails to report an unresolved anchor, whereas one that
-    is too strict would fail a correct spec.
-    """
-    slugs: set[str] = set()
-    in_backlog = False
-    for line in workspace_text.splitlines():
-        if re.match(r"^\s*\[backlog\]", line):
-            in_backlog = True
-        elif re.match(r"^\s*\[", line) and "[backlog]" not in line:
-            in_backlog = False
-        if in_backlog:
-            m = re.search(r'\bslug\s*=\s*"([^"]+)"', line)
-            if m:
-                slugs.add(m.group(1))
-            for raw_path in re.findall(r'\bpath\s*=\s*"([^"]+)"', line):
-                anchor = canonical_entry_anchor(raw_path)
-                if anchor:
-                    slugs.add(anchor)
-    return slugs
-
-
-def backlog_open_slugs(workspace_path: Path) -> set[str]:
-    """Return the set of resolvable deferral anchors from [backlog].open.
-
-    Accepts both entry shapes: a legacy `{slug = ...}` record anchors on its
-    `slug`, and a canonical `{path = ..., kind = ...}` record anchors on the
-    identifier derived by `canonical_entry_anchor`. Supporting both is what
-    stops invariant (iv) from obliging a deferring spec to write a legacy
-    record in order to be resolvable.
-
-    Uses tomllib (Python 3.11+ stdlib) or tomli (backport) when available;
-    falls back to regex for all other cases including malformed TOML.
-    Returns an empty set when workspace.toml is absent.
-    """
-    if not workspace_path.is_file():
-        return set()
-    text = workspace_path.read_text(encoding="utf-8", errors="replace")
-    try:
-        try:
-            import tomllib  # type: ignore[import]
-        except ImportError:
-            try:
-                import tomli as tomllib  # type: ignore[import,no-redef]
-            except ImportError:
-                return _regex_backlog_slugs(text)
-        data = tomllib.loads(text)
-        anchors: set[str] = set()
-        for entry in data.get("backlog", {}).get("open", []):
-            if not isinstance(entry, dict):
-                continue
-            slug = entry.get("slug")
-            if isinstance(slug, str) and slug:
-                anchors.add(slug)
-                continue
-            entry_path = entry.get("path")
-            if isinstance(entry_path, str):
-                derived = canonical_entry_anchor(entry_path)
-                if derived:
-                    anchors.add(derived)
-        return anchors
-    except ValueError:
-        return _regex_backlog_slugs(text)
 
 
 def deferred_anchors(spec_text: str) -> list[tuple[int, str]]:
@@ -1002,6 +909,29 @@ def open_file_resolves(root: Path, anchor: str) -> bool:
     return False
 
 
+def captured_file_resolves(root: Path, anchor: str) -> bool:
+    """True when `docs/product/captured/<anchor>.md` under `root` is readable.
+
+    The file must be a regular, singly linked, non-link file under real
+    directories below the resolved root, and carry a preamble status the lint
+    can read. Its status value does not matter: a Closed captured item still
+    pins a frozen spec's deferral. Any OSError means the file does not resolve.
+    """
+    try:
+        docs = root.resolve() / "docs"
+        directory = docs / "product" / "captured"
+        if not all(_real_dir(d) for d in (docs, docs / "product", directory)):
+            return False
+        path = directory / f"{anchor}.md"
+        info = os.lstat(path)
+        if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
+            return False
+        text = _read(path)
+        return text is not None and bool(parse_status(text))
+    except (OSError, ValueError):
+        return False
+
+
 def open_spec_resolves(root: Path, anchor: str) -> bool:
     """True when an open spec file under `root` resolves `anchor`.
 
@@ -1026,7 +956,7 @@ def open_spec_resolves(root: Path, anchor: str) -> bool:
 
 
 def _repo_wide_findings(
-    root: Path, spec_paths: list[Path], anchors: set[str]
+    root: Path, spec_paths: list[Path]
 ) -> tuple[list[str], list[str]]:
     """Return `(hard, warn)` for the invariants that must span every spec.
 
@@ -1034,14 +964,13 @@ def _repo_wide_findings(
     reasons:
 
       (iii) dangling references — warn-only, and its value is repository-wide.
-      (iv)  deferral anchors — HARD, and its second input is `workspace.toml`,
-            not the spec file. Closing a `[backlog].open` entry invalidates the
-            marker in every spec that cites it, none of which need have changed,
-            so scoping this to changed specs would let the routine close-work
-            operation break anchors with nothing reporting it. An open intent
-            or brief file (`open_file_resolves`) or an open spec file
-            (`open_spec_resolves`) also resolves an anchor; that check runs
-            lazily, only for anchors the backlog does not resolve.
+      (iv)  deferral anchors — HARD, and its second input is the captured-item
+            file `docs/product/captured/<anchor>.md`, not the spec file.
+            Removing that file invalidates the marker in every spec that cites
+            it, none of which need have changed, so scoping this to changed
+            specs would let the removal break anchors with nothing reporting
+            it. An open intent or brief file (`open_file_resolves`) or an open
+            spec file (`open_spec_resolves`) also resolves an anchor.
 
     Both read the same text, so they share one pass over the corpus.
     """
@@ -1079,17 +1008,17 @@ def _repo_wide_findings(
                 )
         # (iv) deferral anchors resolve. HARD, and repo-wide: see the docstring.
         for lineno, anchor in deferred_anchors(text):
-            if anchor in anchors:
-                continue
             if anchor not in file_resolved:
-                file_resolved[anchor] = open_file_resolves(
-                    root, anchor
-                ) or open_spec_resolves(root, anchor)
+                file_resolved[anchor] = (
+                    captured_file_resolves(root, anchor)
+                    or open_file_resolves(root, anchor)
+                    or open_spec_resolves(root, anchor)
+                )
             if not file_resolved[anchor]:
                 hard.append(
                     f"{rel}:{lineno}: invariant (iv) — (deferred: {anchor}) "
-                    "does not resolve in workspace.toml [backlog].open or "
-                    "an open intent or brief file"
+                    f"does not resolve through docs/product/captured/{anchor}.md "
+                    "or an open intent, brief or spec file"
                 )
     return hard, warn
 
@@ -1115,9 +1044,6 @@ def check(
     """
     hard: list[str] = []
     warn: list[str] = []
-
-    workspace_path = _confined_file(root / "workspace.toml", root)
-    anchors = backlog_open_slugs(workspace_path) if workspace_path is not None else set()
 
     base_resolvable = base_ref is not None
     if base_resolvable and not base_ref_resolves(root, base_ref):
@@ -1347,7 +1273,7 @@ def check(
                         f"backward x-spec/REGISTRY.md ref to {feature_dir} (warn-only)"
                     )
 
-    repo_hard, repo_warn = _repo_wide_findings(root, all_spec_paths, anchors)
+    repo_hard, repo_warn = _repo_wide_findings(root, all_spec_paths)
     hard.extend(repo_hard)
     warn.extend(repo_warn)
     return hard, warn
