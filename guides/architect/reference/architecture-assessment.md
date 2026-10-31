@@ -206,7 +206,7 @@ without that primitive fails closed and can still use stdout.
 
 An HTML report is a second file beside the saved report, written by
 `scripts/render_html.py` on request. The page loads nothing from a network and
-runs no script. Diagrams appear as labeled source blocks. The script exits 2 for a refused report and 3 for a confinement failure; hosts
+runs no script. It uses the maintainer-view style shared with the intents and decisions views, with a contents rail beside the text on wide screens. Diagrams appear as labeled source blocks. The script exits 2 for a refused report and 3 for a confinement failure; hosts
 without descriptor walking, Windows included, get no report. The skill's
 `references/html-report.md` lists every reason.
 

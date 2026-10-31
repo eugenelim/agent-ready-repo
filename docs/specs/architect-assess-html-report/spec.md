@@ -77,8 +77,8 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 - [x] A Markdown link whose target, trimmed and lowercased, begins with any other scheme or with no scheme is emitted as text with no `<a>` element.
 - [x] Every value that comes from the report or from the effort-directory path appears in the output only as escaped text, including values placed in `<title>` and in the metadata block.
 - [x] A raw `<script>`, an `<img onerror>`, and a `"` attribute breakout in the source each appear in the output as escaped text.
-- [x] Parsed with `html.parser`, every element in the output is one of `html`, `head`, `meta`, `title`, `style`, `body`, `main`, `section`, `div`, `span`, `p`, `h1`–`h6`, `ul`, `ol`, `li`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `strong`, `em`, `a`, `details`, `summary`, `br`, or `hr`.
-- [x] Every attribute in the parsed output is one of `class`, `id`, `lang`, `charset`, `http-equiv`, `content`, or `href` on an `a` element.
+- [x] Every element in the parsed output is one of the elements that [`architect-assess-html-report-style`](../architect-assess-html-report-style/spec.md) lists, and that spec owns the list.
+- [x] Every attribute in the parsed output is one of the attributes that [`architect-assess-html-report-style`](../architect-assess-html-report-style/spec.md) lists, and that spec owns the list.
 - [x] The body of the output's `<style>` element contains neither `@import` nor `url(`.
 - [x] The output has exactly two `meta` elements, `meta charset` first and the `Content-Security-Policy` meta second, both before the `title` and `style` elements.
 - [x] The CSP's `default-src`, `base-uri`, and `form-action` are `'none'`.

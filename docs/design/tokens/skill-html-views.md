@@ -9,7 +9,7 @@ governed_by:
 
 # Design system: skill-emitted HTML views
 
-These are the values behind the shared style for the maintainer views that skills emit as HTML. Values are CSS custom properties. Each view joins this shared base with its own layout rules into the one hashed style element its policy names. The adopters are `navigate-intents`, `navigate-decisions`, `explain-diff` and `render-proof`; `markdown-to-html` keeps its author themes.
+These are the values behind the shared style for the maintainer views that skills emit as HTML. Values are CSS custom properties. Each view joins this shared base with its own layout rules into the one hashed style element its policy names. The adopters are `navigate-intents`, `navigate-decisions`, `explain-diff`, `render-proof` and `architect-assess`; `markdown-to-html` keeps its author themes.
 
 ## Authority and route
 
@@ -193,6 +193,31 @@ Each state is a word plus a glyph inside a pill tinted by its state. Colour rein
 | done (terminal) | ✓ | Done | `--c-muted` | `--c-done-bg` |
 
 The glyph is hidden from assistive tech, and the word is read. Each view maps its own status vocabulary onto these eight marks and shows its own status word where it differs, for example "◆ Accepted".
+
+## Report view (`architect-assess`)
+
+The architect report is a document view with tables, source blocks, provenance marks and a heat map, none of which the list-and-detail views have. Its rung is `owner-approved-prototype` for the family roles and `derivation` for what follows.
+
+- **Layout-file colour rule.** The report's layout file may read colour roles through `var(--c-…)` for table rules, source blocks, provenance marks and heat tints. It declares no colour literal, no custom property and no token, and it takes every radius from `--r-N` and every margin, padding and gap from `--s-N`. The list-and-detail views keep all colour in the shared base; this view departs from that on purpose because the base styles no tables or source blocks. The owner approved the departure on 2026-10-31.
+- **Document density.** The layout file sets the document-density sizes from the Type table as literals on the page title, subsection heads, body text, meta line and labels, until the shared base carries a document-density variant.
+
+**Provenance marks.** An evidence class is not a lifecycle state, so it does not use the eight state marks. It uses a neutral pill (`--c-bg` fill, `--c-rule-strong` outline), the class word, and a bar glyph that shares no shape with the state glyphs. The glyph carries an empty alternative text so assistive technology reads the word only. The bars imply a ranking from observed to unknown on purpose: the more bars, the more directly the claim was seen.
+
+| Class | Glyph | Word |
+| --- | --- | --- |
+| observed | ▮▮▮ | observed |
+| inferred | ▮▮▯ | inferred |
+| reported | ▮▯▯ | reported |
+| unknown | ▯▯▯ | unknown |
+
+**Heat ramp.** A heat cell always shows its word. The tint and a left edge grow with heat, and never use the ok, warn, bad, active or accent roles, so heat does not read as severity or as a state. Every cell sits on `--c-bg`, and `--c-text` keeps at least 4.5:1 on each fill in both themes.
+
+| Level | Fill | Left edge |
+| --- | --- | --- |
+| low | `--c-bg` | none |
+| medium | `--c-canvas` | `2px` solid `--c-rule-strong` |
+| high | `--c-raised` | `4px` solid `--c-rule-strong` |
+| unknown | `--c-bg` | `2px` dashed `--c-rule-strong`, italic text |
 
 ## What may adapt
 
