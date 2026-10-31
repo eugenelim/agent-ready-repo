@@ -234,6 +234,32 @@ Traces to: AC-0013.
 
 Owned by: T1.
 
+
+### Means grounded in T1
+
+Owned by: T1.
+
+- The filter is `_strip_tracking_blocks(data: bytes) -> bytes` beside `_digest` in
+  `_supervisor_attempt.py`, a line scan over `splitlines(keepends=True)` that checks
+  the strippable-file precondition first (`endswith(b"\n")`, no `\r`, no `b"\\\n"`).
+  A branch block is removed only with at least one matching key line and when the next
+  line starts with `[` or the block ends the file; a gh-resolved line walks back over
+  `\t[a-z]` lines to a `[remote "<sub>"]` header.
+- Tracking value bytes: `[^"\\;#\x00-\x1f\x7f]*`; subsection bytes:
+  `[^"\\\x00-\x1f\x7f]+`.
+- `_entry` takes `config: bool`; `git_state` passes it for `config` and
+  `config.worktree` in both the Git and common directories, so the fingerprint comes
+  from the one confined read and `link:`/`special`/`unsafe` are unchanged.
+- Test seams: `git_state()` is driven with a namespace of pins and no repository;
+  VI-0115 patches `read_confined_regular_file` and `_MAX_FILE_BYTES`; VI-0106 uses a
+  `sys.addaudithook` process-event hook.
+- The POSIX zero-skip lane is `build-check.yml`'s `gate-main` job; the Windows lane is
+  a `build-check-windows.yml` step after the confined-write step. Both run
+  `tools/require-junit-ran-without-skips.py`.
+- `gh pr checkout` and `gh repo set-default` need the network (a probe with an
+  unreachable proxy and a fake token failed on GraphQL and wrote no config), so their
+  exact bytes stay unprobed and the fail-closed rule covers them.
+
 ## Tasks
 
 ### T1: The config fingerprint strips only canonical tracking blocks, proved on both platforms
