@@ -191,3 +191,100 @@ def test_all_local_markdown_routes_resolve_and_saving_is_optional() -> None:
         assert relative in local_markdown, relative
     assert "Offer to save only after rendering" in text
     assert "Result: chat only; no file was created." in text
+
+
+def _template() -> str:
+    return (SKILL_ROOT / "assets" / "assessment.md").read_text(encoding="utf-8")
+
+
+def test_template_orientation_subsections_precede_map_checkpoint() -> None:
+    report = _template()
+    current_state = report.index("## Conceptual current state")
+    headings = (
+        "### Overall architecture",
+        "### Architecture by subsystem",
+        "### Physical architecture",
+        "### Map checkpoint",
+    )
+    positions = [report.index(heading) for heading in headings]
+    assert current_state < positions[0]
+    assert positions == sorted(positions)
+    assert positions[-1] < report.index("## Evidence coverage")
+
+
+def test_each_orientation_subsection_ends_with_a_sources_checked_table() -> None:
+    report = _template()
+    for start, end in (
+        ("### Overall architecture", "### Architecture by subsystem"),
+        ("### Architecture by subsystem", "### Physical architecture"),
+        ("### Physical architecture", "### Map checkpoint"),
+    ):
+        lines = report[report.index(start) : report.index(end)].rstrip().splitlines()
+        assert lines[-1].startswith("| --- |")
+        assert lines[-2] == "| Source | Locator | Evidence class | Limit |"
+        assert lines[-3] == ""
+        assert lines[-4] == "Sources checked:"
+
+
+def test_template_cites_the_one_evidence_class_definition() -> None:
+    report = " ".join(_template().split())
+    for word in ("observed", "inferred", "reported", "unknown"):
+        assert word in report
+    assert "references/evidence-method.md" in report
+    assert "Claim calibration" in report
+    assert "begins with the line `not assessed` on its own" in report
+    assert "still ends with its table" in report
+
+
+def test_no_second_definition_of_the_evidence_classes() -> None:
+    pattern = re.compile(
+        r"^\s*(?:[-*]\s+|\d+\.\s+)?\*\*(Observed|Inferred|Reported|Unknown)\*\*",
+        re.MULTILINE,
+    )
+    owner = SKILL_ROOT / "references" / "evidence-method.md"
+    assert pattern.search(owner.read_text(encoding="utf-8"))
+    for path in SKILL_ROOT.rglob("*.md"):
+        if path != owner:
+            assert not pattern.search(path.read_text(encoding="utf-8")), path
+
+
+def test_charter_records_checkpoint_state() -> None:
+    report = _template()
+    assert "Checkpoints: <confirmed | accepted-without-pause>" in report
+
+
+def test_cannot_pause_exception_is_stated_at_each_checkpoint_rule() -> None:
+    text = SKILL_PATH.read_text(encoding="utf-8")
+    assert "no interactive channel" in text
+    assert "an interactive session never skips the pause" in text
+    for heading in ("### 2. Map", "### 3. Focus"):
+        start = text.index(heading)
+        section = text[start : text.index("\n### ", start + 1)]
+        assert "Checkpoints: accepted-without-pause" in section
+        assert "not user-confirmed" in section
+
+
+def test_orientation_reference_routes_to_the_owning_skills() -> None:
+    text = (SKILL_ROOT / "references" / "orientation-views.md").read_text(
+        encoding="utf-8"
+    )
+    assert "architect-diagram" in text
+    assert "physical-bom.md" in text
+    assert "not assessed" in text
+
+
+def test_orientation_evals_exist() -> None:
+    import json
+
+    evals = json.loads((SKILL_ROOT / "evals" / "evals.json").read_text("utf-8"))["evals"]
+    by_prompt = {case["prompt"]: case for case in evals}
+    pause = next(c for p, c in by_prompt.items() if "cannot ask me anything" in p)
+    assertions = " ".join(pause["assertions"])
+    assert "Checkpoints: accepted-without-pause" in assertions
+    assert assertions.count("not user-confirmed") == 2
+    assert "Writes no file" in assertions
+    physical = next(c for p, c in by_prompt.items() if "no Dockerfile" in p)
+    assertions = " ".join(physical["assertions"])
+    assert "begins with the line `not assessed`" in assertions
+    assert "Names no host, cluster, cloud service, or network component" in assertions
+    assert "ends with a Sources checked table" in assertions

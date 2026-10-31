@@ -150,6 +150,10 @@ definition. Distinguish observed, inferred, reported, and unknown elements.
 Use the optional profiler only as described in `references/profiler-use.md`; it
 emits census signals and never owns the model.
 
+Fill the three orientation subsections of the saved report in order: Overall
+architecture, Architecture by subsystem, then Physical architecture. Each ends
+in a `Sources checked` table; see `references/orientation-views.md`.
+
 Present the map, evidence ledger, shape/workload hypotheses, and important
 unknowns. Then pause at **Map checkpoint**:
 
@@ -157,7 +161,11 @@ unknowns. Then pause at **Map checkpoint**:
 > boundary, responsibility, or missing dependency—or say **continue** to accept
 > it as the basis for Focus.
 
-Do not start hotspot investigation before this checkpoint is accepted.
+Do not start hotspot investigation before this checkpoint is accepted. A host
+that cannot pause has no interactive channel to the user, such as a headless or
+scheduled run; an interactive session never skips the pause. On a host that
+cannot pause, proceed, record `Checkpoints: accepted-without-pause` in the
+charter, and write `not user-confirmed` in the Map checkpoint subsection.
 
 ### 3. Focus
 
@@ -181,6 +189,10 @@ Pause at **Focus checkpoint**:
 
 > Investigate these hotspots? Redirect, add, or remove one—or say **continue**
 > to accept the recommended drill-down set.
+
+On a host that cannot pause, as defined at the Map checkpoint, proceed, keep
+`Checkpoints: accepted-without-pause`, and write `not user-confirmed` in the
+Focus checkpoint subsection.
 
 In survey mode, stop here with hypotheses and recommended next checks. State
 explicitly that no completed defect finding or remediation plan has been

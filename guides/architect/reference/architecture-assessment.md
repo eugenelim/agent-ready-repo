@@ -44,6 +44,11 @@ Map checkpoint: correct boundaries, responsibilities, or missing dependencies;
 Focus checkpoint: add, remove, or redirect hotspots; `continue` accepts the
 recommended drill-down set.
 
+A run on a host with no interactive channel, such as a headless or scheduled
+run, cannot pause. It proceeds, records `Checkpoints: accepted-without-pause`
+in the charter, and writes `not user-confirmed` in both checkpoint subsections.
+An interactive session never skips the pause.
+
 Close: decide whether evidence is sufficient, which action wave to accept, what
 additional proof is needed, and whether to save or route into design.
 
@@ -188,7 +193,9 @@ without that primitive fails closed and can still use stdout.
 
 1. Bottom line
 2. Assessment charter
-3. Conceptual current state
+3. Conceptual current state, which holds three orientation subsections in this
+   order: Overall architecture, Architecture by subsystem, and Physical
+   architecture
 4. Evidence coverage
 5. Attention heat map
 6. Hotspot drill-downs
@@ -196,6 +203,12 @@ without that primitive fails closed and can still use stdout.
 8. Action waves
 9. Coverage and confidence
 10. Next decision
+
+Each orientation subsection ends with a `Sources checked` table whose columns
+are Source, Locator, Evidence class, and Limit. Evidence class is `observed`,
+`inferred`, `reported`, or `unknown`. A subsection the run could not assess
+has the line `not assessed` on its own as its first line, the reason on the next line, and still ends with its table.
+The charter's `Checkpoints:` line is `confirmed` or `accepted-without-pause`.
 
 For the task flow and realistic repository variations, see
 [Assess a repository and turn evidence into action](../how-to/assess-a-repository.md).

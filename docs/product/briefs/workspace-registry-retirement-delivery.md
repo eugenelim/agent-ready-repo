@@ -6,7 +6,7 @@
 - **Status:** Executing
 - **Cut-closed:** <!-- Required before Status: Shipped, refused while Status: Draft. -->
 - **Ready confirmed:** 2026-10-25 by the repository owner, after a clean independent delivery-brief shaping review of git blob `1af95a54bf2decb6ece31d7c3a4acb866e1f1e69`. Amended 2026-10-27 at the repository owner's request: the list-order risk rewritten to match FEAT-0034's settled answer, after an independent delivery-brief shaping review of git blob `9083db6589a9fa6d858408a2ea7125d5f6a62633` left no sustained finding.
-- **Slices confirmed:** 2026-10-25 by the repository owner: candidate slices 1 to 9, in the order listed. Slice 1 is materialized first, because its inventory settles questions the later slices depend on; each later slice is materialized as a spec when it is picked up. Amended 2026-10-26 by the repository owner: the two-week trial cut, slice 5 shrunk to a script run once before each registration stop, and the appetite cut from about five weeks to about three, after a clean independent delivery-brief shaping review of git blob `1fb9d8d2c234e74aabd608c77e590581e18c8744`. Amended 2026-10-27 by the repository owner: slice 7 stops repo-origin intent and brief registration only, because refresh checks a tracker-origin item's tracker profile through its entry, and slice 9 gains ending tracker-origin registration.
+- **Slices confirmed:** 2026-10-25 by the repository owner: candidate slices 1 to 9, in the order listed. Slice 1 is materialized first, because its inventory settles questions the later slices depend on; each later slice is materialized as a spec when it is picked up. Amended 2026-10-26 by the repository owner: the two-week trial cut, slice 5 shrunk to a script run once before each registration stop, and the appetite cut from about five weeks to about three, after a clean independent delivery-brief shaping review of git blob `1fb9d8d2c234e74aabd608c77e590581e18c8744`. Amended 2026-10-27 by the repository owner: slice 7 stops repo-origin intent and brief registration only, because refresh checks a tracker-origin item's tracker profile through its entry, and slice 9 gains ending tracker-origin registration. Amended 2026-10-30 by the repository owner: slice 9 lands in parts around the execution-supervisor cutover.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0034-workspace-registry-retirement.md`](../intents/FEAT-0034-workspace-registry-retirement.md), decomposed to this brief by the owner on 2026-10-25.
 - **Parent intent:** intent:workspace-registry-retirement
 
@@ -90,7 +90,20 @@ Numbers give the delivery order. Slices 2 to 6 may start once slice 1 lands, and
 6. **Suggestions removed.** Remove `next_queue` and `next_shape`, under RFC-0106 D3.
 7. **Intent and brief registration stops.** Depends on slices 2, 3, 5, and 6, and on the navigator's outstanding-work view from the [intent navigation brief](intent-navigation-delivery.md). Amend ADR-0119 D4, FEAT-0001's lockstep rename, RFC-0064's `receive-brief` writer row, and FEAT-0005's terminal move for intents and briefs. Stop every writer of repo-origin intent and brief entries, including `close-work`'s collection moves for them, and remove the existing entries with a repair step. Tracker-origin intents and briefs stay registered, because refresh checks their tracker profile through the entry alone.
 8. **Dispatch from headers.** Depends on slices 2, 5, 6, and 7, and on the navigator's outstanding-work view. Header-derived readiness, list-and-ask, removal of `unregistered_work`, and brief coverage taken from `Brief:` alone, with whatever slice 1 found left to change. The dispatch replay goes into the retirement spec. Spec registration stops only if the replay passes. RFC-0064 D4, its `work-loop` writer rows, the brief-coverage rule, and FEAT-0005's terminal move for specs are amended in the same release, and `close-work` stops moving spec entries.
-9. **Compatibility closure and deletion.** Gated on all four RFC-0105 D3 gates. Shrink `workspace-status` to the repair, publish the upgrade notes, and move seeds, manifests, and operative references. Complete the closure checklist and record the certification in the retirement spec and the retiring change. Then delete `workspace.toml`. Before the deletion, give the tracker profile a home on the artifact and stop registering tracker-origin intents and briefs.
+9. **Compatibility closure and deletion.** Gated on all four RFC-0105 D3 gates. It lands in parts.
+   - **Before the execution-supervisor cutover:**
+     - tracker-origin intents, briefs and specs get a home on the artifact for their tracker profile and stop being registered (`tracker-origin-registration-stop`);
+     - `close-work`'s dormant closure-packet registration field is retired;
+     - the inventory rows still owned by slices 2 to 8 are re-owned or retired;
+     - the upgrade notes are drafted.
+   - **After the cutover:**
+     - move the engine rules `dispatch.py` still needs into `work-loop`;
+     - shrink `workspace-status` to the repair;
+     - remove the legacy registry entries (the migrated captured memberships and the slug-only entries), and re-point the spec-status lint's deferral anchors from `[backlog].open` to captured-item files;
+     - give the `[authorization.refresh]` and `[authorization.migration]` policy tables a home;
+     - publish the upgrade notes, and move seeds, manifests and operative references;
+     - complete the closure checklist, and record the certification in the retirement spec and the retiring change;
+     - then delete `workspace.toml`.
 
 ## Spec map
 
@@ -109,6 +122,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `header-derived-dispatch` | <auto> |
 | `spec-registration-stop` | <auto> |
 | `readiness-bridge-dispatch-input` | <auto> |
+| `tracker-origin-registration-stop` | <auto> |
 
 ## Governance references (optional)
 

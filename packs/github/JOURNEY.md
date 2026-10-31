@@ -22,7 +22,7 @@ skills:
     description: "Acquires bounded Issue or Milestone data through fixed-host approved gh reads and delegates strict normalized content to work-intake."
     humanTouches: 1
   - name: github-refresh
-    description: "Compares a registered tracker-origin artifact and performs only profile-declared coordination actions after exact confirmation."
+    description: "Compares a tracker-origin artifact and performs only profile-declared coordination actions after exact confirmation."
     humanTouches: 1
   - name: github-pr
     description: "Reviews a pull request into a pending review, iterates on feedback and checks on yours, or adopts a contributor's pull request under one approved contract, acting only after approval."
@@ -87,7 +87,7 @@ packUrl: /packs/github/
 
 ### 3. Refresh or coordinate later
 
-- **You provide:** the existing registered tracker-origin artifact to compare.
+- **You provide:** the existing tracker-origin artifact to compare.
 - **Agent does:** presents field decisions. A remote coordination action is a
   separate request with a fresh confirmation and pending receipt.
 - **You decide:** approve local fields, then confirm one exact remote action.

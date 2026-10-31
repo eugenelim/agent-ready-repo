@@ -100,10 +100,15 @@ scan.
 
 Map builds a conceptual current state across context, runtime/deployment,
 module/capability, data, interaction, delivery/operations, and trust/identity
-views. The user corrects that model before Focus. Focus shows raw attention
-dimensions—consequence, pressure, coupling/concentration, verification weakness,
-operational/data/security exposure, and confidence—then the user redirects or
-accepts the proposed drill-downs. Heat chooses where to look; it is never a
+views, opening the saved report with three orientation subsections: the whole
+system, each subsystem, and the physical deployment, each ending in a table of
+the sources checked. The user corrects that model before Focus. Focus shows raw
+attention dimensions—consequence, pressure, coupling/concentration, verification
+weakness, operational/data/security exposure, and confidence—then the user
+redirects or accepts the proposed drill-downs. A host with no interactive
+channel cannot pause: the run proceeds, records `Checkpoints:
+accepted-without-pause` in the charter, and marks both checkpoints
+`not user-confirmed`. Heat chooses where to look; it is never a
 defect verdict or severity score.
 
 Investigation traces representative normal, side-effect, and failure/recovery
@@ -226,7 +231,7 @@ Findings are led by severity glyph — 🟥 blocker, 🟧 major, 🟨 minor, ⚪
 ### architect-assess
 
 Assessment reads in the same order as the conversation: bottom line, charter,
-current state, evidence coverage, attention heat, hotspot drill-downs, findings
+current state (with its orientation subsections), evidence coverage, attention heat, hotspot drill-downs, findings
 and strengths, action waves, coverage/confidence, and next decision. Tables
 preserve evidence and traceability; Mermaid is optional and never substitutes
 for the model prose.
