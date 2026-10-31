@@ -1,6 +1,6 @@
 # Spec: architect-assess HTML report draws diagrams on request
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) and [`docs/specs/architect-assess-html-report-style/spec.md`](../architect-assess-html-report-style/spec.md) — escaped values, closed element and attribute lists, one `<style>` named by a hash, confined I/O, fixed exit tokens. This spec relaxes the "no script, no network" rules only when the reader asks for diagrams, and the Amended parent rules table below lists every parent rule it touches. The decision record is [`docs/specs/architect-assess-html-report/notes/diagram-rendering-decision.md`](../architect-assess-html-report/notes/diagram-rendering-decision.md).
@@ -138,12 +138,12 @@ Eligibility reads the fence text after one normalisation: the renderer refuses, 
 ### Script behavior (ledger)
 
 - [ ] The inserted SVG holds no `style` element and no `style` attribute.
-- [ ] The inserted SVG holds only these elements: `svg`, `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `text`, `tspan`, `defs`, `marker`, `title`, `desc`, `clipPath`; any other element, such as `a`, `use`, `image`, `foreignObject`, or `script`, leaves the block as source.
-- [ ] Every `id` inside the inserted SVG starts with the SVG's render id, or the block stays as source.
+- [ ] The inserted SVG holds only these elements: `svg`, `g`, `path`, `rect`, `circle`, `ellipse`, `line`, `polyline`, `polygon`, `text`, `tspan`, `defs`, `marker`, `title`, `desc`, `clipPath`, `filter`, `feDropShadow`, `linearGradient`, `stop`, `symbol`; any other element, such as `a`, `use`, `image`, `foreignObject`, or `script`, leaves the block as source.
+- [ ] Every `id` inside the inserted SVG starts with the SVG's render id, because the script rewrites any other `id` to start with it and rewrites the same-document `url(#…)` references to match.
 - [ ] The inserted SVG holds no `href`, `xlink:href`, `src`, or `on…` attribute, and no `url(` reference except to a fragment of the same document.
 - [ ] The page adopts a drawn SVG's stylesheet only when every rule is a style rule, a `@keyframes` rule, or a grouping rule (`@media`, `@supports`, `@layer` block, `@container`) whose contents pass the same test, and each style rule's selectors, split at top-level commas, start with exactly that SVG's `#id` followed by nothing, a descendant combinator, or a child combinator, and hold no `~` or `+`.
 - [ ] A style rule that holds a nested rule leaves the block as source.
-- [ ] A sheet that declares `position`, `inset`, `top`, `right`, `bottom`, `left`, `float`, `transform`, `z-index`, or `translate` in any rule leaves the block as source.
+- [ ] A sheet in which the root rule (the selector `#id` or one ending in `svg`) or any keyframe declares `position`, `inset`, `top`, `right`, `bottom`, `left`, `float`, `transform`, `z-index`, or `translate` leaves the block as source; descendant rules are exempt because only the outer `svg` takes part in page layout and no HTML element can sit inside the drawing.
 - [ ] A sheet holding any other rule, such as `@import`, `@font-face`, `@namespace`, `@property`, or `@page`, or any unscoped rule, leaves the block as source.
 - [ ] `diagrams.js` treats the Mermaid global as missing unless `mermaid.initialize` and `mermaid.render` are functions, and any exception at any stage leaves the block as source.
 - [ ] On any failure, `diagrams.js` sets the block's label to `Diagram source (not drawn)` and removes every element Mermaid left in the document.
@@ -201,7 +201,7 @@ Eligibility reads the fence text after one normalisation: the renderer refuses, 
 ## Assumptions
 
 - Product: drawing is opt-in, not the default — whether the default should flip once the owner has seen the page (settled by: the owner).
-- Technical: Mermaid 12.2.0 draws the fixture's flowchart and sequence diagram under the strict policy — settled by browser QA.
+- Technical: Mermaid 12.2.0 draws the fixture's flowchart and sequence diagram under the strict policy — settled by browser QA, which showed it needs the extra elements and the id rewrite above; cylinder labels sit off-centre with `htmlLabels` off, accepted as a cosmetic limit.
 - Technical: `@keyframes` names in an adopted sheet are page-wide, so one diagram can rename another's animation — whether to prefix them (settled by: the owner; no security effect).
 - Technical: a browser without constructable stylesheets shows source blocks only with the label `Diagram source (not drawn)` — whether that is acceptable (settled by: the owner).
 
