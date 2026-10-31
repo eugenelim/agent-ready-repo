@@ -423,6 +423,48 @@ Owned by: T2.
 **Done when:** VI-0117 and VI-0118 pass and PR CI's `gate-main` and
 `AgentBundle compatibility (windows)` jobs pass.
 
+
+### T5: Review repairs — the filter runs in linear time, its rules are pinned, and its refusals and guidance can be acted on
+
+**Depends on:** T4
+
+**Spec behavior:** AC-0002, AC-0003, AC-0007, AC-0008, AC-0016; TDD.
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_attempt.py`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py`, `packs/core/tests/skills/work-loop/test_supervisor_attempt.py`, `.github/workflows/build-check.yml`
+
+**Verification mode:** TDD
+
+**Tests:**
+- **VI-0119 (AC-0003):** the gh-resolved membership check is one forward pass;
+  a test builds a remote block with 200,000 `gh-resolved` lines and asserts the
+  fingerprint is computed within a fixed bound (a few seconds), and the
+  stripped output is byte-identical to the previous rule on the AC-0003 corpus.
+- **VI-0120 (AC-0002):** each code-running key next to a canonical block is
+  checked by two files that differ only in that key's line (and only in its
+  value), which must fingerprint differently.
+- **VI-0121 (AC-0003):** one pinned keep-case per fail-closed rule — a
+  header-only `[branch "x"]\n`; a member line that is not tab plus lower-case
+  letter (e.g. `\t[core]`) before a gh-resolved line; a control byte in a
+  tracking value; a backslash or control byte in a branch or remote
+  subsection — each confirmed through VI-0116's `git config --file` read.
+- **VI-0122 (AC-0016):** the platform's expected special kinds are stated per
+  platform and asserted (a missing kind fails); the TMPDIR probe is removed;
+  any kind a platform cannot create is recorded as a named platform gap in the
+  test module rather than silently omitted.
+- **VI-0123 (AC-0008):** a config-caused refusal's detail names the recorded
+  form of the entry (`config-view` or raw) so the operator can tell a raw-form
+  manifest refusing a tracking write from a real config change; the
+  references/supervisor.md attempt-residue row says how to act on each.
+- **VI-0124 (AC-0007):** references/supervisor.md says every `gh` command names
+  its repository (`--repo`) or the controller verifies the base repository
+  first, with or without a PR number; the eval assertion matches.
+- Nits: the module docstring names the config fingerprint as the exception;
+  the new build-check.yml step no longer splits the JUnit-checker comment from
+  its step; VI-0109's refused branch asserts the exact `git:config` label.
+
+**Done when:** VI-0119–VI-0124 pass, the existing suites and the crash corpus
+still pass, and PR CI is green.
+
 ## Rollout
 
 Delivery is a normal core patch release; there is no flag and no data
