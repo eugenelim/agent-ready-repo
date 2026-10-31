@@ -1,6 +1,6 @@
 # Spec: Pre-cutover compatibility closure
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-30 by eugenelim, spec and plan at `3ace13ecb`, after three spec-mode shaping and adversarial review rounds, each adjudicated, with the round-3 repair accepted unreviewed and AC-0020 kept at the deletion pass; records under `.context/reviews/87a629cd-91c6-435b-b8a2-edac5914679e/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -106,38 +106,38 @@ the plan's `## Design (LLD)`, not here.
 
 **Closure packet**
 
-- [ ] **AC-0001.** The names of `dataclasses.fields(EligiblePacket)` in the module are exactly `decision_date`, `decider`, `stated_outcome`, `ratified_decomposed`, `ratified_child_count`, `verification_basis`, `per_descendant_verdicts`, `stated_confidence`, `outcome_co_owner`, `disposition_row`, in that order.
-- [ ] **AC-0002.** The parameter names of the module's `check_ancestor_closure` are exactly those at the base without `_workspace_lookup`, in the base order.
-- [ ] **AC-0003.** The module's text holds none of `workspace.toml`, `workspace_registration`, `WorkspaceLookup`, `workspace_lookup`.
-- [ ] **AC-0004.** `packs/core/tests/skills/close-work/` passes.
-- [ ] **AC-0020.** The ledger holds an AST comparison of every module-level function under `packs/core/tests/skills/close-work/` with the base, showing that: every base function other than `test_ac0031_workspace_registration_named_in_packet` and `test_ac0031_no_registration_when_lookup_returns_none` exists in the same file with an identical body apart from removed `workspace_lookup=` keywords; `_call_eligible` differs only by the removed `workspace_lookup` parameter and `_workspace_lookup` keyword; and every added function is in `test_closure_packet.py` with a name starting `test_pre_cutover_`.
-- [ ] **AC-0005.** The `- **Status:**` line of `docs/specs/closure-eligibility-check/spec.md` still begins `Shipped`, keeps its existing supersession note, and holds a link to `../pre-cutover-closure/spec.md` naming criterion `0031`.
-- [ ] **AC-0006.** `packs/core/.apm/skills/close-work/evals/evals.json` holds one case whose assertions require that an eligible closure packet names no `workspace.toml` entry.
+- [x] **AC-0001.** The names of `dataclasses.fields(EligiblePacket)` in the module are exactly `decision_date`, `decider`, `stated_outcome`, `ratified_decomposed`, `ratified_child_count`, `verification_basis`, `per_descendant_verdicts`, `stated_confidence`, `outcome_co_owner`, `disposition_row`, in that order.
+- [x] **AC-0002.** The parameter names of the module's `check_ancestor_closure` are exactly those at the base without `_workspace_lookup`, in the base order.
+- [x] **AC-0003.** The module's text holds none of `workspace.toml`, `workspace_registration`, `WorkspaceLookup`, `workspace_lookup`.
+- [x] **AC-0004.** `packs/core/tests/skills/close-work/` passes.
+- [x] **AC-0020.** The ledger holds an AST comparison of every module-level function under `packs/core/tests/skills/close-work/` with the base, showing that: every base function other than `test_ac0031_workspace_registration_named_in_packet` and `test_ac0031_no_registration_when_lookup_returns_none` exists in the same file with an identical body apart from removed `workspace_lookup=` keywords; `_call_eligible` differs only by the removed `workspace_lookup` parameter and `_workspace_lookup` keyword; and every added function is in `test_closure_packet.py` with a name starting `test_pre_cutover_`.
+- [x] **AC-0005.** The `- **Status:**` line of `docs/specs/closure-eligibility-check/spec.md` still begins `Shipped`, keeps its existing supersession note, and holds a link to `../pre-cutover-closure/spec.md` naming criterion `0031`.
+- [x] **AC-0006.** `packs/core/.apm/skills/close-work/evals/evals.json` holds one case whose assertions require that an eligible closure packet names no `workspace.toml` entry.
 
 **Inventory**
 
-- [ ] **AC-0007.** No row of `docs/specs/workspace-retirement/inventory.toml` has an `owner` from 2 to 8.
-- [ ] **AC-0008.** Each historical row has `class = "historical"` and `owner = "none"`.
-- [ ] **AC-0009.** Each re-owned row has `owner = 9` and its class at the base.
-- [ ] **AC-0010.** The inventory holds a `docs/specs/pre-cutover-closure/*` row with `class = "contract"` and `owner = 9`; before it, a row whose `pattern` is the draft with `class = "guide"` and `owner = 9`; a row for each other file this spec adds that holds a registry token outside an inventoried skill or spec directory; and no row for a file this spec leaves holding no registry token. `tests/roster/test_workspace_retirement_inventory.py` passes on this repository.
-- [ ] **AC-0011.** `docs/specs/workspace-retirement/spec.md` holds a criterion that a row whose `owner` is a slice number has the highest number the brief's `## Delivery slices` lists, and the inventory check reports a violation under that criterion's identifier, and no other, for an otherwise valid fixture row owned by slice 8 of a nine-slice brief.
+- [x] **AC-0007.** No row of `docs/specs/workspace-retirement/inventory.toml` has an `owner` from 2 to 8.
+- [x] **AC-0008.** Each historical row has `class = "historical"` and `owner = "none"`.
+- [x] **AC-0009.** Each re-owned row has `owner = 9` and its class at the base.
+- [x] **AC-0010.** The inventory holds a `docs/specs/pre-cutover-closure/*` row with `class = "contract"` and `owner = 9`; before it, a row whose `pattern` is the draft with `class = "guide"` and `owner = 9`; a row for each other file this spec adds that holds a registry token outside an inventoried skill or spec directory; and no row for a file this spec leaves holding no registry token. `tests/roster/test_workspace_retirement_inventory.py` passes on this repository.
+- [x] **AC-0011.** `docs/specs/workspace-retirement/spec.md` holds a criterion that a row whose `owner` is a slice number has the highest number the brief's `## Delivery slices` lists, and the inventory check reports a violation under that criterion's identifier, and no other, for an otherwise valid fixture row owned by slice 8 of a nine-slice brief.
 
 **Upgrade notes**
 
-- [ ] **AC-0012.** The draft opens with frontmatter that validates against `contracts/guide.schema.json` with `pack: core` and `kind: how-to`, and its first body heading is `# ` followed by the frontmatter `title`.
-- [ ] **AC-0013.** The draft names the `workspace-status` `repair-plan` and `repair-apply --yes` commands, with `repair-plan` first, as the upgrade an adopter runs in an agent session.
-- [ ] **AC-0014.** The draft names each removed behavior in backticks.
-- [ ] **AC-0015.** The draft holds the Markdown link targets `../../../rfc/0106-stop-registering-derivable-work.md#errata` and `../../workspace-retirement/retirement-record.md#disposition`, each resolving from the draft's directory to a tracked file, and names the dates `2026-10-25` and `2026-10-30`.
-- [ ] **AC-0016.** `docs/specs/pre-cutover-closure/notes/verification-ledger.md` records eugenelim's approval of the draft, of the § Compatibility closure entry, of the brief text, and of the `workspace-retirement` spec and plan amendment, each with the SHA-256 of each file approved.
+- [x] **AC-0012.** The draft opens with frontmatter that validates against `contracts/guide.schema.json` with `pack: core` and `kind: how-to`, and its first body heading is `# ` followed by the frontmatter `title`.
+- [x] **AC-0013.** The draft names the `workspace-status` `repair-plan` and `repair-apply --yes` commands, with `repair-plan` first, as the upgrade an adopter runs in an agent session.
+- [x] **AC-0014.** The draft names each removed behavior in backticks.
+- [x] **AC-0015.** The draft holds the Markdown link targets `../../../rfc/0106-stop-registering-derivable-work.md#errata` and `../../workspace-retirement/retirement-record.md#disposition`, each resolving from the draft's directory to a tracked file, and names the dates `2026-10-25` and `2026-10-30`.
+- [x] **AC-0016.** `docs/specs/pre-cutover-closure/notes/verification-ledger.md` records eugenelim's approval of the draft, of the § Compatibility closure entry, of the brief text, and of the `workspace-retirement` spec and plan amendment, each with the SHA-256 of each file approved.
 
 **Records**
 
-- [ ] **AC-0017.** `retirement-record.md` § Compatibility closure holds an entry that links `../pre-cutover-closure/spec.md` and names `workspace_registration`, the counts `10` historical and `9` re-owned rows, and the draft's path.
-- [ ] **AC-0018.** The brief's Spec map lists `pre-cutover-closure`, each of the three remaining "Before the execution-supervisor cutover" items names `pre-cutover-closure`, and `lint-brief-coverage.py` passes on the brief.
+- [x] **AC-0017.** `retirement-record.md` § Compatibility closure holds an entry that links `../pre-cutover-closure/spec.md` and names `workspace_registration`, the counts `10` historical and `9` re-owned rows, and the draft's path.
+- [x] **AC-0018.** The brief's Spec map lists `pre-cutover-closure`, each of the three remaining "Before the execution-supervisor cutover" items names `pre-cutover-closure`, and `lint-brief-coverage.py` passes on the brief.
 
 **Release**
 
-- [ ] **AC-0019.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both carry the patch successor of `packs/core/pack.toml`'s version at the merge base with freshly fetched `origin/main`, and one `docs/product/changelog.d/` fragment for `core` at that version names `workspace_registration`; `tools/check-core-release.py --base` that merge base passes.
+- [x] **AC-0019.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` both carry the patch successor of `packs/core/pack.toml`'s version at the merge base with freshly fetched `origin/main`, and one `docs/product/changelog.d/` fragment for `core` at that version names `workspace_registration`; `tools/check-core-release.py --base` that merge base passes.
 
 ## Terminal Intent
 
