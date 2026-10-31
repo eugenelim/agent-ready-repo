@@ -57,6 +57,7 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
 .ev-unknown::before { letter-spacing: 0.08em; content: none; content: "\25AF\25AF\25AF" / ""; }
 
 /* ---- Heat: a fill that rises with heat, a level glyph that reads aloud as nothing, and the word */
+.heat-low, .heat-medium, .heat-high, .heat-unknown { white-space: nowrap; }
 .heat-low { background: var(--c-bg); }
 .heat-medium { background: var(--c-raised); }
 .heat-high { background: var(--c-rule); }
@@ -72,7 +73,8 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
   .margin-head { grid-column: 1; }
   .doc-body { display: contents; }
   .doc-body > * { grid-column: 2; min-width: 0; }
-  .doc-body > .table-scroll, .doc-body > .source-scroll, .doc-body > .diagram { grid-column: 2 / -1; }
+  .doc-body > .table-scroll { grid-column: 1 / -1; }
+  .doc-body > .source-scroll, .doc-body > .diagram { grid-column: 2 / -1; }
   body { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; grid-auto-flow: row dense; column-gap: var(--s-4); }
   .page-header, .alert, .notice-untrusted { grid-column: 1 / -1; }
   .skip-link:focus, .skip-link:focus-visible { grid-column: 1 / -1; justify-self: start; align-self: start; }

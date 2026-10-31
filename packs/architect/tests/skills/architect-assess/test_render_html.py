@@ -1389,6 +1389,11 @@ def test_heat_ramp_is_as_specified_and_distinct() -> None:
     assert not declared(".heat-low", "font-style")
 
 
+def test_heat_cells_keep_glyph_and_word_on_one_line() -> None:
+    for level in ("low", "medium", "high", "unknown"):
+        assert declared(f".heat-{level}", "white-space") == ["nowrap"], level
+
+
 def test_heat_glyphs_match_no_evidence_or_state_glyph() -> None:
     heat = {"\u2582", "\u2584", "\u2586", "?"}
     taken = set("\u25ae\u25af\u25cf\u25b6\u25c6\u25c7\u25a0\u2715\u25b3\u2713")
@@ -1446,7 +1451,7 @@ def test_tracks_breakpoints_and_the_contents_switch() -> None:
     tracks = declared(".doc-section", "grid-template-columns", "min-width: 64rem")
     assert tracks == ["12rem minmax(0, 68ch) minmax(0, 1fr)"]
     assert declared(".doc-section", "grid-template-columns") == []
-    assert declared(".doc-body > .table-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
+    assert declared(".doc-body > .table-scroll", "grid-column", "min-width: 64rem") == ["1 / -1"]
     assert declared(".doc-body > .source-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
     assert declared("th", "overflow-wrap") == [] and declared("td", "overflow-wrap") == []
     assert declared("body", "grid-template-columns", "min-width: 64rem") == [
