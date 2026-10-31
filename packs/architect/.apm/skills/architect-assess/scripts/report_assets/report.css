@@ -56,29 +56,33 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
 .ev-reported::before { letter-spacing: 0.08em; content: none; content: "\25AE\25AF\25AF" / ""; }
 .ev-unknown::before { letter-spacing: 0.08em; content: none; content: "\25AF\25AF\25AF" / ""; }
 
-/* ---- Heat: a ramp of fill and edge that grows with heat, always beside its word */
+/* ---- Heat: a fill that rises with heat, a level glyph that reads aloud as nothing, and the word */
 .heat-low { background: var(--c-bg); }
-.heat-medium { background: var(--c-canvas); border-left-width: 2px; border-left-style: solid; border-left-color: var(--c-rule-strong); }
-.heat-high { background: var(--c-raised); border-left-width: 4px; border-left-style: solid; border-left-color: var(--c-rule-strong); }
-.heat-unknown { background: var(--c-bg); border-left-width: 2px; border-left-style: dashed; border-left-color: var(--c-rule-strong); font-style: italic; }
+.heat-medium { background: var(--c-raised); }
+.heat-high { background: var(--c-rule); }
+.heat-unknown { background: var(--c-bg); font-style: italic; }
+.heat-low::before { content: none; content: "\2582" / ""; margin-right: var(--s-1); }
+.heat-medium::before { content: none; content: "\2584" / ""; margin-right: var(--s-1); }
+.heat-high::before { content: none; content: "\2586" / ""; margin-right: var(--s-1); }
+.heat-unknown::before { content: none; content: "?" / ""; margin-right: var(--s-1); }
 
-/* ---- Tracks: one column, then margin and text, then a contents rail as a third track */
+/* ---- Tracks: one column, then margin, text, and a flexible third track for wide blocks, with the contents rail beside them */
 @media (min-width: 64rem) {
-  .doc-section { display: grid; grid-template-columns: 12rem minmax(0, 68ch) minmax(0, 40rem); column-gap: var(--s-5); row-gap: 0; }
+  .doc-section { display: grid; grid-template-columns: 12rem minmax(0, 68ch) minmax(0, 1fr); column-gap: var(--s-4); row-gap: 0; }
   .margin-head { grid-column: 1; }
   .doc-body { display: contents; }
   .doc-body > * { grid-column: 2; min-width: 0; }
   .doc-body > .table-scroll, .doc-body > .source-scroll, .doc-body > .diagram { grid-column: 2 / -1; }
-}
-@media (min-width: 100rem) {
-  body { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; grid-auto-flow: row dense; column-gap: var(--s-5); }
-  body { max-width: 110rem; margin-left: auto; margin-right: auto; }
+  body { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; grid-auto-flow: row dense; column-gap: var(--s-4); }
   .page-header, .alert, .notice-untrusted { grid-column: 1 / -1; }
   .skip-link:focus, .skip-link:focus-visible { grid-column: 1 / -1; justify-self: start; align-self: start; }
-  main { grid-column: 1; }
+  main { grid-column: 1; min-width: 0; }
   .rail { grid-column: 2; align-self: start; position: sticky; top: var(--s-4); max-height: calc(100vh - var(--s-6)); overflow-y: auto; }
   .rail details { display: none; }
   .rail-wide { display: block; }
+}
+@media (min-width: 100rem) {
+  body { max-width: 110rem; margin-left: auto; margin-right: auto; }
 }
 
 /* ---- Print: the contents and skip link go, tables show in full */

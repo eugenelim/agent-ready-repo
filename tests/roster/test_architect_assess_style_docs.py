@@ -36,7 +36,10 @@ def test_token_file_records_the_report_view_rules() -> None:
     assert "ranking" in section
     for level in ("low", "medium", "high", "unknown"):
         assert f"| {level} |" in section
-    assert "never use the ok, warn, bad, active or accent roles" in section
+    assert "none uses the ok, warn, bad, active or accent roles" in section
+    assert "starts at 64rem" in _flat(TOKENS)
+    for glyph in ("\u2582", "\u2584", "\u2586"):
+        assert glyph in section
 
 
 def test_guide_states_the_style_and_the_rail() -> None:

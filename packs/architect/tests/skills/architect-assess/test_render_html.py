@@ -1371,21 +1371,28 @@ def test_provenance_and_heat_rules_use_no_state_colour_roles() -> None:
 
 def test_heat_ramp_is_as_specified_and_distinct() -> None:
     expected = {
-        "low": ("var(--c-bg)", None, None),
-        "medium": ("var(--c-canvas)", "2px", "solid"),
-        "high": ("var(--c-raised)", "4px", "solid"),
-        "unknown": ("var(--c-bg)", "2px", "dashed"),
+        "low": ("var(--c-bg)", "\\2582"),
+        "medium": ("var(--c-raised)", "\\2584"),
+        "high": ("var(--c-rule)", "\\2586"),
+        "unknown": ("var(--c-bg)", "?"),
     }
-    seen = set()
-    for level, (background, width, style) in expected.items():
+    glyphs = set()
+    for level, (background, glyph) in expected.items():
         assert declared(f".heat-{level}", "background") == [background]
-        assert (declared(f".heat-{level}", "border-left-width") or [None]) == [width]
-        assert (declared(f".heat-{level}", "border-left-style") or [None]) == [style]
-        if width:
-            assert declared(f".heat-{level}", "border-left-color") == ["var(--c-rule-strong)"]
-        seen.add((background, width, style))
-    assert len(seen) == 4
+        assert not [p for p in ("border", "border-left-width", "border-left-style")
+                    if declared(f".heat-{level}", p)]
+        content = declared(f".heat-{level}::before", "content")
+        assert content[0] == "none" and content[-1] == f'"{glyph}" / ""'
+        glyphs.add(glyph)
+    assert len(glyphs) == 4
     assert declared(".heat-unknown", "font-style") == ["italic"]
+    assert not declared(".heat-low", "font-style")
+
+
+def test_heat_glyphs_match_no_evidence_or_state_glyph() -> None:
+    heat = {"\u2582", "\u2584", "\u2586", "?"}
+    taken = set("\u25ae\u25af\u25cf\u25b6\u25c6\u25c7\u25a0\u2715\u25b3\u2713")
+    assert not heat & taken
 
 
 def _tokens() -> dict[str, dict[str, str]]:
@@ -1437,19 +1444,24 @@ def test_rail_and_skip_links_reach_the_target_floor_and_the_skip_link_shows_on_f
 
 def test_tracks_breakpoints_and_the_contents_switch() -> None:
     tracks = declared(".doc-section", "grid-template-columns", "min-width: 64rem")
-    assert len(tracks) == 1 and tracks[0].startswith("12rem minmax(0, 68ch)")
+    assert tracks == ["12rem minmax(0, 68ch) minmax(0, 1fr)"]
+    assert declared(".doc-section", "grid-template-columns") == []
     assert declared(".doc-body > .table-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
     assert declared(".doc-body > .source-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
     assert declared("th", "overflow-wrap") == [] and declared("td", "overflow-wrap") == []
-    assert declared("body", "grid-template-columns", "min-width: 100rem") == [
+    assert declared("body", "grid-template-columns", "min-width: 64rem") == [
         "minmax(0, 1fr) 16rem"
     ]
-    assert declared(".rail", "position", "min-width: 100rem") == ["sticky"]
-    assert declared(".rail", "max-height", "min-width: 100rem")
-    assert declared(".rail", "overflow-y", "min-width: 100rem") == ["auto"]
     assert declared(".rail-wide", "display") == ["none"]
-    assert declared(".rail-wide", "display", "min-width: 100rem") == ["block"]
-    assert declared(".rail details", "display", "min-width: 100rem") == ["none"]
+    assert declared(".rail-wide", "display", "min-width: 64rem") == ["block"]
+    assert declared(".rail details", "display", "min-width: 64rem") == ["none"]
+
+
+def test_contents_rail_is_sticky_and_scrolls_from_64rem() -> None:
+    assert declared(".rail", "position", "min-width: 64rem") == ["sticky"]
+    assert declared(".rail", "max-height", "min-width: 64rem")
+    assert declared(".rail", "overflow-y", "min-width: 64rem") == ["auto"]
+    assert declared(".rail", "grid-column", "min-width: 64rem") == ["2"]
 
 
 def test_target_bar_and_print_block() -> None:
@@ -1462,10 +1474,10 @@ def test_target_bar_and_print_block() -> None:
     assert declared(".source-scroll", "overflow", "print") == ["visible"]
 
 
-def test_focused_skip_link_stays_small_in_the_three_track_grid() -> None:
-    assert declared(".skip-link:focus", "grid-column", "min-width: 100rem") == ["1 / -1"]
-    assert declared(".skip-link:focus", "justify-self", "min-width: 100rem") == ["start"]
-    assert declared(".skip-link:focus", "align-self", "min-width: 100rem") == ["start"]
+def test_focused_skip_link_stays_small_in_the_page_grid() -> None:
+    assert declared(".skip-link:focus", "grid-column", "min-width: 64rem") == ["1 / -1"]
+    assert declared(".skip-link:focus", "justify-self", "min-width: 64rem") == ["start"]
+    assert declared(".skip-link:focus", "align-self", "min-width: 64rem") == ["start"]
 
 
 def test_source_blocks_sit_in_keyboard_scrollable_regions(mod, tmp_path, capsys) -> None:

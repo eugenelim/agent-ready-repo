@@ -177,6 +177,8 @@ The rung is `approved-direction`: a rigid column grid, edge-aligned, filling the
 | 64rem to below 100rem | Margin `12rem`, text `minmax(0, 68ch)`, left-aligned after the margin. |
 | 100rem and up (1600px+) | Margin `12rem`, text `minmax(0, 68ch)`, contents `16rem` (sticky section list). |
 
+The architect report departs from this table: its contents `16rem` track starts at 64rem, and each section adds a `minmax(0, 1fr)` third track that only tables, source blocks and diagrams use. The text track keeps its `68ch` first, so prose measures at least 480px at 1024px.
+
 ## State marks
 
 Each state is a word plus a glyph inside a pill tinted by its state. Colour reinforces a mark but never carries it alone. The rung is `approved-direction` (simple shapes) and `owner-approved-prototype`.
@@ -210,14 +212,14 @@ The architect report is a document view with tables, source blocks, provenance m
 | reported | ▮▯▯ | reported |
 | unknown | ▯▯▯ | unknown |
 
-**Heat ramp.** A heat cell always shows its word. The tint and a left edge grow with heat, and never use the ok, warn, bad, active or accent roles, so heat does not read as severity or as a state. Every cell sits on `--c-bg`, and `--c-text` keeps at least 4.5:1 on each fill in both themes.
+**Heat ramp.** A heat cell always shows its word and a level glyph. The fill rises with heat, no cell has a border, and none uses the ok, warn, bad, active or accent roles, so heat does not read as severity or as a state. The glyph carries an empty alternative text and matches no evidence glyph or state glyph. The `high` fill equals the row rule colour, so the glyph and word carry the level there. `--c-text` keeps at least 4.5:1 on each fill in both themes. Unknown differs from low by its `?` glyph and italic word.
 
-| Level | Fill | Left edge |
+| Level | Fill | Glyph |
 | --- | --- | --- |
-| low | `--c-bg` | none |
-| medium | `--c-canvas` | `2px` solid `--c-rule-strong` |
-| high | `--c-raised` | `4px` solid `--c-rule-strong` |
-| unknown | `--c-bg` | `2px` dashed `--c-rule-strong`, italic text |
+| low | `--c-bg` | ▂ |
+| medium | `--c-raised` | ▄ |
+| high | `--c-rule` | ▆ |
+| unknown | `--c-bg`, italic text | ? |
 
 ## What may adapt
 
