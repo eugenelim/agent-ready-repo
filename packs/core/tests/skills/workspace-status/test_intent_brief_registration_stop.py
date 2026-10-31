@@ -759,6 +759,13 @@ def _apply_without_drops(root: Path, capsys: pytest.CaptureFixture[str]) -> dict
     return _registry(root)
 
 
+def _without_captured_drops(data: dict[str, Any]) -> None:
+    """Leave `captured-entry-drop` out, so a test sees only the intent and brief drops."""
+    data["automatic_operations"] = [
+        op for op in data["automatic_operations"] if op["operation_type"] != "captured-entry-drop"
+    ]
+
+
 def _prune(node: Any, doomed: set[str]) -> Any:
     if isinstance(node, dict):
         return {k: _prune(v, doomed) for k, v in node.items()}
@@ -789,7 +796,8 @@ def test_apply_removes_drops_in_the_same_write_and_keeps_comments(
     assert _registry(with_drops) == _prune(expected_base, dropped)
     after = (with_drops / "workspace.toml").read_text(encoding="utf-8")
     assert not any(path in after for path in _REPO_ORIGIN)
-    assert f"{_CAPTURED}/cap.md" in after and f"{_CAPTURED}/done.md" in after
+    # Their files are readable, so `captured-entry-drop` removes both entries.
+    assert f"{_CAPTURED}/cap.md" not in after and f"{_CAPTURED}/done.md" not in after
     assert "# fixture header comment" in after
     for kept in ("typed", "cooled", "open-c", "open-a", "backlog-b"):
         assert f"# comment before {kept}" in after
@@ -811,7 +819,7 @@ def test_one_plan_and_apply_leaves_none_and_the_next_plan_holds_no_drop(
     assert not remaining & _REPO_ORIGIN
     assert f"{BRIEFS}/tracked.md" in remaining
     assert _PEER in remaining
-    assert {f"{_CAPTURED}/cap.md", f"{_CAPTURED}/done.md"} <= remaining
+    assert not remaining & {f"{_CAPTURED}/cap.md", f"{_CAPTURED}/done.md"}
     assert _drops(_plan_of(drop_repo, capsys)) == []
 
 
@@ -842,6 +850,7 @@ def test_a_stale_locator_under_a_recomputed_plan_id_is_refused(
     _plan_of(drop_repo, capsys)
 
     def stale(data: dict[str, Any]) -> None:
+        _without_captured_drops(data)
         for op in data["automatic_operations"]:
             if op["operation_type"] == _DROP and op["path"] == f"{INTENTS}/open-a.md":
                 op["entry_locator"]["index"] = 1
@@ -940,7 +949,8 @@ def test_a_legacy_entry_is_not_dropped(
     data = _plan_of(tmp_path, capsys)
     assert _drops(data) == []
     kinds = [op["operation_type"] for op in data["automatic_operations"]]
-    assert kinds == ["captured-to-file"]
+    # `captured-to-file` backs the entry, and its drop follows in the same plan.
+    assert kinds == ["captured-to-file", "captured-entry-drop"]
     assert data["automatic_operations"][0]["entry_locator"] == {
         "collection": "backlog.open", "index": 0,
     }
@@ -966,6 +976,7 @@ def test_an_edited_plan_naming_a_captured_intent_entry_is_refused(
     _plan_of(drop_repo, capsys)
 
     def edit(data: dict[str, Any]) -> None:
+        _without_captured_drops(data)
         data["automatic_operations"].append({
             "operation_type": _DROP,
             "entry_locator": {"ini_slug": "", "collection": "backlog.open", "index": index},

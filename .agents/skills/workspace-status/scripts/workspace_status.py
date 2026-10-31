@@ -220,6 +220,7 @@ _VALID_OPERATION_TYPES = frozenset({
     "intent-brief-drop",
     "spec-entry-drop",
     "tracker-entry-drop",
+    "captured-entry-drop",
 })
 
 
@@ -1176,16 +1177,19 @@ def _build_repair_plan_json(
     if not canonical_failed:
         automatic_operations.extend(needs_operations)
         manual_findings.extend(needs_findings)
-        captured_operations, captured_findings = _build_captured_operations(
-            root, workspace_bytes
-        )
-        automatic_operations.extend(captured_operations)
-        manual_findings.extend(captured_findings)
+        captured_plan = _plan_captured_items(root, workspace_bytes)
+        automatic_operations.extend(captured_plan.operations)
+        manual_findings.extend(captured_plan.findings)
         automatic_operations.extend(_build_drop_operations(workspace_bytes))
         automatic_operations.extend(spec_drops)
         manual_findings.extend(held_findings)
         automatic_operations.extend(tracker_drops)
         manual_findings.extend(tracker_findings)
+        captured_drops, captured_drop_findings = _build_captured_drop_operations(
+            root, workspace_bytes, captured_plan
+        )
+        automatic_operations.extend(captured_drops)
+        manual_findings.extend(captured_drop_findings)
     base["workspace_fingerprint"] = plan.workspace_fingerprint
     base["automatic_operations"] = automatic_operations
     base["manual_findings"] = manual_findings
@@ -1261,6 +1265,11 @@ def _validate_plan_structure(data: dict) -> str | None:
             if captured_reason:
                 return captured_reason
             continue
+        if op_type == _CAPTURED_ENTRY_DROP:
+            captured_drop_reason = _validate_captured_drop_operation(op)
+            if captured_drop_reason:
+                return captured_drop_reason
+            continue
         if op_type in _DROP_OPERATION_TYPES:
             drop_reason = _validate_drop_operation(op)
             if drop_reason:
@@ -1328,10 +1337,15 @@ def _apply_operations(
     tracker_drop_operations = [
         op for op in operations if op.get("operation_type") == _TRACKER_ENTRY_DROP
     ]
+    captured_drop_operations = [
+        op for op in operations if op.get("operation_type") == _CAPTURED_ENTRY_DROP
+    ]
     operations = [
         op for op in operations
         if op.get("operation_type")
-        not in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE} | _DROP_OPERATION_TYPES
+        not in _NEEDS_OPERATION_TYPES
+        | {_CAPTURED_TO_FILE, _CAPTURED_ENTRY_DROP}
+        | _DROP_OPERATION_TYPES
     ]
     # Every drop locator is checked against the registry read under the lock, and
     # bound to its entry object, before any operation below changes `doc`.
@@ -1352,7 +1366,11 @@ def _apply_operations(
             root, tracker_drop_operations, workspace_toml_bytes, needs_operations
         ),
     )
+    bound_captured_drops, backed_captured_drops, captured_drop_refusals = _bind_captured_drops(
+        root, doc, workspace_toml_bytes, captured_drop_operations
+    )
     bound_drops.extend(bound_spec_drops)
+    bound_drops.extend(bound_captured_drops)
     per_op.extend(drop_refusals)
     # Re-derived before any write of this run, so a source an earlier operation
     # in the same plan rewrites cannot change what the records are checked against.
@@ -1505,6 +1523,7 @@ def _apply_operations(
 
     # Records are created first; `doc` is written once below, so an interruption
     # between the two leaves records that the rerun re-derives and keeps.
+    captured_per_op: list[dict] = []
     if captured_plan is not None:
         captured_per_op, captured_applied, captured_report = _apply_captured_operations(
             root, doc, captured_operations, captured_plan
@@ -1517,6 +1536,13 @@ def _apply_operations(
             edge_report.update(captured_report)
 
     # Drops run last, so each sees the `needs` its own run cleared.
+    per_op.extend(captured_drop_refusals)
+    if backed_captured_drops:
+        released, backed_refusals = _release_backed_captured_drops(
+            root, backed_captured_drops, captured_per_op
+        )
+        bound_drops.extend(released)
+        per_op.extend(backed_refusals)
     per_op.extend(spec_drop_refusals)
     per_op.extend(tracker_drop_refusals)
     # The profile reaches each artifact before its entry leaves `doc`, so an
@@ -1871,7 +1897,9 @@ def _echo_repair_plan(data: dict) -> dict:
     findings = data.get("manual_findings", [])
     if not any(
         op.get("operation_type")
-        in _NEEDS_OPERATION_TYPES | {_CAPTURED_TO_FILE} | _DROP_OPERATION_TYPES
+        in _NEEDS_OPERATION_TYPES
+        | {_CAPTURED_TO_FILE, _CAPTURED_ENTRY_DROP}
+        | _DROP_OPERATION_TYPES
         for op in operations
     ) and not any(f.get("finding_type") == _CAPTURED_FINDING_TYPE for f in findings):
         return data
@@ -1879,6 +1907,9 @@ def _echo_repair_plan(data: dict) -> dict:
     for op in operations:
         if op.get("operation_type") == _CAPTURED_TO_FILE:
             echoed.append(_echo_captured_operation(op))
+            continue
+        if op.get("operation_type") == _CAPTURED_ENTRY_DROP:
+            echoed.append(_echo_captured_drop_operation(op))
             continue
         if op.get("operation_type") in _DROP_OPERATION_TYPES:
             echoed.append(_echo_drop_operation(op))
@@ -4049,6 +4080,300 @@ def _write_tracker_profiles(
             continue
         ready.append(item)
     return ready, refused
+
+
+# ── captured-entry-drop repair ────────────────────────────────────────────────
+#
+# A captured item is registered by its own file, so `repair-plan` holds one
+# operation for each captured membership whose file is readable and each
+# slug-only entry whose `docs/product/captured/<slug>.md` is readable, including
+# an entry a `captured-to-file` operation of the same plan backs: that drop
+# carries the bytes the operation writes and is checked against them after the
+# write. Every other such entry is one manual item and stays. The repair never
+# writes a captured file.
+
+_CAPTURED_ENTRY_DROP = "captured-entry-drop"
+_CAPTURED_DROP_FINDING_TYPE = 8
+
+
+def _captured_file_check(
+    root: Path, path: str, cooled: frozenset[Path]
+) -> tuple[str | None, str | None]:
+    """`(sha256, None)` for a readable captured file, else `(None, reason)`."""
+    directory, _, name = path.rpartition("/")
+    if directory != _engine._CAPTURED_DIR or _engine._CAPTURED_FILE_RE.fullmatch(name) is None:
+        return None, "path-invalid"
+    if not os.path.lexists(root / path):
+        return None, "path-missing"
+    item, finding = _engine.read_captured_item(root, name, cooled)
+    if item.get("cooled"):
+        return None, "file-cooled"
+    if finding is None:
+        data = _engine._migration_file_bytes(root, path)
+        if data is None:
+            return None, "file-unreadable"
+        return hashlib.sha256(data).hexdigest(), None
+    if item.get("invalid"):
+        return None, "record-invalid"
+    try:
+        info = os.lstat(root / path)
+    except OSError:
+        return None, "file-unreadable"
+    linked = stat.S_ISLNK(info.st_mode) or (stat.S_ISREG(info.st_mode) and info.st_nlink > 1)
+    return None, "file-linked" if linked else "file-unreadable"
+
+
+def _captured_drop_manual_item(locator: tuple[str, str, int], shown: str, reason: str) -> dict:
+    ini_slug = _public_ini_slug(locator[0], allow_empty=True)
+    return {
+        "finding_type": _CAPTURED_DROP_FINDING_TYPE,
+        "spec_path": shown,
+        "spec_status": "",
+        "ini_slug": ini_slug,
+        "list_name": locator[1],
+        "reason": reason,
+        "entry_locator": {"ini_slug": ini_slug, "collection": locator[1], "index": locator[2]},
+        "finding_id": (
+            f"type{_CAPTURED_DROP_FINDING_TYPE}:{ini_slug}:{locator[1]}:{locator[2]}:{reason}"
+        ),
+    }
+
+
+def _build_captured_drop_operations(
+    root: Path, workspace_bytes: bytes, captured_plan: _CapturedPlan
+) -> tuple[list[dict], list[dict]]:
+    """Plan `captured-entry-drop` operations and one manual item per other entry."""
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    memberships = _engine._extract_canonical_memberships(workspace)[0]
+    raw_entries = {
+        (ini, collection, position): raw
+        for ini, collection, position, raw in _raw_registry_entries(workspace)
+    }
+    cooled, _findings = _engine._resolve_cooled_state(root)
+    by_record = {op["record_path"]: op for op in captured_plan.operations}
+    backed: dict[tuple[str, str, int], dict] = {}
+    for item in captured_plan.items:
+        if item.form == "migrated" or item.cooled:
+            continue
+        op = by_record.get(f"{_engine._CAPTURED_DIR}/{item.final}.md")
+        if op is not None and op["entry_locator"] == {
+            "collection": item.collection, "index": item.index,
+        }:
+            backed[(item.ini_slug, item.collection, item.index)] = op
+    already_held = {
+        (f["ini_slug"], f["list_name"], f["entry_index"]) for f in captured_plan.findings
+    }
+
+    operations: list[dict] = []
+    manual: list[dict] = []
+
+    def add(locator, file_path, expected, extra, shown) -> None:
+        op = backed.get(locator)
+        if op is not None:
+            file_path = op["record_path"]
+            expected = hashlib.sha256(op["record_text"].encode("utf-8")).hexdigest()
+            extra = {**extra, "backed_by": file_path}
+            if "source_path" in op:
+                extra["source_path"] = op["source_path"]
+                extra["path"] = file_path
+        operations.append({
+            "operation_type": _CAPTURED_ENTRY_DROP,
+            "entry_locator": {
+                "ini_slug": locator[0], "collection": locator[1], "index": locator[2],
+            },
+            "file_path": file_path,
+            "file_sha256": expected,
+            "registry_fingerprint": _entry_fingerprint(*locator, raw_entries.get(locator)),
+            **extra,
+        })
+
+    for membership in memberships:
+        path = membership.entry.path
+        locator = (membership.ini_slug, membership.collection, membership.entry_index)
+        if locator in backed:
+            add(locator, "", "", {}, "")
+            continue
+        if path is None or not path.startswith(f"{_engine._CAPTURED_DIR}/"):
+            continue
+        digest, reason = _captured_file_check(root, path, cooled)
+        if reason is None and digest is not None:
+            add(locator, path, digest, {"path": path}, "")
+        else:
+            manual.append(
+                _captured_drop_manual_item(locator, _echo_path(path, None), reason or "")
+            )
+    for (ini, collection, position), raw in raw_entries.items():
+        if not (
+            collection in _CAPTURED_LEGACY_COLLECTIONS
+            and isinstance(raw, dict)
+            and "slug" in raw
+            and "path" not in raw
+        ):
+            continue
+        locator = (ini, collection, position)
+        slug = raw["slug"]
+        if locator in backed:
+            add(locator, "", "", {"slug": slug}, "")
+            continue
+        file_path = f"{_engine._CAPTURED_DIR}/{slug}.md" if isinstance(slug, str) else ""
+        digest, reason = (
+            _captured_file_check(root, file_path, cooled)
+            if file_path
+            else (None, "slug-invalid")
+        )
+        if reason is None and digest is not None:
+            add(locator, file_path, digest, {"slug": slug}, "")
+        elif locator not in already_held:
+            manual.append(_captured_drop_manual_item(locator, "", reason or ""))
+    return operations, manual
+
+
+def _validate_captured_drop_operation(op: dict) -> str | None:
+    """Shape-check one `captured-entry-drop` operation; its entry is re-checked at apply."""
+    locator = op.get("entry_locator")
+    file_path = op.get("file_path")
+    path = op.get("path")
+    slug = op.get("slug")
+    if (
+        not isinstance(file_path, str)
+        or _CAPTURED_RECORD_PATH_RE.fullmatch(file_path) is None
+        or not isinstance(op.get("file_sha256"), str)
+        or _SHA256_RE.fullmatch(op["file_sha256"]) is None
+        or not isinstance(op.get("registry_fingerprint"), str)
+        or _SHA256_RE.fullmatch(op["registry_fingerprint"]) is None
+        or not isinstance(locator, dict)
+        or not isinstance(locator.get("ini_slug"), str)
+        or not isinstance(locator.get("collection"), str)
+        or not isinstance(locator.get("index"), int)
+        or isinstance(locator.get("index"), bool)
+        or locator["index"] < 0
+        or (path is None) == (slug is None)
+        or (path is not None and not isinstance(path, str))
+        or (slug is not None and not isinstance(slug, str))
+        or ("backed_by" in op and op["backed_by"] != file_path)
+        or ("source_path" in op and (
+            not isinstance(op["source_path"], str) or "backed_by" not in op
+        ))
+    ):
+        return "plan_invalid"
+    return None
+
+
+def _echo_captured_drop_operation(op: dict) -> dict:
+    locator = op.get("entry_locator")
+    locator = locator if isinstance(locator, dict) else {}
+    echoed = {
+        **op,
+        "entry_locator": {
+            "ini_slug": _public_ini_slug(locator.get("ini_slug"), allow_empty=True),
+            "collection": _echo_collection(locator.get("collection")),
+            "index": _echo_index(locator.get("index")),
+        },
+        "file_path": _echo_reference(op.get("file_path")),
+        "file_sha256": _echo_sha(op.get("file_sha256")),
+        "registry_fingerprint": _echo_sha(op.get("registry_fingerprint")),
+    }
+    for key in ("path", "source_path", "backed_by"):
+        if key in op:
+            echoed[key] = _echo_path(op[key], None)
+    if "slug" in op:
+        echoed["slug"] = _echo_slug(op["slug"])
+    return echoed
+
+
+def _bind_captured_drops(
+    root: Path, doc, workspace_bytes: bytes, operations: list[dict]
+) -> tuple[list[tuple[dict, str, Any, Any]], list[tuple[dict, str, Any, Any]], list[dict]]:
+    """Check each drop against the registry and files read under the lock; bind its entry.
+
+    Returns `(ready, backed, refusals)`. A backed drop's file does not exist yet:
+    it waits for its `captured-to-file` write and is file-checked then.
+    """
+    if not operations:
+        return [], [], []
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    memberships = {
+        (m.ini_slug, m.collection, m.entry_index): m
+        for m in _engine._extract_canonical_memberships(workspace)[0]
+    }
+    raw_entries = {
+        (ini, collection, position): raw
+        for ini, collection, position, raw in _raw_registry_entries(workspace)
+    }
+    cooled, _findings = _engine._resolve_cooled_state(root)
+    ready: list[tuple[dict, str, Any, Any]] = []
+    backed: list[tuple[dict, str, Any, Any]] = []
+    refusals: list[dict] = []
+    seen: set[int] = set()
+    for op in operations:
+        shown = _echo_reference(op["file_path"])
+        locator = op["entry_locator"]
+        key = (locator["ini_slug"], locator["collection"], locator["index"])
+
+        if op["registry_fingerprint"] != _entry_fingerprint(*key, raw_entries.get(key)):
+            refusals.append({"path": shown, "applied": False, "reason": "entry_locator_mismatch"})
+            continue
+        raw = raw_entries.get(key)
+        if "slug" in op:
+            matched = (
+                key[1] in _CAPTURED_LEGACY_COLLECTIONS
+                and isinstance(raw, dict)
+                and raw.get("slug") == op["slug"]
+                and "path" not in raw
+            )
+        else:
+            membership = memberships.get(key)
+            matched = membership is not None and membership.entry.path == op.get(
+                "source_path", op["path"]
+            )
+        if not matched:
+            refusals.append({"path": shown, "applied": False, "reason": "entry_not_matched"})
+            continue
+        if "backed_by" not in op:
+            digest, reason = _captured_file_check(root, op["file_path"], cooled)
+            if digest is None or digest != op["file_sha256"]:
+                refusals.append({
+                    "path": shown,
+                    "applied": False,
+                    "reason": reason or "captured_file_changed",
+                })
+                continue
+        entries = _doc_entry_list(doc, key[0], key[1])
+        entry = entries[key[2]] if entries is not None and key[2] < len(entries) else None
+        if not hasattr(entry, "get") or id(entry) in seen:
+            refusals.append({"path": shown, "applied": False, "reason": "entry_not_found"})
+            continue
+        seen.add(id(entry))
+        (backed if "backed_by" in op else ready).append((op, shown, entries, entry))
+    return ready, backed, refusals
+
+
+def _release_backed_captured_drops(
+    root: Path,
+    backed: list[tuple[dict, str, Any, Any]],
+    captured_per_op: list[dict],
+) -> tuple[list[tuple[dict, str, Any, Any]], list[dict]]:
+    """Keep the backed drops whose record was written and still holds the planned bytes.
+
+    A drop whose record was not written is dropped from the run without a row of
+    its own and keeps its entry.
+    """
+    written = {item["path"] for item in captured_per_op if item.get("applied")}
+    cooled, _findings = _engine._resolve_cooled_state(root)
+    ready: list[tuple[dict, str, Any, Any]] = []
+    refusals: list[dict] = []
+    for bound in backed:
+        op, shown = bound[0], bound[1]
+        if shown not in written:
+            # The refused `captured-to-file` row already says why; the entry stays.
+            continue
+        digest, found = _captured_file_check(root, op["file_path"], cooled)
+        reason = None if digest == op["file_sha256"] else (found or "captured_file_changed")
+        if reason is None:
+            ready.append(bound)
+        else:
+            refusals.append({"path": shown, "applied": False, "reason": reason})
+    return ready, refusals
 
 
 # ── Legacy migration transaction ─────────────────────────────────────────────
