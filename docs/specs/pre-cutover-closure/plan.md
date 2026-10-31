@@ -132,6 +132,14 @@ Owned by: T2, T4, T5
 - **Tests:** for AC-0019: `python3 tools/check-core-release.py --base "$(git merge-base HEAD origin/main)"` after `git fetch origin`; the changelog-fragment checks; a `historical` row for the fragment only if it holds a registry token; `make lint-ruff lint-mypy`; the dispatched `test-roster.yml` run.
 - **Done when:** each passes.
 
+### T7: The slice 8 owner pin follows the inventory
+
+- **Depends on:** T3
+- **Verification mode:** goal-based
+- **Touches:** `tests/roster/test_spec_registration_stop.py`
+- **Tests:** for AC-0007 and AC-0008: `test_no_inventory_row_is_owner_8_outside_the_two_spec_directories`, which pinned the `spec-registration-stop/*` and `readiness-bridge-dispatch-input/*` rows to `contract` and owner `8`, asserts instead that no row has owner `8` and that those two rows are `historical` with owner `none`; its other assertions stay.
+- **Done when:** `tests/roster/test_spec_registration_stop.py` and `tests/roster/test_workspace_retirement_inventory.py` pass.
+
 ## Rollout
 
 - **Delivery:** one `core` patch release. A caller passing `_workspace_lookup` gets a `TypeError`; no shipped caller does.
