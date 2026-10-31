@@ -13,3 +13,14 @@ RESULT: PASS
 ```
 
 The six `test_ac0038_`, `test_ac0039_` and `test_ac0040_` functions call `_build_eligible_packet` directly; each differs only by its removed `workspace_lookup=None` keyword. Red before the source edit: the three `test_pre_cutover_` tests failed (field list held `workspace_registration`; signature held `_workspace_lookup`; module text held `workspace.toml`).
+
+## Approvals
+
+| Date | Approver | What | File | SHA-256 |
+| --- | --- | --- | --- | --- |
+| 2026-10-30 | eugenelim | `workspace-retirement` spec and plan amendment (AC-0029, its four rule lists, task T11), approved before the `Approved:` line note was added | `docs/specs/workspace-retirement/spec.md` | `2e36f4c4568c934d912a2846002aa36aeb9b3d2e85f536bffe02dcc6a3b7f767` |
+| 2026-10-30 | eugenelim | `workspace-retirement` spec and plan amendment | `docs/specs/workspace-retirement/plan.md` | `769240e305b62c9faced0a2437a6ac493d081bb5ee8b916944bead0706fa5cfd` |
+
+## T3 — the owner rule
+
+2026-10-30. Before the inventory rows moved, both real-repository tests in `tests/roster/test_workspace_retirement_inventory.py` failed with AC-0029 on exactly 19 rows, the rows slices 2 to 8 owned; every fixture test passed. After the move, 132 passed. `test_slice6_ac0005_removal_spec_is_a_slice_six_contract_row`, which pinned the `next-item-suggestions-removal` row to `contract` and owner `6`, is renamed `test_slice6_ac0005_removal_spec_is_a_historical_row` and asserts `historical` and `none`, the value AC-0008 requires.
