@@ -614,7 +614,7 @@ def render(source: str, effort_name: str, today: str, css: str | None = None) ->
     notice = f'<div class="note notice-untrusted">{NOTICE_TEXT}</div>'
     links = _rail_links(rail)
     nav = (
-        '<nav aria-label="Report sections"><details>'
+        '<nav class="rail" aria-label="Report sections"><details>'
         f"<summary>Contents ({len(rail)} sections)</summary>"
         f'<ul class="rail-list plain">{links}</ul></details>'
         f'<ul class="rail-wide plain">{links}</ul></nav>'

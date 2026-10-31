@@ -1088,7 +1088,7 @@ def test_the_contents_nav_holds_a_details_list_and_a_wide_list_of_the_same_links
     mod, tmp_path, capsys
 ) -> None:
     text = page(tmp_path.resolve(), report(), mod, capsys)
-    assert '<nav aria-label="Report sections"><details><summary>Contents (' in text
+    assert '<nav class="rail" aria-label="Report sections"><details><summary>Contents (' in text
     narrow, wide = _rail(text)
     assert narrow == wide and narrow
     assert re.search(rf"<summary>Contents \({len(narrow)} sections\)</summary>", text)
@@ -1216,3 +1216,237 @@ def test_the_fixture_renders_to_a_complete_document(mod, tmp_path, capsys) -> No
     assert len(ids) == len(set(ids))
     narrow, wide = _rail(text)
     assert narrow == wide and len(narrow) >= 10
+
+
+# ---- style slice: the layout file ----------------------------------------------------
+
+LAYOUT = ASSETS / "report.css"
+BASE = ASSETS / "view-base.css"
+
+
+def parse_css(css: str) -> list[tuple[tuple[str, ...], str, list[tuple[str, str]]]]:
+    """Return (media chain, selector, declarations) for every declaration block."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    rules, stack, buf = [], [], ""
+    for char in css:
+        if char == "{":
+            stack.append(buf.strip())
+            buf = ""
+        elif char == "}":
+            prelude = stack.pop()
+            if buf.strip():
+                decls = []
+                for part in re.split(r";(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", buf):
+                    if ":" in part:
+                        prop, value = part.split(":", 1)
+                        decls.append((prop.strip().lower(), value.strip()))
+                media = tuple(p for p in stack if p.startswith("@"))
+                rules.append((media, prelude, decls))
+            buf = ""
+        else:
+            buf += char
+    return rules
+
+
+def layout_rules():
+    return parse_css(LAYOUT.read_text(encoding="utf-8"))
+
+
+def declared(selector_part: str, prop: str, media: str | None = None) -> list[str]:
+    """Values of *prop* in rules whose selector list holds *selector_part* exactly."""
+    found = []
+    for chain, selector, decls in layout_rules():
+        if media is not None and not any(media in m for m in chain):
+            continue
+        if media is None and chain:
+            continue
+        if selector_part in [piece.strip() for piece in selector.split(",")]:
+            found += [v for p, v in decls if p == prop]
+    return found
+
+
+COLOUR = re.compile(
+    r"#[0-9a-fA-F]{3,8}\b|(?<![\w-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|light-dark)\("
+    r"|(?<![\w-])(?:transparent|currentcolor|white|black|red|green|blue|gray|grey|orange|yellow"
+    r"|purple|pink|brown|silver|navy|teal|aqua|cyan|magenta)(?![\w-])"
+)
+
+
+def test_layout_file_obeys_the_layout_rules() -> None:
+    assert layout_rules()
+    for _, selector, decls in layout_rules():
+        for prop, value in decls:
+            where = f"{selector} {{ {prop}: {value} }}"
+            assert not COLOUR.search(value), where
+            assert not prop.startswith("--"), where
+            assert prop not in {
+                "font",
+                "font-family",
+                "font-weight",
+                "box-shadow",
+                "scroll-behavior",
+            }, where
+            assert not prop.startswith(("transition", "animation")), where
+            if prop == "border-radius":
+                assert re.fullmatch(r"var\(--r-\d\)|0", value), where
+
+
+def test_layout_file_spacing_properties_hold_tokens_only() -> None:
+    spacing = re.compile(
+        r"^(margin|padding)(-(top|right|bottom|left|inline|block)[\w-]*)?$|^(row-|column-)?gap$"
+    )
+    for _, selector, decls in layout_rules():
+        for prop, value in decls:
+            if spacing.match(prop):
+                for piece in value.split():
+                    assert piece in {"0", "auto"} or re.fullmatch(r"var\(--s-\d\)", piece), (
+                        selector,
+                        prop,
+                        value,
+                    )
+
+
+def test_layout_file_sets_the_document_density_literals() -> None:
+    for selector, size, height in (
+        (".page-title", "1.75rem", "1.2"),
+        (".doc-body h3", "1.3125rem", "1.3"),
+        (".doc-body", "1.0625rem", "1.6"),
+        (".meta", "0.875rem", "1.5"),
+        (".margin-head", "0.75rem", "1.3"),
+        (".part-head", "0.75rem", "1.3"),
+    ):
+        assert declared(selector, "font-size") == [size], selector
+        assert declared(selector, "line-height") == [height], selector
+    assert declared(".margin-head", "text-transform") == ["uppercase"]
+    assert declared(".part-head", "text-transform") == ["uppercase"]
+
+
+def test_layout_file_arranges_the_pieces_the_markup_depends_on() -> None:
+    assert declared(".page-title::before", "display")
+    assert declared(".mark", "padding")
+    assert declared(".rail-sub", "padding-left")
+    assert declared("table", "border-collapse") == ["collapse"]
+    assert declared("pre", "overflow") == ["auto"]
+    assert declared(".table-scroll", "overflow-x") == ["auto"]
+    assert declared(".page-title", "overflow-wrap") == ["anywhere"]
+    assert declared(".notice-untrusted", "border-width") and declared(
+        ".notice-untrusted", "padding"
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "glyph"),
+    [
+        ("observed", "\\25AE\\25AE\\25AE"),
+        ("inferred", "\\25AE\\25AE\\25AF"),
+        ("reported", "\\25AE\\25AF\\25AF"),
+        ("unknown", "\\25AF\\25AF\\25AF"),
+    ],
+)
+def test_each_evidence_class_has_its_own_silent_glyph_and_a_neutral_pill(name, glyph) -> None:
+    content = declared(f".ev-{name}::before", "content")
+    assert content == ["none", f'"{glyph}" / ""'], content
+    assert declared(f".ev-{name}", "background") == ["var(--c-bg)"]
+    assert declared(f".ev-{name}", "border-color") == ["var(--c-rule-strong)"]
+
+
+def test_provenance_and_heat_rules_use_no_state_colour_roles() -> None:
+    for _, selector, decls in layout_rules():
+        if "ev-" in selector or "heat-" in selector:
+            for prop, value in decls:
+                assert not re.search(r"--c-(bad|warn|ok|active|accent)", value), (selector, prop)
+    glyphs = {
+        declared(f".ev-{n}::before", "content")[-1]
+        for n in ("observed", "inferred", "reported", "unknown")
+    }
+    assert len(glyphs) == 4
+
+
+def test_heat_ramp_is_as_specified_and_distinct() -> None:
+    expected = {
+        "low": ("var(--c-bg)", None, None),
+        "medium": ("var(--c-canvas)", "2px", "solid"),
+        "high": ("var(--c-raised)", "4px", "solid"),
+        "unknown": ("var(--c-bg)", "2px", "dashed"),
+    }
+    seen = set()
+    for level, (background, width, style) in expected.items():
+        assert declared(f".heat-{level}", "background") == [background]
+        assert (declared(f".heat-{level}", "border-left-width") or [None]) == [width]
+        assert (declared(f".heat-{level}", "border-left-style") or [None]) == [style]
+        if width:
+            assert declared(f".heat-{level}", "border-left-color") == ["var(--c-rule-strong)"]
+        seen.add((background, width, style))
+    assert len(seen) == 4
+    assert declared(".heat-unknown", "font-style") == ["italic"]
+
+
+def _tokens() -> dict[str, dict[str, str]]:
+    themes = {"light": {}, "dark": {}}
+    for media, selector, decls in parse_css(BASE.read_text(encoding="utf-8")):
+        if selector.strip() == ":root":
+            theme = "dark" if any("prefers-color-scheme: dark" in m for m in media) else "light"
+            for prop, value in decls:
+                if prop.startswith("--c-"):
+                    themes[theme][prop] = value
+    themes["dark"] = {**themes["light"], **themes["dark"]}
+    return themes
+
+
+def _luminance(hex_colour: str) -> float:
+    channels = [int(hex_colour[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast(a: str, b: str) -> float:
+    high, low = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_heat_cells_keep_text_contrast_in_both_themes(theme) -> None:
+    tokens = _tokens()[theme]
+    for level in ("low", "medium", "high", "unknown"):
+        background = declared(f".heat-{level}", "background")[0]
+        role = re.fullmatch(r"var\((--c-[\w-]+)\)", background).group(1)
+        assert _contrast(tokens["--c-text"], tokens[role]) >= 4.5, (level, theme)
+
+
+def test_contrast_check_can_fail() -> None:
+    assert _contrast("#777777", "#888888") < 4.5
+    assert _contrast("#000000", "#ffffff") > 20
+
+
+def test_rail_and_skip_links_reach_the_target_floor_and_the_skip_link_shows_on_focus() -> None:
+    for selector in (".question-link", ".skip-link"):
+        assert declared(selector, "display") == ["inline-flex"], selector
+        assert declared(selector, "align-items") == ["center"], selector
+        assert declared(selector, "min-height") == ["var(--target)"], selector
+    assert declared(".skip-link:focus", "position") == ["static"]
+    assert declared(".skip-link:focus", "clip-path") == ["none"]
+    assert declared(".skip-link:focus", "overflow") == ["visible"]
+
+
+def test_tracks_breakpoints_and_the_contents_switch() -> None:
+    assert declared(".doc-section", "grid-template-columns", "min-width: 64rem") == [
+        "12rem minmax(0, 68ch)"
+    ]
+    assert declared("body", "grid-template-columns", "min-width: 100rem") == [
+        "minmax(0, 1fr) 16rem"
+    ]
+    assert declared(".rail", "position", "min-width: 100rem") == ["sticky"]
+    assert declared(".rail", "max-height", "min-width: 100rem")
+    assert declared(".rail", "overflow-y", "min-width: 100rem") == ["auto"]
+    assert declared(".rail-wide", "display") == ["none"]
+    assert declared(".rail-wide", "display", "min-width: 100rem") == ["block"]
+    assert declared(".rail details", "display", "min-width: 100rem") == ["none"]
+
+
+def test_target_bar_and_print_block() -> None:
+    assert declared(".doc-section:target", "border-left-width") == ["3px"]
+    assert declared(".doc-section:target", "border-left-style") == ["solid"]
+    assert declared(".doc-section:target", "border-left-color") == ["var(--c-accent)"]
+    for hidden in (".rail", ".skip-link", ".rail details"):
+        assert declared(hidden, "display", "print") == ["none"], hidden
+    assert declared(".table-scroll", "overflow", "print") == ["visible"]
