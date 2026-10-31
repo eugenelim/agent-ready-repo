@@ -1,7 +1,7 @@
 # Plan: architect-assess HTML report
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** script shape, optional `file_safety` import, and stdlib confined-read fallback in `packs/architect/.apm/skills/architect-assess/scripts/profile_repo.py`; loading a co-located `file_safety.py` by path in `packs/architect/.apm/skills/architect-design/scripts/check_document_architecture.py`; CSP meta precedent in `packs/core/.apm/skills/navigate-intents/scripts/intent_view.py`; skill tests in `packs/architect/tests/skills/architect-assess/`; release steps in `packs/AGENTS.md` and `packs/AGENTS.local.md`. Deviation: no script is emitted, so the script-hash CSP the precedent uses becomes `script-src` falling to `default-src 'none'`.
 
 > **Plan contract:** `Touches`, `Tests` and `Done when` are what a completion gate
@@ -45,6 +45,7 @@ A stdlib script reads the confined `assessment.md`, converts a bounded Markdown 
 - Evidence-class and heat values compare case-insensitively after trimming; output classes are lowercase.
 - Exit codes: 0 success, 2 refused report or wrong argument count, 3 confinement failure; reasons go to stderr. Owned by: T1, T2.
 - Output lands where `references/output-layout.md` already says, under its write approval; opening a browser is a separate user request. Owned by: T3.
+- An unclosed fence runs to the end of the source, as in CommonMark. Everything after it, including a later orientation heading or the charter, is shown as visible escaped code and is not gated or read as a charter line; the banner then shows, and the page never presents swallowed text as an assessed section. Owned by: T1.
 
 ## Tasks
 
