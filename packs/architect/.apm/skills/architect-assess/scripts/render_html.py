@@ -69,6 +69,7 @@ th{background:#f3f5f7}
 pre{background:#f3f5f7;padding:.75rem;overflow:auto;border-radius:4px}
 code{font-family:ui-monospace,monospace;font-size:.92em}
 .meta{color:#4a5560;font-size:.9rem}
+a{color:#0969da}
 .banner-unconfirmed{border:2px solid #9a6700;background:#fff8c5;padding:.75rem 1rem;
 margin:1rem 0;font-weight:600}
 .notice-untrusted{border:1px solid #6e7781;background:#f3f5f7;padding:.75rem 1rem;margin:1rem 0}
@@ -86,6 +87,7 @@ body{background:#0d1117;color:#e6edf3}
 th,pre,.notice-untrusted{background:#161b22}
 th,td,h2,.notice-untrusted{border-color:#30363d}
 .banner-unconfirmed{background:#3b2e00;border-color:#d29922;color:#f0e6c0}
+a{color:#58a6ff}
 .heat-low{background:#12301c}
 .heat-medium{background:#3b2e00}
 .heat-high{background:#4a1d1d}
@@ -252,7 +254,7 @@ def parse(source: str) -> list[Block]:
                     break
                 paragraph.append(lines[i].strip())
                 i += 1
-            blocks.append(Block("p", text=" ".join(paragraph)))
+            blocks.append(Block("p", text="\n".join(paragraph)))
     return blocks
 
 
@@ -364,7 +366,11 @@ def _body(blocks: list[Block]) -> tuple[str, str]:
             elif level == 3:
                 subsection = block.text.strip().lower()
         elif block.kind == "p":
-            out.append(f"<p>{_inline(block.text)}</p>")
+            if section == "assessment charter":
+                lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
+                out.append(f"<p>{lines}</p>")
+            else:
+                out.append(f"<p>{_inline(block.text.replace(chr(10), ' '))}</p>")
         elif block.kind in ("ul", "ol"):
             items = "".join(f"<li>{_inline(item)}</li>" for item in block.items)
             out.append(f"<{block.kind}>{items}</{block.kind}>")

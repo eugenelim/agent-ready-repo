@@ -567,3 +567,11 @@ def test_symlink_above_the_effort_directory_exits_three(mod, tmp_path, capsys) -
     assert mod.main([str(tmp_path / "link" / "effort")]) == 3
     assert not (real / "effort" / "assessment.html").exists()
     _only_fixed_tokens(*capsys.readouterr())
+
+
+def test_charter_lines_render_on_separate_lines_and_prose_wraps_into_one_paragraph(
+    mod, tmp_path, capsys
+) -> None:
+    text = page(tmp_path.resolve(), report(extra="first half\nsecond half\n"), mod, capsys)
+    assert "Target: demo<br>Checkpoints: confirmed" in text
+    assert "<p>first half second half</p>" in text
