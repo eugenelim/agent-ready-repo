@@ -15,6 +15,7 @@ import io
 import os
 import re
 import sys
+import time
 from html.parser import HTMLParser
 from pathlib import Path
 from types import ModuleType
@@ -408,8 +409,21 @@ def test_notice_and_metadata(mod, tmp_path, capsys) -> None:
 
 
 def _only_fixed_tokens(out: str, err: str) -> None:
+    allowed = {
+        "render_html: ok",
+        "render_html: usage: render_html.py <effort-dir>",
+        "render_html: refused: unsafe or missing path",
+        "render_html: refused: source over the size cap",
+        "render_html: refused: source is not valid UTF-8",
+        "render_html: refused: evidence class outside the allowed set",
+        "render_html: failed: internal error",
+    }
+    for heading in ("Overall architecture", "Architecture by subsystem", "Physical architecture"):
+        allowed.add(f"render_html: refused: no usable Sources checked table in {heading}")
+    for name in ("open", "stat", "rename", "follow-symlinks", "O_DIRECTORY", "O_NOFOLLOW"):
+        allowed.add(f"render_html: refused: host lacks descriptor walking: {name}")
     for line in (out + err).splitlines():
-        assert line.startswith("render_html:"), line
+        assert line in allowed, line
 
 
 def test_missing_source_and_directory_exit_three(mod, tmp_path, capsys) -> None:
@@ -462,6 +476,7 @@ def test_symlinked_source_output_and_ancestor_exit_three(mod, tmp_path, capsys) 
     effort.mkdir()
     Path(effort / "assessment.md").symlink_to(real)
     assert mod.main([str(effort)]) == 3  # confinement beats the size cap
+    assert not (effort / "assessment.html").exists()
     capsys.readouterr()
     (effort / "assessment.md").unlink()
     (effort / "assessment.md").write_text(report())
@@ -575,3 +590,105 @@ def test_charter_lines_render_on_separate_lines_and_prose_wraps_into_one_paragra
     text = page(tmp_path.resolve(), report(extra="first half\nsecond half\n"), mod, capsys)
     assert "Target: demo<br>Checkpoints: confirmed" in text
     assert "<p>first half second half</p>" in text
+
+
+# ---- review repairs --------------------------------------------------------------
+
+
+def test_planted_fence_cannot_hide_the_real_charter_line(mod, tmp_path, capsys) -> None:
+    real = "## Assessment charter\nCheckpoints: accepted-without-pause\n## Notes\nplain\n"
+    fake = "## Assessment charter\nCheckpoints: confirmed\n"
+    planted = f"# T\n## Bottom line\n```\n```x\n{fake}```\n{real}"
+    longer = f"# T\n## Bottom line\n````\n```\n{fake}````\n{real}"
+    for source in (planted, longer):
+        text = page(tmp_path.resolve(), source, mod, capsys)
+        assert 'class="banner-unconfirmed"' in text
+        assert "<pre><code>## Assessment charter\nCheckpoints: accepted-without-pause" not in text
+
+
+def test_confirmed_once_in_charter_and_again_elsewhere_shows_no_banner(
+    mod, tmp_path, capsys
+) -> None:
+    text = page(tmp_path.resolve(), report(extra="Checkpoints: confirmed\n"), mod, capsys)
+    assert 'class="banner-unconfirmed"' not in text
+
+
+@pytest.mark.parametrize(
+    "heading",
+    ["### Overall architecture ###", "## Overall architecture", "#### Overall architecture"],
+)
+def test_heading_variants_still_hit_the_provenance_gate(mod, tmp_path, capsys, heading) -> None:
+    source = f"# T\n\n## C\n\n{heading}\n\nno table\n"
+    code, err = _refused(mod, tmp_path, capsys, source)
+    assert code == 2 and err.strip().endswith("Overall architecture")
+
+
+def test_every_sources_table_is_validated_not_only_the_last(mod, tmp_path, capsys) -> None:
+    bad = f"Sources checked:\n\n{TABLE_HEAD}| q | q | guessed | y |\n\nMore.\n\n{SOURCES}"
+    code, err = _refused(mod, tmp_path, capsys, report(overall=bad))
+    assert code == 2 and "evidence class" in err
+
+
+def test_mermaid_fence_with_a_trailing_info_string_keeps_its_label(mod, tmp_path, capsys) -> None:
+    text = page(
+        tmp_path.resolve(), report(extra="```mermaid {title}\nA --> B\n```\n"), mod, capsys
+    )
+    assert "Diagram source (not rendered)" in text and "A --&gt; B" in text
+
+
+def test_links_with_bidi_or_format_characters_render_as_text(mod, tmp_path, capsys) -> None:
+    extra = "[evil\u202etxt](https://example.com) [ok](https://exa\u200bmple.com)\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    hrefs = [v for tag, n, v in tree(text).attrs if tag == "a"]
+    assert hrefs == []
+
+
+def test_existing_output_over_the_cap_is_refused(mod, tmp_path, capsys) -> None:
+    tmp_path = tmp_path.resolve()
+    effort = tmp_path / "effort"
+    effort.mkdir()
+    (effort / "assessment.md").write_text(report(), encoding="utf-8")
+    (effort / "assessment.html").write_bytes(b"x" * (mod.MAX_EXISTING_OUTPUT_BYTES + 1))
+    assert mod.main([str(effort)]) == 3
+    _only_fixed_tokens(*capsys.readouterr())
+
+
+def test_hostile_directory_name_never_reaches_stdout_or_stderr(mod, tmp_path, capsys) -> None:
+    tmp_path = tmp_path.resolve()
+    marker = "SECRET-MARKER-42"
+    (tmp_path / marker).mkdir()
+    assert mod.main([str(tmp_path / marker)]) == 3  # no assessment.md
+    out, err = capsys.readouterr()
+    assert marker not in out + err
+    _only_fixed_tokens(out, err)
+    os.symlink(tmp_path / marker, tmp_path / (marker + "-link"))
+    assert mod.main([str(tmp_path / (marker + "-link"))]) == 3
+    out, err = capsys.readouterr()
+    assert marker not in out + err
+
+
+@pytest.mark.parametrize(
+    "hostile",
+    [
+        "# a" + " " * 300_000 + "b\n",
+        "[" * 300_000 + "\n",
+        "[a](" * 60_000 + "\n",
+        "|a\n---" + " " * 300_000 + "x\n",
+        "## a\n" * 30_000,
+        "`" * 300_000 + "\n",
+        "**a " * 60_000 + "\n",
+    ],
+    ids=[
+        "heading-spaces",
+        "unclosed-brackets",
+        "unclosed-links",
+        "separator-spaces",
+        "repeated-headings",
+        "backticks",
+        "unclosed-bold",
+    ],
+)
+def test_parsing_stays_linear_on_hostile_input(mod, hostile) -> None:
+    started = time.perf_counter()
+    mod.render(hostile, "e", "2026-01-01")
+    assert time.perf_counter() - started < 3.0

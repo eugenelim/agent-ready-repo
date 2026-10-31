@@ -23,6 +23,7 @@ from typing import Any, NamedTuple
 
 RENDERER_VERSION = "1"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
+MAX_EXISTING_OUTPUT_BYTES = 16 * 1024 * 1024
 SOURCE_NAME = "assessment.md"
 OUTPUT_NAME = "assessment.html"
 
@@ -116,15 +117,19 @@ class Block(NamedTuple):
     rows: tuple[tuple[str, ...], ...] = ()
 
 
-_FENCE = re.compile(r"^(`{3,})\s*([A-Za-z0-9_-]*)\s*$")
-_HEADING = re.compile(r"^(#{1,6})\s+(.+?)\s*$")
+_FENCE = re.compile(r"^(`{3,})([^`]*)$")
 _ULI = re.compile(r"^\s*[-*]\s+(.*)$")
 _OLI = re.compile(r"^\s*\d+\.\s+(.*)$")
-_SEPARATOR = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
 _HR = re.compile(r"^\s*-{3,}\s*$")
-_INLINE = re.compile(r"(`[^`\n]+`)|(\*\*[^*\n]+\*\*)|(\[[^\]\n]+\]\([^)\n]*\))|(\*[^*\n]+\*)")
+_SEPARATOR_CELL = re.compile(r":?-{3,}:?")
+# Bounded quantifiers keep every inline scan linear in the source size.
+_INLINE = re.compile(
+    r"(`[^`\n]{1,200}`)|(\*\*[^*\n]{1,200}\*\*)"
+    r"|(\[[^\]\n]{1,200}\]\([^)\n]{0,500}\))|(\*[^*\n]{1,200}\*)"
+)
 _LINK = re.compile(r"^\[([^\]]+)\]\(([^)]*)\)$")
 _CONTROL = re.compile(r"[\x00-\x20\x7f]")
+_FORMAT_CHARS = re.compile("[\u200b-\u200f\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]")
 
 
 def _esc(text: str) -> str:
@@ -154,7 +159,7 @@ def _inline(text: str) -> str:
             out.append(f"<strong>{_esc(token[2:-2])}</strong>")
         elif match.group(3):
             link = _LINK.match(token)
-            if link and _safe_target(link.group(2)):
+            if link and _safe_target(link.group(2)) and not _FORMAT_CHARS.search(token):
                 href = _esc(link.group(2).strip())
                 out.append(f'<a href="{href}">{_esc(link.group(1))}</a>')
             else:
@@ -176,17 +181,36 @@ def _cells(line: str) -> tuple[str, ...]:
     return tuple(cell.strip() for cell in stripped.split("|"))
 
 
+def _heading(line: str) -> tuple[int, str] | None:
+    """Return (level, text) for an ATX heading line, or None; linear in the line."""
+    level = len(line) - len(line.lstrip("#"))
+    if not 1 <= level <= 6 or len(line) == level or line[level] not in " \t":
+        return None
+    text = line[level:].strip()
+    closing = text.rstrip("#")
+    if closing != text and (not closing or closing[-1] in " \t"):
+        text = closing.rstrip()
+    return (level, text) if text else None
+
+
+def _is_separator(line: str) -> bool:
+    """Return True for a table separator row such as `| --- | :-: |`."""
+    stripped = line.strip()
+    if stripped.startswith("|"):
+        stripped = stripped[1:]
+    if stripped.endswith("|"):
+        stripped = stripped[:-1]
+    cells = [cell.strip() for cell in stripped.split("|")]
+    return bool(cells) and all(_SEPARATOR_CELL.fullmatch(cell) for cell in cells)
+
+
 def _starts_block(line: str, next_line: str | None) -> bool:
     """Return True when *line* begins a non-paragraph block."""
-    if _FENCE.match(line) or _HEADING.match(line) or _ULI.match(line):
+    if _FENCE.match(line) or _heading(line) or _ULI.match(line):
         return True
     if _OLI.match(line) or _HR.match(line):
         return True
-    return (
-        line.lstrip().startswith("|")
-        and next_line is not None
-        and bool(_SEPARATOR.match(next_line))
-    )
+    return line.lstrip().startswith("|") and next_line is not None and _is_separator(next_line)
 
 
 def parse(source: str) -> list[Block]:
@@ -208,11 +232,11 @@ def parse(source: str) -> list[Block]:
                 body.append(lines[i])
                 i += 1
             i += 1
-            blocks.append(Block("code", text="\n".join(body), header=(info,)))
+            blocks.append(Block("code", text="\n".join(body), header=(info.strip(),)))
             continue
-        heading = _HEADING.match(line)
+        heading = _heading(line)
         if heading:
-            blocks.append(Block("h", level=len(heading.group(1)), text=heading.group(2)))
+            blocks.append(Block("h", level=heading[0], text=heading[1]))
             i += 1
             continue
         if not line.strip():
@@ -222,7 +246,7 @@ def parse(source: str) -> list[Block]:
             blocks.append(Block("hr"))
             i += 1
             continue
-        if line.lstrip().startswith("|") and following and _SEPARATOR.match(following):
+        if line.lstrip().startswith("|") and following and _is_separator(following):
             header = _cells(line)
             rows: list[tuple[str, ...]] = []
             i += 2
@@ -258,65 +282,81 @@ def parse(source: str) -> list[Block]:
     return blocks
 
 
-def _charter_checkpoint_confirmed(source: str) -> bool:
-    """Return True only when the charter holds exactly one `Checkpoints: confirmed`."""
-    lines = source.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+def _charter_checkpoint_confirmed(blocks: list[Block]) -> bool:
+    """Return True only when the charter holds exactly one `Checkpoints: confirmed`.
+
+    Reads the parsed paragraph blocks of the `## Assessment charter` section, so a fenced
+    block can never stand in for, or hide, the real charter line.
+    """
     in_charter = False
-    in_fence = False
     values: list[str] = []
-    for line in lines:
-        if _FENCE.match(line) or (in_fence and line.strip().startswith("```")):
-            in_fence = not in_fence
-            continue
-        if in_fence:
-            continue
-        heading = _HEADING.match(line)
-        if heading and len(heading.group(1)) == 2:
-            in_charter = heading.group(2).strip().lower() == "assessment charter"
-            continue
-        if in_charter and line.startswith("Checkpoints:"):
-            values.append(line[len("Checkpoints:") :].strip())
+    for block in blocks:
+        if block.kind == "h" and block.level == 2:
+            in_charter = block.text.strip().lower() == "assessment charter"
+        elif in_charter and block.kind == "p":
+            for line in block.text.split("\n"):
+                if line.startswith("Checkpoints:"):
+                    values.append(line[len("Checkpoints:") :].strip())
     return values == ["confirmed"]
 
 
+def _is_sources_label(block: Block) -> bool:
+    """Return True for the `Sources checked:` label paragraph."""
+    return block.kind == "p" and block.text.strip() == "Sources checked:"
+
+
+def _check_evidence_classes(table: Block) -> None:
+    """Refuse a Sources checked table with an evidence class outside the closed set."""
+    for row in table.rows:
+        evidence = row[2].strip().lower() if len(row) > 2 else ""
+        if evidence not in EVIDENCE_CLASSES:
+            raise Refusal(TOKEN_EVIDENCE)
+
+
 def _check_orientation(blocks: list[Block]) -> None:
-    """Refuse an orientation subsection whose last block is not a usable table."""
-    index = 0
-    while index < len(blocks):
-        block = blocks[index]
+    """Refuse an orientation subsection that lacks a usable, valid Sources checked table.
+
+    A heading counts at any level from 2 to 6, with closing `#` marks ignored. Every
+    labeled table with the Sources checked header is validated, and the last block of
+    the subsection must be one with at least one data row.
+    """
+    for index, block in enumerate(blocks):
         canonical = (
             ORIENTATION.get(block.text.strip().lower())
-            if (block.kind == "h" and block.level == 3)
+            if block.kind == "h" and block.level >= 2
             else None
         )
-        index += 1
         if canonical is None:
             continue
-        end = index
-        while end < len(blocks) and not (blocks[end].kind == "h" and blocks[end].level <= 3):
+        end = index + 1
+        while end < len(blocks) and not (
+            blocks[end].kind == "h" and blocks[end].level <= block.level
+        ):
             end += 1
-        section = blocks[index:end]
+        section = blocks[index + 1 : end]
         refusal = Refusal(f"{TOKEN_PROVENANCE} {canonical}")
-        if len(section) < 2 or section[-1].kind != "table":
+        if len(section) < 2 or section[-1].kind != "table" or not _is_sources_label(section[-2]):
             raise refusal
-        table, label = section[-1], section[-2]
-        if label.kind != "p" or label.text.strip() != "Sources checked:":
+        if list(section[-1].header) != SOURCES_HEADER or not section[-1].rows:
             raise refusal
-        if list(table.header) != SOURCES_HEADER or not table.rows:
-            raise refusal
-        for row in table.rows:
-            evidence = row[2].strip().lower() if len(row) > 2 else ""
-            if evidence not in EVIDENCE_CLASSES:
-                raise Refusal(TOKEN_EVIDENCE)
+        for position, candidate in enumerate(section):
+            if (
+                candidate.kind == "table"
+                and position > 0
+                and _is_sources_label(section[position - 1])
+                and list(candidate.header) == SOURCES_HEADER
+            ):
+                _check_evidence_classes(candidate)
 
 
-def _slug(text: str, used: set[str]) -> str:
-    """Return a unique ASCII anchor id for a heading."""
+def _slug(text: str, used: set[str], counters: dict[str, int]) -> str:
+    """Return a unique ASCII anchor id for a heading, in amortized constant time."""
     base = re.sub(r"[^a-z0-9]+", "-", text.lower()).strip("-") or "section"
-    candidate, counter = base, 2
+    candidate, number = base, counters.get(base, 1)
     while candidate in used:
-        candidate = f"{base}-{counter}"
-        counter += 1
+        number += 1
+        candidate = f"{base}-{number}"
+    counters[base] = number
     used.add(candidate)
     return candidate
 
@@ -348,6 +388,7 @@ def _body(blocks: list[Block]) -> tuple[str, str]:
     title = "Architecture assessment"
     out: list[str] = []
     used: set[str] = set()
+    counters: dict[str, int] = {}
     section = ""
     subsection = ""
     seen_title = False
@@ -359,12 +400,13 @@ def _body(blocks: list[Block]) -> tuple[str, str]:
                 previous = block
                 continue
             level = min(block.level, 6)
-            slug = _slug(block.text, used)
+            slug = _slug(block.text, used, counters)
             out.append(f'<h{level} id="{slug}">{_inline(block.text)}</h{level}>')
+            name = block.text.strip().lower()
             if level == 2:
-                section, subsection = block.text.strip().lower(), ""
-            elif level == 3:
-                subsection = block.text.strip().lower()
+                section, subsection = name, (name if name in ORIENTATION else "")
+            else:
+                subsection = name
         elif block.kind == "p":
             if section == "assessment charter":
                 lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
@@ -377,13 +419,14 @@ def _body(blocks: list[Block]) -> tuple[str, str]:
         elif block.kind == "table":
             sources = (
                 subsection in ORIENTATION
+                and list(block.header) == SOURCES_HEADER
                 and previous is not None
-                and (previous.kind == "p" and previous.text.strip() == "Sources checked:")
+                and _is_sources_label(previous)
             )
             out.append(_table(block, sources, section == "attention heat map"))
         elif block.kind == "code":
             code = f"<pre><code>{_esc(block.text)}</code></pre>"
-            if block.header and block.header[0].lower() == "mermaid":
+            if block.header and block.header[0].lower().split(None, 1)[:1] == ["mermaid"]:
                 out.append(
                     '<div class="diagram">'
                     f'<p class="diagram-label">{DIAGRAM_LABEL}</p>{code}</div>'
@@ -406,7 +449,7 @@ def render(source: str, effort_name: str, today: str) -> str:
         f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"
     )
     banner = ""
-    if not _charter_checkpoint_confirmed(source):
+    if not _charter_checkpoint_confirmed(blocks):
         banner = f'<div class="banner-unconfirmed">{BANNER_TEXT}</div>'
     meta = (
         f'<p class="meta">Source: {_esc(effort_name)}/{SOURCE_NAME} · '
@@ -518,6 +561,9 @@ def _run(argv: list[str]) -> int:
         existing = None
         if os.path.lexists(destination):
             if stat.S_ISLNK(os.lstat(destination).st_mode):
+                print(TOKEN_UNSAFE_PATH, file=sys.stderr)
+                return 3
+            if os.lstat(destination).st_size > MAX_EXISTING_OUTPUT_BYTES:
                 print(TOKEN_UNSAFE_PATH, file=sys.stderr)
                 return 3
             existing = helper.sha256_confined_regular_file(root, destination)
