@@ -47,14 +47,14 @@ A maintainer, CI job, or adopter who checks out a branch or `main` holding a spe
 | Current architecture | Applicable: the architecture page states what the run store guards | `docs/architecture/work-loop-execution-supervisor.md` | Platform Core maintainer | Review reads the page | The run-store row says a checkout without it verifies committed records only |
 | Captured defect | Applicable: the owner chose to record the `common:config` residue defect | `docs/product/captured/supervisor-common-config-residue.md` | Platform Core maintainer | The file exists with `Kind: defect` and `Status: Open` | The file names the symptom and the code that treats `<common-dir>/config` as attempt state |
 | Release history | Applicable: `core` pack content changes | one `docs/product/changelog.d/` fragment; `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` | Platform Core maintainer | AC-0008 passes | The fragment names the `status` change |
-| Delivery records | Applicable: this spec runs through the supervisor | `docs/specs/supervisor-fresh-checkout-status/delivery/` | the supervisor | AC-0007 passes on this branch | The records are committed and `status --check` exits `0` in a fresh clone |
+| Delivery records | Applicable: this spec runs through the supervisor | `docs/specs/supervisor-fresh-checkout-status/delivery/` | the supervisor | In the run, AC-0007's rebuilt-clone check; on the final head, the plan's finish evidence | The records are committed, and a plain fresh clone of the final head exits `0` on `status --check` and the shipped hook |
 
 ## Agent Rules
 
 ### Always do
 
 - Keep every changed skill script standard-library only, and load no sibling before the pre-import check decides.
-- Regenerate the projections with `make build-self` and bump `core` once.
+- Regenerate the projections with the repository's self-host command and bump `core` once. Inside the run, the installed `.claude/skills/work-loop/` is rebuilt only by the supervisor's `regenerate` request; no other step writes it.
 - Run `packs/core/tests/skills/work-loop/test_supervisor_pinning.py` after each change to a supervisor script, and keep every case that passes at the base passing with its assertions unchanged; AC-0001 to AC-0006 are checked by added cases.
 
 ### Ask first
@@ -74,7 +74,7 @@ A maintainer, CI job, or adopter who checks out a branch or `main` holding a spe
 - **The no-store `status` path (AC-0001, AC-0002, AC-0003): TDD.** Each case runs the real CLI in a `git clone` of a supervisor-run test repository, which holds the committed records and no store; each reds at the base on the `supervisor-changed` refusal.
 - **The `verification` field (AC-0006): TDD.** The `committed-records-only` cases run in the store-less clones above; the `pinned` cases run in a supervisor-run test repository that holds its store. At the base, the `committed-records-only` cases and the `pinned` case whose working-tree approvals name a run with no store red on the `supervisor-changed` refusal `the supervisor's pin record is missing`; every other `pinned` case reds because the `status` view has no `verification` key.
 - **Refusals that stay (AC-0004, AC-0005): TDD.** Each planted tamper or verb runs the real CLI and asserts the refusal; the cases that pass at the base are pins, and the `status` cases that do not exist at the base are added.
-- **The hook on this branch (AC-0007): goal-based and manual QA.** The no-approvals roster case runs on this branch, which carries this spec's `delivery/`. The installed skill on the branch is rebuilt only by the supervisor's `regenerate` request, which follows every criterion, so the fresh clone rebuilds its own installed skill from the pack source before it runs the command and the hook; the commit id and observed exit codes go in the ledger. The branch's final head, which carries the regenerated skill, is proven outside the run: `build-check.yml`'s step `pytest catalogue-test carve-out destinations (RFC-0082)` runs `test_shipped_pre_pr_runs_no_linter_labels` with this spec's `delivery/` in its sandbox, and a plain fresh clone of that head runs the command and the hook, recorded in the ledger and the pull request.
+- **The hook on this branch (AC-0007): goal-based and manual QA.** The no-approvals roster case runs on this branch, which carries this spec's `delivery/`. A fresh clone of the pushed branch rebuilds its own installed skill from the pack source and commits that only inside the clone, then runs the command and the hook; the commit id, commands and observed exit codes go in the ledger.
 - **Release (AC-0008): goal-based.** The version and changelog gates.
 
 ## Acceptance Criteria

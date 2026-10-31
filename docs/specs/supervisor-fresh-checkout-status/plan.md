@@ -93,7 +93,7 @@ Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006.
 - **Verification mode:** goal-based check
 - **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, one `docs/product/changelog.d/` fragment, generated projections
 - **Tests:** none; AC-0008.
-- **Done when:** the version-bump and changelog gates pass and `make build-self` leaves no diff.
+- **Done when:** the version-bump and changelog gates pass, and `agentbundle catalogue self-host --root . --check` reports drift in no path outside `.claude/skills/work-loop/`.
 
 ### T4: The hook on this branch
 
@@ -105,7 +105,7 @@ Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006.
 
 ## Finish evidence (outside the run)
 
-After `terminal`, on the final pushed head, which carries the regenerated installed skill: `test_shipped_pre_pr_runs_no_linter_labels` passes in build-check's `pytest catalogue-test carve-out destinations (RFC-0082)` step, and a plain fresh clone runs `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` with exit `0`. Both are recorded in the ledger and the pull request.
+After `terminal`, on the final pushed head, which carries the regenerated installed skill: `make build-self` leaves no diff; `test_shipped_pre_pr_runs_no_linter_labels` passes in build-check's `pytest catalogue-test carve-out destinations (RFC-0082)` step; and a plain fresh clone runs `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` with exit `0`. Each is recorded in the ledger and the pull request before the spec is set to `Shipped`. A failure of any of them blocks the pull request's merge and keeps the spec `Implementing`; the repair returns to this run as a new plan task.
 
 ## Rollout
 
