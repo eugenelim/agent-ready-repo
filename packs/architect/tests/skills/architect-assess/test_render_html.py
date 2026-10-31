@@ -1747,7 +1747,7 @@ def test_the_first_twenty_passing_fences_are_drawn_and_refusals_are_not_counted(
     assert [label for _, label in found[:3]] == ["Diagram source (not drawn: unsafe)"] * 3
     assert [label for _, label in found[3:23]] == ["Diagram (source below)"] * 20
     assert [label for _, label in found[23:]] == ["Diagram source (not drawn: limit)"] * 2
-    assert text.count("diagram-drawn") == 20
+    assert sum(1 for css, _ in found if css == "diagram diagram-drawn") == 20
 
 
 def test_the_text_the_rules_read_equals_the_emitted_code_text(mod, tmp_path, capsys) -> None:
@@ -1835,3 +1835,111 @@ def test_caps_hold_with_the_flag(mod, tmp_path, capsys, monkeypatch) -> None:
     monkeypatch.setattr(mod, "MAX_SOURCE_BYTES", 100)
     code, err, _ = run_diagrams(_mk(tmp_path / "w2"), report(), mod, capsys)
     assert (code, err.strip()) == (2, "render_html: refused: source over the size cap")
+
+
+# ---- the drawing script's text rules ---------------------------------------------
+
+
+def _script_text() -> str:
+    return SCRIPT_FILE.read_text(encoding="utf-8")
+
+
+def _initialize_options() -> dict[str, str]:
+    body = re.search(r"mermaid\.initialize\(\{(.*?)\}\)", _script_text(), re.S).group(1)
+    return {
+        key: value.strip()
+        for key, value in re.findall(r"(\w+):\s*([^,\n]+(?:\?[^,\n]+)?)", body)
+    }
+
+
+def test_script_initializes_mermaid_with_the_fixed_options() -> None:
+    options = _initialize_options()
+    assert options["securityLevel"] == "'strict'"
+    assert options["startOnLoad"] == "false"
+    assert options["suppressErrorRendering"] == "true"
+    assert options["htmlLabels"] == "false"
+    assert options["maxTextSize"] == "50000"
+    assert options["maxEdges"] == "500"
+
+
+def test_script_picks_the_theme_from_the_colour_scheme() -> None:
+    text = _script_text()
+    assert "window.matchMedia('(prefers-color-scheme: dark)').matches" in text
+    assert "theme: dark ? 'dark' : 'neutral'" in text
+
+
+def test_script_draws_only_marked_blocks_and_reads_the_code_text_content() -> None:
+    text = _script_text()
+    assert ".diagram.diagram-drawn" in text
+    assert text.count("querySelectorAll(") == 1
+    assert "window.mermaid.render(id, code.textContent)" in text
+    assert "innerText" not in text and ".innerHTML" not in text
+
+
+def test_script_render_ids_hold_an_underscore_headings_never_take(mod) -> None:
+    assert "var id = 'mmd_d' + (n + 1);" in _script_text()
+    slugs = {mod._slug(f"Mmd D{n}", set(), {}) for n in range(1, 4)}
+    assert all("_" not in slug for slug in slugs)
+
+
+@pytest.mark.parametrize(
+    "sink",
+    [
+        "innerHTML",
+        "insertAdjacentHTML",
+        "outerHTML",
+        "eval",
+        "Function(",
+        "document.write",
+        "setTimeout(",
+        "setInterval(",
+    ],
+)
+def test_script_has_no_html_string_sink_or_dynamic_code(sink) -> None:
+    assert sink not in _script_text()
+
+
+def test_script_confines_what_it_accepts_by_text_rules() -> None:
+    text = _script_text()
+    for needle in (
+        "removeAttribute('style')",
+        "'@import'",
+        "selector.indexOf('~') !== -1",
+        "selector.indexOf('+') !== -1",
+        "rule.cssRules.length > 0",
+        "current.indexOf(id) !== 0",
+        "renamed[current] = id + '-' + current;",
+        "root.getAttribute('id') !== id",
+        "typeof lib.initialize === 'function'",
+        "typeof lib.render === 'function'",
+        "'adoptedStyleSheets' in document",
+        "Diagram source (not drawn)",
+    ):
+        assert needle.replace("'@import'", "/@import/i") in text or needle in text, needle
+    for element in (
+        "svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text",
+        "tspan", "defs", "marker", "title", "desc", "clipPath", "filter", "feDropShadow",
+        "linearGradient", "stop", "symbol",
+    ):
+        assert f"'{element}'" in text.split("var SVG_ELEMENTS")[1].split("];")[0], element
+    assert "function targetsTheRoot" in text and "selector === '#' + id" in text
+    banned = text.split("var BANNED_PROPERTIES")[1].split("];")[0]
+    for prop in ("position", "inset", "top", "right", "bottom", "left", "float", "transform",
+                 "z-index", "translate"):
+        assert f"'{prop}'" in banned, prop
+    for rule in ("CSSMediaRule", "CSSSupportsRule", "CSSLayerBlockRule", "CSSContainerRule"):
+        assert rule in text
+    for refused in ("CSSImportRule", "CSSFontFaceRule", "CSSNamespaceRule", "CSSPropertyRule"):
+        assert refused not in text
+
+
+def test_the_real_script_passes_the_loader_and_the_inline_hash(mod) -> None:
+    helper = mod._load_helper()
+    assert mod.load_script(helper) == _script_text()
+
+
+def test_drawn_diagrams_scroll_inside_their_own_region() -> None:
+    assert declared(".diagram-render", "overflow-x") == ["auto"]
+    assert declared(".diagram-render", "max-width") == ["100%"]
+    assert declared(".diagram-render svg", "max-width") == ["100%"]
+    assert declared(".diagram-render svg", "height") == ["auto"]
