@@ -3,7 +3,7 @@
 - **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) — the renderer's security rules stay in force: escaped values, a CSP naming the one `<style>` by hash, no script, no network. This spec owns the closed element and attribute lists from now on and amends the parent's element and attribute criteria to cite it. The family token file [`docs/design/tokens/skill-html-views.md`](../../design/tokens/skill-html-views.md) supplies the document-view tracks, type, spacing, and interaction floor, except that this view starts its contents track at 64rem, not 100rem, and the token file records that deviation.
+- **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) — the renderer's security rules stay in force: escaped values, a CSP naming the one `<style>` by hash, no script, no network. This spec owns the closed element and attribute lists from now on and amends the parent's element and attribute criteria to cite it. The family token file [`docs/design/tokens/skill-html-views.md`](../../design/tokens/skill-html-views.md) supplies the document-view tracks, type, spacing, and interaction floor, except that this view starts its contents track at 64rem, not 100rem, and the token file records that deviation. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 - **Brief:** none
 - **Discovery:** none
 - **Depends on:** spec:architect-assess-html-report
@@ -49,12 +49,12 @@ A maintainer who opens an assessment report meets the same page family as the `n
 
 ### Ask first
 
-- Any element, attribute, or CSP source beyond those the acceptance criteria name.
+- Any element, attribute, or CSP source beyond those the acceptance criteria name. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 - Editing the copied `view-base.css`; the canonical file owns it.
 
 ### Never do
 
-- Add a script, a web font, an image, or any network reference to the page.
+- Add a script, a web font, an image, or any network reference to the page. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 - Declare a colour literal or redefine a family token in the layout file.
 - Edit `navigate-intents` or `navigate-decisions` to make this work.
 
@@ -85,8 +85,8 @@ A maintainer who opens an assessment report meets the same page family as the `n
 
 ### Closed lists
 
-- [x] Every element in the parsed output is one of `html`, `head`, `meta`, `title`, `style`, `body`, `header`, `nav`, `main`, `section`, `div`, `span`, `p`, `h1`–`h6`, `ul`, `ol`, `li`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `strong`, `em`, `a`, `details`, `summary`, `br`, or `hr`.
-- [x] Every attribute in the parsed output is one of `class`, `id`, `lang`, `charset`, `http-equiv`, `content`, `href` on an `a`, `aria-label` on a `nav` or a `div`, `role` and `tabindex` on a `div`, or `data-mark` and `aria-hidden` on a `span`.
+- [x] Every element in the parsed output is one of `html`, `head`, `meta`, `title`, `style`, `body`, `header`, `nav`, `main`, `section`, `div`, `span`, `p`, `h1`–`h6`, `ul`, `ol`, `li`, `table`, `thead`, `tbody`, `tr`, `th`, `td`, `pre`, `code`, `strong`, `em`, `a`, `details`, `summary`, `br`, or `hr`. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
+- [x] Every attribute in the parsed output is one of `class`, `id`, `lang`, `charset`, `http-equiv`, `content`, `href` on an `a`, `aria-label` on a `nav` or a `div`, `role` and `tabindex` on a `div`, or `data-mark` and `aria-hidden` on a `span`. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 - [x] The parent spec's element and attribute criteria cite this spec as the owner of those lists.
 
 ### Structure and first screen

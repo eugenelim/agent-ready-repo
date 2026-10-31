@@ -50,3 +50,46 @@ def test_adr_states_its_required_points() -> None:
         "the CDN host changes",
     ):
         assert phrase in adr, phrase
+
+
+SPECS = REPO_ROOT / "docs/specs"
+EXCEPTION = "Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns."
+AMENDED = {
+    "architect-assess-html-report": (
+        "- Any `<script>` element in the output",
+        "- Load script, style, font, or image from a network location.",
+        "- Add a third-party dependency, a vendored third-party asset",
+        "- [x] Each Mermaid fence appears as a `<pre>` under the visible label",
+        "- [x] `references/html-report.md` lists every exit 2 reason",
+        "- [x] Opened in a real browser, a sample report shows shaded heat cells",
+    ),
+    "architect-assess-html-report-style": (
+        "- **Constrained by:**",
+        "- Any element, attribute, or CSP source beyond those the acceptance criteria name.",
+        "- Add a script, a web font, an image, or any network reference to the page.",
+        "- [x] Every element in the parsed output is one of",
+        "- [x] Every attribute in the parsed output is one of",
+    ),
+}
+
+
+def test_every_amended_parent_rule_carries_the_exception() -> None:
+    for slug, starts in AMENDED.items():
+        lines = (SPECS / slug / "spec.md").read_text(encoding="utf-8").splitlines()
+        for start in starts:
+            hits = [line for line in lines if line.startswith(start)]
+            assert len(hits) == 1, (slug, start)
+            assert hits[0].endswith(EXCEPTION), (slug, start)
+
+
+def test_user_docs_name_the_flag_the_host_and_the_sharing_warning() -> None:
+    guides = (
+        REPO_ROOT / "guides/architect/reference/architecture-assessment.md",
+        REPO_ROOT / "guides/architect/how-to/assess-a-repository.md",
+    )
+    for path in guides:
+        text = " ".join(path.read_text(encoding="utf-8").split())
+        assert "cdn.jsdelivr.net" in text, path.name
+        assert "share" in text.lower() and "readers who accept that" in text, path.name
+    reference = " ".join(guides[0].read_text(encoding="utf-8").split())
+    assert "--diagrams" in reference

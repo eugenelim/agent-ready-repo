@@ -338,3 +338,37 @@ def test_html_eval_case_checks_the_style_the_rail_and_the_marks() -> None:
         "maintainer-view style" in a and "contents rail" in a and "provenance marks" in a
         for a in case["assertions"]
     )
+
+
+def test_html_reference_and_skill_name_the_diagrams_flag_and_host() -> None:
+    reference = " ".join(
+        (SKILL_ROOT / "references" / "html-report.md").read_text(encoding="utf-8").split()
+    )
+    skill = " ".join(SKILL_PATH.read_text(encoding="utf-8").split())
+    for text in (reference, skill):
+        assert "`--diagrams`" in text and "cdn.jsdelivr.net" in text
+    assert "render_html: usage: render_html.py <effort-dir> [--diagrams]" in reference
+    assert "only when the user asks for drawn diagrams" in reference
+    assert "Pass `--diagrams` only when the user asks for drawn diagrams" in skill
+    assert "should not be shared with readers who expect the offline default" in skill
+    assert "Share a drawn report only with readers who accept that" in reference
+    assert "on the default page" in reference and "default page runs no script" in reference
+
+
+def test_html_reference_exit_rows_name_the_new_refusals() -> None:
+    lines = (SKILL_ROOT / "references" / "html-report.md").read_text(encoding="utf-8").splitlines()
+    two = next(line for line in lines if line.startswith("| 2 |"))
+    three = next(line for line in lines if line.startswith("| 3 |"))
+    assert "second argument other than `--diagrams`" in two
+    for reason in ("diagrams script asset", "`</script`", "a carriage return"):
+        assert reason in three
+
+
+def test_diagrams_evals_assert_the_flag_and_its_absence() -> None:
+    import json
+
+    evals = json.loads((SKILL_ROOT / "evals" / "evals.json").read_text("utf-8"))["evals"]
+    drawn = next(c for c in evals if "diagrams drawn" in c["prompt"])
+    plain = next(c for c in evals if c["prompt"].endswith("Render it to HTML."))
+    assert any("with --diagrams as the second argument" in a for a in drawn["assertions"])
+    assert any("without the --diagrams flag" in a for a in plain["assertions"])
