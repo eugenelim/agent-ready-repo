@@ -119,7 +119,7 @@ class Block(NamedTuple):
     rows: tuple[tuple[str, ...], ...] = ()
 
 
-_FENCE = re.compile(r"^( {0,3})(`{3,})([^`]*)$")
+_FENCE = re.compile(r"^( *)(`{3,})([^`]*)$")
 _ULI = re.compile(r"^\s*[-*]\s+(.*)$")
 _OLI = re.compile(r"^\s*\d+\.\s+(.*)$")
 _HR = re.compile(r"^\s*-{3,}\s*$")
@@ -230,13 +230,13 @@ def parse(source: str) -> list[Block]:
         following = lines[i + 1] if i + 1 < len(lines) else None
         fence = _FENCE.match(line)
         if fence:
-            marker, info = fence.group(2), fence.group(3)
+            indent, marker, info = len(fence.group(1)), fence.group(2), fence.group(3)
             body: list[str] = []
             i += 1
             while i < len(lines) and not (
                 lines[i].strip().startswith(marker) and set(lines[i].strip()) == {"`"}
             ):
-                body.append(lines[i])
+                body.append(lines[i][min(indent, len(lines[i]) - len(lines[i].lstrip(" "))) :])
                 i += 1
             i += 1
             blocks.append(Block("code", text="\n".join(body), header=(info.strip(),)))
@@ -435,7 +435,10 @@ def _table(block: Block, sources: bool, heat: bool) -> str:
 def _body(
     blocks: list[Block], scopes: list[tuple[str, str | None]], title_at: int | None
 ) -> tuple[str, str]:
-    """Render blocks to HTML; return (title, html) with the first H1 as the title."""
+    """Render blocks to HTML; return (title, html).
+
+    The title is the first heading block, when that block is level 1.
+    """
     title = "Architecture assessment"
     out: list[str] = []
     used: set[str] = set()

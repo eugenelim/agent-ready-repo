@@ -206,9 +206,9 @@ without that primitive fails closed and can still use stdout.
 
 An HTML report is a second file beside the saved report, written by
 `scripts/render_html.py` on request. The page loads nothing from a network and
-runs no script. Diagrams appear as labeled source blocks. The script exits 2 for
-a report whose orientation subsection lacks its table and 3 for a confinement
-failure; hosts without descriptor walking, Windows included, get no report.
+runs no script. Diagrams appear as labeled source blocks. The script exits 2 for a refused report and 3 for a confinement failure; hosts
+without descriptor walking, Windows included, get no report. The skill's
+`references/html-report.md` lists every reason.
 
 Each orientation subsection ends with a `Sources checked` table whose columns
 are Source, Locator, Evidence class, and Limit. Evidence class is `observed`,

@@ -678,6 +678,7 @@ def test_hostile_directory_name_never_reaches_stdout_or_stderr(mod, tmp_path, ca
         "# a" + " " * 300_000 + "b\n",
         "[" * 300_000 + "\n",
         "[a](" * 60_000 + "\n",
+        "| a |\n| --- |\n" + " " * 300_000,
         "|a\n---" + " " * 300_000 + "x\n",
         "## a\n" * 30_000,
         "`" * 300_000 + "\n",
@@ -687,6 +688,7 @@ def test_hostile_directory_name_never_reaches_stdout_or_stderr(mod, tmp_path, ca
         "heading-spaces",
         "unclosed-brackets",
         "unclosed-links",
+        "separator-header-spaces",
         "separator-spaces",
         "repeated-headings",
         "backticks",
@@ -824,7 +826,7 @@ def test_unterminated_link_target_stays_under_the_memory_bound(mod) -> None:
 
     tracemalloc.start()
     try:
-        mod.render("[a](" + "b" * 400_000 + "\n", "e", "2026-01-01")
+        mod.render("[a](" + "b" * 400_000, "e", "2026-01-01")
         peak = tracemalloc.get_traced_memory()[1]
     finally:
         tracemalloc.stop()
@@ -859,5 +861,47 @@ def test_reference_lists_every_exit_two_reason() -> None:
         "2 MiB",
         "not UTF-8",
         "16 MiB",
+    ):
+        assert reason in row
+
+
+# ---- round-four review repairs ------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "# T\n\n- a\n  - b\n    ```mermaid\n    A --> B\n    ```\n",
+        "# T\n\n1. a\n   - b\n     ```mermaid\n     A --> B\n     ```\n",
+    ],
+    ids=["four-spaces", "five-spaces"],
+)
+def test_deeply_nested_mermaid_fence_renders_as_a_labeled_block(mod, source) -> None:
+    out = mod.render(source, "e", "2026-01-01")
+    assert "Diagram source (not rendered)" in out and "<pre><code>A --&gt; B" in out
+
+
+def test_refused_existing_output_is_left_unchanged(mod, tmp_path, capsys) -> None:
+    tmp_path = tmp_path.resolve()
+    effort = tmp_path / "effort"
+    effort.mkdir()
+    (effort / "assessment.md").write_text(report(), encoding="utf-8")
+    big = b"x" * (mod.MAX_EXISTING_OUTPUT_BYTES + 1)
+    (effort / "assessment.html").write_bytes(big)
+    assert mod.main([str(effort)]) == 3
+    assert (effort / "assessment.html").read_bytes() == big
+    _only_fixed_tokens(*capsys.readouterr())
+
+
+def test_reference_exit_three_row_names_every_reason() -> None:
+    lines = (SKILL_ROOT / "references" / "html-report.md").read_text(encoding="utf-8").splitlines()
+    row = next(line for line in lines if line.startswith("| 3 |"))
+    for reason in (
+        "missing source",
+        "non-directory",
+        "over 16 MiB",
+        "symlink",
+        "unexpected error",
+        "descriptor walking",
     ):
         assert reason in row

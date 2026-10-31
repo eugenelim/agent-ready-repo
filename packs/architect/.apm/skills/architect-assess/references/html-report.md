@@ -17,7 +17,7 @@ replaces the existing `assessment.html`.
 | --- | --- |
 | 0 | The page was written. |
 | 2 | The report or the command was refused. The reasons are: a wrong argument count; an orientation subsection without a usable `Sources checked` table; an evidence class outside `observed`, `inferred`, `reported`, `unknown`; a source over 2 MiB; a source that is not UTF-8; and a rendered page over 16 MiB. The reason is on stderr. |
-| 3 | Confinement or environment failure: a missing source or directory, a symlink, an unexpected error, or a host without descriptor walking, Windows included. No report is written on such a host. |
+| 3 | Confinement or environment failure: a missing source, a missing or non-directory effort path, an existing `assessment.html` over 16 MiB, a symlink, an unexpected error, or a host without descriptor walking, Windows included. No report is written. |
 
 ## What the page holds
 
