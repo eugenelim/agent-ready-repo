@@ -152,8 +152,17 @@ in a `mktemp` directory with `GIT_CONFIG_GLOBAL=/dev/null` and
   gives `remote.origin.url=/x[branch b]`, `remote.origin.remote=o`, and a live
   `core.hookspath`; the `gh-resolved` and `include.path` variants join the same
   way.
+- Every headered key and value literal in AC-0003 gives `branch.x.remote=o`
+  (`[branch "x"]\n\tRemote = o\n`, `remote=o`, `remote = "o"`, `o;x`, `o#x`, and
+  the byte-order-mark file alike); `[branch "x"]\n\tremote = o\\\n[core]\n\tbare = false\n`
+  gives `branch.x.remote=o[core]` and `branch.x.bare=false`; the `include` and
+  `includeIf` files give `include.path` and `includeif.gitdir:/x/.path`.
 - A throwaway implementation of the rules above removes nothing from any
-  AC-0003 file and removes only the tracking lines from a canonical file.
+  AC-0003 file. Without the file-wide precondition it removes 19–27 bytes from
+  each file AC-0003 marks *(precondition)* and nothing from the others. The
+  control file `[core]\n\tbare = false\n[branch "x"]\n\tremote = o\n[core]\n\teditor = e\n`,
+  the `\r\n` precondition case without its stray `\r`, has its 25-byte block
+  removed.
 
 Owned by: T1, T2.
 
@@ -202,10 +211,8 @@ Owned by: T1, T2.
 - A file that a writer rewrites from canonical to non-canonical form (or back)
   changes its retained bytes and therefore refuses, which is the fail-closed
   direction.
-- A downgrade with an attempt open refuses that attempt and records the
-  refusal. After the newer release is reinstalled the refusal stands until the
-  paths match and `next` clears it, and the attempt's work is re-issued as a
-  new request, not reported.
+- A downgrade with an attempt open refuses that attempt; the spec's Accepted
+  Risk states the recovery.
 
 Traces to: AC-0003, AC-0008, AC-0016.
 
@@ -255,7 +262,9 @@ Owned by: T1.
   `git config --file <f> --list` under `GIT_CONFIG_GLOBAL` set to the null
   device and `GIT_CONFIG_NOSYSTEM=1`; the keys and values Git reports equal the
   case table's expected list, recorded from the probe in `## Design (LLD)`.
-  It runs in the same suite, so it runs on the POSIX CI Git and on Git for
+  For each headered key and value shape the expected list holds the
+  `branch.x.*` key Git reports, so a key line Git attributes to the branch is
+  proved to stay in the digest. It runs in the same suite, so it runs on the POSIX CI Git and on Git for
   Windows.
 - **VI-0104 (AC-0004):** every value from VI-0101 to VI-0103 begins
   `config-view:`, and the raw-file fingerprint of each case does not.
@@ -350,10 +359,8 @@ migration. A run admitted before the release keeps working: its pinned
 supervisor refuses `supervisor-changed` until regenerated, and the
 form-preserving comparison admits the regeneration's own attempt. Reversal is
 reinstalling the prior core release while no attempt is open and no refusal
-stands; attempts close at `report`. A downgrade with an attempt open refuses
-that attempt; after the newer release is reinstalled, `next` clears the
-refusal once the paths match and re-issues the work, as the spec's Accepted
-Risk records.
+stands; attempts close at `report`. The spec's Accepted Risk states what
+happens after a downgrade with an attempt open.
 
 ## Risks
 

@@ -175,27 +175,42 @@ Config fingerprint
   tracking block.
 - [ ] **AC-0003.** Each of these files has nothing removed, so its config
   fingerprint is `config-view:` followed by the raw-file fingerprint form of the
-  whole file. Bytes are written as Python bytes literals.
-  - Header shapes: `[branch "x"][core]hooksPath = /evil\n`,
-    `[branch "x\\\\"][filter "y"]clean = "/evil"]\n`,
-    `[branch "x"] [remote "origin"]url = /evil\n`,
-    `[branch "x"]\r[core]\n\thookspath = /evil\n`, `[Branch "x"]\n\tremote = o\n`,
-    and a byte-order mark before the first header.
-  - Key and value shapes: `\tRemote = o\n`, `\tremote=o\n`, `\tremote = "o"\n`,
-    a value holding `;` or `#`, a value ending in `\`, an `include` or
-    `includeIf` section, and a tracking key followed by a line that is not a
-    header (`[branch "x"]\n\tremote = o\n\thookspath = /evil\n`).
-  - Continuation shapes, each with a canonical block after a line Git joins to
-    the next: `[remote "origin"]\n\turl = /x\\\r\n[branch "b"]\n\tremote = o\n[core]\n\thooksPath = /evil\n`;
-    `[remote "origin"]\n\turl = /x\\\r\n\tgh-resolved = base\n\tpushurl = /evil\n`;
-    `[remote "o"]\n\turl = /good\\\r\n[branch "b"]\n\tremote = one\n[core]\n\tbare = false\n`
-    and the same with `remote = two`;
-    `[remote "o"]\n\turl = /good\\\r\n\tgh-resolved = one\n` and the same with
-    `gh-resolved = two`;
-    `[include]\n\tpath = /x\\\r\n[branch "b"]\n\tremote = o\n[core]\n\tbare = false\n`;
-    and `[remote "o"]\n\turl = /good\\\n[branch "b"]\n\tremote = o\n[core]\n\tbare = false\n`.
-  - Line-ending shapes: a file with `\r\n` line endings, a `\r` inside a value,
-    and a file whose last byte is not `\n`.
+  whole file. Each file is a Python bytes literal. A file marked
+  *(precondition)* holds a block the other rules would remove; the strippable-file
+  precondition is what keeps it. No other file holds a block the Definitions
+  would remove.
+  - Header shapes:
+    `b'[branch "x"][core]hooksPath = /evil\n'`,
+    `b'[branch "x\\\\"][filter "y"]clean = "/evil"]\n'`,
+    `b'[branch "x"] [remote "origin"]url = /evil\n'`,
+    `b'[branch "x"]\r[core]\n\thookspath = /evil\n'`,
+    `b'[Branch "x"]\n\tremote = o\n'`,
+    `b'\xef\xbb\xbf[branch "x"]\n\tremote = o\n'`.
+  - Key and value shapes:
+    `b'[branch "x"]\n\tRemote = o\n'`,
+    `b'[branch "x"]\n\tremote=o\n'`,
+    `b'[branch "x"]\n\tremote = "o"\n'`,
+    `b'[branch "x"]\n\tremote = o;x\n'`,
+    `b'[branch "x"]\n\tremote = o#x\n'`,
+    `b'[branch "x"]\n\tremote = o\n\thookspath = /evil\n'`,
+    `b'[include]\n\tpath = /x\n'`,
+    `b'[includeIf "gitdir:/x/"]\n\tpath = /y\n'`,
+    and *(precondition)* `b'[branch "x"]\n\tremote = o\\\n[core]\n\tbare = false\n'`.
+  - Continuation shapes, each *(precondition)*:
+    `b'[remote "origin"]\n\turl = /x\\\r\n[branch "b"]\n\tremote = o\n[core]\n\thooksPath = /evil\n'`,
+    `b'[remote "origin"]\n\turl = /x\\\r\n\tgh-resolved = base\n\tpushurl = /evil\n'`,
+    `b'[remote "o"]\n\turl = /good\\\r\n[branch "b"]\n\tremote = one\n[core]\n\tbare = false\n'`,
+    `b'[remote "o"]\n\turl = /good\\\r\n[branch "b"]\n\tremote = two\n[core]\n\tbare = false\n'`,
+    `b'[remote "o"]\n\turl = /good\\\r\n\tgh-resolved = one\n'`,
+    `b'[remote "o"]\n\turl = /good\\\r\n\tgh-resolved = two\n'`,
+    `b'[include]\n\tpath = /x\\\r\n[branch "b"]\n\tremote = o\n[core]\n\tbare = false\n'`,
+    `b'[remote "o"]\n\turl = /good\\\n[branch "b"]\n\tremote = o\n[core]\n\tbare = false\n'`.
+  - Line-ending shapes:
+    `b'[branch "x"]\r\n\tremote = o\r\n'`,
+    *(precondition)* `b'[core]\r\n\tbare = false\r\n[branch "x"]\n\tremote = o\n[core]\n\teditor = e\n'`,
+    *(precondition)* `b'[core]\n\tbare = false\n[branch "x"]\n\tremote = o\n[core]\n\teditor = a\rb\n'`,
+    `b'[branch "x"]\n\tremote = o'`,
+    *(precondition)* `b'[branch "x"]\n\tremote = o\n[core]\n\tbare = false'`.
 - [ ] **AC-0004.** Every config fingerprint begins `config-view:`, and no
   raw-file fingerprint does.
 - [ ] **AC-0006.** Computing Git control state creates no process.
@@ -292,10 +307,11 @@ cost of keeping the excluded set and the canonical form narrow.
 Reinstalling an older core release is safe only when no attempt is open and no
 refusal stands; attempts close at `report`. If the older release is installed
 while an attempt is open, it cannot match a `config-view:` value, so it
-refuses that attempt and records the refusal in the store. Reinstalling the
-newer release leaves that refusal standing: `next` answers `attempt-residue`
-until the paths match and `next` clears it, and the attempt's work is then
-re-issued as a new request, not reported. No store edit is a recovery.
+refuses that attempt and records the refusal in the store. After the newer
+release is reinstalled, the first `next` clears the refusal once the paths
+match, and re-issues the same request, with the same request id, under a new
+manifest. A `report` for that request is then checked against the new
+manifest. No store edit is a recovery.
 
 The Platform Core decision-maker accepted this risk, in full, on 2026-10-31.
 
