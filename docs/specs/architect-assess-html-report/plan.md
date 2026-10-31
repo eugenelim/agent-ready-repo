@@ -88,6 +88,14 @@ Touches: `docs/specs/architect-assess-html-report/notes/verification-ledger.md`
 Tests: render the sample and hostile reports, open each in a real browser, and record what shows: shaded heat cells, evidence badges, the notice, the banner, and the hostile markup as visible text with no script run.
 Done when: the observations are in the ledger.
 
+### T6 — Repair review findings
+
+Depends on: T5
+Verification mode: TDD
+Touches: `scripts/render_html.py`, `packs/architect/tests/skills/architect-assess/test_render_html.py`
+Tests: the banner decision derives from the parsed blocks, so a planted fence with an info string or a longer marker cannot hide the real charter's `Checkpoints:` line, and a charter confirmed once plus the same line elsewhere shows no banner; a heading with closing `#` marks still counts as an orientation subsection; every table treated as `Sources checked` is validated, not only the last; parsing stays linear on a long whitespace-run heading line, a line of unclosed link openers, a whitespace-run separator line, and thousands of identical headings, each asserted under a time bound on a 300 KB input; the printed lines equal members of the script's token set and a hostile directory name never appears in stdout or stderr; the symlinked-source case asserts no output file; a Mermaid fence with a trailing info string keeps its label; link text or target holding a bidi or format character renders as text; an existing output over 16 MiB is refused with exit 3.
+Done when: the T6 tests pass.
+
 ## Review
 
 The change renders untrusted text as HTML and adds a confined write, so the work-loop's security-reviewer fires at REVIEW on T1 and T2 and must be clean before T4 releases.
