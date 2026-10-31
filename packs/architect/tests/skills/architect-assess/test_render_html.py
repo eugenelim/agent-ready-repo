@@ -1949,7 +1949,7 @@ def test_the_real_script_passes_the_loader_and_the_inline_hash(mod) -> None:
 def test_drawn_diagrams_scroll_inside_their_own_region() -> None:
     assert declared(".diagram-render", "overflow-x") == ["auto"]
     assert declared(".diagram-render", "max-width") == ["100%"]
-    assert declared(".diagram-render svg", "max-width") == ["100%"]
+    assert declared(".diagram-render svg", "min-width") == ["32rem"]
     assert declared(".diagram-render svg", "height") == ["auto"]
 
 
@@ -1957,3 +1957,9 @@ def test_script_keyframe_names_are_a_fixed_list() -> None:
     text = _script_text()
     names = re.search(r"var KEYFRAME_NAMES = \[(.*?)\];", text).group(1)
     assert re.findall(r"'([^']+)'", names) == ["dash", "edge-animation-frame"]
+
+
+def test_script_names_each_drawn_region_after_its_source_label() -> None:
+    text = _script_text()
+    assert "'Drawn diagram: ' + named.slice(8)" in text
+    assert "named.indexOf('Source: ') === 0" in text

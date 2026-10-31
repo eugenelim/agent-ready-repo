@@ -246,9 +246,13 @@
     holder.className = 'diagram-render';
     holder.setAttribute('role', 'region');
     holder.setAttribute('tabindex', '0');
-    holder.setAttribute('aria-label', 'Drawn diagram');
-    holder.appendChild(document.importNode(root, true));
     var source = block.querySelector('.source-scroll');
+    var named = source ? source.getAttribute('aria-label') : null;
+    holder.setAttribute(
+      'aria-label',
+      named && named.indexOf('Source: ') === 0 ? 'Drawn diagram: ' + named.slice(8) : 'Drawn diagram'
+    );
+    holder.appendChild(document.importNode(root, true));
     block.insertBefore(holder, source);
   }
 

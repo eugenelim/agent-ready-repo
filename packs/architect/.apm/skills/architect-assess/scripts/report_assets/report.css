@@ -49,7 +49,7 @@ pre { margin: 0; padding: var(--s-3); overflow: auto; width: max-content; min-wi
 pre code { font-size: 0.8125rem; line-height: 1.5; }
 .diagram-label { margin: var(--s-4) 0 var(--s-1); font-size: 0.75rem; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.07em; color: var(--c-subtle); }
 .diagram-render { margin: var(--s-3) 0; max-width: 100%; overflow-x: auto; }
-.diagram-render svg { max-width: 100%; height: auto; }
+.diagram-render svg { min-width: 32rem; height: auto; }
 
 /* ---- Provenance marks: a neutral pill, a word, and a bar glyph that reads aloud as nothing */
 .ev-observed, .ev-inferred, .ev-reported, .ev-unknown { background: var(--c-bg); border-width: 1px; border-style: solid; border-color: var(--c-rule-strong); }
