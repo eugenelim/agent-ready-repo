@@ -131,6 +131,7 @@ protected = [
   "docs/specs/top-canonical",
   "docs/specs/top-legacy",
   "docs/specs/top-level",
+  "docs/specs/tracker-origin-registration-stop",
   "docs/specs/two-sided-prune-closure-invariant",
   "docs/specs/unrelated",
   "docs/specs/verification-ledger",

@@ -30,8 +30,7 @@ Start work on adding export retention controls for workspace owners.
 For a bounded, low-risk change, Core can enter the build loop directly. That
 immediate route creates no intake artifact and no workspace entry.
 
-For durable work, Core writes the artifact, and a spec or brief gets no
-`workspace.toml` entry unless it is tracker-origin:
+For durable work, Core writes the artifact, and a spec or brief gets no `workspace.toml` entry:
 
 - one independently shippable change becomes a spec and plan;
 - work that spans several changes or repositories becomes a delivery brief.

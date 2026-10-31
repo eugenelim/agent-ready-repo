@@ -219,6 +219,7 @@ _VALID_OPERATION_TYPES = frozenset({
     "captured-to-file",
     "intent-brief-drop",
     "spec-entry-drop",
+    "tracker-entry-drop",
 })
 
 
@@ -1122,6 +1123,8 @@ def _build_repair_plan_json(
     needs_findings: list[dict] = []
     spec_drops: list[dict] = []
     held_findings: list[dict] = []
+    tracker_drops: list[dict] = []
+    tracker_findings: list[dict] = []
     candidate_queue_keys: frozenset[tuple[str, str]] = frozenset()
     if not canonical_failed:
         if workspace_bytes is None:
@@ -1132,6 +1135,11 @@ def _build_repair_plan_json(
         spec_drops, held_findings, candidate_queue_keys = _build_spec_drop_operations(
             root, workspace_bytes, needs_operations
         )
+        tracker_drops, tracker_findings, tracker_queue_keys = _build_tracker_drop_operations(
+            root, workspace_bytes, needs_operations
+        )
+        # A matched tracker entry leaves through `tracker-entry-drop`, not the queue moves.
+        candidate_queue_keys = candidate_queue_keys | tracker_queue_keys
     automatic_operations: list[dict] = []
     for operation in [] if canonical_failed else plan.automatic_operations:
         # A drop candidate leaves through `spec-entry-drop` (or stays, when held).
@@ -1176,6 +1184,8 @@ def _build_repair_plan_json(
         automatic_operations.extend(_build_drop_operations(workspace_bytes))
         automatic_operations.extend(spec_drops)
         manual_findings.extend(held_findings)
+        automatic_operations.extend(tracker_drops)
+        manual_findings.extend(tracker_findings)
     base["workspace_fingerprint"] = plan.workspace_fingerprint
     base["automatic_operations"] = automatic_operations
     base["manual_findings"] = manual_findings
@@ -1315,6 +1325,9 @@ def _apply_operations(
     spec_drop_operations = [
         op for op in operations if op.get("operation_type") == _SPEC_ENTRY_DROP
     ]
+    tracker_drop_operations = [
+        op for op in operations if op.get("operation_type") == _TRACKER_ENTRY_DROP
+    ]
     operations = [
         op for op in operations
         if op.get("operation_type")
@@ -1330,6 +1343,14 @@ def _apply_operations(
         workspace_toml_bytes,
         spec_drop_operations,
         _spec_entry_acceptance(root, spec_drop_operations, needs_operations),
+    )
+    bound_tracker_drops, tracker_drop_refusals = _bind_drop_entries(
+        doc,
+        workspace_toml_bytes,
+        tracker_drop_operations,
+        _tracker_entry_acceptance(
+            root, tracker_drop_operations, workspace_toml_bytes, needs_operations
+        ),
     )
     bound_drops.extend(bound_spec_drops)
     per_op.extend(drop_refusals)
@@ -1497,6 +1518,14 @@ def _apply_operations(
 
     # Drops run last, so each sees the `needs` its own run cleared.
     per_op.extend(spec_drop_refusals)
+    per_op.extend(tracker_drop_refusals)
+    # The profile reaches each artifact before its entry leaves `doc`, so an
+    # entry only drops once its record holds the table.
+    ready_tracker_drops, tracker_write_refusals = _write_tracker_profiles(
+        root, bound_tracker_drops
+    )
+    per_op.extend(tracker_write_refusals)
+    bound_drops.extend(ready_tracker_drops)
     drop_per_op, drop_applied = _apply_bound_drops(bound_drops)
     per_op.extend(drop_per_op)
     applied += drop_applied
@@ -3486,12 +3515,23 @@ def _echo_drop_operation(op: dict) -> dict:
         },
         "path": _echo_path(op.get("path"), None),
         "registry_fingerprint": _echo_sha(op.get("registry_fingerprint")),
+        **(
+            {"artifact_sha256": _echo_sha(op.get("artifact_sha256"))}
+            if op.get("operation_type") == _TRACKER_ENTRY_DROP
+            else {}
+        ),
     }
 
 
 def _validate_drop_operation(op: dict) -> str | None:
     """Shape-check one drop operation; its entry is re-checked at apply."""
-    kinds = _DROP_KINDS if op.get("operation_type") == _INTENT_BRIEF_DROP else _SPEC_DROP_KINDS
+    op_type = op.get("operation_type")
+    if op_type == _INTENT_BRIEF_DROP:
+        kinds: Any = _DROP_KINDS
+    elif op_type == _TRACKER_ENTRY_DROP:
+        kinds = _engine.WORKSPACE_ARTIFACT_KINDS
+    else:
+        kinds = _SPEC_DROP_KINDS
     path = op.get("path")
     locator = op.get("entry_locator")
     if (
@@ -3513,6 +3553,15 @@ def _validate_drop_operation(op: dict) -> str | None:
         or locator["index"] < 0
     ):
         return "plan_invalid"
+    if op_type == _TRACKER_ENTRY_DROP:
+        profile = op.get("profile")
+        sha = op.get("artifact_sha256")
+        if (
+            not isinstance(sha, str)
+            or _SHA256_RE.fullmatch(sha) is None
+            or (profile is not None and _engine._validate_tracker_profile(profile) is None)
+        ):
+            return "plan_invalid"
     return None
 
 
@@ -3525,7 +3574,8 @@ def _validate_drop_operation(op: dict) -> str | None:
 # a record, and dropping the entry would leave the record's scope unknown.
 
 _SPEC_ENTRY_DROP = "spec-entry-drop"
-_DROP_OPERATION_TYPES = frozenset({_INTENT_BRIEF_DROP, _SPEC_ENTRY_DROP})
+_TRACKER_ENTRY_DROP = "tracker-entry-drop"
+_DROP_OPERATION_TYPES = frozenset({_INTENT_BRIEF_DROP, _SPEC_ENTRY_DROP, _TRACKER_ENTRY_DROP})
 _SPEC_DROP_KINDS = frozenset({"spec"})
 _SPEC_DROP_COLLECTION_PREFIXES = ("work.", "backlog.")
 _HELD_FINDING_TYPE = 6
@@ -3675,6 +3725,330 @@ def _spec_entry_acceptance(
         return "entry_held" if _spec_hold(membership, context) is not None else None
 
     return acceptance
+
+
+# ── tracker-entry-drop repair ─────────────────────────────────────────────────
+#
+# A tracker-origin artifact names its tracker profile in its own
+# `source-authority` record, so `repair-plan` holds one operation for each
+# tracker-origin entry that matches its artifact: it copies the entry's profile
+# into the record and removes the entry. An entry that does not match, or that
+# is held, becomes one manual item and keeps its entry.
+
+_TRACKER_FINDING_TYPE = 7
+_TRACKER_ENTRY_FINDING_CODES = frozenset({
+    "invalid_entry",
+    "duplicate_membership",
+    "impossible_transition",
+    "provenance_mismatch",
+    "cooled_child_scope_unknown",
+    "refresh_conflict",
+})
+
+
+def _load_refresh_module() -> Any:
+    """Load `work-intake`'s `refresh.py` by path, or from the packaged engine data.
+
+    Uses the engine's own resolution of that file and its module name, so the
+    parser the engine reads records with and this repair's renderer are one
+    module. No import statement crosses a skill boundary.
+    """
+    path = _engine._source_authority_module_path()
+    if path is None:
+        try:
+            return importlib.import_module("agentbundle._data.work_intake_refresh")
+        except ImportError as exc:
+            raise RuntimeError("source authority module unavailable") from exc
+    name = "_workspace_status_source_authority_" + hashlib.sha256(
+        str(path).encode("utf-8")
+    ).hexdigest()
+    module = sys.modules.get(name)
+    if module is None:
+        spec = importlib.util.spec_from_file_location(name, path)
+        if spec is None or spec.loader is None:
+            raise RuntimeError("source authority module unavailable")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        try:
+            spec.loader.exec_module(module)
+        except Exception as exc:
+            sys.modules.pop(name, None)
+            raise RuntimeError("source authority module unavailable") from exc
+    return module
+
+
+@dataclasses.dataclass(frozen=True)
+class _TrackerVerdict:
+    """What the repair concludes about one tracker-origin entry."""
+
+    state: str  # "matched" | "held" | "unmatched"
+    reason: str = ""
+    record_path: str = ""
+    parent: str = ""
+    profile: dict[str, str] | None = None
+    artifact_sha256: str = ""
+
+
+class _TrackerContext:
+    """The facts every tracker-origin entry of one registry read is judged against."""
+
+    def __init__(self, root: Path, workspace: dict, waiting_paths: frozenset[str]) -> None:
+        self.root = root
+        self.waiting_paths = waiting_paths
+        memberships = _engine._extract_canonical_memberships(workspace)[0]
+        self.memberships = [
+            m for m in memberships if m.entry.source.mode == "tracker-origin"
+        ]
+        self.cooling: _CoolingContext | None = None
+        self.entry_finding_paths: frozenset[str] = frozenset()
+        self.path_counts: dict[str, int] = {}
+        self.refresh: Any = None
+        if not self.memberships:
+            return
+        self.refresh = _load_refresh_module()
+        self.cooling = _CoolingContext(root)
+        reconciled = run_canonical_reconciliation(workspace, root, self.cooling.cooled)
+        self.entry_finding_paths = frozenset(
+            f.path for f in reconciled.findings if f.code in _TRACKER_ENTRY_FINDING_CODES
+        )
+        for membership in self.memberships:
+            if membership.entry.path is not None:
+                path = membership.entry.path
+                self.path_counts[path] = self.path_counts.get(path, 0) + 1
+
+    def verdict(self, membership) -> _TrackerVerdict:
+        """Held, or matched, or the first matched-entry condition the entry fails."""
+        entry = membership.entry
+        assert self.cooling is not None
+        if (
+            entry.kind == "spec"
+            and membership.collection.startswith("work.")
+        ):
+            if self.cooling.unavailable:
+                return _TrackerVerdict("unmatched", "cooling-state-unavailable")
+            hold = _spec_hold(membership, self.cooling)
+            if hold is not None:
+                return _TrackerVerdict("held", record_path=hold[0], parent=hold[1])
+        path = entry.path
+        if not path:
+            return _TrackerVerdict("unmatched", "path-missing")
+        data = _engine._migration_file_bytes(self.root, path)
+        if data is None:
+            return _TrackerVerdict("unmatched", "artifact-missing")
+        try:
+            authority = self.refresh.parse_source_authority(data.decode("utf-8"))
+        except ValueError:  # includes UnicodeDecodeError and RefreshRefusal
+            return _TrackerVerdict("unmatched", "record-missing-or-invalid")
+        if authority.source_ref != entry.source.ref:
+            return _TrackerVerdict("unmatched", "ref-mismatch")
+        try:
+            entry_profile = self.refresh._profile_table(entry.source.tracker_profile)
+        except ValueError:
+            return _TrackerVerdict("unmatched", "entry-profile-invalid")
+        if authority.tracker_profile is not None and authority.tracker_profile != entry_profile:
+            return _TrackerVerdict("unmatched", "profile-mismatch")
+        if entry.needs:
+            return _TrackerVerdict("unmatched", "needs-present")
+        if path in self.waiting_paths or self.path_counts.get(path, 0) > 1:
+            return _TrackerVerdict("unmatched", "other-write-pending")
+        if path in self.entry_finding_paths:
+            return _TrackerVerdict("unmatched", "entry-finding")
+        return _TrackerVerdict(
+            "matched",
+            profile=entry_profile if authority.tracker_profile is None else None,
+            artifact_sha256=hashlib.sha256(data).hexdigest(),
+        )
+
+
+def _tracker_manual_item(membership, verdict: _TrackerVerdict) -> dict:
+    """The manual item for a held or unmatched tracker-origin entry."""
+    entry = membership.entry
+    shown = _echo_path(entry.path or "", None)
+    ini_slug = _public_ini_slug(membership.ini_slug, allow_empty=True)
+    locator = {
+        "ini_slug": ini_slug,
+        "collection": membership.collection,
+        "index": membership.entry_index,
+    }
+    if verdict.state == "held":
+        return {
+            "finding_type": _HELD_FINDING_TYPE,
+            "spec_path": shown,
+            "spec_status": "",
+            "ini_slug": ini_slug,
+            "list_name": membership.collection,
+            "reason": "held-record-lacks-parent",
+            "record_path": verdict.record_path,
+            "parent": verdict.parent,
+            "finding_id": (
+                f"type{_HELD_FINDING_TYPE}:{ini_slug}:{membership.collection}:{shown}"
+            ),
+        }
+    return {
+        "finding_type": _TRACKER_FINDING_TYPE,
+        "spec_path": shown,
+        "spec_status": "",
+        "ini_slug": ini_slug,
+        "list_name": membership.collection,
+        "reason": verdict.reason,
+        "entry_locator": locator,
+        "finding_id": (
+            f"type{_TRACKER_FINDING_TYPE}:{ini_slug}:{membership.collection}:"
+            f"{membership.entry_index}:{verdict.reason}"
+        ),
+    }
+
+
+def _build_tracker_drop_operations(
+    root: Path, workspace_bytes: bytes, needs_operations: list[dict]
+) -> tuple[list[dict], list[dict], frozenset[tuple[str, str]]]:
+    """Plan `tracker-entry-drop` operations and one manual item per other tracker entry.
+
+    Also returns the `(initiative key, path)` of every matched entry in
+    `work.queue`, whose queue operations the plan leaves out.
+    """
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    context = _TrackerContext(
+        root, workspace, frozenset(op["waiting_path"] for op in needs_operations)
+    )
+    if not context.memberships:
+        return [], [], frozenset()
+    raw_entries = {
+        (ini, collection, position): raw
+        for ini, collection, position, raw in _raw_registry_entries(workspace)
+    }
+    operations: list[dict] = []
+    manual: list[dict] = []
+    queue_keys: set[tuple[str, str]] = set()
+    for membership in context.memberships:
+        verdict = context.verdict(membership)
+        if verdict.state != "matched":
+            manual.append(_tracker_manual_item(membership, verdict))
+            continue
+        entry = membership.entry
+        locator = (membership.ini_slug, membership.collection, membership.entry_index)
+        if membership.collection == "work.queue":
+            queue_keys.add((membership.ini_slug, entry.path or ""))
+        operations.append({
+            "operation_type": _TRACKER_ENTRY_DROP,
+            "entry_locator": {
+                "ini_slug": locator[0],
+                "collection": locator[1],
+                "index": locator[2],
+            },
+            "path": entry.path,
+            "kind": entry.kind,
+            "registry_fingerprint": _entry_fingerprint(*locator, raw_entries.get(locator)),
+            "artifact_sha256": verdict.artifact_sha256,
+            "profile": verdict.profile,
+        })
+    return operations, manual, frozenset(queue_keys)
+
+
+def _tracker_entry_acceptance(
+    root: Path, operations: list[dict], workspace_bytes: bytes, needs_operations: list[dict]
+) -> Callable[[Any], str | None]:
+    """Re-derive each entry under the lock, as the plan stage did, against the plan."""
+    if not operations:
+        return lambda membership: None
+    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
+    context = _TrackerContext(
+        root, workspace, frozenset(op["waiting_path"] for op in needs_operations)
+    )
+    planned = {
+        (
+            op["entry_locator"]["ini_slug"],
+            op["entry_locator"]["collection"],
+            op["entry_locator"]["index"],
+        ): op
+        for op in operations
+    }
+
+    def acceptance(membership) -> str | None:
+        key = (membership.ini_slug, membership.collection, membership.entry_index)
+        op = planned[key]
+        if membership.entry.source.mode != "tracker-origin":
+            return "entry_not_matched"
+        verdict = context.verdict(membership)
+        if verdict.state == "held":
+            return "entry_held"
+        if verdict.reason == "cooling-state-unavailable":
+            return "cooling_state_unavailable"
+        if verdict.state != "matched" or verdict.profile != op["profile"]:
+            return "entry_not_matched"
+        if verdict.artifact_sha256 != op["artifact_sha256"]:
+            return "artifact_changed"
+        return None
+
+    return acceptance
+
+
+def _record_with_profile(text: str, profile: dict[str, str]) -> str:
+    """`text` with `profile` added to its one record and every other byte kept.
+
+    Parses the record, re-renders it with the table, replaces the block, and
+    re-parses the result. Raises `_NeedsRefusal` unless the result holds exactly
+    one record equal to the old one plus the table.
+    """
+    refresh = _load_refresh_module()
+    try:
+        old = refresh.parse_source_authority(text)
+        new_authority = dataclasses.replace(old, tracker_profile=profile)
+        block = refresh.render_source_authority(new_authority).rstrip("\n")
+        matches = list(refresh._AUTHORITY_FENCE.finditer(text))
+        if len(matches) != 1:
+            raise _NeedsRefusal("record_not_writable")
+        match = matches[0]
+        whitespace = match.group(0)[len(match.group(0).rstrip()):]
+        result = text[: match.start()] + block + whitespace + text[match.end():]
+        reparsed = refresh.parse_source_authority(result)
+    except ValueError as exc:
+        raise _NeedsRefusal("record_not_writable") from exc
+    if reparsed != new_authority:
+        raise _NeedsRefusal("record_not_writable")
+    return result
+
+
+def _write_tracker_profiles(
+    root: Path, bound: list[tuple[dict, str, Any, Any]]
+) -> tuple[list[tuple[dict, str, Any, Any]], list[dict]]:
+    """Add each bound operation's profile to its artifact; return those that may drop.
+
+    The artifact is replaced through the confined, atomic write the needs step
+    uses, only while its bytes still hash to the plan-time digest. An operation
+    with no profile to write needs no artifact write.
+    """
+    ready: list[tuple[dict, str, Any, Any]] = []
+    refused: list[dict] = []
+    for item in bound:
+        op, shown = item[0], item[1]
+        if op["profile"] is None:
+            ready.append(item)
+            continue
+        try:
+            data = _engine._migration_file_bytes(root, op["path"])
+            if data is None or hashlib.sha256(data).hexdigest() != op["artifact_sha256"]:
+                raise _NeedsRefusal("artifact_changed")
+            new_text = _record_with_profile(data.decode("utf-8"), op["profile"])
+            _replace_waiting_file(
+                root, op["path"], op["artifact_sha256"], new_text.encode("utf-8")
+            )
+        except _NeedsRefusal as refusal:
+            refused.append({
+                "path": shown,
+                "applied": False,
+                "reason": (
+                    "artifact_changed"
+                    if refusal.reason == "waiting_item_changed"
+                    else refusal.reason
+                ),
+            })
+            continue
+        except (OSError, UnicodeDecodeError):
+            refused.append({"path": shown, "applied": False, "reason": "artifact_write_failed"})
+            continue
+        ready.append(item)
+    return ready, refused
 
 
 # ── Legacy migration transaction ─────────────────────────────────────────────

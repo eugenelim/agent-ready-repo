@@ -17,7 +17,7 @@ The Atlassian pack is one conversational layer over several focused workflows.
 
 You ask in team language. The agent selects the smallest workflow that can answer safely: orient first, improve unclear work when needed, and write only after the requested change is explicit.
 
-For registered tracker-origin work, refresh is a return path rather than a new
+For tracker-origin work, refresh is a return path rather than a new
 intake. It compares source changes through the same local authority rules.
 Supported Jira coordination writes remain separate, exact-confirmation
 operations; Jira Align refresh has no remote write-back capability.

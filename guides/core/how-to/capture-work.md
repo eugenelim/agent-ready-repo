@@ -14,9 +14,7 @@ guides, and automations.
 Remember that export retries need idempotent replay. Do not start implementation.
 ```
 
-The agent creates the smallest safe Draft artifact and stops. A spec or a
-tracker-origin item also gets a non-dispatchable entry; a repo-origin intent or
-brief is its file alone.
+The agent creates the smallest safe Draft artifact and stops. It gets no `workspace.toml` entry: an intent, brief or spec is its file alone.
 
 ## Replace an existing prompt
 

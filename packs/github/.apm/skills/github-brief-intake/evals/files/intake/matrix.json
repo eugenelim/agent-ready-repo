@@ -79,10 +79,10 @@
       "expected_route": {
         "artifact": "docs/specs/export-retention/spec.md",
         "artifact_kind": "spec",
-        "lifecycle_membership": "work.queue",
+        "lifecycle_membership": "none",
         "processor": "new-spec",
         "authority_mode": "tracker-origin",
-        "mutation": "materialize-and-register"
+        "mutation": "materialize-and-dispatch"
       }
     },
     {
@@ -137,10 +137,10 @@
       "expected_route": {
         "artifact": "docs/product/briefs/account-recovery.md",
         "artifact_kind": "brief",
-        "lifecycle_membership": "brief_queue.draft",
+        "lifecycle_membership": "none",
         "processor": "author-delivery-brief create",
         "authority_mode": "tracker-origin",
-        "mutation": "materialize-and-register"
+        "mutation": "materialize-and-dispatch"
       }
     },
     {
@@ -196,10 +196,10 @@
       "expected_route": {
         "artifact": "docs/product/briefs/coordinated-outcome.md",
         "artifact_kind": "brief",
-        "lifecycle_membership": "brief_queue.draft",
+        "lifecycle_membership": "none",
         "processor": "author-delivery-brief create",
         "authority_mode": "tracker-origin",
-        "mutation": "materialize-and-register"
+        "mutation": "materialize-and-dispatch"
       }
     },
     {

@@ -258,47 +258,8 @@ def test_tracker_origin_minimal_intent_materializes_closed_authority_fence() -> 
     assert f"source_revision = {json.dumps(intake.source.revision)}" in rendered
 
 
-def test_workspace_registration_maps_normalized_source_to_target_contract() -> None:
+def test_workspace_entry_refuses_secret_like_source_ref() -> None:
     engine = _load_engine()
-    guard = _load_guard()
-
-    for fixture_name in (
-        "remember-repo-origin-prompt-like-data.json",
-        "remember-tracker-origin.json",
-    ):
-        raw = json.loads(
-            (_INTAKE_FIXTURES / "valid" / fixture_name).read_text(encoding="utf-8")
-        )
-        intake, findings = engine.validate_normalized_intake(raw)
-        assert intake is not None
-        assert findings == []
-
-        source = guard.workspace_source_record(intake.source)
-        entry, entry_findings = engine.parse_workspace_entry(
-            {
-                "path": "docs/product/intents/example.md",
-                "kind": "intent",
-                "source": source,
-                "summary": "Remember the example for later.",
-                "needs": [],
-            }
-        )
-
-        assert entry is not None, fixture_name
-        assert entry_findings == [], fixture_name
-        expected_source = {
-            "mode": raw["source"]["mode"],
-            "ref": raw["source"]["locator"],
-            "revision": raw["source"]["revision"],
-        }
-        if "tracker_profile" in raw["source"]:
-            expected_source["tracker_profile"] = raw["source"]["tracker_profile"]
-        assert source == expected_source
-
-
-def test_workspace_registration_refuses_secret_like_source_locator() -> None:
-    engine = _load_engine()
-    guard = _load_guard()
     raw = json.loads(
         (_INTAKE_FIXTURES / "valid" / "remember-tracker-origin.json").read_text(
             encoding="utf-8"
@@ -308,9 +269,6 @@ def test_workspace_registration_refuses_secret_like_source_locator() -> None:
     intake, findings = engine.validate_normalized_intake(raw)
     assert intake is not None
     assert findings == []
-
-    with pytest.raises(ValueError, match="unsafe_source_locator"):
-        guard.workspace_source_record(intake.source)
 
     entry, entry_findings = engine.parse_workspace_entry(
         {

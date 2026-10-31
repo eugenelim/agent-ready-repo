@@ -128,6 +128,28 @@ authorization_source = "workspace.authorization.refresh"
     return f"# Artifact\n\n{block}{block if duplicate else ''}"
 
 
+def _plant_record(
+    tmp_path: Path,
+    artifact_path: str,
+    *,
+    profile_id: str = "example-service",
+    profile_version: str = "1.0",
+    with_profile: bool = True,
+) -> Path:
+    """Plant a repository holding one artifact whose record may carry a profile."""
+
+    repo = tmp_path / "front-door-repo"
+    artifact = repo / artifact_path
+    artifact.parent.mkdir(parents=True, exist_ok=True)
+    extra = (
+        f'\n[tracker_profile]\nid = "{profile_id}"\nversion = "{profile_version}"'
+        if with_profile
+        else ""
+    )
+    artifact.write_text(_authority_block(extra=extra), encoding="utf-8")
+    return repo
+
+
 def _policy() -> str:
     return '''
 [authorization.refresh]
@@ -187,6 +209,178 @@ def test_authority_block_is_unique_closed_and_structured() -> None:
         refresh.parse_source_authority(_authority_block(duplicate=True))
     with pytest.raises(refresh.RefreshRefusal, match="invalid_source_authority"):
         refresh.parse_source_authority(_authority_block(extra='unknown = "value"'))
+
+
+_PROFILE_BASE_RECORD = {
+    "contract_version": "source-authority.v1",
+    "mode": "tracker-origin",
+    "source_ref": "example-service://work/ITEM-1",
+    "source_revision": "rev-1",
+    "owned_fields": {},
+}
+_VALID_PROFILES: tuple[object, ...] = (
+    {"id": "example-tracker", "version": "1.0"},
+    {"id": "x" * 200, "version": "v" * 100},
+    {"id": "a", "version": "b"},
+)
+_INVALID_PROFILES: tuple[object, ...] = (
+    {"id": "example-tracker"},
+    {"version": "1.0"},
+    {},
+    {"id": "example-tracker", "version": "1.0", "extra": "x"},
+    {"id": 7, "version": "1.0"},
+    {"id": "example-tracker", "version": 1},
+    {"id": "", "version": "1.0"},
+    {"id": "example-tracker", "version": ""},
+    {"id": "bad\nid", "version": "1.0"},
+    {"id": "bad\rid", "version": "1.0"},
+    {"id": "example-tracker", "version": "1\r\n"},
+    {"id": "example-tracker", "version": "1.0\n"},
+    {"id": "x" * 201, "version": "1.0"},
+    {"id": "example-tracker", "version": "v" * 101},
+    "example-tracker",
+)
+
+
+def _profile_authority_schema_validator() -> Draft202012Validator:
+    schema = json.loads((_CONTRACT_ROOT / "source-authority.schema.json").read_text())
+    return Draft202012Validator(schema, format_checker=Draft202012Validator.FORMAT_CHECKER)
+
+
+def _record_with_profile_markdown(profile: object) -> str:
+    """Hand-write a record so malformed tables reach the parser unrendered."""
+    if isinstance(profile, dict):
+        table = "\n[tracker_profile]\n" + "".join(
+            f"{key} = {json.dumps(value)}\n" for key, value in profile.items()
+        )
+    else:
+        table = f"tracker_profile = {json.dumps(profile)}\n"
+    body = (
+        'contract_version = "source-authority.v1"\nmode = "tracker-origin"\n'
+        'source_ref = "example-service://work/ITEM-1"\nsource_revision = "rev-1"\n'
+        f"{table}\n[owned_fields]\n"
+    )
+    return f"```toml source-authority\n{body}```\n"
+
+
+def test_ac0001_schema_accepts_base_records_with_or_without_a_profile() -> None:
+    validator = _profile_authority_schema_validator()
+    validator.validate(dict(_PROFILE_BASE_RECORD))
+    for profile in _VALID_PROFILES:
+        validator.validate({**_PROFILE_BASE_RECORD, "tracker_profile": profile})
+
+
+@pytest.mark.parametrize("profile", _INVALID_PROFILES, ids=repr)
+def test_ac0001_schema_rejects_a_malformed_profile_table(profile: object) -> None:
+    validator = _profile_authority_schema_validator()
+    assert not validator.is_valid({**_PROFILE_BASE_RECORD, "tracker_profile": profile})
+
+
+@pytest.mark.parametrize("profile", _VALID_PROFILES, ids=repr)
+def test_ac0002_parser_and_renderer_accept_each_schema_valid_profile(
+    profile: dict[str, str],
+) -> None:
+    refresh = _load_refresh()
+    authority = refresh.parse_source_authority(_record_with_profile_markdown(profile))
+    assert authority.tracker_profile == profile
+    rendered = refresh.render_source_authority(authority)
+    assert rendered.index("[tracker_profile]") < rendered.index("[owned_fields]")
+    assert rendered.index("source_revision") < rendered.index("[tracker_profile]")
+    assert refresh.parse_source_authority(rendered) == authority
+
+
+def test_ac0002_profile_renders_after_accepted_revision_and_round_trips_with_acceptance() -> None:
+    refresh = _load_refresh()
+    authority = replace(
+        refresh.parse_source_authority(_authority_block()),
+        tracker_profile={"id": "example-tracker", "version": "1.0"},
+    )
+    rendered = refresh.render_source_authority(authority)
+    assert rendered.index("accepted_revision") < rendered.index("[tracker_profile]")
+    assert rendered.index("[tracker_profile]") < rendered.index("[owned_fields]")
+    assert refresh.parse_source_authority(rendered) == authority
+    assert refresh.parse_source_authority(_authority_block()).tracker_profile is None
+
+
+@pytest.mark.parametrize("profile", _INVALID_PROFILES, ids=repr)
+def test_ac0002_parser_refuses_each_schema_invalid_profile(profile: object) -> None:
+    refresh = _load_refresh()
+    with pytest.raises(refresh.RefreshRefusal, match="invalid_source_authority"):
+        refresh.parse_source_authority(_record_with_profile_markdown(profile))
+
+
+@pytest.mark.parametrize("profile", _INVALID_PROFILES, ids=repr)
+def test_ac0002_renderer_refuses_each_schema_invalid_profile(profile: object) -> None:
+    refresh = _load_refresh()
+    authority = replace(
+        refresh.parse_source_authority(_authority_block()), tracker_profile=profile
+    )
+    with pytest.raises(refresh.RefreshRefusal, match="invalid_source_authority"):
+        refresh.render_source_authority(authority)
+
+
+_TRACKER_SOURCE = (
+    "example-service://work/ITEM-1",
+    "rev-1",
+    {"id": "example-tracker", "version": "1.0"},
+)
+
+
+def test_ac0025_first_record_carries_locator_revision_profile_and_no_owned_fields() -> None:
+    refresh = _load_refresh()
+    locator, revision, profile = _TRACKER_SOURCE
+    rendered = refresh.render_first_source_authority(
+        mode="tracker-origin", locator=locator, revision=revision, profile=profile
+    )
+    authority = refresh.parse_source_authority(rendered)
+    assert authority.source_ref == locator
+    assert authority.source_revision == revision
+    assert authority.tracker_profile == profile
+    assert dict(authority.owned_fields) == {}
+    assert authority.accepted_revision is None and authority.acceptance is None
+    assert _validator_accepts_authority(authority)
+
+
+def _validator_accepts_authority(authority: Any) -> bool:
+    return _profile_authority_schema_validator().is_valid(
+        {
+            "contract_version": "source-authority.v1",
+            "mode": authority.mode,
+            "source_ref": authority.source_ref,
+            "source_revision": authority.source_revision,
+            "tracker_profile": authority.tracker_profile,
+            "owned_fields": dict(authority.owned_fields),
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    (
+        {"mode": "repo-origin"},
+        {"mode": ""},
+        {"profile": None},
+        {"profile": {"id": "example-tracker"}},
+        {"profile": {"id": "bad\nid", "version": "1.0"}},
+        {"locator": "example-service://work/ITEM-1\nuntrusted"},
+        {"locator": ""},
+        {"revision": "rev\r1"},
+        {"revision": "r" * 201},
+    ),
+    ids=repr,
+)
+def test_ac0025_first_record_refuses_without_output(kwargs: dict[str, object]) -> None:
+    refresh = _load_refresh()
+    locator, revision, profile = _TRACKER_SOURCE
+    arguments: dict[str, object] = {
+        "mode": "tracker-origin",
+        "locator": locator,
+        "revision": revision,
+        "profile": profile,
+        **kwargs,
+    }
+    with pytest.raises(refresh.RefreshRefusal, match="invalid_source_authority"):
+        refresh.render_first_source_authority(**arguments)
 
 
 def test_adopter_guide_source_authority_fence_is_parseable() -> None:
@@ -792,7 +986,7 @@ def test_front_door_uses_only_the_configured_refresh_registry() -> None:
     assert unavailable.processor == "none"
 
 
-def test_front_door_invokes_acquire_map_validate_and_compare() -> None:
+def test_front_door_invokes_acquire_map_validate_and_compare(tmp_path: Path) -> None:
     refresh = _load_refresh()
     router = _load_router()
     calls: list[tuple[str, str]] = []
@@ -842,7 +1036,9 @@ def test_front_door_invokes_acquire_map_validate_and_compare() -> None:
         local_fields={"Outcome": "local outcome", "User stories": "existing story"},
     )
 
-    result = router.invoke_refresh(signals, registry, request)
+    result = router.invoke_refresh(
+        signals, registry, request, _plant_record(tmp_path, signals.artifact)
+    )
 
     assert result.code == "completed"
     assert result.remediation == "none"
@@ -856,7 +1052,7 @@ def test_front_door_invokes_acquire_map_validate_and_compare() -> None:
     assert "acquire" not in {field.name for field in fields(refresh.RefreshAcquisitionRequest)}
 
 
-def test_front_door_refuses_mismatched_acquisition_without_raw_output() -> None:
+def test_front_door_refuses_mismatched_acquisition_without_raw_output(tmp_path: Path) -> None:
     refresh = _load_refresh()
     router = _load_router()
     registry = refresh.RefreshProcessorRegistry()
@@ -897,7 +1093,9 @@ def test_front_door_refuses_mismatched_acquisition_without_raw_output() -> None:
         local_fields={"Outcome": "local"},
     )
 
-    result = router.invoke_refresh(signals, registry, request)
+    result = router.invoke_refresh(
+        signals, registry, request, _plant_record(tmp_path, signals.artifact)
+    )
 
     assert result.code == "acquired_source_mismatch"
     assert result.remediation == "retry-or-repair-configured-refresh-processor"
@@ -905,7 +1103,7 @@ def test_front_door_refuses_mismatched_acquisition_without_raw_output() -> None:
     assert result.invocation.normalized_record is None
 
 
-def test_front_door_redacts_system_exit_from_acquisition() -> None:
+def test_front_door_redacts_system_exit_from_acquisition(tmp_path: Path) -> None:
     refresh = _load_refresh()
     router = _load_router()
     registry = refresh.RefreshProcessorRegistry()
@@ -943,13 +1141,15 @@ def test_front_door_redacts_system_exit_from_acquisition() -> None:
         local_fields={"Outcome": "local"},
     )
 
-    result = router.invoke_refresh(signals, registry, request)
+    result = router.invoke_refresh(
+        signals, registry, request, _plant_record(tmp_path, signals.artifact)
+    )
 
     assert result.code == "acquisition_failed"
     assert "raw tracker failure" not in repr(result)
 
 
-def test_front_door_redacts_system_exit_from_processor_dispatch() -> None:
+def test_front_door_redacts_system_exit_from_processor_dispatch(tmp_path: Path) -> None:
     refresh = _load_refresh()
     router = _load_router()
 
@@ -985,13 +1185,15 @@ def test_front_door_redacts_system_exit_from_processor_dispatch() -> None:
         local_fields={"Outcome": "local"},
     )
 
-    result = router.invoke_refresh(signals, Resolver(), request)
+    result = router.invoke_refresh(
+        signals, Resolver(), request, _plant_record(tmp_path, signals.artifact)
+    )
 
     assert result.code == "dispatch_failed"
     assert "raw processor failure" not in repr(result)
 
 
-def test_front_door_refuses_processor_comparison_that_contradicts_request() -> None:
+def test_front_door_refuses_processor_comparison_that_contradicts_request(tmp_path: Path) -> None:
     refresh = _load_refresh()
     router = _load_router()
 
@@ -1040,7 +1242,9 @@ def test_front_door_refuses_processor_comparison_that_contradicts_request() -> N
         local_fields={"Outcome": "local"},
     )
 
-    result = router.invoke_refresh(signals, Resolver(), request)
+    result = router.invoke_refresh(
+        signals, Resolver(), request, _plant_record(tmp_path, signals.artifact)
+    )
 
     assert result.code == "invalid-refresh-request"
     assert result.invocation is None
@@ -1141,6 +1345,7 @@ def test_acquisition_redacts_sensitive_tracker_values_before_commit(
         ),
         registry,
         request,
+        _plant_record(tmp_path, "docs/specs/example/spec.md"),
     )
 
     assert front_door.code == "completed"
@@ -1448,13 +1653,27 @@ def test_destination_validation_rejects_credentials_and_mapped_loopback() -> Non
         )
 
 
+_FIXTURE_TITLE = "# Spec: Example\n\n"
+
+
+def _fixture_block(extra: str = "") -> str:
+    """A tracker-origin spec record carrying its profile table."""
+
+    return _authority_block(extra=_FIXTURE_PROFILE + extra).replace(
+        "# Artifact\n\n", _FIXTURE_TITLE, 1
+    )
+
+
+_FIXTURE_PROFILE = '\n[tracker_profile]\nid = "example-service"\nversion = "1.0"'
+
+
 def _semantic_refresh_pair(
     refresh,
     tmp_path: Path,
     *,
     decision: str = "revise-both",
     proposed_owner: str = "local",
-    mutate_dependency: bool = False,
+    mutate_workspace: bool = False,
     mutate_coordination_receipt: bool = False,
     authority_injection: str = "",
     workspace_policy: str = _policy(),
@@ -1482,7 +1701,7 @@ local
 stable
 """
     before_artifact = (
-        _authority_block() + requirement_sections + coordination
+        _fixture_block() + requirement_sections + coordination
     ).encode()
     before_workspace = workspace_policy.encode() + b'''
 ["ini-001"]
@@ -1491,14 +1710,14 @@ status = "active"
 milestone = "M1"
 
 ["ini-001".work]
-active = [{path = "docs/specs/example/spec.md", kind = "spec", source = {mode = "tracker-origin", ref = "example-service://work/ITEM-1", revision = "rev-1", tracker_profile = {id = "example-service", version = "1.0"}}, summary = "Example", needs = [{type = "cross-repo", kind = "brief", path = "docs/product/briefs/upstream.md", containing_brief = "docs/product/briefs/example.md", receipt_id = "receipt-1", accepted_revision = "upstream-rev-1"}]}]
+active = []
 '''
     artifact.write_bytes(before_artifact)
     workspace.write_bytes(before_workspace)
     artifact_digest = refresh.digest_bytes(before_artifact)
     workspace_digest = refresh.digest_bytes(before_workspace)
     proposed_artifact_text = (
-        _authority_block(extra=authority_injection)
+        _fixture_block(authority_injection)
         + requirement_sections
         + coordination
     )
@@ -1517,14 +1736,9 @@ active = [{path = "docs/specs/example/spec.md", kind = "spec", source = {mode = 
             1,
         )
     proposed_artifact = proposed_artifact_text.encode()
-    proposed_workspace = before_workspace.replace(
-        b'revision = "rev-1"', b'revision = "rev-2"'
-    )
-    if mutate_dependency:
-        proposed_workspace = proposed_workspace.replace(
-            b'accepted_revision = "upstream-rev-1"',
-            b'accepted_revision = "upstream-rev-2"',
-        )
+    proposed_workspace = before_workspace
+    if mutate_workspace:
+        proposed_workspace = proposed_workspace + b"\n# workspace changed\n"
     comparison = refresh.RefreshComparison(
         artifact_path="docs/specs/example/spec.md",
         artifact_kind="spec",
@@ -1551,7 +1765,7 @@ active = [{path = "docs/specs/example/spec.md", kind = "spec", source = {mode = 
     }
 
 
-def test_coordinator_commits_authority_mirror_receipt_and_dependency_pin(
+def test_coordinator_commits_authority_mirror_and_receipt_leaving_workspace_unchanged(
     tmp_path: Path,
 ) -> None:
     refresh = _load_refresh()
@@ -1579,7 +1793,7 @@ def test_coordinator_commits_authority_mirror_receipt_and_dependency_pin(
     assert durable.local_receipts[0]["status"] == "committed"
     assert durable.owned_fields["Outcome"] == "local"
     workspace_text = fixture["workspace"].read_text()
-    assert 'revision = "rev-2"' in workspace_text
+    assert workspace_text.encode() == fixture["before_workspace"]
 
 
 def test_coordinator_accepts_length_change_when_authority_trails_changed_section(
@@ -1587,7 +1801,7 @@ def test_coordinator_accepts_length_change_when_authority_trails_changed_section
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
-    authority = _authority_block().removeprefix("# Artifact\n\n").replace(
+    authority = _fixture_block().removeprefix(_FIXTURE_TITLE).replace(
         'Constraint = "source"', 'Constraint = "local"'
     )
     sections = """## Outcome
@@ -1598,7 +1812,7 @@ local
 
 stable
 """
-    before = sections + authority
+    before = _FIXTURE_TITLE + sections + authority
     proposed = before.replace("stable\n", "a longer source constraint\n", 1)
     fixture["comparison"] = refresh.RefreshComparison(
         artifact_path="docs/specs/example/spec.md", artifact_kind="spec",
@@ -1627,10 +1841,10 @@ def test_coordinator_accepts_length_change_when_authority_is_in_other_section(
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
-    authority = _authority_block().removeprefix("# Artifact\n\n").replace(
+    authority = _fixture_block().removeprefix(_FIXTURE_TITLE).replace(
         'Constraint = "source"', 'Constraint = "local"'
     )
-    before = """## Outcome
+    before = _FIXTURE_TITLE + """## Outcome
 
 local
 
@@ -1692,7 +1906,7 @@ second
 def test_coordinator_refuses_relocated_authority_after_changed_section(tmp_path: Path) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
-    authority = _authority_block().removeprefix("# Artifact\n\n")
+    authority = _fixture_block().removeprefix(_FIXTURE_TITLE)
     before = fixture["before_artifact"].decode().replace(authority, "") + authority
     relocated = fixture["proposed_artifact"].decode().replace(authority, "")
     relocated = relocated.replace("## Constraint", authority + "## Constraint", 1)
@@ -1827,19 +2041,19 @@ def test_coordinator_rejects_extra_authority_history(
 
 
 @pytest.mark.parametrize(
-    ("mutate_dependency", "mutate_coordination_receipt"),
+    ("mutate_workspace", "mutate_coordination_receipt"),
     [(True, False), (False, True)],
 )
-def test_coordinator_rejects_dependency_or_coordination_receipt_changes(
+def test_coordinator_rejects_workspace_or_coordination_receipt_changes(
     tmp_path: Path,
-    mutate_dependency: bool,
+    mutate_workspace: bool,
     mutate_coordination_receipt: bool,
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(
         refresh,
         tmp_path,
-        mutate_dependency=mutate_dependency,
+        mutate_workspace=mutate_workspace,
         mutate_coordination_receipt=mutate_coordination_receipt,
     )
 
@@ -1947,124 +2161,138 @@ def test_coordinator_rejects_unverified_requirement_body_changes(
     assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 
-@pytest.mark.parametrize("tamper", ["missing-summary", "unknown-field"])
-def test_coordinator_rejects_workspace_entry_contract_violations(
-    tmp_path: Path,
-    tamper: str,
+def _coordinate(refresh, fixture: dict[str, Any], **overrides: Any):
+    arguments: dict[str, Any] = {
+        "repository_root": fixture["repo"],
+        "comparison": fixture["comparison"],
+        "authority": fixture["authority"],
+        "policy": refresh.parse_refresh_authorization_policy(_policy()),
+        "approver": _approver(refresh),
+        "decisions": {"Outcome": "revise-both"},
+        "expected_artifact_digest": fixture["artifact_digest"],
+        "expected_workspace_digest": fixture["workspace_digest"],
+        "artifact_bytes": fixture["proposed_artifact"],
+        "workspace_bytes": fixture["proposed_workspace"],
+        "now": datetime(2026, 8, 17, tzinfo=UTC),
+    }
+    arguments.update(overrides)
+    return refresh.coordinate_local_refresh(**arguments)
+
+
+def _assert_refused_without_effects(
+    result: Any, fixture: dict[str, Any], *, artifact: bytes | None = None
 ) -> None:
-    refresh = _load_refresh()
-    fixture = _semantic_refresh_pair(refresh, tmp_path)
-    if tamper == "missing-summary":
-        fixture["proposed_workspace"] = fixture["proposed_workspace"].replace(
-            b'summary = "Example", ', b"", 1
-        )
-    else:
-        fixture["proposed_workspace"] = fixture["proposed_workspace"].replace(
-            b'summary = "Example", ',
-            b'summary = "Example", unexpected = "tracker-data", ',
-            1,
-        )
-
-    result = refresh.coordinate_local_refresh(
-        repository_root=fixture["repo"],
-        comparison=fixture["comparison"],
-        authority=fixture["authority"],
-        policy=refresh.parse_refresh_authorization_policy(_policy()),
-        approver=_approver(refresh),
-        decisions={"Outcome": "revise-both"},
-        expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
-        artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
-        now=datetime(2026, 8, 17, tzinfo=UTC),
-    )
-
     assert result.code == "invalid_local_update"
     assert result.local_mutation == "refused"
-    assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
+    assert fixture["artifact"].read_bytes() == (artifact or fixture["before_artifact"])
     assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 
-@pytest.mark.parametrize("schema_tamper", ["revision-type", "kind-enum"])
-def test_coordinator_refuses_workspace_schema_violation_before_equalities(
-    tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch,
-    schema_tamper: str,
-) -> None:
+def test_ac0006_coordinator_commits_without_a_workspace_entry(tmp_path: Path) -> None:
     refresh = _load_refresh()
-    fixture = _semantic_refresh_pair(refresh, tmp_path, decision="accept-source")
-    parser = refresh._workspace_entry_parser()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    assert b"[\"ini-001\".work]\nactive = []" in fixture["before_workspace"]
 
-    def invalidating_parser(entry: object) -> tuple[object, list[object]]:
-        invalid = json.loads(json.dumps(entry))
-        if schema_tamper == "revision-type":
-            invalid["source"]["revision"] = 7
-        else:
-            invalid["kind"] = "not-an-artifact-kind"
-        return parser(invalid)
+    result = _coordinate(refresh, fixture)
 
-    monkeypatch.setattr(refresh, "_workspace_entry_parser", lambda: invalidating_parser)
-    result = refresh.coordinate_local_refresh(
-        repository_root=fixture["repo"],
-        comparison=fixture["comparison"],
-        authority=fixture["authority"],
-        policy=refresh.parse_refresh_authorization_policy(_policy()),
-        approver=_approver(refresh),
-        decisions={"Outcome": "accept-source"},
-        expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
-        artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
-        now=datetime(2026, 8, 17, tzinfo=UTC),
+    assert result.local_mutation == "committed"
+    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    durable = refresh.parse_source_authority(fixture["artifact"].read_text())
+    assert durable.source_revision == "rev-2"
+    assert durable.tracker_profile == {"id": "example-service", "version": "1.0"}
+
+
+def test_ac0007_coordinator_refuses_changed_workspace_bytes(tmp_path: Path) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+
+    result = _coordinate(
+        refresh,
+        fixture,
+        workspace_bytes=fixture["proposed_workspace"] + b"\n# changed\n",
     )
 
-    assert result.code == "invalid_local_update"
-    assert result.local_mutation == "refused"
-    assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    _assert_refused_without_effects(result, fixture)
 
 
-@pytest.mark.parametrize("tamper", ["provenance", "unknown-field"])
-def test_coordinator_rejects_invalid_current_workspace_entry_instead_of_repairing(
+def test_ac0007_coordinator_refuses_changed_proposed_profile_table(
     tmp_path: Path,
-    tamper: str,
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
-    if tamper == "provenance":
-        bad_current = fixture["before_workspace"].replace(
-            b"example-service://work/ITEM-1",
-            b"example-service://work/OTHER-1",
-            1,
-        )
-    else:
-        bad_current = fixture["before_workspace"].replace(
-            b'summary = "Example", ',
-            b'summary = "Example", unexpected = "tracker-data", ',
-            1,
-        )
-    fixture["workspace"].write_bytes(bad_current)
-    fixture["before_workspace"] = bad_current
-    fixture["workspace_digest"] = refresh.digest_bytes(bad_current)
+    proposed = fixture["proposed_artifact"].replace(
+        b'id = "example-service"', b'id = "other-service"', 1
+    )
+    assert proposed != fixture["proposed_artifact"]
 
-    result = refresh.coordinate_local_refresh(
-        repository_root=fixture["repo"],
-        comparison=fixture["comparison"],
+    result = _coordinate(refresh, fixture, artifact_bytes=proposed)
+
+    _assert_refused_without_effects(result, fixture)
+
+
+def _rewrite_current_artifact(refresh, fixture: dict[str, Any], text: str) -> None:
+    """Replace the planted artifact, keeping the fixture's digest and authority in step."""
+
+    data = text.encode()
+    fixture["artifact"].write_bytes(data)
+    fixture["before_artifact"] = data
+    fixture["artifact_digest"] = refresh.digest_bytes(data)
+    fixture["authority"] = refresh.parse_source_authority(text)
+
+
+@pytest.mark.parametrize("flaw", ["missing-table", "id", "version", "kind"])
+def test_ac0026_coordinator_refuses_a_record_that_does_not_bind_the_comparison(
+    tmp_path: Path, flaw: str
+) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    current = fixture["before_artifact"].decode()
+    proposed = fixture["proposed_artifact"].decode()
+    kwargs: dict[str, Any] = {}
+    if flaw == "missing-table":
+        current = current.replace(_FIXTURE_PROFILE.lstrip("\n") + "\n", "", 1)
+        proposed = proposed.replace(_FIXTURE_PROFILE.lstrip("\n") + "\n", "", 1)
+        assert "tracker_profile" not in current
+    elif flaw == "id":
+        current = current.replace('id = "example-service"', 'id = "other-service"', 1)
+        proposed = proposed.replace('id = "example-service"', 'id = "other-service"', 1)
+    elif flaw == "version":
+        current = current.replace('version = "1.0"', 'version = "2.0"', 1)
+        proposed = proposed.replace('version = "1.0"', 'version = "2.0"', 1)
+    else:
+        kwargs["comparison"] = replace(fixture["comparison"], artifact_kind="brief")
+    _rewrite_current_artifact(refresh, fixture, current)
+
+    result = _coordinate(
+        refresh,
+        fixture,
         authority=fixture["authority"],
-        policy=refresh.parse_refresh_authorization_policy(_policy()),
-        approver=_approver(refresh),
-        decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
-        artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
-        now=datetime(2026, 8, 17, tzinfo=UTC),
+        artifact_bytes=proposed.encode(),
+        **kwargs,
     )
 
-    assert result.code == "invalid_local_update"
-    assert result.local_mutation == "refused"
-    assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == bad_current
+    _assert_refused_without_effects(result, fixture)
+
+
+def test_ac0026_front_matter_does_not_hide_a_spec_title(tmp_path: Path) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    front = "---\n# Brief: not the title\nstatus: draft\n---\n"
+    current = front + fixture["before_artifact"].decode()
+    proposed = front + fixture["proposed_artifact"].decode()
+    _rewrite_current_artifact(refresh, fixture, current)
+
+    result = _coordinate(
+        refresh,
+        fixture,
+        authority=fixture["authority"],
+        expected_artifact_digest=fixture["artifact_digest"],
+        artifact_bytes=proposed.encode(),
+    )
+
+    assert result.local_mutation == "committed"
+    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
 
 
 @pytest.mark.parametrize("tamper", ["initiative", "authorization-policy"])
@@ -2169,7 +2397,7 @@ def test_coordinator_rejects_source_authority_byte_injection(
             1,
         )
     else:
-        authority_block = _authority_block().encode()
+        authority_block = _fixture_block().encode()
         assert proposed.startswith(authority_block)
         proposed = proposed[len(authority_block) :] + authority_block
 

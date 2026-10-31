@@ -25,8 +25,8 @@ delegation from neutral intake is the same route, not a second public answer.
 
 | User intent | Result |
 | --- | --- |
-| Start or do work | Select one artifact route, write it, register it only when it is a spec or a tracker-origin intent or brief, then invoke the owning processor when dispatchable. A defect start writes only its captured-item file under `docs/product/captured/` and registers nothing |
-| Remember work | Write a Draft, non-dispatchable artifact; stop before implementation. Only a spec or a tracker-origin intent or brief is registered. A repo-origin intent or brief, and a defect, design, or research item, is written as its own file with no entry |
+| Start or do work | Select one artifact route, write it, then invoke the owning processor when dispatchable. A defect start writes only its captured-item file under `docs/product/captured/`. Nothing is registered |
+| Remember work | Write a Draft, non-dispatchable artifact; stop before implementation. No artifact is registered: an intent, brief, spec, defect, design, or research item is written as its own file with no entry, and a tracker-origin brief or spec also gets its tracker profile in its own record |
 | Inspect status | Return `workspace-status` lifecycle, findings, and next actions without mutation |
 | Refresh requirements | Resolve an existing registered artifact and exact configured profile processor, then present a reviewed field delta |
 | Admit a shaping handoff | Validate bounded context, resolve its semantic destination, and continue through an existing brief or spec processor |
@@ -55,7 +55,7 @@ invoke `new-spec`.
 
 ## Delivery-brief lifecycle
 
-A repo-origin brief's lifecycle is its `Status:` alone. A tracker-origin brief's entry sits in the collection that matches its status.
+A repo-origin brief's lifecycle is its `Status:` alone. The same holds for a tracker-origin brief, which has no entry.
 
 | Status | When it applies | Next transition |
 | --- | --- | --- |

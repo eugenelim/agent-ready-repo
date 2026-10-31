@@ -2728,6 +2728,24 @@ consumer = "spec registration stop: the spec-entry-drop repair, the stopped spec
 owner = 8
 
 [[row]]
+pattern = "docs/product/changelog.d/58847b49-fc55-426f-aa9a-371a06e25248.md"
+class = "historical"
+consumer = "released changelog entry that names the workspace.toml registry and the workspace-status tracker-entry-drop repair"
+owner = "none"
+
+[[row]]
+pattern = "tests/roster/test_tracker_origin_registration_stop.py"
+class = "fixture"
+consumer = "roster test that no writer, guide or page tells anyone to register a tracker-origin artifact, and that the record-profile and repair text is present"
+owner = 9
+
+[[row]]
+pattern = "docs/specs/tracker-origin-registration-stop/*"
+class = "contract"
+consumer = "tracker-origin registration stop: the tracker profile in the source-authority record, refresh reading it there, the stopped tracker-origin writers, and the tracker-entry-drop repair"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/readiness-bridge-dispatch-input/*"
 class = "contract"
 consumer = "readiness bridge input: the navigate-intents export reads argless work-loop dispatch output in place of workspace-status status"

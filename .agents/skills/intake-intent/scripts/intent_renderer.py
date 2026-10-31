@@ -270,6 +270,36 @@ def _items(content: dict[str, list[str]], key: str, fallback: str) -> str:
     return "\n".join(f"- {_inline(value)}" for value in values) if values else fallback
 
 
+def _profile_lines(profile: dict[str, str] | None) -> tuple[str, ...]:
+    """Render the intake's tracker profile as a ``[tracker_profile]`` table.
+
+    No profile renders nothing, as before. A profile that the record's closed
+    contract refuses (wrong keys, empty, over-long, or holding a line break)
+    is refused here rather than written into an unparseable record.
+    """
+
+    if profile is None:
+        return ()
+    bounds = {"id": 200, "version": 100}
+    if not isinstance(profile, dict) or set(profile) != set(bounds):
+        raise IntentAdmissionError("invalid_tracker_profile")
+    for key, maximum in bounds.items():
+        value = profile[key]
+        if (
+            not isinstance(value, str)
+            or not 1 <= len(value) <= maximum
+            or "\r" in value
+            or "\n" in value
+        ):
+            raise IntentAdmissionError("invalid_tracker_profile")
+    return (
+        "[tracker_profile]",
+        f"id = {json.dumps(profile['id'], ensure_ascii=True)}",
+        f"version = {json.dumps(profile['version'], ensure_ascii=True)}",
+        "",
+    )
+
+
 def _render_tracker_source_authority(
     source: NormalizedSourceLike, *, locator: str, revision: str
 ) -> str:
@@ -283,6 +313,7 @@ def _render_tracker_source_authority(
             f"source_ref = {json.dumps(locator, ensure_ascii=False)}",
             f"source_revision = {json.dumps(revision, ensure_ascii=False)}",
             "",
+            *_profile_lines(source.tracker_profile),
             "[owned_fields]",
             "```",
         )
