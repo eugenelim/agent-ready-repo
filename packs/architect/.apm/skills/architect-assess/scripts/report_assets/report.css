@@ -1,0 +1,6 @@
+/*
+ * Layout for the architect-assess HTML report. The shared view-base.css owns every colour
+ * role, type level, radius, and spacing token; this file only arranges the page and reads
+ * those tokens. It declares no colour literal and redefines no token.
+ */
+.page-title { display: flex; }

@@ -413,6 +413,10 @@ def _only_fixed_tokens(out: str, err: str) -> None:
         "render_html: refused: source is not valid UTF-8",
         "render_html: refused: evidence class outside the allowed set",
         "render_html: failed: internal error",
+        "render_html: failed: stylesheet asset missing",
+        "render_html: failed: stylesheet asset over the size cap",
+        "render_html: failed: stylesheet asset is not valid UTF-8",
+        "render_html: failed: stylesheet asset holds forbidden text",
     }
     for heading in ("Overall architecture", "Architecture by subsystem", "Physical architecture"):
         allowed.add(f"render_html: refused: no usable Sources checked table in {heading}")
@@ -913,3 +917,69 @@ def test_tab_indented_mermaid_fence_under_a_list_item_is_labeled(mod, source) ->
     out = mod.render(source, "e", "2026-01-01")
     assert "Diagram source (not rendered)" in out and "<pre><code>A --&gt; B" in out
     assert "<li>next</li>" in out
+
+
+# ---- style slice: stylesheet assets ----------------------------------------------------
+
+ASSETS = SKILL_ROOT / "scripts" / "report_assets"
+
+
+def test_style_body_is_base_newline_layout(mod, tmp_path, capsys) -> None:
+    expected = (
+        (ASSETS / "view-base.css").read_text("utf-8")
+        + "\n"
+        + (ASSETS / "report.css").read_text("utf-8")
+    )
+    parsed = tree(page(tmp_path.resolve(), report(), mod, capsys))
+    assert parsed.style == expected
+
+
+def _assets(tmp_path: Path, base: bytes | None, layout: bytes | None) -> Path:
+    directory = tmp_path / "assets_root" / "report_assets"
+    directory.mkdir(parents=True)
+    for name, data in (("view-base.css", base), ("report.css", layout)):
+        if data is not None:
+            (directory / name).write_bytes(data)
+    return directory
+
+
+@pytest.mark.parametrize(
+    ("base", "layout", "token"),
+    [
+        (None, b"a{}", "stylesheet asset missing"),
+        (b"a{}", None, "stylesheet asset missing"),
+        (b"x" * (64 * 1024 + 1), b"a{}", "stylesheet asset over the size cap"),
+        (b"a{}", b"x" * (64 * 1024 + 1), "stylesheet asset over the size cap"),
+        (b"\xff\xfe", b"a{}", "stylesheet asset is not valid UTF-8"),
+        (b"a{}", b"/* </STYLE> */", "stylesheet asset holds forbidden text"),
+        (b"a{}", b"/* <!-- */", "stylesheet asset holds forbidden text"),
+        (b"a{ background: URL(x) }", b"b{}", "stylesheet asset holds forbidden text"),
+        (b"a{}", b"@IMPORT 'x';", "stylesheet asset holds forbidden text"),
+    ],
+    ids=[
+        "base-missing",
+        "layout-missing",
+        "base-large",
+        "layout-large",
+        "not-utf8",
+        "style-close",
+        "comment-open",
+        "url",
+        "import",
+    ],
+)
+def test_an_unsafe_stylesheet_asset_exits_three_without_a_file(
+    mod, tmp_path, capsys, monkeypatch, base, layout, token
+) -> None:
+    tmp_path = tmp_path.resolve()
+    monkeypatch.setattr(mod, "ASSET_DIR", _assets(tmp_path, base, layout))
+    code, out, err = run(tmp_path, report(), mod, capsys)
+    assert code == 3 and err.strip() == f"render_html: failed: {token}"
+    assert not (tmp_path / "effort" / "assessment.html").exists()
+    _only_fixed_tokens(out, err)
+
+
+def test_no_stylesheet_asset_holds_a_url_or_import() -> None:
+    for name in ("view-base.css", "report.css"):
+        text = (ASSETS / name).read_text("utf-8").lower()
+        assert "url(" not in text and "@import" not in text

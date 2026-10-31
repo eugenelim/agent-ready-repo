@@ -25,6 +25,10 @@ from typing import Any, NamedTuple
 RENDERER_VERSION = "1"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_EXISTING_OUTPUT_BYTES = 16 * 1024 * 1024
+MAX_ASSET_BYTES = 64 * 1024
+ASSET_DIR = Path(__file__).resolve().parent / "report_assets"
+ASSET_NAMES = ("view-base.css", "report.css")
+FORBIDDEN_ASSET_TEXT = ("</style", "<!--", "url(", "@import")
 SOURCE_NAME = "assessment.md"
 OUTPUT_NAME = "assessment.html"
 
@@ -58,45 +62,12 @@ TOKEN_NOT_UTF8 = "render_html: refused: source is not valid UTF-8"
 TOKEN_EVIDENCE = "render_html: refused: evidence class outside the allowed set"
 TOKEN_PROVENANCE = "render_html: refused: no usable Sources checked table in"
 TOKEN_OUTPUT_LARGE = "render_html: refused: rendered page over the size cap"
+TOKEN_ASSET_MISSING = "render_html: failed: stylesheet asset missing"
+TOKEN_ASSET_LARGE = "render_html: failed: stylesheet asset over the size cap"
+TOKEN_ASSET_NOT_UTF8 = "render_html: failed: stylesheet asset is not valid UTF-8"
+TOKEN_ASSET_FORBIDDEN = "render_html: failed: stylesheet asset holds forbidden text"
 TOKEN_HOST = "render_html: refused: host lacks descriptor walking:"
 TOKEN_INTERNAL = "render_html: failed: internal error"
-
-CSS = """
-body{font:16px/1.5 system-ui,sans-serif;margin:0;color:#1b1f24;background:#fff}
-main{max-width:70rem;margin:0 auto;padding:1.5rem}
-h1,h2,h3{line-height:1.25}
-h2{border-bottom:1px solid #c9d1d9;padding-bottom:.25rem;margin-top:2rem}
-table{border-collapse:collapse;margin:1rem 0;width:100%}
-th,td{border:1px solid #c9d1d9;padding:.35rem .6rem;text-align:left;vertical-align:top}
-th{background:#f3f5f7}
-pre{background:#f3f5f7;padding:.75rem;overflow:auto;border-radius:4px}
-code{font-family:ui-monospace,monospace;font-size:.92em}
-.meta{color:#4a5560;font-size:.9rem}
-a{color:#0969da}
-.banner-unconfirmed{border:2px solid #9a6700;background:#fff8c5;padding:.75rem 1rem;
-margin:1rem 0;font-weight:600}
-.notice-untrusted{border:1px solid #6e7781;background:#f3f5f7;padding:.75rem 1rem;margin:1rem 0}
-.diagram-label{font-weight:600;margin-bottom:0}
-.ev-observed{border-left:.5rem solid #1a7f37}
-.ev-inferred{border-left:.5rem solid #9a6700}
-.ev-reported{border-left:.5rem solid #0969da}
-.ev-unknown{border-left:.5rem solid #6e7781}
-.heat-low{background:#dafbe1}
-.heat-medium{background:#fff8c5}
-.heat-high{background:#ffebe9;font-weight:600}
-.heat-unknown{background:#eaeef2;font-style:italic}
-@media (prefers-color-scheme:dark){
-body{background:#0d1117;color:#e6edf3}
-th,pre,.notice-untrusted{background:#161b22}
-th,td,h2,.notice-untrusted{border-color:#30363d}
-.banner-unconfirmed{background:#3b2e00;border-color:#d29922;color:#f0e6c0}
-a{color:#58a6ff}
-.heat-low{background:#12301c}
-.heat-medium{background:#3b2e00}
-.heat-high{background:#4a1d1d}
-.heat-unknown{background:#21262d}
-}
-"""
 
 
 class Refusal(Exception):
@@ -131,6 +102,8 @@ _INLINE = re.compile(
     r"(`[^`\n]+`)|(\*\*[^*\n]+\*\*)"
     r"|(\[[^\[\]\n]+\]\((?:[^()\n]++|\([^()\n]*+\))*+\))|(\*[^*\n]+\*)"
 )
+
+_HELPER: Any = None
 
 
 def _esc(text: str) -> str:
@@ -485,14 +458,53 @@ def _body(
     return title, "\n".join(out)
 
 
-def render(source: str, effort_name: str, today: str) -> str:
+class AssetError(Exception):
+    """A stylesheet asset the renderer will not inline; carries its fixed stderr token."""
+
+    def __init__(self, line: str) -> None:
+        super().__init__(line)
+        self.line = line
+
+
+def load_stylesheet(helper: Any) -> str:
+    """Return the base stylesheet, one newline, then the report layout file.
+
+    Each asset is read through the confinement helper with a byte cap and refused before
+    inlining when missing, too large, not UTF-8, or holding text that could end the style
+    element or fetch a resource.
+    """
+    root = ASSET_DIR.parent
+    texts: list[str] = []
+    for name in ASSET_NAMES:
+        try:
+            data = helper.read_confined_regular_file(
+                root, ASSET_DIR / name, max_bytes=MAX_ASSET_BYTES
+            )
+        except helper.BoundExceeded as error:
+            raise AssetError(TOKEN_ASSET_LARGE) from error
+        except (helper.UnsafeContentError, OSError) as error:
+            raise AssetError(TOKEN_ASSET_MISSING) from error
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise AssetError(TOKEN_ASSET_NOT_UTF8) from error
+        lowered = text.lower()
+        if any(forbidden in lowered for forbidden in FORBIDDEN_ASSET_TEXT):
+            raise AssetError(TOKEN_ASSET_FORBIDDEN)
+        texts.append(text)
+    return "\n".join(texts)
+
+
+def render(source: str, effort_name: str, today: str, css: str | None = None) -> str:
     """Return the full HTML document for *source*, or raise Refusal."""
+    if css is None:
+        css = load_stylesheet(_load_helper())
     blocks = parse(source)
     title_at = _title_index(blocks)
     _check_orientation(blocks, title_at)
     scopes = _scopes(blocks, title_at)
     title, body = _body(blocks, scopes, title_at)
-    digest = base64.b64encode(hashlib.sha256(CSS.encode("utf-8")).digest()).decode()
+    digest = base64.b64encode(hashlib.sha256(css.encode("utf-8")).digest()).decode()
     policy = (
         f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"
     )
@@ -508,7 +520,7 @@ def render(source: str, effort_name: str, today: str) -> str:
         "<!DOCTYPE html>\n"
         '<html lang="en"><head><meta charset="utf-8">'
         f'<meta http-equiv="Content-Security-Policy" content="{policy}">'
-        f"<title>{_esc(title)}</title><style>{CSS}</style></head>\n"
+        f"<title>{_esc(title)}</title><style>{css}</style></head>\n"
         f"<body><main><h1>{_esc(title)}</h1>\n{meta}\n{banner}\n{notice}\n"
         f"{body}\n</main></body></html>\n"
     )
@@ -539,7 +551,10 @@ def _missing_capability() -> str | None:
 
 
 def _load_helper() -> Any:
-    """Load the co-located confinement helper by path under a private name."""
+    """Load the co-located confinement helper by path under a private name, once."""
+    global _HELPER
+    if _HELPER is not None:
+        return _HELPER
     path = Path(__file__).with_name("file_safety.py")
     inspected = os.lstat(path)
     if not stat.S_ISREG(inspected.st_mode):
@@ -549,6 +564,7 @@ def _load_helper() -> Any:
         raise ImportError("helper cannot be loaded")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    _HELPER = module
     return module
 
 
@@ -582,6 +598,11 @@ def _run(argv: list[str]) -> int:
         print(TOKEN_UNSAFE_PATH, file=sys.stderr)
         return 3
     helper = _load_helper()
+    try:
+        css = load_stylesheet(helper)
+    except AssetError as error:
+        print(error.line, file=sys.stderr)
+        return 3
     root = Path(argv[0]).absolute()
     try:
         data = helper.read_confined_regular_file(
@@ -600,7 +621,7 @@ def _run(argv: list[str]) -> int:
         return 2
     today = datetime.datetime.now(datetime.UTC).date().isoformat()
     try:
-        page = render(source, root.name, today)
+        page = render(source, root.name, today, css)
     except Refusal as refusal:
         print(refusal.line, file=sys.stderr)
         return refusal.code
