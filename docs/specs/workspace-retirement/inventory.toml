@@ -2752,6 +2752,12 @@ consumer = "tracker-origin registration stop: the tracker profile in the source-
 owner = 9
 
 [[row]]
+pattern = "docs/specs/pre-cutover-closure/notes/upgrade-notes.md"
+class = "guide"
+consumer = "the adopter upgrade-notes draft for the workspace.toml retirement, unpublished; slice 9 publishes it under guides/core/how-to/ after the cutover"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/pre-cutover-closure/*"
 class = "contract"
 consumer = "pre-cutover compatibility closure: the retired close-work closure-packet registry field, the inventory re-owned to slice 9, and the adopter upgrade-notes draft"
