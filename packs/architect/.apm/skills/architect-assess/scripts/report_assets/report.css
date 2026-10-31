@@ -9,8 +9,8 @@
 
 /* ---- Header, banner, notice */
 .page-header { padding: var(--s-4) var(--s-5) var(--s-3); border-bottom-width: 1px; border-bottom-style: solid; }
-.page-title { display: flex; align-items: center; gap: var(--s-2); font-size: 1.75rem; line-height: 1.2; overflow-wrap: anywhere; }
-.page-title::before { display: block; flex: none; }
+.page-title { display: flex; align-items: flex-start; gap: var(--s-2); font-size: 1.75rem; line-height: 1.2; overflow-wrap: anywhere; }
+.page-title::before { display: block; flex: none; margin-top: var(--s-1); }
 .meta { margin: var(--s-2) 0 0; font-size: 0.875rem; line-height: 1.5; }
 .alert, .notice-untrusted { margin: var(--s-3) var(--s-5) 0; padding: var(--s-2) var(--s-3); }
 .notice-untrusted { border-width: 1px; border-style: solid; border-color: var(--c-rule); border-radius: var(--r-2); }
@@ -24,7 +24,7 @@
 /* ---- Contents: a closed details control on narrow pages, a list beside the text on wide ones */
 .rail { padding: var(--s-2) var(--s-5); }
 .rail details { padding: var(--s-1) 0; }
-.rail summary { display: flex; align-items: center; }
+.rail summary { display: flex; align-items: center; gap: var(--s-2); min-height: var(--target); }
 .rail ul { list-style: none; margin: 0; padding: 0; }
 .rail-wide { display: none; }
 .rail .question-link { width: 100%; }
@@ -34,28 +34,27 @@
 main { padding: var(--s-2) var(--s-5) var(--s-7); background: var(--c-bg); }
 .doc-section { padding: var(--s-4) 0; border-top-width: 1px; border-top-style: solid; border-top-color: var(--c-rule); background: var(--c-bg); }
 .doc-section:target { padding-left: var(--s-3); border-left-width: 3px; border-left-style: solid; border-left-color: var(--c-accent); }
-.margin-head, .part-head { margin: 0 0 var(--s-2); font-size: 0.75rem; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.07em; color: var(--c-subtle); }
+.margin-head, .part-head { margin: var(--s-4) 0 var(--s-2); font-size: 0.75rem; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.07em; color: var(--c-subtle); }
 .doc-body { min-width: 0; font-size: 1.0625rem; line-height: 1.6; }
 .doc-body h3 { margin: var(--s-5) 0 var(--s-2); font-size: 1.3125rem; line-height: 1.3; }
 .doc-body ul, .doc-body ol { margin: var(--s-2) 0; padding-left: var(--s-5); }
 .doc-body hr { margin: var(--s-4) 0; }
 
 /* ---- Tables, source blocks, diagram source */
-.table-scroll { margin: var(--s-3) 0; max-width: 100%; overflow-x: auto; }
+.table-scroll, .source-scroll { margin: var(--s-3) 0; max-width: 100%; overflow-x: auto; }
 table { border-collapse: collapse; width: 100%; font-size: 0.875rem; line-height: 1.5; }
-th, td { padding: var(--s-2) var(--s-3); text-align: left; vertical-align: top; overflow-wrap: anywhere; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: var(--c-rule); }
+th, td { padding: var(--s-2) var(--s-3); text-align: left; vertical-align: top; border-bottom-width: 1px; border-bottom-style: solid; border-bottom-color: var(--c-rule); }
 th { color: var(--c-muted); border-bottom-color: var(--c-rule-strong); }
-pre { margin: var(--s-3) 0; padding: var(--s-3); overflow: auto; border-width: 1px; border-style: solid; border-color: var(--c-rule); border-radius: var(--r-2); background: var(--c-canvas); }
+pre { margin: 0; padding: var(--s-3); overflow: auto; width: max-content; min-width: 100%; border-width: 1px; border-style: solid; border-color: var(--c-rule); border-radius: var(--r-2); background: var(--c-canvas); }
 pre code { font-size: 0.8125rem; line-height: 1.5; }
 .diagram-label { margin: var(--s-4) 0 var(--s-1); font-size: 0.75rem; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.07em; color: var(--c-subtle); }
-.diagram pre { margin-top: var(--s-1); }
 
 /* ---- Provenance marks: a neutral pill, a word, and a bar glyph that reads aloud as nothing */
 .ev-observed, .ev-inferred, .ev-reported, .ev-unknown { background: var(--c-bg); border-width: 1px; border-style: solid; border-color: var(--c-rule-strong); }
-.ev-observed::before { content: none; content: "\25AE\25AE\25AE" / ""; }
-.ev-inferred::before { content: none; content: "\25AE\25AE\25AF" / ""; }
-.ev-reported::before { content: none; content: "\25AE\25AF\25AF" / ""; }
-.ev-unknown::before { content: none; content: "\25AF\25AF\25AF" / ""; }
+.ev-observed::before { letter-spacing: 0.08em; content: none; content: "\25AE\25AE\25AE" / ""; }
+.ev-inferred::before { letter-spacing: 0.08em; content: none; content: "\25AE\25AE\25AF" / ""; }
+.ev-reported::before { letter-spacing: 0.08em; content: none; content: "\25AE\25AF\25AF" / ""; }
+.ev-unknown::before { letter-spacing: 0.08em; content: none; content: "\25AF\25AF\25AF" / ""; }
 
 /* ---- Heat: a ramp of fill and edge that grows with heat, always beside its word */
 .heat-low { background: var(--c-bg); }
@@ -65,13 +64,17 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
 
 /* ---- Tracks: one column, then margin and text, then a contents rail as a third track */
 @media (min-width: 64rem) {
-  .doc-section { display: grid; grid-template-columns: 12rem minmax(0, 68ch); column-gap: var(--s-5); }
+  .doc-section { display: grid; grid-template-columns: 12rem minmax(0, 68ch) minmax(0, 40rem); column-gap: var(--s-5); row-gap: 0; }
   .margin-head { grid-column: 1; }
-  .doc-body { grid-column: 2; }
+  .doc-body { display: contents; }
+  .doc-body > * { grid-column: 2; min-width: 0; }
+  .doc-body > .table-scroll, .doc-body > .source-scroll, .doc-body > .diagram { grid-column: 2 / -1; }
 }
 @media (min-width: 100rem) {
   body { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; grid-auto-flow: row dense; column-gap: var(--s-5); }
+  body { max-width: 110rem; margin-left: auto; margin-right: auto; }
   .page-header, .alert, .notice-untrusted { grid-column: 1 / -1; }
+  .skip-link:focus, .skip-link:focus-visible { grid-column: 1 / -1; justify-self: start; align-self: start; }
   main { grid-column: 1; }
   .rail { grid-column: 2; align-self: start; position: sticky; top: var(--s-4); max-height: calc(100vh - var(--s-6)); overflow-y: auto; }
   .rail details { display: none; }
@@ -81,5 +84,7 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
 /* ---- Print: the contents and skip link go, tables show in full */
 @media print {
   .rail, .skip-link, .rail details { display: none; }
-  .table-scroll { overflow: visible; }
+  .table-scroll, .source-scroll { overflow: visible; }
+  pre { overflow: visible; white-space: pre-wrap; width: auto; }
+  tr { break-inside: avoid; }
 }

@@ -426,12 +426,13 @@ def _table(block: Block, sources: bool, heat: bool, counts: dict[str, int]) -> s
     return "".join(parts)
 
 
-def _scroll_wrap(table: str, nearest_heading: str) -> str:
-    """Wrap a table in a keyboard-scrollable region named for the heading above it."""
-    label = f"Table: {nearest_heading}" if nearest_heading else "Table"
+def _scroll_wrap(content: str, nearest_heading: str, kind: str = "table") -> str:
+    """Wrap a table or source block in a keyboard-scrollable region named for its heading."""
+    word = "Table" if kind == "table" else "Source"
+    label = f"{word}: {nearest_heading}" if nearest_heading else word
     return (
-        '<div class="table-scroll" role="region" tabindex="0" '
-        f'aria-label="{_esc(label)}">{table}</div>'
+        f'<div class="{kind}-scroll" role="region" tabindex="0" '
+        f'aria-label="{_esc(label)}">{content}</div>'
     )
 
 
@@ -515,7 +516,7 @@ def _body(
             table = _table(block, sources, section == "attention heat map", counts)
             emit(_scroll_wrap(table, nearest))
         elif block.kind == "code":
-            code = f"<pre><code>{_esc(block.text)}</code></pre>"
+            code = _scroll_wrap(f"<pre><code>{_esc(block.text)}</code></pre>", nearest, "source")
             if block.header and block.header[0].lower().split(None, 1)[:1] == ["mermaid"]:
                 emit(
                     '<div class="diagram">'
@@ -614,7 +615,7 @@ def render(source: str, effort_name: str, today: str, css: str | None = None) ->
     notice = f'<div class="note notice-untrusted">{NOTICE_TEXT}</div>'
     links = _rail_links(rail)
     nav = (
-        '<nav class="rail" aria-label="Report sections"><details>'
+        '<nav class="rail" aria-label="Report sections"><details class="key">'
         f"<summary>Contents ({len(rail)} sections)</summary>"
         f'<ul class="rail-list plain">{links}</ul></details>'
         f'<ul class="rail-wide plain">{links}</ul></nav>'

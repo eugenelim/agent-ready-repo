@@ -416,7 +416,10 @@ def test_confirmed_line_outside_charter_or_duplicated_does_not_suppress(
 def test_mermaid_fence_is_a_labeled_escaped_source_block(mod, tmp_path, capsys) -> None:
     extra = "```mermaid\nflowchart TD\n  A[<b>x</b>] --> B\n```\n"
     text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
-    assert 'class="diagram-label">Diagram source (not rendered)</p><pre><code>flowchart' in text
+    assert (
+        'class="diagram-label">Diagram source (not rendered)</p><div class="source-scroll"' in text
+    )
+    assert "<pre><code>flowchart" in text
     assert "A[&lt;b&gt;x&lt;/b&gt;]" in text
     assert "<script" not in text.lower()
 
@@ -1074,7 +1077,7 @@ def test_banner_and_notice_carry_the_family_classes(mod, tmp_path, capsys) -> No
 
 def _rail(text: str) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]]]:
     narrow = re.search(
-        r"<details><summary>(.*?)</summary><ul[^>]*>(.*?)</ul></details>", text, re.S
+        r'<details class="key"><summary>(.*?)</summary><ul[^>]*>(.*?)</ul></details>', text, re.S
     )
     wide = re.search(r'<ul class="rail-wide plain">(.*?)</ul>', text, re.S)
     pattern = r'<a class="([^"]*)" href="#([^"]*)">(.*?)</a>'
@@ -1088,7 +1091,10 @@ def test_the_contents_nav_holds_a_details_list_and_a_wide_list_of_the_same_links
     mod, tmp_path, capsys
 ) -> None:
     text = page(tmp_path.resolve(), report(), mod, capsys)
-    assert '<nav class="rail" aria-label="Report sections"><details><summary>Contents (' in text
+    assert (
+        '<nav class="rail" aria-label="Report sections"><details class="key"><summary>Contents ('
+        in text
+    )
     narrow, wide = _rail(text)
     assert narrow == wide and narrow
     assert re.search(rf"<summary>Contents \({len(narrow)} sections\)</summary>", text)
@@ -1327,6 +1333,7 @@ def test_layout_file_arranges_the_pieces_the_markup_depends_on() -> None:
     assert declared(".rail-sub", "padding-left")
     assert declared("table", "border-collapse") == ["collapse"]
     assert declared("pre", "overflow") == ["auto"]
+    assert declared("pre", "width") == ["max-content"] and declared("pre", "min-width") == ["100%"]
     assert declared(".table-scroll", "overflow-x") == ["auto"]
     assert declared(".page-title", "overflow-wrap") == ["anywhere"]
     assert declared(".notice-untrusted", "border-width") and declared(
@@ -1429,9 +1436,11 @@ def test_rail_and_skip_links_reach_the_target_floor_and_the_skip_link_shows_on_f
 
 
 def test_tracks_breakpoints_and_the_contents_switch() -> None:
-    assert declared(".doc-section", "grid-template-columns", "min-width: 64rem") == [
-        "12rem minmax(0, 68ch)"
-    ]
+    tracks = declared(".doc-section", "grid-template-columns", "min-width: 64rem")
+    assert len(tracks) == 1 and tracks[0].startswith("12rem minmax(0, 68ch)")
+    assert declared(".doc-body > .table-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
+    assert declared(".doc-body > .source-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
+    assert declared("th", "overflow-wrap") == [] and declared("td", "overflow-wrap") == []
     assert declared("body", "grid-template-columns", "min-width: 100rem") == [
         "minmax(0, 1fr) 16rem"
     ]
@@ -1450,3 +1459,34 @@ def test_target_bar_and_print_block() -> None:
     for hidden in (".rail", ".skip-link", ".rail details"):
         assert declared(hidden, "display", "print") == ["none"], hidden
     assert declared(".table-scroll", "overflow", "print") == ["visible"]
+    assert declared(".source-scroll", "overflow", "print") == ["visible"]
+
+
+def test_focused_skip_link_stays_small_in_the_three_track_grid() -> None:
+    assert declared(".skip-link:focus", "grid-column", "min-width: 100rem") == ["1 / -1"]
+    assert declared(".skip-link:focus", "justify-self", "min-width: 100rem") == ["start"]
+    assert declared(".skip-link:focus", "align-self", "min-width: 100rem") == ["start"]
+
+
+def test_source_blocks_sit_in_keyboard_scrollable_regions(mod, tmp_path, capsys) -> None:
+    extra = "```\nplain block\n```\n\n```mermaid\nA --> B\n```\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    regions = re.findall(
+        r'<div class="source-scroll" role="region" tabindex="0" aria-label="([^"]*)">', text
+    )
+    assert regions == ["Source: Findings", "Source: Findings"]
+    assert text.count("<pre>") == len(regions)
+    assert declared(".source-scroll", "overflow-x") == ["auto"]
+
+
+def test_print_lets_source_blocks_wrap_and_keeps_rows_together() -> None:
+    assert declared("pre", "overflow", "print") == ["visible"]
+    assert declared("pre", "white-space", "print") == ["pre-wrap"]
+    assert declared("tr", "break-inside", "print") == ["avoid"]
+
+
+def test_contents_control_meets_the_target_floor_and_the_page_is_centred_when_wide() -> None:
+    assert declared(".rail summary", "min-height") == ["var(--target)"]
+    assert declared(".rail summary", "gap") == ["var(--s-2)"]
+    assert declared("body", "max-width", "min-width: 100rem") == ["110rem"]
+    assert declared("body", "margin-left", "min-width: 100rem") == ["auto"]
