@@ -1,6 +1,6 @@
 # Spec: Supervisor status in a checkout without the run's store
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-30 by eugenelim, spec at `01c13d980`, after four spec-stage rounds of shaping, adversarial and secure-design review, each adjudicated (round 4 adversarial only); the round-4 one-sentence repair to the Testing Strategy was accepted unreviewed. Amended 2026-10-30 under controlled amendment: AC-0007's in-run clone rebuilds its own installed skill, and the final head is proven outside the run (ledger § AC-0007 amendment), after two amendment review rounds, each adjudicated; the second round's three repairs were accepted unreviewed, with its self-host finding settled by the owner on the observed `--write` behaviour. Re-approved 2026-10-30 by eugenelim. Records under `.context/reviews/12f339cc-9463-4289-b3d0-f1f07e3980f3/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -90,20 +90,20 @@ Terms used below.
 
 **The `status` verb in a no-store checkout**
 
-- [ ] **AC-0001.** In a no-store checkout whose committed records and Git history derive the run terminal, `status <spec-dir> --check` exits `0` and prints a view with `"terminal": true` and `"verification": "committed-records-only"`.
-- [ ] **AC-0002.** In a no-store checkout whose `HEAD` holds the spec's `delivery/` records in one commit with none of the run's supervisor commits reachable, `status <spec-dir> --check` exits `0` and prints a view with `"verification": "committed-records-only"` and an empty `refusal`.
-- [ ] **AC-0003.** A `status` call in a no-store checkout leaves the checkout as it found it: no store directory, no `<spec-dir>/.supervisor/` entry and no `.loop-run/` entry is created, and `HEAD` and `git status --porcelain` are unchanged.
+- [x] **AC-0001.** In a no-store checkout whose committed records and Git history derive the run terminal, `status <spec-dir> --check` exits `0` and prints a view with `"terminal": true` and `"verification": "committed-records-only"`.
+- [x] **AC-0002.** In a no-store checkout whose `HEAD` holds the spec's `delivery/` records in one commit with none of the run's supervisor commits reachable, `status <spec-dir> --check` exits `0` and prints a view with `"verification": "committed-records-only"` and an empty `refusal`.
+- [x] **AC-0003.** A `status` call in a no-store checkout leaves the checkout as it found it: no store directory, no `<spec-dir>/.supervisor/` entry and no `.loop-run/` entry is created, and `HEAD` and `git status --porcelain` are unchanged.
 
 **Refusals that stay**
 
-- [ ] **AC-0004.** In a no-store checkout, `start`, `next`, `report` and `resolve-effect` each exit `1` with refusal code `supervisor-changed` and detail `the supervisor's pin record is missing`, and leave `HEAD` unchanged.
-- [ ] **AC-0005.** `status` exits `1` with refusal code `supervisor-changed`, whether or not the working run has a store directory, when: a spec store has no pin record and no orphan mark; the installed pinned files differ from a pinned spec store's pin record, and from the source digests that store's open `regenerate` request recorded; they differ from the pins of another run whose store holds an open attempt; or the committed run's store directory exists with no pin record.
-- [ ] **AC-0006.** Every `status` view carries `verification`: `"pinned"` when the installed pinned files were compared, before any sibling script loaded, with the committed run's pin record, or with the source digests the committed run's open `regenerate` request recorded, and matched; and `"committed-records-only"` otherwise. A checkout whose working copy of `delivery/approvals.jsonl` is missing, or names another run that has no store directory, while the committed run's pins match, reports `"pinned"`.
+- [x] **AC-0004.** In a no-store checkout, `start`, `next`, `report` and `resolve-effect` each exit `1` with refusal code `supervisor-changed` and detail `the supervisor's pin record is missing`, and leave `HEAD` unchanged.
+- [x] **AC-0005.** `status` exits `1` with refusal code `supervisor-changed`, whether or not the working run has a store directory, when: a spec store has no pin record and no orphan mark; the installed pinned files differ from a pinned spec store's pin record, and from the source digests that store's open `regenerate` request recorded; they differ from the pins of another run whose store holds an open attempt; or the committed run's store directory exists with no pin record.
+- [x] **AC-0006.** Every `status` view carries `verification`: `"pinned"` when the installed pinned files were compared, before any sibling script loaded, with the committed run's pin record, or with the source digests the committed run's open `regenerate` request recorded, and matched; and `"committed-records-only"` otherwise. A checkout whose working copy of `delivery/approvals.jsonl` is missing, or names another run that has no store directory, while the committed run's pins match, reports `"pinned"`.
 
 **The hook and the release**
 
-- [ ] **AC-0007.** On this spec's branch, with its `delivery/` records committed: `tests/roster/test_core_pre_pr_hook.py::test_pre_pr_passes_when_no_spec_holds_approvals` passes with every `docs/specs/*/delivery/` directory left out of its sandbox; and in a fresh `git clone` of the pushed branch at the commit T4 pushes, with the clone's installed work-loop skill rebuilt from `packs/core/.apm/skills/work-loop/` and committed there, `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` both exit `0`.
-- [ ] **AC-0008.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the version one patch above the one `packs/core/pack.toml` carries at `git merge-base origin/main HEAD`, checked right after `git fetch origin` with that merge base equal to `origin/main`, and one `docs/product/changelog.d/` fragment names the `status` change.
+- [x] **AC-0007.** On this spec's branch, with its `delivery/` records committed: `tests/roster/test_core_pre_pr_hook.py::test_pre_pr_passes_when_no_spec_holds_approvals` passes with every `docs/specs/*/delivery/` directory left out of its sandbox; and in a fresh `git clone` of the pushed branch at the commit T4 pushes, with the clone's installed work-loop skill rebuilt from `packs/core/.apm/skills/work-loop/` and committed there, `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` both exit `0`.
+- [x] **AC-0008.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the version one patch above the one `packs/core/pack.toml` carries at `git merge-base origin/main HEAD`, checked right after `git fetch origin` with that merge base equal to `origin/main`, and one `docs/product/changelog.d/` fragment names the `status` change.
 
 ## Terminal Intent
 

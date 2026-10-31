@@ -29,3 +29,17 @@ T4's first attempt found AC-0007 unsatisfiable inside the run: the roster case `
 - `tests/roster/test_core_pre_pr_hook.py::test_pre_pr_passes_when_no_spec_holds_approvals`, with this spec's `delivery/` committed: 1 passed.
 - Pushed commit `7f648b1cd984af5e0c67ba3b018644c1f9e36b91`, cloned fresh from `origin` into a temporary directory. In the clone: `PYTHONPATH=packages/agentbundle python -m agentbundle catalogue self-host --root . --write` (exit `0`; it changed only the three `.claude/skills/work-loop/` files), committed in the clone only; no `.git/agentbundle-supervisor` existed. Then `python3 .claude/skills/work-loop/scripts/work-supervisor.py status docs/specs/supervisor-fresh-checkout-status --check` exit `0`, `verification: committed-records-only`, empty `refusal`; and `python3 packs/core/.apm/hooks/pre-pr.py` exit `0`, `pre-pr: ✓ supervisor status docs/specs/supervisor-fresh-checkout-status` and `pre-pr: all checks passed`.
 - The first T4 report was refused `attempt-refused: common:config`: `git push -u` wrote branch tracking into the shared `.git/config` during the open attempt. Removing the two `branch.<name>.remote` and `.merge` entries restored it. This is the defect captured in `docs/product/captured/supervisor-common-config-residue.md`.
+
+## Run review and terminal (2026-10-30)
+
+- Reviewers selected: `adversarial-reviewer` (always) and `security-reviewer`; `experience-reviewer`, `frontend-reviewer`, `design-reviewer` and `quality-engineer` omitted with reasons in `delivery/review-selections.jsonl`. Each left one non-material Nit, assessed supported and deferred: F1, the reference names fewer cases for `committed-records-only` than the code reports; S1, no test drives the non-`FileNotFoundError` lookup refusal.
+- During the first adversarial review attempt, another session rewrote the shared `.git/config` (3,330 to 3,360 bytes), refusing the attempt `attempt-residue: common:config`. The original bytes could not be restored. The owner (eugenelim) authorized re-baselining that attempt's `common:config` digest to the current bytes after it was checked for code-running keys (none); the baselined bytes and the manifest before the edit are kept under `.context/reviews/supervisor-fresh-checkout-status-impl/`.
+- `regenerate` rebuilt `.claude/skills/work-loop/` from the pack source (byte-identical), committed at `ea7ccbbeb`; a second `run-gates` and a delta review of that commit followed. A `regenerate` result carries no facts: the supervisor refuses a `gate` fact there, though the reference's request table lists one.
+- The run reached `terminal` at `dd15eab9c`.
+
+## Finish evidence (2026-10-30)
+
+- `make build-self` on `dd15eab9c`: exit `0`, no diff.
+- Plain fresh `git clone` of `dd15eab9c` from `origin`, no rebuild, no `.git/agentbundle-supervisor`: `status docs/specs/supervisor-fresh-checkout-status --check` exit `0`, `terminal: true`, `verification: committed-records-only`, empty `refusal`; shipped `pre-pr.py` exit `0`, `pre-pr: ✓ supervisor status docs/specs/supervisor-fresh-checkout-status` and `pre-pr: all checks passed`.
+- Pull request #1666, build-check run 41169153777 on `dd15eab9c`: `gate-main` step `pytest catalogue-test carve-out destinations (RFC-0082)` success, which runs `tests/roster/test_core_pre_pr_hook.py` including `test_shipped_pre_pr_runs_no_linter_labels` with this spec's `delivery/` in its sandbox; every check on the pull request passed.
+- Locally on `dd15eab9c`: `status --check` exit `0`, `verification: pinned`.
