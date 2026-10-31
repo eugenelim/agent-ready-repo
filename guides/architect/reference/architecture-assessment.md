@@ -204,6 +204,12 @@ without that primitive fails closed and can still use stdout.
 9. Coverage and confidence
 10. Next decision
 
+An HTML report is a second file beside the saved report, written by
+`scripts/render_html.py` on request. The page loads nothing from a network and
+runs no script. It uses the maintainer-view style shared with the intents and decisions views, with a contents rail beside the text on wide screens. Diagrams appear as labeled source blocks. The script exits 2 for a refused report and 3 for a confinement failure; hosts
+without descriptor walking, Windows included, get no report. The skill's
+`references/html-report.md` lists every reason.
+
 Each orientation subsection ends with a `Sources checked` table whose columns
 are Source, Locator, Evidence class, and Limit. Evidence class is `observed`,
 `inferred`, `reported`, or `unknown`. A subsection the run could not assess

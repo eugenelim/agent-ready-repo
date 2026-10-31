@@ -320,6 +320,10 @@ second architecture authority beside the system that actually runs.
    link-like and special files, executes no repository code, accesses no
    network, publishes finite limits, and emits only relative-path signals. It
    cannot produce an architecture model, finding, severity, or composite score.
+   A second standard-library script, `render_html.py`, renders a saved report to
+   one offline HTML page; it escapes every report value, emits a closed set of
+   elements, runs no script, and reads and writes only through a co-located copy
+   of the confinement helper.
 
 7. **Enterprise retrieval is brokered and bounded.** Private context comes only
    from in-repo documentation or an exposed pre-authenticated connector with a

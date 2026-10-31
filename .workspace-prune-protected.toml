@@ -26,6 +26,7 @@ protected = [
   "docs/specs/alias-alpha",
   "docs/specs/alpha",
   "docs/specs/apm-install-route-parity",
+  "docs/specs/architect-assess-html-report",
   "docs/specs/beta",
   "docs/specs/blocked",
   "docs/specs/broken",
