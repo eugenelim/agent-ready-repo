@@ -1,7 +1,7 @@
 [pack]
 name = "github"
 version = "0.3.0"
-description = "Start repository work from a GitHub Issue or Milestone, keep it in step with GitHub, and work through review comments and failing checks on an open pull request. Nothing changes on GitHub until you approve the exact step."
+description = "Start repository work from a GitHub Issue or Milestone and keep it in step with GitHub. Then work through pull requests: review someone else's, address feedback on yours, or adopt a contributor's and carry it to merge. Nothing changes on GitHub until you approve the exact step."
 readme = "README.md"
 display_name = "GitHub"
 license = "Apache-2.0 OR MIT"
@@ -18,7 +18,7 @@ allowed-scopes = ["user", "repo"]
 allowed-adapters = ["claude-code", "kiro-ide", "codex", "copilot", "cursor", "gemini"]
 
 [pack.evals]
-skills = ["github-brief-intake", "github-refresh", "github-pr-iterate"]
+skills = ["github-brief-intake", "github-refresh", "github-pr"]
 
 # Enriched pack manifest: catalogue-facing links
 # + maintainer, including the `documentation` link to the per-pack guide home.

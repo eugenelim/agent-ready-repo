@@ -1514,6 +1514,11 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
             "it reaches CI only through the dispatch-only test-corpus.yml."
         ),
+    'packs/github/tests/skills/github-pr/':
+        NO_PR_GATE(
+            "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
+            "it reaches CI only through the dispatch-only test-corpus.yml."
+        ),
     'packs/product-engineering/tests/pack/':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "

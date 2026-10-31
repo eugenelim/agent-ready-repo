@@ -13,7 +13,11 @@ SKILL_ROOT = Path(__file__).resolve().parents[3] / ".apm/skills/github-pr"
 TESTS_ROOT = Path(__file__).resolve().parent
 SKILL = (SKILL_ROOT / "SKILL.md").read_text(encoding="utf-8")
 MODES = ("review", "iterate", "adopt")
-REFS = {m: (SKILL_ROOT / "references" / f"{m}.md").read_text(encoding="utf-8") for m in MODES}
+REFS = {
+    "review": (SKILL_ROOT / "references/review.md").read_text(encoding="utf-8"),
+    "iterate": (SKILL_ROOT / "references/iterate.md").read_text(encoding="utf-8"),
+    "adopt": (SKILL_ROOT / "references/adopt.md").read_text(encoding="utf-8"),
+}
 ALL_FILES = {"SKILL": SKILL, **REFS}
 APPROVED = "## Approved actions"
 READ_ONLY_OTHER = {"stat", "realpath", "shasum", "test"}
@@ -159,12 +163,15 @@ def test_manifest_and_evals_agree_with_skill() -> None:
     assert all(word in manifest["description"].lower() for word in MODES)
 
 
+OLD_NAME = "github-pr" + "-iterate"  # built from parts so this file does not contain the retired name
+
+
 def test_old_skill_name_is_gone_from_skill_and_test_paths() -> None:
     offenders = [
         str(p)
         for root in (SKILL_ROOT, TESTS_ROOT)
         for p in root.rglob("*")
-        if p.is_file() and "__pycache__" not in p.parts and "github-pr-iterate" in p.read_text(errors="ignore")
+        if p.is_file() and "__pycache__" not in p.parts and OLD_NAME in p.read_text(errors="ignore")
         and p != Path(__file__).resolve()
     ]
     assert offenders == []

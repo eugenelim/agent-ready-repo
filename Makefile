@@ -650,6 +650,7 @@ $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-brief-intake/ -q
 $(PYTHON) -m pytest packs/atlassian/tests/skills/jira-align-brief-intake/ -q
 $(PYTHON) -m pytest packs/github/tests/skills/github-brief-intake/ -q
+$(PYTHON) -m pytest packs/github/tests/skills/github-pr/ -q
 $(PYTHON) -m pytest packs/product-engineering/tests/pack/ -q
 $(PYTHON) -m pytest \
 	packs/agent-skill-engineering/tests/pack/ \

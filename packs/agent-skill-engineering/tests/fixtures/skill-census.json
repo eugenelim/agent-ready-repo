@@ -860,10 +860,10 @@
     },
     {
       "pack": "github",
-      "skill": "github-pr-iterate",
+      "skill": "github-pr",
       "families": [
         "integration-credential-boundary",
-        "inline-procedure"
+        "progressive-reference"
       ],
       "exception": null
     },

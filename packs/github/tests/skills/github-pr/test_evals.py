@@ -110,8 +110,12 @@ def test_e4_e5_required_scenarios_present() -> None:
 
 
 def test_fixtures_exist_and_are_regular() -> None:
+    regular = {
+        f.relative_to(EVALS).as_posix()
+        for f in EVALS.rglob("*")
+        if f.is_file() and not f.is_symlink()
+    }
     for c in _cases():
         for rel in c["fixtures"]:
-            p = EVALS / rel
             assert rel.startswith(f"files/{c['id']}/"), rel
-            assert p.is_file() and not p.is_symlink(), rel
+            assert rel in regular, rel

@@ -302,7 +302,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Start repository work from a GitHub Issue or Milestone, keep it in step with GitHub, and work through review comments and failing checks on an open pull request. Nothing changes on GitHub until you approve the exact step.",
+      "description": "Start repository work from a GitHub Issue or Milestone and keep it in step with GitHub. Then work through pull requests: review someone else's, address feedback on yours, or adopt a contributor's and carry it to merge. Nothing changes on GitHub until you approve the exact step.",
       "displayName": "GitHub",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [

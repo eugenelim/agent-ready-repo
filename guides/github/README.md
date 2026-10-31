@@ -20,5 +20,5 @@ Do not mix the modes: requirements edited in two places diverge silently.
 ## Start here
 
 - [Intake GitHub work into the repository](how-to/intake-a-github-milestone-as-a-brief.md) — Read selected issues or a milestone and route them through `work-intake`, with no write back.
-- [Work through pull-request feedback](how-to/iterate-on-a-github-pull-request.md) — Read review comments and failing checks, approve a per-item plan, then apply fixes and replies.
+- [Work through a GitHub pull request](how-to/work-through-a-github-pull-request.md) — Review a pull request, address feedback on yours, or adopt a contributor's, with each action approved first.
 - [Connect your tracker](../_shared/how-to/choose-a-tracker-integration.md) — Compare GitHub, Linear, and Jira intake.
