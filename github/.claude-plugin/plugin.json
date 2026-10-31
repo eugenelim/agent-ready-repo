@@ -1,7 +1,7 @@
 {
   "name": "github",
-  "version": "0.2.5",
-  "description": "Read GitHub Issues or Milestones into repository intake, then review refresh deltas and confirm narrow coordination write-back.",
+  "version": "0.3.0",
+  "description": "Start repository work from a GitHub Issue or Milestone and keep it in step with GitHub. Then work through pull requests: review someone else's, address feedback on yours, or adopt a contributor's and carry it to merge. Nothing changes on GitHub until you approve the exact step.",
   "hooks": {
     "SessionStart": [
       {
@@ -27,7 +27,7 @@
     "issue",
     "milestone",
     "intake",
-    "work-intake"
+    "pull-request"
   ],
   "displayName": "GitHub"
 }

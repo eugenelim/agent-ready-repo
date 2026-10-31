@@ -1,0 +1,11 @@
+diff --git a/src/pager.py b/src/pager.py
+--- a/src/pager.py
++++ b/src/pager.py
+@@ -10,3 +10,3 @@ def page_count(total, size):
+-    return total // size
++    return -(-total // size)
+diff --git a/.github/workflows/ci.yml b/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -5 +5 @@
+-      - run: pytest
++      - run: echo ok

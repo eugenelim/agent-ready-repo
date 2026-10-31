@@ -1,0 +1,9 @@
+[
+  {
+    "name": "unit-tests",
+    "state": "FAILURE",
+    "bucket": "fail",
+    "workflow": "ci",
+    "link": "https://github.com/example-org/example-repo/actions/runs/1002"
+  }
+]

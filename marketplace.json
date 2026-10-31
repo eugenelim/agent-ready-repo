@@ -56,7 +56,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.15.23"
+      "version": "0.15.25"
     },
     {
       "author": {
@@ -302,7 +302,7 @@
         "name": "eugenelim"
       },
       "category": "integrations",
-      "description": "Read GitHub Issues or Milestones into repository intake, then review refresh deltas and confirm narrow coordination write-back.",
+      "description": "Start repository work from a GitHub Issue or Milestone and keep it in step with GitHub. Then work through pull requests: review someone else's, address feedback on yours, or adopt a contributor's and carry it to merge. Nothing changes on GitHub until you approve the exact step.",
       "displayName": "GitHub",
       "homepage": "https://github.com/eugenelim/agent-ready-repo",
       "keywords": [
@@ -310,7 +310,7 @@
         "issue",
         "milestone",
         "intake",
-        "work-intake"
+        "pull-request"
       ],
       "license": "Apache-2.0 OR MIT",
       "name": "github",
@@ -321,7 +321,7 @@
         "source": "git-subdir",
         "url": "https://github.com/eugenelim/agent-ready-repo.git"
       },
-      "version": "0.2.5"
+      "version": "0.3.0"
     },
     {
       "author": {

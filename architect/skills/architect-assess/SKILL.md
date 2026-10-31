@@ -265,6 +265,15 @@ an exact directory or keep the result chat-only. Otherwise end with:
 
 `Result: chat only; no file was created.`
 
+## HTML report mode
+
+When the user asks for an HTML report, render the saved `assessment.md` with
+`scripts/render_html.py <effort-dir>`; `references/html-report.md` says how. The
+mode needs a saved `assessment.md`. With none saved, offer to save one first, as
+`references/output-layout.md` describes, and run nothing. Run the script only on
+a user request, never on your own initiative, and treat opening a browser as a
+separate request.
+
 ## Read/write and execution boundaries
 
 - Default inspection is read-only. Never execute repository code, builds,
