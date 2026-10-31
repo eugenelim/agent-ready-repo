@@ -10,6 +10,7 @@ from __future__ import annotations
 import ast
 import base64
 import hashlib
+import html
 import importlib.util
 import io
 import os
@@ -131,6 +132,45 @@ class Tree(HTMLParser):
             self._cell = None
 
 
+ALLOWED_ELEMENTS = {
+    "html",
+    "head",
+    "meta",
+    "title",
+    "style",
+    "body",
+    "main",
+    "section",
+    "div",
+    "span",
+    "p",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "ul",
+    "ol",
+    "li",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "pre",
+    "code",
+    "strong",
+    "em",
+    "a",
+    "details",
+    "summary",
+    "br",
+    "hr",
+    "header",
+    "nav",
+}
 GLOBAL_ATTRS = {"class", "id", "lang", "charset", "http-equiv", "content"}
 ALLOWED_TAG_ATTRS = {
     ("a", "href"),
@@ -231,46 +271,7 @@ def test_only_allowed_elements_and_attributes_are_emitted(mod, tmp_path, capsys)
         '<meta http-equiv="refresh" content="0;url=http://x"> <base href="//x"> <form></form>\n'
     )
     parsed = tree(page(tmp_path.resolve(), report(extra=hostile), mod, capsys))
-    allowed = {
-        "html",
-        "head",
-        "meta",
-        "title",
-        "style",
-        "body",
-        "main",
-        "section",
-        "div",
-        "span",
-        "p",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "ul",
-        "ol",
-        "li",
-        "table",
-        "thead",
-        "tbody",
-        "tr",
-        "th",
-        "td",
-        "pre",
-        "code",
-        "strong",
-        "em",
-        "a",
-        "details",
-        "summary",
-        "br",
-        "hr",
-        "header",
-        "nav",
-    }
-    assert set(parsed.elements) <= allowed
+    assert set(parsed.elements) <= ALLOWED_ELEMENTS
     for tag, name, _ in parsed.attrs:
         assert (tag, name) in ALLOWED_TAG_ATTRS or name in GLOBAL_ATTRS, (tag, name)
     assert parsed.elements.count("meta") == 2
@@ -439,7 +440,11 @@ def test_notice_and_metadata(mod, tmp_path, capsys) -> None:
 def _only_fixed_tokens(out: str, err: str) -> None:
     allowed = {
         "render_html: ok",
-        "render_html: usage: render_html.py <effort-dir>",
+        "render_html: usage: render_html.py <effort-dir> [--diagrams]",
+        "render_html: failed: script asset missing or unsafe",
+        "render_html: failed: script asset over the size cap",
+        "render_html: failed: script asset unreadable",
+        "render_html: failed: script asset holds forbidden text",
         "render_html: refused: unsafe or missing path",
         "render_html: refused: source over the size cap",
         "render_html: refused: rendered page over the size cap",
@@ -1307,7 +1312,9 @@ def test_layout_file_obeys_the_layout_rules() -> None:
                 "box-shadow",
                 "scroll-behavior",
             }, where
-            assert not prop.startswith(("transition", "animation")), where
+            assert not prop.startswith("transition"), where
+            if prop.startswith("animation"):
+                assert prop == "animation" and value == "none !important", where
             if prop == "border-radius":
                 assert re.fullmatch(r"var\(--r-\d\)|0", value), where
 
@@ -1562,3 +1569,493 @@ def test_contents_control_meets_the_target_floor_and_the_page_is_centred_when_wi
     assert declared(".rail summary", "gap") == ["var(--s-2)"]
     assert declared("body", "max-width", "min-width: 100rem") == ["110rem"]
     assert declared("body", "margin-left", "min-width: 100rem") == ["auto"]
+
+
+# ---- diagrams mode ---------------------------------------------------------------
+
+USAGE = "render_html: usage: render_html.py <effort-dir> [--diagrams]"
+SCRIPT_FILE = Path(__file__).resolve().parents[3] / (
+    ".apm/skills/architect-assess/scripts/report_assets/diagrams.js"
+)
+FLOW = "flowchart LR\n  A --> B"
+
+
+def fence(body: str = FLOW) -> str:
+    return f"```mermaid\n{body}\n```\n"
+
+
+def run_diagrams(tmp: Path, text: str, mod: ModuleType, capsys, flag: bool = True):
+    effort = tmp / "effort"
+    effort.mkdir(exist_ok=True)
+    (effort / "assessment.md").write_text(text, encoding="utf-8")
+    code = mod.main([str(effort), "--diagrams"] if flag else [str(effort)])
+    captured = capsys.readouterr()
+    return code, captured.err, (effort / "assessment.html")
+
+
+def diagrams_page(tmp: Path, text: str, mod: ModuleType, capsys) -> str:
+    code, err, out = run_diagrams(tmp.resolve(), text, mod, capsys)
+    assert code == 0, err
+    return out.read_text(encoding="utf-8")
+
+
+def labels(text: str) -> list[tuple[str, str]]:
+    return re.findall(r'<div class="(diagram[^"]*)"><p class="diagram-label">([^<]*)</p>', text)
+
+
+def test_flag_and_no_flag_both_exit_zero(mod, tmp_path, capsys) -> None:
+    for flag in (False, True):
+        code, err, _ = run_diagrams(tmp_path.resolve(), report(), mod, capsys, flag)
+        assert code == 0 and err == ""
+
+
+def test_wrong_arguments_exit_two_with_the_usage_token(mod, capsys) -> None:
+    for argv in ([], ["a", "b"], ["a", "--diagrams", "x"], ["a", "--diagram"]):
+        assert mod.main(argv) == 2
+        assert capsys.readouterr().err.strip() == USAGE
+
+
+def test_a_first_argument_of_the_flag_is_just_a_path(mod, capsys) -> None:
+    assert mod.main(["--diagrams"]) == 3
+    assert capsys.readouterr().err.strip() == "render_html: refused: unsafe or missing path"
+
+
+def test_default_page_has_no_script_or_src_and_the_stated_policy(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(extra=fence()), mod, capsys)
+    parsed = tree(text)
+    assert "script" not in parsed.elements
+    assert not [a for a in parsed.attrs if a[1] == "src"]
+    policy = re.search(r'Content-Security-Policy" content="([^"]*)"', text).group(1)
+    digest = base64.b64encode(hashlib.sha256(parsed.style.encode()).digest()).decode()
+    assert policy == (
+        f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"
+    )
+
+
+def test_default_run_never_reads_the_script(mod, tmp_path, capsys, monkeypatch) -> None:
+    baseline = page(tmp_path.resolve(), report(extra=fence()), mod, capsys)
+    monkeypatch.setattr(mod, "SCRIPT_NAME", "absent.js")
+    monkeypatch.setattr(mod, "load_script", lambda helper: (_ for _ in ()).throw(AssertionError))
+    assert page(tmp_path.resolve(), report(extra=fence()), mod, capsys) == baseline
+
+
+def test_diagrams_page_ends_with_the_two_pinned_scripts(mod, tmp_path, capsys) -> None:
+    text = diagrams_page(tmp_path, report(extra=fence()), mod, capsys)
+    script = SCRIPT_FILE.read_text(encoding="utf-8")
+    tail = (
+        f'</main><script src="{mod.MERMAID_URL}" integrity="{mod.MERMAID_SRI}" '
+        'crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>'
+        f"<script>{script}</script></body></html>\n"
+    )
+    assert text.endswith(tail)
+    assert tree(text).order[-2:] == ["script", "script"]
+    assert (
+        f"https://cdn.jsdelivr.net/npm/mermaid@{mod.MERMAID_VERSION}/dist/mermaid.min.js"
+    ) == mod.MERMAID_URL
+
+
+def test_diagrams_policy_adds_only_the_script_sources(mod, tmp_path, capsys) -> None:
+    text = diagrams_page(tmp_path, report(extra=fence()), mod, capsys)
+    script = SCRIPT_FILE.read_text(encoding="utf-8")
+    style = tree(text).style
+    s_hash = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
+    c_hash = base64.b64encode(hashlib.sha256(style.encode()).digest()).decode()
+    policy = re.search(r'Content-Security-Policy" content="([^"]*)"', text).group(1)
+    assert policy == (
+        f"default-src 'none'; script-src 'sha256-{s_hash}' {mod.MERMAID_URL}; "
+        f"style-src 'sha256-{c_hash}'; base-uri 'none'; form-action 'none'"
+    )
+
+
+def test_diagrams_note_follows_the_untrusted_notice(mod, tmp_path, capsys) -> None:
+    text = diagrams_page(tmp_path, report(), mod, capsys)
+    note = (
+        f'<div class="note notice-diagrams">Diagrams are drawn by Mermaid {mod.MERMAID_VERSION}, '
+        "loaded from cdn.jsdelivr.net. Opening this report sends your IP address, the time, "
+        "and your browser details to that host, and the report's web address if it is served "
+        "from a web host; no report text is sent.</div>"
+    )
+    assert f"not redacted</div>\n{note}" in text
+    assert "notice-diagrams" not in class_tokens(
+        tree(page(tmp_path.resolve(), report(), mod, capsys))
+    )
+
+
+def test_script_element_and_attributes_exist_only_in_diagrams_output(
+    mod, tmp_path, capsys
+) -> None:
+    corpus = fence() + fence(REFUSED["click"]) + fence(REFUSED["frontmatter"])
+    parsed = tree(diagrams_page(tmp_path, report(extra=corpus), mod, capsys))
+    assert parsed.elements.count("script") == 2
+    script_attrs = {name for tag, name, _ in parsed.attrs if tag == "script"}
+    assert script_attrs == {"src", "integrity", "crossorigin", "referrerpolicy", "defer"}
+    default = tree(page(tmp_path.resolve(), report(extra=corpus), mod, capsys))
+    assert set(parsed.elements) - set(default.elements) == {"script"}
+    assert set(parsed.elements) <= ALLOWED_ELEMENTS | {"script"}
+    for tag, name, _ in parsed.attrs:
+        if tag != "script":
+            assert (tag, name) in ALLOWED_TAG_ATTRS or name in GLOBAL_ATTRS, (tag, name)
+
+
+DRAWABLE = [
+    FLOW,
+    "graph TD\n  A --> B",
+    "  \n\t\nsequenceDiagram\n  A->>B: hi",
+    "classDiagram\n  A <|-- B",
+    "stateDiagram-v2\n  [*] --> A",
+    "erDiagram\n  A ||--o{ B : has",
+    "  flowchart LR\n  A --> B",
+    "flowchart LR\n  A --> B\n  linkStyle 0 stroke:red",
+    "flowchart LR\n  A --> B\n  linkStyle default stroke:red",
+]
+REFUSED = {
+    "node named like link": "flowchart LR\n linkerd --> api",
+    "node named like click": "flowchart LR\n clicker --> api",
+    "linkStyle lookalike": "flowchart LR\n linkStyles 0 stroke:red",
+    "frontmatter": "---\ntitle: x\n---\nflowchart LR\n A --> B",
+    "no keyword": 'pie title x\n  "a": 1',
+    "wrong case": "Flowchart LR\n A --> B",
+    "directive": "flowchart LR\n%%{init: {}}%%\n A --> B",
+    "nul-split directive": "flowchart LR\n%%\x00{init: {}}%%\n A --> B",
+    "nul-split click": 'flowchart LR\n A --> B\ncl\x00ick A href "x"',
+    "bom first line": "\ufeffflowchart LR\n A --> B",
+    "bom before click": 'flowchart LR\n A --> B;\ufeffclick A href "x"',
+    "nbsp first line": "\u00a0flowchart LR\n A --> B",
+    "nbsp click": 'flowchart LR\n A --> B;\u00a0click A href "x"',
+    "ideographic link": "flowchart LR\n A --> B;\u3000link A: x",
+    "click": 'flowchart LR\n A --> B\n click A href "x"',
+    "semicolon click": 'flowchart LR\n A --> B; click A href "x"',
+    "upper click": "flowchart LR\n A --> B\nCLICK A call f()",
+    "link": 'classDiagram\n A <|-- B\n link A "https://x"',
+    "links": 'sequenceDiagram\n A->>B: x\n links A: {"a": "b"}',
+    "callback": 'classDiagram\n A <|-- B\n callback A "f"',
+    "carriage return": "flowchart LR\r\n A --> B",
+    "control": "flowchart LR\n A --> B\x07",
+    "oversize": "flowchart LR\n" + " A --> B\n" * 6000,
+}
+
+
+def test_eligibility_accepts_each_allowlisted_diagram(mod) -> None:
+    for text in DRAWABLE:
+        assert mod.diagram_drawable(text), text
+
+
+def test_eligibility_refuses_each_hostile_or_unlisted_fence(mod) -> None:
+    for name, text in REFUSED.items():
+        assert not mod.diagram_drawable(text), name
+
+
+def test_eligibility_size_boundary_is_in_utf8_bytes(mod) -> None:
+    base = "flowchart LR\n"
+    fits = base + "A" * (50_000 - len(base))
+    assert mod.diagram_drawable(fits)
+    assert not mod.diagram_drawable(fits + "A")
+    wide = base + "\u00e9" * ((50_000 - len(base)) // 2 + 1)
+    assert not mod.diagram_drawable(wide)
+
+
+def test_labels_and_markers_by_state(mod, tmp_path, capsys) -> None:
+    extra = fence() + fence(REFUSED["click"])
+    text = diagrams_page(tmp_path, report(extra=extra), mod, capsys)
+    assert labels(text) == [
+        ("diagram diagram-drawn", "Diagram source (not drawn yet)"),
+        ("diagram", "Diagram source (not drawn: unsafe)"),
+    ]
+    plain = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    assert labels(plain) == [("diagram", "Diagram source (not rendered)")] * 2
+
+
+def test_the_first_twenty_passing_fences_are_drawn_and_refusals_are_not_counted(
+    mod, tmp_path, capsys
+) -> None:
+    extra = "".join(fence(REFUSED["click"]) for _ in range(3)) + fence() * 22
+    text = diagrams_page(tmp_path, report(extra=extra), mod, capsys)
+    found = labels(text)
+    assert [label for _, label in found[:3]] == ["Diagram source (not drawn: unsafe)"] * 3
+    assert [label for _, label in found[3:23]] == ["Diagram source (not drawn yet)"] * 20
+    assert [label for _, label in found[23:]] == ["Diagram source (not drawn: limit)"] * 2
+    assert sum(1 for css, _ in found if css == "diagram diagram-drawn") == 20
+
+
+def test_the_text_the_rules_read_equals_the_emitted_code_text(mod, tmp_path, capsys) -> None:
+    body = 'flowchart LR\n  A["x &amp; y #35; <b>"] --> B'
+    text = diagrams_page(tmp_path, report(extra=fence(body)), mod, capsys)
+    emitted = re.search(r"<pre><code>(.*?)</code></pre>", text, re.S).group(1)
+    assert html.unescape(emitted) == body
+    assert mod.diagram_drawable(body)
+
+
+def test_fence_text_stays_escaped_in_both_modes(mod, tmp_path, capsys) -> None:
+    body = 'flowchart LR\n  A["<img src=x onerror=alert(1)>"] --> B'
+    for text in (
+        page(tmp_path.resolve(), report(extra=fence(body)), mod, capsys),
+        diagrams_page(tmp_path, report(extra=fence(body)), mod, capsys),
+    ):
+        assert "<img" not in text
+        assert "&lt;img src=x onerror=alert(1)&gt;" in text
+
+
+@pytest.fixture
+def asset_dir(mod, tmp_path, monkeypatch) -> Path:
+    """A copy of the asset directory the renderer reads, safe to damage."""
+    root = tmp_path / "scripts"
+    copy = root / "report_assets"
+    copy.mkdir(parents=True)
+    for source in mod.ASSET_DIR.iterdir():
+        (copy / source.name).write_bytes(source.read_bytes())
+    monkeypatch.setattr(mod, "ASSET_DIR", copy)
+    return copy
+
+
+def _mk(path: Path) -> Path:
+    path.mkdir()
+    return path.resolve()
+
+
+def _script_refused(mod, tmp_path, capsys, name: str) -> tuple[int, str]:
+    code, err, _ = run_diagrams(_mk(tmp_path / name), report(), mod, capsys)
+    return code, err.strip()
+
+
+def test_script_asset_refusals_have_distinct_tokens(mod, tmp_path, capsys, asset_dir) -> None:
+    target = asset_dir / "diagrams.js"
+    unsafe = "render_html: failed: script asset missing or unsafe"
+    target.unlink()
+    assert _script_refused(mod, tmp_path, capsys, "missing") == (3, unsafe)
+    real = tmp_path / "real.js"
+    real.write_text("/* ok */\n", encoding="utf-8")
+    target.symlink_to(real)
+    assert _script_refused(mod, tmp_path, capsys, "symlink") == (3, unsafe)
+    target.unlink()
+    target.write_bytes(b"/" + b"*" * 70_000)
+    assert _script_refused(mod, tmp_path, capsys, "large") == (
+        3,
+        "render_html: failed: script asset over the size cap",
+    )
+    target.write_bytes(b"\xff\xfe not utf8")
+    assert _script_refused(mod, tmp_path, capsys, "bytes") == (
+        3,
+        "render_html: failed: script asset unreadable",
+    )
+
+
+@pytest.mark.parametrize("text", ["x </SCRIPT> y", "x <!-- y", "line\r\nline"])
+def test_script_asset_with_forbidden_text_is_script_refused(
+    mod, tmp_path, capsys, asset_dir, text
+) -> None:
+    (asset_dir / "diagrams.js").write_bytes(text.encode("utf-8"))
+    code, err, _ = run_diagrams(_mk(tmp_path / "w"), report(), mod, capsys)
+    assert (code, err.strip()) == (3, "render_html: failed: script asset holds forbidden text")
+
+
+def test_non_regular_script_asset_is_script_refused(mod, tmp_path, capsys, asset_dir) -> None:
+    target = asset_dir / "diagrams.js"
+    target.unlink()
+    target.mkdir()
+    code, err, _ = run_diagrams(_mk(tmp_path / "w"), report(), mod, capsys)
+    assert (code, err.strip()) == (3, "render_html: failed: script asset missing or unsafe")
+
+
+def test_caps_hold_with_the_flag(mod, tmp_path, capsys, monkeypatch) -> None:
+    monkeypatch.setattr(mod, "MAX_EXISTING_OUTPUT_BYTES", 1000)
+    code, err, _ = run_diagrams(_mk(tmp_path / "w1"), report(), mod, capsys)
+    assert (code, err.strip()) == (2, "render_html: refused: rendered page over the size cap")
+    monkeypatch.undo()
+    monkeypatch.setattr(mod, "MAX_SOURCE_BYTES", 100)
+    code, err, _ = run_diagrams(_mk(tmp_path / "w2"), report(), mod, capsys)
+    assert (code, err.strip()) == (2, "render_html: refused: source over the size cap")
+
+
+# ---- the drawing script ------------------------------------------------------------
+
+
+def _script_text() -> str:
+    return SCRIPT_FILE.read_text(encoding="utf-8")
+
+
+def test_script_initializes_mermaid_exactly_once_with_the_fixed_options() -> None:
+    text = _script_text()
+    assert text.count("mermaid.initialize(") == 1
+    body = re.search(r"mermaid\.initialize\(\{(.*?)\}\)", text, re.S).group(1)
+    assert "..." not in body
+    pairs = dict(re.findall(r"(\w+):\s*([^,\n]+)", body))
+    assert pairs == {
+        "startOnLoad": "false",
+        "securityLevel": "'strict'",
+        "suppressErrorRendering": "true",
+        "htmlLabels": "false",
+        "maxTextSize": "50000",
+        "maxEdges": "500",
+        "theme": "'neutral'",
+    }
+
+
+def test_script_draws_only_marked_blocks_and_reads_the_code_text_content() -> None:
+    text = _script_text()
+    assert text.count("querySelectorAll(") == 1 and ".diagram.diagram-drawn" in text
+    assert "window.mermaid.render(id, code.textContent)" in text
+    assert "matchMedia" not in text
+
+
+def test_script_render_ids_cannot_equal_a_heading_slug(mod) -> None:
+    assert "var id = 'mmd_d' + (n + 1);" in _script_text()
+    render_ids = {f"mmd_d{n}" for n in range(1, 30)} | {f"dmmd_d{n}" for n in range(1, 30)}
+    for heading in ("mmd_d1", "dmmd_d1", "Mmd_D1", "mmd-d1", "Mmd D1"):
+        slug = mod._slug(heading, set(), {})
+        assert "_" not in slug and slug not in render_ids, heading
+
+
+@pytest.mark.parametrize(
+    "pattern",
+    [
+        r"\.innerHTML",
+        r"insertAdjacentHTML",
+        r"outerHTML",
+        r"\beval\s*\(",
+        r"\bFunction\s*\(",
+        r"new\s+Function",
+        r"document\s*\.\s*write",
+        r"setTimeout\s*\(",
+        r"setInterval\s*\(",
+    ],
+)
+def test_script_has_no_html_string_sink_or_dynamic_code(pattern) -> None:
+    assert not re.search(pattern, _script_text())
+
+
+NODE_TABLE = r"""
+const s = require(process.argv[1]);
+const rule = (names) => ({ style: { length: names.length, ...Object.fromEntries(names.map((n, i) => [i, n])) } });
+const out = {
+  list: [
+    s.selectorList('#a .x, #a .y'),
+    s.selectorList('#a [x=")"], .notice'),
+    s.selectorList('#a .b\\(, body'),
+    s.selectorList('#a :is(.x, .y), #a .z'),
+    s.selectorList('#a "unterminated'),
+    s.selectorList('#a [x'),
+    s.selectorList('#a .x\\'),
+  ],
+  confined: [
+    s.selectorsConfined(['#mmd_d1'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 .a'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 > g'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d10 .a'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 ~ *'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 + g'], 'mmd_d1'),
+    s.selectorsConfined(['.notice'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 .a', 'body'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1:not(.x) ~ g'], 'mmd_d1'),
+  ],
+  root: [
+    s.targetsTheRoot(['#mmd_d1'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 svg'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 > svg'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 .a'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 g'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 div.tip'], 'mmd_d1'),
+  ],
+  owns: ['mmd_d1', 'mmd_d1-x', 'mmd_d1_x', 'mmd_d10', 'mmd_d10-x', 'actor1', 'xmmd_d1'].map((v) => s.ownsId(v, 'mmd_d1')),
+  refs: ['url(#a)', 'url("#a")', "url('#a')", 'url(https://x/y)', 'url( #a )', 'fill: red', 'url(#a) url(x.png)'].map(s.referencesOnlyTheDocument),
+  attrs: [
+    s.attributeRefused('href', '#a'), s.attributeRefused('xlink:href', '#a'), s.attributeRefused('x:href', '#a'),
+    s.attributeRefused('src', 'a'), s.attributeRefused('onclick', 'f()'), s.attributeRefused('xlink:onload', 'f()'),
+    s.attributeRefused('fill', 'url(https://x)'), s.attributeRefused('fill', 'url(#a)'), s.attributeRefused('d', 'M0 0'),
+  ],
+  banned: ['position', 'inset', 'top', 'right', 'bottom', 'left', 'float', 'transform', 'z-index', 'translate', 'rotate', 'scale',
+    'margin', 'margin-top', 'margin-inline-start', 'margin-block-end', 'inset-inline-start', 'inset-block', 'offset', 'offset-anchor',
+    'offset-rotate', 'fill', 'stroke', 'font-size', 'text-anchor', 'marginal', 'stroke-dashoffset', 'opacity'].map(s.propertyBanned),
+  rules: [
+    s.propertiesAllowed(rule(['fill', 'stroke'])),
+    s.propertiesAllowed(rule(['margin-inline-start'])),
+    s.propertiesAllowed({}),
+  ],
+};
+console.log(JSON.stringify(out));
+"""
+
+
+@pytest.fixture(scope="module")
+def node_table() -> dict:
+    import json
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    done = subprocess.run(  # noqa: S603 - fixed argv, reads only the shipped script
+        [node, "-e", NODE_TABLE, str(SCRIPT_FILE)], capture_output=True, text=True, timeout=60
+    )
+    assert done.returncode == 0, done.stderr
+    return json.loads(done.stdout)
+
+
+def test_script_selector_splitting_treats_quotes_and_escapes_as_data(node_table) -> None:
+    assert node_table["list"] == [
+        ["#a .x", "#a .y"],
+        ['#a [x=")"]', ".notice"],
+        ["#a .b\\(", "body"],
+        ["#a :is(.x, .y)", "#a .z"],
+        None,
+        None,
+        ["#a .x\\"],
+    ]
+
+
+def test_script_confines_selectors_to_the_drawing_by_exact_id(node_table) -> None:
+    assert node_table["confined"] == [True, True, True, False, False, False, False, False, False]
+
+
+def test_script_applies_the_positioning_ban_to_the_root_rule_only(node_table) -> None:
+    assert node_table["root"] == [True, True, True, False, False, False]
+
+
+def test_script_owns_an_id_only_by_exact_match_or_a_separator(node_table) -> None:
+    assert node_table["owns"] == [True, True, True, False, False, False, False]
+
+
+def test_script_allows_only_fragment_references(node_table) -> None:
+    assert node_table["refs"] == [True, True, True, False, True, True, False]
+
+
+def test_script_refuses_links_loaders_and_handlers_by_local_name(node_table) -> None:
+    assert node_table["attrs"] == [True, True, True, True, True, True, True, False, False]
+
+
+def test_script_bans_every_movement_and_margin_family_property(node_table) -> None:
+    banned = [True] * 21 + [False] * 7
+    assert node_table["banned"] == banned
+    assert node_table["rules"] == [True, False, True]
+
+
+def test_drawn_diagrams_scroll_inside_their_own_region() -> None:
+    assert declared(".diagram-render", "overflow-x") == ["auto"]
+    assert declared(".diagram-render", "max-width") == ["100%"]
+    assert declared(".diagram-render svg", "min-width") == ["32rem"]
+    assert declared(".diagram-render svg", "height") == ["auto"]
+
+
+def test_script_keyframe_names_are_a_fixed_list() -> None:
+    text = _script_text()
+    names = re.search(r"var KEYFRAME_NAMES = \[(.*?)\];", text).group(1)
+    assert re.findall(r"'([^']+)'", names) == ["dash", "edge-animation-frame"]
+
+
+def test_drawings_never_animate_and_print_light_on_one_page() -> None:
+    assert declared(".diagram-render svg *", "animation") == ["none !important"]
+    assert declared(".diagram-render svg", "animation") == ["none !important"]
+    assert declared(".diagram-render svg", "filter", "prefers-color-scheme: dark") == [
+        "invert(1) hue-rotate(180deg)"
+    ]
+    assert declared(".diagram-render svg", "filter", "print") == ["none"]
+    assert declared(".diagram-render", "break-inside", "print") == ["avoid"]
+
+
+def test_the_privacy_note_is_laid_out_like_the_untrusted_notice() -> None:
+    for prop in ("margin", "padding"):
+        assert declared(".notice-diagrams", prop) == declared(".notice-untrusted", prop)
+    assert declared(".notice-diagrams", "border-width") == declared(
+        ".notice-untrusted", "border-width"
+    )
+    assert declared(".notice-diagrams", "grid-column", "min-width: 64rem") == ["1 / -1"]

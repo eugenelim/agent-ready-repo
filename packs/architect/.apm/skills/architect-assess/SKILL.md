@@ -272,7 +272,12 @@ When the user asks for an HTML report, render the saved `assessment.md` with
 mode needs a saved `assessment.md`. With none saved, offer to save one first, as
 `references/output-layout.md` describes, and run nothing. Run the script only on
 a user request, never on your own initiative, and treat opening a browser as a
-separate request.
+separate request. Pass `--diagrams` only when the user asks for drawn diagrams;
+it makes the page load Mermaid from `cdn.jsdelivr.net`, so opening that report
+contacts the host (and tells it the report's web address if the report is
+served from one), and it should not be shared with readers who expect the
+offline default. Without the flag the page is offline and shows diagrams as
+source.
 
 ## Read/write and execution boundaries
 
