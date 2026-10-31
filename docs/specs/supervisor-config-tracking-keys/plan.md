@@ -1,7 +1,7 @@
 # Plan: Supervisor config tracking keys
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0144 D11 sets the trust boundary; the
   `execution-supervisor-attempt-security` spec defines Git control state and the
   manifest.
