@@ -239,7 +239,7 @@ for a queued or auto-merge outcome before merging, and stop and report if
 `autoMergeRequest` is not null or `isInMergeQueue` is true:
 
 ```text
-gh pr view <N> --repo <owner>/<repo> --json autoMergeRequest,isInMergeQueue,mergeStateStatus
+gh pr view <N> --repo <owner>/<repo> --json autoMergeRequest,isInMergeQueue
 gh pr merge <N> --repo <owner>/<repo> <merge-method-flag> --match-head-commit <merge-target>
 ```
 

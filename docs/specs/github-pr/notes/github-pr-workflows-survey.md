@@ -80,3 +80,13 @@ Eight fresh subagents, one run per cell, graded by the author (single reviewer, 
 - Baselines acted before approval: edited and committed before any plan (iterate), planned to run pytest on fork code after reading the Makefile and conftest diffs themselves (fork PR), and posted a request-changes review immediately with no draft (review).
 - Baseline adopt plan used `--force-with-lease`, a pinned merge, and no contract, round cap, or stop conditions.
 - Conclusion: the skill's value is the approval gate, not running PR code, and the adopt contract. A command reference adds little.
+
+## Commands added during the build
+
+Recorded after review so the shipped skill and this survey name the same calls. Each was read from `gh` or `git` help or the vendor reference, none was run against a live pull request.
+
+- `gh pr checks <N> --required --json name,state,bucket,workflow,link`: lists only the checks the base branch requires (`gh pr checks --help`). An empty list is read as zero required checks.
+- `gh pr view <N> --json autoMergeRequest,isInMergeQueue`: tells adopt mode whether a merge would be deferred or queued instead of completed (`gh pr merge --help` describes both outcomes on a merge-queue branch).
+- `git config --list --show-origin` plus `shasum -a 256` and `test -f`: builds the before and after record of every config file git loads, used to detect a sandbox that writes git configuration.
+- `git remote get-url origin`: reads the fetch URL after any `insteadOf` rewrite; the spec's closed read-only set admits it.
+- `git archive --format=tar <commit>` with `-c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false`: exports the commit under test without running the user's LFS filters.
