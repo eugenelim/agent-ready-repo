@@ -72,7 +72,7 @@ A maintainer, CI job, or adopter who checks out a branch or `main` holding a spe
 
 - **The no-store `status` path (AC-0001, AC-0002, AC-0003, AC-0006): TDD.** Each case runs the real CLI in a `git clone` of a supervisor-run test repository, which holds the committed records and no store; each reds at the base on the `supervisor-changed` refusal.
 - **Refusals that stay (AC-0004, AC-0005): TDD.** Each planted tamper or verb runs the real CLI and asserts the refusal; the cases that pass at the base are pins, and the `status` cases that do not exist at the base are added.
-- **The hook on this branch (AC-0007): goal-based and manual QA.** The two named roster cases run on this branch, which carries this spec's `delivery/`; a fresh clone of the pushed branch at the gated commit runs the command and the hook, and the observed exit codes go in the ledger. CI's roster step covers the final head.
+- **The hook on this branch (AC-0007): goal-based and manual QA.** The two named roster cases run on this branch, which carries this spec's `delivery/`; a fresh clone of the pushed branch at the commit T4 pushes runs the command and the hook, and the commit id and observed exit codes go in the ledger. On every later head, `build-check.yml`'s step `pytest catalogue-test carve-out destinations (RFC-0082)` runs both roster cases.
 - **Release (AC-0008): goal-based.** The version and changelog gates.
 
 ## Acceptance Criteria
@@ -83,7 +83,8 @@ Terms used below.
 - **Working run.** The run id on the first line of the spec's `delivery/approvals.jsonl` in the working tree.
 - **Committed run.** The run id on the first line of the spec's `delivery/approvals.jsonl` at `HEAD`.
 - **No-store checkout.** A checkout with no store directory for the working run and none for the committed run. A store directory counts as absent only when looking it up reports that nothing exists at its path; any other lookup error refuses `supervisor-changed`.
-- **Spec store.** A store directory whose spec record names the spec.
+- **Spec store.** A store directory whose `spec` record names the spec.
+- **Pinned spec store.** A store directory whose pin record names the spec.
 
 **The `status` verb in a no-store checkout**
 
@@ -94,12 +95,12 @@ Terms used below.
 **Refusals that stay**
 
 - [ ] **AC-0004.** In a no-store checkout, `start`, `next`, `report` and `resolve-effect` each exit `1` with refusal code `supervisor-changed` and detail `the supervisor's pin record is missing`, and leave `HEAD` unchanged.
-- [ ] **AC-0005.** `status` exits `1` with refusal code `supervisor-changed`, whether or not the working run has a store directory, when: a spec store has no pin record and no orphan mark; the installed pinned files differ from a spec store's pin record; they differ from the pins of another run whose store holds an open attempt; or the committed run's store directory exists with no pin record.
-- [ ] **AC-0006.** Every `status` view carries `verification`: `"pinned"` when the installed pinned files were compared, before any sibling script loaded, with the committed run's pin record, or with the source digests an open `regenerate` request recorded, and matched; and `"committed-records-only"` otherwise.
+- [ ] **AC-0005.** `status` exits `1` with refusal code `supervisor-changed`, whether or not the working run has a store directory, when: a spec store has no pin record and no orphan mark; the installed pinned files differ from a pinned spec store's pin record, and from the source digests that store's open `regenerate` request recorded; they differ from the pins of another run whose store holds an open attempt; or the committed run's store directory exists with no pin record.
+- [ ] **AC-0006.** Every `status` view carries `verification`: `"pinned"` when the installed pinned files were compared, before any sibling script loaded, with the committed run's pin record, or with the source digests the committed run's open `regenerate` request recorded, and matched; and `"committed-records-only"` otherwise. A checkout whose working copy of `delivery/approvals.jsonl` is missing, or names another run, while the committed run's pins match, reports `"pinned"`.
 
 **The hook and the release**
 
-- [ ] **AC-0007.** On this spec's branch, with its `delivery/` records committed: `tests/roster/test_core_pre_pr_hook.py::test_shipped_pre_pr_runs_no_linter_labels` passes with those records in its sandbox; `::test_pre_pr_passes_when_no_spec_holds_approvals` passes with every `docs/specs/*/delivery/` directory left out of its sandbox; and in a fresh `git clone` of the pushed branch at the commit the run's `run-gates` result reports, `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` both exit `0`.
+- [ ] **AC-0007.** On this spec's branch, with its `delivery/` records committed: `tests/roster/test_core_pre_pr_hook.py::test_shipped_pre_pr_runs_no_linter_labels` passes with those records in its sandbox; `::test_pre_pr_passes_when_no_spec_holds_approvals` passes with every `docs/specs/*/delivery/` directory left out of its sandbox; and in a fresh `git clone` of the pushed branch at the commit T4 pushes, `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` both exit `0`.
 - [ ] **AC-0008.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the version one patch above the one `packs/core/pack.toml` carries at `git merge-base origin/main HEAD`, checked right after `git fetch origin` with that merge base equal to `origin/main`, and one `docs/product/changelog.d/` fragment names the `status` change.
 
 ## Terminal Intent
