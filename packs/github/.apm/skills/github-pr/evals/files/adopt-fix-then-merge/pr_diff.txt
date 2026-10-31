@@ -4,3 +4,4 @@ diff --git a/src/pager.py b/src/pager.py
 @@ -10,3 +10,3 @@ def page_count(total, size):
 -    return total // size
 +    return -(-total // size)
++    # recieve the page count and return it
