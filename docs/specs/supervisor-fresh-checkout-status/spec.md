@@ -70,7 +70,8 @@ A maintainer, CI job, or adopter who checks out a branch or `main` holding a spe
 
 ## Testing Strategy
 
-- **The no-store `status` path (AC-0001, AC-0002, AC-0003, AC-0006): TDD.** Each case runs the real CLI in a `git clone` of a supervisor-run test repository, which holds the committed records and no store; each reds at the base on the `supervisor-changed` refusal.
+- **The no-store `status` path (AC-0001, AC-0002, AC-0003): TDD.** Each case runs the real CLI in a `git clone` of a supervisor-run test repository, which holds the committed records and no store; each reds at the base on the `supervisor-changed` refusal.
+- **The `verification` field (AC-0006): TDD.** The `committed-records-only` cases run in the store-less clones above; the `pinned` cases run in a supervisor-run test repository that holds its store. Each reds at the base because the `status` view has no `verification` key.
 - **Refusals that stay (AC-0004, AC-0005): TDD.** Each planted tamper or verb runs the real CLI and asserts the refusal; the cases that pass at the base are pins, and the `status` cases that do not exist at the base are added.
 - **The hook on this branch (AC-0007): goal-based and manual QA.** The two named roster cases run on this branch, which carries this spec's `delivery/`; a fresh clone of the pushed branch at the commit T4 pushes runs the command and the hook, and the commit id and observed exit codes go in the ledger. On every later head, `build-check.yml`'s step `pytest catalogue-test carve-out destinations (RFC-0082)` runs both roster cases.
 - **Release (AC-0008): goal-based.** The version and changelog gates.
@@ -96,7 +97,7 @@ Terms used below.
 
 - [ ] **AC-0004.** In a no-store checkout, `start`, `next`, `report` and `resolve-effect` each exit `1` with refusal code `supervisor-changed` and detail `the supervisor's pin record is missing`, and leave `HEAD` unchanged.
 - [ ] **AC-0005.** `status` exits `1` with refusal code `supervisor-changed`, whether or not the working run has a store directory, when: a spec store has no pin record and no orphan mark; the installed pinned files differ from a pinned spec store's pin record, and from the source digests that store's open `regenerate` request recorded; they differ from the pins of another run whose store holds an open attempt; or the committed run's store directory exists with no pin record.
-- [ ] **AC-0006.** Every `status` view carries `verification`: `"pinned"` when the installed pinned files were compared, before any sibling script loaded, with the committed run's pin record, or with the source digests the committed run's open `regenerate` request recorded, and matched; and `"committed-records-only"` otherwise. A checkout whose working copy of `delivery/approvals.jsonl` is missing, or names another run, while the committed run's pins match, reports `"pinned"`.
+- [ ] **AC-0006.** Every `status` view carries `verification`: `"pinned"` when the installed pinned files were compared, before any sibling script loaded, with the committed run's pin record, or with the source digests the committed run's open `regenerate` request recorded, and matched; and `"committed-records-only"` otherwise. A checkout whose working copy of `delivery/approvals.jsonl` is missing, or names another run that has no store directory, while the committed run's pins match, reports `"pinned"`.
 
 **The hook and the release**
 
