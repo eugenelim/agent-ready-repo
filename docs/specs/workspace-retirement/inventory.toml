@@ -224,8 +224,8 @@ owner = 9
 [[row]]
 pattern = "docs/adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md"
 class = "contract"
-consumer = "ADR-0103: the completion receipt close-work writes and workspace-status reads; D6 names the registry edge as the carrier, and ADR-0148 supersedes that D6 in part"
-owner = 2
+consumer = "ADR-0103: the completion receipt close-work writes and workspace-status reads; D6 names the registry edge as the carrier, and ADR-0148 supersedes that D6 in part; slice 9: moved with the operative references after the cutover"
+owner = 9
 
 [[row]]
 pattern = "docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md"
@@ -530,14 +530,14 @@ owner = 9
 [[row]]
 pattern = "docs/product/intents/CAP-0004-external-tracker-projection.md"
 class = "contract"
-consumer = "CAP-0004: tracker dependencies recorded in the waiting child Depends on: header; the file still names workspace.toml in its research history"
-owner = 2
+consumer = "CAP-0004: tracker dependencies recorded in the waiting child Depends on: header; the file still names workspace.toml in its research history; slice 9: moved with the operative references after the cutover"
+owner = 9
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0002-intent-graph-navigation.md"
-class = "contract"
+class = "historical"
 consumer = "FEAT-0002: states the waiting item Depends on: header as the dependency edge home, and still names workspace.toml for the readiness bridge and the registry retirement"
-owner = 2
+owner = "none"
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0004-single-ladder-migration.md"
@@ -848,8 +848,8 @@ owner = "none"
 [[row]]
 pattern = "docs/product/workspace-toml-deps.md"
 class = "guide"
-consumer = "reference for the Depends on: header form of a dependency edge; legacy needs forms are repair input only"
-owner = 2
+consumer = "reference for the Depends on: header form of a dependency edge; legacy needs forms are repair input only; slice 9: moved with the operative references after the cutover"
+owner = 9
 
 [[row]]
 pattern = "docs/rfc/0063-product-strategy-pack.md"
@@ -1391,8 +1391,8 @@ owner = 9
 [[row]]
 pattern = "packages/agentbundle/tests/test_workspace_mcp_depends_on.py"
 class = "fixture"
-consumer = "package test that the MCP status tool blocks on Depends on: headers and refuses unmigrated needs in workspace.toml"
-owner = 2
+consumer = "package test that the MCP status tool blocks on Depends on: headers and refuses unmigrated needs in workspace.toml; slice 9: goes with workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "packages/agentbundle/tests/unit/test_install_first_value_handoff.py"
@@ -1637,8 +1637,8 @@ owner = 9
 [[row]]
 pattern = "tests/roster/test_priority_field_never_read.py"
 class = "fixture"
-consumer = "roster test that scans the workspace-status engine and its packaged copy for the Priority field name"
-owner = 4
+consumer = "roster test that scans the workspace-status engine and its packaged copy for the Priority field name; slice 9: changes when workspace-status shrinks to the repair"
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_reclassified_lifecycle_result.py"
@@ -2705,27 +2705,27 @@ owner = 9
 
 [[row]]
 pattern = "docs/specs/depends-on-headers/*"
-class = "contract"
+class = "historical"
 consumer = "Depends on: header edges on the waiting item, the unmigrated needs refusal, and the needs-to-header repair"
-owner = 2
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/captured-item-files/*"
-class = "contract"
+class = "historical"
 consumer = "captured items in their own files: the file shape and reader, the unmigrated captured-item refusal, and the captured-to-file repair"
-owner = 3
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/captured-item-registration-stop/*"
-class = "contract"
+class = "historical"
 consumer = "captured-item registration stop: writers write only the file, the closed-state rule, and the rule that closing a registered item deletes its entry"
-owner = 3
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/spec-registration-stop/*"
-class = "contract"
+class = "historical"
 consumer = "spec registration stop: the spec-entry-drop repair, the stopped spec writers, and the dispatch switch to dispatch.py"
-owner = 8
+owner = "none"
 
 [[row]]
 pattern = "docs/product/changelog.d/58847b49-fc55-426f-aa9a-371a06e25248.md"
@@ -2740,16 +2740,34 @@ consumer = "roster test that no writer, guide or page tells anyone to register a
 owner = 9
 
 [[row]]
+pattern = "tests/roster/test_pre_cutover_closure.py"
+class = "fixture"
+consumer = "roster test for pre-cutover-closure: the retired close-work registry field's record and eval case, the upgrade-notes draft, and the closure entry"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/tracker-origin-registration-stop/*"
 class = "contract"
 consumer = "tracker-origin registration stop: the tracker profile in the source-authority record, refresh reading it there, the stopped tracker-origin writers, and the tracker-entry-drop repair"
 owner = 9
 
 [[row]]
-pattern = "docs/specs/readiness-bridge-dispatch-input/*"
+pattern = "docs/specs/pre-cutover-closure/notes/upgrade-notes.md"
+class = "guide"
+consumer = "the adopter upgrade-notes draft for the workspace.toml retirement, unpublished; slice 9 publishes it under guides/core/how-to/ after the cutover"
+owner = 9
+
+[[row]]
+pattern = "docs/specs/pre-cutover-closure/*"
 class = "contract"
+consumer = "pre-cutover compatibility closure: the retired close-work closure-packet registry field, the inventory re-owned to slice 9, and the adopter upgrade-notes draft"
+owner = 9
+
+[[row]]
+pattern = "docs/specs/readiness-bridge-dispatch-input/*"
+class = "historical"
 consumer = "readiness bridge input: the navigate-intents export reads argless work-loop dispatch output in place of workspace-status status"
-owner = 8
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/header-derived-dispatch/*"
@@ -2759,39 +2777,39 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/intent-brief-registration-stop/*"
-class = "contract"
+class = "historical"
 consumer = "intent and brief registration stop: the intent-brief-drop repair, the brief-file child scope, the no-registry rename, and the writers that stop adding repo-origin intent and brief entries"
-owner = 7
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/next-item-suggestions-removal/*"
-class = "contract"
+class = "historical"
 consumer = "slice 6 spec: removes the first-in-list next-item suggestions from the workspace-status orient run"
-owner = 6
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/priority-header-field/*"
-class = "contract"
+class = "historical"
 consumer = "the optional Priority: header field and its reader, which no registry or dispatch reader consults"
-owner = 4
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/registry-comparison/*"
-class = "contract"
+class = "historical"
 consumer = "the registry comparison: FEAT-0034's classes over the navigator's outstanding work, captured-item files, and workspace.toml, run once before each registration stop"
-owner = 5
+owner = "none"
 
 [[row]]
 pattern = "tools/compare-registry.py"
 class = "reader"
-consumer = "the registry comparison tool: reads workspace.toml read-only to compare it with the navigator's outstanding work"
-owner = 5
+consumer = "the registry comparison tool: reads workspace.toml read-only to compare it with the navigator's outstanding work; slice 9: goes with workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "tools/test_compare_registry.py"
 class = "fixture"
-consumer = "the registry comparison suite: its fixture registries are workspace.toml-shaped files the comparison reads"
-owner = 5
+consumer = "the registry comparison suite: its fixture registries are workspace.toml-shaped files the comparison reads; slice 9: goes with workspace.toml"
+owner = 9
 
 [[row]]
 pattern = "tools/replay-dispatch.py"
@@ -2808,14 +2826,14 @@ owner = 9
 [[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
 class = "contract"
-consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces"
-owner = 2
+consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces; slice 9: moved with the operative references after the cutover"
+owner = 9
 
 [[row]]
 pattern = "tests/roster/test_depends_on_headers_instructions.py"
 class = "fixture"
-consumer = "roster test that no shipped instruction teaches a registry needs edge and that each instruction site names the Depends on: header"
-owner = 2
+consumer = "roster test that no shipped instruction teaches a registry needs edge and that each instruction site names the Depends on: header; slice 9: changes when workspace-status shrinks to the repair"
+owner = 9
 
 [[row]]
 pattern = "docs/specs/design-handoff-read/*"
