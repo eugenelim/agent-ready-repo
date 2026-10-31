@@ -1,8 +1,9 @@
 # Supervisor common config residue
 
-- **Status:** Open
+- **Status:** Closed
+- **Resolution:** fixed
 - **Kind:** defect
-- **Detail:** packs/core/.apm/skills/work-loop/scripts/_supervisor_attempt.py
+- **Detail:** docs/specs/supervisor-config-tracking-keys/spec.md
 
 ## Summary
 
