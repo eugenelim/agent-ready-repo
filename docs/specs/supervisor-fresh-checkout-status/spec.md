@@ -1,6 +1,7 @@
 # Spec: Supervisor status in a checkout without the run's store
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-30 by eugenelim, spec at `01c13d980`, after four spec-stage rounds of shaping, adversarial and secure-design review, each adjudicated (round 4 adversarial only); the round-4 one-sentence repair to the Testing Strategy was accepted unreviewed. Records under `.context/reviews/12f339cc-9463-4289-b3d0-f1f07e3980f3/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144 (the skill-shipped supervisor owns work-loop procedure), ADR-0074 (standard-library skill scripts)

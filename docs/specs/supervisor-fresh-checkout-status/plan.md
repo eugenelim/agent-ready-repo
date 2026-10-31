@@ -113,3 +113,5 @@ Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006.
 - A controller that reads `status --json` and rejects unknown keys sees one new key. The shipped hook reads only the exit code.
 
 ## Changelog
+
+- 2026-10-30: spec approved by eugenelim at `01c13d980`.
