@@ -775,6 +775,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_tracker_origin_registration_stop.py
 
+      # AC-0005 and AC-0006 of pre-cutover-closure: closure-eligibility-check's
+      # Status line records the supersession and close-work's eval case holds the
+      # packet-names-no-registry-entry assertion. Sits ABOVE the bulk tests/ step.
+      - name: pytest pre-cutover closure (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_pre_cutover_closure.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a
