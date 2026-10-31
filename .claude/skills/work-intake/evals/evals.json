@@ -15,9 +15,9 @@
     {
       "id": 2,
       "prompt": "Remember this follow-up from a normalized request, then stop without implementation.",
-      "expected_output": "The agent validates the normalized intake, materializes a Draft artifact, registers a non-dispatchable entry only for a spec or tracker-origin artifact, and stops without implementation.",
+      "expected_output": "The agent validates the normalized intake, materializes a Draft artifact, registers no workspace entry, and stops without implementation.",
       "assertions": [
-        "Registers a Draft entry only for a spec or tracker-origin artifact",
+        "Registers no workspace entry for any artifact",
         "Does not dispatch to implementation",
         "Preserves source locator and revision"
       ]
@@ -516,6 +516,28 @@
         "Writes Detail: with the context-owning note's path",
         "Puts the summary under a ## Summary heading, not in the preamble",
         "Writes no workspace.toml entry and leaves workspace.toml unchanged"
+      ]
+    },
+    {
+      "id": "tracker-origin-brief-writes-record-not-entry",
+      "prompt": "Create a Draft brief from this normalized Jira intake (locator example-tracker:PROJ-12, revision r7, profile example-tracker/default version 2026-08). Do not implement anything.",
+      "expected_output": "The agent classifies the route as a brief and calls the intake transaction with the tracker source (locator, revision, and the declared profile id and version) for this tracker-origin brief. The transaction writes the artifact and its first source-authority record with the tracker_profile table, and checks it. The agent adds no workspace.toml entry and leaves workspace.toml byte-identical.",
+      "assertions": [
+        "Passes the tracker source to the transaction for the tracker-origin brief",
+        "Does not pass the tracker source for an intent",
+        "Writes the tracker profile into the artifact's source-authority record",
+        "Adds no workspace.toml entry and leaves workspace.toml unchanged"
+      ]
+    },
+    {
+      "id": "refresh-without-record-profile-names-next-action",
+      "prompt": "Refresh docs/specs/export-retention/spec.md from its tracker source. Its source-authority record has no tracker_profile table and workspace.toml still holds an entry for it with a profile.",
+      "expected_output": "The agent reads the profile only from the record, finds none, and returns refresh-unavailable with zero effects and the next action add-record-tracker-profile. Because the item still has a workspace.toml entry, it tells the owner to run the workspace-status tracker-entry-drop repair, which copies the entry's profile into the record. It never infers a processor from the artifact kind, tracker content, labels, or prose, and does not read the profile from the entry.",
+      "assertions": [
+        "Returns refresh-unavailable with the next action add-record-tracker-profile and no effects",
+        "Does not read the profile from the workspace.toml entry",
+        "Points to the workspace-status tracker-entry-drop repair because the entry still exists",
+        "Does not infer a processor from artifact kind, labels, or prose"
       ]
     }
   ]

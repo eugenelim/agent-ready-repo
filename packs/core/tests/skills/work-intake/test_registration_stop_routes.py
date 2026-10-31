@@ -67,22 +67,23 @@ def test_start_defect_dispatches_bug_fix_without_registration() -> None:
     assert route.mutation == "materialize-and-dispatch"
 
 
-# Routes the router returned at ff33d0dcc, recorded once as literals:
+# Routes recorded once as literals, with the tracker-origin rows updated for the
+# registration stop:
 # (artifact, artifact_kind, lifecycle_membership, processor, authority_mode, mutation).
 _UNCHANGED = [
     ('direct-light', {'action': 'start', 'artifact': '', 'artifact_kind': '', 'authority_mode': 'repo-origin', 'direct_light': True}, ('', '', 'none', 'work-loop', 'repo-origin', 'none')),
     ('status-passthrough', {'action': 'status', 'artifact': 'workspace.toml', 'artifact_kind': 'workspace-status', 'authority_mode': 'read-only'}, ('workspace.toml', 'workspace-status', 'passthrough', 'workspace-status', 'read-only', 'none')),
     ('refresh-unavailable', {'action': 'refresh', 'artifact': 'docs/specs/example/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'repo-origin'}, ('docs/specs/example/spec.md', 'spec', 'resolved-existing', 'none', 'repo-origin', 'none')),
     ('ambiguity', {'action': 'start', 'artifact': 'docs/product/intents/work-intake.md', 'artifact_kind': 'intent', 'authority_mode': 'repo-origin', 'named_gaps': True}, ('docs/product/intents/work-intake.md', 'intent', 'draft-with-gaps', 'none', 'repo-origin', 'ask-or-draft-only')),
-    ('direct-spec', {'action': 'start', 'artifact': 'docs/specs/export-retention/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, ('docs/specs/export-retention/spec.md', 'spec', 'work.queue', 'new-spec', 'tracker-origin', 'materialize-and-register')),
-    ('multi-spec-brief', {'action': 'start', 'artifact': 'docs/product/briefs/account-recovery.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/briefs/account-recovery.md', 'brief', 'brief_queue.draft', 'author-delivery-brief create', 'tracker-origin', 'materialize-and-register')),
+    ('direct-spec', {'action': 'start', 'artifact': 'docs/specs/export-retention/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, ('docs/specs/export-retention/spec.md', 'spec', 'none', 'new-spec', 'tracker-origin', 'materialize-and-dispatch')),
+    ('multi-spec-brief', {'action': 'start', 'artifact': 'docs/product/briefs/account-recovery.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/briefs/account-recovery.md', 'brief', 'none', 'author-delivery-brief create', 'tracker-origin', 'materialize-and-dispatch')),
     ('incoherent-collection', {'action': 'start', 'artifact': 'docs/product/intents/board-selection.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin', 'named_gaps': True}, ('docs/product/intents/board-selection.md', 'intent', 'draft-with-gaps', 'none', 'tracker-origin', 'ask-or-draft-only')),
     ('claimed-defect-without-evidence', {'action': 'start', 'artifact': 'docs/specs/login-investigation/spec.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin', 'named_gaps': True}, ('docs/specs/login-investigation/spec.md', 'spec', 'draft-with-gaps', 'none', 'tracker-origin', 'ask-or-draft-only')),
 ]
 
 
 @pytest.mark.parametrize(("case_id", "signals", "expected"), _UNCHANGED, ids=[c[0] for c in _UNCHANGED])
-def test_every_other_route_matches_the_pre_change_route(
+def test_every_other_route_matches_its_recorded_route(
     case_id: str, signals: dict[str, Any], expected: tuple[str, ...]
 ) -> None:
     router = _load_router()
@@ -119,32 +120,230 @@ def _outcome(router: Any, signals: dict[str, Any]) -> Any:
 
 
 # Tracker-origin start, remember, and ready-brief signals of each kind, as
-# returned at ff33d0dcc (AC-0014); "ValueError" marks a refused signal shape.
+# compared with the repo-origin route of the same signal (AC-0009).
 _TRACKER_ORIGIN = [
-    ('tracker-start-intent', {'action': 'start', 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/intent-item.md', 'intent', 'shaping_queue.backlog', 'intake-intent', 'tracker-origin', 'materialize-and-register')),
-    ('tracker-remember-intent', {'action': 'remember', 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/intent-item.md', 'intent', 'backlog.open', 'intake-intent', 'tracker-origin', 'materialize-draft-and-register-non-dispatchable')),
-    ('tracker-ready-brief-intent', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-start-brief', {'action': 'start', 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/brief-item.md', 'brief', 'brief_queue.draft', 'author-delivery-brief create', 'tracker-origin', 'materialize-and-register')),
-    ('tracker-remember-brief', {'action': 'remember', 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/brief-item.md', 'brief', 'backlog.open', 'none', 'tracker-origin', 'materialize-draft-and-register-non-dispatchable')),
-    ('tracker-ready-brief-brief', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/brief-item.md', 'brief', 'brief_queue.ready', 'author-delivery-brief continue', 'tracker-origin', 'none')),
-    ('tracker-start-spec', {'action': 'start', 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/spec-item.md', 'spec', 'work.queue', 'new-spec', 'tracker-origin', 'materialize-and-register')),
-    ('tracker-remember-spec', {'action': 'remember', 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/spec-item.md', 'spec', 'backlog.open', 'none', 'tracker-origin', 'materialize-draft-and-register-non-dispatchable')),
-    ('tracker-ready-brief-spec', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-start-defect', {'action': 'start', 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/defect-item.md', 'defect', 'none', 'bug-fix', 'tracker-origin', 'materialize-and-dispatch')),
-    ('tracker-remember-defect', {'action': 'remember', 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/defect-item.md', 'defect', 'none', 'none', 'tracker-origin', 'materialize-draft-non-dispatchable')),
-    ('tracker-ready-brief-defect', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-start-design', {'action': 'start', 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-remember-design', {'action': 'remember', 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/design-item.md', 'design', 'none', 'none', 'tracker-origin', 'materialize-draft-non-dispatchable')),
-    ('tracker-ready-brief-design', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-start-research', {'action': 'start', 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}, 'ValueError'),
-    ('tracker-remember-research', {'action': 'remember', 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}, ('docs/product/captured/research-item.md', 'research', 'none', 'none', 'tracker-origin', 'materialize-draft-non-dispatchable')),
-    ('tracker-ready-brief-research', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}, 'ValueError'),
+    ('tracker-start-intent', {'action': 'start', 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-intent', {'action': 'remember', 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-intent', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/intent-item.md', 'artifact_kind': 'intent', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-brief', {'action': 'start', 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-brief', {'action': 'remember', 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-brief', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/brief-item.md', 'artifact_kind': 'brief', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-spec', {'action': 'start', 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-spec', {'action': 'remember', 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-spec', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/spec-item.md', 'artifact_kind': 'spec', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-defect', {'action': 'start', 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-defect', {'action': 'remember', 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-defect', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/defect-item.md', 'artifact_kind': 'defect', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-design', {'action': 'start', 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-design', {'action': 'remember', 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-design', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/design-item.md', 'artifact_kind': 'design', 'authority_mode': 'tracker-origin'}),
+    ('tracker-start-research', {'action': 'start', 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}),
+    ('tracker-remember-research', {'action': 'remember', 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}),
+    ('tracker-ready-brief-research', {'action': 'start', 'ready_brief': True, 'artifact': 'docs/product/captured/research-item.md', 'artifact_kind': 'research', 'authority_mode': 'tracker-origin'}),
 ]
 
 
-@pytest.mark.parametrize(("case_id", "signals", "expected"), _TRACKER_ORIGIN, ids=[c[0] for c in _TRACKER_ORIGIN])
-def test_tracker_origin_routes_match_the_pre_change_route(
-    case_id: str, signals: dict[str, Any], expected: Any
+@pytest.mark.parametrize(("case_id", "signals"), _TRACKER_ORIGIN, ids=[c[0] for c in _TRACKER_ORIGIN])
+def test_tracker_origin_routes_match_the_repo_origin_route(
+    case_id: str, signals: dict[str, Any]
 ) -> None:
     router = _load_router()
-    assert _outcome(router, signals) == expected
+    tracker = _outcome(router, signals)
+    repo = _outcome(router, {**signals, "authority_mode": "repo-origin"})
+    if repo == "ValueError":
+        assert tracker == "ValueError"
+        return
+    assert tracker[:4] == repo[:4]
+    assert tracker[4] == "tracker-origin"
+    assert tracker[5:] == repo[5:]
+    assert "register" not in tracker[5]
+
+
+# Refresh front door: the profile comes from the artifact's own record.
+_ARTIFACT = "docs/specs/example/spec.md"
+_PROFILE_TABLE = '\n[tracker_profile]\nid = "example-service"\nversion = "1.0"\n'
+
+
+def _record(*, profile: str) -> str:
+    return (
+        "# Spec: Example\n\n```toml source-authority\n"
+        'contract_version = "source-authority.v1"\nmode = "tracker-origin"\n'
+        'source_ref = "example-service://work/ITEM-1"\nsource_revision = "rev-1"\n'
+        f"{profile}\n[owned_fields]\n```\n"
+    )
+
+
+class _Resolver:
+    """Counts acquisition-capable resolutions; none may happen in refusals."""
+
+    def __init__(self) -> None:
+        self.acquire_resolutions = 0
+
+    def resolve(self, profile_id: str, profile_version: str, capability: str | None = None) -> Any:
+        if capability == "acquire":
+            self.acquire_resolutions += 1
+        raise ValueError("no registration")
+
+
+class _Request:
+    artifact_path = _ARTIFACT
+    artifact_kind = "spec"
+    lifecycle = "Approved"
+    authority_mode = "tracker-origin"
+    current_revision = "rev-1"
+    compared_revision = "rev-2"
+    profile_id = "example-service"
+    profile_version = "1.0"
+
+
+def _refresh_signals(router: Any, **overrides: str) -> Any:
+    fields = {
+        "action": "refresh",
+        "artifact": _ARTIFACT,
+        "artifact_kind": "spec",
+        "authority_mode": "tracker-origin",
+        "profile_id": "example-service",
+        "profile_version": "1.0",
+        **overrides,
+    }
+    return router.RoutingSignals(**fields)
+
+
+class _Registered:
+    name = "example-refresh"
+
+
+class _RegisteredResolver(_Resolver):
+    def resolve(self, profile_id: str, profile_version: str, capability: str | None = None) -> Any:
+        if capability == "acquire":
+            self.acquire_resolutions += 1
+            raise ValueError("stop before acquisition")
+        return _Registered()
+
+
+def _plant(tmp_path: Path, text: str | None) -> Path:
+    if text is not None:
+        target = tmp_path / _ARTIFACT
+        target.parent.mkdir(parents=True)
+        target.write_text(text, encoding="utf-8")
+    return tmp_path
+
+
+def test_ac0004_record_without_profile_table_is_refresh_unavailable(tmp_path: Path) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    result = router.invoke_refresh(
+        _refresh_signals(router), resolver, _Request(), _plant(tmp_path, _record(profile=""))
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.remediation == "add-record-tracker-profile"
+    assert result.invocation is None
+    assert resolver.acquire_resolutions == 0
+
+
+@pytest.mark.parametrize("field", ["profile_id", "profile_version"])
+def test_ac0005_signals_naming_a_different_profile_are_refresh_unavailable(
+    tmp_path: Path, field: str
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    signals = _refresh_signals(router, **{field: "other"})
+    request = type("Req", (_Request,), {field: "other"})()
+    result = router.invoke_refresh(
+        signals, resolver, request, _plant(tmp_path, _record(profile=_PROFILE_TABLE))
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.invocation is None
+    assert resolver.acquire_resolutions == 0
+
+
+def test_ac0005_matching_record_profile_reaches_the_processor_resolution(
+    tmp_path: Path,
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    result = router.invoke_refresh(
+        _refresh_signals(router),
+        resolver,
+        _Request(),
+        _plant(tmp_path, _record(profile=_PROFILE_TABLE)),
+    )
+    assert resolver.acquire_resolutions == 1
+    assert result.code == "refresh-unavailable"
+
+
+@pytest.mark.parametrize("text", [None, "not a record\n"])
+def test_unreadable_or_unparseable_record_is_a_named_no_effect_result(
+    tmp_path: Path, text: str | None
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    result = router.invoke_refresh(
+        _refresh_signals(router), resolver, _Request(), _plant(tmp_path, text)
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.remediation == "repair-or-rerun-refresh-record-read"
+    assert resolver.acquire_resolutions == 0
+    assert not (tmp_path / "workspace.toml").exists()
+
+
+def test_ac0004_signals_without_a_profile_still_reach_the_record_check(
+    tmp_path: Path,
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact=_ARTIFACT,
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+    )
+    result = router.invoke_refresh(
+        signals, resolver, _Request(), _plant(tmp_path, _record(profile=""))
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.remediation == "add-record-tracker-profile"
+    assert resolver.acquire_resolutions == 0
+
+
+def test_ac0005_signals_without_a_profile_resolve_the_record_profile(
+    tmp_path: Path,
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact=_ARTIFACT,
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+    )
+    result = router.invoke_refresh(
+        signals,
+        resolver,
+        _Request(),
+        _plant(tmp_path, _record(profile=_PROFILE_TABLE)),
+    )
+    assert resolver.acquire_resolutions == 1
+    assert result.remediation == "configure-compatible-refresh-processor"
+
+
+@pytest.mark.parametrize("field", ("profile_id", "profile_version"))
+def test_ac0005_no_profile_signals_with_a_mismatched_request_profile_are_unavailable(
+    tmp_path: Path, field: str
+) -> None:
+    router = _load_router()
+    resolver = _RegisteredResolver()
+    signals = router.RoutingSignals(
+        action="refresh",
+        artifact=_ARTIFACT,
+        artifact_kind="spec",
+        authority_mode="tracker-origin",
+    )
+    request = type("Req", (_Request,), {field: "other"})()
+    result = router.invoke_refresh(
+        signals, resolver, request, _plant(tmp_path, _record(profile=_PROFILE_TABLE))
+    )
+    assert result.code == "refresh-unavailable"
+    assert result.remediation == "repair-refresh-request-profile"
+    assert result.invocation is None
+    assert resolver.acquire_resolutions == 0
