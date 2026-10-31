@@ -27,7 +27,7 @@ Refresh moves first, because it is self-contained and its contract change is the
 
 - RFC-0106 § Errata: the three removals need one owner-approved entry before the run.
 - `packs/AGENTS.md`: a pack-content change bumps `pack.toml` and `plugin.json` and updates the pack's eval harness; shipped pack content cites no internal record.
-- The supervisor refuses any worker change under `docs/specs/last-registry-entries/`; the ledger and approvals are controller commits between attempts.
+- The supervisor refuses any worker change under `docs/specs/last-registry-entries/` or to a cited record, which includes `docs/rfc/0106-stop-registering-derivable-work.md`; the ledger, approvals and the owner-approved errata entry are controller commits between attempts.
 - The supervisor pins the installed `work-loop` skill at `start`; T4's change to `lint-spec-status.py` reaches the installed copy only through the supervisor's `regenerate` request.
 - `tests/AGENTS.md` § Roster steps: a new roster test gets a named `build-check.yml` step, entries in `tools/lint-ci-parity.py`'s `_LOCAL_STEP_DISPOSITION` and `_GATE_MAIN_CHECKS`, and a `.workspace-prune-protected.toml` line for each `docs/specs/<slug>` literal.
 - Before the PR: squash the branch and drop `docs/specs/last-registry-entries/delivery/`, keeping the run history on an evidence branch, as 9A and 9C did.
@@ -60,7 +60,7 @@ Owned by: T1
 
 Owned by: T1
 
-- **`captured-entry-drop` plans against the state `captured-to-file` leaves.** An entry the same plan backs with a new captured file gets its drop in that plan, ordered after the `captured-to-file` write, so one apply leaves nothing for the next plan.
+- **`captured-entry-drop` plans against the state `captured-to-file` leaves.** An entry the same plan backs with a new captured file gets its drop in that plan, carrying the record bytes that `captured-to-file` operation writes as its expected file; apply runs it after the `captured-to-file` write and checks the file against those bytes, so one apply leaves nothing for the next plan.
 
 Owned by: T3
 
@@ -87,7 +87,7 @@ Owned by: T4
 - **Depends on:** T1, T3
 - **Verification mode:** TDD
 - **Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/test_refresh_policy_move.py`
-- **Tests:** for AC-0004, AC-0005: a new suite with one planted case each for move, absent table, invalid table, equal existing file, differing existing file, unparseable existing file and an apply after a failed policy-file write.
+- **Tests:** for AC-0004, AC-0005: a new suite with one planted case each for move, absent table, invalid table, equal existing file, differing existing file, unparseable existing file, a parseable `.work-intake.toml` with an extra key (never overwritten), and an apply after a failed policy-file write.
 - **Done when:** the new suite and `packs/core/tests/skills/workspace-status/` pass.
 
 ### T3: The `captured-entry-drop` repair
@@ -102,7 +102,7 @@ Owned by: T4
 
 - **Depends on:** none
 - **Verification mode:** TDD
-- **Touches:** `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`, `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`, `packs/core/.apm/agents/adversarial-reviewer.md`, `packs/core/tests/skills/work-loop/test_lint_spec_status.py`, `packs/core/tests/skills/work-loop/test_lint_spec_status_deferred.py`
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`, `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md`, `packs/core/.apm/agents/adversarial-reviewer.md`, `docs/architecture/loop-contract.md`, `docs/architecture/work-intake-and-artifact-routing.md`, `.claude/skills/work-loop/**`, `.agents/skills/work-loop/**`, `.claude/skills/new-spec/**`, `.agents/skills/new-spec/**`, `.claude/agents/**`, `packs/core/tests/skills/work-loop/test_lint_spec_status.py`, `packs/core/tests/skills/work-loop/test_lint_spec_status_deferred.py`
 - **Tests:** for AC-0010: an anchor resolving through an open and a `Closed` captured file, refused through a `[backlog].open` entry with no file, the unresolved message naming the file path, the existing open-intent, brief and spec cases unchanged; the cases in `test_lint_spec_status.py` that planted `[backlog].open` plant captured files; the lint over this repository.
 - **Done when:** the lint's suites pass and the supervisor's `regenerate` request has rebuilt the installed `work-loop` and `new-spec` copies.
 
@@ -110,16 +110,16 @@ Owned by: T4
 
 - **Depends on:** T1, T2, T3, T4
 - **Verification mode:** goal-based
-- **Touches:** `docs/rfc/0106-stop-registering-derivable-work.md`, the files AC-0014 lists, `docs/specs/workspace-retirement/retirement-record.md`, `docs/specs/workspace-retirement/inventory.toml`, `docs/product/briefs/workspace-registry-retirement-delivery.md`, `tests/roster/test_last_registry_entries.py`, `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py`, `.workspace-prune-protected.toml`
+- **Touches:** the `work-intake` and `workspace-status` files AC-0014 lists and the guides it lists, `.claude/skills/work-intake/**`, `.agents/skills/work-intake/**`, `.claude/skills/workspace-status/**`, `.agents/skills/workspace-status/**`, `docs/specs/workspace-retirement/retirement-record.md`, `docs/specs/workspace-retirement/inventory.toml`, `docs/product/briefs/workspace-registry-retirement-delivery.md`, `tests/roster/test_last_registry_entries.py`, `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py`, `.workspace-prune-protected.toml`
 - **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0018: a new roster check over the closed file and phrase lists and the errata entry; the inventory and record check; `lint-brief-coverage.py`; `tools/lint-ci-parity.py`.
-- **Done when:** the owner has approved the errata and brief text, and the checks pass.
+- **Done when:** the owner has approved the errata and brief text, the controller has committed the errata entry between attempts, and the checks pass.
 
 ### T6: Run the repair on this repository
 
 - **Depends on:** T5
 - **Verification mode:** manual QA
-- **Touches:** `workspace.toml`, `tests/roster/test_credential_broker_contract_docs.py`, `tests/roster/test_agent_skill_engineering_consumer_integrations.py`, `tools/test_guide_typed_asides.py`
-- **Tests:** for AC-0011: the plan, the owner's confirmation with the plan file's SHA-256, the apply output, and `dispatch.py` output before and after; the two roster tests that asserted removed slug-only entries assert their captured files instead, and `tools/test_guide_typed_asides.py` passes with the emptied collections.
+- **Touches:** `workspace.toml`, `docs/product/captured/credential-broker-contract-manual-qa.md`, `tests/roster/test_credential_broker_contract_docs.py`, `tests/roster/test_agent_skill_engineering_consumer_integrations.py`, `tools/test_guide_typed_asides.py`
+- **Tests:** for AC-0011: the plan, the owner's confirmation with the plan file's SHA-256, the apply output, and `dispatch.py` output before and after; before the run the six-row QA matrix is copied, owner-approved, into `docs/product/captured/credential-broker-contract-manual-qa.md`; the two roster tests that asserted removed slug-only entries assert their captured files instead, the credential-broker test still asserting all six rows, and `tools/test_guide_typed_asides.py` passes with the emptied collections.
 - **Done when:** the next `repair-plan` holds no `captured-entry-drop` operation, the dispatch comparison shows identical `ready`, `active`, `blocked` and `decision`, and the three suites pass.
 
 ### T7: Records after the run
@@ -134,8 +134,8 @@ Owned by: T4
 
 - **Depends on:** T1, T2, T3, T4, T5, T6, T7
 - **Verification mode:** goal-based
-- **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/*`, `.claude-plugin/marketplace.json`
-- **Tests:** for AC-0020: `tools/check-core-release.py --base "$(git merge-base HEAD origin/main)"` after `git fetch origin`; the changelog checks; `make lint-ruff lint-mypy`; the dispatched `test-roster.yml` and `test-corpus.yml` runs.
+- **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/*`, `.claude-plugin/marketplace.json`, `packs/core/.apm/skills/workspace-status/evals/evals.json`, `packs/core/.apm/skills/work-intake/evals/evals.json`
+- **Tests:** for AC-0020: one `workspace-status` eval case each for `captured-entry-drop` and `refresh-policy-move`, and one `work-intake` eval case for refresh reading `.work-intake.toml`, with the eval schema suites; `tools/check-core-release.py --base "$(git merge-base HEAD origin/main)"` after `git fetch origin`; the changelog checks; `make lint-ruff lint-mypy`; the dispatched `test-roster.yml` and `test-corpus.yml` runs.
 - **Done when:** each passes.
 
 ## Rollout
