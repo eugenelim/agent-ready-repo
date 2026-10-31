@@ -1393,9 +1393,9 @@ def test_provenance_and_heat_rules_use_no_state_colour_roles() -> None:
 
 def test_heat_ramp_is_as_specified_and_distinct() -> None:
     expected = {
-        "low": ("var(--c-bg)", "\\2582"),
-        "medium": ("var(--c-raised)", "\\2584"),
-        "high": ("var(--c-rule)", "\\2586"),
+        "low": ("var(--c-bg)", "\\25D4"),
+        "medium": ("var(--c-raised)", "\\25D1"),
+        "high": ("var(--c-rule)", "\\25D5"),
         "unknown": ("var(--c-bg)", "?"),
     }
     glyphs = set()
@@ -1414,14 +1414,25 @@ def test_heat_cells_keep_glyph_and_word_on_one_line() -> None:
         assert declared(f".heat-{level}", "white-space") == ["nowrap"], level
 
 
-def test_no_rule_for_a_heat_class_declares_a_border_or_outline() -> None:
+def test_heat_cells_have_only_the_background_coloured_edge_and_no_outline() -> None:
+    allowed = {"border-right-width", "border-right-style", "border-right-color", "border-bottom-color"}
     seen = 0
     for _, selector, decls in layout_rules():
         if "heat-" in selector:
             seen += 1
             for prop, _value in decls:
-                assert not prop.startswith(("border", "outline")), (selector, prop)
+                if prop.startswith(("border", "outline")):
+                    assert prop in allowed and selector == ".heat-medium, .heat-high", (selector, prop)
     assert seen >= 8
+    for prop, value in (
+        ("border-right-width", "1px"),
+        ("border-right-style", "solid"),
+        ("border-right-color", "var(--c-bg)"),
+        ("border-bottom-color", "var(--c-bg)"),
+    ):
+        assert declared(".heat-medium", prop) == [value] == declared(".heat-high", prop)
+    assert not declared(".heat-low", "border-right-color")
+    assert not declared(".heat-unknown", "border-right-color")
 
 
 def test_heat_glyphs_match_no_evidence_or_state_glyph() -> None:

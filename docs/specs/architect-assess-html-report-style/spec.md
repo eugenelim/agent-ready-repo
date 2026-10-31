@@ -115,8 +115,8 @@ A maintainer who opens an assessment report meets the same page family as the `n
 - [x] Each `Sources checked` row's evidence class renders as a `span` with classes `mark` and `ev-observed`, `ev-inferred`, `ev-reported`, or `ev-unknown`, holding the cell's text.
 - [x] `report.css` gives each `ev-` class a `content: none` declaration followed by a `::before` `content` of its own bar glyph (▮▮▮, ▮▮▯, ▮▯▯, ▯▯▯) with an empty alternative text, a `var(--c-bg)` background, and a `var(--c-rule-strong)` border.
 - [x] No `ev-` or `heat-` rule in `report.css` uses `--c-bad`, `--c-warn`, `--c-ok`, `--c-active`, or `--c-accent`.
-- [x] `report.css` gives `heat-low` a `var(--c-bg)` background, `heat-medium` a `var(--c-raised)` background, `heat-high` a `var(--c-rule)` background, and `heat-unknown` a `var(--c-bg)` background with italic text, and none of the four a border.
-- [x] `report.css` gives each heat class a `content: none` declaration followed by a `::before` `content` of its own level glyph (▂ for low, ▄ for medium, ▆ for high, ? for unknown) with an empty alternative text.
+- [x] `report.css` gives `heat-low` a `var(--c-bg)` background, `heat-medium` a `var(--c-raised)` background, `heat-high` a `var(--c-rule)` background, and `heat-unknown` a `var(--c-bg)` background with italic text, and gives `heat-medium` and `heat-high` a one-pixel right border and a bottom border colour of `var(--c-bg)` and no heat class any other `border` or `outline` property.
+- [x] `report.css` gives each heat class a `content: none` declaration followed by a `::before` `content` of its own level glyph (◔ for low, ◑ for medium, ◕ for high, ? for unknown) with an empty alternative text.
 - [x] No heat glyph appears in any evidence glyph (▮ ▯) or in any of the family's eight state glyphs (● ▶ ◆ ◇ ■ ✕ △ ✓).
 - [x] The text colour reaches a contrast ratio of at least 4.5:1 on each of the four heat backgrounds in the light and in the dark theme, computed from the stylesheet's token values.
 - [x] `report.css` gives `.question-link` and `.skip-link` `display: inline-flex`, `align-items: center`, and a `min-height` of `var(--target)`.
@@ -166,7 +166,6 @@ A maintainer who opens an assessment report meets the same page family as the `n
 
 ## Assumptions
 
-- Technical: a `heat-high` cell's fill equals the row rule colour, so its bottom rule blends into the fill; the level glyph carries the level — whether that is acceptable (settled by: the owner, after the first look).
 - Technical: document-density type sizes from the token file are set in the layout file as literals because the shared base carries only worklist density — whether the base should gain a document-density variant in every copy (settled by: the owner, as a follow-on).
 - Product: the layout file reads colour roles through `var(--c-` where the family's list-and-detail layouts do not — whether to keep that rule or move the table and heat colours into the shared base (settled by: the owner; the token file records the rule).
 - Technical: diagrams in the fixture appear as labeled source blocks because drawing them is the open decision in `notes/diagram-rendering-decision.md` — whether and how the style slice should later draw them (settled by: the owner, in a later spec).
