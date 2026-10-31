@@ -38,11 +38,14 @@ Copy the family stylesheet into `scripts/report_assets/` beside the renderer, ad
 
 - Stylesheet text is read at run time from `scripts/report_assets/` by the confined helper (family placement, beside the script), so the parity tool can byte-check the copy. `render(source, effort_name, today, css=None)` takes the joined text; `None` loads it, and `main` loads it first so an asset failure exits 3 before any render. Owned by: T1.
 - An asset is refused before inlining when missing, over 64 KiB, not UTF-8, or holding `</style`, `<!--`, `url(`, or `@import` case-insensitively, each with its own fixed token. Owned by: T1.
-- The page is a document view per the token file: tracks of one column below 64rem, margin plus a 68ch text column to 100rem, and margin, text, and a sticky 16rem contents rail from 100rem. Below 100rem the contents list sits above the text as a row of links. Section heads are margin heads, inline above the section below 64rem. Document-density type sizes are set in the layout file as literals. Owned by: T3.
-- Source order is skip link, header, nav, main, so a keyboard user reaches the skip link first and the content before the rail's links only by choice. Owned by: T2.
+- The page is a document view per the token file: tracks of one column below 64rem, margin plus a 68ch text column to 100rem, and margin, text, and a sticky 16rem contents rail from 100rem. Below 100rem the contents control is the closed `details` above the text. Section heads are margin heads, inline above the section below 64rem. Document-density type sizes are set in the layout file as literals. Owned by: T3.
+- Source order is skip link, header, nav, main; the skip link targets `main#report`, and `report` is reserved in the slug set so no heading can take it. Owned by: T2.
+- The rail is one `nav` holding a closed `details` list for narrow widths and a `ul.rail-wide` of the same links for wide ones, because `open` cannot be set by width without script; the layout file shows one and hides the other at 100rem. Owned by: T2, T3.
+- A section carries its heading's id and its `h2` carries none, so a followed rail link makes `.doc-section:target` match. Owned by: T2.
+- Rail link text and a table wrapper's label come from one plain-text reduction of the heading's Markdown. Owned by: T2.
 - A rail heading is a non-title heading at level 1 or 2, or an orientation heading at any level; one that is both gets one link. Link text is the heading's escaped plain text, never `_inline` output, so no anchor nests in an anchor. Owned by: T2.
 - Sections start at every non-title level-1 or level-2 heading, matching `_scopes`; blocks before the first start a leading section with no margin head. Owned by: T2.
-- Provenance marks reuse the base's neutral `.mark` pill; the glyphs are bars (▮▮▮, ▮▮▯, ▮▯▯, ▯▯▯) that share no shape with the family's eight state glyphs and carry empty alternative text. Heat cells use a neutral ramp of canvas, raised, rule, and no fill with italic for unknown, never the ok, warn, bad, active, or accent roles. Owned by: T3.
+- Provenance marks reuse the base's `.mark` pill with a `--c-bg` fill and a `--c-rule-strong` outline; the glyphs are bars (▮▮▮, ▮▮▯, ▮▯▯, ▯▯▯) that share no shape with the family's eight state glyphs and carry empty alternative text. Heat cells use a ramp of surface, canvas, and raised fills with a left border that thickens from none to 2px to 4px, and a dashed border with italic for unknown, never the ok, warn, bad, active, or accent roles; the tables sit on the `--c-bg` surface. Owned by: T3.
 - Colour contrast of each heat tint is computed in a test from the stylesheet's own token values for both themes. Owned by: T3.
 - The snapshot line counts `Sources checked` rows by evidence class from the parsed tables. Owned by: T2.
 
@@ -61,7 +64,7 @@ Done when: the T1 tests pass.
 Depends on: T1
 Verification mode: TDD
 Touches: `scripts/render_html.py`, the test file, `packs/architect/tests/skills/architect-assess/testdata/html-style-sample.md`
-Tests: the skip link first; the header, `page-title`, and snapshot line with its counts; `alert` and `note` classes beside the existing banner and notice classes; the rail links in source order with `#` hrefs, plain-text link text for a heading holding a Markdown link, one link for a heading that is both rail kinds, and `rail-sub`; the `doc-section` structure including a level-1 non-title heading and blocks before the first section; marks as `span.mark.ev-*`; `div.table-scroll` with its three attributes; `part-head`; the element and attribute lists in full, in present tense; the existing banner, evidence, and heat tests updated to the new markup.
+Tests: the skip link first and its `#report` target never taken by a heading slug; the header, `page-title`, and the `meta` paragraph with the effort name, date, version, the `Confirmed` or `Unconfirmed` mark, and the exact `Sources:` count text over labeled orientation tables only; `alert` and `note` classes beside the existing banner and notice classes; the nav with `details` and `summary` text and the `rail-wide` list; rail links in source order with `#` hrefs, the plain-text reduction (`See [docs](https://x)` to `See docs`), one link for a heading that is both rail kinds, and `rail-sub`; sections carrying their heading's id with an id-less `margin-head`, a level-1 non-title heading starting a section, the leading section present and absent; marks as `span.mark.ev-*`; `div.table-scroll` with its attributes and the nearest-heading label; `part-head`; the element and attribute lists in full; `RENDERER_VERSION` equal to `2`; the existing banner, evidence, and heat tests updated to the new markup.
 Done when: the T2 tests pass.
 
 ### T3 — Layout file
@@ -69,7 +72,7 @@ Done when: the T2 tests pass.
 Depends on: T2
 Verification mode: TDD
 Touches: `scripts/report_assets/report.css`, the test file
-Tests: the layout-file rule check over the file's declarations; the spacing rule; the four `::before` glyphs with empty alternative text and a fallback; no forbidden role in an `ev-` or `heat-` rule; four distinct heat backgrounds; the contrast computation in both themes; `.table-scroll` overflow; `min-height: var(--target)` on the rail and skip links; the track breakpoints and the sticky rail; the `:target` bar; the print block; `overflow-wrap` on the title; header-mark display, pill padding, table and `pre` box rules, and the rail indent.
+Tests: the layout-file rule check over every declaration; the spacing-property rule; the document-density literals; the header mark, pill padding, indent, table, and `pre` rules; the four `::before` glyphs with `content: none` before them and empty alternative text, the fill, and the outline; no forbidden role in an `ev-` or `heat-` rule; the four heat fills and borders as named; the contrast computation in both themes; `.table-scroll` overflow; `inline-flex`, `align-items`, and `min-height` on the rail and skip links; the skip link shown on focus; the breakpoints, the details and wide-list switch, and the sticky rail with its `max-height`; the `:target` border; the print block; `overflow-wrap` on the title.
 Done when: the T3 tests pass and the parity tool still exits 0.
 
 ### T4 — Docs, token file, parent amendment, eval, release
@@ -77,7 +80,7 @@ Done when: the T3 tests pass and the parity tool still exits 0.
 Depends on: T3
 Verification mode: goal-based
 Touches: `references/html-report.md`, `guides/architect/reference/architecture-assessment.md`, `docs/design/tokens/skill-html-views.md`, `docs/specs/architect-assess-html-report/spec.md`, `evals/evals.json`, `packs/architect/pack.toml`, `packs/architect/.claude-plugin/plugin.json`, a `tools/changelog.py new` fragment
-Tests: grep for the style and the rail in both docs; the token file states the colour rule, the marks, and the ramp; the parent's two list criteria cite this spec; the eval assertion exists; version parity and above `origin/main`; `tools/changelog.py validate`.
+Tests: grep for the style and the rail in both docs; the exit 3 row names the four asset refusals; the token file states the colour rule, the marks and their ranking, the ramp, the density literals, and the adopter; the parent's two list criteria cite this spec; the eval assertion exists; version parity and above `origin/main`; `tools/changelog.py validate`.
 Done when: the T4 tests pass, `FORCE=1 make build-self` leaves only the expected projection diff, and the lint gate passes.
 
 ### T5 — Browser QA and design review
@@ -85,7 +88,7 @@ Done when: the T4 tests pass, `FORCE=1 make build-self` leaves only the expected
 Depends on: T4
 Verification mode: manual QA
 Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`
-Tests: render the sample fixture, open it at 320, 1280, and 2560 CSS px in light and dark, read the screenshots, then run `design-review` and `experience-reviewer` over the 1280 light and 320 dark shots and adjudicate.
+Tests: render the sample fixture and open it at 320 by 640, 1280 by 800, 1680, and 2560 CSS px in light and dark; read the first-screen, scrolled-rail, and first-Tab screenshots; then run `design-review` and `experience-reviewer` over the 1280 light, 1680 light, and 320 dark shots and adjudicate.
 Done when: the observations and review results are in the ledger.
 
 ## Review
