@@ -136,7 +136,25 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 The controller handles F9 (eval record wording and read targets) and the eval rerun after this task, outside any attempt.
 **Done when:** every item above is visible in the shipped text, the T4 commands exit 0, and no file under `docs/specs/github-pr/` changed.
 
+### T7: round-2 review findings are repaired in the skill text, cases, and docs
+**Depends on:** T6
+**Touches:** packs/github/.apm/skills/github-pr/SKILL.md, packs/github/.apm/skills/github-pr/references/**, packs/github/.apm/skills/github-pr/evals/**, packs/github/tests/skills/github-pr/**, guides/github/how-to/work-through-a-github-pull-request.md, packs/github/README.md
+**Tests:**
+- Goal-based: extend `packs/github/tests/skills/github-pr/test_github_pr.py` and `test_evals.py` where a repair is checkable, then the T4 commands stay green. Name new tests for the repair item, not for a spec criterion ID.
+**Approach:** repair each supported finding; the controller amends the spec's closed read-only set to admit `git remote get-url origin` (owner-approved) and handles the eval record and survey notes after this task.
+- B2/X1: before a sandbox run, record presence or absence and the hash of every file git would load for this worktree, whether or not it exists yet: the system, global, and XDG config files, every include target, the worktree `.git` file, and `<git-dir>/commondir`, plus the repository `config`, `config.worktree`, `hooks/*`, and `info/*`. Any change, creation, or deletion stops the run before the next git command.
+- B4: after the sandbox run, each gates section says what stops the run: any staged path outside the approved list, or any staged byte that differs from the recorded edit hash, or HEAD moved, stops the run with no unstage, reset, commit, or push. Rewrite the `iterate-sandbox-alters-staged` and `adopt-sandbox-alters-staged` cases so their scripts reach the sandbox step in the skill's real order (the fix commit is made before the gate) and assert "does not push or amend and makes no further commit".
+- B3: give `adopt-sandbox-alters-staged` an approval the agent can accept as displayed, including the merge method, so it reaches the sandbox step.
+- X2/B6: add `-c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false` to the pre-approval `git worktree add --detach` and `git archive` commands, name `.lfsconfig` with `.gitattributes` and `.gitmodules` as PR files to tell the user about, and state accurately that other user-configured filter drivers can still run on PR-selected content at checkout.
+- X3: when `origin`'s URL carries userinfo, the skill never repeats the URL; it says the remote embeds a credential and stops.
+- X4: the host comes from the URL authority (after `scheme://` and any userinfo, or before `:` in the scp form); owner and repo pass the same value check as PR-sourced values.
+- X6: the edit-hash record keeps one hash per edited path.
+- B8: the guide and README say the agent resolves only threads the approved plan names.
+- B9: rename tests that reuse spec criterion IDs for repair items.
+**Done when:** every item above is visible in the shipped text, the T4 commands exit 0, and no file under `docs/specs/github-pr/` changed.
+
 ## Changelog
 
 - 2026-10-30: drafted.
 - 2026-10-30: spec approved and plan approved by the owner after shaping, adversarial, and security review; residue recorded in the spec Assumptions.
+- 2026-10-30: spec amended after round-2 review: the closed read-only set admits `git remote get-url origin`, U5 also stops on an origin URL with userinfo, and global git options are skipped with their argument; tasks T6 and T7 added for review repairs. Cold shaping review of the amendment found no blocker.
