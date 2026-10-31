@@ -15,6 +15,7 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -25,7 +26,7 @@ import shutil
 import stat
 import sys
 import tempfile
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -33,6 +34,7 @@ from types import ModuleType
 
 __all__ = [
     "Commit",
+    "append_note",
     "PRODUCT_REF_RE",
     "ProductRecord",
     "set_update_hook",
@@ -51,8 +53,11 @@ _MAX_MADE_BYTES = 16 * 1024 * 1024
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _COMMIT_ID_RE = re.compile(r"[0-9a-f]{40,64}")
 PRODUCT_REF_RE = re.compile(r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/product")
+_VOID_REF_RE = re.compile(r"refs/agentbundle/delivery/run-[0-9a-f]{16}/voided")
 _PRODUCT_FILE = "product-ref"
 _PENDING_FILE = "pending-commit"
+_VOID_FILE = "pending-void"
+_VOID_ANY = "*"
 _SYMREF_RE = re.compile(r"ref: (\S+)\s*")
 
 _KILL_HOOK: Callable[[str], None] | None = None
@@ -179,6 +184,14 @@ def ensure_directory(root: Path, relative: str) -> Path:
     return current
 
 
+def append_note(error: BaseException, note: str) -> None:
+    """Show *note* beside the refusal *error* carries, never instead of it."""
+    if hasattr(error, "detail"):
+        error.detail = f"{error.detail}; {note}"
+    elif error.args:
+        error.args = (f"{error.args[0]}; {note}", *error.args[1:])
+
+
 class GitPort:
     """Git plumbing for one repository and one spec directory."""
 
@@ -260,8 +273,11 @@ class GitPort:
         record = self.product_record(run_id)
         return record is not None and self.read_ref(record.name) == ("commit", sha)
 
-    def pending_commit(self, run_id: str) -> str | None:
-        """The commit a step's transaction is moving the refs to, while it is in flight."""
+    def pending_commit(self, run_id: str, *, masked: bool = True) -> str | None:
+        """The commit a step's transaction is moving the refs to, while it is in flight.
+
+        Never honored while the store holds a void mark for it.
+        """
         directory = self._store_dir(run_id)
         path = directory / _PENDING_FILE
         if not os.path.lexists(path):
@@ -272,7 +288,11 @@ class GitPort:
         except fs.UnsafeContentError as exc:
             raise SupervisorGitError("denied-unsafe-path", f"pending-commit: {exc}") from exc
         sha = bytes(data).decode("ascii", "replace").strip()
-        return sha if _COMMIT_ID_RE.fullmatch(sha) else None
+        if not _COMMIT_ID_RE.fullmatch(sha):
+            return None
+        if masked and self._void_covers(run_id, sha):
+            return None
+        return sha
 
     def _write_pending(self, run_id: str, sha: str) -> None:
         directory = self.ensure_store(run_id)
@@ -293,14 +313,157 @@ class GitPort:
         pending = self.pending_commit(run_id)
         if pending is None:
             return
-        if self._ref_names(run_id, pending):
-            if pending not in self._made_entries(run_id):
-                self.record_made(run_id, pending)
-            self.clear_pending(run_id)
+        with self.settle_writes(run_id):
+            if self._ref_names(run_id, pending):
+                if pending not in self._made_entries(run_id):
+                    self.record_made(run_id, pending)
+                self.clear_pending(run_id)
+                return
+            record = self.product_record(run_id)
+            if record is None or record.pending != pending:
+                self.clear_pending(run_id)
+
+    # ── the one guard for run-store writes on a refusal, clear, or settle path ──
+
+    def _void_ref(self, run_id: str) -> str:
+        return f"refs/agentbundle/delivery/{run_id}/voided"
+
+    def voided(self, run_id: str) -> str | None:
+        """The pending commit the store has voided, ``"*"`` for any, or ``None``.
+
+        The mark is a store file; when the store cannot take it, a ref beside the product
+        ref, which Git writes elsewhere. Direct reads only.
+        """
+        path = self._store_dir(run_id) / _VOID_FILE
+        if os.path.lexists(path):
+            fs = sibling("_file_safety.py")
+            try:
+                data = fs.read_confined_regular_file(path.parent, path, max_bytes=256)
+            except (fs.UnsafeContentError, OSError):
+                return _VOID_ANY
+            sha = bytes(data).decode("ascii", "replace").strip()
+            return sha if _COMMIT_ID_RE.fullmatch(sha) else _VOID_ANY
+        kind, value = self.read_ref(self._void_ref(run_id))
+        if kind == "commit":
+            return value
+        return _VOID_ANY if kind != "missing" else None
+
+    def _void_covers(self, run_id: str, sha: str) -> bool:
+        void = self.voided(run_id)
+        return void is not None and void in (_VOID_ANY, sha)
+
+    def _mark_void(self, run_id: str, sha: str) -> None:
+        """Make the voiding durable before anything else is cleaned up."""
+        try:
+            directory = self.ensure_store(run_id)
+            sibling("_confined_mutation.py").confined_atomic_replace(
+                directory, directory / _VOID_FILE, f"{sha}\n".encode("ascii")
+            )
+        except Exception:  # noqa: BLE001 - fall back to the other medium
+            self.run("update-ref", "--no-deref", "-m", "work-supervisor: void a refused step",
+                     self._void_ref(run_id), sha)
+
+    def _unmark_void(self, run_id: str) -> None:
+        (self._store_dir(run_id) / _VOID_FILE).unlink(missing_ok=True)
+        if self.read_ref(self._void_ref(run_id))[0] != "missing":
+            self.run("update-ref", "--no-deref", "-d", self._void_ref(run_id))
+
+    def void_step(
+        self, run_id: str, sha: str, reset: ProductRecord | None, refusal: BaseException
+    ) -> None:
+        """Void a refused step: mark it, reset the record, clear pending; fail closed.
+
+        The mark goes first and stays until every cleanup has succeeded, so while the
+        store is inconsistent no trust check honors the step's pending value and every
+        verb but ``status`` refuses ``denied-product-record``. A failure never replaces
+        *refusal*: it is shown beside it.
+        """
+        failures: list[BaseException] = []
+        for action in (
+            lambda: self._mark_void(run_id, sha),
+            lambda: reset is not None and self.write_product_record(run_id, reset),
+            lambda: self.clear_pending(run_id),
+        ):
+            try:
+                action()
+            except Exception as failure:  # noqa: BLE001 - noted beside the refusal
+                failures.append(failure)
+        if not failures:
+            try:
+                self._unmark_void(run_id)
+                return
+            except Exception as failure:  # noqa: BLE001 - the next verb removes it
+                failures.append(failure)
+        kinds = ", ".join(sorted({type(f).__name__ for f in failures}))
+        append_note(
+            refusal,
+            f"the run store could not be cleaned up ({kinds}); every verb but status refuses "
+            "denied-product-record until it is repaired",
+        )
+
+    @contextlib.contextmanager
+    def settle_writes(self, run_id: str) -> Generator[None]:
+        """Run store writes that clear or settle a step; a failure refuses, closed.
+
+        The step stays recoverable (its pending value is honored only while the product ref
+        names it), and the next verb settles it again.
+        """
+        try:
+            yield
+        except (SupervisorGitError, KeyboardInterrupt):
+            raise
+        except Exception as failure:
+            if hasattr(failure, "owner"):  # a Refusal passes through
+                raise
+            raise SupervisorGitError(
+                "denied-product-record",
+                f"the run store could not be written ({type(failure).__name__}); make "
+                f"{self._store_dir(run_id)} writable and run any verb: the supervisor settles "
+                "the step it was committing",
+            ) from failure
+
+    def repair_voided(self) -> None:
+        """Before any verb but ``status``: finish the cleanup of a voided step, or refuse.
+
+        A run store of this spec that holds a void mark is repaired from the mark: the
+        voided pending value leaves the product record and the pending file, and the mark
+        goes. When the store still cannot be written, every verb refuses
+        ``denied-product-record`` and names the restore.
+        """
+        base = self.hardened.pins.git_dir / "agentbundle-supervisor"
+        if not base.is_dir():
             return
-        record = self.product_record(run_id)
-        if record is None or record.pending != pending:
-            self.clear_pending(run_id)
+        for entry in sorted(base.iterdir()):
+            if not _RUN_ID_RE.fullmatch(entry.name):
+                continue
+            try:
+                spec = bytes(sibling("_file_safety.py").read_confined_regular_file(
+                    entry, entry / "spec", max_bytes=4096)).decode("utf-8", "replace")
+            except Exception:  # noqa: BLE001 - the entry point already refuses a bad store
+                continue
+            void = self.voided(entry.name) if spec == self.spec_rel else None
+            if void is None:
+                continue
+            try:
+                record = self.product_record(entry.name, masked=False)
+                if record is not None and record.pending is not None and void in (
+                    _VOID_ANY, record.pending
+                ):
+                    self.write_product_record(
+                        entry.name, ProductRecord(record.name, record.recorded, None)
+                    )
+                pending = self.pending_commit(entry.name, masked=False)
+                if pending is not None and void in (_VOID_ANY, pending):
+                    self.clear_pending(entry.name)
+                self._unmark_void(entry.name)
+            except Exception as failure:
+                raise SupervisorGitError(
+                    "denied-product-record",
+                    f"the run store {entry} could not be repaired after a refused step "
+                    f"({type(failure).__name__}); make it writable, then run any verb: the "
+                    f"supervisor clears the voided pending commit {void}. Until then every "
+                    "verb but status refuses",
+                ) from failure
 
     # ── the product ref ─────────────────────────────────────────────────────
 
@@ -311,8 +474,12 @@ class GitPort:
             raise SupervisorGitError("denied-invalid-run-id", "the run id is not a run id")
         return f"refs/agentbundle/delivery/{run_id}/{secrets.token_hex(8)}/product"
 
-    def product_record(self, run_id: str) -> ProductRecord | None:
-        """The run's recorded product ref, or ``None`` when the run has none."""
+    def product_record(self, run_id: str, *, masked: bool = True) -> ProductRecord | None:
+        """The run's recorded product ref, or ``None`` when the run has none.
+
+        A pending value the store has voided (its step was refused) reads as none, so no
+        trust check honors it.
+        """
         directory = self._store_dir(run_id)
         path = directory / _PRODUCT_FILE
         if not os.path.lexists(path):
@@ -340,7 +507,10 @@ class GitPort:
             raise SupervisorGitError(
                 "denied-product-record", "the product ref record is malformed", unverifiable=True
             )
-        return ProductRecord(raw["name"], raw.get("recorded"), raw.get("pending"))
+        pending = raw.get("pending")
+        if masked and pending is not None and self._void_covers(run_id, pending):
+            pending = None
+        return ProductRecord(raw["name"], raw.get("recorded"), pending)
 
     def write_product_record(self, run_id: str, record: ProductRecord) -> None:
         """Replace the run's product ref record atomically, in the confined store."""
@@ -370,7 +540,7 @@ class GitPort:
         ``missing``. A loose ref wins over ``packed-refs``, as in Git. No Git
         process runs.
         """
-        if not PRODUCT_REF_RE.fullmatch(name):
+        if not (PRODUCT_REF_RE.fullmatch(name) or _VOID_REF_RE.fullmatch(name)):
             raise SupervisorGitError("denied-product-record", "not a product ref name")
         fs = sibling("_file_safety.py")
         common = self.hardened.pins.common_dir
@@ -789,25 +959,26 @@ class GitPort:
             "hash-object", "-t", "commit", "-w", "--stdin", stdin=body.encode("utf-8")
         ).strip()
         # Pending until the refs move: a refused or interrupted step is never history.
-        self._write_pending(run_id, new)
+        before = self.product_record(run_id)
+        reset = (
+            ProductRecord(create_ref, None, None)
+            if create_ref is not None
+            else (ProductRecord(before.name, before.recorded, None) if before else None)
+        )
+        with self.settle_writes(run_id):
+            self._write_pending(run_id, new)
         kill_point("commit-built")
         try:
             self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
         except Exception as refusal:
-            try:
-                self.clear_pending(run_id)
-            except Exception as failure:  # noqa: BLE001 - shown beside the refusal, never instead
-                note = f"the pending commit could not be cleared ({type(failure).__name__})"
-                if hasattr(refusal, "detail"):
-                    refusal.detail = f"{refusal.detail}; {note}"
-                elif refusal.args:
-                    refusal.args = (f"{refusal.args[0]}; {note}", *refusal.args[1:])
+            self.void_step(run_id, new, reset, refusal)
             raise
         kill_point("refs-moved")
-        self._settle_record(run_id, new)
-        if new not in self._made_entries(run_id):
-            self.record_made(run_id, new)
-        self.clear_pending(run_id)
+        with self.settle_writes(run_id):
+            self._settle_record(run_id, new)
+            if new not in self._made_entries(run_id):
+                self.record_made(run_id, new)
+            self.clear_pending(run_id)
         kill_point("made-recorded")
         self.write_delivery(appended)
         self.refresh_index(path_list + sorted(exact) + sorted(appended))
@@ -844,12 +1015,12 @@ class GitPort:
                         "HEAD and the product ref are not reconciled; run next",
                     )
                 expected = product_old if adopting else (source or recorded)
-            self.write_product_record(run_id, ProductRecord(name, recorded, new))
+            with self.settle_writes(run_id):
+                self.write_product_record(run_id, ProductRecord(name, recorded, new))
             kill_point("pending-recorded")
             try:
                 self.update_refs(new, old, name, expected)
             except SupervisorGitError as exc:
-                self.write_product_record(run_id, ProductRecord(name, recorded, None))
                 self._diagnose(exc, name, expected, recorded)
                 raise
         finally:

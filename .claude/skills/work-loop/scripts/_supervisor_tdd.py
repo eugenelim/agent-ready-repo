@@ -299,7 +299,12 @@ def _commit_result(ws: Any, request: dict[str, Any], **step: Any) -> None:
         )
     except Refusal as exc:
         if exc.code == "integration-conflict":
-            ws.attempts.mark_stale_if_landed()
+            try:
+                ws.attempts.mark_stale_if_landed()
+            except Exception as failure:  # noqa: BLE001 - shown beside the refusal, never instead
+                _loop._commit.append_note(
+                    exc, f"the attempt could not be marked stale ({type(failure).__name__})"
+                )
         raise
 
 

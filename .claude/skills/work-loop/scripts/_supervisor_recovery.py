@@ -526,12 +526,14 @@ def _create(ws: Any, run_id: str, head: str) -> Any:
         anchor = latest or _latest_made(ws, run_id, clean=False)
         return None if anchor is None else _divergence(ws, head, anchor)
     record = _commit.ProductRecord(git.new_product_name(run_id), None, latest)
-    git.write_product_record(run_id, record)
+    with git.settle_writes(run_id):
+        git.write_product_record(run_id, record)
     _commit.kill_point("pending-recorded")
     git.create_ref(record.name, latest)
     _commit.kill_point("repaired")
     done = _commit.ProductRecord(record.name, latest, None)
-    git.write_product_record(run_id, done)
+    with git.settle_writes(run_id):
+        git.write_product_record(run_id, done)
     return done
 
 
@@ -548,7 +550,8 @@ def _complete(ws: Any, run_id: str, record: Any, value: str, head: str) -> Any:
         git.move_head(value, head, "work-supervisor: complete step")
     _commit.kill_point("repaired")
     done = _commit.ProductRecord(record.name, value, None)
-    git.write_product_record(run_id, done)
+    with git.settle_writes(run_id):
+        git.write_product_record(run_id, done)
     return done
 
 
@@ -623,6 +626,14 @@ def inspect(ws: Any) -> Any:
     if not approvals:
         return None
     git = ws.git
+    if git.voided(approvals[0]["run_id"]) is not None:
+        return Refusal(
+            "denied-product-record",
+            "controller",
+            "a refused step left the run store inconsistent: its voided pending commit is "
+            "still recorded. Make the run store writable and run any verb but status; the "
+            "supervisor then clears it. Until then every verb but status refuses",
+        )
     record = git.product_record(approvals[0]["run_id"])
     if record is None:
         return None
@@ -765,6 +776,13 @@ def adoption_action(ws: Any, state: Any, div: Divergence) -> Any:
     where = "and would change files in the spec directory" if div.spec_dir_changed else (
         "and would change no file in the spec directory"
     )
+    exit_ = (
+        f"Adoption will be refused because this history changes files under delivery/; reset "
+        f"HEAD to the run's last commit {div.anchor}."
+        if div.delivery_changed
+        else f"Or reset HEAD to the run's last commit {div.anchor}; that also ends this "
+        "decision when a crashed supervisor step moved HEAD."
+    )
     return Action(
         "request",
         _loop.human_decision(
@@ -774,7 +792,7 @@ def adoption_action(ws: Any, state: Any, div: Divergence) -> Any:
             f"HEAD is {div.head}, which holds history this run did not make. Adopting it "
             f"changes {len(div.paths)} product path(s) from the run's product ref "
             f"({', '.join(shown)[:1200] or 'none'}) {where}. Answer adopt-history with an owner "
-            "authority reference and that commit id, or restore HEAD to the run's last commit.",
+            f"authority reference and that commit id. {exit_}",
             key=div.head,
             head_commit=div.head,
             changed_path_count=len(div.paths),

@@ -896,6 +896,9 @@ def test_a_refused_commit_never_anchors_a_ref_less_run(tmp_path: Path) -> None:
 @pytest.mark.parametrize("ref_less", [False, True])
 @pytest.mark.parametrize("point", ["refs-moved", "made-recorded", "pending-recorded"])
 def test_a_crash_around_the_move_converges(tmp_path: Path, ref_less: bool, point: str) -> None:
+    """A recorded run always converges. A ref-less run killed after its transaction moved
+    HEAD and before the commit was recorded has no proof the step landed, so it ends in the
+    owner's history-adoption decision (see the answering tests below)."""
     repo = started(tmp_path)
     advance(repo, controller(repo, tmp_path), calc_implement)
     if ref_less:
@@ -965,9 +968,202 @@ def test_a_failure_to_clear_a_refused_step_keeps_the_refusal_and_never_makes_it(
         h.commit_module.set_update_hook(None)
         monkeypatch.undo()
     assert caught.value.code == "denied-git-failed"  # the original refusal, not the OSError
-    assert "could not be cleared" in str(caught.value)
+    assert "could not be cleaned up" in str(caught.value)
     refused = (store_dir(repo) / "pending-commit").read_text("utf-8").strip()  # it stays pending
     h.git(repo, "update-ref", "refs/heads/main", refused)  # the worker adopts it
     assert refused not in h.workspace(repo).git.made_commits(run_id)
     assert next_ok(repo)["request"]["reason"] == "history-adoption"
     assert refused not in (store_dir(repo) / "made-commits").read_text("utf-8")
+
+
+# ── VI-0520: AC-0023, a store write on a refusal or settle path fails closed ─
+
+
+def _store_failures(monkeypatch: pytest.MonkeyPatch, site: str) -> None:
+    port = h.commit_module.GitPort
+    if site == "reset":
+        original = port.write_product_record
+
+        def reset_fails(self: Any, run: str, rec: Any) -> None:
+            if rec.pending is None:
+                raise OSError("the store is read-only")
+            original(self, run, rec)
+
+        monkeypatch.setattr(port, "write_product_record", reset_fails)
+    elif site == "clear":
+        def clear_fails(self: Any, run: str) -> None:
+            raise OSError("the store is read-only")
+
+        monkeypatch.setattr(port, "clear_pending", clear_fails)
+    else:  # every store write fails: the void mark falls back to the other medium
+        def nothing_writes(*args: Any, **kwargs: Any) -> None:
+            raise OSError("the store is read-only")
+
+        monkeypatch.setattr(h.commit_module.sibling("_confined_mutation.py"),
+                            "confined_atomic_replace", nothing_writes)
+        monkeypatch.setattr(port, "clear_pending", nothing_writes)
+
+
+@pytest.mark.parametrize("site", ["reset", "clear", "everything"])
+def test_a_store_write_that_fails_after_a_refusal_closes_every_verb(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, site: str
+) -> None:
+    repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+    base, name = rev(repo, "HEAD"), ref_name(repo)
+    recorded = record(repo)["recorded"]
+    tree = h.git(repo, "rev-parse", "HEAD^{tree}").strip()
+    other = h.git(repo, "commit-tree", tree, "-p", base, "-m", "a racing commit").strip()
+    pending: list[str] = []
+
+    def race() -> None:
+        # The pending record is down; the race refuses the step, and its cleanup then fails.
+        pending.append((store_dir(repo) / "pending-commit").read_text("utf-8").strip())
+        h.git(repo, "update-ref", "refs/heads/main", other)
+        _store_failures(monkeypatch, site)
+
+    h.commit_module.set_update_hook(race)
+    try:
+        with pytest.raises(h.commit_module.SupervisorGitError) as caught:
+            ws.git.build_commit(run_id=run_id, step="refused-step", operation="evidence",
+                                summary="refused")
+    finally:
+        h.commit_module.set_update_hook(None)
+    refused = pending[0]
+    assert caught.value.code == "denied-git-failed", "the refusal's own code is kept"
+    assert "could not be cleaned up" in str(caught.value)
+    # The race is undone, and a worker forges the product ref to the refused commit.
+    h.git(repo, "update-ref", "refs/heads/main", base)
+    h.git(repo, "update-ref", name, refused)
+    # While the store is inconsistent no trust check honors the voided pending commit.
+    git = h.workspace(repo).git
+    assert refused not in git.made_commits(run_id)
+    assert git.product_ref_view(git.product_record(run_id))[2] is False
+    for argv in (("next", h.SPEC_DIR), ("start", h.SPEC_DIR, "--intent", "code", "--code-trust",
+                 "trusted", "--authority-ref", OWNER, "--review-authority-ref",
+                 "plan-reviewer:0123456789ab")):
+        code, out = h.run_cli(repo, *argv)
+        assert code == 1 and out["refusal"]["code"] == "denied-product-record", out
+        assert out["refusal"]["owner"] == "controller"
+        assert "writable" in out["refusal"]["detail"]
+    status_code, status = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    assert status_code == 0 and status["refusal"]["code"] == "denied-product-record", status
+    # Nothing counted as made or moved either ref in between.
+    assert refused not in (store_dir(repo) / "made-commits").read_text("utf-8")
+    assert rev(repo, "HEAD") == base and rev(repo, name) == refused
+    # Once the store is writable the next verb repairs it, and the forged ref is untrusted.
+    monkeypatch.undo()
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 1 and out["refusal"]["code"] == "product-ref-diverged", out
+    assert recorded in out["refusal"]["detail"]
+    assert refused not in (store_dir(repo) / "made-commits").read_text("utf-8")
+    run_printed_restore(repo, out["refusal"]["detail"])
+    assert "request" in next_ok(repo)
+    assert not (store_dir(repo) / "pending-void").exists()
+    assert not git_ok(repo, "for-each-ref", "refs/agentbundle/delivery/*/voided").stdout.strip()
+
+
+def test_a_failed_made_append_closes_every_verb_then_converges(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+
+    def append_fails(self: Any, run: str, sha: str) -> None:
+        raise OSError("the store is read-only")
+
+    monkeypatch.setattr(h.commit_module.GitPort, "record_made", append_fails)
+    with pytest.raises(h.commit_module.SupervisorGitError) as caught:
+        ws.git.build_commit(run_id=run_id, step="landed-step", operation="evidence",
+                            summary="landed, then the store failed")
+    assert caught.value.code == "denied-product-record"
+    landed = rev(repo, "HEAD")
+    assert rev(repo, ref_name(repo)) == landed  # the step landed; only its record did not
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 1 and out["refusal"]["code"] == "denied-product-record", out
+    assert landed not in (store_dir(repo) / "made-commits").read_text("utf-8")
+    monkeypatch.undo()
+    assert "request" in next_ok(repo)  # the next verb settles it
+    assert landed in (store_dir(repo) / "made-commits").read_text("utf-8")
+    assert not (store_dir(repo) / "pending-commit").exists()
+
+
+# ── a run with no recorded product ref, killed past its own move ────────────
+
+
+def _ref_less_crash(tmp_path: Path, *, attempt_open: bool) -> tuple[Path, Any, Any, str, str]:
+    """Kill a ref-less run's step right after its transaction moved HEAD, before it was recorded.
+
+    Such a run has no proof the step landed, so HEAD at that commit is history the
+    supervisor did not record: the owner's decision, or residue while an attempt is open.
+    """
+    repo = started(tmp_path)
+    ctl = controller(repo, tmp_path)
+    if attempt_open:
+        request = advance(repo, ctl, calc_implement, after=False)
+    else:
+        advance(repo, ctl, calc_implement)
+        request = None
+    make_legacy(repo)
+    before = rev(repo, "HEAD")
+    result = ctl.work(request) if request is not None else None
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+
+    def hook(name: str) -> None:
+        if name == "refs-moved":
+            raise h.Crash(name)
+
+    h.commit_module.set_kill_hook(hook)
+    try:
+        with pytest.raises(h.Crash):
+            if result is not None:
+                ctl.report(result)
+            else:
+                ws.git.build_commit(run_id=run_id, step="cut-off", operation="evidence",
+                                    summary="cut off")
+    finally:
+        h.commit_module.set_kill_hook(None)
+    assert rev(repo, "HEAD") != before
+    return repo, ctl, result, before, request["request_id"] if request else ""
+
+
+def test_a_ref_less_crash_with_no_attempt_ends_in_the_decision_and_answering_converges(
+    tmp_path: Path,
+) -> None:
+    repo, ctl, _result, before, _ = _ref_less_crash(tmp_path, attempt_open=False)
+    moved = rev(repo, "HEAD")
+    request = next_ok(repo)["request"]
+    assert request["reason"] == "history-adoption" and request["head_commit"] == moved
+    assert before in request["question"] and "reset HEAD" in request["question"]
+    code, admitted = ctl.report(decision_result(request, moved))
+    assert code == 0, admitted
+    assert controller(repo, tmp_path).drive().get("terminal")
+
+
+def test_a_ref_less_crash_with_an_attempt_open_ends_in_residue_and_resetting_converges(
+    tmp_path: Path,
+) -> None:
+    repo, ctl, result, before, request_id = _ref_less_crash(tmp_path, attempt_open=True)
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    assert before in out["refusal"]["detail"] and "move it back" in out["refusal"]["detail"]
+    h.git(repo, "update-ref", "refs/heads/main", before)  # the exit the detail names
+    again = next_ok(repo)["request"]
+    assert again["request_id"] == request_id
+    code, admitted = ctl.report(result)
+    assert code == 0, admitted
+
+
+def test_the_decision_for_foreign_delivery_history_names_the_reset_exit(tmp_path: Path) -> None:
+    repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    make_legacy(repo)
+    anchor = rev(repo, "HEAD")
+    foreign_commit(repo, f"{h.SPEC_DIR}/delivery/review-decisions.jsonl", "{}\n")
+    request = next_ok(repo)["request"]
+    assert "refused because" in request["question"] and f"reset HEAD to the run's last commit {anchor}" in request["question"]

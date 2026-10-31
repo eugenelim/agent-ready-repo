@@ -630,13 +630,18 @@ class Attempts:
         """
         self.open = None
         self._manifest = None
+        # A refused step whose cleanup could not finish is repaired, or every verb refuses.
+        self.ws.git.repair_voided()
         for issuance in self._latest():
             if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
                 continue
             paths = self._paths(issuance)
             if issuance.refused:
                 if paths:
-                    raise _refusal("attempt-residue", self._detail(paths, standing=True))
+                    raise _refusal(
+                        "attempt-residue",
+                        self._detail(paths, standing=True, head=issuance.head),
+                    )
                 if verb == "next":
                     self._mark(issuance, ".cleared")
                     continue
@@ -676,17 +681,25 @@ class Attempts:
                 continue
             paths = self._paths(issuance)
             if paths:
-                return _refusal("attempt-residue", self._detail(paths, standing=issuance.refused))
+                return _refusal(
+                    "attempt-residue",
+                    self._detail(paths, standing=issuance.refused, head=issuance.head),
+                )
         return None
 
     @staticmethod
-    def _detail(paths: list[str], *, standing: bool) -> str:
-        head = (
+    def _detail(paths: list[str], *, standing: bool, head: str = "") -> str:
+        lead = (
             "a refused attempt still differs from its manifest"
             if standing
             else ("the attempt differs from its manifest")
         )
-        return f"{head}: {_named(paths)}; restore these paths"
+        exit_ = (
+            f"; to restore HEAD, move it back to {head}, the commit the attempt was issued at"
+            if head and "HEAD" in paths
+            else ""
+        )
+        return f"{lead}: {_named(paths)}; restore these paths{exit_}"
 
     def _refuse(self, issuance: Issuance, paths: list[str], verb: str) -> None:
         """Record the refusal in the store, log it, and refuse."""
@@ -694,7 +707,7 @@ class Attempts:
         self._mark(issuance, ".refused.json", json.dumps(record, sort_keys=True).encode())
         code = "attempt-refused" if verb == "report" else "attempt-residue"
         self.log_denial(code)
-        raise _refusal(code, self._detail(paths, standing=False))
+        raise _refusal(code, self._detail(paths, standing=False, head=issuance.head))
 
     def log_denial(self, reason: str, event_type: str = "supervisor-attempt-check") -> None:
         """Write one ``security-event.v1`` denial; the refusal stands even if it is not stored."""
