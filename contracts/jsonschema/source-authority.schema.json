@@ -127,11 +127,16 @@
     "localReceipt": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["update_id", "artifact_digest", "workspace_digest", "status", "recorded_at"],
+      "required": ["update_id", "artifact_digest", "status", "recorded_at"],
+      "oneOf": [
+        {"required": ["workspace_digest"], "not": {"required": ["policy_digest"]}},
+        {"required": ["policy_digest"], "not": {"required": ["workspace_digest"]}}
+      ],
       "properties": {
         "update_id": {"$ref": "#/$defs/shortString"},
         "artifact_digest": {"$ref": "#/$defs/digest"},
         "workspace_digest": {"$ref": "#/$defs/digest"},
+        "policy_digest": {"$ref": "#/$defs/digest"},
         "status": {"enum": ["pending", "failed", "committed"]},
         "recorded_at": {"$ref": "#/$defs/timestamp"}
       }
