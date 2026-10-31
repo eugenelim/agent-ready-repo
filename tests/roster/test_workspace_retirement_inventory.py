@@ -2,7 +2,7 @@
 """Inventory rules for the workspace retirement record (spec workspace-retirement).
 
 ``check_repository`` applies the spec's inventory rules (AC-0001 to AC-0009,
-AC-0019, AC-0021) to a repository root and returns every violation tagged with
+AC-0019, AC-0021, AC-0029) to a repository root and returns every violation tagged with
 its criterion. ``check_record`` applies the record rules (AC-0010 to AC-0016,
 AC-0023 to AC-0028),
 and ``workflow_wiring_violations`` checks that build-check runs this file on
@@ -317,6 +317,14 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
                         "AC-0003",
                         label(i),
                         f"owner {owner!r} is neither `none` nor a brief slice number",
+                    )
+                )
+            elif owner != max(slices):
+                violations.append(
+                    Violation(
+                        "AC-0029",
+                        label(i),
+                        f"owner {owner} is not the brief's last slice {max(slices)}",
                     )
                 )
         if (bad := _wildcard_violation(repo, label(i), pattern, cls)) is not None:
@@ -768,7 +776,7 @@ def _row(
 
 
 _BASE_ROWS: list[dict[str, Any]] = [
-    _row(_READINESS, "reader", "navigate-intents readiness bridge", 8),
+    _row(_READINESS, "reader", "navigate-intents readiness bridge", 9),
     _row(_RFC0064, "contract"),
     _row(_ADR0119, "contract"),
     _row(_PRODUCT_AGENTS, "contract"),
@@ -894,6 +902,16 @@ def test_ac0002_unknown_class(tmp_path: Path) -> None:
 def test_ac0003_owner_not_a_slice(tmp_path: Path) -> None:
     rows = [_row("notes.txt", "guide", owner=10)]
     _only(_run(tmp_path, {"notes.txt": _MENTION}, rows), "AC-0003")
+
+
+def test_ac0029_owner_below_last_slice(tmp_path: Path) -> None:
+    rows = [_row("notes.txt", "guide", owner=8)]
+    _only(_run(tmp_path, {"notes.txt": _MENTION}, rows), "AC-0029")
+
+
+def test_ac0029_last_slice_owner_passes(tmp_path: Path) -> None:
+    rows = [_row("notes.txt", "guide", owner=9)]
+    assert _run(tmp_path, {"notes.txt": _MENTION}, rows) == []
 
 
 def test_ac0003_none_on_live_class(tmp_path: Path) -> None:
@@ -1143,7 +1161,7 @@ def test_ac0008_accepted_intent_is_live(tmp_path: Path) -> None:
 
 def test_ac0009_wrong_consumer_text(tmp_path: Path) -> None:
     base = [r for r in _BASE_ROWS if r["pattern"] != _READINESS]
-    bad = _render_inventory(base + [_row(_READINESS, "reader", "some reader", 8)])
+    bad = _render_inventory(base + [_row(_READINESS, "reader", "some reader", 9)])
     _only(_run(tmp_path, inventory_text=bad), "AC-0009")
 
 
@@ -1886,11 +1904,11 @@ def test_slice6_ac0004_equivalence_row_records_the_accepted_removal() -> None:
     ), targets
 
 
-def test_slice6_ac0005_removal_spec_is_a_slice_six_contract_row() -> None:
-    """next-item-suggestions-removal AC-0005."""
+def test_slice6_ac0005_removal_spec_is_a_historical_row() -> None:
+    """next-item-suggestions-removal AC-0005; the row turned historical before the cutover."""
     row = _governing_row("docs/specs/next-item-suggestions-removal/spec.md")
-    assert row["class"] == "contract"
-    assert row["owner"] == 6
+    assert row["class"] == "historical"
+    assert row["owner"] == "none"
 
 
 def test_slice6_ac0006_amended_spec_no_longer_reads_order() -> None:

@@ -93,9 +93,9 @@ Numbers give the delivery order. Slices 2 to 6 may start once slice 1 lands, and
 9. **Compatibility closure and deletion.** Gated on all four RFC-0105 D3 gates. It lands in parts.
    - **Before the execution-supervisor cutover:**
      - tracker-origin intents, briefs and specs get a home on the artifact for their tracker profile and stop being registered (`tracker-origin-registration-stop`);
-     - `close-work`'s dormant closure-packet registration field is retired;
-     - the inventory rows still owned by slices 2 to 8 are re-owned or retired;
-     - the upgrade notes are drafted.
+     - `close-work`'s dormant closure-packet registration field is retired (`pre-cutover-closure`);
+     - the inventory rows still owned by slices 2 to 8 are re-owned or retired (`pre-cutover-closure`);
+     - the upgrade notes are drafted (`pre-cutover-closure`).
    - **After the cutover:**
      - move the engine rules `dispatch.py` still needs into `work-loop`;
      - shrink `workspace-status` to the repair;
@@ -123,6 +123,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `spec-registration-stop` | <auto> |
 | `readiness-bridge-dispatch-input` | <auto> |
 | `tracker-origin-registration-stop` | <auto> |
+| `pre-cutover-closure` | <auto> |
 
 ## Governance references (optional)
 

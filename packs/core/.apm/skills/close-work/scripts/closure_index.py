@@ -219,14 +219,6 @@ class DescendantRecord:
 
 Reader = Callable[[Path], str]
 FreshnessChecker = Callable[[], "bool | None"]
-WorkspaceLookup = Callable[[str], "tuple[str, str] | None"]
-"""Callable: ancestor slug → ``(entry_path, collection)`` or ``None`` (AC-0031).
-
-Returns the ``workspace.toml`` registration for the closing intent so the
-packet can name the entry the human must clear alongside the status write.
-Returns ``None`` when the intent has no registration.
-"""
-
 DispositionLookup = Callable[[str], "str | None"]
 """Callable: ancestor slug → disposition-row name or ``None`` (AC-0034/0035).
 
@@ -791,7 +783,6 @@ def _build_eligible_packet(
     decider: str,
     decision_date: str,
     ancestor_fields: dict[str, str],
-    workspace_lookup: WorkspaceLookup | None,
     disposition_lookup: DispositionLookup | None,
 ) -> EligiblePacket:
     """Build the evidence packet for an eligible verdict (AC-0027).
@@ -812,11 +803,6 @@ def _build_eligible_packet(
     per_descendant: tuple[tuple[str, str, str], ...] = tuple(
         (r.slug, r.status, _descendant_locator(r))
         for r in sorted(descendants.values(), key=lambda r: (r.slug, r.kind))
-    )
-
-    # Workspace registration: (entry_path, collection) or None (AC-0031).
-    workspace_reg: tuple[str, str] | None = (
-        workspace_lookup(ancestor_slug) if workspace_lookup is not None else None
     )
 
     # Disposition row: matching row name or None (AC-0034/0035).
@@ -869,7 +855,6 @@ def _build_eligible_packet(
         per_descendant_verdicts=per_descendant,
         stated_confidence=stated_confidence,
         outcome_co_owner=outcome_co_owner,
-        workspace_registration=workspace_reg,
         disposition_row=disposition,
     )
 
@@ -1469,7 +1454,7 @@ class EligiblePacket:
     was never created, so a completeness claim cannot be read off a
     terminality claim.
 
-    Two optional fields report co-ownership and workspace-registration obligations.
+    One optional field reports co-ownership.
     One optional field reports the product-bet disposition lookup.
     """
 
@@ -1514,12 +1499,6 @@ class EligiblePacket:
     """Typed peer pointer from ``Outcome co-owner:``, or ``None`` (AC-0028).
     The peer's current status is outside the boundary this check may read;
     naming it here is the whole obligation — the verdict is not gated on it."""
-
-    workspace_registration: tuple[str, str] | None = None
-    """``(entry_path, collection)`` naming the ``workspace.toml`` registration
-    the decider must clear alongside the status write, or ``None`` when absent
-    (AC-0031).  Leaving a non-``Draft`` closed intent in ``backlog.open``
-    is permanently non-dispatchable."""
 
     disposition_row: str | None = None
     """Product-bet disposition row (e.g. ``"cool-30-days"``), or ``None`` when
@@ -1868,13 +1847,12 @@ def check_ancestor_closure(
     _freshness_checker: FreshnessChecker | None = None,
     _snapshot_provider: SnapshotProvider | None = None,
     _graph_provider: GraphProvider | None = None,
-    # Packet-building parameters (AC-0027, AC-0028, AC-0031, AC-0034, AC-0035).
+    # Packet-building parameters (AC-0027, AC-0028, AC-0034, AC-0035).
     # All are optional; callers that omit _decider receive a verdict with
     # packet=None, preserving full backward compatibility.
     _decider: str | None = None,
     _decision_date: str | None = None,
     _ancestor_fields: dict[str, str] | None = None,
-    _workspace_lookup: WorkspaceLookup | None = None,
     _disposition_lookup: DispositionLookup | None = None,
 ) -> ClosureVerdict:
     """Evaluate whether one intent ancestor is closure-eligible.
@@ -1909,12 +1887,12 @@ def check_ancestor_closure(
     index, or verdict is reused across calls. ``_build_descendant_closure`` builds
     a new in-memory dict each time; the dict is local to this call's frame.
 
-    **AC-0027 / AC-0028 / AC-0031 / AC-0034 / AC-0035** — when ``_decider``
+    **AC-0027 / AC-0028 / AC-0034 / AC-0035** — when ``_decider``
     is supplied and the verdict is ``ClosureEligible``, ``_build_eligible_packet``
     is called with the resolved descendants and the caller-supplied context.
     ``_ancestor_fields`` carries the ancestor's full preamble fields so the packet
     can include the ratified ``Decomposed:`` value and any ``Outcome co-owner:``.
-    ``_workspace_lookup`` and ``_disposition_lookup`` are test seams; the production
+    ``_disposition_lookup`` is a test seam; the production
     caller supplies its own implementations.
     """
     # AC-0022: refuse immediately on stale or indeterminate freshness.
@@ -1974,7 +1952,6 @@ def check_ancestor_closure(
             decider=_decider,
             decision_date=_decision_date or _current_date(),
             ancestor_fields=ancestor_fields,
-            workspace_lookup=_workspace_lookup,
             disposition_lookup=_disposition_lookup,
         )
         verdict = ClosureEligible(
