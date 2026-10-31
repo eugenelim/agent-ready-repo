@@ -661,7 +661,7 @@ def test_hostile_directory_name_never_reaches_stdout_or_stderr(mod, tmp_path, ca
     out, err = capsys.readouterr()
     assert marker not in out + err
     _only_fixed_tokens(out, err)
-    os.symlink(tmp_path / marker, tmp_path / (marker + "-link"))
+    Path(tmp_path / (marker + "-link")).symlink_to(tmp_path / marker)
     assert mod.main([str(tmp_path / (marker + "-link"))]) == 3
     out, err = capsys.readouterr()
     assert marker not in out + err
