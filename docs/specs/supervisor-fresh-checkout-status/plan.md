@@ -1,7 +1,7 @@
 # Plan: Supervisor status in a checkout without the run's store
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-loop-execution-supervisor.md` (run store row); the pin checks `work-supervisor.py` `_preflight` and `_supervisor_attempt.py` `AttemptStore.check_pins`; their suite `packs/core/tests/skills/work-loop/test_supervisor_pinning.py` (fixture `pinned_template`, helpers `_copy_repo`, `_run`, `_load_cli`) and the harness controller `supervisor_harness.Controller.drive`, which `test_supervisor_consumer_map.py` uses to reach terminal. No new structure.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -100,8 +100,12 @@ Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006.
 - **Depends on:** T1, T2, T3
 - **Verification mode:** visual / manual QA
 - **Touches:** `tests/roster/test_core_pre_pr_hook.py`, `docs/specs/supervisor-fresh-checkout-status/notes/verification-ledger.md`
-- **Tests:** for AC-0007: `test_pre_pr_passes_when_no_spec_holds_approvals` removes every `docs/specs/*/delivery` directory from its sandbox and commits that before running the hook, its assertions unchanged; it and `test_shipped_pre_pr_runs_no_linter_labels` pass on this branch with its `delivery/` committed. The branch is pushed, cloned fresh into a temporary directory at the pushed commit, and in that clone `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` each exit `0`. The commit id, commands and exit codes are recorded in the ledger.
+- **Tests:** for AC-0007: `test_pre_pr_passes_when_no_spec_holds_approvals` removes every `docs/specs/*/delivery` directory from its sandbox and commits that before running the hook, its assertions unchanged, and passes on this branch with its `delivery/` committed. The branch is pushed and cloned fresh into a temporary directory at the pushed commit; in that clone `.claude/skills/work-loop/` is rebuilt from `packs/core/.apm/skills/work-loop/` and committed, then `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` each exit `0`. The commit id, commands and exit codes are recorded in the ledger.
 - **Done when:** the ledger holds those commands with exit `0`.
+
+## Finish evidence (outside the run)
+
+After `terminal`, on the final pushed head, which carries the regenerated installed skill: `test_shipped_pre_pr_runs_no_linter_labels` passes in build-check's `pytest catalogue-test carve-out destinations (RFC-0082)` step, and a plain fresh clone runs `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` with exit `0`. Both are recorded in the ledger and the pull request.
 
 ## Rollout
 

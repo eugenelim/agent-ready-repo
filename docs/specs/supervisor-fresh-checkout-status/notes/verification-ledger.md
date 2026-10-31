@@ -19,3 +19,7 @@ The owner (eugenelim) settled four points before the spec body was written:
 
 - Spec approved by eugenelim at `01c13d980`; plan approved by eugenelim at `684f8ed41`.
 - `spec-approved` knowledge capture: project-knowledge unavailable (`map_mismatch` from `--capture --producer-profile work-loop`); no fallback file written.
+
+## AC-0007 amendment (2026-10-30)
+
+T4's first attempt found AC-0007 unsatisfiable inside the run: the roster case `test_shipped_pre_pr_runs_no_linter_labels` and the fresh-clone check both run the installed `.claude/skills/work-loop/`, which the supervisor rebuilds only through `regenerate`, issued after every criterion is supported. At `2c179b395` the shipped roster case failed with `supervisor status docs/specs/supervisor-fresh-checkout-status --check failed (exit 1)`; the no-approvals case passed. A fresh clone of that branch with the pack-source scripts copied over its installed skill gave `status --check` exit `0` (`committed-records-only`) and `pre-pr.py` exit `0`. T4's attempt was reported `gate-fail` (retry 1 of 5). The owner (eugenelim) chose to amend AC-0007: in the run, the clone rebuilds its installed skill from the pack source; the final head is proven outside the run by build-check and a plain fresh clone.

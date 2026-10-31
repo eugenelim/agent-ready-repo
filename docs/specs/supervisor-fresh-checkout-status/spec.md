@@ -1,6 +1,6 @@
 # Spec: Supervisor status in a checkout without the run's store
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-10-30 by eugenelim, spec at `01c13d980`, after four spec-stage rounds of shaping, adversarial and secure-design review, each adjudicated (round 4 adversarial only); the round-4 one-sentence repair to the Testing Strategy was accepted unreviewed. Records under `.context/reviews/12f339cc-9463-4289-b3d0-f1f07e3980f3/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -74,7 +74,7 @@ A maintainer, CI job, or adopter who checks out a branch or `main` holding a spe
 - **The no-store `status` path (AC-0001, AC-0002, AC-0003): TDD.** Each case runs the real CLI in a `git clone` of a supervisor-run test repository, which holds the committed records and no store; each reds at the base on the `supervisor-changed` refusal.
 - **The `verification` field (AC-0006): TDD.** The `committed-records-only` cases run in the store-less clones above; the `pinned` cases run in a supervisor-run test repository that holds its store. At the base, the `committed-records-only` cases and the `pinned` case whose working-tree approvals name a run with no store red on the `supervisor-changed` refusal `the supervisor's pin record is missing`; every other `pinned` case reds because the `status` view has no `verification` key.
 - **Refusals that stay (AC-0004, AC-0005): TDD.** Each planted tamper or verb runs the real CLI and asserts the refusal; the cases that pass at the base are pins, and the `status` cases that do not exist at the base are added.
-- **The hook on this branch (AC-0007): goal-based and manual QA.** The two named roster cases run on this branch, which carries this spec's `delivery/`; a fresh clone of the pushed branch at the commit T4 pushes runs the command and the hook, and the commit id and observed exit codes go in the ledger. On every later head, `build-check.yml`'s step `pytest catalogue-test carve-out destinations (RFC-0082)` runs both roster cases.
+- **The hook on this branch (AC-0007): goal-based and manual QA.** The no-approvals roster case runs on this branch, which carries this spec's `delivery/`. The installed skill on the branch is rebuilt only by the supervisor's `regenerate` request, which follows every criterion, so the fresh clone rebuilds its own installed skill from the pack source before it runs the command and the hook; the commit id and observed exit codes go in the ledger. The branch's final head, which carries the regenerated skill, is proven outside the run: `build-check.yml`'s step `pytest catalogue-test carve-out destinations (RFC-0082)` runs `test_shipped_pre_pr_runs_no_linter_labels` with this spec's `delivery/` in its sandbox, and a plain fresh clone of that head runs the command and the hook, recorded in the ledger and the pull request.
 - **Release (AC-0008): goal-based.** The version and changelog gates.
 
 ## Acceptance Criteria
@@ -102,7 +102,7 @@ Terms used below.
 
 **The hook and the release**
 
-- [ ] **AC-0007.** On this spec's branch, with its `delivery/` records committed: `tests/roster/test_core_pre_pr_hook.py::test_shipped_pre_pr_runs_no_linter_labels` passes with those records in its sandbox; `::test_pre_pr_passes_when_no_spec_holds_approvals` passes with every `docs/specs/*/delivery/` directory left out of its sandbox; and in a fresh `git clone` of the pushed branch at the commit T4 pushes, `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` both exit `0`.
+- [ ] **AC-0007.** On this spec's branch, with its `delivery/` records committed: `tests/roster/test_core_pre_pr_hook.py::test_pre_pr_passes_when_no_spec_holds_approvals` passes with every `docs/specs/*/delivery/` directory left out of its sandbox; and in a fresh `git clone` of the pushed branch at the commit T4 pushes, with the clone's installed work-loop skill rebuilt from `packs/core/.apm/skills/work-loop/` and committed there, `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` both exit `0`.
 - [ ] **AC-0008.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the version one patch above the one `packs/core/pack.toml` carries at `git merge-base origin/main HEAD`, checked right after `git fetch origin` with that merge base equal to `origin/main`, and one `docs/product/changelog.d/` fragment names the `status` change.
 
 ## Terminal Intent
