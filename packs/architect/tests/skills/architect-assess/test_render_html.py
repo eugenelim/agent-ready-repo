@@ -102,6 +102,7 @@ class Tree(HTMLParser):
         self.classes: list[tuple[str, str]] = []
         self._in_style = False
         self.cells: list[tuple[str, str]] = []
+        self.anchor_attrs: list[list[tuple[str, str | None]]] = []
         self._cell: str | None = None
 
     def handle_starttag(self, tag, attrs):
@@ -111,6 +112,8 @@ class Tree(HTMLParser):
             self.attrs.append((tag, name, value))
             if name == "class":
                 self.classes.append((tag, value or ""))
+        if tag == "a":
+            self.anchor_attrs.append(attrs)
         if tag == "style":
             self._in_style = True
         if tag == "td":
@@ -126,6 +129,35 @@ class Tree(HTMLParser):
         if self._cell is not None:
             self.cells.append((self._cell, data))
             self._cell = None
+
+
+GLOBAL_ATTRS = {"class", "id", "lang", "charset", "http-equiv", "content"}
+ALLOWED_TAG_ATTRS = {
+    ("a", "href"),
+    ("nav", "aria-label"),
+    ("div", "aria-label"),
+    ("div", "role"),
+    ("div", "tabindex"),
+    ("span", "data-mark"),
+    ("span", "aria-hidden"),
+}
+
+
+def class_tokens(parsed: Tree) -> set[str]:
+    return {token for _, value in parsed.classes for token in value.split()}
+
+
+def content_hrefs(parsed: Tree) -> list[str]:
+    """Hrefs of links in the report text, not the skip link or the contents links."""
+    chrome = {"skip-link", "question-link"}
+    anchors = [(dict(attrs)) for attrs in parsed.anchor_attrs]
+    return [
+        a["href"] for a in anchors if "href" in a and not chrome & set(a.get("class", "").split())
+    ]
+
+
+def banner_present(html_text: str) -> bool:
+    return "banner-unconfirmed" in class_tokens(tree(html_text))
 
 
 def tree(html_text: str) -> Tree:
@@ -168,7 +200,7 @@ def test_allowed_links_become_anchors_and_others_do_not(mod, tmp_path, capsys) -
         "[d](javascript:alert(1)) [e](JavaScript:x) [f](data:text/html,x) [g](/rel)\n"
     )
     text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
-    hrefs = [v for tag, n, v in tree(text).attrs if tag == "a" and n == "href"]
+    hrefs = content_hrefs(tree(text))
     assert hrefs == ["https://example.com/x", "#top", "HTTP://example.com"]
     assert "[d](javascript:alert(1))" in text
 
@@ -235,11 +267,12 @@ def test_only_allowed_elements_and_attributes_are_emitted(mod, tmp_path, capsys)
         "summary",
         "br",
         "hr",
+        "header",
+        "nav",
     }
     assert set(parsed.elements) <= allowed
-    names = {name for _, name, _ in parsed.attrs}
-    assert names <= {"class", "id", "lang", "charset", "http-equiv", "content", "href"}
-    assert all(tag == "a" for tag, name, _ in parsed.attrs if name == "href")
+    for tag, name, _ in parsed.attrs:
+        assert (tag, name) in ALLOWED_TAG_ATTRS or name in GLOBAL_ATTRS, (tag, name)
     assert parsed.elements.count("meta") == 2
 
 
@@ -320,8 +353,7 @@ def test_evidence_classes_render_by_case_insensitive_value(mod, tmp_path, capsys
     )
     overall = f"View.\n\nSources checked:\n\n{TABLE_HEAD}{rows}"
     parsed = tree(page(tmp_path.resolve(), report(overall=overall), mod, capsys))
-    classes = {c for t, c in parsed.classes if t == "td"}
-    assert {"ev-observed", "ev-inferred", "ev-reported", "ev-unknown"} <= classes
+    assert {"ev-observed", "ev-inferred", "ev-reported", "ev-unknown"} <= class_tokens(parsed)
 
 
 def test_evidence_class_outside_the_set_is_refused(mod, tmp_path, capsys) -> None:
@@ -358,27 +390,27 @@ def test_banner_shows_unless_charter_says_exactly_confirmed(
     mod, tmp_path, capsys, checkpoints
 ) -> None:
     text = page(tmp_path.resolve(), report(checkpoints=checkpoints), mod, capsys)
-    assert 'class="banner-unconfirmed"' in text
+    assert banner_present(text)
     assert "Map and hotspot set not user-confirmed" in text
     assert text.index("banner-unconfirmed") < text.index("<h2")
 
 
 def test_banner_absent_when_charter_confirms_once(mod, tmp_path, capsys) -> None:
     text = page(tmp_path.resolve(), report(), mod, capsys)
-    assert "banner-unconfirmed" not in text.replace(".banner-unconfirmed{", "")
+    assert not banner_present(text)
 
 
 def test_confirmed_line_outside_charter_or_duplicated_does_not_suppress(
     mod, tmp_path, capsys
 ) -> None:
     outside = report(checkpoints=None, extra="Checkpoints: confirmed\n")
-    assert 'class="banner-unconfirmed"' in page(tmp_path.resolve(), outside, mod, capsys)
+    assert banner_present(page(tmp_path.resolve(), outside, mod, capsys))
     twice = report(checkpoints="Checkpoints: confirmed\nCheckpoints: confirmed")
-    assert 'class="banner-unconfirmed"' in page(tmp_path.resolve(), twice, mod, capsys)
+    assert banner_present(page(tmp_path.resolve(), twice, mod, capsys))
     fenced = report(checkpoints=None).replace(
         "Target: demo\n", "Target: demo\n```\nCheckpoints: confirmed\n```\n"
     )
-    assert 'class="banner-unconfirmed"' in page(tmp_path.resolve(), fenced, mod, capsys)
+    assert banner_present(page(tmp_path.resolve(), fenced, mod, capsys))
 
 
 def test_mermaid_fence_is_a_labeled_escaped_source_block(mod, tmp_path, capsys) -> None:
@@ -391,10 +423,8 @@ def test_mermaid_fence_is_a_labeled_escaped_source_block(mod, tmp_path, capsys) 
 
 def test_notice_and_metadata(mod, tmp_path, capsys) -> None:
     text = page(tmp_path.resolve(), report(), mod, capsys)
-    assert (
-        'class="notice-untrusted">Unverified: built from repository text and model analysis; not redacted<'
-        in text
-    )
+    assert "notice-untrusted" in class_tokens(tree(text))
+    assert ">Unverified: built from repository text and model analysis; not redacted<" in text
     assert re.search(r"Generated \d{4}-\d{2}-\d{2} UTC", text)
     assert f"Renderer version {mod.RENDERER_VERSION}" in text
     assert "Source: effort/assessment.md" in text
@@ -523,7 +553,7 @@ def test_missing_descriptor_capability_exits_three(
 def test_renders_when_agentbundle_is_not_importable(mod, tmp_path, capsys, monkeypatch) -> None:
     monkeypatch.setitem(sys.modules, "agentbundle", None)
     monkeypatch.setitem(sys.modules, "agentbundle.catalogue_tooling", None)
-    assert "<h1>" in page(tmp_path.resolve(), report(), mod, capsys)
+    assert 'class="page-title"' in page(tmp_path.resolve(), report(), mod, capsys)
 
 
 def test_imports_and_calls_stay_inside_the_allow_list() -> None:
@@ -599,7 +629,7 @@ def test_planted_fence_cannot_hide_the_real_charter_line(mod, tmp_path, capsys) 
     longer = f"# T\n## Bottom line\n````\n```\n{fake}````\n{real}"
     for source in (planted, longer):
         text = page(tmp_path.resolve(), source, mod, capsys)
-        assert 'class="banner-unconfirmed"' in text
+        assert banner_present(text)
         assert "<pre><code>## Assessment charter\nCheckpoints: accepted-without-pause" not in text
 
 
@@ -607,7 +637,7 @@ def test_confirmed_once_in_charter_and_again_elsewhere_shows_no_banner(
     mod, tmp_path, capsys
 ) -> None:
     text = page(tmp_path.resolve(), report(extra="Checkpoints: confirmed\n"), mod, capsys)
-    assert 'class="banner-unconfirmed"' not in text
+    assert not banner_present(text)
 
 
 @pytest.mark.parametrize(
@@ -639,8 +669,7 @@ def test_links_with_bidi_or_format_characters_render_as_text(mod, tmp_path, caps
         "[a\u061cb](https://x.example) [c](https://y.example\u061c)\n"
     )
     text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
-    hrefs = [v for tag, n, v in tree(text).attrs if tag == "a"]
-    assert hrefs == []
+    assert content_hrefs(tree(text)) == []
 
 
 def test_existing_output_over_the_cap_is_refused(mod, tmp_path, capsys) -> None:
@@ -705,7 +734,7 @@ def test_table_under_a_child_heading_is_validated_and_shaded(mod, tmp_path, caps
         f"Sources checked:\n\n{TABLE_HEAD}| a | b | observed | c |\n"
     )
     parsed = tree(page(tmp_path.resolve(), source, mod, capsys))
-    assert "ev-observed" in {c for _, c in parsed.classes}
+    assert "ev-observed" in class_tokens(parsed)
 
 
 def test_second_level_one_heading_ends_the_charter_section(mod, tmp_path, capsys) -> None:
@@ -715,7 +744,7 @@ def test_second_level_one_heading_ends_the_charter_section(mod, tmp_path, capsys
         1,
     )
     text = page(tmp_path.resolve(), source, mod, capsys)
-    assert 'class="banner-unconfirmed"' not in text
+    assert not banner_present(text)
 
 
 def test_non_title_level_one_orientation_heading_is_gated(mod, tmp_path, capsys) -> None:
@@ -802,7 +831,7 @@ def test_mermaid_fence_attached_to_a_list_item_gets_the_diagram_label(
 )
 def test_one_range_rule_validates_and_shades_the_same_table(mod, tmp_path, capsys, source) -> None:
     parsed = tree(page(tmp_path.resolve(), source, mod, capsys))
-    assert "ev-observed" in {c for _, c in parsed.classes}
+    assert "ev-observed" in class_tokens(parsed)
 
 
 def test_a_later_shallower_heading_ends_the_orientation_range(mod, tmp_path, capsys) -> None:
@@ -983,3 +1012,207 @@ def test_no_stylesheet_asset_holds_a_url_or_import() -> None:
     for name in ("view-base.css", "report.css"):
         text = (ASSETS / name).read_text("utf-8").lower()
         assert "url(" not in text and "@import" not in text
+
+
+# ---- style slice: document-view markup ------------------------------------------------
+
+FIXTURE = PACK_ROOT / "tests" / "skills" / "architect-assess" / "testdata" / "html-style-sample.md"
+
+
+def _ids(html_text: str) -> list[str]:
+    return re.findall(r' id="([^"]+)"', html_text)
+
+
+def test_skip_link_comes_first_and_targets_the_main_id(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    body = text[text.index("<body>") :]
+    assert body.startswith('<body><a class="skip-link" href="#report">')
+    assert '<main id="report">' in text
+
+
+def test_no_heading_can_take_the_main_id(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(extra="## Report\n\nx\n"), mod, capsys)
+    ids = _ids(text)
+    assert ids.count("report") == 1 and "report-2" in ids
+    assert len(ids) == len(set(ids))
+
+
+def test_header_holds_the_title_and_the_meta_line(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert (
+        '<header class="page-header"><h1 class="page-title">Architecture assessment: demo</h1>'
+        in text
+    )
+    assert re.search(r'</h1><p class="meta">Source: effort/assessment\.md', text)
+
+
+def test_meta_line_holds_name_date_version_state_and_the_source_tally(
+    mod, tmp_path, capsys
+) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    meta = re.search(r'<p class="meta">(.*?)</p>', text, re.S).group(1)
+    assert "effort/assessment.md" in meta and f"Renderer version {mod.RENDERER_VERSION}" in meta
+    assert re.search(r"Generated \d{4}-\d{2}-\d{2} UTC", meta)
+    assert 'data-mark="approved"' in meta and "Confirmed" in meta
+    assert meta.endswith("Sources: 3 observed, 0 inferred, 0 reported, 0 unknown")
+    unconfirmed = page(tmp_path.resolve(), report(checkpoints=None), mod, capsys)
+    meta = re.search(r'<p class="meta">(.*?)</p>', unconfirmed, re.S).group(1)
+    assert 'data-mark="draft"' in meta and "Unconfirmed" in meta
+    assert 'aria-hidden="true"' in meta
+
+
+def test_the_tally_counts_only_labeled_orientation_tables(mod, tmp_path, capsys) -> None:
+    extra = f"Sources checked:\n\n{TABLE_HEAD}| a | b | guessed | c |\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    assert "Sources: 3 observed, 0 inferred, 0 reported, 0 unknown</p>" in text
+
+
+def test_banner_and_notice_carry_the_family_classes(mod, tmp_path, capsys) -> None:
+    tokens = class_tokens(tree(page(tmp_path.resolve(), report(checkpoints=None), mod, capsys)))
+    assert {"alert", "banner-unconfirmed", "note", "notice-untrusted"} <= tokens
+
+
+def _rail(text: str) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]]]:
+    narrow = re.search(
+        r"<details><summary>(.*?)</summary><ul[^>]*>(.*?)</ul></details>", text, re.S
+    )
+    wide = re.search(r'<ul class="rail-wide plain">(.*?)</ul>', text, re.S)
+    pattern = r'<a class="([^"]*)" href="#([^"]*)">(.*?)</a>'
+    return (
+        [(c, h, tx) for c, h, tx in re.findall(pattern, narrow.group(2))],
+        [(c, h, tx) for c, h, tx in re.findall(pattern, wide.group(1))],
+    )
+
+
+def test_the_contents_nav_holds_a_details_list_and_a_wide_list_of_the_same_links(
+    mod, tmp_path, capsys
+) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert '<nav aria-label="Report sections"><details><summary>Contents (' in text
+    narrow, wide = _rail(text)
+    assert narrow == wide and narrow
+    assert re.search(rf"<summary>Contents \({len(narrow)} sections\)</summary>", text)
+    assert all("question-link" in c.split() for c, _, _ in narrow)
+    ids = set(_ids(text))
+    assert all(href in ids for _, href, _ in narrow)
+
+
+def test_rail_links_follow_source_order_with_plain_text_and_nesting(mod, tmp_path, capsys) -> None:
+    source = (
+        "# T\n\n## See [docs](https://x)\n\nx\n\n"
+        f"## Overall architecture\n\nx\n\n{SOURCES}\n"
+        "## Later `code`\n\n#### Overall architecture\n\ny\n\n"
+        f"{SOURCES}"
+    )
+    text = page(tmp_path.resolve(), source, mod, capsys)
+    narrow, _ = _rail(text)
+    assert [tx for _, _, tx in narrow] == [
+        "See docs",
+        "Overall architecture",
+        "Later code",
+        "Overall architecture",
+    ]
+    assert [("rail-sub" in c.split()) for c, _, _ in narrow] == [False, False, False, True]
+    nav = re.search(r"<nav.*?</nav>", text, re.S).group(0)
+    assert nav.count("<a ") == 2 * len(narrow)  # no anchor nests inside a link
+
+
+def test_sections_carry_their_heading_id_and_hold_their_blocks(mod, tmp_path, capsys) -> None:
+    source = "# T\n\nlead text\n\n## One\n\nbody one\n\n# Two\n\n### Sub\n\nbody two\n"
+    text = page(tmp_path.resolve(), source, mod, capsys)
+    assert (
+        '<section class="doc-section"><div class="doc-body"><p>lead text</p></div></section>'
+        in text
+    )
+    assert '<section class="doc-section" id="one"><h2 class="margin-head">One</h2>' in text
+    assert '<section class="doc-section" id="two"><h2 class="margin-head">Two</h2>' in text
+    assert '<h3 id="sub">Sub</h3>' in text
+    assert text.count('<h2 class="margin-head">') == 2
+    assert 'id="one"><h2 class="margin-head" id' not in text
+    assert text.index("body two") > text.index('id="two"')
+
+
+def test_no_leading_section_when_nothing_precedes_the_first_heading(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), "# T\n\n## One\n\nx\n", mod, capsys)
+    assert 'class="doc-section"><div' not in text
+
+
+def test_marks_replace_the_cell_class_and_hold_the_cell_text(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert '<td><span class="mark ev-observed">Observed</span></td>' in text
+    assert 'td class="ev-' not in text
+
+
+def test_tables_sit_in_labeled_keyboard_scrollable_regions(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    regions = re.findall(
+        r'<div class="table-scroll" role="region" tabindex="0" aria-label="([^"]*)">', text
+    )
+    assert regions.count("Table: Overall architecture") == 1
+    assert "Table: Attention heat map" in regions
+    assert text.count("<table>") == len(regions)
+    bare = page(tmp_path.resolve(), "| a |\n| --- |\n| 1 |\n", mod, capsys)
+    assert 'aria-label="Table">' in bare
+    hostile = page(
+        tmp_path.resolve(), '# T\n\n## a "b" <i>\n\n| a |\n| --- |\n| 1 |\n', mod, capsys
+    )
+    assert 'aria-label="Table: a &quot;b&quot; &lt;i&gt;"' in hostile
+
+
+def test_the_sources_checked_label_has_the_part_head_class(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert '<p class="part-head">Sources checked:</p>' in text
+
+
+def test_renderer_version_is_two(mod) -> None:
+    assert mod.RENDERER_VERSION == "2"
+
+
+def test_the_fixture_models_a_multi_subsystem_system() -> None:
+    src = FIXTURE.read_text(encoding="utf-8")
+    subsystems = re.split(
+        r"(?m)^#### ", src.split("### Architecture by subsystem")[1].split("### Physical")[0]
+    )[1:]
+    assert len(subsystems) >= 6
+    assert sum(1 for entry in subsystems if "##### " in entry) >= 2
+    overall = src.split("### Overall architecture")[1].split("### Architecture by subsystem")[0]
+    rows = [r for r in overall.splitlines() if r.startswith("| ") and "| --- |" not in r][1:]
+    assert len(rows) >= 12
+    assert {
+        c for r in rows for c in ("observed", "inferred", "reported", "unknown") if f"| {c} |" in r
+    } == {"observed", "inferred", "reported", "unknown"}
+    heat = src.split("## Attention heat map")[1].split("###")[0]
+    heat_rows = [r for r in heat.splitlines() if r.startswith("| ") and "| --- |" not in r][1:]
+    assert len(heat_rows) >= 8
+    assert {
+        v for r in heat_rows for v in ("low", "medium", "high", "unknown") if f"| {v} |" in r
+    } == {"low", "medium", "high", "unknown"}
+    assert re.search(r"[^\s|`]{80,}", src)
+    assert "Checkpoints: accepted-without-pause" in src
+    fences = re.findall(r"```mermaid\n(.*?)```", src, re.S)
+    assert len(fences) >= 2 and all(len(f.strip().splitlines()) >= 8 for f in fences)
+    assert any(f.startswith("flowchart") for f in fences) and any(
+        f.startswith("sequenceDiagram") for f in fences
+    )
+
+
+def test_the_fixture_renders_to_a_complete_document(mod, tmp_path, capsys) -> None:
+    tmp_path = tmp_path.resolve()
+    effort = tmp_path / "effort"
+    effort.mkdir()
+    (effort / "assessment.md").write_text(FIXTURE.read_text(encoding="utf-8"), encoding="utf-8")
+    assert mod.main([str(effort)]) == 0
+    text = (effort / "assessment.html").read_text(encoding="utf-8")
+    parsed = tree(text)
+    assert {
+        "alert",
+        "banner-unconfirmed",
+        "doc-section",
+        "margin-head",
+        "table-scroll",
+    } <= class_tokens(parsed)
+    assert text.count("Diagram source (not rendered)") == 2
+    ids = _ids(text)
+    assert len(ids) == len(set(ids))
+    narrow, wide = _rail(text)
+    assert narrow == wide and len(narrow) >= 10

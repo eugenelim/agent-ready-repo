@@ -22,7 +22,8 @@ import unicodedata
 from pathlib import Path
 from typing import Any, NamedTuple
 
-RENDERER_VERSION = "1"
+RENDERER_VERSION = "2"
+REPORT_ID = "report"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_EXISTING_OUTPUT_BYTES = 16 * 1024 * 1024
 MAX_ASSET_BYTES = 64 * 1024
@@ -148,6 +149,24 @@ def _inline(text: str) -> str:
             out.append(f"<em>{_esc(token[1:-1])}</em>")
         position = match.end()
     out.append(_esc(text[position:]))
+    return "".join(out)
+
+
+def _plain_text(text: str) -> str:
+    """Reduce inline Markdown to the text inside it: `See [docs](https://x)` gives `See docs`."""
+    out: list[str] = []
+    position = 0
+    for match in _INLINE.finditer(text):
+        out.append(text[position : match.start()])
+        token = match.group(0)
+        if match.group(3):
+            out.append(token[1 : token.index("](")])
+        elif match.group(2):
+            out.append(token[2:-2])
+        else:
+            out.append(token[1:-1])
+        position = match.end()
+    out.append(text[position:])
     return "".join(out)
 
 
@@ -383,8 +402,8 @@ def _slug(text: str, used: set[str], counters: dict[str, int]) -> str:
     return candidate
 
 
-def _table(block: Block, sources: bool, heat: bool) -> str:
-    """Render a table, adding evidence or heat classes by header text."""
+def _table(block: Block, sources: bool, heat: bool, counts: dict[str, int]) -> str:
+    """Render a table, adding evidence marks or heat classes by header text."""
     header = list(block.header)
     heat_columns = {i for i, name in enumerate(header) if heat and name in HEAT_COLUMNS}
     parts = ["<table><thead><tr>"]
@@ -394,10 +413,12 @@ def _table(block: Block, sources: bool, heat: bool) -> str:
         parts.append("<tr>")
         for i, cell in enumerate(row):
             value = cell.strip().lower()
-            css = ""
             if sources and i == 2 and value in EVIDENCE_CLASSES:
-                css = f' class="ev-{value}"'
-            elif i in heat_columns and value in HEAT_VALUES:
+                counts[value] += 1
+                parts.append(f'<td><span class="mark ev-{value}">{_inline(cell)}</span></td>')
+                continue
+            css = ""
+            if i in heat_columns and value in HEAT_VALUES:
                 css = f' class="heat-{value}"'
             parts.append(f"<td{css}>{_inline(cell)}</td>")
         parts.append("</tr>")
@@ -405,36 +426,85 @@ def _table(block: Block, sources: bool, heat: bool) -> str:
     return "".join(parts)
 
 
+def _scroll_wrap(table: str, nearest_heading: str) -> str:
+    """Wrap a table in a keyboard-scrollable region named for the heading above it."""
+    label = f"Table: {nearest_heading}" if nearest_heading else "Table"
+    return (
+        '<div class="table-scroll" role="region" tabindex="0" '
+        f'aria-label="{_esc(label)}">{table}</div>'
+    )
+
+
+class RailItem(NamedTuple):
+    """One contents link: the target id, the heading's plain text, and whether it is nested."""
+
+    slug: str
+    text: str
+    nested: bool
+
+
 def _body(
     blocks: list[Block], scopes: list[tuple[str, str | None]], title_at: int | None
-) -> tuple[str, str]:
-    """Render blocks to HTML; return (title, html).
+) -> tuple[str, str, list[RailItem], dict[str, int]]:
+    """Render blocks to document sections.
 
-    The title is the first heading block, when that block is level 1.
+    Returns (title, html, rail items, evidence counts). The title is the first heading
+    block, when that block is level 1. Every other level-1 or level-2 heading starts a
+    section that carries the heading's id; blocks before the first one form a leading section.
     """
     title = "Architecture assessment"
     out: list[str] = []
-    used: set[str] = set()
+    lead: list[str] = []
+    used: set[str] = {REPORT_ID}
     counters: dict[str, int] = {}
+    counts = dict.fromkeys(EVIDENCE_CLASSES, 0)
+    rail: list[RailItem] = []
+    started = False
+    nearest = ""
     previous: Block | None = None
+
+    def emit(markup: str) -> None:
+        (out if started else lead).append(markup)
+
     for index, (block, (section, orientation)) in enumerate(zip(blocks, scopes, strict=True)):
         if block.kind == "h":
+            nearest = _plain_text(block.text)
             if index == title_at:
                 title = block.text
                 previous = block
                 continue
-            level = min(block.level, 6)
             slug = _slug(block.text, used, counters)
-            out.append(f'<h{level} id="{slug}">{_inline(block.text)}</h{level}>')
-        elif block.kind == "p":
-            if section == "assessment charter":
-                lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
-                out.append(f"<p>{lines}</p>")
+            is_orientation = block.text.strip().lower() in ORIENTATION
+            if block.level <= 2:
+                if started:
+                    out.append("</div></section>")
+                elif lead:
+                    out.append(
+                        '<section class="doc-section"><div class="doc-body">'
+                        + "\n".join(lead)
+                        + "</div></section>"
+                    )
+                started = True
+                out.append(
+                    f'<section class="doc-section" id="{slug}">'
+                    f'<h2 class="margin-head">{_inline(block.text)}</h2><div class="doc-body">'
+                )
             else:
-                out.append(f"<p>{_inline(block.text.replace(chr(10), ' '))}</p>")
+                level = min(block.level, 6)
+                emit(f'<h{level} id="{slug}">{_inline(block.text)}</h{level}>')
+            if block.level <= 2 or is_orientation:
+                rail.append(RailItem(slug, nearest, is_orientation and block.level > 2))
+        elif block.kind == "p":
+            if previous is not None and _is_sources_label(block):
+                emit(f'<p class="part-head">{_inline(block.text)}</p>')
+            elif section == "assessment charter":
+                lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
+                emit(f"<p>{lines}</p>")
+            else:
+                emit(f"<p>{_inline(block.text.replace(chr(10), ' '))}</p>")
         elif block.kind in ("ul", "ol"):
             items = "".join(f"<li>{_inline(item)}</li>" for item in block.items)
-            out.append(f"<{block.kind}>{items}</{block.kind}>")
+            emit(f"<{block.kind}>{items}</{block.kind}>")
         elif block.kind == "table":
             sources = (
                 orientation is not None
@@ -442,20 +512,29 @@ def _body(
                 and previous is not None
                 and _is_sources_label(previous)
             )
-            out.append(_table(block, sources, section == "attention heat map"))
+            table = _table(block, sources, section == "attention heat map", counts)
+            emit(_scroll_wrap(table, nearest))
         elif block.kind == "code":
             code = f"<pre><code>{_esc(block.text)}</code></pre>"
             if block.header and block.header[0].lower().split(None, 1)[:1] == ["mermaid"]:
-                out.append(
+                emit(
                     '<div class="diagram">'
                     f'<p class="diagram-label">{DIAGRAM_LABEL}</p>{code}</div>'
                 )
             else:
-                out.append(code)
+                emit(code)
         elif block.kind == "hr":
-            out.append("<hr>")
+            emit("<hr>")
         previous = block
-    return title, "\n".join(out)
+    if started:
+        out.append("</div></section>")
+    elif lead:
+        out.append(
+            '<section class="doc-section"><div class="doc-body">'
+            + "\n".join(lead)
+            + "</div></section>"
+        )
+    return title, "\n".join(out), rail, counts
 
 
 class AssetError(Exception):
@@ -495,6 +574,15 @@ def load_stylesheet(helper: Any) -> str:
     return "\n".join(texts)
 
 
+def _rail_links(rail: list[RailItem]) -> str:
+    """Return the list items of the contents links."""
+    return "".join(
+        f'<li><a class="question-link{" rail-sub" if item.nested else ""}" '
+        f'href="#{item.slug}">{_esc(item.text)}</a></li>'
+        for item in rail
+    )
+
+
 def render(source: str, effort_name: str, today: str, css: str | None = None) -> str:
     """Return the full HTML document for *source*, or raise Refusal."""
     if css is None:
@@ -503,26 +591,43 @@ def render(source: str, effort_name: str, today: str, css: str | None = None) ->
     title_at = _title_index(blocks)
     _check_orientation(blocks, title_at)
     scopes = _scopes(blocks, title_at)
-    title, body = _body(blocks, scopes, title_at)
+    title, body, rail, counts = _body(blocks, scopes, title_at)
     digest = base64.b64encode(hashlib.sha256(css.encode("utf-8")).digest()).decode()
     policy = (
         f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"
     )
-    banner = ""
-    if not _charter_checkpoint_confirmed(blocks, scopes):
-        banner = f'<div class="banner-unconfirmed">{BANNER_TEXT}</div>'
-    meta = (
-        f'<p class="meta">Source: {_esc(effort_name)}/{SOURCE_NAME} · '
-        f"Generated {_esc(today)} UTC · Renderer version {RENDERER_VERSION}</p>"
+    confirmed = _charter_checkpoint_confirmed(blocks, scopes)
+    banner = "" if confirmed else f'<div class="alert banner-unconfirmed">{BANNER_TEXT}</div>'
+    state = (
+        '<span class="mark" data-mark="approved"><span class="mark-g" aria-hidden="true">'
+        "\u25c6</span> Confirmed</span>"
+        if confirmed
+        else '<span class="mark" data-mark="draft"><span class="mark-g" aria-hidden="true">'
+        "\u25c7</span> Unconfirmed</span>"
     )
-    notice = f'<div class="notice-untrusted">{NOTICE_TEXT}</div>'
+    tally = "Sources: " + ", ".join(f"{counts[name]} {name}" for name in EVIDENCE_CLASSES)
+    meta = (
+        f'<p class="meta">Source: {_esc(effort_name)}/{SOURCE_NAME} \u00b7 '
+        f"Generated {_esc(today)} UTC \u00b7 Renderer version {RENDERER_VERSION} \u00b7 "
+        f"{state} \u00b7 {tally}</p>"
+    )
+    notice = f'<div class="note notice-untrusted">{NOTICE_TEXT}</div>'
+    links = _rail_links(rail)
+    nav = (
+        '<nav aria-label="Report sections"><details>'
+        f"<summary>Contents ({len(rail)} sections)</summary>"
+        f'<ul class="rail-list plain">{links}</ul></details>'
+        f'<ul class="rail-wide plain">{links}</ul></nav>'
+    )
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en"><head><meta charset="utf-8">'
         f'<meta http-equiv="Content-Security-Policy" content="{policy}">'
         f"<title>{_esc(title)}</title><style>{css}</style></head>\n"
-        f"<body><main><h1>{_esc(title)}</h1>\n{meta}\n{banner}\n{notice}\n"
-        f"{body}\n</main></body></html>\n"
+        f'<body><a class="skip-link" href="#{REPORT_ID}">Skip to report</a>'
+        f'<header class="page-header"><h1 class="page-title">{_esc(title)}</h1>{meta}</header>\n'
+        f"{banner}\n{notice}\n{nav}\n"
+        f'<main id="{REPORT_ID}">\n{body}\n</main></body></html>\n'
     )
 
 
