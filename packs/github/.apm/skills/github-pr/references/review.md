@@ -35,7 +35,7 @@ tree, and confirm it before any read:
 
 ```text
 git -c core.hooksPath=/dev/null fetch origin refs/pull/<N>/head
-git -c core.hooksPath=/dev/null worktree add --detach <worktree> <headRefOid>
+git -c core.hooksPath=/dev/null -c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false worktree add --detach <worktree> <headRefOid>
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse HEAD
 ```
 

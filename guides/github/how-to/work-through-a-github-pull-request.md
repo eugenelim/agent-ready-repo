@@ -36,7 +36,7 @@ Address the review feedback on PR 42.
 2. It judges each item on its merits. A comment can be right, partly right, stale, or wrong.
 3. It shows one plan. Each item has a source, a judgment, options, a recommendation, and the exact reply text.
 4. You approve by item, for example `apply R1 and R3 option B, reply to R2, defer R4`. Anything you leave out stays untouched.
-5. The agent edits, adds a new commit, and pushes it. Then it posts your approved replies and resolves the threads that were fixed. Pushed-back and deferred threads stay open.
+5. The agent edits, adds a new commit, and pushes it. Then it posts your approved replies and resolves only the threads your approved plan names, each one after its fix landed in the pushed commit or you approved resolving it. Every other thread stays open, including pushed-back and deferred ones.
 
 A pull request from a fork that blocks maintainer edits gets a replies-only plan.
 

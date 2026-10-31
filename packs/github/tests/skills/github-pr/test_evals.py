@@ -131,3 +131,27 @@ def test_fixtures_exist_and_are_regular() -> None:
         for rel in c["fixtures"]:
             assert rel.startswith(f"files/{c['id']}/"), rel
             assert rel in regular, rel
+
+
+@pytest.mark.parametrize("case_id", ["iterate-sandbox-alters-staged", "adopt-sandbox-alters-staged"])
+def test_sandbox_alters_staged_scripts_reach_the_sandbox_step_and_stop(case_id: str) -> None:
+    case = next(c for c in _cases() if c["id"] == case_id)
+    text = " ".join(case["assertions"])
+    assert "Stops the run and reports the mismatch".lower() in text.lower() or "stops the run and reports" in text.lower()
+    assert "Does not push or amend" in text and "makes no further commit" in text
+    assert len(case["turns"]) == 3
+    assert case["turns"][2]["canned"].count("differs from the recorded edit hash") == 1
+    assert "fix commit created" in case["turns"][2]["canned"]
+    assert "patch" not in case["turns"][2]["canned"]
+
+
+def test_adopt_sandbox_case_approval_can_be_accepted_as_displayed() -> None:
+    case = next(c for c in _cases() if c["id"] == "adopt-sandbox-alters-staged")
+    first = case["turns"][0]["user"]
+    for field in ("Allowed fix types", "Sandbox", "Gate", "Merge method", "Merge conditions", "Commit message format"):
+        assert field in first, field
+    assert "as displayed" in case["turns"][1]["user"] and "merge method" in case["turns"][1]["user"]
+
+
+def test_case_count_is_unchanged_by_the_repairs() -> None:
+    assert len(_cases()) == 38

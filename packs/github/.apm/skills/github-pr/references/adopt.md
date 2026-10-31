@@ -49,7 +49,7 @@ tree and confirm it before any read:
 
 ```text
 git -c core.hooksPath=/dev/null fetch origin refs/pull/<N>/head
-git -c core.hooksPath=/dev/null worktree add --detach <worktree> <headRefOid>
+git -c core.hooksPath=/dev/null -c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false worktree add --detach <worktree> <headRefOid>
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse HEAD
 ```
 
@@ -79,7 +79,7 @@ Flagged paths: `.github/**`, `CODEOWNERS`, `Makefile`, `conftest.py`,
 `tox.ini`, `noxfile.py`, `justfile`, `Taskfile.y*ml`, `Dockerfile*`,
 `docker-compose*`, `compose*.y*ml`, `.devcontainer/**`, `.tool-versions`,
 `mise.toml`, `.envrc`, `.gitattributes`, `.gitmodules`,
-`.pre-commit-config.yaml`, `.husky/**`, `scripts/**`, `tools/**`. Each matches
+`.lfsconfig`, `.pre-commit-config.yaml`, `.husky/**`, `scripts/**`, `tools/**`. Each matches
 at any depth. Also flag any changed file a base-branch workflow or contract
 gate invokes.
 
@@ -131,11 +131,11 @@ gh pr view <N> --repo <owner>/<repo> --json headRefOid,baseRefName
 
 2. Make only fixes the allowed types cover, with the edit tool.
 3. Record your edits as file bytes before staging: read the diff of the edited
-files against HEAD, then hash each edited file:
+files against HEAD, then hash each edited file, one line and one hash per edited path (re-hashing a path replaces its line):
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> diff --binary --no-ext-diff --no-textconv -- <allowed-file>
-shasum -a 256 <worktree>/<allowed-file> > <edit-hashes>
+shasum -a 256 <worktree>/<allowed-file> >> <edit-hashes>
 ```
 
 Stage only files the allowed fix types cover, one path at a time, and never a
@@ -173,35 +173,45 @@ git -c core.hooksPath=/dev/null -C <worktree> rev-parse --git-dir --git-common-d
 git -c core.hooksPath=/dev/null -C <worktree> config --list --show-origin
 ```
 
-Hash every distinct `file:` path the listing names (system, global, and XDG configuration, plus
-`include` and `includeIf` targets as git resolved them here), the repository
-`config` and `config.worktree`, `hooks/`, and `info/`. Note any of those standard
-paths that does not exist, so a file created during the run shows as added:
+Record the presence or absence and the hash of every file git would load for
+`<worktree>`, whether or not it exists yet: the system, global, and XDG
+configuration files (the `$HOME` and `$XDG_CONFIG_HOME` forms and the system
+location, listed even when the listing does not show them), every distinct
+`file:` path the listing names, including `include` and `includeIf` targets as
+git resolved them here, `<worktree>/.git`, `<git-dir>/commondir`, the repository
+`<git-common-dir>/config`, `<git-dir>/config.worktree`, and every file under
+`<git-common-dir>/hooks/` and `<git-common-dir>/info/`. Write `absent <path>`
+for each path that fails `test -f`, and the hash line for each that passes:
 
 ```text
-shasum -a 256 <listed-config-file> <git-common-dir>/config <git-dir>/config.worktree <git-common-dir>/hooks/* <git-common-dir>/info/* > <hashes-before>
+test -f <path>
+shasum -a 256 <path> >> <hashes-before>
 ```
 
 2. Export exactly `<commit>` with git archive into an empty directory outside
 the worktree, and run each contract gate there:
 
 ```text
-git -c core.hooksPath=/dev/null -C <worktree> archive --format=tar <commit> | tar -x -C <export-dir>
+git -c core.hooksPath=/dev/null -c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false -C <worktree> archive --format=tar <commit> | tar -x -C <export-dir>
 ```
 
 ```gates
 <sandbox> <gate-command>
 ```
 
-3. Before your next git command after any sandbox run, repeat the `shasum`
-command into `<hashes-after>` and compare with `<hashes-before>` with the
-file-safety commands only, never a git command. Any difference, added file, or
-missing file stops the run.
-4. Confirm HEAD still equals `<commit>` and nothing is staged:
+3. Before your next git command after any sandbox run, repeat the `test -f`
+and `shasum` commands into `<hashes-after>` and compare with `<hashes-before>`
+with the file-safety commands only, never a git command. If any hash changed, or
+a path was created or deleted, stop before the next git command.
+4. Then read the repository state. Stop the run, and run no unstage, reset,
+commit, or push, if any staged path is outside the allowed files you edited, any
+staged byte differs from the recorded edit hash, or HEAD is no longer
+`<commit>`. A faithful run stages nothing:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse HEAD
 git -c core.hooksPath=/dev/null -C <worktree> diff --cached --name-only
+git -c core.hooksPath=/dev/null -C <worktree> show :<allowed-file> | shasum -a 256
 ```
 
 ### Push, wait, merge

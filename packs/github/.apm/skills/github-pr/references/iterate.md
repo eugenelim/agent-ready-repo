@@ -84,7 +84,7 @@ line of reasoning, options, and a recommendation. Also show:
   `tox.ini`, `noxfile.py`, `justfile`, `Taskfile.y*ml`, `Dockerfile*`,
   `docker-compose*`, `compose*.y*ml`, `.devcontainer/**`, `.tool-versions`,
   `mise.toml`, `.envrc`, `.gitattributes`, `.gitmodules`,
-  `.pre-commit-config.yaml`, `.husky/**`, `scripts/**`, `tools/**`, at any
+  `.lfsconfig`, `.pre-commit-config.yaml`, `.husky/**`, `scripts/**`, `tools/**`, at any
   depth. When one is listed, a gate result is flagged as not independent
   evidence, because the PR may have rewritten what the gate checks;
 - the gate commands and the sandbox command with its setup files, or that
@@ -115,11 +115,12 @@ gh pr view <N> --repo <owner>/<repo> --json headRefOid
 edited files for leftovers of what the comment asked to remove or rename.
 3. Record the edits, then stage and compare in the same form: file bytes. Read
 the diff of the approved files against HEAD and compare it with the diff shown
-at approval, then hash each edited file before staging anything:
+at approval, then hash each edited file before staging anything, one line and
+one hash per edited path (re-hashing a path replaces its line):
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> diff --binary --no-ext-diff --no-textconv -- <approved-file>
-shasum -a 256 <worktree>/<approved-file> > <edit-hashes>
+shasum -a 256 <worktree>/<approved-file> >> <edit-hashes>
 ```
 
 Stage only the files the approved list names, one path at a time, never a
@@ -150,43 +151,53 @@ When it names no sandbox, run no local gate.
 
 1. Name the commit the gates check, `<commit>`: the fix commit from the commit
 step, or the commit recorded at gather when the approved list makes no edit.
-Find the git directories and list the configuration files git loads for
-`<worktree>`:
+Find the git directories and list the
+configuration files git loads for `<worktree>`:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse --git-dir --git-common-dir
 git -c core.hooksPath=/dev/null -C <worktree> config --list --show-origin
 ```
 
-Hash every distinct `file:` path the listing names (system, global, and XDG configuration, plus
-`include` and `includeIf` targets as git resolved them here), the repository
-`config` and `config.worktree`, `hooks/`, and `info/`. Note any of those standard
-paths that does not exist, so a file created during the run shows as added:
+Record the presence or absence and the hash of every file git would load for
+`<worktree>`, whether or not it exists yet: the system, global, and XDG
+configuration files (the `$HOME` and `$XDG_CONFIG_HOME` forms and the system
+location, listed even when the listing does not show them), every distinct
+`file:` path the listing names, including `include` and `includeIf` targets as
+git resolved them here, `<worktree>/.git`, `<git-dir>/commondir`, the repository
+`<git-common-dir>/config`, `<git-dir>/config.worktree`, and every file under
+`<git-common-dir>/hooks/` and `<git-common-dir>/info/`. Write `absent <path>`
+for each path that fails `test -f`, and the hash line for each that passes:
 
 ```text
-shasum -a 256 <listed-config-file> <git-common-dir>/config <git-dir>/config.worktree <git-common-dir>/hooks/* <git-common-dir>/info/* > <hashes-before>
+test -f <path>
+shasum -a 256 <path> >> <hashes-before>
 ```
 
 2. Export exactly `<commit>` with git archive, into an empty directory outside
 the worktree, then run each approved gate there through the sandbox:
 
 ```text
-git -c core.hooksPath=/dev/null -C <worktree> archive --format=tar <commit> | tar -x -C <export-dir>
+git -c core.hooksPath=/dev/null -c filter.lfs.smudge= -c filter.lfs.process= -c filter.lfs.required=false -C <worktree> archive --format=tar <commit> | tar -x -C <export-dir>
 ```
 
 ```gates
 <sandbox> <gate-command>
 ```
 
-3. Before your next git command after any sandbox run, repeat the `shasum`
-command into `<hashes-after>` and compare it with `<hashes-before>` with the
-file-safety commands only, never a git command. If any file differs, or one
-was added or is missing, stop and report.
-4. Then confirm HEAD still equals `<commit>` and nothing is staged:
+3. Before your next git command after any sandbox run, repeat the `test -f`
+and `shasum` commands into `<hashes-after>` and compare it with `<hashes-before>`
+with the file-safety commands only, never a git command. If any hash changed, or
+a path was created or deleted, stop and report before the next git command.
+4. Then read the repository state. Stop the run, and run no unstage, reset,
+commit, or push, if any staged path is outside the approved list, any staged
+byte differs from the recorded edit hash, or HEAD is no longer `<commit>`. A
+faithful run stages nothing:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse HEAD
 git -c core.hooksPath=/dev/null -C <worktree> diff --cached --name-only
+git -c core.hooksPath=/dev/null -C <worktree> show :<approved-file> | shasum -a 256
 ```
 
 If a gate fails, stop and report, or show a revised plan item for approval.

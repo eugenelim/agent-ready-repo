@@ -1,6 +1,8 @@
 diff --git a/src/pager.py b/src/pager.py
 --- a/src/pager.py
 +++ b/src/pager.py
-@@ -10,3 +10,3 @@ def page_count(total, size):
+@@ -8,5 +8,6 @@ def page_count(total, size):
++    # Rounds up so a partial last page is counted.
++    # Retrun the page count as an int.
 -    return total // size
 +    return -(-total // size)

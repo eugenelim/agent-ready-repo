@@ -264,17 +264,17 @@ def test_u5_stops_on_foreign_host() -> None:
         assert form in SKILL
 
 
-def test_s2_origin_read_is_in_the_closed_read_only_set() -> None:
+def test_origin_read_is_in_the_closed_read_only_set() -> None:
     assert is_read_only("git -c core.hooksPath=/dev/null remote get-url origin")
     assert not is_read_only("git -c core.hooksPath=/dev/null remote set-url origin x")
     assert not is_read_only("git -c core.hooksPath=/dev/null remote add x y")
 
 
-def test_s1_no_unscoped_bash_preapproval() -> None:
+def test_unscoped_bash_is_not_preapproved() -> None:
     assert "Bash" not in frontmatter()
 
 
-def test_s3_path_checks_run_on_the_absolute_worktree_path() -> None:
+def test_path_checks_run_on_the_absolute_worktree_path() -> None:
     assert has(SKILL, "absolute path `<worktree>/<path>`", "resolved `<worktree>` root")
     for mode, ref in REFS.items():
         cmds = [c for _, c, _ in commands(before_after(ref)[0])]
@@ -284,8 +284,9 @@ def test_s3_path_checks_run_on_the_absolute_worktree_path() -> None:
             assert f"{prefix}<path>" not in cmds, (mode, prefix)
 
 
-def test_s5_attribute_and_submodule_gap_is_named() -> None:
-    assert has(SKILL, "filter, LFS, textconv, external-diff, or submodule behaviour", "`.gitattributes` or `.gitmodules`", "Name this gap")
+def test_attribute_lfs_and_submodule_gap_is_named() -> None:
+    assert has(SKILL, "filter, LFS, textconv, external-diff, or submodule behaviour", "`.gitattributes`, `.lfsconfig`, or `.gitmodules`", "Name this gap")
+    assert has(SKILL, "any other filter driver the user has configured can still run on PR-selected content at checkout")
 
 
 @pytest.mark.parametrize("mode", MODES)
@@ -319,7 +320,7 @@ def test_f4_gates_name_the_exact_commit(mode: str) -> None:
     ref = REFS[mode]
     archives = [c for _, c, _ in commands(ref) if " archive " in c]
     assert archives and all("<commit>" in c for c in archives)
-    assert has(ref, "`<commit>`", "export exactly `<commit>`", "HEAD still equals `<commit>`")
+    assert has(ref, "`<commit>`", "export exactly `<commit>`", "HEAD is no longer `<commit>`")
     assert has(ref, {"iterate": "commit recorded at gather", "adopt": "starting commit when you made no fix"}[mode])
 
 
@@ -351,13 +352,13 @@ def test_f7_adopt_detects_queue_and_auto_merge() -> None:
     assert any("--json state,mergedAt,autoMergeRequest,isInMergeQueue" in c for c in cmds)
 
 
-def test_s4_contract_flags_self_hosted_runners_in_base_and_head_workflows() -> None:
+def test_contract_flags_self_hosted_runners_in_base_and_head_workflows() -> None:
     assert has(REFS["adopt"], "self-hosted runners found in the base and the PR-head versions of every workflow a push would trigger")
     pre, _ = before_after(REFS["adopt"])
     assert any(re.search(r"-C <worktree> show HEAD:\.github/workflows/", c) for _, c, _ in commands(pre))
 
 
-def test_u5a_stops_on_repository_mismatch() -> None:
+def test_stops_on_repository_mismatch() -> None:
     assert has(
         SKILL,
         "If the base repository the gather reports differs from `origin`'s `owner/repo` or from the repository in the user's request, stop",
@@ -610,22 +611,22 @@ def test_g9a_config_hashes_compared_with_file_safety_commands(mode: str) -> None
     assert has(
         ref,
         "Before your next git command after any sandbox run",
-        "system, global, and XDG configuration",
+        "system, global, and XDG configuration files",
         "`include` and `includeIf` targets",
-        "`config.worktree`",
-        "hooks",
-        "`info/`",
+        "config.worktree",
+        "`<git-common-dir>/hooks/`",
+        "`<git-common-dir>/info/`",
         "with the file-safety commands only, never a git command",
     )
     assert any(c.startswith("shasum -a 256 ") for _, c, _ in commands(ref))
 
 
 def test_g9b_adopt_staged_bytes_match_recorded_edits() -> None:
-    assert has(REFS["adopt"], "any staged byte outside your own recorded edits stops the run")
+    assert has(REFS["adopt"], "any staged byte differs from the recorded edit hash")
 
 
 def test_g9c_iterate_staged_bytes_match_approved_edits() -> None:
-    assert has(REFS["iterate"], "any staged byte that differs from the edits shown at approval stops the run")
+    assert has(REFS["iterate"], "any staged byte differs from the recorded edit hash")
 
 
 def test_g10_sandbox_and_setup_files_from_trusted_place() -> None:
@@ -682,7 +683,7 @@ A4_PATTERNS = [
     ".github/**", "CODEOWNERS", "Makefile", "conftest.py", "package.json", "pyproject.toml", "pytest.ini",
     "setup.cfg", "setup.py", "tox.ini", "noxfile.py", "justfile", "Taskfile.y*ml", "Dockerfile*",
     "docker-compose*", "compose*.y*ml", ".devcontainer/**", ".tool-versions", "mise.toml", ".envrc",
-    ".gitattributes", ".gitmodules", ".pre-commit-config.yaml", ".husky/**", "scripts/**", "tools/**",
+    ".gitattributes", ".gitmodules", ".lfsconfig", ".pre-commit-config.yaml", ".husky/**", "scripts/**", "tools/**",
 ]
 
 
@@ -756,6 +757,83 @@ def test_a12_stop_and_ask_conditions(stop: str) -> None:
 )
 def test_a13_stop_and_report_conditions(stop: str) -> None:
     assert has(REFS["adopt"], stop)
+
+
+# --- round-2 repairs ---------------------------------------------------------
+
+
+def test_origin_url_with_userinfo_is_never_repeated() -> None:
+    assert has(SKILL, "carries userinfo", "never repeat the URL", "the remote embeds a credential", "and stop")
+
+
+def test_origin_host_comes_from_the_authority_and_owner_repo_are_checked() -> None:
+    assert has(
+        SKILL,
+        "the authority after `scheme://` and any userinfo, up to the next `/` or `:`",
+        "in the scp form the text after `git@` and before `:`",
+        "`<owner>` and `<repo>` must each pass the value check",
+    )
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_lfs_filters_are_off_for_checkout_and_export(mode: str) -> None:
+    flags = ("filter.lfs.smudge=", "filter.lfs.process=", "filter.lfs.required=false")
+    cmds = [c for _, c, _ in commands(REFS[mode]) if "worktree add" in c or " archive " in c]
+    expected = {"review": 1, "iterate": 1, "adopt": 2}[mode]
+    assert len(cmds) == expected, mode
+    for c in cmds:
+        assert all(f"-c {f}" in c for f in flags), c
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_lfsconfig_is_a_flagged_path(mode: str) -> None:
+    assert "`.lfsconfig`" in REFS[mode]
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_config_record_covers_presence_absence_and_every_loaded_file(mode: str) -> None:
+    ref = REFS[mode]
+    assert has(
+        ref,
+        "presence or absence and the hash of every file git would load",
+        "whether or not it exists yet",
+        "`<worktree>/.git`",
+        "`<git-dir>/commondir`",
+        "`<git-dir>/config.worktree`",
+        "`absent <path>`",
+        "a path was created or deleted",
+        "before the next git command",
+    )
+    cmds = [c for _, c, _ in commands(ref)]
+    assert "test -f <path>" in cmds
+    assert any(c.startswith("shasum -a 256 <path>") for c in cmds)
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_post_sandbox_stop_rule_runs_nothing_that_changes_state(mode: str) -> None:
+    ref = REFS[mode]
+    assert has(
+        ref,
+        "stop the run, and run no unstage, reset, commit, or push",
+        "any staged path is outside",
+        "any staged byte differs from the recorded edit hash",
+        "HEAD is no longer `<commit>`",
+    )
+    _, post = before_after(ref)
+    gates = post[post.index("### Gates in a sandbox") : post.index("### Push")]
+    assert any("show :" in c and c.endswith("| shasum -a 256") for _, c, _ in commands(gates))
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_edit_hash_record_keeps_one_hash_per_path(mode: str) -> None:
+    ref = REFS[mode]
+    assert has(ref, "one line and one hash per edited path")
+    assert any(c.startswith("shasum -a 256 <worktree>/") and c.endswith(">> <edit-hashes>") for _, c, _ in commands(ref))
+
+
+def test_readme_says_only_named_threads_are_resolved() -> None:
+    readme = (Path(__file__).resolve().parents[3] / "README.md").read_text(encoding="utf-8")
+    assert has(readme, "resolve only the threads the approved plan names")
 
 
 # --- scope -------------------------------------------------------------------
