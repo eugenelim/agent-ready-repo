@@ -308,11 +308,11 @@ def test_f3_edit_record_and_staged_record_share_one_form(mode: str) -> None:
     assert not any("diff --cached --binary" in c for c in cmds)
     assert not any("<approved-patch>" in c or "<edits-patch>" in c or "<staged-patch>" in c for c in cmds)
     raw = [c for _, c, _ in commands(ref)]
-    recorded = [c for c in raw if c.startswith("shasum -a 256 <worktree>/") and c.endswith("> <edit-hashes>")]
-    staged = [c for c in raw if re.search(r" show :<\S+-file> \| shasum -a 256$", c)]
+    recorded = [c for c in raw if "hash-object -- <worktree-relative " in c and c.endswith("> <edit-ids>")]
+    staged = [c for c in raw if re.search(r" rev-parse :<worktree-relative \S+-file>$", c)]
     assert recorded and staged
     assert any(c == "git diff --cached --name-only" for c in cmds)
-    assert has(ref, "each staged hash must equal its recorded hash")
+    assert has(ref, "each staged id must equal its recorded id")
 
 
 @pytest.mark.parametrize("mode", ["iterate", "adopt"])
@@ -337,7 +337,7 @@ def test_f5_review_head_moved_handles_the_pending_review() -> None:
 def test_f6_config_hash_set_comes_from_the_files_git_loads(mode: str) -> None:
     ref = REFS[mode]
     cmds = [strip_globals(c) for _, c, _ in commands(ref)]
-    assert "git config --list --show-origin" in cmds
+    assert "git config --list --show-origin --name-only" in cmds
     assert has(ref, "every distinct `file:` path the listing names")
     for fixed in ("/etc/gitconfig", "~/.gitconfig", "~/.config/git/config"):
         assert fixed not in ref
@@ -612,7 +612,7 @@ def test_g9a_config_hashes_compared_with_file_safety_commands(mode: str) -> None
         ref,
         "Before your next git command after any sandbox run",
         "system, global, and XDG configuration files",
-        "`include` and `includeIf` targets",
+        "every `include` and `includeIf` target",
         "config.worktree",
         "`<git-common-dir>/hooks/`",
         "`<git-common-dir>/info/`",
@@ -622,11 +622,11 @@ def test_g9a_config_hashes_compared_with_file_safety_commands(mode: str) -> None
 
 
 def test_g9b_adopt_staged_bytes_match_recorded_edits() -> None:
-    assert has(REFS["adopt"], "any staged byte differs from the recorded edit hash")
+    assert has(REFS["adopt"], "any staged id differs from the recorded edit id")
 
 
 def test_g9c_iterate_staged_bytes_match_approved_edits() -> None:
-    assert has(REFS["iterate"], "any staged byte differs from the recorded edit hash")
+    assert has(REFS["iterate"], "any staged id differs from the recorded edit id")
 
 
 def test_g10_sandbox_and_setup_files_from_trusted_place() -> None:
@@ -763,7 +763,7 @@ def test_a13_stop_and_report_conditions(stop: str) -> None:
 
 
 def test_origin_url_with_userinfo_is_never_repeated() -> None:
-    assert has(SKILL, "carries userinfo", "never repeat the URL", "the remote embeds a credential", "and stop")
+    assert has(SKILL, "carries userinfo", "never repeat the URL", "origin URL has userinfo and cannot be used", "Do not call it a credential")
 
 
 def test_origin_host_comes_from_the_authority_and_owner_repo_are_checked() -> None:
@@ -801,7 +801,7 @@ def test_config_record_covers_presence_absence_and_every_loaded_file(mode: str) 
         "`<git-dir>/commondir`",
         "`<git-dir>/config.worktree`",
         "`absent <path>`",
-        "a path was created or deleted",
+        "any new, changed, or removed entry",
         "before the next git command",
     )
     cmds = [c for _, c, _ in commands(ref)]
@@ -816,19 +816,19 @@ def test_post_sandbox_stop_rule_runs_nothing_that_changes_state(mode: str) -> No
         ref,
         "stop the run, and run no unstage, reset, commit, or push",
         "any staged path is outside",
-        "any staged byte differs from the recorded edit hash",
+        "any staged id differs from the recorded edit id",
         "HEAD is no longer `<commit>`",
     )
     _, post = before_after(ref)
     gates = post[post.index("### Gates in a sandbox") : post.index("### Push")]
-    assert any("show :" in c and c.endswith("| shasum -a 256") for _, c, _ in commands(gates))
+    assert any("rev-parse :<worktree-relative" in c for _, c, _ in commands(gates))
 
 
 @pytest.mark.parametrize("mode", ["iterate", "adopt"])
 def test_edit_hash_record_keeps_one_hash_per_path(mode: str) -> None:
     ref = REFS[mode]
-    assert has(ref, "one line and one hash per edited path")
-    assert any(c.startswith("shasum -a 256 <worktree>/") and c.endswith(">> <edit-hashes>") for _, c, _ in commands(ref))
+    assert has(ref, "one line and one id per edited path")
+    assert any("hash-object -- <worktree-relative" in c and c.endswith(">> <edit-ids>") for _, c, _ in commands(ref))
 
 
 def test_readme_says_only_named_threads_are_resolved() -> None:
@@ -843,3 +843,37 @@ def test_scope_is_github_only_and_names_no_governance_records() -> None:
     assert has(SKILL, "supports `github.com` only")
     for name, text in ALL_FILES.items():
         assert "docs/specs" not in text and "docs/adr" not in text, name
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_config_record_reads_keys_only_and_names_every_include_target(mode: str) -> None:
+    ref = REFS[mode]
+    cmds = [strip_globals(c) for _, c, _ in commands(ref)]
+    assert "git config --list --show-origin" not in cmds
+    assert any(c.startswith("git config --show-origin --get-regexp ^include(if") for c in cmds)
+    assert has(
+        ref,
+        "key names only, never values",
+        "whether or not the file exists",
+        "`GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM`",
+        "`<git-common-dir>/objects/info/alternates`",
+        "`<git-common-dir>/refs/replace/`",
+        "the listings of `hooks/` and `info/`",
+        "including a file created under `hooks/` or `info/`",
+    )
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_edit_record_hashes_through_clean_filters(mode: str) -> None:
+    assert has(REFS[mode], "`hash-object` runs the file through the clean filters", "`text=auto`, `core.autocrlf`")
+
+
+def test_lookalike_host_message_is_separate_from_userinfo_message() -> None:
+    flat = norm(SKILL)
+    assert "github.com@example.invalid" not in flat
+    assert has(SKILL, "lookalike without userinfo", "supports `github.com` only")
+
+
+def test_readme_host_answer_names_the_origin_rule() -> None:
+    readme = (Path(__file__).resolve().parents[3] / "README.md").read_text(encoding="utf-8")
+    assert has(readme, "`github-pr` trusts only the host of the `origin` remote", "exactly `github.com`")

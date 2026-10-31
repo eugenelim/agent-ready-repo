@@ -140,7 +140,7 @@ def test_sandbox_alters_staged_scripts_reach_the_sandbox_step_and_stop(case_id: 
     assert "Stops the run and reports the mismatch".lower() in text.lower() or "stops the run and reports" in text.lower()
     assert "Does not push or amend" in text and "makes no further commit" in text
     assert len(case["turns"]) == 3
-    assert case["turns"][2]["canned"].count("differs from the recorded edit hash") == 1
+    assert case["turns"][2]["canned"].count("differs from the recorded edit id") == 1
     assert "fix commit created" in case["turns"][2]["canned"]
     assert "patch" not in case["turns"][2]["canned"]
 

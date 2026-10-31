@@ -130,26 +130,26 @@ gh pr view <N> --repo <owner>/<repo> --json headRefOid,baseRefName
 ```
 
 2. Make only fixes the allowed types cover, with the edit tool.
-3. Record your edits as file bytes before staging: read the diff of the edited
-files against HEAD, then hash each edited file, one line and one hash per edited path (re-hashing a path replaces its line):
+3. Record your edits as blob ids before staging: read the diff of the edited
+files against HEAD, then record the blob id of each edited file, one line and one id per edited path (re-hashing a path replaces its line). `hash-object` runs the file through the clean filters, so the id matches what staging stores under `text=auto`, `core.autocrlf`, or any clean filter:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> diff --binary --no-ext-diff --no-textconv -- <allowed-file>
-shasum -a 256 <worktree>/<allowed-file> >> <edit-hashes>
+git -c core.hooksPath=/dev/null -C <worktree> hash-object -- <worktree-relative allowed-file> >> <edit-ids>
 ```
 
 Stage only files the allowed fix types cover, one path at a time, and never a
-path matching the flagged list. Then list what is staged and hash the staged
-bytes of each file:
+path matching the flagged list. Then list what is staged and read the staged
+blob id of each file, one line per allowed path:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> add -- <allowed-file>
 git -c core.hooksPath=/dev/null -C <worktree> diff --cached --name-only
-git -c core.hooksPath=/dev/null -C <worktree> show :<allowed-file> | shasum -a 256
+git -c core.hooksPath=/dev/null -C <worktree> rev-parse :<worktree-relative allowed-file>
 ```
 
-The staged names must be exactly the files you edited, and each staged hash must
-equal its recorded hash. Any staged byte outside your own recorded edits stops
+The staged names must be exactly the files you edited, and each staged id must
+equal its recorded id. Any staged id outside your own recorded edits stops
 the run.
 
 4. Commit with the contract's message format, text from a file outside the worktree:
@@ -165,23 +165,32 @@ Skip this when the contract names no sandbox: run no local gate and rely on
 the repository's required remote checks.
 
 1. Name the commit the gates check, `<commit>`: the fix commit you just made, or
-the starting commit when you made no fix. Find the git directories and list the
-configuration files git loads for `<worktree>`:
+the starting commit when you made no fix. Find the git directories and
+the configuration files git loads for `<worktree>`. List key names only, never
+values, and name every include target from its directive:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse --git-dir --git-common-dir
-git -c core.hooksPath=/dev/null -C <worktree> config --list --show-origin
+git -c core.hooksPath=/dev/null -C <worktree> config --list --show-origin --name-only
+git -c core.hooksPath=/dev/null -C <worktree> config --show-origin --get-regexp '^include(if\..*)?\.path$'
 ```
+
+The second command's values are paths. Resolve each one against the file that
+includes it, or expand `~`, and keep it whether or not the file exists.
 
 Record the presence or absence and the hash of every file git would load for
 `<worktree>`, whether or not it exists yet: the system, global, and XDG
 configuration files (the `$HOME` and `$XDG_CONFIG_HOME` forms and the system
-location, listed even when the listing does not show them), every distinct
-`file:` path the listing names, including `include` and `includeIf` targets as
-git resolved them here, `<worktree>/.git`, `<git-dir>/commondir`, the repository
-`<git-common-dir>/config`, `<git-dir>/config.worktree`, and every file under
-`<git-common-dir>/hooks/` and `<git-common-dir>/info/`. Write `absent <path>`
-for each path that fails `test -f`, and the hash line for each that passes:
+location, listed even when the listing does not show them), the paths named by
+the `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` environment variables when set,
+every distinct `file:` path the listing names, every `include` and `includeIf`
+target from the directives, `<worktree>/.git`, `<git-dir>/commondir`, the
+repository `<git-common-dir>/config`, `<git-dir>/config.worktree`,
+`<git-common-dir>/objects/info/alternates`, and every file under
+`<git-common-dir>/hooks/` and `<git-common-dir>/info/`. Also record the listing
+of `<git-common-dir>/refs/replace/`, and the listings of `hooks/` and `info/`.
+Write `absent <path>` for each path that fails `test -f`, and the hash line for
+each that passes:
 
 ```text
 test -f <path>
@@ -199,19 +208,21 @@ git -c core.hooksPath=/dev/null -c filter.lfs.smudge= -c filter.lfs.process= -c 
 <sandbox> <gate-command>
 ```
 
-3. Before your next git command after any sandbox run, repeat the `test -f`
-and `shasum` commands into `<hashes-after>` and compare with `<hashes-before>`
-with the file-safety commands only, never a git command. If any hash changed, or
-a path was created or deleted, stop before the next git command.
+3. Before your next git command after any sandbox run, repeat the whole record
+(the `test -f` and `shasum` commands, plus the `hooks/`, `info/`, and
+`refs/replace/` listings) into `<hashes-after>` and compare it with
+`<hashes-before>` with the file-safety commands only, never a git command. Any
+new, changed, or removed entry, including a file created under `hooks/` or
+`info/`, stops the run before the next git command.
 4. Then read the repository state. Stop the run, and run no unstage, reset,
 commit, or push, if any staged path is outside the allowed files you edited, any
-staged byte differs from the recorded edit hash, or HEAD is no longer
+staged id differs from the recorded edit id, or HEAD is no longer
 `<commit>`. A faithful run stages nothing:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse HEAD
 git -c core.hooksPath=/dev/null -C <worktree> diff --cached --name-only
-git -c core.hooksPath=/dev/null -C <worktree> show :<allowed-file> | shasum -a 256
+git -c core.hooksPath=/dev/null -C <worktree> rev-parse :<worktree-relative allowed-file>
 ```
 
 ### Push, wait, merge

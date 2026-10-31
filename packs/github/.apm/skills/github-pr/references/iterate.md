@@ -113,28 +113,30 @@ gh pr view <N> --repo <owner>/<repo> --json headRefOid
 
 2. Make the approved edits with the edit tool, blockers first. Search the
 edited files for leftovers of what the comment asked to remove or rename.
-3. Record the edits, then stage and compare in the same form: file bytes. Read
+3. Record the edits, then stage and compare in the same form: blob ids. Read
 the diff of the approved files against HEAD and compare it with the diff shown
-at approval, then hash each edited file before staging anything, one line and
-one hash per edited path (re-hashing a path replaces its line):
+at approval, then record the blob id of each edited file before staging
+anything, one line and one id per edited path (re-hashing a path replaces its
+line). `hash-object` runs the file through the clean filters, so the id matches
+what staging stores under `text=auto`, `core.autocrlf`, or any clean filter:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> diff --binary --no-ext-diff --no-textconv -- <approved-file>
-shasum -a 256 <worktree>/<approved-file> >> <edit-hashes>
+git -c core.hooksPath=/dev/null -C <worktree> hash-object -- <worktree-relative approved-file> >> <edit-ids>
 ```
 
 Stage only the files the approved list names, one path at a time, never a
-directory or pattern. Then list what is staged and hash the staged bytes of each
-file, and compare those hashes with `<edit-hashes>`:
+directory or pattern. Then list what is staged and read the staged blob id of each
+file, and compare those ids with `<edit-ids>`, one line per approved path:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> add -- <approved-file>
 git -c core.hooksPath=/dev/null -C <worktree> diff --cached --name-only
-git -c core.hooksPath=/dev/null -C <worktree> show :<approved-file> | shasum -a 256
+git -c core.hooksPath=/dev/null -C <worktree> rev-parse :<worktree-relative approved-file>
 ```
 
-The staged names must be exactly the approved files, and each staged hash must
-equal its recorded hash. Any staged byte that differs from the edits shown at
+The staged names must be exactly the approved files, and each staged id must
+equal its recorded id. Any staged id that differs from the edits shown at
 approval stops the run.
 4. Commit as a new commit, never an amend, with the approved message from a file
 outside the worktree:
@@ -151,23 +153,32 @@ When it names no sandbox, run no local gate.
 
 1. Name the commit the gates check, `<commit>`: the fix commit from the commit
 step, or the commit recorded at gather when the approved list makes no edit.
-Find the git directories and list the
-configuration files git loads for `<worktree>`:
+Find the git directories and
+the configuration files git loads for `<worktree>`. List key names only, never
+values, and name every include target from its directive:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse --git-dir --git-common-dir
-git -c core.hooksPath=/dev/null -C <worktree> config --list --show-origin
+git -c core.hooksPath=/dev/null -C <worktree> config --list --show-origin --name-only
+git -c core.hooksPath=/dev/null -C <worktree> config --show-origin --get-regexp '^include(if\..*)?\.path$'
 ```
+
+The second command's values are paths. Resolve each one against the file that
+includes it, or expand `~`, and keep it whether or not the file exists.
 
 Record the presence or absence and the hash of every file git would load for
 `<worktree>`, whether or not it exists yet: the system, global, and XDG
 configuration files (the `$HOME` and `$XDG_CONFIG_HOME` forms and the system
-location, listed even when the listing does not show them), every distinct
-`file:` path the listing names, including `include` and `includeIf` targets as
-git resolved them here, `<worktree>/.git`, `<git-dir>/commondir`, the repository
-`<git-common-dir>/config`, `<git-dir>/config.worktree`, and every file under
-`<git-common-dir>/hooks/` and `<git-common-dir>/info/`. Write `absent <path>`
-for each path that fails `test -f`, and the hash line for each that passes:
+location, listed even when the listing does not show them), the paths named by
+the `GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM` environment variables when set,
+every distinct `file:` path the listing names, every `include` and `includeIf`
+target from the directives, `<worktree>/.git`, `<git-dir>/commondir`, the
+repository `<git-common-dir>/config`, `<git-dir>/config.worktree`,
+`<git-common-dir>/objects/info/alternates`, and every file under
+`<git-common-dir>/hooks/` and `<git-common-dir>/info/`. Also record the listing
+of `<git-common-dir>/refs/replace/`, and the listings of `hooks/` and `info/`.
+Write `absent <path>` for each path that fails `test -f`, and the hash line for
+each that passes:
 
 ```text
 test -f <path>
@@ -185,19 +196,21 @@ git -c core.hooksPath=/dev/null -c filter.lfs.smudge= -c filter.lfs.process= -c 
 <sandbox> <gate-command>
 ```
 
-3. Before your next git command after any sandbox run, repeat the `test -f`
-and `shasum` commands into `<hashes-after>` and compare it with `<hashes-before>`
-with the file-safety commands only, never a git command. If any hash changed, or
-a path was created or deleted, stop and report before the next git command.
+3. Before your next git command after any sandbox run, repeat the whole record
+(the `test -f` and `shasum` commands, plus the `hooks/`, `info/`, and
+`refs/replace/` listings) into `<hashes-after>` and compare it with
+`<hashes-before>` with the file-safety commands only, never a git command. Any
+new, changed, or removed entry, including a file created under `hooks/` or
+`info/`, stops the run before the next git command.
 4. Then read the repository state. Stop the run, and run no unstage, reset,
 commit, or push, if any staged path is outside the approved list, any staged
-byte differs from the recorded edit hash, or HEAD is no longer `<commit>`. A
+id differs from the recorded edit id, or HEAD is no longer `<commit>`. A
 faithful run stages nothing:
 
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse HEAD
 git -c core.hooksPath=/dev/null -C <worktree> diff --cached --name-only
-git -c core.hooksPath=/dev/null -C <worktree> show :<approved-file> | shasum -a 256
+git -c core.hooksPath=/dev/null -C <worktree> rev-parse :<worktree-relative approved-file>
 ```
 
 If a gate fails, stop and report, or show a revised plan item for approval.

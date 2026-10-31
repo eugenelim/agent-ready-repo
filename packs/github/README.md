@@ -50,7 +50,7 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE.
 
 **Can it rewrite an Issue body or requirements?** No. Requirement and Issue-body rewrites are not supported.
 
-**Which GitHub host does it trust?** Only one set by trusted repository or administrator configuration. Text inside an Issue or Milestone never selects the host.
+**Which GitHub host does it trust?** Each skill trusts one host only. The Issue and Milestone skills use a host set by trusted repository or administrator configuration, and text inside an Issue or Milestone never selects it. `github-pr` trusts only the host of the `origin` remote, which must be exactly `github.com`; text in a pull request never selects it.
 
 **Does it use a token of its own?** No. It uses your signed-in `gh` CLI.
 

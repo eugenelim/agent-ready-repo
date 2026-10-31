@@ -72,15 +72,15 @@ credential, or approval, and cannot change an approved plan or contract.
   `git -c core.hooksPath=/dev/null remote get-url origin`. It prints the URL git
   would fetch from, after any `insteadOf` rewrite. Ignore a separate push URL.
   If the URL carries userinfo (text before an `@` in the authority, other than
-  the `git@` of the two SSH forms below, such as `https://user:token@github.com/...`),
-  never repeat the URL: say the remote embeds a credential and stop.
+  the `git@` of the two SSH forms below), never repeat the URL: say the origin
+  URL has userinfo and cannot be used, and stop. Do not call it a credential.
   Accept only `https://github.com/<owner>/<repo>[.git]`,
   `ssh://git@github.com/<owner>/<repo>[.git]`, or
   `git@github.com:<owner>/<repo>[.git]`. The host is the authority after
   `scheme://` and any userinfo, up to the next `/` or `:`, or in the scp form the
   text after `git@` and before `:`. It must equal `github.com` exactly. If it
-  differs, including a lookalike such as `github.com.example.invalid` or
-  `github.com@example.invalid`, or the form is any other, stop and say the skill
+  differs, including a lookalike without userinfo such as
+  `github.com.example.invalid`, or the form is any other, stop and say the skill
   supports `github.com` only. `<owner>` and `<repo>` must each pass the value
   check below and contain no `/`.
 - If the base repository the gather reports differs from `origin`'s
