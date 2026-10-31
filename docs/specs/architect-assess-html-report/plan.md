@@ -120,6 +120,14 @@ Touches: `scripts/render_html.py`, `packs/architect/tests/skills/architect-asses
 Tests: a fence line never continues a list item, so an indented closing fence cannot open a block that swallows a later orientation subsection, and a Mermaid fence attached to a list item with no blank line gets the diagram label; one orientation-range computation, with an end at the next heading at or above its level, feeds both the gate and the shading, so a table under a deeper child heading is validated and shaded, a later shallower heading ends the range, and a later orientation heading at another level starts its own range; only a level-1 heading that is the first heading block is the title; the link-target repeat is possessive and the unterminated-target shape peaks under 16 MiB of `tracemalloc` memory on a 400 KB input (the old pattern used about 80 MiB there); the import allow-list assertion matches the criterion, including `unicodedata`; a link renders as text with whitespace inside its target after trimming (including a no-break space), with a C0 control, a C1 control, a soft hyphen, or a tag character in its text or its target, or with two levels of nested parentheses, and renders as an anchor with one level; a contract test checks that `references/html-report.md` lists every exit 2 reason (goal-based).
 Done when: the T9 tests pass.
 
+### T10 — Repair round-four review findings
+
+Depends on: T9
+Verification mode: TDD
+Touches: `scripts/render_html.py`, `packs/architect/tests/skills/architect-assess/test_render_html.py`, `references/html-report.md`, `guides/architect/reference/architecture-assessment.md`
+Tests: a Mermaid fence nested under a list item at four and at five spaces of indent renders as a labeled `<pre>` and a fence line still never continues a list item or reaches past the list; the memory test uses the criterion's single-line, no-newline input; the separator time test includes the criterion's literal header, separator row, and spaces shape; the refused existing-output run leaves the existing file's bytes unchanged; the exit 3 row in `references/html-report.md` names an existing output over 16 MiB and a path that is not a directory, and the guide's exit sentence points at the reference.
+Done when: the T10 tests pass.
+
 ## Review
 
 The change renders untrusted text as HTML and adds a confined write, so the work-loop's security-reviewer fires at REVIEW on T1 and T2 and must be clean before T4 releases.
