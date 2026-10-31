@@ -228,7 +228,7 @@ Owned by: T1.
   and rebuilds the same step.
 - Crash after the transaction and before the record: both refs at pending;
   the next call records it and continues.
-- Partial transaction: one ref at pending, AC-0008.
+- Partial transaction: the product ref at pending with `HEAD` behind completes (AC-0008); `HEAD` alone at pending is foreign history, because only the supervisor moves the product ref.
 - Conflict: nothing moves; the attempt guard answers `attempt-residue` until
   the ref is restored, then clears and re-issues the request, and the
   worker's kept files are the re-issued attempt's result (AC-0004).
@@ -281,8 +281,10 @@ Owned by: T1.
     while `status` reports it.
   - **VI-0514 (AC-0008, AC-0009, AC-0010):** in `test_supervisor_product_ref.py`, `git reset --hard`, `--soft`, and
     `--mixed` two steps back each converge at the next `next` with the
-    working tree equal to the ref's tree; a partial transaction (only one ref
-    moved) completes, with the attempt open and with it closed; a reset plus
+    working tree equal to the ref's tree; a partial transaction that moved
+    only the product ref completes, with the attempt open and with it closed;
+    a crash before the transaction followed by a worker moving `HEAD` onto
+    the pending commit is foreign history, not completed; a reset plus
     an edit to a file those steps changed refuses `projection-blocked` and
     leaves the edit's bytes and the index.
   - **VI-0516 (AC-0011, AC-0012, AC-0013, AC-0014):** in `test_supervisor_product_ref.py`, the existing rebase
@@ -378,3 +380,5 @@ Owned by: T1.
 
 - 2026-10-30: spec approved by eugenelim
 - 2026-10-30: plan approved by eugenelim
+- 2026-10-30: spec approved by eugenelim (amended AC-0008 and the Made commit definition)
+- 2026-10-30: plan approved by eugenelim (amended AC-0008 and VI-0514)

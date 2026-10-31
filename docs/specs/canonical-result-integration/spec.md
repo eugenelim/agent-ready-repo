@@ -126,8 +126,8 @@ change reaches a run in flight.
   admits.
 - **Source commit.** The commit the product ref named when the request for a
   product result was issued.
-- **Made commit.** A commit this run's supervisor recorded as built, in its
-  run store.
+- **Made commit.** A commit this run's supervisor recorded in its run store
+  after the transaction that carried it moved the refs.
 - **Anchor.** The product ref's recorded value or, for a run with no
   recorded product ref, its latest made commit.
 - **Foreign history.** A commit reachable from `HEAD` and not from the anchor
@@ -181,9 +181,10 @@ Crash and lag repair
   uninterrupted run, with no step committed twice. At every kill point the
   product ref names either the commit before that write or the commit after
   it.
-- [ ] **AC-0008.** When one of `HEAD` and the product ref names a step's
-  pending commit and the other names the commit before it, the next verb
-  moves the lagging one to the pending commit.
+- [ ] **AC-0008.** When the product ref names a step's pending commit and
+  `HEAD` names the commit before it, the next verb moves `HEAD` to the
+  pending commit. A `HEAD` that names a pending commit the product ref does
+  not name is foreign history.
 - [ ] **AC-0009.** With no attempt open, when the product ref names its
   recorded value and descends from `HEAD` through made commits only, the next
   verb moves `HEAD` to it, and every tracked product file those commits
