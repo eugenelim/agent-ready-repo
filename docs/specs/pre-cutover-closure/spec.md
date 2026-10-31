@@ -1,6 +1,7 @@
 # Spec: Pre-cutover compatibility closure
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-30 by eugenelim, spec and plan at `3ace13ecb`, after three spec-mode shaping and adversarial review rounds, each adjudicated, with the round-3 repair accepted unreviewed and AC-0020 kept at the deletion pass; records under `.context/reviews/87a629cd-91c6-435b-b8a2-edac5914679e/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105 (D3, gate 4 and the one retirement record), RFC-0106 (D1, a registration's readers and writers go when its replacement ships; § Errata, the removals the upgrade notes list), ADR-0074 (standard-library skill scripts)

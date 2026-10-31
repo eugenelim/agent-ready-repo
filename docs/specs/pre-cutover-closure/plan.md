@@ -1,7 +1,7 @@
 # Plan: Pre-cutover compatibility closure
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0105 D3; RFC-0106 D1 and § Errata (2026-10-25 and 2026-10-30 entries); ADR-0074.
   - `packs/core/.apm/skills/close-work/scripts/closure_index.py`: `WorkspaceLookup` (line 222), `_build_eligible_packet` (line 786, the lookup assigned at line 818), `EligiblePacket` (line 1455, the field at line 1518), `check_ancestor_closure` (line 1861, the seam at line 1877 and its pass-through at line 1977).
@@ -143,3 +143,6 @@ Owned by: T2, T4, T5
 - The owner rule reds every shared-fixture test until `_BASE_ROWS` moves to owner `9`; T3 moves both in one change.
 
 ## Changelog
+
+- 2026-10-30: spec approved by eugenelim at `3ace13ecb`.
+- 2026-10-30: plan approved by eugenelim at `3ace13ecb`.
