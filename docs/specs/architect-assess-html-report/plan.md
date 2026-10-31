@@ -19,7 +19,7 @@ A stdlib script reads the confined `assessment.md`, converts a bounded Markdown 
 
 ## Construction tests
 
-**Integration tests:** one end-to-end test renders a fixture report holding all three orientation subsections, a heat map, a Mermaid fence, and the hostile corpus, then asserts structure, escaping, CSP, and banner together.
+**Integration tests:** none beyond the per-task tests; structure, escaping, CSP, banner, and the hostile corpus are each checked by their own test over the same fixture shape.
 **Manual verification:** T5.
 
 ## Durable-output map
@@ -127,6 +127,14 @@ Verification mode: TDD
 Touches: `scripts/render_html.py`, `packs/architect/tests/skills/architect-assess/test_render_html.py`, `references/html-report.md`, `guides/architect/reference/architecture-assessment.md`
 Tests: a Mermaid fence nested under a list item at four and at five spaces of indent renders as a labeled `<pre>` and a fence line still never continues a list item or reaches past the list; the memory test uses the criterion's single-line, no-newline input; the separator time test includes the criterion's literal header, separator row, and spaces shape; the refused existing-output run leaves the existing file's bytes unchanged; the exit 3 row in `references/html-report.md` names an existing output over 16 MiB and a path that is not a directory, and the guide's exit sentence points at the reference.
 Done when: the T10 tests pass.
+
+### T11 — Repair round-five review findings
+
+Depends on: T10
+Verification mode: TDD
+Touches: `scripts/render_html.py`, `packs/architect/tests/skills/architect-assess/test_render_html.py`
+Tests: a Mermaid fence led by a tab, or by spaces and tabs, under a list item renders as a labeled `<pre>` with its line breaks kept, and a fence line led by whitespace of either kind never continues a list item.
+Done when: the T11 tests pass.
 
 ## Review
 
