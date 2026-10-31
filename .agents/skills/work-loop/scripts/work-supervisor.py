@@ -22,10 +22,12 @@ precedence over 1.
 Before it loads any sibling script, every verb hashes the installed supervisor
 files, compares them with the digests the first admitted ``start`` pinned in the
 supervisor store under the Git directory, and refuses ``supervisor-changed`` on
-a difference. It also refuses when the installed files differ from the pins of any
-run in the worktree whose store holds an open attempt or an uncleared refusal, and
-when <spec-dir> names a directory by other than its on-disk case. It also keeps
-bytecode files from loading or being written.
+a difference. The one exception is ``status`` on a run with no store directory in
+the checkout, which has no pins to compare: it proceeds on the committed records and
+reports ``verification: committed-records-only``. It also refuses when the installed
+files differ from the pins of any run in the worktree whose store holds an open
+attempt or an uncleared refusal, and when <spec-dir> names a directory by other than
+its on-disk case. It also keeps bytecode files from loading or being written.
 
 Standard library only; it loads only its sibling scripts. Python 3.11+.
 """
@@ -391,7 +393,20 @@ def _case_exact(root: Path, spec: str) -> None:
         return
 
 
-def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, str]) -> None:
+def _store_absent(store: Path) -> bool:
+    """Whether looking up *store* reports that nothing exists there; any other error refuses."""
+    try:
+        os.lstat(store)
+    except FileNotFoundError:
+        return True
+    except OSError as exc:
+        raise _PinRefused("the supervisor store cannot be inspected", unverifiable=True) from exc
+    return False
+
+
+def _preflight(
+    verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, str]
+) -> set[str]:
     """Refuse unless the installed files match the pins, before any sibling loads.
 
     The runs come from the supervisor store, whose pin records name their spec, so a
@@ -403,14 +418,19 @@ def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, 
     record it, on the spec its store records, unless that spec's ``start`` marked it an
     orphan; a directory that records no spec refuses on every spec, and a damaged
     record refuses them all.
-    The first admission has no run yet and pins the files itself.
+    The first admission has no run yet and pins the files itself. ``status`` alone
+    passes a working run with no store directory (the lookup reports nothing there;
+    any other error refuses), since a checkout that never ran the supervisor has no
+    pins to compare; every other refusal here still applies to it.
+    Returns the run ids whose pins, or open ``regenerate`` source digests, matched
+    the installed files.
     """
     spec = _clean_spec(spec_dir)
     if spec is None:
         raise UsageError("<spec-dir> must be a repository-relative POSIX path")
     found = _find_dot_git(cwd)
     if found is None:
-        return
+        return set()
     root, dot_git = found
     _case_exact(root, spec)
     git_dir = _git_dir(dot_git)
@@ -443,11 +463,19 @@ def _preflight(verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, 
         if pinned[0] == spec or _latest_issuance(store, standing=True) is not None:
             guarded.append((store, name, pinned[1]))
     working = _working_run_id(root, spec)
-    if working is not None and working not in known and verb != "start":
+    if (
+        working is not None
+        and working not in known
+        and verb != "start"
+        and (verb != "status" or not _store_absent(base / working))
+    ):
         raise _PinRefused("the supervisor's pin record is missing", unverifiable=True)
+    matched: set[str] = set()
     for store, name, digests in guarded:
         if installed != digests and installed != _open_regeneration(store, name):
             raise _PinRefused("the installed supervisor differs from its pinned digests")
+        matched.add(name)
+    return matched
 
 
 def _log_pin_event(spec_dir: str, cwd: Path | None) -> None:
@@ -645,7 +673,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
         args = _parser().parse_args(argv)
         spec_dir = args.spec_dir
         installed = _installed_digests(_SCRIPTS_DIR.parent)
-        _preflight(args.verb, args.spec_dir, cwd, installed)
+        matched = _preflight(args.verb, args.spec_dir, cwd, installed)
         root = _repo_root(cwd)
         spec_rel = _spec_rel(root, args.spec_dir)
         result_data = _read_result(args.result) if args.verb == "report" else None
@@ -664,6 +692,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     statelock = commit.sibling("_statelock.py")
     workspace = admission.Workspace(root, spec_rel)
     workspace.attempts.installed = installed
+    workspace.attempts.pre_import_matched = matched
     unsafe = _untrusted_unsafe_host_refusal(args, workspace)
     if unsafe is not None:
         _emit({"refusal": unsafe})
@@ -705,6 +734,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             )
             return EXIT_OK
         view = loop.status(workspace)
+        view["verification"] = workspace.attempts.verification
         _emit(view)
         if not args.check or view["terminal"]:
             return EXIT_OK

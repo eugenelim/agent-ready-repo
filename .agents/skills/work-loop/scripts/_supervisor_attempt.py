@@ -32,6 +32,11 @@ admitted ``start`` records them once; every other entry point compares against
 them, and an open ``regenerate`` request also accepts the digests of the pack
 source at ``HEAD``, which the supervisor re-pins when it admits the result.
 
+The one exception is ``status`` on a run whose store directory is absent from the
+checkout: it has no pins to compare, so it answers from the committed records and
+reports ``verification`` ``committed-records-only``, writing nothing. A store
+directory that exists without pins still refuses.
+
 Standard library only. Python 3.11+.
 """
 
@@ -206,6 +211,10 @@ class Attempts:
         # The digests of the installed supervisor files, hashed before any sibling
         # loaded; ``None`` when a caller drives the modules without the entry point.
         self.installed: dict[str, str] | None = None
+        # The run ids whose pins the entry point matched before any sibling loaded, and
+        # what ``status`` reports: ``pinned`` only when the committed run is among them.
+        self.pre_import_matched: set[str] = set()
+        self.verification: str = "committed-records-only"
         ws.git.hardened.control_check = self._control_check
 
     # ── reading files ───────────────────────────────────────────────────────
@@ -862,6 +871,8 @@ class Attempts:
             return
         run_id = approvals[0]["run_id"]
         pinned = self._pin_record(run_id)
+        if pinned is None and verb == "status" and self._store_absent(run_id):
+            return  # no store, so no pins to compare: committed records only
         if pinned is None:
             commits = self.ws.git.supervisor_commits(run_id)
             made = self.ws.git.made_commits(run_id)
@@ -878,6 +889,20 @@ class Attempts:
             raise _refusal(
                 "supervisor-changed", "the installed supervisor differs from its pinned digests"
             )
+        if run_id in self.pre_import_matched:
+            self.verification = "pinned"
+
+    def _store_absent(self, run_id: str) -> bool:
+        """Whether looking up the run's store directory reports nothing there; else refuse."""
+        try:
+            os.lstat(self._store_dir(run_id))
+        except FileNotFoundError:
+            return True
+        except OSError as exc:
+            raise _unverifiable(
+                "supervisor-changed", "the supervisor's store cannot be inspected"
+            ) from exc
+        return False
 
     def retire_orphans(self) -> None:
         """Mark this spec's unpinned run directories whose approval never reached ``HEAD``.
