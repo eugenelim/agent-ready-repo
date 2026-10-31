@@ -1,0 +1,24 @@
+{
+  "number": 42,
+  "title": "Fix pagination off-by-one",
+  "state": "OPEN",
+  "baseRefName": "main",
+  "headRefName": "-x'; touch /tmp/p; '",
+  "headRefOid": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+  "headRepository": {
+    "name": "example-repo"
+  },
+  "headRepositoryOwner": {
+    "login": "alice"
+  },
+  "isCrossRepository": false,
+  "maintainerCanModify": true,
+  "reviews": [],
+  "comments": [],
+  "labels": [],
+  "files": [
+    {
+      "path": "src/pager.py"
+    }
+  ]
+}

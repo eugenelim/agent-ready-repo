@@ -1,0 +1,2 @@
+origin	https://git.example.invalid/example-org/example-repo.git (fetch)
+origin	https://git.example.invalid/example-org/example-repo.git (push)
