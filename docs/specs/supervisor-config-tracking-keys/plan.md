@@ -260,6 +260,27 @@ Owned by: T1.
   unreachable proxy and a fake token failed on GraphQL and wrote no config), so their
   exact bytes stay unprobed and the fail-closed rule covers them.
 
+
+### Means grounded in T2
+
+Owned by: T2.
+
+- The comparison seam is `Attempts.git_state(recorded=None)`. The three comparison
+  sites (`_differences`, `_control_check`, `guard`) pass the manifest's Git map;
+  issuing and recording call it with no argument, so new manifests record
+  `config-view:`.
+- Form selection: `_RAW_ENTRY = re.compile(r"\d+:[0-9a-f]{64}")`. A recorded config
+  entry that fully matches it is recomputed as the raw-file fingerprint; any other
+  recorded value, or none, as the config fingerprint. `link:`, `special` and `unsafe`
+  come out the same either way, so they compare verbatim. A manifest from before this
+  change with no `config.worktree` entry means the file was absent; it is compared in
+  config-view form, and an appearing file differs either way.
+- Test seams: VI-0109 builds the old raw manifest by patching `Attempts._entry` to
+  `config=False` only while `next` issues the attempt (no store edit); its `link`
+  fixture symlinks `.git/config` to `config.real` and retargets it to a byte-equal
+  `config.other`. The `[core]`-after-branch case appends `[core]` by hand, because
+  Git appends new sections at the end.
+
 ## Tasks
 
 ### T1: The config fingerprint strips only canonical tracking blocks, proved on both platforms
