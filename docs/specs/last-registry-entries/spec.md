@@ -23,32 +23,32 @@
 
 ## Outcome
 
-An adopter upgrading `core` moves the last work entries out of `workspace.toml` and its refresh role policy into `.work-intake.toml` with one repair run, and refresh then reads and binds only that policy file. Success is that, after the repair, `workspace.toml` holds no captured-item or slug-only entry, refresh works with `workspace.toml` absent, and every deferral anchor and dispatch decision that held before still holds, apart from the three removals the RFC-0106 errata names.
+An adopter upgrading `core` moves the last work entries out of `workspace.toml` and its refresh role policy into `.work-intake.toml` with one repair run, and refresh then reads and binds only that policy file. Success is that, after the repair, `workspace.toml` holds no captured-item or slug-only entry, refresh and its remote write-back work with `workspace.toml` absent, and every deferral anchor and dispatch decision that held before still holds, apart from the three removals the RFC-0106 errata names.
 
 ## What Changes
 
-- **Repair: `captured-entry-drop`.** A `workspace-status` step removes each captured-item membership whose file it can read and each slug-only `[backlog]` entry whose captured-item file exists; anything else is a manual item.
+- **Repair: `captured-entry-drop`.** A `workspace-status` step removes each captured-item membership whose file it can read and each slug-only legacy entry whose captured-item file exists, including entries a `captured-to-file` operation of the same plan just backed with a file; anything else is a manual item.
 - **Repair: `refresh-policy-move`.** A `workspace-status` step copies `[authorization.refresh]` into `.work-intake.toml` and removes it from `workspace.toml`.
-- **Refresh.** `work-intake`'s `scripts/refresh.py` (and its packaged copy) reads the role policy from `.work-intake.toml`, binds that file's digest, writes `policy_digest` in new local receipts, and no longer reads `workspace.toml`.
+- **Refresh.** `work-intake`'s `scripts/refresh.py` (and its packaged copy) reads the role policy from `.work-intake.toml` and binds that file's digest on the local commit and the remote write-back alike, writes `policy_digest` in new local receipts, still takes the shared repair lock, and no longer reads `workspace.toml`. The GitHub, Jira, Jira Align and Linear refresh processor suites plant the policy file.
 - **Contract.** `contracts/jsonschema/source-authority.schema.json`: a local receipt carries exactly one of `workspace_digest` and `policy_digest`.
-- **Deferral anchors.** `work-loop`'s `scripts/lint-spec-status.py` resolves a `(deferred: <slug>)` marker against an open captured-item file in place of `[backlog].open`.
+- **Deferral anchors.** `work-loop`'s `scripts/lint-spec-status.py` resolves a `(deferred: <slug>)` marker against a captured-item file, whatever its status, in place of `[backlog].open`; `work-loop`'s SKILL.md, `new-spec`'s `references/spec-and-plan-contract.md` and the `adversarial-reviewer` agent say so.
 - **Text.** `work-intake`'s SKILL.md § Refresh and `references/lifecycle-index.md`, `workspace-status`'s SKILL.md and `references/mutate.md`, and the guides that name `[authorization.refresh]` say where the policy lives and name both repair steps.
-- **Governance and records.** One RFC-0106 errata entry; § Equivalence rows and a § Compatibility closure entry in the retirement record; the inventory; the brief's Spec map and after-cutover list; the upgrade-notes draft; this spec's ledger.
-- **This repository.** One repair run removes its 69 remaining `[backlog].open` entries.
+- **Governance and records.** One RFC-0106 errata entry; § Equivalence rows and a § Compatibility closure entry in the retirement record; the inventory; the brief's Spec map and after-cutover list; this spec's ledger.
+- **This repository.** One repair run removes its remaining captured and slug-only entries; the roster tests that read those entries in `workspace.toml` read the captured-item files instead.
 - **Release.** `core` at the next version `tools/check-core-release.py` accepts, with a changelog fragment.
 - **Unchanged:**
   - `dispatch.py`, which still reads `workspace.toml` and loads the `workspace-status` engine;
   - `[authorization.migration]`, legacy migration recovery and rollback, and the `workspace-status` orientation run;
   - every refresh authority, lifecycle, approver, field and receipt check other than the policy source and the digest it binds;
-  - every Shipped spec's body.
+  - every Shipped spec's body, and the upgrade-notes draft, which 9F corrects when it publishes it.
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility: the source-authority record | Applicable: adopters' tools parse local receipts | `contracts/jsonschema/source-authority.schema.json`; `work-intake` SKILL.md § Refresh | Platform Core maintainer | AC-0008, AC-0009 pass | Schema and parser accept the same receipts |
-| Interface compatibility: the refresh policy file and the repair | Applicable: adopters write the policy and run the repair | `.work-intake.toml` shape in `work-intake` SKILL.md and `references/lifecycle-index.md`; `workspace-status` SKILL.md and `references/mutate.md` | Platform Core maintainer | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0014 pass | Each names both repair steps and the policy file |
-| User documentation | Applicable: adopters configure refresh by hand | the guides AC-0014 lists; the upgrade-notes draft | eugenelim, Approver | AC-0014, AC-0019 pass | No listed page says refresh reads `workspace.toml` |
+| Interface compatibility: the refresh policy file, the repair and the anchor rule | Applicable: adopters write the policy, run the repair and defer criteria | `.work-intake.toml` shape in `work-intake` SKILL.md and `references/lifecycle-index.md`; `workspace-status` SKILL.md and `references/mutate.md`; the anchor rule in `work-loop` SKILL.md, `new-spec`'s contract reference and the `adversarial-reviewer` agent | Platform Core maintainer | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010, AC-0014, AC-0021 pass | Each names the current source |
+| User documentation | Applicable: adopters configure refresh by hand | the guides AC-0014 lists | eugenelim, Approver | AC-0014 passes | No listed page says refresh reads `workspace.toml` |
 | Decision rationale | Applicable: three dispatch behaviors are removed | RFC-0106 § Errata | eugenelim, Approver | AC-0013 passes | The entry carries owner-approved wording |
 | Retirement evidence | Applicable: RFC-0105 D3 gates 3 and 4 | `retirement-record.md` § Equivalence and § Compatibility closure; `inventory.toml` | Platform Core maintainer | AC-0012, AC-0015, AC-0017 pass | The closure entry names this spec and the run |
 | Delivery membership and remainder | Applicable: the after-cutover list is re-cut | `docs/product/briefs/workspace-registry-retirement-delivery.md` | eugenelim, brief owner | AC-0018 passes | The brief names 9D's items and the remainder |
@@ -86,10 +86,10 @@ the plan's `## Design (LLD)`, not here.
 ## Testing Strategy
 
 - **Repair steps (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005): TDD.** Each rule is a `repair-plan` or `repair-apply` result over a planted `workspace.toml` and tree, one planted entry or table per case.
-- **Refresh and the contract (AC-0006, AC-0007, AC-0008, AC-0009): TDD.** Coordinator calls over a planted repository, and the schema suite with one planted receipt per case.
+- **Refresh and the contract (AC-0006, AC-0007, AC-0008, AC-0009, AC-0021): TDD.** Coordinator and remote receipt-store calls over a planted repository, the four tracker processor suites, and the schema suite with one planted receipt per case.
 - **Deferral anchors (AC-0010): TDD.** The lint's anchor pass over planted specs and captured-item files.
 - **This repository (AC-0011): manual QA.** One repair run and a dispatch comparison, recorded in the ledger.
-- **Records and governance (AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019): goal-based.** The inventory and record check, `lint-brief-coverage.py`, and a roster check over closed lists of files and phrases.
+- **Records and governance (AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018): goal-based.** The inventory and record check, `lint-brief-coverage.py`, and a roster check over closed lists of files and phrases.
 - **Release (AC-0020): goal-based.** `tools/check-core-release.py` and the changelog checks.
 
 ## Acceptance Criteria
@@ -98,7 +98,7 @@ the plan's `## Design (LLD)`, not here.
 
 - **Base.** Commit `74f4b7248`.
 - **Captured membership.** A canonical `workspace.toml` membership whose `path` is under `docs/product/captured/`.
-- **Slug-only entry.** A `[backlog]` collection element that is a table with a `slug` and no `path`.
+- **Slug-only entry.** An element of a `[backlog]` collection or of an initiative's `shaping_queue.backlog` or `shaping_queue.active` that is a table with a `slug` and no `path`.
 - **Readable captured file.** A regular, singly linked file inside the repository that the captured-item reader at the base accepts.
 - **Policy file.** `.work-intake.toml` at the repository root, holding exactly one table, `[authorization.refresh]`, with the keys and `contract_version` refresh accepts at the base.
 
@@ -106,20 +106,21 @@ the plan's `## Design (LLD)`, not here.
 
 - [ ] **AC-0001.** `repair-plan` holds one `captured-entry-drop` operation for each captured membership whose `path` is a readable captured file, and for each slug-only entry for which `docs/product/captured/<slug>.md` is a readable captured file.
 - [ ] **AC-0002.** Every other captured membership and slug-only entry gets no `captured-entry-drop` operation, becomes one manual item naming its locator and reason, and keeps its entry.
-- [ ] **AC-0003.** `repair-apply --yes` removes exactly the entries of the `captured-entry-drop` operations whose check under the writer lock still holds, in one atomic `workspace.toml` write that keeps every other byte, writes no file under `docs/product/captured/`, and refuses an operation whose entry or captured file changed since the plan, keeping that entry.
-- [ ] **AC-0004.** `repair-plan` holds one `refresh-policy-move` operation when `workspace.toml` has an `[authorization.refresh]` table and no policy file exists; `repair-apply --yes` creates the policy file whose parsed table equals the moved one and removes the table from `workspace.toml`; an existing policy file whose table differs becomes a manual item and nothing moves.
-- [ ] **AC-0005.** After `repair-apply --yes` applies every planned operation, the next `repair-plan` holds no `captured-entry-drop` and no `refresh-policy-move` operation.
+- [ ] **AC-0003.** `repair-apply --yes` removes exactly the entries of the `captured-entry-drop` operations whose check under the writer lock still holds, in one atomic `workspace.toml` write that keeps every byte outside the entries and tables the operations applied in that write remove, writes no file under `docs/product/captured/`, and refuses an operation whose entry or captured file changed since the plan, keeping that entry.
+- [ ] **AC-0004.** When `workspace.toml` has an `[authorization.refresh]` table that refresh accepts, `repair-plan` holds one `refresh-policy-move` operation if no policy file exists, and `repair-apply --yes` creates the policy file, whose parsed table equals the moved one, and removes the table; if a policy file whose parsed table equals it exists, the operation only removes the table. An existing policy file that does not parse or whose table differs, and a table refresh does not accept, each become one manual item, and nothing moves.
+- [ ] **AC-0005.** After `repair-apply --yes` applies every planned operation, including `captured-to-file` operations in the same plan, the next `repair-plan` holds no `captured-entry-drop` and no `refresh-policy-move` operation.
 
 **Refresh and the contract**
 
-- [ ] **AC-0006.** Refresh takes its role policy only from the policy file, refuses `invalid_refresh_policy` when the file is absent or invalid, and completes a refresh with no `workspace.toml` present.
-- [ ] **AC-0007.** A refresh whose policy file changes between comparison and commit refuses and writes nothing; a change to `workspace.toml` between them does not refuse.
+- [ ] **AC-0006.** Refresh takes its role policy only from the policy file, refuses `invalid_refresh_policy` when the file is absent or invalid, and completes a local refresh, opens the remote receipt store, reloads its confirmations, consumes a confirmation and writes a remote-action receipt with no `workspace.toml` present.
+- [ ] **AC-0007.** A refresh whose policy file changes between comparison and commit, or between opening the remote receipt store and consuming a confirmation or writing a receipt, refuses and writes nothing; a change to `workspace.toml` in either window does not refuse.
+- [ ] **AC-0021.** Refresh's local commit and remote receipt write each hold the shared `.workspace-repair.lock` the repair takes, so a `refresh-policy-move` apply and a refresh commit never interleave.
 - [ ] **AC-0008.** A local receipt refresh writes carries `policy_digest`, the SHA-256 of the policy file it read, and no `workspace_digest`; the record parser accepts a local receipt with exactly one of the two keys and refuses one with both or neither.
 - [ ] **AC-0009.** `contracts/jsonschema/source-authority.schema.json` accepts and refuses the same four local-receipt shapes AC-0008 names.
 
 **Deferral anchors**
 
-- [ ] **AC-0010.** `lint-spec-status.py` resolves a `(deferred: <slug>)` marker when `docs/product/captured/<slug>.md` is a readable captured file whose `Status:` is not `Closed`, or through an open intent, brief or spec file as at the base, and resolves none through `workspace.toml`.
+- [ ] **AC-0010.** `lint-spec-status.py` resolves a `(deferred: <slug>)` marker when `docs/product/captured/<slug>.md` is a readable captured file, whatever its `Status:`, or through an open intent, brief or spec file as at the base; it resolves none through `workspace.toml`, and its unresolved-anchor message names `docs/product/captured/<slug>.md` and not `workspace.toml`.
 
 **This repository**
 
@@ -129,12 +130,11 @@ the plan's `## Design (LLD)`, not here.
 
 - [ ] **AC-0012.** `retirement-record.md` § Equivalence holds one `accepted removal` row at slice `9` for each of `the registered captured item's kind`, `the defect settled by backlog.closed`, and `the registered captured item's own findings and edges`, each citing the RFC-0106 errata entry AC-0013 names; the record check passes.
 - [ ] **AC-0013.** RFC-0106 § Errata holds one owner-approved entry dated in this delivery that names those three removals and `.work-intake.toml` as the refresh policy's home.
-- [ ] **AC-0014.** None of `guides/_shared/how-to/use-work-intake.md`, `guides/_shared/reference/work-intake-routing-and-lifecycle.md`, `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/work-intake/SKILL.md` or `packs/core/.apm/skills/work-intake/references/lifecycle-index.md` places `[authorization.refresh]` in `workspace.toml`, and each names `.work-intake.toml`; `packs/core/.apm/skills/workspace-status/SKILL.md` and `references/mutate.md` each name `captured-entry-drop` and `refresh-policy-move`.
+- [ ] **AC-0014.** None of `guides/_shared/how-to/use-work-intake.md`, `guides/_shared/reference/work-intake-routing-and-lifecycle.md`, `guides/core/reference/workspace-toml-schema.md`, `packs/core/.apm/skills/work-intake/SKILL.md` or `packs/core/.apm/skills/work-intake/references/lifecycle-index.md` places `[authorization.refresh]` in `workspace.toml`, and each names `.work-intake.toml`; `packs/core/.apm/skills/workspace-status/SKILL.md` and `references/mutate.md` each name `captured-entry-drop` and `refresh-policy-move`; and none of `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md` or `packs/core/.apm/agents/adversarial-reviewer.md` says a deferral anchor resolves through `[backlog].open`, and each names the captured-item file.
 - [ ] **AC-0015.** `docs/specs/workspace-retirement/inventory.toml` holds a `docs/specs/last-registry-entries/*` `contract` row at owner `9`, a row for each file this spec adds that holds a registry token outside an inventoried directory, and no row for a file this spec leaves holding none; the inventory check passes.
-- [ ] **AC-0016.** `docs/specs/last-registry-entries/notes/verification-ledger.md` records eugenelim's approval of the errata entry, the brief text, the closure entry, the upgrade-notes draft and the repair plan applied to this repository, each with the SHA-256 of the file approved.
+- [ ] **AC-0016.** `docs/specs/last-registry-entries/notes/verification-ledger.md` records eugenelim's approval of the errata entry, the brief text, the closure entry and the repair plan applied to this repository, each with the SHA-256 of the file approved; the errata approval precedes the run.
 - [ ] **AC-0017.** `retirement-record.md` § Compatibility closure holds an entry that links `../last-registry-entries/spec.md` and names `captured-entry-drop`, `refresh-policy-move`, `.work-intake.toml` and the AC-0011 counts.
-- [ ] **AC-0018.** The brief's Spec map lists `last-registry-entries`, its "After the cutover" list names `last-registry-entries` for the legacy-entry removal, the deferral-anchor re-point and the refresh policy's home, and `lint-brief-coverage.py` passes.
-- [ ] **AC-0019.** `docs/specs/pre-cutover-closure/notes/upgrade-notes.md` names `.work-intake.toml`, `captured-entry-drop` and `refresh-policy-move`, says nothing reads `[authorization.refresh]` from `workspace.toml`, and its SHA-256 equals its approval row in this spec's ledger.
+- [ ] **AC-0018.** The brief's Spec map lists `last-registry-entries`, its "After the cutover" list keeps each item's text at the base and names `last-registry-entries` beside the legacy-entry removal and the policy tables' home, and `lint-brief-coverage.py` passes.
 
 **Release**
 
@@ -146,6 +146,7 @@ the plan's `## Design (LLD)`, not here.
 
 ## Follow-ons
 
+- eugenelim: 9F corrects the upgrade-notes draft for the policy file and both repair steps, with PCC-ADV-05, when it publishes it.
 - eugenelim: the brief's remaining after-cutover items — headers-only dispatch and a repair-only `workspace-status` with `[authorization.migration]` retired (9E), publishing the upgrade notes and moving references (9F), and the closure checklist, certification and deletion (9G).
 
 ## Assumptions
