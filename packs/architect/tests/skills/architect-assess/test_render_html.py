@@ -102,6 +102,7 @@ class Tree(HTMLParser):
         self.classes: list[tuple[str, str]] = []
         self._in_style = False
         self.cells: list[tuple[str, str]] = []
+        self.anchor_attrs: list[list[tuple[str, str | None]]] = []
         self._cell: str | None = None
 
     def handle_starttag(self, tag, attrs):
@@ -111,6 +112,8 @@ class Tree(HTMLParser):
             self.attrs.append((tag, name, value))
             if name == "class":
                 self.classes.append((tag, value or ""))
+        if tag == "a":
+            self.anchor_attrs.append(attrs)
         if tag == "style":
             self._in_style = True
         if tag == "td":
@@ -126,6 +129,35 @@ class Tree(HTMLParser):
         if self._cell is not None:
             self.cells.append((self._cell, data))
             self._cell = None
+
+
+GLOBAL_ATTRS = {"class", "id", "lang", "charset", "http-equiv", "content"}
+ALLOWED_TAG_ATTRS = {
+    ("a", "href"),
+    ("nav", "aria-label"),
+    ("div", "aria-label"),
+    ("div", "role"),
+    ("div", "tabindex"),
+    ("span", "data-mark"),
+    ("span", "aria-hidden"),
+}
+
+
+def class_tokens(parsed: Tree) -> set[str]:
+    return {token for _, value in parsed.classes for token in value.split()}
+
+
+def content_hrefs(parsed: Tree) -> list[str]:
+    """Hrefs of links in the report text, not the skip link or the contents links."""
+    chrome = {"skip-link", "question-link"}
+    anchors = [(dict(attrs)) for attrs in parsed.anchor_attrs]
+    return [
+        a["href"] for a in anchors if "href" in a and not chrome & set(a.get("class", "").split())
+    ]
+
+
+def banner_present(html_text: str) -> bool:
+    return "banner-unconfirmed" in class_tokens(tree(html_text))
 
 
 def tree(html_text: str) -> Tree:
@@ -168,7 +200,7 @@ def test_allowed_links_become_anchors_and_others_do_not(mod, tmp_path, capsys) -
         "[d](javascript:alert(1)) [e](JavaScript:x) [f](data:text/html,x) [g](/rel)\n"
     )
     text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
-    hrefs = [v for tag, n, v in tree(text).attrs if tag == "a" and n == "href"]
+    hrefs = content_hrefs(tree(text))
     assert hrefs == ["https://example.com/x", "#top", "HTTP://example.com"]
     assert "[d](javascript:alert(1))" in text
 
@@ -235,11 +267,12 @@ def test_only_allowed_elements_and_attributes_are_emitted(mod, tmp_path, capsys)
         "summary",
         "br",
         "hr",
+        "header",
+        "nav",
     }
     assert set(parsed.elements) <= allowed
-    names = {name for _, name, _ in parsed.attrs}
-    assert names <= {"class", "id", "lang", "charset", "http-equiv", "content", "href"}
-    assert all(tag == "a" for tag, name, _ in parsed.attrs if name == "href")
+    for tag, name, _ in parsed.attrs:
+        assert (tag, name) in ALLOWED_TAG_ATTRS or name in GLOBAL_ATTRS, (tag, name)
     assert parsed.elements.count("meta") == 2
 
 
@@ -320,8 +353,7 @@ def test_evidence_classes_render_by_case_insensitive_value(mod, tmp_path, capsys
     )
     overall = f"View.\n\nSources checked:\n\n{TABLE_HEAD}{rows}"
     parsed = tree(page(tmp_path.resolve(), report(overall=overall), mod, capsys))
-    classes = {c for t, c in parsed.classes if t == "td"}
-    assert {"ev-observed", "ev-inferred", "ev-reported", "ev-unknown"} <= classes
+    assert {"ev-observed", "ev-inferred", "ev-reported", "ev-unknown"} <= class_tokens(parsed)
 
 
 def test_evidence_class_outside_the_set_is_refused(mod, tmp_path, capsys) -> None:
@@ -358,43 +390,44 @@ def test_banner_shows_unless_charter_says_exactly_confirmed(
     mod, tmp_path, capsys, checkpoints
 ) -> None:
     text = page(tmp_path.resolve(), report(checkpoints=checkpoints), mod, capsys)
-    assert 'class="banner-unconfirmed"' in text
+    assert banner_present(text)
     assert "Map and hotspot set not user-confirmed" in text
     assert text.index("banner-unconfirmed") < text.index("<h2")
 
 
 def test_banner_absent_when_charter_confirms_once(mod, tmp_path, capsys) -> None:
     text = page(tmp_path.resolve(), report(), mod, capsys)
-    assert "banner-unconfirmed" not in text.replace(".banner-unconfirmed{", "")
+    assert not banner_present(text)
 
 
 def test_confirmed_line_outside_charter_or_duplicated_does_not_suppress(
     mod, tmp_path, capsys
 ) -> None:
     outside = report(checkpoints=None, extra="Checkpoints: confirmed\n")
-    assert 'class="banner-unconfirmed"' in page(tmp_path.resolve(), outside, mod, capsys)
+    assert banner_present(page(tmp_path.resolve(), outside, mod, capsys))
     twice = report(checkpoints="Checkpoints: confirmed\nCheckpoints: confirmed")
-    assert 'class="banner-unconfirmed"' in page(tmp_path.resolve(), twice, mod, capsys)
+    assert banner_present(page(tmp_path.resolve(), twice, mod, capsys))
     fenced = report(checkpoints=None).replace(
         "Target: demo\n", "Target: demo\n```\nCheckpoints: confirmed\n```\n"
     )
-    assert 'class="banner-unconfirmed"' in page(tmp_path.resolve(), fenced, mod, capsys)
+    assert banner_present(page(tmp_path.resolve(), fenced, mod, capsys))
 
 
 def test_mermaid_fence_is_a_labeled_escaped_source_block(mod, tmp_path, capsys) -> None:
     extra = "```mermaid\nflowchart TD\n  A[<b>x</b>] --> B\n```\n"
     text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
-    assert 'class="diagram-label">Diagram source (not rendered)</p><pre><code>flowchart' in text
+    assert (
+        'class="diagram-label">Diagram source (not rendered)</p><div class="source-scroll"' in text
+    )
+    assert "<pre><code>flowchart" in text
     assert "A[&lt;b&gt;x&lt;/b&gt;]" in text
     assert "<script" not in text.lower()
 
 
 def test_notice_and_metadata(mod, tmp_path, capsys) -> None:
     text = page(tmp_path.resolve(), report(), mod, capsys)
-    assert (
-        'class="notice-untrusted">Unverified: built from repository text and model analysis; not redacted<'
-        in text
-    )
+    assert "notice-untrusted" in class_tokens(tree(text))
+    assert ">Unverified: built from repository text and model analysis; not redacted<" in text
     assert re.search(r"Generated \d{4}-\d{2}-\d{2} UTC", text)
     assert f"Renderer version {mod.RENDERER_VERSION}" in text
     assert "Source: effort/assessment.md" in text
@@ -413,6 +446,10 @@ def _only_fixed_tokens(out: str, err: str) -> None:
         "render_html: refused: source is not valid UTF-8",
         "render_html: refused: evidence class outside the allowed set",
         "render_html: failed: internal error",
+        "render_html: failed: stylesheet asset missing",
+        "render_html: failed: stylesheet asset over the size cap",
+        "render_html: failed: stylesheet asset is not valid UTF-8",
+        "render_html: failed: stylesheet asset holds forbidden text",
     }
     for heading in ("Overall architecture", "Architecture by subsystem", "Physical architecture"):
         allowed.add(f"render_html: refused: no usable Sources checked table in {heading}")
@@ -519,7 +556,7 @@ def test_missing_descriptor_capability_exits_three(
 def test_renders_when_agentbundle_is_not_importable(mod, tmp_path, capsys, monkeypatch) -> None:
     monkeypatch.setitem(sys.modules, "agentbundle", None)
     monkeypatch.setitem(sys.modules, "agentbundle.catalogue_tooling", None)
-    assert "<h1>" in page(tmp_path.resolve(), report(), mod, capsys)
+    assert 'class="page-title"' in page(tmp_path.resolve(), report(), mod, capsys)
 
 
 def test_imports_and_calls_stay_inside_the_allow_list() -> None:
@@ -595,7 +632,7 @@ def test_planted_fence_cannot_hide_the_real_charter_line(mod, tmp_path, capsys) 
     longer = f"# T\n## Bottom line\n````\n```\n{fake}````\n{real}"
     for source in (planted, longer):
         text = page(tmp_path.resolve(), source, mod, capsys)
-        assert 'class="banner-unconfirmed"' in text
+        assert banner_present(text)
         assert "<pre><code>## Assessment charter\nCheckpoints: accepted-without-pause" not in text
 
 
@@ -603,7 +640,7 @@ def test_confirmed_once_in_charter_and_again_elsewhere_shows_no_banner(
     mod, tmp_path, capsys
 ) -> None:
     text = page(tmp_path.resolve(), report(extra="Checkpoints: confirmed\n"), mod, capsys)
-    assert 'class="banner-unconfirmed"' not in text
+    assert not banner_present(text)
 
 
 @pytest.mark.parametrize(
@@ -635,8 +672,7 @@ def test_links_with_bidi_or_format_characters_render_as_text(mod, tmp_path, caps
         "[a\u061cb](https://x.example) [c](https://y.example\u061c)\n"
     )
     text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
-    hrefs = [v for tag, n, v in tree(text).attrs if tag == "a"]
-    assert hrefs == []
+    assert content_hrefs(tree(text)) == []
 
 
 def test_existing_output_over_the_cap_is_refused(mod, tmp_path, capsys) -> None:
@@ -701,7 +737,7 @@ def test_table_under_a_child_heading_is_validated_and_shaded(mod, tmp_path, caps
         f"Sources checked:\n\n{TABLE_HEAD}| a | b | observed | c |\n"
     )
     parsed = tree(page(tmp_path.resolve(), source, mod, capsys))
-    assert "ev-observed" in {c for _, c in parsed.classes}
+    assert "ev-observed" in class_tokens(parsed)
 
 
 def test_second_level_one_heading_ends_the_charter_section(mod, tmp_path, capsys) -> None:
@@ -711,7 +747,7 @@ def test_second_level_one_heading_ends_the_charter_section(mod, tmp_path, capsys
         1,
     )
     text = page(tmp_path.resolve(), source, mod, capsys)
-    assert 'class="banner-unconfirmed"' not in text
+    assert not banner_present(text)
 
 
 def test_non_title_level_one_orientation_heading_is_gated(mod, tmp_path, capsys) -> None:
@@ -798,7 +834,7 @@ def test_mermaid_fence_attached_to_a_list_item_gets_the_diagram_label(
 )
 def test_one_range_rule_validates_and_shades_the_same_table(mod, tmp_path, capsys, source) -> None:
     parsed = tree(page(tmp_path.resolve(), source, mod, capsys))
-    assert "ev-observed" in {c for _, c in parsed.classes}
+    assert "ev-observed" in class_tokens(parsed)
 
 
 def test_a_later_shallower_heading_ends_the_orientation_range(mod, tmp_path, capsys) -> None:
@@ -913,3 +949,605 @@ def test_tab_indented_mermaid_fence_under_a_list_item_is_labeled(mod, source) ->
     out = mod.render(source, "e", "2026-01-01")
     assert "Diagram source (not rendered)" in out and "<pre><code>A --&gt; B" in out
     assert "<li>next</li>" in out
+
+
+# ---- style slice: stylesheet assets ----------------------------------------------------
+
+ASSETS = SKILL_ROOT / "scripts" / "report_assets"
+
+
+def test_style_body_is_base_newline_layout(mod, tmp_path, capsys) -> None:
+    expected = (
+        (ASSETS / "view-base.css").read_text("utf-8")
+        + "\n"
+        + (ASSETS / "report.css").read_text("utf-8")
+    )
+    parsed = tree(page(tmp_path.resolve(), report(), mod, capsys))
+    assert parsed.style == expected
+
+
+def _assets(tmp_path: Path, base: bytes | None, layout: bytes | None) -> Path:
+    directory = tmp_path / "assets_root" / "report_assets"
+    directory.mkdir(parents=True)
+    for name, data in (("view-base.css", base), ("report.css", layout)):
+        if data is not None:
+            (directory / name).write_bytes(data)
+    return directory
+
+
+@pytest.mark.parametrize(
+    ("base", "layout", "token"),
+    [
+        (None, b"a{}", "stylesheet asset missing"),
+        (b"a{}", None, "stylesheet asset missing"),
+        (b"x" * (64 * 1024 + 1), b"a{}", "stylesheet asset over the size cap"),
+        (b"a{}", b"x" * (64 * 1024 + 1), "stylesheet asset over the size cap"),
+        (b"\xff\xfe", b"a{}", "stylesheet asset is not valid UTF-8"),
+        (b"a{}", b"/* </STYLE> */", "stylesheet asset holds forbidden text"),
+        (b"a{}", b"/* <!-- */", "stylesheet asset holds forbidden text"),
+        (b"a{ background: URL(x) }", b"b{}", "stylesheet asset holds forbidden text"),
+        (b"a{}", b"@IMPORT 'x';", "stylesheet asset holds forbidden text"),
+    ],
+    ids=[
+        "base-missing",
+        "layout-missing",
+        "base-large",
+        "layout-large",
+        "not-utf8",
+        "style-close",
+        "comment-open",
+        "url",
+        "import",
+    ],
+)
+def test_an_unsafe_stylesheet_asset_exits_three_without_a_file(
+    mod, tmp_path, capsys, monkeypatch, base, layout, token
+) -> None:
+    tmp_path = tmp_path.resolve()
+    monkeypatch.setattr(mod, "ASSET_DIR", _assets(tmp_path, base, layout))
+    code, out, err = run(tmp_path, report(), mod, capsys)
+    assert code == 3 and err.strip() == f"render_html: failed: {token}"
+    assert not (tmp_path / "effort" / "assessment.html").exists()
+    _only_fixed_tokens(out, err)
+
+
+def test_no_stylesheet_asset_holds_a_url_or_import() -> None:
+    for name in ("view-base.css", "report.css"):
+        text = (ASSETS / name).read_text("utf-8").lower()
+        assert "url(" not in text and "@import" not in text
+
+
+# ---- style slice: document-view markup ------------------------------------------------
+
+FIXTURE = PACK_ROOT / "tests" / "skills" / "architect-assess" / "testdata" / "html-style-sample.md"
+
+
+def _ids(html_text: str) -> list[str]:
+    return re.findall(r' id="([^"]+)"', html_text)
+
+
+def test_skip_link_comes_first_and_targets_the_main_id(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    body = text[text.index("<body>") :]
+    assert body.startswith('<body><a class="skip-link" href="#report">')
+    assert '<main id="report">' in text
+
+
+def test_no_heading_can_take_the_main_id(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(extra="## Report\n\nx\n"), mod, capsys)
+    ids = _ids(text)
+    assert ids.count("report") == 1 and "report-2" in ids
+    assert len(ids) == len(set(ids))
+
+
+def test_header_holds_the_title_and_the_meta_line(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert (
+        '<header class="page-header"><h1 class="page-title">Architecture assessment: demo</h1>'
+        in text
+    )
+    assert re.search(r'</h1><p class="meta">Source: effort/assessment\.md', text)
+
+
+def test_meta_line_holds_name_date_version_state_and_the_source_tally(
+    mod, tmp_path, capsys
+) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    meta = re.search(r'<p class="meta">(.*?)</p>', text, re.S).group(1)
+    assert "effort/assessment.md" in meta and f"Renderer version {mod.RENDERER_VERSION}" in meta
+    assert re.search(r"Generated \d{4}-\d{2}-\d{2} UTC", meta)
+    assert re.search(
+        r'<span class="mark" data-mark="approved"><span class="mark-g" aria-hidden="true">[^<]*</span> Confirmed</span>',
+        meta,
+    )
+    assert meta.endswith("Sources: 3 observed, 0 inferred, 0 reported, 0 unknown")
+    unconfirmed = page(tmp_path.resolve(), report(checkpoints=None), mod, capsys)
+    meta = re.search(r'<p class="meta">(.*?)</p>', unconfirmed, re.S).group(1)
+    assert re.search(
+        r'<span class="mark" data-mark="draft"><span class="mark-g" aria-hidden="true">[^<]*</span> Unconfirmed</span>',
+        meta,
+    )
+
+
+def test_the_tally_counts_every_class_across_all_labeled_orientation_tables(
+    mod, tmp_path, capsys
+) -> None:
+    # Three labeled tables (overall, one subsystem, physical) hold 14, 4, and 3 rows; the
+    # evidence-coverage table is unlabeled and its observed rows stay out of the count.
+    source = FIXTURE.read_text(encoding="utf-8")
+    text = page(tmp_path.resolve(), source, mod, capsys)
+    assert "Sources: 8 observed, 4 inferred, 4 reported, 5 unknown</p>" in text
+
+
+def test_the_tally_counts_only_labeled_orientation_tables(mod, tmp_path, capsys) -> None:
+    extra = f"Sources checked:\n\n{TABLE_HEAD}| a | b | guessed | c |\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    assert "Sources: 3 observed, 0 inferred, 0 reported, 0 unknown</p>" in text
+
+
+def test_banner_and_notice_carry_the_family_classes(mod, tmp_path, capsys) -> None:
+    tokens = class_tokens(tree(page(tmp_path.resolve(), report(checkpoints=None), mod, capsys)))
+    assert {"alert", "banner-unconfirmed", "note", "notice-untrusted"} <= tokens
+
+
+def _rail(text: str) -> tuple[list[tuple[str, str, str]], list[tuple[str, str, str]]]:
+    narrow = re.search(
+        r'<details class="key"><summary>(.*?)</summary><ul[^>]*>(.*?)</ul></details>', text, re.S
+    )
+    wide = re.search(r'<ul class="rail-wide plain">(.*?)</ul>', text, re.S)
+    pattern = r'<a class="([^"]*)" href="#([^"]*)">(.*?)</a>'
+    return (
+        [(c, h, tx) for c, h, tx in re.findall(pattern, narrow.group(2))],
+        [(c, h, tx) for c, h, tx in re.findall(pattern, wide.group(1))],
+    )
+
+
+def test_the_contents_nav_holds_a_details_list_and_a_wide_list_of_the_same_links(
+    mod, tmp_path, capsys
+) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert (
+        '<nav class="rail" aria-label="Report sections"><details class="key"><summary>Contents ('
+        in text
+    )
+    narrow, wide = _rail(text)
+    assert narrow == wide and narrow
+    assert re.search(rf"<summary>Contents \({len(narrow)} sections\)</summary>", text)
+    assert all("question-link" in c.split() for c, _, _ in narrow)
+    ids = set(_ids(text))
+    assert all(href in ids for _, href, _ in narrow)
+
+
+def test_rail_links_follow_source_order_with_plain_text_and_nesting(mod, tmp_path, capsys) -> None:
+    source = (
+        "# T\n\n## See [docs](https://x)\n\nx\n\n"
+        f"## Overall architecture\n\nx\n\n{SOURCES}\n"
+        "## Later `code`\n\n#### Overall architecture\n\ny\n\n"
+        f"{SOURCES}"
+    )
+    text = page(tmp_path.resolve(), source, mod, capsys)
+    narrow, _ = _rail(text)
+    assert [tx for _, _, tx in narrow] == [
+        "See docs",
+        "Overall architecture",
+        "Later code",
+        "Overall architecture",
+    ]
+    assert [("rail-sub" in c.split()) for c, _, _ in narrow] == [False, False, False, True]
+    nav = re.search(r"<nav.*?</nav>", text, re.S).group(0)
+    assert nav.count("<a ") == 2 * len(narrow)  # no anchor nests inside a link
+
+
+def test_sections_carry_their_heading_id_and_hold_their_blocks(mod, tmp_path, capsys) -> None:
+    source = "# T\n\nlead text\n\n## One\n\nbody one\n\n# Two\n\n### Sub\n\nbody two\n"
+    text = page(tmp_path.resolve(), source, mod, capsys)
+    assert (
+        '<section class="doc-section"><div class="doc-body"><p>lead text</p></div></section>'
+        in text
+    )
+    assert '<section class="doc-section" id="one"><h2 class="margin-head">One</h2>' in text
+    assert '<section class="doc-section" id="two"><h2 class="margin-head">Two</h2>' in text
+    assert '<h3 id="sub">Sub</h3>' in text
+    assert text.count('<h2 class="margin-head">') == 2
+    assert 'id="one"><h2 class="margin-head" id' not in text
+    assert text.index("body two") > text.index('id="two"')
+
+
+def test_no_leading_section_when_nothing_precedes_the_first_heading(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), "# T\n\n## One\n\nx\n", mod, capsys)
+    assert 'class="doc-section"><div' not in text
+
+
+def test_marks_replace_the_cell_class_and_hold_the_cell_text(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert '<td><span class="mark ev-observed">Observed</span></td>' in text
+    assert 'td class="ev-' not in text
+
+
+def test_tables_sit_in_labeled_keyboard_scrollable_regions(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    regions = re.findall(
+        r'<div class="table-scroll" role="region" tabindex="0" aria-label="([^"]*)">', text
+    )
+    assert regions.count("Table: Overall architecture") == 1
+    assert "Table: Attention heat map" in regions
+    assert text.count("<table>") == len(regions)
+    bare = page(tmp_path.resolve(), "| a |\n| --- |\n| 1 |\n", mod, capsys)
+    assert 'aria-label="Table">' in bare
+    hostile = page(
+        tmp_path.resolve(), '# T\n\n## a "b" <i>\n\n| a |\n| --- |\n| 1 |\n', mod, capsys
+    )
+    assert 'aria-label="Table: a &quot;b&quot; &lt;i&gt;"' in hostile
+
+
+def test_the_sources_checked_label_has_the_part_head_class(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert '<p class="part-head">Sources checked:</p>' in text
+
+
+def test_renderer_version_is_two(mod) -> None:
+    assert mod.RENDERER_VERSION == "2"
+
+
+def test_the_fixture_models_a_multi_subsystem_system() -> None:
+    src = FIXTURE.read_text(encoding="utf-8")
+    subsystems = re.split(
+        r"(?m)^#### ", src.split("### Architecture by subsystem")[1].split("### Physical")[0]
+    )[1:]
+    assert len(subsystems) >= 6
+    assert sum(1 for entry in subsystems if "##### " in entry) >= 2
+    overall = src.split("### Overall architecture")[1].split("### Architecture by subsystem")[0]
+    rows = [r for r in overall.splitlines() if r.startswith("| ") and "| --- |" not in r][1:]
+    assert len(rows) >= 12
+    assert {
+        c for r in rows for c in ("observed", "inferred", "reported", "unknown") if f"| {c} |" in r
+    } == {"observed", "inferred", "reported", "unknown"}
+    heat = src.split("## Attention heat map")[1].split("###")[0]
+    heat_rows = [r for r in heat.splitlines() if r.startswith("| ") and "| --- |" not in r][1:]
+    assert len(heat_rows) >= 8
+    assert {
+        v for r in heat_rows for v in ("low", "medium", "high", "unknown") if f"| {v} |" in r
+    } == {"low", "medium", "high", "unknown"}
+    assert re.search(r"[^\s|`]{80,}", src)
+    assert "Checkpoints: accepted-without-pause" in src
+    fences = re.findall(r"```mermaid\n(.*?)```", src, re.S)
+    assert len(fences) >= 2 and all(len(f.strip().splitlines()) >= 8 for f in fences)
+    assert any(f.startswith("flowchart") for f in fences) and any(
+        f.startswith("sequenceDiagram") for f in fences
+    )
+
+
+def test_the_fixture_renders_to_a_complete_document(mod, tmp_path, capsys) -> None:
+    tmp_path = tmp_path.resolve()
+    effort = tmp_path / "effort"
+    effort.mkdir()
+    (effort / "assessment.md").write_text(FIXTURE.read_text(encoding="utf-8"), encoding="utf-8")
+    assert mod.main([str(effort)]) == 0
+    text = (effort / "assessment.html").read_text(encoding="utf-8")
+    parsed = tree(text)
+    assert {
+        "alert",
+        "banner-unconfirmed",
+        "doc-section",
+        "margin-head",
+        "table-scroll",
+    } <= class_tokens(parsed)
+    assert text.count("Diagram source (not rendered)") == 2
+    ids = _ids(text)
+    assert len(ids) == len(set(ids))
+    narrow, wide = _rail(text)
+    assert narrow == wide and len(narrow) >= 10
+
+
+# ---- style slice: the layout file ----------------------------------------------------
+
+LAYOUT = ASSETS / "report.css"
+BASE = ASSETS / "view-base.css"
+
+
+def parse_css(css: str) -> list[tuple[tuple[str, ...], str, list[tuple[str, str]]]]:
+    """Return (media chain, selector, declarations) for every declaration block."""
+    css = re.sub(r"/\*.*?\*/", "", css, flags=re.S)
+    rules, stack, buf = [], [], ""
+    for char in css:
+        if char == "{":
+            stack.append(buf.strip())
+            buf = ""
+        elif char == "}":
+            prelude = stack.pop()
+            if buf.strip():
+                decls = []
+                for part in re.split(r";(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", buf):
+                    if ":" in part:
+                        prop, value = part.split(":", 1)
+                        decls.append((prop.strip().lower(), value.strip()))
+                media = tuple(p for p in stack if p.startswith("@"))
+                rules.append((media, prelude, decls))
+            buf = ""
+        else:
+            buf += char
+    return rules
+
+
+def layout_rules():
+    return parse_css(LAYOUT.read_text(encoding="utf-8"))
+
+
+def declared(selector_part: str, prop: str, media: str | None = None) -> list[str]:
+    """Values of *prop* in rules whose selector list holds *selector_part* exactly."""
+    found = []
+    for chain, selector, decls in layout_rules():
+        if media is not None and not any(media in m for m in chain):
+            continue
+        if media is None and chain:
+            continue
+        if selector_part in [piece.strip() for piece in selector.split(",")]:
+            found += [v for p, v in decls if p == prop]
+    return found
+
+
+COLOUR = re.compile(
+    r"#[0-9a-fA-F]{3,8}\b|(?<![\w-])(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix|light-dark)\("
+    r"|(?<![\w-])(?:transparent|currentcolor|white|black|red|green|blue|gray|grey|orange|yellow"
+    r"|purple|pink|brown|silver|navy|teal|aqua|cyan|magenta)(?![\w-])"
+)
+
+
+def test_layout_file_obeys_the_layout_rules() -> None:
+    assert layout_rules()
+    for _, selector, decls in layout_rules():
+        for prop, value in decls:
+            where = f"{selector} {{ {prop}: {value} }}"
+            assert not COLOUR.search(value), where
+            assert not prop.startswith("--"), where
+            assert prop not in {
+                "font",
+                "font-family",
+                "font-weight",
+                "box-shadow",
+                "scroll-behavior",
+            }, where
+            assert not prop.startswith(("transition", "animation")), where
+            if prop == "border-radius":
+                assert re.fullmatch(r"var\(--r-\d\)|0", value), where
+
+
+def test_layout_file_spacing_properties_hold_tokens_only() -> None:
+    spacing = re.compile(
+        r"^(margin|padding)(-(top|right|bottom|left|inline|block)[\w-]*)?$|^(row-|column-)?gap$"
+    )
+    for _, selector, decls in layout_rules():
+        for prop, value in decls:
+            if spacing.match(prop):
+                for piece in value.split():
+                    assert piece in {"0", "auto"} or re.fullmatch(r"var\(--s-\d\)", piece), (
+                        selector,
+                        prop,
+                        value,
+                    )
+
+
+def test_layout_file_sets_the_document_density_literals() -> None:
+    for selector, size, height in (
+        (".page-title", "1.75rem", "1.2"),
+        (".doc-body h3", "1.3125rem", "1.3"),
+        (".doc-body", "1.0625rem", "1.6"),
+        (".meta", "0.875rem", "1.5"),
+        (".margin-head", "0.75rem", "1.3"),
+        (".part-head", "0.75rem", "1.3"),
+    ):
+        assert declared(selector, "font-size") == [size], selector
+        assert declared(selector, "line-height") == [height], selector
+    assert declared(".margin-head", "text-transform") == ["uppercase"]
+    assert declared(".part-head", "text-transform") == ["uppercase"]
+
+
+def test_layout_file_arranges_the_pieces_the_markup_depends_on() -> None:
+    assert declared(".page-title::before", "display")
+    assert declared(".mark", "padding")
+    assert declared(".rail-sub", "padding-left")
+    assert declared("table", "border-collapse") == ["collapse"]
+    assert declared("pre", "overflow") == ["auto"]
+    assert declared("pre", "width") == ["max-content"] and declared("pre", "min-width") == ["100%"]
+    assert declared(".table-scroll", "overflow-x") == ["auto"]
+    assert declared(".page-title", "overflow-wrap") == ["anywhere"]
+    assert declared(".notice-untrusted", "border-width") and declared(
+        ".notice-untrusted", "padding"
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "glyph"),
+    [
+        ("observed", "\\25AE\\25AE\\25AE"),
+        ("inferred", "\\25AE\\25AE\\25AF"),
+        ("reported", "\\25AE\\25AF\\25AF"),
+        ("unknown", "\\25AF\\25AF\\25AF"),
+    ],
+)
+def test_each_evidence_class_has_its_own_silent_glyph_and_a_neutral_pill(name, glyph) -> None:
+    content = declared(f".ev-{name}::before", "content")
+    assert content == ["none", f'"{glyph}" / ""'], content
+    assert declared(f".ev-{name}", "background") == ["var(--c-bg)"]
+    assert declared(f".ev-{name}", "border-color") == ["var(--c-rule-strong)"]
+
+
+def test_provenance_and_heat_rules_use_no_state_colour_roles() -> None:
+    for _, selector, decls in layout_rules():
+        if "ev-" in selector or "heat-" in selector:
+            for prop, value in decls:
+                assert not re.search(r"--c-(bad|warn|ok|active|accent)", value), (selector, prop)
+    glyphs = {
+        declared(f".ev-{n}::before", "content")[-1]
+        for n in ("observed", "inferred", "reported", "unknown")
+    }
+    assert len(glyphs) == 4
+
+
+def test_heat_ramp_is_as_specified_and_distinct() -> None:
+    expected = {
+        "low": ("var(--c-bg)", "\\2582"),
+        "medium": ("var(--c-raised)", "\\2584"),
+        "high": ("var(--c-rule)", "\\2586"),
+        "unknown": ("var(--c-bg)", "?"),
+    }
+    glyphs = set()
+    for level, (background, glyph) in expected.items():
+        assert declared(f".heat-{level}", "background") == [background]
+        content = declared(f".heat-{level}::before", "content")
+        assert content[0] == "none" and content[-1] == f'"{glyph}" / ""'
+        glyphs.add(glyph)
+    assert len(glyphs) == 4
+    assert declared(".heat-unknown", "font-style") == ["italic"]
+    assert not declared(".heat-low", "font-style")
+
+
+def test_heat_cells_keep_glyph_and_word_on_one_line() -> None:
+    for level in ("low", "medium", "high", "unknown"):
+        assert declared(f".heat-{level}", "white-space") == ["nowrap"], level
+
+
+def test_no_rule_for_a_heat_class_declares_a_border_or_outline() -> None:
+    seen = 0
+    for _, selector, decls in layout_rules():
+        if "heat-" in selector:
+            seen += 1
+            for prop, _value in decls:
+                assert not prop.startswith(("border", "outline")), (selector, prop)
+    assert seen >= 8
+
+
+def test_heat_glyphs_match_no_evidence_or_state_glyph() -> None:
+    heat = set()
+    for level in ("low", "medium", "high", "unknown"):
+        value = declared(f".heat-{level}::before", "content")[-1]
+        literal = re.fullmatch(r'"(.+)" / ""', value).group(1)
+        heat.add(re.sub(r"\\([0-9a-fA-F]{1,6})", lambda m: chr(int(m.group(1), 16)), literal))
+    taken = set("\u25ae\u25af\u25cf\u25b6\u25c6\u25c7\u25a0\u2715\u25b3\u2713")
+    assert len(heat) == 4 and not heat & taken
+
+
+def _tokens() -> dict[str, dict[str, str]]:
+    themes = {"light": {}, "dark": {}}
+    for media, selector, decls in parse_css(BASE.read_text(encoding="utf-8")):
+        if selector.strip() == ":root":
+            theme = "dark" if any("prefers-color-scheme: dark" in m for m in media) else "light"
+            for prop, value in decls:
+                if prop.startswith("--c-"):
+                    themes[theme][prop] = value
+    themes["dark"] = {**themes["light"], **themes["dark"]}
+    return themes
+
+
+def _luminance(hex_colour: str) -> float:
+    channels = [int(hex_colour[i : i + 2], 16) / 255 for i in (1, 3, 5)]
+    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+
+def _contrast(a: str, b: str) -> float:
+    high, low = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_heat_cells_keep_text_contrast_in_both_themes(theme) -> None:
+    tokens = _tokens()[theme]
+    for level in ("low", "medium", "high", "unknown"):
+        background = declared(f".heat-{level}", "background")[0]
+        role = re.fullmatch(r"var\((--c-[\w-]+)\)", background).group(1)
+        assert _contrast(tokens["--c-text"], tokens[role]) >= 4.5, (level, theme)
+
+
+def test_contrast_check_can_fail() -> None:
+    assert _contrast("#777777", "#888888") < 4.5
+    assert _contrast("#000000", "#ffffff") > 20
+
+
+def test_rail_and_skip_links_reach_the_target_floor_and_the_skip_link_shows_on_focus() -> None:
+    for selector in (".question-link", ".skip-link"):
+        assert declared(selector, "display") == ["inline-flex"], selector
+        assert declared(selector, "align-items") == ["center"], selector
+        assert declared(selector, "min-height") == ["var(--target)"], selector
+    assert declared(".skip-link:focus", "position") == ["static"]
+    assert declared(".skip-link:focus", "clip-path") == ["none"]
+    assert declared(".skip-link:focus", "overflow") == ["visible"]
+
+
+def test_tracks_breakpoints_and_the_contents_switch() -> None:
+    tracks = declared(".doc-section", "grid-template-columns", "min-width: 64rem")
+    assert tracks == ["10rem minmax(0, 68ch) minmax(0, 1fr)"]
+    assert declared(".doc-section", "grid-template-columns") == []
+    assert declared(".doc-body > .table-scroll", "grid-column", "min-width: 64rem") == ["1 / -1"]
+    assert declared(".doc-body > .source-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
+    assert declared("th", "overflow-wrap") == [] and declared("td", "overflow-wrap") == []
+    assert declared("body", "grid-template-columns", "min-width: 64rem") == [
+        "minmax(0, 1fr) 16rem"
+    ]
+    assert declared(".rail-wide", "display") == ["none"]
+    assert declared(".rail-wide", "display", "min-width: 64rem") == ["block"]
+    assert declared(".rail details", "display", "min-width: 64rem") == ["none"]
+
+
+def test_contents_rail_is_sticky_and_scrolls_from_64rem() -> None:
+    assert declared(".rail", "position", "min-width: 64rem") == ["sticky"]
+    assert declared(".rail", "max-height", "min-width: 64rem")
+    assert declared(".rail", "overflow-y", "min-width: 64rem") == ["auto"]
+    assert declared(".rail", "grid-column", "min-width: 64rem") == ["2"]
+
+
+def test_target_bar_and_print_block() -> None:
+    assert declared(".doc-section:target", "border-left-width") == ["3px"]
+    assert declared(".doc-section:target", "border-left-style") == ["solid"]
+    assert declared(".doc-section:target", "border-left-color") == ["var(--c-accent)"]
+    for hidden in (".rail", ".skip-link", ".rail details"):
+        assert declared(hidden, "display", "print") == ["none"], hidden
+    assert declared(".table-scroll", "overflow", "print") == ["visible"]
+    assert declared(".source-scroll", "overflow", "print") == ["visible"]
+
+
+def test_focused_skip_link_stays_small_in_the_page_grid() -> None:
+    assert declared(".skip-link:focus", "grid-column", "min-width: 64rem") == ["1 / -1"]
+    assert declared(".skip-link:focus", "justify-self", "min-width: 64rem") == ["start"]
+    assert declared(".skip-link:focus", "align-self", "min-width: 64rem") == ["start"]
+
+
+def test_source_blocks_sit_in_keyboard_scrollable_regions(mod, tmp_path, capsys) -> None:
+    extra = "```\nplain block\n```\n\n```mermaid\nA --> B\n```\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    regions = re.findall(
+        r'<div class="source-scroll" role="region" tabindex="0" aria-label="([^"]*)">', text
+    )
+    assert regions == ["Source: Findings", "Source: Findings"]
+    assert text.count("<pre>") == len(regions)
+    assert declared(".source-scroll", "overflow-x") == ["auto"]
+
+
+def test_a_source_block_before_any_heading_is_labelled_plain_source(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), "```\nplain\n```\n\n" + report(), mod, capsys)
+    assert 'role="region" tabindex="0" aria-label="Source">' in text
+
+
+def test_print_uses_light_system_colours_one_column_and_wrapped_tables() -> None:
+    assert declared(":root", "color-scheme", "print") == ["light"]
+    for selector in ("body", "main", ".doc-section", ".page-header"):
+        assert declared(selector, "display", "print") == ["block"], selector
+        assert declared(selector, "color", "print") == ["CanvasText"], selector
+        assert declared(selector, "background", "print") == ["Canvas"], selector
+    for level in ("low", "medium", "high", "unknown"):
+        assert declared(f".heat-{level}", "white-space", "print") == ["normal"], level
+    assert declared("table", "table-layout", "print") == ["fixed"]
+    assert declared("table", "overflow-wrap", "print") == ["anywhere"]
+
+
+def test_print_lets_source_blocks_wrap_and_keeps_rows_together() -> None:
+    assert declared("pre", "overflow", "print") == ["visible"]
+    assert declared("pre", "white-space", "print") == ["pre-wrap"]
+    assert declared("tr", "break-inside", "print") == ["avoid"]
+
+
+def test_contents_control_meets_the_target_floor_and_the_page_is_centred_when_wide() -> None:
+    assert declared(".rail summary", "min-height") == ["var(--target)"]
+    assert declared(".rail summary", "gap") == ["var(--s-2)"]
+    assert declared("body", "max-width", "min-width: 100rem") == ["110rem"]
+    assert declared("body", "margin-left", "min-width: 100rem") == ["auto"]

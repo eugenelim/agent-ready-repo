@@ -22,9 +22,14 @@ import unicodedata
 from pathlib import Path
 from typing import Any, NamedTuple
 
-RENDERER_VERSION = "1"
+RENDERER_VERSION = "2"
+REPORT_ID = "report"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_EXISTING_OUTPUT_BYTES = 16 * 1024 * 1024
+MAX_ASSET_BYTES = 64 * 1024
+ASSET_DIR = Path(__file__).resolve().parent / "report_assets"
+ASSET_NAMES = ("view-base.css", "report.css")
+FORBIDDEN_ASSET_TEXT = ("</style", "<!--", "url(", "@import")
 SOURCE_NAME = "assessment.md"
 OUTPUT_NAME = "assessment.html"
 
@@ -58,45 +63,12 @@ TOKEN_NOT_UTF8 = "render_html: refused: source is not valid UTF-8"
 TOKEN_EVIDENCE = "render_html: refused: evidence class outside the allowed set"
 TOKEN_PROVENANCE = "render_html: refused: no usable Sources checked table in"
 TOKEN_OUTPUT_LARGE = "render_html: refused: rendered page over the size cap"
+TOKEN_ASSET_MISSING = "render_html: failed: stylesheet asset missing"
+TOKEN_ASSET_LARGE = "render_html: failed: stylesheet asset over the size cap"
+TOKEN_ASSET_NOT_UTF8 = "render_html: failed: stylesheet asset is not valid UTF-8"
+TOKEN_ASSET_FORBIDDEN = "render_html: failed: stylesheet asset holds forbidden text"
 TOKEN_HOST = "render_html: refused: host lacks descriptor walking:"
 TOKEN_INTERNAL = "render_html: failed: internal error"
-
-CSS = """
-body{font:16px/1.5 system-ui,sans-serif;margin:0;color:#1b1f24;background:#fff}
-main{max-width:70rem;margin:0 auto;padding:1.5rem}
-h1,h2,h3{line-height:1.25}
-h2{border-bottom:1px solid #c9d1d9;padding-bottom:.25rem;margin-top:2rem}
-table{border-collapse:collapse;margin:1rem 0;width:100%}
-th,td{border:1px solid #c9d1d9;padding:.35rem .6rem;text-align:left;vertical-align:top}
-th{background:#f3f5f7}
-pre{background:#f3f5f7;padding:.75rem;overflow:auto;border-radius:4px}
-code{font-family:ui-monospace,monospace;font-size:.92em}
-.meta{color:#4a5560;font-size:.9rem}
-a{color:#0969da}
-.banner-unconfirmed{border:2px solid #9a6700;background:#fff8c5;padding:.75rem 1rem;
-margin:1rem 0;font-weight:600}
-.notice-untrusted{border:1px solid #6e7781;background:#f3f5f7;padding:.75rem 1rem;margin:1rem 0}
-.diagram-label{font-weight:600;margin-bottom:0}
-.ev-observed{border-left:.5rem solid #1a7f37}
-.ev-inferred{border-left:.5rem solid #9a6700}
-.ev-reported{border-left:.5rem solid #0969da}
-.ev-unknown{border-left:.5rem solid #6e7781}
-.heat-low{background:#dafbe1}
-.heat-medium{background:#fff8c5}
-.heat-high{background:#ffebe9;font-weight:600}
-.heat-unknown{background:#eaeef2;font-style:italic}
-@media (prefers-color-scheme:dark){
-body{background:#0d1117;color:#e6edf3}
-th,pre,.notice-untrusted{background:#161b22}
-th,td,h2,.notice-untrusted{border-color:#30363d}
-.banner-unconfirmed{background:#3b2e00;border-color:#d29922;color:#f0e6c0}
-a{color:#58a6ff}
-.heat-low{background:#12301c}
-.heat-medium{background:#3b2e00}
-.heat-high{background:#4a1d1d}
-.heat-unknown{background:#21262d}
-}
-"""
 
 
 class Refusal(Exception):
@@ -131,6 +103,8 @@ _INLINE = re.compile(
     r"(`[^`\n]+`)|(\*\*[^*\n]+\*\*)"
     r"|(\[[^\[\]\n]+\]\((?:[^()\n]++|\([^()\n]*+\))*+\))|(\*[^*\n]+\*)"
 )
+
+_HELPER: Any = None
 
 
 def _esc(text: str) -> str:
@@ -175,6 +149,24 @@ def _inline(text: str) -> str:
             out.append(f"<em>{_esc(token[1:-1])}</em>")
         position = match.end()
     out.append(_esc(text[position:]))
+    return "".join(out)
+
+
+def _plain_text(text: str) -> str:
+    """Reduce inline Markdown to the text inside it: `See [docs](https://x)` gives `See docs`."""
+    out: list[str] = []
+    position = 0
+    for match in _INLINE.finditer(text):
+        out.append(text[position : match.start()])
+        token = match.group(0)
+        if match.group(3):
+            out.append(token[1 : token.index("](")])
+        elif match.group(2):
+            out.append(token[2:-2])
+        else:
+            out.append(token[1:-1])
+        position = match.end()
+    out.append(text[position:])
     return "".join(out)
 
 
@@ -410,8 +402,8 @@ def _slug(text: str, used: set[str], counters: dict[str, int]) -> str:
     return candidate
 
 
-def _table(block: Block, sources: bool, heat: bool) -> str:
-    """Render a table, adding evidence or heat classes by header text."""
+def _table(block: Block, sources: bool, heat: bool, counts: dict[str, int]) -> str:
+    """Render a table, adding evidence marks or heat classes by header text."""
     header = list(block.header)
     heat_columns = {i for i, name in enumerate(header) if heat and name in HEAT_COLUMNS}
     parts = ["<table><thead><tr>"]
@@ -421,10 +413,12 @@ def _table(block: Block, sources: bool, heat: bool) -> str:
         parts.append("<tr>")
         for i, cell in enumerate(row):
             value = cell.strip().lower()
-            css = ""
             if sources and i == 2 and value in EVIDENCE_CLASSES:
-                css = f' class="ev-{value}"'
-            elif i in heat_columns and value in HEAT_VALUES:
+                counts[value] += 1
+                parts.append(f'<td><span class="mark ev-{value}">{_inline(cell)}</span></td>')
+                continue
+            css = ""
+            if i in heat_columns and value in HEAT_VALUES:
                 css = f' class="heat-{value}"'
             parts.append(f"<td{css}>{_inline(cell)}</td>")
         parts.append("</tr>")
@@ -432,36 +426,86 @@ def _table(block: Block, sources: bool, heat: bool) -> str:
     return "".join(parts)
 
 
+def _scroll_wrap(content: str, nearest_heading: str, kind: str = "table") -> str:
+    """Wrap a table or source block in a keyboard-scrollable region named for its heading."""
+    word = "Table" if kind == "table" else "Source"
+    label = f"{word}: {nearest_heading}" if nearest_heading else word
+    return (
+        f'<div class="{kind}-scroll" role="region" tabindex="0" '
+        f'aria-label="{_esc(label)}">{content}</div>'
+    )
+
+
+class RailItem(NamedTuple):
+    """One contents link: the target id, the heading's plain text, and whether it is nested."""
+
+    slug: str
+    text: str
+    nested: bool
+
+
 def _body(
     blocks: list[Block], scopes: list[tuple[str, str | None]], title_at: int | None
-) -> tuple[str, str]:
-    """Render blocks to HTML; return (title, html).
+) -> tuple[str, str, list[RailItem], dict[str, int]]:
+    """Render blocks to document sections.
 
-    The title is the first heading block, when that block is level 1.
+    Returns (title, html, rail items, evidence counts). The title is the first heading
+    block, when that block is level 1. Every other level-1 or level-2 heading starts a
+    section that carries the heading's id; blocks before the first one form a leading section.
     """
     title = "Architecture assessment"
     out: list[str] = []
-    used: set[str] = set()
+    lead: list[str] = []
+    used: set[str] = {REPORT_ID}
     counters: dict[str, int] = {}
+    counts = dict.fromkeys(EVIDENCE_CLASSES, 0)
+    rail: list[RailItem] = []
+    started = False
+    nearest = ""
     previous: Block | None = None
+
+    def emit(markup: str) -> None:
+        (out if started else lead).append(markup)
+
     for index, (block, (section, orientation)) in enumerate(zip(blocks, scopes, strict=True)):
         if block.kind == "h":
+            nearest = _plain_text(block.text)
             if index == title_at:
                 title = block.text
                 previous = block
                 continue
-            level = min(block.level, 6)
             slug = _slug(block.text, used, counters)
-            out.append(f'<h{level} id="{slug}">{_inline(block.text)}</h{level}>')
-        elif block.kind == "p":
-            if section == "assessment charter":
-                lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
-                out.append(f"<p>{lines}</p>")
+            is_orientation = block.text.strip().lower() in ORIENTATION
+            if block.level <= 2:
+                if started:
+                    out.append("</div></section>")
+                elif lead:
+                    out.append(
+                        '<section class="doc-section"><div class="doc-body">'
+                        + "\n".join(lead)
+                        + "</div></section>"
+                    )
+                started = True
+                out.append(
+                    f'<section class="doc-section" id="{slug}">'
+                    f'<h2 class="margin-head">{_inline(block.text)}</h2><div class="doc-body">'
+                )
             else:
-                out.append(f"<p>{_inline(block.text.replace(chr(10), ' '))}</p>")
+                level = min(block.level, 6)
+                emit(f'<h{level} id="{slug}">{_inline(block.text)}</h{level}>')
+            if block.level <= 2 or is_orientation:
+                rail.append(RailItem(slug, nearest, is_orientation and block.level > 2))
+        elif block.kind == "p":
+            if previous is not None and _is_sources_label(block):
+                emit(f'<p class="part-head">{_inline(block.text)}</p>')
+            elif section == "assessment charter":
+                lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
+                emit(f"<p>{lines}</p>")
+            else:
+                emit(f"<p>{_inline(block.text.replace(chr(10), ' '))}</p>")
         elif block.kind in ("ul", "ol"):
             items = "".join(f"<li>{_inline(item)}</li>" for item in block.items)
-            out.append(f"<{block.kind}>{items}</{block.kind}>")
+            emit(f"<{block.kind}>{items}</{block.kind}>")
         elif block.kind == "table":
             sources = (
                 orientation is not None
@@ -469,48 +513,122 @@ def _body(
                 and previous is not None
                 and _is_sources_label(previous)
             )
-            out.append(_table(block, sources, section == "attention heat map"))
+            table = _table(block, sources, section == "attention heat map", counts)
+            emit(_scroll_wrap(table, nearest))
         elif block.kind == "code":
-            code = f"<pre><code>{_esc(block.text)}</code></pre>"
+            code = _scroll_wrap(f"<pre><code>{_esc(block.text)}</code></pre>", nearest, "source")
             if block.header and block.header[0].lower().split(None, 1)[:1] == ["mermaid"]:
-                out.append(
+                emit(
                     '<div class="diagram">'
                     f'<p class="diagram-label">{DIAGRAM_LABEL}</p>{code}</div>'
                 )
             else:
-                out.append(code)
+                emit(code)
         elif block.kind == "hr":
-            out.append("<hr>")
+            emit("<hr>")
         previous = block
-    return title, "\n".join(out)
+    if started:
+        out.append("</div></section>")
+    elif lead:
+        out.append(
+            '<section class="doc-section"><div class="doc-body">'
+            + "\n".join(lead)
+            + "</div></section>"
+        )
+    return title, "\n".join(out), rail, counts
 
 
-def render(source: str, effort_name: str, today: str) -> str:
+class AssetError(Exception):
+    """A stylesheet asset the renderer will not inline; carries its fixed stderr token."""
+
+    def __init__(self, line: str) -> None:
+        super().__init__(line)
+        self.line = line
+
+
+def load_stylesheet(helper: Any) -> str:
+    """Return the base stylesheet, one newline, then the report layout file.
+
+    Each asset is read through the confinement helper with a byte cap and refused before
+    inlining when missing, too large, not UTF-8, or holding text that could end the style
+    element or fetch a resource.
+    """
+    root = ASSET_DIR.parent
+    texts: list[str] = []
+    for name in ASSET_NAMES:
+        try:
+            data = helper.read_confined_regular_file(
+                root, ASSET_DIR / name, max_bytes=MAX_ASSET_BYTES
+            )
+        except helper.BoundExceeded as error:
+            raise AssetError(TOKEN_ASSET_LARGE) from error
+        except (helper.UnsafeContentError, OSError) as error:
+            raise AssetError(TOKEN_ASSET_MISSING) from error
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError as error:
+            raise AssetError(TOKEN_ASSET_NOT_UTF8) from error
+        lowered = text.lower()
+        if any(forbidden in lowered for forbidden in FORBIDDEN_ASSET_TEXT):
+            raise AssetError(TOKEN_ASSET_FORBIDDEN)
+        texts.append(text)
+    return "\n".join(texts)
+
+
+def _rail_links(rail: list[RailItem]) -> str:
+    """Return the list items of the contents links."""
+    return "".join(
+        f'<li><a class="question-link{" rail-sub" if item.nested else ""}" '
+        f'href="#{item.slug}">{_esc(item.text)}</a></li>'
+        for item in rail
+    )
+
+
+def render(source: str, effort_name: str, today: str, css: str | None = None) -> str:
     """Return the full HTML document for *source*, or raise Refusal."""
+    if css is None:
+        css = load_stylesheet(_load_helper())
     blocks = parse(source)
     title_at = _title_index(blocks)
     _check_orientation(blocks, title_at)
     scopes = _scopes(blocks, title_at)
-    title, body = _body(blocks, scopes, title_at)
-    digest = base64.b64encode(hashlib.sha256(CSS.encode("utf-8")).digest()).decode()
+    title, body, rail, counts = _body(blocks, scopes, title_at)
+    digest = base64.b64encode(hashlib.sha256(css.encode("utf-8")).digest()).decode()
     policy = (
         f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"
     )
-    banner = ""
-    if not _charter_checkpoint_confirmed(blocks, scopes):
-        banner = f'<div class="banner-unconfirmed">{BANNER_TEXT}</div>'
-    meta = (
-        f'<p class="meta">Source: {_esc(effort_name)}/{SOURCE_NAME} · '
-        f"Generated {_esc(today)} UTC · Renderer version {RENDERER_VERSION}</p>"
+    confirmed = _charter_checkpoint_confirmed(blocks, scopes)
+    banner = "" if confirmed else f'<div class="alert banner-unconfirmed">{BANNER_TEXT}</div>'
+    state = (
+        '<span class="mark" data-mark="approved"><span class="mark-g" aria-hidden="true">'
+        "\u25c6</span> Confirmed</span>"
+        if confirmed
+        else '<span class="mark" data-mark="draft"><span class="mark-g" aria-hidden="true">'
+        "\u25c7</span> Unconfirmed</span>"
     )
-    notice = f'<div class="notice-untrusted">{NOTICE_TEXT}</div>'
+    tally = "Sources: " + ", ".join(f"{counts[name]} {name}" for name in EVIDENCE_CLASSES)
+    meta = (
+        f'<p class="meta">Source: {_esc(effort_name)}/{SOURCE_NAME} \u00b7 '
+        f"Generated {_esc(today)} UTC \u00b7 Renderer version {RENDERER_VERSION} \u00b7 "
+        f"{state} \u00b7 {tally}</p>"
+    )
+    notice = f'<div class="note notice-untrusted">{NOTICE_TEXT}</div>'
+    links = _rail_links(rail)
+    nav = (
+        '<nav class="rail" aria-label="Report sections"><details class="key">'
+        f"<summary>Contents ({len(rail)} sections)</summary>"
+        f'<ul class="rail-list plain">{links}</ul></details>'
+        f'<ul class="rail-wide plain">{links}</ul></nav>'
+    )
     return (
         "<!DOCTYPE html>\n"
         '<html lang="en"><head><meta charset="utf-8">'
         f'<meta http-equiv="Content-Security-Policy" content="{policy}">'
-        f"<title>{_esc(title)}</title><style>{CSS}</style></head>\n"
-        f"<body><main><h1>{_esc(title)}</h1>\n{meta}\n{banner}\n{notice}\n"
-        f"{body}\n</main></body></html>\n"
+        f"<title>{_esc(title)}</title><style>{css}</style></head>\n"
+        f'<body><a class="skip-link" href="#{REPORT_ID}">Skip to report</a>'
+        f'<header class="page-header"><h1 class="page-title">{_esc(title)}</h1>{meta}</header>\n'
+        f"{banner}\n{notice}\n{nav}\n"
+        f'<main id="{REPORT_ID}">\n{body}\n</main></body></html>\n'
     )
 
 
@@ -539,7 +657,10 @@ def _missing_capability() -> str | None:
 
 
 def _load_helper() -> Any:
-    """Load the co-located confinement helper by path under a private name."""
+    """Load the co-located confinement helper by path under a private name, once."""
+    global _HELPER
+    if _HELPER is not None:
+        return _HELPER
     path = Path(__file__).with_name("file_safety.py")
     inspected = os.lstat(path)
     if not stat.S_ISREG(inspected.st_mode):
@@ -549,6 +670,7 @@ def _load_helper() -> Any:
         raise ImportError("helper cannot be loaded")
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
+    _HELPER = module
     return module
 
 
@@ -582,6 +704,11 @@ def _run(argv: list[str]) -> int:
         print(TOKEN_UNSAFE_PATH, file=sys.stderr)
         return 3
     helper = _load_helper()
+    try:
+        css = load_stylesheet(helper)
+    except AssetError as error:
+        print(error.line, file=sys.stderr)
+        return 3
     root = Path(argv[0]).absolute()
     try:
         data = helper.read_confined_regular_file(
@@ -600,7 +727,7 @@ def _run(argv: list[str]) -> int:
         return 2
     today = datetime.datetime.now(datetime.UTC).date().isoformat()
     try:
-        page = render(source, root.name, today)
+        page = render(source, root.name, today, css)
     except Refusal as refusal:
         print(refusal.line, file=sys.stderr)
         return refusal.code

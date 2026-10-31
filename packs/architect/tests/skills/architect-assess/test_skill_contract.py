@@ -308,3 +308,33 @@ def test_html_eval_case_checks_the_sources_checked_table() -> None:
     evals = json.loads((SKILL_ROOT / "evals" / "evals.json").read_text("utf-8"))["evals"]
     case = next(c for c in evals if "HTML report" in c["prompt"])
     assert any("Sources checked table" in a for a in case["assertions"])
+
+
+def test_html_reference_names_the_style_the_rail_and_the_asset_refusals() -> None:
+    text = " ".join(
+        (SKILL_ROOT / "references" / "html-report.md").read_text(encoding="utf-8").split()
+    )
+    assert "maintainer-view style" in text and "contents rail" in text
+    lines = (SKILL_ROOT / "references" / "html-report.md").read_text(encoding="utf-8").splitlines()
+    row = next(line for line in lines if line.startswith("| 3 |"))
+    for reason in (
+        "missing",
+        "over 64 KiB",
+        "not UTF-8",
+        "`</style`",
+        "`<!--`",
+        "`url(`",
+        "`@import`",
+    ):
+        assert reason in row
+
+
+def test_html_eval_case_checks_the_style_the_rail_and_the_marks() -> None:
+    import json
+
+    evals = json.loads((SKILL_ROOT / "evals" / "evals.json").read_text("utf-8"))["evals"]
+    case = next(c for c in evals if "HTML report" in c["prompt"])
+    assert any(
+        "maintainer-view style" in a and "contents rail" in a and "provenance marks" in a
+        for a in case["assertions"]
+    )
