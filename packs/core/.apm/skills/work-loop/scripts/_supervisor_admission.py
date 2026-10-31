@@ -506,7 +506,11 @@ def start(
         latest = approvals[-1]
         _supervisor("_supervisor_recovery.py").reconcile(ws)
         commits = ws.git.supervisor_commits(run_id)
-        foreign = ws.git.sync(commits[-1].sha if commits else None)
+        # While history awaits the owner, nothing is written to the working tree: a lag
+        # sync to a commit the run may be told to discard would strand its delivery copies.
+        foreign = (
+            ws.git.sync(commits[-1].sha if commits else None) if ws.divergence is None else []
+        )
         if foreign:
             raise Refusal("foreign-delivery-edit", "controller", ", ".join(foreign))
         if (

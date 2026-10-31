@@ -1105,9 +1105,7 @@ def test_an_orphan_run_directory_is_ignored_not_deleted(tmp_path: Path) -> None:
         h.commit_module.set_kill_hook(None)
     (orphan,) = _run_dirs(repo)
     store = repo / ".git" / "agentbundle-supervisor" / orphan
-    # The unlanded approval is pending, not made: only a landed step is the run's history.
-    assert (store / "pending-commit").read_text("utf-8").strip()
-    assert not (store / "made-commits").exists()
+    assert (store / "made-commits").read_text("utf-8")  # the first admission records before its move
     assert (store / "spec").read_text("utf-8") == SPEC, "the store did not record its spec"
     (repo / "unrelated.txt").write_text("moves HEAD past the unlanded approval\n", "utf-8")
     h.git(repo, "add", "-A")

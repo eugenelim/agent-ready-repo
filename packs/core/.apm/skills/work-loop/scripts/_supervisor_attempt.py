@@ -330,11 +330,11 @@ class Attempts:
         return state
 
     def product_ref_problems(self, run_id: str) -> list[str]:
-        """Labels naming this run's product ref when it is not at its recorded or pending value.
+        """Labels naming this run's product ref when it is not at its recorded value.
 
         Direct file reads, no Git call. A run with no recorded product ref has none to
-        check. The supervisor's own move is accepted because the store records the
-        pending commit before the transaction and the new value after it.
+        check. The supervisor's own move is accepted because the invocation that makes it
+        records the new value before its next Git call.
         """
         git = self.ws.git
         record = git.product_record(run_id)
@@ -344,7 +344,7 @@ class Attempts:
         if trusted:
             return []
         shown = f"commit {value}" if kind == "commit" else kind
-        restore = git.restore_command(record.name, kind, record.recorded or record.pending)
+        restore = git.restore_command(record.name, kind, record.recorded)
         return [f"{record.name} is {shown}; restore it with: {restore}"]
 
     def mark_stale_if_landed(self) -> None:
@@ -630,8 +630,6 @@ class Attempts:
         """
         self.open = None
         self._manifest = None
-        # A refused step whose cleanup could not finish is repaired, or every verb refuses.
-        self.ws.git.repair_voided()
         for issuance in self._latest():
             if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
                 continue

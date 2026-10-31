@@ -436,7 +436,12 @@ _REF_EVENT = "supervisor-product-ref-check"
 
 @dataclass
 class Divergence:
-    """How ``HEAD`` differs from the anchor in a way only the owner can admit."""
+    """How ``HEAD`` or the product ref differs from the anchor in a way only the owner can admit.
+
+    *step* names a commit the run never recorded whose parent is the anchor, when the
+    product ref or ``HEAD`` holds one (a step cut off after its transaction moved a ref).
+    *ref_value* is the product ref's commit, which an adoption replaces.
+    """
 
     head: str
     anchor: str
@@ -444,6 +449,8 @@ class Divergence:
     spec_dir_changed: bool
     spec_files_changed: bool
     delivery_changed: bool
+    step: str | None = None
+    ref_value: str | None = None
 
     @property
     def changed(self) -> str:
@@ -463,9 +470,9 @@ def unadopted(ws: Any) -> Any:
     return Refusal(
         "history-adoption-required",
         "controller",
-        "HEAD holds history this run did not make, so nothing can be committed on top of it. "
-        "Run next and put its history-adoption decision to the owner, or restore the branch "
-        "to the run's last commit.",
+        "HEAD or the product ref holds a commit this run did not record, so nothing can be "
+        "committed on top of it. Run next and put its history-adoption decision to the "
+        "owner, or restore both the product ref and HEAD to the run's recorded value.",
     )
 
 
@@ -473,16 +480,18 @@ def _diverged(ws: Any, record: Any, kind: str, value: str, *, log: bool = True) 
     if log:
         ws.attempts.log_denial("product-ref-diverged", _REF_EVENT)
     shown = f"commit {value}" if kind == "commit" else kind
-    restore = ws.git.restore_command(record.name, kind, record.recorded or record.pending)
+    restore = ws.git.restore_command(record.name, kind, record.recorded)
     return Refusal(
         "product-ref-diverged",
         "controller",
         f"the product ref {record.name} is {shown}, not its recorded value "
-        f"{record.recorded or record.pending}; restore it with: {restore}",
+        f"{record.recorded}; restore it with: {restore}",
     )
 
 
-def _divergence(ws: Any, head: str, anchor: str) -> Divergence:
+def _divergence(
+    ws: Any, head: str, anchor: str, *, step: str | None = None, ref_value: str | None = None
+) -> Divergence:
     out = ws.git.run("diff", "--name-only", "-z", "--no-renames", anchor, head)
     paths = [p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p]
     spec = ws.spec_rel + "/"
@@ -494,7 +503,21 @@ def _divergence(ws: Any, head: str, anchor: str) -> Divergence:
         spec_dir_changed=any(p.startswith(spec) for p in paths),
         spec_files_changed=any(p.startswith(spec) and not p.startswith(delivery) for p in paths),
         delivery_changed=any(p.startswith(delivery) for p in paths),
+        step=step,
+        ref_value=ref_value if ref_value is not None else anchor,
     )
+
+
+def _unrecorded_step(ws: Any, record: Any, kind: str, value: str, head: str) -> str | None:
+    """The commit the product ref names when it is an unrecorded step on the recorded value.
+
+    That is the state a kill between a step's transaction and its recording leaves: the
+    ref names a commit whose parent is the recorded value and ``HEAD`` is on either.
+    """
+    if kind != "commit" or value == record.recorded or head not in (record.recorded, value):
+        return None
+    parent = ws.git.text("rev-parse", "--verify", "--quiet", f"{value}^", check=False).strip()
+    return value if parent == record.recorded else None
 
 
 def _exists(ws: Any, sha: str) -> bool:
@@ -525,32 +548,11 @@ def _create(ws: Any, run_id: str, head: str) -> Any:
     if latest is None or (latest != head and not git.made_only(run_id, head, latest)):
         anchor = latest or _latest_made(ws, run_id, clean=False)
         return None if anchor is None else _divergence(ws, head, anchor)
-    record = _commit.ProductRecord(git.new_product_name(run_id), None, latest)
-    with git.settle_writes(run_id):
-        git.write_product_record(run_id, record)
-    _commit.kill_point("pending-recorded")
-    git.create_ref(record.name, latest)
+    name = git.new_product_name(run_id)
+    git.create_ref(name, latest)  # a kill after this leaves a ref no record names, which is inert
     _commit.kill_point("repaired")
-    done = _commit.ProductRecord(record.name, latest, None)
-    with git.settle_writes(run_id):
-        git.write_product_record(run_id, done)
-    return done
-
-
-def _complete(ws: Any, run_id: str, record: Any, value: str, head: str) -> Any:
-    """Finish a transaction that moved the product ref, and clear the pending commit.
-
-    Only the product ref at the pending commit with ``HEAD`` at the commit before it
-    completes: the ref moves only inside the supervisor's transaction. When ``HEAD`` alone
-    names the pending commit, nothing is moved: the ref's own value becomes the recorded
-    one, and the usual comparison with ``HEAD`` makes that history foreign.
-    """
-    git = ws.git
-    if value == record.pending and head == record.recorded:
-        git.move_head(value, head, "work-supervisor: complete step")
-    _commit.kill_point("repaired")
-    done = _commit.ProductRecord(record.name, value, None)
-    with git.settle_writes(run_id):
+    done = _commit.ProductRecord(name, latest)
+    with git.recording(run_id):
         git.write_product_record(run_id, done)
     return done
 
@@ -559,11 +561,11 @@ def reconcile(ws: Any) -> Divergence | None:
     """Classify ``HEAD`` against the product ref before a verb derives; repair or refuse.
 
     Returns a ``Divergence`` when only the owner can admit the difference; the
-    caller issues the adoption decision, or refuses a verb that cannot. Refuses
-    ``product-ref-diverged`` when the ref is not at its recorded or pending value, and
-    ``projection-blocked`` when forward projection would overwrite a file. With an
-    attempt open, the attempt guard has already answered and only an interrupted
-    transaction is completed.
+    caller issues the adoption decision, or refuses a verb that cannot. A commit the run
+    never recorded is never counted or moved to: a ref or ``HEAD`` naming one is that
+    decision, with the two exits. Refuses ``product-ref-diverged`` when the ref names
+    anything else than its recorded value, and ``projection-blocked`` when forward
+    projection would overwrite a file. With an attempt open, the attempt guard answers.
     """
     _admission.refuse_unsupported_ref_storage(ws)
     ws.divergence = None
@@ -576,8 +578,6 @@ def reconcile(ws: Any) -> Divergence | None:
     run_id = approvals[0]["run_id"]
     git = ws.git
     open_attempt = ws.attempts.open is not None
-    # A step a crash cut off is recorded as made, or forgotten, before anything reads the list.
-    git.settle_pending(run_id)
     head = git.head()
     record = git.product_record(run_id)
     if record is None:
@@ -590,18 +590,16 @@ def reconcile(ws: Any) -> Divergence | None:
         if made is None:
             return None
         record = made
+    git.ensure_recorded_made(run_id)  # a step cut off after its record write
     kind, value, trusted = git.product_ref_view(record)
-    if kind == "missing" and trusted:
-        git.create_ref(record.name, record.pending)
-        kind, value = "commit", record.pending
     if not trusted:
         if open_attempt:
             return None
-        raise _diverged(ws, record, kind, value)
-    if record.pending is not None:
-        record = _complete(ws, run_id, record, value, head)
-        head = git.head()
-        git.settle_pending(run_id)  # the finished move may be the pending step's landing
+        step = _unrecorded_step(ws, record, kind, value, head)
+        if step is None:
+            raise _diverged(ws, record, kind, value)
+        ws.divergence = _divergence(ws, head, record.recorded, step=step, ref_value=value)
+        return ws.divergence  # type: ignore[no-any-return]
     anchor = record.recorded
     assert anchor is not None
     if head == anchor or open_attempt:
@@ -609,15 +607,22 @@ def reconcile(ws: Any) -> Divergence | None:
     if git.made_only(run_id, head, anchor):
         _project_forward(ws, head, anchor)
         return None
-    ws.divergence = _divergence(ws, head, anchor)
+    step = head if _is_step(ws, head, anchor) else None
+    ws.divergence = _divergence(ws, head, anchor, step=step)
     return ws.divergence  # type: ignore[no-any-return]
+
+
+def _is_step(ws: Any, commit: str, anchor: str) -> bool:
+    parent = ws.git.text("rev-parse", "--verify", "--quiet", f"{commit}^", check=False).strip()
+    return parent == anchor
 
 
 def inspect(ws: Any) -> Any:
     """What ``reconcile`` would refuse, found without writing anything; ``None`` if nothing.
 
     For ``status``: the ref's trust and, when ``HEAD`` could be moved forward, whether
-    that would overwrite a file.
+    that would overwrite a file. An unrecorded step is not a refusal but the decision
+    ``peek`` reports.
     """
     try:
         approvals = ws.approvals()
@@ -626,22 +631,16 @@ def inspect(ws: Any) -> Any:
     if not approvals:
         return None
     git = ws.git
-    if git.voided(approvals[0]["run_id"]) is not None:
-        return Refusal(
-            "denied-product-record",
-            "controller",
-            "a refused step left the run store inconsistent: its voided pending commit is "
-            "still recorded. Make the run store writable and run any verb but status; the "
-            "supervisor then clears it. Until then every verb but status refuses",
-        )
     record = git.product_record(approvals[0]["run_id"])
     if record is None:
         return None
     kind, value, trusted = git.product_ref_view(record)
-    if not trusted:
-        return _diverged(ws, record, kind, value, log=False)
-    anchor = record.pending or record.recorded
     head = git.head()
+    if not trusted:
+        if _unrecorded_step(ws, record, kind, value, head) is not None:
+            return None
+        return _diverged(ws, record, kind, value, log=False)
+    anchor = record.recorded
     if anchor and anchor != head and git.made_only(approvals[0]["run_id"], head, anchor):
         paths, blocked = _projection(ws, head, anchor)
         if blocked:
@@ -670,12 +669,15 @@ def peek(ws: Any) -> Divergence | None:
             return None
         anchor = latest or _latest_made(ws, run_id, clean=False)
         return None if anchor is None else _divergence(ws, head, anchor)
-    if not git.product_ref_view(record)[2]:
-        return None  # ``inspect`` reports an untrusted ref
-    anchors = {v for v in (record.recorded, record.pending) if v is not None}
-    if head in anchors or any(git.made_only(run_id, head, a) for a in anchors):
+    kind, value, trusted = git.product_ref_view(record)
+    if not trusted:
+        step = _unrecorded_step(ws, record, kind, value, head)
+        if step is None:
+            return None  # ``inspect`` reports the untrusted ref
+        return _divergence(ws, head, record.recorded, step=step, ref_value=value)
+    if head == record.recorded or git.made_only(run_id, head, record.recorded):
         return None
-    return _divergence(ws, head, record.recorded or record.pending or head)
+    return _divergence(ws, head, record.recorded)
 
 
 def _index_oids(ws: Any, paths: list[str]) -> dict[str, str | None]:
@@ -771,17 +773,28 @@ def _project_forward(ws: Any, head: str, target: str) -> None:
 
 
 def adoption_action(ws: Any, state: Any, div: Divergence) -> Any:
-    """The ``history-adoption`` decision for a ``HEAD`` the owner has not admitted."""
+    """The ``history-adoption`` decision for history the run has not recorded."""
     shown = div.paths[:_SHOWN_PATHS]
     where = "and would change files in the spec directory" if div.spec_dir_changed else (
         "and would change no file in the spec directory"
     )
-    exit_ = (
-        f"Adoption will be refused because this history changes files under delivery/; reset "
-        f"HEAD to the run's last commit {div.anchor}."
+    record = ws.git.product_record(state.run_id)
+    restore = (
+        f"git update-ref --no-deref {record.name} {div.anchor} && git reset --soft {div.anchor}"
+        if record is not None
+        else f"git reset --soft {div.anchor}"
+    )
+    if div.step is not None:
+        subject = (
+            f"The product ref or HEAD names commit {div.step}, a step this run never "
+            "recorded, on its last recorded value (a step cut off after its refs moved)"
+        )
+    else:
+        subject = f"HEAD is {div.head}, which holds history this run did not make"
+    adopt = (
+        "Adoption will be refused because this history changes files under delivery/"
         if div.delivery_changed
-        else f"Or reset HEAD to the run's last commit {div.anchor}; that also ends this "
-        "decision when a crashed supervisor step moved HEAD."
+        else f"Answer adopt-history with an owner authority reference and commit {div.head}"
     )
     return Action(
         "request",
@@ -789,11 +802,10 @@ def adoption_action(ws: Any, state: Any, div: Divergence) -> Any:
             ws,
             state,
             ADOPTION_REASON,
-            f"HEAD is {div.head}, which holds history this run did not make. Adopting it "
-            f"changes {len(div.paths)} product path(s) from the run's product ref "
-            f"({', '.join(shown)[:1200] or 'none'}) {where}. Answer adopt-history with an owner "
-            f"authority reference and that commit id. {exit_}",
-            key=div.head,
+            f"{subject}. Adopting changes {len(div.paths)} product path(s) from the recorded "
+            f"value ({', '.join(shown)[:900] or 'none'}) {where}. Two exits: "
+            f"{adopt}; or restore both refs to {div.anchor} so the step is rebuilt: {restore}.",
+            key=f"{div.head}:{div.step}",
             head_commit=div.head,
             changed_path_count=len(div.paths),
             changed_paths=shown,
@@ -858,7 +870,7 @@ def report_adoption(
         known_steps=state.steps,
         create_ref=name,
         adopting=True,
-        product_old=div.anchor if record is not None else None,
+        product_old=div.ref_value if record is not None else None,
     )
     ws.divergence = None
     return "reanchor"

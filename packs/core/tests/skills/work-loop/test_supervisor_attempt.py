@@ -516,6 +516,13 @@ def test_a_resolve_effect_during_an_open_attempt_does_not_refuse_it(
     _report_after_a_landed_step(repo, request)
 
 
+def _restore_to_issued(repo: Path, request: dict[str, Any]) -> None:
+    """The exit for a step cut off after its refs moved: both refs back on the recorded value."""
+    name, recorded = _product(repo)
+    h.git(repo, "update-ref", "--no-deref", name, recorded)
+    h.git(repo, "reset", "-q", "--soft", recorded)
+
+
 @pytest.mark.parametrize("point", KILL_POINTS)
 def test_a_resolve_effect_killed_during_an_open_attempt_converges(
     effect_template: tuple[Path, str], tmp_path: Path, point: str
@@ -530,6 +537,14 @@ def test_a_resolve_effect_killed_during_an_open_attempt_converges(
             _resolve(repo, key)
     finally:
         h.commit_module.set_kill_hook(None)
+    if point == "refs-moved":
+        # The refs moved and the run never recorded the step: with the attempt open the
+        # guard answers residue until both refs go back to the attempt's commit.
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+        _restore_to_issued(repo, request)
+        assert _current_request(repo)["request_id"] == request["request_id"]  # re-issued
+        issuances = _issuances(repo)
     # The operator runs it again; it may find the resolution already committed.
     code, out = _resolve(repo, key)
     assert code == 0 or out["refusal"]["code"] == "no-open-effect", out
@@ -581,6 +596,9 @@ def test_a_re_approval_start_killed_during_an_open_attempt_converges(
             h.start(repo, "spec-plan")
     finally:
         h.commit_module.set_kill_hook(None)
+    if point == "refs-moved":
+        # The amended approval's refs moved before it was recorded: restore both refs.
+        _restore_to_issued(repo, {})
     code, out = h.start(repo, "spec-plan")
     assert code == 0, out
     code, out = h.run_cli(repo, "next", SPEC)
@@ -806,7 +824,7 @@ def test_a_changed_product_ref_refuses_the_attempt_until_restored(
     assert code == 0, admitted
 
 
-def test_the_supervisors_own_move_is_not_refused(product_template: Path, tmp_path: Path) -> None:
+def test_a_move_the_run_never_recorded_is_residue_until_both_refs_are_restored(product_template: Path, tmp_path: Path) -> None:
     repo = _copy(product_template, tmp_path)
     request = _current_request(repo)
     result = h.Controller(repo, tmp_path / "effects.log").work(request)
@@ -823,10 +841,17 @@ def test_the_supervisors_own_move_is_not_refused(product_template: Path, tmp_pat
             h.Controller(repo, tmp_path / "effects.log").report(result)
     finally:
         h.commit_module.set_kill_hook(None)
-    ref, _recorded = _product(repo)
-    assert h.git(repo, "rev-parse", ref).strip() == h.git(repo, "rev-parse", "HEAD").strip()
+    ref, recorded = _product(repo)
+    moved = h.git(repo, "rev-parse", "HEAD").strip()
+    assert h.git(repo, "rev-parse", ref).strip() == moved != recorded
+    # Killed before the run recorded it, the commit is not the supervisor's own (the guard
+    # answers residue); the supervisor's move is trusted only within the invocation that
+    # made it, which the step's successful report above the kill shows.
     code, payload = h.run_cli(repo, "next", SPEC)
-    assert code == 0, payload
+    assert code == 1 and payload["refusal"]["code"] == "attempt-residue", payload
+    _restore_to_issued(repo, request)
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    assert h.Controller(repo, tmp_path / "effects.log").report(result)[0] == 0
     assert _product(repo)[1] == h.git(repo, "rev-parse", "HEAD").strip()
 
 
@@ -946,15 +971,17 @@ def _refuse_with_a_landed_step(
         run_id=_run_id(repo), step="landing", operation="evidence", summary="a step landed"
     )
     seen: list[str] = []
+    original = h.commit_module.GitPort._move
 
-    def hook() -> None:  # just before the refused transaction: the commit is pending
-        seen.append((_store(repo) / "pending-commit").read_text("utf-8").strip())
+    def spy(self: Any, run_id: str, new: str, *args: Any, **kwargs: Any) -> None:
+        seen.append(new)  # the commit whose transaction is about to be refused
+        original(self, run_id, new, *args, **kwargs)
 
-    h.commit_module.set_update_hook(hook)
+    h.commit_module.GitPort._move = spy  # type: ignore[method-assign]
     try:
         code, out = controller.report(result)
     finally:
-        h.commit_module.set_update_hook(None)
+        h.commit_module.GitPort._move = original  # type: ignore[method-assign]
     assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
     return repo, seen[-1], (controller, result)
 
@@ -963,7 +990,6 @@ def test_a_refused_commit_leaves_no_trace_and_is_not_history(
     product_template: Path, tmp_path: Path
 ) -> None:
     repo, refused, _ = _refuse_with_a_landed_step(product_template, tmp_path)
-    assert not (_store(repo) / "pending-commit").exists()
     assert refused not in _made(repo)
     assert refused not in h.workspace(repo).git.made_commits(_run_id(repo))
 

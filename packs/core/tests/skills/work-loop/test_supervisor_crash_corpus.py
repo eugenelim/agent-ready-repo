@@ -55,10 +55,10 @@ STEP_KINDS = {"approval", "replan", "reanchor", "stub", "red", "implement", "evi
               "terminal"}
 RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}
 STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "terminal"}
-# Kill points in the uninterrupted run: 13 steps x (built, pending recorded, refs
-# moved, made recorded, synced, event), 11 journal appends, and 1 effect dispatch. The
+# Kill points in the uninterrupted run: 13 steps x (built, refs moved, made
+# recorded, synced, event), 11 journal appends, and 1 effect dispatch. The
 # reviewer-selection exchange is one of those steps and one of those appends.
-BOUNDARIES = 91
+BOUNDARIES = 78
 
 
 def _run_store(repo: Path) -> Path | None:
@@ -97,7 +97,7 @@ def assert_three_way_parity(repo: Path) -> None:
     assert _manifest(repo, "HEAD") == _manifest(repo, name) == working
 
 
-STEP_POINTS = ("commit-built", "pending-recorded", "refs-moved", "made-recorded", "synced")
+STEP_POINTS = ("refs-moved", "made-recorded", "synced")
 # The recorder of each repository under test, so a diversion can read where it struck.
 _RECORDERS: dict[Path, Recorder] = {}
 
@@ -120,30 +120,30 @@ class Recorder:
             return
         record = json.loads((store / "product-ref").read_text("utf-8"))
         value = _rev(self.repo, record["name"])
-        trusted = {record["recorded"], record["pending"]} - {None}
-        assert value in trusted or (value == "" and record["recorded"] is None), (name, record)
-        if name == "pending-recorded":
-            assert value != record["pending"], "the ref moved before the transaction"
+        head = _rev(self.repo, "HEAD")
         if name == "refs-moved":
-            assert value == record["pending"], "the transaction did not move the ref"
-        if name == "synced":
-            head = _rev(self.repo, "HEAD")
+            # After the transaction, before the run recorded it: past the record.
+            assert value != record["recorded"] and value == head, (name, record)
+        elif name in ("commit-built", "made-recorded", "synced"):
+            assert value == record["recorded"], (name, record)
+        else:
+            # Between steps, or while an earlier cut-off step awaits the owner: the ref is
+            # at the record, or at the unrecorded commit whose parent is the record.
+            assert value == record["recorded"] or _rev(
+                self.repo, f"{value}^") == record["recorded"], (name, record)
+        if name in ("made-recorded", "synced"):
             assert h.git(self.repo, "symbolic-ref", "HEAD").strip() == "refs/heads/main"
-            assert value == head and record["recorded"] == head and record["pending"] is None
+            assert value == head == record["recorded"]
 
     def _operation(self) -> str:
-        """The operation trailer of the commit the step in flight is moving the refs to."""
-        store = _run_store(self.repo)
-        pending = store / "pending-commit" if store else None
-        if pending is None or not pending.exists():
-            return ""
-        body = h.git(self.repo, "log", "-1", "--format=%B", pending.read_text("utf-8").strip())
+        """The operation trailer of the commit ``HEAD`` was just moved to."""
+        body = h.git(self.repo, "log", "-1", "--format=%B", "HEAD")
         return next((x.split(": ", 1)[1] for x in body.splitlines()
                      if x.startswith("Supervisor-Operation: ")), "")
 
     def __call__(self, name: str) -> None:
         self.seen.append(name)
-        if name == "commit-built":
+        if name == "refs-moved":
             self._op = self._operation()
         self.ops.append(self._op if name in STEP_POINTS else "")
         if name == "synced":
@@ -178,9 +178,20 @@ def _check_run_json(repo: Path, payload: dict[str, Any], problems: list[str]) ->
 
 
 def adopt(c: h.Controller, request: dict[str, Any]) -> bool:
-    """Answer a history-adoption decision the way the owner's controller would."""
+    """Answer a history-adoption decision the way the owner's controller would.
+
+    A step cut off after its refs moved is not adopted (it changes delivery/): both refs
+    go back to the recorded value and the step is rebuilt. Other history is adopted.
+    """
     if request.get("reason") != "history-adoption":
         return False
+    if "a step this run never recorded" in request["question"]:
+        store = _run_store(c.repo)
+        assert store is not None
+        record = json.loads((store / "product-ref").read_text("utf-8"))
+        h.git(c.repo, "update-ref", "--no-deref", record["name"], record["recorded"])
+        h.git(c.repo, "reset", "-q", "--soft", record["recorded"])
+        return True
     code, out = c.report({
         "schema_version": 1,
         "request_id": request["request_id"],
@@ -193,15 +204,30 @@ def adopt(c: h.Controller, request: dict[str, Any]) -> bool:
     return True
 
 
+def restore_cut_off_step(repo: Path) -> bool:
+    """The owner's second exit for a step the run never recorded: both refs back, step rebuilt."""
+    store = _run_store(repo)
+    assert store is not None
+    record = json.loads((store / "product-ref").read_text("utf-8"))
+    if {_rev(repo, record["name"]), _rev(repo, "HEAD")} == {record["recorded"]}:
+        return False
+    h.git(repo, "update-ref", "--no-deref", record["name"], record["recorded"])
+    h.git(repo, "reset", "-q", "--soft", record["recorded"])
+    return True
+
+
 def resumed_parity(repo: Path, *, allow_diverged: bool) -> None:
     """After a resumption the supervisor's repair has run: the three manifests agree.
 
-    Only the adoption scenario may still hold history the owner has yet to adopt.
+    The exception is a kill between a step's transaction and its recording: the ref or
+    ``HEAD`` names a commit the run never recorded, which is the owner's decision, not a
+    state to repair. The adoption scenario may also still hold history awaiting adoption.
     """
     store = _run_store(repo)
     assert store is not None
-    name = json.loads((store / "product-ref").read_text("utf-8"))["name"]
-    if allow_diverged and _rev(repo, name) != _rev(repo, "HEAD"):
+    record = json.loads((store / "product-ref").read_text("utf-8"))
+    ref, head = _rev(repo, record["name"]), _rev(repo, "HEAD")
+    if ref != record["recorded"] or (allow_diverged and head != ref):
         return
     assert_three_way_parity(repo)
 
@@ -230,10 +256,28 @@ def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
             h.run_cli = checked
             try:
                 code, started = h.start(repo)
+                if code == 1 and started["refusal"]["code"] in (
+                    "history-adoption-required", "attempt-residue"
+                ):
+                    # A step killed after its refs moved: the owner restores both refs.
+                    assert restore_cut_off_step(repo), started
+                    code, started = h.start(repo)
+                elif code == 1 and started["refusal"]["code"] == "product-ref-diverged":
+                    # An adoption killed after its refs moved: only the product ref goes back;
+                    # HEAD's history awaits the owner's decision again.
+                    store = _run_store(repo)
+                    assert store is not None
+                    rec = json.loads((store / "product-ref").read_text("utf-8"))
+                    h.git(repo, "update-ref", "--no-deref", rec["name"], rec["recorded"])
+                    code, started = h.start(repo)
                 assert code == 0, started
                 if crashes and (_run_store(repo) or Path()).joinpath("product-ref").exists():
                     resumed_parity(repo, allow_diverged=adopting)
                 end = controller.drive()
+                # A step killed with an attempt open ends in residue: restore both refs.
+                while (end.get("refusal", {}).get("code") == "attempt-residue"
+                       and restore_cut_off_step(repo)):
+                    end = controller.drive()
                 log.extend(controller.log)
                 break
             except h.Crash:
@@ -352,7 +396,7 @@ def _collapse_adoption(decisions: list[str]) -> list[str]:
 
 
 def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool = True,
-                     adopted: int = 0) -> None:
+                     adopted: int = 0, cut_off: int = 0) -> None:
     assert run["end"] == "terminal"
     ref = run["product_ref"]
     assert ref["commit"] == ref["head"] and ref["tree"] == ref["head_tree"]
@@ -372,8 +416,13 @@ def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool =
         # fingerprint; the records must otherwise be the same.
         assert _unfingerprinted(run["delivery"]) == _unfingerprinted(base["delivery"])
     assert run["effects"] == base["effects"] == {next(iter(base["effects"])): 1}
+    # A step killed after its refs moved and before its recording is the owner's decision,
+    # answered by restoring both refs; it is the only extra decision a kill may leave.
     asked = _collapse_adoption(run["decisions"]) if adopted else run["decisions"]
-    assert asked == base["decisions"] + ["history-adoption"] * adopted
+    expected = base["decisions"] + ["history-adoption"] * adopted
+    if cut_off and asked == expected + ["history-adoption"]:
+        expected = asked  # with no attempt open the cut-off step is a decision
+    assert asked == expected
     assert run["events_ok"]
     assert run["working_matches_head"]
     assert run["retry_count"] == base["retry_count"] == 1
@@ -404,7 +453,9 @@ def test_uninterrupted_run_reaches_terminal(baseline: dict[str, Any]) -> None:
 def test_kill_variant_converges(baseline: dict[str, Any], tmp_path: Path, point: int) -> None:
     run = run_variant(tmp_path, kill_at=point)
     assert run["crashes"] == 1
-    assert_converged(baseline, run)
+    first_move = baseline["seen"].index("refs-moved") + 1  # the approval: nothing to decide
+    cut_off = int(run["seen"][point - 1] == "refs-moved" and point != first_move)
+    assert_converged(baseline, run, cut_off=cut_off)
 
 
 @pytest.mark.parametrize("point", range(1, BOUNDARIES + 1))
@@ -519,7 +570,7 @@ SCENARIOS = {"lag-repair": (_reset_two_back, 0), "adoption": (_rebase_between, 1
 # The kill points each scenario's own writes pass through.
 SCENARIO_POINTS = {
     "lag-repair": {"projection-updated", "repaired"},
-    "adoption": {"commit-built", "pending-recorded", "refs-moved", "made-recorded", "synced"},
+    "adoption": {"commit-built", "refs-moved", "made-recorded", "synced"},
 }
 WINDOW = 12
 

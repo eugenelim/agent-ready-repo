@@ -59,8 +59,8 @@ point, so extending it to the new writes is the main proof.
 **Integration tests:**
 
 - **VI-0501 (AC-0007, AC-0017):** the crash corpus in
-  `test_supervisor_crash_corpus.py` adds kill points for the pending record
-  and each recovery write, records the product ref commit and tree in its
+  `test_supervisor_crash_corpus.py` adds a kill point after each step's made
+  recording and one for each recovery write, records the product ref commit and tree in its
   summary, and asserts `HEAD` stays on its branch; every variant converges,
   and after each step the working-tree, `HEAD`, and product-ref manifests are
   equal. T1 owns
@@ -95,11 +95,14 @@ Owned by: T1, T2.
   Rejected: a separate integration chain, which needs its own parentage and
   recovery.
 - **The run store is the ref's trust anchor.** The run store records the
-  product ref's name and its current value; before a step's transaction it
-  also records the pending commit. The product ref is trusted only while it
-  equals the recorded or pending value, which covers a missing, symbolic,
-  rolled-back, planted, or foreign-written ref with one rule (AC-0005) and
-  gives every refusal an exact restore command. The name is never read from a
+  product ref's name and its recorded value, which only the invocation that
+  moved the refs to a commit writes. The product ref is trusted only while it
+  equals the recorded value, which covers a missing, symbolic, rolled-back,
+  planted, or foreign-written ref with one rule (AC-0005) and gives every
+  refusal an exact restore command. No pending commit is ever trusted: a commit
+  counts as made only when the invocation that moved the refs records it, right
+  after its own transaction succeeds, so a ref or `HEAD` naming any other
+  commit is history the owner decides on (AC-0008). The name is never read from a
   commit message. Rejected: trusting any made commit, which admits a rollback
   to an older made commit.
 - **Exact source by compare-and-swap.** The transaction's expected old value
@@ -115,8 +118,11 @@ Owned by: T1, T2.
   both. Probed 2026-10-30 on Git 2.56: a global `--no-deref` detaches `HEAD`;
   the per-command `option no-deref` keeps `HEAD` on its branch and replaces,
   never follows, a symbolic product ref. `start`/`prepare`/`commit` exist since
-  Git 2.27. The files backend is not crash-atomic across refs, so AC-0008
-  completes a commit that moved one ref.
+  Git 2.27. The files backend is not crash-atomic across refs, and Git renames
+  them in refname order (probed 2026-10-31 on Git 2.56 with a
+  `reference-transaction` hook): the product ref first when `HEAD` is attached,
+  `HEAD` first when it is detached. Either half-move leaves a commit the run
+  never recorded, which AC-0008 sends to the owner instead of completing.
 - **Identity.** `start` draws a 16-hex token from `secrets`, records the name
   in the run store, and also writes it in a `Supervisor-Product-Ref` trailer
   on the approval commit for traceability only. The name is checked against
@@ -139,8 +145,9 @@ Owned by: T1, T2.
 Owned by: T1, T2.
 
 - Run store (under the Git directory, per worktree and run): `product-ref`
-  holding the ref name, the recorded commit, and the pending commit or none,
-  written through the confined mutation port.
+  holding the ref name and the recorded commit, written through the confined
+  mutation port. A commit counts as made when the made file lists it or it is
+  the recorded value; the record is written first and the made file second.
 - Product ref: `refs/agentbundle/delivery/<run-id>/<token>/product` → the
   latest supervisor commit of the run.
 - `approval` step: gains trailer `Supervisor-Product-Ref: <ref name>`.
@@ -188,9 +195,10 @@ applies:
 | No recorded product ref, no approval at `HEAD` | either | `start` records and creates it in the approval transaction |
 | No recorded product ref, approvals at `HEAD` | no | AC-0006: create at the anchor when `HEAD` is it or the anchor descends from `HEAD` through made commits only (then project forward), else `history-adoption`; checked again at every such verb |
 | No recorded product ref, approvals at `HEAD` | yes | no ref change; steps commit without one, and the next verb with no attempt open applies the row above |
-| Ref missing, symbolic, or not the recorded or pending value | no | `product-ref-diverged` (AC-0005) |
+| Ref missing, symbolic, or not the recorded value, and not an unrecorded step | no | `product-ref-diverged` (AC-0005) |
 | Same | yes | the attempt guard has already answered (AC-0015) |
-| One ref at the pending commit, the other at the commit before | either | complete the move (AC-0008) and clear pending |
+| The ref or `HEAD` names a commit never recorded whose parent is the recorded value | no | `history-adoption` naming it, with both exits (adopt, or restore both refs to the recorded value); every other verb but `status` refuses `history-adoption-required` (AC-0008) |
+| Same | yes | the attempt guard answers `attempt-residue` or `attempt-refused` (AC-0015) |
 | `HEAD` = ref | either | continue |
 | Ref descends from `HEAD` through made commits only | no | project forward (AC-0009, AC-0010) |
 | `HEAD` carries foreign history | no | `history-adoption` (AC-0011) |
@@ -198,9 +206,15 @@ applies:
 | Any other difference | no | `history-adoption` |
 
 A step then runs: build the commit object in the private index →
-`commit-built` → record pending → `pending-recorded` → transaction →
-`refs-moved` (renamed from `head-moved`) → record value, clear pending →
-`delivery/` working copies and index refresh → `synced`.
+`commit-built` → transaction → `refs-moved` (renamed from `head-moved`) →
+record the value in the run store, then append to the made file →
+`made-recorded` → `delivery/` working copies and index refresh → `synced`.
+Nothing is written to the run store before the transaction, so a refusal leaves
+nothing to clean up. The first admission records its approval commit before its
+move, because no earlier history exists for it to be confused with. A failed
+store write after the move leaves the refs on a commit the run did not record,
+which is the AC-0008 state, and the verb answers `denied-product-record` naming
+both exits (AC-0023).
 
 Forward projection (AC-0009) is `implementation-discovered` in its means. Its
 predicate: for each path the skipped commits change, compare the working-tree
@@ -215,7 +229,7 @@ adversarial review on Git 2.56). Kill points `projection-updated` and
 `git_state` reads this run's product ref by direct file reads, the loose ref
 under the common Git directory and its `packed-refs` line, as it reads
 `refs/replace` today, and digests the value; `control_check` compares that
-value with the run store's recorded and pending values rather than with the
+value with the run store's recorded value rather than with the
 issuance digest, so the supervisor's own move is accepted and any other value
 is refused. No Git call is made inside the check.
 
@@ -223,12 +237,15 @@ is refused. No Git call is made inside the check.
 
 Owned by: T1.
 
-- Crash before the transaction: the commit object is unreachable; the
-  pending record names it, neither ref does, so the next call clears pending
-  and rebuilds the same step.
-- Crash after the transaction and before the record: both refs at pending;
-  the next call records it and continues.
-- Partial transaction: the product ref at pending with `HEAD` behind completes (AC-0008); `HEAD` alone at pending is foreign history, because only the supervisor moves the product ref.
+- Crash before the transaction: the commit object is unreachable and nothing
+  was written, so the next call rebuilds the same step.
+- Crash after the transaction and before the record (or one ref moved, or
+  both): the ref or `HEAD` names a commit the run never recorded. No verb counts
+  it or moves a ref to it; `next` asks the owner (AC-0008), who adopts it or
+  restores both refs to the recorded value so the step is rebuilt, and with an
+  attempt open the guard answers `attempt-residue` until then (AC-0015).
+- Crash after the record and before the made append: the recorded value counts
+  as made, and the next call appends it.
 - Conflict: nothing moves; the attempt guard answers `attempt-residue` until
   the ref is restored, then clears and re-issues the request, and the
   worker's kept files are the re-issued attempt's result (AC-0004).
@@ -282,9 +299,9 @@ Owned by: T1.
   - **VI-0514 (AC-0008, AC-0009, AC-0010):** in `test_supervisor_product_ref.py`, `git reset --hard`, `--soft`, and
     `--mixed` two steps back each converge at the next `next` with the
     working tree equal to the ref's tree; a partial transaction that moved
-    only the product ref completes, with the attempt open and with it closed;
-    a crash before the transaction followed by a worker moving `HEAD` onto
-    the pending commit is foreign history, not completed; a reset plus
+    only the product ref, only `HEAD`, or both, each end in the AC-0008
+    decision (or `attempt-residue` with an attempt open) and never count or
+    move to the unrecorded commit, and restoring both refs rebuilds the step; a reset plus
     an edit to a file those steps changed refuses `projection-blocked` and
     leaves the edit's bytes and the index.
   - **VI-0516 (AC-0011, AC-0012, AC-0013, AC-0014):** in `test_supervisor_product_ref.py`, the existing rebase
@@ -305,11 +322,11 @@ Owned by: T1.
     inside it, are not refused; a second worktree's run advancing its own
     product ref during the attempt leaves it admissible.
   - **VI-0520 (AC-0023):** in `test_supervisor_product_ref.py`, an injected
-    failure of each run-store write on a refusal or settle path (the product
-    record reset, the pending clear, the made append) keeps the original
-    refusal code, then every verb but `status` refuses `denied-product-record`
-    until the store is repaired, and a product ref or `HEAD` forged to the
-    refused commit never lands or counts as made.
+    failure of the run-store write that records a step (the product record, or
+    both the record and the made append) after its refs moved leaves the AC-0008
+    state with `denied-product-record` naming both exits; a refusal writes
+    nothing to the store; with an attempt open, an unwritable store and a
+    product ref forged to the refused commit never land it or count it as made.
   - **VI-0518 (AC-0020):** `start` with `result_authority` absent, or set to
     `other`, refuses `invalid-policy` with owner `skill maintainer`.
   - **VI-0501 (AC-0007, AC-0017)** passes under `legacy-worktree`.
