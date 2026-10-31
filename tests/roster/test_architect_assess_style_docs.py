@@ -39,7 +39,7 @@ def test_token_file_records_the_report_view_rules() -> None:
         assert f"| {level} |" in section
     assert "none uses the ok, warn, bad, active or accent roles" in section
     assert "starts at 64rem" in _flat(TOKENS)
-    for glyph in ("\u2582", "\u2584", "\u2586"):
+    for glyph in ("\u25d4", "\u25d1", "\u25d5"):
         assert glyph in section
 
 

@@ -213,13 +213,13 @@ The architect report is a document view with tables, source blocks, provenance m
 | reported | ▮▯▯ | reported |
 | unknown | ▯▯▯ | unknown |
 
-**Heat ramp.** A heat cell always shows its word and a level glyph. The fill rises with heat, no cell has a border, and none uses the ok, warn, bad, active or accent roles, so heat does not read as severity or as a state. The glyph carries an empty alternative text and matches no evidence glyph or state glyph. The `high` fill equals the row rule colour, so the glyph and word carry the level there. `--c-text` keeps at least 4.5:1 on each fill in both themes. Unknown differs from low by its `?` glyph and italic word.
+**Heat ramp.** A heat cell always shows its word and a level glyph. The fill rises with heat, and none uses the ok, warn, bad, active or accent roles, so heat does not read as severity or as a state. The glyph carries an empty alternative text and matches no evidence glyph or state glyph. The `medium` and `high` cells take a one-pixel edge in the page colour on the right and bottom, so neighbouring filled cells stay apart and the row rule does not vanish into the `high` fill; the glyph and word still carry the level. `--c-text` keeps at least 4.5:1 on each fill in both themes. Unknown differs from low by its `?` glyph and italic word.
 
 | Level | Fill | Glyph |
 | --- | --- | --- |
-| low | `--c-bg` | ▂ |
-| medium | `--c-raised` | ▄ |
-| high | `--c-rule` | ▆ |
+| low | `--c-bg` | ◔ |
+| medium | `--c-raised` | ◑ |
+| high | `--c-rule` | ◕ |
 | unknown | `--c-bg`, italic text | ? |
 
 ## What may adapt
