@@ -28,7 +28,7 @@ Three independent strands, then the records and the release. The packet strand r
 - RFC-0106 § Errata: the draft cites the 2026-10-25 and 2026-10-30 entries and restates no decision.
 - ADR-0074: `closure_index.py` stays standard-library only.
 - `packs/AGENTS.md`: a pack-content change bumps `pack.toml` and `plugin.json` and updates the pack's eval harness; shipped pack content cites no internal record.
-- `tests/AGENTS.md` § Roster steps: a new roster test gets a named `build-check.yml` step above the bulk step, a `LOCAL("test-after-build-check")` entry in `tools/lint-ci-parity.py`'s `STEP_DISPOSITION`, and a `.workspace-prune-protected.toml` line for each `docs/specs/<slug>` literal it holds.
+- `tests/AGENTS.md` § Roster steps: a new roster test gets a named `build-check.yml` step above the bulk step, a `LOCAL("test-after-build-check")` entry in `tools/lint-ci-parity.py`'s `_LOCAL_STEP_DISPOSITION` and its step name in `_GATE_MAIN_CHECKS` (the two tables `STEP_DISPOSITION` is built from), and a `.workspace-prune-protected.toml` line for each `docs/specs/<slug>` literal it holds.
 - The inventory check runs on every pull request, so every file that holds a registry token gets its row in the task that adds it; this spec's directory row lands with the spec.
 - `close_work.py` is the only close-work file packaged under `packages/agentbundle/agentbundle/_data/`, so this change needs no `Engine-Change-RFC:` trailer.
 
@@ -41,12 +41,12 @@ Three independent strands, then the records and the release. The packet strand r
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Closure packet | T1 | `packs/core/tests/skills/close-work/` | AC-0001, AC-0002, AC-0003, AC-0004 checked |
+| Closure packet | T1 | `packs/core/tests/skills/close-work/`; the ledger's AST comparison | AC-0001, AC-0002, AC-0003, AC-0004, AC-0020 checked |
 | Closure-eligibility `Status:` line | T2 | the roster check | AC-0005 checked |
 | Upgrade notes draft | T4 | the roster check; ledger approval | AC-0012, AC-0013, AC-0014, AC-0015, AC-0016 checked |
 | Retirement evidence | T3, T5 | the inventory check; the roster check | AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0017 checked |
 | Brief | T5 | `lint-brief-coverage.py` | AC-0018 checked |
-| Verification record | T4, T5 | the ledger | AC-0016 checked |
+| Verification record | T1, T3, T4, T5 | the ledger | AC-0016, AC-0020 checked |
 | Release history | T6 | `tools/check-core-release.py`; the changelog checks | AC-0019 checked |
 
 ## Design (LLD)
@@ -105,7 +105,7 @@ Owned by: T2, T4, T5
 - **Verification mode:** TDD
 - **Touches:** `docs/specs/workspace-retirement/inventory.toml`, `docs/specs/workspace-retirement/spec.md`, `docs/specs/workspace-retirement/plan.md`, `tests/roster/test_workspace_retirement_inventory.py`, `docs/specs/pre-cutover-closure/notes/verification-ledger.md`
 - **Tests:** for AC-0007, AC-0008, AC-0009, AC-0010, AC-0011: a criterion-0029 fixture case (a row owned by `8`, reporting only criterion 0029) and its control (a row owned by `9`); `_BASE_ROWS`' readiness row and `test_ac0009_wrong_consumer_text`'s row moved to owner `9`, so `test_clean_base_fixture_passes` stays empty; `test_ac0003_owner_not_a_slice` unchanged; the check over this repository.
-- **Approach:** amend `workspace-retirement` first — criterion 0029 added, its Testing Strategy rule list (line 75) and its enforced-rules sentence (line 96) extended to name it, criteria 0018 and 0022 reopened, task T11 added, and the owner's re-approval written on its `Approved:` line with the ledger holding both files' SHA-256 — then the check and its fixtures, then the rows, so the check reds on the base inventory before the rows move.
+- **Approach:** amend `workspace-retirement` first — criterion 0029 added, its four lists of enforced rules extended to name it — the Testing Strategy list (line 75), the enforced-rules sentence (line 96), and the lists in its criteria 0022 (line 121) and 0018 (line 128) — criteria 0018 and 0022 un-checked, task T11 added, and the owner's re-approval written on its `Approved:` line with the ledger holding both files' SHA-256 — then the check and its fixtures, then the rows, so the check reds on the base inventory before the rows move.
 - **Done when:** the owner has approved the amendment and `tests/roster/test_workspace_retirement_inventory.py` passes.
 
 ### T4: The upgrade notes draft
