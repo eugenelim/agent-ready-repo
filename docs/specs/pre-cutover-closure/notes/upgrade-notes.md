@@ -7,7 +7,7 @@ kind: how-to
 
 # Upgrade from a workspace.toml registry
 
-You can move everything your `workspace.toml` registry still records onto the work items themselves, so no skill needs the registry again. This needs the `core` pack; install or upgrade it with `agentbundle upgrade --pack core`.
+You can move what your `workspace.toml` registry records about your work onto the work items themselves. This needs the `core` pack: install it with `agentbundle install --pack core`, or upgrade an installed one with `agentbundle upgrade --pack core`.
 
 ## Plan the repair
 
@@ -28,6 +28,8 @@ Apply the workspace repair plan.
 ```
 
 The agent runs `repair-apply --yes`. It moves each dependency edge onto the waiting item, each captured item into its own file, and each tracker profile into its artifact's record, then removes the intent, brief, spec and tracker entries the registry no longer needs. A manual item keeps its entry and names the reason; fix it by hand and plan again.
+
+After the repair, `workspace.toml` still holds two things a later `core` release moves: the entries of captured items, which now point at their own files, and the `[authorization.refresh]` and `[authorization.migration]` policy tables that refresh and migration read. Keep the file until then.
 
 ## Check what is not carried over
 
