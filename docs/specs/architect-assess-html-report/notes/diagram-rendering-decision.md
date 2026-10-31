@@ -1,4 +1,6 @@
-# Diagram rendering in the HTML report: open decision
+# Diagram rendering in the HTML report: decided (2026-10-31)
+
+**Chosen:** option 1, a pinned CDN with an integrity hash, as an opt-in `--diagrams` flag on `render_html.py`, using the `mermaid` version `docs-site` pins. The decision and its security posture are recorded in ADR-0153, and the build is specified in `docs/specs/architect-assess-html-diagrams/spec.md`. Drawing is opt-in; the default report stays offline. The notes below are the options as measured on 2026-10-30.
 
 The HTML renderer in this spec shows Mermaid fences as labeled source blocks and runs no script. Drawing them in the browser needs a Mermaid build, and the options below were measured on 2026-10-30.
 
