@@ -1,7 +1,7 @@
 # Plan: Supervisor config tracking keys
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0144 D11 sets the trust boundary; the
   `execution-supervisor-attempt-security` spec defines Git control state and the
   manifest.
@@ -375,4 +375,7 @@ happens after a downgrade with an attempt open.
 
 ## Changelog
 
-none
+<!-- Approvals only. -->
+
+- 2026-10-31: spec approved by eugenelim
+- 2026-10-31: plan approved by eugenelim
