@@ -1,0 +1,20 @@
+{
+ "case": "iterate-head-moved",
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 2 reports re-read head b2c3... differs from gathered a1b2...; turn 1 planned the re-read."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 2 states no files touched; edit, stage, commit, push all held."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Says approved plan no longer matches PR; re-gathers and will show updated plan."
+  }
+ ]
+}

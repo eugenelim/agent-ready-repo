@@ -1,0 +1,20 @@
+{
+ "case": "adopt-pending-required-check",
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 2 reads required checks, then reads once more after a short wait only if still pending."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 3 stops and reports that unit-tests is still pending after the second read."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 3 runs no commands: no merge, no retry, queue, auto-merge, or further polling."
+  }
+ ]
+}

@@ -1,0 +1,20 @@
+{
+ "case": "review-host-mismatch",
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "States origin URL host is git.example.invalid, not github.com."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Stops before using PR data and says skill supports github.com only."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Proposes no commands; explicitly holds all gh calls."
+  }
+ ]
+}

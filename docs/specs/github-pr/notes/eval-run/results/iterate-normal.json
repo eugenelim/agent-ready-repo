@@ -1,0 +1,30 @@
+{
+ "case": "iterate-normal",
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "R1-R3 have ids, classes, merit or needed read; push destination and R1 reply text given; no change made; asks for approval"
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 2 says head re-read matches recorded oid; promises another re-read before first change"
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 2 explicitly runs no edit, git add, commit, or push"
+  },
+  {
+   "n": 4,
+   "pass": true,
+   "why": "No commit or reply sent; offers to post R1 reply exactly as shown, nothing else"
+  },
+  {
+   "n": 5,
+   "pass": true,
+   "why": "Names https://github.com/example-org/example-repo.git HEAD:refs/heads/fix/pagination as the sole push target"
+  }
+ ]
+}

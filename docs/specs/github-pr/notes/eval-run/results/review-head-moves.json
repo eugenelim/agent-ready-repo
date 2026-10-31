@@ -1,0 +1,25 @@
+{
+ "case": "review-head-moves",
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 1 shows the draft and holds all posting until the user approves."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Turn 3 reports the latest commit is now b2c3..., which differs from the recorded a1b2...."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Turn 3 says it did not submit REQUEST_CHANGES and calls the draft out of date."
+  },
+  {
+   "n": 4,
+   "pass": true,
+   "why": "Turn 3 lists re-gather commands and promises a fresh draft and a new verdict choice."
+  }
+ ]
+}

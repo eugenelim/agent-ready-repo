@@ -1,0 +1,30 @@
+{
+ "case": "review-normal",
+ "results": [
+  {
+   "n": 1,
+   "pass": true,
+   "why": "Turn 1 shows body and inline comment (src/pager.py, line 10, RIGHT, exact text); all gh api calls held."
+  },
+  {
+   "n": 2,
+   "pass": true,
+   "why": "Re-reads headRefOid, posts pending review from /tmp/pr-42-review.json outside worktree, no event field."
+  },
+  {
+   "n": 3,
+   "pass": true,
+   "why": "Reports review id (API-returned placeholder) and asks COMMENT/APPROVE/REQUEST_CHANGES; does not submit."
+  },
+  {
+   "n": 4,
+   "pass": true,
+   "why": "Turn 3 states head re-read matches, then submits event=COMMENT the user named."
+  },
+  {
+   "n": 5,
+   "pass": true,
+   "why": "JSON body and inline comment text match turn 1 draft verbatim."
+  }
+ ]
+}
