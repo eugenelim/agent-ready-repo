@@ -223,16 +223,7 @@ class GitPort:
 
     def made_commits(self, run_id: str) -> set[str]:
         """Ids of the commits this run's supervisor built, from the store in the Git directory."""
-        path = self._store_dir(run_id) / "made-commits"
-        if not os.path.lexists(path):
-            return set()
-        fs = sibling("_file_safety.py")
-        try:
-            data = fs.read_confined_regular_file(path.parent, path, max_bytes=_MAX_MADE_BYTES)
-        except fs.UnsafeContentError as exc:
-            raise SupervisorGitError("denied-unsafe-path", f"made-commits: {exc}") from exc
-        words = bytes(data).decode("ascii", "replace").split()
-        return {w for w in words if _COMMIT_ID_RE.fullmatch(w)}
+        return set(self.made_list(run_id))
 
     def made_list(self, run_id: str) -> list[str]:
         """The run's made commits in the order they were built."""
@@ -308,11 +299,12 @@ class GitPort:
         )
 
     def read_ref(self, name: str) -> tuple[str, str]:
-        """A product ref by direct file reads.
+        """A product ref by direct file reads, never echoing what the file holds.
 
-        Returns ``("commit", id)``, ``("symbolic", target)``, or ``("missing", "")``.
-
-        A loose ref wins over ``packed-refs``, as in Git. No Git process runs.
+        Returns ``("commit", id)``, or a fixed kind label with an empty value:
+        ``symbolic``, ``malformed`` (including a duplicated packed entry), or
+        ``missing``. A loose ref wins over ``packed-refs``, as in Git. No Git
+        process runs.
         """
         if not PRODUCT_REF_RE.fullmatch(name):
             raise SupervisorGitError("denied-product-record", "not a product ref name")
@@ -325,16 +317,15 @@ class GitPort:
             info = None
         if info is not None:
             if not stat.S_ISREG(info.st_mode):
-                return "symbolic", "not-a-regular-file"
+                return "malformed", ""
             try:
                 text = bytes(fs.read_confined_regular_file(common, path, max_bytes=4096))
             except (fs.UnsafeContentError, OSError):
-                return "symbolic", "unreadable"
+                return "malformed", ""
             body = text.decode("utf-8", "replace").strip()
             if _COMMIT_ID_RE.fullmatch(body):
                 return "commit", body
-            link = _SYMREF_RE.fullmatch(body)
-            return "symbolic", link.group(1) if link else "unreadable"
+            return ("symbolic", "") if _SYMREF_RE.fullmatch(body) else ("malformed", "")
         packed = common / "packed-refs"
         if os.path.lexists(packed):
             try:
@@ -345,11 +336,65 @@ class GitPort:
                 raise SupervisorGitError(
                     "denied-git-control-state", "packed-refs cannot be read", unverifiable=True
                 ) from exc
-            for line in data.decode("utf-8", "replace").splitlines():
-                sha, _, found = line.partition(" ")
-                if found == name and _COMMIT_ID_RE.fullmatch(sha):
-                    return "commit", sha
+            # Split as Git does, on newlines only; any other framing or a repeated
+            # entry for this name is a state Git might read differently.
+            found_ids = []
+            for line in data.split(b"\n"):
+                sha, _, found = line.decode("utf-8", "replace").partition(" ")
+                if found == name:
+                    found_ids.append(sha)
+            if len(found_ids) > 1 or (found_ids and not _COMMIT_ID_RE.fullmatch(found_ids[0])):
+                return "malformed", ""
+            if found_ids:
+                return "commit", found_ids[0]
         return "missing", ""
+
+    def product_ref_view(self, record: ProductRecord) -> tuple[str, str, bool]:
+        """The record's ref as ``(kind, value, trusted)``: the one rule for what is trusted.
+
+        The ref is trusted at its recorded or pending value; while the approval step
+        that creates it is in flight, a missing ref with a pending value is trusted too.
+        """
+        kind, value = self.read_ref(record.name)
+        trusted = (kind == "commit" and value in (record.recorded, record.pending)) or (
+            kind == "missing" and record.recorded is None and record.pending is not None
+        )
+        return kind, value, trusted
+
+    @staticmethod
+    def restore_command(name: str, kind: str, value: str | None) -> str:
+        """The command that puts a product ref back to *value* (or removes it when it has none).
+
+        A symbolic or malformed ref is deleted without following it first, so the ref
+        is replaced, never written through.
+        """
+        if not value:
+            return f"git update-ref --no-deref -d {name}"
+        if kind in ("symbolic", "malformed"):
+            return f"git update-ref --no-deref -d {name} && git update-ref {name} {value}"
+        return f"git update-ref {name} {value}"
+
+    def create_ref(self, name: str, commit: str) -> None:
+        """Create the product ref at *commit*, replacing and never following a symbolic ref."""
+        self.run("update-ref", "--no-deref", "-m", "work-supervisor: create product ref",
+                 name, commit, "0" * len(commit))
+
+    def move_ref(self, name: str, new: str, old: str) -> None:
+        """Move the product ref from *old* to *new* by compare-and-swap, without following it."""
+        self.run(
+            "update-ref", "--no-deref", "-m", "work-supervisor: complete step", name, new, old
+        )
+
+    def move_head(self, new: str, old: str, message: str) -> None:
+        """Move ``HEAD`` (through the branch it names) from *old* to *new* by compare-and-swap."""
+        try:
+            self.run("update-ref", "-m", message, "HEAD", new, old)
+        finally:
+            self._head = None
+
+    def object_id(self, path: str, rev: str) -> str | None:
+        """The object id of *path* at *rev*, or ``None`` when it is absent there."""
+        return self._tree(rev).get(path)
 
     def is_ancestor(self, older: str, newer: str) -> bool:
         """Whether commit *older* is *newer* or reachable from it."""
@@ -705,7 +750,7 @@ class GitPort:
         record = self.product_record(run_id)
         try:
             if create_ref is None and record is None:
-                self.run("update-ref", "-m", f"work-supervisor: {step}", "HEAD", new, old)
+                self.move_head(new, old, f"work-supervisor: {step}")
                 return
             if create_ref is not None:
                 name, expected = create_ref, None
@@ -741,12 +786,14 @@ class GitPort:
         kind, value = self.read_ref(name)
         if (kind, value) == (("commit", expected) if expected else ("missing", "")):
             return
+        now = f"commit {value}" if kind == "commit" else kind
+        was = f"commit {expected}" if expected else "absent"
         raise supervisor_module("_supervisor_admission.py").Refusal(
             "integration-conflict",
             "controller",
-            f"{name} moved to {f'{kind} {value}'.strip()} while the result was being "
-            f"committed; its source commit was {expected}. Nothing was committed; "
-            f"restore it to {expected}",
+            f"{name} is {now} but the result was issued against it at {was}. Nothing was "
+            f"committed and your files are kept; restore it with: "
+            f"{self.restore_command(name, kind, expected)}",
         ) from exc
 
     def _settle_record(self, run_id: str, new: str) -> None:

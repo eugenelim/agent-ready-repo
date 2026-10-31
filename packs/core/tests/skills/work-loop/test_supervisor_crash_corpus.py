@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import collections
 import importlib.util
-import itertools
 import json
+import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -61,12 +61,44 @@ STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "
 BOUNDARIES = 78
 
 
-def _run_store(repo: Path) -> Path:
-    """The run's store directory, never a leftover temporary one."""
-    runs = [p for p in (repo / ".git" / "agentbundle-supervisor").iterdir()
-            if p.name.startswith("run-")]
-    assert len(runs) == 1
-    return runs[0]
+def _run_store(repo: Path) -> Path | None:
+    """The run's store directory (never a leftover temporary one), or None before it exists."""
+    base = repo / ".git" / "agentbundle-supervisor"
+    runs = [p for p in base.iterdir() if p.name.startswith("run-")] if base.exists() else []
+    assert len(runs) <= 1
+    return runs[0] if runs else None
+
+
+def _rev(repo: Path, name: str) -> str:
+    done = subprocess.run(["git", "rev-parse", "--verify", "-q", name], cwd=repo,
+                          capture_output=True, text=True, check=False)
+    return done.stdout.strip()
+
+
+def _manifest(repo: Path, revision: str) -> dict[str, str]:
+    pairs = {}
+    for line in h.git(repo, "ls-tree", "-r", revision).splitlines():
+        meta, path = line.split("\t", 1)
+        pairs[path] = meta.split()[2]
+    return {p: o for p, o in pairs.items() if not p.startswith(h.SPEC_DIR + "/")}
+
+
+def assert_three_way_parity(repo: Path) -> None:
+    """The working tree's tracked files, the HEAD subject, and the product-ref subject agree."""
+    store = _run_store(repo)
+    assert store is not None
+    name = json.loads((store / "product-ref").read_text("utf-8"))["name"]
+    working = {
+        p: h.git(repo, "hash-object", p).strip()
+        for p in h.git(repo, "ls-files").splitlines()
+        if not p.startswith(h.SPEC_DIR + "/") and (repo / p).exists()
+    }
+    assert _rev(repo, name) == _rev(repo, "HEAD")
+    assert _manifest(repo, "HEAD") == _manifest(repo, name) == working
+
+
+# The recorder of each repository under test, so a diversion can read where it struck.
+_RECORDERS: dict[Path, Recorder] = {}
 
 
 class Recorder:
@@ -77,20 +109,29 @@ class Recorder:
         self.seen: list[str] = []
         self.staged_after_sync: list[list[str]] = []
 
-    def check_product_ref(self) -> None:
-        """After a step: ``HEAD`` stays on its branch and both refs carry the same tree."""
+    def check_product_ref(self, name: str) -> None:
+        """At every kill point the ref names the commit before or after the write in flight."""
         store = _run_store(self.repo)
+        if store is None or not (store / "product-ref").exists():
+            return
         record = json.loads((store / "product-ref").read_text("utf-8"))
-        head = h.git(self.repo, "rev-parse", "HEAD").strip()
-        assert h.git(self.repo, "symbolic-ref", "HEAD").strip() == "refs/heads/main"
-        assert h.git(self.repo, "rev-parse", record["name"]).strip() == head
-        assert record["recorded"] == head and record["pending"] is None
+        value = _rev(self.repo, record["name"])
+        trusted = {record["recorded"], record["pending"]} - {None}
+        assert value in trusted or (value == "" and record["recorded"] is None), (name, record)
+        if name == "pending-recorded":
+            assert value != record["pending"], "the ref moved before the transaction"
+        if name == "refs-moved":
+            assert value == record["pending"], "the transaction did not move the ref"
+        if name == "synced":
+            head = _rev(self.repo, "HEAD")
+            assert h.git(self.repo, "symbolic-ref", "HEAD").strip() == "refs/heads/main"
+            assert value == head and record["recorded"] == head and record["pending"] is None
 
     def __call__(self, name: str) -> None:
         self.seen.append(name)
         n = len(self.seen)
+        self.check_product_ref(name)
         if name == "synced":
-            self.check_product_ref()
             staged = h.git(self.repo, "diff", "--cached", "--name-only").split()
             if staged:
                 self.staged_after_sync.append(staged)
@@ -133,10 +174,24 @@ def adopt(c: h.Controller, request: dict[str, Any]) -> bool:
     return True
 
 
+def resumed_parity(repo: Path, *, allow_diverged: bool) -> None:
+    """After a resumption the supervisor's repair has run: the three manifests agree.
+
+    A diversion scenario may still hold history the owner has yet to adopt.
+    """
+    store = _run_store(repo)
+    assert store is not None
+    name = json.loads((store / "product-ref").read_text("utf-8"))["name"]
+    if allow_diverged and _rev(repo, name) != _rev(repo, "HEAD"):
+        return
+    assert_three_way_parity(repo)
+
+
 def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
                 between: Callable[..., None] | None = None) -> dict[str, Any]:
     repo = h.make_repo(tmp)
     recorder = Recorder(repo, kill_at=kill_at, delete_at=delete_at)
+    _RECORDERS[repo] = recorder
     h.commit_module.set_kill_hook(recorder)
     problems: list[str] = []
     log: list[dict[str, Any]] = []
@@ -156,6 +211,8 @@ def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
             try:
                 code, started = h.start(repo)
                 assert code == 0, started
+                if crashes and (_run_store(repo) or Path()).joinpath("product-ref").exists():
+                    resumed_parity(repo, allow_diverged=between is not None)
                 end = controller.drive()
                 log.extend(controller.log)
                 break
@@ -267,6 +324,12 @@ def summarize(repo: Path, effect_log: Path, end: dict[str, Any], log: list[dict[
     }
 
 
+def _collapse_adoption(decisions: list[str]) -> list[str]:
+    """A kill during adoption re-issues that one decision after the restart: only it may repeat."""
+    return [d for i, d in enumerate(decisions)
+            if not (d == "history-adoption" and i and decisions[i - 1] == d)]
+
+
 def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool = True,
                      adopted: int = 0) -> None:
     assert run["end"] == "terminal"
@@ -288,8 +351,7 @@ def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool =
         # fingerprint; the records must otherwise be the same.
         assert _unfingerprinted(run["delivery"]) == _unfingerprinted(base["delivery"])
     assert run["effects"] == base["effects"] == {next(iter(base["effects"])): 1}
-    # A kill during adoption re-issues the same decision once after the restart.
-    asked = [reason for reason, _ in itertools.groupby(run["decisions"])]
+    asked = _collapse_adoption(run["decisions"]) if adopted else run["decisions"]
     assert asked == base["decisions"] + ["history-adoption"] * adopted
     assert run["events_ok"]
     assert run["working_matches_head"]
@@ -404,15 +466,15 @@ def test_rebase_preserving_messages_converges(baseline: dict[str, Any], tmp_path
     assert_converged(baseline, run, trees=False, adopted=1)
 
 
-def _reset_two_back(c: h.Controller, request: dict[str, Any], phase: str, done: list[int],
-                    recorder_box: list[Recorder]) -> None:
+def _reset_two_back(c: h.Controller, request: dict[str, Any], phase: str,
+                    done: list[int]) -> None:
     if phase == "reported" and _first("implement-task", "Calculator")(request) and not done:
         h.git(c.repo, "reset", "-q", "--hard", "HEAD~2")
-        done.append(len(recorder_box[0].seen) if recorder_box else 0)
+        done.append(len(_RECORDERS[c.repo].seen))
 
 
-def _rebase_between(c: h.Controller, request: dict[str, Any], phase: str, done: list[int],
-                    recorder_box: list[Recorder]) -> None:
+def _rebase_between(c: h.Controller, request: dict[str, Any], phase: str,
+                    done: list[int]) -> None:
     if phase == "reported" and _first("implement-task", "Calculator")(request) and not done:
         root = h.git(c.repo, "rev-list", "--max-parents=0", "HEAD").strip()
         h.git(c.repo, "checkout", "-q", "-b", "upstream", root)
@@ -421,30 +483,25 @@ def _rebase_between(c: h.Controller, request: dict[str, Any], phase: str, done: 
         h.git(c.repo, "commit", "-q", "-m", "unrelated upstream change")
         h.git(c.repo, "checkout", "-q", "main")
         h.git(c.repo, "rebase", "-q", "upstream")
-        done.append(len(recorder_box[0].seen) if recorder_box else 0)
+        done.append(len(_RECORDERS[c.repo].seen))
 
 
 SCENARIOS = {"lag-repair": (_reset_two_back, 0), "adoption": (_rebase_between, 1)}
+# The kill points each scenario's own writes pass through.
+SCENARIO_POINTS = {
+    "lag-repair": {"projection-updated", "repaired"},
+    "adoption": {"commit-built", "pending-recorded", "refs-moved", "synced"},
+}
+WINDOW = 12
 
 
 def _scenario(tmp: Path, name: str, *, kill_at: int = 0) -> tuple[dict[str, Any], int]:
     """Run the full synthetic run with a diversion in the middle; return it and where it struck."""
     divert, _adopted = SCENARIOS[name]
     done: list[int] = []
-    box: list[Recorder] = []
-    original = Recorder.__init__
-
-    def remember(self: Recorder, *a: Any, **kw: Any) -> None:
-        original(self, *a, **kw)
-        box.append(self)
-
-    Recorder.__init__ = remember  # type: ignore[method-assign]
-    try:
-        run = run_variant(tmp, kill_at=kill_at,
-                          between=lambda c, r, p: divert(c, r, p, done, box))
-    finally:
-        Recorder.__init__ = original  # type: ignore[method-assign]
-    return run, (done[0] if done else 0)
+    run = run_variant(tmp, kill_at=kill_at, between=lambda c, r, p: divert(c, r, p, done))
+    assert done, "the diversion never struck"
+    return run, done[0]
 
 
 @pytest.fixture(scope="module", params=sorted(SCENARIOS))
@@ -457,17 +514,21 @@ def diverted(request: pytest.FixtureRequest,
 def test_a_reset_or_a_rebase_converges_uninterrupted(baseline: dict[str, Any],
                                                      diverted: tuple[str, dict[str, Any], int]
                                                      ) -> None:
-    name, run, _at = diverted
+    name, run, at = diverted
     adopted = SCENARIOS[name][1]
     assert_converged(baseline, run, trees=name == "lag-repair", adopted=adopted)
+    # The window the kill tests walk covers every write the repair or adoption makes.
+    struck = set(run["seen"][at:at + WINDOW])
+    assert SCENARIO_POINTS[name] <= struck, (name, sorted(struck))
 
 
-@pytest.mark.parametrize("offset", range(1, 13))
+@pytest.mark.parametrize("offset", range(1, WINDOW + 1))
 def test_every_write_of_lag_repair_and_adoption_converges(
     baseline: dict[str, Any], diverted: tuple[str, dict[str, Any], int], tmp_path: Path,
     offset: int,
 ) -> None:
-    name, _run, at = diverted
+    name, base_run, at = diverted
     run, _ = _scenario(tmp_path, name, kill_at=at + offset)
     assert run["crashes"] == 1
+    assert run["seen"][at + offset - 1] == base_run["seen"][at + offset - 1], "struck elsewhere"
     assert_converged(baseline, run, trees=name == "lag-repair", adopted=SCENARIOS[name][1])

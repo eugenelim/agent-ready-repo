@@ -10,6 +10,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Callable
@@ -225,8 +226,6 @@ def test_two_worktrees_and_a_readmission_name_different_refs(tmp_path: Path) -> 
     assert first.split("/")[3] == second.split("/")[3]  # one spec and commit, one run id
     # A run re-admitted after its store is retired draws a fresh name.
     h.git(repo, "reset", "-q", "--hard", "HEAD~1")
-    import shutil
-
     shutil.rmtree(Path(h.git(repo, "rev-parse", "--absolute-git-dir").strip())
                   / "agentbundle-supervisor")
     assert h.start(repo)[0] == 0
@@ -280,6 +279,22 @@ def test_a_moved_product_ref_refuses_with_integration_conflict(tmp_path: Path) -
 # ── VI-0513: AC-0005, AC-0006, AC-0022 ──────────────────────────────────────
 
 
+def _hostile(repo: Path, name: str) -> None:
+    """A loose ref holding text a worker chose, which a refusal must never echo."""
+    ref = Path(h.git(repo, "rev-parse", "--git-common-dir").strip())
+    ref = (repo / ref if not ref.is_absolute() else ref).joinpath(*name.split("/"))
+    ref.write_text("ref: refs/heads/evil\x1b[31mred\n", "utf-8")
+
+
+def _duplicate_packed(repo: Path, name: str) -> None:
+    h.git(repo, "pack-refs", "--all", "--prune")
+    packed = repo / ".git" / "packed-refs"
+    lines = packed.read_text("utf-8").splitlines()
+    at = next(i for i, x in enumerate(lines) if x.endswith(name))
+    lines.insert(at, lines[at])  # adjacent, so the file stays sorted for Git
+    packed.write_text("\n".join(lines) + "\n", "utf-8")
+
+
 def _diverge_cases(repo: Path, name: str, older: str) -> dict[str, Callable[[], None]]:
     tree = h.git(repo, "rev-parse", "HEAD^{tree}").strip()
     return {
@@ -290,13 +305,80 @@ def _diverge_cases(repo: Path, name: str, older: str) -> dict[str, Callable[[], 
             repo, "update-ref", name,
             h.git(repo, "commit-tree", tree, "-m",
                   f"forged\n\nSupervisor-Run: x\nSupervisor-Product-Ref: {name}").strip()),
+        "hostile": lambda: _hostile(repo, name),
+        "duplicate-packed": lambda: _duplicate_packed(repo, name),
     }
 
 
-@pytest.mark.parametrize("case", ["deleted", "symbolic", "rolled-back", "planted"])
-def test_an_untrusted_product_ref_refuses_every_verb_until_restored(
-    tmp_path: Path, case: str
-) -> None:
+def restore(repo: Path, name: str, value: str) -> None:
+    """What the refusal tells the controller to run, for any kind of damage."""
+    h.git(repo, "update-ref", "--no-deref", "-d", name)
+    h.git(repo, "update-ref", name, value)
+
+
+def run_json(repo: Path) -> dict[str, Any]:
+    return json.loads(  # type: ignore[no-any-return]
+        (repo / h.SPEC_DIR / ".supervisor" / "run.json").read_text("utf-8"))
+
+
+def assert_refused_shape(repo: Path, code: str) -> None:
+    """``run.json`` and ``status`` both show the refusal, as the corpus checks it."""
+    run = run_json(repo)
+    assert run["stage"] == "awaiting-human" and run["active"] is True
+    assert run["refusal"]["code"] == code
+    status_code, status = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    assert status_code == 0
+    assert status["refusal"]["code"] == code and status["terminal"] is False
+    assert status["run"]["stage"] == "awaiting-human"
+
+
+@pytest.fixture(scope="module")
+def effect_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A run with no attempt open and an external-effect request issued, kept in a file."""
+    base = tmp_path_factory.mktemp("effect")
+    repo = started(base)
+    ctl = controller(repo, base)
+    for _ in range(40):
+        request = next_ok(repo)["request"]
+        if request["kind"] == "external-effect":
+            (base / "effect-request.json").write_text(json.dumps(request), "utf-8")
+            return base
+        code, admitted = ctl.report(ctl.work(request))
+        assert code == 0, admitted
+        follow = admitted.get("admitted")
+        if isinstance(follow, dict) and "request" in follow:
+            (base / "effect-request.json").write_text(json.dumps(follow["request"]), "utf-8")
+            return base
+    raise AssertionError("no effect request")
+
+
+def effect_copy(template: Path, tmp_path: Path) -> Path:
+    shutil.copytree(template / "repo", tmp_path / "repo", symlinks=True)
+    shutil.copyfile(template / "effect-request.json", tmp_path / "effect-request.json")
+    return tmp_path / "repo"
+
+
+def effect_verbs(repo: Path, tmp_path: Path) -> dict[str, Callable[[], tuple[int, dict[str, Any]]]]:
+    """Every committing verb but ``next``, each with a well-formed argument for this run."""
+    ctl = controller(repo, tmp_path)
+    request = json.loads((repo.parent / "effect-request.json").read_text("utf-8"))
+    result = tmp_path / "result.json"
+    result.write_text(json.dumps(ctl.dispatch(request)), "utf-8")
+    key = request["effect"]["operation_key"]
+    return {
+        "start": lambda: h.start(repo),
+        "report": lambda: h.run_cli(repo, "report", h.SPEC_DIR, str(result)),
+        "resolve-effect": lambda: h.run_cli(
+            repo, "resolve-effect", h.SPEC_DIR, "--operation", key, "--decision",
+            "effect-confirmed", "--authority-ref", "effect-authority:0123456789ab"),
+    }
+
+
+ALL_CASES = ["deleted", "symbolic", "rolled-back", "planted", "hostile", "duplicate-packed"]
+
+
+@pytest.mark.parametrize("case", ALL_CASES)
+def test_an_untrusted_product_ref_refuses_next_until_restored(tmp_path: Path, case: str) -> None:
     repo = started(tmp_path)
     ctl = controller(repo, tmp_path)
     older = rev(repo, "HEAD")
@@ -309,13 +391,95 @@ def test_an_untrusted_product_ref_refuses_every_verb_until_restored(
     refusal = next_refusal(repo)
     assert refusal["code"] == "product-ref-diverged" and refusal["owner"] == "controller"
     assert name in refusal["detail"] and recorded in refusal["detail"]
+    assert "git update-ref" in refusal["detail"] and "None" not in refusal["detail"]
+    assert "evil" not in refusal["detail"] and "\x1b" not in refusal["detail"]
+    assert rev(repo, name) == seen and rev(repo, "HEAD") == head
+    denied = [e for e in security_lines(repo)[before:] if e["reason_code"] == "product-ref-diverged"]
+    assert denied and denied[0]["event_type"] == "supervisor-product-ref-check"
+    assert_refused_shape(repo, "product-ref-diverged")
+    restore(repo, name, recorded)
+    assert "request" in next_ok(repo)
+
+
+@pytest.mark.parametrize("verb", ["start", "report", "resolve-effect"])
+@pytest.mark.parametrize("case", ["deleted", "symbolic", "rolled-back", "planted"])
+def test_an_untrusted_product_ref_refuses_the_other_verbs(
+    effect_template: Path, tmp_path: Path, case: str, verb: str
+) -> None:
+    repo = effect_copy(effect_template, tmp_path)
+    name, recorded = ref_name(repo), record(repo)["recorded"]
+    older = h.git(repo, "rev-list", "--max-parents=0", "HEAD").strip()
+    calls = effect_verbs(repo, tmp_path)
+    _diverge_cases(repo, name, older)[case]()
+    seen, head = rev(repo, name), rev(repo, "HEAD")
+    before = len(security_lines(repo))
+    code, out = calls[verb]()
+    assert code == 1 and out["refusal"]["code"] == "product-ref-diverged", out
+    assert name in out["refusal"]["detail"] and recorded in out["refusal"]["detail"]
     assert rev(repo, name) == seen and rev(repo, "HEAD") == head
     assert any(e["reason_code"] == "product-ref-diverged" for e in security_lines(repo)[before:])
-    code, payload = h.run_cli(repo, "report", h.SPEC_DIR, str(tmp_path / "none.json"))
-    code, _ = h.run_cli(repo, "status", h.SPEC_DIR)
-    assert code == 0
-    h.git(repo, "update-ref", "--no-deref", name, recorded)
-    assert "request" in next_ok(repo)
+    status_code, status = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    assert status_code == 0 and status["refusal"]["code"] == "product-ref-diverged"
+    restore(repo, name, recorded)
+    assert calls[verb]()[0] == 0
+
+
+@pytest.mark.parametrize("ref_less", [False, True])
+@pytest.mark.parametrize("verb", ["start", "report", "resolve-effect", "next"])
+def test_foreign_history_blocks_every_committing_verb(
+    effect_template: Path, tmp_path: Path, verb: str, ref_less: bool
+) -> None:
+    repo = effect_copy(effect_template, tmp_path)
+    calls = effect_verbs(repo, tmp_path)
+    if ref_less:
+        make_legacy(repo)
+    top = foreign_commit(repo)
+    made = (store_dir(repo) / "made-commits").read_text("utf-8")
+    if verb == "next":
+        request = next_ok(repo)["request"]
+        assert request["reason"] == "history-adoption"
+    elif verb == "start":
+        code, out = h.run_cli(
+            repo, "start", h.SPEC_DIR, "--intent", "code", "--code-trust", "untrusted",
+            "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab")
+        assert code == 1 and out["refusal"]["code"] == "history-adoption-required", out
+    else:
+        code, out = calls[verb]()
+        assert code == 1 and out["refusal"]["code"] == "history-adoption-required", out
+    assert rev(repo, "HEAD") == top
+    assert (store_dir(repo) / "made-commits").read_text("utf-8") == made
+    if ref_less:
+        assert not (store_dir(repo) / "product-ref").exists()
+    else:
+        assert rev(repo, ref_name(repo)) != top
+    status_code, _ = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    assert status_code == 0
+
+
+@pytest.mark.parametrize("verb", ["start", "report", "resolve-effect"])
+def test_a_run_with_no_ref_gains_one_at_every_verb(
+    effect_template: Path, tmp_path: Path, verb: str
+) -> None:
+    repo = effect_copy(effect_template, tmp_path)
+    calls = effect_verbs(repo, tmp_path)
+    make_legacy(repo)
+    code, out = calls[verb]()
+    assert code == 0, out
+    assert rev(repo, ref_name(repo)) == record(repo)["recorded"] == rev(repo, "HEAD")
+    assert_parity(repo)
+
+
+def test_a_step_committed_during_a_ref_less_attempt_creates_no_ref(tmp_path: Path) -> None:
+    repo = started(tmp_path)
+    ctl = controller(repo, tmp_path)
+    request = advance(repo, ctl, calc_implement, after=False)
+    make_legacy(repo)
+    code, admitted = ctl.report(ctl.work(request))
+    assert code == 0, admitted
+    assert not (store_dir(repo) / "product-ref").exists()
+    assert not git_ok(repo, "for-each-ref", "refs/agentbundle").stdout.strip()
+    assert "request" in next_ok(repo)  # the attempt is closed now: the next verb creates it
+    assert rev(repo, ref_name(repo)) == rev(repo, "HEAD")
 
 
 def test_a_run_with_no_ref_gains_one_at_its_latest_made_commit(tmp_path: Path) -> None:
@@ -386,16 +550,15 @@ def test_a_run_with_no_ref_whose_foreign_commit_is_reset_away_gains_its_ref(
     assert rev(repo, ref_name(repo)) == latest
 
 
-def test_reftable_repositories_are_refused(tmp_path: Path) -> None:
+def test_reftable_repositories_are_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     probe = subprocess.run(["git", "init", "-q", "--ref-format=reftable", str(tmp_path / "p")],
                            capture_output=True, check=False)
     if probe.returncode != 0:
         pytest.skip("this Git cannot create a reftable repository")
-    os.environ["GIT_DEFAULT_REF_FORMAT"] = "reftable"
-    try:
-        repo = h.make_repo(tmp_path / "r")
-    finally:
-        del os.environ["GIT_DEFAULT_REF_FORMAT"]
+    monkeypatch.setenv("GIT_DEFAULT_REF_FORMAT", "reftable")
+    repo = h.make_repo(tmp_path / "r")
     code, out = h.start(repo)
     assert code == 1 and out["refusal"]["code"] == "unsupported-ref-storage"
     assert out["refusal"]["owner"] == "owner"
@@ -456,6 +619,7 @@ def test_a_reset_plus_an_edit_is_blocked_and_leaves_the_edit(tmp_path: Path) -> 
     assert refusal["code"] == "projection-blocked" and refusal["owner"] == "controller"
     assert "calc.py" in refusal["detail"]
     assert (repo / "calc.py").read_text("utf-8") == "# mine\n"
+    assert_refused_shape(repo, "projection-blocked")
     assert h.git(repo, "ls-files", "-s") == index
     assert rev(repo, "HEAD") == head and rev(repo, ref_name(repo)) == latest
 
@@ -612,7 +776,11 @@ def test_the_ci_jobs_list_the_product_ref_suites() -> None:
     posix = _workflow("catalogue-tooling-ci-gates.yml")
     assert "test_supervisor_product_ref.py" in posix
     windows = _workflow("build-check-windows.yml")
+    job = windows.split("\n  supervisor-product-ref-windows:")[1].split("\n  build-check-windows:")[0]
     for suite in ("test_supervisor_product_ref.py", "test_supervisor_attempt.py",
                   "test_supervisor_pinning.py"):
-        assert suite in windows
-    assert "WORK_SUPERVISOR_INTEGRATION" in windows
+        assert suite in job
+    # The integration variable and the job's own time budget sit on the job that runs them.
+    assert 'WORK_SUPERVISOR_INTEGRATION: "1"' in job
+    assert "timeout-minutes:" in job
+    assert "supervisor-product-ref-windows" in windows.split("\n  build-check-windows:")[1]

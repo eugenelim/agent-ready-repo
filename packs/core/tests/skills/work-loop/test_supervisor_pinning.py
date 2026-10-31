@@ -357,6 +357,29 @@ def test_one_regenerate_is_emitted_admitted_and_repinned(
         assert code == 0 and out.get("terminal") is True, out
 
 
+def test_a_run_from_before_the_product_ref_gains_one_across_a_regenerate(
+    regenerating: Path, tmp_path: Path
+) -> None:
+    repo, skill, cli = _regen_copy(regenerating, tmp_path)
+    # The run is in the state an earlier Core leaves: no product ref, no record of one.
+    store = _pins(repo).parent
+    name = json.loads((store / "product-ref").read_text("utf-8"))["name"]
+    h.git(repo, "update-ref", "-d", name)
+    (store / "product-ref").unlink()
+    with _via(cli):
+        again = h.run_cli(repo, "next", SPEC)[1]["request"]
+        assert again["kind"] == "regenerate"
+        shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+        code, out = h.Controller(repo, tmp_path / "effects.log").report(_regenerate_result(again))
+        assert code == 0 and out == {"admitted": "regenerate"}, out
+        assert not (store / "product-ref").exists()  # the attempt was open until now
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 0, out
+    gained = json.loads((store / "product-ref").read_text("utf-8"))
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    assert gained["recorded"] == head == h.git(repo, "rev-parse", gained["name"]).strip()
+
+
 def _tracked_regenerate(tmp_path: Path) -> tuple[Path, Path, ModuleType, h.Controller, dict[str, Any]]:
     """A run at the issued ``regenerate`` request whose installed skill is tracked in the work tree."""
     repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)

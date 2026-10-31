@@ -331,17 +331,29 @@ class Attempts:
         check. The supervisor's own move is accepted because the store records the
         pending commit before the transaction and the new value after it.
         """
-        record = self.ws.git.product_record(run_id)
+        git = self.ws.git
+        record = git.product_record(run_id)
         if record is None:
             return []
-        kind, value = self.ws.git.read_ref(record.name)
-        trusted = {v for v in (record.recorded, record.pending) if v is not None}
-        if kind == "commit" and value in trusted:
+        kind, value, trusted = git.product_ref_view(record)
+        if trusted:
             return []
-        if kind == "missing" and record.recorded is None and record.pending is not None:
-            return []  # the approval step's creation has not landed yet
-        state = value if kind == "commit" else kind
-        return [f"{record.name} is {state}; restore it to {record.recorded}"]
+        shown = f"commit {value}" if kind == "commit" else kind
+        restore = git.restore_command(record.name, kind, record.recorded or record.pending)
+        return [f"{record.name} is {shown}; restore it with: {restore}"]
+
+    def release_if_stale(self) -> None:
+        """Close the open attempt after a conflict that a supervisor step caused.
+
+        When the product ref still sits at a value the run recorded, the attempt's
+        source commit is merely old, so its issuance is superseded and the next verb
+        issues the same request again. A ref the worker moved is left to the attempt
+        guard, which stands as residue until it is restored.
+        """
+        issuance = self.open
+        if issuance is not None and not self.product_ref_problems(issuance.run_id):
+            self._supersede(issuance)
+            self.open = self._manifest = None
 
     def source_commit(self, request_id: str) -> str | None:
         """The commit the open attempt for *request_id* was issued against, if one is open."""
@@ -631,10 +643,10 @@ class Attempts:
         record = {"schema_version": _SCHEMA_VERSION, "verb": verb, "paths": paths[:1000]}
         self._mark(issuance, ".refused.json", json.dumps(record, sort_keys=True).encode())
         code = "attempt-refused" if verb == "report" else "attempt-residue"
-        self._log(code)
+        self.log_denial(code)
         raise _refusal(code, self._detail(paths, standing=False))
 
-    def _log(self, reason: str) -> None:
+    def log_denial(self, reason: str, event_type: str = "supervisor-attempt-check") -> None:
         """Write one ``security-event.v1`` denial; the refusal stands even if it is not stored."""
         events = sibling("_security_events.py")
         events.emit_denial_best_effort(
@@ -643,7 +655,7 @@ class Attempts:
                 schema_version=1,
                 operation_id=events.make_operation_id(),
                 correlation_id=self.ws.spec_rel,
-                event_type="supervisor-attempt-check",
+                event_type=event_type,
                 outcome="denied",
                 reason_code=reason,
                 timestamp=self.ws.clock(),
@@ -1159,5 +1171,5 @@ class Attempts:
                 where = "a place outside the execution root"
             else:
                 continue
-            self._log("unsafe-link")
+            self.log_denial("unsafe-link")
             raise _refusal("unsafe-link", f"{_named([rel])} is a link into {where}")

@@ -504,7 +504,7 @@ def start(
         run_id = approvals[0]["run_id"]
         base = approvals[0]["base"]
         latest = approvals[-1]
-        _supervisor("_supervisor_recovery.py").reconcile(ws, "start")
+        _supervisor("_supervisor_recovery.py").reconcile(ws)
         commits = ws.git.supervisor_commits(run_id)
         foreign = ws.git.sync(commits[-1].sha if commits else None)
         if foreign:
@@ -515,6 +515,8 @@ def start(
             and latest["code_trust"] == code_trust
         ):
             if intent == "spec-plan":
+                if ws.divergence is not None:
+                    raise _supervisor("_supervisor_recovery.py").unadopted(ws)
                 _supervisor("_supervisor_loop.py").commit_terminal(ws, run_id)
             return {"status": "current", "run_id": run_id, "sequence": latest["sequence"]}
     else:
@@ -522,12 +524,7 @@ def start(
         base = head
         product_ref = ws.git.new_product_name(run_id)
     if approvals and ws.divergence is not None:
-        raise Refusal(
-            "product-ref-diverged",
-            "controller",
-            "HEAD holds history the run's product ref does not; run next to decide "
-            "whether to adopt it before amending the approval",
-        )
+        raise _supervisor("_supervisor_recovery.py").unadopted(ws)
     sequence = len(approvals) + 1
     pi = sibling("_policy_import.py")
     issuer, grant = ws.grant(["delivery/policy-import"])

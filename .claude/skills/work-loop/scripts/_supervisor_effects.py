@@ -432,7 +432,9 @@ def resolve_effect(
         )
     with ws.run_lock():
         ws.attempts.guard("resolve-effect")
-        _loop._supervisor("_supervisor_recovery.py").reconcile(ws, "resolve-effect")
+        recovery = _loop._supervisor("_supervisor_recovery.py")
+        if recovery.reconcile(ws) is not None:
+            raise recovery.unadopted(ws)
         state = _loop.derive(ws)
         if state.refusal is not None:
             raise state.refusal

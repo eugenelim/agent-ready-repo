@@ -570,7 +570,14 @@ def next_request(ws: Workspace) -> dict[str, Any]:
     with ws.run_lock():
         ws.attempts.guard("next")
         recovery = _supervisor("_supervisor_recovery.py")
-        if recovery.reconcile(ws, "next") is not None:
+        try:
+            diverged = recovery.reconcile(ws)
+        except Refusal as exc:
+            # The ref check refused: leave run.json in the refused shape the controller reads.
+            state = _adoption_state(ws)
+            state.refusal = exc
+            return {"refusal": exc.as_dict(), "run": _write_status(ws, state, None)}
+        if diverged is not None:
             return _adoption_request(ws)
         state, refusal = _prepare(ws)
         if refusal is not None:
@@ -715,7 +722,9 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
     accept_facts(checked)
     with ws.run_lock():
         ws.attempts.guard("report")
-        _supervisor("_supervisor_recovery.py").reconcile(ws, "report")
+        recovery = _supervisor("_supervisor_recovery.py")
+        if recovery.reconcile(ws) is not None and checked["kind"] != "human-decision":
+            raise recovery.unadopted(ws)
         state = derive(ws) if ws.divergence is None else _adoption_state(ws)
         if state.refusal is not None:
             raise state.refusal
@@ -807,6 +816,9 @@ def _report_decision(
 def status(ws: Workspace) -> dict[str, Any]:
     """Stage, readiness, projection, decisions, and the retry count; never commits."""
     state = derive(ws)
+    if state.refusal is None:
+        # What the next verb's ref check would refuse, found without repairing anything.
+        state.refusal = _supervisor("_supervisor_recovery.py").inspect(ws)
     if state.refusal is not None:
         return {
             "run": run_status(ws, state, None),

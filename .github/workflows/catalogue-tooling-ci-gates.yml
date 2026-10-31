@@ -232,13 +232,46 @@ jobs:
         run: python -m pytest packs/core/tests/hooks/ -q
 
   # ── Gate A-supervisor: work-loop execution supervisor integration suites ──
-  # These suites drive whole git-backed supervisor runs; the crash corpus alone
-  # is about 125 of them. That does not fit Gate A-packs' 15-minute budget, so
-  # they skip there (naming this lane) and run here with the variable set.
+  # These suites drive whole git-backed supervisor runs; the crash corpus alone is
+  # about 190 of them. That does not fit Gate A-packs' 15-minute budget, so they
+  # skip there (naming this lane) and run here with the variable set. The corpus
+  # runs in its own shards, and every other suite in one, so each shard keeps
+  # headroom under its timeout.
   supervisor-integration:
-    name: "Gate A-supervisor — execution supervisor integration suites (ubuntu-latest / py3.12)"
+    name: "Gate A-supervisor — execution supervisor integration suites (${{ matrix.shard }})"
     runs-on: ubuntu-latest
     timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: suites
+            targets: >-
+              packs/core/tests/skills/work-loop/test_supervisor_admission.py
+              packs/core/tests/skills/work-loop/test_supervisor_attempt.py
+              packs/core/tests/skills/work-loop/test_supervisor_git.py
+              packs/core/tests/skills/work-loop/test_supervisor_pinning.py
+              packs/core/tests/skills/work-loop/test_supervisor_product_ref.py
+              packs/core/tests/skills/work-loop/test_supervisor_results.py
+              packs/core/tests/skills/work-loop/test_supervisor_commit.py
+              packs/core/tests/skills/work-loop/test_supervisor_effects.py
+              packs/core/tests/skills/work-loop/test_supervisor_step_loop.py
+              packs/core/tests/skills/work-loop/test_supervisor_tdd.py
+              packs/core/tests/skills/work-loop/test_supervisor_readiness.py
+              packs/core/tests/skills/work-loop/test_supervisor_dark_launch.py
+              packs/core/tests/skills/work-loop/test_supervisor_review_gate.py
+              packs/core/tests/skills/work-loop/test_supervisor_review_closure.py
+              packs/core/tests/skills/work-loop/test_supervisor_ignore_rules.py
+              packs/core/tests/skills/work-loop/test_supervisor_consumer_map.py
+          - shard: crash corpus (kill variants)
+            targets: packs/core/tests/skills/work-loop/test_supervisor_crash_corpus.py
+            selector: "kill"
+          - shard: crash corpus (journal-delete variants)
+            targets: packs/core/tests/skills/work-loop/test_supervisor_crash_corpus.py
+            selector: "delete"
+          - shard: crash corpus (scenarios)
+            targets: packs/core/tests/skills/work-loop/test_supervisor_crash_corpus.py
+            selector: "not kill and not delete"
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
@@ -252,26 +285,9 @@ jobs:
         env:
           WORK_SUPERVISOR_INTEGRATION: "1"
           PYTHONUTF8: "1"
-        run: >-
-          python -m pytest
-          packs/core/tests/skills/work-loop/test_supervisor_admission.py
-          packs/core/tests/skills/work-loop/test_supervisor_attempt.py
-          packs/core/tests/skills/work-loop/test_supervisor_git.py
-          packs/core/tests/skills/work-loop/test_supervisor_pinning.py
-          packs/core/tests/skills/work-loop/test_supervisor_product_ref.py
-          packs/core/tests/skills/work-loop/test_supervisor_results.py
-          packs/core/tests/skills/work-loop/test_supervisor_commit.py
-          packs/core/tests/skills/work-loop/test_supervisor_crash_corpus.py
-          packs/core/tests/skills/work-loop/test_supervisor_effects.py
-          packs/core/tests/skills/work-loop/test_supervisor_step_loop.py
-          packs/core/tests/skills/work-loop/test_supervisor_tdd.py
-          packs/core/tests/skills/work-loop/test_supervisor_readiness.py
-          packs/core/tests/skills/work-loop/test_supervisor_dark_launch.py
-          packs/core/tests/skills/work-loop/test_supervisor_review_gate.py
-          packs/core/tests/skills/work-loop/test_supervisor_review_closure.py
-          packs/core/tests/skills/work-loop/test_supervisor_ignore_rules.py
-          packs/core/tests/skills/work-loop/test_supervisor_consumer_map.py
-          -q -rs --durations=10
+          TARGETS: ${{ matrix.targets }}
+          SELECTOR: ${{ matrix.selector }}
+        run: python -m pytest $TARGETS ${SELECTOR:+-k "$SELECTOR"} -q -rs --durations=10
 
   # ── Gate B: external catalogue portability ────────────────────────────────
   external-catalogue-smoke:

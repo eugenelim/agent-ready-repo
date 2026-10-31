@@ -431,6 +431,7 @@ def close_not_red(
 ADOPTION_REASON = "history-adoption"
 _SHOWN_PATHS = 20
 _admission = _loop._admission
+_REF_EVENT = "supervisor-product-ref-check"
 
 
 @dataclass
@@ -445,10 +446,6 @@ class Divergence:
     delivery_changed: bool
 
     @property
-    def product_paths(self) -> list[str]:
-        return self.paths
-
-    @property
     def changed(self) -> str:
         """Whether adoption changes the product, the spec directory's files, both, or neither."""
         hits = (("product", self.paths), ("spec", self.spec_files_changed))
@@ -461,15 +458,27 @@ def is_adoption(request: dict[str, Any]) -> bool:
     return request.get("kind") == "human-decision" and request.get("reason") == ADOPTION_REASON
 
 
-def _diverged(ws: Any, record: Any, kind: str, value: str) -> Any:
-    ws.attempts._log("product-ref-diverged")
-    shown = value if kind == "commit" else kind
-    flag = "--no-deref " if kind == "symbolic" else ""
+def unadopted(ws: Any) -> Any:
+    """The refusal a verb that must commit raises while ``HEAD`` holds history not yet adopted."""
+    return Refusal(
+        "history-adoption-required",
+        "controller",
+        "HEAD holds history this run did not make, so nothing can be committed on top of it. "
+        "Run next and put its history-adoption decision to the owner, or restore the branch "
+        "to the run's last commit.",
+    )
+
+
+def _diverged(ws: Any, record: Any, kind: str, value: str, *, log: bool = True) -> Any:
+    if log:
+        ws.attempts.log_denial("product-ref-diverged", _REF_EVENT)
+    shown = f"commit {value}" if kind == "commit" else kind
+    restore = ws.git.restore_command(record.name, kind, record.recorded or record.pending)
     return Refusal(
         "product-ref-diverged",
         "controller",
-        f"the product ref {record.name} is {shown}, not its recorded value {record.recorded}; "
-        f"restore it with: git update-ref {flag}{record.name} {record.recorded}",
+        f"the product ref {record.name} is {shown}, not its recorded value "
+        f"{record.recorded or record.pending}; restore it with: {restore}",
     )
 
 
@@ -488,11 +497,23 @@ def _divergence(ws: Any, head: str, anchor: str) -> Divergence:
     )
 
 
-def _latest_made(ws: Any, run_id: str) -> str | None:
-    """The run's latest made commit that still exists as a commit object."""
-    for sha in reversed(ws.git.made_list(run_id)):
-        found = ws.git.text("rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}", check=False)
-        if found.strip() == sha:
+def _exists(ws: Any, sha: str) -> bool:
+    found = ws.git.text("rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}", check=False)
+    return found.strip() == sha
+
+
+def _latest_made(ws: Any, run_id: str, *, clean: bool) -> str | None:
+    """The run's latest made commit that exists, and with *clean* that sits on a made-only chain.
+
+    A commit built on top of foreign history (one a refused step left behind) has a
+    foreign commit between it and the run's first step, so it never anchors a run.
+    """
+    git = ws.git
+    made = git.made_list(run_id)
+    for sha in reversed(made):
+        if not _exists(ws, sha):
+            continue
+        if not clean or (made and git.made_only(run_id, made[0], sha)):
             return sha
     return None
 
@@ -500,16 +521,14 @@ def _latest_made(ws: Any, run_id: str) -> str | None:
 def _create(ws: Any, run_id: str, head: str) -> Any:
     """Give a run that records no product ref one at its latest made commit, or report why not."""
     git = ws.git
-    latest = _latest_made(ws, run_id)
-    if latest is None:
-        return None
-    if latest != head and not git.made_only(run_id, head, latest):
-        return _divergence(ws, head, latest)
+    latest = _latest_made(ws, run_id, clean=True)
+    if latest is None or (latest != head and not git.made_only(run_id, head, latest)):
+        anchor = latest or _latest_made(ws, run_id, clean=False)
+        return None if anchor is None else _divergence(ws, head, anchor)
     record = _commit.ProductRecord(git.new_product_name(run_id), None, latest)
     git.write_product_record(run_id, record)
     _commit.kill_point("pending-recorded")
-    git.run("update-ref", "-m", "work-supervisor: create product ref", record.name, latest,
-            "0" * len(latest))
+    git.create_ref(record.name, latest)
     _commit.kill_point("repaired")
     done = _commit.ProductRecord(record.name, latest, None)
     git.write_product_record(run_id, done)
@@ -517,29 +536,32 @@ def _create(ws: Any, run_id: str, head: str) -> Any:
 
 
 def _complete(ws: Any, run_id: str, record: Any, value: str, head: str) -> Any:
-    """Finish a transaction that moved one ref, and clear the pending commit."""
+    """Finish a transaction that moved one ref, and clear the pending commit.
+
+    When neither ref sits where a half-move leaves it, nothing is moved: the ref's own
+    value becomes the recorded one and the usual comparison with ``HEAD`` follows.
+    """
     git = ws.git
     if value == record.pending and head == record.recorded:
-        git.run("update-ref", "-m", "work-supervisor: complete step", "HEAD", value, head)
+        git.move_head(value, head, "work-supervisor: complete step")
     elif value == record.recorded and head == record.pending:
-        git.run("update-ref", "-m", "work-supervisor: complete step", record.name,
-                record.pending, value)
+        git.move_ref(record.name, record.pending, value)
         value = record.pending
-    git._head = None
     _commit.kill_point("repaired")
     done = _commit.ProductRecord(record.name, value, None)
     git.write_product_record(run_id, done)
     return done
 
 
-def reconcile(ws: Any, verb: str = "") -> Divergence | None:
+def reconcile(ws: Any) -> Divergence | None:
     """Classify ``HEAD`` against the product ref before a verb derives; repair or refuse.
 
     Returns a ``Divergence`` when only the owner can admit the difference; the
-    caller issues the adoption decision. Refuses ``product-ref-diverged`` when the
-    ref is not at its recorded or pending value, and ``projection-blocked`` when
-    forward projection would overwrite a file. With an attempt open, the attempt
-    guard has already answered and only an interrupted transaction is completed.
+    caller issues the adoption decision, or refuses a verb that cannot. Refuses
+    ``product-ref-diverged`` when the ref is not at its recorded or pending value, and
+    ``projection-blocked`` when forward projection would overwrite a file. With an
+    attempt open, the attempt guard has already answered and only an interrupted
+    transaction is completed.
     """
     _admission.refuse_unsupported_ref_storage(ws)
     ws.divergence = None
@@ -564,13 +586,11 @@ def reconcile(ws: Any, verb: str = "") -> Divergence | None:
         if made is None:
             return None
         record = made
-    kind, value = git.read_ref(record.name)
-    if kind == "missing" and record.recorded is None and record.pending is not None:
-        git.run("update-ref", "-m", "work-supervisor: create product ref", record.name,
-                record.pending, "0" * len(record.pending))
+    kind, value, trusted = git.product_ref_view(record)
+    if kind == "missing" and trusted:
+        git.create_ref(record.name, record.pending)
         kind, value = "commit", record.pending
-    trusted = {v for v in (record.recorded, record.pending) if v is not None}
-    if kind != "commit" or value not in trusted:
+    if not trusted:
         if open_attempt:
             return None
         raise _diverged(ws, record, kind, value)
@@ -588,11 +608,37 @@ def reconcile(ws: Any, verb: str = "") -> Divergence | None:
     return ws.divergence  # type: ignore[no-any-return]
 
 
+def inspect(ws: Any) -> Any:
+    """What ``reconcile`` would refuse, found without writing anything; ``None`` if nothing.
+
+    For ``status``: the ref's trust and, when ``HEAD`` could be moved forward, whether
+    that would overwrite a file.
+    """
+    try:
+        approvals = ws.approvals()
+    except Refusal:
+        return None
+    if not approvals:
+        return None
+    git = ws.git
+    record = git.product_record(approvals[0]["run_id"])
+    if record is None:
+        return None
+    kind, value, trusted = git.product_ref_view(record)
+    if not trusted:
+        return _diverged(ws, record, kind, value, log=False)
+    anchor = record.pending or record.recorded
+    head = git.head()
+    if anchor and anchor != head and git.made_only(approvals[0]["run_id"], head, anchor):
+        paths, blocked = _projection(ws, head, anchor)
+        if blocked:
+            return _blocked_refusal(blocked)
+    return None
+
+
 def _index_oids(ws: Any, paths: list[str]) -> dict[str, str | None]:
     """The index's object id for each path (``None`` when absent, ``"conflict"`` when unmerged)."""
-    out = ws.git.run(
-        "ls-files", "-s", "-z", "--", *paths, literal_pathspecs=True
-    )
+    out = ws.git.run("ls-files", "-s", "-z", "--", *paths, literal_pathspecs=True)
     found: dict[str, str | None] = dict.fromkeys(paths)
     for entry in out.split(b"\0"):
         if not entry:
@@ -604,14 +650,11 @@ def _index_oids(ws: Any, paths: list[str]) -> dict[str, str | None]:
     return found
 
 
-def _project_forward(ws: Any, head: str, target: str) -> None:
-    """Bring the working tree and index to *target*'s tree, then move ``HEAD`` to it.
+def _projection(ws: Any, head: str, target: str) -> tuple[list[str], list[str]]:
+    """The paths moving ``HEAD`` to *target* changes, and those that hold neither version.
 
-    Every path the skipped commits changed (``delivery/`` aside, which the lag sync
-    owns) must hold ``HEAD``'s or the target's version in both the working tree and
-    the index; otherwise the verb refuses and changes nothing. Git writes the
-    target's version, and only then does ``HEAD`` move by compare-and-swap, so a
-    crash before the move repeats on the same inputs.
+    ``delivery/`` is left to the lag sync. A path is safe when its working-tree bytes
+    and its index entry each match ``HEAD``'s or the target's version.
     """
     git = ws.git
     out = git.run("diff", "--name-only", "-z", "--no-renames", head, target)
@@ -621,31 +664,48 @@ def _project_forward(ws: Any, head: str, target: str) -> None:
         for p in (x.decode("utf-8", "surrogateescape") for x in out.split(b"\0") if x)
         if not p.startswith(delivery)
     )
+    if not paths:
+        return [], []
+    indexed = _index_oids(ws, paths)
+    blocked = []
+    for rel in paths:
+        try:
+            working = git.read_working(rel)
+        except _commit.SupervisorGitError:
+            blocked.append(rel)
+            continue
+        if working not in (git.show(rel, head), git.show(rel, target)) or indexed[rel] not in (
+            git.object_id(rel, head),
+            git.object_id(rel, target),
+        ):
+            blocked.append(rel)
+    return paths, blocked
+
+
+def _blocked_refusal(blocked: list[str]) -> Any:
+    return Refusal(
+        "projection-blocked",
+        "controller",
+        "these files differ from both HEAD and the product ref, so the run cannot "
+        "move HEAD forward to the product ref without overwriting them; restore or "
+        "move them aside: " + _named(blocked),
+    )
+
+
+def _project_forward(ws: Any, head: str, target: str) -> None:
+    """Bring the working tree and index to *target*'s tree, then move ``HEAD`` to it.
+
+    Git writes the target's version, and only then does ``HEAD`` move by
+    compare-and-swap, so a crash before the move repeats on the same inputs.
+    """
+    git = ws.git
+    paths, blocked = _projection(ws, head, target)
+    if blocked:
+        raise _blocked_refusal(blocked)
     if paths:
-        indexed = _index_oids(ws, paths)
-        old, new = git._tree(head), git._tree(target)
-        blocked = []
-        for rel in paths:
-            try:
-                working = git.read_working(rel)
-            except _commit.SupervisorGitError:
-                blocked.append(rel)
-                continue
-            if working not in (git.show(rel, head), git.show(rel, target)) or indexed[rel] not in (
-                old.get(rel),
-                new.get(rel),
-            ):
-                blocked.append(rel)
-        if blocked:
-            raise Refusal(
-                "projection-blocked",
-                "controller",
-                "these files differ from both HEAD and the product ref, so the run cannot "
-                "move HEAD forward to the product ref without overwriting them; restore or "
-                "move them aside: " + _named(blocked),
-            )
-        writes = [p for p in paths if p in new]
-        removes = [p for p in paths if p not in new]
+        present = {p for p, _oid in git.tree_entries(target)}
+        writes = [p for p in paths if p in present]
+        removes = [p for p in paths if p not in present]
         if writes:
             git.run(
                 "restore", "--source", target, "--staged", "--worktree",
@@ -661,10 +721,7 @@ def _project_forward(ws: Any, head: str, target: str) -> None:
                 stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in removes),
             )
     _commit.kill_point("projection-updated")
-    try:
-        git.run("update-ref", "-m", "work-supervisor: project product ref", "HEAD", target, head)
-    finally:
-        git._head = None
+    git.move_head(target, head, "work-supervisor: project product ref")
     _commit.kill_point("repaired")
 
 

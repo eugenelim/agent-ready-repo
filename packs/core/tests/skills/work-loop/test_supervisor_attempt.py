@@ -491,6 +491,14 @@ def _crash_at(point: str) -> Callable[[str], None]:
     return hook
 
 
+def _report_after_a_landed_step(repo: Path, request: dict[str, Any]) -> None:
+    """A step landed during the attempt: its result is refused once, then admitted when re-issued."""
+    code, out = _report(repo, request)
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    assert _report(repo, request)[0] == 0
+
+
 def test_a_resolve_effect_during_an_open_attempt_does_not_refuse_it(
     effect_template: tuple[Path, str], tmp_path: Path
 ) -> None:
@@ -505,7 +513,7 @@ def test_a_resolve_effect_during_an_open_attempt_does_not_refuse_it(
     again = _current_request(repo)
     assert again["request_id"] == request["request_id"]
     assert _issuances(repo) == issuances, "the open attempt's manifest was re-recorded"
-    assert _report(repo, request)[0] == 0
+    _report_after_a_landed_step(repo, request)
 
 
 @pytest.mark.parametrize("point", KILL_POINTS)
@@ -528,7 +536,7 @@ def test_a_resolve_effect_killed_during_an_open_attempt_converges(
     assert len(_decisions(repo)) == 1
     assert _current_request(repo)["request_id"] == request["request_id"]
     assert _issuances(repo) == issuances
-    assert _report(repo, request)[0] == 0
+    _report_after_a_landed_step(repo, request)
 
 
 NO_INTENT_SPEC = sup.SPEC.replace("## Terminal Intent\n\n`code` — build the calculator.\n\n", "")
@@ -835,10 +843,32 @@ def test_a_sibling_worktrees_run_leaves_the_attempt_admissible(tmp_path: Path) -
     assert h.Controller(linked, tmp_path / "linked.log").report(
         h.Controller(linked, tmp_path / "linked.log").work(other)
     )[0] == 0
-    h.git(linked, "rev-parse", "HEAD")
     assert (
         h.git(repo, "rev-parse", _product(linked)[0]).strip()
         != before
     )
+    code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 0, admitted
+
+
+def test_a_supervisor_step_landing_during_the_attempt_refuses_the_result(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    source = h.git(repo, "rev-parse", "HEAD").strip()
+    # A step the supervisor made lands while the worker is at work: the guard allows it.
+    ws = h.workspace(repo)
+    ws.git.build_commit(run_id=_run_id(repo), step="landing", operation="evidence",
+                        summary="a step during the attempt")
+    landed = h.git(repo, "rev-parse", "HEAD").strip()
+    assert landed != source
+    code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    assert h.git(repo, "rev-parse", "HEAD").strip() == landed
+    # The files are kept and the same request is issued again against the new commit.
+    again = _current_request(repo)
+    assert again["request_id"] == request["request_id"]
     code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 0, admitted
