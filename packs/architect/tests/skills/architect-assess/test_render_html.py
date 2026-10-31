@@ -1907,7 +1907,12 @@ def test_script_confines_what_it_accepts_by_text_rules() -> None:
         "selector.indexOf('~') !== -1",
         "selector.indexOf('+') !== -1",
         "rule.cssRules.length > 0",
-        "current.indexOf(id) !== 0",
+        "!ownsId(current, id)",
+        "value.indexOf(id + '-') === 0",
+        "value.indexOf(id + '_') === 0",
+        "KEYFRAME_NAMES.indexOf(rule.name) === -1",
+        "if (quote || depth !== 0) {",
+        "if (!parts || !selectorsConfined(parts, id)) {",
         "renamed[current] = id + '-' + current;",
         "root.getAttribute('id') !== id",
         "typeof lib.initialize === 'function'",
@@ -1924,8 +1929,11 @@ def test_script_confines_what_it_accepts_by_text_rules() -> None:
         assert f"'{element}'" in text.split("var SVG_ELEMENTS")[1].split("];")[0], element
     assert "function targetsTheRoot" in text and "selector === '#' + id" in text
     banned = text.split("var BANNED_PROPERTIES")[1].split("];")[0]
-    for prop in ("position", "inset", "top", "right", "bottom", "left", "float", "transform",
-                 "z-index", "translate"):
+    for prop in (
+        "position", "inset", "top", "right", "bottom", "left", "float", "transform", "z-index",
+        "translate", "rotate", "scale", "offset", "offset-path", "offset-distance",
+        "offset-position", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+    ):
         assert f"'{prop}'" in banned, prop
     for rule in ("CSSMediaRule", "CSSSupportsRule", "CSSLayerBlockRule", "CSSContainerRule"):
         assert rule in text
@@ -1943,3 +1951,9 @@ def test_drawn_diagrams_scroll_inside_their_own_region() -> None:
     assert declared(".diagram-render", "max-width") == ["100%"]
     assert declared(".diagram-render svg", "max-width") == ["100%"]
     assert declared(".diagram-render svg", "height") == ["auto"]
+
+
+def test_script_keyframe_names_are_a_fixed_list() -> None:
+    text = _script_text()
+    names = re.search(r"var KEYFRAME_NAMES = \[(.*?)\];", text).group(1)
+    assert re.findall(r"'([^']+)'", names) == ["dash", "edge-animation-frame"]

@@ -17,8 +17,10 @@
   var LEAF_RULES = ['CSSStyleRule', 'CSSKeyframesRule', 'CSSKeyframeRule'];
   var BANNED_PROPERTIES = [
     'position', 'inset', 'top', 'right', 'bottom', 'left', 'float', 'transform', 'z-index',
-    'translate'
+    'translate', 'rotate', 'scale', 'offset', 'offset-path', 'offset-distance',
+    'offset-position', 'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left'
   ];
+  var KEYFRAME_NAMES = ['dash', 'edge-animation-frame'];
 
   function blocks() {
     return Array.prototype.slice.call(document.querySelectorAll('.diagram.diagram-drawn'));
@@ -59,13 +61,30 @@
     return true;
   }
 
+  // Splits at the commas the CSS parser splits at: quoted text and escaped characters are
+  // data. Returns null when the list cannot be split with certainty.
   function selectorList(text) {
     var depth = 0;
+    var quote = '';
     var parts = [];
     var current = '';
     for (var i = 0; i < text.length; i += 1) {
       var char = text.charAt(i);
-      if (char === '(' || char === '[') {
+      if (char === '\\') {
+        current += char + text.charAt(i + 1);
+        i += 1;
+        continue;
+      }
+      if (quote) {
+        if (char === quote) {
+          quote = '';
+        }
+        current += char;
+        continue;
+      }
+      if (char === '"' || char === "'") {
+        quote = char;
+      } else if (char === '(' || char === '[') {
         depth += 1;
       } else if (char === ')' || char === ']') {
         depth -= 1;
@@ -76,6 +95,9 @@
       } else {
         current += char;
       }
+    }
+    if (quote || depth !== 0) {
+      return null;
     }
     parts.push(current.trim());
     return parts;
@@ -118,12 +140,15 @@
         return false;
       }
       var parts = selectorList(rule.selectorText);
-      if (!selectorsConfined(parts, id)) {
+      if (!parts || !selectorsConfined(parts, id)) {
         return false;
       }
       return targetsTheRoot(parts, id) ? propertiesAllowed(rule) : true;
     }
     if (kind === 'CSSKeyframesRule') {
+      if (KEYFRAME_NAMES.indexOf(rule.name) === -1) {
+        return false;
+      }
       return Array.prototype.every.call(rule.cssRules, function (inner) {
         return ruleAllowed(inner, id);
       });
@@ -150,11 +175,15 @@
     });
   }
 
+  function ownsId(value, id) {
+    return value === id || value.indexOf(id + '-') === 0 || value.indexOf(id + '_') === 0;
+  }
+
   function prefixIds(elements, id) {
     var renamed = {};
     elements.forEach(function (element) {
       var current = element.getAttribute('id');
-      if (current !== null && current.indexOf(id) !== 0) {
+      if (current !== null && !ownsId(current, id)) {
         renamed[current] = id + '-' + current;
         element.setAttribute('id', renamed[current]);
       }
