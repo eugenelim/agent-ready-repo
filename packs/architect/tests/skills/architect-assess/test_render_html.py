@@ -10,6 +10,7 @@ from __future__ import annotations
 import ast
 import base64
 import hashlib
+import html
 import importlib.util
 import io
 import os
@@ -439,7 +440,11 @@ def test_notice_and_metadata(mod, tmp_path, capsys) -> None:
 def _only_fixed_tokens(out: str, err: str) -> None:
     allowed = {
         "render_html: ok",
-        "render_html: usage: render_html.py <effort-dir>",
+        "render_html: usage: render_html.py <effort-dir> [--diagrams]",
+        "render_html: failed: script asset missing or unsafe",
+        "render_html: failed: script asset over the size cap",
+        "render_html: failed: script asset unreadable",
+        "render_html: failed: script asset holds forbidden text",
         "render_html: refused: unsafe or missing path",
         "render_html: refused: source over the size cap",
         "render_html: refused: rendered page over the size cap",
@@ -1551,3 +1556,282 @@ def test_contents_control_meets_the_target_floor_and_the_page_is_centred_when_wi
     assert declared(".rail summary", "gap") == ["var(--s-2)"]
     assert declared("body", "max-width", "min-width: 100rem") == ["110rem"]
     assert declared("body", "margin-left", "min-width: 100rem") == ["auto"]
+
+
+# ---- diagrams mode ---------------------------------------------------------------
+
+USAGE = "render_html: usage: render_html.py <effort-dir> [--diagrams]"
+SCRIPT_FILE = Path(__file__).resolve().parents[3] / (
+    ".apm/skills/architect-assess/scripts/report_assets/diagrams.js"
+)
+FLOW = "flowchart LR\n  A --> B"
+
+
+def fence(body: str = FLOW) -> str:
+    return f"```mermaid\n{body}\n```\n"
+
+
+def run_diagrams(tmp: Path, text: str, mod: ModuleType, capsys, flag: bool = True):
+    effort = tmp / "effort"
+    effort.mkdir(exist_ok=True)
+    (effort / "assessment.md").write_text(text, encoding="utf-8")
+    code = mod.main([str(effort), "--diagrams"] if flag else [str(effort)])
+    captured = capsys.readouterr()
+    return code, captured.err, (effort / "assessment.html")
+
+
+def diagrams_page(tmp: Path, text: str, mod: ModuleType, capsys) -> str:
+    code, err, out = run_diagrams(tmp.resolve(), text, mod, capsys)
+    assert code == 0, err
+    return out.read_text(encoding="utf-8")
+
+
+def labels(text: str) -> list[tuple[str, str]]:
+    return re.findall(r'<div class="(diagram[^"]*)"><p class="diagram-label">([^<]*)</p>', text)
+
+
+def test_flag_and_no_flag_both_exit_zero(mod, tmp_path, capsys) -> None:
+    for flag in (False, True):
+        code, err, _ = run_diagrams(tmp_path.resolve(), report(), mod, capsys, flag)
+        assert code == 0 and err == ""
+
+
+def test_wrong_arguments_exit_two_with_the_usage_token(mod, capsys) -> None:
+    for argv in ([], ["a", "b"], ["a", "--diagrams", "x"], ["a", "--diagram"]):
+        assert mod.main(argv) == 2
+        assert capsys.readouterr().err.strip() == USAGE
+
+
+def test_a_first_argument_of_the_flag_is_just_a_path(mod, capsys) -> None:
+    assert mod.main(["--diagrams"]) == 3
+    assert capsys.readouterr().err.strip() == "render_html: refused: unsafe or missing path"
+
+
+def test_default_page_has_no_script_or_src_and_the_stated_policy(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(extra=fence()), mod, capsys)
+    parsed = tree(text)
+    assert "script" not in parsed.elements
+    assert not [a for a in parsed.attrs if a[1] == "src"]
+    policy = re.search(r'Content-Security-Policy" content="([^"]*)"', text).group(1)
+    digest = base64.b64encode(hashlib.sha256(parsed.style.encode()).digest()).decode()
+    assert policy == (
+        f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"
+    )
+
+
+def test_default_run_never_reads_the_script(mod, tmp_path, capsys, monkeypatch) -> None:
+    baseline = page(tmp_path.resolve(), report(extra=fence()), mod, capsys)
+    monkeypatch.setattr(mod, "SCRIPT_NAME", "absent.js")
+    monkeypatch.setattr(mod, "load_script", lambda helper: (_ for _ in ()).throw(AssertionError))
+    assert page(tmp_path.resolve(), report(extra=fence()), mod, capsys) == baseline
+
+
+def test_diagrams_page_ends_with_the_two_pinned_scripts(mod, tmp_path, capsys) -> None:
+    text = diagrams_page(tmp_path, report(extra=fence()), mod, capsys)
+    script = SCRIPT_FILE.read_text(encoding="utf-8")
+    tail = (
+        f'</main><script src="{mod.MERMAID_URL}" integrity="{mod.MERMAID_SRI}" '
+        'crossorigin="anonymous" referrerpolicy="no-referrer"></script>'
+        f"<script>{script}</script></body></html>\n"
+    )
+    assert text.endswith(tail)
+    assert tree(text).order[-2:] == ["script", "script"]
+    assert (
+        f"https://cdn.jsdelivr.net/npm/mermaid@{mod.MERMAID_VERSION}/dist/mermaid.min.js"
+    ) == mod.MERMAID_URL
+
+
+def test_diagrams_policy_adds_only_the_script_sources(mod, tmp_path, capsys) -> None:
+    text = diagrams_page(tmp_path, report(extra=fence()), mod, capsys)
+    script = SCRIPT_FILE.read_text(encoding="utf-8")
+    style = tree(text).style
+    s_hash = base64.b64encode(hashlib.sha256(script.encode()).digest()).decode()
+    c_hash = base64.b64encode(hashlib.sha256(style.encode()).digest()).decode()
+    policy = re.search(r'Content-Security-Policy" content="([^"]*)"', text).group(1)
+    assert policy == (
+        f"default-src 'none'; script-src 'sha256-{s_hash}' {mod.MERMAID_URL}; "
+        f"style-src 'sha256-{c_hash}'; base-uri 'none'; form-action 'none'"
+    )
+
+
+def test_diagrams_note_follows_the_untrusted_notice(mod, tmp_path, capsys) -> None:
+    text = diagrams_page(tmp_path, report(), mod, capsys)
+    note = (
+        f'<div class="note notice-diagrams">Diagrams are drawn by Mermaid {mod.MERMAID_VERSION}, '
+        "loaded from cdn.jsdelivr.net. Opening this report sends your IP address, the time, "
+        "and your browser details to that host; no report text and no page address is sent."
+        "</div>"
+    )
+    assert f"not redacted</div>\n{note}" in text
+    assert "notice-diagrams" not in page(tmp_path.resolve(), report(), mod, capsys)
+
+
+def test_script_element_and_attributes_exist_only_in_diagrams_output(mod, tmp_path, capsys) -> None:
+    parsed = tree(diagrams_page(tmp_path, report(extra=fence()), mod, capsys))
+    assert parsed.elements.count("script") == 2
+    script_attrs = {name for tag, name, _ in parsed.attrs if tag == "script"}
+    assert script_attrs == {"src", "integrity", "crossorigin", "referrerpolicy"}
+    for tag, name, _ in parsed.attrs:
+        if tag != "script":
+            assert (tag, name) in ALLOWED_TAG_ATTRS or name in GLOBAL_ATTRS, (tag, name)
+
+
+DRAWABLE = [
+    FLOW,
+    "graph TD\n  A --> B",
+    "  \n\t\nsequenceDiagram\n  A->>B: hi",
+    "classDiagram\n  A <|-- B",
+    "stateDiagram-v2\n  [*] --> A",
+    "erDiagram\n  A ||--o{ B : has",
+]
+REFUSED = {
+    "frontmatter": "---\ntitle: x\n---\nflowchart LR\n A --> B",
+    "no keyword": "pie title x\n  \"a\": 1",
+    "wrong case": "Flowchart LR\n A --> B",
+    "directive": "flowchart LR\n%%{init: {}}%%\n A --> B",
+    "nul-split directive": "flowchart LR\n%%\x00{init: {}}%%\n A --> B",
+    "nul-split click": "flowchart LR\n A --> B\ncl\x00ick A href \"x\"",
+    "bom first line": "\ufeffflowchart LR\n A --> B",
+    "bom before click": "flowchart LR\n A --> B;\ufeffclick A href \"x\"",
+    "nbsp first line": "\u00a0flowchart LR\n A --> B",
+    "nbsp click": "flowchart LR\n A --> B;\u00a0click A href \"x\"",
+    "ideographic link": "flowchart LR\n A --> B;\u3000link A: x",
+    "click": "flowchart LR\n A --> B\n click A href \"x\"",
+    "semicolon click": "flowchart LR\n A --> B; click A href \"x\"",
+    "upper click": "flowchart LR\n A --> B\nCLICK A call f()",
+    "link": "classDiagram\n A <|-- B\n link A \"https://x\"",
+    "links": "sequenceDiagram\n A->>B: x\n links A: {\"a\": \"b\"}",
+    "callback": "classDiagram\n A <|-- B\n callback A \"f\"",
+    "carriage return": "flowchart LR\r\n A --> B",
+    "control": "flowchart LR\n A --> B\x07",
+    "oversize": "flowchart LR\n" + " A --> B\n" * 6000,
+}
+
+
+def test_eligibility_accepts_each_allowlisted_diagram(mod) -> None:
+    for text in DRAWABLE:
+        assert mod.diagram_drawable(text), text
+
+
+def test_eligibility_refuses_each_hostile_or_unlisted_fence(mod) -> None:
+    for name, text in REFUSED.items():
+        assert not mod.diagram_drawable(text), name
+
+
+def test_eligibility_size_boundary_is_in_utf8_bytes(mod) -> None:
+    base = "flowchart LR\n"
+    fits = base + "A" * (50_000 - len(base))
+    assert mod.diagram_drawable(fits)
+    assert not mod.diagram_drawable(fits + "A")
+    wide = base + "\u00e9" * ((50_000 - len(base)) // 2 + 1)
+    assert not mod.diagram_drawable(wide)
+
+
+def test_labels_and_markers_by_state(mod, tmp_path, capsys) -> None:
+    extra = fence() + fence(REFUSED["click"])
+    text = diagrams_page(tmp_path, report(extra=extra), mod, capsys)
+    assert labels(text) == [
+        ("diagram diagram-drawn", "Diagram (source below)"),
+        ("diagram", "Diagram source (not drawn: unsafe)"),
+    ]
+    plain = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    assert labels(plain) == [("diagram", "Diagram source (not rendered)")] * 2
+
+
+def test_the_first_twenty_passing_fences_are_drawn_and_refusals_are_not_counted(
+    mod, tmp_path, capsys
+) -> None:
+    extra = "".join(fence(REFUSED["click"]) for _ in range(3)) + fence() * 22
+    text = diagrams_page(tmp_path, report(extra=extra), mod, capsys)
+    found = labels(text)
+    assert [label for _, label in found[:3]] == ["Diagram source (not drawn: unsafe)"] * 3
+    assert [label for _, label in found[3:23]] == ["Diagram (source below)"] * 20
+    assert [label for _, label in found[23:]] == ["Diagram source (not drawn: limit)"] * 2
+    assert text.count("diagram-drawn") == 20
+
+
+def test_the_text_the_rules_read_equals_the_emitted_code_text(mod, tmp_path, capsys) -> None:
+    body = 'flowchart LR\n  A["x &amp; y #35; <b>"] --> B'
+    text = diagrams_page(tmp_path, report(extra=fence(body)), mod, capsys)
+    emitted = re.search(r"<pre><code>(.*?)</code></pre>", text, re.S).group(1)
+    assert html.unescape(emitted) == body
+    assert mod.diagram_drawable(body)
+
+
+def test_fence_text_stays_escaped_in_both_modes(mod, tmp_path, capsys) -> None:
+    body = 'flowchart LR\n  A["<img src=x onerror=alert(1)>"] --> B'
+    for text in (
+        page(tmp_path.resolve(), report(extra=fence(body)), mod, capsys),
+        diagrams_page(tmp_path, report(extra=fence(body)), mod, capsys),
+    ):
+        assert "<img" not in text
+        assert "&lt;img src=x onerror=alert(1)&gt;" in text
+
+
+@pytest.fixture
+def asset_dir(mod, tmp_path, monkeypatch) -> Path:
+    """A copy of the asset directory the renderer reads, safe to damage."""
+    root = tmp_path / "scripts"
+    copy = root / "report_assets"
+    copy.mkdir(parents=True)
+    for source in mod.ASSET_DIR.iterdir():
+        (copy / source.name).write_bytes(source.read_bytes())
+    monkeypatch.setattr(mod, "ASSET_DIR", copy)
+    return copy
+
+
+def _mk(path: Path) -> Path:
+    path.mkdir()
+    return path.resolve()
+
+
+def _script_refused(mod, tmp_path, capsys, name: str) -> tuple[int, str]:
+    code, err, _ = run_diagrams(_mk(tmp_path / name), report(), mod, capsys)
+    return code, err.strip()
+
+
+def test_script_asset_refusals_have_distinct_tokens(mod, tmp_path, capsys, asset_dir) -> None:
+    target = asset_dir / "diagrams.js"
+    unsafe = "render_html: failed: script asset missing or unsafe"
+    target.unlink()
+    assert _script_refused(mod, tmp_path, capsys, "missing") == (3, unsafe)
+    real = tmp_path / "real.js"
+    real.write_text("/* ok */\n", encoding="utf-8")
+    target.symlink_to(real)
+    assert _script_refused(mod, tmp_path, capsys, "symlink") == (3, unsafe)
+    target.unlink()
+    target.write_bytes(b"/" + b"*" * 70_000)
+    assert _script_refused(mod, tmp_path, capsys, "large") == (
+        3,
+        "render_html: failed: script asset over the size cap",
+    )
+    target.write_bytes(b"\xff\xfe not utf8")
+    assert _script_refused(mod, tmp_path, capsys, "bytes") == (
+        3,
+        "render_html: failed: script asset unreadable",
+    )
+
+
+@pytest.mark.parametrize("text", ["x </SCRIPT> y", "x <!-- y", "line\r\nline"])
+def test_script_asset_with_forbidden_text_is_script_refused(mod, tmp_path, capsys, asset_dir, text) -> None:
+    (asset_dir / "diagrams.js").write_bytes(text.encode("utf-8"))
+    code, err, _ = run_diagrams(_mk(tmp_path / "w"), report(), mod, capsys)
+    assert (code, err.strip()) == (3, "render_html: failed: script asset holds forbidden text")
+
+
+def test_non_regular_script_asset_is_script_refused(mod, tmp_path, capsys, asset_dir) -> None:
+    target = asset_dir / "diagrams.js"
+    target.unlink()
+    target.mkdir()
+    code, err, _ = run_diagrams(_mk(tmp_path / "w"), report(), mod, capsys)
+    assert (code, err.strip()) == (3, "render_html: failed: script asset missing or unsafe")
+
+
+def test_caps_hold_with_the_flag(mod, tmp_path, capsys, monkeypatch) -> None:
+    monkeypatch.setattr(mod, "MAX_EXISTING_OUTPUT_BYTES", 1000)
+    code, err, _ = run_diagrams(_mk(tmp_path / "w1"), report(), mod, capsys)
+    assert (code, err.strip()) == (2, "render_html: refused: rendered page over the size cap")
+    monkeypatch.undo()
+    monkeypatch.setattr(mod, "MAX_SOURCE_BYTES", 100)
+    code, err, _ = run_diagrams(_mk(tmp_path / "w2"), report(), mod, capsys)
+    assert (code, err.strip()) == (2, "render_html: refused: source over the size cap")
