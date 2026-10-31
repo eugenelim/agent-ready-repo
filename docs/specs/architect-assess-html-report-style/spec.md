@@ -1,6 +1,6 @@
 # Spec: architect-assess HTML report in the maintainer-view style
 
-- **Status:** Implementing
+- **Status:** Draft
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [`docs/specs/architect-assess-html-report/spec.md`](../architect-assess-html-report/spec.md) — the renderer's security rules stay in force: escaped values, a CSP naming the one `<style>` by hash, no script, no network. This spec owns the closed element and attribute lists from now on and amends the parent's element and attribute criteria to cite it. The family token file [`docs/design/tokens/skill-html-views.md`](../../design/tokens/skill-html-views.md) supplies the document-view tracks, type, spacing, and interaction floor.
@@ -106,7 +106,7 @@ A maintainer who opens an assessment report meets the same page family as the `n
 - [ ] A rail link for an orientation heading deeper than level 2 carries class `rail-sub`.
 - [ ] Every non-title heading at level 1 or 2 starts a `section` with class `doc-section` that carries the heading's id, holds an `h2` with class `margin-head` and no id, and holds a `div` with class `doc-body` with every block up to the next such heading.
 - [ ] A `section` with class `doc-section` and no `margin-head` holds the blocks before the first such heading, and no such section is emitted when no block precedes it.
-- [ ] `report.css` makes the `details` the visible contents control and hides `.rail-wide` below 100rem, and hides the `details` and shows `.rail-wide` from 100rem.
+- [ ] `report.css` makes the `details` the visible contents control and hides `.rail-wide` below 64rem, and hides the `details` and shows `.rail-wide` from 64rem.
 
 ### Tables, marks, heat
 
@@ -115,15 +115,18 @@ A maintainer who opens an assessment report meets the same page family as the `n
 - [ ] Each `Sources checked` row's evidence class renders as a `span` with classes `mark` and `ev-observed`, `ev-inferred`, `ev-reported`, or `ev-unknown`, holding the cell's text.
 - [ ] `report.css` gives each `ev-` class a `content: none` declaration followed by a `::before` `content` of its own bar glyph (▮▮▮, ▮▮▯, ▮▯▯, ▯▯▯) with an empty alternative text, a `var(--c-bg)` background, and a `var(--c-rule-strong)` border.
 - [ ] No `ev-` or `heat-` rule in `report.css` uses `--c-bad`, `--c-warn`, `--c-ok`, `--c-active`, or `--c-accent`.
-- [ ] `report.css` gives `heat-low` a `var(--c-bg)` background and no left border, `heat-medium` a `var(--c-canvas)` background and a 2px solid left border in `var(--c-rule-strong)`, `heat-high` a `var(--c-raised)` background and a 4px solid left border in `var(--c-rule-strong)`, and `heat-unknown` a `var(--c-bg)` background, a 2px dashed left border, and italic text.
+- [ ] `report.css` gives `heat-low` a `var(--c-bg)` background, `heat-medium` a `var(--c-raised)` background, `heat-high` a `var(--c-rule)` background, and `heat-unknown` a `var(--c-bg)` background with italic text, and none of the four a border.
+- [ ] `report.css` gives each heat class a `content: none` declaration followed by a `::before` `content` of its own level glyph (▁ for low, ▄ for medium, █ for high, ▫ for unknown) with an empty alternative text, and no heat glyph equals an evidence glyph.
 - [ ] The text colour reaches a contrast ratio of at least 4.5:1 on each of the four heat backgrounds in the light and in the dark theme, computed from the stylesheet's token values.
 - [ ] `report.css` gives `.question-link` and `.skip-link` `display: inline-flex`, `align-items: center`, and a `min-height` of `var(--target)`.
 
 ### Layout and print
 
-- [ ] `report.css` sets one column below 64rem, a margin track and a `minmax(0, 68ch)` text track from 64rem, and a third track of 16rem from 100rem, and makes the contents rail sticky from 100rem with a `max-height` and vertical overflow of `auto`.
+- [ ] `report.css` sets one column below 64rem, a margin track and a `minmax(0, 68ch)` text track from 64rem, and a contents track of 16rem from 64rem, and makes the contents rail sticky from 64rem with a `max-height` and vertical overflow of `auto`.
 - [ ] `report.css` gives `.doc-section:target` a 3px solid left border in `var(--c-accent)`.
-- [ ] `report.css` has an `@media print` block that sets `display: none` on `.rail`, `.skip-link`, and the `details` and `overflow: visible` on `.table-scroll`.
+- [ ] `report.css` has an `@media print` block that sets `display: none` on `.rail`, `.skip-link`, and the `details`, `overflow: visible` on `.table-scroll` and `.source-scroll`, and `overflow: visible` and `white-space: pre-wrap` on `pre`, and `break-inside: avoid` on `tr`.
+- [ ] Every code fence and every diagram source block sits inside a `div` with class `source-scroll`, `role` `region`, `tabindex` `0`, and an `aria-label` of `Source: ` followed by the plain text of the nearest preceding heading, or `Source` when none precedes it, and `report.css` gives that class horizontal overflow of `auto`.
+- [ ] `report.css` gives `.rail summary` a `min-height` of `var(--target)`, and from 100rem gives `body` a `max-width` of `110rem` with `margin-left` and `margin-right` of `auto`.
 - [ ] `report.css` gives `.page-title` `overflow-wrap: anywhere`.
 
 ### Fixture, docs, release
@@ -131,18 +134,18 @@ A maintainer who opens an assessment report meets the same page family as the `n
 - [ ] `packs/architect/tests/skills/architect-assess/testdata/html-style-sample.md` models a multi-subsystem system: at least six subsystem entries under `Architecture by subsystem`, with a deeper child heading under two of them; a `Sources checked` table of at least twelve rows under `Overall architecture` using all four evidence classes; a heat map of at least eight rows using all four heat values; a table cell holding an unbroken identifier of at least 80 characters; an unconfirmed charter; and at least two Mermaid fences of eight or more nodes each, one flowchart and one sequence diagram.
 - [ ] `references/html-report.md` and `guides/architect/reference/architecture-assessment.md` each state that the report uses the maintainer-view style with a contents rail.
 - [ ] The exit 3 row of `references/html-report.md` lists a missing, an oversized, a non-UTF-8, and a forbidden-string stylesheet asset.
-- [ ] `docs/design/tokens/skill-html-views.md` states the layout-file colour rule, the four provenance marks and that their bars imply a ranking from observed to unknown, the heat ramp, the document-density literals this view sets, and `architect-assess` as an adopter.
+- [ ] `docs/design/tokens/skill-html-views.md` states the layout-file colour rule, the four provenance marks and that their bars imply a ranking from observed to unknown, the heat ramp with its fills and level glyphs, that the status pill is filled and the provenance pill outlined on purpose, the document-density literals this view sets, and `architect-assess` as an adopter.
 - [ ] `evals/evals.json` has an assertion on the HTML report case that the page uses the maintainer-view style with a contents rail and provenance marks.
 - [ ] `pack.toml` and `.claude-plugin/plugin.json` carry the same version, higher than the version on `origin/main`.
 - [ ] `tools/changelog.py validate` passes with the new fragment present.
 
 ### Real browser
 
-- [ ] Rendered from the fixture and opened in a real browser, the first screen at 320 by 640 CSS px and at 1280 by 800 CSS px, in light and dark, shows the title, the snapshot line, the banner, and either the first section's margin head or the closed contents control, recorded with screenshots in the verification ledger.
+- [ ] Rendered from the fixture and opened in a real browser, the first screen at 320 by 640 CSS px and at 1280 by 800 CSS px, in light and dark, shows the title, the snapshot line, the banner, and the first section's margin head, with the closed contents control above the text at 320 px and the contents list beside the text at 1280 px, recorded with screenshots in the verification ledger.
 - [ ] At 320 CSS px in light and dark, the page is one column and the screenshot shows no content clipped at the right edge, recorded in the verification ledger.
-- [ ] At 1280 CSS px the margin heads sit beside the text, and at 1680 and 2560 CSS px the contents rail is a third track and stays in view in a screenshot taken after scrolling past its first position, each in light and dark, recorded in the verification ledger.
+- [ ] At 1280, 1680, and 2560 CSS px the margin heads sit beside the text and the contents list is a third track that stays in view in a screenshot taken after scrolling past its first position, each in light and dark, recorded in the verification ledger.
 - [ ] The first Tab press at 320 and 1280 CSS px shows the skip link with the family focus ring, recorded in the verification ledger.
-- [ ] The page shows a pill with a bar glyph for each of the four evidence classes and four heat cells that differ from one another in greyscale, in light and dark, recorded with screenshots in the verification ledger.
+- [ ] The page shows a pill with a bar glyph for each of the four evidence classes and four heat cells that differ from one another in greyscale and rise in fill from low to high in light and in dark, recorded with screenshots of the heat map in both themes in the verification ledger.
 - [ ] A `design-review` and an `experience-reviewer` pass over the 1280 px light, 1680 px light, and 320 px dark screenshots leave no finding at Major or Blocker after adjudication, recorded in the verification ledger.
 
 ## Terminal Intent

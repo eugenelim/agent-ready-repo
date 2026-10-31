@@ -1,7 +1,7 @@
 # Plan: architect-assess HTML report in the maintainer-view style
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Drafting
 - **Repository anchors:** the shared family stylesheet in `packs/core/.apm/skills/navigate-intents/scripts/view_assets/view-base.css` and its layout-file check `_layout_violations` in `packs/core/tests/skills/navigate-intents/test_export_html.py`; the decisions explorer's join of base plus layout into one hashed `<style>` and its asset placement beside the script in `packs/repo-governance/.apm/skills/navigate-decisions/scripts/explorer.py` and `explorer_assets/`; the family tokens in `docs/design/tokens/skill-html-views.md` (document view tracks, document density, interaction floor); the parity tool `tools/check_view_base_parity.py`, which finds every `view-base.css` under `packs/*/.apm/`; the renderer and its tests in `packs/architect/.apm/skills/architect-assess/scripts/render_html.py` and `packs/architect/tests/skills/architect-assess/test_render_html.py`. Deviation: the family's layout check bans `var(--c-` in a layout file; this report's layout file reads colour roles through it, because the family list-and-detail views have no tables, code blocks, provenance marks, or heat cells, and the owner decision is recorded in the token file.
 
 > **Plan contract:** `Touches`, `Tests` and `Done when` are what a completion gate
@@ -89,6 +89,22 @@ Depends on: T4
 Verification mode: manual QA
 Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`
 Tests: render the sample fixture and open it at 320 by 640, 1280 by 800, 1680, and 2560 CSS px in light and dark; read the first-screen, scrolled-rail, and first-Tab screenshots; then run `design-review` and `experience-reviewer` over the 1280 light, 1680 light, and 320 dark shots and adjudicate.
+Done when: the observations and review results are in the ledger.
+
+### T6 — Amended heat, contents, print, and source regions
+
+Depends on: T5
+Verification mode: TDD
+Touches: `scripts/render_html.py`, `scripts/report_assets/report.css`, the test file, `docs/design/tokens/skill-html-views.md`, `tests/roster/test_architect_assess_style_docs.py`
+Tests: heat fills as bg, raised, rule with no border and a distinct level glyph per class with empty alternative text and none equal to an evidence glyph; the contents track, sticky rail, and details switch at 64rem; the print block with source wrapping and row keeping; source blocks in `source-scroll` regions with the nearest-heading label; the contents summary target height and the wide-screen body width; the token file text for the heat ramp, glyphs, and the pill styles.
+Done when: the T6 tests pass.
+
+### T7 — Browser QA and design review of the amended page
+
+Depends on: T6
+Verification mode: manual QA
+Touches: `docs/specs/architect-assess-html-report-style/notes/verification-ledger.md`
+Tests: render the sample fixture and open it at 320 by 640, 1280 by 800, 1680, and 2560 CSS px in light and dark, read the first-screen, scrolled-rail, first-Tab, and heat-map shots in both themes, then run `design-review` and `experience-reviewer` over the 1280 light, 1680 light, 320 dark, and dark heat shots and adjudicate.
 Done when: the observations and review results are in the ledger.
 
 ## Review
