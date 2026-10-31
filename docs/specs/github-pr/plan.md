@@ -1,7 +1,7 @@
 # Plan: github-pr
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** sibling skills `packs/github/.apm/skills/github-refresh/` and `github-brief-intake/` (frontmatter, manifest, evals layout); `tests/roster/test_skill_census.py`; existing construction test `packs/github/tests/skills/github-pr-iterate/`; deviation: a skill with `references/` loaded per mode, which the github pack does not yet have, grounded in the survey notes.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -116,3 +116,4 @@ Replace the drafted `github-pr-iterate` with a thin `github-pr`: a router `SKILL
 ## Changelog
 
 - 2026-10-30: drafted.
+- 2026-10-30: spec approved and plan approved by the owner after shaping, adversarial, and security review; residue recorded in the spec Assumptions.

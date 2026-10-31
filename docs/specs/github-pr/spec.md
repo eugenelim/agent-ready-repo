@@ -1,6 +1,6 @@
 # Spec: github-pr — review, iterate on, and adopt GitHub pull requests
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -190,6 +190,10 @@ Each criterion has a stable ID. Those marked **(B)** are behaviour criteria: eac
 - [ ] **P2** `git grep -l github-pr-iterate` on the working tree lists only paths under `docs/specs/github-pr/`.
 - [ ] **P3** The changelog fragment names the review, iterate, and adopt modes.
 - [ ] **P4** `make lint-ruff lint-mypy`, `agentbundle catalogue verify`, and the `packs/github` and skill-census tests pass.
+
+## Terminal Intent
+
+`code` — after approval, implement the three-mode `github-pr` skill, its evals, and the pack changes through tasks T1-T5 until every Acceptance Criterion is satisfied.
 
 ## Follow-ons
 
