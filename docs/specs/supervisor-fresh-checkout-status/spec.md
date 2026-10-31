@@ -1,7 +1,7 @@
 # Spec: Supervisor status in a checkout without the run's store
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-30 by eugenelim, spec at `01c13d980`, after four spec-stage rounds of shaping, adversarial and secure-design review, each adjudicated (round 4 adversarial only); the round-4 one-sentence repair to the Testing Strategy was accepted unreviewed. Records under `.context/reviews/12f339cc-9463-4289-b3d0-f1f07e3980f3/`.
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-30 by eugenelim, spec at `01c13d980`, after four spec-stage rounds of shaping, adversarial and secure-design review, each adjudicated (round 4 adversarial only); the round-4 one-sentence repair to the Testing Strategy was accepted unreviewed. Amended 2026-10-30 under controlled amendment: AC-0007's in-run clone rebuilds its own installed skill, and the final head is proven outside the run (ledger § AC-0007 amendment), after two amendment review rounds, each adjudicated; the second round's three repairs were accepted unreviewed, with its self-host finding settled by the owner on the observed `--write` behaviour. Re-approved 2026-10-30 by eugenelim. Records under `.context/reviews/12f339cc-9463-4289-b3d0-f1f07e3980f3/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144 (the skill-shipped supervisor owns work-loop procedure), ADR-0074 (standard-library skill scripts)
@@ -54,7 +54,7 @@ A maintainer, CI job, or adopter who checks out a branch or `main` holding a spe
 ### Always do
 
 - Keep every changed skill script standard-library only, and load no sibling before the pre-import check decides.
-- Regenerate the projections with the repository's self-host command and bump `core` once. Inside the run, the installed `.claude/skills/work-loop/` is rebuilt only by the supervisor's `regenerate` request; no other step writes it.
+- Bump `core` once, and regenerate the projections with `agentbundle catalogue self-host --root . --write`. Inside the run, the installed `.claude/skills/work-loop/` is rebuilt only by the supervisor's `regenerate` request: any other step that runs self-host restores that directory with `git checkout -- .claude/skills/work-loop/` before it reports.
 - Run `packs/core/tests/skills/work-loop/test_supervisor_pinning.py` after each change to a supervisor script, and keep every case that passes at the base passing with its assertions unchanged; AC-0001 to AC-0006 are checked by added cases.
 
 ### Ask first

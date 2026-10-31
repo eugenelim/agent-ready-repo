@@ -1,7 +1,7 @@
 # Plan: Supervisor status in a checkout without the run's store
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-loop-execution-supervisor.md` (run store row); the pin checks `work-supervisor.py` `_preflight` and `_supervisor_attempt.py` `AttemptStore.check_pins`; their suite `packs/core/tests/skills/work-loop/test_supervisor_pinning.py` (fixture `pinned_template`, helpers `_copy_repo`, `_run`, `_load_cli`) and the harness controller `supervisor_harness.Controller.drive`, which `test_supervisor_consumer_map.py` uses to reach terminal. No new structure.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -19,7 +19,7 @@
 
 One code task changes the two pin checks and the `status` view; one task updates the reference, the architecture page and the captured defect; one task releases `core`. The riskiest part is keeping the exception to `status` alone: both checks must test the verb and the store directory's absence together, so a store that exists but is damaged still refuses.
 
-This run changes the supervisor scripts it runs under. The installed copy under `.claude/skills/work-loop/` is regenerated only when `next` issues the `regenerate` request, never by hand mid-run.
+This run changes the supervisor scripts it runs under, so the spec's Agent Rules govern how its installed copy is rebuilt.
 
 ## Constraints
 
@@ -105,7 +105,7 @@ Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006.
 
 ## Finish evidence (outside the run)
 
-After `terminal`, on the final pushed head, which carries the regenerated installed skill: `make build-self` leaves no diff; `test_shipped_pre_pr_runs_no_linter_labels` passes in build-check's `pytest catalogue-test carve-out destinations (RFC-0082)` step; and a plain fresh clone runs `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` with exit `0`. Each is recorded in the ledger and the pull request before the spec is set to `Shipped`. A failure of any of them blocks the pull request's merge and keeps the spec `Implementing`; the repair returns to this run as a new plan task.
+After `terminal`, on the final pushed head, which carries the regenerated installed skill: `make build-self` leaves no diff; `test_shipped_pre_pr_runs_no_linter_labels` passes in build-check's `pytest catalogue-test carve-out destinations (RFC-0082)` step; and a plain fresh clone runs `status docs/specs/supervisor-fresh-checkout-status --check` and the shipped `pre-pr.py` with exit `0`. Each is recorded in the ledger and the pull request before the spec is set to `Shipped`. A failure of any of them blocks the pull request's merge, keeps the spec `Implementing`, and is surfaced to the owner, who chooses the repair route.
 
 ## Rollout
 
@@ -120,3 +120,4 @@ After `terminal`, on the final pushed head, which carries the regenerated instal
 
 - 2026-10-30: spec approved by eugenelim at `01c13d980`.
 - 2026-10-30: plan approved by eugenelim at `684f8ed41`.
+- 2026-10-30: spec and plan re-approved by eugenelim after the AC-0007 controlled amendment.
