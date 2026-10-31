@@ -68,13 +68,13 @@ HEAT_VALUES = ("low", "medium", "high", "unknown")
 BANNER_TEXT = "Map and hotspot set not user-confirmed"
 NOTICE_TEXT = "Unverified: built from repository text and model analysis; not redacted"
 DIAGRAM_LABEL = "Diagram source (not rendered)"
-DIAGRAM_LABEL_DRAWN = "Diagram (source below)"
+DIAGRAM_LABEL_DRAWN = "Diagram source (not drawn yet)"
 DIAGRAM_LABEL_UNSAFE = "Diagram source (not drawn: unsafe)"
 DIAGRAM_LABEL_LIMIT = "Diagram source (not drawn: limit)"
 DIAGRAMS_NOTE = (
     f"Diagrams are drawn by Mermaid {MERMAID_VERSION}, loaded from cdn.jsdelivr.net. "
     "Opening this report sends your IP address, the time, and your browser details to that "
-    "host; no report text and no page address is sent."
+    "host, and the report's web address if it is served from a web host; no report text is sent."
 )
 
 # Every line the script prints comes from this fixed set (plus a canonical
@@ -472,6 +472,9 @@ class RailItem(NamedTuple):
     nested: bool
 
 
+_LINK_STYLE = re.compile(r"linkStyle(?![A-Za-z0-9_])")
+
+
 def diagram_drawable(text: str) -> bool:
     """Whether a Mermaid fence is safe to hand to the drawing script.
 
@@ -493,7 +496,10 @@ def diagram_drawable(text: str) -> bool:
         return False
     for line in text.split("\n"):
         for statement in line.split(";"):
-            if statement.strip(" \t").lower().startswith(DIAGRAM_STATEMENT_START):
+            lowered = statement.strip(" \t").lower()
+            if lowered.startswith(DIAGRAM_STATEMENT_START) and not _LINK_STYLE.match(
+                statement.strip(" \t")
+            ):
                 return False
     return True
 
@@ -723,7 +729,7 @@ def render(
         if script is None
         else (
             f'<script src="{MERMAID_URL}" integrity="{MERMAID_SRI}" crossorigin="anonymous" '
-            f'referrerpolicy="no-referrer"></script><script>{script}</script>'
+            f'referrerpolicy="no-referrer" defer></script><script>{script}</script>'
         )
     )
     links = _rail_links(rail)

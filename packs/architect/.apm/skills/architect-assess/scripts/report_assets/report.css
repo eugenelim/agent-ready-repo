@@ -12,8 +12,8 @@
 .page-title { display: flex; align-items: flex-start; gap: var(--s-2); font-size: 1.75rem; line-height: 1.2; overflow-wrap: anywhere; }
 .page-title::before { display: block; flex: none; margin-top: var(--s-1); }
 .meta { margin: var(--s-2) 0 0; font-size: 0.875rem; line-height: 1.5; }
-.alert, .notice-untrusted { margin: var(--s-3) var(--s-5) 0; padding: var(--s-2) var(--s-3); }
-.notice-untrusted { border-width: 1px; border-style: solid; border-color: var(--c-rule); border-radius: var(--r-2); }
+.alert, .notice-untrusted, .notice-diagrams { margin: var(--s-3) var(--s-5) 0; padding: var(--s-2) var(--s-3); }
+.notice-untrusted, .notice-diagrams { border-width: 1px; border-style: solid; border-color: var(--c-rule); border-radius: var(--r-2); }
 
 /* ---- Pills and links that must reach the target floor */
 .mark { display: inline-flex; align-items: center; gap: var(--s-1); padding: var(--s-1) var(--s-2); width: max-content; }
@@ -50,6 +50,11 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
 .diagram-label { margin: var(--s-4) 0 var(--s-1); font-size: 0.75rem; line-height: 1.3; text-transform: uppercase; letter-spacing: 0.07em; color: var(--c-subtle); }
 .diagram-render { margin: var(--s-3) 0; max-width: 100%; overflow-x: auto; }
 .diagram-render svg { min-width: 32rem; height: auto; }
+/* The drawing is always the light theme, inverted on a dark screen, so print stays light and a live theme change needs no redraw. A drawing never animates. */
+.diagram-render svg, .diagram-render svg * { animation: none !important; }
+@media (prefers-color-scheme: dark) {
+  .diagram-render svg { filter: invert(1) hue-rotate(180deg); }
+}
 
 /* ---- Provenance marks: a neutral pill, a word, and a bar glyph that reads aloud as nothing */
 .ev-observed, .ev-inferred, .ev-reported, .ev-unknown { background: var(--c-bg); border-width: 1px; border-style: solid; border-color: var(--c-rule-strong); }
@@ -78,7 +83,7 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
   .doc-body > .table-scroll { grid-column: 1 / -1; }
   .doc-body > .source-scroll, .doc-body > .diagram { grid-column: 2 / -1; }
   body { display: grid; grid-template-columns: minmax(0, 1fr) 16rem; grid-auto-flow: row dense; column-gap: var(--s-4); }
-  .page-header, .alert, .notice-untrusted { grid-column: 1 / -1; }
+  .page-header, .alert, .notice-untrusted, .notice-diagrams { grid-column: 1 / -1; }
   .skip-link:focus, .skip-link:focus-visible { grid-column: 1 / -1; justify-self: start; align-self: start; }
   main { grid-column: 1; min-width: 0; }
   .rail { grid-column: 2; align-self: start; position: sticky; top: var(--s-4); max-height: calc(100vh - var(--s-6)); overflow-y: auto; }
@@ -95,6 +100,8 @@ pre code { font-size: 0.8125rem; line-height: 1.5; }
   .table-scroll, .source-scroll { overflow: visible; }
   pre { overflow: visible; white-space: pre-wrap; width: auto; }
   tr { break-inside: avoid; }
+  .diagram-render { break-inside: avoid; }
+  .diagram-render svg { filter: none; }
   /* Paper is light whatever the screen theme, so the page keeps system print colours, one column, and wrapped tables. */
   :root { color-scheme: light; }
   body, main, .doc-section, .page-header { display: block; color: CanvasText; background: Canvas; }

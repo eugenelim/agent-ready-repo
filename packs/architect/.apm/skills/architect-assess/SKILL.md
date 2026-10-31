@@ -274,7 +274,8 @@ mode needs a saved `assessment.md`. With none saved, offer to save one first, as
 a user request, never on your own initiative, and treat opening a browser as a
 separate request. Pass `--diagrams` only when the user asks for drawn diagrams;
 it makes the page load Mermaid from `cdn.jsdelivr.net`, so opening that report
-contacts the host, and it should not be shared with readers who expect the
+contacts the host (and tells it the report's web address if the report is
+served from one), and it should not be shared with readers who expect the
 offline default. Without the flag the page is offline and shows diagrams as
 source.
 

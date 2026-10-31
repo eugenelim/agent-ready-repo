@@ -132,6 +132,45 @@ class Tree(HTMLParser):
             self._cell = None
 
 
+ALLOWED_ELEMENTS = {
+    "html",
+    "head",
+    "meta",
+    "title",
+    "style",
+    "body",
+    "main",
+    "section",
+    "div",
+    "span",
+    "p",
+    "h1",
+    "h2",
+    "h3",
+    "h4",
+    "h5",
+    "h6",
+    "ul",
+    "ol",
+    "li",
+    "table",
+    "thead",
+    "tbody",
+    "tr",
+    "th",
+    "td",
+    "pre",
+    "code",
+    "strong",
+    "em",
+    "a",
+    "details",
+    "summary",
+    "br",
+    "hr",
+    "header",
+    "nav",
+}
 GLOBAL_ATTRS = {"class", "id", "lang", "charset", "http-equiv", "content"}
 ALLOWED_TAG_ATTRS = {
     ("a", "href"),
@@ -232,46 +271,7 @@ def test_only_allowed_elements_and_attributes_are_emitted(mod, tmp_path, capsys)
         '<meta http-equiv="refresh" content="0;url=http://x"> <base href="//x"> <form></form>\n'
     )
     parsed = tree(page(tmp_path.resolve(), report(extra=hostile), mod, capsys))
-    allowed = {
-        "html",
-        "head",
-        "meta",
-        "title",
-        "style",
-        "body",
-        "main",
-        "section",
-        "div",
-        "span",
-        "p",
-        "h1",
-        "h2",
-        "h3",
-        "h4",
-        "h5",
-        "h6",
-        "ul",
-        "ol",
-        "li",
-        "table",
-        "thead",
-        "tbody",
-        "tr",
-        "th",
-        "td",
-        "pre",
-        "code",
-        "strong",
-        "em",
-        "a",
-        "details",
-        "summary",
-        "br",
-        "hr",
-        "header",
-        "nav",
-    }
-    assert set(parsed.elements) <= allowed
+    assert set(parsed.elements) <= ALLOWED_ELEMENTS
     for tag, name, _ in parsed.attrs:
         assert (tag, name) in ALLOWED_TAG_ATTRS or name in GLOBAL_ATTRS, (tag, name)
     assert parsed.elements.count("meta") == 2
@@ -1312,7 +1312,9 @@ def test_layout_file_obeys_the_layout_rules() -> None:
                 "box-shadow",
                 "scroll-behavior",
             }, where
-            assert not prop.startswith(("transition", "animation")), where
+            assert not prop.startswith("transition"), where
+            if prop.startswith("animation"):
+                assert prop == "animation" and value == "none !important", where
             if prop == "border-radius":
                 assert re.fullmatch(r"var\(--r-\d\)|0", value), where
 
@@ -1631,7 +1633,7 @@ def test_diagrams_page_ends_with_the_two_pinned_scripts(mod, tmp_path, capsys) -
     script = SCRIPT_FILE.read_text(encoding="utf-8")
     tail = (
         f'</main><script src="{mod.MERMAID_URL}" integrity="{mod.MERMAID_SRI}" '
-        'crossorigin="anonymous" referrerpolicy="no-referrer"></script>'
+        'crossorigin="anonymous" referrerpolicy="no-referrer" defer></script>'
         f"<script>{script}</script></body></html>\n"
     )
     assert text.endswith(tail)
@@ -1659,18 +1661,26 @@ def test_diagrams_note_follows_the_untrusted_notice(mod, tmp_path, capsys) -> No
     note = (
         f'<div class="note notice-diagrams">Diagrams are drawn by Mermaid {mod.MERMAID_VERSION}, '
         "loaded from cdn.jsdelivr.net. Opening this report sends your IP address, the time, "
-        "and your browser details to that host; no report text and no page address is sent."
-        "</div>"
+        "and your browser details to that host, and the report's web address if it is served "
+        "from a web host; no report text is sent.</div>"
     )
     assert f"not redacted</div>\n{note}" in text
-    assert "notice-diagrams" not in page(tmp_path.resolve(), report(), mod, capsys)
+    assert "notice-diagrams" not in class_tokens(
+        tree(page(tmp_path.resolve(), report(), mod, capsys))
+    )
 
 
-def test_script_element_and_attributes_exist_only_in_diagrams_output(mod, tmp_path, capsys) -> None:
-    parsed = tree(diagrams_page(tmp_path, report(extra=fence()), mod, capsys))
+def test_script_element_and_attributes_exist_only_in_diagrams_output(
+    mod, tmp_path, capsys
+) -> None:
+    corpus = fence() + fence(REFUSED["click"]) + fence(REFUSED["frontmatter"])
+    parsed = tree(diagrams_page(tmp_path, report(extra=corpus), mod, capsys))
     assert parsed.elements.count("script") == 2
     script_attrs = {name for tag, name, _ in parsed.attrs if tag == "script"}
-    assert script_attrs == {"src", "integrity", "crossorigin", "referrerpolicy"}
+    assert script_attrs == {"src", "integrity", "crossorigin", "referrerpolicy", "defer"}
+    default = tree(page(tmp_path.resolve(), report(extra=corpus), mod, capsys))
+    assert set(parsed.elements) - set(default.elements) == {"script"}
+    assert set(parsed.elements) <= ALLOWED_ELEMENTS | {"script"}
     for tag, name, _ in parsed.attrs:
         if tag != "script":
             assert (tag, name) in ALLOWED_TAG_ATTRS or name in GLOBAL_ATTRS, (tag, name)
@@ -1683,25 +1693,31 @@ DRAWABLE = [
     "classDiagram\n  A <|-- B",
     "stateDiagram-v2\n  [*] --> A",
     "erDiagram\n  A ||--o{ B : has",
+    "  flowchart LR\n  A --> B",
+    "flowchart LR\n  A --> B\n  linkStyle 0 stroke:red",
+    "flowchart LR\n  A --> B\n  linkStyle default stroke:red",
 ]
 REFUSED = {
+    "node named like link": "flowchart LR\n linkerd --> api",
+    "node named like click": "flowchart LR\n clicker --> api",
+    "linkStyle lookalike": "flowchart LR\n linkStyles 0 stroke:red",
     "frontmatter": "---\ntitle: x\n---\nflowchart LR\n A --> B",
-    "no keyword": "pie title x\n  \"a\": 1",
+    "no keyword": 'pie title x\n  "a": 1',
     "wrong case": "Flowchart LR\n A --> B",
     "directive": "flowchart LR\n%%{init: {}}%%\n A --> B",
     "nul-split directive": "flowchart LR\n%%\x00{init: {}}%%\n A --> B",
-    "nul-split click": "flowchart LR\n A --> B\ncl\x00ick A href \"x\"",
+    "nul-split click": 'flowchart LR\n A --> B\ncl\x00ick A href "x"',
     "bom first line": "\ufeffflowchart LR\n A --> B",
-    "bom before click": "flowchart LR\n A --> B;\ufeffclick A href \"x\"",
+    "bom before click": 'flowchart LR\n A --> B;\ufeffclick A href "x"',
     "nbsp first line": "\u00a0flowchart LR\n A --> B",
-    "nbsp click": "flowchart LR\n A --> B;\u00a0click A href \"x\"",
+    "nbsp click": 'flowchart LR\n A --> B;\u00a0click A href "x"',
     "ideographic link": "flowchart LR\n A --> B;\u3000link A: x",
-    "click": "flowchart LR\n A --> B\n click A href \"x\"",
-    "semicolon click": "flowchart LR\n A --> B; click A href \"x\"",
+    "click": 'flowchart LR\n A --> B\n click A href "x"',
+    "semicolon click": 'flowchart LR\n A --> B; click A href "x"',
     "upper click": "flowchart LR\n A --> B\nCLICK A call f()",
-    "link": "classDiagram\n A <|-- B\n link A \"https://x\"",
-    "links": "sequenceDiagram\n A->>B: x\n links A: {\"a\": \"b\"}",
-    "callback": "classDiagram\n A <|-- B\n callback A \"f\"",
+    "link": 'classDiagram\n A <|-- B\n link A "https://x"',
+    "links": 'sequenceDiagram\n A->>B: x\n links A: {"a": "b"}',
+    "callback": 'classDiagram\n A <|-- B\n callback A "f"',
     "carriage return": "flowchart LR\r\n A --> B",
     "control": "flowchart LR\n A --> B\x07",
     "oversize": "flowchart LR\n" + " A --> B\n" * 6000,
@@ -1731,7 +1747,7 @@ def test_labels_and_markers_by_state(mod, tmp_path, capsys) -> None:
     extra = fence() + fence(REFUSED["click"])
     text = diagrams_page(tmp_path, report(extra=extra), mod, capsys)
     assert labels(text) == [
-        ("diagram diagram-drawn", "Diagram (source below)"),
+        ("diagram diagram-drawn", "Diagram source (not drawn yet)"),
         ("diagram", "Diagram source (not drawn: unsafe)"),
     ]
     plain = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
@@ -1745,7 +1761,7 @@ def test_the_first_twenty_passing_fences_are_drawn_and_refusals_are_not_counted(
     text = diagrams_page(tmp_path, report(extra=extra), mod, capsys)
     found = labels(text)
     assert [label for _, label in found[:3]] == ["Diagram source (not drawn: unsafe)"] * 3
-    assert [label for _, label in found[3:23]] == ["Diagram (source below)"] * 20
+    assert [label for _, label in found[3:23]] == ["Diagram source (not drawn yet)"] * 20
     assert [label for _, label in found[23:]] == ["Diagram source (not drawn: limit)"] * 2
     assert sum(1 for css, _ in found if css == "diagram diagram-drawn") == 20
 
@@ -1813,7 +1829,9 @@ def test_script_asset_refusals_have_distinct_tokens(mod, tmp_path, capsys, asset
 
 
 @pytest.mark.parametrize("text", ["x </SCRIPT> y", "x <!-- y", "line\r\nline"])
-def test_script_asset_with_forbidden_text_is_script_refused(mod, tmp_path, capsys, asset_dir, text) -> None:
+def test_script_asset_with_forbidden_text_is_script_refused(
+    mod, tmp_path, capsys, asset_dir, text
+) -> None:
     (asset_dir / "diagrams.js").write_bytes(text.encode("utf-8"))
     code, err, _ = run_diagrams(_mk(tmp_path / "w"), report(), mod, capsys)
     assert (code, err.strip()) == (3, "render_html: failed: script asset holds forbidden text")
@@ -1837,113 +1855,167 @@ def test_caps_hold_with_the_flag(mod, tmp_path, capsys, monkeypatch) -> None:
     assert (code, err.strip()) == (2, "render_html: refused: source over the size cap")
 
 
-# ---- the drawing script's text rules ---------------------------------------------
+# ---- the drawing script ------------------------------------------------------------
 
 
 def _script_text() -> str:
     return SCRIPT_FILE.read_text(encoding="utf-8")
 
 
-def _initialize_options() -> dict[str, str]:
-    body = re.search(r"mermaid\.initialize\(\{(.*?)\}\)", _script_text(), re.S).group(1)
-    return {
-        key: value.strip()
-        for key, value in re.findall(r"(\w+):\s*([^,\n]+(?:\?[^,\n]+)?)", body)
-    }
-
-
-def test_script_initializes_mermaid_with_the_fixed_options() -> None:
-    options = _initialize_options()
-    assert options["securityLevel"] == "'strict'"
-    assert options["startOnLoad"] == "false"
-    assert options["suppressErrorRendering"] == "true"
-    assert options["htmlLabels"] == "false"
-    assert options["maxTextSize"] == "50000"
-    assert options["maxEdges"] == "500"
-
-
-def test_script_picks_the_theme_from_the_colour_scheme() -> None:
+def test_script_initializes_mermaid_exactly_once_with_the_fixed_options() -> None:
     text = _script_text()
-    assert "window.matchMedia('(prefers-color-scheme: dark)').matches" in text
-    assert "theme: dark ? 'dark' : 'neutral'" in text
+    assert text.count("mermaid.initialize(") == 1
+    body = re.search(r"mermaid\.initialize\(\{(.*?)\}\)", text, re.S).group(1)
+    assert "..." not in body
+    pairs = dict(re.findall(r"(\w+):\s*([^,\n]+)", body))
+    assert pairs == {
+        "startOnLoad": "false",
+        "securityLevel": "'strict'",
+        "suppressErrorRendering": "true",
+        "htmlLabels": "false",
+        "maxTextSize": "50000",
+        "maxEdges": "500",
+        "theme": "'neutral'",
+    }
 
 
 def test_script_draws_only_marked_blocks_and_reads_the_code_text_content() -> None:
     text = _script_text()
-    assert ".diagram.diagram-drawn" in text
-    assert text.count("querySelectorAll(") == 1
+    assert text.count("querySelectorAll(") == 1 and ".diagram.diagram-drawn" in text
     assert "window.mermaid.render(id, code.textContent)" in text
-    assert "innerText" not in text and ".innerHTML" not in text
+    assert "matchMedia" not in text
 
 
-def test_script_render_ids_hold_an_underscore_headings_never_take(mod) -> None:
+def test_script_render_ids_cannot_equal_a_heading_slug(mod) -> None:
     assert "var id = 'mmd_d' + (n + 1);" in _script_text()
-    slugs = {mod._slug(f"Mmd D{n}", set(), {}) for n in range(1, 4)}
-    assert all("_" not in slug for slug in slugs)
+    render_ids = {f"mmd_d{n}" for n in range(1, 30)} | {f"dmmd_d{n}" for n in range(1, 30)}
+    for heading in ("mmd_d1", "dmmd_d1", "Mmd_D1", "mmd-d1", "Mmd D1"):
+        slug = mod._slug(heading, set(), {})
+        assert "_" not in slug and slug not in render_ids, heading
 
 
 @pytest.mark.parametrize(
-    "sink",
+    "pattern",
     [
-        "innerHTML",
-        "insertAdjacentHTML",
-        "outerHTML",
-        "eval",
-        "Function(",
-        "document.write",
-        "setTimeout(",
-        "setInterval(",
+        r"\.innerHTML",
+        r"insertAdjacentHTML",
+        r"outerHTML",
+        r"\beval\s*\(",
+        r"\bFunction\s*\(",
+        r"new\s+Function",
+        r"document\s*\.\s*write",
+        r"setTimeout\s*\(",
+        r"setInterval\s*\(",
     ],
 )
-def test_script_has_no_html_string_sink_or_dynamic_code(sink) -> None:
-    assert sink not in _script_text()
+def test_script_has_no_html_string_sink_or_dynamic_code(pattern) -> None:
+    assert not re.search(pattern, _script_text())
 
 
-def test_script_confines_what_it_accepts_by_text_rules() -> None:
-    text = _script_text()
-    for needle in (
-        "removeAttribute('style')",
-        "'@import'",
-        "selector.indexOf('~') !== -1",
-        "selector.indexOf('+') !== -1",
-        "rule.cssRules.length > 0",
-        "!ownsId(current, id)",
-        "value.indexOf(id + '-') === 0",
-        "value.indexOf(id + '_') === 0",
-        "KEYFRAME_NAMES.indexOf(rule.name) === -1",
-        "if (quote || depth !== 0) {",
-        "if (!parts || !selectorsConfined(parts, id)) {",
-        "renamed[current] = id + '-' + current;",
-        "root.getAttribute('id') !== id",
-        "typeof lib.initialize === 'function'",
-        "typeof lib.render === 'function'",
-        "'adoptedStyleSheets' in document",
-        "Diagram source (not drawn)",
-    ):
-        assert needle.replace("'@import'", "/@import/i") in text or needle in text, needle
-    for element in (
-        "svg", "g", "path", "rect", "circle", "ellipse", "line", "polyline", "polygon", "text",
-        "tspan", "defs", "marker", "title", "desc", "clipPath", "filter", "feDropShadow",
-        "linearGradient", "stop", "symbol",
-    ):
-        assert f"'{element}'" in text.split("var SVG_ELEMENTS")[1].split("];")[0], element
-    assert "function targetsTheRoot" in text and "selector === '#' + id" in text
-    banned = text.split("var BANNED_PROPERTIES")[1].split("];")[0]
-    for prop in (
-        "position", "inset", "top", "right", "bottom", "left", "float", "transform", "z-index",
-        "translate", "rotate", "scale", "offset", "offset-path", "offset-distance",
-        "offset-position", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
-    ):
-        assert f"'{prop}'" in banned, prop
-    for rule in ("CSSMediaRule", "CSSSupportsRule", "CSSLayerBlockRule", "CSSContainerRule"):
-        assert rule in text
-    for refused in ("CSSImportRule", "CSSFontFaceRule", "CSSNamespaceRule", "CSSPropertyRule"):
-        assert refused not in text
+NODE_TABLE = r"""
+const s = require(process.argv[1]);
+const rule = (names) => ({ style: { length: names.length, ...Object.fromEntries(names.map((n, i) => [i, n])) } });
+const out = {
+  list: [
+    s.selectorList('#a .x, #a .y'),
+    s.selectorList('#a [x=")"], .notice'),
+    s.selectorList('#a .b\\(, body'),
+    s.selectorList('#a :is(.x, .y), #a .z'),
+    s.selectorList('#a "unterminated'),
+    s.selectorList('#a [x'),
+    s.selectorList('#a .x\\'),
+  ],
+  confined: [
+    s.selectorsConfined(['#mmd_d1'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 .a'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 > g'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d10 .a'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 ~ *'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 + g'], 'mmd_d1'),
+    s.selectorsConfined(['.notice'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1 .a', 'body'], 'mmd_d1'),
+    s.selectorsConfined(['#mmd_d1:not(.x) ~ g'], 'mmd_d1'),
+  ],
+  root: [
+    s.targetsTheRoot(['#mmd_d1'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 svg'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 > svg'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 .a'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 g'], 'mmd_d1'),
+    s.targetsTheRoot(['#mmd_d1 div.tip'], 'mmd_d1'),
+  ],
+  owns: ['mmd_d1', 'mmd_d1-x', 'mmd_d1_x', 'mmd_d10', 'mmd_d10-x', 'actor1', 'xmmd_d1'].map((v) => s.ownsId(v, 'mmd_d1')),
+  refs: ['url(#a)', 'url("#a")', "url('#a')", 'url(https://x/y)', 'url( #a )', 'fill: red', 'url(#a) url(x.png)'].map(s.referencesOnlyTheDocument),
+  attrs: [
+    s.attributeRefused('href', '#a'), s.attributeRefused('xlink:href', '#a'), s.attributeRefused('x:href', '#a'),
+    s.attributeRefused('src', 'a'), s.attributeRefused('onclick', 'f()'), s.attributeRefused('xlink:onload', 'f()'),
+    s.attributeRefused('fill', 'url(https://x)'), s.attributeRefused('fill', 'url(#a)'), s.attributeRefused('d', 'M0 0'),
+  ],
+  banned: ['position', 'inset', 'top', 'right', 'bottom', 'left', 'float', 'transform', 'z-index', 'translate', 'rotate', 'scale',
+    'margin', 'margin-top', 'margin-inline-start', 'margin-block-end', 'inset-inline-start', 'inset-block', 'offset', 'offset-anchor',
+    'offset-rotate', 'fill', 'stroke', 'font-size', 'text-anchor', 'marginal', 'stroke-dashoffset', 'opacity'].map(s.propertyBanned),
+  rules: [
+    s.propertiesAllowed(rule(['fill', 'stroke'])),
+    s.propertiesAllowed(rule(['margin-inline-start'])),
+    s.propertiesAllowed({}),
+  ],
+};
+console.log(JSON.stringify(out));
+"""
 
 
-def test_the_real_script_passes_the_loader_and_the_inline_hash(mod) -> None:
-    helper = mod._load_helper()
-    assert mod.load_script(helper) == _script_text()
+@pytest.fixture(scope="module")
+def node_table() -> dict:
+    import json
+    import shutil
+    import subprocess
+
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("node is not installed")
+    done = subprocess.run(  # noqa: S603 - fixed argv, reads only the shipped script
+        [node, "-e", NODE_TABLE, str(SCRIPT_FILE)], capture_output=True, text=True, timeout=60
+    )
+    assert done.returncode == 0, done.stderr
+    return json.loads(done.stdout)
+
+
+def test_script_selector_splitting_treats_quotes_and_escapes_as_data(node_table) -> None:
+    assert node_table["list"] == [
+        ["#a .x", "#a .y"],
+        ['#a [x=")"]', ".notice"],
+        ["#a .b\\(", "body"],
+        ["#a :is(.x, .y)", "#a .z"],
+        None,
+        None,
+        ["#a .x\\"],
+    ]
+
+
+def test_script_confines_selectors_to_the_drawing_by_exact_id(node_table) -> None:
+    assert node_table["confined"] == [True, True, True, False, False, False, False, False, False]
+
+
+def test_script_applies_the_positioning_ban_to_the_root_rule_only(node_table) -> None:
+    assert node_table["root"] == [True, True, True, False, False, False]
+
+
+def test_script_owns_an_id_only_by_exact_match_or_a_separator(node_table) -> None:
+    assert node_table["owns"] == [True, True, True, False, False, False, False]
+
+
+def test_script_allows_only_fragment_references(node_table) -> None:
+    assert node_table["refs"] == [True, True, True, False, True, True, False]
+
+
+def test_script_refuses_links_loaders_and_handlers_by_local_name(node_table) -> None:
+    assert node_table["attrs"] == [True, True, True, True, True, True, True, False, False]
+
+
+def test_script_bans_every_movement_and_margin_family_property(node_table) -> None:
+    banned = [True] * 21 + [False] * 7
+    assert node_table["banned"] == banned
+    assert node_table["rules"] == [True, False, True]
 
 
 def test_drawn_diagrams_scroll_inside_their_own_region() -> None:
@@ -1959,7 +2031,20 @@ def test_script_keyframe_names_are_a_fixed_list() -> None:
     assert re.findall(r"'([^']+)'", names) == ["dash", "edge-animation-frame"]
 
 
-def test_script_names_each_drawn_region_after_its_source_label() -> None:
-    text = _script_text()
-    assert "'Drawn diagram: ' + named.slice(8)" in text
-    assert "named.indexOf('Source: ') === 0" in text
+def test_drawings_never_animate_and_print_light_on_one_page() -> None:
+    assert declared(".diagram-render svg *", "animation") == ["none !important"]
+    assert declared(".diagram-render svg", "animation") == ["none !important"]
+    assert declared(".diagram-render svg", "filter", "prefers-color-scheme: dark") == [
+        "invert(1) hue-rotate(180deg)"
+    ]
+    assert declared(".diagram-render svg", "filter", "print") == ["none"]
+    assert declared(".diagram-render", "break-inside", "print") == ["avoid"]
+
+
+def test_the_privacy_note_is_laid_out_like_the_untrusted_notice() -> None:
+    for prop in ("margin", "padding"):
+        assert declared(".notice-diagrams", prop) == declared(".notice-untrusted", prop)
+    assert declared(".notice-diagrams", "border-width") == declared(
+        ".notice-untrusted", "border-width"
+    )
+    assert declared(".notice-diagrams", "grid-column", "min-width: 64rem") == ["1 / -1"]

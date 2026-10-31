@@ -17,7 +17,7 @@ replaces the existing `assessment.html`.
 | --- | --- |
 | 0 | The page was written. |
 | 2 | The report or the command was refused. The reasons are: a wrong argument count or a second argument other than `--diagrams` (stderr then reads `render_html: usage: render_html.py <effort-dir> [--diagrams]`); an orientation subsection without a usable `Sources checked` table; an evidence class outside `observed`, `inferred`, `reported`, `unknown`; a source over 2 MiB; a source that is not UTF-8; and a rendered page over 16 MiB. The reason is on stderr. |
-| 3 | Confinement or environment failure: a missing source, a missing or non-directory effort path, an existing `assessment.html` over 16 MiB, a symlink, an unexpected error, a host without descriptor walking (Windows included), a stylesheet asset that is missing, over 64 KiB, not UTF-8, or holds `</style`, `<!--`, `url(`, or `@import`, or, with `--diagrams`, a diagrams script asset that is missing or unsafe, over 64 KiB, not UTF-8, or holds `</script`, `<!--`, or a carriage return. No report is written. |
+| 3 | Confinement or environment failure: a missing source, a missing or non-directory effort path, an existing `assessment.html` over 16 MiB, a symlink, an unexpected error, a host without descriptor walking (Windows included), a stylesheet asset that is missing, over 64 KiB, not UTF-8, or holds `</style`, `<!--`, `url(`, or `@import`, or, with `--diagrams`, a diagrams script asset that is missing or unsafe (`render_html: failed: script asset missing or unsafe`), over 64 KiB (`render_html: failed: script asset over the size cap`), not UTF-8 (`render_html: failed: script asset unreadable`), or holding `</script`, `<!--`, or a carriage return (`render_html: failed: script asset holds forbidden text`). No report is written. |
 
 ## How it looks
 
@@ -44,9 +44,13 @@ With `--diagrams`, the page draws each safe Mermaid fence in place, above its
 source block, in the page's light or dark theme. The page then loads Mermaid
 12.2.0 from `cdn.jsdelivr.net`, bound by an integrity hash, and runs one script
 of this pack's own. Opening such a report sends the reader's IP address, the
-time, and browser details to that host, and it shows source blocks when offline.
+time, and browser details to that host, plus the report's web address when it
+is served from a web host, and it shows source blocks when offline.
 Share a drawn report only with readers who accept that; the default report
 stays offline. A fence that is unsafe to draw (a directive, a frontmatter
-block, a click or link statement, an unlisted diagram type, an oversize fence,
-or any of the first 20 passing fences being exceeded) or that fails to draw
-stays as source and says so on its label.
+block, a click, link, or callback statement, an unlisted diagram type, or an
+oversize fence) stays as source and says so on its label. Only the first 20
+fences that pass are drawn, and later ones say `limit`. A fence that fails to
+draw stays as source with the label `Diagram source (not drawn)`. A diagram
+with a `linkStyle` line still draws; a node whose name starts with `link`,
+`click`, or `callback` does not.

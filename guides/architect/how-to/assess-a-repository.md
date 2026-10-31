@@ -189,9 +189,9 @@ folder. Configuration remains optional and no destination is created silently.
 To get an offline copy, ask for an HTML report of the saved assessment. The agent
 renders `assessment.html` beside it. By default the page runs no script, shows
 diagrams as source blocks, and is refused if an orientation section lacks its
-`Sources checked` table. Ask for drawn diagrams to have the page draw them with
-Mermaid loaded from `cdn.jsdelivr.net`; opening that report contacts the host,
-so share it only with readers who accept that.
+`Sources checked` table. Ask for drawn diagrams (the agent then passes `--diagrams`) to have the page
+draw them with Mermaid loaded from `cdn.jsdelivr.net`; opening that report
+contacts the host, so share it only with readers who accept that.
 
 Next, ask:
 

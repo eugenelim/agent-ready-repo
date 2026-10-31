@@ -360,6 +360,13 @@ def test_html_reference_exit_rows_name_the_new_refusals() -> None:
     two = next(line for line in lines if line.startswith("| 2 |"))
     three = next(line for line in lines if line.startswith("| 3 |"))
     assert "second argument other than `--diagrams`" in two
+    for token in (
+        "render_html: failed: script asset missing or unsafe",
+        "render_html: failed: script asset over the size cap",
+        "render_html: failed: script asset unreadable",
+        "render_html: failed: script asset holds forbidden text",
+    ):
+        assert token in three, token
     for reason in ("diagrams script asset", "`</script`", "a carriage return"):
         assert reason in three
 

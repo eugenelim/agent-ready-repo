@@ -1,12 +1,13 @@
 /*
  * Draws the Mermaid fences the renderer marked for drawing. The page's policy allows this
- * file by hash, so it is plain script with no module syntax. Every failure leaves the fence
- * as source and says so on its label; nothing here trusts the diagram text, Mermaid's output,
- * or the page's own element ids.
+ * file by hash, so it is one plain script. Every failure leaves the fence as source and says
+ * so on its label; nothing here trusts the diagram text, Mermaid's output, or the page's own
+ * element ids. Outside a browser the file only exports its pure checks, for the test table.
  */
 (function () {
   'use strict';
 
+  var DRAWN_LABEL = 'Diagram (source below)';
   var FAILED_LABEL = 'Diagram source (not drawn)';
   var SVG_ELEMENTS = [
     'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon',
@@ -16,36 +17,19 @@
   var GROUPING_RULES = ['CSSMediaRule', 'CSSSupportsRule', 'CSSLayerBlockRule', 'CSSContainerRule'];
   var LEAF_RULES = ['CSSStyleRule', 'CSSKeyframesRule', 'CSSKeyframeRule'];
   var BANNED_PROPERTIES = [
-    'position', 'inset', 'top', 'right', 'bottom', 'left', 'float', 'transform', 'z-index',
-    'translate', 'rotate', 'scale', 'offset', 'offset-path', 'offset-distance',
-    'offset-position', 'margin', 'margin-top', 'margin-right', 'margin-bottom', 'margin-left'
+    'position', 'float', 'top', 'right', 'bottom', 'left', 'transform', 'z-index', 'translate',
+    'rotate', 'scale'
   ];
+  var BANNED_PROPERTY_FAMILIES = ['margin', 'inset', 'offset'];
   var KEYFRAME_NAMES = ['dash', 'edge-animation-frame'];
 
-  function blocks() {
-    return Array.prototype.slice.call(document.querySelectorAll('.diagram.diagram-drawn'));
-  }
-
-  function fail(block, ids) {
-    var label = block.querySelector('.diagram-label');
-    if (label) {
-      label.textContent = FAILED_LABEL;
+  function propertyBanned(name) {
+    if (BANNED_PROPERTIES.indexOf(name) !== -1) {
+      return true;
     }
-    ids.forEach(function (id) {
-      var left = document.getElementById(id);
-      if (left && left.parentNode) {
-        left.parentNode.removeChild(left);
-      }
+    return BANNED_PROPERTY_FAMILIES.some(function (family) {
+      return name === family || name.indexOf(family + '-') === 0;
     });
-  }
-
-  function mermaidReady() {
-    var lib = window.mermaid;
-    return Boolean(lib) && typeof lib.initialize === 'function' && typeof lib.render === 'function';
-  }
-
-  function sheetsSupported() {
-    return typeof CSSStyleSheet === 'function' && 'adoptedStyleSheets' in document;
   }
 
   function propertiesAllowed(rule) {
@@ -54,7 +38,7 @@
       return true;
     }
     for (var i = 0; i < declarations.length; i += 1) {
-      if (BANNED_PROPERTIES.indexOf(declarations[i]) !== -1) {
+      if (propertyBanned(declarations[i])) {
         return false;
       }
     }
@@ -125,6 +109,73 @@
     });
   }
 
+  function ownsId(value, id) {
+    return value === id || value.indexOf(id + '-') === 0 || value.indexOf(id + '_') === 0;
+  }
+
+  function referencesOnlyTheDocument(value) {
+    var matches = value.match(/url\([^)]*\)/gi) || [];
+    return matches.every(function (match) {
+      return /^url\(\s*['"]?#/i.test(match);
+    });
+  }
+
+  function localName(name) {
+    return name.slice(name.lastIndexOf(':') + 1).toLowerCase();
+  }
+
+  function attributeRefused(name, value) {
+    var local = localName(name);
+    if (local === 'href' || local === 'src' || local.indexOf('on') === 0) {
+      return true;
+    }
+    return !referencesOnlyTheDocument(value);
+  }
+
+  if (typeof document === 'undefined') {
+    if (typeof module !== 'undefined' && module.exports) {
+      module.exports = {
+        selectorList: selectorList,
+        selectorsConfined: selectorsConfined,
+        targetsTheRoot: targetsTheRoot,
+        ownsId: ownsId,
+        referencesOnlyTheDocument: referencesOnlyTheDocument,
+        attributeRefused: attributeRefused,
+        propertiesAllowed: propertiesAllowed,
+        propertyBanned: propertyBanned
+      };
+    }
+    return;
+  }
+
+  var holders = [];
+
+  function blocks() {
+    return Array.prototype.slice.call(document.querySelectorAll('.diagram.diagram-drawn'));
+  }
+
+  function fail(block, ids) {
+    var label = block.querySelector('.diagram-label');
+    if (label) {
+      label.textContent = FAILED_LABEL;
+    }
+    ids.forEach(function (id) {
+      var left = document.getElementById(id);
+      if (left && left.parentNode) {
+        left.parentNode.removeChild(left);
+      }
+    });
+  }
+
+  function mermaidReady() {
+    var lib = window.mermaid;
+    return Boolean(lib) && typeof lib.initialize === 'function' && typeof lib.render === 'function';
+  }
+
+  function sheetsSupported() {
+    return typeof CSSStyleSheet === 'function' && 'adoptedStyleSheets' in document;
+  }
+
   function ruleAllowed(rule, id) {
     var kind = rule.constructor && rule.constructor.name;
     if (GROUPING_RULES.indexOf(kind) !== -1) {
@@ -168,17 +219,6 @@
     return ok ? sheet : null;
   }
 
-  function referencesOnlyTheDocument(value) {
-    var matches = value.match(/url\([^)]*\)/gi) || [];
-    return matches.every(function (match) {
-      return /^url\(\s*['"]?#/i.test(match);
-    });
-  }
-
-  function ownsId(value, id) {
-    return value === id || value.indexOf(id + '-') === 0 || value.indexOf(id + '_') === 0;
-  }
-
   function prefixIds(elements, id) {
     var renamed = {};
     elements.forEach(function (element) {
@@ -205,6 +245,30 @@
     });
   }
 
+  // An inline style becomes a rule in the same checked sheet, marked important because an
+  // inline style outranks every sheet rule, so the drawing keeps the look Mermaid gave it
+  // while every declaration goes through the same confinement.
+  function inlineStyleRule(element, id, number, isRoot) {
+    var style = element.style;
+    if (!style) {
+      return null;
+    }
+    var parts = [];
+    for (var i = 0; i < style.length; i += 1) {
+      var name = style.item(i);
+      parts.push(name + ': ' + style.getPropertyValue(name) + ' !important');
+    }
+    if (!parts.length) {
+      return '';
+    }
+    var selector = '#' + id;
+    if (!isRoot) {
+      element.setAttribute('data-mmd', String(number));
+      selector += ' [data-mmd="' + number + '"]';
+    }
+    return selector + ' { ' + parts.join('; ') + ' }\n';
+  }
+
   function cleanSvg(svgText, id) {
     var parsed = new DOMParser().parseFromString(svgText, 'image/svg+xml');
     var root = parsed.documentElement;
@@ -220,40 +284,61 @@
       node.parentNode.removeChild(node);
     });
     var elements = [root].concat(Array.prototype.slice.call(root.getElementsByTagName('*')));
+    var inline = '';
     for (var i = 0; i < elements.length; i += 1) {
       var element = elements[i];
       if (SVG_ELEMENTS.indexOf(element.localName) === -1) {
         return null;
       }
-      element.removeAttribute('style');
       var attributes = Array.prototype.slice.call(element.attributes);
       for (var j = 0; j < attributes.length; j += 1) {
-        var name = attributes[j].name.toLowerCase();
-        if (name === 'href' || name === 'xlink:href' || name === 'src' || name.indexOf('on') === 0) {
-          return null;
+        if (attributes[j].name.toLowerCase() === 'style') {
+          continue;
         }
-        if (!referencesOnlyTheDocument(attributes[j].value)) {
+        if (attributeRefused(attributes[j].name, attributes[j].value)) {
           return null;
         }
       }
+      if (element.hasAttribute('style')) {
+        var rule = inlineStyleRule(element, id, i, element === root);
+        if (rule === null) {
+          return null;
+        }
+        inline += rule;
+        element.removeAttribute('style');
+      }
     }
     prefixIds(elements, id);
-    return { root: root, css: css };
+    return { root: root, css: css + inline };
   }
 
-  function place(block, root) {
+  function refreshTabStop(holder) {
+    if (holder.scrollWidth > holder.clientWidth) {
+      holder.setAttribute('tabindex', '0');
+    } else {
+      holder.removeAttribute('tabindex');
+    }
+  }
+
+  function place(block, root, number, total) {
     var holder = document.createElement('div');
     holder.className = 'diagram-render';
     holder.setAttribute('role', 'region');
-    holder.setAttribute('tabindex', '0');
     var source = block.querySelector('.source-scroll');
     var named = source ? source.getAttribute('aria-label') : null;
     holder.setAttribute(
       'aria-label',
-      named && named.indexOf('Source: ') === 0 ? 'Drawn diagram: ' + named.slice(8) : 'Drawn diagram'
+      'Drawn diagram ' + number + ' of ' + total +
+        (named && named.indexOf('Source: ') === 0 ? ': ' + named.slice(8) : '')
     );
     holder.appendChild(document.importNode(root, true));
     block.insertBefore(holder, source);
+    holders.push(holder);
+    refreshTabStop(holder);
+    var label = block.querySelector('.diagram-label');
+    if (label) {
+      label.textContent = DRAWN_LABEL;
+    }
   }
 
   async function drawAll() {
@@ -267,7 +352,6 @@
       });
       return;
     }
-    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
     try {
       window.mermaid.initialize({
         startOnLoad: false,
@@ -276,7 +360,7 @@
         htmlLabels: false,
         maxTextSize: 50000,
         maxEdges: 500,
-        theme: dark ? 'dark' : 'neutral'
+        theme: 'neutral'
       });
     } catch (error) {
       found.forEach(function (block) {
@@ -301,16 +385,28 @@
           continue;
         }
         document.adoptedStyleSheets = document.adoptedStyleSheets.concat([sheet]);
-        place(block, cleaned.root);
+        place(block, cleaned.root, n + 1, found.length);
       } catch (error) {
         fail(block, [id, 'd' + id]);
       }
     }
   }
 
-  drawAll().catch(function () {
-    blocks().forEach(function (block) {
-      fail(block, []);
+  function start() {
+    drawAll().catch(function () {
+      blocks().forEach(function (block) {
+        fail(block, []);
+      });
     });
+  }
+
+  window.addEventListener('resize', function () {
+    holders.forEach(refreshTabStop);
   });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
+  }
 })();

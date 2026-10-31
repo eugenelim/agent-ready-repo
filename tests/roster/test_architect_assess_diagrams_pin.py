@@ -8,7 +8,9 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 RENDERER = REPO_ROOT / "packs/architect/.apm/skills/architect-assess/scripts/render_html.py"
-ADR = next((REPO_ROOT / "docs/adr").glob("0153-architect-assess-draws-diagrams-*.md"))
+_ADRS = sorted((REPO_ROOT / "docs/adr").glob("0153-architect-assess-draws-diagrams-*.md"))
+assert _ADRS, "missing docs/adr/0153-architect-assess-draws-diagrams-*.md"
+ADR = _ADRS[0]
 
 
 def _constant(name: str) -> str:
@@ -37,6 +39,7 @@ def test_adr_records_the_pinned_version_url_and_hash() -> None:
     assert f"https://cdn.jsdelivr.net/npm/mermaid@{version}/dist/mermaid.min.js" in adr
     assert _constant("MERMAID_SRI") in adr
     assert "**Status:** Accepted" in adr
+    assert re.search(r"\*\*Date:\*\* \d{4}-\d{2}-\d{2}", adr)
 
 
 def test_adr_states_its_required_points() -> None:
@@ -89,7 +92,7 @@ def test_user_docs_name_the_flag_the_host_and_the_sharing_warning() -> None:
     )
     for path in guides:
         text = " ".join(path.read_text(encoding="utf-8").split())
-        assert "cdn.jsdelivr.net" in text, path.name
+        assert "cdn.jsdelivr.net" in text and "`--diagrams`" in text, path.name
         assert "share" in text.lower() and "readers who accept that" in text, path.name
     reference = " ".join(guides[0].read_text(encoding="utf-8").split())
-    assert "--diagrams" in reference
+    assert "web address" in reference

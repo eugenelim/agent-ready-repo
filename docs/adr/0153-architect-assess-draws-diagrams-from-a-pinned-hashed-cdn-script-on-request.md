@@ -16,7 +16,7 @@
 - **Decision:** `render_html.py --diagrams` adds two script elements to the report: Mermaid 12.2.0 from `https://cdn.jsdelivr.net/npm/mermaid@12.2.0/dist/mermaid.min.js`, bound by the integrity hash `sha384-8xUhuLNMjW/cI2Dacg3DR4WliYznvIg0LVG1stctThKD/YVrJFI9TNCFxft5NYgp` with `crossorigin="anonymous"` and `referrerpolicy="no-referrer"`, then one inline script of this pack's own. Without the flag the page has no script and no network reference.
 - **Because:** readers want drawn diagrams, and the repository already loads Mermaid this way elsewhere; a flag keeps the offline, no-network default for reports built from untrusted repository text.
 - **Applies to:** the `architect-assess` skill's HTML renderer only.
-- **Tradeoff accepted:** a `--diagrams` report contacts `cdn.jsdelivr.net` each time it is opened and tells that host the reader's IP address, the time, and browser details; it shows source blocks when offline.
+- **Tradeoff accepted:** a `--diagrams` report contacts `cdn.jsdelivr.net` each time it is opened and tells that host the reader's IP address, the time, and browser details, plus the report's web address when it is served from a web host (the integrity check needs a cross-origin request that carries an `Origin` header); it shows source blocks when offline.
 - **Revisit if:** an advisory is published against the pinned version, the CDN host changes, or a vendoring or local-file route becomes practical.
 
 ## Context
