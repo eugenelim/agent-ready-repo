@@ -456,7 +456,7 @@ acceptance per request kind are in [runtime security primitives § 11](runtime-s
 | `docs/specs/<feature>/delivery/review-selections.jsonl`, `review-decisions.jsonl` | Reviewer selections and owner review decisions | Committed | Only the supervisor writes them |
 | `docs/specs/<feature>/delivery/effect-resolutions.jsonl` | Named-human effect decisions | Committed | Append only |
 | `<spec>/.supervisor/` | `run.json`, `journal.jsonl`, `security-events.jsonl`, the run lock | Local, self-ignoring | Deletable; nothing re-derives from it |
-| Run store under the Git directory | Attempt manifests and issuance marks, pinned supervisor digests, `recovery.json` | Local | The attempt-security trust root |
+| Run store under the Git directory | Attempt manifests and issuance marks, pinned supervisor digests, `recovery.json` | Local | The attempt-security trust root. A checkout without it verifies committed records only, and `status` reports which (`verification`) |
 | `.loop-run/events.jsonl` | One line per supervisor step | Local | Projected from commits; a lost line is repaired |
 
 `run.json` holds `run_id`, `active`, `stage`, `gate_pending`, `gate_question`,

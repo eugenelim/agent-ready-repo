@@ -1243,3 +1243,193 @@ def test_a_run_directory_without_a_spec_record_refuses_every_spec_until_removed(
     tampered.rmdir()
     assert h.run_cli(repo, "next", SPEC)[0] == 0
     assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
+
+
+# ── status in a checkout without the run's store ────────────────────────────
+
+_ONLY_RECORDS = "committed-records-only"
+_NO_STORE_RUN = "run-0000000000000000"
+_PIN_MISSING = "the supervisor's pin record is missing"
+
+
+@pytest.fixture(scope="module")
+def terminal_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A run driven to terminal; its clones hold the committed records and no store."""
+    base = tmp_path_factory.mktemp("terminal")
+    repo = h.make_repo(base)
+    assert h.start(repo)[0] == 0
+    assert h.Controller(repo, base / "effects.log").drive().get("terminal")
+    return base
+
+
+def _clone(template: Path, tmp_path: Path) -> Path:
+    h.git(tmp_path, "clone", "-q", str(template / "repo"), str(tmp_path / "clone"))
+    return tmp_path / "clone"
+
+
+def _squash_shape(template: Path, tmp_path: Path) -> Path:
+    """The template's tracked tree as one commit, with no supervisor commit and no store."""
+    repo = _clone(template, tmp_path)
+    shutil.rmtree(repo / ".git")
+    h.git(repo, "init", "-q", "-b", "main")
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "squashed")
+    return repo
+
+
+def _porcelain(repo: Path) -> str:
+    return h.git(repo, "status", "--porcelain", "--ignored")
+
+
+def _assert_nothing_written(repo: Path, head: str, porcelain: str) -> None:
+    assert not (repo / ".git" / "agentbundle-supervisor").exists()
+    assert not (repo / SPEC / ".supervisor").exists()
+    assert not (repo / ".loop-run").exists()
+    assert _head(repo) == head
+    assert _porcelain(repo) == porcelain
+
+
+def _status(repo: Path, tmp_path: Path, *extra: str) -> tuple[int, dict[str, Any]]:
+    return _run(_load_cli(_copy_skill(tmp_path / "skill")), repo, "status", SPEC, *extra)
+
+
+def test_status_in_a_no_store_clone_of_a_terminal_run_passes(
+    terminal_template: Path, tmp_path: Path
+) -> None:
+    repo = _clone(terminal_template, tmp_path)
+    head, porcelain = _head(repo), _porcelain(repo)
+    code, out = _status(repo, tmp_path, "--check")
+    assert code == 0, out
+    assert out["terminal"] is True and out["verification"] == _ONLY_RECORDS, out
+    _assert_nothing_written(repo, head, porcelain)
+
+
+def test_status_in_a_squash_shaped_no_store_checkout_passes(
+    terminal_template: Path, tmp_path: Path
+) -> None:
+    repo = _squash_shape(terminal_template, tmp_path)
+    head, porcelain = _head(repo), _porcelain(repo)
+    code, out = _status(repo, tmp_path, "--check")
+    assert code == 0, out
+    assert out["verification"] == _ONLY_RECORDS and not out.get("refusal"), out
+    _assert_nothing_written(repo, head, porcelain)
+
+
+def test_every_verb_but_status_refuses_in_a_no_store_clone(
+    terminal_template: Path, tmp_path: Path
+) -> None:
+    repo = _clone(terminal_template, tmp_path)
+    cli = _load_cli(_copy_skill(tmp_path / "skill"))
+    result = tmp_path / "result.json"
+    result.write_text("{}", "utf-8")
+    head = _head(repo)
+    for verb, argv in _VERBS.items():
+        if verb == "status":
+            continue
+        argv = [str(result) if a == "RESULT" else a for a in argv]
+        code, out = _run(cli, repo, *argv)
+        assert code == 1, (verb, out)
+        assert out["refusal"]["code"] == "supervisor-changed", (verb, out)
+        assert out["refusal"]["detail"] == _PIN_MISSING, (verb, out)
+        assert _head(repo) == head, verb
+
+
+def _edit_install(skill: Path) -> None:
+    _append(skill / "scripts" / "_supervisor_commit.py", "\n# edited\n")
+
+
+def _rewrite_working_run(repo: Path, run_id: str = _NO_STORE_RUN) -> None:
+    path = repo / SPEC / "delivery" / "approvals.jsonl"
+    first, _, rest = path.read_text("utf-8").partition("\n")
+    record = json.loads(first)
+    record["run_id"] = run_id
+    path.write_text(json.dumps(record) + "\n" + rest, "utf-8")
+
+
+def _assert_pin_refused(cli: ModuleType, repo: Path) -> None:
+    code, out = _run(cli, repo, "status", SPEC, "--check")
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+
+
+def test_status_refuses_a_forged_working_run_id_over_an_edited_install(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    _rewrite_working_run(repo)
+    skill = _copy_skill(tmp_path / "skill")
+    _edit_install(skill)
+    _assert_pin_refused(_load_cli(skill), repo)
+
+
+def test_status_refuses_an_edited_install_while_another_spec_has_an_open_attempt(
+    terminal_template: Path, tmp_path: Path
+) -> None:
+    repo = _clone(terminal_template, tmp_path)
+    _add_other_spec(repo)
+    # A goal-based plan, so the other spec's first request is a worker attempt.
+    (repo / _OTHER / "plan.md").write_text(RELEASE_PLAN, "utf-8")
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "a goal-based plan for the second spec")
+    assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
+    code, out = h.run_cli(repo, "next", _OTHER)
+    assert code == 0 and out["request"]["kind"] in WORKER_KINDS, out
+    skill = _copy_skill(tmp_path / "skill")
+    # Unedited, the guard passes and the store-less run answers; edited, the guard refuses.
+    code, out = _run(_load_cli(skill), repo, "status", SPEC, "--check")
+    assert code == 0 and out["verification"] == _ONLY_RECORDS, out
+    _edit_install(skill)
+    _assert_pin_refused(_load_cli(skill), repo)
+
+
+def test_status_refuses_a_spec_store_with_no_pin_record(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    _pins(repo).unlink()
+    _assert_pin_refused(_load_cli(_copy_skill(tmp_path / "skill")), repo)
+
+
+def test_status_refuses_an_orphan_marked_committed_store_with_no_pins(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    _pins(repo).unlink()
+    (_store(repo) / "orphan").write_bytes(b"")
+    _rewrite_working_run(repo)
+    _assert_pin_refused(_load_cli(_copy_skill(tmp_path / "skill")), repo)
+
+
+def test_status_on_a_started_run_reports_pinned(pinned_template: Path, tmp_path: Path) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    code, out = _run(_load_cli(_copy_skill(tmp_path / "skill")), repo, "status", SPEC, "--check")
+    assert code == 0 and out["verification"] == "pinned", out
+
+
+def test_deleted_working_approvals_leave_next_as_it_was_and_status_pinned(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    cli = _load_cli(_copy_skill(tmp_path / "skill"))
+    (repo / SPEC / "delivery" / "approvals.jsonl").unlink()
+    code, out = _run(cli, repo, "next", SPEC)
+    assert code == 0 and "request" in out, out
+    code, out = _run(cli, repo, "status", SPEC)
+    assert out["verification"] == "pinned", out
+
+
+def test_a_working_run_id_with_no_store_still_reports_pinned(
+    pinned_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy_repo(pinned_template, tmp_path)
+    _rewrite_working_run(repo)
+    code, out = _run(_load_cli(_copy_skill(tmp_path / "skill")), repo, "status", SPEC)
+    assert out["verification"] == "pinned", out
+
+
+def test_status_during_an_open_regenerate_reports_pinned(
+    regenerating: Path, tmp_path: Path
+) -> None:
+    repo, skill, cli = _regen_copy(regenerating, tmp_path)
+    shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+    code, out = _run(cli, repo, "status", SPEC)
+    assert out["verification"] == "pinned", out
