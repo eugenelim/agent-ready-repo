@@ -115,6 +115,8 @@ def is_read_only(cmd: str) -> bool:
         sub = t[i]
         if sub in ("log", "diff", "show", "status", "rev-parse", "fetch"):
             return True
+        if sub == "remote":
+            return t[i + 1 :] == ["get-url", "origin"]
         return sub == "worktree" and t[i + 1] == "add" and "--detach" in t
     return t[0] in READ_ONLY_OTHER
 
@@ -149,7 +151,8 @@ def section(text: str, heading: str) -> str:
 def test_frontmatter_declares_credentialed_boundary() -> None:
     front = frontmatter()
     assert "name: github-pr\n" in front + "\n"
-    assert "allowed-tools: Read Edit Write Bash" in front
+    assert re.search(r"^allowed-tools: Read Edit Write$", front, re.MULTILINE)
+    assert "Bash" not in front
     for boundary in ("network_fetch", "filesystem_read_untrusted", "filesystem_write"):
         assert f"- {boundary}" in front
     for line in ("credentialed: true", "primitive-class: credentialed-cli", "auth: cli"):
@@ -255,7 +258,103 @@ def test_u4_owner_repo_only_from_origin() -> None:
 
 
 def test_u5_stops_on_foreign_host() -> None:
-    assert has(SKILL, "If the origin host is not `github.com`, stop")
+    assert has(SKILL, "it must equal `github.com` exactly", "lookalike", "stop and say the skill supports `github.com` only")
+    assert has(SKILL, "`git -c core.hooksPath=/dev/null remote get-url origin`", "after any `insteadOf` rewrite")
+    for form in ("https://github.com/<owner>/<repo>", "ssh://git@github.com/<owner>/<repo>", "git@github.com:<owner>/<repo>"):
+        assert form in SKILL
+
+
+def test_s2_origin_read_is_in_the_closed_read_only_set() -> None:
+    assert is_read_only("git -c core.hooksPath=/dev/null remote get-url origin")
+    assert not is_read_only("git -c core.hooksPath=/dev/null remote set-url origin x")
+    assert not is_read_only("git -c core.hooksPath=/dev/null remote add x y")
+
+
+def test_s1_no_unscoped_bash_preapproval() -> None:
+    assert "Bash" not in frontmatter()
+
+
+def test_s3_path_checks_run_on_the_absolute_worktree_path() -> None:
+    assert has(SKILL, "absolute path `<worktree>/<path>`", "resolved `<worktree>` root")
+    for mode, ref in REFS.items():
+        cmds = [c for _, c, _ in commands(before_after(ref)[0])]
+        assert "realpath -- <worktree>" in cmds, mode
+        for prefix in ("realpath -- ", "test -f ", "test -L "):
+            assert f"{prefix}<worktree>/<path>" in cmds, (mode, prefix)
+            assert f"{prefix}<path>" not in cmds, (mode, prefix)
+
+
+def test_s5_attribute_and_submodule_gap_is_named() -> None:
+    assert has(SKILL, "filter, LFS, textconv, external-diff, or submodule behaviour", "`.gitattributes` or `.gitmodules`", "Name this gap")
+
+
+@pytest.mark.parametrize("mode", MODES)
+def test_f1_gather_reads_the_raw_description(mode: str) -> None:
+    pre, _ = before_after(REFS[mode])
+    views = [c for _, c, _ in commands(pre) if c.startswith("gh pr view ") and "headRefOid" in c and "state" in c]
+    assert views and all(re.search(r"--json \S*\bbody\b", c) for c in views), mode
+    assert has(pre, "description `body` as raw text")
+
+
+def test_f2_iterate_resolves_only_threads_the_plan_names() -> None:
+    assert has(REFS["iterate"], "resolve only a thread the approved plan names for resolution", "a thread the plan does not name is not resolved")
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_f3_edit_record_and_staged_record_share_one_form(mode: str) -> None:
+    ref = REFS[mode]
+    cmds = [strip_globals(c) for _, c, _ in commands(ref)]
+    assert not any("diff --cached --binary" in c for c in cmds)
+    assert not any("<approved-patch>" in c or "<edits-patch>" in c or "<staged-patch>" in c for c in cmds)
+    raw = [c for _, c, _ in commands(ref)]
+    recorded = [c for c in raw if c.startswith("shasum -a 256 <worktree>/") and c.endswith("> <edit-hashes>")]
+    staged = [c for c in raw if re.search(r" show :<\S+-file> \| shasum -a 256$", c)]
+    assert recorded and staged
+    assert any(c == "git diff --cached --name-only" for c in cmds)
+    assert has(ref, "each staged hash must equal its recorded hash")
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_f4_gates_name_the_exact_commit(mode: str) -> None:
+    ref = REFS[mode]
+    archives = [c for _, c, _ in commands(ref) if " archive " in c]
+    assert archives and all("<commit>" in c for c in archives)
+    assert has(ref, "`<commit>`", "export exactly `<commit>`", "HEAD still equals `<commit>`")
+    assert has(ref, {"iterate": "commit recorded at gather", "adopt": "starting commit when you made no fix"}[mode])
+
+
+def test_f5_review_head_moved_handles_the_pending_review() -> None:
+    ref = REFS["review"]
+    assert has(ref, "a pending review tied to the old commit", "create no new one until the user chooses", "only after the user approves that exact action")
+    _, post = before_after(ref)
+    deletes = [c for _, c, _ in commands(post) if "-X DELETE" in c]
+    assert deletes == ["gh api -X DELETE repos/<owner>/<repo>/pulls/<N>/reviews/<review-id>"]
+    assert not is_read_only(deletes[0])
+
+
+@pytest.mark.parametrize("mode", ["iterate", "adopt"])
+def test_f6_config_hash_set_comes_from_the_files_git_loads(mode: str) -> None:
+    ref = REFS[mode]
+    cmds = [strip_globals(c) for _, c, _ in commands(ref)]
+    assert "git config --list --show-origin" in cmds
+    assert has(ref, "every distinct `file:` path the listing names")
+    for fixed in ("/etc/gitconfig", "~/.gitconfig", "~/.config/git/config"):
+        assert fixed not in ref
+
+
+def test_f7_adopt_detects_queue_and_auto_merge() -> None:
+    ref = REFS["adopt"]
+    cmds = [c for _, c, _ in commands(ref)]
+    pre_merge = next(i for i, c in enumerate(cmds) if "--json autoMergeRequest,isInMergeQueue" in c and "mergeStateStatus" in c)
+    assert pre_merge < next(i for i, c in enumerate(cmds) if c.startswith("gh pr merge"))
+    assert has(ref, "check for a queued or auto-merge outcome before merging", "report the leftover state", "leave any undo to the user's approval")
+    assert any("--json state,mergedAt,autoMergeRequest,isInMergeQueue" in c for c in cmds)
+
+
+def test_s4_contract_flags_self_hosted_runners_in_base_and_head_workflows() -> None:
+    assert has(REFS["adopt"], "self-hosted runners found in the base and the PR-head versions of every workflow a push would trigger")
+    pre, _ = before_after(REFS["adopt"])
+    assert any(re.search(r"-C <worktree> show HEAD:\.github/workflows/", c) for _, c, _ in commands(pre))
 
 
 def test_u5a_stops_on_repository_mismatch() -> None:
@@ -275,7 +374,7 @@ def test_u7_paths_confined_before_use() -> None:
     assert has(
         SKILL,
         "regular file",
-        "resolved path stays inside the worktree",
+        "resolved path starts with the resolved `<worktree>` root",
         "symlink, submodule, or out-of-tree path",
         "without following it",
     )

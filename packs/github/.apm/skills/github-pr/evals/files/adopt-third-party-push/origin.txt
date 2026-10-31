@@ -1,2 +1,1 @@
-origin	https://github.com/example-org/example-repo.git (fetch)
-origin	https://github.com/example-org/example-repo.git (push)
+https://github.com/example-org/example-repo.git

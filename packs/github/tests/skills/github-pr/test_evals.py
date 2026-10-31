@@ -109,6 +109,18 @@ def test_e4_e5_required_scenarios_present() -> None:
     assert not (E4_SCENARIOS | E5_SCENARIOS) - have, sorted((E4_SCENARIOS | E5_SCENARIOS) - have)
 
 
+def test_fixtures_supply_the_gather_commands_output() -> None:
+    on_disk = {p.relative_to(EVALS).as_posix(): p for p in EVALS.rglob("*") if p.is_file()}
+    for c in _cases():
+        by_name = {rel.rsplit("/", 1)[1]: rel for rel in c["fixtures"]}
+        if "pr_view.json" in by_name:
+            view = json.loads(on_disk[by_name["pr_view.json"]].read_text(encoding="utf-8"))
+            assert isinstance(view.get("body"), str), c["id"]
+        if "origin.txt" in by_name:
+            url = on_disk[by_name["origin.txt"]].read_text(encoding="utf-8")
+            assert url.count("\n") == 1 and url.endswith(".git\n") and "\t" not in url, c["id"]
+
+
 def test_fixtures_exist_and_are_regular() -> None:
     regular = {
         f.relative_to(EVALS).as_posix()

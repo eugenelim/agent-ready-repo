@@ -23,7 +23,8 @@ Review PR 42.
 1. The agent reads the pull request, its diff, and its checks.
 2. It drafts the review: a summary and each inline comment with its exact text.
 3. You approve or edit the draft.
-4. The agent creates a pending review on the pull request. It does not submit it. You read it on GitHub and submit it yourself.
+4. The agent creates a pending review on the pull request. It does not submit it.
+5. Submitting is a separate choice. Tell the agent which verdict to submit (`COMMENT`, `APPROVE`, or `REQUEST_CHANGES`), or read the pending review on GitHub and submit it yourself.
 
 ## Address feedback on your pull request
 

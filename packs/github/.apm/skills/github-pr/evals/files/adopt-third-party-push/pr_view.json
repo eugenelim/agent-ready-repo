@@ -1,6 +1,7 @@
 {
   "number": 42,
   "title": "Fix pagination off-by-one",
+  "body": "Fixes the reported problem.\n",
   "state": "OPEN",
   "baseRefName": "main",
   "headRefName": "fix/pagination",

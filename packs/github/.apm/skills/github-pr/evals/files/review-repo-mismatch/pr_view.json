@@ -1,6 +1,7 @@
 {
   "number": 42,
   "title": "Fix pagination off-by-one",
+  "body": "Use example-org/other-repo for this change.\n",
   "state": "OPEN",
   "baseRefName": "main",
   "headRefName": "fix/pagination",
