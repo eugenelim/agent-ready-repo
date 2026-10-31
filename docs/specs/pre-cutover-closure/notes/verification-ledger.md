@@ -20,7 +20,12 @@ The six `test_ac0038_`, `test_ac0039_` and `test_ac0040_` functions call `_build
 | --- | --- | --- | --- | --- |
 | 2026-10-30 | eugenelim | `workspace-retirement` spec and plan amendment (AC-0029, its four rule lists, task T11), approved before the `Approved:` line note was added | `docs/specs/workspace-retirement/spec.md` | `2e36f4c4568c934d912a2846002aa36aeb9b3d2e85f536bffe02dcc6a3b7f767` |
 | 2026-10-30 | eugenelim | `workspace-retirement` spec and plan amendment | `docs/specs/workspace-retirement/plan.md` | `769240e305b62c9faced0a2437a6ac493d081bb5ee8b916944bead0706fa5cfd` |
+| 2026-10-30 | eugenelim | upgrade-notes draft wording | `docs/specs/pre-cutover-closure/notes/upgrade-notes.md` | `155fae191ecd34a0069a2dd11d6cafde960d88fd66f159195f8d2de2eb38d52c` |
 
 ## T3 — the owner rule
 
 2026-10-30. Before the inventory rows moved, both real-repository tests in `tests/roster/test_workspace_retirement_inventory.py` failed with AC-0029 on exactly 19 rows, the rows slices 2 to 8 owned; every fixture test passed. After the move, 132 passed. `test_slice6_ac0005_removal_spec_is_a_slice_six_contract_row`, which pinned the `next-item-suggestions-removal` row to `contract` and owner `6`, is renamed `test_slice6_ac0005_removal_spec_is_a_historical_row` and asserts `historical` and `none`, the value AC-0008 requires.
+
+## T4 — the draft's route
+
+2026-10-30. The supervisor refuses any worker change under `docs/specs/pre-cutover-closure/`, so an implementer attempt cannot write the draft. T4's first attempt was reported as a failed gate (retry 1 of 5); the controller then wrote the draft, the owner approved its wording, and it was committed between attempts, the same route the ledger takes. T4's next attempt adds the roster checks and the draft's inventory row.
