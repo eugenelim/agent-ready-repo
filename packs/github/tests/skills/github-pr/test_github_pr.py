@@ -21,6 +21,10 @@ REFS = {
 ALL_FILES = {"SKILL": SKILL, **REFS}
 APPROVED = "## Approved actions"
 READ_ONLY_OTHER = {"stat", "realpath", "shasum", "test"}
+# `find` is allowed only in the sandbox comparison after approval (spec G9a), never before it.
+EXTRACTED_HEADS = {*READ_ONLY_OTHER, "find"}
+
+INCLUDE_TAIL = "| cut -f2- | awk '{sub(/^[^[:space:]]+[[:space:]]+/, \"\"); print}'"
 
 _CODE = re.compile(r"^```(\S*)\n(.*?)^```|`([^`\n]+)`", re.DOTALL | re.MULTILINE)
 
@@ -41,7 +45,7 @@ def commands(text: str) -> list[tuple[int, str, str]]:
     for m in _CODE.finditer(text):
         if m.group(3) is not None:
             span = m.group(3).strip()
-            if head(span) in {"gh", "git", "<sandbox>", *READ_ONLY_OTHER}:
+            if head(span) in {"gh", "git", "<sandbox>", *EXTRACTED_HEADS}:
                 found.append((m.start(), span, "inline"))
             continue
         info, body = m.group(1), m.group(2)
@@ -849,18 +853,19 @@ def test_config_record_reads_keys_only_and_names_every_include_target(mode: str)
     cmds = [strip_globals(c) for _, c, _ in commands(ref)]
     assert "git config --list --show-origin" not in cmds
     assert any(c.startswith("git config --show-origin --get-regexp ^include(if") for c in cmds)
-    assert any("--get-regexp" in c and "| awk" in c for _, c, _ in commands(ref))
+    assert any("--get-regexp" in c and INCLUDE_TAIL in c for _, c, _ in commands(ref))
     assert has(
         ref,
         "so no key, subsection, or value reaches context",
-        "Its exit status 1 means no include\ntargets exist" if False else "exit status 1 means no include",
-        "relative include path against the\ndirectory that holds the including file" if False else "directory that holds the including file",
+        "exit status 1 means no include",
+        "directory that holds the including file",
         "whether or not the file exists",
         "`GIT_CONFIG_GLOBAL` and `GIT_CONFIG_SYSTEM`",
         "`<git-common-dir>/objects/info/alternates`",
         "including a file created under `hooks/` or `info/`",
         "the include query",
-        "never skip a\nlisting" if False else "never skip a listing",
+        "never skip a listing",
+        "cannot be extracted whole stops the run",
     )
     assert "key names only" not in norm(ref)
 
@@ -885,32 +890,45 @@ def test_readme_host_answer_names_the_origin_rule() -> None:
 def test_config_listing_pipes_to_origin_paths_only(mode: str) -> None:
     raw = [c for _, c, _ in commands(REFS[mode])]
     assert any(c.endswith("--name-only | cut -f1 | sort -u") for c in raw)
-    assert any(c.endswith("| awk 'NF{print $NF}'") and "--get-regexp" in c for c in raw)
+    assert any(c.endswith(INCLUDE_TAIL) and "--get-regexp" in c for c in raw)
     assert not any(c.endswith("config --list --show-origin --name-only") for c in raw)
 
 
 @pytest.mark.parametrize("mode", ["iterate", "adopt"])
-def test_directory_records_use_globs_re_expanded_after_the_run(mode: str) -> None:
+def test_directory_records_use_find_re_run_after_the_run(mode: str) -> None:
     ref = REFS[mode]
     raw = [c for _, c, _ in commands(ref)]
-    globs = next(c for c in raw if c.startswith("shasum -a 256 <git-common-dir>/hooks/*"))
-    for part in ("<git-common-dir>/hooks/*/*", "<git-common-dir>/info/*", "<git-common-dir>/refs/replace/*"):
-        assert part in globs
-    assert any(c.startswith("shasum -a 256 <git-dir>/hooks/*") for c in raw)
+    assert "test -d <dir>" in raw
+    assert "find <dir> -type f -exec shasum -a 256 {} + | sort >> <hashes-before>" in raw
+    assert not any("/*" in c for c in raw)
     assert any(c.startswith("grep ' refs/replace/' <git-common-dir>/packed-refs | shasum") for c in raw)
-    assert has(ref, "re-expanding each glob", "never reusing the before list", "Compare them as sets")
+    assert has(
+        ref,
+        "`present <dir>` or `absent <dir>`",
+        "`<git-common-dir>/hooks`, `<git-common-dir>/info`, and\n`<git-common-dir>/refs/replace`",
+        "`<git-dir>/hooks` and `<git-dir>/info`",
+        "an empty directory is a normal value",
+        "never reusing the before list",
+        "Compare them as sets",
+    )
 
 
 @pytest.mark.parametrize("mode", ["iterate", "adopt"])
 def test_reftable_repository_stops_the_record(mode: str) -> None:
     ref = REFS[mode]
     assert "test -d <git-common-dir>/reftable" in [c for _, c, _ in commands(ref)]
-    assert has(ref, "tell the user the record\ncannot see reftable refs" if False else "cannot see reftable refs", "If any record command cannot run, stop")
+    assert has(ref, "cannot see reftable refs", "Stop only on a real read error")
 
 
 @pytest.mark.parametrize("mode", ["iterate", "adopt"])
 def test_id_lines_carry_the_path(mode: str) -> None:
     raw = [c for _, c, _ in commands(REFS[mode])]
     printf = [c for c in raw if c.startswith("printf '%s  %s\\n'")]
-    assert len(printf) >= 3
-    assert all(re.search(r'<worktree-relative \S+-file>\)?"? <worktree-relative \S+-file>', c) for c in printf)
+    assert len(printf) == 3
+    word = "approved" if mode == "iterate" else "allowed"
+    f = f"<worktree-relative {word}-file>"
+    g = "git -c core.hooksPath=/dev/null -C <worktree>"
+    record = f"printf '%s  %s\\n' \"$({g} hash-object -- {f})\" {f} >> <edit-ids>"
+    staged = f"printf '%s  %s\\n' \"$({g} rev-parse :{f})\" {f}"
+    assert printf == [record, staged, staged]
+    assert has(REFS[mode], "not a full 40- or 64-hex object id", "stops the run")

@@ -161,11 +161,12 @@ only:
 ```text
 git -c core.hooksPath=/dev/null -C <worktree> rev-parse --git-dir --git-common-dir
 git -c core.hooksPath=/dev/null -C <worktree> config --list --show-origin --name-only | cut -f1 | sort -u
-git -c core.hooksPath=/dev/null -C <worktree> config --show-origin --get-regexp '^include(if\..*)?\.path$' | awk 'NF{print $NF}'
+git -c core.hooksPath=/dev/null -C <worktree> config --show-origin --get-regexp '^include(if\..*)?\.path$' | cut -f2- | awk '{sub(/^[^[:space:]]+[[:space:]]+/, ""); print}'
 ```
 
 The first command keeps the `file:` prefix on each path and ignores `command line:`
-entries. The include query prints target paths. Its exit status 1 means no include
+entries. The include query prints each target whole, spaces kept. A target that cannot be
+extracted whole stops the run. Its exit status 1 means no include
 targets exist and is not a failure. Resolve a relative include path against the
 directory that holds the including file, or expand `~`, and keep it whether or not
 the file exists.
@@ -186,21 +187,34 @@ test -f <path>
 shasum -a 256 <path> >> <hashes-before>
 ```
 
-Record the directories with shell globs passed to `shasum`, so a file added later
-shows up as a new line:
+Record each directory with `find`, which needs no glob matching, so a default
+repository with no `hooks/` subdirectory or `refs/replace` is a normal value.
+For each directory write `present <dir>` or `absent <dir>` by `test -d`, and for
+a present one hash every file under it, sorted:
 
 ```text
-shasum -a 256 <git-common-dir>/hooks/* <git-common-dir>/hooks/*/* <git-common-dir>/info/* <git-common-dir>/refs/replace/* >> <hashes-before>
-shasum -a 256 <git-dir>/hooks/* >> <hashes-before>
+test -d <dir>
+find <dir> -type f -exec shasum -a 256 {} + | sort >> <hashes-before>
+```
+
+The directories are `<git-common-dir>/hooks`, `<git-common-dir>/info`, and
+`<git-common-dir>/refs/replace`, plus `<git-dir>/hooks` and `<git-dir>/info`
+where `<git-dir>` differs from `<git-common-dir>`. A directory the run creates or
+removes changes its `present` or `absent` line, and an empty directory is a
+normal value. Then record the packed refs and check for reftable:
+
+```text
 grep ' refs/replace/' <git-common-dir>/packed-refs | shasum -a 256 >> <hashes-before>
 test -d <git-common-dir>/reftable
 ```
 
-Run the `<git-dir>/hooks/*` line only where `<git-dir>` differs from
-`<git-common-dir>`. An empty `packed-refs` match counts as a value. If
+An empty `packed-refs` match, or no `packed-refs` file, counts as a value. If
 `test -d <git-common-dir>/reftable` succeeds, stop and tell the user the record
-cannot see reftable refs. If any record command cannot run, stop; never skip a
-listing.
+cannot see reftable refs. Stop only on a real read error, such as a failed
+`find` or `shasum`, and never skip a listing.
+
+An id line whose id is not a full 40- or 64-hex object id, such as an empty id
+from a failed `hash-object` or `rev-parse`, stops the run. Never compare it.
 
 2. Export exactly `<commit>` with git archive, into an empty directory outside
 the worktree, then run each approved gate there through the sandbox:
@@ -214,12 +228,12 @@ git -c core.hooksPath=/dev/null -c filter.lfs.smudge= -c filter.lfs.process= -c 
 ```
 
 3. Before your next git command after any sandbox run, repeat the whole record
-(every `test -f`, `shasum`, and `grep` command above), re-expanding each glob
-and never reusing the before list, into `<hashes-after>` and compare it with
+(every `test -f`, `test -d`, `find`, `shasum`, and `grep` command above),
+never reusing the before list, into `<hashes-after>` and compare it with
 `<hashes-before>` with the file-safety commands only, never a git command. Compare
 them as sets. Any
 added, removed, or changed entry, including a file created under `hooks/` or
-`info/`, stops the run before the next git command.
+`info/` or a directory that appeared or vanished, stops the run before the next git command.
 4. Then read the repository state. Stop the run, and run no unstage, reset,
 commit, or push, if any staged path is outside the approved list, any staged
 id differs from the recorded edit id, or HEAD is no longer `<commit>`. A
