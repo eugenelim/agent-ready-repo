@@ -932,3 +932,35 @@ def test_a_clean_report_after_a_stale_conflict_waits_for_next(
     assert h.git(repo, "rev-parse", "HEAD").strip() == head
     assert _current_request(repo)["request_id"] == request["request_id"]
     assert controller.report(result)[0] == 0
+
+
+def _refused_commits(repo: Path) -> list[str]:
+    return (_store(repo) / "refused-commits").read_text("utf-8").split()
+
+
+def test_moving_head_onto_a_refused_commit_is_refused(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo, request, (controller, result) = _stale_attempt(product_template, tmp_path)
+    refused = _refused_commits(repo)[-1]
+    h.git(repo, "update-ref", "refs/heads/main", refused)  # the worker adopts the refused result
+    code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    assert "HEAD" in out["refusal"]["detail"]
+    code, out = controller.report(result)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    assert h.git(repo, "rev-parse", "HEAD").strip() == refused
+
+
+def test_a_failure_to_record_a_refused_commit_keeps_the_conflict_and_the_stale_mark(
+    product_template: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def broken(self: Any, run_id: str, sha: str) -> None:
+        raise OSError("the store is full")
+
+    monkeypatch.setattr(h.commit_module.GitPort, "record_refused", broken)
+    repo, request, (controller, result) = _stale_attempt(product_template, tmp_path)
+    # _stale_attempt already asserted the integration-conflict refusal; the mark must stand.
+    code, out = controller.report(result)
+    assert code == 1 and out["refusal"]["code"] == "not-current-attempt", out
+    assert "run next" in out["refusal"]["detail"]

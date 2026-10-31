@@ -317,10 +317,13 @@ def _ref_and_store_snapshot(repo: Path) -> tuple[str, dict[str, bytes]]:
     return refs + rev(repo, "HEAD"), store
 
 
-def restore(repo: Path, name: str, value: str) -> None:
-    """What the refusal tells the controller to run, for any kind of damage."""
-    h.git(repo, "update-ref", "--no-deref", "-d", name)
-    h.git(repo, "update-ref", name, value)
+def run_printed_restore(repo: Path, detail: str) -> None:
+    """Run exactly the restore command a refusal prints."""
+    command = detail.split("restore it with: ", 1)[1]
+    assert "--no-deref" in command
+    done = subprocess.run(command, shell=True, cwd=repo, env={**os.environ, **h.GIT_ENV},
+                          capture_output=True, text=True, check=False)
+    assert done.returncode == 0, (command, done.stderr)
 
 
 def run_json(repo: Path) -> dict[str, Any]:
@@ -404,7 +407,8 @@ def test_an_untrusted_product_ref_refuses_next_until_restored(tmp_path: Path, ca
     denied = [e for e in security_lines(repo)[before:] if e["reason_code"] == "product-ref-diverged"]
     assert denied and denied[0]["event_type"] == "supervisor-product-ref-check"
     assert_refused_shape(repo, "product-ref-diverged")
-    restore(repo, name, recorded)
+    run_printed_restore(repo, refusal["detail"])
+    assert rev(repo, name) == recorded
     assert "request" in next_ok(repo)
 
 
@@ -427,7 +431,8 @@ def test_an_untrusted_product_ref_refuses_the_other_verbs(
     assert any(e["reason_code"] == "product-ref-diverged" for e in security_lines(repo)[before:])
     status_code, status = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
     assert status_code == 0 and status["refusal"]["code"] == "product-ref-diverged"
-    restore(repo, name, recorded)
+    run_printed_restore(repo, out["refusal"]["detail"])
+    assert rev(repo, name) == recorded
     assert calls[verb]()[0] == 0
 
 
@@ -828,3 +833,65 @@ def test_the_crash_corpus_shards_are_disjoint_nonempty_and_cover_every_test() ->
     flat = [item for shard in shards for item in shard]
     assert len(flat) == len(set(flat)), "two shards run the same test"
     assert sorted(flat) == sorted(everything), "a corpus test runs in no shard"
+
+
+def _refused_build(repo: Path) -> str:
+    """Build a step whose transaction is refused because ``HEAD`` moved under it."""
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+    tree = h.git(repo, "rev-parse", "HEAD^{tree}").strip()
+    base = rev(repo, "HEAD")
+    other = h.git(repo, "commit-tree", tree, "-p", base, "-m", "a racing commit").strip()
+    fired: list[bool] = []
+
+    def hook() -> None:
+        if not fired:
+            fired.append(True)
+            h.git(repo, "update-ref", "refs/heads/main", other)
+
+    h.commit_module.set_update_hook(hook)
+    try:
+        with pytest.raises(h.commit_module.SupervisorGitError):
+            ws.git.build_commit(run_id=run_id, step="refused-step", operation="evidence",
+                                summary="a step the race refuses")
+    finally:
+        h.commit_module.set_update_hook(None)
+    h.git(repo, "update-ref", "refs/heads/main", base)  # the race is undone
+    return run_id
+
+
+def test_a_refused_commit_never_anchors_a_ref_less_run(tmp_path: Path) -> None:
+    repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    make_legacy(repo)
+    base = rev(repo, "HEAD")
+    run_id = _refused_build(repo)
+    refused = (store_dir(repo) / "refused-commits").read_text("utf-8").split()
+    assert len(refused) == 1 and refused[0] in (store_dir(repo) / "made-commits").read_text("utf-8")
+    assert h.workspace(repo).git.made_commits(run_id).isdisjoint(refused)
+    assert "request" in next_ok(repo)  # a recovery verb: it creates the missing ref
+    assert record(repo)["recorded"] == base, "the refused commit anchored the run"
+    assert rev(repo, "HEAD") == base != refused[0]
+    assert rev(repo, ref_name(repo)) == base
+
+
+def test_a_refused_commit_that_is_rebuilt_and_lands_is_not_refused(tmp_path: Path) -> None:
+    repo = started(tmp_path)
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+    before = rev(repo, "HEAD")
+    built = ws.git.build_commit(run_id=run_id, step="step-a", operation="evidence", summary="a")
+    assert built is not None
+    ws.git.record_refused(run_id, built)  # as if an identical build had once been refused
+    assert built not in h.workspace(repo).git.made_commits(run_id)
+    # Undo the step, then build the same bytes again (the clock is fixed): it lands.
+    name = ref_name(repo)
+    h.git(repo, "update-ref", "HEAD", before)
+    h.git(repo, "update-ref", name, before)
+    ws2 = h.workspace(repo)
+    ws2.git.write_product_record(
+        run_id, h.commit_module.ProductRecord(name, before, None))
+    again = ws2.git.build_commit(run_id=run_id, step="step-a", operation="evidence", summary="a")
+    assert again == built
+    assert built in ws2.git.made_commits(run_id)
+    assert built not in ws2.git.refused_commits(run_id)

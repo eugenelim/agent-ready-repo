@@ -15,6 +15,7 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
 import json
@@ -222,8 +223,12 @@ class GitPort:
         return self.hardened.pins.git_dir / self._store_rel(run_id)
 
     def made_commits(self, run_id: str) -> set[str]:
-        """Ids of the commits this run's supervisor built, from the store in the Git directory."""
-        return set(self.made_list(run_id))
+        """Ids of the commits this run's supervisor built and that were not refused.
+
+        A commit whose transaction was refused never became history, so it does not
+        count as the supervisor's own: moving ``HEAD`` onto it is foreign.
+        """
+        return set(self.made_list(run_id)) - self.refused_commits(run_id)
 
     def made_list(self, run_id: str) -> list[str]:
         """The run's made commits in the order they were built."""
@@ -494,7 +499,11 @@ class GitPort:
         self._append_id(run_id, "refused-commits", sha)
 
     def refused_commits(self, run_id: str) -> set[str]:
-        """Made commits whose transaction was refused; none of them can anchor a run."""
+        """Made commits whose transaction was refused and that never landed afterwards.
+
+        The file is a log: an id is refused when written bare and lands again when written
+        with a leading ``-``, so a commit rebuilt byte for byte and landed is not refused.
+        """
         path = self._store_dir(run_id) / "refused-commits"
         if not os.path.lexists(path):
             return set()
@@ -503,8 +512,12 @@ class GitPort:
             data = fs.read_confined_regular_file(path.parent, path, max_bytes=_MAX_MADE_BYTES)
         except fs.UnsafeContentError as exc:
             raise SupervisorGitError("denied-unsafe-path", f"refused-commits: {exc}") from exc
-        return {w for w in bytes(data).decode("ascii", "replace").split()
-                if _COMMIT_ID_RE.fullmatch(w)}
+        refused: set[str] = set()
+        for word in bytes(data).decode("ascii", "replace").split():
+            landed = word.startswith("-")
+            if _COMMIT_ID_RE.fullmatch(word.lstrip("-")):
+                (refused.discard if landed else refused.add)(word.lstrip("-"))
+        return refused
 
     def text(self, *args: str, **kwargs: object) -> str:
         return self.run(*args, **kwargs).decode("utf-8", "replace")  # type: ignore[arg-type]
@@ -752,8 +765,12 @@ class GitPort:
         try:
             self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
         except Exception:
-            self.record_refused(run_id, new)
+            # Recording is best effort: it never replaces the refusal being raised.
+            with contextlib.suppress(Exception):
+                self.record_refused(run_id, new)
             raise
+        if new in self.refused_commits(run_id):
+            self._append_id(run_id, "refused-commits", "-" + new)  # it landed after all
         kill_point("refs-moved")
         self._settle_record(run_id, new)
         self.write_delivery(appended)
