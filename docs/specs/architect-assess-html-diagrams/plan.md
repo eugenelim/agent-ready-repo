@@ -9,9 +9,11 @@
 
 ## Approach
 
-First change the heat glyphs and divider, which is a stylesheet edit. Then add the flag and the script asset: the renderer reads `diagrams.js` through the confinement helper, hashes it, marks the eligible fences, adds the two script elements and the extended policy, and shows the privacy note. Then the ADR, docs, eval, and release surface. A real-browser pass closes the work, because drawing, the policy, and the offline fallback only show there.
+Write the ADR and name the pinned build first, because the repository asks for a dependency record before the dependency is added. Then add the flag, the eligibility rules, the script elements and the policy to the renderer. Then write `diagrams.js`. Then the docs, eval, parent-rule amendments and release surface. A real-browser pass closes the work, because drawing, style confinement, the policy and the fallbacks only show there.
 
-A spike on 2026-10-31 in Microsoft Edge fixed the main design choice. Mermaid 11.16.0 loaded from the pinned URL with its integrity hash renders under `default-src 'none'` and a one-hash `style-src` only when the script moves each SVG's `<style>` text into a constructable stylesheet before insertion. Left in place, that `<style>` is blocked and nodes render black at the wrong size.
+A spike on 2026-10-31 in Microsoft Edge fixed the main design choice. Mermaid 12.2.0, loaded from jsDelivr at the pinned URL with its integrity hash and `referrerpolicy="no-referrer"`, renders under `default-src 'none'` and a one-hash `style-src` only when the script moves each SVG's `<style>` into a constructable stylesheet before insertion. The `docs-site` lockfile pins the same version with the tarball integrity `sha512-w7nr/SFr...HzQ==`; the tarball's `dist/mermaid.min.js` (5,494,801 bytes) and the CDN's file are byte-identical, with SHA-384 `8xUhuLNMjW/cI2Dacg3DR4WliYznvIg0LVG1stctThKD/YVrJFI9TNCFxft5NYgp`.
+
+The heat-map glyph and divider tweaks ship as a separate small change; they are not part of this spec.
 
 ## Constraints
 
@@ -21,74 +23,82 @@ A spike on 2026-10-31 in Microsoft Edge fixed the main design choice. Mermaid 11
 
 ## Construction tests
 
-**Integration tests:** one test renders the sample fixture with and without the flag and checks the scripts, policy, note, drawing markers, and that the default page is byte-identical to the current output apart from the heat rules.
-**Manual verification:** T4.
+**Integration tests:** one test renders the sample fixture with and without the flag and checks the scripts, policy, note, labels, drawing markers, and that the default page has no script and no `src`.
+**Manual verification:** T5.
 
 ## Durable-output map
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| ADR and dependency record | T3 | the ADR | version, URL, hash, opt-in, CSP, revisit trigger |
-| Parent spec exceptions | T3 | diff | each affected criterion cites this spec |
-| Decision note | T3 | diff | states the chosen option |
-| Reference, skill, guide, eval | T3 | grep, eval JSON test | name the flag, host, and offline default |
-| Token file heat table | T1 | diff | shows glyphs and divider |
-| Verification ledger | T4 | the ledger | observations and review results |
-| Release surface | T3 | parity test, fragment | `validate` green |
+| ADR and dependency record | T1 | the ADR | version, URL, hash, SRI, opt-in, CSP, audit path, revisit triggers |
+| Pin parity (version, URL, hash) | T1 | roster test | passes against `docs-site` and the ADR |
+| Parent rule amendments | T4 | diff, roster grep | each row of the table carries the exception |
+| Decision note | T1 | diff | states the chosen option |
+| Reference, skill, guides, eval | T4 | grep, eval JSON test | name the flag, host, offline default, sharing warning |
+| Verification ledger | T5 | the ledger | observations, hash provenance, review results |
+| Release surface | T4 | parity test, fragment | `validate` green |
 
 ## Design (LLD)
 
 ### Design decisions
 
-- The flag is the second command-line argument, `--diagrams`, and nothing else is accepted; the default output stays free of scripts and network references.
-- The pinned version, URL, and hash are three constants in `render_html.py`; the policy uses the exact URL, never a host-only source.
-- The inline script is the bytes of `report_assets/diagrams.js`, read through the confinement helper, hashed with SHA-256 for the policy, refused if it holds `</script` or `<!--`.
-- The renderer decides eligibility, in Python, where it is testable: a fence of at most 65,536 bytes with no `%%{`, no frontmatter `config:` key, and no `click` line with `call`, `callback` or `href` is marked `diagram-drawn`. The script draws only marked blocks.
-- The script initializes Mermaid with `securityLevel: 'strict'`, `startOnLoad: false`, and a theme chosen by `prefers-color-scheme`. For each marked block it renders the fence text, parses the returned SVG with `DOMParser`, moves every `<style>` into a `CSSStyleSheet` added to `document.adoptedStyleSheets`, then inserts the SVG above the source block. A render error or a missing `mermaid` global leaves the source and shows `Diagram not drawn`.
-- Heat glyphs become ◔ ◑ ◕ and `?`; `heat-medium` and `heat-high` take `border-bottom-color: var(--c-bg)` so neighbouring cells keep a divider while the row rule would otherwise vanish into the `high` fill.
+- The flag is the second command-line argument; nothing else is accepted. The default output has no script and no network reference, and `diagrams.js` is not read without the flag.
+- The pinned version equals the `docs-site` pin, so the existing npm audit covers it and a bump in `docs-site` fails the parity test until the hash is refreshed. The URL is the exact `dist/mermaid.min.js` path; SRI with `crossorigin="anonymous"` is what binds the bytes, and the policy's URL source narrows where the script may come from.
+- Both scripts are the last children of `body`, after `main`, external first. The inline script is the text of `report_assets/diagrams.js`, read through the confinement helper with a 64 KiB cap, refused if it holds `</script`, `<!--` or a carriage return (so the browser's text equals the hashed text), and hashed with SHA-256 for the policy.
+- Eligibility is decided in Python over the same unescaped text `diagrams.js` reads from the `code` element's `textContent`: not drawn when the first non-blank line is `---`, when any line holds `%%{`, when the first word of any line is `click`, `link`, `links` or `callback` (case-insensitive), when the text exceeds 50,000 UTF-8 bytes, or when 20 earlier fences are already drawn.
+- The script initializes Mermaid with `securityLevel: 'strict'`, `startOnLoad: false`, `suppressErrorRendering: true`, `maxTextSize: 50000`, `maxEdges: 500`, and a theme from `prefers-color-scheme`. For each marked block it renders the text, parses the SVG with `DOMParser`, removes every `style` attribute, reads each `<style>` into a `CSSStyleSheet` with `replaceSync`, and accepts the sheet only when every rule is a style rule whose selectors all start with that SVG's `#id`; then it adds the sheet to `document.adoptedStyleSheets` and inserts the parsed SVG above the source block. Any failure leaves the source, adds `Diagram not drawn`, and removes anything Mermaid left in the document. The security argument rests on strict mode, the policy, and this confinement, not on `DOMParser`.
+- The privacy note is a `div` with class `note notice-diagrams` and the text given in the spec; the external script's `referrerpolicy="no-referrer"` keeps the page address out of the request.
 
 ## Tasks
 
-### T1 — Heat glyphs and divider
+### T1 — ADR, decision note, pinned constants
 
 Depends on: none
-Verification mode: TDD
-Touches: `scripts/report_assets/report.css`, the test file, `docs/design/tokens/skill-html-views.md`
-Tests: the four glyph escapes and empty alternative text; no glyph in the evidence or state sets; `border-bottom-color` on medium and high and no other `border` or `outline` property on any heat selector; contrast unchanged; the token file heat table.
-Done when: the T1 tests pass.
+Verification mode: goal-based
+Touches: a new ADR in `docs/adr/`, `docs/specs/architect-assess-html-report/notes/diagram-rendering-decision.md`, a roster test that reads the constants from `render_html.py` and compares them with `docs-site/package.json` and the ADR, the constants in `scripts/render_html.py`
+Tests: the roster parity test (version, URL, hash); the ADR holds each item the spec's ADR criterion names.
+Done when: the T1 tests pass and the ADR is accepted.
 
-### T2 — Flag, script asset, eligibility, policy
+### T2 — Flag, markup, eligibility, policy, asset loading
 
 Depends on: T1
 Verification mode: TDD
-Touches: `scripts/render_html.py`, `scripts/report_assets/diagrams.js`, the test file
-Tests: argument handling and the usage token; no script and the old policy without the flag; with the flag, two scripts in order with the exact attributes, the policy's `script-src` and the other directives, the note, the drawing marker and the unsafe label for each failing case, the asset loader's refusals (missing, oversize, symlink, non-regular, forbidden text), page-size caps, and escaping of fence text in both modes.
+Touches: `scripts/render_html.py`, the test file including its element and attribute lists, a stub `scripts/report_assets/diagrams.js` (a one-line comment) until T3
+Tests: argument handling and the usage token; default page with no script, no `src`, the old policy, and no read of `diagrams.js`; with the flag, the two scripts' position, order and attributes, the policy, the note, each eligibility rule and the limit, the labels in each state, the filter-sees-what-the-script-reads check with hostile text, the asset loader's refusals with distinct tokens, the list membership, caps, and escaping in both modes.
 Done when: the T2 tests pass.
 
-### T3 — ADR, docs, eval, release
+### T3 — Script asset
 
 Depends on: T2
-Verification mode: goal-based
-Touches: a new ADR in `docs/adr/`, `docs/specs/architect-assess-html-report/spec.md`, `docs/specs/architect-assess-html-report-style/spec.md`, `docs/specs/architect-assess-html-report/notes/diagram-rendering-decision.md`, `references/html-report.md`, `SKILL.md`, `guides/architect/reference/architecture-assessment.md`, `evals/evals.json`, `pack.toml`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` if it carries the version, a changelog fragment, a roster test pinning the constants to the ADR
-Tests: the roster parity test; grep for the flag, host, and offline default in the three docs; the eval case; the contract test for the new reference text.
-Done when: the T3 tests pass, `FORCE=1 make build-self` leaves only the expected projection diff, and the lint gate passes.
+Verification mode: TDD
+Touches: `scripts/report_assets/diagrams.js`, the test file
+Tests: text rules over `diagrams.js`: the `initialize` options, the theme rule, the selector, the `textContent` read, the absent sinks, the `style` attribute removal, the scoped-selector rule, the fallback note and cleanup; the loader accepts the real file.
+Done when: the T3 tests pass.
 
-### T4 — Browser QA and design review
+### T4 — Docs, parent amendments, eval, release
 
 Depends on: T3
+Verification mode: goal-based
+Touches: `docs/specs/architect-assess-html-report/spec.md`, `docs/specs/architect-assess-html-report-style/spec.md`, `references/html-report.md`, `SKILL.md`, `guides/architect/reference/architecture-assessment.md`, `guides/architect/how-to/assess-a-repository.md`, `evals/evals.json`, `pack.toml`, `.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json` if it carries the version, a changelog fragment, roster tests for the amended text and the doc names, the contract test
+Tests: the roster greps; the eval JSON test; the contract tests for the new reference and skill text; the version parity test.
+Done when: the T4 tests pass, `FORCE=1 make build-self` leaves only the expected projection diff, and the lint gate passes.
+
+### T5 — Browser QA and design review
+
+Depends on: T4
 Verification mode: manual QA
 Touches: `docs/specs/architect-assess-html-diagrams/notes/verification-ledger.md`
-Tests: render the fixture with `--diagrams` and open it in a real browser in light and dark; read drawn flowchart and sequence diagram; plant a hostile fence and an `onerror` label; alter the integrity value; block the network; fetch the pinned file and compare its SHA-384 with the constant; read the heat map; run `design-review` and `experience-reviewer` over the screenshots and adjudicate.
+Tests: render the fixture with `--diagrams` and open it in a real browser in light and dark; read the drawn flowchart and sequence diagram; run the hostile `classDef`, sentinel-payload and syntax-error fences; alter the integrity value; block the network; fetch the npm tarball, check its integrity against the `docs-site` lockfile, and compare the SHA-384 of its `dist/mermaid.min.js` with the constant and with the CDN's bytes; run `design-review` and `experience-reviewer` over the screenshots and adjudicate.
 Done when: the observations and review results are in the ledger.
 
 ## Review
 
-The change adds a third-party script to a generated page, so the security-reviewer fires on the spec and at REVIEW on T2 and T3, the frontend-reviewer on the script and markup, and the experience-reviewer on the rendered result.
+The change adds a third-party script to a generated page, so the security-reviewer fired on the spec and fires at REVIEW on T2 and T3, the frontend-reviewer on the script and markup, and the experience-reviewer on the rendered result.
 
 ## Risks
 
 - The CDN could be unreachable or the file removed; the page degrades to source blocks with a note.
-- A future Mermaid version could change how it emits styles; the pin and the QA pass catch that when the pin moves.
+- A later Mermaid version could change how it emits styles; the parity test and the QA pass catch that when the `docs-site` pin moves.
 - Constructable stylesheets are missing in older browsers; those readers see source blocks only.
 
 ## Changelog
