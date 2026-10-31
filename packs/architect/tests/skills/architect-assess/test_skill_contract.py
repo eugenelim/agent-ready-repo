@@ -182,10 +182,7 @@ def test_report_template_preserves_conversational_order_and_traceability() -> No
 def test_all_local_markdown_routes_resolve_and_saving_is_optional() -> None:
     text = SKILL_PATH.read_text(encoding="utf-8")
     references = re.findall(r"`((?:references|assets)/[^`]+\.md)`", text)
-    local_markdown = {
-        path.relative_to(SKILL_ROOT).as_posix()
-        for path in SKILL_ROOT.rglob("*.md")
-    }
+    local_markdown = {path.relative_to(SKILL_ROOT).as_posix() for path in SKILL_ROOT.rglob("*.md")}
     assert references
     for relative in references:
         assert relative in local_markdown, relative
@@ -265,9 +262,7 @@ def test_cannot_pause_exception_is_stated_at_each_checkpoint_rule() -> None:
 
 
 def test_orientation_reference_routes_to_the_owning_skills() -> None:
-    text = (SKILL_ROOT / "references" / "orientation-views.md").read_text(
-        encoding="utf-8"
-    )
+    text = (SKILL_ROOT / "references" / "orientation-views.md").read_text(encoding="utf-8")
     assert "architect-diagram" in text
     assert "physical-bom.md" in text
     assert "not assessed" in text
@@ -288,3 +283,28 @@ def test_orientation_evals_exist() -> None:
     assert "begins with the line `not assessed`" in assertions
     assert "Names no host, cluster, cloud service, or network component" in assertions
     assert "ends with a Sources checked table" in assertions
+
+
+def test_html_mode_is_named_with_its_script_and_preconditions() -> None:
+    text = " ".join(SKILL_PATH.read_text(encoding="utf-8").split())
+    assert "## HTML report mode" in text
+    assert "`scripts/render_html.py <effort-dir>`" in text
+    assert "Run the script only on a user request" in text
+    assert "offer to save one first" in text and "run nothing" in text
+    assert (SKILL_ROOT / "scripts" / "render_html.py").is_file()
+
+
+def test_html_reference_states_the_path_and_host_limits() -> None:
+    text = " ".join(
+        (SKILL_ROOT / "references" / "html-report.md").read_text(encoding="utf-8").split()
+    )
+    assert "Pass the resolved effort directory" in text
+    assert "Windows included" in text and "| 3 |" in text
+
+
+def test_html_eval_case_checks_the_sources_checked_table() -> None:
+    import json
+
+    evals = json.loads((SKILL_ROOT / "evals" / "evals.json").read_text("utf-8"))["evals"]
+    case = next(c for c in evals if "HTML report" in c["prompt"])
+    assert any("Sources checked table" in a for a in case["assertions"])
