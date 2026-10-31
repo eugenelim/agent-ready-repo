@@ -14,3 +14,8 @@ The owner (eugenelim) settled four points before the spec body was written:
 - A fresh clone of `evidence/tracker-origin-registration-stop-run`: `status docs/specs/tracker-origin-registration-stop --check` exit `1`, `supervisor-changed`, `the supervisor's pin record is missing`.
 - The same clone with both pin checks bypassed (throwaway, uncommitted): exit `0`, `terminal: true`, no `.git/agentbundle-supervisor` created.
 - The same tree squashed into one commit on its merge base: exit `0`, stage `implementing`, empty `refusal`.
+
+## Gates (2026-10-30)
+
+- Spec approved by eugenelim at `01c13d980`; plan approved by eugenelim at `684f8ed41`.
+- `spec-approved` knowledge capture: project-knowledge unavailable (`map_mismatch` from `--capture --producer-profile work-loop`); no fallback file written.

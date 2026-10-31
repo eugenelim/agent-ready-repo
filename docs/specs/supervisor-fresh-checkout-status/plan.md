@@ -1,7 +1,7 @@
 # Plan: Supervisor status in a checkout without the run's store
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-loop-execution-supervisor.md` (run store row); the pin checks `work-supervisor.py` `_preflight` and `_supervisor_attempt.py` `AttemptStore.check_pins`; their suite `packs/core/tests/skills/work-loop/test_supervisor_pinning.py` (fixture `pinned_template`, helpers `_copy_repo`, `_run`, `_load_cli`) and the harness controller `supervisor_harness.Controller.drive`, which `test_supervisor_consumer_map.py` uses to reach terminal. No new structure.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -115,3 +115,4 @@ Traces to: AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006.
 ## Changelog
 
 - 2026-10-30: spec approved by eugenelim at `01c13d980`.
+- 2026-10-30: plan approved by eugenelim at `684f8ed41`.
