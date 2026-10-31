@@ -643,7 +643,9 @@ def test_a_reset_plus_an_edit_is_blocked_and_leaves_the_edit(tmp_path: Path) -> 
 
 @pytest.mark.parametrize("moved", ["head", "ref"])
 @pytest.mark.parametrize("attempt_open", [False, True])
-def test_a_partial_transaction_completes(tmp_path: Path, moved: str, attempt_open: bool) -> None:
+def test_a_partial_transaction_completes_only_from_the_product_ref(
+    tmp_path: Path, moved: str, attempt_open: bool
+) -> None:
     repo = started(tmp_path)
     ctl = controller(repo, tmp_path)
     if attempt_open:
@@ -674,10 +676,23 @@ def test_a_partial_transaction_completes(tmp_path: Path, moved: str, attempt_ope
     pending = record(repo)["pending"]
     assert pending and pending != before_head
     h.git(repo, "update-ref", "HEAD" if moved == "head" else name, pending)
-    next_ok(repo)
-    assert rev(repo, "HEAD") == rev(repo, name) != before_head
-    assert record(repo)["pending"] is None
-    assert_parity(repo)
+    if moved == "ref":
+        next_ok(repo)  # the product ref names the step: it landed, and HEAD is completed
+        assert rev(repo, "HEAD") == rev(repo, name) == pending
+        assert pending in (store_dir(repo) / "made-commits").read_text("utf-8")
+        assert record(repo)["pending"] is None
+        assert_parity(repo)
+        return
+    # HEAD alone names it: nothing proves the step landed, so it is foreign history and the
+    # stale result never lands.
+    if attempt_open:
+        assert next_refusal(repo)["code"] == "attempt-residue"
+        code, out = ctl.report(result)
+        assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    else:
+        assert next_ok(repo)["request"]["reason"] == "history-adoption"
+    assert rev(repo, name) == before_head
+    assert pending not in (store_dir(repo) / "made-commits").read_text("utf-8")
 
 
 # ── VI-0516: AC-0011, AC-0012, AC-0013, AC-0014 ─────────────────────────────
@@ -905,10 +920,54 @@ def test_a_crash_around_the_move_converges(tmp_path: Path, ref_less: bool, point
     assert (rev(repo, "HEAD") != before) is moved
     assert pending_file.exists() is (point != "made-recorded")
     step = rev(repo, "HEAD") if moved else pending_file.read_text("utf-8").strip()
-    # A landed step counts as the supervisor's own before it is recorded; an unlanded one never does.
-    assert (step in h.workspace(repo).git.made_commits(run_id)) is moved
-    assert "request" in next_ok(repo)  # reconcile settles it first
+    # Only the product ref proves a step landed; a ref-less run has no such proof until
+    # the step is recorded as made.
+    proven = moved and (not ref_less or point == "made-recorded")
+    assert (step in h.workspace(repo).git.made_commits(run_id)) is proven
+    payload = next_ok(repo)
     assert not pending_file.exists()
-    assert (step in (store_dir(repo) / "made-commits").read_text("utf-8").split()) is moved
+    assert (step in (store_dir(repo) / "made-commits").read_text("utf-8").split()) is proven
+    if moved and not proven:
+        # No proof the step landed: the owner decides, and nothing is recorded as made.
+        assert payload["request"]["reason"] == "history-adoption"
+        assert payload["request"]["head_commit"] == step
+        return
+    assert "request" in payload
     assert rev(repo, "HEAD") == (step if moved else before)
     assert_parity(repo)
+
+
+def test_a_failure_to_clear_a_refused_step_keeps_the_refusal_and_never_makes_it(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    make_legacy(repo)
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+    base = rev(repo, "HEAD")
+    tree = h.git(repo, "rev-parse", "HEAD^{tree}").strip()
+    other = h.git(repo, "commit-tree", tree, "-p", base, "-m", "a racing commit").strip()
+
+    def race() -> None:
+        h.git(repo, "update-ref", "refs/heads/main", other)
+
+    def broken(self: Any, run: str) -> None:
+        raise OSError("the store is read-only")
+
+    h.commit_module.set_update_hook(race)
+    monkeypatch.setattr(h.commit_module.GitPort, "clear_pending", broken)
+    try:
+        with pytest.raises(h.commit_module.SupervisorGitError) as caught:
+            ws.git.build_commit(run_id=run_id, step="refused-step", operation="evidence",
+                                summary="refused")
+    finally:
+        h.commit_module.set_update_hook(None)
+        monkeypatch.undo()
+    assert caught.value.code == "denied-git-failed"  # the original refusal, not the OSError
+    assert "could not be cleared" in str(caught.value)
+    refused = (store_dir(repo) / "pending-commit").read_text("utf-8").strip()  # it stays pending
+    h.git(repo, "update-ref", "refs/heads/main", refused)  # the worker adopts it
+    assert refused not in h.workspace(repo).git.made_commits(run_id)
+    assert next_ok(repo)["request"]["reason"] == "history-adoption"
+    assert refused not in (store_dir(repo) / "made-commits").read_text("utf-8")

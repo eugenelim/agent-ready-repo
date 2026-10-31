@@ -821,9 +821,8 @@ def status(ws: Workspace) -> dict[str, Any]:
     if state.refusal is None:
         # What the next verb's ref check would refuse, found without repairing anything.
         recovery = _supervisor("_supervisor_recovery.py")
-        state.refusal = recovery.inspect(ws)
-        if state.refusal is None:
-            state.refusal = ws.attempts.standing_refusal()  # what next would answer
+        # What the next verb would answer: the attempt guard first, then the ref check.
+        state.refusal = ws.attempts.standing_refusal() or recovery.inspect(ws)
         if state.refusal is None:
             ws.divergence = recovery.peek(ws)  # shown as the pending decision, nothing is issued
     if state.refusal is not None:

@@ -997,3 +997,16 @@ def test_status_reports_the_refusal_next_would_answer(
     assert "plan.md" in status["refusal"]["detail"]
     # Status marked, cleared and logged nothing.
     assert (_made(repo), sorted(p.name for p in (_store(repo) / "attempts").iterdir())) == before
+
+
+def test_status_with_an_open_attempt_reports_what_next_answers(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy(product_template, tmp_path)
+    _current_request(repo)
+    name, _recorded = _product(repo)
+    h.git(repo, "update-ref", name, _forged_product(repo))
+    code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    code, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 0 and status["refusal"]["code"] == "attempt-residue", status

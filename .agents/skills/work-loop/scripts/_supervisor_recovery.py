@@ -536,17 +536,16 @@ def _create(ws: Any, run_id: str, head: str) -> Any:
 
 
 def _complete(ws: Any, run_id: str, record: Any, value: str, head: str) -> Any:
-    """Finish a transaction that moved one ref, and clear the pending commit.
+    """Finish a transaction that moved the product ref, and clear the pending commit.
 
-    When neither ref sits where a half-move leaves it, nothing is moved: the ref's own
-    value becomes the recorded one and the usual comparison with ``HEAD`` follows.
+    Only the product ref at the pending commit with ``HEAD`` at the commit before it
+    completes: the ref moves only inside the supervisor's transaction. When ``HEAD`` alone
+    names the pending commit, nothing is moved: the ref's own value becomes the recorded
+    one, and the usual comparison with ``HEAD`` makes that history foreign.
     """
     git = ws.git
     if value == record.pending and head == record.recorded:
         git.move_head(value, head, "work-supervisor: complete step")
-    elif value == record.recorded and head == record.pending:
-        git.move_ref(record.name, record.pending, value)
-        value = record.pending
     _commit.kill_point("repaired")
     done = _commit.ProductRecord(record.name, value, None)
     git.write_product_record(run_id, done)

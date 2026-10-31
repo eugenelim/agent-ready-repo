@@ -244,18 +244,21 @@ class GitPort:
 
         A commit becomes made only once its transaction has moved the refs. A step cut
         off between that move and the append is still pending in the store, and counts
-        here once ``HEAD`` holds it, so no reader sees it as foreign. A refused step
-        leaves no trace: it is neither made nor pending.
+        here only when the product ref names it: the ref moves only inside the
+        supervisor's transaction, so it alone proves the step landed. ``HEAD`` naming
+        a pending commit proves nothing, and a run with no product ref has no proof,
+        so that commit is foreign history. A refused step is neither made nor pending.
         """
         entries = self._made_entries(run_id)
         pending = self.pending_commit(run_id)
-        if (
-            pending is not None
-            and pending not in entries
-            and self.is_ancestor(pending, self.head())
-        ):
+        if pending is not None and pending not in entries and self._ref_names(run_id, pending):
             entries.append(pending)
         return entries
+
+    def _ref_names(self, run_id: str, sha: str) -> bool:
+        """Whether the run's product ref names *sha*, by direct file reads."""
+        record = self.product_record(run_id)
+        return record is not None and self.read_ref(record.name) == ("commit", sha)
 
     def pending_commit(self, run_id: str) -> str | None:
         """The commit a step's transaction is moving the refs to, while it is in flight."""
@@ -282,15 +285,15 @@ class GitPort:
         (self._store_dir(run_id) / _PENDING_FILE).unlink(missing_ok=True)
 
     def settle_pending(self, run_id: str) -> None:
-        """Resolve a step a crash cut off: record it as made if it landed, else forget it.
+        """Resolve a step a crash cut off: record it as made if the product ref names it.
 
-        It landed when ``HEAD`` holds it. When it did not, it is kept while the product
-        ref record still names it pending, because ``reconcile`` finishes that move first.
+        Otherwise it never landed and is forgotten, except while the product ref record
+        still names it pending, because ``reconcile`` finishes that move first.
         """
         pending = self.pending_commit(run_id)
         if pending is None:
             return
-        if self.is_ancestor(pending, self.head()):
+        if self._ref_names(run_id, pending):
             if pending not in self._made_entries(run_id):
                 self.record_made(run_id, pending)
             self.clear_pending(run_id)
@@ -441,12 +444,6 @@ class GitPort:
         """Create the product ref at *commit*, replacing and never following a symbolic ref."""
         self.run("update-ref", "--no-deref", "-m", "work-supervisor: create product ref",
                  name, commit, "0" * len(commit))
-
-    def move_ref(self, name: str, new: str, old: str) -> None:
-        """Move the product ref from *old* to *new* by compare-and-swap, without following it."""
-        self.run(
-            "update-ref", "--no-deref", "-m", "work-supervisor: complete step", name, new, old
-        )
 
     def move_head(self, new: str, old: str, message: str) -> None:
         """Move ``HEAD`` (through the branch it names) from *old* to *new* by compare-and-swap."""
@@ -796,8 +793,15 @@ class GitPort:
         kill_point("commit-built")
         try:
             self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
-        except Exception:
-            self.clear_pending(run_id)
+        except Exception as refusal:
+            try:
+                self.clear_pending(run_id)
+            except Exception as failure:  # noqa: BLE001 - shown beside the refusal, never instead
+                note = f"the pending commit could not be cleared ({type(failure).__name__})"
+                if hasattr(refusal, "detail"):
+                    refusal.detail = f"{refusal.detail}; {note}"
+                elif refusal.args:
+                    refusal.args = (f"{refusal.args[0]}; {note}", *refusal.args[1:])
             raise
         kill_point("refs-moved")
         self._settle_record(run_id, new)
