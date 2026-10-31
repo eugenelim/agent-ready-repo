@@ -157,6 +157,51 @@ def _digest(data: bytes) -> str:
     return f"{len(data)}:{hashlib.sha256(data).hexdigest()}"
 
 
+_CONFIG_VIEW = "config-view:"
+_TRACKING_VALUE = rb'[^"\\;#\x00-\x1f\x7f]*'
+_BRANCH_HEADER = re.compile(rb'\[branch "[^"\\\x00-\x1f\x7f]+"\]\n')
+_REMOTE_HEADER = re.compile(rb'\[remote "[^"\\\x00-\x1f\x7f]+"\]\n')
+_BRANCH_KEY = re.compile(
+    rb"\t(?:remote|merge|pushremote|rebase|description) = " + _TRACKING_VALUE + rb"\n"
+)
+_GH_RESOLVED = re.compile(rb"\tgh-resolved = " + _TRACKING_VALUE + rb"\n")
+_MEMBER_LINE = re.compile(rb"\t[a-z]")
+
+
+def _strip_tracking_blocks(data: bytes) -> bytes:
+    """*data* with each canonical branch-tracking block and ``gh-resolved`` line removed.
+
+    Only exact Git-written shapes in a strippable file go; every other byte stays,
+    so a shape Git reads differently from this line pattern keeps its effect on the
+    digest. A strippable file ends in a newline, holds no ``\\r``, and has no line
+    ending in a backslash, because Git joins such lines and a canonical-looking line
+    after one is part of a value. Pure: no I/O.
+    """
+    if not data.endswith(b"\n") or b"\r" in data or b"\\\n" in data:
+        return data
+    lines = data.splitlines(keepends=True)
+    drop: set[int] = set()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if _BRANCH_HEADER.fullmatch(line):
+            end = i + 1
+            while end < len(lines) and _BRANCH_KEY.fullmatch(lines[end]):
+                end += 1
+            if end > i + 1 and (end == len(lines) or lines[end].startswith(b"[")):
+                drop.update(range(i, end))
+                i = end
+                continue
+        elif _GH_RESOLVED.fullmatch(line):
+            back = i - 1
+            while back >= 0 and _MEMBER_LINE.match(lines[back]):
+                back -= 1
+            if back >= 0 and _REMOTE_HEADER.fullmatch(lines[back]):
+                drop.add(i)
+        i += 1
+    return b"".join(line for n, line in enumerate(lines) if n not in drop)
+
+
 def differences(old: dict[str, str], new: dict[str, str]) -> list[str]:
     """Labels whose entry was added, removed, or changed, sorted."""
     return sorted(k for k in old.keys() | new.keys() if old.get(k) != new.get(k))
@@ -220,8 +265,12 @@ class Attempts:
     # ── reading files ───────────────────────────────────────────────────────
 
     @staticmethod
-    def _entry(base: Path, path: Path) -> str | None:
-        """The digest of one file under *base*, ``None`` when it is absent."""
+    def _entry(base: Path, path: Path, *, config: bool = False) -> str | None:
+        """The digest of one file under *base*, ``None`` when it is absent.
+
+        A regular *config* file read in full gives its config fingerprint, from the
+        bytes of that one read; a link, special, or oversized file keeps its value.
+        """
         fs = sibling("_file_safety.py")
         try:
             info = os.lstat(path)
@@ -236,9 +285,10 @@ class Attempts:
         if not stat.S_ISREG(info.st_mode):
             return "special"
         try:
-            return _digest(
-                bytes(fs.read_confined_regular_file(base, path, max_bytes=_MAX_FILE_BYTES))
-            )
+            data = bytes(fs.read_confined_regular_file(base, path, max_bytes=_MAX_FILE_BYTES))
+            if config:
+                return _CONFIG_VIEW + _digest(_strip_tracking_blocks(data))
+            return _digest(data)
         except FileNotFoundError:
             return None
         except fs.UnsafeContentError:
@@ -312,7 +362,9 @@ class Attempts:
                 state[".git"] = digest
         for label, directory in self._directories():
             for rel in ("config", "config.worktree", "commondir", "objects/info/alternates"):
-                digest = self._entry(directory, directory / rel)
+                digest = self._entry(
+                    directory, directory / rel, config=rel in ("config", "config.worktree")
+                )
                 if digest is not None:
                     state[f"{label}:{rel}"] = digest
             for rel in ("info", "hooks", "refs/replace"):
