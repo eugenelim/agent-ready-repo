@@ -186,6 +186,11 @@ confirmed personal directory, the agent shows the final local path and writes
 exact personal file is refused because the assessment retains its per-effort
 folder. Configuration remains optional and no destination is created silently.
 
+To get an offline copy, ask for an HTML report of the saved assessment. The agent
+renders `assessment.html` beside it. The page runs no script, shows diagrams as
+source blocks, and is refused if an orientation section lacks its
+`Sources checked` table.
+
 Next, ask:
 
 > Review this assessment report for scope overclaim, evidence strength, heat-map
