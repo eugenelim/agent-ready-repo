@@ -1,7 +1,7 @@
 # Plan: The last registry entries leave, and refresh gets its own policy file
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and § Errata; RFC-0105 D3; RFC-0083; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-intake/scripts/refresh.py`: `parse_refresh_authorization_policy` (line 1021), the `local_receipts` record shape (lines 671-694 and 867), and every `workspace.toml` read and digest binding (lines 1235, 1504, 1609, 1698, 1718, 2005). Packaged copy: `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`.

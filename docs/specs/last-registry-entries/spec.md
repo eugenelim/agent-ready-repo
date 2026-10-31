@@ -1,7 +1,7 @@
 # Spec: The last registry entries leave, and refresh gets its own policy file
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-31 by eugenelim, spec and plan at `b920263b4`, after three spec-mode shaping and adversarial review rounds, each adjudicated (three adjudications were invalid; two were re-run), with the round-3 repairs accepted unreviewed; records under `.context/reviews/f74a8515-2661-4d20-9b7f-b0679cb7da68/`.
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-31 by eugenelim, spec and plan at `b920263b4` (the same bytes as the rebased `9568e85eb`), after three spec-mode shaping and adversarial review rounds, each adjudicated (three adjudications were invalid; two were re-run), with the round-3 repairs accepted unreviewed; records under `.context/reviews/f74a8515-2661-4d20-9b7f-b0679cb7da68/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105 (D3, the retirement gates and the one retirement record), RFC-0106 (D1, a registration's readers go when its replacement ships; § Errata, each removal's authority), RFC-0083 (refresh and the source-authority record), RFC-0055 (errata entries on an Accepted RFC), ADR-0074 (standard-library skill scripts)
