@@ -7,7 +7,7 @@
 | 2026-10-31 | eugenelim | RFC-0106 errata entry of 2026-10-31, before the run | `docs/rfc/0106-stop-registering-derivable-work.md` | `c24afbde4576cb815648e69f89a210c9461a2a5caff22aaeb183edfa8a41304a` |
 | 2026-10-31 | eugenelim | brief Spec map row and after-cutover slug annotations | `docs/product/briefs/workspace-registry-retirement-delivery.md` | `2c4e141ec8c3f3e34367a8fdfc0fb2da5401acdefecba99b6177adb77acc20a8` |
 | 2026-10-31 | eugenelim | six-row QA matrix copied into the captured item | `docs/product/captured/credential-broker-contract-manual-qa.md` | `d10ad4fae925ef1d1a00e8dc89defee7b2e588037704f2317e045fd052fee247` |
-| 2026-10-31 | eugenelim | the repair plan applied to this repository | `.workspace-repair-plan.json` (gitignored; copy in the run notes below) | `ce89dc5880e675266953318ac10ba36add0ca65293d38c0b3bb4d3f3b38c47ca` |
+| 2026-10-31 | eugenelim | the repair plan applied to this repository | `.workspace-repair-plan.json` (gitignored; byte-identical copy at [`t6-run/repair-plan.json`](t6-run/repair-plan.json)) | `ce89dc5880e675266953318ac10ba36add0ca65293d38c0b3bb4d3f3b38c47ca` |
 | 2026-10-31 | eugenelim | § Compatibility closure entry | `docs/specs/workspace-retirement/retirement-record.md` | `8f2f27af4defde7d669f3e3ba2ae1c2ab8297f73c0182a61c68cabdc3fe6d50c` |
 
 ## Run notes
@@ -25,6 +25,10 @@
 
 - Planned operations: {'captured-entry-drop': 71, 'needs-to-header': 3}; `refresh-policy-move`: 0 (this repository has no `[authorization]` table); manual items: 1 (`record-differs` for `credential-broker-contract-manual-qa`, raised by the owner-approved matrix copy; its entry dropped in the same plan).
 - Apply: `applied` True, `operations_applied` 74, refused 0.
+- Run outputs, in [`t6-run/`](t6-run/):
+  - [`repair-plan.json`](t6-run/repair-plan.json): the applied plan, the same bytes as the approved SHA-256 above.
+  - [`repair-apply.json`](t6-run/repair-apply.json): the `repair-apply --yes` output, workspace digest `9fe9b087…` before and `66f58fa0…` after.
+  - [`dispatch-before.json`](t6-run/dispatch-before.json) and [`dispatch-after.json`](t6-run/dispatch-after.json): `dispatch.py --root .` on the tree of `d940b5030^` and of `d940b5030`, the commit that holds the run. These two were regenerated from those commits on 2026-11-01, because the run-time copies were not kept; they show the same comparison as recorded below.
 - `dispatch.py` before and after: `ready`, `active`, `blocked` and `decision` identical ({'ready': True, 'active': True, 'blocked': True, 'decision': True}); `findings` 70 → 47, the removed legacy and captured entries' own findings.
 - The next `repair-plan` holds no operation and no manual item.
 - The first run (2026-10-31, plan `ae006455…`) applied 68 of 71 drops; three slug-only entries with legacy string `needs` were refused with `entry_has_needs`. That run's `workspace.toml` change was discarded, the contract was amended (AC-0022, task T9), and the plan above re-ran from the committed registry.
