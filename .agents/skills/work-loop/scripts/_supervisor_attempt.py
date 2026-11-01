@@ -4,9 +4,11 @@ Issuing a worker request (``implement-task``, ``write-stub``, ``review-role``,
 or ``assess-finding``) records a manifest in the supervisor store, under the
 pinned Git directory: the size and sha256 of every trusted file (the spec, the
 plan, the records the spec cites, and the installed skill directory) and of
-every Git control state file. While that issuance is open, every ``next``,
-``report``, and ``start`` first compares the working tree with the manifest
-and with ``HEAD``, before any derivation and before any write. A difference
+every Git control state file, except that a ``config`` or ``config.worktree`` entry
+records the config fingerprint (the file with its canonical branch-tracking blocks
+and ``gh-resolved`` lines removed) in place of the raw size and sha256. While that
+issuance is open, every ``next``, ``report``, and ``start`` first compares the working
+tree with the manifest and with ``HEAD``, before any derivation and before any write. A difference
 refuses the attempt: the store keeps a refusal record, and ``next`` answers
 ``attempt-residue`` until the named paths are restored and ``next`` clears it.
 
@@ -182,6 +184,10 @@ def _strip_tracking_blocks(data: bytes) -> bytes:
         return data
     lines = data.splitlines(keepends=True)
     drop: set[int] = set()
+    # True while the lines since the last non-member line (one not starting with a
+    # tab and a lower-case letter) follow a ``[remote "<name>"]`` header: one forward
+    # pass, so a long run of members is not walked again for each line in it.
+    in_remote = False
     i = 0
     while i < len(lines):
         line = lines[i]
@@ -191,14 +197,14 @@ def _strip_tracking_blocks(data: bytes) -> bytes:
                 end += 1
             if end > i + 1 and (end == len(lines) or lines[end].startswith(b"[")):
                 drop.update(range(i, end))
+                in_remote = False  # the branch header opened the run these lines belong to
                 i = end
                 continue
-        elif _GH_RESOLVED.fullmatch(line):
-            back = i - 1
-            while back >= 0 and _MEMBER_LINE.match(lines[back]):
-                back -= 1
-            if back >= 0 and _REMOTE_HEADER.fullmatch(lines[back]):
+        if _MEMBER_LINE.match(line):
+            if in_remote and _GH_RESOLVED.fullmatch(line):
                 drop.add(i)
+        else:
+            in_remote = bool(_REMOTE_HEADER.fullmatch(line))
         i += 1
     return b"".join(line for n, line in enumerate(lines) if n not in drop)
 
@@ -607,7 +613,8 @@ class Attempts:
         if changed:
             raise SupervisorGitError(
                 "denied-git-control-state",
-                f"Git control state differs from the open attempt's manifest: {_named(changed)}",
+                "Git control state differs from the open attempt's manifest: "
+                + _named(self._recorded_forms(manifest.git, changed)),
             )
 
     # ── the check ───────────────────────────────────────────────────────────
@@ -634,7 +641,10 @@ class Attempts:
                 paths = self._differences(issuance, current, current_ref, bad)
             if issuance.refused:
                 if paths:
-                    raise _refusal("attempt-residue", self._detail(paths, standing=True))
+                    raise _refusal(
+                        "attempt-residue",
+                        self._detail(self._recorded_forms(issuance.git, paths), standing=True),
+                    )
                 if verb == "next":
                     self._mark(issuance, ".cleared")
                     continue
@@ -651,6 +661,21 @@ class Attempts:
         return self.open
 
     @staticmethod
+    def _recorded_forms(recorded: dict[str, str], paths: list[str]) -> list[str]:
+        """*paths* with each config entry's recorded form added, so an operator can tell
+        a raw-form manifest refusing a tracking write from a real config change."""
+        shown = []
+        for path in paths:
+            value = recorded.get(path, "")
+            if path.rpartition(":")[2] in ("config", "config.worktree") and value:
+                if value.startswith(_CONFIG_VIEW):
+                    path += " (recorded as config-view)"
+                elif _RAW_ENTRY.fullmatch(value):
+                    path += " (recorded as raw)"
+            shown.append(path)
+        return shown
+
+    @staticmethod
     def _detail(paths: list[str], *, standing: bool) -> str:
         head = (
             "a refused attempt still differs from its manifest"
@@ -665,7 +690,9 @@ class Attempts:
         self._mark(issuance, ".refused.json", json.dumps(record, sort_keys=True).encode())
         code = "attempt-refused" if verb == "report" else "attempt-residue"
         self._log(code)
-        raise _refusal(code, self._detail(paths, standing=False))
+        raise _refusal(
+            code, self._detail(self._recorded_forms(issuance.git, paths), standing=False)
+        )
 
     def _log(self, reason: str) -> None:
         """Write one ``security-event.v1`` denial; the refusal stands even if it is not stored."""

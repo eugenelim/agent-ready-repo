@@ -949,6 +949,9 @@ FORMS: dict[str, tuple[Callable[[Path], None] | None, Callable[[Path], None]]] =
 }
 
 
+RECORDED_NOTE = {"raw": "(recorded as raw)", "config-view": "(recorded as config-view)", "link": ""}
+
+
 @pytest.mark.parametrize("form", sorted(FORMS))
 def test_vi_0109_each_entry_is_compared_in_the_form_it_was_recorded(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, form: str
@@ -969,4 +972,8 @@ def test_vi_0109_each_entry_is_compared_in_the_form_it_was_recorded(
         else:
             assert code == 1, out
             assert out["refusal"]["code"] == "attempt-refused", out
-            assert "config" in out["refusal"]["detail"]
+            detail = out["refusal"]["detail"]
+            assert "git:config" in detail and "common:config" not in detail, detail
+            # VI-0123: the detail names the form the manifest recorded the entry in.
+            note = RECORDED_NOTE[form]
+            assert (note in detail) if note else ("recorded as" not in detail), detail
