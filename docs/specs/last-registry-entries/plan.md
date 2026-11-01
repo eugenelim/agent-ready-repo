@@ -119,7 +119,7 @@ Owned by: T4
 - **Depends on:** T3
 - **Verification mode:** TDD
 - **Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/test_captured_entry_drop.py`, `.claude/skills/workspace-status/**`, `.agents/skills/workspace-status/**`, `packs/core/.apm/skills/workspace-status/references/mutate.md`, `packs/core/.apm/skills/workspace-status/SKILL.md`
-- **Tests:** for AC-0022, AC-0001: planted slug-only entries with a string `needs` of each legacy form, an array of legacy needs, a header that already holds a reference, and a non-legacy need (manual item, entry kept); one apply writes the header then drops the entry, and the next plan holds neither operation; the existing `needs-to-header` cases unchanged.
+- **Tests:** for AC-0022, AC-0001, AC-0003, AC-0005: planted slug-only entries with a string `needs` of each legacy form, an array of legacy needs, a brief whose `Slug:` differs from its file stem, a brief with no indexed slug (manual item), a header that already holds a reference, a wrapped `Depends on:` line (manual item), a non-legacy need (manual item, entry kept), and an entry with legacy `needs` whose captured file the same plan's `captured-to-file` writes (one apply settles it); one apply writes the header then drops the entry, and the next plan holds neither operation; the existing `needs-to-header` cases unchanged.
 - **Done when:** `packs/core/tests/skills/workspace-status/` passes and `mutate.md` describes the legacy-need case.
 
 ### T6: Run the repair on this repository
