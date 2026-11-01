@@ -22,7 +22,7 @@ import unicodedata
 from pathlib import Path
 from typing import Any, NamedTuple
 
-RENDERER_VERSION = "2"
+RENDERER_VERSION = "3"
 REPORT_ID = "report"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_EXISTING_OUTPUT_BYTES = 16 * 1024 * 1024
@@ -52,6 +52,7 @@ OUTPUT_NAME = "assessment.html"
 ORIENTATION = {
     "overall architecture": "Overall architecture",
     "architecture by subsystem": "Architecture by subsystem",
+    "technology and dependencies": "Technology and dependencies",
     "physical architecture": "Physical architecture",
 }
 SOURCES_HEADER = ["Source", "Locator", "Evidence class", "Limit"]
@@ -64,6 +65,18 @@ HEAT_COLUMNS = (
     "Ops/data/security exposure",
 )
 HEAT_VALUES = ("low", "medium", "high", "unknown")
+# Sections that back the conclusions rather than state them. They start closed, so the page
+# reads as the argument first and the proof on request.
+COLLAPSED_SECTIONS = (
+    "evidence coverage",
+    "attention heat map",
+    "hotspot drill-downs",
+    "coverage and confidence",
+)
+FOLD_HINT = "Supporting detail"
+# A level-2 heading of this shape is a part. A report that has one groups its sections under
+# parts: sections move down to level 3, and the sections' own subsections to level 4.
+PART_HEADING = re.compile(r"^Part (\d+)\s*[:.\u2014-]\s*(.+)$")
 
 BANNER_TEXT = "Map and hotspot set not user-confirmed"
 NOTICE_TEXT = "Unverified: built from repository text and model analysis; not redacted"
@@ -165,7 +178,7 @@ def _inline(text: str) -> str:
         if match.group(1):
             out.append(f"<code>{_esc(token[1:-1])}</code>")
         elif match.group(2):
-            out.append(f"<strong>{_esc(token[2:-2])}</strong>")
+            out.append(f"<strong>{_inline(token[2:-2])}</strong>")
         elif match.group(3):
             split = token.index("](")
             label, target = token[1:split], token[split + 2 : -1]
@@ -196,6 +209,72 @@ def _plain_text(text: str) -> str:
         position = match.end()
     out.append(text[position:])
     return "".join(out)
+
+
+_LABEL_LINE = re.compile(r"^([A-Z][A-Za-z0-9 /,&()-]{0,40}):(?:\s+(.*))?$")
+_ID_HEADING = re.compile(r"^([A-Z])-(\d+):\s+(.+)$")
+# Fields that cite where a claim comes from. A finding or hotspot shows its claim, mechanism,
+# and response first and keeps these one click away.
+CITATION_LABELS = ("Scope", "Evidence", "Counter-evidence", "Signals and provenance")
+CITATION_FOLD = "Evidence and citations"
+SEVERITY_MARKS = {"blocker": "broken", "major": "stale", "minor": "draft", "advisory": "done"}
+PRIORITY_MARKS = {"p1": "broken", "p2": "stale", "p3": "draft"}
+
+
+def _mark(word: str, state: str) -> str:
+    """A state pill that carries its word, so colour is never the only signal."""
+    return f'<span class="mark" data-mark="{state}">{_esc(word)}</span>'
+
+
+def _fields(text: str) -> str | None:
+    """Render a run of `Label: value` lines as a record, or return None for ordinary prose.
+
+    A record needs a first line that is a label and at least two label lines; a line that is
+    not a label continues the value before it. `Severity` values lead with a state pill.
+    """
+    records: list[tuple[str, list[str]]] = []
+    for line in text.split("\n"):
+        match = _LABEL_LINE.match(line)
+        if match:
+            records.append((match.group(1), [match.group(2) or ""]))
+        elif records:
+            records[-1][1].append(line)
+        else:
+            return None
+    if len(records) < 2:
+        return None
+    rows: list[str] = []
+    cited: list[str] = []
+    for label, parts in records:
+        value = " ".join(part for part in parts if part).strip()
+        word, _, rest = value.partition(" ")
+        head = word.rstrip(".,;:").lower()
+        if label == "Severity" and head in SEVERITY_MARKS:
+            shown = _mark(head, SEVERITY_MARKS[head]) + (f" {_inline(rest)}" if rest else "")
+        else:
+            shown = _inline(value)
+        row = (
+            f'<p class="rec-row"><span class="rec-key">{_esc(label)}</span>'
+            f'<span class="rec-val">{shown}</span></p>'
+        )
+        (cited if label in CITATION_LABELS else rows).append(row)
+    if cited and len(rows) >= 2:
+        rows.append(
+            f'<details class="fold-inline"><summary class="part-head">{CITATION_FOLD} '
+            f'({len(cited)})</summary>{"".join(cited)}</details>'
+        )
+    else:
+        rows += cited
+    return f'<div class="rec">{"".join(rows)}</div>'
+
+
+def _heading_html(text: str) -> str:
+    """Inline heading markup; `F-1: Title` shows its ID as a tag ahead of the title."""
+    match = _ID_HEADING.match(text)
+    if match:
+        tag = f"{match.group(1)}-{match.group(2)}"
+        return f'<span class="id-tag">{_esc(tag)}</span> {_inline(match.group(3))}'
+    return _inline(text)
 
 
 def _cells(line: str) -> tuple[str, ...]:
@@ -345,10 +424,26 @@ def _orientation_ranges(blocks: list[Block], title: int | None) -> list[tuple[in
     ]
 
 
-def _scopes(blocks: list[Block], title: int | None) -> list[tuple[str, str | None]]:
+def _section_level(blocks: list[Block], title: int | None) -> int:
+    """Return 3 when the report groups its sections under `Part N:` headings, else 2."""
+    for index, block in enumerate(blocks):
+        if (
+            block.kind == "h"
+            and index != title
+            and block.level == 2
+            and PART_HEADING.match(block.text.strip())
+        ):
+            return 3
+    return 2
+
+
+def _scopes(
+    blocks: list[Block], title: int | None, section_level: int = 2
+) -> list[tuple[str, str | None]]:
     """Return (section, orientation) for every block; the one scope rule for the page.
 
-    `section` is the lowercased text of the last non-title heading at level 1 or 2.
+    `section` is the lowercased text of the last non-title heading at level 1 or 2, or at level
+    3 or above when the report groups its sections under parts.
     `orientation` is the canonical name of the innermost open orientation subsection.
     """
     orientation: list[str | None] = [None] * len(blocks)
@@ -358,7 +453,7 @@ def _scopes(blocks: list[Block], title: int | None) -> list[tuple[str, str | Non
     section = ""
     scopes: list[tuple[str, str | None]] = []
     for index, block in enumerate(blocks):
-        if block.kind == "h" and index != title and block.level <= 2:
+        if block.kind == "h" and index != title and block.level <= section_level:
             section = block.text.strip().lower()
         scopes.append((section, orientation[index]))
     return scopes
@@ -434,6 +529,7 @@ def _table(block: Block, sources: bool, heat: bool, counts: dict[str, int]) -> s
     """Render a table, adding evidence marks or heat classes by header text."""
     header = list(block.header)
     heat_columns = {i for i, name in enumerate(header) if heat and name in HEAT_COLUMNS}
+    priority_columns = {i for i, name in enumerate(header) if name == "Priority"}
     parts = ["<table><thead><tr>"]
     parts += [f"<th>{_inline(name)}</th>" for name in header]
     parts.append("</tr></thead><tbody>")
@@ -444,6 +540,9 @@ def _table(block: Block, sources: bool, heat: bool, counts: dict[str, int]) -> s
             if sources and i == 2 and value in EVIDENCE_CLASSES:
                 counts[value] += 1
                 parts.append(f'<td><span class="mark ev-{value}">{_inline(cell)}</span></td>')
+                continue
+            if i in priority_columns and value in PRIORITY_MARKS:
+                parts.append(f"<td>{_mark(cell.strip(), PRIORITY_MARKS[value])}</td>")
                 continue
             css = ""
             if i in heat_columns and value in HEAT_VALUES:
@@ -470,6 +569,7 @@ class RailItem(NamedTuple):
     slug: str
     text: str
     nested: bool
+    depth: int = 0
 
 
 _LINK_STYLE = re.compile(r"linkStyle(?![A-Za-z0-9_])")
@@ -509,6 +609,7 @@ def _body(
     scopes: list[tuple[str, str | None]],
     title_at: int | None,
     diagrams: bool = False,
+    section_level: int = 2,
 ) -> tuple[str, str, list[RailItem], dict[str, int]]:
     """Render blocks to document sections.
 
@@ -527,11 +628,34 @@ def _body(
     nearest = ""
     drawn = 0
     previous: Block | None = None
+    closing = "</div></section>"
+    source_fold = False
+    pending_part: tuple[str, str, str] | None = None
+    heading_tag = "h3" if section_level == 3 else "h2"
 
     def emit(markup: str) -> None:
         (out if started else lead).append(markup)
 
+    def banner(outcome: str = "") -> None:
+        """Write the pending part's banner; the part's first paragraph is its outcome line."""
+        nonlocal pending_part
+        if pending_part is None:
+            return
+        slug_, label, name = pending_part
+        pending_part = None
+        out.append(
+            f'<header class="part-banner" id="{slug_}"><p class="part-no">{_esc(label)}</p>'
+            f'<h2 class="part-title">{_inline(name)}</h2>{outcome}</header>'
+        )
+
     for index, (block, (section, orientation)) in enumerate(zip(blocks, scopes, strict=True)):
+        if pending_part is not None and not (block.kind == "h" and index == title_at):
+            if block.kind == "p" and _fields(block.text) is None:
+                text = _inline(block.text.replace(chr(10), " "))
+                banner(f'<p class="part-outcome">{text}</p>')
+                previous = block
+                continue
+            banner()
         if block.kind == "h":
             nearest = _plain_text(block.text)
             if index == title_at:
@@ -540,9 +664,24 @@ def _body(
                 continue
             slug = _slug(block.text, used, counters)
             is_orientation = block.text.strip().lower() in ORIENTATION
-            if block.level <= 2:
+            part = PART_HEADING.match(block.text.strip()) if block.level == 2 else None
+            if section_level == 3 and part:
                 if started:
-                    out.append("</div></section>")
+                    out.append(closing)
+                elif lead:
+                    out.append(
+                        '<section class="doc-section"><div class="doc-body">'
+                        + "\n".join(lead)
+                        + "</div></section>"
+                    )
+                started, closing = True, ""
+                pending_part = (slug, f"Part {part.group(1)}", part.group(2))
+                rail.append(RailItem(slug, nearest, False, 0))
+                previous = block
+                continue
+            if block.level <= section_level:
+                if started:
+                    out.append(closing)
                 elif lead:
                     out.append(
                         '<section class="doc-section"><div class="doc-body">'
@@ -550,23 +689,55 @@ def _body(
                         + "</div></section>"
                     )
                 started = True
-                out.append(
-                    f'<section class="doc-section" id="{slug}">'
-                    f'<h2 class="margin-head">{_inline(block.text)}</h2><div class="doc-body">'
-                )
+                if block.text.strip().lower() in COLLAPSED_SECTIONS:
+                    # The id sits on the control itself, so the sheet's :target rule can show a
+                    # closed section that a contents link points at, with no script.
+                    closing = "</div></details></section>"
+                    out.append(
+                        f'<section class="doc-section doc-fold"><details class="fold" id="{slug}">'
+                        '<summary class="fold-sum">'
+                        f'<{heading_tag} class="margin-head">{_inline(block.text)}</{heading_tag}>'
+                        f'<span class="fold-hint">{FOLD_HINT}</span></summary>'
+                        '<div class="doc-body">'
+                    )
+                else:
+                    closing = "</div></section>"
+                    out.append(
+                        f'<section class="doc-section" id="{slug}">'
+                        f'<{heading_tag} class="margin-head">{_inline(block.text)}</{heading_tag}>'
+                        '<div class="doc-body">'
+                    )
             else:
                 level = min(block.level, 6)
-                emit(f'<h{level} id="{slug}">{_inline(block.text)}</h{level}>')
-            if block.level <= 2 or is_orientation:
-                rail.append(RailItem(slug, nearest, is_orientation and block.level > 2))
+                emit(f'<h{level} id="{slug}">{_heading_html(block.text)}</h{level}>')
+            is_section = block.level <= section_level
+            if is_section or is_orientation:
+                depth = (1 if is_section else 2) if section_level == 3 else int(not is_section)
+                rail.append(RailItem(slug, nearest, depth > 0, depth))
         elif block.kind == "p":
-            if previous is not None and _is_sources_label(block):
+            following = blocks[index + 1] if index + 1 < len(blocks) else None
+            if (
+                previous is not None
+                and _is_sources_label(block)
+                and orientation is not None
+                and following is not None
+                and following.kind == "table"
+                and list(following.header) == SOURCES_HEADER
+            ):
+                # The provenance table stays on the page, one click away.
+                emit(
+                    '<details class="fold-inline"><summary class="part-head">'
+                    f"{_inline(block.text.rstrip(':'))} ({len(following.rows)})</summary>"
+                )
+                source_fold = True
+            elif previous is not None and _is_sources_label(block):
                 emit(f'<p class="part-head">{_inline(block.text)}</p>')
-            elif section == "assessment charter":
-                lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
-                emit(f"<p>{lines}</p>")
             else:
-                emit(f"<p>{_inline(block.text.replace(chr(10), ' '))}</p>")
+                record = _fields(block.text)
+                if record is None and section == "assessment charter":
+                    lines = "<br>".join(_inline(line) for line in block.text.split("\n"))
+                    record = f"<p>{lines}</p>"
+                emit(record or f"<p>{_inline(block.text.replace(chr(10), ' '))}</p>")
         elif block.kind in ("ul", "ol"):
             items = "".join(f"<li>{_inline(item)}</li>" for item in block.items)
             emit(f"<{block.kind}>{items}</{block.kind}>")
@@ -579,6 +750,9 @@ def _body(
             )
             table = _table(block, sources, section == "attention heat map", counts)
             emit(_scroll_wrap(table, nearest))
+            if source_fold:
+                emit("</details>")
+                source_fold = False
         elif block.kind == "code":
             code = _scroll_wrap(f"<pre><code>{_esc(block.text)}</code></pre>", nearest, "source")
             if block.header and block.header[0].lower().split(None, 1)[:1] == ["mermaid"]:
@@ -600,8 +774,9 @@ def _body(
         elif block.kind == "hr":
             emit("<hr>")
         previous = block
+    banner()
     if started:
-        out.append("</div></section>")
+        out.append(closing)
     elif lead:
         out.append(
             '<section class="doc-section"><div class="doc-body">'
@@ -676,7 +851,8 @@ def load_script(helper: Any) -> str:
 def _rail_links(rail: list[RailItem]) -> str:
     """Return the list items of the contents links."""
     return "".join(
-        f'<li><a class="question-link{" rail-sub" if item.nested else ""}" '
+        f'<li><a class="question-link{" rail-sub" if item.nested else ""}'
+        f'{" rail-deep" if item.depth >= 2 else ""}" '
         f'href="#{item.slug}">{_esc(item.text)}</a></li>'
         for item in rail
     )
@@ -695,8 +871,9 @@ def render(
     blocks = parse(source)
     title_at = _title_index(blocks)
     _check_orientation(blocks, title_at)
-    scopes = _scopes(blocks, title_at)
-    title, body, rail, counts = _body(blocks, scopes, title_at, script is not None)
+    section_level = _section_level(blocks, title_at)
+    scopes = _scopes(blocks, title_at, section_level)
+    title, body, rail, counts = _body(blocks, scopes, title_at, script is not None, section_level)
     digest = base64.b64encode(hashlib.sha256(css.encode("utf-8")).digest()).decode()
     script_src = ""
     if script is not None:

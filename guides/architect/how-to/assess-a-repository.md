@@ -62,8 +62,8 @@ stores, and external systems. A folder tree can support the map but cannot stand
 in for it.
 
 At **Map checkpoint**, correct the model or say `continue`. The map opens with
-three orientation views: the whole system, each subsystem, and the physical
-deployment, each with the sources checked.
+four orientation views: the whole system, each subsystem, the technology and
+dependencies, and the physical deployment, each with the sources checked.
 
 Do not skip this cheaply. A wrong service boundary changes every later hotspot
 and finding.

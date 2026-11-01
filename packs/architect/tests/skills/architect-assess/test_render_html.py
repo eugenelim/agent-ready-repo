@@ -623,7 +623,8 @@ def test_charter_lines_render_on_separate_lines_and_prose_wraps_into_one_paragra
     mod, tmp_path, capsys
 ) -> None:
     text = page(tmp_path.resolve(), report(extra="first half\nsecond half\n"), mod, capsys)
-    assert "Target: demo<br>Checkpoints: confirmed" in text
+    assert '<span class="rec-key">Target</span><span class="rec-val">demo</span>' in text
+    assert '<span class="rec-key">Checkpoints</span><span class="rec-val">confirmed</span>' in text
     assert "<p>first half second half</p>" in text
 
 
@@ -1186,12 +1187,12 @@ def test_tables_sit_in_labeled_keyboard_scrollable_regions(mod, tmp_path, capsys
 
 
 def test_the_sources_checked_label_has_the_part_head_class(mod, tmp_path, capsys) -> None:
-    text = page(tmp_path.resolve(), report(), mod, capsys)
+    text = page(tmp_path.resolve(), report(extra="Sources checked:\n"), mod, capsys)
     assert '<p class="part-head">Sources checked:</p>' in text
 
 
-def test_renderer_version_is_two(mod) -> None:
-    assert mod.RENDERER_VERSION == "2"
+def test_renderer_version_is_three(mod) -> None:
+    assert mod.RENDERER_VERSION == "3"
 
 
 def test_the_fixture_models_a_multi_subsystem_system() -> None:
@@ -1305,13 +1306,14 @@ def test_layout_file_obeys_the_layout_rules() -> None:
             where = f"{selector} {{ {prop}: {value} }}"
             assert not COLOUR.search(value), where
             assert not prop.startswith("--"), where
-            assert prop not in {
-                "font",
-                "font-family",
-                "font-weight",
-                "box-shadow",
-                "scroll-behavior",
-            }, where
+            assert prop not in {"font-weight", "scroll-behavior"}, where
+            # Type and elevation come from the base's tokens, never from literals.
+            if prop == "font":
+                assert re.fullmatch(r"var\(--t-[a-z]+\)", value), where
+            if prop == "font-family":
+                assert re.fullmatch(r"var\(--font-(ui|mono)\)", value), where
+            if prop == "box-shadow":
+                assert re.fullmatch(r"var\(--e-\d\)", value), where
             assert not prop.startswith("transition"), where
             if prop.startswith("animation"):
                 assert prop == "animation" and value == "none !important", where
@@ -1336,16 +1338,15 @@ def test_layout_file_spacing_properties_hold_tokens_only() -> None:
 
 def test_layout_file_sets_the_document_density_literals() -> None:
     for selector, size, height in (
-        (".page-title", "1.75rem", "1.2"),
+        (".page-title", "2rem", "1.15"),
         (".doc-body h3", "1.3125rem", "1.3"),
         (".doc-body", "1.0625rem", "1.6"),
         (".meta", "0.875rem", "1.5"),
-        (".margin-head", "0.75rem", "1.3"),
+        (".margin-head", "1.25rem", "1.3"),
         (".part-head", "0.75rem", "1.3"),
     ):
         assert declared(selector, "font-size") == [size], selector
         assert declared(selector, "line-height") == [height], selector
-    assert declared(".margin-head", "text-transform") == ["uppercase"]
     assert declared(".part-head", "text-transform") == ["uppercase"]
 
 
@@ -1494,10 +1495,10 @@ def test_rail_and_skip_links_reach_the_target_floor_and_the_skip_link_shows_on_f
 
 def test_tracks_breakpoints_and_the_contents_switch() -> None:
     tracks = declared(".doc-section", "grid-template-columns", "min-width: 64rem")
-    assert tracks == ["10rem minmax(0, 68ch) minmax(0, 1fr)"]
+    assert tracks == ["minmax(0, 72ch) minmax(0, 1fr)"]
     assert declared(".doc-section", "grid-template-columns") == []
     assert declared(".doc-body > .table-scroll", "grid-column", "min-width: 64rem") == ["1 / -1"]
-    assert declared(".doc-body > .source-scroll", "grid-column", "min-width: 64rem") == ["2 / -1"]
+    assert declared(".doc-body > .source-scroll", "grid-column", "min-width: 64rem") == ["1 / -1"]
     assert declared("th", "overflow-wrap") == [] and declared("td", "overflow-wrap") == []
     assert declared("body", "grid-template-columns", "min-width: 64rem") == [
         "minmax(0, 1fr) 16rem"
@@ -1515,7 +1516,7 @@ def test_contents_rail_is_sticky_and_scrolls_from_64rem() -> None:
 
 
 def test_target_bar_and_print_block() -> None:
-    assert declared(".doc-section:target", "border-left-width") == ["3px"]
+    assert declared(".doc-section:target", "border-left-width") == ["4px"]
     assert declared(".doc-section:target", "border-left-style") == ["solid"]
     assert declared(".doc-section:target", "border-left-color") == ["var(--c-accent)"]
     for hidden in (".rail", ".skip-link", ".rail details"):
@@ -2059,3 +2060,204 @@ def test_the_privacy_note_is_laid_out_like_the_untrusted_notice() -> None:
         ".notice-untrusted", "border-width"
     )
     assert declared(".notice-diagrams", "grid-column", "min-width: 64rem") == ["1 / -1"]
+
+
+# ---- reader-journey polish: records, state pills, ID tags ------------------------------
+
+
+def test_label_lines_outside_the_charter_render_as_a_record_with_a_severity_pill(
+    mod, tmp_path, capsys
+) -> None:
+    extra = (
+        "### F-1: Slow path\n\nClassification: risk\nSeverity: major, with reason\n"
+        "Scope: one module\ncontinued on a second line\n"
+    )
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    assert '<span class="id-tag">F-1</span> Slow path</h3>' in text
+    assert '<span class="mark" data-mark="stale">major</span> with reason' in text
+    assert (
+        '<span class="rec-key">Scope</span><span class="rec-val">one module continued on a '
+        "second line</span>" in text
+    )
+
+
+def test_a_single_label_line_and_ordinary_prose_stay_paragraphs(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(extra="Note: one line only\n"), mod, capsys)
+    assert "<p>Note: one line only</p>" in text
+
+
+def test_priority_cells_become_state_pills(mod, tmp_path, capsys) -> None:
+    table = "| Priority | Action |\n| --- | --- |\n| P1 | Fix it |\n| P3 | Watch it |\n"
+    text = page(tmp_path.resolve(), report(extra=table), mod, capsys)
+    assert '<td><span class="mark" data-mark="broken">P1</span></td>' in text
+    assert '<td><span class="mark" data-mark="draft">P3</span></td>' in text
+
+
+def test_code_inside_bold_text_renders_as_code(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(extra="**`tool` pack**\n"), mod, capsys)
+    assert "<strong><code>tool</code> pack</strong>" in text
+
+
+# ---- folds: supporting detail starts closed ------------------------------------------
+
+
+def test_supporting_sections_start_closed_with_the_id_on_the_control(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert (
+        '<section class="doc-section doc-fold"><details class="fold" id="attention-heat-map">'
+        '<summary class="fold-sum"><h2 class="margin-head">Attention heat map</h2>'
+        '<span class="fold-hint">Supporting detail</span></summary>'
+    ) in text
+    assert "<details class=\"fold\" open" not in text
+    assert '<section class="doc-section" id="findings">' in text
+    assert '<section class="doc-section" id="bottom-line">' in text
+    assert text.count("<details") == text.count("</details>")
+    assert text.count("<section") == text.count("</section>")
+
+
+def test_every_collapsed_name_is_a_section_the_template_has(mod) -> None:
+    template = (
+        Path(__file__).resolve().parents[3]
+        / ".apm/skills/architect-assess/assets/assessment.md"
+    ).read_text(encoding="utf-8")
+    for name in mod.COLLAPSED_SECTIONS:
+        assert any(line.strip().lower() == f"### {name}" for line in template.splitlines()), name
+
+
+def test_sources_checked_tables_fold_with_their_row_count(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert text.count('<details class="fold-inline"><summary class="part-head">') == 3
+    assert re.findall(r"Sources checked \((\d+)\)</summary>", text) == ["1", "1", "1"]
+    first = text.index('<details class="fold-inline">')
+    assert text.index("</details>", first) > text.index("<table>", first)
+
+
+def test_a_sources_label_without_its_table_stays_a_paragraph(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(extra="Sources checked:\n\nnothing\n"), mod, capsys)
+    assert '<p class="part-head">Sources checked:</p>' in text
+
+
+def test_print_shows_closed_folds() -> None:
+    assert declared(".fold::details-content", "content-visibility", "print") == ["visible"]
+
+
+def test_a_link_to_a_closed_fold_shows_it_without_script() -> None:
+    assert declared(".fold:target::details-content", "content-visibility") == ["visible"]
+    assert declared(".fold:target", "border-left-color") == ["var(--c-accent)"]
+
+
+def test_citation_fields_fold_under_the_claim_and_response(mod, tmp_path, capsys) -> None:
+    extra = (
+        "### F-1: Slow path\n\nClassification: risk\nSeverity: major\nScope: one module\n"
+        "Evidence: file.py line 3\nCounter-evidence: tests exist\nMechanism: a loop\n"
+    )
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    fold = text.index("Evidence and citations (3)</summary>")
+    assert text.index("Mechanism") < fold
+    for label in ("Scope", "Evidence", "Counter-evidence"):
+        assert text.index(f'<span class="rec-key">{label}</span>') > fold
+    assert text.index("</details>", fold) > text.index("tests exist")
+    assert text.count("<details") == text.count("</details>")
+
+
+def test_a_record_that_is_all_citations_does_not_fold(mod, tmp_path, capsys) -> None:
+    extra = "### H-1: Area\n\nScope: one module\nEvidence: file.py\n"
+    text = page(tmp_path.resolve(), report(extra=extra), mod, capsys)
+    assert "Evidence and citations" not in text
+    assert '<span class="rec-key">Evidence</span>' in text
+
+
+# ---- parts: sections grouped under `Part N:` headings -------------------------------
+
+
+def parted() -> str:
+    """A report whose sections sit under parts: parts at level 2, sections at 3, views at 4."""
+    return (
+        "# Architecture assessment: demo\n\n"
+        "## Part 1: Summary\n\nRead this part to decide.\n\n"
+        "### Bottom line\n\nIt works.\n\n"
+        "## Part 2: What was assessed\n\nRead this part to judge scope.\n\n"
+        "### Assessment charter\n\nTarget: demo\nCheckpoints: confirmed\n\n"
+        "### Conceptual current state\n\nContext.\n\n"
+        f"#### Overall architecture\n\nOne view.\n\n{SOURCES}\n"
+        f"#### Architecture by subsystem\n\nParts.\n\n{SOURCES}\n"
+        f"#### Physical architecture\n\nnot assessed\n\nNo files.\n\n{SOURCES}\n"
+        "## Part 5: Evidence and method\n\nRead this part to check the work.\n\n"
+        "### Attention heat map\n\n"
+        "| Area | Consequence | Pressure | Concentration / coupling | Verification weakness "
+        "| Ops/data/security exposure | Confidence | Evidence |\n"
+        "| --- | --- | --- | --- | --- | --- | --- | --- |\n"
+        "| core | high | low | medium | unknown | low | high | x |\n"
+    )
+
+
+def test_a_part_becomes_a_banner_with_its_outcome_line(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), parted(), mod, capsys)
+    assert (
+        '<header class="part-banner" id="part-1-summary"><p class="part-no">Part 1</p>'
+        '<h2 class="part-title">Summary</h2>'
+        '<p class="part-outcome">Read this part to decide.</p></header>'
+    ) in text
+    assert text.index('id="part-1-summary"') < text.index('id="bottom-line"')
+    assert text.index('id="bottom-line"') < text.index('id="part-2-what-was-assessed"')
+
+
+def test_sections_under_a_part_use_level_three_headings(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), parted(), mod, capsys)
+    assert (
+        '<section class="doc-section" id="bottom-line"><h3 class="margin-head">Bottom line</h3>'
+        in text
+    )
+    assert '<h4 id="overall-architecture">Overall architecture</h4>' in text
+    assert text.count("<section") == text.count("</section>")
+    assert text.count("<details") == text.count("</details>")
+    ids = _ids(text)
+    assert len(ids) == len(set(ids))
+
+
+def test_scopes_work_one_level_down_under_parts(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), parted(), mod, capsys)
+    assert not banner_present(text)
+    assert "heat-high" in text
+    assert '<h3 class="margin-head">Attention heat map</h3>' in text
+    assert text.count("Sources checked (1)") == 3
+
+
+def test_the_contents_rail_nests_parts_sections_and_views(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), parted(), mod, capsys)
+    narrow, wide = _rail(text)
+    assert narrow == wide
+    by_slug = {slug: classes.split() for classes, slug, _ in wide}
+    assert "rail-sub" not in by_slug["part-1-summary"]
+    assert "rail-sub" in by_slug["bottom-line"] and "rail-deep" not in by_slug["bottom-line"]
+    assert {"rail-sub", "rail-deep"} <= set(by_slug["overall-architecture"])
+
+
+def test_a_flat_report_has_no_part_banner(mod, tmp_path, capsys) -> None:
+    text = page(tmp_path.resolve(), report(), mod, capsys)
+    assert '<header class="part-banner"' not in text
+    assert '<h2 class="margin-head">Findings</h2>' in text
+
+
+def test_part_numbering_and_banner_styles_exist() -> None:
+    assert declared(".part-banner", "counter-increment") == ["part"]
+    assert declared(".part-banner", "counter-reset") == ["section"]
+    assert declared(".part-banner ~ .doc-section .margin-head::before", "content")
+    assert declared(".rail-deep", "padding-left")
+
+
+def test_technology_and_dependencies_view_needs_its_sources_table(mod, tmp_path, capsys) -> None:
+    source = report(overall="One view.\n\n" + SOURCES) + "\n#### Technology and dependencies\n\nGo 1.22.\n"
+    code, _, err = run(tmp_path.resolve(), source, mod, capsys)
+    assert code == 2
+    assert "Technology and dependencies" in err
+
+
+def test_technology_and_dependencies_view_with_sources_renders_and_folds(
+    mod, tmp_path, capsys
+) -> None:
+    view = f"#### Technology and dependencies\n\nGo 1.22.\n\n{SOURCES}\n"
+    source = report().replace("### Map checkpoint", view + "### Map checkpoint")
+    text = page(tmp_path.resolve(), source, mod, capsys)
+    assert 'id="technology-and-dependencies"' in text
+    assert text.count("Sources checked (1)") == 4
