@@ -8,6 +8,7 @@
 | 2026-10-31 | eugenelim | brief Spec map row and after-cutover slug annotations | `docs/product/briefs/workspace-registry-retirement-delivery.md` | `2c4e141ec8c3f3e34367a8fdfc0fb2da5401acdefecba99b6177adb77acc20a8` |
 | 2026-10-31 | eugenelim | six-row QA matrix copied into the captured item | `docs/product/captured/credential-broker-contract-manual-qa.md` | `d10ad4fae925ef1d1a00e8dc89defee7b2e588037704f2317e045fd052fee247` |
 | 2026-10-31 | eugenelim | the repair plan applied to this repository | `.workspace-repair-plan.json` (gitignored; copy in the run notes below) | `ce89dc5880e675266953318ac10ba36add0ca65293d38c0b3bb4d3f3b38c47ca` |
+| 2026-10-31 | eugenelim | § Compatibility closure entry | `docs/specs/workspace-retirement/retirement-record.md` | `8f2f27af4defde7d669f3e3ba2ae1c2ab8297f73c0182a61c68cabdc3fe6d50c` |
 
 ## Run notes
 
@@ -29,3 +30,4 @@
 - The first run (2026-10-31, plan `ae006455…`) applied 68 of 71 drops; three slug-only entries with legacy string `needs` were refused with `entry_has_needs`. That run's `workspace.toml` change was discarded, the contract was amended (AC-0022, task T9), and the plan above re-ran from the committed registry.
 - A concurrent session's branch deletion changed the shared `.git/config` during T6's first attempt; the owner restored the exact pre-attempt bytes (SHA-256 `ef0a45e6…`) so the attempt could be reported, then restored the current config.
 - The `PINNED` comment above the removed credential-broker entry was removed in a separate edit; `tests/roster/test_credential_broker_contract_docs.py` no longer names the registry, so its inventory row was removed.
+- T7: the closure entry's approval lives in this ledger, which no worker attempt may change, so T7's first attempt was reported as a failed gate (retry 3 of 5) and the controller committed the owner-approved entry and its row between attempts.
