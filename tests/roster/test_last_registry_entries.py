@@ -10,6 +10,12 @@ AC-0013: RFC-0106 Errata holds the 2026-10-31 entry naming those removals and
 AC-0014: the refresh-policy text names ``.work-intake.toml`` and no file places
 ``[authorization.refresh]`` in ``workspace.toml``; the workspace-status text names
 both repair steps; the anchor rules name the captured-item file.
+AC-0016: the verification ledger's Approvals table holds eugenelim rows for the
+errata entry, the brief, the closure entry, the QA matrix copy and the repair plan,
+each with a 64-hex SHA-256, the captured file's SHA matching its bytes, and the
+errata row before the repair-plan row.
+AC-0017: the retirement record's Compatibility closure holds one bullet linking the
+spec and naming the repairs, ``.work-intake.toml`` and the run's counts.
 AC-0018: the delivery brief's Spec map lists the spec and the two after-cutover
 items name it, with the rest of each item's text unchanged.
 
@@ -18,6 +24,7 @@ The checks read files and write nothing.
 
 from __future__ import annotations
 
+import hashlib
 import re
 from pathlib import Path
 
@@ -26,6 +33,9 @@ _RECORD = "docs/specs/workspace-retirement/retirement-record.md"
 _RFC = "docs/rfc/0106-stop-registering-derivable-work.md"
 _BRIEF = "docs/product/briefs/workspace-registry-retirement-delivery.md"
 _SLUG = "last-registry-entries"
+_LEDGER = "docs/specs/last-registry-entries/notes/verification-ledger.md"
+_CAPTURED = "docs/product/captured/credential-broker-contract-manual-qa.md"
+_PLAN = ".workspace-repair-plan.json"
 _ERRATA_LINK = "[RFC-0106 § Errata](../../rfc/0106-stop-registering-derivable-work.md#errata)"
 _CASES = (
     "the registered captured item's kind",
@@ -148,3 +158,51 @@ def test_ac0018_brief_lists_the_spec_and_names_it_beside_two_items() -> None:
         "give the `[authorization.refresh]` and `[authorization.migration]` "
         f"policy tables a home (`{_SLUG}`);"
     )
+
+
+def _approval_rows() -> list[list[str]]:
+    """The ledger's Approvals table rows as cell lists, backticks stripped."""
+    rows = []
+    for line in _section(_read(_LEDGER), "Approvals").splitlines():
+        if line.startswith("|") and not line.startswith(("| Date", "| ---")):
+            cells = [c.strip() for c in line.strip().strip("|").split("|")]
+            rows.append([c.strip("`") for c in cells])
+    return rows
+
+
+def test_ac0016_ledger_approvals_hold_owner_rows_with_shas() -> None:
+    """Owner rows exist per file, SHAs are well formed, order and captured SHA hold."""
+    rows = _approval_rows()
+    for path in (_RFC, _BRIEF, _RECORD, _CAPTURED, _PLAN):
+        matching = [r for r in rows if path in r[3]]
+        assert matching, path
+        assert all(r[1] == "eugenelim" for r in matching), path
+    for row in rows:
+        assert re.fullmatch(r"[0-9a-f]{64}", row[4]), row
+    captured = next(r for r in rows if _CAPTURED in r[3])
+    digest = hashlib.sha256((_REPO / _CAPTURED).read_bytes()).hexdigest()
+    assert captured[4] == digest
+    files = [r[3] for r in rows]
+    errata = next(i for i, f in enumerate(files) if _RFC in f)
+    plan = next(i for i, f in enumerate(files) if _PLAN in f)
+    assert errata < plan
+
+
+def test_ac0017_closure_entry_names_the_run() -> None:
+    """One closure bullet links the spec and names the repairs, file and counts."""
+    bullets = [
+        line
+        for line in _section(_read(_RECORD), "Compatibility closure").splitlines()
+        if "](../last-registry-entries/spec.md)" in line
+    ]
+    assert len(bullets) == 1
+    text = bullets[0]
+    for phrase in (
+        "captured-entry-drop",
+        "refresh-policy-move",
+        ".work-intake.toml",
+        "71 `captured-entry-drop`",
+        "3 `needs-to-header`",
+        "0 `refresh-policy-move`",
+    ):
+        assert phrase in text, phrase
