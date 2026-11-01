@@ -743,10 +743,12 @@ def recognize_screens(base: Path, root: Path, g: Graph) -> None:
 def recognize_contracts(base: Path, root: Path, g: Graph) -> None:
     """File-backed `contract` nodes under `<contracts-base>/<type>/`. Stable id
     `contract:<name>@<version>` parsed from the filename `name.vN` / `name@N`,
-    degrading to `contract:<stem>` when no version is encoded."""
+    degrading to `contract:<stem>` when no version is encoded. A `releases/`
+    tree holds frozen copies of live contracts under the same filenames, so it
+    would register every one twice; it is skipped."""
     # Walk symlink-safe (the issue #190 rglob-symlink gap), one dir at a time.
     for d in _iter_dirs(base):
-        if not _within(d, root):
+        if not _within(d, root) or "releases" in d.relative_to(base.resolve()).parts:
             continue
         for p in sorted(_confined(d.glob("*"), root)):
             if (

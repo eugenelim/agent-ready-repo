@@ -184,9 +184,13 @@ CORE_COLLECTIONS = {
     # - test_vi1203_resolver_failure_is_hard_violation[raises-timeout]
     # - test_vi1203_hostile_stderr_not_forwarded
     # - test_vi1203_incomplete_snapshot_is_hard_violation
+    # Re-pinned 2026-11-01: 98 -> 99. One addition, nothing removed or renamed,
+    # and the surviving 98 keep their relative order. The new node is
+    # test_contract_release_snapshot_is_not_a_duplicate, which pins that a
+    # `contracts/releases/` tree does not register its frozen copies twice.
     SHARED_TESTS[2]: (
-        98,
-        "76badbf27b65da283276695e8c31aaa12caf74ba56a446e18d72cc7726b9afcf",
+        99,
+        "55b6da8ee9da287e9c518cffe58c257b1b1fc9022c3449173c1b963bfa760da3",
     ),
 }
 

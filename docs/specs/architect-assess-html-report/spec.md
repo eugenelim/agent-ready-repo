@@ -47,13 +47,13 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 
 ### Ask first
 
-- Any `<script>` element in the output, which belongs to the diagram-rendering decision.
+- Any `<script>` element in the output, which belongs to the diagram-rendering decision. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 - Raising the source-size cap or the page-size cap.
 
 ### Never do
 
-- Load script, style, font, or image from a network location.
-- Add a third-party dependency, a vendored third-party asset, or a subprocess call. The co-located helper copy is pack-owned code, not a vendored asset.
+- Load script, style, font, or image from a network location. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
+- Add a third-party dependency, a vendored third-party asset, or a subprocess call. The co-located helper copy is pack-owned code, not a vendored asset. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 - Edit another skill to make this mode work.
 
 ## Testing Strategy
@@ -94,7 +94,7 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 - [x] Unless the `## Assessment charter` section, outside any fenced block, holds exactly one `Checkpoints:` line and its value is exactly `confirmed`, an element with class `banner-unconfirmed` containing `Map and hotspot set not user-confirmed` precedes the first section.
 - [x] When that line is present once with the value `confirmed`, the output contains no `banner-unconfirmed` element, even if the same line appears elsewhere in the report.
 - [x] A `Checkpoints: confirmed` line placed only outside the charter section does not suppress the banner.
-- [x] Each Mermaid fence appears as a `<pre>` under the visible label `Diagram source (not rendered)`, with its text escaped.
+- [x] Each Mermaid fence appears as a `<pre>` under the visible label `Diagram source (not rendered)`, with its text escaped. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 - [x] Every report carries an element with class `notice-untrusted` containing `Unverified: built from repository text and model analysis; not redacted`.
 - [x] Every report records the name of the effort directory, the generation date in ISO 8601 `YYYY-MM-DD` UTC, and the value of the script's `RENDERER_VERSION` constant.
 - [x] The renderer's exit code is 0, 2, or 3 on every path, and a missing source, a missing or non-directory effort path, and any unexpected exception exit 3 while a wrong argument count exits 2.
@@ -113,13 +113,13 @@ A maintainer who asks `architect-assess` for an HTML report gets one self-contai
 - [x] The script sets stdout and stderr to UTF-8 before its first print.
 - [x] `SKILL.md` names the HTML mode and `scripts/render_html.py`, states that it runs only on a user request, and states that with no saved `assessment.md` it offers to save one first and runs nothing.
 - [x] `references/html-report.md` states that the renderer takes the resolved effort-directory path, and that hosts without descriptor walking, Windows included, get exit 3 and no report.
-- [x] `references/html-report.md` lists every exit 2 reason: a wrong argument count, an orientation subsection without a usable table, an evidence class outside the set, a source over 2 MiB, a source that is not UTF-8, and a rendered page over 16 MiB.
+- [x] `references/html-report.md` lists every exit 2 reason: a wrong argument count, an orientation subsection without a usable table, an evidence class outside the set, a source over 2 MiB, a source that is not UTF-8, and a rendered page over 16 MiB. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 - [x] `evals/evals.json` contains a case whose prompt asks for an HTML report and whose assertion checks the output contains a `Sources checked` table.
 - [x] `guides/architect/reference/architecture-assessment.md` and `guides/architect/how-to/assess-a-repository.md` each name the HTML mode.
 - [x] `packs/architect/DESIGN.md` states that the pack ships a second standard-library script and names it.
 - [x] `pack.toml` and `.claude-plugin/plugin.json` carry the same version, one patch above the version on fetched main.
 - [x] `tools/changelog.py validate` passes with the new fragment present.
-- [x] Opened in a real browser, a sample report shows shaded heat cells and evidence badges, and a hostile sample shows its planted markup as visible text with no script run.
+- [x] Opened in a real browser, a sample report shows shaded heat cells and evidence badges, and a hostile sample shows its planted markup as visible text with no script run. Exception: with `--diagrams`, which `docs/specs/architect-assess-html-diagrams/spec.md` owns.
 
 ## Terminal Intent
 

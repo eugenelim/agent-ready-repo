@@ -27,9 +27,25 @@ REPORT_ID = "report"
 MAX_SOURCE_BYTES = 2 * 1024 * 1024
 MAX_EXISTING_OUTPUT_BYTES = 16 * 1024 * 1024
 MAX_ASSET_BYTES = 64 * 1024
+MERMAID_VERSION = "12.2.0"
+MERMAID_URL = f"https://cdn.jsdelivr.net/npm/mermaid@{MERMAID_VERSION}/dist/mermaid.min.js"
+MERMAID_SRI = "sha384-8xUhuLNMjW/cI2Dacg3DR4WliYznvIg0LVG1stctThKD/YVrJFI9TNCFxft5NYgp"
 ASSET_DIR = Path(__file__).resolve().parent / "report_assets"
 ASSET_NAMES = ("view-base.css", "report.css")
 FORBIDDEN_ASSET_TEXT = ("</style", "<!--", "url(", "@import")
+SCRIPT_NAME = "diagrams.js"
+FORBIDDEN_SCRIPT_TEXT = ("</script", "<!--", "\r")
+DIAGRAM_KEYWORDS = (
+    "flowchart",
+    "graph",
+    "sequenceDiagram",
+    "classDiagram",
+    "stateDiagram-v2",
+    "erDiagram",
+)
+DIAGRAM_MAX_BYTES = 50_000
+DIAGRAM_DRAW_LIMIT = 20
+DIAGRAM_STATEMENT_START = ("click", "link", "callback")
 SOURCE_NAME = "assessment.md"
 OUTPUT_NAME = "assessment.html"
 
@@ -52,11 +68,19 @@ HEAT_VALUES = ("low", "medium", "high", "unknown")
 BANNER_TEXT = "Map and hotspot set not user-confirmed"
 NOTICE_TEXT = "Unverified: built from repository text and model analysis; not redacted"
 DIAGRAM_LABEL = "Diagram source (not rendered)"
+DIAGRAM_LABEL_DRAWN = "Diagram source (not drawn yet)"
+DIAGRAM_LABEL_UNSAFE = "Diagram source (not drawn: unsafe)"
+DIAGRAM_LABEL_LIMIT = "Diagram source (not drawn: limit)"
+DIAGRAMS_NOTE = (
+    f"Diagrams are drawn by Mermaid {MERMAID_VERSION}, loaded from cdn.jsdelivr.net. "
+    "Opening this report sends your IP address, the time, and your browser details to that "
+    "host, and the report's web address if it is served from a web host; no report text is sent."
+)
 
 # Every line the script prints comes from this fixed set (plus a canonical
 # heading from ORIENTATION), never from the source or the path.
 TOKEN_OK = "render_html: ok"
-TOKEN_USAGE = "render_html: usage: render_html.py <effort-dir>"
+TOKEN_USAGE = "render_html: usage: render_html.py <effort-dir> [--diagrams]"
 TOKEN_UNSAFE_PATH = "render_html: refused: unsafe or missing path"
 TOKEN_SOURCE_LARGE = "render_html: refused: source over the size cap"
 TOKEN_NOT_UTF8 = "render_html: refused: source is not valid UTF-8"
@@ -67,6 +91,10 @@ TOKEN_ASSET_MISSING = "render_html: failed: stylesheet asset missing"
 TOKEN_ASSET_LARGE = "render_html: failed: stylesheet asset over the size cap"
 TOKEN_ASSET_NOT_UTF8 = "render_html: failed: stylesheet asset is not valid UTF-8"
 TOKEN_ASSET_FORBIDDEN = "render_html: failed: stylesheet asset holds forbidden text"
+TOKEN_SCRIPT_MISSING = "render_html: failed: script asset missing or unsafe"
+TOKEN_SCRIPT_LARGE = "render_html: failed: script asset over the size cap"
+TOKEN_SCRIPT_UNREADABLE = "render_html: failed: script asset unreadable"
+TOKEN_SCRIPT_FORBIDDEN = "render_html: failed: script asset holds forbidden text"
 TOKEN_HOST = "render_html: refused: host lacks descriptor walking:"
 TOKEN_INTERNAL = "render_html: failed: internal error"
 
@@ -444,8 +472,43 @@ class RailItem(NamedTuple):
     nested: bool
 
 
+_LINK_STYLE = re.compile(r"linkStyle(?![A-Za-z0-9_])")
+
+
+def diagram_drawable(text: str) -> bool:
+    """Whether a Mermaid fence is safe to hand to the drawing script.
+
+    The text must equal what a browser reads back from the emitted element, so any
+    character an HTML parser drops or rewrites, and any Unicode space the Mermaid lexer
+    would skip, is refused rather than normalised.
+    """
+    if len(text.encode("utf-8")) > DIAGRAM_MAX_BYTES:
+        return False
+    for char in text:
+        if char in " \t\n":
+            continue
+        if char.isspace() or char == "\ufeff" or unicodedata.category(char) == "Cc":
+            return False
+    first = next((line for line in text.split("\n") if line.strip(" \t")), "")
+    if not first.strip(" \t").startswith(DIAGRAM_KEYWORDS):
+        return False
+    if "%%{" in text:
+        return False
+    for line in text.split("\n"):
+        for statement in line.split(";"):
+            lowered = statement.strip(" \t").lower()
+            if lowered.startswith(DIAGRAM_STATEMENT_START) and not _LINK_STYLE.match(
+                statement.strip(" \t")
+            ):
+                return False
+    return True
+
+
 def _body(
-    blocks: list[Block], scopes: list[tuple[str, str | None]], title_at: int | None
+    blocks: list[Block],
+    scopes: list[tuple[str, str | None]],
+    title_at: int | None,
+    diagrams: bool = False,
 ) -> tuple[str, str, list[RailItem], dict[str, int]]:
     """Render blocks to document sections.
 
@@ -462,6 +525,7 @@ def _body(
     rail: list[RailItem] = []
     started = False
     nearest = ""
+    drawn = 0
     previous: Block | None = None
 
     def emit(markup: str) -> None:
@@ -518,9 +582,18 @@ def _body(
         elif block.kind == "code":
             code = _scroll_wrap(f"<pre><code>{_esc(block.text)}</code></pre>", nearest, "source")
             if block.header and block.header[0].lower().split(None, 1)[:1] == ["mermaid"]:
+                css_class, label = "diagram", DIAGRAM_LABEL
+                if diagrams:
+                    if not diagram_drawable(block.text):
+                        label = DIAGRAM_LABEL_UNSAFE
+                    elif drawn >= DIAGRAM_DRAW_LIMIT:
+                        label = DIAGRAM_LABEL_LIMIT
+                    else:
+                        drawn += 1
+                        css_class, label = "diagram diagram-drawn", DIAGRAM_LABEL_DRAWN
                 emit(
-                    '<div class="diagram">'
-                    f'<p class="diagram-label">{DIAGRAM_LABEL}</p>{code}</div>'
+                    f'<div class="{css_class}">'
+                    f'<p class="diagram-label">{label}</p>{code}</div>'
                 )
             else:
                 emit(code)
@@ -575,6 +648,31 @@ def load_stylesheet(helper: Any) -> str:
     return "\n".join(texts)
 
 
+def load_script(helper: Any) -> str:
+    """Return the diagrams script text, refused when missing, large, unreadable, or unsafe.
+
+    The text is hashed for the policy and inlined, so it may not hold text that could end
+    the script element, open a comment, or change under the parser's newline handling.
+    """
+    root = ASSET_DIR.parent
+    try:
+        data = helper.read_confined_regular_file(
+            root, ASSET_DIR / SCRIPT_NAME, max_bytes=MAX_ASSET_BYTES
+        )
+    except helper.BoundExceeded as error:
+        raise AssetError(TOKEN_SCRIPT_LARGE) from error
+    except (helper.UnsafeContentError, OSError) as error:
+        raise AssetError(TOKEN_SCRIPT_MISSING) from error
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError as error:
+        raise AssetError(TOKEN_SCRIPT_UNREADABLE) from error
+    lowered = text.lower()
+    if any(forbidden in lowered for forbidden in FORBIDDEN_SCRIPT_TEXT):
+        raise AssetError(TOKEN_SCRIPT_FORBIDDEN)
+    return text
+
+
 def _rail_links(rail: list[RailItem]) -> str:
     """Return the list items of the contents links."""
     return "".join(
@@ -584,18 +682,29 @@ def _rail_links(rail: list[RailItem]) -> str:
     )
 
 
-def render(source: str, effort_name: str, today: str, css: str | None = None) -> str:
-    """Return the full HTML document for *source*, or raise Refusal."""
+def render(
+    source: str, effort_name: str, today: str, css: str | None = None, script: str | None = None
+) -> str:
+    """Return the full HTML document for *source*, or raise Refusal.
+
+    A *script* (the diagrams script text) turns on diagrams mode: eligible Mermaid fences are
+    marked, two script elements are added after ``main``, and the policy names them.
+    """
     if css is None:
         css = load_stylesheet(_load_helper())
     blocks = parse(source)
     title_at = _title_index(blocks)
     _check_orientation(blocks, title_at)
     scopes = _scopes(blocks, title_at)
-    title, body, rail, counts = _body(blocks, scopes, title_at)
+    title, body, rail, counts = _body(blocks, scopes, title_at, script is not None)
     digest = base64.b64encode(hashlib.sha256(css.encode("utf-8")).digest()).decode()
+    script_src = ""
+    if script is not None:
+        script_digest = base64.b64encode(hashlib.sha256(script.encode("utf-8")).digest()).decode()
+        script_src = f"script-src 'sha256-{script_digest}' {MERMAID_URL}; "
     policy = (
-        f"default-src 'none'; style-src 'sha256-{digest}'; base-uri 'none'; form-action 'none'"
+        f"default-src 'none'; {script_src}style-src 'sha256-{digest}'; "
+        "base-uri 'none'; form-action 'none'"
     )
     confirmed = _charter_checkpoint_confirmed(blocks, scopes)
     banner = "" if confirmed else f'<div class="alert banner-unconfirmed">{BANNER_TEXT}</div>'
@@ -613,6 +722,16 @@ def render(source: str, effort_name: str, today: str, css: str | None = None) ->
         f"{state} \u00b7 {tally}</p>"
     )
     notice = f'<div class="note notice-untrusted">{NOTICE_TEXT}</div>'
+    if script is not None:
+        notice += f'\n<div class="note notice-diagrams">{DIAGRAMS_NOTE}</div>'
+    scripts = (
+        ""
+        if script is None
+        else (
+            f'<script src="{MERMAID_URL}" integrity="{MERMAID_SRI}" crossorigin="anonymous" '
+            f'referrerpolicy="no-referrer" defer></script><script>{script}</script>'
+        )
+    )
     links = _rail_links(rail)
     nav = (
         '<nav class="rail" aria-label="Report sections"><details class="key">'
@@ -628,7 +747,7 @@ def render(source: str, effort_name: str, today: str, css: str | None = None) ->
         f'<body><a class="skip-link" href="#{REPORT_ID}">Skip to report</a>'
         f'<header class="page-header"><h1 class="page-title">{_esc(title)}</h1>{meta}</header>\n'
         f"{banner}\n{notice}\n{nav}\n"
-        f'<main id="{REPORT_ID}">\n{body}\n</main></body></html>\n'
+        f'<main id="{REPORT_ID}">\n{body}\n</main>{scripts}</body></html>\n'
     )
 
 
@@ -693,9 +812,10 @@ def _supplied_path_is_safe(supplied: str) -> bool:
 
 def _run(argv: list[str]) -> int:
     """Render the report named by *argv*; return the exit code."""
-    if len(argv) != 1:
+    if len(argv) not in (1, 2) or (len(argv) == 2 and argv[1] != "--diagrams"):
         print(TOKEN_USAGE, file=sys.stderr)
         return 2
+    diagrams = len(argv) == 2
     missing = _missing_capability()
     if missing is not None:
         print(f"{TOKEN_HOST} {missing}", file=sys.stderr)
@@ -706,6 +826,7 @@ def _run(argv: list[str]) -> int:
     helper = _load_helper()
     try:
         css = load_stylesheet(helper)
+        script = load_script(helper) if diagrams else None
     except AssetError as error:
         print(error.line, file=sys.stderr)
         return 3
@@ -727,7 +848,7 @@ def _run(argv: list[str]) -> int:
         return 2
     today = datetime.datetime.now(datetime.UTC).date().isoformat()
     try:
-        page = render(source, root.name, today, css)
+        page = render(source, root.name, today, css, script)
     except Refusal as refusal:
         print(refusal.line, file=sys.stderr)
         return refusal.code

@@ -173,6 +173,26 @@
         "With no saved assessment.md, offers to save one first and runs nothing",
         "The page uses the maintainer-view style with a contents rail and provenance marks for each evidence class"
       ]
+    },
+    {
+      "id": 16,
+      "prompt": "I saved an assessment in docs/architecture/shop/. Make me an HTML version of it with the diagrams drawn, not just shown as source.",
+      "expected_output": "The skill runs the renderer with the --diagrams flag on the resolved effort directory, reports that assessment.html was written, and says that opening the report contacts cdn.jsdelivr.net.",
+      "assertions": [
+        "Runs scripts/render_html.py with --diagrams as the second argument on the effort directory",
+        "States that opening the drawn report contacts cdn.jsdelivr.net",
+        "Does not open a browser unless asked"
+      ]
+    },
+    {
+      "id": 17,
+      "prompt": "I saved an assessment in docs/architecture/shop/. Render it to HTML.",
+      "expected_output": "The skill runs the renderer on the effort directory without the --diagrams flag, so the page stays offline with diagrams as source.",
+      "assertions": [
+        "Runs scripts/render_html.py on the effort directory without the --diagrams flag",
+        "Does not mention loading any script from a network host as something the page does",
+        "Does not open a browser unless asked"
+      ]
     }
   ]
 }

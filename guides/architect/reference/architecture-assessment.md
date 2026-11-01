@@ -205,8 +205,8 @@ without that primitive fails closed and can still use stdout.
 10. Next decision
 
 An HTML report is a second file beside the saved report, written by
-`scripts/render_html.py` on request. The page loads nothing from a network and
-runs no script. It uses the maintainer-view style shared with the intents and decisions views, with a contents rail beside the text on wide screens. Diagrams appear as labeled source blocks. The script exits 2 for a refused report and 3 for a confinement failure; hosts
+`scripts/render_html.py` on request. By default the page loads nothing from a
+network and runs no script. It uses the maintainer-view style shared with the intents and decisions views, with a contents rail beside the text on wide screens. Diagrams appear as labeled source blocks unless you ask for drawn diagrams: with `--diagrams` the page loads Mermaid from `cdn.jsdelivr.net`, which tells that host the reader's IP address and the time on every open, and the report's web address when it is served from a web host, so share a drawn report only with readers who accept that. The script exits 2 for a refused report and 3 for a confinement failure; hosts
 without descriptor walking, Windows included, get no report. The skill's
 `references/html-report.md` lists every reason.
 
