@@ -1,7 +1,7 @@
 # Plan: The last registry entries leave, and refresh gets its own policy file
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and § Errata; RFC-0105 D3; RFC-0083; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-intake/scripts/refresh.py`: `parse_refresh_authorization_policy` (line 1021), the `local_receipts` record shape (lines 671-694 and 867), and every `workspace.toml` read and digest binding (lines 1235, 1504, 1609, 1698, 1718, 2005). Packaged copy: `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`.
@@ -161,3 +161,4 @@ Owned by: T4
 - 2026-10-31: spec approved by eugenelim at `b920263b4`, after three spec-mode shaping and adversarial review rounds, with the round-3 repairs accepted unreviewed and the `workspace-status` projection globs added to T2 and T3 at approval.
 - 2026-10-31: plan approved by eugenelim at `b920263b4`.
 - 2026-10-31: amended under controlled amendment during T6 (AC-0022, AC-0001, task T9); spec and plan set back to Draft and Drafting for review and re-approval.
+- 2026-10-31: spec and plan re-approved by eugenelim at `b1dd423b6` after the amendment review.
