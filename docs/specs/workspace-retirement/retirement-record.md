@@ -177,6 +177,9 @@ Slice 2 of the delivery brief records here that each dependency-edge behavior ei
 | `unreadable-artifact` | 8 | reproduced | `packs/core/tests/skills/work-loop/test_header_derived_dispatch_replay.py`, `packs/core/tests/skills/work-loop/fixtures/header-derived-dispatch/expected.json` | none |
 | `unregistered-approved` | 8 | accepted removal | `packs/core/tests/skills/work-loop/test_header_derived_dispatch_replay.py`, `packs/core/tests/skills/work-loop/fixtures/header-derived-dispatch/expected.json` | [RFC-0106 § Errata](../../rfc/0106-stop-registering-derivable-work.md#errata) |
 | `unregistered-implementing` | 8 | accepted removal | `packs/core/tests/skills/work-loop/test_header_derived_dispatch_replay.py`, `packs/core/tests/skills/work-loop/fixtures/header-derived-dispatch/expected.json`, `docs/specs/header-derived-dispatch/notes/verification-ledger.md` | [RFC-0106 § Errata](../../rfc/0106-stop-registering-derivable-work.md#errata) |
+| `the registered captured item's kind` | 9 | accepted removal | `packs/core/tests/skills/workspace-status/test_captured_entry_drop.py`, `tests/roster/test_last_registry_entries.py` | [RFC-0106 § Errata](../../rfc/0106-stop-registering-derivable-work.md#errata) |
+| `the defect settled by backlog.closed` | 9 | accepted removal | `packs/core/tests/skills/workspace-status/test_captured_entry_drop.py`, `tests/roster/test_last_registry_entries.py` | [RFC-0106 § Errata](../../rfc/0106-stop-registering-derivable-work.md#errata) |
+| `the registered captured item's own findings and edges` | 9 | accepted removal | `packs/core/tests/skills/workspace-status/test_captured_entry_drop.py`, `tests/roster/test_last_registry_entries.py` | [RFC-0106 § Errata](../../rfc/0106-stop-registering-derivable-work.md#errata) |
 
 ## Compatibility closure
 

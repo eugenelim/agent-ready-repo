@@ -43,7 +43,9 @@ requirement-bearing artifacts, and rewrites a former legacy entry in canonical
 form by hand.
 
 Repositories that enable tracker refresh also carry a global
-`[authorization.refresh]` role policy outside initiative entries. See
+`[authorization.refresh]` role policy. It lives in `.work-intake.toml` at the
+repository root, not in `workspace.toml`; the `refresh-policy-move` repair moves
+an older table there. See
 [Use work intake](../../_shared/how-to/use-work-intake.md) for
 the exact required keys and confirmation boundaries. The policy contains roles
 only; artifact authority, approver identities, decisions, conflicts, and
