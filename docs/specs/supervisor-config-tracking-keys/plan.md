@@ -465,6 +465,36 @@ Owned by: T2.
 **Done when:** VI-0119–VI-0124 pass, the existing suites and the crash corpus
 still pass, and PR CI is green.
 
+### T6: Review repairs — every expected special kind is collected, and every config-caused refusal names its recorded form
+
+**Depends on:** T5
+
+**Spec behavior:** AC-0001, AC-0008, AC-0013, AC-0015, AC-0016; TDD.
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_attempt.py`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py`, `packs/core/tests/skills/work-loop/test_supervisor_attempt.py`
+
+**Verification mode:** TDD
+
+**Tests:**
+- **VI-0125 (AC-0016):** the set of kinds VI-0115 collects equals the
+  platform's stated expected kinds minus its named platform gaps; a kind
+  missing from collection fails a test, and no environment probe (such as a
+  TMPDIR existence check) decides what is collected. VI-0122's assertions that
+  compare constants with constants are replaced by this comparison.
+- **VI-0126 (AC-0008):** the standing `attempt-residue` detail that `next`
+  returns and the `denied-git-control-state` detail each name the recorded
+  form of a changed config entry, for both a raw and a config-view entry; a
+  detail that drops the form fails.
+- Nits: the `in_remote` reset after a dropped branch block is removed or its
+  comment says it is defensive; the linear-time test uses an input size where
+  the previous quadratic rule exceeds the bound in tens of seconds, not tens of
+  minutes, while keeping a wide margin for the current rule; the test module
+  docstring lists every criterion it covers; the references/supervisor.md
+  attempt-residue row says "outside a canonical tracking block".
+
+**Done when:** VI-0125 and VI-0126 pass, the existing suites and the crash
+corpus still pass, and PR CI is green.
+
 ## Rollout
 
 Delivery is a normal core patch release; there is no flag and no data
