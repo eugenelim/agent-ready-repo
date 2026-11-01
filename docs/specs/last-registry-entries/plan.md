@@ -1,7 +1,7 @@
 # Plan: The last registry entries leave, and refresh gets its own policy file
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1 and § Errata; RFC-0105 D3; RFC-0083; RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-intake/scripts/refresh.py`: `parse_refresh_authorization_policy` (line 1021), the `local_receipts` record shape (lines 671-694 and 867), and every `workspace.toml` read and digest binding (lines 1235, 1504, 1609, 1698, 1718, 2005). Packaged copy: `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`.
@@ -42,7 +42,7 @@ Refresh moves first, because it is self-contained and its contract change is the
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | Source-authority record and lock | T1 | refresh coordinator, processor and schema suites | AC-0008, AC-0009, AC-0021 checked |
-| Policy file and repair | T1, T2, T3 | refresh and repair suites | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007 checked |
+| Policy file and repair | T1, T2, T3, T9 | refresh and repair suites | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007 checked |
 | Deferral anchors | T4 | the lint's suites | AC-0010 checked |
 | Run on this repository | T6 | the ledger | AC-0011 checked |
 | User documentation, decision rationale, records, brief | T5, T7 | the roster check; inventory check; `lint-brief-coverage.py` | AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018 checked |
@@ -114,9 +114,17 @@ Owned by: T4
 - **Tests:** for AC-0012, AC-0013, AC-0014, AC-0015, AC-0018: a new roster check over the closed file and phrase lists and the errata entry; the inventory and record check; `lint-brief-coverage.py`; `tools/lint-ci-parity.py`.
 - **Done when:** the owner has approved the errata and brief text, the controller has committed the errata entry between attempts, and the checks pass.
 
+### T9: Legacy `needs` move to the captured file, then the entry drops
+
+- **Depends on:** T3
+- **Verification mode:** TDD
+- **Touches:** `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, `packs/core/tests/skills/workspace-status/test_captured_entry_drop.py`, `.claude/skills/workspace-status/**`, `.agents/skills/workspace-status/**`, `packs/core/.apm/skills/workspace-status/references/mutate.md`, `packs/core/.apm/skills/workspace-status/SKILL.md`
+- **Tests:** for AC-0022, AC-0001: planted slug-only entries with a string `needs` of each legacy form, an array of legacy needs, a header that already holds a reference, and a non-legacy need (manual item, entry kept); one apply writes the header then drops the entry, and the next plan holds neither operation; the existing `needs-to-header` cases unchanged.
+- **Done when:** `packs/core/tests/skills/workspace-status/` passes and `mutate.md` describes the legacy-need case.
+
 ### T6: Run the repair on this repository
 
-- **Depends on:** T5
+- **Depends on:** T5, T9
 - **Verification mode:** manual QA
 - **Touches:** `workspace.toml`, `docs/product/captured/credential-broker-contract-manual-qa.md`, `tests/roster/test_credential_broker_contract_docs.py`, `tests/roster/test_agent_skill_engineering_consumer_integrations.py`, `tools/test_guide_typed_asides.py`
 - **Tests:** for AC-0011: the plan, the owner's confirmation with the plan file's SHA-256, the apply output, and `dispatch.py` output before and after; before the run the six-row QA matrix is copied, owner-approved, into `docs/product/captured/credential-broker-contract-manual-qa.md`; the two roster tests that asserted removed slug-only entries assert their captured files instead, the credential-broker test still asserting all six rows, and `tools/test_guide_typed_asides.py` passes with the emptied collections; after the test re-point lands, the `PINNED` comment block above the removed entry (`workspace.toml` lines 1490-1503) is removed in an edit separate from the repair write that touches no entry or table.
@@ -152,3 +160,4 @@ Owned by: T4
 
 - 2026-10-31: spec approved by eugenelim at `b920263b4`, after three spec-mode shaping and adversarial review rounds, with the round-3 repairs accepted unreviewed and the `workspace-status` projection globs added to T2 and T3 at approval.
 - 2026-10-31: plan approved by eugenelim at `b920263b4`.
+- 2026-10-31: amended under controlled amendment during T6 (AC-0022, AC-0001, task T9); spec and plan set back to Draft and Drafting for review and re-approval.

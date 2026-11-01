@@ -1,7 +1,7 @@
 # Spec: The last registry entries leave, and refresh gets its own policy file
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-10-31 by eugenelim, spec and plan at `b920263b4` (the same bytes as the rebased `9568e85eb`), after three spec-mode shaping and adversarial review rounds, each adjudicated (three adjudications were invalid; two were re-run), with the round-3 repairs accepted unreviewed; records under `.context/reviews/f74a8515-2661-4d20-9b7f-b0679cb7da68/`.
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-10-31 by eugenelim, spec and plan at `b920263b4` (the same bytes as the rebased `9568e85eb`), after three spec-mode shaping and adversarial review rounds, each adjudicated (three adjudications were invalid; two were re-run), with the round-3 repairs accepted unreviewed; records under `.context/reviews/f74a8515-2661-4d20-9b7f-b0679cb7da68/`. Amended 2026-10-31 under controlled amendment during T6: a slug-only entry's legacy string `needs` moves into its captured-item file's `Depends on:` header before the entry is dropped (AC-0022, AC-0001, task T9), after the repair run on this repository showed three such entries the contract could not settle.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105 (D3, the retirement gates and the one retirement record), RFC-0106 (D1, a registration's readers go when its replacement ships; § Errata, each removal's authority), RFC-0083 (refresh and the source-authority record), RFC-0055 (errata entries on an Accepted RFC), ADR-0074 (standard-library skill scripts)
@@ -28,6 +28,7 @@ An adopter upgrading `core` moves the last work entries out of `workspace.toml` 
 
 ## What Changes
 
+- **Repair: legacy `needs`.** The `needs-to-header` step also moves a slug-only entry's legacy string `needs` into its captured-item file's `Depends on:` header, so the entry can then be dropped.
 - **Repair: `captured-entry-drop`.** A `workspace-status` step removes each captured-item membership whose file it can read and each slug-only legacy entry whose captured-item file exists, including entries a `captured-to-file` operation of the same plan just backed with a file; anything else is a manual item.
 - **Repair: `refresh-policy-move`.** A `workspace-status` step copies `[authorization.refresh]` into `.work-intake.toml` and removes it from `workspace.toml`.
 - **Refresh.** `work-intake`'s `scripts/refresh.py` (and its packaged copy) reads the role policy from `.work-intake.toml` and binds that file's digest on the local commit and the remote write-back alike, writes `policy_digest` in new local receipts, still takes the shared repair lock, and no longer reads `workspace.toml`. The GitHub, Jira, Jira Align and Linear refresh processor suites plant the policy file.
@@ -49,7 +50,7 @@ An adopter upgrading `core` moves the last work entries out of `workspace.toml` 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility: the source-authority record | Applicable: adopters' tools parse local receipts | `contracts/jsonschema/source-authority.schema.json`; `work-intake` SKILL.md § Refresh | Platform Core maintainer | AC-0008, AC-0009 pass | Schema and parser accept the same receipts |
-| Interface compatibility: the refresh policy file, the repair and the anchor rule | Applicable: adopters write the policy, run the repair and defer criteria | `.work-intake.toml` shape in `work-intake` SKILL.md and `references/lifecycle-index.md`; `workspace-status` SKILL.md and `references/mutate.md`; the anchor rule in `work-loop` SKILL.md, `new-spec`'s contract reference and the `adversarial-reviewer` agent | Platform Core maintainer | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010, AC-0014, AC-0021 pass | Each names the current source |
+| Interface compatibility: the refresh policy file, the repair and the anchor rule | Applicable: adopters write the policy, run the repair and defer criteria | `.work-intake.toml` shape in `work-intake` SKILL.md and `references/lifecycle-index.md`; `workspace-status` SKILL.md and `references/mutate.md`; the anchor rule in `work-loop` SKILL.md, `new-spec`'s contract reference and the `adversarial-reviewer` agent | Platform Core maintainer | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0010, AC-0014, AC-0021, AC-0022 pass | Each names the current source |
 | User documentation | Applicable: adopters configure refresh by hand | the guides AC-0014 lists | eugenelim, Approver | AC-0014 passes | No listed page says refresh reads `workspace.toml` |
 | Decision rationale | Applicable: three dispatch behaviors are removed | RFC-0106 § Errata | eugenelim, Approver | AC-0013 passes | The entry carries owner-approved wording |
 | Retirement evidence | Applicable: RFC-0105 D3 gates 3 and 4 | `retirement-record.md` § Equivalence and § Compatibility closure; `inventory.toml` | Platform Core maintainer | AC-0012, AC-0015, AC-0017 pass | The closure entry names this spec and the run |
@@ -87,7 +88,7 @@ the plan's `## Design (LLD)`, not here.
 
 ## Testing Strategy
 
-- **Repair steps (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005): TDD.** Each rule is a `repair-plan` or `repair-apply` result over a planted `workspace.toml` and tree, one planted entry or table per case.
+- **Repair steps (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0022): TDD.** Each rule is a `repair-plan` or `repair-apply` result over a planted `workspace.toml` and tree, one planted entry or table per case.
 - **Refresh and the contract (AC-0006, AC-0007, AC-0008, AC-0009, AC-0021): TDD.** Coordinator and remote receipt-store calls over a planted repository, the four tracker processor suites, and the schema suite with one planted receipt per case.
 - **Deferral anchors (AC-0010): TDD.** The lint's anchor pass over planted specs and captured-item files.
 - **This repository (AC-0011): manual QA.** One repair run and a dispatch comparison, recorded in the ledger.
@@ -101,14 +102,16 @@ the plan's `## Design (LLD)`, not here.
 - **Base.** Commit `74f4b7248`.
 - **Captured membership.** A canonical `workspace.toml` membership whose `path` is under `docs/product/captured/`.
 - **Slug-only entry.** An element of a `[backlog]` collection or of an initiative's `shaping_queue.backlog` or `shaping_queue.active` that is a table with a `slug` and no `path`.
+- **Legacy need.** A string in a slug-only entry's `needs` (a string, or an array of strings) of one of the forms `work:spec/<s>`, `ini-<NNN>:work:spec/<s>`, `brief:docs/product/briefs/<s>.md` or `backlog:<s>`, with `<s>` a lowercase slug; its typed reference is `spec:<s>`, `spec:<s>`, `brief:<s>` and `docs/product/captured/<s>.md` respectively.
 - **Readable captured file.** A regular, singly linked file inside the repository that the captured-item reader at the base accepts.
 - **Policy file.** `.work-intake.toml` at the repository root, holding exactly one table, `[authorization.refresh]`, with the keys and `contract_version` refresh accepts at the base.
 
 **Repair**
 
-- [ ] **AC-0001.** `repair-plan` holds one `captured-entry-drop` operation for each captured membership whose `path` is a readable captured file, and for each slug-only entry for which `docs/product/captured/<slug>.md` is a readable captured file, where a captured file a `captured-to-file` operation of the same plan writes, and the entry it backs, count as they stand after that operation.
+- [ ] **AC-0001.** `repair-plan` holds one `captured-entry-drop` operation for each captured membership whose `path` is a readable captured file, and for each slug-only entry for which `docs/product/captured/<slug>.md` is a readable captured file, where a captured file a `captured-to-file` operation of the same plan writes, and the entry it backs, count as they stand after that operation, and where the entry's `needs` is absent or empty, or is emptied by a `needs-to-header` operation of the same plan.
 - [ ] **AC-0002.** Every other captured membership and slug-only entry, apart from one a `captured-to-file` operation of the same plan backs, gets no `captured-entry-drop` operation, becomes one manual item naming its locator and reason, and keeps its entry.
 - [ ] **AC-0003.** `repair-apply --yes` removes exactly the entries of the `captured-entry-drop` operations whose check under the writer lock still holds, in one atomic `workspace.toml` write that keeps every byte outside the entries and tables the operations applied in that write remove; a `captured-entry-drop` operation writes no file under `docs/product/captured/`, and is refused, keeping its entry, when its entry or captured file differs from the state the plan expects after the same apply's `captured-to-file` operations.
+- [ ] **AC-0022.** For each slug-only entry whose `docs/product/captured/<slug>.md` is a readable captured file and whose `needs` is non-empty, `repair-plan` holds one `needs-to-header` operation that adds the typed reference of each need to that file's `Depends on:` header when every need is a legacy need, and otherwise one manual item naming the entry and keeping it; `repair-apply --yes` runs that operation before the entry's `captured-entry-drop`, skips a reference the header already holds, and the dropped entry's references are then present in the header.
 - [ ] **AC-0004.** When `workspace.toml` has an `[authorization.refresh]` table that refresh accepts, `repair-plan` holds one `refresh-policy-move` operation if no `.work-intake.toml` exists, and `repair-apply --yes` creates the policy file, whose parsed table equals the moved one, and removes the table; if a policy file whose parsed table equals it exists, the operation only removes the table. An existing `.work-intake.toml` that is not a policy file, an existing policy file whose table differs, and a table refresh does not accept each become one manual item; nothing moves, and an existing `.work-intake.toml` is never overwritten.
 - [ ] **AC-0005.** After `repair-apply --yes` applies every planned operation, including `captured-to-file` operations in the same plan, the next `repair-plan` holds no `captured-entry-drop` and no `refresh-policy-move` operation.
 
