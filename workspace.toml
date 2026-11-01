@@ -54,7 +54,6 @@ backlog = [
   # unsatisfied_dependency, which was wrong -- the relationship is shared evidence,
   # not sequencing, and the retrospective spikes run today. Cross-referenced in
   # prose instead.
-  {path = "docs/product/captured/portfolio-outcome-entry-surfaces.md", kind = "design", source = {mode = "repo-origin", ref = "docs/rfc/0064-ini-001-ai-native-ecosystem.md", revision = "sha256-bytes-v1:26693aa8f9a49eba83258db06be0795b664cb2c09d4c0742ed9b502666d8efca"}, summary = "Design outcome-led portfolio entry surfaces without duplicating renderer or site-system ownership", needs = []},
 ]
 
 ["ini-002".brief_queue]
@@ -515,8 +514,6 @@ open = [
   # resolvable after its successor spec moves to Platform Core's ready queue.
   # The approved spec owns implementation; this note is only the historical
   # anchor and retires through a governed amendment of that shipped spec.
-  {path = "docs/product/captured/spec-review-retry-cap-dead-end.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/acceptance-authority-and-evidence/spec.md"}, summary = "After a contract amendment, spec review inherits the code-review retry count, and findings-remain from SPEC-PLAN-REVIEW refuses the owner override, so an amended spec cannot loop back to drafting", needs = []},
-  {path = "docs/product/captured/capture-work-alias-removal.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/work-intake-migration-docs/spec.md"}, summary = "Preserve the historical capture-work-alias-removal deferral anchor while the approved removal spec is queued for Platform Core", needs = []},
   # The consumer half of the decomposed visual-target contract. Registered here
   # because `visual-target-field` ships a frontmatter field that nothing reads,
   # and this successor is the whole justification for that: a follow-on recorded
@@ -550,7 +547,6 @@ open = [
   # The cheaper trigger to watch is therefore upstream: when a semgrep release
   # permits PyJWT>=2.15.0, eleven entries retire at 2.14.0 and the twelfth at
   # 2.15.0, and the gate itself will say so.
-  { slug = "semgrep-pyjwt-pin-blocks-every-sca-remediation", source = "gate-sast, 2026-09-30 (CVE-2026-102270 and CVE-2026-101918 added the same day; ADR-0131 vehicle holding twelve entries)" },
   # The four recorded SCA weaknesses of `make sast` are closed for ONE of its
   # pip-audit invocations and open for the rest. ADR-0131 gave the new
   # `tools/run-pip-audit-gate.py` an environment scrub (every `PIP_*` removed,
@@ -566,7 +562,6 @@ open = [
   # `sca-audited-set-has-no-floor` and `sca-no-timeout-on-pip-audit`, and none
   # of the four is in this file — verified 2026-09-29, zero matches. The
   # carve-out in the ADR-0131 spec's Out of scope rests on this entry.
-  { slug = "sca-hardening-uneven-across-pip-audit-invocations", source = "spec/pip-audit-advisory-allowlist (ADR-0131 scope decision; the archived pip-audit-batching slugs were never registered)" },
   # Retired 2026-10-02: `intent-rename-h1-title-false-refusal`, because the
   # leading H1 title exemption is in the tree. The entry recorded a false
   # `source-unreadable` refusal when a live intent title contained "tombstone".
@@ -609,7 +604,6 @@ open = [
   # Also record why no gate caught it: `tools/check-rendered-site-links.py`
   # audits an emitted HTML tree, and the journeys route was not in the audited
   # build. Unblocks now; nothing depends on it.
-  { slug = "journey-bodies-cannot-link-to-a-guide-page", source = "knowledge-distill/2026-09-24", summary = "packs/core/JOURNEY.md:300 is a live 404 on the published site because sync_pack_journeys copies journey bodies verbatim and a Markdown body link is not base-qualified the way docsUrl is; it is the only guide link across 20 JOURNEY.md files, so packs have no working way to link a guide page, and the rendered-site link audit did not cover the journeys route" },
 
   # No gate resolves relative Markdown links repository-wide. The knowledge
   # topic `no-gate-resolves-relative-markdown-links` recorded this and it is
@@ -630,7 +624,6 @@ open = [
   # and a gate that exempts them enforces almost nothing. Decide the domain
   # (which trees, and what happens to a frozen record carrying a stale link)
   # before writing the check. Unblocks now.
-  { slug = "no-repository-wide-relative-markdown-link-gate", source = "knowledge-distill/2026-09-24", summary = "388 broken relative Markdown links across 92 files with no gate resolving them; the adopter-facing seed subset is separately gated and deferred, so the open work is deciding the domain for the internal corpus, where a gate over frozen specs would red on records nobody may edit" },
 
   # Retired 2026-09-24: three shape entries whose shaping had already produced
   # a Shipped spec, so the shaping they asked for was done. The intents stay on
@@ -665,7 +658,6 @@ open = [
   # docs/specs/loop-engine-repo-root-memo/spec.md:118-126, which is Shipped and
   # frozen; that paragraph is now stale and cannot be edited in place, so this
   # note is where its claim is superseded.
-  {slug = "product-templates-emit-raw-html-comments", summary = "The shipped intent, spec, plan and brief templates carry their author guidance as HTML comments, so every artifact made from them contains raw HTML a CommonMark editor drops or shows verbatim. Measured 2026-09-24 with markdown-it-py over the repository: 543 of 921 spec and plan files, 53 of 104 RFCs, 26 of 154 intents and 5 of 20 briefs are affected, 891 tokens in total, of which 201 are multi-line blocks. intent-template.md alone ships 20. Fixing the templates is what stops new artifacts inheriting it; a sweep over existing files is separate and is NOT purely mechanical, because nine intent comments carry content rather than guidance (five discovery-chain rungs, one deliberate product-vision altitude, and three recording that a needs edge is stated but unenforced), the Status annotations are the only place a reader sees the lifecycle enum, and scanner-suppression-and-pin-hygiene.md contains the literal <!-- --> in prose as one of four comment syntaxes, so a regex sweep corrupts that sentence", source = "session 2026-09-24, owner reported the intent artifacts are unviewable in a TipTap markdown editor"},
   # Discovered while shaping docs/specs/conventions-retirement. The core pack's
   # seeds impose obligations and links that only other packs -- or no pack --
   # can satisfy, and core declares no dependency on any of them. Verified
@@ -696,7 +688,6 @@ open = [
   # open work here is the uncoupling decision (core states only what it
   # installs; a pack that owns a process carries its own mandate), not a new
   # link check.
-  {slug = "core-seeds-mandate-other-packs-content", source = "spec/conventions-retirement (round-5 adopter-boundary review)"},
   # The sender cannot explain its own effective configuration. `resolve_telemetry`
   # returns a merged mapping, so once resolution SUCCEEDS nothing records which
   # scope supplied an admitted value, whether either file existed at all, or which
@@ -711,7 +702,6 @@ open = [
   # structured resolution provenance and expose it through a non-sending
   # `--explain-config`, which needs its own criteria for what it may print --
   # an endpoint can carry user-info that the existing diagnostics redact.
-  { slug = "sender-cannot-explain-its-effective-configuration", source = "pre-flight/2026-09-16" },
   # Three documentation-versus-code defects around the governance index, all found
   # while measuring whether an ADR `Area` field would duplicate the index's `domains:`
   # key. (1) IS CLOSED, and only (2) and (3) keep this entry open.
@@ -738,8 +728,6 @@ open = [
   # not a domain at all; the skill labels the map "heuristic". Nothing is blocked: the
   # infra loop works for the six mapped domains. Unblock: an owner decision on (2), since
   # deleting versus implementing that claim changes whether (3) is a gap or by design.
-  {path = "docs/product/captured/manifest-example.md", kind = "defect", source = {mode = "repo-origin", ref = "packs/iac-terraform/.apm/skills/generate-iac/SKILL.md"}, summary = "Reconcile the governance-index documentation with its code: delete or implement the unimplemented `generate-iac adds any missing domain rows` claim repeated in three places, and close reconcile-iac's six-of-eight domain map and its non-domain `policy` token. The third defect, infra-decisions.md's false seven-to-eight correspondence claim, was fixed by b59becf26 on 2026-09-24", needs = []},
-  {path = "docs/product/captured/loop-telemetry-export-verification-ledger.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/loop-telemetry-export/spec.md"}, summary = "Decide whether a waived work-loop base-freshness check should leave a durable marker on the run, so a later reader can tell a verified base from one accepted on authority", needs = []},
   # The two probes the grounding survey ranks second and third, held back because
   # neither was cheap the way live-references was. Registered rather than folded
   # into A6: that slice ships the explorer and its calibration, and a task added
@@ -804,7 +792,6 @@ open = [
   # applying a different test to each pack.
   # `Unblocks when:` above is satisfied — `docs/specs/layout-install-sections/spec.md`
   # is Shipped.
-  {path = "docs/product/captured/agentbundle.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/layout-install-sections/spec.md"}, summary = "Move the `agentbundle-layout.toml` section vocabulary onto canonical pack names, so the section an adopter configures matches the pack that owns it", needs = []},
   # The Makefile's own `Revisit if` note beside --strict has now fired with
   # measurement: four runs over one unchanged tree gave 3, 14, 3, then 0 timeout
   # diagnostics at load 95 to 226 on 10 cores, on files absent from any diff.
@@ -831,15 +818,6 @@ open = [
   # Mechanism and measurement: captured observation
   # kco-202609-43b240cb94a85bb57b6c908b7e4cdaf71a4845bdd3c591750d02d42c083ed0ba
   # in docs/knowledge/observations/gotcha/2026-09.jsonl.
-  {slug = "direct-lifecycle-uninstall-skill", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "RFC-0098 D4/D6 mandate uninstall --skill <name> for a direct row, routed to the pack-keyed file-ownership removal path and mutually exclusive with --pack. The CLI has no --skill and requires --pack, so that form does not exist; removal works only via uninstall --pack <identity> --yes. No removed criterion carried this. It also owns the removal completeness direct-skill-lifecycle F8 measures: a file a later revision drops stays on disk unowned, and ownership-keyed removal alone cannot reach it.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  {slug = "direct-lifecycle-capability-inspection", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Re-read what an installed direct skill declares: allowed-tools, metadata.boundaries, metadata.credentialed, the SKILL.md digest, and every payload digest, per skill. Probed 2026-09-01: show, list-installed --format json, and the state file each carry none of them, so an adopter who consented at install has no route back to what they agreed to. The show contract sets additionalProperties false over a closed key set docs/specs/okf-catalogue-discovery owns, so that spec needs amending alongside.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  {slug = "direct-lifecycle-receipts", needs = "work:spec/direct-skill-lifecycle", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Receipts for direct commands report kind, name, source, resolved revision, digest, scope, adapter, and the matching update and uninstall commands. Delivered for install and shipped, but its criterion (AC22) left the direct-skill-repository-installation final list, so the guarantee is unowned; the upgrade route this narrowing builds adds a second receipt surface.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  {slug = "direct-lifecycle-cli-grammar-stability", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Install, validate, and list-installed grammar clauses that left with AC7 and AC9: list-installed adds no new flag and --no-check, --offline, and --check-drift keep their meanings; a catalogue row whose drift was never computed renders an em dash rather than a 0; and the exit-2 set for bare upgrade, bare primitive upgrade, bare uninstall, bare install, conflicting pack/profile, pack/profile with a direct source, and upgrade --pack P --scope local. AC7/AC9 at c794be99c are the authority.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  {slug = "direct-lifecycle-display", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Manifestless list-installed rows: KIND column, INSTALLED/LATEST as an em dash, numeric DRIFT, the JSON schema-version increment, --updates-only exclusion, and the sentinel reaching no surface. Also AC22's shipped guarantees: no outbound request, STATUS always unknown, no ahead state, no source-digest comparison in footprint drift. AC22 at c794be99c is the authority; it and AC26 stayed on direct-skill-repository-installation's final list, the narrowed follow-on owning identity and upgrade only.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  {slug = "direct-lifecycle-local-scope", needs = "work:spec/direct-skill-lifecycle", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Local scope across the direct lifecycle: projection, .agentbundle-local-state.toml, the git exclude, the tracked-path refusal, and rollback. RFC-0098 D6 admits it for standalone skill upgrade while the shipped route refuses --scope local; the parent spec withdrew its AC24 local-scope clause as unsatisfiable.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  {slug = "direct-lifecycle-normalization-fixtures", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Hand-authored canonical-equivalent and expected-normalized fixtures for every direct shape and sub-form, including the collection category level whose flattening to skills/<leaf>/ is the behaviour parity exists to pin, AC24's rule that no canonical, direct, or expected-normalized fixture is generated with code under test, and the assertion the fixtures feed: repo and user projections and per-file plans are byte-identical through both renderers. AC24 at c794be99c is the authority.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  {slug = "direct-lifecycle-author-documentation", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "The author-facing documentation RFC-0098 D8 names: the skill-repository format reference with its stable raw schema URL, the make-a-skill-repository-installable how-to, install-routes and reference page updates, docs-site navigation, the --help surfaces install, validate, upgrade, uninstall, and list-installed, and a local-path-only coding-agent prompt. Left the final list with AC23.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
-  {slug = "direct-lifecycle-capability-reconsent", needs = "work:spec/direct-skill-lifecycle", source = "direct-skill-lifecycle spec narrowing (2026-09-01)", summary = "Capability re-consent on upgrade: the difference rendering including old/new digest, revision, added and removed skill names, the full payload delta, and executable-mode omission for old data; the refusal axes, --accept-new-capabilities bound to the recomputed digest, unknown drift refusing even with the flag, and upgrade --all applying it to every row before any write. Left the final list with AC30 and AC9.", intent = "docs/product/intents/direct-skill-lifecycle.md"},
   # NOT migrated to a `path` entry, and not an oversight: AC16 of the Shipped
   # spec/agent-skill-engineering-consumer-integrations is discharged by this
   # exact `slug`/`source` pair, and tests/roster's
@@ -854,16 +832,10 @@ open = [
   # offers a cheaper mode than an executable harness -- a fixture versioned with
   # its expected result before the implementation runs, judged by an independent
   # reviewer -- which that slice did not evaluate.
-  {slug = "agent-skill-engineering-provider-absence-behaviour", source = "docs/specs/agent-skill-engineering-consumer-integrations/spec.md#follow-ons", summary = "Discharge the behavioural half of the provider-absence obligation: evaluate a pre-registered fixture-and-expected-result mode, judged by an independent reviewer, against an executable absence harness"},
   # Product-strategy parent of the three capability briefs below it, framed
   # 2026-09-02. Re-gates them: the policy validator is the activation
   # measurement's compliance test, so enforcement precedes measurement.
   # Load-bearing unknown: no host is known to admit a blocking hook verdict.
-  {path = "docs/product/captured/review-findings.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two of nine adjudicated findings on the withdrawn cooling-scope-closure amendment remain open; the file records each closure with its evidence. Open: a plan whose Done-when requires editing a hash-frozen plan.md, which nothing detects at approval time; and AC31 being unable to fail when the release surfaces agree at a version whose published code differs from what ships. Both need an owner decision rather than a repair", needs = []},
-  {path = "docs/product/captured/dependency-scoped-completion-receipts-follow-ons.md", kind = "defect", source = {mode = "repo-origin"}, summary = "Two of three RFC-0096 receipt follow-ons stay open. Entry-removal precondition: reassigned to rfc0096-wave7c-pruning -- stranding harm refuted by measurement, but nothing makes the file and entry removals atomic and a record field cannot supply that. Cooled cross-repo deferral slug: still Wave 7b's. Reclassified schema gap: closed by docs/specs/reclassified-lifecycle-result/. Both settled in rfc0096-wave7c-lifecycle-record-decisions.md; the linked notes file is frozen, so status lives here", needs = []},
-  {path = "docs/product/captured/reclaim-residual.md", kind = "defect", source = {mode = "repo-origin"}, summary = "A state-lock reclaim's identity check and its rename are two operations, so a holder acquiring between them is displaced and reports StateLockLost having done nothing wrong. Not closable by checking harder -- POSIX has no rename-if-unchanged. Atomic takeover is disproved and recorded: rename replaces unconditionally, so every contender with the same stale snapshot wins in turn, measured at three to five holders. The note carries the forced-interleaving reproduction", needs = []},
-  {path = "docs/product/captured/reclassified-lifecycle-result-follow-ons.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Two RFC-0096 Wave 7c follow-ons. (1) rfc0096-wave7c-pruning: a pruning session must prove its own precondition -- an artifact's file and its workspace entry must be removed together -- and nothing makes the two removals atomic. (2) Moving AC23-pinned files falsifies cooling-scope-closure's AC23 TITLE and its Durable Outputs line \"neither may change\"; the AC body still holds, so the repair is a retitle. Caused by this delivery and Wave 7b; its owner restates it. RFC-0096:380 names the slice", needs = []},
-  {path = "docs/product/captured/cooling-brief-child-scope-closure-follow-ons.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/rfc/0096-portable-delivery-artifact-lifecycle.md"}, summary = "Two open RFC-0096 Wave 7b follow-ons. A declared-empty source.parent on a cooled entry is trusted not verified, needing a closeout-time writer in close-work. An interrupted run of the shared-test dedup guard strands collectable test files in the repository root, which gitignore hides but does not prevent. Two are closed: the pack-script citation conflict, and the two AC17 test names that contradicted their bodies, renamed in the live tests on 2026-09-30", needs = []},
   # Unblocks when: promoted through normal intake into a controlled benchmark.
 
   # The current cognitive-load slice uses one tool-neutral lookup. This intent
@@ -875,38 +847,6 @@ open = [
   # Unblocks when runtime root semantics are reacquired and the command strategy
   # is approved.
   # Unblocks when: the release checklist owner decides.
-  {slug = "readme-pypi-whats-new-unenforced", summary = "Whether README-pypi must name the current release is undecided; 12 of the last 25 version bumps did not", source = "spec/guide-typed-asides-test-gate (review blocker 2)"},
-  {path = "docs/product/captured/ci-gate-parallelization-critical-path-measurement.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/ci-gate-parallelization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen deferral identity and completed docs-only CI measurement while the 302-second gate-main miss moves to its runtime-budget intent", needs = []},
-
-  {path = "docs/product/captured/pre-existing-enterprise-agentbundle-full-suite.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/local-ci-orchestration/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Run the complete AgentBundle suite in a supported profile that permits its isolated trust-store and key-material fixtures", needs = []},
-  {path = "docs/product/captured/rfc0088-native-addon-confinement-bypass.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round15-reference-consumer/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Test native-addon confinement before any supported RFC-0088 configuration is permitted to grant Node's addon flag", needs = []},
-  {path = "docs/product/captured/rfc0088-r12-fact-negative-tests-red.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/rfc0088-round15-reference-consumer/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Reacquire the authoritative out-of-tree round-12 negative-test apparatus and record a current-versus-clean-checkout differential", needs = []},
-  {path = "docs/product/captured/sso-recapture-audit-sink.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen recapture-audit deferral identity while its outcome is owned by the SSO contention and audit-trail intent", needs = []},
-  {path = "docs/product/captured/pack-dependency-scope-qualifier.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen pack-dependency qualifier identity while its outcome is owned by agentbundle install integrity", needs = []},
-  {path = "docs/product/captured/browser-state-lifetime.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen browser-state lifetime identity while its outcome is owned by SSO browser-state protection", needs = []},
-  {path = "docs/product/captured/pack-config-catalogue-sso-defaults.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen catalogue SSO-defaults identity while its outcome is owned by credential-pack defaults projection", needs = []},
-  {path = "docs/product/captured/sso-broker-register-concurrency.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen broker-registration concurrency identity while its outcome is owned by SSO browser-state protection", needs = []},
-  {path = "docs/product/captured/sso-broker-at-rest-minimisation.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen at-rest minimisation identity while its outcome is owned by SSO browser-state protection", needs = []},
-  {path = "docs/product/captured/sso-register-pretooluse-hook.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen optional-hook identity and its retired disposition unless a future accepted intent reactivates it", needs = []},
-  {path = "docs/product/captured/sso-recapture-cooldown.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen recapture-cooldown identity while its outcome is owned by SSO browser-state protection", needs = []},
-  {path = "docs/product/captured/sso-cookie-lint-phrase-amendment.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/jira-check-sso-auto-login/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen cookie-lint wording identity while its outcome is owned by the SSO cookie-lint contract intent", needs = []},
-  {path = "docs/product/captured/sso-keychain-call-timeouts.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/sso-store-transition-serialization/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen keychain-timeout identity while its outcome is owned by SSO browser-state protection", needs = []},
-  {path = "docs/product/captured/tracker-refresh-projection-repair-confirmation.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen projection-repair confirmation identity while its outcome is owned by trusted tracker-refresh inputs", needs = []},
-  {path = "docs/product/captured/tracker-refresh-enforced-capability-state.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen capability-state identity while its outcome is owned by trusted tracker-refresh inputs", needs = []},
-  {path = "docs/product/captured/tracker-refresh-materialized-child-scope.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/tracker-refresh-writeback/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen materialized-child scope identity while its outcome is owned by trusted tracker-refresh inputs", needs = []},
-  {path = "docs/product/captured/workspace-mcp-stage1-behavioral-tests.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen Stage 1 behavioral-test identity while its outcome is owned by Workspace-MCP production readiness", needs = []},
-  {path = "docs/product/captured/workspace-mcp-permissions-projection-contract.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen permission-projection identity while its outcome is owned by Workspace-MCP production readiness", needs = []},
-  {path = "docs/product/captured/workspace-mcp-brief-queue-exposure.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen brief-queue exposure identity while its outcome is owned by Workspace-MCP production readiness", needs = []},
-  {path = "docs/product/captured/workspace-mcp-output-base-containment.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/workspace-mcp/spec.md", revision = "c35b4420e81eff2875471be790d479d1da44432d"}, summary = "Decide which base the slug-containment guard holds an item output path to, and reconcile that answer with git_commit's own containment", needs = []},
-  {path = "docs/product/captured/packs-agents-normative-pointer.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/stale-reference-corrections/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the frozen packs-pointer identity and its path-free disposition without copying a repository-only schema into the scaffold", needs = []},
-
-  {path = "docs/product/captured/upgrade-orphan-removal-on-projection-shape-change.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/kiro-install-alias-parity/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the upgrade-orphan deferral identity while its accepted intent owns confinement-safe projection cleanup", needs = []},
-
-  {path = "docs/product/captured/digital-experience-contract-pe-journey-xref.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/digital-experience-contract/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Add the Digital Experience Contract cross-reference while the product-engineering shaping doctrine updates and regenerates its journey", needs = []},
-
-  {path = "docs/product/captured/convenient-install-defaults-followons.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/convenient-install-defaults/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the default-source integrity deferral identity while its accepted intent owns commit pinning and archive verification", needs = []},
-
-  {path = "docs/product/captured/apm-install-route-parity.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/apm-install-route-parity/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Record the outstanding APM core, converters, Copilot, Cursor, and Gemini live-install checks in manual-QA matrix rows 32 through 34", needs = []},
 
   # Its own subject work is DONE -- the note records `Retired on 2026-09-08`
   # with a full disposition -- but this entry stays, because it is a deferral
@@ -916,7 +856,6 @@ open = [
   # such anchor resolve in `[backlog].open`. Removing the entry fails that gate
   # twice. Retiring it means first amending those two criteria on a Shipped
   # spec, which is a governed amendment, not register hygiene.
-  {path = "docs/product/captured/apm-leak-lint-rfc.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/house-voice-writing-craft/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Retire the obsolete APM leak-lint RFC proposal after the concrete sweep shipped and catalogue verification replaced the deleted standalone linter", needs = []},
 
   # Not mechanical, despite the note file naming the exact two-line edit. The
   # removal falsifies a ticked criterion on a Shipped spec:
@@ -929,22 +868,12 @@ open = [
   # Unblocks when an erratum against that ticked AC, or a superseding ADR,
   # carries the removal. Doing the rubric edit alone leaves a Shipped spec
   # asserting a state the shipped pack contradicts.
-  {path = "docs/product/captured/ml-saas-serverless-workload-class-lenses.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/agentic-well-architected-overlay/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Remove the unsupported SaaS workload-lens claim while preserving the backed GenAI, data and ML, and serverless routes", needs = []},
-
-  {path = "docs/product/captured/atlassian-sso-cookie-live-dc-read-transcript.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/atlassian-sso-cookie/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Capture the approved corporate-SSO Atlassian Data Center read flow in a credential-free transcript", needs = []},
-  {path = "docs/product/captured/artifactory-first-publish-gesture.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/agentbundle-wheel-release/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Have an authorized owner configure the Artifactory Actions secrets and record the first tagged package upload without exposing credentials", needs = []},
-  {path = "docs/product/captured/extraction-msg-realworld-sample.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/extraction-msg-to-markdown-python-contract/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Run the shipped message converter against approved PII-free real-world MSG and EML samples and record both manual fidelity reviews", needs = []},
-
-  {path = "docs/product/captured/plugin-root-name-collision-guard.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/claude-plugins-manifest-correctness/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the plugin-root collision deferral identity while its accepted intent owns the contract-derived pre-write guard", needs = []},
 
   # Deliberately NOT backlogged: extending SAST_DIRS to web/ (62 JS/TS/Astro
   # files). Decided 2026-08-07 — web/ is the platform site, built and deployed
   # from this repo only; it is never installed into an adopter repo, so it
   # carries none of the shipped-artifact exposure that motivates the entries
   # above. Revisit only if web/ ever gains a server-side runtime.
-  {path = "docs/product/captured/workspace-anchor-staleness-invariant.md", kind = "design", source = {mode = "repo-origin", ref = "docs/rfc/0083-work-intake-and-artifact-routing.md", revision = "sha256-bytes-v1:8176272b14747e07e70beb752d6b709ccac502c284a9c114ae03c0cb48312a9d"}, summary = "Design detection for dependency or membership changes that stale a queued spec's approved assumptions", needs = []},
-
-  {path = "docs/product/captured/catalogue-trust-store-trust-settings.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/specs/catalogue-corporate-trust-store/spec.md", revision = "79b23d2944ef2e4e534ae26331c4393aacd7360a"}, summary = "Preserve the Never Trust deferral identity while its accepted intent owns macOS trust-settings enforcement", needs = []},
   # ---------------------------------------------------------------------------
   # Tech-site design review 2026-08-14 — deferred findings + implementation
   # surfacings.
@@ -1487,22 +1416,6 @@ open = [
   # Unblocks when: knowledge-enquiry-scope-reachability ships, since its matcher
   # decides which topics land in which tier.
 
-  # PINNED, like the 34 marker-pinned entries above, but by a different mechanism:
-  # `tests/roster/test_credential_broker_contract_docs.py::test_ac42_roadmap_entry_carries_manual_qa_matrix`
-  # asserts this exact slug is present in workspace.toml AND that the six rows below
-  # appear within 600 characters before it. That test is the oracle for AC42 of the
-  # shipped credential-broker-contract spec, whose body is frozen, so the entry cannot
-  # be absorbed into a slice without orphaning a ticked acceptance criterion.
-  # Its subject matter is otherwise the same as the `live-credential-transcripts`
-  # slice, which records the relationship.
-  # Unverified: six real platform-by-mode transcripts remain under
-  # docs/specs/credential-broker-contract/notes/:
-  # `creds` × macOS; `creds` × Windows; `creds` × Linux;
-  # `sso-cookie` × macOS; `sso-cookie` × Windows; `sso-cookie` × Linux.
-  # Settle when every row uses its real platform store and an approved corporate-SSO
-  # endpoint, and records PAT resolution / sso-broker test exit 0.
-  {slug = "credential-broker-contract-manual-qa"},
-
   # ── Slices absorbed from the legacy register ──────────────────
   # Each entry replaces one or more retired legacy entries. The retired entry's
   # problem, recorded fix, blocker and unblock condition live in the named intent's
@@ -1545,7 +1458,6 @@ open = [
   # the agent-plugin route drops agents and emits nothing for such packs -- one
   # route refuses, the other ships degraded. Fix belongs to the packs'
   # degradation contracts, not to documentation. Unblocks now; no dependency.
-  {path = "docs/product/captured/subagent-present-but-unrunnable.md", kind = "defect", source = {mode = "repo-origin", ref = "docs/adr/0107-claude-plugin-route-serves-non-technical-adopters.md", revision = "local-2026-09-10"}, summary = "Sub-agent degradation fallbacks are keyed on the agent being absent, so none fires on a surface where it is present but unrunnable, letting a Shipped named-skip guarantee pass silently", needs = []},
   # guides/** is browsed on GitHub and projected into Starlight by
   # tools/build-site.py, so an image must resolve under two renderers from one
   # source. Neither syntax does: the rewriter regex cannot tell an image from a
@@ -1555,7 +1467,6 @@ open = [
   # _rewrite_guide image syntax as a distinct case and add an asset copy. That
   # regex governs every link in 209 pages, so it needs its own contract.
   # Unexercised today: no guide carries an image. Unblocks now; no dependency.
-  {path = "docs/product/captured/guide-image-projection.md", kind = "defect", source = {mode = "repo-origin"}, summary = "A guide cannot carry an image that renders on both GitHub and the docs site; the projector rewrites Markdown image paths into page URLs and copies no assets", needs = []},
   # Claude-app users can reach the published discipline packs without a terminal,
   # but the site home's only install affordance is a terminal component. Blocked
   # first: [pack.first-value].surfaces must be a subset of allowed-adapters, and
@@ -1613,7 +1524,6 @@ open = [
   # that change's accepted scope, and the extraction shape is not determined.
   # Rewritten 2026-10-29 against the supervisor by the execution-supervisor
   # cutover (T3); the reproduction is in that spec's verification ledger.
-  { path = "docs/product/captured/supervisor-duplicate-task-heading.md", kind = "defect", source = { mode = "repo-origin", ref = "packs/core/.apm/skills/work-loop/scripts/_supervisor_projector.py" }, summary = "Refuse or disambiguate a duplicate plan task heading: project_plan keys task identity by task ID, so when two sections share an ID both tasks get the later section's identity and a dependent task lists it twice; nothing refuses the plan", needs = [] },
   # The 22-of-67 convention-obligation cost measured by the review-economics
   # spike has no owner. Of 67 findings sustained across its six paired cases, 22
   # were unmet repository obligations rather than defects in the logic the change
@@ -1673,7 +1583,6 @@ open = [
   # (the priority decision and the three killed children), and the distilled
   # topic deterministic-repository-obligations-are-not-review-work.
   #
-  { slug = "convention-obligation-cost-has-no-owner", source = "knowledge-distill/2026-09-17", summary = "22 of 67 sustained findings in the review-economics spike were unmet repository obligations, split 11/11 across both review arms, and no intent owns that cost; the implementer-brief remedy is ranked behind the repair provability audit while the deterministic pre-review-check half is unranked, and choosing between them needs the owner" },
 
   # The knowledge base's freshness contract pins bytes, and the pins do not
   # hold. Measured 2026-09-17 over docs/knowledge: of 98 topics, 63 pin no
@@ -1816,7 +1725,6 @@ open = [
   # next attempt around riding a distill run; the unblock conditions stated
   # above (a capture-free maintenance mutation that rebuilds the map, or moving
   # the freshness contract off byte digests) are the only live ones.
-  { slug = "knowledge-freshness-pins-bytes-and-the-pins-do-not-hold", source = "knowledge-distill/2026-09-17", summary = "Of 98 knowledge topics, 35 pin a source byte digest and 41 of those pins are stale across 28 topics, while the store validates digest shape rather than currency so no gate reds and enquiry returns them as fresh; the recorded drop-the-pin disposition is capable but not affordable, because the skill registers exactly one committed-topic write path and it costs one pending captured observation per topic, of which three remain against 20 active topics with a stale owning pin" },
 
   # Found 2026-09-17 by the pre-EXECUTE review of
   # docs/specs/wave-complete-dispatch-receipts. The entry below is a limit that
@@ -1919,7 +1827,6 @@ open = [
   # registered as Draft specs; the brief's Spec map owns the set. `needs` carries the build order.
   # Pre-existing on HEAD 2026-10-11: tools/test-check-contract-drift.py case A fails (fixture anchors
   # `core` where the checker expects `frontend-engineering`); the real tools/repo/check_contract_drift.py exits 0.
-  { slug = "pre-existing-check-contract-drift-selftest", source = "pre-flight/2026-10-11" },
 ]
 
 
@@ -2053,7 +1960,6 @@ backlog = [
   # docs/specs/intent-reference-grammar-migration/notes/surface-inventory.md
   # already covers all four fields, so the consumer set does not need
   # re-deriving by hand.
-  { slug = "contract-discovery-reference-grammar", type = "shape", source = { mode = "repo-origin", ref = "docs/specs/intent-reference-grammar-migration/spec.md" }, summary = "Decide and migrate a typed reference grammar for the Contract: and Discovery: pointer fields, which RFC-0103 left ungoverned", needs = [] },
 ]
 
 ["ini-010".work]
