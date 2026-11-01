@@ -13,6 +13,7 @@ from __future__ import annotations
 import collections
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from collections.abc import Callable
@@ -258,10 +259,14 @@ def recover_start(repo: Path, started: dict[str, Any]) -> bool:
         variant.require("cut-off", "restore")
         restore_both(repo)
         return True
-    if code == "supervisor-changed" and "git reset --hard" in detail:
-        # The first admission's approval was cut off after its refs moved.
+    if code == "supervisor-changed" and "git reset --soft" in detail:
+        # The first admission's approval was cut off after its refs moved: run the exit it
+        # prints, which keeps uncommitted work and removes the orphaned product ref.
         variant.require("cut-off", "reset-first-admission")
-        h.git(repo, "reset", "-q", "--hard", "HEAD^")
+        command = detail.split("restore with ", 1)[1].split(", then")[0]
+        done = subprocess.run(command, shell=True, cwd=repo, env={**os.environ, **h.GIT_ENV},
+                              capture_output=True, text=True, check=False)
+        assert done.returncode == 0, (command, done.stderr)
         return True
     if code == "product-ref-diverged":
         # An adoption killed after its refs moved: only the product ref goes back.
@@ -671,9 +676,22 @@ def test_every_write_of_lag_repair_and_adoption_converges(
     assert run["crashes"] == 1
     assert struck_at == at, "the diversion struck at another point than in the uninterrupted run"
     assert run["seen"][at + offset - 1] == base_run["seen"][at + offset - 1], "struck elsewhere"
-    cut_off = run["seen"][at + offset - 1] in CUT_OFF_POINTS
+    idx = at + offset - 1
+    cut_off = run["seen"][idx] in CUT_OFF_POINTS
     if name == "lag-repair":
-        assert len(run["exits"]) == int(cut_off), run["exits"]
+        assert run["exits"] == (["restore"] if cut_off else []), run["exits"]
     else:
-        assert "adopt" in run["exits"] and len(run["exits"]) <= 3, run["exits"]
+        # The adoption step's own kill points, found in the uninterrupted run: its
+        # ``commit-built`` is the point before its ``refs-moved``.
+        moved = next(i for i, (point, op) in enumerate(zip(
+            base_run["seen"], base_run["ops"], strict=True))
+            if point == "refs-moved" and op == "reanchor")
+        assert base_run["seen"][moved - 1] == "commit-built"
+        if idx == moved - 1:  # killed before its transaction: the decision is asked again
+            expected = ["adopt", "adopt"]
+        elif idx == moved:  # killed after its refs moved: the ref goes back, then it is asked again
+            expected = ["adopt", "restore-ref", "adopt"]
+        else:  # only a later ordinary step's cut-off needs an exit besides the one adoption
+            expected = ["adopt"] + (["restore"] if cut_off else [])
+        assert run["exits"] == expected, (run["seen"][idx], run["exits"])
     assert_converged(baseline, run, trees=name == "lag-repair", adopted=SCENARIOS[name][1])

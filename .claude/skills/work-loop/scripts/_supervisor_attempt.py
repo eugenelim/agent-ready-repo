@@ -1011,13 +1011,18 @@ class Attempts:
                 self.pin(run_id)
                 return
             if not made and len(approvals) == 1 and commits:
-                base = approvals[0]["base"]
+                command = self.ws.git.first_admission_exit(run_id, approvals[0]["base"])
+                exit_text = (
+                    f"restore with {command}, then run start again" if command
+                    else "no command is named: the approval's base is not a commit this "
+                    "repository holds, so return HEAD to the commit before the approval "
+                    "yourself, keeping your uncommitted changes, then run start again"
+                )
                 raise _unverifiable(
                     "supervisor-changed",
                     "the supervisor's pin record is missing. If HEAD holds the approval of a "
                     "first admission this run never recorded (cut off after its refs moved, "
-                    "or committed outside the supervisor), nothing counts it: restore with "
-                    f"git reset --hard {base}, then run start again",
+                    f"or committed outside the supervisor), nothing counts it: {exit_text}",
                 )
             raise _unverifiable("supervisor-changed", "the supervisor's pin record is missing")
         if installed != pinned and installed != self._open_regeneration(run_id):

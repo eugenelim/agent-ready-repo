@@ -477,7 +477,8 @@ def _exits(ws: Any, div: Divergence) -> tuple[str, str]:
     """
     record = ws.git.product_record(ws.approvals()[0]["run_id"])
     if div.first_admission:
-        restore = f"git reset --hard {div.anchor}, then run start again"
+        command = ws.git.first_admission_exit(ws.approvals()[0]["run_id"], div.anchor)
+        restore = f"{command}, then run start again" if command else _NO_COMMAND
     elif record is None:
         restore = f"git reset --soft {div.anchor}"
     else:
@@ -494,6 +495,27 @@ def _exits(ws: Any, div: Divergence) -> tuple[str, str]:
             f"{div.step} with a reanchor step on HEAD, dropping {div.step}'s changes"
         )
     return restore, adopt + "."
+
+
+_NO_COMMAND = (
+    "no command is named: the approval's base is not a commit this repository holds, so "
+    "return HEAD to the commit before the approval yourself, keeping your uncommitted "
+    "changes, then run start again"
+)
+
+
+def _first_admission_base(ws: Any) -> str | None:
+    """The approval's base, only when it is a full commit id that resolves to a commit."""
+    return ws.git.valid_base(ws.approvals()[0]["base"])  # type: ignore[no-any-return]
+
+
+def _unnamed_first_admission() -> Any:
+    return Refusal(
+        "supervisor-changed",
+        "controller",
+        "HEAD holds the approval of a first admission this run never recorded (cut off after "
+        f"its refs moved, or committed outside the supervisor), and {_NO_COMMAND}",
+    )
 
 
 def unadopted(ws: Any) -> Any:
@@ -532,8 +554,7 @@ def _divergence(
     ref_less: bool = False,
     first_admission: bool = False,
 ) -> Divergence:
-    out = ws.git.run("diff", "--name-only", "-z", "--no-renames", anchor, head)
-    paths = [p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p]
+    paths = ws.git.changed_paths(anchor, head)
     spec = ws.spec_rel + "/"
     delivery = ws.git.delivery_rel + "/"
     return Divergence(
@@ -590,7 +611,9 @@ def _create(ws: Any, run_id: str, head: str) -> Any:
     if latest is None and not git.made_list(run_id):
         # Nothing was ever recorded: HEAD holds the approval of a first admission the run
         # never recorded, so it is measured from the commit the approval was made on.
-        base = ws.approvals()[0]["base"]
+        base = _first_admission_base(ws)
+        if base is None:
+            raise _unnamed_first_admission()
         return _divergence(ws, head, base, ref_less=True, first_admission=True)
     if latest is None or (latest != head and not git.made_only(run_id, head, latest)):
         anchor = latest or _latest_made(ws, run_id, clean=False)
@@ -685,6 +708,8 @@ def inspect(ws: Any) -> Any:
     git = ws.git
     record = git.product_record(approvals[0]["run_id"])
     if record is None:
+        if not git.made_list(approvals[0]["run_id"]) and _first_admission_base(ws) is None:
+            return _unnamed_first_admission()
         return None
     kind, value, trusted = git.product_ref_view(record)
     head = git.head()
@@ -720,8 +745,10 @@ def peek(ws: Any) -> Divergence | None:
         if latest is not None and (latest == head or git.made_only(run_id, head, latest)):
             return None
         if latest is None and not git.made_list(run_id):
-            return _divergence(ws, head, ws.approvals()[0]["base"], ref_less=True,
-                               first_admission=True)
+            base = _first_admission_base(ws)
+            if base is None:
+                return None  # ``inspect`` reports the refusal that names no command
+            return _divergence(ws, head, base, ref_less=True, first_admission=True)
         anchor = latest or _latest_made(ws, run_id, clean=False)
         return None if anchor is None else _divergence(ws, head, anchor, ref_less=True)
     kind, value, trusted = git.product_ref_view(record)
@@ -757,13 +784,8 @@ def _projection(ws: Any, head: str, target: str) -> tuple[list[str], list[str]]:
     and its index entry each match ``HEAD``'s or the target's version.
     """
     git = ws.git
-    out = git.run("diff", "--name-only", "-z", "--no-renames", head, target)
     delivery = git.delivery_rel + "/"
-    paths = sorted(
-        p
-        for p in (x.decode("utf-8", "surrogateescape") for x in out.split(b"\0") if x)
-        if not p.startswith(delivery)
-    )
+    paths = [p for p in git.changed_paths(head, target) if not p.startswith(delivery)]
     if not paths:
         return [], []
     indexed = _index_oids(ws, paths)

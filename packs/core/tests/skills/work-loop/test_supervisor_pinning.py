@@ -821,8 +821,8 @@ def test_pins_come_only_from_an_admitted_start(tmp_path: Path, point: str) -> No
         code, out = h.run_cli(repo, "next", SPEC)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
         code, out = h.start(repo)
-        assert code == 1 and "git reset --hard" in out["refusal"]["detail"], out
-        h.git(repo, "reset", "-q", "--hard", "HEAD^")
+        assert code == 1 and "git reset --soft" in out["refusal"]["detail"], out
+        h.git(repo, "reset", "-q", "--soft", "HEAD^")
         code, out = h.start(repo)
         assert code == 0 and out["status"] == "admitted", out
         assert len(list((repo / ".git" / "agentbundle-supervisor").glob("*/pins.json"))) == 1
@@ -1274,7 +1274,7 @@ def test_a_kill_before_the_store_rename_leaves_no_run_directory_and_blocks_nothi
     assert h.run_cli(repo, "next", _OTHER)[0] == 0
     # The approval's refs moved before anything recorded it: nothing counts it.
     code, out = h.start(repo)
-    assert code == 1 and "git reset --hard" in out["refusal"]["detail"], out
+    assert code == 1 and "git reset --soft" in out["refusal"]["detail"], out
 
 
 def test_a_store_directory_is_born_with_its_spec_record(tmp_path: Path) -> None:

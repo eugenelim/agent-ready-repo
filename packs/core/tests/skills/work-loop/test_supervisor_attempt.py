@@ -516,7 +516,7 @@ def test_a_resolve_effect_during_an_open_attempt_does_not_refuse_it(
     _report_after_a_landed_step(repo, request)
 
 
-def _restore_to_issued(repo: Path, request: dict[str, Any]) -> None:
+def _restore_to_issued(repo: Path) -> None:
     """The exit for a step cut off after its refs moved: both refs back on the recorded value."""
     name, recorded = _product(repo)
     h.git(repo, "update-ref", "--no-deref", name, recorded)
@@ -542,7 +542,7 @@ def test_a_resolve_effect_killed_during_an_open_attempt_converges(
         # guard answers residue until both refs go back to the attempt's commit.
         code, out = h.run_cli(repo, "next", SPEC)
         assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
-        _restore_to_issued(repo, request)
+        _restore_to_issued(repo)
         assert _current_request(repo)["request_id"] == request["request_id"]  # re-issued
         issuances = _issuances(repo)
     # The operator runs it again; it may find the resolution already committed.
@@ -598,7 +598,7 @@ def test_a_re_approval_start_killed_during_an_open_attempt_converges(
         h.commit_module.set_kill_hook(None)
     if point == "refs-moved":
         # The amended approval's refs moved before it was recorded: restore both refs.
-        _restore_to_issued(repo, {})
+        _restore_to_issued(repo)
     code, out = h.start(repo, "spec-plan")
     assert code == 0, out
     code, out = h.run_cli(repo, "next", SPEC)
@@ -849,7 +849,7 @@ def test_a_move_the_run_never_recorded_is_residue_until_both_refs_are_restored(p
     # made it, which the step's successful report above the kill shows.
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 1 and payload["refusal"]["code"] == "attempt-residue", payload
-    _restore_to_issued(repo, request)
+    _restore_to_issued(repo)
     assert _current_request(repo)["request_id"] == request["request_id"]
     assert h.Controller(repo, tmp_path / "effects.log").report(result)[0] == 0
     assert _product(repo)[1] == h.git(repo, "rev-parse", "HEAD").strip()

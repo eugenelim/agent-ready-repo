@@ -113,8 +113,8 @@ def test_interrupted_start_leaves_no_partial_line_and_reruns(tmp_path: Path, poi
         # The approval's refs moved and nothing recorded it: nothing counts it, and the
         # refusal names the exit that works.
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
-        assert "git reset --hard" in out["refusal"]["detail"]
-        h.git(repo, "reset", "-q", "--hard", "HEAD^")
+        assert "git reset --soft" in out["refusal"]["detail"]
+        h.git(repo, "reset", "-q", "--soft", "HEAD^")
         code, out = _start(repo, trust="trusted")
     assert code == 0, out
     code, payload = h.run_cli(repo, "next", h.SPEC_DIR)
