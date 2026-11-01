@@ -1,11 +1,19 @@
 name: test-corpus
 
-# On-demand reach for the repository's declared test target (spec/remote-gate-dispatch).
+# On-demand and weekly reach for the repository's declared test target (spec/remote-gate-dispatch).
 #
 # WHY THIS FILE EXISTS SEPARATELY. A job added to build-check.yml would run on
 # every pull request, spending the runner time this surface exists to save and
-# changing what an unrelated pull request executes. Dispatch-only makes
-# non-interference true by construction rather than by condition.
+# changing what an unrelated pull request executes. Having no pull-request
+# trigger makes non-interference true by construction rather than by condition.
+#
+# WHY A WEEKLY SCHEDULE. tools/lint-ci-parity.py records a NO_PR_GATE disposition
+# for the suites no pull-request check runs, so for those `make test` is the only
+# CI route. A route that runs only when someone remembers to dispatch it lets a
+# regression in them sit unseen. The schedule runs the corpus against main once a
+# week, so such a regression surfaces within days. It is detection, not a gate:
+# nothing blocks a merge on it. (The roster, `tests/roster/`, needs no schedule:
+# build-check.yml gate-main already runs `pytest tests/ -q` on every pull request.)
 #
 # WHAT A GREEN RUN PROVES: exactly what `make test` proves on a contributor's
 # machine, and no more. build-check.yml's own job-mapping prose records that
@@ -16,8 +24,15 @@ name: test-corpus
 # required status check.
 
 on:
-  # No other trigger, and no `inputs:`. The workflow needs none, and an absent
-  # input surface cannot be interpolated into a shell.
+  # No pull_request or push trigger, and no `inputs:`. The workflow needs none,
+  # and an absent input surface cannot be interpolated into a shell.
+  #
+  # Schedules fire only on the default branch, so this runs main's code. Tuesday,
+  # a day after the Monday 06:00 UTC codeql and pack-evals runs, to keep the three
+  # off the same runner queue. A failed run notifies the person who last edited
+  # the cron line, and the Actions tab shows it red.
+  schedule:
+    - cron: "0 5 * * 2"
   workflow_dispatch:
 
 permissions:
