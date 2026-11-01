@@ -182,7 +182,14 @@ Crash and lag repair
   it. A kill after a step's transaction moved a ref and before its commit was
   recorded as made instead ends in the AC-0008 state, and answering it
   converges. A kill during an adoption after its refs moved ends in the
-  AC-0005 refusal instead, and restoring the ref asks the adoption again.
+  AC-0005 refusal instead, and restoring the ref asks the adoption again. A
+  kill during a first admission after its refs moved and before the run
+  recorded it instead ends with every verb but `status` refusing
+  `supervisor-changed`, naming an exit that returns `HEAD` to the approval's
+  base and keeps every uncommitted tracked change; after it, `start` admits
+  again. That exit is named only when the base is a full commit id that exists
+  in the repository; otherwise the refusal names no command, and no verb
+  passes that base to Git.
 - [ ] **AC-0008.** When the product ref, `HEAD`, or both name a commit the run
   never recorded as made whose parent is the recorded value, no verb counts
   that commit as made or moves a ref to it. With no attempt open, `next`
@@ -259,7 +266,9 @@ Parity, switch, and reversal
   commit count as made and never moves a ref to a commit the run did not
   record; the verb answers with the refusal the step raised, with the write
   failure appended to its detail, and the run is left in the AC-0005 or
-  AC-0008 state.
+  AC-0008 state, or in AC-0007's first-admission state when the step was a
+  first admission. The detail names the state the run is actually left in
+  and a directory that exists.
 
 Portability
 
