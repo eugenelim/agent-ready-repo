@@ -1,7 +1,7 @@
 """Construction tests for the `captured-entry-drop` repair step.
 
 Spec: docs/specs/last-registry-entries/spec.md (AC-0001, AC-0002, AC-0003,
-AC-0005). Verification mode: TDD.
+AC-0005, AC-0022). Verification mode: TDD.
 
 Each test plants a repository under ``tmp_path`` and runs ``repair-plan`` and
 ``repair-apply`` in process through the script's ``main``.
@@ -41,6 +41,8 @@ DISPATCH = _load("dispatch_captured_entry_drop", _SKILLS / "work-loop/scripts/di
 
 PLAN = ".workspace-repair-plan.json"
 DROP = "captured-entry-drop"
+NEEDS = "needs-to-header"
+BRIEFS = "docs/product/briefs"
 CAPTURED = "docs/product/captured"
 NOTES = "docs/product/notes"
 
@@ -59,6 +61,12 @@ def member(path: str, kind: str = "defect") -> str:
 
 def slug_only(slug: str) -> str:
     return f'{{slug = "{slug}", summary = "legacy"}}'
+
+
+def slug_needs(slug: str, needs: str | list[str]) -> str:
+    """A slug-only entry carrying legacy `needs`: one string or an array."""
+    value = json.dumps(needs)
+    return f'{{slug = "{slug}", summary = "legacy", needs = {value}}}'
 
 
 def workspace_text(
@@ -116,6 +124,10 @@ def drops(data: dict[str, Any]) -> list[dict[str, Any]]:
 
 def to_file_ops(data: dict[str, Any]) -> list[dict[str, Any]]:
     return [op for op in data["automatic_operations"] if op["operation_type"] == "captured-to-file"]
+
+
+def needs_ops(data: dict[str, Any]) -> list[dict[str, Any]]:
+    return [op for op in data["automatic_operations"] if op["operation_type"] == NEEDS]
 
 
 def manual(data: dict[str, Any]) -> list[dict[str, Any]]:
@@ -404,3 +416,182 @@ def test_dispatch_output_is_identical_across_apply(
     assert code == 0, result
     assert path not in registry_text(repo)
     assert stdout() == before
+
+
+# ── AC-0022: legacy needs move to the captured file, then the entry drops ────
+
+
+def header_record(*lines: str) -> str:
+    return "# Item\n\n- **Status:** Open\n- **Kind:** defect\n" + "".join(f"{ln}\n" for ln in lines)
+
+
+def all_manual(data: dict[str, Any]) -> list[dict[str, Any]]:
+    return data["manual_findings"]
+
+
+@pytest.mark.parametrize(
+    ("need", "reference"),
+    [
+        ("work:spec/alpha-one", "spec:alpha-one"),
+        ("ini-001:work:spec/alpha-one", "spec:alpha-one"),
+        (f"brief:{BRIEFS}/b-one.md", "brief:b-one"),
+        ("backlog:other-item", f"{CAPTURED}/other-item.md"),
+    ],
+)
+def test_each_legacy_form_moves_to_the_header_then_the_entry_drops(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], need: str, reference: str
+) -> None:
+    repo = make_repo(
+        tmp_path,
+        {f"{CAPTURED}/w-one.md": record(), f"{BRIEFS}/b-one.md": "# Brief\n\n- **Status:** Ready\n"},
+        open_=[slug_needs("w-one", need)],
+    )
+    data = plan(repo, capsys)
+    [move] = needs_ops(data)
+    [drop] = drops(data)
+    assert manual(data) == []
+    assert move["waiting_path"] == f"{CAPTURED}/w-one.md"
+    assert move["depends_on_items"] == [reference]
+    assert move["waiting_sha256"] == sha(record()) == drop["file_sha256"]
+    assert move["entry_locator"] == drop["entry_locator"]
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert all(item["applied"] for item in result["per_operation"]), result
+    assert (repo / CAPTURED / "w-one.md").read_text(encoding="utf-8") == (
+        record() + f"- **Depends on:** {reference}\n"
+    )
+    assert "w-one" not in registry_text(repo)
+    after = plan(repo, capsys)
+    assert needs_ops(after) == [] and drops(after) == [] and all_manual(after) == []
+
+
+def test_an_array_of_legacy_needs_is_added_in_order(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(
+        tmp_path,
+        {f"{CAPTURED}/w-two.md": record()},
+        backlog=[slug_needs("w-two", ["work:spec/one", "ini-002:work:spec/two", "backlog:three", "work:spec/one"])],
+    )
+    [move] = needs_ops(plan(repo, capsys))
+    assert move["depends_on_items"] == ["spec:one", "spec:two", f"{CAPTURED}/three.md"]
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    text = (repo / CAPTURED / "w-two.md").read_text(encoding="utf-8")
+    assert text.endswith(f"- **Depends on:** spec:one, spec:two, {CAPTURED}/three.md\n")
+    assert "w-two" not in registry_text(repo)
+
+
+def test_a_brief_reference_uses_the_slug_field_not_the_file_stem(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(
+        tmp_path,
+        {f"{CAPTURED}/w-three.md": record(), f"{BRIEFS}/stem-name.md": "# B\n\n- **Slug:** real-slug\n"},
+        active=[slug_needs("w-three", f"brief:{BRIEFS}/stem-name.md")],
+    )
+    [move] = needs_ops(plan(repo, capsys))
+    assert move["depends_on_items"] == ["brief:real-slug"]
+    apply(repo, capsys)
+    assert "- **Depends on:** brief:real-slug\n" in (repo / CAPTURED / "w-three.md").read_text(encoding="utf-8")
+
+
+def test_a_brief_with_no_indexed_slug_is_one_manual_item_and_keeps_the_entry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(
+        tmp_path,
+        {f"{CAPTURED}/w-four.md": record()},
+        open_=[slug_needs("w-four", f"brief:{BRIEFS}/missing.md")],
+    )
+    data = plan(repo, capsys)
+    assert needs_ops(data) == [] and drops(data) == []
+    assert [i["reason"] for i in all_manual(data)] == ["need-no-typed-reference"]
+    assert all_manual(data)[0]["entry_locator"] == {"ini_slug": "", "collection": "backlog.open", "index": 0}
+    before, files = registry_text(repo), captured_bytes(repo)
+    code, _ = apply(repo, capsys)
+    assert code == 0 and registry_text(repo) == before and captured_bytes(repo) == files
+
+
+def test_a_header_that_already_holds_the_reference_gets_no_duplicate(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    held = header_record("- **Depends on:** spec:one")
+    repo = make_repo(
+        tmp_path, {f"{CAPTURED}/w-five.md": held}, open_=[slug_needs("w-five", "work:spec/one")]
+    )
+    assert len(needs_ops(plan(repo, capsys))) == 1
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert (repo / CAPTURED / "w-five.md").read_text(encoding="utf-8") == held
+    assert "w-five" not in registry_text(repo)
+
+
+def test_a_wrapped_depends_on_line_is_one_manual_item_and_keeps_the_entry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    wrapped = header_record("- **Depends on:** spec:one,", "  spec:two")
+    repo = make_repo(
+        tmp_path, {f"{CAPTURED}/w-six.md": wrapped},
+        open_=[slug_needs("w-six", "work:spec/three")],
+    )
+    data = plan(repo, capsys)
+    assert needs_ops(data) == [] and drops(data) == []
+    assert [i["reason"] for i in all_manual(data)] == ["header-not-writable"]
+    before = registry_text(repo)
+    apply(repo, capsys)
+    assert registry_text(repo) == before
+    assert (repo / CAPTURED / "w-six.md").read_text(encoding="utf-8") == wrapped
+
+
+def test_a_non_legacy_need_is_exactly_one_manual_item_and_keeps_the_entry(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(
+        tmp_path,
+        {f"{CAPTURED}/w-seven.md": record()},
+        open_=[slug_needs("w-seven", ["work:spec/one", "intent:somewhere"])],
+    )
+    data = plan(repo, capsys)
+    assert needs_ops(data) == [] and drops(data) == []
+    assert [i["reason"] for i in all_manual(data)] == ["need-not-legacy"]
+    before = registry_text(repo)
+    apply(repo, capsys)
+    assert registry_text(repo) == before
+
+
+def test_legacy_needs_on_an_entry_the_same_plan_writes_a_file_for_settle_in_one_apply(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(tmp_path, open_=[slug_needs("fresh-need", "work:spec/one")])
+    data = plan(repo, capsys)
+    [write_op] = to_file_ops(data)
+    [move] = needs_ops(data)
+    [drop] = drops(data)
+    assert move["waiting_sha256"] == drop["file_sha256"] == sha(write_op["record_text"])
+    assert all_manual(data) == []
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert all(item["applied"] for item in result["per_operation"]), result
+    text = (repo / CAPTURED / "fresh-need.md").read_text(encoding="utf-8")
+    assert text.startswith(write_op["record_text"].split("\n## Summary")[0].rstrip("\n"))
+    assert "- **Depends on:** spec:one\n" in text
+    assert "fresh-need" not in registry_text(repo)
+    after = plan(repo, capsys)
+    assert needs_ops(after) == [] and drops(after) == [] and to_file_ops(after) == []
+    assert all_manual(after) == []
+
+
+def test_apply_refuses_the_move_and_the_drop_when_the_file_changed_after_the_plan(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(
+        tmp_path, {f"{CAPTURED}/w-eight.md": record()}, open_=[slug_needs("w-eight", "work:spec/one")]
+    )
+    plan(repo, capsys)
+    (repo / CAPTURED / "w-eight.md").write_text(record(status="Closed"), encoding="utf-8")
+    changed, before = captured_bytes(repo), registry_text(repo)
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert [i["applied"] for i in result["per_operation"]] == [False]
+    assert captured_bytes(repo) == changed and registry_text(repo) == before

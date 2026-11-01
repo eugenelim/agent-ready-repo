@@ -41,6 +41,7 @@ import tempfile
 import tomllib
 from collections.abc import Callable
 from pathlib import Path, PurePosixPath
+from types import SimpleNamespace
 from typing import Any
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -1186,9 +1187,17 @@ def _build_repair_plan_json(
         manual_findings.extend(held_findings)
         automatic_operations.extend(tracker_drops)
         manual_findings.extend(tracker_findings)
-        captured_drops, captured_drop_findings = _build_captured_drop_operations(
+        captured_drops, captured_drop_findings, superseded = _build_captured_drop_operations(
             root, workspace_bytes, captured_plan
         )
+        # An entry that keeps its `needs` is named once, by the item that says why.
+        manual_findings[:] = [
+            f for f in manual_findings
+            if not (
+                f.get("finding_type") == _CAPTURED_FINDING_TYPE
+                and (f.get("ini_slug"), f.get("list_name"), f.get("entry_index")) in superseded
+            )
+        ]
         automatic_operations.extend(captured_drops)
         manual_findings.extend(captured_drop_findings)
         move_operations, move_findings = _build_policy_move_operations(root, workspace_bytes)
@@ -1334,6 +1343,10 @@ def _apply_operations(
     needs_operations = [
         op for op in operations if op.get("operation_type") in _NEEDS_OPERATION_TYPES
     ]
+    # A slug-only entry's legacy needs move into its captured file after the
+    # file's own write, so they run apart from the canonical needs operations.
+    legacy_needs_operations = [op for op in needs_operations if "entry_locator" in op]
+    needs_operations = [op for op in needs_operations if "entry_locator" not in op]
     captured_operations = [
         op for op in operations if op.get("operation_type") == _CAPTURED_TO_FILE
     ]
@@ -1555,6 +1568,14 @@ def _apply_operations(
         )
         bound_drops.extend(released)
         per_op.extend(backed_refusals)
+    # Both drop checks above ran against the file as the plan expects it, so the
+    # header write below cannot change what they compared.
+    if legacy_needs_operations:
+        legacy_per_op, legacy_applied = _apply_legacy_needs_operations(
+            root, legacy_needs_operations, bound_drops
+        )
+        per_op.extend(legacy_per_op)
+        applied += legacy_applied
     per_op.extend(spec_drop_refusals)
     per_op.extend(tracker_drop_refusals)
     # The profile reaches each artifact before its entry leaves `doc`, so an
@@ -1946,6 +1967,8 @@ def _echo_repair_plan(data: dict) -> dict:
         for key in ("registry_edges", "dropped_cooled"):
             if key in item:
                 item[key] = [_echo_edge(edge, None) for edge in op[key]]
+        if "entry_locator" in item:
+            item.update(_echo_legacy_needs_fields(op))
         if "depends_on_items" in item:
             item["depends_on_items"] = [_echo_reference(i) for i in op["depends_on_items"]]
         if "receipt_items" in item:
@@ -2425,6 +2448,8 @@ def _validate_needs_operation(op: dict) -> str | None:
         or not strings_ok(op.get("receipt_items"))
     ):
         return "plan_invalid"
+    if "entry_locator" in op:
+        return _validate_legacy_needs_operation(op)
     return None
 
 
@@ -4165,8 +4190,12 @@ def _captured_drop_manual_item(locator: tuple[str, str, int], shown: str, reason
 
 def _build_captured_drop_operations(
     root: Path, workspace_bytes: bytes, captured_plan: _CapturedPlan
-) -> tuple[list[dict], list[dict]]:
-    """Plan `captured-entry-drop` operations and one manual item per other entry."""
+) -> tuple[list[dict], list[dict], set[tuple[str, str, int]]]:
+    """Plan `captured-entry-drop` operations and one manual item per other entry.
+
+    The third value holds each entry whose item here replaces a `record-differs`
+    item the captured plan raised, so the caller names the entry once.
+    """
     workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
     memberships = _engine._extract_canonical_memberships(workspace)[0]
     raw_entries = {
@@ -4187,9 +4216,16 @@ def _build_captured_drop_operations(
     already_held = {
         (f["ini_slug"], f["list_name"], f["entry_index"]) for f in captured_plan.findings
     }
+    differing = {
+        (f["ini_slug"], f["list_name"], f["entry_index"])
+        for f in captured_plan.findings
+        if f.get("reason") == "record-differs"
+    }
+    superseded: set[tuple[str, str, int]] = set()
 
     operations: list[dict] = []
     manual: list[dict] = []
+    get_index = _lazy_resolution_index(root, cooled)
 
     def add(locator, file_path, expected, extra, shown) -> None:
         op = backed.get(locator)
@@ -4236,20 +4272,240 @@ def _build_captured_drop_operations(
             continue
         locator = (ini, collection, position)
         slug = raw["slug"]
+        needs = raw.get("needs")
+        has_needs = needs not in (None, "", [])
+        if locator in backed:
+            data: bytes | None = backed[locator]["record_text"].encode("utf-8")
+            file_path, digest, reason = backed[locator]["record_path"], None, None
+        else:
+            file_path = f"{_engine._CAPTURED_DIR}/{slug}.md" if isinstance(slug, str) else ""
+            digest, reason = (
+                _captured_file_check(root, file_path, cooled)
+                if file_path
+                else (None, "slug-invalid")
+            )
+            data = _engine._migration_file_bytes(root, file_path) if digest else None
+            if digest and (data is None or hashlib.sha256(data).hexdigest() != digest):
+                digest, reason = None, "file-unreadable"
+        if reason is None and has_needs and data is not None:
+            move, why = _plan_legacy_needs(
+                root, locator, raw, file_path, data, get_index,
+                _entry_fingerprint(*locator, raw),
+            )
+            if move is None:
+                if locator not in already_held or locator in differing:
+                    manual.append(_captured_drop_manual_item(locator, "", why))
+                    superseded.add(locator)
+                continue
+            operations.append(move)
         if locator in backed:
             add(locator, "", "", {"slug": slug}, "")
-            continue
-        file_path = f"{_engine._CAPTURED_DIR}/{slug}.md" if isinstance(slug, str) else ""
-        digest, reason = (
-            _captured_file_check(root, file_path, cooled)
-            if file_path
-            else (None, "slug-invalid")
-        )
-        if reason is None and digest is not None:
+        elif reason is None and digest is not None:
             add(locator, file_path, digest, {"slug": slug}, "")
         elif locator not in already_held:
             manual.append(_captured_drop_manual_item(locator, "", reason or ""))
-    return operations, manual
+    return operations, manual, superseded
+
+
+_LEGACY_SPEC_NEED_RE = re.compile(r"(?:ini-[0-9]{3}:)?work:spec/([a-z0-9][a-z0-9-]*)")
+_LEGACY_BRIEF_NEED_RE = re.compile(r"brief:(docs/product/briefs/[a-z0-9][a-z0-9-]*\.md)")
+_LEGACY_BACKLOG_NEED_RE = re.compile(r"backlog:([a-z0-9][a-z0-9-]*)")
+
+
+def _lazy_resolution_index(root: Path, cooled: frozenset[Path]) -> Callable[[], Any]:
+    """The dependency resolution index, built on first use."""
+    cache: list[Any] = []
+
+    def get() -> Any:
+        if not cache:
+            cache.append(_engine.build_resolution_index(root, cooled=cooled))
+        return cache[0]
+
+    return get
+
+
+def _legacy_need_references(
+    root: Path, needs: object, get_index: Callable[[], Any]
+) -> tuple[list[str] | None, str]:
+    """`(typed references, "")` when every need is a legacy need, else `(None, reason)`."""
+    values = [needs] if isinstance(needs, str) else needs
+    if not isinstance(values, list) or not values:
+        return None, "need-not-legacy"
+    references: list[str] = []
+    for value in values:
+        if not isinstance(value, str):
+            return None, "need-not-legacy"
+        if match := _LEGACY_SPEC_NEED_RE.fullmatch(value):
+            reference = f"spec:{match.group(1)}"
+        elif match := _LEGACY_BACKLOG_NEED_RE.fullmatch(value):
+            reference = f"{_engine._CAPTURED_DIR}/{match.group(1)}.md"
+        elif match := _LEGACY_BRIEF_NEED_RE.fullmatch(value):
+            path = match.group(1)
+            index = get_index()
+            if sum(path in paths for paths in index.briefs.values()) != 1:
+                return None, "need-no-typed-reference"
+            try:
+                reference = _target_reference(
+                    root, SimpleNamespace(path=path, type="local", kind="brief"), index
+                )
+            except _NeedsRefusal:
+                return None, "need-no-typed-reference"
+        else:
+            return None, "need-not-legacy"
+        if reference not in references:
+            references.append(reference)
+    return references, ""
+
+
+def _header_with_references(data: bytes, references: list[str]) -> str | None:
+    """The file text holding every reference, or `None` when its header cannot take them."""
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    if not _preamble_anchor_ok(text):
+        return None
+    new_text, _changed = _insert_header_items(text, references, [])
+    held = {edge["reference"] for edge in _raw_header_edges("", new_text)}
+    return new_text if all(reference in held for reference in references) else None
+
+
+def _plan_legacy_needs(
+    root: Path,
+    locator: tuple[str, str, int],
+    raw: dict,
+    file_path: str,
+    data: bytes,
+    get_index: Callable[[], Any],
+    fingerprint: str,
+) -> tuple[dict | None, str]:
+    """One `needs-to-header` operation for a slug-only entry's legacy needs, or a reason."""
+    references, reason = _legacy_need_references(root, raw.get("needs"), get_index)
+    if references is None:
+        return None, reason
+    if _header_with_references(data, references) is None:
+        return None, "header-not-writable"
+    return {
+        "operation_type": _NEEDS_TO_HEADER,
+        "waiting_path": file_path,
+        "waiting_sha256": hashlib.sha256(data).hexdigest(),
+        "registry_edges": [],
+        "depends_on_items": references,
+        "receipt_items": [],
+        "entry_locator": {"ini_slug": locator[0], "collection": locator[1], "index": locator[2]},
+        "registry_fingerprint": fingerprint,
+        "slug": raw["slug"],
+    }, ""
+
+
+def _validate_legacy_needs_operation(op: dict) -> str | None:
+    """Shape-check a slug-only entry's `needs-to-header` operation."""
+    locator = op.get("entry_locator")
+    slug = op.get("slug")
+    if (
+        not isinstance(locator, dict)
+        or not isinstance(locator.get("ini_slug"), str)
+        or not isinstance(locator.get("collection"), str)
+        or not isinstance(locator.get("index"), int)
+        or isinstance(locator.get("index"), bool)
+        or locator["index"] < 0
+        or not isinstance(slug, str)
+        or op.get("waiting_path") != f"{_engine._CAPTURED_DIR}/{slug}.md"
+        or not isinstance(op.get("registry_fingerprint"), str)
+        or _SHA256_RE.fullmatch(op["registry_fingerprint"]) is None
+        or op.get("registry_edges") != []
+        or op.get("receipt_items") != []
+        or not op.get("depends_on_items")
+    ):
+        return "plan_invalid"
+    return None
+
+
+def _echo_legacy_needs_fields(op: dict) -> dict:
+    locator = op.get("entry_locator")
+    locator = locator if isinstance(locator, dict) else {}
+    return {
+        "entry_locator": {
+            "ini_slug": _public_ini_slug(locator.get("ini_slug"), allow_empty=True),
+            "collection": _echo_collection(locator.get("collection")),
+            "index": _echo_index(locator.get("index")),
+        },
+        "registry_fingerprint": _echo_sha(op.get("registry_fingerprint")),
+        "slug": _echo_slug(op.get("slug")),
+    }
+
+
+def _apply_legacy_needs_operations(
+    root: Path, operations: list[dict], bound_drops: list[tuple[dict, str, Any, Any]]
+) -> tuple[list[dict], int]:
+    """Write each entry's typed references into its captured file, then clear its `needs`.
+
+    An operation runs only when its entry's `captured-entry-drop` is bound, so the
+    entry leaves in the same `workspace.toml` write. The file is changed only when
+    it still holds the bytes the plan expects.
+    """
+    drops = {
+        (d[0]["entry_locator"]["ini_slug"], d[0]["entry_locator"]["collection"],
+         d[0]["entry_locator"]["index"]): d
+        for d in bound_drops
+        if d[0].get("operation_type") == _CAPTURED_ENTRY_DROP
+    }
+    cooled, _findings = _engine._resolve_cooled_state(root)
+    get_index = _lazy_resolution_index(root, cooled)
+    per_op: list[dict] = []
+    applied = 0
+    for op in operations:
+        path = op["waiting_path"]
+        shown = _echo_reference(path)
+        locator = op["entry_locator"]
+        bound = drops.get((locator["ini_slug"], locator["collection"], locator["index"]))
+
+        def refuse(reason: str, shown: str = shown) -> None:
+            per_op.append({"path": shown, "applied": False, "reason": reason})
+
+        if bound is None:
+            # The drop's own refusal row already says why; the entry stays.
+            continue
+        drop_op, _shown, _entries, entry = bound
+        if drop_op["registry_fingerprint"] != op["registry_fingerprint"] or drop_op.get(
+            "file_path"
+        ) != path:
+            refuse("entry_locator_mismatch")
+            continue
+        references, _reason = _legacy_need_references(root, entry.get("needs"), get_index)
+        if references != op["depends_on_items"]:
+            refuse("items_changed")
+            continue
+        data = _engine._migration_file_bytes(root, path)
+        if data is None:
+            refuse("unsafe_waiting_path")
+            continue
+        if hashlib.sha256(data).hexdigest() != op["waiting_sha256"]:
+            refuse("waiting_item_changed")
+            continue
+        new_text = _header_with_references(data, references)
+        if new_text is None:
+            refuse("waiting_item_not_writable")
+            continue
+        if new_text.encode("utf-8") != data:
+            try:
+                _replace_waiting_file(root, path, op["waiting_sha256"], new_text.encode("utf-8"))
+            except _NeedsRefusal as refusal:
+                refuse(refusal.reason)
+                continue
+            except OSError:
+                refuse("waiting_write_failed")
+                continue
+        back = _engine._migration_file_bytes(root, path)
+        if back is None or _header_with_references(back, references) != back.decode(
+            "utf-8", errors="replace"
+        ):
+            refuse("edge_mismatch")
+            continue
+        entry["needs"] = []
+        per_op.append({"path": shown, "applied": True})
+        applied += 1
+    return per_op, applied
 
 
 def _validate_captured_drop_operation(op: dict) -> str | None:

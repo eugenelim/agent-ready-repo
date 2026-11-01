@@ -41,6 +41,9 @@ def _load() -> ModuleType:
 
 
 WS = _load()
+# Tests below call helpers directly; bind the engine here rather than rely on an
+# earlier test having run `main` in this process.
+assert WS._bind_engine()
 PLAN = ".workspace-repair-plan.json"
 CAPTURED = "docs/product/captured"
 NOTES = "docs/product/notes"
