@@ -909,13 +909,51 @@ def open_file_resolves(root: Path, anchor: str) -> bool:
     return False
 
 
+_CAPTURED_FIELD_RE = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
+_CAPTURED_KINDS = frozenset({"defect", "design", "research", "intent"})
+_CAPTURED_RESOLUTIONS = frozenset({"fixed", "declined", "superseded"})
+
+
+def captured_text_is_valid(text: str) -> bool:
+    """True when a captured file's preamble passes the captured-item reader's core rules.
+
+    Mirrors the workspace-status reader for the fields that decide validity here:
+    one `Status:` (`Open` or `Closed`), one `Kind:` whose first word is a known
+    kind, and a `Resolution:` present exactly when the status is `Closed`.
+    """
+    values: dict[str, list[str]] = {}
+    for line in _HTML_COMMENT_RE.sub("", text).splitlines():
+        if _SECTION_HEADING_RE.match(line):
+            break
+        match = _CAPTURED_FIELD_RE.match(line)
+        if match:
+            value = match.group("value").strip()
+            if len(value) >= 2 and value[0] == value[-1] == "`":
+                value = value[1:-1].strip()
+            values.setdefault(match.group("name").strip().lower(), []).append(value)
+
+    def single(name: str) -> str | None:
+        found = values.get(name, [])
+        return found[0] if len(found) == 1 else None
+
+    status = single("status")
+    kind = (single("kind") or "").split()
+    resolution = values.get("resolution", [])
+    if status not in ("Open", "Closed") or not kind or kind[0] not in _CAPTURED_KINDS:
+        return False
+    if (status == "Closed") != bool(resolution):
+        return False
+    return not resolution or (len(resolution) == 1 and resolution[0] in _CAPTURED_RESOLUTIONS)
+
+
 def captured_file_resolves(root: Path, anchor: str) -> bool:
     """True when `docs/product/captured/<anchor>.md` under `root` is readable.
 
     The file must be a regular, singly linked, non-link file under real
-    directories below the resolved root, and carry a preamble status the lint
-    can read. Its status value does not matter: a Closed captured item still
-    pins a frozen spec's deferral. Any OSError means the file does not resolve.
+    directories below the resolved root, and pass the captured-item reader's
+    grammar (`captured_text_is_valid`). Its status value does not matter: a
+    Closed captured item still pins a frozen spec's deferral. Any OSError means
+    the file does not resolve.
     """
     try:
         docs = root.resolve() / "docs"
@@ -927,7 +965,7 @@ def captured_file_resolves(root: Path, anchor: str) -> bool:
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
             return False
         text = _read(path)
-        return text is not None and bool(parse_status(text))
+        return text is not None and captured_text_is_valid(text)
     except (OSError, ValueError):
         return False
 

@@ -818,11 +818,10 @@ open = [
   # Mechanism and measurement: captured observation
   # kco-202609-43b240cb94a85bb57b6c908b7e4cdaf71a4845bdd3c591750d02d42c083ed0ba
   # in docs/knowledge/observations/gotcha/2026-09.jsonl.
-  # NOT migrated to a `path` entry, and not an oversight: AC16 of the Shipped
-  # spec/agent-skill-engineering-consumer-integrations is discharged by this
-  # exact `slug`/`source` pair, and tests/roster's
-  # test_ac16_provider_absence_follow_on_is_registered pins it. Repointing the
-  # record at an intent document would orphan a ticked AC on a frozen spec.
+  # This follow-on is no longer an entry here: the captured-item file
+  # docs/product/captured/agent-skill-engineering-provider-absence-behaviour.md
+  # carries it, and AC16 of the Shipped
+  # spec/agent-skill-engineering-consumer-integrations points there.
   # The three sibling controls from that security review closed 2026-09-08; see
   # docs/specs/agent-skill-engineering-consumer-integrations/notes/consumer-security-review-closures.md.
   # RFC-0097:189's behavioural half -- "tested without this pack installed" --

@@ -50,7 +50,11 @@ def write_captured_item(root: Path, slug: str, status: str = "Open") -> None:
     """Plant the captured-item file a `(deferred: <slug>)` marker resolves through."""
     p = root / "docs" / "product" / "captured" / f"{slug}.md"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(f"# {slug}\n\n- **Status:** {status}\n", encoding="utf-8")
+    resolution = "- **Resolution:** fixed\n" if status == "Closed" else ""
+    p.write_text(
+        f"# {slug}\n\n- **Status:** {status}\n- **Kind:** defect\n{resolution}",
+        encoding="utf-8",
+    )
 
 
 def run_lint(
@@ -329,7 +333,7 @@ def test_captured_symlink_outside_root_does_not_resolve_deferral() -> None:
         (root / "docs" / "product" / "captured").mkdir(parents=True)
         outside = sandbox / "outside-captured.md"
         outside.write_text(
-            "# workspace-content-sentinel\n\n- **Status:** Open\n",
+            "# workspace-content-sentinel\n\n- **Status:** Open\n- **Kind:** defect\n",
             encoding="utf-8",
         )
         if not symlink_or_skip(

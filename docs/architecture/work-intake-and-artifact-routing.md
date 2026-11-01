@@ -129,11 +129,10 @@ requirements store. Target entries contain exactly `path`, `kind`, `source`,
 `summary`, and `needs`; comments, summaries, order, labels, and hints cannot
 select a route, satisfy a dependency, or authorize dispatch.
 
-Repository-level open work is indexed in `workspace.toml` `[backlog].open`, and
-`workspace-status` projects that collection. What that register means for a
-spec's deferral marker (it resolves through the captured-item file
-`docs/product/captured/<slug>.md`) is the loop contract's
-[§ 7](loop-contract.md#7-mechanical-invariants).
+The captured-item file `docs/product/captured/<slug>.md` is the register for
+captured work and for a spec's deferral anchors, and `workspace-status`
+projects those files. How a deferral marker resolves through it is the loop
+contract's [§ 7](loop-contract.md#7-mechanical-invariants).
 
 ### Delivery-brief lifecycle
 

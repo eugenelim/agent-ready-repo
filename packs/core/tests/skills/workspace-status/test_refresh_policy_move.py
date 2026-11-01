@@ -142,7 +142,7 @@ def test_invalid_table_is_a_manual_item_and_nothing_moves(
     data = plan(repo, capsys)
     assert moves(data) == []
     [item] = manual(data)
-    assert item["reason"] and item["spec_path"] == POLICY
+    assert item["reason"] == "table-not-accepted" and item["spec_path"] == POLICY
     assert policy_bytes(repo) is None and bad in registry(repo)
 
 
@@ -151,7 +151,8 @@ def test_table_with_an_extra_key_is_a_manual_item(
 ) -> None:
     repo = make_repo(tmp_path, TABLE + 'extra = "x"\n')
     data = plan(repo, capsys)
-    assert moves(data) == [] and len(manual(data)) == 1
+    assert moves(data) == []
+    assert [f["reason"] for f in manual(data)] == ["table-not-accepted"]
 
 
 def test_equal_existing_policy_file_plans_a_remove_only_operation(
@@ -175,7 +176,8 @@ def test_differing_existing_policy_file_is_manual_and_unchanged(
     existing = TABLE.replace('"owner"]', '"other"]')
     repo = make_repo(tmp_path, files={POLICY: existing})
     data = plan(repo, capsys)
-    assert moves(data) == [] and len(manual(data)) == 1
+    assert moves(data) == []
+    assert [f["reason"] for f in manual(data)] == ["policy-file-differs"]
     assert policy_bytes(repo) == existing.encode("utf-8") and TABLE in registry(repo)
 
 
@@ -185,7 +187,8 @@ def test_existing_file_that_is_not_a_policy_file_is_never_overwritten(
 ) -> None:
     repo = make_repo(tmp_path, files={POLICY: existing})
     data = plan(repo, capsys)
-    assert moves(data) == [] and len(manual(data)) == 1
+    assert moves(data) == []
+    assert [f["reason"] for f in manual(data)] == ["policy-file-invalid"]
     assert policy_bytes(repo) == existing.encode("utf-8") and TABLE in registry(repo)
 
 
@@ -199,7 +202,44 @@ def test_file_appearing_after_the_plan_is_not_overwritten(
     code, result = apply(repo, capsys)
     assert policy_bytes(repo) == stranger.encode("utf-8") and TABLE in registry(repo)
     assert result.get("operations_applied", 0) == 0
-    assert code in (0, 1, 2)
+    assert code == 0
+    assert [r["reason"] for r in result["per_operation"]] == ["policy_move_mismatch"]
+
+
+def test_a_file_that_appears_between_derivation_and_write_is_refused_policy_file_exists(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = make_repo(tmp_path)
+    plan(repo, capsys)
+    stranger = 'other = "kept"\n'
+    write(repo, POLICY, stranger)
+    real_lexists = WS.os.path.lexists
+    seen: list[str] = []
+
+    def lexists(path: Any) -> bool:
+        # The first look at the policy file is the apply-time re-derivation: hide it there.
+        if Path(path).name == POLICY and not seen:
+            seen.append(str(path))
+            return False
+        return real_lexists(path)
+
+    monkeypatch.setattr(WS.os.path, "lexists", lexists)
+    code, result = apply(repo, capsys)
+    monkeypatch.undo()
+    assert code == 0
+    assert [r["reason"] for r in result["per_operation"]] == ["policy_file_exists"]
+    assert policy_bytes(repo) == stranger.encode("utf-8") and TABLE in registry(repo)
+
+
+def test_a_refresh_module_that_cannot_load_is_its_own_manual_reason(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = make_repo(tmp_path)
+    monkeypatch.setattr(WS, "_refresh_module", lambda: None)
+    data = plan(repo, capsys)
+    assert moves(data) == []
+    assert [f["reason"] for f in manual(data)] == ["refresh-module-unavailable"]
+    assert policy_bytes(repo) is None and TABLE in registry(repo)
 
 
 # ── Failure windows ───────────────────────────────────────────────────────────
@@ -221,7 +261,8 @@ def test_failed_policy_file_write_changes_nothing(
     assert registry(repo) == before and policy_bytes(repo) is None
     assert result.get("operations_applied", 0) == 0
     assert not [p for p in repo.iterdir() if p.name.startswith(".work-intake")]
-    assert code in (0, 1, 2)
+    assert code == 0
+    assert [r["reason"] for r in result["per_operation"]] == ["policy_write_failed"]
 
 
 def test_failed_workspace_write_leaves_a_policy_file_the_next_plan_removes_only(

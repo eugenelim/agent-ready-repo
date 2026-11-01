@@ -303,7 +303,7 @@ def test_apply_refuses_when_the_captured_file_changed_after_the_plan(
     before = registry_text(repo)
     code, result = apply(repo, capsys)
     assert code == 0, result
-    assert [i["applied"] for i in result["per_operation"]] == [False]
+    assert [i["reason"] for i in result["per_operation"]] == ["record-invalid"]
     assert registry_text(repo) == before and captured_bytes(repo) == changed
 
 
@@ -330,7 +330,7 @@ def test_apply_refuses_a_slug_only_drop_whose_file_is_gone(
     before = registry_text(repo)
     code, result = apply(repo, capsys)
     assert code == 0, result
-    assert [i["applied"] for i in result["per_operation"]] == [False]
+    assert [i["reason"] for i in result["per_operation"]] == ["path-missing"]
     assert registry_text(repo) == before
 
 
@@ -391,7 +391,32 @@ def test_a_backed_drop_whose_file_bytes_differ_is_refused_and_keeps_its_entry(
     assert code == 0, result
     assert "fresh-one" in registry_text(repo)
     assert (repo / CAPTURED / "fresh-one.md").is_file()
-    assert [i["applied"] for i in result["per_operation"]].count(False) == 1
+    assert [i.get("reason") for i in result["per_operation"]] == [None, "captured_file_changed"]
+
+
+def test_backed_drop_apply_leaves_workspace_toml_at_its_exact_expected_text(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = make_repo(tmp_path, open_=[slug_only("fresh-one")])
+    plan(repo, capsys)
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert registry_text(repo) == workspace_text()
+
+
+def test_membership_whose_needs_cannot_move_gets_no_drop_and_one_manual_item(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = f"{CAPTURED}/d1.md"
+    planted = member(path).replace("needs = []", 'needs = [{type = "local", path = "docs/product/briefs/nope.md", kind = "brief"}]')
+    repo = make_repo(tmp_path, {path: record()}, open_=[planted])
+    first = plan(repo, capsys)
+    assert not [op for op in first["automatic_operations"] if op["operation_type"] in (DROP, NEEDS)]
+    manual_before = [f["finding_id"] for f in first["manual_findings"]]
+    assert len(manual_before) == 1
+    again = plan(repo, capsys)
+    assert [f["finding_id"] for f in again["manual_findings"]] == manual_before
+    assert again["automatic_operations"] == first["automatic_operations"]
 
 
 # ── dispatch ─────────────────────────────────────────────────────────────────
@@ -593,5 +618,5 @@ def test_apply_refuses_the_move_and_the_drop_when_the_file_changed_after_the_pla
     changed, before = captured_bytes(repo), registry_text(repo)
     code, result = apply(repo, capsys)
     assert code == 0, result
-    assert [i["applied"] for i in result["per_operation"]] == [False]
+    assert [i["reason"] for i in result["per_operation"]] == ["record-invalid"]
     assert captured_bytes(repo) == changed and registry_text(repo) == before

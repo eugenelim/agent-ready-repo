@@ -1188,7 +1188,7 @@ def _build_repair_plan_json(
         automatic_operations.extend(tracker_drops)
         manual_findings.extend(tracker_findings)
         captured_drops, captured_drop_findings, superseded = _build_captured_drop_operations(
-            root, workspace_bytes, captured_plan
+            root, workspace_bytes, captured_plan, needs_operations
         )
         # An entry that keeps its `needs` is named once, by the item that says why.
         manual_findings[:] = [
@@ -4189,13 +4189,19 @@ def _captured_drop_manual_item(locator: tuple[str, str, int], shown: str, reason
 
 
 def _build_captured_drop_operations(
-    root: Path, workspace_bytes: bytes, captured_plan: _CapturedPlan
+    root: Path,
+    workspace_bytes: bytes,
+    captured_plan: _CapturedPlan,
+    needs_operations: list[dict],
 ) -> tuple[list[dict], list[dict], set[tuple[str, str, int]]]:
     """Plan `captured-entry-drop` operations and one manual item per other entry.
 
     The third value holds each entry whose item here replaces a `record-differs`
-    item the captured plan raised, so the caller names the entry once.
+    item the captured plan raised, so the caller names the entry once. A captured
+    membership with `needs` gets a drop only when a `needs-to-header` or
+    `needs-drop-cooled` operation of the same plan covers its path.
     """
+    needs_covered = {op["waiting_path"] for op in needs_operations}
     workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
     memberships = _engine._extract_canonical_memberships(workspace)[0]
     raw_entries = {
@@ -4227,7 +4233,10 @@ def _build_captured_drop_operations(
     manual: list[dict] = []
     get_index = _lazy_resolution_index(root, cooled)
 
-    def add(locator, file_path, expected, extra, shown) -> None:
+    def add(
+        locator: tuple[str, str, int], file_path: str, expected: str, extra: dict
+    ) -> None:
+        """Append the drop for `locator`, bound to its same-plan record when one backs it."""
         op = backed.get(locator)
         if op is not None:
             file_path = op["record_path"]
@@ -4250,14 +4259,16 @@ def _build_captured_drop_operations(
     for membership in memberships:
         path = membership.entry.path
         locator = (membership.ini_slug, membership.collection, membership.entry_index)
+        if membership.entry.needs and path not in needs_covered:
+            continue
         if locator in backed:
-            add(locator, "", "", {}, "")
+            add(locator, "", "", {})
             continue
         if path is None or not path.startswith(f"{_engine._CAPTURED_DIR}/"):
             continue
         digest, reason = _captured_file_check(root, path, cooled)
         if reason is None and digest is not None:
-            add(locator, path, digest, {"path": path}, "")
+            add(locator, path, digest, {"path": path})
         else:
             manual.append(
                 _captured_drop_manual_item(locator, _echo_path(path, None), reason or "")
@@ -4299,9 +4310,9 @@ def _build_captured_drop_operations(
                 continue
             operations.append(move)
         if locator in backed:
-            add(locator, "", "", {"slug": slug}, "")
+            add(locator, "", "", {"slug": slug})
         elif reason is None and digest is not None:
-            add(locator, file_path, digest, {"slug": slug}, "")
+            add(locator, file_path, digest, {"slug": slug})
         elif locator not in already_held:
             manual.append(_captured_drop_manual_item(locator, "", reason or ""))
     return operations, manual, superseded
@@ -4398,17 +4409,33 @@ def _plan_legacy_needs(
     }, ""
 
 
+def _locator_is_valid(locator: object) -> bool:
+    """True when `locator` is a registry entry locator of the planned shape."""
+    return (
+        isinstance(locator, dict)
+        and isinstance(locator.get("ini_slug"), str)
+        and isinstance(locator.get("collection"), str)
+        and isinstance(locator.get("index"), int)
+        and not isinstance(locator.get("index"), bool)
+        and locator["index"] >= 0
+    )
+
+
+def _echo_entry_locator(locator: object) -> dict:
+    """The entry locator of an operation, each part echoed through its grammar."""
+    locator = locator if isinstance(locator, dict) else {}
+    return {
+        "ini_slug": _public_ini_slug(locator.get("ini_slug"), allow_empty=True),
+        "collection": _echo_collection(locator.get("collection")),
+        "index": _echo_index(locator.get("index")),
+    }
+
+
 def _validate_legacy_needs_operation(op: dict) -> str | None:
     """Shape-check a slug-only entry's `needs-to-header` operation."""
-    locator = op.get("entry_locator")
     slug = op.get("slug")
     if (
-        not isinstance(locator, dict)
-        or not isinstance(locator.get("ini_slug"), str)
-        or not isinstance(locator.get("collection"), str)
-        or not isinstance(locator.get("index"), int)
-        or isinstance(locator.get("index"), bool)
-        or locator["index"] < 0
+        not _locator_is_valid(op.get("entry_locator"))
         or not isinstance(slug, str)
         or op.get("waiting_path") != f"{_engine._CAPTURED_DIR}/{slug}.md"
         or not isinstance(op.get("registry_fingerprint"), str)
@@ -4422,14 +4449,8 @@ def _validate_legacy_needs_operation(op: dict) -> str | None:
 
 
 def _echo_legacy_needs_fields(op: dict) -> dict:
-    locator = op.get("entry_locator")
-    locator = locator if isinstance(locator, dict) else {}
     return {
-        "entry_locator": {
-            "ini_slug": _public_ini_slug(locator.get("ini_slug"), allow_empty=True),
-            "collection": _echo_collection(locator.get("collection")),
-            "index": _echo_index(locator.get("index")),
-        },
+        "entry_locator": _echo_entry_locator(op.get("entry_locator")),
         "registry_fingerprint": _echo_sha(op.get("registry_fingerprint")),
         "slug": _echo_slug(op.get("slug")),
     }
@@ -4521,12 +4542,7 @@ def _validate_captured_drop_operation(op: dict) -> str | None:
         or _SHA256_RE.fullmatch(op["file_sha256"]) is None
         or not isinstance(op.get("registry_fingerprint"), str)
         or _SHA256_RE.fullmatch(op["registry_fingerprint"]) is None
-        or not isinstance(locator, dict)
-        or not isinstance(locator.get("ini_slug"), str)
-        or not isinstance(locator.get("collection"), str)
-        or not isinstance(locator.get("index"), int)
-        or isinstance(locator.get("index"), bool)
-        or locator["index"] < 0
+        or not _locator_is_valid(locator)
         or (path is None) == (slug is None)
         or (path is not None and not isinstance(path, str))
         or (slug is not None and not isinstance(slug, str))
@@ -4540,15 +4556,9 @@ def _validate_captured_drop_operation(op: dict) -> str | None:
 
 
 def _echo_captured_drop_operation(op: dict) -> dict:
-    locator = op.get("entry_locator")
-    locator = locator if isinstance(locator, dict) else {}
     echoed = {
         **op,
-        "entry_locator": {
-            "ini_slug": _public_ini_slug(locator.get("ini_slug"), allow_empty=True),
-            "collection": _echo_collection(locator.get("collection")),
-            "index": _echo_index(locator.get("index")),
-        },
+        "entry_locator": _echo_entry_locator(op.get("entry_locator")),
         "file_path": _echo_reference(op.get("file_path")),
         "file_sha256": _echo_sha(op.get("file_sha256")),
         "registry_fingerprint": _echo_sha(op.get("registry_fingerprint")),
@@ -4749,6 +4759,8 @@ def _derive_policy_move(
         text = _policy_text(table)
     except (KeyError, ValueError):
         return None, "", "table-not-accepted"
+    if _refresh_module() is None:
+        return None, "", "refresh-module-unavailable"
     if _policy_table_of(text) != table:
         return None, "", "table-not-accepted"
     data = text.encode("utf-8")

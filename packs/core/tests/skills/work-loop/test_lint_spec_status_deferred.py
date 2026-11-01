@@ -48,13 +48,13 @@ def _hard(root: Path, anchor: str) -> list[str]:
 
 def test_open_captured_file_resolves_anchor(tmp_path: Path) -> None:
     _spec_deferring(tmp_path, "my-item")
-    _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Open\n")
+    _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Open\n- **Kind:** defect\n")
     assert _hard(tmp_path, "my-item") == []
 
 
 def test_closed_captured_file_resolves_anchor(tmp_path: Path) -> None:
     _spec_deferring(tmp_path, "my-item")
-    _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Closed\n- **Resolution:** fixed\n")
+    _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Closed\n- **Kind:** defect\n- **Resolution:** fixed\n")
     assert _hard(tmp_path, "my-item") == []
 
 
@@ -66,12 +66,18 @@ def test_backlog_open_entry_without_captured_file_is_refused(tmp_path: Path) -> 
     assert _hard(tmp_path, "my-item")
 
 
-def test_workspace_toml_is_not_opened_for_anchors(tmp_path: Path) -> None:
-    _spec_deferring(tmp_path, "my-item")
-    _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Open\n")
-    # A directory in place of the file would raise if the lint opened it.
-    (tmp_path / "workspace.toml").mkdir()
-    assert _hard(tmp_path, "my-item") == []
+def test_captured_file_the_reader_rejects_does_not_resolve(tmp_path: Path) -> None:
+    """A file with no valid `Kind:`, or Closed with no `Resolution:`, never resolves."""
+    for index, body in enumerate((
+        "# Item\n\n- **Status:** Open\n",
+        "# Item\n\n- **Status:** Open\n- **Kind:** bogus\n",
+        "# Item\n\n- **Status:** Closed\n- **Kind:** defect\n",
+        "# Item\n\n- **Status:** Open\n- **Kind:** defect\n- **Resolution:** fixed\n",
+    )):
+        root = tmp_path / f"r{index}"
+        _spec_deferring(root, "my-item")
+        _captured(root, "my-item", body)
+        assert _hard(root, "my-item"), body
 
 
 def test_unresolved_message_names_captured_path(tmp_path: Path) -> None:
@@ -90,7 +96,7 @@ def test_captured_file_without_status_header_is_refused(tmp_path: Path) -> None:
 def test_symlinked_captured_file_is_refused(tmp_path: Path) -> None:
     _spec_deferring(tmp_path, "my-item")
     target = tmp_path / "elsewhere.md"
-    target.write_text("- **Status:** Open\n", encoding="utf-8")
+    target.write_text("- **Status:** Open\n- **Kind:** defect\n", encoding="utf-8")
     directory = tmp_path / "docs" / "product" / "captured"
     directory.mkdir(parents=True)
     (directory / "my-item.md").symlink_to(target)
@@ -99,7 +105,7 @@ def test_symlinked_captured_file_is_refused(tmp_path: Path) -> None:
 
 def test_hard_linked_captured_file_is_refused(tmp_path: Path) -> None:
     _spec_deferring(tmp_path, "my-item")
-    path = _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Open\n")
+    path = _captured(tmp_path, "my-item", "# Item\n\n- **Status:** Open\n- **Kind:** defect\n")
     (tmp_path / "second-link.md").hardlink_to(path)
     assert _hard(tmp_path, "my-item")
 
@@ -186,7 +192,7 @@ def test_draft_preamble_with_later_fulfilled_body_line_resolves(tmp_path: Path) 
 
 def test_captured_file_still_resolves(tmp_path: Path) -> None:
     _plant_spec(tmp_path)
-    _captured(tmp_path, _ANCHOR, "# Item\n\n- **Status:** Closed\n")
+    _captured(tmp_path, _ANCHOR, "# Item\n\n- **Status:** Closed\n- **Kind:** defect\n- **Resolution:** fixed\n")
     assert _violations(tmp_path) == []
 
 
@@ -309,5 +315,5 @@ def test_symlinked_specs_directory_does_not_resolve_anchor(tmp_path: Path) -> No
 def test_base_cases_keep_results(tmp_path: Path) -> None:
     _plant_spec(tmp_path)
     assert _violations(tmp_path)
-    _captured(tmp_path, _ANCHOR, "# Item\n\n- **Status:** Open\n")
+    _captured(tmp_path, _ANCHOR, "# Item\n\n- **Status:** Open\n- **Kind:** defect\n")
     assert _violations(tmp_path) == []
