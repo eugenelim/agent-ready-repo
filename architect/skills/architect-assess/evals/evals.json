@@ -193,6 +193,19 @@
         "Does not mention loading any script from a network host as something the page does",
         "Does not open a browser unless asked"
       ]
+    },
+    {
+      "id": 18,
+      "prompt": "Assess this repository and give me a report my director can read in five minutes.",
+      "expected_output": "A saved-order report whose first screen gives a verdict, confidence, main themes, the first action, and the decision needed, followed by a reading guide with fixed terms, the charter and current state, two to four themes written as claims, and a ranked P1 to P3 recommendation table, with findings and heat-map evidence after.",
+      "assertions": [
+        "Opens the Bottom line with verdict, confidence, main themes, do-first action, and decision needed",
+        "Includes a How to read this report section with reading paths by role and a terms table",
+        "Writes each theme as a full-sentence claim that names its supporting findings",
+        "Ranks recommendations P1 to P3 with a reason, an effort size, and the finding IDs each answers",
+        "Opens the Bottom line with a Working well field, includes a Findings by area index covering six areas, and states not assessed for the dependency inventory when no lock file was analysed",
+        "Groups the report into five parts (Summary, What was assessed, What matters and what to do, Findings in detail, Evidence and method), each opening with a line on what the reader can do after it"
+      ]
     }
   ]
 }

@@ -34,7 +34,7 @@ Higher-priority instructions, repository and scoped security or privacy rules, t
 
 Use compact prose for the bottom line, Mermaid only when relationships are hard
 to understand in prose, and tables for evidence coverage, heat dimensions, lens
-coverage, findings, and action traceability. Keep raw dimensions visible; never
+coverage, the ranked recommendations, and action traceability. Keep raw dimensions visible; never
 collapse them into an unexplained architecture score.
 
 ## Route before inspecting
@@ -150,8 +150,9 @@ definition. Distinguish observed, inferred, reported, and unknown elements.
 Use the optional profiler only as described in `references/profiler-use.md`; it
 emits census signals and never owns the model.
 
-Fill the three orientation subsections of the saved report in order: Overall
-architecture, Architecture by subsystem, then Physical architecture. Each ends
+Fill the four orientation views of the saved report in order: Overall
+architecture, Architecture by subsystem, Technology and dependencies, then
+Physical architecture. Each ends
 in a `Sources checked` table; see `references/orientation-views.md`.
 
 Present the map, evidence ledger, shape/workload hypotheses, and important
@@ -224,7 +225,15 @@ evidence-backed non-risks.
 
 ### 5. Act
 
-Sequence accepted findings into dependency-aware waves. Each wave names:
+Group accepted findings into two to four **themes**: each a one-sentence claim
+that several findings support together. Turn each P1 and P2 finding into a
+**recommendation**, rank them P1 (do now), P2 (do next), or P3 (plan or watch)
+by consequence first, then by whether the item unblocks others, then by effort,
+give each an effort size, and number them R-1, R-2, and so on. A wave may carry an
+optional indicative horizon, stated by objective ("before first client
+connection") or as a time estimate; waves stay ordered by dependency, never by
+calendar. Then sequence the recommendations into
+dependency-aware waves. Each wave names:
 intended outcome, included finding IDs, prerequisites, completion proof,
 rollback or containment, owner class, and non-goals.
 
@@ -238,8 +247,12 @@ without a traced mechanism and consequence.
 
 ### 6. Close
 
-Self-check against `references/report-quality.md`, then render in the exact
-conversation order in `assets/assessment.md`. State what was assessed, partially
+Self-check against `references/report-quality.md`, then render in the saved
+report order in `assets/assessment.md`. That order serves the reader, in five parts:
+Summary, What was assessed, What matters and what to do, Findings in detail, and
+Evidence and method. Each part opens with one line on what the reader can do after
+it, and its sections sit under it.
+The checkpoints still happen in the live conversation order of stages 2 and 3. State what was assessed, partially
 assessed, not assessed, and not applicable; distinguish confidence from
 severity; name remaining decision evidence; and recommend one next decision.
 
