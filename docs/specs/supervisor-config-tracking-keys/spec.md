@@ -1,6 +1,6 @@
 # Spec: Supervisor config tracking keys
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144
@@ -162,9 +162,9 @@ below is exact and case-sensitive, in the lower-case form Git writes.
 
 Config fingerprint
 
-- [ ] **AC-0001.** Two config files that differ only in canonical tracking
+- [x] **AC-0001.** Two config files that differ only in canonical tracking
   blocks have the same config fingerprint.
-- [ ] **AC-0002.** Two config files that differ in any byte outside canonical
+- [x] **AC-0002.** Two config files that differ in any byte outside canonical
   tracking blocks have different config fingerprints, including when the
   differing line is `core.hooksPath`, `remote.origin.url`,
   `remote.origin.fetch`, `user.email`, a `[branch]` section with no
@@ -173,7 +173,7 @@ Config fingerprint
   `[remote "<name>"]` block as a canonical gh-resolved line, or a code-running
   key the start-time refusal names placed directly before or after a canonical
   tracking block.
-- [ ] **AC-0003.** Each of these files has nothing removed, so its config
+- [x] **AC-0003.** Each of these files has nothing removed, so its config
   fingerprint is `config-view:` followed by the raw-file fingerprint form of the
   whole file. Each file is a Python bytes literal. A file marked
   *(precondition)* holds a block the other rules would remove; the strippable-file
@@ -212,27 +212,27 @@ Config fingerprint
     *(precondition)* `b'[core]\n\tbare = false\n[branch "x"]\n\tremote = o\n[core]\n\teditor = a\rb\n'`,
     `b'[branch "x"]\n\tremote = o'`,
     *(precondition)* `b'[branch "x"]\n\tremote = o\n[core]\n\tbare = false'`.
-- [ ] **AC-0004.** Every config fingerprint begins `config-view:`, and no
+- [x] **AC-0004.** Every config fingerprint begins `config-view:`, and no
   raw-file fingerprint does.
-- [ ] **AC-0006.** Computing Git control state creates no process.
-- [ ] **AC-0014.** A key is removed only under its exact excluded name; near
+- [x] **AC-0006.** Computing Git control state creates no process.
+- [x] **AC-0014.** A key is removed only under its exact excluded name; near
   misses such as `gh-resolved-x`, `remotes`, `Merge`, and `gh-resolved` inside a
   `[branch "<name>"]` block stay in the config fingerprint.
-- [ ] **AC-0015.** The config fingerprint is computed from the bytes of the
+- [x] **AC-0015.** The config fingerprint is computed from the bytes of the
   single confined read the attempt check makes of that file.
-- [ ] **AC-0016.** A symlinked, special, or oversized config entry keeps its
+- [x] **AC-0016.** A symlinked, special, or oversized config entry keeps its
   `link:…`, `special`, or `unsafe` value.
 
 Attempt check over a shared common directory
 
-- [ ] **AC-0007.** During an open attempt in a linked worktree, each of these
+- [x] **AC-0007.** During an open attempt in a linked worktree, each of these
   writes to the common config by a sibling linked worktree leaves the attempt
   admissible — `report` admits its result and the following `next` answers no
   `attempt-residue`: `git push -u` of a new branch, setting
   `branch.<name>.remote`, `merge`, `pushremote`, `rebase`, or `description`,
   setting `remote.origin.gh-resolved`, and `git branch -D` of a branch whose
   section carries only excluded keys.
-- [ ] **AC-0008.** During an open attempt in a linked worktree, each of these
+- [x] **AC-0008.** During an open attempt in a linked worktree, each of these
   changes to the common config or to the worktree's `config.worktree` refuses
   the attempt with `attempt-residue` at `next` and `attempt-refused` at
   `report`, naming that config file: setting `core.hooksPath`, adding
@@ -240,7 +240,7 @@ Attempt check over a shared common directory
   `[core]` section after a `[branch "<name>"]` block, adding a non-excluded key
   inside a `[branch "<name>"]` block, and changing an excluded key written in a
   non-canonical shape.
-- [ ] **AC-0009.** During an open attempt, each manifest entry for a config file
+- [x] **AC-0009.** During an open attempt, each manifest entry for a config file
   is compared in the form it was recorded in: a `config-view:` value against
   the config fingerprint, a `<size>:<sha256hex>` value against the raw-file
   fingerprint, and a `link:…`, `special`, or `unsafe` value against the attempt
@@ -251,15 +251,15 @@ Attempt check over a shared common directory
 
 Regression, platforms, and release
 
-- [ ] **AC-0010.** The git-backed supervisor suites the `supervisor-integration`
+- [x] **AC-0010.** The git-backed supervisor suites the `supervisor-integration`
   lane runs pass with no existing test case modified or removed.
-- [ ] **AC-0011.** `packs/core/pack.toml` and
+- [x] **AC-0011.** `packs/core/pack.toml` and
   `packs/core/.claude-plugin/plugin.json` carry the same version, which is the
   next patch above the core version at the merge base with freshly fetched
   `origin/main`.
-- [ ] **AC-0012.** `tools/changelog.py validate` passes with one new fragment
+- [x] **AC-0012.** `tools/changelog.py validate` passes with one new fragment
   for this change.
-- [ ] **AC-0013.** The config-fingerprint suite passes with zero skipped cases,
+- [x] **AC-0013.** The config-fingerprint suite passes with zero skipped cases,
   as `tools/require-junit-ran-without-skips.py` reports over its JUnit output,
   on a POSIX CI lane and on the Windows build-check job.
 

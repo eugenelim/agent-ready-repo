@@ -1,7 +1,7 @@
 # Plan: Supervisor config tracking keys
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0144 D11 sets the trust boundary; the
   `execution-supervisor-attempt-security` spec defines Git control state and the
   manifest.
@@ -398,6 +398,102 @@ Owned by: T2.
   verify them first; it states the rule directly, citing no internal record.
 
 **Done when:** VI-0111 and VI-0112 pass, `git diff origin/main -- docs/specs/execution-supervisor-attempt-security/spec.md` adds one sentence and changes no criterion, `agentbundle catalogue self-host --root . --write` leaves no drift, and every T3 row of the durable-output map is met.
+
+
+### T4: The zero-skip CI steps pass on POSIX and Windows
+
+**Depends on:** T3
+
+**Spec behavior:** AC-0013; goal-based.
+
+**Touches:** `tools/lint-ci-parity.py`, `packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py`
+
+**Verification mode:** goal-based
+
+**Tests:**
+- **VI-0117 (AC-0013):** `tools/test-lint-ci-parity.py` passes with the
+  `pytest supervisor config fingerprint (zero skips)` step registered in
+  `_LOCAL_STEP_DISPOSITION` (covered by `test-after-build-check`) and in the
+  `gate-main` check list.
+- **VI-0118 (AC-0013):** the VI-0115 link/special test is defined only when the
+  platform can create at least one such file kind, so a platform with none
+  collects no case for it rather than a skipped empty-parameter case; the
+  suite's JUnit output has zero skips on POSIX and on the Windows job.
+
+**Done when:** VI-0117 and VI-0118 pass and PR CI's `gate-main` and
+`AgentBundle compatibility (windows)` jobs pass.
+
+
+### T5: Review repairs — the filter runs in linear time, its rules are pinned, and its refusals and guidance can be acted on
+
+**Depends on:** T4
+
+**Spec behavior:** AC-0002, AC-0003, AC-0007, AC-0008, AC-0016; TDD.
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_attempt.py`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py`, `packs/core/tests/skills/work-loop/test_supervisor_attempt.py`, `.github/workflows/build-check.yml`
+
+**Verification mode:** TDD
+
+**Tests:**
+- **VI-0119 (AC-0003):** the gh-resolved membership check is one forward pass;
+  a test builds a remote block with 200,000 `gh-resolved` lines and asserts the
+  fingerprint is computed within a fixed bound (a few seconds), and the
+  stripped output is byte-identical to the previous rule on the AC-0003 corpus.
+- **VI-0120 (AC-0002):** each code-running key next to a canonical block is
+  checked by two files that differ only in that key's line (and only in its
+  value), which must fingerprint differently.
+- **VI-0121 (AC-0003):** one pinned keep-case per fail-closed rule — a
+  header-only `[branch "x"]\n`; a member line that is not tab plus lower-case
+  letter (e.g. `\t[core]`) before a gh-resolved line; a control byte in a
+  tracking value; a backslash or control byte in a branch or remote
+  subsection — each confirmed through VI-0116's `git config --file` read.
+- **VI-0122 (AC-0016):** the platform's expected special kinds are stated per
+  platform and asserted (a missing kind fails); the TMPDIR probe is removed;
+  any kind a platform cannot create is recorded as a named platform gap in the
+  test module rather than silently omitted.
+- **VI-0123 (AC-0008):** a config-caused refusal's detail names the recorded
+  form of the entry (`config-view` or raw) so the operator can tell a raw-form
+  manifest refusing a tracking write from a real config change; the
+  references/supervisor.md attempt-residue row says how to act on each.
+- **VI-0124 (AC-0007):** references/supervisor.md says every `gh` command names
+  its repository (`--repo`) or the controller verifies the base repository
+  first, with or without a PR number; the eval assertion matches.
+- Nits: the module docstring names the config fingerprint as the exception;
+  the new build-check.yml step no longer splits the JUnit-checker comment from
+  its step; VI-0109's refused branch asserts the exact `git:config` label.
+
+**Done when:** VI-0119–VI-0124 pass, the existing suites and the crash corpus
+still pass, and PR CI is green.
+
+### T6: Review repairs — every expected special kind is collected, and every config-caused refusal names its recorded form
+
+**Depends on:** T5
+
+**Spec behavior:** AC-0001, AC-0008, AC-0013, AC-0015, AC-0016; TDD.
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_attempt.py`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py`, `packs/core/tests/skills/work-loop/test_supervisor_attempt.py`
+
+**Verification mode:** TDD
+
+**Tests:**
+- **VI-0125 (AC-0016):** the set of kinds VI-0115 collects equals the
+  platform's stated expected kinds minus its named platform gaps; a kind
+  missing from collection fails a test, and no environment probe (such as a
+  TMPDIR existence check) decides what is collected. VI-0122's assertions that
+  compare constants with constants are replaced by this comparison.
+- **VI-0126 (AC-0008):** the standing `attempt-residue` detail that `next`
+  returns and the `denied-git-control-state` detail each name the recorded
+  form of a changed config entry, for both a raw and a config-view entry; a
+  detail that drops the form fails.
+- Nits: the `in_remote` reset after a dropped branch block is removed or its
+  comment says it is defensive; the linear-time test uses an input size where
+  the previous quadratic rule exceeds the bound in tens of seconds, not tens of
+  minutes, while keeping a wide margin for the current rule; the test module
+  docstring lists every criterion it covers; the references/supervisor.md
+  attempt-residue row says "outside a canonical tracking block".
+
+**Done when:** VI-0125 and VI-0126 pass, the existing suites and the crash
+corpus still pass, and PR CI is green.
 
 ## Rollout
 
