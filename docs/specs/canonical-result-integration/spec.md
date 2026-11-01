@@ -181,14 +181,16 @@ Crash and lag repair
   product ref names either the commit before that write or the commit after
   it. A kill after a step's transaction moved a ref and before its commit was
   recorded as made instead ends in the AC-0008 state, and answering it
-  converges.
+  converges. A kill during an adoption after its refs moved ends in the
+  AC-0005 refusal instead, and restoring the ref asks the adoption again.
 - [ ] **AC-0008.** When the product ref, `HEAD`, or both name a commit the run
   never recorded as made whose parent is the recorded value, no verb counts
   that commit as made or moves a ref to it. With no attempt open, `next`
   issues the AC-0011 decision naming it and every other verb but `status`
-  refuses `history-adoption-required`; both name the two exits: adopt it, or
-  restore the product ref and `HEAD` to the recorded value, after which the
-  step is rebuilt. While an attempt is open, AC-0015's answer applies.
+  refuses `history-adoption-required`. Both always name the restore exit —
+  return the product ref and `HEAD` to the recorded value, after which the
+  step is rebuilt — and name adoption only when an `adopt-history` answer
+  would be admitted. While an attempt is open, AC-0015's answer applies.
 - [ ] **AC-0009.** With no attempt open, when the product ref names its
   recorded value and descends from `HEAD` through made commits only, the next
   verb moves `HEAD` to it, and every tracked product file those commits
