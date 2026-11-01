@@ -187,6 +187,18 @@ def test_noop_specs_contracts_packages_only() -> None:
         expect(out.strip() == "", f"no anchor → no stdout (no chain), got: {out!r}")
 
 
+def test_contract_release_snapshot_is_not_a_duplicate() -> None:
+    """`contracts/releases/<v>/` freezes live contracts under the same
+    filenames; registering both would report every one as a DUPLICATE ID."""
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        write_spec(root, "alpha", contract="`contracts/pack.schema.json`")
+        write(root / "contracts" / "pack.schema.json", "{}")
+        write(root / "contracts" / "releases" / "x" / "0.1" / "pack.schema.json", "{}")
+        rc, out, err = run(root)
+        expect("DUPLICATE ID" not in out + err, f"release snapshot double-counted: {out}{err}")
+
+
 def test_degrades_malformed_sidecar() -> None:
     with tempfile.TemporaryDirectory() as tmp:
         root = Path(tmp)

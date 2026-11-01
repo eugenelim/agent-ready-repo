@@ -39,6 +39,18 @@ def _entries(directory: Path) -> list[Path]:
         raise DiscoveryError(f"cannot read {directory}: {exc}") from exc
 
 
+def _is_directory(entry: Path) -> bool:
+    """Whether *entry* is a directory, raising OSError when it cannot be told.
+
+    ``Path.is_dir`` swallows every OSError on newer Pythons, which would turn an
+    unreadable directory into a silently skipped one.
+    """
+    try:
+        return stat.S_ISDIR(entry.stat().st_mode)
+    except FileNotFoundError:
+        return False
+
+
 def visible_lockfiles(root: Path) -> list[Path]:
     """Return visible project locks, preserving the existing prune behaviour."""
     found: list[Path] = []
@@ -47,8 +59,8 @@ def visible_lockfiles(root: Path) -> list[Path]:
         current = stack.pop()
         for entry in _entries(current):
             try:
-                is_directory = entry.is_dir()
-                is_symlink = entry.is_symlink()
+                is_symlink = stat.S_ISLNK(entry.lstat().st_mode)
+                is_directory = _is_directory(entry)
             except OSError as exc:
                 raise DiscoveryError(f"cannot classify {entry}: {exc}") from exc
             if is_directory:
@@ -76,7 +88,7 @@ def _child_directories(directory: Path) -> list[Path]:
     children: list[Path] = []
     for entry in _entries(directory):
         try:
-            if entry.is_dir():
+            if _is_directory(entry):
                 children.append(entry)
         except OSError as exc:
             raise DiscoveryError(f"cannot classify {entry}: {exc}") from exc
