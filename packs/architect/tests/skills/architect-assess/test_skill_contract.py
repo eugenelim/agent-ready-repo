@@ -146,19 +146,30 @@ def test_concept_routing_is_bounded_and_resolves_to_canonical_paths() -> None:
     assert "selected, skipped, unavailable, stale, or not applicable" in routing
 
 
-def test_report_template_preserves_conversational_order_and_traceability() -> None:
+def test_report_template_groups_sections_into_five_parts_in_reader_order() -> None:
     report = (SKILL_ROOT / "assets" / "assessment.md").read_text(encoding="utf-8")
     expected = (
-        "## Bottom line",
-        "## Assessment charter",
-        "## Conceptual current state",
-        "## Evidence coverage",
-        "## Attention heat map",
-        "## Hotspot drill-downs",
-        "## Findings, strengths, and unknowns",
-        "## Action waves",
-        "## Coverage and confidence",
-        "## Next decision",
+        "## Part 1: Summary",
+        "### Bottom line",
+        "### How to read this report",
+        "## Part 2: What was assessed",
+        "### Assessment charter",
+        "### Conceptual current state",
+        "## Part 3: What matters and what to do",
+        "### Key themes",
+        "### Prioritized recommendations",
+        "### Action waves",
+        "### Next decision",
+        "## Part 4: Findings in detail",
+        "### Findings by area",
+        "### Findings",
+        "### Strengths and evidence-backed non-risks",
+        "### Material unknowns",
+        "## Part 5: Evidence and method",
+        "### Evidence coverage",
+        "### Attention heat map",
+        "### Hotspot drill-downs",
+        "### Coverage and confidence",
     )
     positions = [report.index(heading) for heading in expected]
     assert positions == sorted(positions)
@@ -173,8 +184,13 @@ def test_report_template_preserves_conversational_order_and_traceability() -> No
         "Confidence:",
         "Validation gap:",
         "Smallest safe response:",
+        "Theme:",
+        "Area:",
     ):
         assert finding_field in report
+    for recommendation_column in ("ID", "Priority", "Recommendation", "Why now", "Addresses", "Effort"):
+        assert f"| {recommendation_column} |" in report or f"| {recommendation_column} " in report
+    assert "Included recommendations:" in report
     assert "Included findings:" in report
     assert "Completion proof:" in report
 
@@ -196,25 +212,27 @@ def _template() -> str:
 
 def test_template_orientation_subsections_precede_map_checkpoint() -> None:
     report = _template()
-    current_state = report.index("## Conceptual current state")
+    current_state = report.index("### Conceptual current state")
     headings = (
-        "### Overall architecture",
-        "### Architecture by subsystem",
-        "### Physical architecture",
-        "### Map checkpoint",
+        "#### Overall architecture",
+        "#### Architecture by subsystem",
+        "#### Technology and dependencies",
+        "#### Physical architecture",
+        "#### Map checkpoint",
     )
     positions = [report.index(heading) for heading in headings]
     assert current_state < positions[0]
     assert positions == sorted(positions)
-    assert positions[-1] < report.index("## Evidence coverage")
+    assert positions[-1] < report.index("### Evidence coverage")
 
 
 def test_each_orientation_subsection_ends_with_a_sources_checked_table() -> None:
     report = _template()
     for start, end in (
-        ("### Overall architecture", "### Architecture by subsystem"),
-        ("### Architecture by subsystem", "### Physical architecture"),
-        ("### Physical architecture", "### Map checkpoint"),
+        ("#### Overall architecture", "#### Architecture by subsystem"),
+        ("#### Architecture by subsystem", "#### Technology and dependencies"),
+        ("#### Technology and dependencies", "#### Physical architecture"),
+        ("#### Physical architecture", "#### Map checkpoint"),
     ):
         lines = report[report.index(start) : report.index(end)].rstrip().splitlines()
         assert lines[-1].startswith("| --- |")
@@ -379,3 +397,30 @@ def test_diagrams_evals_assert_the_flag_and_its_absence() -> None:
     plain = next(c for c in evals if c["prompt"].endswith("Render it to HTML."))
     assert any("with --diagrams as the second argument" in a for a in drawn["assertions"])
     assert any("without the --diagrams flag" in a for a in plain["assertions"])
+
+
+def test_every_part_opens_with_a_line_on_what_the_reader_can_do() -> None:
+    report = _template()
+    parts = re.split(r"(?m)^## ", report)[1:]
+    assert len(parts) == 5
+    for part in parts:
+        outcome = part.split("\n\n", 2)[1]
+        assert outcome.startswith("Read this part to "), outcome
+
+
+def test_template_carries_the_area_index_the_working_well_field_and_the_wave_horizon() -> None:
+    report = _template()
+    assert "Working well:" in report
+    assert "Indicative horizon:" in report
+    index = report[report.index("### Findings by area") : report.index("### Findings\n")]
+    for area in (
+        "Architecture and boundaries",
+        "Technology and dependencies",
+        "Code quality and testing",
+        "Delivery, security and governance",
+        "Data and contracts",
+        "Documentation and agent readiness",
+    ):
+        assert f"| {area} |" in index, area
+    assert "| Area | Status | Findings | Worth keeping | Limit |" in index
+    assert "none found" in index and "not assessed" in index

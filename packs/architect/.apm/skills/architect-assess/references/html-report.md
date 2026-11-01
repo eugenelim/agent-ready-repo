@@ -27,6 +27,27 @@ The page uses the maintainer-view style shared with the intents and decisions vi
 
 - The orientation subsections, headings, lists, and tables of the saved report,
   with evidence classes shown as badges and heat-map cells shaded by value.
+- Parts as bands: each shows its number, its title, and its one-line outcome, and
+  the sections under it are numbered within it (1.1, 1.2, 3.1). The contents rail
+  nests parts, sections, and orientation views. A report with no `Part N:` headings
+  renders flat, as before.
+- Numbered section cards, with the Bottom line set apart as the lead. A run of
+  `Label: value` lines (the charter, findings, themes, waves) shows as a record
+  with the label in a narrow column. A `Severity` value and a `Priority` cell
+  show as state pills that carry their word. An ID heading such as `F-1:` shows
+  its ID as a tag.
+- Supporting detail starts closed, with no script: the Evidence coverage, Attention
+  heat map, Hotspot drill-downs, and Coverage and confidence sections, and each
+  orientation `Sources checked` table (its summary shows the source count). In a
+  finding or hotspot, the Scope, Evidence, Counter-evidence, and Signals and
+  provenance fields sit under one "Evidence and citations" fold after the claim,
+  mechanism, and response. The
+  argument stays open: Bottom line, reading guide, charter, current state, themes,
+  recommendations, waves, decision, and findings. A closed section shows its title
+  and a "Supporting detail" hint; a contents link to it shows its content through
+  a `:target` rule, with no script. That rule needs `::details-content` support, so
+  an older browser keeps the section closed after the click, and print shows every
+  fold open.
 - A banner stating that the map and hotspot set were not user-confirmed unless
   the charter's single `Checkpoints:` line says `confirmed`.
 - A notice that the page is built from repository text and model analysis, is

@@ -308,6 +308,13 @@
         element.removeAttribute('style');
       }
     }
+    // The page's style policy drops the max-width Mermaid would add, so a drawing would stretch to
+    // the column. Draw it at its own width instead; the sheet's max-width keeps it inside the page.
+    var box = (root.getAttribute('viewBox') || '').split(/[\s,]+/);
+    var natural = parseFloat(box[2]);
+    if (isFinite(natural) && natural > 0) {
+      root.setAttribute('width', String(Math.round(natural)));
+    }
     prefixIds(elements, id);
     return { root: root, css: css + inline };
   }
