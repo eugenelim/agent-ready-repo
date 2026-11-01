@@ -1,6 +1,7 @@
 """The config fingerprint strips only canonical tracking blocks.
 
-VI-0101 to VI-0104, VI-0106, VI-0113 to VI-0116. Needs no repository and no
+VI-0101 to VI-0104, VI-0106, VI-0113 to VI-0116, VI-0119 to VI-0122, VI-0124,
+VI-0125. Needs no repository and no
 supervisor run, so it also runs on Windows. Its only process is
 ``git config --file`` over the pinned shapes (VI-0116).
 """
@@ -418,14 +419,8 @@ def test_vi_0115_an_oversized_config_is_unsafe(
 
 
 def _special_cases() -> list[str]:
-    """Only the file types this platform can create are collected."""
-    found = []
-    probe = Path(os.path.realpath(os.environ.get("TMPDIR", "/tmp")))
-    if hasattr(os, "symlink") and sys.platform != "win32":
-        found.append("link")
-    if hasattr(os, "mkfifo") and probe.exists():
-        found.append("fifo")
-    return found
+    """The kinds this platform can create, decided by platform alone, never by probing."""
+    return [] if sys.platform == "win32" else ["link", "fifo"]
 
 
 def _link_or_special_config_keeps_its_value(tmp_path: Path, kind: str) -> None:
@@ -509,7 +504,7 @@ def test_vi_0119_the_single_pass_rule_equals_the_reference_on_the_corpus() -> No
 def test_vi_0119_a_huge_gh_resolved_block_is_fingerprinted_in_bounded_time() -> None:
     import time
 
-    lines = 200_000
+    lines = 30_000  # the old quadratic rule took ~36 s here; the current one ~0.01 s
     data = b'[remote "o"]\n\turl = /u\n' + b"\tgh-resolved = b\n" * lines
     started = time.monotonic()
     stripped = att._strip_tracking_blocks(data)
@@ -580,18 +575,35 @@ PLATFORM_GAPS = {
 }
 
 
+def _platform() -> str:
+    return "win32" if sys.platform == "win32" else "posix"
+
+
+def _creatable(tmp_path: Path, kind: str) -> None:
+    made = tmp_path / kind
+    if kind == "link":
+        made.symlink_to(tmp_path)
+        assert stat.S_ISLNK(os.lstat(made).st_mode)
+    else:
+        os.mkfifo(made)
+        assert stat.S_ISFIFO(os.lstat(made).st_mode)
+
+
 def test_vi_0122_each_expected_kind_is_creatable_here_and_gaps_are_named(tmp_path: Path) -> None:
-    platform = "win32" if sys.platform == "win32" else "posix"
-    for kind in EXPECTED_KINDS[platform]:
-        made = tmp_path / kind
-        if kind == "link":
-            made.symlink_to(tmp_path)
-            assert stat.S_ISLNK(os.lstat(made).st_mode)
-        else:
-            os.mkfifo(made)
-            assert stat.S_ISFIFO(os.lstat(made).st_mode)
-    assert set(EXPECTED_KINDS["posix"]) == {"link", "fifo"}
-    assert (platform in PLATFORM_GAPS) == (EXPECTED_KINDS[platform] == ())
+    for kind in EXPECTED_KINDS[_platform()]:
+        _creatable(tmp_path, kind)
+    assert (_platform() in PLATFORM_GAPS) == (EXPECTED_KINDS[_platform()] == ())
+
+
+def test_vi_0125_the_collected_kinds_equal_the_expected_kinds_minus_the_named_gaps() -> None:
+    expected = [] if _platform() in PLATFORM_GAPS else list(EXPECTED_KINDS[_platform()])
+    assert _special_cases() == expected
+    if expected:
+        # The case ids the zero-skip gate sees: one test per kind, none skipped.
+        marks = test_vi_0115_a_link_or_special_config_keeps_its_value.pytestmark  # type: ignore[attr-defined]
+        assert [m.args[1] for m in marks if m.name == "parametrize"] == [expected]
+    else:
+        assert "test_vi_0115_a_link_or_special_config_keeps_its_value" not in globals()
 
 
 # ── VI-0124 ─────────────────────────────────────────────────────────────────

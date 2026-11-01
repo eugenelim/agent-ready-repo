@@ -197,7 +197,6 @@ def _strip_tracking_blocks(data: bytes) -> bytes:
                 end += 1
             if end > i + 1 and (end == len(lines) or lines[end].startswith(b"[")):
                 drop.update(range(i, end))
-                in_remote = False  # the branch header opened the run these lines belong to
                 i = end
                 continue
         if _MEMBER_LINE.match(line):
