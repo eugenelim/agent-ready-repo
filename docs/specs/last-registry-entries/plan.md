@@ -146,6 +146,14 @@ Owned by: T4
 - **Tests:** for AC-0020: one `workspace-status` eval case each for `captured-entry-drop` and `refresh-policy-move`, and one `work-intake` eval case for refresh reading `.work-intake.toml`, with the eval schema suites; `tools/check-core-release.py --base "$(git merge-base HEAD origin/main)"` after `git fetch origin`; the changelog checks; `make lint-ruff lint-mypy`; the dispatched `test-roster.yml` and `test-corpus.yml` runs.
 - **Done when:** each passes.
 
+### T10: The workspace-status script pin follows the change
+
+- **Depends on:** T2, T3, T9
+- **Verification mode:** goal-based
+- **Touches:** `tests/roster/test_workspace_status_progressive_disclosure.py`
+- **Tests:** for AC-0001, AC-0004, AC-0022: `test_ac0008_backend_scripts_are_unchanged` pins `workspace_status.py` by SHA-256; its pinned digest becomes the digest of the script this spec ships, and the pins of the other backend scripts stay.
+- **Done when:** `tests/roster/test_workspace_status_progressive_disclosure.py` passes.
+
 ## Rollout
 
 - **Delivery:** one `core` release. An adopter's refresh refuses `invalid_refresh_policy` until they run `repair-plan` and `repair-apply --yes`.
