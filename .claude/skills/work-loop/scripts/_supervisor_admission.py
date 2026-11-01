@@ -508,6 +508,9 @@ def start(
         commits = ws.git.supervisor_commits(run_id)
         # While history awaits the owner, nothing is written to the working tree: a lag
         # sync to a commit the run may be told to discard would strand its delivery copies.
+        if ws.divergence is not None and ws.divergence.step is not None:
+            # An unrecorded commit on the recorded value: like every verb but status, refuse.
+            raise _supervisor("_supervisor_recovery.py").unadopted(ws)
         foreign = (
             ws.git.sync(commits[-1].sha if commits else None) if ws.divergence is None else []
         )

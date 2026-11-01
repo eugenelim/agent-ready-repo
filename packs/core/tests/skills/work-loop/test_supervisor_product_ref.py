@@ -838,11 +838,14 @@ def _step_never_moved(repo: Path, monkeypatch: pytest.MonkeyPatch, build: Callab
     return seen[-1]
 
 
-def _restore_both(repo: Path, detail: str, recorded: str) -> None:
-    """The second exit: put the product ref and HEAD back on the recorded value."""
-    assert recorded in detail
-    h.git(repo, "update-ref", "--no-deref", ref_name(repo), recorded)
-    h.git(repo, "reset", "-q", "--soft", recorded)
+def run_restore_exit(repo: Path, text: str) -> None:
+    """Run exactly the restore exit a decision or refusal prints after ``Restore:``."""
+    found = re.search(r"Restore: (.+?)\.(?: Or | Adoption |$)", text)
+    assert found is not None, text
+    command = found.group(1).split(", then")[0]
+    done = subprocess.run(command, shell=True, cwd=repo, env={**os.environ, **h.GIT_ENV},
+                          capture_output=True, text=True, check=False)
+    assert done.returncode == 0, (command, done.stderr)
 
 
 @pytest.mark.parametrize("moved", ["both", "ref", "head"])
@@ -862,7 +865,8 @@ def test_an_interrupted_transaction_is_never_counted_or_moved_to(
         run_id = ws.approvals()[0]["run_id"]
         request = result = None
         build = lambda: ws.git.build_commit(  # noqa: E731
-            run_id=run_id, step="cut-off", operation="evidence", summary="cut off")
+            run_id=run_id, step="cut-off", operation="evidence", summary="cut off",
+            appends={"review-decisions.jsonl": b"{}\n"})
     recorded, name = rev(repo, "HEAD"), ref_name(repo)
     step = _step_never_moved(repo, monkeypatch, build)
     # The partial states a transaction cut between its renames leaves.
@@ -879,13 +883,30 @@ def test_an_interrupted_transaction_is_never_counted_or_moved_to(
     else:
         request_out = next_ok(repo)["request"]
         assert request_out["reason"] == "history-adoption"
-        assert recorded in request_out["question"] and "restore both" in request_out["question"]
-        assert step in request_out["question"] or request_out["head_commit"] == step
+        question = request_out["question"]
+        # The provenance is stated as the two things it may be, never as one.
+        assert "never recorded" in question and "cut off after its refs moved" in question
+        assert "made outside the supervisor" in question
+        assert recorded in question and f"git reset --soft {recorded}" in question
+        assert step in question or request_out["head_commit"] == step
+        if moved == "ref":  # HEAD is on the recorded value: adoption would drop the step
+            assert "dropping" in question and "adopt-history" in question
+        else:  # the step changes delivery/: adoption would be refused, so it is not offered
+            assert "Adoption would be refused" in question and "adopt-history" not in question
         code, out = h.run_cli(
             repo, "start", h.SPEC_DIR, "--intent", "code", "--code-trust", "untrusted",
             "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab")
         assert code == 1 and out["refusal"]["code"] == "history-adoption-required", out
-        assert "restore both" in out["refusal"]["detail"]
+        assert f"git reset --soft {recorded}" in out["refusal"]["detail"]
+        # Every verb that finds the ref on an unrecorded commit logs a denial; status does not.
+        logged = len(security_lines(repo))
+        if moved != "head":
+            assert any(e["reason_code"] == "unrecorded-product-ref" for e in security_lines(repo))
+        h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+        assert len(security_lines(repo)) == logged
+        status_code, status = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+        assert status_code == 0 and status["request"]["request_id"] == request_out["request_id"]
+        assert status["run"]["gate_pending"] is True
     # Nothing counted the commit as made, and no verb moved a ref to it or anywhere else.
     assert step not in _made(repo)
     assert step not in h.workspace(repo).git.made_commits(
@@ -893,8 +914,12 @@ def test_an_interrupted_transaction_is_never_counted_or_moved_to(
     assert (rev(repo, "HEAD"), rev(repo, name)) == refs
     assert {k: v for k, v in store_snapshot(repo).items() if k != "attempts"} == {
         k: v for k, v in before.items() if k != "attempts"}
-    # The exit that always works: restore both refs, and the step is rebuilt.
-    _restore_both(repo, f"restore both {recorded}", recorded)
+    # The exit that always works: the printed restore, and the step is rebuilt.
+    if attempt_open:
+        h.git(repo, "update-ref", "--no-deref", name, recorded)
+        h.git(repo, "reset", "-q", "--soft", recorded)
+    else:
+        run_restore_exit(repo, request_out["question"])
     if attempt_open:
         assert _next_request(repo)["request_id"] == request["request_id"]
         code, admitted = ctl.report(result)
@@ -996,14 +1021,15 @@ def test_a_store_write_that_fails_after_the_move_is_the_decision_state(
     monkeypatch.undo()
     step = seen[-1]
     assert caught.value.code == "denied-product-record"
-    assert "OSError" in str(caught.value) and "restore both" in str(caught.value)
+    assert "OSError" in str(caught.value) and str(store_dir(repo)) in str(caught.value)
+    assert "writable" in str(caught.value) and "did not record" in str(caught.value)
     # The refs are where the transaction left them; the run counts nothing it did not record.
     assert rev(repo, "HEAD") == step == rev(repo, name)
     assert step not in _made(repo) and record(repo)["recorded"] == recorded
     request = next_ok(repo)["request"]
     assert request["reason"] == "history-adoption" and step in request["question"]
     assert step not in _made(repo)
-    _restore_both(repo, f"restore both {recorded}", recorded)
+    run_restore_exit(repo, request["question"])
     assert "request" in next_ok(repo)
     assert_parity(repo)
 
@@ -1027,6 +1053,7 @@ def test_a_made_append_that_fails_after_the_record_is_settled_by_the_next_verb(
     monkeypatch.undo()
     step = seen[-1]
     assert caught.value.code == "denied-product-record"
+    assert str(store_dir(repo)) in str(caught.value) and "made list" in str(caught.value)
     # The product ref record was written first, so the recorded value is the step.
     assert record(repo)["recorded"] == step and step not in _made(repo)
     assert "request" in next_ok(repo)  # the next verb appends the recorded value to the made file
@@ -1061,23 +1088,33 @@ def test_a_crash_around_the_move_converges(
     finally:
         h.commit_module.set_kill_hook(None)
     moved = point != "commit-built"
-    assert (rev(repo, "HEAD") != before) is (point != "commit-built")
-    step = rev(repo, "HEAD") if moved else before
+    made_before = _made(repo)
+    if not moved:
+        # Killed before the transaction: nothing moved, nothing was recorded.
+        assert rev(repo, "HEAD") == before and _made(repo) == made_before
+        assert "request" in next_ok(repo)
+        assert rev(repo, "HEAD") == before and _made(repo) == made_before
+        return
+    step = rev(repo, "HEAD")
+    assert step != before
     payload = next_ok(repo)
     if point == "refs-moved":
         # Recorded run: the ref and HEAD name an unrecorded step. Ref-less: HEAD does.
+        question = payload["request"]["question"]
         assert payload["request"]["reason"] == "history-adoption"
-        assert step in payload["request"]["question"] or payload["request"]["head_commit"] == step
+        assert step in question or payload["request"]["head_commit"] == step
+        assert "update-ref" in question or ref_less
+        if ref_less:  # a run with no product ref has only HEAD to reset
+            assert f"git reset --soft {before}" in question and "update-ref" not in question
         assert step not in _made(repo)
-        _restore_both(repo, f"restore both {before}", before) if not ref_less else h.git(
-            repo, "reset", "-q", "--soft", before)
+        run_restore_exit(repo, question)
+        assert rev(repo, "HEAD") == before
         assert "request" in next_ok(repo)
         return
-    assert "request" in payload
-    assert rev(repo, "HEAD") == step
-    assert (step in _made(repo).split() or not ref_less and record(repo)["recorded"] == step) is (
-        point == "made-recorded"
-    ) or not moved
+    # Killed after the run recorded it: it converges unaided, and the step is the run's own.
+    assert "request" in payload and rev(repo, "HEAD") == step
+    assert step in h.workspace(repo).git.made_commits(
+        h.workspace(repo).approvals()[0]["run_id"])
 
 
 # ── a run with no recorded product ref, killed past its own move ────────────
@@ -1127,7 +1164,8 @@ def test_a_ref_less_crash_with_no_attempt_ends_in_the_decision_and_answering_con
     moved = rev(repo, "HEAD")
     request = next_ok(repo)["request"]
     assert request["reason"] == "history-adoption" and request["head_commit"] == moved
-    assert before in request["question"] and "restore both" in request["question"]
+    assert before in request["question"] and f"git reset --soft {before}" in request["question"]
+    assert "update-ref" not in request["question"]  # a run with no product ref has only HEAD
     code, admitted = ctl.report(decision_result(request, moved))
     assert code == 0, admitted
     assert controller(repo, tmp_path).drive().get("terminal")
@@ -1154,5 +1192,154 @@ def test_the_decision_for_foreign_delivery_history_names_the_reset_exit(tmp_path
     anchor = rev(repo, "HEAD")
     foreign_commit(repo, f"{h.SPEC_DIR}/delivery/review-decisions.jsonl", "{}\n")
     request = next_ok(repo)["request"]
-    assert "will be refused because" in request["question"]
+    assert "Adoption would be refused" in request["question"]
+    assert "adopt-history" not in request["question"]
     assert f"git reset --soft {anchor}" in request["question"]
+
+
+# ── the first admission: nothing is recorded before its own transaction lands ─
+
+
+def test_a_refused_first_admission_never_anchors_the_run(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = h.make_repo(tmp_path)
+    base = rev(repo, "HEAD")
+    tree = h.git(repo, "rev-parse", "HEAD^{tree}").strip()
+    other = h.git(repo, "commit-tree", tree, "-p", base, "-m", "a racing commit").strip()
+    seen = spy_steps(monkeypatch)
+    h.commit_module.set_update_hook(lambda: h.git(repo, "update-ref", "refs/heads/main", other))
+    try:
+        code, out = h.start(repo)
+    finally:
+        h.commit_module.set_update_hook(None)
+    assert code == 1, out
+    refused = seen[-1]
+    # Nothing counts it, and someone points HEAD at the approval commit that was refused.
+    h.git(repo, "update-ref", "refs/heads/main", refused)
+    h.git(repo, "reset", "-q", "--hard", refused)
+    code, out = h.start(repo)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert f"git reset --hard {base}" in out["refusal"]["detail"]
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 1, out
+    assert not git_ok(repo, "for-each-ref", "refs/agentbundle").stdout.strip()
+    base_dir = Path(h.git(repo, "rev-parse", "--absolute-git-dir").strip()) / "agentbundle-supervisor"
+    assert not list(base_dir.glob("run-*/product-ref")) and not list(base_dir.glob("run-*/made-commits"))
+    # The exit it names works: the owner resets and admits again.
+    h.git(repo, "reset", "-q", "--hard", base)
+    assert h.start(repo)[0] == 0
+    assert rev(repo, ref_name(repo)) == rev(repo, "HEAD")
+
+
+def test_a_first_admission_cut_off_after_its_refs_moved_names_the_reset_exit(
+    tmp_path: Path,
+) -> None:
+    repo = h.make_repo(tmp_path)
+    base = rev(repo, "HEAD")
+
+    def hook(name: str) -> None:
+        if name == "refs-moved":
+            raise h.Crash(name)
+
+    h.commit_module.set_kill_hook(hook)
+    try:
+        with pytest.raises(h.Crash):
+            h.start(repo)
+    finally:
+        h.commit_module.set_kill_hook(None)
+    assert rev(repo, "HEAD") != base
+    code, out = h.start(repo)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    detail = out["refusal"]["detail"]
+    assert "never recorded" in detail and f"git reset --hard {base}" in detail
+    command = detail.split("restore with ", 1)[1].split(", then")[0]
+    done = subprocess.run(command, shell=True, cwd=repo, env={**os.environ, **h.GIT_ENV},
+                          capture_output=True, text=True, check=False)
+    assert done.returncode == 0, done.stderr
+    assert h.start(repo)[0] == 0 and rev(repo, "HEAD") != base
+
+
+# ── provenance is never claimed, and every verb refuses in the unrecorded-step state ──
+
+
+def _cut_off_step(repo: Path, monkeypatch: pytest.MonkeyPatch) -> str:
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+
+    def hook(name: str) -> None:
+        if name == "refs-moved":
+            raise h.Crash(name)
+
+    h.commit_module.set_kill_hook(hook)
+    try:
+        with pytest.raises(h.Crash):
+            ws.git.build_commit(run_id=run_id, step="cut", operation="evidence",
+                                summary="cut off", appends={"review-decisions.jsonl": b"{}\n"})
+    finally:
+        h.commit_module.set_kill_hook(None)
+    return rev(repo, "HEAD")
+
+
+def test_the_decision_wording_is_the_same_for_a_cut_off_step_and_a_users_commit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cut = started(tmp_path / "cut")
+    advance(cut, controller(cut, tmp_path / "cut"), calc_implement)
+    step = _cut_off_step(cut, monkeypatch)
+    cut_question = next_ok(cut)["request"]["question"]
+    user = started(tmp_path / "user")
+    advance(user, controller(user, tmp_path / "user"), calc_implement)
+    commit = foreign_commit(user)
+    user_question = next_ok(user)["request"]["question"]
+    for question, named in ((cut_question, step), (user_question, commit)):
+        assert f"commit {named}, which this run never recorded" in question
+        assert "either a step the supervisor was committing when it was cut off" in question
+        assert "or a commit made outside the supervisor" in question
+    # Adoption is offered only where an answer would be admitted: not for a step that
+    # changes delivery/, and for a commit that does not.
+    assert "Adoption would be refused" in cut_question
+    assert "adopt-history" in user_question and "Adoption would be refused" not in user_question
+
+
+def test_a_non_amending_start_refuses_in_the_unrecorded_step_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    _cut_off_step(repo, monkeypatch)
+    code, out = h.start(repo)  # the same pair: nothing to amend
+    assert code == 1 and out["refusal"]["code"] == "history-adoption-required", out
+    assert "Restore:" in out["refusal"]["detail"]
+    status_code, status = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    assert status_code == 0 and status["request"]["reason"] == "history-adoption"
+
+
+@pytest.mark.skipif(
+    os.name == "nt" or (hasattr(os, "geteuid") and os.geteuid() == 0),
+    reason="a read-only directory is how this test fails a real store write",
+)
+def test_an_unwritable_store_fails_the_write_that_records_a_step(tmp_path: Path) -> None:
+    repo = started(tmp_path)
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    ws = h.workspace(repo)
+    run_id = ws.approvals()[0]["run_id"]
+    store = store_dir(repo)
+    recorded = rev(repo, "HEAD")
+    # The store goes read-only after the transaction has been checked, just before it runs.
+    h.commit_module.set_update_hook(lambda: Path(store).chmod(0o555))
+    try:
+        with pytest.raises(h.commit_module.SupervisorGitError) as caught:
+            ws.git.build_commit(run_id=run_id, step="moved-step", operation="evidence",
+                                summary="moved, then the store was read-only")
+    finally:
+        h.commit_module.set_update_hook(None)
+        Path(store).chmod(0o755)
+    assert caught.value.code == "denied-product-record"
+    assert "MutationDenied" in str(caught.value) and str(store) in str(caught.value)
+    assert "writable" in str(caught.value)
+    assert rev(repo, "HEAD") != recorded and record(repo)["recorded"] == recorded
+    request = next_ok(repo)["request"]
+    assert request["reason"] == "history-adoption"
+    run_restore_exit(repo, request["question"])
+    assert "request" in next_ok(repo)

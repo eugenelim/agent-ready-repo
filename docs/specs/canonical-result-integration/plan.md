@@ -197,7 +197,7 @@ applies:
 | No recorded product ref, approvals at `HEAD` | yes | no ref change; steps commit without one, and the next verb with no attempt open applies the row above |
 | Ref missing, symbolic, or not the recorded value, and not an unrecorded step | no | `product-ref-diverged` (AC-0005) |
 | Same | yes | the attempt guard has already answered (AC-0015) |
-| The ref or `HEAD` names a commit never recorded whose parent is the recorded value | no | `history-adoption` naming it, with both exits (adopt, or restore both refs to the recorded value); every other verb but `status` refuses `history-adoption-required` (AC-0008) |
+| The ref or `HEAD` names a commit never recorded whose parent is the recorded value | no | `history-adoption` naming it, always with the restore exit and with adoption only when an answer would be admitted; every other verb but `status`, `start` included, refuses `history-adoption-required` (AC-0008) |
 | Same | yes | the attempt guard answers `attempt-residue` or `attempt-refused` (AC-0015) |
 | `HEAD` = ref | either | continue |
 | Ref descends from `HEAD` through made commits only | no | project forward (AC-0009, AC-0010) |
@@ -210,11 +210,18 @@ A step then runs: build the commit object in the private index →
 record the value in the run store, then append to the made file →
 `made-recorded` → `delivery/` working copies and index refresh → `synced`.
 Nothing is written to the run store before the transaction, so a refusal leaves
-nothing to clean up. The first admission records its approval commit before its
-move, because no earlier history exists for it to be confused with. A failed
-store write after the move leaves the refs on a commit the run did not record,
-which is the AC-0008 state, and the verb answers `denied-product-record` naming
-both exits (AC-0023).
+nothing to clean up, and no commit is recorded before its own transaction lands,
+the approval commit of a first admission included: a first admission cut off after
+its refs moved leaves `HEAD` on an approval nothing counts, and the pin check names
+the exit (reset `HEAD` to the base and run `start` again). A failed store write
+after the move leaves the refs on a commit the run did not record, which is the
+AC-0008 state, and the verb answers `denied-product-record` with the real state, the
+run store directory, and "make it writable" (AC-0023). The decision and the refusals
+describe an unrecorded commit on the recorded value as "a step cut off after its refs
+moved, or a commit made outside the supervisor", never as either alone; they always
+name the restore exit, and name adoption only when an `adopt-history` answer would be
+admitted (not when the history changes `delivery/`). Every verb that finds the product
+ref on an unrecorded commit writes a denial line; `status` writes nothing.
 
 Forward projection (AC-0009) is `implementation-discovered` in its means. Its
 predicate: for each path the skipped commits change, compare the working-tree

@@ -79,7 +79,7 @@ class ProductRecord:
     """
 
     name: str
-    recorded: str | None
+    recorded: str
 
 
 @dataclass(frozen=True)
@@ -256,28 +256,28 @@ class GitPort:
         """
         entries = self._made_entries(run_id)
         record = self.product_record(run_id)
-        if record is not None and record.recorded is not None and record.recorded not in entries:
+        if record is not None and record.recorded not in entries:
             entries.append(record.recorded)
         return entries
 
     def ensure_recorded_made(self, run_id: str) -> None:
         """Append the recorded value to the made file when a step was cut off before it."""
         record = self.product_record(run_id)
-        if (
-            record is not None
-            and record.recorded is not None
-            and record.recorded not in self._made_entries(run_id)
-        ):
-            with self.recording(run_id):
+        if record is not None and record.recorded not in self._made_entries(run_id):
+            with self.recording(
+                run_id,
+                "appending the recorded commit to the made list",
+                f"the product ref record names {record.recorded}, which the made list lacks.",
+            ):
                 self.record_made(run_id, record.recorded)
 
     @contextlib.contextmanager
-    def recording(self, run_id: str) -> Generator[None]:
-        """Run the store writes that record a landed step; a failure refuses, closed.
+    def recording(self, run_id: str, doing: str, state: str) -> Generator[None]:
+        """Run store writes that record a landed step; a failure refuses, closed.
 
-        Nothing is made or moved by a failed write: the refs stay where the transaction
-        left them, which is the history-adoption state, and the caller sees
-        ``denied-product-record`` with the restore.
+        *doing* and *state* say what was being written and what the run holds now, so the
+        refusal states the real condition. The exit is always to make the run store
+        writable and run any verb. Nothing is made or moved by a failed write.
         """
         try:
             yield
@@ -288,10 +288,8 @@ class GitPort:
                 raise
             raise SupervisorGitError(
                 "denied-product-record",
-                f"the run store could not be written ({type(failure).__name__}) while "
-                "recording a step; the run now holds a commit it did not record. Run next: "
-                "it asks the owner to adopt that commit, or restore both the product ref "
-                "and HEAD to the run's recorded value so the step is rebuilt",
+                f"the run store could not be written ({type(failure).__name__}) while {doing}; "
+                f"{state} Make {self._store_dir(run_id)} writable, then run any verb.",
             ) from failure
 
     # ── the product ref ─────────────────────────────────────────────────────
@@ -323,16 +321,14 @@ class GitPort:
             and raw.get("run_id") == run_id
             and isinstance(raw.get("name"), str)
             and PRODUCT_REF_RE.fullmatch(raw["name"]) is not None
-            and all(
-                v is None or (isinstance(v, str) and _COMMIT_ID_RE.fullmatch(v) is not None)
-                for v in (raw.get("recorded"),)
-            )
+            and isinstance(raw.get("recorded"), str)
+            and _COMMIT_ID_RE.fullmatch(raw["recorded"]) is not None
         )
         if not ok:
             raise SupervisorGitError(
                 "denied-product-record", "the product ref record is malformed", unverifiable=True
             )
-        return ProductRecord(raw["name"], raw.get("recorded"))
+        return ProductRecord(raw["name"], raw["recorded"])
 
     def write_product_record(self, run_id: str, record: ProductRecord) -> None:
         """Replace the run's product ref record atomically, in the confined store."""
@@ -775,17 +771,10 @@ class GitPort:
         new = self.text(
             "hash-object", "-t", "commit", "-w", "--stdin", stdin=body.encode("utf-8")
         ).strip()
-        # The first admission has no earlier history to be confused with, so its approval
-        # commit is recorded before its move; every other step is recorded after.
-        first = create_ref is not None and not adopting
-        if first:
-            with self.recording(run_id):
-                self.record_made(run_id, new)
         kill_point("commit-built")
         self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
         kill_point("refs-moved")
-        with self.recording(run_id):
-            self._record_landing(run_id, new, create_ref, first)
+        self._record_landing(run_id, new, create_ref)
         kill_point("made-recorded")
         self.write_delivery(appended)
         self.refresh_index(path_list + sorted(exact) + sorted(appended))
@@ -865,20 +854,29 @@ class GitPort:
             "integration-conflict", "controller", detail
         ) from exc
 
-    def _record_landing(
-        self, run_id: str, new: str, create_ref: str | None, first: bool
-    ) -> None:
+    def _record_landing(self, run_id: str, new: str, create_ref: str | None) -> None:
         """Record the step the same invocation just moved the refs to.
 
         The product ref record comes first and the made append second, so a cut-off
-        between them still leaves the recorded value, which counts as made.
+        between them still leaves the recorded value, which counts as made. Each write
+        says what it was doing if it fails.
         """
         record = self.product_record(run_id)
         name = create_ref or (record.name if record is not None else None)
+        held = (
+            f"the product ref and HEAD name {new}, a commit the run did not record, so the "
+            "run is in the history-adoption state."
+        )
         if name is not None:
-            self.write_product_record(run_id, ProductRecord(name, new))
-        if not first and new not in self._made_entries(run_id):
-            self.record_made(run_id, new)
+            with self.recording(run_id, "recording the step in the product ref record", held):
+                self.write_product_record(run_id, ProductRecord(name, new))
+        if new not in self._made_entries(run_id):
+            if name is None:
+                held = f"HEAD names {new}, a commit the run did not record."
+            else:
+                held = f"the product ref record names {new}, which the made list lacks."
+            with self.recording(run_id, "appending the step to the made list", held):
+                self.record_made(run_id, new)
 
     # ── working copies ──────────────────────────────────────────────────────
 

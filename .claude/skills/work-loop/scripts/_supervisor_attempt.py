@@ -1010,6 +1010,15 @@ class Attempts:
             ):
                 self.pin(run_id)
                 return
+            if not made and len(approvals) == 1 and commits:
+                base = approvals[0]["base"]
+                raise _unverifiable(
+                    "supervisor-changed",
+                    "the supervisor's pin record is missing. If HEAD holds the approval of a "
+                    "first admission this run never recorded (cut off after its refs moved, "
+                    "or committed outside the supervisor), nothing counts it: restore with "
+                    f"git reset --hard {base}, then run start again",
+                )
             raise _unverifiable("supervisor-changed", "the supervisor's pin record is missing")
         if installed != pinned and installed != self._open_regeneration(run_id):
             raise _refusal(

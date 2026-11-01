@@ -816,11 +816,15 @@ def test_pins_come_only_from_an_admitted_start(tmp_path: Path, point: str) -> No
         assert code == 0, out
         assert len(list((repo / ".git" / "agentbundle-supervisor").glob("*/pins.json"))) == 1
     else:
-        # Admitted but not yet pinned: only a start may record it.
+        # The approval's refs moved and nothing recorded it, so nothing pins it: every verb
+        # refuses, and the exit is to reset HEAD and admit again.
         code, out = h.run_cli(repo, "next", SPEC)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
         code, out = h.start(repo)
-        assert code == 0 and out["status"] == "current", out
+        assert code == 1 and "git reset --hard" in out["refusal"]["detail"], out
+        h.git(repo, "reset", "-q", "--hard", "HEAD^")
+        code, out = h.start(repo)
+        assert code == 0 and out["status"] == "admitted", out
         assert len(list((repo / ".git" / "agentbundle-supervisor").glob("*/pins.json"))) == 1
         assert h.run_cli(repo, "next", SPEC)[0] == 0
 
@@ -1094,7 +1098,7 @@ def test_an_orphan_run_directory_is_ignored_not_deleted(tmp_path: Path) -> None:
     _add_other_spec(repo)
 
     def hook(name: str) -> None:
-        if name == "commit-built":
+        if name == "made-recorded":
             raise h.Crash(name)
 
     h.commit_module.set_kill_hook(hook)
@@ -1103,9 +1107,11 @@ def test_an_orphan_run_directory_is_ignored_not_deleted(tmp_path: Path) -> None:
             h.start(repo)
     finally:
         h.commit_module.set_kill_hook(None)
+    # The approval was recorded, then it left the branch: an orphan run directory.
+    h.git(repo, "reset", "-q", "--hard", "HEAD~1")
     (orphan,) = _run_dirs(repo)
     store = repo / ".git" / "agentbundle-supervisor" / orphan
-    assert (store / "made-commits").read_text("utf-8")  # the first admission records before its move
+    assert (store / "made-commits").read_text("utf-8")
     assert (store / "spec").read_text("utf-8") == SPEC, "the store did not record its spec"
     (repo / "unrelated.txt").write_text("moves HEAD past the unlanded approval\n", "utf-8")
     h.git(repo, "add", "-A")
@@ -1266,8 +1272,9 @@ def test_a_kill_before_the_store_rename_leaves_no_run_directory_and_blocks_nothi
     assert not [p for p in base.iterdir() if p.name.startswith("run-")]
     assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
     assert h.run_cli(repo, "next", _OTHER)[0] == 0
+    # The approval's refs moved before anything recorded it: nothing counts it.
     code, out = h.start(repo)
-    assert code == 0 and out["status"] == "admitted", out
+    assert code == 1 and "git reset --hard" in out["refusal"]["detail"], out
 
 
 def test_a_store_directory_is_born_with_its_spec_record(tmp_path: Path) -> None:
