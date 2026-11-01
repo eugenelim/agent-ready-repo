@@ -123,8 +123,8 @@ adopter how-to:
   and what it leaves behind.
 - [`state.md`](state.md) — the two state files a catalogue tree can carry, and
   who writes each.
-- [`upstream-sync.md`](upstream-sync.md) — **STATUS: PLANNED.** How a derived
-  catalogue takes later upstream changes.
+- [`upstream-sync.md`](upstream-sync.md) — how `agentbundle catalogue sync` takes
+  later upstream changes into a derived catalogue.
 
 ## Where to read next
 

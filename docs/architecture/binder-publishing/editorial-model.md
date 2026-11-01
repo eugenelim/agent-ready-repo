@@ -170,8 +170,8 @@ skills = ["publish-binder"]
 
 # The schema has carried `[[pack.runtime-dependencies]]` (ecosystem ∈ pypi/npm/
 # cargo/go/homebrew/apt/system, plus version/optional/skills/install/note) since
-# the enriched manifest, and no shipped pack uses it yet. This pack is still the
-# one that should declare one: a machine-readable external dependency is worth
+# the enriched manifest, and `core` and `code-intelligence` already declare it.
+# This pack should declare one too: a machine-readable external dependency is worth
 # more than a prose prerequisite when an adopter is deciding whether a pack will
 # work in their environment.
 #

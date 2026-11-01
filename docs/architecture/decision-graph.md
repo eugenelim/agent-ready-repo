@@ -1,12 +1,15 @@
 # Decision graph architecture
 
-> **STATUS: PLANNED.** This document describes the future-state architecture
-> governed by [RFC-0105](../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md)
+> **STATUS: CURRENT**, except § 8, which stays provisional. This document
+> describes the shipped `navigate-decisions` skill, governed by
+> [RFC-0105](../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md)
 > and shaped by the accepted [decision-graph capability](../product/intents/CAP-0002-decision-graph.md).
-> It is not a statement of current repository behavior. The implementation team
-> owns renderer, query, component, and storage choices within the accepted RFC
-> and feature contracts. Replace this banner with **CURRENT** only after the
-> shipped behavior and its verification agree with this model.
+> The [decision-navigation specification](../specs/decision-navigation/spec.md)
+> is Shipped. `packs/repo-governance/.apm/skills/navigate-decisions/scripts/explorer.py`
+> carries the `navigation_only` and `caller_asserted` trust labels and the
+> bounded-export budget, and the explorer offers the list, lineage, guidance,
+> and detail views. The implementation team owns renderer, query, component,
+> and storage choices within the accepted RFC and feature contracts.
 
 The current baseline is [Repository Governance design](../../packs/repo-governance/DESIGN.md):
 `navigate-decisions` is a read-only skill that queries the admitted ADR and RFC

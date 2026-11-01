@@ -18,7 +18,7 @@ The implementation is
 Selection is by default inclusive. With no `--pack`, `--profile`, or `--adapter`
 flags, `select_packs` returns every directory under `packs/` except tooling
 packs (`catalogue-curation`) and `_`-prefixed ones. Measured against this
-repository on 2026-09-14: **21 packs and 3 profiles** — 24 pack directories
+repository on 2026-11-01: **22 packs and 3 profiles** — 25 pack directories
 less `catalogue-curation` and the two `_`-prefixed ones, and the three
 top-level `profiles/*.toml` files.
 

@@ -246,7 +246,6 @@ not shipped.
 
 ## 8. Last verified against commit
 
-This page describes the Core 4.0.0 switch state. It was verified against the
-supervisor sources at `7dc7e9231` together with the removals the
-[execution supervisor cutover](../specs/execution-supervisor-cutover/spec.md)
-makes.
+This page describes the shipped execution supervisor (Core 4.0.x), with
+full-mode `work-loop` running only through it. It was verified against commit
+`ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`.

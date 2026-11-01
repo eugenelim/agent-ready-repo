@@ -193,7 +193,7 @@ consumption supply the closed boundary.
 
 | Element | Source owner | Build unit | Verification |
 | --- | --- | --- | --- |
-| Policy and schemas | Proposed `contracts/delivery/content-safety-policy.v1.yaml` and related schemas | Portable contract source | Schema and projection parity |
+| Policy and schemas | `contracts/delivery/content-safety-policy.v1.schema.json` and the decision and untrusted-data schemas beside it | Portable contract source | Schema and projection parity |
 | Guard, scanner, and redactor | `packs/core/.apm/skills/work-loop/scripts/_content_safety.py` (Slice 1) | Work-loop skill scripts | Shared corpus and property tests |
 | Inert-data wrappers | Proposed supervisor and pack support projections | Supervisor bundle and Core pack | Consumer-negative conformance |
 

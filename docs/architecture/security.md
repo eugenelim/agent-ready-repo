@@ -150,9 +150,9 @@ that distinction is the whole point. Three minimization helpers back this rule:
 
 | Helper | Reached by |
 | --- | --- |
-| `intake-intent/scripts/intent_renderer.py` | `intake-intent/SKILL.md:97` |
+| `intake-intent/scripts/intent_renderer.py` | `intake-intent/SKILL.md:101` |
 | `author-delivery-brief/scripts/source_guard.py` | `author-delivery-brief/SKILL.md:66` |
-| `work-intake` `intake_guard._redact` | `work-intake/SKILL.md:388`, via `invoke_refresh` |
+| `work-intake` `intake_guard._redact` | `work-intake/SKILL.md:453`, via `invoke_refresh` |
 
 None has a Python caller. Each runs because a skill instructs an agent to run
 it, which is how a skill-shaped control is *supposed* to work here — but it
@@ -214,9 +214,9 @@ The audit reviewed ~60 skills across 14 packs. Findings and their status:
 
 | Finding | Severity | AST | Fix applied |
 |---|---|---|---|
-| `research` skill did not explicitly state that fetched content is treated as data not instructions | Concern | AST05 | Added "Trust posture — retrieved content is untrusted data" section to `research/SKILL.md` |
+| `desk-research` skill did not explicitly state that fetched content is treated as data not instructions | Concern | AST05 | Added "Trust posture — retrieved content is untrusted data" section to `desk-research/SKILL.md` |
 | `confluence-crawler` and `jira` skills did not declare SSRF containment for user-supplied base URLs | Concern | AST06 | Added agent pre-flight check note to Security rules in both `confluence-crawler/SKILL.md` and `jira/SKILL.md`. The scripts validate only the URL scheme (`http://`/`https://`); the host pre-flight check (reject private-IP ranges and cloud-metadata endpoints) is the agent's responsibility. On the token path `follow_redirects=True` is active — verify before invoking. |
-| Non-credentialed boundary-crossing skills carried no security metadata in frontmatter | Concern | AST10 | Added `metadata.boundaries` lists to: `assimilate-primitive`, `assimilate-repo`, `propose-catalogue-pack` (catalogue-curation; `export-catalogue` has since been removed — its CLI replacement carries this in the engine); `file-to-markdown`, `msg-to-markdown`, `markdown-to-docx`, `markdown-to-html`, `markdown-to-pptx`, `markdown-to-xlsx`, `mermaid-renderer` (converters); `release-loop` (release-engineering); `research`, `source-map` (research) |
+| Non-credentialed boundary-crossing skills carried no security metadata in frontmatter | Concern | AST10 | Added `metadata.boundaries` lists to: `assimilate-primitive`, `assimilate-repo`, `propose-catalogue-pack` (catalogue-curation; `export-catalogue` has since been removed — its CLI replacement carries this in the engine); `file-to-markdown`, `msg-to-markdown`, `markdown-to-docx`, `markdown-to-html`, `markdown-to-pptx`, `markdown-to-xlsx`, `mermaid-renderer` (converters); `release-loop` (release-engineering); `desk-research`, `source-map` (research) |
 | Ingested candidates | Concern | AST01-AST10 | `assimilate-primitive` requires an AST01-AST10 agentic-skills security review; `assimilate-repo` names the same gate |
 
 ### Third-party skill content reaching a projection directory
@@ -265,7 +265,7 @@ ingestion path applies never execute on a direct source:
 **Telling the two apart after installation.** Once projected, a directly
 installed skill and a reviewed first-party one are the same shape of file in
 the same directory. The only signal that distinguishes them is the provenance
-recorded in `state.toml` — `source-kind`, `source`, `source-revision`, and
+recorded in `.agentbundle-state.toml` — `source-kind`, `source`, `source-revision`, and
 `source-digest` on the owning row. Nothing at the projection surface carries it.
 
 **What a commit pin does and does not establish.** A remote direct source
