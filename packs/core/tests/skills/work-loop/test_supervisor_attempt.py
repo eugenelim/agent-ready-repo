@@ -2,7 +2,7 @@
 
 VI-5020 (AC-0001), VI-5021 (AC-0002, AC-0003), VI-5022 (AC-0004),
 VI-5023 (AC-0005, AC-0006), VI-5024 (AC-0007, AC-0008), VI-5025 (AC-0026,
-AC-0027). A template repository holds one open attempt; each test copies it,
+AC-0027), VI-0126 (AC-0008). A template repository holds one open attempt; each test copies it,
 so a case costs a few Git calls rather than a run.
 """
 
@@ -977,3 +977,37 @@ def test_vi_0109_each_entry_is_compared_in_the_form_it_was_recorded(
             # VI-0123: the detail names the form the manifest recorded the entry in.
             note = RECORDED_NOTE[form]
             assert (note in detail) if note else ("recorded as" not in detail), detail
+
+
+# ── VI-0126 ─────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("form", ["raw", "config-view"])
+def test_vi_0126_the_standing_residue_detail_names_the_recorded_form(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, form: str
+) -> None:
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    request = _open_in_form(repo, form, monkeypatch)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    FORMS[form][1](repo)
+    assert h.Controller(repo, tmp_path / "effects.log").report(result)[0] == 1
+    code, out = h.run_cli(repo, "next", SPEC)  # the refusal stands: the change is not undone
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    assert RECORDED_NOTE[form] in out["refusal"]["detail"], out
+
+
+@pytest.mark.parametrize("form", ["raw", "config-view"])
+def test_vi_0126_the_helper_control_state_detail_names_the_recorded_form(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, form: str
+) -> None:
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    _open_in_form(repo, form, monkeypatch)
+    ws = h.workspace(repo)
+    assert ws.attempts.guard("next") is not None
+    FORMS[form][1](repo)
+    with pytest.raises(h.commit_module.SupervisorGitError) as caught:
+        ws.attempts._control_check(ws.git.hardened)
+    assert caught.value.code == "denied-git-control-state"
+    assert RECORDED_NOTE[form] in str(caught.value), str(caught.value)
