@@ -1491,6 +1491,18 @@
         "Does not count the value-creation feature test as preservation evidence",
         "Does not require adapt-to-project or code intelligence"
       ]
+    },
+    {
+      "id": "supervisor-sibling-tracking-write-and-explicit-push",
+      "prompt": "A full-mode supervisor attempt is open in a linked worktree. A sibling worktree runs git push -u for a new branch, then someone also sets core.hooksPath in the shared config. Which of these refuses the attempt, and what must you pass when you push, pull, or merge afterward?",
+      "expected_output": "The tracking write (branch.<name>.remote or merge, written in Git's own form) does not refuse the attempt, because the attempt fingerprints each config file with its canonical tracking blocks removed. The core.hooksPath change refuses it with attempt-residue naming the config file; restore it and run next. Because a worker attempt can change those excluded keys unseen, pass an explicit remote, ref, and pull request to every push, pull, and merge, or verify them first, and name the repository with --repo on every gh command (or verify the base repository first), with or without a pull request number.",
+      "assertions": [
+        "Response says the sibling's git push -u tracking write does not refuse the attempt",
+        "Response says the core.hooksPath change refuses the attempt with attempt-residue naming the config file",
+        "Response says to restore the changed path and run next",
+        "Response says to pass an explicit remote, ref, and pull request to every push, pull, and merge, or verify them first",
+        "Response says to name the repository with --repo on every gh command, or verify the base repository first, with or without a pull request number"
+      ]
     }
   ]
 }

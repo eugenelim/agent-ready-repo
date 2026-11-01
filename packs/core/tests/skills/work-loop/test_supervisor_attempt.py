@@ -2,7 +2,7 @@
 
 VI-5020 (AC-0001), VI-5021 (AC-0002, AC-0003), VI-5022 (AC-0004),
 VI-5023 (AC-0005, AC-0006), VI-5024 (AC-0007, AC-0008), VI-5025 (AC-0026,
-AC-0027). A template repository holds one open attempt; each test copies it,
+AC-0027), VI-0126 (AC-0008). A template repository holds one open attempt; each test copies it,
 so a case costs a few Git calls rather than a run.
 """
 
@@ -737,3 +737,277 @@ def test_an_honest_attempt_that_imports_the_installed_scripts_passes(
     code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 0, out
     assert out["admitted"] == "stub"
+
+
+# ── config fingerprint: sibling tracking writes and recorded forms ──────────
+# VI-0107 (AC-0007), VI-0108 (AC-0008), VI-0109 (AC-0009). Each test builds its
+# own temporary repositories.
+
+
+def _common_config(repo: Path) -> Path:
+    return repo / ".git" / "config"
+
+
+def _append(path: Path, text: str) -> None:
+    path.write_bytes(path.read_bytes() + text.encode("utf-8"))
+
+
+def _sibling_repo(
+    root: Path, pre: Callable[[Path, Path], None] | None = None
+) -> tuple[Path, Path, Path]:
+    """A repository with a bare remote, a linked worktree holding an open attempt, and a sibling.
+
+    Returns ``(repo, linked, sibling)``. A branch ``tmp`` carries only excluded keys
+    before the attempt opens; *pre* may add more shared config first.
+    """
+    root.mkdir(parents=True, exist_ok=True)
+    repo = h.make_repo(root)
+    remote = root / "remote.git"
+    h.git(root, "init", "-q", "--bare", str(remote))
+    h.git(repo, "remote", "add", "origin", str(remote))
+    h.git(repo, "push", "-q", "origin", "main")
+    h.git(repo, "branch", "tmp")
+    h.git(repo, "config", "branch.tmp.remote", "origin")
+    h.git(repo, "config", "branch.tmp.merge", "refs/heads/tmp")
+    linked = root / "linked"
+    sibling = root / "sibling"
+    h.git(repo, "worktree", "add", "-q", "--detach", str(linked))
+    h.git(repo, "worktree", "add", "-q", "-b", "sib", str(sibling))
+    if pre is not None:
+        pre(repo, linked)
+    assert h.start(linked)[0] == 0
+    return repo, linked, sibling
+
+
+def _refused_marks(repo: Path) -> list[Path]:
+    return list((repo / ".git").rglob("*.refused.json"))
+
+
+def _tracking_push(repo: Path, sibling: Path) -> None:
+    h.git(sibling, "push", "-q", "-u", "origin", "sib")
+
+
+def _set(key: str, value: str) -> Callable[[Path, Path], None]:
+    def write(repo: Path, sibling: Path) -> None:
+        h.git(sibling, "config", key, value)
+
+    return write
+
+
+def _branch_delete(repo: Path, sibling: Path) -> None:
+    h.git(sibling, "branch", "-D", "tmp")
+
+
+ADMITTED_WRITES: dict[str, Callable[[Path, Path], None]] = {
+    "push-u": _tracking_push,
+    "remote": _set("branch.sib.remote", "origin"),
+    "merge": _set("branch.sib.merge", "refs/heads/sib"),
+    "pushremote": _set("branch.sib.pushremote", "origin"),
+    "rebase": _set("branch.sib.rebase", "true"),
+    "description": _set("branch.sib.description", "a note"),
+    "gh-resolved": _set("remote.origin.gh-resolved", "base"),
+    "branch-delete": _branch_delete,
+}
+
+
+@pytest.mark.parametrize("name", sorted(ADMITTED_WRITES))
+def test_vi_0107_a_sibling_tracking_write_leaves_the_attempt_admissible(
+    tmp_path: Path, name: str
+) -> None:
+    repo, linked, sibling = _sibling_repo(tmp_path)
+    request = _current_request(linked)
+    result = h.Controller(linked, tmp_path / "effects.log").work(request)
+    ADMITTED_WRITES[name](repo, sibling)
+    code, out = h.Controller(linked, tmp_path / "effects.log").report(result)
+    assert code == 0, out
+    code, out = h.run_cli(linked, "next", SPEC)
+    assert code == 0, out
+    assert _refused_marks(repo) == []
+
+
+def _hooks_path(repo: Path, sibling: Path) -> None:
+    h.git(sibling, "config", "core.hooksPath", str(sibling / "no-hooks"))
+
+
+def _include(repo: Path, sibling: Path) -> None:
+    h.git(sibling, "config", "include.path", str(sibling / "extra.config"))
+
+
+def _url(repo: Path, sibling: Path) -> None:
+    h.git(sibling, "remote", "set-url", "origin", str(sibling / "elsewhere.git"))
+
+
+def _email(repo: Path, sibling: Path) -> None:
+    h.git(sibling, "config", "user.email", "someone@example.invalid")
+
+
+def _core_after_branch(repo: Path, sibling: Path) -> None:
+    _append(_common_config(repo), "[core]\n\teditor = e\n")
+
+
+def _other_key_in_branch(repo: Path, sibling: Path) -> None:
+    h.git(sibling, "config", "branch.tmp.custom", "x")
+
+
+def _odd_pre(repo: Path, linked: Path) -> None:
+    _append(_common_config(repo), '[branch "odd"]\n\tremote=a\n')
+
+
+def _odd_change(repo: Path, sibling: Path) -> None:
+    _edit(_common_config(repo), "\tremote=a\n", "\tremote=b\n")
+
+
+def _worktree_pre(repo: Path, linked: Path) -> None:
+    h.git(repo, "config", "extensions.worktreeConfig", "true")
+
+
+def _worktree_change(repo: Path, sibling: Path) -> None:
+    h.git(sibling, "config", "--worktree", "user.email", "someone@example.invalid")
+
+
+# name -> (pre-attempt shared config, the change, the path the refusal names)
+REFUSED_CHANGES: dict[
+    str,
+    tuple[Callable[[Path, Path], None] | None, Callable[[Path, Path], None], str],
+] = {
+    "hooks-path": (None, _hooks_path, "common:config"),
+    "include": (None, _include, "common:config"),
+    "remote-url": (None, _url, "common:config"),
+    "user-email": (None, _email, "common:config"),
+    "core-after-branch": (None, _core_after_branch, "common:config"),
+    "other-key-in-branch": (None, _other_key_in_branch, "common:config"),
+    "noncanonical-excluded": (_odd_pre, _odd_change, "common:config"),
+    "config-worktree": (_worktree_pre, _worktree_change, "git:config.worktree"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(REFUSED_CHANGES))
+def test_vi_0108_any_other_config_change_refuses_the_attempt(tmp_path: Path, name: str) -> None:
+    pre, change, label = REFUSED_CHANGES[name]
+    # The change is a worker's, so it lands in the linked worktree's own view of the
+    # shared config; the sibling's checkout is only the Git context that writes it.
+    repo, linked, _sibling = _sibling_repo(tmp_path / "next", pre)
+    _current_request(linked)
+    change(repo, linked if name == "config-worktree" else _sibling)
+    code, out = h.run_cli(linked, "next", SPEC)
+    assert code == 1, out
+    assert out["refusal"]["code"] == "attempt-residue", out
+    assert label in out["refusal"]["detail"]
+
+    repo, linked, _sibling = _sibling_repo(tmp_path / "report", pre)
+    request = _current_request(linked)
+    result = h.Controller(linked, tmp_path / "effects.log").work(request)
+    change(repo, linked if name == "config-worktree" else _sibling)
+    code, out = h.Controller(linked, tmp_path / "effects.log").report(result)
+    assert code == 1, out
+    assert out["refusal"]["code"] == "attempt-refused", out
+    assert label in out["refusal"]["detail"]
+
+
+def _open_in_form(repo: Path, form: str, monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    """Issue the next request with each config entry recorded in *form*."""
+    attempt = h.cli._supervisor("_supervisor_attempt.py")
+    original = attempt.Attempts._entry
+
+    def raw_entry(base: Path, path: Path, *, config: bool = False) -> str | None:
+        # The manifest an older release records: the raw-file fingerprint.
+        return original(base, path, config=False)
+
+    with monkeypatch.context() as patch:
+        if form == "raw":
+            patch.setattr(attempt.Attempts, "_entry", staticmethod(raw_entry))
+        return _current_request(repo)
+
+
+def _link_config(repo: Path) -> None:
+    config = _common_config(repo)
+    real = config.with_name("config.real")
+    config.rename(real)
+    config.symlink_to(real)
+
+
+def _retarget_config(repo: Path) -> None:
+    config = _common_config(repo)
+    other = config.with_name("config.other")
+    other.write_bytes((config.parent / "config.real").read_bytes())
+    config.unlink()
+    config.symlink_to(other)
+
+
+def _excluded_byte(repo: Path) -> None:
+    h.git(repo, "config", "branch.x.remote", "a")
+
+
+def _outside_byte(repo: Path) -> None:
+    h.git(repo, "config", "user.name", "Someone Else")
+
+
+FORMS: dict[str, tuple[Callable[[Path], None] | None, Callable[[Path], None]]] = {
+    "raw": (None, _excluded_byte),
+    "config-view": (None, _outside_byte),
+    "link": (_link_config, _retarget_config),
+}
+
+
+RECORDED_NOTE = {"raw": "(recorded as raw)", "config-view": "(recorded as config-view)", "link": ""}
+
+
+@pytest.mark.parametrize("form", sorted(FORMS))
+def test_vi_0109_each_entry_is_compared_in_the_form_it_was_recorded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, form: str
+) -> None:
+    prepare, change = FORMS[form]
+    for outcome in ("admitted", "refused"):
+        repo = h.make_repo(tmp_path / outcome)
+        if prepare is not None:
+            prepare(repo)
+        assert h.start(repo)[0] == 0
+        request = _open_in_form(repo, form, monkeypatch)
+        result = h.Controller(repo, tmp_path / outcome / "effects.log").work(request)
+        if outcome == "refused":
+            change(repo)
+        code, out = h.Controller(repo, tmp_path / outcome / "effects.log").report(result)
+        if outcome == "admitted":
+            assert code == 0, out
+        else:
+            assert code == 1, out
+            assert out["refusal"]["code"] == "attempt-refused", out
+            detail = out["refusal"]["detail"]
+            assert "git:config" in detail and "common:config" not in detail, detail
+            # VI-0123: the detail names the form the manifest recorded the entry in.
+            note = RECORDED_NOTE[form]
+            assert (note in detail) if note else ("recorded as" not in detail), detail
+
+
+# ── VI-0126 ─────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("form", ["raw", "config-view"])
+def test_vi_0126_the_standing_residue_detail_names_the_recorded_form(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, form: str
+) -> None:
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    request = _open_in_form(repo, form, monkeypatch)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    FORMS[form][1](repo)
+    assert h.Controller(repo, tmp_path / "effects.log").report(result)[0] == 1
+    code, out = h.run_cli(repo, "next", SPEC)  # the refusal stands: the change is not undone
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    assert RECORDED_NOTE[form] in out["refusal"]["detail"], out
+
+
+@pytest.mark.parametrize("form", ["raw", "config-view"])
+def test_vi_0126_the_helper_control_state_detail_names_the_recorded_form(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, form: str
+) -> None:
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    _open_in_form(repo, form, monkeypatch)
+    ws = h.workspace(repo)
+    assert ws.attempts.guard("next") is not None
+    FORMS[form][1](repo)
+    with pytest.raises(h.commit_module.SupervisorGitError) as caught:
+        ws.attempts._control_check(ws.git.hardened)
+    assert caught.value.code == "denied-git-control-state"
+    assert RECORDED_NOTE[form] in str(caught.value), str(caught.value)
