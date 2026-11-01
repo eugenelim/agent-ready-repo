@@ -377,8 +377,6 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_merge_driver_behaviour.py
 
-      # The Windows job's real-host confined-write step passes only through this
-      # checker, so a checker that stops seeing skips would turn that gate vacuous.
       # The config fingerprint suite needs no repository; it reads shapes through
       # `git config --file`. The report is checked so a skipped or empty run fails.
       - name: pytest supervisor config fingerprint (zero skips)
@@ -387,6 +385,8 @@ jobs:
           python -m pytest packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py -q -rs --junitxml="$RUNNER_TEMP/config-fingerprint-junit.xml"
           python tools/require-junit-ran-without-skips.py "$RUNNER_TEMP/config-fingerprint-junit.xml"
 
+      # The Windows job's real-host confined-write step passes only through this
+      # checker, so a checker that stops seeing skips would turn that gate vacuous.
       - name: pytest JUnit no-skip gate checker (windows-confined-write)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_require_junit_ran_without_skips.py -q

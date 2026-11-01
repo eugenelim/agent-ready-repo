@@ -215,7 +215,47 @@ LINE_ENDING = [
         ["branch.x.remote=o", "core.bare=false"],
     ),
 ]
-PINNED = HEADER + KEYVALUE + CONTINUATION + LINE_ENDING
+# One keep-case per fail-closed rule of the canonical form (VI-0121); each is also
+# part of the VI-0103 and VI-0116 tables through PINNED.
+FAIL_CLOSED = {
+    "header-only-branch": (
+        b'[core]\n\tbare = false\n[branch "x"]\n',
+        ["core.bare=false"],
+    ),
+    "header-only-branch-before-section": (
+        b'[branch "x"]\n[user]\n\temail = e\n',
+        ["user.email=e"],
+    ),
+    "non-member-line-before-gh-resolved": (
+        b'[remote "o"]\n\turl = /u\n\t[core]\n\tgh-resolved = b\n',
+        ["remote.o.url=/u", "core.gh-resolved=b"],
+    ),
+    "control-byte-in-branch-value": (
+        b'[branch "x"]\n\tremote = o\x01p\n',
+        ["branch.x.remote=o\x01p"],
+    ),
+    "control-byte-in-gh-resolved-value": (
+        b'[remote "o"]\n\turl = /u\n\tgh-resolved = b\x01c\n',
+        ["remote.o.url=/u", "remote.o.gh-resolved=b\x01c"],
+    ),
+    "backslash-in-branch-subsection": (
+        b'[branch "a\\\\b"]\n\tremote = o\n',
+        ["branch.a\\b.remote=o"],
+    ),
+    "control-byte-in-branch-subsection": (
+        b'[branch "a\x01b"]\n\tremote = o\n',
+        ["branch.a\x01b.remote=o"],
+    ),
+    "backslash-in-remote-subsection": (
+        b'[remote "a\\\\b"]\n\turl = /u\n\tgh-resolved = b\n',
+        ["remote.a\\b.url=/u", "remote.a\\b.gh-resolved=b"],
+    ),
+    "control-byte-in-remote-subsection": (
+        b'[remote "a\x01b"]\n\turl = /u\n\tgh-resolved = b\n',
+        ["remote.a\x01b.url=/u", "remote.a\x01b.gh-resolved=b"],
+    ),
+}
+PINNED = HEADER + KEYVALUE + CONTINUATION + LINE_ENDING + list(FAIL_CLOSED.values())
 CONTROL = (
     b'[core]\n\tbare = false\n[branch "x"]\n\tremote = o\n[core]\n\teditor = e\n',
     ["core.bare=false", "branch.x.remote=o", "core.editor=e"],
@@ -412,3 +452,156 @@ if _special_cases():
     test_vi_0115_a_link_or_special_config_keeps_its_value = pytest.mark.parametrize(
         "kind", _special_cases()
     )(_link_or_special_config_keeps_its_value)
+
+
+# ── VI-0119 ─────────────────────────────────────────────────────────────────
+
+
+def _reference_strip(data: bytes) -> bytes:
+    """The rule as first written: a backward walk per gh-resolved line (quadratic)."""
+    if not data.endswith(b"\n") or b"\r" in data or b"\\\n" in data:
+        return data
+    lines = data.splitlines(keepends=True)
+    drop: set[int] = set()
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if att._BRANCH_HEADER.fullmatch(line):
+            end = i + 1
+            while end < len(lines) and att._BRANCH_KEY.fullmatch(lines[end]):
+                end += 1
+            if end > i + 1 and (end == len(lines) or lines[end].startswith(b"[")):
+                drop.update(range(i, end))
+                i = end
+                continue
+        elif att._GH_RESOLVED.fullmatch(line):
+            back = i - 1
+            while back >= 0 and att._MEMBER_LINE.match(lines[back]):
+                back -= 1
+            if back >= 0 and att._REMOTE_HEADER.fullmatch(lines[back]):
+                drop.add(i)
+        i += 1
+    return b"".join(line for n, line in enumerate(lines) if n not in drop)
+
+
+def _line_soup(seed: int, count: int) -> bytes:
+    """A deterministic mix of canonical, near-canonical, and foreign lines."""
+    import random
+
+    pool = [
+        b'[branch "x"]\n', b'[branch "y"]\n', b'[remote "o"]\n', b'[remote "p"]\n',
+        b"[core]\n", b"\tremote = a\n", b"\tmerge = m\n", b"\tdescription = d\n",
+        b"\tgh-resolved = b\n", b"\turl = /u\n", b"\t[core]\n", b"\tfoo = 1\n",
+        b"\tgh-resolved = b;c\n", b"\tRemote = a\n", b"  indented\n", b"\n",
+    ]
+    rng = random.Random(seed)
+    return b"".join(rng.choice(pool) for _ in range(count))
+
+
+def test_vi_0119_the_single_pass_rule_equals_the_reference_on_the_corpus() -> None:
+    corpus = [BASE, CONTROL[0], *CASES_SAME.values(), *CASES_DIFFER.values()]
+    corpus += [data for data, _ in PINNED]
+    corpus += [_line_soup(seed, 40) for seed in range(300)]
+    for data in corpus:
+        assert att._strip_tracking_blocks(data) == _reference_strip(data)
+
+
+def test_vi_0119_a_huge_gh_resolved_block_is_fingerprinted_in_bounded_time() -> None:
+    import time
+
+    lines = 200_000
+    data = b'[remote "o"]\n\turl = /u\n' + b"\tgh-resolved = b\n" * lines
+    started = time.monotonic()
+    stripped = att._strip_tracking_blocks(data)
+    elapsed = time.monotonic() - started
+    assert stripped == b'[remote "o"]\n\turl = /u\n'
+    assert elapsed < 5, f"{lines} gh-resolved lines took {elapsed:.1f}s"
+
+
+# ── VI-0120 ─────────────────────────────────────────────────────────────────
+
+PATTERN_KEYS = [
+    ("filter", "y", "clean"),
+    ("diff", "d", "textconv"),
+    ("includeIf", "gitdir:/x/", "path"),
+    ("gpg", "ssh", "defaultKeyCommand"),
+]
+
+
+def _key_sections() -> dict[str, tuple[str, str]]:
+    """Each code-running key as ``(section header, variable)``."""
+    found = {}
+    for key in CODE_RUNNING:
+        section, _, variable = key.rpartition(".")
+        found[key] = (f"[{section}]\n", variable)
+    for section, name, variable in PATTERN_KEYS:
+        found[f"{section}.{name}.{variable}"] = (f'[{section} "{name}"]\n', variable)
+    return found
+
+
+def _pair(key: str, where: str, value: bytes) -> bytes:
+    header, variable = _key_sections()[key]
+    line = f"\t{variable} = ".encode() + value + b"\n"
+    if where == "before-block":
+        return BASE + header.encode() + line + BRANCH
+    if where == "after-block":
+        return BASE + BRANCH + header.encode() + line
+    if where == "inside-branch-block":  # Git reads it as branch.x.<variable>
+        return BASE + b'[branch "x"]\n\tremote = o\n' + line
+    return BASE.replace(b"\turl = /good\n", b"\turl = /good\n\tgh-resolved = base\n" + line)
+
+
+@pytest.mark.parametrize("where", ["before-block", "after-block", "inside-branch-block", "after-gh-resolved"])
+@pytest.mark.parametrize("key", sorted(_key_sections()))
+def test_vi_0120_a_code_running_key_value_change_changes_the_fingerprint(
+    key: str, where: str
+) -> None:
+    assert fingerprint(_pair(key, where, b"/a")) != fingerprint(_pair(key, where, b"/b"))
+
+
+# ── VI-0121 ─────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("name", sorted(FAIL_CLOSED))
+def test_vi_0121_each_fail_closed_rule_keeps_every_byte_and_git_agrees(
+    tmp_path: Path, name: str
+) -> None:
+    data, expected = FAIL_CLOSED[name]
+    assert fingerprint(data) == whole(data)
+    assert _git_list(tmp_path, data) == expected
+
+
+# ── VI-0122 ─────────────────────────────────────────────────────────────────
+
+# The special file kinds each platform can create, and the named gap where it cannot.
+EXPECTED_KINDS = {"posix": ("link", "fifo"), "win32": ()}
+PLATFORM_GAPS = {
+    "win32": "no symlink without privilege and no mkfifo: link and special files cannot be created",
+}
+
+
+def test_vi_0122_each_expected_kind_is_creatable_here_and_gaps_are_named(tmp_path: Path) -> None:
+    platform = "win32" if sys.platform == "win32" else "posix"
+    for kind in EXPECTED_KINDS[platform]:
+        made = tmp_path / kind
+        if kind == "link":
+            made.symlink_to(tmp_path)
+            assert stat.S_ISLNK(os.lstat(made).st_mode)
+        else:
+            os.mkfifo(made)
+            assert stat.S_ISFIFO(os.lstat(made).st_mode)
+    assert set(EXPECTED_KINDS["posix"]) == {"link", "fifo"}
+    assert (platform in PLATFORM_GAPS) == (EXPECTED_KINDS[platform] == ())
+
+
+# ── VI-0124 ─────────────────────────────────────────────────────────────────
+
+SKILL = SCRIPTS.parent
+
+
+def test_vi_0124_the_gh_guidance_and_its_eval_name_the_repository() -> None:
+    reference = (SKILL / "references" / "supervisor.md").read_text("utf-8")
+    assert "--repo" in reference
+    assert "with or without a pull request number" in " ".join(reference.split())
+    evals = (SKILL / "evals" / "evals.json").read_text("utf-8")
+    assert "--repo" in evals
