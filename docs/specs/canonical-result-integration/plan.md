@@ -436,3 +436,4 @@ Owned by: T1.
 - 2026-11-01: plan approved by eugenelim (amended for the same change)
 - 2026-11-01: spec approved by eugenelim (amended AC-0007: the first-admission base must be the approval commit's parent)
 - 2026-11-01: plan approved by eugenelim (amended for the same change; the leftover-ref delete is removed)
+- 2026-11-01: spec approved by eugenelim (amended AC-0007: every verb refuses a cut-off first admission, start names the exit, and the others point to start)
