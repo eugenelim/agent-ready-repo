@@ -114,10 +114,7 @@ _RETIRED_CODE_FILES = ("guides/core/reference/workspace-toml-schema.md",)
 
 # AC-0005: the three Python tables that hold the next action.
 _NEXT_ACTION_TABLES = (
-    (
-        "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py",
-        "_FINDING_NEXT_ACTIONS",
-    ),
+    ("packs/core/.apm/skills/work-loop/scripts/_header_readiness.py", "_FINDING_NEXT_ACTIONS"),
     ("packages/agentbundle/agentbundle/_data/workspace_status_engine.py", "_FINDING_NEXT_ACTIONS"),
     ("packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py", "_KNOWN_FINDINGS"),
 )

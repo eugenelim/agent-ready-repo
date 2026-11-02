@@ -2,12 +2,12 @@
 
 Spec: docs/specs/header-derived-dispatch/spec.md (AC-0001 to AC-0012).
 Verification mode: TDD. Each test plants one repository under `tmp_path`, loads
-`dispatch.py` from a planted `skills/` tree that also holds a copy of the engine,
-its siblings, `close-work`'s `cooling.py` and `work-loop`'s `file_safety.py`, and
-asserts the dispatch result. Nothing above `packs/core` is read.
+`dispatch.py` from a planted `skills/` tree that holds only the five `work-loop` files
+it loads as siblings, and asserts the dispatch result. Nothing above `packs/core` is read.
 """
 from __future__ import annotations
 
+import ast
 import hashlib
 import importlib.util
 import io
@@ -26,20 +26,22 @@ import pytest
 _PACK = Path(__file__).resolve().parents[3]
 _SKILLS = _PACK / ".apm" / "skills"
 _COUNTER = itertools.count()
+_SIBLINGS = ("dispatch.py", "_header_readiness.py", "file_safety.py", "cooling.py", "close_work.py")
 
 SPEC = "docs/specs/{}/spec.md"
+UNMIGRATED_NEXT_ACTION = (
+    "Run workspace-status repair-plan, then repair-apply, to move the remaining "
+    "workspace.toml entries onto their artifacts."
+)
 IS_ROOT = hasattr(os, "geteuid") and os.geteuid() == 0
 
 
 def _copy_skills(destination: Path, *, name: str = "skills") -> Path:
-    """Plant the real engine, cooling module and work-loop scripts under `destination`."""
+    """Plant the work-loop files dispatch loads as siblings under `destination`."""
     skills = destination / name
-    ignore = shutil.ignore_patterns("__pycache__")
-    for relative in ("workspace-status/scripts", "close-work/scripts"):
-        shutil.copytree(_SKILLS / relative, skills / relative, ignore=ignore)
     scripts = skills / "work-loop" / "scripts"
     scripts.mkdir(parents=True)
-    for module in ("dispatch.py", "file_safety.py"):
+    for module in _SIBLINGS:
         shutil.copy2(_SKILLS / "work-loop" / "scripts" / module, scripts / module)
     return skills
 
@@ -66,6 +68,12 @@ def base_skills(tmp_path_factory: pytest.TempPathFactory) -> Path:
 @pytest.fixture(scope="module")
 def D(base_skills: Path) -> ModuleType:
     return _load(base_skills / "work-loop" / "scripts" / "dispatch.py")
+
+
+@pytest.fixture(scope="module")
+def R(base_skills: Path) -> ModuleType:
+    """The header-readiness module, loaded from the planted tree under a unique name."""
+    return _load(base_skills / "work-loop" / "scripts" / "_header_readiness.py")
 
 
 @pytest.fixture
@@ -182,6 +190,26 @@ def codes(findings: list[dict[str, Any]]) -> list[str]:
     return [finding["code"] for finding in findings]
 
 
+def assert_unmigrated(D: ModuleType, root: Path) -> None:
+    """AC-0003: argless, `--start` and `--resume` each print the one `unmigrated_workspace` refusal."""
+    for mode, selector in ((None, None), ("start", "a"), ("resume", "a")):
+        result = D.dispatch(root, mode, selector)
+        assert result["ready"] == [] and result["active"] == [] and result["blocked"] == []
+        assert result["decision"]["action"] == "refuse"
+        assert [(f["code"], f["path"]) for f in result["findings"]] == [
+            ("unmigrated_workspace", "workspace.toml")
+        ]
+        assert result["findings"][0]["dispatchable"] is False
+        assert result["findings"][0]["next_action"] == UNMIGRATED_NEXT_ACTION
+        assert result["decision"]["findings"] == result["findings"]
+        assert result["decision"]["path"] is None and result["decision"]["candidates"] == []
+
+
+def drop_workspace(repo: Repo) -> None:
+    """Remove the planted `workspace.toml`, leaving the same specs entry-free."""
+    (repo.root / "workspace.toml").unlink()
+
+
 def snapshot(root: Path) -> dict[str, Any]:
     state: dict[str, Any] = {}
     for current, directories, files in os.walk(root):
@@ -285,6 +313,8 @@ def test_cooled_child_scope_unknown_reaches_findings(D: ModuleType, tmp_path: Pa
     repo.put("docs/specs/kid/spec.md", "# Spec: kid\n\n- **Status:** Shipped\n")
     repo.cool(SPEC.format("kid"))
     repo.workspace(brief_executing=[entry("docs/product/briefs/parent.md", "brief")])
+    assert_unmigrated(D, repo.root)
+    drop_workspace(repo)
     result = D.dispatch(repo.root)
     assert "cooled_child_scope_unknown" in codes(result["findings"])
 
@@ -298,6 +328,8 @@ def test_cooled_parent_forms_are_read_from_the_record(
     repo.put("docs/specs/kid/spec.md", "# Spec: kid\n\n- **Status:** Shipped\n")
     repo.cool(SPEC.format("kid"), parent=parent)
     repo.workspace(brief_executing=[entry("docs/product/briefs/parent.md", "brief")])
+    assert_unmigrated(D, repo.root)
+    drop_workspace(repo)
     result = D.dispatch(repo.root)
     unknown = "cooled_child_scope_unknown" in codes(result["findings"])
     assert unknown is (parent is None)
@@ -338,7 +370,9 @@ def test_no_cooled_body_is_opened(
 # --- AC-0005, AC-0006: dropped entries never reach the engine -------------------
 
 
-def test_dropped_entries_raise_no_registry_findings(D: ModuleType, tmp_path: Path) -> None:
+def test_registered_entries_are_refused_and_their_absence_raises_no_registry_findings(
+    D: ModuleType, tmp_path: Path
+) -> None:
     repo = Repo(tmp_path / "r")
     repo.spec("a")
     repo.spec("b", "Implementing")
@@ -347,6 +381,8 @@ def test_dropped_entries_raise_no_registry_findings(D: ModuleType, tmp_path: Pat
         active=[entry(SPEC.format("a"))],
         shipped=[entry(SPEC.format("b"))],
     )
+    assert_unmigrated(D, repo.root)
+    drop_workspace(repo)
     result = D.dispatch(repo.root)
     assert paths(result["ready"]) == [SPEC.format("a")]
     assert paths(result["active"]) == [SPEC.format("b")]
@@ -359,12 +395,15 @@ def test_dropped_entries_raise_no_registry_findings(D: ModuleType, tmp_path: Pat
     assert result["findings"] == []
 
 
-def test_output_is_independent_of_dropped_entries(D: ModuleType, tmp_path: Path) -> None:
+def test_the_refusal_is_independent_of_the_entries_and_the_headers(
+    D: ModuleType, tmp_path: Path
+) -> None:
     bare = Repo(tmp_path / "bare")
     one = Repo(tmp_path / "one")
     two = Repo(tmp_path / "two")
     only = Repo(tmp_path / "only")
-    for repo in (bare, one, two, only):
+    empty = Repo(tmp_path / "empty")
+    for repo in (bare, one, two, only, empty):
         repo.spec("a")
         repo.spec("b", "Implementing")
     one.workspace(queue=[entry(SPEC.format("a"))], active=[entry(SPEC.format("b"))])
@@ -375,9 +414,63 @@ def test_output_is_independent_of_dropped_entries(D: ModuleType, tmp_path: Path)
         ini_status="paused",
     )
     only.workspace(queue=[entry(SPEC.format("a"))])
+    empty.workspace(ini="ini-007")
     reference = encode(D.dispatch(bare.root))
+    assert encode(D.dispatch(empty.root)) == reference
+    refusal = encode(D.dispatch(one.root))
+    assert refusal != reference
     for repo in (one, two, only):
-        assert encode(D.dispatch(repo.root)) == reference
+        assert encode(D.dispatch(repo.root)) == refusal
+
+
+def _remaining_entry(kind: str) -> str:
+    """A `workspace.toml` text that holds one entry, in the named collection kind."""
+    item = entry(SPEC.format("a"))
+    return {
+        "backlog": f'[backlog]\nopen = [{item}]\nclosed = []\n',
+        "initiative-work": f'["ini-001".work]\nqueue = [{item}]\n',
+        "brief_queue": f'["ini-001".brief_queue]\nexecuting = [{item}]\n',
+        "shaping_queue": f'["ini-001".shaping_queue]\nbacklog = [{item}]\n',
+        "repo-origin-spec-with-empty-needs": f'["ini-001".work]\nqueue = [{entry(SPEC.format("a"), needs="[]")}]\n',
+    }[kind]
+
+
+@pytest.mark.parametrize(
+    "kind",
+    ["backlog", "initiative-work", "brief_queue", "shaping_queue", "repo-origin-spec-with-empty-needs"],
+)
+def test_one_entry_of_each_collection_kind_is_refused(
+    D: ModuleType, tmp_path: Path, kind: str
+) -> None:
+    repo = Repo(tmp_path / "r")
+    repo.spec("a")
+    repo.put("workspace.toml", _remaining_entry(kind))
+    assert_unmigrated(D, repo.root)
+
+
+def test_an_authorization_table_alone_does_not_refuse(D: ModuleType, tmp_path: Path) -> None:
+    repo = Repo(tmp_path / "r")
+    repo.spec("a")
+    repo.put(
+        "workspace.toml",
+        '[authorization.migration]\napprover_roles = ["owner"]\n'
+        '[authorization.refresh]\nitems = [{id = "x"}]\n',
+    )
+    result = D.dispatch(repo.root)
+    assert result["decision"]["action"] == "start"
+    assert result["findings"] == []
+    # The same array under any other key is an entry.
+    repo.put("workspace.toml", '[other]\napprover_roles = ["owner"]\n')
+    assert_unmigrated(D, repo.root)
+
+
+def test_a_nested_non_empty_array_is_an_entry(D: ModuleType, tmp_path: Path) -> None:
+    repo = Repo(tmp_path / "r")
+    repo.spec("a")
+    repo.put("workspace.toml", '[deep.er.table]\nx = [1]\n')
+    assert_unmigrated(D, repo.root)
+    repo.put("workspace.toml", '[deep.er.table]\nx = []\n')
+    assert D.dispatch(repo.root)["decision"]["action"] == "start"
 
 
 @pytest.mark.parametrize(
@@ -385,24 +478,17 @@ def test_output_is_independent_of_dropped_entries(D: ModuleType, tmp_path: Path)
     [None, '""', "{}", '[{type = "local", kind = "spec", path = "docs/specs/b/spec.md"}]'],
     ids=["missing", "string", "table", "nonempty"],
 )
-def test_spec_entry_without_an_empty_needs_array_is_kept(
+def test_spec_entry_without_an_empty_needs_array_is_refused(
     D: ModuleType, tmp_path: Path, needs: str | None
 ) -> None:
     repo = Repo(tmp_path / "r")
     repo.spec("a")
     repo.spec("b")
     repo.workspace(queue=[entry(SPEC.format("a"), needs=needs)])
-    result = D.dispatch(repo.root)
-    # A kept entry is evaluated by the engine as the registry holds it.
-    kept = [i for i in (*result["ready"], *result["blocked"]) if i["path"] == SPEC.format("a")]
-    assert len(kept) <= 1
-    named = D.dispatch(repo.root, "start", "a")["decision"]
-    if needs in (None, '""', "{}"):
-        assert named["action"] == "refuse"
-        assert "invalid_entry" in codes(named["findings"])
+    assert_unmigrated(D, repo.root)
 
 
-def test_kept_entries_of_each_kind_are_judged_by_the_engine(
+def test_registered_entries_of_each_kind_are_refused_whole(
     D: ModuleType, tmp_path: Path
 ) -> None:
     repo = Repo(tmp_path / "r")
@@ -427,18 +513,11 @@ def test_kept_entries_of_each_kind_are_judged_by_the_engine(
     )
     repo.spec("trk")
     repo.spec("inactive")
-    result = D.dispatch(repo.root)
-    listed = {item["path"] for item in (*result["ready"], *result["active"], *result["blocked"])}
-    assert SPEC.format("trk") in listed
-    inactive = {i["path"]: i for i in result["blocked"]}[SPEC.format("inactive")]
-    assert "inactive_initiative" in codes(inactive["findings"])
-    for slug, code in (("legacy-str", "unsupported_legacy"),):
+    assert_unmigrated(D, repo.root)
+    for slug in ("legacy-str", "legacy-tbl"):
         decision = D.dispatch(repo.root, "start", slug)["decision"]
-        assert decision["action"] == "refuse" and code in codes(decision["findings"])
-    decision = D.dispatch(repo.root, "start", "legacy-tbl")["decision"]
-    assert decision["action"] == "refuse" and decision["findings"]
-    assert SPEC.format("legacy-str") not in paths(result["ready"])
-    assert SPEC.format("legacy-tbl") not in paths(result["ready"])
+        assert decision["action"] == "refuse"
+        assert codes(decision["findings"]) == ["unmigrated_workspace"]
 
 
 def test_a_kept_initiative_named_ini_999_does_not_collide(
@@ -461,11 +540,15 @@ def test_a_run_writes_nothing(D: ModuleType, tmp_path: Path) -> None:
     repo.spec("b", "Implementing")
     repo.spec("c", "Shipped")
     repo.cool(SPEC.format("c"))
-    repo.workspace(queue=[entry(SPEC.format("a"))])
-    before = snapshot(repo.root)
-    for mode, selector in ((None, None), ("start", "a"), ("resume", "b"), ("start", "c")):
-        D.dispatch(repo.root, mode, selector)
-    assert snapshot(repo.root) == before
+    for planted in (True, False):
+        if planted:
+            repo.workspace(queue=[entry(SPEC.format("a"))])
+        else:
+            drop_workspace(repo)
+        before = snapshot(repo.root)
+        for mode, selector in ((None, None), ("start", "a"), ("resume", "b"), ("start", "c")):
+            D.dispatch(repo.root, mode, selector)
+        assert snapshot(repo.root) == before
 
 
 # --- AC-0008: the decision -------------------------------------------------------
@@ -556,12 +639,12 @@ def test_named_refusals_by_rule(D: ModuleType, tmp_path: Path) -> None:
     repo.put("docs/specs/nospec/readme.txt", "x")
     repo.workspace(active=[entry(SPEC.format("kept-open"))], queue=['"spec/legacy-one"'])
     repo.spec("legacy-one")
+    # A workspace that still holds an entry refuses every named run with its one finding.
+    assert _refusal(D, repo, "start", "noplan") == ["unmigrated_workspace"]
+    assert _refusal(D, repo, "start", "legacy-one") == ["unmigrated_workspace"]
+    drop_workspace(repo)
     # rule 2: blocked findings
     assert "missing_plan" in _refusal(D, repo, "start", "noplan")
-    # rule 3: a kept entry that is not blocked, whose Approved status would start, is
-    # refused with the engine's own finding; without rule 3 it would be `unapproved_spec`.
-    assert SPEC.format("legacy-one") not in paths(D.dispatch(repo.root)["blocked"])
-    assert _refusal(D, repo, "start", "legacy-one") == ["unsupported_legacy"]
     # rule 4: cooled, from the record alone
     assert _refusal(D, repo, "start", "cooled") == ["impossible_transition"]
     assert _refusal(D, repo, "resume", "cooled") == ["impossible_transition"]
@@ -777,16 +860,15 @@ def test_each_bad_entry_fails_only_itself(D: ModuleType, tmp_path: Path) -> None
     assert _refusal(D, repo, "start", "fifo") == ["invalid_artifact_path"]
 
 
-def test_unreadable_spec_gives_one_finding_unless_a_kept_entry_names_it(
-    D: ModuleType, tmp_path: Path
-) -> None:
+def test_unreadable_spec_gives_one_finding_each(D: ModuleType, tmp_path: Path) -> None:
     if IS_ROOT:
         pytest.skip("permission bits do not bind root")
     repo = Repo(tmp_path / "r")
     locked = repo.spec("locked")
     named = repo.spec("named")
-    # `named` keeps its entry only because the entry below is not droppable.
     repo.workspace(queue=[entry(SPEC.format("named"), needs='""')])
+    assert_unmigrated(D, repo.root)
+    drop_workspace(repo)
     locked.chmod(0)
     named.chmod(0)
     try:
@@ -795,7 +877,7 @@ def test_unreadable_spec_gives_one_finding_unless_a_kept_entry_names_it(
         locked.chmod(0o644)
         named.chmod(0o644)
     unreadable = [f for f in result["findings"] if f["code"] == "unreadable_artifact"]
-    assert [f["path"] for f in unreadable] == [SPEC.format("locked")]
+    assert [f["path"] for f in unreadable] == [SPEC.format("locked"), SPEC.format("named")]
 
 
 def test_plan_problems_block_rather_than_hide_a_spec(D: ModuleType, tmp_path: Path) -> None:
@@ -908,42 +990,81 @@ def test_help_names_keys_actions_and_exit_codes(
         assert word in text, word
 
 
-def test_missing_engine(tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    (tree / "workspace-status/scripts/workspace_status_engine.py").unlink()
+_LOADED = ("_header_readiness.py", "file_safety.py")
+_CALLED_NAME = {"_header_readiness.py": "_finding", "file_safety.py": "read_confined_regular_file"}
+
+
+def _assert_unavailable_names(
+    module: ModuleType, repo: Repo, capsys: pytest.CaptureFixture[str], file_name: str
+) -> None:
+    """AC-0027: exit 2, nothing on standard output, standard error starts with the file name."""
+    code = module.main(["--root", str(repo.root)])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    assert captured.err.startswith(f"engine_unavailable: {file_name}")
+
+
+@pytest.mark.parametrize("file_name", _LOADED)
+def test_missing_engine(
+    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], file_name: str
+) -> None:
+    (tree / "work-loop/scripts" / file_name).unlink()
     module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
-    _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
+    _assert_unavailable_names(module, _repo_with_spec(tmp_path), capsys, file_name)
 
 
+@pytest.mark.parametrize("file_name", _LOADED)
 def test_engine_symlinked_out_of_the_tree(
-    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], file_name: str
 ) -> None:
-    engine = tree / "workspace-status/scripts/workspace_status_engine.py"
-    outside = tmp_path / "outside-engine.py"
-    shutil.copy2(engine, outside)
-    engine.unlink()
-    engine.symlink_to(outside)
+    link = tree / "work-loop/scripts" / file_name
+    outside = tmp_path / f"outside-{file_name}"
+    shutil.copy2(link, outside)
+    link.unlink()
+    link.symlink_to(outside)
     module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
-    _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
+    _assert_unavailable_names(module, _repo_with_spec(tmp_path), capsys, file_name)
 
 
+@pytest.mark.parametrize("file_name", _LOADED)
 def test_engine_import_raises(
-    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], file_name: str
 ) -> None:
-    (tree / "workspace-status/scripts/workspace_status_engine.py").write_text(
+    (tree / "work-loop/scripts" / file_name).write_text(
         "raise RuntimeError('boom')\n", encoding="utf-8"
     )
     module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
-    _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
+    _assert_unavailable_names(module, _repo_with_spec(tmp_path), capsys, file_name)
 
 
+@pytest.mark.parametrize("file_name", _LOADED)
 def test_engine_without_the_entry_point(
-    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], file_name: str
 ) -> None:
-    (tree / "workspace-status/scripts/workspace_status_engine.py").write_text(
-        "X = 1\n", encoding="utf-8"
+    (tree / "work-loop/scripts" / file_name).write_text("X = 1\n", encoding="utf-8")
+    module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
+    _assert_unavailable_names(module, _repo_with_spec(tmp_path), capsys, file_name)
+
+
+@pytest.mark.parametrize("file_name", _LOADED)
+def test_engine_name_that_is_not_callable(
+    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str], file_name: str
+) -> None:
+    broken = tree / "work-loop/scripts" / file_name
+    broken.write_text(
+        broken.read_text(encoding="utf-8") + f"\n{_CALLED_NAME[file_name]} = 'not callable'\n",
+        encoding="utf-8",
     )
     module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
-    _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
+    code = module.main(["--root", str(_repo_with_spec(tmp_path).root)])
+    captured = capsys.readouterr()
+    assert code == 2
+    assert captured.out == ""
+    # The load-time refusal names the file; a run-time failure would say
+    # "engine run failed", so this pins the callable check itself.
+    assert captured.err.startswith(f"engine_unavailable: {file_name}")
+    assert "engine run failed" not in captured.err
 
 
 def test_missing_file_safety(
@@ -952,23 +1073,6 @@ def test_missing_file_safety(
     (tree / "work-loop/scripts/file_safety.py").unlink()
     module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
     _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
-
-
-def test_engine_name_that_is_not_callable(
-    tree: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    engine = tree / "workspace-status/scripts/workspace_status_engine.py"
-    engine.write_text(engine.read_text(encoding="utf-8") + "\n_finding = 'not callable'\n",
-                      encoding="utf-8")
-    module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
-    code = module.main(["--root", str(_repo_with_spec(tmp_path).root)])
-    captured = capsys.readouterr()
-    assert code == 2
-    assert captured.out == ""
-    # The load-time refusal names the module; a run-time failure would say
-    # "engine run failed", so this pins the callable check itself.
-    assert "engine_unavailable: workspace_status_engine.py" in captured.err
-    assert "engine run failed" not in captured.err
 
 
 def test_file_safety_without_the_reader(
@@ -1002,12 +1106,14 @@ def test_dispatch_outside_a_scripts_directory(
     _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
 
 
-def test_dispatch_outside_a_skills_directory(
+def test_dispatch_runs_from_a_directory_that_is_not_a_skills_tree(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    """Every load is a sibling load, so the layout the base required no longer matters."""
     other = _copy_skills(tmp_path / "other", name="not-skills")
     module = _load(other / "work-loop" / "scripts" / "dispatch.py")
-    _exits_2_unavailable(module, _repo_with_spec(tmp_path), capsys)
+    assert module.main(["--root", str(_repo_with_spec(tmp_path).root)]) == 0
+    assert json.loads(capsys.readouterr().out)["decision"]["action"] == "start"
 
 
 def test_loading_leaves_sys_path_and_the_tree_unchanged(
@@ -1051,18 +1157,36 @@ _SELECTOR_TABLE = (
 )
 
 
-def test_selector_rule_matches_workspace_status(base_skills: Path, D: ModuleType) -> None:
-    """The one named difference: `docs/specs/<slug>/` is accepted here and normalized there."""
-    path = base_skills / "workspace-status" / "scripts" / "workspace_status.py"
-    name = f"core_work_loop_dispatch_parity_{next(_COUNTER)}"
-    spec = importlib.util.spec_from_file_location(name, path)
-    assert spec is not None and spec.loader is not None
-    status = importlib.util.module_from_spec(spec)
-    sys.modules[name] = status
-    try:
-        spec.loader.exec_module(status)
-    finally:
-        sys.modules.pop(name, None)
+# What `workspace-status`'s selector rule returned for each input at the base:
+# the canonical spec path, or None for a refusal. Recorded from that rule, so the
+# test still fails if dispatch's rule drifts from it.
+_SELECTOR_EXPECTED = {
+    "ok": "docs/specs/ok/spec.md",
+    "spec/ok": "docs/specs/ok/spec.md",
+    "docs/specs/ok": "docs/specs/ok/spec.md",
+    "docs/specs/ok/spec.md": "docs/specs/ok/spec.md",
+    "a_b-1": "docs/specs/a_b-1/spec.md",
+    "A1": "docs/specs/A1/spec.md",
+    "": None,
+    "..": None,
+    "a/b/c": None,
+    "docs/specs/../x": None,
+    "/abs": None,
+    "-x": None,
+    "a\\b": None,
+    "C:x": None,
+    "x" * 201: None,
+    "spec/": None,
+    "docs/specs": None,
+    "dotted.1": None,
+    "spec/a/b": None,
+    "docs/specs/ok/plan.md": None,
+    "docs//specs/ok": None,
+}
+
+
+def test_selector_rule_matches_the_recorded_workspace_status_rule(D: ModuleType) -> None:
+    """The one named difference: `docs/specs/<slug>/` is accepted here and was refused there."""
 
     def header(selector: str) -> str | None:
         try:
@@ -1070,11 +1194,259 @@ def test_selector_rule_matches_workspace_status(base_skills: Path, D: ModuleType
         except D._InvalidSelector:
             return None
 
-    def explain(selector: str) -> str | None:
-        targets = status._explain_selector_targets(selector)
-        return None if targets is None else targets[0]
-
-    for selector in _SELECTOR_TABLE:
-        assert header(selector) == explain(selector), selector
+    assert set(_SELECTOR_EXPECTED) == set(_SELECTOR_TABLE)
+    for selector, expected in _SELECTOR_EXPECTED.items():
+        assert header(selector) == expected, selector
     assert header("docs/specs/ok/") == SPEC.format("ok")
-    assert explain("docs/specs/ok/") is None
+
+
+# --- AC-0031: the cooling chain is confined to dispatch's own directory ------------
+
+_COOLING_FILES = ("cooling.py", "close_work.py")
+_COOLING_BREAKS = ("missing", "symlinked-out", "import-raises", "lacks-a-called-name")
+
+
+def _plant_decoys(tree: Path, marker: Path) -> Path:
+    """Plant files that record that they ran, where a cross-skill or outside load would find them."""
+    decoy_text = f"from pathlib import Path\nPath({str(marker)!r}).write_text('ran')\n"
+    for relative in ("close-work/scripts/cooling.py", "close-work/scripts/close_work.py",
+                     "workspace-status/scripts/cooling.py"):
+        decoy = tree / relative
+        decoy.parent.mkdir(parents=True, exist_ok=True)
+        decoy.write_text(decoy_text, encoding="utf-8")
+    outside = tree.parent / "outside-decoy.py"
+    outside.write_text(decoy_text, encoding="utf-8")
+    return outside
+
+
+def _break_cooling(scripts: Path, file_name: str, how: str, outside: Path) -> None:
+    target = scripts / file_name
+    if how == "missing":
+        target.unlink()
+    elif how == "symlinked-out":
+        target.unlink()
+        target.symlink_to(outside)
+    elif how == "import-raises":
+        target.write_text("raise RuntimeError('boom')\n", encoding="utf-8")
+    else:
+        target.write_text("X = 1\n", encoding="utf-8")
+
+
+def _cooled_repo(tmp_path: Path) -> Repo:
+    repo = Repo(tmp_path / "r")
+    repo.spec("cooled")
+    repo.spec("other")
+    repo.cool(SPEC.format("cooled"))
+    return repo
+
+
+def test_a_working_cooling_chain_excludes_the_cooled_spec(tree: Path, tmp_path: Path) -> None:
+    module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
+    result = module.dispatch(_cooled_repo(tmp_path).root)
+    assert paths(result["ready"]) == [SPEC.format("other")]
+    assert "cooling_state_unavailable" not in codes(result["findings"])
+
+
+@pytest.mark.parametrize("how", _COOLING_BREAKS)
+@pytest.mark.parametrize("file_name", _COOLING_FILES)
+def test_a_broken_cooling_file_is_cooling_state_unavailable(
+    tree: Path, tmp_path: Path, file_name: str, how: str
+) -> None:
+    marker = tmp_path / "decoy-ran"
+    outside = _plant_decoys(tree, marker)
+    scripts = tree / "work-loop" / "scripts"
+    _break_cooling(scripts, file_name, how, outside)
+    module = _load(scripts / "dispatch.py")
+    repo = _cooled_repo(tmp_path)
+    result = module.dispatch(repo.root)
+    assert "cooling_state_unavailable" in codes(result["findings"])
+    # No artifact is treated as cooled: the spec the record names is still dispatchable.
+    assert paths(result["ready"]) == [SPEC.format("cooled"), SPEC.format("other")]
+    assert not marker.exists()
+
+
+@pytest.mark.parametrize("file_name", _COOLING_FILES)
+def test_an_absent_lifecycle_directory_loads_no_cooling_file(
+    tree: Path, tmp_path: Path, file_name: str
+) -> None:
+    (tree / "work-loop/scripts" / file_name).unlink()
+    module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
+    result = module.dispatch(_repo_with_spec(tmp_path).root)
+    assert result["findings"] == []
+
+
+def test_a_failed_cooling_load_leaves_no_registered_module(tree: Path, tmp_path: Path) -> None:
+    module = _load(tree / "work-loop" / "scripts" / "dispatch.py")
+    before = sys.modules.get("cooling_close_work")
+    module.dispatch(_cooled_repo(tmp_path).root)
+    assert sys.modules.get("cooling_close_work") is before
+
+
+# --- AC-0006: one planted repository per finding code the headers can raise --------
+
+_RECEIPT_BLOCK = (
+    '[[coordination_receipts]]\nid = "remote-prereq"\nremote_kind = "brief"\n'
+    'remote_ref = "example-service://projects/example-artifact"\n'
+    'accepted_revision = "remote-rev-7"\nrequired_status = "Shipped"\n'
+    'reported_status = "Shipped"\nreviewed_by = "Example Reviewer"\n'
+    'reviewed_at = "2026-08-10T00:00:00Z"\nrefresh_conflict = false\n'
+)
+
+
+def _waiter(repo: Repo, header: str) -> None:
+    repo.put(
+        "docs/specs/a/spec.md",
+        f"# Spec: a\n\n- **Status:** Approved\n- **Brief:** none\n{header}",
+    )
+    repo.put("docs/specs/a/plan.md", "# Plan\n\n- **Status:** Approved\n")
+
+
+def _plant_dependency(repo: Repo, case: str) -> None:
+    if case == "dependency_cycle":
+        repo.spec("a", depends="spec:b")
+        repo.spec("b", depends="spec:a")
+    elif case == "missing_dependency":
+        repo.spec("a", depends="spec:nowhere")
+    elif case == "invalid_dependency":
+        repo.spec("a", depends="!!garbage!!")
+    elif case == "unsatisfied_dependency":
+        repo.spec("open")
+        repo.spec("a", depends="spec:open")
+    elif case == "invalid_completion_receipt":
+        _waiter(
+            repo,
+            "- **Depends on:** spec:gone\n- **Dependency receipts:** spec:gone completion "
+            "delivery-123 invalid merge pr:123\n",
+        )
+    elif case == "invalid_receipt":
+        _waiter(
+            repo,
+            "- **Depends on:** brief:remote\n- **Dependency receipts:** brief:remote "
+            "coordination brief remote-prereq remote-rev-8\n",
+        )
+        repo.put(
+            "docs/product/briefs/remote.md",
+            "# Brief: remote\n\n- **Status:** Shipped\n- **Slug:** remote\n\n"
+            f"```toml coordination-receipts\n{_RECEIPT_BLOCK}```\n",
+        )
+    else:
+        assert case == "refresh_conflict"
+        repo.spec("a")
+        path = repo.root / "docs/specs/a/spec.md"
+        path.write_text(path.read_text(encoding="utf-8") + "- **Refresh conflict:** true\n",
+                        encoding="utf-8")
+
+
+@pytest.mark.parametrize(
+    "case",
+    ["dependency_cycle", "missing_dependency", "invalid_dependency", "unsatisfied_dependency",
+     "invalid_completion_receipt", "invalid_receipt", "refresh_conflict"],
+)
+def test_a_header_raises_each_dependency_and_conflict_finding(
+    D: ModuleType, tmp_path: Path, case: str
+) -> None:
+    repo = Repo(tmp_path / "r")
+    _plant_dependency(repo, case)
+    result = D.dispatch(repo.root)
+    blocked = {item["path"]: item for item in result["blocked"]}
+    assert case in codes(blocked[SPEC.format("a")]["findings"])
+    assert SPEC.format("a") not in paths(result["ready"])
+
+
+def test_a_captured_item_with_a_bad_field_is_an_invalid_captured_item(
+    R: ModuleType, tmp_path: Path
+) -> None:
+    repo = Repo(tmp_path / "r")
+    repo.put("docs/product/captured/bad.md", "# Defect\n\n- **Status:** Bogus\n- **Kind:** defect\n")
+    item, finding = R.read_captured_item(repo.root, "bad.md", frozenset())
+    assert item == {"path": "docs/product/captured/bad.md", "slug": "bad", "invalid": True}
+    assert finding is not None
+    assert finding.code == "invalid_captured_item"
+    assert finding.next_action == R._FINDING_NEXT_ACTIONS["invalid_captured_item"]
+    assert "invalid_captured_item" in R._FINDING_NEXT_ACTIONS
+
+
+@pytest.mark.parametrize(
+    ("block", "code"),
+    [("", "source_authority_migration_required"),
+     ("\n```toml source-authority\nmode = 1\n```\n", "invalid_source_authority")],
+)
+def test_a_tracker_origin_artifact_without_a_valid_authority_block_is_refused(
+    R: ModuleType, tmp_path: Path, block: str, code: str
+) -> None:
+    repo = Repo(tmp_path / "r")
+    path = repo.spec("trk")
+    path.write_text(path.read_text(encoding="utf-8") + block, encoding="utf-8")
+    source = R.SourceRecord(mode="tracker-origin", ref="example-service://ABC-1", revision="r1")
+    tracked = R.WorkspaceEntry(
+        path=SPEC.format("trk"), kind="spec", source=source, summary="t", needs=[]
+    )
+    metadata = R._metadata_from_root(repo.root, tracked)
+    assert metadata is not None and metadata.authority_error == code
+    found = R._structural_findings(
+        R.WorkspaceMembership(tracked, "work.queue"), metadata, set(), {}, repo.root
+    )
+    assert code in codes([{"code": f.code} for f in found])
+
+
+# --- AC-0006: the finding table ----------------------------------------------------
+
+_DISPATCH_SUITES = (
+    "test_dispatch.py", "test_header_derived_dispatch_replay.py",
+    "test_work_intake_dispatch.py", "test_dispatch_isolation.py",
+)
+
+
+def _asserted_strings(path: Path) -> set[str]:
+    """String constants in each `assert` of the module, and in the parametrize lists of a test."""
+    tree = ast.parse(path.read_text(encoding="utf-8"))
+
+    def strings(node: ast.AST) -> set[str]:
+        return {
+            child.value for child in ast.walk(node)
+            if isinstance(child, ast.Constant) and isinstance(child.value, str)
+        }
+
+    found: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assert):
+            found |= strings(node)
+        elif isinstance(node, ast.FunctionDef) and any(
+            isinstance(child, ast.Assert) for child in ast.walk(node)
+        ):
+            for decorator in node.decorator_list:
+                found |= strings(decorator)
+    return found
+
+
+def test_every_code_in_the_finding_table_is_asserted_by_a_dispatch_suite(
+    base_skills: Path,
+) -> None:
+    table = _load(base_skills / "work-loop/scripts/_header_readiness.py")._FINDING_NEXT_ACTIONS
+    asserted: set[str] = set()
+    for name in _DISPATCH_SUITES:
+        asserted |= _asserted_strings(Path(__file__).with_name(name))
+    assert "unmigrated_workspace" in table
+    assert sorted(code for code in table if code not in asserted) == []
+
+
+def test_every_finding_dispatch_prints_is_a_table_pair(
+    D: ModuleType, base_skills: Path, tmp_path: Path
+) -> None:
+    table = _load(base_skills / "work-loop/scripts/_header_readiness.py")._FINDING_NEXT_ACTIONS
+    repo = Repo(tmp_path / "r")
+    repo.spec("noplan", plan=None)
+    repo.spec("draft", "Draft", depends="spec:nowhere")
+    repo.spec("approved")
+    repo.spec("waits", depends="spec:approved")
+    repo.put("docs/lifecycle/broken.json", "{not json")
+    repo.put("docs/specs/afile", "x")
+    seen: list[dict[str, Any]] = []
+    for mode, selector in ((None, None), ("start", "draft"), ("start", "ghost")):
+        result = D.dispatch(repo.root, mode, selector)
+        seen += [*result["findings"], *result["decision"]["findings"]]
+        for item in (*result["ready"], *result["active"], *result["blocked"]):
+            seen += item["findings"]
+    assert seen
+    for finding in seen:
+        assert table[finding["code"]] == finding["next_action"]

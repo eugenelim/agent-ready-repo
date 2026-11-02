@@ -38,7 +38,7 @@ sys.dont_write_bytecode = True
 
 _PACK = pathlib.Path(__file__).resolve().parents[3]
 _SCRIPTS = _PACK / ".apm" / "skills" / "navigate-intents" / "scripts"
-_ENGINE = _PACK / ".apm" / "skills" / "workspace-status" / "scripts" / "workspace_status_engine.py"
+_READINESS = _PACK / ".apm" / "skills" / "work-loop" / "scripts" / "_header_readiness.py"
 _DISPATCH = _PACK / ".apm" / "skills" / "work-loop" / "scripts" / "dispatch.py"
 _REPLAY = _PACK / "tests" / "skills" / "work-loop" / "test_header_derived_dispatch_replay.py"
 
@@ -1024,8 +1024,8 @@ def test_reason_set_matches_the_spec() -> None:
 # --- the finding vocabulary copy --------------------------------------------------------
 
 
-def test_readiness_vocabulary_matches_workspace_status() -> None:
-    tree = ast.parse(_ENGINE.read_text(encoding="utf-8"))
+def test_readiness_vocabulary_matches_work_loop() -> None:
+    tree = ast.parse(_READINESS.read_text(encoding="utf-8"))
     values = [
         node.value
         for node in tree.body
@@ -1855,12 +1855,17 @@ def _is_argless_refusal(output: dict[str, Any]) -> bool:
     )
 
 
+def _is_unmigrated_refusal(output: dict[str, Any]) -> bool:
+    return _is_argless_refusal(output) and [
+        f["code"] for f in output["decision"]["findings"]
+    ] == ["unmigrated_workspace"]
+
+
 def test_real_start_output_over_two_ready_specs_is_wrong_schema(dispatch_mod, tmp_path) -> None:
     root = tmp_path / "two-ready"
     repo = replay.Repo(root)
     for slug in ("one", "two"):
         repo.spec(slug)
-    repo.workspace(queue=[replay._e("one"), replay._e("two")])
     argless = json.loads(dispatch_stdout(dispatch_mod, root))
     assert argless["decision"]["action"] == "ask"
     assert argless["decision"]["candidates"] == [
@@ -1898,6 +1903,7 @@ def test_every_replay_case_tree_and_the_planted_refusal_give_a_checked_member_or
     reasons: collections.Counter[str] = collections.Counter()
     actions: collections.Counter[str] = collections.Counter()
     bad: list[str] = []
+    unmigrated: list[str] = []
     trees: list[tuple[str, pathlib.Path]] = []
     for case in replay.CASES:
         if replay.IS_ROOT and case.name in replay.SKIP_AS_ROOT:
@@ -1905,6 +1911,16 @@ def test_every_replay_case_tree_and_the_planted_refusal_give_a_checked_member_or
         root = tmp_path / case.name
         replay._plant(case, root, "header")
         trees.append((case.name, root))
+    # Entry-free trees, one per decision: a workspace that holds an entry is refused.
+    for name, statuses in (
+        ("entry-free-start", ["Approved"]), ("entry-free-resume", ["Implementing"]),
+        ("entry-free-ask", ["Approved", "Approved"]), ("entry-free-none", []),
+    ):
+        repo = replay.Repo(tmp_path / name)
+        for index, status in enumerate(statuses):
+            repo.spec(f"s{index}", status)
+        (tmp_path / name / "docs" / "specs").mkdir(parents=True, exist_ok=True)
+        trees.append((name, tmp_path / name))
     planted = tmp_path / "planted-invalid-toml"
     (planted / "docs" / "specs").mkdir(parents=True)
     (planted / "workspace.toml").write_text("[unterminated\n", encoding="utf-8")
@@ -1916,6 +1932,12 @@ def test_every_replay_case_tree_and_the_planted_refusal_give_a_checked_member_or
             path_to_id = loaded_ids(root)
             got = rd.member(data, path_to_id)
             actions[output["decision"]["action"]] += 1
+            if _is_unmigrated_refusal(output):
+                # The bridge reads the refusal's code as outside its schema.
+                assert got == {"checked": False, "reason": "wrong_schema"}, name
+                reasons["wrong_schema"] += 1
+                unmigrated.append(name)
+                continue
             if _is_argless_refusal(output):
                 assert got == {"checked": False, "reason": "bad_workspace"}, name
                 reasons["bad_workspace"] += 1
@@ -1935,6 +1957,7 @@ def test_every_replay_case_tree_and_the_planted_refusal_give_a_checked_member_or
                 if path.is_file() and not path.is_symlink():
                     path.chmod(0o644)
     assert bad == ["planted-invalid-toml"], bad
+    assert unmigrated and all(not name.startswith("entry-free") for name in unmigrated)
     for action in ("start", "resume", "ask", "none"):
         assert actions[action] >= 1, (action, dict(actions))
     with capsys.disabled():
@@ -1956,9 +1979,12 @@ def test_dispatch_over_a_hostile_workspace_toml_exports_safely(dispatch_mod, tmp
     with capsys.disabled():
         print(f"\nhostile fixture: dispatch.py output holds {len(present)} of "
               f"{len(HOSTILE_NEEDLES)} hostile strings")
+    # The hostile workspace holds entries, so dispatch refuses it whole and none of
+    # its text reaches the output the export reads.
+    assert not present
     ran = export(tmp_path, data, root=root)
     assert ran.result["status"] == "ok"
-    assert ran.result["readiness"] == {"checked": True, "reason": None}
+    assert ran.result["readiness"] == {"checked": False, "reason": "wrong_schema"}
     assert ran.html is not None
     outside = outside_data_block(ran.html)
     for needle in HOSTILE_NEEDLES:

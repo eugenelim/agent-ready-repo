@@ -4,11 +4,11 @@
 Usage: dispatch.py --root <root> [--start <spec> | --resume <spec>]
 
 The command reads each spec's own `Status:` header, its sibling `plan.md`, its
-`Depends on:` targets, and a cooled spec's lifecycle record. From the root's
-`workspace.toml` it drops only the repo-origin spec entries whose `needs` is an
-empty array, and hands every other entry to the `workspace-status` engine
-unchanged, together with one in-memory membership per remaining spec built from
-its headers. It writes nothing and never picks between several candidates.
+`Depends on:` targets, and a cooled spec's lifecycle record, and evaluates them with
+the header-readiness module beside it. It reads the root's `workspace.toml` only to
+refuse: an unusable file is refused as `invalid_workspace`, and a file that still
+holds an entry is refused as `unmigrated_workspace`. It writes nothing and never
+picks between several candidates.
 
 A selector is a slug, `spec/<slug>`, `docs/specs/<slug>`, `docs/specs/<slug>/`
 or `docs/specs/<slug>/spec.md`.
@@ -36,7 +36,7 @@ The `decision` object carries `action`, `path`, `candidates` and `findings`:
 Exit codes:
   exit 0  A result was printed, whatever the decision.
   exit 2  A usage error, an invalid selector, a root that is not a real
-          directory, or an engine that cannot be loaded (`engine_unavailable`
+          directory, or a sibling file that cannot be loaded (`engine_unavailable`
           on standard error, nothing on standard output).
 """
 
@@ -51,7 +51,6 @@ import hashlib  # noqa: E402
 import importlib.util  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
-import re  # noqa: E402
 import stat  # noqa: E402
 import tomllib  # noqa: E402
 from pathlib import Path, PurePosixPath  # noqa: E402
@@ -64,17 +63,16 @@ _STATUS_COLLECTION = {"Approved": "queue", "Implementing": "active", "Shipped": 
 _PUBLIC_PATH_CHARS = frozenset(
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789._-/"
 )
-_ENGINE_NAMES = (
+_READINESS_NAMES = (
     "run_canonical_reconciliation", "_resolve_cooled_state", "_metadata_from_root",
-    "_legacy_canonical_alias", "_is_canonical_spec_artifact_path",
-    "extract_legacy_migration_memberships", "_confined_artifact_path", "_finding",
+    "_is_canonical_spec_artifact_path", "_confined_artifact_path", "_finding",
     "WorkspaceEntry", "SourceRecord",
 )
 _SAFETY_NAMES = ("validate_confined_directory", "read_confined_regular_file")
 
 
 class _Unavailable(Exception):
-    """The engine or the file-safety module cannot be loaded as required."""
+    """A sibling file dispatch needs cannot be loaded as required."""
 
 
 class _WorkspaceRefused(Exception):
@@ -85,24 +83,24 @@ class _InvalidSelector(ValueError):
     """The selector is in no form the spec selector accepts."""
 
 
-# --- the confined load (mirrors the engine's own confined sibling loader) -------
+# --- the confined load (every file is a sibling of this one) -------------------
 
 
 def _confined_module(
-    skills: Path,
+    directory: Path,
     candidate: Path,
     prefix: str,
     names: tuple[str, ...],
     data: tuple[str, ...] = (),
 ) -> ModuleType:
-    """Load `candidate` by path under a unique name, only from inside `skills`.
+    """Load `candidate` by path under a unique name, only from inside `directory`.
 
     Each of `names` must be callable (a function or class); each of `data` need
     only be present.
     """
     try:
         resolved = candidate.resolve(strict=True)
-        resolved.relative_to(skills)
+        resolved.relative_to(directory)
     except (OSError, ValueError, RuntimeError) as exc:
         raise _Unavailable(candidate.name) from exc
     if not resolved.is_file():
@@ -128,25 +126,33 @@ def _confined_module(
     return module
 
 
+def _directory() -> Path:
+    """The resolved directory holding this file; the only place a load may come from."""
+    return Path(__file__).resolve().parent
+
+
 def _load_modules() -> tuple[ModuleType, ModuleType]:
-    """Return the engine and `file_safety`, or raise `_Unavailable`."""
-    here = Path(__file__).resolve()
-    scripts = here.parent
-    skills = scripts.parent.parent
-    if scripts.name != "scripts" or skills.name != "skills":
-        raise _Unavailable("layout")
-    engine = _confined_module(
-        skills,
-        skills / "workspace-status" / "scripts" / "workspace_status_engine.py",
-        "_work_loop_dispatch_engine_",
-        _ENGINE_NAMES,
-        ("_COOLING_PAIRS",),
+    """Return the readiness module and `file_safety`, or raise `_Unavailable`."""
+    here = _directory()
+    readiness = _confined_module(
+        here, here / "_header_readiness.py", "_work_loop_dispatch_readiness_",
+        _READINESS_NAMES, ("_COOLING_PAIRS",),
     )
     safety = _confined_module(
-        skills, scripts / "file_safety.py", "_work_loop_dispatch_file_safety_",
+        here, here / "file_safety.py", "_work_loop_dispatch_file_safety_",
         _SAFETY_NAMES + ("UnsafeContentError",),
     )
-    return engine, safety
+    return readiness, safety
+
+
+def _cooling_loader() -> Any:
+    """A `load(file_name, names)` for the cooling chain, confined like every other load."""
+    here = _directory()
+
+    def load(file_name: str, names: tuple[str, ...]) -> ModuleType:
+        return _confined_module(here, here / file_name, f"_work_loop_dispatch_{file_name}_", names)
+
+    return load
 
 
 # --- selectors -------------------------------------------------------------------
@@ -240,31 +246,24 @@ def _read_workspace(safety: ModuleType, root: Path) -> dict[str, Any] | None:
         raise _WorkspaceRefused from exc
 
 
-def _is_dropped(item: object) -> bool:
-    """A repo-origin spec entry whose `needs` is an empty array."""
-    if not isinstance(item, dict) or item.get("kind") != "spec":
-        return False
-    source = item.get("source")
-    needs = item.get("needs")
-    return (
-        isinstance(source, dict)
-        and source.get("mode") == "repo-origin"
-        and isinstance(needs, list)
-        and not needs
-    )
-
-
-def _keep(node: Any, named: set[str]) -> Any:
-    """Copy `node` without dropped entries, collecting the paths kept entries name."""
-    if isinstance(node, dict):
-        return {key: _keep(value, named) for key, value in node.items()}
+def _holds_entry(node: Any) -> bool:
+    """True when a non-empty array sits anywhere in `node`, nested tables included."""
     if isinstance(node, list):
-        kept = [item for item in node if not _is_dropped(item)]
-        for item in kept:
-            if isinstance(item, dict) and isinstance(item.get("path"), str):
-                named.add(item["path"])
-        return kept
-    return node
+        return bool(node)
+    if isinstance(node, dict):
+        return any(_holds_entry(value) for value in node.values())
+    return False
+
+
+def _is_unmigrated(workspace: dict[str, Any]) -> bool:
+    """True when any key other than `authorization` still holds a non-empty array."""
+    return any(_holds_entry(value) for key, value in workspace.items() if key != "authorization")
+
+
+def _every_initiative_slug_used(workspace: dict[str, Any]) -> bool:
+    """True when `ini-000` to `ini-999` are all taken, a file the base refused."""
+    used = {key for key in workspace if isinstance(key, str)}
+    return all(f"ini-{number:03d}" in used for number in range(1000))
 
 
 def _spec_names(safety: ModuleType, root: Path) -> tuple[list[str], bool]:
@@ -300,14 +299,6 @@ def _is_spec_file(safety: ModuleType, root: Path, name: str) -> bool:
     return True
 
 
-def _highest_unused_initiative(used: set[str]) -> str | None:
-    for number in range(999, -1, -1):
-        slug = f"ini-{number:03d}"
-        if slug not in used:
-            return slug
-    return None
-
-
 # --- the run ---------------------------------------------------------------------
 
 
@@ -338,61 +329,52 @@ def dispatch(root: Path, mode: str | None = None, selector: str | None = None) -
     """Return the dispatch result for `root`.
 
     `mode` is `start`, `resume` or None; `selector` names a spec when `mode` is set.
-    Raises `_Unavailable` when the engine cannot be loaded and `_InvalidSelector`
+    Raises `_Unavailable` when a sibling file cannot be loaded and `_InvalidSelector`
     for a selector in no accepted form.
     """
-    engine, safety = _load_modules()
+    readiness, safety = _load_modules()
     target = _selector_path(selector) if mode is not None and selector is not None else None
     root = root.resolve()
 
     def make(code: str, path: str) -> dict[str, Any]:
-        return _finding_dict(engine._finding(code, path))
+        return _finding_dict(readiness._finding(code, path))
 
     try:
         workspace = _read_workspace(safety, root)
-        named: set[str] = set()
-        kept: dict[str, Any] = _keep(workspace or {}, named)
-        slug = _highest_unused_initiative(
-            {key for key in kept if isinstance(key, str) and re.fullmatch(r"ini-[0-9]{3}", key)}
-        )
-        if slug is None:
+        if workspace is not None and _every_initiative_slug_used(workspace):
             raise _WorkspaceRefused("every initiative slug is used")
     except _WorkspaceRefused:
         return _refused([make("invalid_workspace", "workspace.toml")])
-
-    legacy_paths: dict[str, set[str]] = {}
-    for membership in engine.extract_legacy_migration_memberships(kept):
-        alias = engine._legacy_canonical_alias(membership.entry)
-        if alias is not None:
-            named.add(alias)
-            legacy_paths.setdefault(alias, set()).add(membership.entry.path)
+    if workspace is not None and _is_unmigrated(workspace):
+        return _refused([make("unmigrated_workspace", "workspace.toml")])
 
     records: list[Any] = []
-    cooled, cooling_findings = engine._resolve_cooled_state(root, records, [])
-    memberships: dict[str, list[dict[str, Any]]] = {"queue": [], "active": [], "shipped": []}
+    cooled, cooling_findings = readiness._resolve_cooled_state(
+        root, records, [], _cooling_loader()
+    )
+    memberships: dict[str, list[Any]] = {"queue": [], "active": [], "shipped": []}
 
     def add(path: str, collection: str, parent: str | None) -> None:
-        source: dict[str, Any] = {"mode": "repo-origin"}
-        if parent is not None:
-            source["parent"] = parent
         memberships[collection].append(
-            {"path": path, "kind": "spec", "source": source,
-             "summary": path.split("/")[2], "needs": []}
+            readiness.WorkspaceEntry(
+                path=path, kind="spec",
+                source=readiness.SourceRecord(mode="repo-origin", parent=parent),
+                summary=path.split("/")[2], needs=[],
+            )
         )
 
     cooled_paths: set[str] = set()
     for record in records:
-        if (record.disposition, record.post_closeout_result) not in engine._COOLING_PAIRS:
+        if (record.disposition, record.post_closeout_result) not in readiness._COOLING_PAIRS:
             continue
         for locator in (record.locator, *record.aliases):
             if (
-                engine._is_canonical_spec_artifact_path(locator)
-                and engine._confined_artifact_path(root, locator) in cooled
+                readiness._is_canonical_spec_artifact_path(locator)
+                and readiness._confined_artifact_path(root, locator) in cooled
                 and locator not in cooled_paths
             ):
                 cooled_paths.add(locator)
-                if locator not in named:
-                    add(locator, "shipped", getattr(record, "parent", None))
+                add(locator, "shipped", getattr(record, "parent", None))
 
     own_findings: list[dict[str, Any]] = []
     spec_names, specs_refused = _spec_names(safety, root)
@@ -404,20 +386,20 @@ def dispatch(root: Path, mode: str | None = None, selector: str | None = None) -
     statuses: dict[str, str | None] = {}
     for name in spec_names:
         path = f"docs/specs/{name}/spec.md"
-        if not engine._is_canonical_spec_artifact_path(path):
+        if not readiness._is_canonical_spec_artifact_path(path):
             continue
         listed.add(path)
         if not _is_spec_file(safety, root, name):
             refused_entries.add(path)
             own_findings.append(make("invalid_artifact_path", path))
             continue
-        if path in named or path in cooled_paths:
+        if path in cooled_paths:
             continue
-        entry = engine.WorkspaceEntry(
-            path=path, kind="spec", source=engine.SourceRecord(mode="repo-origin"),
+        entry = readiness.WorkspaceEntry(
+            path=path, kind="spec", source=readiness.SourceRecord(mode="repo-origin"),
             summary=name, needs=[],
         )
-        metadata = engine._metadata_from_root(root, entry)
+        metadata = readiness._metadata_from_root(root, entry)
         if metadata is None or not metadata.readable:
             unreadable[path] = make("unreadable_artifact", path)
             own_findings.append(unreadable[path])
@@ -427,10 +409,8 @@ def dispatch(root: Path, mode: str | None = None, selector: str | None = None) -
         if collection is not None:
             add(path, collection, metadata.parent)
 
-    header_workspace = dict(kept)
-    header_workspace[slug] = {"name": "header-derived", "status": "active", "work": memberships}
     try:
-        result = engine.run_canonical_reconciliation(header_workspace, root, cooled)
+        result = readiness.run_canonical_reconciliation(memberships, root, cooled)
     except Exception as exc:
         raise _Unavailable("engine run failed") from exc
 
@@ -440,7 +420,7 @@ def dispatch(root: Path, mode: str | None = None, selector: str | None = None) -
             return statuses[path]
         if not isinstance(path, str):
             return None
-        metadata = engine._metadata_from_root(root, evaluation.entry)
+        metadata = readiness._metadata_from_root(root, evaluation.entry)
         return metadata.status if metadata is not None and metadata.readable else None
 
     def item(evaluation: Any) -> dict[str, Any]:
@@ -490,10 +470,9 @@ def dispatch(root: Path, mode: str | None = None, selector: str | None = None) -
     else:
         assert target is not None
         decision = _decision("refuse", findings=_refusal(
-            make, mode, target, blocked=blocked, result=result, named=named,
-            legacy_paths=legacy_paths, cooled_paths=cooled_paths, specs_refused=specs_refused,
-            refused_entries=refused_entries, listed=listed, unreadable=unreadable,
-            statuses=statuses,
+            make, mode, target, blocked=blocked, cooled_paths=cooled_paths,
+            specs_refused=specs_refused, refused_entries=refused_entries, listed=listed,
+            unreadable=unreadable, statuses=statuses,
         ))
     return {
         "schema_version": SCHEMA_VERSION,
@@ -509,15 +488,6 @@ def _refusal(
     for blocked in facts["blocked"]:
         if blocked["path"] == target and blocked["findings"]:
             return list(blocked["findings"])
-    result = facts["result"]
-    if target in facts["named"]:
-        evaluated = [e for e in result.evaluations if e.entry.path == target]
-        if evaluated:
-            found = [_finding_dict(f) for e in evaluated for f in e.findings]
-        else:
-            spellings = {target, *facts["legacy_paths"].get(target, set())}
-            found = [_finding_dict(f) for f in result.findings if f.path in spellings]
-        return found or [make("impossible_transition", target)]
     if target in facts["cooled_paths"]:
         return [make("impossible_transition", target)]
     if facts["specs_refused"]:
