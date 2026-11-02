@@ -404,6 +404,14 @@ def _store_absent(store: Path) -> bool:
     return False
 
 
+# Only ``start`` can name the exit of a first admission nothing recorded: the check that
+# finds it reads Git, which the entry point may not load before the pin check passes.
+_START_NAMES_EXIT = (
+    ". If HEAD holds the approval of a first admission this run never recorded, run start: "
+    "it names the exit that undoes it"
+)
+
+
 def _preflight(
     verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, str]
 ) -> set[str]:
@@ -457,7 +465,9 @@ def _preflight(
                 and recorded == spec
                 and _read_plain(store / ORPHAN_FILE, 16) is None
             ):
-                raise _PinRefused(f"run {name} has no pin record", unverifiable=True)
+                raise _PinRefused(
+                    f"run {name} has no pin record{_START_NAMES_EXIT}", unverifiable=True
+                )
             continue
         known.add(name)
         if pinned[0] == spec or _latest_issuance(store, standing=True) is not None:
@@ -469,7 +479,9 @@ def _preflight(
         and verb != "start"
         and (verb != "status" or not _store_absent(base / working))
     ):
-        raise _PinRefused("the supervisor's pin record is missing", unverifiable=True)
+        raise _PinRefused(
+            f"the supervisor's pin record is missing{_START_NAMES_EXIT}", unverifiable=True
+        )
     matched: set[str] = set()
     for store, name, digests in guarded:
         if installed != digests and installed != _open_regeneration(store, name):

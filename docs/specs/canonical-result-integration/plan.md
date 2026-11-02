@@ -138,7 +138,10 @@ Owned by: T1, T2.
   product ref through one owner-authorized `reanchor` step; nothing
   re-anchors automatically, because a rewrite can keep trailers while
   changing content. Foreign history is measured against the anchor, so a
-  `reanchor` ends it.
+  `reanchor` ends it. An adoption has two outcomes: when `HEAD` is past the anchor,
+  the product ref moves to a `reanchor` step on `HEAD`; when `HEAD` is still at the
+  anchor and only the product ref holds the unrecorded step, `HEAD` stays and the
+  product ref's step is replaced by a `reanchor` on `HEAD`, dropping that step's changes.
 
 ### Data & schema
 
@@ -218,9 +221,13 @@ the exit: move `HEAD` back to the base without touching the index or working tre
 worker can write, so it is printed or passed to Git only when it is the parent of
 the approval commit at `HEAD`; otherwise the refusal names no command. A leftover
 product ref from the cut-off transaction is inert and is not deleted: refs are
-shared across worktrees and two runs can share a run id. Every
-revision argument the supervisor passes to Git is marked as a revision, never an
-option. A failed store write after the move leaves the refs on a commit the run did
+shared across worktrees and two runs can share a run id. The approval's base is
+only compared with the commit's parent, never passed to Git. The two commit ids the
+diff, merge-base and range readers take pass `revision()`, which refuses anything
+that is not a full commit id and names the input (not its value). In that state
+every verb refuses `supervisor-changed` (`status` too, because the pin check runs first) and
+points at `start`, which names the exit; a pinned run with no record and no made
+list is measured from the approval's parent by `reconcile`, `inspect` and `peek`. A failed store write after the move leaves the refs on a commit the run did
 not record, and the verb answers `denied-product-record` with the state it actually
 left (AC-0008 for a step, AC-0005 for an adoption, AC-0007's first-admission state
 for a first admission), a directory that exists, and "make it writable" (AC-0023). The decision and the refusals

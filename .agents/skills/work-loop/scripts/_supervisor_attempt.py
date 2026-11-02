@@ -1011,7 +1011,7 @@ class Attempts:
                 self.pin(run_id)
                 return
             if not made and len(approvals) == 1 and commits:
-                command = self.ws.git.first_admission_exit(run_id, approvals[0]["base"])
+                command = self.ws.git.first_admission_exit(approvals[0]["base"])
                 exit_text = (
                     f"restore with {command}, then run start again" if command
                     else "no command is named: the approval's base is not a commit this "

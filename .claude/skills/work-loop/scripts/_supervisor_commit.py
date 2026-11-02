@@ -272,12 +272,14 @@ class GitPort:
                 self.record_made(run_id, record.recorded)
 
     @contextlib.contextmanager
-    def recording(self, run_id: str, doing: str, state: str) -> Generator[None]:
+    def recording(
+        self, run_id: str, doing: str, state: str, then: str = "run any verb"
+    ) -> Generator[None]:
         """Run store writes that record a landed step; a failure refuses, closed.
 
         *doing* and *state* say what was being written and what the run holds now, so the
-        refusal states the real condition. The exit is always to make the run store
-        writable and run any verb. Nothing is made or moved by a failed write.
+        refusal states the real condition. The exit is to make the run store writable and
+        then run the verb *then* names. Nothing is made or moved by a failed write.
         """
         try:
             yield
@@ -290,7 +292,7 @@ class GitPort:
                 "denied-product-record",
                 f"the run store could not be written ({type(failure).__name__}) while {doing}; "
                 f"{state} Make {self.existing_directory(self._store_dir(run_id))} writable, "
-                "then run any verb.",
+                f"then {then}.",
             ) from failure
 
     # ── the product ref ─────────────────────────────────────────────────────
@@ -441,69 +443,47 @@ class GitPort:
         return self._tree(rev).get(path)
 
     @staticmethod
-    def revision(value: str) -> str:
+    def revision(value: str, what: str = "a revision") -> str:
         """*value* if it is a full commit id, which Git can only read as a revision.
 
-        Every revision the supervisor hands to Git passes here, so a value that came from
-        a file a worker can write is never read as an option.
+        Guards the two commit ids ``changed_paths``, ``is_ancestor`` and the range reader
+        take, which come from records and history a worker can write, so none is read as an
+        option. A refusal names the input by *what* and never echoes the value.
         """
         if not _COMMIT_ID_RE.fullmatch(value):
-            raise SupervisorGitError("denied-invalid-revision", "not a commit id")
+            raise SupervisorGitError("denied-invalid-revision", f"{what} is not a full commit id")
         return value
 
     def valid_base(self, value: object) -> str | None:
-        """*value* when it is a full commit id that resolves to a commit here, else ``None``.
+        """*value* when it is the parent of the approval commit at ``HEAD``, else ``None``.
 
         The approval's ``base`` is read from ``delivery/approvals.jsonl``, which a worker
-        can write, so it reaches a printed command or a Git argument only through this.
+        can write. It is only compared with the commit's own parent and never passed to
+        Git, so a forged base is never read as a revision or printed in a command.
         """
-        if not isinstance(value, str) or not _COMMIT_ID_RE.fullmatch(value):
+        if not isinstance(value, str):
             return None
-        found = self.run("rev-parse", "--verify", "--quiet", f"{value}^{{commit}}", check=False)
-        return value if found.decode().strip() == value else None
+        line = self.text("rev-list", "--parents", "-n", "1", self.head()).split()
+        return value if len(line) == 2 and line[1] == value else None
 
     def changed_paths(self, older: str, newer: str) -> list[str]:
         """The paths whose content differs between two commits, sorted."""
         out = self.run(
-            "diff", "--name-only", "-z", "--no-renames", self.revision(older),
-            self.revision(newer), "--",
+            "diff", "--name-only", "-z", "--no-renames", self.revision(older, "the older commit"),
+            self.revision(newer, "the newer commit"), "--",
         )
         return sorted(p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p)
 
-    def orphan_product_refs(self, run_id: str) -> list[tuple[str, str]]:
-        """Product refs a first admission's transaction created that no record names.
-
-        Read by listing the run's ref directory; a name is used only if it matches the
-        product ref form and holds a commit id. A cut-off first admission leaves one.
-        """
-        common = self.hardened.pins.common_dir
-        base = common / "refs" / "agentbundle" / "delivery" / run_id
-        found: list[tuple[str, str]] = []
-        if not base.is_dir():
-            return found
-        for token in sorted(p.name for p in base.iterdir()):
-            name = f"refs/agentbundle/delivery/{run_id}/{token}/product"
-            if PRODUCT_REF_RE.fullmatch(name):
-                kind, value = self.read_ref(name)
-                if kind == "commit":
-                    found.append((name, value))
-        return found
-
-    def first_admission_exit(self, run_id: str, base: object) -> str:
+    def first_admission_exit(self, base: object) -> str:
         """The command that undoes a first admission nothing recorded, or ``""`` if it is unsafe.
 
         A soft reset returns ``HEAD`` to the approval's base and keeps every uncommitted
-        tracked change; a compare-and-swap delete removes each product ref the cut-off
-        transaction created, by its exact value. Named only for a base that is a commit.
+        tracked change. The cut-off transaction's product ref is left alone: refs are shared
+        across worktrees and two runs can share a run id, so deleting one could hit another
+        run's live ref; it names no record and is inert. Named only for the approval's parent.
         """
         checked = self.valid_base(base)
-        if checked is None:
-            return ""
-        deletes = "".join(
-            f" && git update-ref -d {name} {value}"
-            for name, value in self.orphan_product_refs(run_id)
-        )
-        return f"git reset --soft {checked}{deletes}"
+        return f"git reset --soft {checked}" if checked is not None else ""
 
     @staticmethod
     def existing_directory(path: Path) -> Path:
@@ -518,15 +498,18 @@ class GitPort:
         if older == newer:
             return True
         out = self.run(
-            "merge-base", self.revision(older), self.revision(newer), check=False
+            "merge-base",
+            self.revision(older, "the older commit"),
+            self.revision(newer, "the newer commit"),
+            check=False,
         )
         return out.decode().strip() == older
 
     def rev_list(self, older: str, newer: str) -> list[str]:
         """The commits reachable from *newer* and not from *older*, newest first."""
-        return self.text(
-            "rev-list", f"{self.revision(older)}..{self.revision(newer)}", "--"
-        ).split()
+        low = self.revision(older, "the older commit")
+        high = self.revision(newer, "the newer commit")
+        return self.text("rev-list", f"{low}..{high}", "--").split()
 
     def made_only(self, run_id: str, older: str, newer: str) -> bool:
         """Whether *newer* descends from *older* through commits this run made only."""
@@ -947,8 +930,8 @@ class GitPort:
         if first:
             held = (
                 f"HEAD names {new}, the approval of a first admission the run did not "
-                "record, so every verb but status refuses supervisor-changed and names the "
-                "exit to take."
+                "record, so every verb but start refuses supervisor-changed (status too, since "
+                "the pin check runs first) and start names the exit to take."
             )
         elif adopting and record is not None:
             held = (
@@ -966,17 +949,29 @@ class GitPort:
                 "every verb but status holds the history-adoption decision."
             )
         if name is not None:
-            with self.recording(run_id, "recording the step in the product ref record", held):
+            with self.recording(
+                run_id, "recording the step in the product ref record", held,
+                "run start" if first else "run any verb",
+            ):
                 self.write_product_record(run_id, ProductRecord(name, new))
         if new not in self._made_entries(run_id):
             if name is None:
                 held = f"HEAD names {new}, a commit the run did not record."
+            elif first:
+                held = (
+                    f"the product ref record names {new}, which the made list lacks; the "
+                    "run has no pin record yet, so every verb but start refuses "
+                    "supervisor-changed and start retries the append."
+                )
             else:
                 held = (
                     f"the product ref record names {new}, which the made list lacks, so "
-                    "every verb retries the append."
+                    "every verb that reconciles (all but status) retries the append."
                 )
-            with self.recording(run_id, "appending the step to the made list", held):
+            with self.recording(
+                run_id, "appending the step to the made list", held,
+                "run start" if first else "run any verb",
+            ):
                 self.record_made(run_id, new)
 
     # ── working copies ──────────────────────────────────────────────────────

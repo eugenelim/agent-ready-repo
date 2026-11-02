@@ -477,8 +477,8 @@ def _exits(ws: Any, div: Divergence) -> tuple[str, str]:
     """
     record = ws.git.product_record(ws.approvals()[0]["run_id"])
     if div.first_admission:
-        command = ws.git.first_admission_exit(ws.approvals()[0]["run_id"], div.anchor)
-        restore = f"{command}, then run start again" if command else _NO_COMMAND
+        # The anchor is the validated base (``_first_admission_base``), so a command exists.
+        restore = f"{ws.git.first_admission_exit(div.anchor)}, then run start again"
     elif record is None:
         restore = f"git reset --soft {div.anchor}"
     else:

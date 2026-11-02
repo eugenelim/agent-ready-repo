@@ -1270,11 +1270,16 @@ def test_a_kill_before_the_store_rename_leaves_no_run_directory_and_blocks_nothi
     base = repo / ".git" / "agentbundle-supervisor"
     assert not [p for p in base.iterdir() if p.name.startswith("run-")], "a run directory appeared"
     assert not [p for p in base.iterdir() if p.name.startswith("run-")]
-    assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
-    assert h.run_cli(repo, "next", _OTHER)[0] == 0
     # The approval's refs moved before anything recorded it: nothing counts it.
     code, out = h.start(repo)
     assert code == 1 and "git reset --soft" in out["refusal"]["detail"], out
+    assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
+    assert h.run_cli(repo, "next", _OTHER)[0] == 0
+    # The other spec's admission now sits on the approval, which is no longer HEAD's
+    # commit, so its base is not HEAD's parent and no command is named.
+    code, out = h.start(repo)
+    assert code == 1 and "no command is named" in out["refusal"]["detail"], out
+    assert "git reset" not in out["refusal"]["detail"], out
 
 
 def test_a_store_directory_is_born_with_its_spec_record(tmp_path: Path) -> None:
