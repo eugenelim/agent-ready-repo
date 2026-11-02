@@ -2726,6 +2726,12 @@ consumer = "the last registry entries: the captured-entry-drop and refresh-polic
 owner = 9
 
 [[row]]
+pattern = "docs/specs/repair-only-workspace-status/*"
+class = "contract"
+consumer = "headers-only dispatch and a repair-only workspace-status: dispatch reads artifact headers alone and refuses unmigrated entries, the status, prune and migration subcommands are retired, and [authorization.migration] is removed"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/readiness-bridge-dispatch-input/*"
 class = "historical"
 consumer = "readiness bridge input: the navigate-intents export reads argless work-loop dispatch output in place of workspace-status status"

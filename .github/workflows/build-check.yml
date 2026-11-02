@@ -673,6 +673,10 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_navigate_decisions_file_safety_mirror.py
 
+      - name: pytest work-loop cooling mirror (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_work_loop_cooling_mirror.py
+
       # The installed-skill run reads the repository's `.claude/` projection and the
       # core pack's shared supervisor harness, so no pack suite may own it. Keep it
       # above the bulk tests/ step for named failure attribution.
