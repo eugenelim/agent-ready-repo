@@ -293,3 +293,12 @@ def test_t3_adapt_eval_query_mentions_verify_entries() -> None:
 
     queries = json.loads((_ADAPT / "evals" / "eval_queries.json").read_text(encoding="utf-8"))
     assert any(q["should_trigger"] is True and "verify entr" in q["query"] for q in queries)
+
+
+def test_t8_pack_and_plugin_versions_agree() -> None:
+    import json
+    import tomllib
+
+    pack = tomllib.loads((_PACK / "pack.toml").read_text(encoding="utf-8"))
+    plugin = json.loads((_PACK / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+    assert pack["pack"]["version"] == plugin["version"]
