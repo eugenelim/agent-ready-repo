@@ -531,3 +531,17 @@ On `main` at `07c978100`, the criteria's verifying suites pass: 350 passed in 3m
 - AC-0023, AC-0025, AC-0026: `test_supervisor_tdd.py`, which covers VI-7023 and VI-7024.
 
 The run the old engine tracked ends with these merges. Its engine no longer ships, so under ADR-0144 D7 it is re-derived, not resumed.
+
+## After close-out: the supervisor is the only `Depends on:` reader
+
+Before the switch, the engine and the supervisor found a task's `Depends on:`
+line differently. The engine read only an unbulleted, exact-case line
+(`**Depends on:** T1`). The supervisor's projector also reads a bulleted or
+differently cased line (`- **Depends on:** T1`), and this repository's plans use
+bullets. The split is recorded in the `execution-supervisor-core` ledger, in
+the "plan parser moved to `_loop_guards.py`" entry.
+
+Since #1651 the supervisor's reading is the only one. A plan whose bulleted
+dependencies the engine never scheduled now has them ordered. The engine's
+reader, `section_depends_field` and `DEPENDS_LINE_RE` in `_loop_guards.py`, has
+no caller left.
