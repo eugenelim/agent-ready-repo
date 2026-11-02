@@ -347,6 +347,10 @@ _PARITY_BODIES = {
     "fenced-repeat": _BASE + "```\n- **Kind:** design\n```\n",
     "after-heading": _BASE + "\n## Notes\n\n- **Type:** bogus\n",
     "comment-hidden": _BASE + "<!--\n- **Type:** bogus\n-->\n",
+    "repeated-depends-on": _BASE + "- **Depends on:** a\n- **Depends on:** b\n",
+    "tilde-fence": _BASE + "~~~\n- **Kind:** design\n~~~\n",
+    "long-opener-short-inner": _BASE + "````\n```\n- **Kind:** design\n````\n",
+    "close-with-info-string": _BASE + "```\n```js\n- **Kind:** design\n```\n",
 }
 
 
@@ -380,6 +384,11 @@ def test_lint_accepts_exactly_what_the_captured_item_reader_accepts() -> None:
                   "intent-detail", "traversal-detail", "repeated-status",
                   "repeated-type", "fenced-kind", "bad-resolution", "empty-type")
     )
+    assert all(
+        verdicts[n]
+        for n in ("repeated-depends-on", "tilde-fence", "long-opener-short-inner",
+                  "close-with-info-string")
+    )
 
 
 def test_anchor_does_not_resolve_through_a_file_the_reader_rejects(tmp_path: Path) -> None:
@@ -389,3 +398,39 @@ def test_anchor_does_not_resolve_through_a_file_the_reader_rejects(tmp_path: Pat
         _spec_deferring(root, "my-item")
         _captured(root, "my-item", _PARITY_BODIES[name])
         assert _hard(root, "my-item"), name
+
+
+def _reader_lists_cleanly(engine: types.ModuleType, root: Path, anchor: str) -> bool:
+    """True when the reader lists `<anchor>.md` as an item with no finding."""
+    listing = engine.list_captured_items(root, frozenset())
+    bad = {f.path for f in listing.findings}
+    return any(
+        item["slug"] == anchor and item["path"] not in bad for item in listing.items
+    )
+
+
+def test_anchor_resolution_matches_the_reader_listing(tmp_path: Path) -> None:
+    """`captured_file_resolves` agrees with the reader for file bytes and anchor names."""
+    lint = _load_lint_module()
+    engine = _load_engine()
+    cases: list[tuple[str, str, bytes, str]] = [
+        ("repeated-depends-on", "my-item", _PARITY_BODIES["repeated-depends-on"].encode(), "my-item"),
+        ("non-utf8", "my-item", _BASE.encode() + b"\xff\xfe\n", "my-item"),
+        ("off-grammar", "my_item", _BASE.encode(), "my_item"),
+        ("leading-hyphen", "-item", _BASE.encode(), "-item"),
+        ("case-variant", "my-item", _BASE.encode(), "My-Item"),
+        ("upper-file", "My-Item", _BASE.encode(), "My-Item"),
+        ("plain", "my-item", _BASE.encode(), "my-item"),
+    ]
+    for label, file_slug, data, anchor in cases:
+        root = tmp_path / label
+        path = root / "docs" / "product" / "captured" / f"{file_slug}.md"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(data)
+        assert lint.captured_file_resolves(root, anchor) == _reader_lists_cleanly(
+            engine, root, anchor
+        ), label
+    assert lint.captured_file_resolves(tmp_path / "plain", "my-item")
+    assert not lint.captured_file_resolves(tmp_path / "non-utf8", "my-item")
+    assert not lint.captured_file_resolves(tmp_path / "case-variant", "My-Item")
+    assert not lint.captured_file_resolves(tmp_path / "off-grammar", "my_item")

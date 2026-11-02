@@ -919,6 +919,11 @@ _CAPTURED_TYPED_RE = re.compile(
     r"(?P<kind>spec|brief|intent|outcome|opportunity|capability):[a-z0-9][a-z0-9-]*"
 )
 _CAPTURED_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
+_CAPTURED_FILE_RE = re.compile(r"[a-z0-9][a-z0-9-]*\.md")
+# The reader's six grammar fields; a repeat of any other field is not refused.
+_CAPTURED_GRAMMAR_FIELDS = frozenset(
+    {"status", "kind", "type", "resolution", "parent intent", "detail"}
+)
 
 
 def _captured_preamble_lines(text: str) -> Iterator[str]:
@@ -984,7 +989,8 @@ def captured_text_is_valid(text: str) -> bool:
     (`Open` or `Closed`), one `Kind:` whose first word is a known kind, an
     optional `Type:` that is a shaping route, a `Resolution:` present exactly
     when Closed, an optional `Parent intent:` typed reference of an allowed
-    kind, an optional `Detail:` captured-item reference, and no repeated field.
+    kind, an optional `Detail:` captured-item reference, and no repeated one of
+    those six fields (a repeated other field, such as `Depends on:`, is fine).
     """
     values: dict[str, list[str]] = {}
     for line in _captured_preamble_lines(text):
@@ -998,7 +1004,7 @@ def captured_text_is_valid(text: str) -> bool:
                 words = value.split()
                 value = words[0] if words else ""
             values.setdefault(name, []).append(value)
-    if any(len(found) > 1 for found in values.values()):
+    if any(len(found) > 1 for name, found in values.items() if name in _CAPTURED_GRAMMAR_FIELDS):
         return False
     one = {name: found[0] for name, found in values.items()}
     status = one.get("status")
@@ -1022,21 +1028,26 @@ def captured_file_resolves(root: Path, anchor: str) -> bool:
 
     The file must be a regular, singly linked, non-link file under real
     directories below the resolved root, and pass the captured-item reader's
-    grammar (`captured_text_is_valid`). Its status value does not matter: a
-    Closed captured item still pins a frozen spec's deferral. Any OSError means
-    the file does not resolve.
+    grammar (`captured_text_is_valid`). `<anchor>.md` must fully match the
+    reader's captured-file name pattern, and the bytes must decode as strict
+    UTF-8 within the size cap; a decode failure does not resolve. Its status
+    value does not matter: a Closed captured item still pins a frozen spec's
+    deferral. Any OSError means the file does not resolve.
     """
     try:
         docs = root.resolve() / "docs"
         directory = docs / "product" / "captured"
         if not all(_real_dir(d) for d in (docs, docs / "product", directory)):
             return False
+        if _CAPTURED_FILE_RE.fullmatch(f"{anchor}.md") is None:
+            return False
         path = directory / f"{anchor}.md"
         info = os.lstat(path)
         if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
             return False
-        text = _read(path)
-        return text is not None and captured_text_is_valid(text)
+        if info.st_size > _MAX_FILE_BYTES:
+            return False
+        return captured_text_is_valid(path.read_bytes().decode("utf-8"))
     except (OSError, ValueError):
         return False
 
