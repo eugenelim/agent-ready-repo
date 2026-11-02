@@ -30,6 +30,9 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     if not spec:
         return
     index, count = (int(part) for part in spec.split("/"))
+    if not 0 <= index < count:
+        # A shard that selects nothing would pass in silence; the index is 0-based.
+        raise pytest.UsageError(f"WORK_SUPERVISOR_SHARD={spec}: need 0 <= i < n")
     kept = [item for position, item in enumerate(items) if position % count == index]
     config.hook.pytest_deselected(items=[item for item in items if item not in kept])
     items[:] = kept
