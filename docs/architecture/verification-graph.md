@@ -338,8 +338,9 @@ receipt is distinct evidence: the two answer different questions.
 ### 4.1 Reachable from `make ci` but not from any required remote job
 
 **The complete test corpus.** `test-corpus.yml` runs `make test`, but only
-on `workflow_dispatch` — so no *automatic* run of any kind reaches it, and no
-job runs `make test-after-build-check` at all. Since
+on a weekly `schedule` on the default branch and on `workflow_dispatch` — so no
+pull request or push reaches it, and no job runs `make test-after-build-check`
+at all. Since
 spec/test-corpus-sharding it runs the target across four matrix jobs, each
 invoking `make test SHARD=<n> SHARDS=4`; the Makefile stays the single roster
 and the workflow enumerates no suite, so what a green run proves is unchanged
@@ -553,7 +554,7 @@ dispatch workflows that landed after that date:
 | Security scan, separately runnable | `build-check.yml`'s `gate-sast` job already runs `make sast` on its own runner | none — it is reached by any dispatch of that workflow |
 | Site and browser gate, dispatchable | `pages.yml` already declares `workflow_dispatch` | none |
 | Build and policy chain, dispatchable | `build-check.yml` declares `pull_request`, `push: branches: [main]`, and `workflow_dispatch` | none |
-| Complete test corpus, runnable remotely | `test-corpus.yml` is dispatch-only and runs `make test` in four shards; `test-roster.yml` runs the roster suite only. Both are scoped evidence, not required checks | the composition and its receipt |
+| Complete test corpus, runnable remotely | `test-corpus.yml` runs on a weekly schedule and on dispatch, never on a pull request, and runs `make test` in four shards; `test-roster.yml` runs the roster suite only. Both are scoped evidence, not required checks | the composition and its receipt |
 
 Two supporting facts follow from the same measurement:
 
