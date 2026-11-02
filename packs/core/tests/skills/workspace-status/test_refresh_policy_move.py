@@ -231,6 +231,27 @@ def test_a_file_that_appears_between_derivation_and_write_is_refused_policy_file
     assert policy_bytes(repo) == stranger.encode("utf-8") and TABLE in registry(repo)
 
 
+def test_a_file_that_appears_after_every_pre_check_is_not_overwritten(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = make_repo(tmp_path)
+    plan(repo, capsys)
+    stranger = 'other = "kept"\n'
+    write(repo, POLICY, stranger)
+    real_lexists = WS.os.path.lexists
+
+    def lexists(path: Any) -> bool:
+        # Every pre-check sees no policy file; only the exclusive create can refuse.
+        return False if Path(path).name == POLICY else real_lexists(path)
+
+    monkeypatch.setattr(WS.os.path, "lexists", lexists)
+    code, result = apply(repo, capsys)
+    monkeypatch.undo()
+    assert code == 0
+    assert [r["reason"] for r in result["per_operation"]] == ["policy_file_exists"]
+    assert policy_bytes(repo) == stranger.encode("utf-8") and TABLE in registry(repo)
+
+
 def test_a_refresh_module_that_cannot_load_is_its_own_manual_reason(
     tmp_path: Path, capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:

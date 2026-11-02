@@ -317,3 +317,75 @@ def test_base_cases_keep_results(tmp_path: Path) -> None:
     assert _violations(tmp_path)
     _captured(tmp_path, _ANCHOR, "# Item\n\n- **Status:** Open\n- **Kind:** defect\n")
     assert _violations(tmp_path) == []
+
+
+_ENGINE = _PACK_ROOT / ".apm/skills/workspace-status/scripts/workspace_status_engine.py"
+_BASE = "# Item\n\n- **Status:** Open\n- **Kind:** defect\n"
+_PARITY_BODIES = {
+    "open": _BASE,
+    "closed": "# Item\n\n- **Status:** Closed\n- **Kind:** defect\n- **Resolution:** fixed\n",
+    "closed-no-resolution": "# Item\n\n- **Status:** Closed\n- **Kind:** defect\n",
+    "open-with-resolution": _BASE + "- **Resolution:** fixed\n",
+    "bad-resolution": "# Item\n\n- **Status:** Closed\n- **Kind:** defect\n- **Resolution:** done\n",
+    "bad-status": "# Item\n\n- **Status:** Draft\n- **Kind:** defect\n",
+    "no-kind": "# Item\n\n- **Status:** Open\n",
+    "bad-kind": "# Item\n\n- **Status:** Open\n- **Kind:** bogus\n",
+    "kind-first-word": "# Item\n\n- **Status:** Open\n- **Kind:** defect (regression)\n",
+    "good-type": _BASE + "- **Type:** shape\n",
+    "bad-type": _BASE + "- **Type:** bogus\n",
+    "empty-type": _BASE + "- **Type:**\n",
+    "good-parent": _BASE + "- **Parent intent:** intent:my-intent\n",
+    "spec-parent": _BASE + "- **Parent intent:** spec:my-spec\n",
+    "untyped-parent": _BASE + "- **Parent intent:** my-intent\n",
+    "good-detail": _BASE + "- **Detail:** docs/product/notes/more.md\n",
+    "spec-detail": _BASE + "- **Detail:** docs/specs/x/spec.md\n",
+    "intent-detail": _BASE + "- **Detail:** docs/product/intents/x.md\n",
+    "traversal-detail": _BASE + "- **Detail:** ../x.md\n",
+    "repeated-status": _BASE + "- **Status:** Open\n",
+    "repeated-type": _BASE + "- **Type:** shape\n- **Type:** shape\n",
+    "fenced-kind": "# Item\n\n- **Status:** Open\n```\n- **Kind:** defect\n```\n",
+    "fenced-repeat": _BASE + "```\n- **Kind:** design\n```\n",
+    "after-heading": _BASE + "\n## Notes\n\n- **Type:** bogus\n",
+    "comment-hidden": _BASE + "<!--\n- **Type:** bogus\n-->\n",
+}
+
+
+def _load_engine() -> types.ModuleType:
+    spec = importlib.util.spec_from_file_location("last_registry_parity_engine", _ENGINE)
+    assert spec is not None and spec.loader is not None
+    mod = importlib.util.module_from_spec(spec)
+    import sys
+
+    sys.modules[spec.name] = mod
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def test_lint_accepts_exactly_what_the_captured_item_reader_accepts() -> None:
+    """One table of bodies runs through the lint and `parse_captured_item`."""
+    lint = _load_lint_module()
+    engine = _load_engine()
+    disagreements = [
+        name
+        for name, body in _PARITY_BODIES.items()
+        if lint.captured_text_is_valid(body) != (engine.parse_captured_item(body)[0] is not None)
+    ]
+    assert disagreements == []
+    verdicts = {n: lint.captured_text_is_valid(b) for n, b in _PARITY_BODIES.items()}
+    assert verdicts["good-type"] and verdicts["good-parent"] and verdicts["good-detail"]
+    assert verdicts["fenced-repeat"] and verdicts["comment-hidden"] and verdicts["after-heading"]
+    assert not any(
+        verdicts[n]
+        for n in ("bad-type", "spec-parent", "untyped-parent", "spec-detail",
+                  "intent-detail", "traversal-detail", "repeated-status",
+                  "repeated-type", "fenced-kind", "bad-resolution", "empty-type")
+    )
+
+
+def test_anchor_does_not_resolve_through_a_file_the_reader_rejects(tmp_path: Path) -> None:
+    """Each field the reader rejects keeps a deferral anchor unresolved."""
+    for name in ("bad-type", "spec-parent", "spec-detail", "repeated-type", "fenced-kind"):
+        root = tmp_path / name
+        _spec_deferring(root, "my-item")
+        _captured(root, "my-item", _PARITY_BODIES[name])
+        assert _hard(root, "my-item"), name

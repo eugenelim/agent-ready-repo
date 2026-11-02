@@ -910,40 +910,111 @@ def open_file_resolves(root: Path, anchor: str) -> bool:
 
 
 _CAPTURED_FIELD_RE = re.compile(r"^- \*\*(?P<name>[^*]+):\*\*\s*(?P<value>.*)$")
+_CAPTURED_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _CAPTURED_KINDS = frozenset({"defect", "design", "research", "intent"})
 _CAPTURED_RESOLUTIONS = frozenset({"fixed", "declined", "superseded"})
+_CAPTURED_ROUTE_TYPES = frozenset({"shape", "research", "strategy", "design", "signal"})
+_CAPTURED_PARENT_KINDS = frozenset({"intent", "outcome", "opportunity", "capability"})
+_CAPTURED_TYPED_RE = re.compile(
+    r"(?P<kind>spec|brief|intent|outcome|opportunity|capability):[a-z0-9][a-z0-9-]*"
+)
+_CAPTURED_SEGMENT_RE = re.compile(r"[A-Za-z0-9._-]+")
+
+
+def _captured_preamble_lines(text: str) -> Iterator[str]:
+    """Yield the preamble lines of a captured file with fences and comments hidden.
+
+    The preamble ends at the first `## ` heading. A line inside a fenced block
+    or a multi-line HTML comment is yielded as an empty string. This follows the
+    workspace-status reader's preamble rules; the two skills ship apart, so the
+    rules are repeated here and a parity test keeps them equal.
+    """
+    fence_char: str | None = None
+    fence_len = 0
+    in_comment = False
+    for line in text.splitlines():
+        if not in_comment:
+            fence = _CAPTURED_FENCE_RE.match(line)
+            if fence:
+                marker = fence.group(1)
+                if fence_char is None:
+                    fence_char, fence_len = marker[0], len(marker)
+                    yield ""
+                    continue
+                if (
+                    marker[0] == fence_char
+                    and len(marker) >= fence_len
+                    and not line[fence.end():].strip()
+                ):
+                    fence_char, fence_len = None, 0
+                    yield ""
+                    continue
+        if fence_char is not None:
+            yield ""
+            continue
+        if in_comment:
+            if "-->" in line:
+                rest = _HTML_COMMENT_RE.sub("", line[line.index("-->") + 3:])
+                in_comment = "<!--" in rest
+            yield ""
+            continue
+        if _SECTION_HEADING_RE.match(line):
+            return
+        clean = _HTML_COMMENT_RE.sub("", line)
+        if "<!--" in clean:
+            clean = clean[: clean.index("<!--")]
+            in_comment = True
+        yield clean
+
+
+def _captured_item_reference(item: str) -> bool:
+    """True when `item` is a captured-item reference, not a spec, brief or intent path."""
+    parts = item.split("/")
+    if any(p in (".", "..") or _CAPTURED_SEGMENT_RE.fullmatch(p) is None for p in parts):
+        return False
+    if len(parts) == 4 and parts[:2] == ["docs", "specs"] and parts[3] == "spec.md":
+        return False
+    return parts[:3] not in (["docs", "product", "briefs"], ["docs", "product", "intents"])
 
 
 def captured_text_is_valid(text: str) -> bool:
-    """True when a captured file's preamble passes the captured-item reader's core rules.
+    """True when a captured file's preamble passes the captured-item reader's grammar.
 
-    Mirrors the workspace-status reader for the fields that decide validity here:
-    one `Status:` (`Open` or `Closed`), one `Kind:` whose first word is a known
-    kind, and a `Resolution:` present exactly when the status is `Closed`.
+    Accepts exactly what the workspace-status reader accepts: one `Status:`
+    (`Open` or `Closed`), one `Kind:` whose first word is a known kind, an
+    optional `Type:` that is a shaping route, a `Resolution:` present exactly
+    when Closed, an optional `Parent intent:` typed reference of an allowed
+    kind, an optional `Detail:` captured-item reference, and no repeated field.
     """
     values: dict[str, list[str]] = {}
-    for line in _HTML_COMMENT_RE.sub("", text).splitlines():
-        if _SECTION_HEADING_RE.match(line):
-            break
+    for line in _captured_preamble_lines(text):
         match = _CAPTURED_FIELD_RE.match(line)
         if match:
+            name = match.group("name").strip().lower()
             value = match.group("value").strip()
             if len(value) >= 2 and value[0] == value[-1] == "`":
                 value = value[1:-1].strip()
-            values.setdefault(match.group("name").strip().lower(), []).append(value)
-
-    def single(name: str) -> str | None:
-        found = values.get(name, [])
-        return found[0] if len(found) == 1 else None
-
-    status = single("status")
-    kind = (single("kind") or "").split()
-    resolution = values.get("resolution", [])
-    if status not in ("Open", "Closed") or not kind or kind[0] not in _CAPTURED_KINDS:
+            if name == "kind":
+                words = value.split()
+                value = words[0] if words else ""
+            values.setdefault(name, []).append(value)
+    if any(len(found) > 1 for found in values.values()):
         return False
-    if (status == "Closed") != bool(resolution):
+    one = {name: found[0] for name, found in values.items()}
+    status = one.get("status")
+    if status not in ("Open", "Closed") or one.get("kind") not in _CAPTURED_KINDS:
         return False
-    return not resolution or (len(resolution) == 1 and resolution[0] in _CAPTURED_RESOLUTIONS)
+    if "type" in one and one["type"] not in _CAPTURED_ROUTE_TYPES:
+        return False
+    if (status == "Closed") != ("resolution" in one):
+        return False
+    if "resolution" in one and one["resolution"] not in _CAPTURED_RESOLUTIONS:
+        return False
+    if "parent intent" in one:
+        typed = _CAPTURED_TYPED_RE.fullmatch(one["parent intent"])
+        if typed is None or typed.group("kind") not in _CAPTURED_PARENT_KINDS:
+            return False
+    return "detail" not in one or _captured_item_reference(one["detail"])
 
 
 def captured_file_resolves(root: Path, anchor: str) -> bool:

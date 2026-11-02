@@ -414,9 +414,50 @@ def test_membership_whose_needs_cannot_move_gets_no_drop_and_one_manual_item(
     assert not [op for op in first["automatic_operations"] if op["operation_type"] in (DROP, NEEDS)]
     manual_before = [f["finding_id"] for f in first["manual_findings"]]
     assert len(manual_before) == 1
+    [item] = first["manual_findings"]
+    assert item["finding_type"] == 4
+    assert item["reason"] == "missing-brief-target"
+    assert item["spec_path"] == path
     again = plan(repo, capsys)
     assert [f["finding_id"] for f in again["manual_findings"]] == manual_before
     assert again["automatic_operations"] == first["automatic_operations"]
+
+
+def test_apply_refuses_a_file_edited_after_the_plan_that_still_parses(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = f"{CAPTURED}/d1.md"
+    repo = make_repo(tmp_path, {path: record()}, open_=[member(path)])
+    plan(repo, capsys)
+    edited = record(status="Closed") + "- **Resolution:** fixed\n"
+    (repo / path).write_text(edited, encoding="utf-8")
+    before = registry_text(repo)
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert [i["reason"] for i in result["per_operation"]] == ["captured_file_changed"]
+    assert registry_text(repo) == before and captured_bytes(repo) == {"d1.md": edited.encode("utf-8")}
+
+
+def test_membership_whose_needs_a_same_plan_header_move_covers_is_dropped_in_one_apply(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = f"{CAPTURED}/d1.md"
+    peer = "docs/specs/peer/spec.md"
+    planted = member(path).replace(
+        "needs = []", f'needs = [{{type = "local", kind = "spec", path = "{peer}"}}]'
+    )
+    spec = "# Spec: peer\n\n- **Status:** Approved\n- **Brief:** none\n\n## Outcome\n\nbody\n"
+    repo = make_repo(tmp_path, {path: record(), peer: spec}, open_=[planted], active=[member(peer, "spec")])
+    data = plan(repo, capsys)
+    assert [op["waiting_path"] for op in needs_ops(data)] == [path]
+    assert [op["path"] for op in drops(data)] == [path]
+    code, result = apply(repo, capsys)
+    assert code == 0, result
+    assert all(item["applied"] for item in result["per_operation"]), result
+    assert path not in registry_text(repo)
+    assert "spec:peer" in (repo / path).read_text(encoding="utf-8")
+    after = plan(repo, capsys)
+    assert after["automatic_operations"] == [] and after["manual_findings"] == []
 
 
 # ── dispatch ─────────────────────────────────────────────────────────────────

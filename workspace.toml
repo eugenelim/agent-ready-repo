@@ -820,7 +820,7 @@ open = [
   # in docs/knowledge/observations/gotcha/2026-09.jsonl.
   # This follow-on is no longer an entry here: the captured-item file
   # docs/product/captured/agent-skill-engineering-provider-absence-behaviour.md
-  # carries it, and AC16 of the Shipped
+  # carries it, and the Status line of the Shipped
   # spec/agent-skill-engineering-consumer-integrations points there.
   # The three sibling controls from that security review closed 2026-09-08; see
   # docs/specs/agent-skill-engineering-consumer-integrations/notes/consumer-security-review-closures.md.

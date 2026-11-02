@@ -4138,8 +4138,8 @@ def _write_tracker_profiles(
 # slug-only entry whose `docs/product/captured/<slug>.md` is readable, including
 # an entry a `captured-to-file` operation of the same plan backs: that drop
 # carries the bytes the operation writes and is checked against them after the
-# write. Every other such entry is one manual item and stays. The repair never
-# writes a captured file.
+# write. Every other such entry is one manual item and stays. `captured-entry-drop`
+# never writes a captured file; `needs-to-header` writes the moved `needs` into one.
 
 _CAPTURED_ENTRY_DROP = "captured-entry-drop"
 _CAPTURED_DROP_FINDING_TYPE = 8
