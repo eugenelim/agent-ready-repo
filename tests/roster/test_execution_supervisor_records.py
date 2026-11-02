@@ -182,3 +182,28 @@ def test_every_plan_under_docs_specs_projects() -> None:
     assert plans
     for plan_path in plans:
         h.projector.project_plan(plan_path.read_text(encoding="utf-8"))
+
+
+def test_a_history_adoption_request_and_its_answer_validate() -> None:
+    commit = "a" * 40
+    request = {
+        "schema_version": 1, "request_id": "decide:history-adoption:0", "run_id": "run-0",
+        "spec": "docs/specs/x", "kind": "human-decision", "stage": "awaiting-human",
+        "reason": "history-adoption", "question": "Adopt it?",
+        "head_commit": commit, "changed_path_count": 1, "changed_paths": ["a.py"],
+        "spec_dir_changed": False,
+    }
+    assert _errors("execution-request.v1.schema.json", request) == []
+    assert _errors("execution-request.v1.schema.json", {k: v for k, v in request.items()
+                                            if k != "head_commit"}) != []
+    result = {
+        "schema_version": 1, "request_id": "decide:history-adoption:0", "run_id": "run-0",
+        "kind": "human-decision",
+        "decision": {"decision": "adopt-history", "authority_ref": "owner:0123456789ab",
+                     "commit": commit},
+    }
+    assert _errors("execution-result.v1.schema.json", result) == []
+    bare = {**result, "decision": {"decision": "adopt-history", "authority_ref": "owner"}}
+    assert _errors("execution-result.v1.schema.json", bare) != []
+    mixed = {**result, "decision": {**result["decision"], "selection_key": "k"}}
+    assert _errors("execution-result.v1.schema.json", mixed) != []

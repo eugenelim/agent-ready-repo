@@ -404,6 +404,15 @@ def _store_absent(store: Path) -> bool:
     return False
 
 
+# Only ``start`` can name the exit of a first admission nothing recorded: the check that
+# finds it reads Git, which the entry point may not load before the pin check passes. Added
+# only where a store directory exists, which a clone of a finished run does not have.
+_START_NAMES_EXIT = (
+    ". If HEAD holds the approval of a first admission this run never recorded, run start: "
+    "it names the exit that undoes it"
+)
+
+
 def _preflight(
     verb: str, spec_dir: str, cwd: Path | None, installed: dict[str, str]
 ) -> set[str]:
@@ -457,7 +466,9 @@ def _preflight(
                 and recorded == spec
                 and _read_plain(store / ORPHAN_FILE, 16) is None
             ):
-                raise _PinRefused(f"run {name} has no pin record", unverifiable=True)
+                raise _PinRefused(
+                    f"run {name} has no pin record{_START_NAMES_EXIT}", unverifiable=True
+                )
             continue
         known.add(name)
         if pinned[0] == spec or _latest_issuance(store, standing=True) is not None:
@@ -469,6 +480,7 @@ def _preflight(
         and verb != "start"
         and (verb != "status" or not _store_absent(base / working))
     ):
+        # Plain text: a clone with committed records and no store looks the same here.
         raise _PinRefused("the supervisor's pin record is missing", unverifiable=True)
     matched: set[str] = set()
     for store, name, digests in guarded:
@@ -690,9 +702,27 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     loop = _supervisor("_supervisor_loop.py")
     commit = _supervisor("_supervisor_commit.py")
     statelock = commit.sibling("_statelock.py")
-    workspace = admission.Workspace(root, spec_rel)
+    try:
+        workspace = admission.Workspace(root, spec_rel)
+    except admission.Refusal as exc:  # an invalid installed policy
+        _emit({"refusal": exc.as_dict()})
+        return EXIT_REFUSED
     workspace.attempts.installed = installed
     workspace.attempts.pre_import_matched = matched
+    try:
+        # Before any ref is read: the product ref needs Git's files ref storage.
+        admission.refuse_unsupported_ref_storage(workspace)
+    except admission.Refusal as exc:
+        if args.verb == "status":
+            _emit({"run": {}, "refusal": exc.as_dict(), "terminal": False})
+            return EXIT_REFUSED if args.check else EXIT_OK
+        _emit({"refusal": exc.as_dict()})
+        return EXIT_REFUSED
+    except commit.SupervisorGitError as exc:
+        if exc.unverifiable:
+            _log_unverifiable(workspace, exc.code)
+        _emit({"refusal": {"code": exc.code, "owner": "controller", "detail": str(exc)}})
+        return EXIT_REFUSED
     unsafe = _untrusted_unsafe_host_refusal(args, workspace)
     if unsafe is not None:
         _emit({"refusal": unsafe})

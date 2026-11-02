@@ -287,6 +287,27 @@ def commit_supervisor_red(ws: Any, state: Any, task: dict[str, Any]) -> Any:
     return None
 
 
+def _commit_result(ws: Any, request: dict[str, Any], **step: Any) -> None:
+    """Commit a product result against the commit its request was issued at.
+
+    A conflict that a supervisor step caused (the product ref still holds a recorded
+    value) marks the attempt stale, so the next verb issues the same request again.
+    """
+    try:
+        ws.git.build_commit(
+            **step, product_source=ws.attempts.source_commit(request["request_id"])
+        )
+    except Refusal as exc:
+        if exc.code == "integration-conflict":
+            try:
+                ws.attempts.mark_stale_if_landed()
+            except Exception as failure:  # noqa: BLE001 - shown beside the refusal, never instead
+                _loop._commit.append_note(
+                    exc, f"the attempt could not be marked stale ({type(failure).__name__})"
+                )
+        raise
+
+
 def report_task(
     ws: Any, state: Any, request: dict[str, Any], result: dict[str, Any], changed: list[str]
 ) -> str:
@@ -320,7 +341,9 @@ def report_task(
             )
             raise _not_red(task, observed, leftovers, closed=True)
         evidence = ws.evidence_append([_red_receipt(ws, state, step, task)])
-        ws.git.build_commit(
+        _commit_result(
+            ws,
+            request,
             run_id=state.run_id,
             step=step,
             operation="stub",
@@ -349,7 +372,9 @@ def report_task(
                 revision=task["revision"],
             )
         ])
-        ws.git.build_commit(
+        _commit_result(
+            ws,
+            request,
             run_id=state.run_id,
             step=step,
             operation="implement",

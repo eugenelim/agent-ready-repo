@@ -255,6 +255,7 @@ also ships.
 | `execution-supervisor-attempt-security` | <auto> |
 | `execution-supervisor-review-gate` | <auto> |
 | `execution-supervisor-cutover` | <auto> |
+| `canonical-result-integration` | <auto> |
 
 ## Design artifacts
 

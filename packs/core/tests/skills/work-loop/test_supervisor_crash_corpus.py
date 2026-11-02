@@ -1,6 +1,7 @@
-"""VI-4901: the crash corpus on the real supervisor modules.
+"""VI-4901 and VI-0501: the crash corpus on the real supervisor modules.
 
-AC-0015, AC-0016, AC-0017, AC-0018, AC-0026, AC-0032. A synthetic three-task
+AC-0015, AC-0016, AC-0017, AC-0018, AC-0026, AC-0032; and, for the product ref,
+AC-0007 and AC-0017. A synthetic three-task
 code run — one TDD task, one task declaring an external effect, one plain task
 whose first gate fails — with one review round carrying a finding, run once
 uninterrupted and then once per variant: killed at each kill point, the
@@ -12,6 +13,8 @@ from __future__ import annotations
 import collections
 import importlib.util
 import json
+import os
+import subprocess
 import sys
 from collections.abc import Callable
 from pathlib import Path
@@ -48,15 +51,57 @@ pytestmark = sup.INTEGRATION
 EVENT_FIELDS = {"seq": int, "run_id": str, "spec": str, "from": str, "event": str, "to": str,
                 "at": str, "schema": int, "step_id": str, "awaiting_input": bool}
 ATTEMPT_KINDS = ("write-stub", "implement-task", "run-gates", "review-role", "assess-finding")
-STEP_KINDS = {"approval", "replan", "stub", "red", "implement", "evidence", "gate-fail", "review",
+STEP_KINDS = {"approval", "replan", "reanchor", "stub", "red", "implement", "evidence", "gate-fail", "review",
               "effect-intent", "effect-dispatch", "effect-receipt", "claim", "resolution",
               "terminal"}
 RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}
 STAGES = {"admitted", "implementing", "gating", "reviewing", "awaiting-human", "terminal"}
-# Kill points in the uninterrupted run: 13 steps x (built, moved, synced, event),
-# 11 journal appends, and 1 effect dispatch. The reviewer-selection exchange is
-# one of those steps and one of those appends.
-BOUNDARIES = 65
+# Kill points in the uninterrupted run: 13 steps x (built, refs moved, made
+# recorded, synced, event) = 65, 11 journal appends, 1 effect dispatch, and the
+# store's build in the first admission: 78. The reviewer-selection exchange is one
+# of those steps and one of those appends.
+BOUNDARIES = 78
+
+
+def _run_store(repo: Path) -> Path | None:
+    """The run's store directory (never a leftover temporary one), or None before it exists."""
+    base = repo / ".git" / "agentbundle-supervisor"
+    runs = [p for p in base.iterdir() if p.name.startswith("run-")] if base.exists() else []
+    assert len(runs) <= 1
+    return runs[0] if runs else None
+
+
+def _rev(repo: Path, name: str) -> str:
+    done = subprocess.run(["git", "rev-parse", "--verify", "-q", name], cwd=repo,
+                          capture_output=True, text=True, check=False)
+    return done.stdout.strip()
+
+
+def _manifest(repo: Path, revision: str) -> dict[str, str]:
+    pairs = {}
+    for line in h.git(repo, "ls-tree", "-r", revision).splitlines():
+        meta, path = line.split("\t", 1)
+        pairs[path] = meta.split()[2]
+    return {p: o for p, o in pairs.items() if not p.startswith(h.SPEC_DIR + "/")}
+
+
+def assert_three_way_parity(repo: Path) -> None:
+    """The working tree's tracked files, the HEAD subject, and the product-ref subject agree."""
+    store = _run_store(repo)
+    assert store is not None
+    name = json.loads((store / "product-ref").read_text("utf-8"))["name"]
+    working = {
+        p: h.git(repo, "hash-object", p).strip()
+        for p in h.git(repo, "ls-files").splitlines()
+        if not p.startswith(h.SPEC_DIR + "/") and (repo / p).exists()
+    }
+    assert _rev(repo, name) == _rev(repo, "HEAD")
+    assert _manifest(repo, "HEAD") == _manifest(repo, name) == working
+
+
+STEP_POINTS = ("refs-moved", "made-recorded", "synced")
+# The recorder of each repository under test, so a diversion can read where it struck.
+_RECORDERS: dict[Path, Recorder] = {}
 
 
 class Recorder:
@@ -65,11 +110,48 @@ class Recorder:
     def __init__(self, repo: Path, *, kill_at: int = 0, delete_at: int = 0) -> None:
         self.repo, self.kill_at, self.delete_at = repo, kill_at, delete_at
         self.seen: list[str] = []
+        # The operation of the step in flight at each kill point, "" outside a step.
+        self.ops: list[str] = []
+        self._op = ""
         self.staged_after_sync: list[list[str]] = []
+
+    def check_product_ref(self, name: str) -> None:
+        """At every kill point the ref names the commit before or after the write in flight."""
+        store = _run_store(self.repo)
+        if store is None or not (store / "product-ref").exists():
+            return
+        record = json.loads((store / "product-ref").read_text("utf-8"))
+        value = _rev(self.repo, record["name"])
+        head = _rev(self.repo, "HEAD")
+        if name == "refs-moved":
+            # After the transaction, before the run recorded it: past the record.
+            assert value != record["recorded"] and value == head, (name, record)
+        elif name in ("commit-built", "made-recorded", "synced"):
+            assert value == record["recorded"], (name, record)
+        else:
+            # Between steps, or while an earlier cut-off step awaits the owner: the ref is
+            # at the record, or at the unrecorded commit whose parent is the record.
+            assert value == record["recorded"] or _rev(
+                self.repo, f"{value}^") == record["recorded"], (name, record)
+        if name in ("made-recorded", "synced"):
+            assert h.git(self.repo, "symbolic-ref", "HEAD").strip() == "refs/heads/main"
+            assert value == head == record["recorded"]
+
+    def _operation(self) -> str:
+        """The operation trailer of the commit ``HEAD`` was just moved to."""
+        body = h.git(self.repo, "log", "-1", "--format=%B", "HEAD")
+        return next((x.split(": ", 1)[1] for x in body.splitlines()
+                     if x.startswith("Supervisor-Operation: ")), "")
 
     def __call__(self, name: str) -> None:
         self.seen.append(name)
+        if name == "refs-moved":
+            self._op = self._operation()
+        self.ops.append(self._op if name in STEP_POINTS else "")
+        if name == "synced":
+            self._op = ""
         n = len(self.seen)
+        self.check_product_ref(name)
         if name == "synced":
             staged = h.git(self.repo, "diff", "--cached", "--name-only").split()
             if staged:
@@ -97,17 +179,138 @@ def _check_run_json(repo: Path, payload: dict[str, Any], problems: list[str]) ->
         problems.append(f"run.json {run} for {payload}")
 
 
+# A kill here leaves the refs moved and the step unrecorded; ``store-built`` is the first
+# admission's, whose store is built by the write that records it.
+CUT_OFF_POINTS = ("refs-moved", "store-built")
+
+
+class Variant:
+    """What a run variant may need from its owner, and what it did ask for."""
+
+    def __init__(self, *, adopting: bool) -> None:
+        self.adopting = adopting
+        self.killed_at = ""  # the name of the kill point that crashed it
+        self.exits: list[str] = []
+
+    def require(self, state: str, exit_name: str) -> None:
+        """Take an owner exit, which only the state that causes it permits."""
+        if state == "cut-off":
+            assert self.killed_at in CUT_OFF_POINTS, f"{exit_name} outside a cut-off step"
+        else:
+            assert self.adopting, f"{exit_name} outside the adoption scenario"
+        self.exits.append(exit_name)
+
+
+_VARIANTS: dict[Path, Variant] = {}
+
+
+def cut_off_state(repo: Path) -> bool:
+    """A ref or ``HEAD`` names a commit the run never recorded, on the recorded value."""
+    store = _run_store(repo)
+    if store is None or not (store / "product-ref").exists():
+        return False
+    record = json.loads((store / "product-ref").read_text("utf-8"))
+    ahead = {_rev(repo, record["name"]), _rev(repo, "HEAD")} - {record["recorded"]}
+    return bool(ahead) and all(_rev(repo, f"{c}^") == record["recorded"] for c in ahead)
+
+
+def restore_both(repo: Path) -> None:
+    """The owner's restore exit: both refs back on the recorded value."""
+    store = _run_store(repo)
+    assert store is not None
+    record = json.loads((store / "product-ref").read_text("utf-8"))
+    h.git(repo, "update-ref", "--no-deref", record["name"], record["recorded"])
+    h.git(repo, "reset", "-q", "--soft", record["recorded"])
+
+
+def adopt(c: h.Controller, request: dict[str, Any]) -> bool:
+    """Answer a history-adoption decision the way the owner's controller would.
+
+    The state decides, not the wording: a step cut off after its refs moved changes
+    delivery/, so adoption would be refused and both refs are restored; other history is
+    adopted.
+    """
+    if request.get("reason") != "history-adoption":
+        return False
+    variant = _VARIANTS[c.repo]
+    if cut_off_state(c.repo):
+        variant.require("cut-off", "restore")
+        restore_both(c.repo)
+        return True
+    variant.require("adoption", "adopt")
+    code, out = c.report({
+        "schema_version": 1,
+        "request_id": request["request_id"],
+        "run_id": request["run_id"],
+        "kind": "human-decision",
+        "decision": {"decision": "adopt-history", "authority_ref": "owner:0123456789ab",
+                     "commit": request["head_commit"]},
+    })
+    assert code == 0, out
+    return True
+
+
+def recover_start(repo: Path, started: dict[str, Any]) -> bool:
+    """Take the exit a refused ``start`` names, in the one state that causes each refusal."""
+    variant = _VARIANTS[repo]
+    code = started["refusal"]["code"]
+    detail = started["refusal"]["detail"]
+    if code in ("history-adoption-required", "attempt-residue") and cut_off_state(repo):
+        variant.require("cut-off", "restore")
+        restore_both(repo)
+        return True
+    if code == "supervisor-changed" and "git reset --soft" in detail:
+        # The first admission's approval was cut off after its refs moved: run the exit it
+        # prints, which keeps uncommitted work; the leftover product ref stays inert.
+        variant.require("cut-off", "reset-first-admission")
+        command = detail.split("restore with ", 1)[1].split(", then")[0]
+        done = subprocess.run(command, shell=True, cwd=repo, env={**os.environ, **h.GIT_ENV},
+                              capture_output=True, text=True, check=False)
+        assert done.returncode == 0, (command, done.stderr)
+        return True
+    if code == "product-ref-diverged":
+        # An adoption killed after its refs moved: only the product ref goes back.
+        variant.require("adoption", "restore-ref")
+        store = _run_store(repo)
+        assert store is not None
+        rec = json.loads((store / "product-ref").read_text("utf-8"))
+        h.git(repo, "update-ref", "--no-deref", rec["name"], rec["recorded"])
+        return True
+    return False
+
+
+def resumed_parity(repo: Path) -> None:
+    """After a resumption the supervisor's repair has run: the three manifests agree.
+
+    The exceptions are the two states that wait for the owner: a step cut off after its
+    refs moved, and (in the adoption scenario) history awaiting adoption.
+    """
+    variant = _VARIANTS[repo]
+    store = _run_store(repo)
+    assert store is not None
+    record = json.loads((store / "product-ref").read_text("utf-8"))
+    ref, head = _rev(repo, record["name"]), _rev(repo, "HEAD")
+    if variant.killed_at in CUT_OFF_POINTS and cut_off_state(repo):
+        return
+    if variant.adopting and head != ref:
+        return
+    assert_three_way_parity(repo)
+
+
 def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
-                between: Callable[..., None] | None = None) -> dict[str, Any]:
+                between: Callable[..., None] | None = None,
+                adopting: bool = False) -> dict[str, Any]:
     repo = h.make_repo(tmp)
     recorder = Recorder(repo, kill_at=kill_at, delete_at=delete_at)
+    _RECORDERS[repo] = recorder
+    variant = _VARIANTS[repo] = Variant(adopting=adopting)
     h.commit_module.set_kill_hook(recorder)
     problems: list[str] = []
     log: list[dict[str, Any]] = []
     crashes = 0
     try:
         for _ in range(4):
-            controller = h.Controller(repo, tmp / "effects.log", between=between)
+            controller = h.Controller(repo, tmp / "effects.log", between=between, decide=adopt)
             original_cli = h.run_cli
 
             def checked(r: Path, *argv: str, _orig: Any = original_cli) -> tuple[int, dict]:
@@ -119,12 +322,23 @@ def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
             h.run_cli = checked
             try:
                 code, started = h.start(repo)
+                if code == 1 and recover_start(repo, started):
+                    code, started = h.start(repo)
                 assert code == 0, started
+                store = _run_store(repo)
+                if crashes and store is not None and (store / "product-ref").exists():
+                    resumed_parity(repo)
                 end = controller.drive()
+                # A step killed with an attempt open ends in residue, whose exit is the restore.
+                while end.get("refusal", {}).get("code") == "attempt-residue" and cut_off_state(repo):
+                    variant.require("cut-off", "restore")
+                    restore_both(repo)
+                    end = controller.drive()
                 log.extend(controller.log)
                 break
             except h.Crash:
                 crashes += 1
+                variant.killed_at = recorder.seen[recorder.kill_at - 1] if recorder.kill_at else ""
                 log.extend(controller.log)
             finally:
                 h.run_cli = original_cli
@@ -132,7 +346,9 @@ def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
             raise AssertionError("the run did not finish after restarts")
     finally:
         h.commit_module.set_kill_hook(None)
-    return summarize(repo, tmp / "effects.log", end, log, recorder, problems, crashes)
+    result = summarize(repo, tmp / "effects.log", end, log, recorder, problems, crashes)
+    result["exits"] = list(variant.exits)
+    return result
 
 
 def _normalize(record: Any) -> Any:
@@ -195,7 +411,23 @@ def summarize(repo: Path, effect_log: Path, end: dict[str, Any], log: list[dict[
         if request.get("kind") in ATTEMPT_KINDS and request["request_id"] not in attempts:
             attempts.append(request["request_id"])
     _, view = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    store = _run_store(repo)
+    product = json.loads((store / "product-ref").read_text("utf-8"))["name"]
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    product_ref = {
+        "commit": h.git(repo, "rev-parse", product).strip(),
+        "tree": h.git(repo, "rev-parse", f"{product}^{{tree}}").strip(),
+        "head_tree": h.git(repo, "rev-parse", "HEAD^{tree}").strip(),
+        "manifest": sorted(
+            line.split("\t", 1)[1] + line.split()[2] for line in
+            h.git(repo, "ls-tree", "-r", product).splitlines()
+            if f"\t{h.SPEC_DIR}/" not in line
+        ),
+        "head": head,
+        "branch": h.git(repo, "symbolic-ref", "HEAD").strip(),
+    }
     return {
+        "product_ref": product_ref,
         "working_matches_head": working_matches_head,
         "attempts": attempts,
         "retry_count": view["retry_count"],
@@ -209,14 +441,29 @@ def summarize(repo: Path, effect_log: Path, end: dict[str, Any], log: list[dict[
         "staged_after_sync": recorder.staged_after_sync,
         "run_json_problems": problems,
         "seen": recorder.seen,
+        "ops": recorder.ops,
         "crashes": crashes,
         "log": log,
         "repo": repo,
     }
 
 
-def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool = True) -> None:
+def _collapse_adoption(decisions: list[str]) -> list[str]:
+    """A kill during adoption re-issues that one decision after the restart: only it may repeat."""
+    return [d for i, d in enumerate(decisions)
+            if not (d == "history-adoption" and i and decisions[i - 1] == d)]
+
+
+def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool = True,
+                     adopted: int = 0) -> None:
     assert run["end"] == "terminal"
+    ref = run["product_ref"]
+    assert ref["commit"] == ref["head"] and ref["tree"] == ref["head_tree"]
+    assert ref["branch"] == "refs/heads/main"
+    if trees:
+        # The product manifest; the spec directory's records differ by design when
+        # a kill makes the effect source be asked again.
+        assert ref["manifest"] == base["product_ref"]["manifest"]
     if trees:
         assert run["done"] == base["done"]
     else:
@@ -228,7 +475,8 @@ def assert_converged(base: dict[str, Any], run: dict[str, Any], *, trees: bool =
         # fingerprint; the records must otherwise be the same.
         assert _unfingerprinted(run["delivery"]) == _unfingerprinted(base["delivery"])
     assert run["effects"] == base["effects"] == {next(iter(base["effects"])): 1}
-    assert run["decisions"] == base["decisions"]
+    asked = _collapse_adoption(run["decisions"]) if adopted else run["decisions"]
+    assert asked == base["decisions"] + ["history-adoption"] * adopted
     assert run["events_ok"]
     assert run["working_matches_head"]
     assert run["retry_count"] == base["retry_count"] == 1
@@ -253,12 +501,24 @@ def test_uninterrupted_run_reaches_terminal(baseline: dict[str, Any]) -> None:
     assert len(baseline["seen"]) == BOUNDARIES, collections.Counter(baseline["seen"])
 
 
-@pytest.mark.parametrize("mode", ["kill", "delete"])
+# The CI shards select these two test functions by name; keep the names apart from every
+# directory name in the test's path, and the VI-0519 test checks the split.
 @pytest.mark.parametrize("point", range(1, BOUNDARIES + 1))
-def test_variant_converges(baseline: dict[str, Any], tmp_path: Path, mode: str,
-                           point: int) -> None:
-    run = run_variant(tmp_path, **({"kill_at": point} if mode == "kill" else {"delete_at": point}))
-    assert run["crashes"] == (1 if mode == "kill" else 0)
+def test_kill_variant_converges(baseline: dict[str, Any], tmp_path: Path, point: int) -> None:
+    run = run_variant(tmp_path, kill_at=point)
+    assert run["crashes"] == 1
+    # A kill after a step's refs moved and before its recording needs exactly one owner exit
+    # (so a run that completed or counted that commit goes red); no other kill needs any.
+    cut_off = run["seen"][point - 1] in CUT_OFF_POINTS
+    assert len(run["exits"]) == int(cut_off), (run["seen"][point - 1], run["exits"])
+    assert_converged(baseline, run)
+
+
+@pytest.mark.parametrize("point", range(1, BOUNDARIES + 1))
+def test_journal_delete_variant_converges(baseline: dict[str, Any], tmp_path: Path,
+                                          point: int) -> None:
+    run = run_variant(tmp_path, delete_at=point)
+    assert run["crashes"] == 0 and run["exits"] == []
     assert_converged(baseline, run)
 
 
@@ -337,6 +597,101 @@ def test_rebase_preserving_messages_converges(baseline: dict[str, Any], tmp_path
             h.git(c.repo, "rebase", "-q", "upstream")
             rebased.append(True)
 
-    run = run_variant(tmp_path, between=between)
+    run = run_variant(tmp_path, between=between, adopting=True)
     assert rebased == [True]
-    assert_converged(baseline, run, trees=False)
+    assert_converged(baseline, run, trees=False, adopted=1)
+
+
+def _reset_two_back(c: h.Controller, request: dict[str, Any], phase: str,
+                    done: list[int]) -> None:
+    if phase == "reported" and _first("implement-task", "Calculator")(request) and not done:
+        h.git(c.repo, "reset", "-q", "--hard", "HEAD~2")
+        done.append(len(_RECORDERS[c.repo].seen))
+
+
+def _rebase_between(c: h.Controller, request: dict[str, Any], phase: str,
+                    done: list[int]) -> None:
+    if phase == "reported" and _first("implement-task", "Calculator")(request) and not done:
+        root = h.git(c.repo, "rev-list", "--max-parents=0", "HEAD").strip()
+        h.git(c.repo, "checkout", "-q", "-b", "upstream", root)
+        (c.repo / "OTHER.md").write_text("upstream\n", "utf-8")
+        h.git(c.repo, "add", "OTHER.md")
+        h.git(c.repo, "commit", "-q", "-m", "unrelated upstream change")
+        h.git(c.repo, "checkout", "-q", "main")
+        h.git(c.repo, "rebase", "-q", "upstream")
+        done.append(len(_RECORDERS[c.repo].seen))
+
+
+SCENARIOS = {"lag-repair": (_reset_two_back, 0), "adoption": (_rebase_between, 1)}
+# The kill points each scenario's own writes pass through.
+SCENARIO_POINTS = {
+    "lag-repair": {"projection-updated", "repaired"},
+    "adoption": {"commit-built", "refs-moved", "made-recorded", "synced"},
+}
+WINDOW = 12
+
+
+def _scenario(tmp: Path, name: str, *, kill_at: int = 0) -> tuple[dict[str, Any], int]:
+    """Run the full synthetic run with a diversion in the middle; return it and where it struck."""
+    divert, _adopted = SCENARIOS[name]
+    done: list[int] = []
+    run = run_variant(tmp, kill_at=kill_at, between=lambda c, r, p: divert(c, r, p, done),
+                      adopting=name == "adoption")
+    assert done, "the diversion never struck"
+    return run, done[0]
+
+
+@pytest.fixture(scope="module", params=sorted(SCENARIOS))
+def diverted(request: pytest.FixtureRequest,
+             tmp_path_factory: pytest.TempPathFactory) -> tuple[str, dict[str, Any], int]:
+    run, at = _scenario(tmp_path_factory.mktemp(request.param), request.param)
+    return request.param, run, at
+
+
+def test_a_reset_or_a_rebase_converges_uninterrupted(baseline: dict[str, Any],
+                                                     diverted: tuple[str, dict[str, Any], int]
+                                                     ) -> None:
+    name, run, at = diverted
+    adopted = SCENARIOS[name][1]
+    assert_converged(baseline, run, trees=name == "lag-repair", adopted=adopted)
+    # Lag repair is the supervisor's own and needs no owner; a rebase is adopted once.
+    assert run["exits"] == (["adopt"] if name == "adoption" else [])
+    # The window the kill tests walk covers every write the repair or adoption makes.
+    struck = set(run["seen"][at:at + WINDOW])
+    assert SCENARIO_POINTS[name] <= struck, (name, sorted(struck))
+    if name == "adoption":
+        # The window holds the reanchor step's own writes, not only another step's.
+        own = {point for point, op in zip(run["seen"][at:at + WINDOW], run["ops"][at:at + WINDOW], strict=True)
+               if op == "reanchor"}
+        assert set(STEP_POINTS) <= own, sorted(own)
+
+
+@pytest.mark.parametrize("offset", range(1, WINDOW + 1))
+def test_every_write_of_lag_repair_and_adoption_converges(
+    baseline: dict[str, Any], diverted: tuple[str, dict[str, Any], int], tmp_path: Path,
+    offset: int,
+) -> None:
+    name, base_run, at = diverted
+    run, struck_at = _scenario(tmp_path, name, kill_at=at + offset)
+    assert run["crashes"] == 1
+    assert struck_at == at, "the diversion struck at another point than in the uninterrupted run"
+    assert run["seen"][at + offset - 1] == base_run["seen"][at + offset - 1], "struck elsewhere"
+    idx = at + offset - 1
+    cut_off = run["seen"][idx] in CUT_OFF_POINTS
+    if name == "lag-repair":
+        assert run["exits"] == (["restore"] if cut_off else []), run["exits"]
+    else:
+        # The adoption step's own kill points, found in the uninterrupted run: its
+        # ``commit-built`` is the point before its ``refs-moved``.
+        moved = next(i for i, (point, op) in enumerate(zip(
+            base_run["seen"], base_run["ops"], strict=True))
+            if point == "refs-moved" and op == "reanchor")
+        assert base_run["seen"][moved - 1] == "commit-built"
+        if idx == moved - 1:  # killed before its transaction: the decision is asked again
+            expected = ["adopt", "adopt"]
+        elif idx == moved:  # killed after its refs moved: the ref goes back, then it is asked again
+            expected = ["adopt", "restore-ref", "adopt"]
+        else:  # only a later ordinary step's cut-off needs an exit besides the one adoption
+            expected = ["adopt"] + (["restore"] if cut_off else [])
+        assert run["exits"] == expected, (run["seen"][idx], run["exits"])
+    assert_converged(baseline, run, trees=name == "lag-repair", adopted=SCENARIOS[name][1])

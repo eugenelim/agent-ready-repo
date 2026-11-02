@@ -88,7 +88,7 @@ def test_repeated_start_on_a_current_pair_is_a_no_op(tmp_path: Path) -> None:
     assert len(_approval_lines(repo)) == 1 and len(_commits(repo)) == 2
 
 
-@pytest.mark.parametrize("point", ["commit-built", "head-moved", "synced"])
+@pytest.mark.parametrize("point", ["commit-built", "refs-moved", "synced"])
 def test_interrupted_start_leaves_no_partial_line_and_reruns(tmp_path: Path, point: str) -> None:
     repo = h.make_repo(tmp_path)
 
@@ -109,6 +109,13 @@ def test_interrupted_start_leaves_no_partial_line_and_reruns(tmp_path: Path, poi
     assert not working.exists() or committed.startswith(working.read_bytes())
     assert not (repo / h.SPEC_DIR / ".supervisor" / "journal.jsonl").exists()
     code, out = _start(repo, trust="trusted")
+    if point == "refs-moved":
+        # The approval's refs moved and nothing recorded it: nothing counts it, and the
+        # refusal names the exit that works.
+        assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+        assert "git reset --soft" in out["refusal"]["detail"]
+        h.git(repo, "reset", "-q", "--soft", "HEAD^")
+        code, out = _start(repo, trust="trusted")
     assert code == 0, out
     code, payload = h.run_cli(repo, "next", h.SPEC_DIR)
     assert code == 0 and payload["request"]["kind"] != "human-decision"

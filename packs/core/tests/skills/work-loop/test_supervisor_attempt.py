@@ -60,6 +60,25 @@ REVIEW_PLAN = sup.plan(
 # ── templates and helpers ───────────────────────────────────────────────────
 
 
+def race_free_host(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer the host query as a host with race-free confined writes.
+
+    A test that forges Git state and expects the attempt's own refusal needs it: with HEAD
+    moved off the approval the trust is undetermined, and a host without such writes
+    refuses that before the attempt check runs. The host refusal has its own suite.
+    """
+    query = h.commit_module.sibling("_confined_mutation.py")
+    monkeypatch.setattr(query, "race_free_mutation", lambda: True)
+
+
+def _overwrite(path: Path, text: str) -> None:
+    """Replace a file's bytes in place. A gitfile is hidden on Windows, and opening a hidden
+    file to create-and-truncate it is denied there, while opening it to update is not."""
+    with path.open("r+b") as handle:
+        handle.truncate(0)
+        handle.write(text.encode("utf-8"))
+
+
 def _drive_to(repo: Path, kind: str, base: Path) -> dict[str, Any]:
     """Report requests until ``next`` issues one of *kind*; return it."""
     controller = h.Controller(repo, base / "effects.log")
@@ -136,7 +155,7 @@ def _events(repo: Path) -> list[dict[str, Any]]:
 def _edit(path: Path, old: str, new: str) -> None:
     text = path.read_text("utf-8")
     assert old in text, old
-    path.write_text(text.replace(old, new, 1), "utf-8")
+    path.write_text(text.replace(old, new, 1), "utf-8", newline="\n")
 
 
 def _delete_local_caches(repo: Path) -> None:
@@ -188,7 +207,7 @@ def _forge_config(repo: Path) -> None:
 
 def _forge_hook(repo: Path) -> None:
     hook = repo / ".git" / "hooks" / "post-commit"
-    hook.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    hook.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n")
     hook.chmod(0o755)
 
 
@@ -209,8 +228,9 @@ FORGERIES: dict[str, tuple[Callable[[Path], None], str]] = {
 
 @pytest.mark.parametrize("name", sorted(FORGERIES))
 def test_a_forged_change_is_refused_at_report(
-    implementer_template: Path, tmp_path: Path, name: str
+    implementer_template: Path, tmp_path: Path, name: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    race_free_host(monkeypatch)
     forge, path = FORGERIES[name]
     repo = _copy(implementer_template, tmp_path)
     request = _current_request(repo)
@@ -236,7 +256,7 @@ def test_an_unparseable_git_config_is_refused_and_recorded_before_any_git_call(
     ws = h.workspace(repo)
     assert ws.git.hardened.pins.git_dir
     config = repo / ".git" / "config"
-    config.write_text(config.read_text("utf-8") + "[broken\n", "utf-8")
+    config.write_text(config.read_text("utf-8") + "[broken\n", "utf-8", newline="\n")
     with pytest.raises(h.admission.Refusal) as caught:
         h.loop.report(ws, result)
     assert caught.value.code == "attempt-refused"
@@ -253,7 +273,7 @@ def test_a_modified_installed_skill_is_refused_at_report(
     repo = _copy(implementer_template, tmp_path)
     request = _current_request(repo)
     result = h.Controller(repo, tmp_path / "effects.log").work(request)
-    (skill / "scripts" / "_supervisor_loop.py").write_text("# swapped\n", encoding="utf-8")
+    (skill / "scripts" / "_supervisor_loop.py").write_text("# swapped\n", encoding="utf-8", newline="\n")
     code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 1, out
     assert out["refusal"]["code"] == "attempt-refused"
@@ -269,7 +289,7 @@ def test_a_rewritten_gitfile_is_refused_at_report(tmp_path: Path) -> None:
     result = h.Controller(worktree, tmp_path / "effects.log").work(request)
     gitdir = (worktree / ".git").read_text("utf-8").split("gitdir: ", 1)[1].strip()
     # Same directory by a different spelling: only the file's bytes differ.
-    (worktree / ".git").write_text(f"gitdir: {gitdir}/../{Path(gitdir).name}", encoding="utf-8")
+    _overwrite(worktree / ".git", f"gitdir: {gitdir}/../{Path(gitdir).name}")
     code, out = h.Controller(worktree, tmp_path / "effects.log").report(result)
     assert code == 1, out
     assert out["refusal"]["code"] == "attempt-refused"
@@ -297,8 +317,9 @@ def _run_id(repo: Path) -> str:
 
 
 def test_a_packed_ref_move_is_refused_at_report(
-    implementer_template: Path, tmp_path: Path
+    implementer_template: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    race_free_host(monkeypatch)
     repo = _copy(implementer_template, tmp_path)
     request = _current_request(repo)
     result = h.Controller(repo, tmp_path / "effects.log").work(request)
@@ -306,7 +327,7 @@ def test_a_packed_ref_move_is_refused_at_report(
     fake = _forged_commit(repo, head, _run_id(repo))
     h.git(repo, "pack-refs", "--all", "--prune")
     packed = repo / ".git" / "packed-refs"
-    packed.write_text(packed.read_text("utf-8").replace(head, fake), "utf-8")
+    packed.write_text(packed.read_text("utf-8").replace(head, fake), "utf-8", newline="\n")
     made = _made(repo)
     code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 1, out
@@ -338,9 +359,9 @@ def test_a_gitfile_or_commondir_aimed_at_a_decoy_is_never_admitted(
     result = h.Controller(linked, tmp_path / "effects.log").work(request)
     private = Path(h.git(linked, "rev-parse", "--absolute-git-dir").strip())
     if target == "gitfile":
-        (linked / ".git").write_text(f"gitdir: {decoy / '.git'}\n", encoding="utf-8")
+        _overwrite(linked / ".git", f"gitdir: {decoy / '.git'}\n")
     else:
-        (private / "commondir").write_text(f"{decoy / '.git'}\n", encoding="utf-8")
+        (private / "commondir").write_text(f"{decoy / '.git'}\n", encoding="utf-8", newline="\n")
     head = _head(repo)
     code, out = h.Controller(linked, tmp_path / "effects.log").report(result)
     assert code == 1, out
@@ -357,7 +378,7 @@ def test_an_attempt_already_reported_stays_closed_after_a_message_preserving_reb
     assert _report(repo, request)[0] == 0
     root = h.git(repo, "rev-list", "--max-parents=0", "HEAD").strip()
     h.git(repo, "checkout", "-q", "-b", "upstream", root)
-    (repo / "OTHER.md").write_text("upstream\n", encoding="utf-8")
+    (repo / "OTHER.md").write_text("upstream\n", encoding="utf-8", newline="\n")
     h.git(repo, "add", "OTHER.md")
     h.git(repo, "commit", "-q", "-m", "unrelated upstream change")
     h.git(repo, "checkout", "-q", "main")
@@ -431,7 +452,7 @@ EXTRA_TASK = sup.task(
     done="release.txt says ready",
 )
 OPERATOR = "effect-authority:0123456789ab"
-KILL_POINTS = ["commit-built", "head-moved", "synced", "event"]
+KILL_POINTS = ["commit-built", "refs-moved", "synced", "event"]
 
 
 @pytest.fixture(scope="module")
@@ -457,7 +478,7 @@ def effect_template(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, str
     assert admitted["admitted"] == "decision-required", admitted
     # Replanned between attempts: a new task is issued while the effect is unresolved.
     plan = repo / SPEC / "plan.md"
-    plan.write_text(sup.plan(*_plan_tasks(), EXTRA_TASK), "utf-8")
+    plan.write_text(sup.plan(*_plan_tasks(), EXTRA_TASK), "utf-8", newline="\n")
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 0 and payload["request"]["kind"] == "implement-task", payload
     assert payload["request"]["task"]["title"] == "Release extra note is written"
@@ -491,6 +512,14 @@ def _crash_at(point: str) -> Callable[[str], None]:
     return hook
 
 
+def _report_after_a_landed_step(repo: Path, request: dict[str, Any]) -> None:
+    """A step landed during the attempt: its result is refused once, then admitted when re-issued."""
+    code, out = _report(repo, request)
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    assert _report(repo, request)[0] == 0
+
+
 def test_a_resolve_effect_during_an_open_attempt_does_not_refuse_it(
     effect_template: tuple[Path, str], tmp_path: Path
 ) -> None:
@@ -505,7 +534,14 @@ def test_a_resolve_effect_during_an_open_attempt_does_not_refuse_it(
     again = _current_request(repo)
     assert again["request_id"] == request["request_id"]
     assert _issuances(repo) == issuances, "the open attempt's manifest was re-recorded"
-    assert _report(repo, request)[0] == 0
+    _report_after_a_landed_step(repo, request)
+
+
+def _restore_to_issued(repo: Path) -> None:
+    """The exit for a step cut off after its refs moved: both refs back on the recorded value."""
+    name, recorded = _product(repo)
+    h.git(repo, "update-ref", "--no-deref", name, recorded)
+    h.git(repo, "reset", "-q", "--soft", recorded)
 
 
 @pytest.mark.parametrize("point", KILL_POINTS)
@@ -522,13 +558,21 @@ def test_a_resolve_effect_killed_during_an_open_attempt_converges(
             _resolve(repo, key)
     finally:
         h.commit_module.set_kill_hook(None)
+    if point == "refs-moved":
+        # The refs moved and the run never recorded the step: with the attempt open the
+        # guard answers residue until both refs go back to the attempt's commit.
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+        _restore_to_issued(repo)
+        assert _current_request(repo)["request_id"] == request["request_id"]  # re-issued
+        issuances = _issuances(repo)
     # The operator runs it again; it may find the resolution already committed.
     code, out = _resolve(repo, key)
     assert code == 0 or out["refusal"]["code"] == "no-open-effect", out
     assert len(_decisions(repo)) == 1
     assert _current_request(repo)["request_id"] == request["request_id"]
     assert _issuances(repo) == issuances
-    assert _report(repo, request)[0] == 0
+    _report_after_a_landed_step(repo, request)
 
 
 NO_INTENT_SPEC = sup.SPEC.replace("## Terminal Intent\n\n`code` — build the calculator.\n\n", "")
@@ -573,6 +617,9 @@ def test_a_re_approval_start_killed_during_an_open_attempt_converges(
             h.start(repo, "spec-plan")
     finally:
         h.commit_module.set_kill_hook(None)
+    if point == "refs-moved":
+        # The amended approval's refs moved before it was recorded: restore both refs.
+        _restore_to_issued(repo)
     code, out = h.start(repo, "spec-plan")
     assert code == 0, out
     code, out = h.run_cli(repo, "next", SPEC)
@@ -652,8 +699,10 @@ def _copy_trailers(repo: Path) -> None:
 
 @pytest.mark.parametrize("rewrite", [_soft_reset, _amend, _copy_trailers])
 def test_a_rewrite_or_a_commit_with_copied_trailers_refuses_the_attempt(
-    implementer_template: Path, tmp_path: Path, rewrite: Callable[[Path], None]
+    implementer_template: Path, tmp_path: Path, rewrite: Callable[[Path], None],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    race_free_host(monkeypatch)
     repo = _copy(implementer_template, tmp_path)
     request = _current_request(repo)
     result = h.Controller(repo, tmp_path / "effects.log").work(request)
@@ -739,6 +788,277 @@ def test_an_honest_attempt_that_imports_the_installed_scripts_passes(
     assert out["admitted"] == "stub"
 
 
+# ── VI-0517: the run's product ref during an open attempt (AC-0015, AC-0016) ─
+
+
+@pytest.fixture(scope="module")
+def product_template(tmp_path_factory: pytest.TempPathFactory) -> Path:
+    """A run with an open ``implement-task`` attempt."""
+    base = tmp_path_factory.mktemp("product")
+    repo = h.make_repo(base)
+    assert h.start(repo)[0] == 0
+    assert _drive_to(repo, "implement-task", base)["kind"] == "implement-task"
+    return base
+
+
+def _product(repo: Path) -> tuple[str, str]:
+    git_dir = Path(h.git(repo, "rev-parse", "--absolute-git-dir").strip())
+    run = next(p for p in (git_dir / "agentbundle-supervisor").iterdir() if p.name.startswith("run-"))
+    record = json.loads((run / "product-ref").read_text("utf-8"))
+    return record["name"], record["recorded"]
+
+
+def _forged_product(repo: Path) -> str:
+    return _forged_commit(repo, h.git(repo, "rev-parse", "HEAD").strip(), _run_id(repo))
+
+
+def _create(repo: Path, name: str) -> None:
+    h.git(repo, "update-ref", "-d", name)
+    h.git(repo, "update-ref", name, _forged_product(repo))
+
+
+PRODUCT_FORGERIES: dict[str, Callable[[Path, str], None]] = {
+    "created": _create,
+    "moved": lambda repo, name: h.git(repo, "update-ref", name, _forged_product(repo)),
+    "symbolic": lambda repo, name: h.git(repo, "symbolic-ref", name, "refs/heads/main"),
+    "deleted": lambda repo, name: h.git(repo, "update-ref", "-d", name),
+}
+
+
+@pytest.mark.parametrize("name", sorted(PRODUCT_FORGERIES))
+def test_a_changed_product_ref_refuses_the_attempt_until_restored(
+    product_template: Path, tmp_path: Path, name: str
+) -> None:
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    ref, recorded = _product(repo)
+    PRODUCT_FORGERIES[name](repo, ref)
+    made = _made(repo)
+    code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 1 and out["refusal"]["code"] == "attempt-refused", out
+    assert ref in out["refusal"]["detail"]
+    assert _made(repo) == made
+    code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    h.git(repo, "update-ref", "--no-deref", ref, recorded)
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 0, admitted
+
+
+def test_a_move_the_run_never_recorded_is_residue_until_both_refs_are_restored(product_template: Path, tmp_path: Path) -> None:
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    crashed: list[str] = []
+
+    def hook(point: str) -> None:
+        if point == "refs-moved" and not crashed:
+            crashed.append(point)
+            raise h.Crash(point)
+
+    h.commit_module.set_kill_hook(hook)
+    try:
+        with pytest.raises(h.Crash):
+            h.Controller(repo, tmp_path / "effects.log").report(result)
+    finally:
+        h.commit_module.set_kill_hook(None)
+    ref, recorded = _product(repo)
+    moved = h.git(repo, "rev-parse", "HEAD").strip()
+    assert h.git(repo, "rev-parse", ref).strip() == moved != recorded
+    # Killed before the run recorded it, the commit is not the supervisor's own (the guard
+    # answers residue); the supervisor's move is trusted only within the invocation that
+    # made it, which the step's successful report above the kill shows.
+    code, payload = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and payload["refusal"]["code"] == "attempt-residue", payload
+    _restore_to_issued(repo)
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    assert h.Controller(repo, tmp_path / "effects.log").report(result)[0] == 0
+    assert _product(repo)[1] == h.git(repo, "rev-parse", "HEAD").strip()
+
+
+def test_a_sibling_worktrees_run_leaves_the_attempt_admissible(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    linked = tmp_path / "linked"
+    h.git(repo, "worktree", "add", "-q", "--detach", str(linked))
+    assert h.start(repo)[0] == 0
+    assert h.start(linked)[0] == 0
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    other = _current_request(linked)
+    before = _product(linked)[1]
+    assert h.Controller(linked, tmp_path / "linked.log").report(
+        h.Controller(linked, tmp_path / "linked.log").work(other)
+    )[0] == 0
+    assert (
+        h.git(repo, "rev-parse", _product(linked)[0]).strip()
+        != before
+    )
+    code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 0, admitted
+
+
+def test_a_supervisor_step_landing_during_the_attempt_refuses_the_result(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    result = h.Controller(repo, tmp_path / "effects.log").work(request)
+    source = h.git(repo, "rev-parse", "HEAD").strip()
+    # A step the supervisor made lands while the worker is at work: the guard allows it.
+    ws = h.workspace(repo)
+    ws.git.build_commit(run_id=_run_id(repo), step="landing", operation="evidence",
+                        summary="a step during the attempt")
+    landed = h.git(repo, "rev-parse", "HEAD").strip()
+    assert landed != source
+    code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    # The ref holds a value the run recorded: no restore command, `next` re-issues.
+    assert "run next" in out["refusal"]["detail"]
+    assert "update-ref" not in out["refusal"]["detail"]
+    assert h.git(repo, "rev-parse", "HEAD").strip() == landed
+    # The files are kept and the same request is issued again against the new commit.
+    again = _current_request(repo)
+    assert again["request_id"] == request["request_id"]
+    code, admitted = h.Controller(repo, tmp_path / "effects.log").report(result)
+    assert code == 0, admitted
+
+
+def _stale_attempt(product_template: Path, tmp_path: Path) -> tuple[Path, dict[str, Any], Any]:
+    """An implement-task attempt whose first report met integration-conflict."""
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    result = controller.work(request)
+    h.workspace(repo).git.build_commit(
+        run_id=_run_id(repo), step="landing", operation="evidence", summary="a step landed"
+    )
+    code, out = controller.report(result)
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    return repo, request, (controller, result)
+
+
+def _edit_control_state(repo: Path) -> Callable[[], None]:
+    info = repo / ".git" / "info"
+    info.mkdir(exist_ok=True)
+    (info / "attributes").write_text("* filter=forged\n", encoding="utf-8", newline="\n")
+    return lambda: (info / "attributes").unlink()
+
+
+def _edit_trusted_file(repo: Path) -> Callable[[], None]:
+    plan = repo / SPEC / "plan.md"
+    original = plan.read_text("utf-8")
+    plan.write_text(original + "\nworker edit\n", encoding="utf-8", newline="\n")
+    return lambda: plan.write_text(original, encoding="utf-8", newline="\n")
+
+
+@pytest.mark.parametrize("edit", [_edit_control_state, _edit_trusted_file])
+def test_no_result_is_admitted_after_a_stale_conflict_without_next(
+    product_template: Path, tmp_path: Path, edit: Callable[[Path], Callable[[], None]]
+) -> None:
+    repo, request, (controller, result) = _stale_attempt(product_template, tmp_path)
+    undo = edit(repo)
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    code, out = controller.report(result)  # no next in between
+    assert code == 1 and out["refusal"]["code"] == "attempt-refused", out
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    undo()
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    code, admitted = controller.report(result)
+    assert code == 0, admitted
+
+
+def test_a_clean_report_after_a_stale_conflict_waits_for_next(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo, request, (controller, result) = _stale_attempt(product_template, tmp_path)
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    code, out = controller.report(result)
+    assert code == 1 and out["refusal"]["code"] == "not-current-attempt", out
+    assert "run next" in out["refusal"]["detail"]
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+    assert _current_request(repo)["request_id"] == request["request_id"]
+    assert controller.report(result)[0] == 0
+
+
+def _refuse_with_a_landed_step(
+    product_template: Path, tmp_path: Path
+) -> tuple[Path, str, tuple[Any, Any]]:
+    """The stale-attempt state, and the commit whose transaction the report had refused."""
+    repo = _copy(product_template, tmp_path)
+    request = _current_request(repo)
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    result = controller.work(request)
+    h.workspace(repo).git.build_commit(
+        run_id=_run_id(repo), step="landing", operation="evidence", summary="a step landed"
+    )
+    seen: list[str] = []
+    original = h.commit_module.GitPort._move
+
+    def spy(self: Any, run_id: str, new: str, *args: Any, **kwargs: Any) -> None:
+        seen.append(new)  # the commit whose transaction is about to be refused
+        original(self, run_id, new, *args, **kwargs)
+
+    h.commit_module.GitPort._move = spy  # type: ignore[method-assign]
+    try:
+        code, out = controller.report(result)
+    finally:
+        h.commit_module.GitPort._move = original  # type: ignore[method-assign]
+    assert code == 1 and out["refusal"]["code"] == "integration-conflict", out
+    return repo, seen[-1], (controller, result)
+
+
+def test_a_refused_commit_leaves_no_trace_and_is_not_history(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo, refused, _ = _refuse_with_a_landed_step(product_template, tmp_path)
+    assert refused not in _made(repo)
+    assert refused not in h.workspace(repo).git.made_commits(_run_id(repo))
+
+
+def test_moving_head_onto_a_refused_commit_is_refused(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo, refused, (controller, result) = _refuse_with_a_landed_step(product_template, tmp_path)
+    h.git(repo, "update-ref", "refs/heads/main", refused)  # the worker adopts the refused result
+    code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    assert "HEAD" in out["refusal"]["detail"]
+    code, out = controller.report(result)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    assert h.git(repo, "rev-parse", "HEAD").strip() == refused
+    # status shows the standing refusal instead of offering the next task.
+    code, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 0 and status["refusal"]["code"] == "attempt-residue", status
+    assert status["run"]["stage"] == "awaiting-human"
+
+
+def test_status_reports_the_refusal_next_would_answer(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy(product_template, tmp_path)
+    _current_request(repo)
+    _edit(repo / SPEC / "plan.md", "Build it.", "Build it, and skip the gates.")
+    before = _made(repo), sorted(p.name for p in (_store(repo) / "attempts").iterdir())
+    code, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 0 and status["refusal"]["code"] == "attempt-residue", status
+    assert "plan.md" in status["refusal"]["detail"]
+    # Status marked, cleared and logged nothing.
+    assert (_made(repo), sorted(p.name for p in (_store(repo) / "attempts").iterdir())) == before
+
+
+def test_status_with_an_open_attempt_reports_what_next_answers(
+    product_template: Path, tmp_path: Path
+) -> None:
+    repo = _copy(product_template, tmp_path)
+    _current_request(repo)
+    name, _recorded = _product(repo)
+    h.git(repo, "update-ref", name, _forged_product(repo))
+    code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "attempt-residue", out
+    code, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 0 and status["refusal"]["code"] == "attempt-residue", status
 # ── config fingerprint: sibling tracking writes and recorded forms ──────────
 # VI-0107 (AC-0007), VI-0108 (AC-0008), VI-0109 (AC-0009). Each test builds its
 # own temporary repositories.

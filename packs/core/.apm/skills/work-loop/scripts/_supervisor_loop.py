@@ -357,6 +357,8 @@ def decide(ws: Workspace, state: State) -> Action:
     tdd = _supervisor("_supervisor_tdd.py")
     effects = _supervisor("_supervisor_effects.py")
     readiness = _supervisor("_supervisor_readiness.py")
+    if ws.divergence is not None:
+        return _supervisor("_supervisor_recovery.py").adoption_action(ws, state, ws.divergence)
     if is_terminal(ws, state):
         return Action("terminal")
     if state.intent == "spec-plan":
@@ -567,6 +569,16 @@ def next_request(ws: Workspace) -> dict[str, Any]:
     """The ``next`` verb: the current request, a refusal, or terminal."""
     with ws.run_lock():
         ws.attempts.guard("next")
+        recovery = _supervisor("_supervisor_recovery.py")
+        try:
+            diverged = recovery.reconcile(ws)
+        except Refusal as exc:
+            # The ref check refused: leave run.json in the refused shape the controller reads.
+            state = _adoption_state(ws)
+            state.refusal = exc
+            return {"refusal": exc.as_dict(), "run": _write_status(ws, state, None)}
+        if diverged is not None:
+            return _adoption_request(ws)
         state, refusal = _prepare(ws)
         if refusal is not None:
             state.refusal = refusal
@@ -596,6 +608,39 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             "request_id": request["request_id"],
         })
         return {"request": request, "run": status}
+
+
+def _adoption_state(ws: Workspace) -> State:
+    """The run's state, or just its identity when the working spec is refused.
+
+    A controller's amendment commit is history the run did not make, so the
+    adoption decision comes before the refusal that amendment would raise.
+    """
+    state = derive(ws)
+    if state.refusal is None:
+        return state
+    state.refusal = None
+    state.head = ws.git.head()
+    state.commits = ws.git.supervisor_commits(state.run_id)
+    state.steps = {c.step for c in state.commits}
+    return state
+
+
+def _adoption_request(ws: Workspace) -> dict[str, Any]:
+    """The ``history-adoption`` request for a ``HEAD`` the run has not admitted; no commit."""
+    state = _adoption_state(ws)
+    action = decide(ws, state)
+    status = _write_status(ws, state, action)
+    request = action.request or {}
+    ws.local.append_journal({
+        "run_id": state.run_id,
+        "at": ws.clock(),
+        "head": state.head,
+        "stage": request["stage"],
+        "kind": request["kind"],
+        "request_id": request["request_id"],
+    })
+    return {"request": request, "run": status}
 
 
 # ── report ──────────────────────────────────────────────────────────────────
@@ -677,7 +722,10 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
     accept_facts(checked)
     with ws.run_lock():
         ws.attempts.guard("report")
-        state = derive(ws)
+        recovery = _supervisor("_supervisor_recovery.py")
+        if recovery.reconcile(ws) is not None and checked["kind"] != "human-decision":
+            raise recovery.unadopted(ws)
+        state = derive(ws) if ws.divergence is None else _adoption_state(ws)
         if state.refusal is not None:
             raise state.refusal
         if checked["run_id"] != state.run_id:
@@ -685,6 +733,8 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
         _lagging, foreign = ws.git.delivery_lag()
         if foreign:
             raise Refusal("foreign-delivery-edit", "controller", ", ".join(foreign))
+        if checked["kind"] in _attempt.ATTEMPT_KINDS and checked["kind"] != "regenerate":
+            ws.attempts.require_open_issuance(checked)
         if checked["kind"] in ("external-effect", "effect-query"):
             _refuse_protected_change(ws, state)
             outcome = effects.report_effect(ws, state, checked)
@@ -707,11 +757,14 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
             kind = checked["kind"]
             recovery = _supervisor("_supervisor_recovery.py")
             confirming = recovery.is_confirmation(current)
-            changed = _refuse_protected_change(ws, state, exempt=confirming)
+            adopting = recovery.is_adoption(current)
+            changed = _refuse_protected_change(ws, state, exempt=confirming or adopting)
             if kind in ("implement-task", "write-stub"):
                 outcome = tdd.report_task(ws, state, current, checked, changed)
             elif confirming:
                 outcome = recovery.report_confirmation(ws, state, current, checked, changed)
+            elif recovery.is_adoption(current):
+                outcome = recovery.report_adoption(ws, state, current, checked)
             elif kind == "human-decision":
                 if changed:
                     raise Refusal(
@@ -765,6 +818,13 @@ def _report_decision(
 def status(ws: Workspace) -> dict[str, Any]:
     """Stage, readiness, projection, decisions, and the retry count; never commits."""
     state = derive(ws)
+    if state.refusal is None:
+        # What the next verb's ref check would refuse, found without repairing anything.
+        recovery = _supervisor("_supervisor_recovery.py")
+        # What the next verb would answer: the attempt guard first, then the ref check.
+        state.refusal = ws.attempts.standing_refusal() or recovery.inspect(ws)
+        if state.refusal is None:
+            ws.divergence = recovery.peek(ws)  # shown as the pending decision, nothing is issued
     if state.refusal is not None:
         return {
             "run": run_status(ws, state, None),

@@ -1493,6 +1493,19 @@
       ]
     },
     {
+      "id": "supervisor-history-adoption-decision-and-product-ref-refusals",
+      "prompt": "A full-mode run is mid-loop. `work-supervisor.py next` returns a human-decision with reason history-adoption naming a HEAD commit, three changed product paths, and spec_dir_changed false, because the owner rebased the branch. Separately, a later `next` refuses with product-ref-diverged naming the product ref and its recorded value. What does the controller do for each?",
+      "expected_output": "For history-adoption, the controller puts the question to the owner and reports adopt-history only with an owner authority reference and the exact HEAD commit named in the request, or restores the branch to the run's last commit and runs next; it never invents an authority reference or answers for the owner. For product-ref-diverged, the controller runs the restore command the refusal prints, which puts the product ref back to the recorded value without following it, and does not point it at any other commit; the refusal then clears. It does not work around either stop.",
+      "assertions": [
+        "Puts the history-adoption question to the owner instead of answering it",
+        "Reports adopt-history with an owner authority reference and the HEAD commit named in the request",
+        "Offers restoring the branch to the run's last commit as the alternative to adopting",
+        "Restores the product ref only to the recorded value the product-ref-diverged refusal names",
+        "Runs the restore command the product-ref-diverged refusal prints rather than composing its own",
+        "Does not invent an authority reference or move the product ref to another commit"
+      ]
+    },
+    {
       "id": "supervisor-sibling-tracking-write-and-explicit-push",
       "prompt": "A full-mode supervisor attempt is open in a linked worktree. A sibling worktree runs git push -u for a new branch, then someone also sets core.hooksPath in the shared config. Which of these refuses the attempt, and what must you pass when you push, pull, or merge afterward?",
       "expected_output": "The tracking write (branch.<name>.remote or merge, written in Git's own form) does not refuse the attempt, because the attempt fingerprints each config file with its canonical tracking blocks removed. The core.hooksPath change refuses it with attempt-residue naming the config file; restore it and run next. Because a worker attempt can change those excluded keys unseen, pass an explicit remote, ref, and pull request to every push, pull, and merge, or verify them first, and name the repository with --repo on every gh command (or verify the base repository first), with or without a pull request number.",

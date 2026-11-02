@@ -96,12 +96,23 @@ def delivery_subject(ws: Any, state: Any) -> dict[str, Any]:
     manifest = tuple(
         sorted((p, oid) for p, oid in ws.git.tree_entries() if not p.startswith(prefix))
     )
+    spec_fingerprint = state.latest["envelope"]["envelope_fingerprint"]
+    for commit in reversed(state.commits):
+        if commit.operation == "reanchor" and commit.trailers.get(
+            "Supervisor-Reanchor-Changed", "none"
+        ) != "none":
+            # An adopted change to the product or the spec directory starts the
+            # evidence over: nothing recorded before it counts.
+            spec_fingerprint = hashlib.sha256(
+                f"{spec_fingerprint}\0{commit.sha}".encode()
+            ).hexdigest()
+            break
     return sibling("_subject_projection.py").project_delivery_subject(
         subject_id=state.run_id,
         base_ref=state.base,
         result_ref=state.head,
         spec_path=f"{ws.spec_rel}/spec.md",
-        spec_fingerprint=state.latest["envelope"]["envelope_fingerprint"],
+        spec_fingerprint=spec_fingerprint,
         evidence_policy_ref=EVIDENCE_POLICY,
         exclusions=(prefix,),
         provider="work-supervisor",

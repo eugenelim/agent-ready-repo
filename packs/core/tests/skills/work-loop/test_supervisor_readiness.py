@@ -160,7 +160,11 @@ def test_a_stored_verdict_or_readiness_answer_is_not_read(tmp_path: Path) -> Non
     (repo / SPEC / "delivery" / "verdicts.json").write_text(json.dumps(forged), "utf-8")
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "forge a stored verdict")
-    after = _status(repo)["readiness"]
+    # The forged commit also stands in the open attempt's way, which status now reports;
+    # read the readiness the way status does, from the committed records.
+    ws = h.workspace(repo)
+    after = json.loads(json.dumps(
+        h.cli._supervisor("_supervisor_readiness.py").readiness(ws, h.loop.derive(ws))))
     assert after["ready"] is False
     assert after["criteria"] == before["criteria"]
 

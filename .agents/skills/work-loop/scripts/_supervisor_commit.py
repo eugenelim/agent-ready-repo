@@ -15,8 +15,10 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
+import json
 import os
 import re
 import secrets
@@ -24,7 +26,7 @@ import shutil
 import stat
 import sys
 import tempfile
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Generator, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -32,6 +34,10 @@ from types import ModuleType
 
 __all__ = [
     "Commit",
+    "append_note",
+    "PRODUCT_REF_RE",
+    "ProductRecord",
+    "set_update_hook",
     "supervisor_module",
     "GitPort",
     "SupervisorGitError",
@@ -46,6 +52,9 @@ _TRAILER_VALUE_RE = re.compile(r"[\x21-\x7e][\x20-\x7e]{0,511}")
 _MAX_MADE_BYTES = 16 * 1024 * 1024
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _COMMIT_ID_RE = re.compile(r"[0-9a-f]{40,64}")
+PRODUCT_REF_RE = re.compile(r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/product")
+_PRODUCT_FILE = "product-ref"
+_SYMREF_RE = re.compile(r"ref: (\S+)\s*")
 
 _KILL_HOOK: Callable[[str], None] | None = None
 
@@ -60,6 +69,17 @@ def kill_point(name: str) -> None:
     """Mark a crash boundary. A no-op unless a test installed a hook."""
     if _KILL_HOOK is not None:
         _KILL_HOOK(name)
+
+
+@dataclass(frozen=True)
+class ProductRecord:
+    """The run store's record of the product ref: its name and the commit it last recorded.
+
+    The run store writes *recorded* only in the invocation that moved the refs to it.
+    """
+
+    name: str
+    recorded: str
 
 
 @dataclass(frozen=True)
@@ -112,6 +132,7 @@ def supervisor_module(filename: str) -> ModuleType:
 
 _git = supervisor_module("_supervisor_git.py")
 SupervisorGitError = _git.SupervisorGitError
+set_update_hook = _git.set_update_hook
 
 _SIBLINGS: dict[str, ModuleType] = {}
 
@@ -155,6 +176,14 @@ def ensure_directory(root: Path, relative: str) -> Path:
                 "denied-not-a-directory", f"{relative} is not a plain directory"
             )
     return current
+
+
+def append_note(error: BaseException, note: str) -> None:
+    """Show *note* beside the refusal *error* carries, never instead of it."""
+    if hasattr(error, "detail"):
+        error.detail = f"{error.detail}; {note}"
+    elif error.args:
+        error.args = (f"{error.args[0]}; {note}", *error.args[1:])
 
 
 class GitPort:
@@ -201,17 +230,322 @@ class GitPort:
         return self.hardened.pins.git_dir / self._store_rel(run_id)
 
     def made_commits(self, run_id: str) -> set[str]:
-        """Ids of the commits this run's supervisor built, from the store in the Git directory."""
+        """Ids of the commits this run's supervisor built that landed in its history."""
+        return set(self.made_list(run_id))
+
+    def _made_entries(self, run_id: str) -> list[str]:
+        """The made-commit file's entries, in order."""
         path = self._store_dir(run_id) / "made-commits"
         if not os.path.lexists(path):
-            return set()
+            return []
         fs = sibling("_file_safety.py")
         try:
             data = fs.read_confined_regular_file(path.parent, path, max_bytes=_MAX_MADE_BYTES)
         except fs.UnsafeContentError as exc:
             raise SupervisorGitError("denied-unsafe-path", f"made-commits: {exc}") from exc
         words = bytes(data).decode("ascii", "replace").split()
-        return {w for w in words if _COMMIT_ID_RE.fullmatch(w)}
+        return [w for w in words if _COMMIT_ID_RE.fullmatch(w)]
+
+    def made_list(self, run_id: str) -> list[str]:
+        """The run's made commits in the order they were built.
+
+        A commit counts as made only when the invocation that moved the refs to it
+        recorded it, right after its own transaction succeeded: in the made file, or as
+        the product ref record's recorded value, which only that invocation writes. A
+        commit that is neither, whatever a ref or ``HEAD`` names, is not the run's own.
+        """
+        entries = self._made_entries(run_id)
+        record = self.product_record(run_id)
+        if record is not None and record.recorded not in entries:
+            entries.append(record.recorded)
+        return entries
+
+    def ensure_recorded_made(self, run_id: str) -> None:
+        """Append the recorded value to the made file when a step was cut off before it."""
+        record = self.product_record(run_id)
+        if record is not None and record.recorded not in self._made_entries(run_id):
+            with self.recording(
+                run_id,
+                "appending the recorded commit to the made list",
+                f"the product ref record names {record.recorded}, which the made list lacks.",
+            ):
+                self.record_made(run_id, record.recorded)
+
+    @contextlib.contextmanager
+    def recording(
+        self, run_id: str, doing: str, state: str, then: str = "run any verb"
+    ) -> Generator[None]:
+        """Run store writes that record a landed step; a failure refuses, closed.
+
+        *doing* and *state* say what was being written and what the run holds now, so the
+        refusal states the real condition. The exit is to make the run store writable and
+        then run the verb *then* names. Nothing is made or moved by a failed write.
+        """
+        try:
+            yield
+        except (SupervisorGitError, KeyboardInterrupt):
+            raise
+        except Exception as failure:
+            if hasattr(failure, "owner"):  # a Refusal passes through
+                raise
+            raise SupervisorGitError(
+                "denied-product-record",
+                f"the run store could not be written ({type(failure).__name__}) while {doing}; "
+                f"{state} Make {self.existing_directory(self._store_dir(run_id))} writable, "
+                f"then {then}.",
+            ) from failure
+
+    # ── the product ref ─────────────────────────────────────────────────────
+
+    @staticmethod
+    def new_product_name(run_id: str) -> str:
+        """A product ref name for a run admission; the token is fresh each time."""
+        if not _RUN_ID_RE.fullmatch(run_id):
+            raise SupervisorGitError("denied-invalid-run-id", "the run id is not a run id")
+        return f"refs/agentbundle/delivery/{run_id}/{secrets.token_hex(8)}/product"
+
+    def product_record(self, run_id: str) -> ProductRecord | None:
+        """The run's recorded product ref, or ``None`` when the run has none."""
+        directory = self._store_dir(run_id)
+        path = directory / _PRODUCT_FILE
+        if not os.path.lexists(path):
+            return None
+        fs = sibling("_file_safety.py")
+        try:
+            raw = json.loads(
+                bytes(fs.read_confined_regular_file(directory, path, max_bytes=65536))
+            )
+        except (ValueError, fs.UnsafeContentError, OSError) as exc:
+            raise SupervisorGitError(
+                "denied-product-record", "the product ref record is unreadable", unverifiable=True
+            ) from exc
+        ok = (
+            isinstance(raw, dict)
+            and raw.get("run_id") == run_id
+            and isinstance(raw.get("name"), str)
+            and PRODUCT_REF_RE.fullmatch(raw["name"]) is not None
+            and isinstance(raw.get("recorded"), str)
+            and _COMMIT_ID_RE.fullmatch(raw["recorded"]) is not None
+        )
+        if not ok:
+            raise SupervisorGitError(
+                "denied-product-record", "the product ref record is malformed", unverifiable=True
+            )
+        return ProductRecord(raw["name"], raw["recorded"])
+
+    def write_product_record(self, run_id: str, record: ProductRecord) -> None:
+        """Replace the run's product ref record atomically, in the confined store."""
+        if not PRODUCT_REF_RE.fullmatch(record.name):
+            raise SupervisorGitError("denied-product-record", "not a product ref name")
+        directory = self.ensure_store(run_id)
+        body = json.dumps(
+            {
+                "schema_version": 1,
+                "run_id": run_id,
+                "name": record.name,
+                "recorded": record.recorded,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+        sibling("_confined_mutation.py").confined_atomic_replace(
+            directory, directory / _PRODUCT_FILE, body
+        )
+
+    def read_ref(self, name: str) -> tuple[str, str]:
+        """A product ref by direct file reads, never echoing what the file holds.
+
+        Returns ``("commit", id)``, or a fixed kind label with an empty value:
+        ``symbolic``, ``malformed`` (including a duplicated packed entry), or
+        ``missing``. A loose ref wins over ``packed-refs``, as in Git. No Git
+        process runs.
+        """
+        if not PRODUCT_REF_RE.fullmatch(name):
+            raise SupervisorGitError("denied-product-record", "not a product ref name")
+        fs = sibling("_file_safety.py")
+        common = self.hardened.pins.common_dir
+        path = common.joinpath(*name.split("/"))
+        try:
+            info = os.lstat(path)
+        except (FileNotFoundError, NotADirectoryError):
+            info = None
+        if info is not None:
+            if not stat.S_ISREG(info.st_mode):
+                return "malformed", ""
+            try:
+                text = bytes(fs.read_confined_regular_file(common, path, max_bytes=4096))
+            except (fs.UnsafeContentError, OSError):
+                return "malformed", ""
+            body = text.decode("utf-8", "replace").strip()
+            if _COMMIT_ID_RE.fullmatch(body):
+                return "commit", body
+            return ("symbolic", "") if _SYMREF_RE.fullmatch(body) else ("malformed", "")
+        packed = common / "packed-refs"
+        if os.path.lexists(packed):
+            try:
+                data = bytes(
+                    fs.read_confined_regular_file(common, packed, max_bytes=_MAX_DELIVERY_BYTES)
+                )
+            except (fs.UnsafeContentError, OSError) as exc:
+                raise SupervisorGitError(
+                    "denied-git-control-state", "packed-refs cannot be read", unverifiable=True
+                ) from exc
+            # Split as Git does, on newlines only; any other framing or a repeated
+            # entry for this name is a state Git might read differently.
+            found_ids = []
+            for line in data.split(b"\n"):
+                sha, _, found = line.decode("utf-8", "replace").partition(" ")
+                if found == name:
+                    found_ids.append(sha)
+            if len(found_ids) > 1 or (found_ids and not _COMMIT_ID_RE.fullmatch(found_ids[0])):
+                return "malformed", ""
+            if found_ids:
+                return "commit", found_ids[0]
+        return "missing", ""
+
+    def product_ref_view(self, record: ProductRecord) -> tuple[str, str, bool]:
+        """The record's ref as ``(kind, value, trusted)``: the one rule for what is trusted.
+
+        The ref is trusted at its recorded value and nowhere else.
+        """
+        kind, value = self.read_ref(record.name)
+        return kind, value, kind == "commit" and value == record.recorded
+
+    @staticmethod
+    def restore_command(name: str, kind: str, value: str | None) -> str:
+        """The command that puts a product ref back to *value* (or removes it when it has none).
+
+        A symbolic or malformed ref is deleted without following it first, so the ref
+        is replaced, never written through.
+        """
+        if not value:
+            return f"git update-ref --no-deref -d {name}"
+        if kind in ("symbolic", "malformed"):
+            return (
+                f"git update-ref --no-deref -d {name} && git update-ref --no-deref {name} {value}"
+            )
+        return f"git update-ref --no-deref {name} {value}"
+
+    def create_ref(self, name: str, commit: str) -> None:
+        """Create the product ref at *commit*, replacing and never following a symbolic ref."""
+        self.run("update-ref", "--no-deref", "-m", "work-supervisor: create product ref",
+                 name, commit, "0" * len(commit))
+
+    def move_head(self, new: str, old: str, message: str) -> None:
+        """Move ``HEAD`` (through the branch it names) from *old* to *new* by compare-and-swap."""
+        try:
+            self.run("update-ref", "-m", message, "HEAD", new, old)
+        finally:
+            self._head = None
+
+    def object_id(self, path: str, rev: str) -> str | None:
+        """The object id of *path* at *rev*, or ``None`` when it is absent there."""
+        return self._tree(rev).get(path)
+
+    @staticmethod
+    def revision(value: str, what: str = "a revision") -> str:
+        """*value* if it is a full commit id, which Git can only read as a revision.
+
+        Guards the two commit ids ``changed_paths``, ``is_ancestor`` and the range reader
+        take, which come from records and history a worker can write, so none is read as an
+        option. A refusal names the input by *what* and never echoes the value.
+        """
+        if not _COMMIT_ID_RE.fullmatch(value):
+            raise SupervisorGitError("denied-invalid-revision", f"{what} is not a full commit id")
+        return value
+
+    def valid_base(self, value: object) -> str | None:
+        """*value* when it is the parent of the approval commit at ``HEAD``, else ``None``.
+
+        The approval's ``base`` is read from ``delivery/approvals.jsonl``, which a worker
+        can write. It is only compared with the commit's own parent and never passed to
+        Git, so a forged base is never read as a revision or printed in a command.
+        """
+        if not isinstance(value, str):
+            return None
+        line = self.text("rev-list", "--parents", "-n", "1", self.head()).split()
+        return value if len(line) == 2 and line[1] == value else None
+
+    def approval_only(self, run_id: str) -> bool:
+        """Whether the run's only supervisor commit reachable from ``HEAD`` is its approval.
+
+        A run that nothing recorded is a cut-off first admission only then. Told apart from
+        it: a checkout of a finished run (several commits), a squash that keeps no run
+        trailer (none), and a squash that keeps only a later step's trailers (one commit
+        whose operation is not ``approval``). Not told apart: a squash that keeps the
+        approval's trailers, such as a fixup folded into the approval; it reads as the
+        approval, which AC-0007 accepts.
+        """
+        commits = self.supervisor_commits(run_id)
+        return len(commits) == 1 and commits[0].operation == "approval"
+
+    def changed_paths(self, older: str, newer: str) -> list[str]:
+        """The paths whose content differs between two commits, sorted."""
+        out = self.run(
+            "diff", "--name-only", "-z", "--no-renames", self.revision(older, "the older commit"),
+            self.revision(newer, "the newer commit"), "--",
+        )
+        return sorted(p.decode("utf-8", "surrogateescape") for p in out.split(b"\0") if p)
+
+    def first_admission_exit(self, base: object) -> str:
+        """The command that undoes a first admission nothing recorded, or ``""`` if it is unsafe.
+
+        A soft reset returns ``HEAD`` to the approval's base and keeps every uncommitted
+        tracked change. The cut-off transaction's product ref is left alone: refs are shared
+        across worktrees and two runs can share a run id, so deleting one could hit another
+        run's live ref; it names no record and is inert. Named only for the approval's parent.
+        """
+        checked = self.valid_base(base)
+        return f"git reset --soft {checked}" if checked is not None else ""
+
+    @staticmethod
+    def existing_directory(path: Path) -> Path:
+        """The nearest directory at or above *path* that exists, so a message never names none."""
+        current = path
+        while not current.is_dir() and current.parent != current:
+            current = current.parent
+        return current
+
+    def is_ancestor(self, older: str, newer: str) -> bool:
+        """Whether commit *older* is *newer* or reachable from it."""
+        if older == newer:
+            return True
+        out = self.run(
+            "merge-base",
+            self.revision(older, "the older commit"),
+            self.revision(newer, "the newer commit"),
+            check=False,
+        )
+        return out.decode().strip() == older
+
+    def rev_list(self, older: str, newer: str) -> list[str]:
+        """The commits reachable from *newer* and not from *older*, newest first."""
+        low = self.revision(older, "the older commit")
+        high = self.revision(newer, "the newer commit")
+        return self.text("rev-list", f"{low}..{high}", "--").split()
+
+    def made_only(self, run_id: str, older: str, newer: str) -> bool:
+        """Whether *newer* descends from *older* through commits this run made only."""
+        if not self.is_ancestor(older, newer):
+            return False
+        made = self.made_commits(run_id)
+        return all(sha in made for sha in self.rev_list(older, newer))
+
+    def update_refs(self, new: str, old: str, name: str, product_old: str | None) -> None:
+        """Move ``HEAD`` (through the branch it names) and the product ref in one transaction.
+
+        A stale expected value on either ref refuses both. The product ref is
+        written with ``no-deref``, so a symbolic ref is replaced, never followed.
+        """
+        zero = "0" * len(new)
+        record = (
+            b"start\0"
+            + f"update HEAD\0{new}\0{old}\0".encode("ascii")
+            + b"option no-deref\0"
+            + f"update {name}\0{new}\0{product_old or zero}\0".encode("ascii")
+            + b"prepare\0commit\0"
+        )
+        self.run("update-ref", "-z", "--stdin", "-m", "work-supervisor: step", stdin=record)
 
     def ensure_store(self, run_id: str) -> Path:
         """The run's store directory, born whole with a ``spec`` file naming this spec.
@@ -258,14 +592,17 @@ class GitPort:
                 "denied-store-spec", "the run's store records another spec"
             )
 
-    def record_made(self, run_id: str, sha: str) -> None:
-        """Append *sha* to the run's made-commit list, before the commit can become HEAD."""
+    def _append_id(self, run_id: str, name: str, sha: str) -> None:
         directory = self.ensure_store(run_id)
         cm = sibling("_confined_mutation.py")
-        path = directory / "made-commits"
+        path = directory / name
         if not os.path.lexists(path):
             cm.confined_create(directory, path, b"")
         cm.confined_append(directory, path, f"{sha}\n".encode("ascii"), max_bytes=_MAX_MADE_BYTES)
+
+    def record_made(self, run_id: str, sha: str) -> None:
+        """Append *sha* to the run's made-commit list, once its transaction has moved the refs."""
+        self._append_id(run_id, "made-commits", sha)
 
     def text(self, *args: str, **kwargs: object) -> str:
         return self.run(*args, **kwargs).decode("utf-8", "replace")  # type: ignore[arg-type]
@@ -433,6 +770,10 @@ class GitPort:
         appends: dict[str, bytes] | None = None,
         summary: str = "",
         known_steps: set[str] | None = None,
+        product_source: str | None = None,
+        create_ref: str | None = None,
+        adopting: bool = False,
+        product_old: str | None = None,
     ) -> str | None:
         """Commit one supervisor step, or return None when it is already reachable.
 
@@ -440,6 +781,12 @@ class GitPort:
         to the exact bytes to commit there (``None`` removes it), staged without
         reading the working tree again; *appends* maps a ``delivery/`` file name to
         bytes appended to its HEAD version.
+
+        A run with a recorded product ref moves it with ``HEAD`` in one transaction.
+        *product_source* is the commit a product result was issued against: the
+        transaction expects the product ref to still name it. *create_ref* names a
+        product ref that the transaction creates. *adopting* lets ``HEAD`` differ
+        from the product ref, which is expected to name *product_old*.
         """
         steps = (
             known_steps
@@ -498,17 +845,149 @@ class GitPort:
         new = self.text(
             "hash-object", "-t", "commit", "-w", "--stdin", stdin=body.encode("utf-8")
         ).strip()
-        self.record_made(run_id, new)
         kill_point("commit-built")
-        try:
-            self.run("update-ref", "-m", f"work-supervisor: {step}", "HEAD", new, old)
-        finally:
-            self._head = None
-        kill_point("head-moved")
+        self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
+        kill_point("refs-moved")
+        self._record_landing(run_id, new, create_ref, adopting)
+        kill_point("made-recorded")
         self.write_delivery(appended)
         self.refresh_index(path_list + sorted(exact) + sorted(appended))
         kill_point("synced")
         return new
+
+    def _move(
+        self,
+        run_id: str,
+        new: str,
+        old: str,
+        step: str,
+        create_ref: str | None,
+        source: str | None,
+        adopting: bool,
+        product_old: str | None,
+    ) -> None:
+        """Move ``HEAD`` and, when the run records one, the product ref to *new*.
+
+        Nothing is written to the run store before the move, so a refusal leaves
+        nothing to clean up.
+        """
+        record = self.product_record(run_id)
+        try:
+            if create_ref is None and record is None:
+                self.move_head(new, old, f"work-supervisor: {step}")
+                return
+            if create_ref is not None:
+                name, expected = create_ref, None
+                recorded = None
+            else:
+                assert record is not None
+                name, recorded = record.name, record.recorded
+                if recorded != old and not adopting:
+                    raise SupervisorGitError(
+                        "denied-integration-state",
+                        "HEAD and the product ref are not reconciled; run next",
+                    )
+                expected = product_old if adopting else (source or recorded)
+            try:
+                self.update_refs(new, old, name, expected)
+            except SupervisorGitError as exc:
+                self._diagnose(exc, name, expected, recorded)
+                raise
+        finally:
+            self._head = None
+
+    def _diagnose(
+        self, exc: SupervisorGitError, name: str, expected: str | None, recorded: str | None
+    ) -> None:
+        """Turn a failed compare-and-swap on the product ref into ``integration-conflict``.
+
+        Read by direct file reads: a Git call here would meet the attempt's control
+        check, which refuses the very ref move being reported.
+        """
+        if exc.code != "denied-git-failed":
+            return
+        kind, value = self.read_ref(name)
+        if (kind, value) == (("commit", expected) if expected else ("missing", "")):
+            return
+        was = f"commit {expected}" if expected else "absent"
+        if kind == "commit" and value == recorded:
+            # A supervisor step moved the ref: nothing is wrong, the request is just old.
+            detail = (
+                f"{name} moved to commit {value}, which the run recorded, after this "
+                f"result's request was issued against {was}. Nothing was committed and your "
+                "files are kept; run next, which issues the request again"
+            )
+        else:
+            now = f"commit {value}" if kind == "commit" else kind
+            detail = (
+                f"{name} is {now}, not the run's recorded value {recorded}. Nothing was "
+                "committed and your files are kept; restore it with: "
+                f"{self.restore_command(name, kind, recorded)}"
+            )
+        raise supervisor_module("_supervisor_admission.py").Refusal(
+            "integration-conflict", "controller", detail
+        ) from exc
+
+    def _record_landing(
+        self, run_id: str, new: str, create_ref: str | None, adopting: bool
+    ) -> None:
+        """Record the step the same invocation just moved the refs to.
+
+        The product ref record comes first and the made append second, so a cut-off
+        between them still leaves the recorded value, which counts as made. A failed write
+        states the state that path actually leaves the run in.
+        """
+        record = self.product_record(run_id)
+        name = create_ref or (record.name if record is not None else None)
+        first = create_ref is not None and not adopting
+        if first:
+            held = (
+                f"HEAD names {new}, the approval of a first admission the run did not "
+                "record. start names the exit to take. While the run store directory exists every "
+                "other verb refuses supervisor-changed and points at start; without it every "
+                "other verb but status refuses that the pin record is missing, and status "
+                "answers from the committed records."
+            )
+        elif adopting and record is not None:
+            held = (
+                f"the product ref and HEAD name {new}, a reanchor the run did not record, so "
+                "every verb but status refuses product-ref-diverged and names the restore."
+            )
+        elif adopting:
+            held = (
+                f"HEAD names {new}, a reanchor the run did not record, so next asks the "
+                "history-adoption decision again."
+            )
+        else:
+            held = (
+                f"the product ref and HEAD name {new}, a commit the run did not record, so "
+                "every verb but status holds the history-adoption decision."
+            )
+        if name is not None:
+            with self.recording(
+                run_id, "recording the step in the product ref record", held,
+                "run start" if first else "run any verb",
+            ):
+                self.write_product_record(run_id, ProductRecord(name, new))
+        if new not in self._made_entries(run_id):
+            if name is None:
+                held = f"HEAD names {new}, a commit the run did not record."
+            elif first:
+                held = (
+                    f"the product ref record names {new}, which the made list lacks; the "
+                    "run has no pin record yet, so every verb but start refuses "
+                    "supervisor-changed and start retries the append."
+                )
+            else:
+                held = (
+                    f"the product ref record names {new}, which the made list lacks, so "
+                    "every verb that reconciles (all but status) retries the append."
+                )
+            with self.recording(
+                run_id, "appending the step to the made list", held,
+                "run start" if first else "run any verb",
+            ):
+                self.record_made(run_id, new)
 
     # ── working copies ──────────────────────────────────────────────────────
 

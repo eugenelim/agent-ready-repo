@@ -193,7 +193,8 @@
             "reselect-review",
             "accept-risk",
             "confirm-replan",
-            "decline-replan"
+            "decline-replan",
+            "adopt-history"
           ]
         },
         "authority_ref": {
@@ -216,6 +217,11 @@
             "minLength": 1,
             "maxLength": 256
           }
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])",
+          "description": "An adopt-history answer: the HEAD commit it adopts."
         }
       },
       "oneOf": [
@@ -233,8 +239,17 @@
             "selection_key"
           ],
           "not": {
-            "required": [
-              "finding_ids"
+            "anyOf": [
+              {
+                "required": [
+                  "finding_ids"
+                ]
+              },
+              {
+                "required": [
+                  "commit"
+                ]
+              }
             ]
           }
         },
@@ -248,8 +263,41 @@
             "finding_ids"
           ],
           "not": {
-            "required": [
-              "selection_key"
+            "anyOf": [
+              {
+                "required": [
+                  "selection_key"
+                ]
+              },
+              {
+                "required": [
+                  "commit"
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "properties": {
+            "decision": {
+              "const": "adopt-history"
+            }
+          },
+          "required": [
+            "commit"
+          ],
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "selection_key"
+                ]
+              },
+              {
+                "required": [
+                  "finding_ids"
+                ]
+              }
             ]
           }
         }

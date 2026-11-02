@@ -125,7 +125,7 @@ _MAX_PIN_BYTES = 1024 * 1024
 _SCHEMA_VERSION = 1
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _SHA_RE = re.compile(r"[0-9a-f]{40,64}")
-_FILE_RE = re.compile(r"(\d{6})(\.json|\.refused\.json|\.cleared|\.superseded|\.reported)")
+_FILE_RE = re.compile(r"(\d{6})(\.json|\.refused\.json|\.cleared|\.superseded|\.reported|\.stale)")
 _SYMREF_RE = re.compile(r"ref: (refs/[\x21-\x7e]+)\s*")
 _MAX_ENTRIES = 50_000
 _MAX_FILE_BYTES = 64 * 1024 * 1024
@@ -250,6 +250,11 @@ class Issuance:
     @property
     def reported(self) -> bool:
         return ".reported" in self.marks
+
+    @property
+    def stale(self) -> bool:
+        """A supervisor step landed after the issuance: its source commit is old."""
+        return ".stale" in self.marks
 
 
 class Attempts:
@@ -390,6 +395,72 @@ class Attempts:
                 if lines:
                     state[f"{label}:packed-refs/replace"] = _digest("\n".join(lines).encode())
         return state
+
+    def product_ref_problems(self, run_id: str) -> list[str]:
+        """Labels naming this run's product ref when it is not at its recorded value.
+
+        Direct file reads, no Git call. A run with no recorded product ref has none to
+        check. The supervisor's own move is accepted because the invocation that makes it
+        records the new value before its next Git call.
+        """
+        git = self.ws.git
+        record = git.product_record(run_id)
+        if record is None:
+            return []
+        kind, value, trusted = git.product_ref_view(record)
+        if trusted:
+            return []
+        shown = f"commit {value}" if kind == "commit" else kind
+        restore = git.restore_command(record.name, kind, record.recorded)
+        return [f"{record.name} is {shown}; restore it with: {restore}"]
+
+    def mark_stale_if_landed(self) -> None:
+        """Mark the open attempt stale after a conflict that a supervisor step caused.
+
+        When the product ref still sits at a value the run recorded, the attempt's
+        source commit is merely old. The issuance stays open, so the guard keeps
+        comparing the worker's files with its manifest, but no result is admitted
+        against it: ``next`` re-issues the request from a new source commit once the
+        guard passes. A ref the worker moved is left to the guard as residue.
+        """
+        issuance = self.open
+        if issuance is not None and not self.product_ref_problems(issuance.run_id):
+            self._mark(issuance, ".stale")
+
+    def require_open_issuance(self, request: dict[str, Any]) -> None:
+        """Refuse a result for an attempt kind unless its issuance is open, current, and passed.
+
+        The guard has already compared the open issuance with the working tree, so a
+        result is admitted only against a manifest that was just checked.
+        """
+        issuance = self.open
+        if (
+            issuance is None
+            or issuance.request_id != request["request_id"]
+            or issuance.kind != request["kind"]
+        ):
+            raise _refusal(
+                "not-current-attempt",
+                "no issuance is open for this request; run next to issue it, then report",
+            )
+        if issuance.stale:
+            raise _refusal(
+                "not-current-attempt",
+                "a step landed since this request was issued; run next to issue it again",
+            )
+
+    def has_open_issuance(self) -> bool:
+        """Whether any issuance of this spec is open, read without comparing or writing."""
+        return any(
+            not (i.superseded or i.reported or (i.refused and i.cleared)) for i in self._latest()
+        )
+
+    def source_commit(self, request_id: str) -> str | None:
+        """The commit the open attempt for *request_id* was issued against, if one is open."""
+        issuance = self.open
+        if issuance is not None and issuance.request_id == request_id:
+            return issuance.head
+        return None
 
     def head_state(self) -> tuple[str | None, str]:
         """``HEAD``'s symbolic ref (``None`` when detached) and the commit it resolves to."""
@@ -609,6 +680,7 @@ class Attempts:
         if manifest is None:
             return
         changed = differences(manifest.git, self.git_state(manifest.git))
+        changed += self.product_ref_problems(manifest.run_id)
         if changed:
             raise SupervisorGitError(
                 "denied-git-control-state",
@@ -629,20 +701,16 @@ class Attempts:
         for issuance in self._latest():
             if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
                 continue
-            # Git control state first, by direct file reads: no supervisor git call may
-            # read state a worker changed, and a refusal here is still recorded.
-            git_paths = differences(issuance.git, self.git_state(issuance.git))
-            if git_paths:
-                paths = sorted({*git_paths, *differences(issuance.trusted, self._files(issuance))})
-            else:
-                current_ref, current = self.head_state()
-                bad = current != issuance.head and self._history(issuance, current)
-                paths = self._differences(issuance, current, current_ref, bad)
+            paths = self._paths(issuance)
             if issuance.refused:
                 if paths:
                     raise _refusal(
                         "attempt-residue",
-                        self._detail(self._recorded_forms(issuance.git, paths), standing=True),
+                        self._detail(
+                            self._recorded_forms(issuance.git, paths),
+                            standing=True,
+                            head=issuance.head,
+                        ),
                     )
                 if verb == "next":
                     self._mark(issuance, ".cleared")
@@ -658,6 +726,40 @@ class Attempts:
                 self._refuse(issuance, paths, verb)
             self.open = self._manifest = issuance
         return self.open
+
+    def _paths(self, issuance: Issuance) -> list[str]:
+        """What differs now from *issuance*'s manifest; reads only, writes nothing."""
+        # Git control state first, by direct file reads: no supervisor git call may
+        # read state a worker changed, and a refusal here is still recorded.
+        git_paths = differences(issuance.git, self.git_state(issuance.git))
+        product = self.product_ref_problems(issuance.run_id)
+        if git_paths:
+            paths = sorted({*git_paths, *differences(issuance.trusted, self._files(issuance))})
+        else:
+            current_ref, current = self.head_state()
+            bad = current != issuance.head and self._history(issuance, current)
+            paths = self._differences(issuance, current, current_ref, bad)
+        return sorted({*paths, *product})
+
+    def standing_refusal(self) -> Exception | None:
+        """The refusal ``next`` would answer for an open or refused attempt; nothing is written.
+
+        For ``status``, which never marks, clears, or logs anything.
+        """
+        for issuance in self._latest():
+            if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
+                continue
+            paths = self._paths(issuance)
+            if paths:
+                return _refusal(
+                    "attempt-residue",
+                    self._detail(
+                        self._recorded_forms(issuance.git, paths),
+                        standing=issuance.refused,
+                        head=issuance.head,
+                    ),
+                )
+        return None
 
     @staticmethod
     def _recorded_forms(recorded: dict[str, str], paths: list[str]) -> list[str]:
@@ -675,25 +777,33 @@ class Attempts:
         return shown
 
     @staticmethod
-    def _detail(paths: list[str], *, standing: bool) -> str:
-        head = (
+    def _detail(paths: list[str], *, standing: bool, head: str = "") -> str:
+        lead = (
             "a refused attempt still differs from its manifest"
             if standing
             else ("the attempt differs from its manifest")
         )
-        return f"{head}: {_named(paths)}; restore these paths"
+        exit_ = (
+            f"; to restore HEAD, move it back to {head}, the commit the attempt was issued at"
+            if head and "HEAD" in paths
+            else ""
+        )
+        return f"{lead}: {_named(paths)}; restore these paths{exit_}"
 
     def _refuse(self, issuance: Issuance, paths: list[str], verb: str) -> None:
         """Record the refusal in the store, log it, and refuse."""
         record = {"schema_version": _SCHEMA_VERSION, "verb": verb, "paths": paths[:1000]}
         self._mark(issuance, ".refused.json", json.dumps(record, sort_keys=True).encode())
         code = "attempt-refused" if verb == "report" else "attempt-residue"
-        self._log(code)
+        self.log_denial(code)
         raise _refusal(
-            code, self._detail(self._recorded_forms(issuance.git, paths), standing=False)
+            code,
+            self._detail(
+                self._recorded_forms(issuance.git, paths), standing=False, head=issuance.head
+            ),
         )
 
-    def _log(self, reason: str) -> None:
+    def log_denial(self, reason: str, event_type: str = "supervisor-attempt-check") -> None:
         """Write one ``security-event.v1`` denial; the refusal stands even if it is not stored."""
         events = sibling("_security_events.py")
         events.emit_denial_best_effort(
@@ -702,7 +812,7 @@ class Attempts:
                 schema_version=1,
                 operation_id=events.make_operation_id(),
                 correlation_id=self.ws.spec_rel,
-                event_type="supervisor-attempt-check",
+                event_type=event_type,
                 outcome="denied",
                 reason_code=reason,
                 timestamp=self.ws.clock(),
@@ -732,6 +842,8 @@ class Attempts:
         open_attempt = self.open
         if request is not None and request["kind"] in ATTEMPT_KINDS:
             if open_attempt is not None and open_attempt.request_id == request["request_id"]:
+                if open_attempt.stale:
+                    self._reissue(open_attempt)
                 return
             self._confirm_admitted_skill(state.run_id)
             if open_attempt is not None:
@@ -753,6 +865,28 @@ class Attempts:
         elif open_attempt is not None and (request is not None or action.kind == "terminal"):
             self._supersede(open_attempt)
             self.open = self._manifest = None
+
+    def _reissue(self, stale: Issuance) -> None:
+        """Issue a stale attempt's request again from the current commit.
+
+        The guard compared the working tree with the stale issuance's manifest in this
+        same verb, so the new issuance keeps that manifest and takes only a new source.
+        """
+        symref, head = self.head_state()
+        record = {
+            "schema_version": _SCHEMA_VERSION,
+            "spec": self.ws.spec_rel,
+            "run_id": stale.run_id,
+            "request_id": stale.request_id,
+            "kind": stale.kind,
+            "head": head,
+            "head_ref": symref,
+            "trusted": stale.trusted,
+            "git": stale.git,
+        }
+        self._write(stale.run_id, f"{stale.seq + 1:06d}.json", _json(record))
+        self._supersede(stale)
+        self.open = self._manifest = self._load(stale.run_id, stale.store)
 
     def _supersede(self, issuance: Issuance) -> None:
         """Mark *issuance* superseded; a ``regenerate`` request's recorded source goes with it."""
@@ -972,6 +1106,22 @@ class Attempts:
             ):
                 self.pin(run_id)
                 return
+            if not made and len(approvals) == 1 and self.ws.git.approval_only(run_id):
+                command = self.ws.git.first_admission_exit(approvals[0]["base"])
+                exit_text = (
+                    f"restore with {command}, then run start again" if command
+                    else "no command is named: the approval's base is not the parent of the "
+                    "commit at HEAD, so HEAD may no longer be the cut-off approval. Find that "
+                    "approval commit, keep any commits made on top of it that you need, return "
+                    "HEAD to the approval's parent yourself, keeping your uncommitted changes, "
+                    "then run start again"
+                )
+                raise _unverifiable(
+                    "supervisor-changed",
+                    "the supervisor's pin record is missing. If HEAD holds the approval of a "
+                    "first admission this run never recorded (cut off after its refs moved, "
+                    f"or committed outside the supervisor), nothing counts it: {exit_text}",
+                )
             raise _unverifiable("supervisor-changed", "the supervisor's pin record is missing")
         if installed != pinned and installed != self._open_regeneration(run_id):
             raise _refusal(
@@ -1218,5 +1368,5 @@ class Attempts:
                 where = "a place outside the execution root"
             else:
                 continue
-            self._log("unsafe-link")
+            self.log_denial("unsafe-link")
             raise _refusal("unsafe-link", f"{_named([rel])} is a link into {where}")

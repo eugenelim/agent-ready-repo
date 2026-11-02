@@ -431,6 +431,10 @@ def resolve_effect(
             "invalid-argument", "owner", f"--decision must be one of {', '.join(DECISIONS)}"
         )
     with ws.run_lock():
+        ws.attempts.guard("resolve-effect")
+        recovery = _loop._supervisor("_supervisor_recovery.py")
+        if recovery.reconcile(ws) is not None:
+            raise recovery.unadopted(ws)
         state = _loop.derive(ws)
         if state.refusal is not None:
             raise state.refusal

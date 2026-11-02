@@ -378,6 +378,7 @@ For durable work, write the plan to disk — don't keep it in memory across turn
 - **`write-stub`:** write the stub files the request names, with exactly the plan's bytes. The supervisor runs them and commits them only when each is red.
 - **`run-gates`, `review-role`, `assess-finding`:** see GATES and REVIEW below.
 - **`human-decision`:** put the question to the named human and report only the answers `references/supervisor.md` lists for that reason; surface every other reason. **`resolve-effect`** carries an effect's human decision.
+- **`history-adoption` decision:** the branch or the run's product ref holds a commit the run never recorded (a rebase, an amend, a reset, your own commit, or a step a crash cut off). Put the question to the owner and report `adopt-history` only with the owner's authority reference and the `HEAD` commit the request names; otherwise restore both the product ref and `HEAD` to the recorded value the question gives. Never move the run's product ref yourself except to the value a refusal or that question names.
 - **A refusal** from any verb stops the loop. Read its `owner` and follow the reference; never work around it.
 
 The controller changes the plan only while no attempt is open ([`references/supervisor.md`](references/supervisor.md) § *The open-attempt rule — when the plan may change*).
