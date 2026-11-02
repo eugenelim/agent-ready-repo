@@ -300,7 +300,7 @@ hard failure. Never require whole-repository ingestion or a new durable file.
    - **Measurement** — a change whose claim is a number (latency, throughput, size, runtime). Baseline first, same command both sides, report one vetted number. Full doctrine: [`references/verification-modes.md`](references/verification-modes.md).
    - **infra/deploy** — layered GATES sequence: static preflight < plan/preview < idempotent convergent apply < active end-to-end smoke < rollback. Full doctrine: [`references/infra-verification.md`](references/infra-verification.md).
 
-   **Confirm the mechanism exists before claiming the mode — task zero if it doesn't.** Applies equally across all modes and light and full mode alike.
+   **Confirm the mechanism exists before claiming the mode — task zero if it doesn't.** Applies equally across all modes and light and full mode alike. For visual / manual QA, behavior pin, and measurement, the mechanism is a verify entry for each surface the task drives; see [`references/verification-modes.md`](references/verification-modes.md#verify-entries).
 
 8. **Design construction tests up front.** When a plan exists, write `Tests:` in `plan.md` before EXECUTE begins. For direct-light, record the verification plan in the session before EXECUTE. Can't state the test or verification → task is too vague, sharpen first. For TDD tasks, `Tests:` names the behavior, the boundary it is checked at, and the verification mode; the red test is written and proven red at EXECUTE, and PLAN creates no repository test file (load [`references/tdd-stubs.md`](references/tdd-stubs.md) on demand). A seam the plan cannot ground is recorded `implementation-discovered`. Every mode in PLAN step 7 other than TDD, including behavior pin and measurement, writes no red test here.
 
@@ -716,6 +716,7 @@ runs after the loop closes, under [Capture](#capture).
 - [ ] **Verification passed.**
   - GATES were clean (lint, typecheck, tests).
   - **If the change ships something a user invokes** (CLI, library API, agent, UI): the real built artifact was exercised end-to-end through its documented happy path and the observed result recorded — a passing unit gate alone does not satisfy this. Trust the running artifact, not the build exit code.
+  - Did the run drive a surface or feature its verify entry does not cover? If so, record or promote it per the verify-entries doctrine.
 
 - [ ] **Review passed, residuals surfaced.**
   - **Full mode:** the supervisor's review readiness is satisfied: every role it selected from `review-rules.json` has a current report and has no unresolved Blocker or Concern, every finding has an assessment, and every supported finding is fixed or accepted as a risk by its named owner. A role is a named skip only when `review-rules.json` marks it non-mandatory. A missing, invalid, or named-skipped mandatory reviewer blocks. Silent skips are not allowed.

@@ -231,3 +231,30 @@ def test_t1_template_headings_and_placeholders() -> None:
     values = [ln for ln in lines if ln.strip() and not ln.startswith("#")]
     assert len(values) == len(_FIELDS)
     assert all(re.fullmatch(r"<[^>]+>", ln) for ln in values)
+
+
+_SKILL = _WORK_LOOP / "SKILL.md"
+
+
+def _skill_region(start: str, end: str) -> str:
+    raw = _SKILL.read_text(encoding="utf-8")
+    i = raw.index(start)
+    return _flat(raw[i : raw.index(end, i)])
+
+
+def test_t2_plan_step_7_links_verify_entries() -> None:
+    region = _skill_region(
+        "**Confirm the mechanism exists before claiming the mode",
+        "8. **Design construction tests up front.",
+    )
+    assert "references/verification-modes.md#verify-entries" in region
+    assert "verify entry for each surface the task drives" in region
+
+
+def test_t2_finish_checklist_asks_uncovered_surface() -> None:
+    region = _skill_region(
+        "- [ ] **Verification passed.**",
+        "- [ ] **Review passed, residuals surfaced.**",
+    )
+    assert "its verify entry does not cover" in region
+    assert "record or promote it" in region
