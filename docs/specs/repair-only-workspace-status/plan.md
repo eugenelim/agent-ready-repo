@@ -269,9 +269,17 @@ Owned by: T9
 - **Tests:** each kept tool's test passes. Each deleted tool leaves no reference in the Makefile, the gate chain or the shard roster.
 - **Done when:** `make lint-ruff lint-mypy`, `tools/lint-ci-parity.py` and the kept tools' tests pass.
 
+### T12: AC-0009 covers every migration form
+
+- **Depends on:** T6
+- **Verification mode:** TDD
+- **Touches:** `tools/test_workspace_status_cli.py`, `tools/test_local_ci_shared_test_deduplication.py`
+- **Tests:** for AC-0009: the argument-vector cases hold one case per form the Migration forms term lists, including `repair-plan` given `--yes`, `--operation-id` and `--confirmation-file`, each asserting exit 2, empty standard output and an unchanged tree. The dedup suite's test-count pins follow.
+- **Done when:** `tools/test_workspace_status_cli.py` and `tools/test_local_ci_shared_test_deduplication.py` pass.
+
 ### T11: Records and release
 
-- **Depends on:** T4, T7, T8, T9, T10
+- **Depends on:** T4, T7, T8, T9, T10, T12
 - **Verification mode:** goal-based
 - **Touches:** `docs/specs/workspace-retirement/retirement-record.md`, `docs/specs/workspace-retirement/inventory.toml`, `tests/roster/test_repair_only_workspace_status.py`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, `docs/product/changelog.d/*`
 - **Tests:**
@@ -295,4 +303,4 @@ Owned by: T9
 
 - 2026-11-02: spec approved by eugenelim at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, with the round-4 repairs accepted unreviewed.
 - 2026-11-02: plan approved by eugenelim at `63ed6819e`.
-- 2026-11-02: amended under controlled amendment after T9 (owner decisions during T2 and T6): AC-0002's engine-pinning list adds `test_dispatch_outside_a_skills_directory`, and the Migration forms term adds `repair-plan --yes`; spec and plan set back to Draft and Drafting for review and re-approval.
+- 2026-11-02: amended under controlled amendment after T9 (owner decisions during T2 and T6): AC-0002's engine-pinning list adds `test_dispatch_outside_a_skills_directory`, and the Migration forms term adds `repair-plan` given `--yes`, `--operation-id` or `--confirmation-file`, the three flags the base refused with the retired migration-result refusal; task T12 makes the AC-0009 cases cover every listed form; spec and plan set back to Draft and Drafting for review and re-approval.

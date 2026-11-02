@@ -129,7 +129,7 @@ the plan's `## Design (LLD)`, not here.
 - **Dispatch suites.** `packs/core/tests/skills/work-loop/test_dispatch.py`, `test_header_derived_dispatch_replay.py` and `test_work_intake_dispatch.py`.
 - **Engine-pinning tests.** `test_missing_engine`, `test_engine_symlinked_out_of_the_tree`, `test_engine_import_raises`, `test_engine_without_the_entry_point`, `test_engine_name_that_is_not_callable`, `test_selector_rule_matches_workspace_status` and `test_dispatch_outside_a_skills_directory`, all in `test_dispatch.py`.
 - **Retired subcommands.** `status`, `reconcile`, `explain`, `selected-membership`, `prune`, `retirement-candidates` and `repair-rollback`.
-- **Migration forms.** `repair-plan` given `--migration-selection` or `--yes`, and `repair-apply` given `--migration-selection`, `--operation-id` or `--confirmation-file`.
+- **Migration forms.** `repair-plan` given `--migration-selection`, `--yes`, `--operation-id` or `--confirmation-file`, and `repair-apply` given `--migration-selection`, `--operation-id` or `--confirmation-file`.
 - **Retired tokens.** `workspace-status status`, `workspace-status reconcile`, `workspace-status explain`, `selected-membership`, `retirement-candidates`, `repair-rollback`, `--migration-selection` and `prune --select`.
 
 **Dispatch**
