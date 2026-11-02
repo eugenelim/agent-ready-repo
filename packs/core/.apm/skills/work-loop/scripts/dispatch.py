@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Read-only dispatch: which specs are ready, which are active, and what to do next.
 
-Usage: dispatch.py --root <root> [--start <spec> | --resume <spec>]
+Usage: dispatch.py --root <root> [--start <spec> | --resume <spec>] [--captured]
 
 The command reads each spec's own `Status:` header, its sibling `plan.md`, its
 `Depends on:` targets, and a cooled spec's lifecycle record, and evaluates them with
@@ -21,6 +21,11 @@ Output: one JSON object on standard output with these keys.
   findings        Every other finding: cooling, parse, `docs/specs` and
                   unreadable-spec findings.
   decision        What to do next, with the keys below.
+  captured        Only with `--captured`: the captured-item listing of
+                  `docs/product/captured/`, `items` and `findings`, as the base
+                  `workspace-status` projection gave it. Present on every result,
+                  a refused run included, and independent of `workspace.toml`.
+                  Without the flag the output holds exactly the keys above.
 Each ready, active and blocked item carries `path`, `slug`, `status` and
 `findings`. Each finding carries `code`, `path`, `dispatchable` and
 `next_action`. Every list is sorted by `path`.
@@ -66,7 +71,7 @@ _PUBLIC_PATH_CHARS = frozenset(
 _READINESS_NAMES = (
     "run_canonical_reconciliation", "_resolve_cooled_state", "_metadata_from_root",
     "_is_canonical_spec_artifact_path", "_confined_artifact_path", "_finding",
-    "WorkspaceEntry", "SourceRecord",
+    "WorkspaceEntry", "SourceRecord", "list_captured_items",
 )
 _SAFETY_NAMES = ("validate_confined_directory", "read_confined_regular_file")
 
@@ -325,13 +330,45 @@ def _decision(
     }
 
 
-def dispatch(root: Path, mode: str | None = None, selector: str | None = None) -> dict[str, Any]:
-    """Return the dispatch result for `root`.
+def _captured_projection(root: Path) -> dict[str, Any]:
+    """The `captured` object: the captured-item listing and the findings it gives."""
+    readiness, _ = _load_modules()
+    cooled, _findings = readiness._resolve_cooled_state(root.resolve(), [], [], _cooling_loader())
+    listing = readiness.list_captured_items(root.resolve(), cooled)
+    findings: list[dict[str, Any]] = []
+    for found in listing.findings:
+        entry: dict[str, Any] = {
+            "code": found.code,
+            "path": found.path,
+            "dispatchable": found.dispatchable,
+            "next_action": found.next_action,
+        }
+        if found.code == "invalid_captured_item":
+            entry["field"] = found.detail
+        findings.append(entry)
+    return {"items": listing.items, "findings": findings}
+
+
+def dispatch(
+    root: Path,
+    mode: str | None = None,
+    selector: str | None = None,
+    captured: bool = False,
+) -> dict[str, Any]:
+    """Return the dispatch result for `root`, with `captured` added when asked.
 
     `mode` is `start`, `resume` or None; `selector` names a spec when `mode` is set.
     Raises `_Unavailable` when a sibling file cannot be loaded and `_InvalidSelector`
     for a selector in no accepted form.
     """
+    result = _dispatch(root, mode, selector)
+    if captured:
+        result["captured"] = _captured_projection(root)
+    return result
+
+
+def _dispatch(root: Path, mode: str | None, selector: str | None) -> dict[str, Any]:
+    """The dispatch result for `root`, without the `captured` listing."""
     readiness, safety = _load_modules()
     target = _selector_path(selector) if mode is not None and selector is not None else None
     root = root.resolve()
@@ -518,6 +555,10 @@ def _parser() -> argparse.ArgumentParser:
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--start", metavar="SPEC", help="start the named spec")
     group.add_argument("--resume", metavar="SPEC", help="resume the named spec")
+    parser.add_argument(
+        "--captured", action="store_true",
+        help="add the captured-item listing as the `captured` key",
+    )
     return parser
 
 
@@ -535,7 +576,7 @@ def main(argv: list[str] | None = None) -> int:
         print("invalid_root: --root is not a directory", file=sys.stderr)
         return 2
     try:
-        result = dispatch(root, mode, selector)
+        result = dispatch(root, mode, selector, args.captured)
     except _InvalidSelector:
         print("invalid_selector: the spec selector is in no accepted form", file=sys.stderr)
         return 2

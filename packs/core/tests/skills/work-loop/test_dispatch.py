@@ -1450,3 +1450,66 @@ def test_every_finding_dispatch_prints_is_a_table_pair(
     assert seen
     for finding in seen:
         assert table[finding["code"]] == finding["next_action"]
+
+
+# --- `--captured` (repair-only-workspace-status AC-0005) -----------------------------
+
+_CAPTURED_FIXTURES = Path(__file__).parent / "fixtures" / "captured-projection"
+_BASE_KEYS = {"schema_version", "ready", "active", "blocked", "findings", "decision"}
+
+
+def _plant_fixture(root: Path, repository: dict[str, Any]) -> None:
+    """Plant the exact repository bytes a fixture's `captured` literal was computed from."""
+    for relative, text in repository["files"].items():
+        path = root / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+    for relative, data in repository["binary"].items():
+        (root / relative).write_bytes(bytes.fromhex(data))
+    for relative, target in repository["symlinks"].items():
+        (root / relative).symlink_to(target)
+
+
+def _fixture_names() -> list[str]:
+    return sorted(path.stem for path in _CAPTURED_FIXTURES.glob("*.json"))
+
+
+@pytest.mark.skipif(not hasattr(os, "symlink") or os.name == "nt", reason="needs symlinks")
+@pytest.mark.parametrize("name", _fixture_names())
+@pytest.mark.parametrize("mode", [(None, None), ("start", "a"), ("resume", "a")])
+def test_captured_equals_recorded_base_projection(
+    D: ModuleType, tmp_path: Path, name: str, mode: tuple[str | None, str | None]
+) -> None:
+    fixture = json.loads((_CAPTURED_FIXTURES / f"{name}.json").read_text(encoding="utf-8"))
+    root = tmp_path / "r"
+    root.mkdir()
+    _plant_fixture(root, fixture["repository"])
+    flagged = D.dispatch(root, *mode, captured=True)
+    plain = D.dispatch(root, *mode)
+    assert flagged["captured"] == fixture["captured"]
+    assert set(plain) == _BASE_KEYS
+    assert {key: flagged[key] for key in _BASE_KEYS} == plain
+
+
+def test_captured_fixtures_cover_every_route_and_failure() -> None:
+    fixture = json.loads((_CAPTURED_FIXTURES / "mixed-no-workspace.json").read_text("utf-8"))
+    items = fixture["captured"]["items"]
+    assert {i.get("type") for i in items} >= {"shape", "research", "strategy", "design", "signal"}
+    assert any(i.get("invalid") for i in items) and any(i.get("unreadable") for i in items)
+    assert set(_fixture_names()) == {
+        "mixed-no-workspace", "mixed-empty-workspace", "mixed-unmigrated-workspace",
+        "no-captured-directory",
+    }
+
+
+def test_captured_flag_prints_one_extra_key(
+    D: ModuleType, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    repo = Repo(tmp_path / "r")
+    repo.put("docs/product/captured/a.md", "# A\n\n- **Status:** Open\n- **Kind:** defect\n")
+    assert D.main(["--root", str(repo.root), "--captured"]) == 0
+    flagged = json.loads(capsys.readouterr().out)
+    assert D.main(["--root", str(repo.root)]) == 0
+    assert set(json.loads(capsys.readouterr().out)) == _BASE_KEYS
+    assert set(flagged) == _BASE_KEYS | {"captured"}
+    assert [i["slug"] for i in flagged["captured"]["items"]] == ["a"]

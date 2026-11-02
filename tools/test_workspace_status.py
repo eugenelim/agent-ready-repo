@@ -1524,8 +1524,11 @@ _WL_FINISH_END = r'Conventional commit format'
 # on its `decision` instead of reading `canonical.ready`/`canonical.active`. The
 # engine is unchanged: dispatch.py hands the same engine its input, and the
 # shaping-item guard still reads `captured.items`; ownership is unchanged.
+# Moved for repair-only-workspace-status T3: the shaping-item guard reads
+# `captured.items` from `dispatch.py --captured`, and the orientation block no
+# longer reads `workspace.toml` initiatives. Ownership is unchanged.
 _WORK_LOOP_CONTRACT_HASH = (
-    "3a1faea1019b6b5f0fe5cfbeda14547bc98c70152d124785bdc3f1201da2e0bc"
+    "e5a3f9e7a7f07a1ab2083603587edd27580a6dbaafeb859ffb3af0eb0b3f7bca"
 )
 # Reconciled for spec-registration-stop T2: the supplied-spec-path bullet no longer
 # names the retired `unregistered_work` finding; ownership is unchanged.

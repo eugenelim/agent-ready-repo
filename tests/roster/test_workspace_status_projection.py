@@ -187,6 +187,15 @@ def test_t3_work_loop_step0_requires_canonical_preflight() -> None:
     assert "Raw `[work].queue` or `[work].active` membership never authorizes PLAN" in normalized
     assert "collect all paths in `[\"ini-NNN\".work].active`" not in skill
     assert "use it and proceed to PLAN" not in skill
+    # repair-only-workspace-status AC-0005/AC-0018: the guard reads the dispatch listing.
+    assert "dispatch.py' --root . --captured" in normalized
+    assert "`captured.items` in the `dispatch.py --captured` output" in normalized
+    for gone in (
+        "workspace-status status", "workspace-status reconcile", "workspace-status explain",
+        "selected-membership", "retirement-candidates", "repair-rollback",
+        "--migration-selection", "prune --select", '["ini-NNN"]',
+    ):
+        assert gone not in skill, gone
 
 
 def test_packaged_engine_projection_matches_canonical_source() -> None:
