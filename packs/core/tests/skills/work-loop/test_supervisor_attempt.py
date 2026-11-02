@@ -60,6 +60,25 @@ REVIEW_PLAN = sup.plan(
 # ── templates and helpers ───────────────────────────────────────────────────
 
 
+def race_free_host(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer the host query as a host with race-free confined writes.
+
+    A test that forges Git state and expects the attempt's own refusal needs it: with HEAD
+    moved off the approval the trust is undetermined, and a host without such writes
+    refuses that before the attempt check runs. The host refusal has its own suite.
+    """
+    query = h.commit_module.sibling("_confined_mutation.py")
+    monkeypatch.setattr(query, "race_free_mutation", lambda: True)
+
+
+def _overwrite(path: Path, text: str) -> None:
+    """Replace a file's bytes in place. A gitfile is hidden on Windows, and opening a hidden
+    file to create-and-truncate it is denied there, while opening it to update is not."""
+    with path.open("r+b") as handle:
+        handle.truncate(0)
+        handle.write(text.encode("utf-8"))
+
+
 def _drive_to(repo: Path, kind: str, base: Path) -> dict[str, Any]:
     """Report requests until ``next`` issues one of *kind*; return it."""
     controller = h.Controller(repo, base / "effects.log")
@@ -136,7 +155,7 @@ def _events(repo: Path) -> list[dict[str, Any]]:
 def _edit(path: Path, old: str, new: str) -> None:
     text = path.read_text("utf-8")
     assert old in text, old
-    path.write_text(text.replace(old, new, 1), "utf-8")
+    path.write_text(text.replace(old, new, 1), "utf-8", newline="\n")
 
 
 def _delete_local_caches(repo: Path) -> None:
@@ -188,7 +207,7 @@ def _forge_config(repo: Path) -> None:
 
 def _forge_hook(repo: Path) -> None:
     hook = repo / ".git" / "hooks" / "post-commit"
-    hook.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    hook.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8", newline="\n")
     hook.chmod(0o755)
 
 
@@ -209,8 +228,9 @@ FORGERIES: dict[str, tuple[Callable[[Path], None], str]] = {
 
 @pytest.mark.parametrize("name", sorted(FORGERIES))
 def test_a_forged_change_is_refused_at_report(
-    implementer_template: Path, tmp_path: Path, name: str
+    implementer_template: Path, tmp_path: Path, name: str, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    race_free_host(monkeypatch)
     forge, path = FORGERIES[name]
     repo = _copy(implementer_template, tmp_path)
     request = _current_request(repo)
@@ -236,7 +256,7 @@ def test_an_unparseable_git_config_is_refused_and_recorded_before_any_git_call(
     ws = h.workspace(repo)
     assert ws.git.hardened.pins.git_dir
     config = repo / ".git" / "config"
-    config.write_text(config.read_text("utf-8") + "[broken\n", "utf-8")
+    config.write_text(config.read_text("utf-8") + "[broken\n", "utf-8", newline="\n")
     with pytest.raises(h.admission.Refusal) as caught:
         h.loop.report(ws, result)
     assert caught.value.code == "attempt-refused"
@@ -253,7 +273,7 @@ def test_a_modified_installed_skill_is_refused_at_report(
     repo = _copy(implementer_template, tmp_path)
     request = _current_request(repo)
     result = h.Controller(repo, tmp_path / "effects.log").work(request)
-    (skill / "scripts" / "_supervisor_loop.py").write_text("# swapped\n", encoding="utf-8")
+    (skill / "scripts" / "_supervisor_loop.py").write_text("# swapped\n", encoding="utf-8", newline="\n")
     code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 1, out
     assert out["refusal"]["code"] == "attempt-refused"
@@ -269,7 +289,7 @@ def test_a_rewritten_gitfile_is_refused_at_report(tmp_path: Path) -> None:
     result = h.Controller(worktree, tmp_path / "effects.log").work(request)
     gitdir = (worktree / ".git").read_text("utf-8").split("gitdir: ", 1)[1].strip()
     # Same directory by a different spelling: only the file's bytes differ.
-    (worktree / ".git").write_text(f"gitdir: {gitdir}/../{Path(gitdir).name}", encoding="utf-8")
+    _overwrite(worktree / ".git", f"gitdir: {gitdir}/../{Path(gitdir).name}")
     code, out = h.Controller(worktree, tmp_path / "effects.log").report(result)
     assert code == 1, out
     assert out["refusal"]["code"] == "attempt-refused"
@@ -297,8 +317,9 @@ def _run_id(repo: Path) -> str:
 
 
 def test_a_packed_ref_move_is_refused_at_report(
-    implementer_template: Path, tmp_path: Path
+    implementer_template: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    race_free_host(monkeypatch)
     repo = _copy(implementer_template, tmp_path)
     request = _current_request(repo)
     result = h.Controller(repo, tmp_path / "effects.log").work(request)
@@ -306,7 +327,7 @@ def test_a_packed_ref_move_is_refused_at_report(
     fake = _forged_commit(repo, head, _run_id(repo))
     h.git(repo, "pack-refs", "--all", "--prune")
     packed = repo / ".git" / "packed-refs"
-    packed.write_text(packed.read_text("utf-8").replace(head, fake), "utf-8")
+    packed.write_text(packed.read_text("utf-8").replace(head, fake), "utf-8", newline="\n")
     made = _made(repo)
     code, out = h.Controller(repo, tmp_path / "effects.log").report(result)
     assert code == 1, out
@@ -338,9 +359,9 @@ def test_a_gitfile_or_commondir_aimed_at_a_decoy_is_never_admitted(
     result = h.Controller(linked, tmp_path / "effects.log").work(request)
     private = Path(h.git(linked, "rev-parse", "--absolute-git-dir").strip())
     if target == "gitfile":
-        (linked / ".git").write_text(f"gitdir: {decoy / '.git'}\n", encoding="utf-8")
+        _overwrite(linked / ".git", f"gitdir: {decoy / '.git'}\n")
     else:
-        (private / "commondir").write_text(f"{decoy / '.git'}\n", encoding="utf-8")
+        (private / "commondir").write_text(f"{decoy / '.git'}\n", encoding="utf-8", newline="\n")
     head = _head(repo)
     code, out = h.Controller(linked, tmp_path / "effects.log").report(result)
     assert code == 1, out
@@ -357,7 +378,7 @@ def test_an_attempt_already_reported_stays_closed_after_a_message_preserving_reb
     assert _report(repo, request)[0] == 0
     root = h.git(repo, "rev-list", "--max-parents=0", "HEAD").strip()
     h.git(repo, "checkout", "-q", "-b", "upstream", root)
-    (repo / "OTHER.md").write_text("upstream\n", encoding="utf-8")
+    (repo / "OTHER.md").write_text("upstream\n", encoding="utf-8", newline="\n")
     h.git(repo, "add", "OTHER.md")
     h.git(repo, "commit", "-q", "-m", "unrelated upstream change")
     h.git(repo, "checkout", "-q", "main")
@@ -457,7 +478,7 @@ def effect_template(tmp_path_factory: pytest.TempPathFactory) -> tuple[Path, str
     assert admitted["admitted"] == "decision-required", admitted
     # Replanned between attempts: a new task is issued while the effect is unresolved.
     plan = repo / SPEC / "plan.md"
-    plan.write_text(sup.plan(*_plan_tasks(), EXTRA_TASK), "utf-8")
+    plan.write_text(sup.plan(*_plan_tasks(), EXTRA_TASK), "utf-8", newline="\n")
     code, payload = h.run_cli(repo, "next", SPEC)
     assert code == 0 and payload["request"]["kind"] == "implement-task", payload
     assert payload["request"]["task"]["title"] == "Release extra note is written"
@@ -678,8 +699,10 @@ def _copy_trailers(repo: Path) -> None:
 
 @pytest.mark.parametrize("rewrite", [_soft_reset, _amend, _copy_trailers])
 def test_a_rewrite_or_a_commit_with_copied_trailers_refuses_the_attempt(
-    implementer_template: Path, tmp_path: Path, rewrite: Callable[[Path], None]
+    implementer_template: Path, tmp_path: Path, rewrite: Callable[[Path], None],
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    race_free_host(monkeypatch)
     repo = _copy(implementer_template, tmp_path)
     request = _current_request(repo)
     result = h.Controller(repo, tmp_path / "effects.log").work(request)
@@ -919,15 +942,15 @@ def _stale_attempt(product_template: Path, tmp_path: Path) -> tuple[Path, dict[s
 def _edit_control_state(repo: Path) -> Callable[[], None]:
     info = repo / ".git" / "info"
     info.mkdir(exist_ok=True)
-    (info / "attributes").write_text("* filter=forged\n", encoding="utf-8")
+    (info / "attributes").write_text("* filter=forged\n", encoding="utf-8", newline="\n")
     return lambda: (info / "attributes").unlink()
 
 
 def _edit_trusted_file(repo: Path) -> Callable[[], None]:
     plan = repo / SPEC / "plan.md"
     original = plan.read_text("utf-8")
-    plan.write_text(original + "\nworker edit\n", encoding="utf-8")
-    return lambda: plan.write_text(original, encoding="utf-8")
+    plan.write_text(original + "\nworker edit\n", encoding="utf-8", newline="\n")
+    return lambda: plan.write_text(original, encoding="utf-8", newline="\n")
 
 
 @pytest.mark.parametrize("edit", [_edit_control_state, _edit_trusted_file])

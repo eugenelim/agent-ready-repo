@@ -18,6 +18,7 @@ import json
 import os
 import py_compile
 import shutil
+import stat
 import subprocess
 import sys
 import unittest.mock
@@ -83,6 +84,18 @@ def _load_cli(skill: Path) -> ModuleType:
     sys.modules[alias] = module
     spec.loader.exec_module(module)
     return module
+
+
+def race_free_host(monkeypatch: pytest.MonkeyPatch, cli: ModuleType | None = None) -> None:
+    """Answer the host query as a host with race-free confined writes, in *cli*'s copy of the skill.
+
+    The tests about untrusted trust itself (the human decision, no gates, no regenerate) need
+    the run past the host refusal that a host without such writes puts first; that refusal
+    has its own suite, test_supervisor_untrusted_unsafe_host.py.
+    """
+    admission = (cli or h.cli)._supervisor("_supervisor_admission.py")
+    monkeypatch.setattr(admission.sibling("_confined_mutation.py"), "race_free_mutation",
+                        lambda: True)
 
 
 def _run(cli: ModuleType, repo: Path, *argv: str) -> tuple[int, dict[str, Any]]:
@@ -152,7 +165,7 @@ def _copy_repo(template: Path, tmp_path: Path) -> Path:
 
 
 def _append(path: Path, text: str) -> None:
-    path.write_text(path.read_text("utf-8") + text, "utf-8")
+    path.write_text(path.read_text("utf-8") + text, "utf-8", newline="\n")
 
 
 # ── VI-5031: the supervisor is pinned ───────────────────────────────────────
@@ -184,7 +197,7 @@ def test_a_second_start_neither_overwrites_nor_accepts_a_differing_record(
     assert _pins(repo).read_bytes() == before
     record = json.loads(before)
     record["digests"]["scripts/_supervisor_loop.py"] = "0" * 64
-    _pins(repo).write_text(json.dumps(record), "utf-8")
+    _pins(repo).write_text(json.dumps(record), "utf-8", newline="\n")
     tampered = _pins(repo).read_bytes()
     head = _head(repo)
     code, out = h.run_cli(repo, *_start_args())
@@ -201,9 +214,9 @@ def test_a_missing_or_malformed_pin_record_after_admission_is_refused(
     if damage == "missing":
         _pins(repo).unlink()
     elif damage == "garbage":
-        _pins(repo).write_text("{not json", "utf-8")
+        _pins(repo).write_text("{not json", "utf-8", newline="\n")
     else:
-        _pins(repo).write_text('{"schema_version": 1, "digests": {}}', "utf-8")
+        _pins(repo).write_text('{"schema_version": 1, "digests": {}}', "utf-8", newline="\n")
     head = _head(repo)
     code, out = h.run_cli(repo, "next", SPEC)
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
@@ -240,7 +253,7 @@ def test_an_edited_installed_file_is_refused_at_every_entry_point(
     _append(skill / target, "\n" if target.endswith(".json") else "\n# edited\n")
     cli = _load_cli(skill)
     result = tmp_path / "result.json"
-    result.write_text("{}", "utf-8")
+    result.write_text("{}", "utf-8", newline="\n")
     head = _head(repo)
     for phase in ("with the caches", "after the caches are deleted"):
         for verb, argv in _VERBS.items():
@@ -544,7 +557,7 @@ def _with_conftest(repo: Path, target: Path | None = None) -> None:
         ),
         encoding="utf-8",
     )
-    (repo / "test_gate.py").write_text(_GATE_TEST, encoding="utf-8")
+    (repo / "test_gate.py").write_text(_GATE_TEST, encoding="utf-8", newline="\n")
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "an earlier task added a conftest")
 
@@ -629,6 +642,7 @@ def test_untrusted_trust_with_stubs_asks_a_human_instead_of_a_red_proof(
 ) -> None:
     tdd = h.cli._supervisor("_supervisor_tdd.py")
     monkeypatch.setattr(tdd, "observe", _no_launch)
+    race_free_host(monkeypatch)
     repo = h.make_repo(tmp_path)
     assert h.run_cli(repo, *_start_args("untrusted"))[0] == 0
     code, out = h.run_cli(repo, "next", SPEC)
@@ -643,6 +657,7 @@ def test_untrusted_trust_never_issues_run_gates_and_re_approval_clears_it(
 ) -> None:
     tdd = h.cli._supervisor("_supervisor_tdd.py")
     monkeypatch.setattr(tdd, "observe", _no_launch)
+    race_free_host(monkeypatch)
     repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
     assert h.run_cli(repo, *_start_args("trusted"))[0] == 0
     controller = h.Controller(repo, tmp_path / "effects.log")
@@ -707,10 +722,10 @@ def _plant(skill: Path, planted: str, marker: Path) -> None:
     target.parent.mkdir(parents=True, exist_ok=True)
     if planted == "__future__.pyc":  # a real bytecode file, importable without its source
         source = marker.parent / "planted-source.py"
-        source.write_text(body, "utf-8")
+        source.write_text(body, "utf-8", newline="\n")
         py_compile.compile(str(source), cfile=str(target), doraise=True)
     else:
-        target.write_text(body, "utf-8")
+        target.write_text(body, "utf-8", newline="\n")
 
 
 @pytest.mark.parametrize("planted", _PLANTED)
@@ -757,7 +772,7 @@ def test_a_pin_record_naming_another_run_or_spec_is_refused_before_any_import(
     record["run_id" if damage == "wrong-run" else "spec"] = (
         "run-0000000000000000" if damage == "wrong-run" else "docs/specs/other"
     )
-    _pins(repo).write_text(json.dumps(record), "utf-8")
+    _pins(repo).write_text(json.dumps(record), "utf-8", newline="\n")
     # The digests still match the install: only the record's own identity is wrong.
     code, out = _run(_load_cli(skill), repo, "next", SPEC)
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
@@ -770,7 +785,7 @@ def test_a_malformed_gitfile_is_refused_and_an_absent_repository_is_not(
     cli = _load_cli(skill)
     broken = tmp_path / "broken"
     (broken / SPEC).mkdir(parents=True)
-    (broken / ".git").write_text("not a gitfile\n", "utf-8")
+    (broken / ".git").write_text("not a gitfile\n", "utf-8", newline="\n")
     code, out = _run(cli, broken, "status", SPEC)
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
     bare = tmp_path / "bare"
@@ -876,8 +891,8 @@ def test_a_gitfile_naming_no_git_directory_is_refused_as_unverifiable(
     (repo / SPEC).mkdir(parents=True)
     named = tmp_path / "gitdir"
     if target == "file":
-        named.write_text("not a directory\n", "utf-8")
-    (repo / ".git").write_text(f"gitdir: {named}\n", "utf-8")
+        named.write_text("not a directory\n", "utf-8", newline="\n")
+    (repo / ".git").write_text(f"gitdir: {named}\n", "utf-8", newline="\n")
     code, out = _run(cli, repo, "status", SPEC)
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
     assert "supervisor-changed" in [e["reason_code"] for e in _events(repo)]
@@ -985,7 +1000,7 @@ def test_a_nested_script_is_pinned_and_in_the_regenerated_source_digests(tmp_pat
     skill = _copy_skill(tmp_path / "skill")
     nested = skill / _NESTED
     nested.parent.mkdir()
-    nested.write_text("VALUE = 1\n", "utf-8")
+    nested.write_text("VALUE = 1\n", "utf-8", newline="\n")
     repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
     _publish_source(repo, skill)
     controller = _SourceEditor(repo, tmp_path / "effects.log")
@@ -1067,8 +1082,11 @@ def test_a_closed_attempt_does_not_guard_other_specs(
     assert code == 0 and out["status"] == "admitted", out
 
 
-def test_untrusted_trust_never_issues_regenerate(regenerating: Path, tmp_path: Path) -> None:
+def test_untrusted_trust_never_issues_regenerate(
+    regenerating: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     repo, _skill, cli = _regen_copy(regenerating, tmp_path)
+    race_free_host(monkeypatch, cli)
     code, out = _run(cli, repo, *_start_args("untrusted"))
     assert code == 0 and out["status"] == "admitted", out
     code, out = _run(cli, repo, "next", SPEC)
@@ -1113,7 +1131,7 @@ def test_an_orphan_run_directory_is_ignored_not_deleted(tmp_path: Path) -> None:
     store = repo / ".git" / "agentbundle-supervisor" / orphan
     assert (store / "made-commits").read_text("utf-8")
     assert (store / "spec").read_text("utf-8") == SPEC, "the store did not record its spec"
-    (repo / "unrelated.txt").write_text("moves HEAD past the unlanded approval\n", "utf-8")
+    (repo / "unrelated.txt").write_text("moves HEAD past the unlanded approval\n", "utf-8", newline="\n")
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "an unrelated commit")
     # The directory blocks no other spec at all.
@@ -1218,7 +1236,7 @@ def test_a_launch_refused_for_an_installed_file_edit_guards_other_specs_until_it
         assert _run_dirs(repo) == runs, "spec B recorded a run or pins under the edited install"
         assert _head(repo) == head
         edited.write_bytes(original)
-        (repo / "conftest.py").write_text("", encoding="utf-8")
+        (repo / "conftest.py").write_text("", encoding="utf-8", newline="\n")
         h.git(repo, "add", "-A")
         h.git(repo, "commit", "-q", "-m", "the conftest no longer edits the install")
         # Restored paths alone do not lift the refusal; A's own next clears it.
@@ -1234,7 +1252,7 @@ def test_a_worker_attempt_refused_at_report_guards_other_specs(
     controller = h.Controller(repo, tmp_path / "effects.log")
     request = h.run_cli(repo, "next", SPEC)[1]["request"]  # the open attempt's own request
     result = controller.work(request)
-    (repo / SPEC / "plan.md").write_text("# written by the worker\n", encoding="utf-8")
+    (repo / SPEC / "plan.md").write_text("# written by the worker\n", encoding="utf-8", newline="\n")
     code, out = controller.report(result)
     assert code == 1 and out["refusal"]["code"] == "attempt-refused", out
     skill = _copy_skill(tmp_path / "skill")
@@ -1330,10 +1348,23 @@ def _clone(template: Path, tmp_path: Path) -> Path:
     return tmp_path / "clone"
 
 
+def _remove_tree(path: Path) -> None:
+    """Remove a tree that holds Git objects, which are read-only: Windows refuses to delete those."""
+
+    def writable_then_retry(function: Any, target: str, _error: Any) -> None:
+        Path(target).chmod(stat.S_IWRITE)
+        function(target)
+
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=writable_then_retry)
+    else:
+        shutil.rmtree(path, onerror=writable_then_retry)
+
+
 def _squash_shape(template: Path, tmp_path: Path) -> Path:
     """The template's tracked tree as one commit, with no supervisor commit and no store."""
     repo = _clone(template, tmp_path)
-    shutil.rmtree(repo / ".git")
+    _remove_tree(repo / ".git")
     h.git(repo, "init", "-q", "-b", "main")
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "squashed")
@@ -1384,7 +1415,7 @@ def test_every_verb_but_status_refuses_in_a_no_store_clone(
     repo = _clone(terminal_template, tmp_path)
     cli = _load_cli(_copy_skill(tmp_path / "skill"))
     result = tmp_path / "result.json"
-    result.write_text("{}", "utf-8")
+    result.write_text("{}", "utf-8", newline="\n")
     head = _head(repo)
     for verb, argv in _VERBS.items():
         if verb == "status":
@@ -1406,7 +1437,7 @@ def _rewrite_working_run(repo: Path, run_id: str = _NO_STORE_RUN) -> None:
     first, _, rest = path.read_text("utf-8").partition("\n")
     record = json.loads(first)
     record["run_id"] = run_id
-    path.write_text(json.dumps(record) + "\n" + rest, "utf-8")
+    path.write_text(json.dumps(record) + "\n" + rest, "utf-8", newline="\n")
 
 
 def _assert_pin_refused(cli: ModuleType, repo: Path) -> None:
@@ -1430,7 +1461,7 @@ def test_status_refuses_an_edited_install_while_another_spec_has_an_open_attempt
     repo = _clone(terminal_template, tmp_path)
     _add_other_spec(repo)
     # A goal-based plan, so the other spec's first request is a worker attempt.
-    (repo / _OTHER / "plan.md").write_text(RELEASE_PLAN, "utf-8")
+    (repo / _OTHER / "plan.md").write_text(RELEASE_PLAN, "utf-8", newline="\n")
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "a goal-based plan for the second spec")
     assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
