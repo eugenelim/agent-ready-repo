@@ -217,17 +217,38 @@ jobs:
       - name: Run coordination lease publisher and prober
         run: python -m pytest tools/test_coordination_lease.py -q
 
-  supervisor-product-ref-windows:
-    name: pytest supervisor product ref, attempt check, and pinning (windows)
+  supervisor-windows:
+    name: "pytest supervisor product ref, attempt check, and pinning (windows, ${{ matrix.suite }} ${{ matrix.shard }})"
     # The product ref's two-ref transaction, ref lock files, and direct ref reads on a
     # Windows file system, with the attempt check and the pin check that share its
-    # control state. Its own job, so its time is not drawn from the compatibility job's.
+    # control state. Windows runs these suites several times slower than Linux, so each
+    # part is its own matrix leg: the product ref suite in three, pinning in two, and
+    # attempt in one. A leg keeps every `i`-th collected test (WORK_SUPERVISOR_SHARD
+    # is `i/n`, see the work-loop tests' conftest), so the parts are disjoint and cover
+    # the suite. Every pytest path is a literal in a step; a step runs for its own suite.
     runs-on: windows-latest
-    timeout-minutes: 25
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: product-ref
+            shard: "0/3"
+          - suite: product-ref
+            shard: "1/3"
+          - suite: product-ref
+            shard: "2/3"
+          - suite: attempt
+            shard: "0/1"
+          - suite: pinning
+            shard: "0/2"
+          - suite: pinning
+            shard: "1/2"
     env:
       PYTHONUTF8: "1"
       PYTHONIOENCODING: "utf-8"
       WORK_SUPERVISOR_INTEGRATION: "1"
+      WORK_SUPERVISOR_SHARD: ${{ matrix.shard }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
 
@@ -239,13 +260,17 @@ jobs:
       - name: Install test dependencies
         run: python -m pip install -e packages/credbroker -e packages/agentbundle pytest
 
-      - name: Run the product ref, attempt, and pinning suites
-        run: >-
-          python -m pytest
-          packs/core/tests/skills/work-loop/test_supervisor_product_ref.py
-          packs/core/tests/skills/work-loop/test_supervisor_attempt.py
-          packs/core/tests/skills/work-loop/test_supervisor_pinning.py
-          -q --durations=10
+      - name: Run the product ref suite
+        if: matrix.suite == 'product-ref'
+        run: python -m pytest packs/core/tests/skills/work-loop/test_supervisor_product_ref.py -q --durations=10
+
+      - name: Run the attempt check suite
+        if: matrix.suite == 'attempt'
+        run: python -m pytest packs/core/tests/skills/work-loop/test_supervisor_attempt.py -q --durations=10
+
+      - name: Run the pinning suite
+        if: matrix.suite == 'pinning'
+        run: python -m pytest packs/core/tests/skills/work-loop/test_supervisor_pinning.py -q --durations=10
 
   build-check-windows:
     name: make build-check (windows)
@@ -254,7 +279,7 @@ jobs:
       - agentbundle-windows
       - credbroker-tests-windows
       - lock-semantics-windows
-      - supervisor-product-ref-windows
+      - supervisor-windows
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -263,7 +288,7 @@ jobs:
           AGENTBUNDLE_RESULT: ${{ needs.agentbundle-windows.result }}
           CREDBROKER_RESULT: ${{ needs.credbroker-tests-windows.result }}
           LOCK_SEMANTICS_RESULT: ${{ needs.lock-semantics-windows.result }}
-          SUPERVISOR_RESULT: ${{ needs.supervisor-product-ref-windows.result }}
+          SUPERVISOR_RESULT: ${{ needs.supervisor-windows.result }}
         run: |
           if [ "$AGENTBUNDLE_RESULT" != "success" ] || [ "$CREDBROKER_RESULT" != "success" ] || [ "$LOCK_SEMANTICS_RESULT" != "success" ] || [ "$SUPERVISOR_RESULT" != "success" ]; then
             echo "Windows suites failed: agentbundle=$AGENTBUNDLE_RESULT credbroker=$CREDBROKER_RESULT lock-semantics=$LOCK_SEMANTICS_RESULT supervisor=$SUPERVISOR_RESULT" >&2

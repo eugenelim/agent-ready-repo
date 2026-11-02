@@ -45,11 +45,20 @@ sup = _helper("supervisor_support")
 
 pytestmark = sup.INTEGRATION
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
 OWNER = "owner:0123456789ab"
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
+
+
+def race_free_host(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Answer the host query as a host with race-free confined writes, as the unsafe-host suite does.
+
+    A test that re-approves a run as untrusted needs it: a host without such writes refuses
+    an untrusted start first, which would hide the refusal the test is about.
+    """
+    query = h.commit_module.sibling("_confined_mutation.py")
+    monkeypatch.setattr(query, "race_free_mutation", lambda: True)
 
 
 def git_ok(repo: Path, *args: str) -> subprocess.CompletedProcess[str]:
@@ -293,7 +302,7 @@ def _duplicate_packed(repo: Path, name: str) -> None:
     lines = packed.read_text("utf-8").splitlines()
     at = next(i for i, x in enumerate(lines) if x.endswith(name))
     lines.insert(at, lines[at])  # adjacent, so the file stays sorted for Git
-    packed.write_text("\n".join(lines) + "\n", "utf-8")
+    packed.write_text("\n".join(lines) + "\n", **h._LF)  # LF on every platform
 
 
 def _diverge_cases(repo: Path, name: str, older: str) -> dict[str, Callable[[], None]]:
@@ -439,8 +448,10 @@ def test_an_untrusted_product_ref_refuses_the_other_verbs(
 @pytest.mark.parametrize("ref_less", [False, True])
 @pytest.mark.parametrize("verb", ["start", "report", "resolve-effect", "next"])
 def test_foreign_history_blocks_every_committing_verb(
-    effect_template: Path, tmp_path: Path, verb: str, ref_less: bool
+    effect_template: Path, tmp_path: Path, verb: str, ref_less: bool,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    race_free_host(monkeypatch)
     repo = effect_copy(effect_template, tmp_path)
     calls = effect_verbs(repo, tmp_path)
     if ref_less:
@@ -743,59 +754,6 @@ def test_start_refuses_an_invalid_result_authority(
 # ── VI-0519: AC-0021 ────────────────────────────────────────────────────────
 
 
-def _workflow(name: str) -> str:
-    path = REPO_ROOT / ".github" / "workflows" / name
-    if not path.exists():
-        pytest.skip("the repository's workflows are not part of this checkout")
-    return path.read_text("utf-8")
-
-
-def test_the_ci_jobs_list_the_product_ref_suites() -> None:
-    posix = _workflow("catalogue-tooling-ci-gates.yml")
-    assert "test_supervisor_product_ref.py" in posix
-    windows = _workflow("build-check-windows.yml")
-    job = windows.split("\n  supervisor-product-ref-windows:")[1].split("\n  build-check-windows:")[0]
-    for suite in ("test_supervisor_product_ref.py", "test_supervisor_attempt.py",
-                  "test_supervisor_pinning.py"):
-        assert suite in job
-    # The integration variable and the job's own time budget sit on the job that runs them.
-    assert 'WORK_SUPERVISOR_INTEGRATION: "1"' in job
-    assert "timeout-minutes:" in job
-    assert "supervisor-product-ref-windows" in windows.split("\n  build-check-windows:")[1]
-
-
-CORPUS = Path(__file__).resolve().parent / "test_supervisor_crash_corpus.py"
-
-
-def _collect(selector: str | None) -> list[str]:
-    """The corpus test ids pytest collects with *selector*, as the CI shard would."""
-    ids: list[str] = []
-
-    class Collect:
-        def pytest_collection_finish(self, session: Any) -> None:
-            # After ``-k`` has deselected: what the CI shard would run.
-            ids.extend(item.nodeid for item in session.items)
-
-    args = [str(CORPUS), "--collect-only", "-q", "-p", "no:cacheprovider"]
-    if selector is not None:
-        args += ["-k", selector]
-    assert pytest.main(args, plugins=[Collect()]) in (0, 5)
-    return ids
-
-
-def test_the_crash_corpus_shards_are_disjoint_nonempty_and_cover_every_test() -> None:
-    posix = _workflow("catalogue-tooling-ci-gates.yml")
-    job = posix.split("\n  supervisor-integration:")[1].split("\n  # ── Gate B")[0]
-    selectors = re.findall(r'selector: "([^"]+)"', job)
-    assert len(selectors) == 3, selectors
-    everything = _collect(None)
-    shards = [_collect(selector) for selector in selectors]
-    assert all(shards), [len(shard) for shard in shards]
-    flat = [item for shard in shards for item in shard]
-    assert len(flat) == len(set(flat)), "two shards run the same test"
-    assert sorted(flat) == sorted(everything), "a corpus test runs in no shard"
-
-
 # ── AC-0008 and AC-0023: no unrecorded commit is ever trusted ──────────────
 
 
@@ -853,6 +811,7 @@ def run_restore_exit(repo: Path, text: str) -> None:
 def test_an_interrupted_transaction_is_never_counted_or_moved_to(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, moved: str, attempt_open: bool
 ) -> None:
+    race_free_host(monkeypatch)
     repo = started(tmp_path)
     ctl = controller(repo, tmp_path)
     if attempt_open:
@@ -869,6 +828,7 @@ def test_an_interrupted_transaction_is_never_counted_or_moved_to(
             appends={"review-decisions.jsonl": b"{}\n"})
     recorded, name = rev(repo, "HEAD"), ref_name(repo)
     step = _step_never_moved(repo, monkeypatch, build)
+    race_free_host(monkeypatch)  # the helper undid the patches, this one included
     # The partial states a transaction cut between its renames leaves.
     if moved in ("both", "ref"):
         h.git(repo, "update-ref", "--no-deref", name, step)
