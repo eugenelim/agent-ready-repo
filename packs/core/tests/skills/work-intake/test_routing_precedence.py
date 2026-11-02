@@ -78,7 +78,7 @@ def test_status_refresh_ready_and_remember_preserve_their_distinct_routes() -> N
         )
     )
 
-    assert (status.processor, status.mutation) == ("workspace-status", "none")
+    assert (status.processor, status.mutation) == ("navigate-intents", "none")
     assert (refresh.processor, refresh.mutation) == ("none", "none")
     assert (ready.processor, ready.lifecycle_membership) == (
         "author-delivery-brief continue",

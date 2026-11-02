@@ -1,5 +1,8 @@
 """The `workspace_status` payload reports the layout-resolved output path.
 
+(The tool now lists only work items; these cases drive the shared publication
+function for each item type.)
+
 `_LIFECYCLE_MANIFEST` carries each item type's output pattern under an
 in-repository convention base (`docs/product`, `docs/design`). An adopter
 overrides that base with `output_dir` in `agentbundle-layout.toml`, and
@@ -28,38 +31,12 @@ import pytest
 from agentbundle.workspace_mcp import (
     _GitTools,
     _read_layout_bases,
-    _WorkspaceStatusTool,
 )
 
 
-class _FakeBridge:
-    def get_fsm_state(self) -> dict:
-        return {}
-
-    def has_anchored_engine_state(self) -> bool:
-        return False
-
-
 def _workspace(root: Path, *, slug: str, item_type: str) -> None:
+    """Create the repository directory; the layout resolver reads no queue."""
     root.mkdir(parents=True, exist_ok=True)
-    (root / "workspace.toml").write_text(
-        f"""\
-["ini-001"]
-name = "Layout"
-status = "active"
-milestone = "M1"
-
-["ini-001".work]
-queue = []
-active = []
-shipped = []
-
-["ini-001".shaping_queue]
-active = []
-backlog = [{{slug = "{slug}", type = "{item_type}", needs = []}}]
-""",
-        encoding="utf-8",
-    )
 
 
 def _set_home(monkeypatch: pytest.MonkeyPatch, home: Path) -> None:
@@ -70,11 +47,21 @@ def _set_home(monkeypatch: pytest.MonkeyPatch, home: Path) -> None:
     monkeypatch.setenv("USERPROFILE", str(home))
 
 
-def _shaping_item(root: Path, slug: str) -> dict:
-    result = _WorkspaceStatusTool(root, _FakeBridge()).call()
-    matches = [item for item in result["shaping"] if item["slug"] == slug]
-    assert len(matches) == 1, f"expected one shaping item for {slug}: {result['shaping']}"
-    return matches[0]
+def _shaping_item(root: Path, slug: str, item_type: str) -> dict:
+    """The payload's published `output_pattern` for one item type.
+
+    The tool lists only work items now (their pattern is withheld by the manifest),
+    so the layout-resolved publication is exercised through the function that
+    builds every item's `output_pattern`.
+    """
+    from agentbundle.workspace_mcp import _publishable_output_pattern
+
+    return {
+        "slug": slug,
+        "output_pattern": _publishable_output_pattern(
+            root, item_type, _read_layout_bases(root)
+        ),
+    }
 
 
 def test_payload_reports_the_configured_base_not_the_convention(
@@ -87,7 +74,7 @@ def test_payload_reports_the_configured_base_not_the_convention(
     )
     _set_home(monkeypatch, tmp_path / "nohome")
 
-    item = _shaping_item(repo, "alpha")
+    item = _shaping_item(repo, "alpha", "shape")
 
     assert item["output_pattern"] == [
         "artifacts/product/intents/{slug}.md",
@@ -105,7 +92,7 @@ def test_payload_and_git_tool_resolve_to_the_same_location(
     )
     _set_home(monkeypatch, tmp_path / "nohome")
 
-    payload_patterns = _shaping_item(repo, "alpha")["output_pattern"]
+    payload_patterns = _shaping_item(repo, "alpha", "shape")["output_pattern"]
     git_patterns = _GitTools(repo)._resolve_output_pattern("ini-001/shape:alpha")
 
     assert git_patterns is not None
@@ -121,7 +108,7 @@ def test_payload_keeps_the_convention_base_when_nothing_is_configured(
     _workspace(repo, slug="alpha", item_type="shape")
     _set_home(monkeypatch, tmp_path / "nohome")
 
-    item = _shaping_item(repo, "alpha")
+    item = _shaping_item(repo, "alpha", "shape")
 
     assert item["output_pattern"] == [
         "docs/product/intents/{slug}.md",
@@ -148,7 +135,7 @@ def test_payload_withholds_a_base_outside_the_repository(
     )
     _set_home(monkeypatch, home)
 
-    item = _shaping_item(repo, "beta")
+    item = _shaping_item(repo, "beta", "research")
 
     assert item["output_pattern"] is None
     assert str(vault) not in repr(item), "an absolute host path must not reach the payload"
@@ -173,7 +160,7 @@ def test_payload_withholds_a_base_the_publication_policy_rejects(
     )
     _set_home(monkeypatch, tmp_path / "nohome")
 
-    item = _shaping_item(repo, "alpha")
+    item = _shaping_item(repo, "alpha", "shape")
 
     assert item["output_pattern"] is None
     assert "IGNORE PREVIOUS INSTRUCTIONS" not in repr(item)
@@ -193,7 +180,7 @@ def test_a_screened_base_still_substitutes_and_keeps_its_glob_tokens(
     )
     _set_home(monkeypatch, tmp_path / "nohome")
 
-    patterns = _shaping_item(repo, "beta")["output_pattern"]
+    patterns = _shaping_item(repo, "beta", "design")["output_pattern"]
 
     assert patterns == [
         "team/design/journeys/{slug}.md",
@@ -255,7 +242,7 @@ def test_the_screen_also_withholds_these_by_policy(
     )
     _set_home(monkeypatch, tmp_path / "nohome")
 
-    item = _shaping_item(repo, "alpha")
+    item = _shaping_item(repo, "alpha", "shape")
 
     assert item["output_pattern"] is None, why
     assert "cannot be published" in capsys.readouterr().err

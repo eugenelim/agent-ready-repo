@@ -174,6 +174,7 @@ def _evaluate_route(
     staged_root: Path,
     case: dict[str, Any],
     engine: ModuleType,
+    guard: ModuleType,
     router: ModuleType,
 ) -> dict[str, object]:
     """Invoke Group 2 validation and the actual Group 4 router."""
@@ -184,14 +185,14 @@ def _evaluate_route(
             / "packs/core/tests/pack/fixtures/work-intake-contracts"
             / fixture_name
         )
-        parsed, findings = engine.validate_normalized_intake(
+        parsed, findings = guard.validate_normalized_intake(
             json.loads(fixture.read_text(encoding="utf-8"))
         )
         if parsed is None or findings:
             raise AssertionError(f"{case['id']} Group 2 validation failed")
     elif fixture_name.startswith("evals/"):
         fixture = staged_root / "packs/core/.apm/skills/work-intake" / fixture_name
-        parsed, findings = engine.validate_normalized_intake(
+        parsed, findings = guard.validate_normalized_intake(
             json.loads(fixture.read_text(encoding="utf-8"))
         )
         if parsed is None or findings:
@@ -231,7 +232,7 @@ def _tracker_case(
     case: dict[str, Any],
     profile_id: str,
     index: int,
-    engine: ModuleType,
+    guard: ModuleType,
     router: ModuleType,
 ) -> dict[str, object]:
     """Acquire provenance, normalize, validate, and route one profile fixture."""
@@ -251,7 +252,7 @@ def _tracker_case(
     normalized = adapter.normalize_record(profile_case["normalized"], profile)
     if adapter.trusted_source(profile_case["raw"], profile) != normalized["source"]:
         raise AssertionError(f"{case['id']} provenance diverged for {profile_id}")
-    parsed, findings = engine.validate_normalized_intake(normalized)
+    parsed, findings = guard.validate_normalized_intake(normalized)
     if parsed is None or findings:
         raise AssertionError(f"{case['id']} Group 2 validation failed for {profile_id}")
     route = router.route_intake(router.RoutingSignals(**profile_case["routing_signals"]))
@@ -462,6 +463,10 @@ def evaluate_in_clean_root(
         core / "workspace-status/scripts/workspace_status_engine.py",
         f"routing_evaluation_engine_{id(clean_root)}",
     )
+    guard = _load(
+        core / "work-intake/scripts/intake_guard.py",
+        f"routing_evaluation_guard_{id(clean_root)}",
+    )
     router = _load(
         core / "work-intake/scripts/intake_router.py",
         f"routing_evaluation_router_{id(clean_root)}",
@@ -477,10 +482,10 @@ def evaluate_in_clean_root(
     profile_ids = [profile["id"] for profile in matrix["supported_profiles"]]
     for index, case in enumerate(matrix["cases"]):
         if case["mode"] == "route":
-            results.append(_evaluate_route(clean_root, case, engine, router))
+            results.append(_evaluate_route(clean_root, case, engine, guard, router))
         elif case["mode"] == "tracker-route":
             results.extend(
-                _tracker_case(clean_root, case, profile_id, index * 10 + offset, engine, router)
+                _tracker_case(clean_root, case, profile_id, index * 10 + offset, guard, router)
                 for offset, profile_id in enumerate(profile_ids)
             )
         elif case["mode"] == "refresh":

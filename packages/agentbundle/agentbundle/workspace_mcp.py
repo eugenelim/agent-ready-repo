@@ -35,7 +35,6 @@ import sys
 import tempfile
 import threading
 import time
-import tomllib
 import uuid as _uuid_mod
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path, PurePosixPath
@@ -344,11 +343,11 @@ of emitting text to the user.
 4. The workspace-mcp tools remain available for the duration of the session.
 
 5. Before writing artifacts for a non-FSM item (any item where work-loop is not \
-managing the session), call git_branch(<ini_slug>/<type>/<slug>) if not already \
-on the item's feature branch. Derive the three-component branch name from the \
-ini_slug, type, and slug as reported by workspace_status() — `workspace_status().slug` \
-and `workspace_status().ini_slug` are the canonical forms. Skip if the current \
-branch name equals `<ini_slug>/<type>/<slug>` exactly.
+managing the session), call git_branch(<type>/<slug>) if not already \
+on the item's feature branch. Derive the two-component branch name from the \
+type and slug as reported by workspace_status() — `workspace_status().type` \
+and `workspace_status().slug` are the canonical forms. Skip if the current \
+branch name equals `<type>/<slug>` exactly.
 
 6. When instructed to commit and push artifacts, call git_status() to identify \
 uncommitted files, git_commit(message) to stage and commit the matching paths, then \
@@ -434,64 +433,51 @@ def _is_skill_present(dispatch_skill: str | None, repo_root: Path) -> bool:
     return False
 
 
-# ── workspace_status_engine discovery ────────────────────────────────────────
+# ── packaged dispatch ────────────────────────────────────────────────────────
 
-def _load_workspace_status_engine(repo_root: Path):
-    """Import the canonical engine from an installed or packaged projection."""
+# The dispatch loads each of these by path from its own directory, which a zip
+# archive cannot serve, so a zipapp run copies them into a private directory.
+_DISPATCH_FILES = (
+    "dispatch.py", "_header_readiness.py", "cooling.py", "close_work.py", "file_safety.py",
+)
+_MATERIALIZED_DISPATCH: Any = None
+
+
+def _load_packaged_dispatch() -> Any:
+    """Import the packaged work-loop dispatch from `agentbundle/_data/` only.
+
+    Never a repository, installed-skill or pack copy: the tool runs in the
+    control plane's trust domain and must not execute repository-controlled code.
+    From a zipapp, where `_data/` is not a directory, the packaged bytes are
+    copied into a private temporary directory and loaded from there.
+    """
+    global _MATERIALIZED_DISPATCH
     import importlib
-    import importlib.util
 
-    # Repository candidates remain limited to trusted sessions. The bundled
-    # package module is safe to load in isolated mode because it does not execute
-    # repository-controlled code.
-    candidates: list[Path] = []
-    if not sys.flags.isolated:
-        candidates = [
-            repo_root / ".claude/skills/workspace-status/scripts/workspace_status_engine.py",
-            repo_root / ".agents/skills/workspace-status/scripts/workspace_status_engine.py",
-            repo_root / ".kiro/skills/workspace-status/scripts/workspace_status_engine.py",
-        ]
-    for path in candidates:
-        if path.exists():
-            spec = importlib.util.spec_from_file_location("workspace_status_engine", path)
-            mod = importlib.util.module_from_spec(spec)
-            sys.modules["workspace_status_engine"] = mod
-            spec.loader.exec_module(mod)
-            return mod
-    try:
-        return importlib.import_module("agentbundle._data.workspace_status_engine")
-    except ModuleNotFoundError as exc:
-        if exc.name not in {
-            "agentbundle._data",
-            "agentbundle._data.workspace_status_engine",
-        }:
-            raise
-    if not sys.flags.isolated:
-        # Development fallback before the package projection is refreshed.
-        path = (
-            Path(__file__).resolve().parents[3]
-            / "packs"
-            / "core"
-            / ".apm"
-            / "skills"
-            / "workspace-status"
-            / "scripts"
-            / "workspace_status_engine.py"
+    module = importlib.import_module("agentbundle._data.dispatch")
+    if Path(module.__file__).is_file():
+        return module
+    if _MATERIALIZED_DISPATCH is None:
+        import atexit
+        import importlib.resources
+        import importlib.util
+        import shutil
+
+        directory = Path(tempfile.mkdtemp(prefix="agentbundle-dispatch-"))
+        atexit.register(shutil.rmtree, directory, ignore_errors=True)
+        package = importlib.resources.files("agentbundle._data")
+        for name in _DISPATCH_FILES:
+            (directory / name).write_bytes(package.joinpath(name).read_bytes())
+        spec = importlib.util.spec_from_file_location(
+            "_agentbundle_materialized_dispatch", directory / "dispatch.py"
         )
-        if path.exists():
-            spec = importlib.util.spec_from_file_location(
-                "workspace_status_engine", path
-            )
-            mod = importlib.util.module_from_spec(spec)
-            sys.modules["workspace_status_engine"] = mod
-            spec.loader.exec_module(mod)
-            return mod
-    if sys.flags.isolated:
-        raise RuntimeError(
-            "packaged workspace_status_engine.py unavailable in isolated mode; "
-            "reinstall agentbundle before retrying"
-        )
-    raise RuntimeError("workspace_status_engine.py not found in any skill root")
+        if spec is None or spec.loader is None:
+            raise RuntimeError("packaged dispatch is unavailable")
+        loaded = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = loaded
+        spec.loader.exec_module(loaded)
+        _MATERIALIZED_DISPATCH = loaded
+    return _MATERIALIZED_DISPATCH
 
 
 # ── Supervisor run status (display-only) ──────────────────────────────────────
@@ -1004,12 +990,6 @@ def _is_public_ini_slug(value: object) -> bool:
     )
 
 
-def _public_ini_slug(value: object) -> str:
-    if isinstance(value, str) and _is_public_ini_slug(value):
-        return value
-    return "workspace"
-
-
 def _public_work_path(value: object) -> str:
     public_path = _public_canonical_path(value)
     parts = public_path.split("/")
@@ -1070,15 +1050,6 @@ def _public_needs(values: object) -> list[str]:
     return [_public_need(value) for value in values]
 
 
-def _canonical_finding_dict(finding: Any) -> dict[str, Any]:
-    return {
-        "code": finding.code,
-        "path": _public_canonical_path(finding.path),
-        "dispatchable": bool(finding.dispatchable),
-        "next_action": finding.next_action,
-    }
-
-
 def _failure_finding(code: str) -> dict[str, Any]:
     next_actions = {
         "configuration_mismatch": (
@@ -1097,7 +1068,6 @@ def _failure_finding(code: str) -> dict[str, Any]:
 def _canonical_failure_projection(code: str = "configuration_mismatch") -> dict[str, Any]:
     finding = _failure_finding(code)
     blocked = {
-        "ini_slug": "workspace",
         "collection": "workspace",
         "path": "workspace.toml",
         "kind": "workspace",
@@ -1116,138 +1086,58 @@ def _canonical_failure_projection(code: str = "configuration_mismatch") -> dict[
     }
 
 
-def _canonical_eval_dict(evaluation: Any) -> dict[str, Any]:
-    result = {
-        "ini_slug": evaluation.ini_slug,
-        "collection": evaluation.collection,
-        "path": _public_canonical_path(evaluation.entry.path),
-        "kind": evaluation.entry.kind,
-        "slug": _public_canonical_slug(evaluation.entry.path),
-        "dispatchable": bool(evaluation.dispatchable),
-        "findings": [_canonical_finding_dict(f) for f in evaluation.findings],
-    }
-    if getattr(evaluation.entry, "surface_role", None) is not None:
-        result["surface_role"] = evaluation.entry.surface_role
-    if getattr(evaluation.entry, "locator", None) is not None:
-        result["locator"] = {
-            "kind": evaluation.entry.locator.kind,
-            "value": evaluation.entry.locator.value,
-        }
-    if getattr(evaluation, "authority_status", None) is not None:
-        authority_status = dict(evaluation.authority_status)
-        if set(result).intersection(authority_status):
-            raise ValueError("authority status overlaps canonical evaluation fields")
-        result.update(authority_status)
-    return result
-
-
-def _canonical_legacy_dict(membership: Any) -> dict[str, Any]:
-    return {
-        "ini_slug": membership.ini_slug,
-        "collection": membership.collection,
-        "path": _public_canonical_path(membership.entry.path),
-        "kind": membership.entry.kind,
-        "slug": _public_canonical_slug(membership.entry.path),
-        "dispatchable": False,
-        "findings": [_canonical_finding_dict(membership.entry.finding)],
-    }
-
-
-def _is_canonical_work_spec(item: dict[str, Any]) -> bool:
-    return item.get("kind") == "spec" and str(item.get("collection", "")).startswith("work.")
-
-
-def _surface_metadata(item: dict[str, Any]) -> dict[str, Any]:
-    """Carry validated optional surface metadata into primary work projections."""
-    metadata: dict[str, Any] = {}
-    if "surface_role" in item:
-        metadata["surface_role"] = item["surface_role"]
-    if "locator" in item:
-        metadata["locator"] = dict(item["locator"])
-    return metadata
-
-
-def _canonical_status_projection(
-    engine: Any,
-    repo_root: Path,
-) -> dict[str, Any] | None:
-    workspace_path = repo_root / "workspace.toml"
-    try:
-        # This projection owns the resolution because it must run before
-        # `parse_workspace`: the symlink check below is the only confinement on
-        # `workspace.toml`, so nothing may read that file earlier. A genuine
-        # failure lands in the handler below, the same mapping the CLI applies.
-        cooled, cooling_findings = engine._resolve_cooled_state(repo_root)
-        workspace_path.lstat()
-        if workspace_path.is_symlink():
-            resolved = workspace_path.resolve()
-            resolved.relative_to(repo_root.resolve())
-        workspace = engine.parse_workspace(workspace_path)
-        canonical = engine.run_canonical_reconciliation(workspace, repo_root, cooled)
-    except tomllib.TOMLDecodeError as exc:
-        _log.warning("workspace_status: canonical parse failed: %s", type(exc).__name__)
-        return _canonical_failure_projection("invalid_workspace")
-    except Exception as exc:
-        _log.warning("workspace_status: canonical reconciliation failed: %s", type(exc).__name__)
-        return _canonical_failure_projection("configuration_mismatch")
-
-    evaluations = [_canonical_eval_dict(e) for e in canonical.evaluations]
-    legacy_memberships = [_canonical_legacy_dict(m) for m in canonical.legacy_memberships]
-    return {
-        "_legacy_analysis_allowed": True,
-        "input_identity": engine.canonical_repository_identity(
-            workspace, canonical, repo_root
-        ),
-        # Cooling findings are raised while resolving the cooled set, ahead of
-        # this reconciliation, so this is their only route to the MCP surface.
-        "findings": [
-            _canonical_finding_dict(f)
-            for f in (*cooling_findings, *canonical.findings)
-        ],
-        "evaluations": evaluations,
-        "legacy_memberships": legacy_memberships,
-        "ready": [
-            item
-            for item in evaluations
-            if item["dispatchable"]
-            and item["kind"] == "spec"
-            and item["collection"] == "work.queue"
-        ],
-        "active": [
-            item
-            for item in evaluations
-            if item["kind"] == "spec"
-            and item["collection"] == "work.active"
-            and not item["findings"]
-        ],
-        "blocked": [
-            item
-            for item in evaluations
-            if not item["dispatchable"] and item["findings"]
-        ] + legacy_memberships,
-    }
+def _is_dispatch_spec_item(item: dict[str, Any]) -> bool:
+    """Return True when a dispatch item names a canonical `docs/specs/<slug>/spec.md`."""
+    slug = item.get("slug")
+    return isinstance(slug, str) and item.get("path") == f"docs/specs/{slug}/spec.md"
 
 
 class _WorkspaceStatusTool:
     """Implements the workspace_status() MCP tool.
 
-    Calls workspace_status_engine.analyze_bounded(repo_root, autonomous_dispatch=True).
-    Applies pack-presence filter (6 roots, OR logic) and slug safety guard.
-    Also exposes FSM state fields from _EventBridge (spike (c) fallback).
+    Runs the packaged work-loop dispatch (argless) on the repository root and maps
+    each dispatch item onto the tool's item shape, applying the slug guard, the
+    spec filter and the pack-presence probe (6 roots, OR logic). Also exposes FSM
+    state fields from _EventBridge (spike (c) fallback).
     """
 
     def __init__(self, repo_root: Path, bridge: _EventBridge) -> None:
         self._repo_root = repo_root
         self._bridge = bridge
-        self._engine = None
 
-    def _get_engine(self):
-        if self._engine is None:
-            self._engine = _load_workspace_status_engine(self._repo_root)
-        return self._engine
+    def _item(
+        self,
+        candidate: dict[str, Any],
+        *,
+        dispatchable: bool,
+        layout_bases: dict[str, str],
+        manifest: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        """Map one dispatch item to the tool shape, or None when a filter skips it."""
+        if not _is_dispatch_spec_item(candidate):
+            return None
+        if not _is_safe_slug(candidate["slug"]):
+            _log.warning("workspace_status: unsafe slug in dispatch item; skipping")
+            return None
+        item: dict[str, Any] = {
+            "type": "work",
+            "slug": candidate["slug"],
+            "path": candidate["path"],
+            "dispatchable": dispatchable,
+            "findings": candidate["findings"],
+            "dispatch_skill": manifest.get("dispatch_skill"),
+            "output_pattern": _publishable_output_pattern(
+                self._repo_root, "work", layout_bases
+            ),
+            "has_gates": manifest.get("has_gates", False),
+            "required_pack": manifest.get("required_pack"),
+        }
+        skill = manifest.get("dispatch_skill")
+        if dispatchable and skill and not _is_skill_present(skill, self._repo_root):
+            item["available"] = False
+        return item
 
     def call(self) -> dict:
-        from agentbundle.safety import assert_under
         repo_root = self._repo_root
 
         # Warn when events.jsonl is missing but observability was expected:
@@ -1258,210 +1148,42 @@ class _WorkspaceStatusTool:
             fsm_state["warning"] = "EVENTS-FILE-MISSING"
 
         try:
-            engine = self._get_engine()
+            output = _load_packaged_dispatch().dispatch(repo_root)
         except Exception as exc:
-            _log.warning("workspace_status: engine load failed: %s", type(exc).__name__)
-            canonical_projection = _canonical_failure_projection()
-            canonical_projection.pop("_legacy_analysis_allowed", None)
+            _log.warning("workspace_status: dispatch failed: %s", type(exc).__name__)
+            failure = _canonical_failure_projection()
+            failure.pop("_legacy_analysis_allowed", None)
             return {
                 "ready": [],
                 "shaping": [],
-                "blocked": canonical_projection["blocked"],
+                "blocked": failure["blocked"],
                 "active": [],
-                "canonical": canonical_projection,
+                "canonical": failure,
                 **fsm_state,
             }
 
-        ready_items: list[dict] = []
-        blocked_items: list[dict] = []
-        shaping_items: list[dict] = []
-        active_items: list[dict] = []
-        # This must precede `analyze_bounded`. The only confinement on
-        # `workspace.toml` is the symlink check inside this projection, and
-        # `engine.parse_workspace` opens the path with no guard of its own, so
-        # calling `analyze_bounded` first read and parsed an escaping target
-        # before the check that exists to reject it. Passing `None` for the
-        # cooled set makes the projection resolve it itself, which is what
-        # removes the need to run the analysis first at all.
-        canonical_projection = _canonical_status_projection(engine, repo_root)
-        legacy_analysis_allowed = bool(
-            canonical_projection.pop("_legacy_analysis_allowed", False)
-        )
-        if any(
-            finding.get("code") in {"invalid_workspace", "configuration_mismatch"}
-            for finding in canonical_projection.get("findings", [])
-        ):
-            legacy_analysis_allowed = False
-
-        result = None
-        if legacy_analysis_allowed:
-            try:
-                result = engine.analyze_bounded(repo_root, autonomous_dispatch=True)
-            except Exception as exc:
-                _log.warning(
-                    "workspace_status: analyze_bounded failed: %s", type(exc).__name__
-                )
-
-        # Work queue items (ready / blocked)
         # One read per call, shared by every item below: re-reading
         # agentbundle-layout.toml per item would let two items in one payload
         # disagree if the file changed mid-call.
         layout_bases = _read_layout_bases(repo_root)
         manifest = _LIFECYCLE_MANIFEST.get("work", {})
-        for candidate in canonical_projection["ready"]:
-            if (
-                not _is_safe_slug(candidate["ini_slug"])
-                or not _is_safe_slug(candidate["slug"])
-            ):
-                _log.warning("workspace_status: unsafe slug in canonical ready item; skipping")
-                continue
-            item: dict[str, Any] = {
-                "ini_slug": candidate["ini_slug"],
-                "type": "work",
-                "slug": candidate["slug"],
-                "path": candidate["path"],
-                "dispatchable": True,
-                "findings": candidate["findings"],
-                "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": _publishable_output_pattern(
-                    repo_root, "work", layout_bases
-                ),
-                "has_gates": manifest.get("has_gates", False),
-                "required_pack": manifest.get("required_pack"),
-                **_surface_metadata(candidate),
-            }
-            skill = manifest.get("dispatch_skill")
-            if skill and not _is_skill_present(skill, repo_root):
-                item["available"] = False
-            ready_items.append(item)
-        for candidate in canonical_projection["blocked"]:
-            if not _is_canonical_work_spec(candidate):
-                continue
-            if (
-                not _is_safe_slug(candidate["ini_slug"])
-                or not _is_safe_slug(candidate["slug"])
-            ):
-                _log.warning("workspace_status: unsafe slug in canonical blocked item; skipping")
-                continue
-            blocked_items.append({
-                "ini_slug": candidate["ini_slug"],
-                "type": "work",
-                "slug": candidate["slug"],
-                "path": candidate["path"],
-                "dispatchable": False,
-                "findings": candidate["findings"],
-                "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": _publishable_output_pattern(
-                    repo_root, "work", layout_bases
-                ),
-                "has_gates": manifest.get("has_gates", False),
-                "required_pack": manifest.get("required_pack"),
-                **_surface_metadata(candidate),
-            })
-        for candidate in canonical_projection["active"]:
-            if (
-                not _is_safe_slug(candidate["ini_slug"])
-                or not _is_safe_slug(candidate["slug"])
-            ):
-                _log.warning("workspace_status: unsafe slug in canonical active item; skipping")
-                continue
-            active_items.append({
-                "ini_slug": candidate["ini_slug"],
-                "type": "work",
-                "slug": candidate["slug"],
-                "path": candidate["path"],
-                "dispatchable": False,
-                "findings": [],
-                "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": _publishable_output_pattern(
-                    repo_root, "work", layout_bases
-                ),
-                "has_gates": manifest.get("has_gates", False),
-                "required_pack": manifest.get("required_pack"),
-                **_surface_metadata(candidate),
-            })
-
-        # Shaping items (ready + blocked, excluding signals)
-        for cls in result.blocked_shaping if result is not None else []:
-            entry = cls.entry
-            item_type = entry.entry_type
-            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
-                _log.warning("workspace_status: unsafe slug in blocked shaping item; skipping")
-                continue
-            manifest = _LIFECYCLE_MANIFEST.get(item_type, {})
-            item = {
-                "ini_slug": _public_ini_slug(cls.ini_slug),
-                "type": item_type,
-                "slug": entry.slug,
-                "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": _publishable_output_pattern(
-                    repo_root, item_type, layout_bases
-                ),
-                "has_gates": manifest.get("has_gates", False),
-                "required_pack": manifest.get("required_pack"),
-                "unmet_needs": _public_needs(cls.blocking_needs),
-            }
-            skill = manifest.get("dispatch_skill")
-            if skill and not _is_skill_present(skill, repo_root):
-                item["available"] = False
-            shaping_items.append(item)
-
-        for cls in result.ready_shaping if result is not None else []:
-            entry = cls.entry
-            item_type = entry.entry_type
-            if not _is_safe_slug(cls.ini_slug) or not _is_safe_slug(entry.slug):
-                _log.warning("workspace_status: unsafe slug in shaping item; skipping")
-                continue
-            manifest = _LIFECYCLE_MANIFEST.get(item_type, {})
-            item = {
-                "ini_slug": _public_ini_slug(cls.ini_slug),
-                "type": item_type,
-                "slug": entry.slug,
-                "dispatch_skill": manifest.get("dispatch_skill"),
-                "output_pattern": _publishable_output_pattern(
-                    repo_root, item_type, layout_bases
-                ),
-                "has_gates": manifest.get("has_gates", False),
-                "required_pack": manifest.get("required_pack"),
-            }
-            skill = manifest.get("dispatch_skill")
-            if skill and not _is_skill_present(skill, repo_root):
-                item["available"] = False
-            # Slug containment check for output_pattern formatting.
-            # Deliberately the un-overridden manifest pattern: this guard
-            # proves a crafted *slug* cannot escape its base, and the convention
-            # base still proves that. Re-running it against a configured base
-            # would reject a user-scope value that legitimately resolves outside
-            # the repository and drop the item from the payload entirely — a
-            # worse outcome than the wrong label. A configured base is an
-            # adopter-owned value that `_read_layout_bases` has already
-            # resolved, and `_publishable_output_pattern` withholds any that
-            # leaves the repository.
-            patterns = manifest.get("output_pattern")
-            if patterns:
-                static_base = repo_root
-                for pattern in (patterns if isinstance(patterns, list) else [patterns]):
-                    try:
-                        resolved = (repo_root / pattern.format(slug=entry.slug)).resolve()
-                        assert_under(static_base, resolved)
-                    except Exception as exc:
-                        _log.warning(
-                            "workspace_status: slug containment failed for %s:%s (%s); skipping",
-                            item_type, entry.slug, exc,
-                        )
-                        break
-                else:
-                    shaping_items.append(item)
-                    continue
-            else:
-                shaping_items.append(item)
-
+        lists: dict[str, list[dict[str, Any]]] = {"ready": [], "active": [], "blocked": []}
+        for key in lists:
+            for candidate in output[key]:
+                item = self._item(
+                    candidate,
+                    dispatchable=key == "ready",
+                    layout_bases=layout_bases,
+                    manifest=manifest,
+                )
+                if item is not None:
+                    lists[key].append(item)
         return {
-            "ready": ready_items,
-            "shaping": shaping_items,
-            "blocked": blocked_items,
-            "active": active_items,
-            "canonical": canonical_projection,
+            "ready": lists["ready"],
+            "shaping": [],
+            "blocked": lists["blocked"],
+            "active": lists["active"],
+            "canonical": output,
             **fsm_state,
         }
 
@@ -1735,7 +1457,7 @@ class _GitTools:
                 "FSM mode active, git writes blocked"
             )
         self._fsm_mode = _spec_path_supplied
-        # Expected branch from dispatched item (ini_slug/type:slug → ini_slug/type/slug)
+        # Expected branch from dispatched item (type:slug → type/slug)
         self._expected_branch: str | None = self._derive_expected_branch(dispatched)
         self._session_branch: str | None = self._read_head_branch()
         # Once git_branch() sets the work branch, no subsequent call may rebind it.
@@ -1877,16 +1599,40 @@ class _GitTools:
             stderr=stderr.decode(encoding, errors="replace"),
         )
 
-    def _derive_expected_branch(self, dispatched: str | None) -> str | None:
-        """Return ini_slug/type/slug from WORKSPACE_MCP_DISPATCHED_ITEM, or None."""
+    @staticmethod
+    def _split_dispatched(dispatched: str | None) -> tuple[str | None, str, str] | None:
+        """Split WORKSPACE_MCP_DISPATCHED_ITEM into `(ini_slug, type, slug)`, or None.
+
+        A `/` before the first `:` selects the legacy three-part
+        `<ini_slug>/<type>:<slug>`; otherwise the value is the two-part
+        `<type>:<slug>` and `ini_slug` is None. A value with no type and slug
+        split is malformed.
+        """
         if dispatched is None:
             return None
-        try:
-            ini_slug, rest = dispatched.split("/", 1)
-            item_type, slug = rest.split(":", 1)
-            return f"{ini_slug}/{item_type}/{slug}"
-        except ValueError:
+        head, colon, slug = dispatched.partition(":")
+        if not colon or not head or not slug:
             return None
+        ini_slug, slash, item_type = head.partition("/")
+        if not slash:
+            return None, head, slug
+        if not ini_slug or not item_type or "/" in item_type:
+            return None
+        return ini_slug, item_type, slug
+
+    def _derive_expected_branch(self, dispatched: str | None) -> str | None:
+        """Return the expected branch from WORKSPACE_MCP_DISPATCHED_ITEM, or None.
+
+        `type/slug` for the two-part form; the legacy three-part form keeps its
+        `ini_slug/type/slug` branch.
+        """
+        parts = self._split_dispatched(dispatched)
+        if parts is None:
+            return None
+        ini_slug, item_type, slug = parts
+        if ini_slug is None:
+            return f"{item_type}/{slug}"
+        return f"{ini_slug}/{item_type}/{slug}"
 
     def _resolve_output_pattern(self, dispatched: str | None) -> list[str] | None:
         """The displayable pattern strings, projected from the scope spec.
@@ -1908,17 +1654,16 @@ class _GitTools:
         """
         if dispatched is None:
             return None
-        # dispatched = "ini_slug/type:slug"
-        try:
-            ini_slug, rest = dispatched.split("/", 1)
-            item_type, slug = rest.split(":", 1)
-        except ValueError:
+        # dispatched = "type:slug" or the legacy "ini_slug/type:slug"
+        parts = self._split_dispatched(dispatched)
+        if parts is None:
             _log.warning("WORKSPACE_MCP_DISPATCHED_ITEM has unexpected shape: %r", dispatched)
             return None
+        ini_slug, item_type, slug = parts
         # Validate each path component to match the slug guard used in the
         # workspace_status path — prevents a crafted env var from widening the
         # commit pattern (defense-in-depth; the env var is set by the orchestrator).
-        for component in (ini_slug, slug):
+        for component in (slug,) if ini_slug is None else (ini_slug, slug):
             if not _is_safe_slug(component):
                 _log.warning(
                     "WORKSPACE_MCP_DISPATCHED_ITEM contains unsafe slug %r; "
@@ -2048,7 +1793,7 @@ class _GitTools:
         if r.returncode != 0:
             return {"error": f"invalid branch name: {name!r}"}
         # When a dispatched item is bound, the branch name must match the expected
-        # ini_slug/type/slug form derived from WORKSPACE_MCP_DISPATCHED_ITEM.
+        # type/slug form derived from WORKSPACE_MCP_DISPATCHED_ITEM.
         if self._expected_branch is not None and name != self._expected_branch:
             return {
                 "error": (
@@ -2348,19 +2093,16 @@ class _StdioLoop:
                     "Returns the current workspace queue and active-run state. "
                     "Call this at session start before doing any work. "
                     "Response fields: "
-                    "ready[] — canonical dispatchable work.queue specs only, each with "
-                    "ini_slug, type, slug, path, dispatchable, findings, and dispatch_skill; "
+                    "ready[] — dispatchable specs from the packaged dispatch (Approved), "
+                    "each with type, slug, path, dispatchable, findings, and dispatch_skill; "
                     "dispatchable items omit the 'available' field (treat absent as eligible); "
                     "items where available=false require an optional pack (see required_pack); "
                     "only dispatch items where dispatchable=true and 'available' is absent "
                     "(not false); "
-                    "blocked[] — canonical non-dispatchable work entries with findings; "
-                    "active[] — canonical valid work.active specs for resume, not queue-ready; "
-                    "shaping[] — informational only in Stage 1; non-FSM items (research, design, "
-                    "shape, strategy) whose skill flows are not yet shipped (Stage 3); "
-                    "do not dispatch shaping items in Stage 1 — selecting one opens a bound "
-                    "session with no usable skill flow; shaping items may carry "
-                    "available, required_pack, and unmet_needs for readiness visibility; "
+                    "blocked[] — non-dispatchable specs with findings; "
+                    "active[] — valid Implementing specs for resume, not queue-ready; "
+                    "shaping[] — always an empty list; "
+                    "canonical — the packaged dispatch's own output object; "
                     "current_state — current work-loop phase name (null when idle OR when this "
                     "session is not bound to a valid spec — see below); "
                     "gate_pending — true when human input is required before work can continue "
@@ -2432,8 +2174,8 @@ class _StdioLoop:
                     "raw git branch commands bypass the scoping guard that locks "
                     "the session to exactly one branch for the dispatched item. "
                     "Creates and checks out a new feature branch. "
-                    "The branch name must follow the ini_slug/type/slug format "
-                    "(e.g. my-initiative/shape/new-feature) and must match the dispatched item. "
+                    "The branch name must follow the <type>/<slug> format "
+                    "(e.g. shape/new-feature) and must match the dispatched item. "
                     "May only be called once per session; subsequent calls are rejected. "
                     "Not available in FSM/work-loop sessions (WORKSPACE_MCP_SPEC_PATH set) "
                     "or when no item has been dispatched."
@@ -2444,8 +2186,8 @@ class _StdioLoop:
                         "name": {
                             "type": "string",
                             "description": (
-                                "Branch name in ini_slug/type/slug format "
-                                "(e.g. my-initiative/shape/new-feature)."
+                                "Branch name in <type>/<slug> format "
+                                "(e.g. shape/new-feature)."
                             ),
                         }
                     },

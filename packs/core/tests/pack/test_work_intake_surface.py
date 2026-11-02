@@ -123,6 +123,15 @@ _CHANGED_SKILLS = {
 }
 
 
+def _load_intake_guard():
+    path = _PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "intake_guard.py"
+    spec = importlib.util.spec_from_file_location("work_intake_guard_validation", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["work_intake_guard_validation"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _load_engine():
     spec = importlib.util.spec_from_file_location("workspace_status_engine", _ENGINE_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -192,7 +201,7 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
         fixture = _fixture_path(fixture_name)
         assert fixture.is_file(), case["id"]
         if "normalized-intake/" in fixture_name or fixture_name.startswith("evals/"):
-            parsed, findings = engine.validate_normalized_intake(
+            parsed, findings = _load_intake_guard().validate_normalized_intake(
                 json.loads(fixture.read_text(encoding="utf-8"))
             )
             assert parsed is not None, case["id"]
