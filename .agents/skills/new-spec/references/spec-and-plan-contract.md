@@ -97,7 +97,7 @@ mechanical rule.
   (`Shipped (superseded in part by ADR-NNNN — …)`). A parenthetical on that
   token is the **only edit a frozen spec accepts**, and it carries exactly two
   licensed shapes: that supersession pointer, and a pointer recording that a
-  `[backlog].open` anchor the body names has been closed. Form and rules for
+  deferral anchor the body names has been closed. Form and rules for
   both: [§ Superseding a frozen document](#superseding-a-frozen-document).
   The linter reads only the leading token — it truncates at the first ` (`,
   ` →`, or `<!--` — so annotated statuses satisfy the vocabulary rule.
@@ -136,20 +136,13 @@ mechanical rule.
   review and human approval before implementation resumes.
 - **Historical deferral token.** Frozen specs may still contain older inline
   `(deferred: <slug>)` markers. While they exist, the marker's `<slug>` must
-  resolve through an entry in `workspace.toml [backlog].open` or through an open
-  intent, brief or spec file. A `[backlog].open` entry takes *either* shape: a
-  legacy record's `slug` field, or a canonical record's `path` through
-  `lint-spec-status.canonical_entry_anchor`, which anchors a spec or plan path
-  on its owning directory and any other artifact on its file stem. New entries
-  take the canonical shape. A canonical `[backlog].open` entry must name an
-  artifact that exists *and* whose `Status` is `Draft`, unless its `kind` is
-  `defect`, which admits any carrier that is not `Closed`. A deferral with no
-  artifact of its own therefore takes a Draft artifact of its own; it cannot
-  point at the shipped document that records it, because a shipped or accepted
-  carrier and an open backlog membership cannot coexist. Do not use this marker
+  resolve through the captured-item file `docs/product/captured/<slug>.md`,
+  whatever its status, or through an open intent, brief or spec file. A
+  deferral with no artifact of its own takes a captured-item file of its own; it
+  cannot point at the shipped document that records it. Do not use this marker
   as a new shipping exception: a marker left in a body that later freezes pins
-  its entry in `[backlog].open` permanently, since the frozen body cannot be
-  edited to retire it. A follow-on recorded only in a PR comment rots; the
+  its captured-item record permanently, since the frozen body cannot be edited
+  to retire it, and the record resolves whatever its status. A follow-on recorded only in a PR comment rots; the
   register or external artifact is the stable pointer. Run `workspace-status`
   to see open backlog items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a

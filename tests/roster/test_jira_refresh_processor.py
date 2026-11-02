@@ -144,7 +144,7 @@ def test_destination_comes_only_from_resolved_profile(processor, refresh, tmp_pa
 def _receipt_store(refresh, tmp_path: Path):
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    workspace = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text(
         '''# Example
@@ -174,7 +174,7 @@ remote_mutation_approver_roles = ["product-owner"]
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
-        expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
+        expected_policy_digest=refresh.digest_bytes(workspace.read_bytes()),
     )
 
 
@@ -466,7 +466,7 @@ def test_subclassed_receipt_store_is_refused_before_adapter_call(
         store.repository_root,
         store.artifact_path,
         store.artifact_digest,
-        store.workspace_digest,
+        store.policy_digest,
     )
     result = asyncio.run(
         processor.write_back(

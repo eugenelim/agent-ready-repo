@@ -55,7 +55,7 @@ BODY_LINE_CEILING = 500
 # 2026-10-30, tracker-origin-registration-stop (docs/specs/tracker-origin-registration-stop): `workspace_status.py` re-pinned for the tracker-entry-drop repair.
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "6535889f0682ba8f8fa41359b9403aa39c1a37a0a9342b04acb594712e7d3984",
+        "37e9d786b1810038e59a1e70024fd8b773044e75b574ec5ac6e7e7efb399dbcf",
     "workspace_status_engine.py":
         "7d22cb905af4464cb2d1778610d2e5e53a23604ed5b847d6d7dcd71b9dd0221b",
     "workspace_status_prune.py":

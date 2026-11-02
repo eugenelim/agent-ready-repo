@@ -172,15 +172,15 @@ def _approver(refresh):
 def _confirmation_store(refresh, tmp_path: Path):
     repo = tmp_path / "confirmation-store"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    policy_file = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text(_authority_block(), encoding="utf-8")
-    workspace.write_text(_policy(), encoding="utf-8")
+    policy_file.write_text(_policy(), encoding="utf-8")
     return refresh.RemoteReceiptStore.open(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
-        expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
+        expected_policy_digest=refresh.digest_bytes(policy_file.read_bytes()),
     )
 
 
@@ -589,32 +589,30 @@ def test_repository_policy_authorizes_roles_without_identities() -> None:
         )
 
 
-def test_repository_policy_loads_from_complete_workspace() -> None:
+def test_repository_policy_loads_from_the_policy_file() -> None:
     refresh = _load_refresh()
-    workspace = '''
-["ini-001"]
-name = "Example"
-status = "active"
-milestone = "M1"
 
-["ini-001".work]
-queue = []
-active = []
-shipped = []
-
-[authorization.refresh]
-contract_version = "refresh-authorization-policy.v1"
-draft_approver_roles = ["maintainer"]
-accepted_approver_roles = ["maintainer"]
-remote_mutation_approver_roles = ["maintainer"]
-
-[backlog]
-open = []
-'''
-
-    policy = refresh.parse_refresh_authorization_policy(workspace)
+    policy = refresh.parse_refresh_authorization_policy(_policy())
 
     assert policy.remote_mutation_approver_roles == ("maintainer",)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "",
+        _policy() + '\n["ini-001"]\nname = "Example"\n',
+        _policy() + "\n[authorization.other]\nextra = 1\n",
+        _policy() + "\n[backlog]\nopen = []\n",
+        _policy().replace("[authorization.refresh]", "[authorization.refresh]\nextra = 1"),
+        _policy().replace("refresh-authorization-policy.v1", "v2"),
+    ],
+)
+def test_repository_policy_file_holds_only_the_refresh_table(text: str) -> None:
+    refresh = _load_refresh()
+
+    with pytest.raises(refresh.RefreshRefusal, match="invalid_refresh_policy"):
+        refresh.parse_refresh_authorization_policy(text)
 
 
 def test_confirmation_ledger_is_seeded_from_durable_receipts() -> None:
@@ -1373,9 +1371,9 @@ def test_acquisition_redacts_sensitive_tracker_values_before_commit(
         approver=_approver(refresh),
         decisions={"Outcome": "accept-source"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=proposed,
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
@@ -1524,17 +1522,17 @@ def test_remote_receipt_store_persists_pending_before_terminal_state(
     refresh = _load_refresh()
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    policy_file = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text(_authority_block(), encoding="utf-8")
-    workspace.write_text(_policy(), encoding="utf-8")
+    policy_file.write_text(_policy(), encoding="utf-8")
     original_artifact_digest = refresh.digest_bytes(artifact.read_bytes())
-    workspace_digest = refresh.digest_bytes(workspace.read_bytes())
+    policy_digest = refresh.digest_bytes(policy_file.read_bytes())
     store = refresh.RemoteReceiptStore.open(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=original_artifact_digest,
-        expected_workspace_digest=workspace_digest,
+        expected_policy_digest=policy_digest,
     )
     receipt = refresh.RemoteActionReceipt(
         confirmation_id="confirm-durable",
@@ -1558,13 +1556,13 @@ def test_remote_receipt_store_persists_pending_before_terminal_state(
     store.record(replace(receipt, status="succeeded"))
     terminal = refresh.parse_source_authority(artifact.read_text()).remote_actions
     assert terminal[0]["status"] == "succeeded"
-    assert workspace.read_text() == _policy()
+    assert policy_file.read_text() == _policy()
     with pytest.raises(refresh.RefreshRefusal, match="fingerprint_mismatch"):
         refresh.RemoteReceiptStore.open(
             repository_root=repo,
             artifact_path="docs/specs/example/spec.md",
             expected_artifact_digest=original_artifact_digest,
-            expected_workspace_digest=workspace_digest,
+            expected_policy_digest=policy_digest,
         )
 
 
@@ -1673,14 +1671,15 @@ def _semantic_refresh_pair(
     *,
     decision: str = "revise-both",
     proposed_owner: str = "local",
-    mutate_workspace: bool = False,
+    mutate_policy: bool = False,
     mutate_coordination_receipt: bool = False,
     authority_injection: str = "",
-    workspace_policy: str = _policy(),
+    policy_text: str = _policy(),
+    registry: bool = False,
 ) -> dict[str, Any]:
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    policy_file = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     coordination = '''
 ```toml coordination-receipts
@@ -1703,8 +1702,8 @@ stable
     before_artifact = (
         _fixture_block() + requirement_sections + coordination
     ).encode()
-    before_workspace = workspace_policy.encode() + b'''
-["ini-001"]
+    before_policy = policy_text.encode()
+    workspace_registry = b'''["ini-001"]
 name = "Example"
 status = "active"
 milestone = "M1"
@@ -1713,9 +1712,11 @@ milestone = "M1"
 active = []
 '''
     artifact.write_bytes(before_artifact)
-    workspace.write_bytes(before_workspace)
+    policy_file.write_bytes(before_policy)
+    if registry:
+        (repo / "workspace.toml").write_bytes(workspace_registry)
     artifact_digest = refresh.digest_bytes(before_artifact)
-    workspace_digest = refresh.digest_bytes(before_workspace)
+    policy_digest = refresh.digest_bytes(before_policy)
     proposed_artifact_text = (
         _fixture_block(authority_injection)
         + requirement_sections
@@ -1736,9 +1737,9 @@ active = []
             1,
         )
     proposed_artifact = proposed_artifact_text.encode()
-    proposed_workspace = before_workspace
-    if mutate_workspace:
-        proposed_workspace = proposed_workspace + b"\n# workspace changed\n"
+    proposed_policy = before_policy
+    if mutate_policy:
+        proposed_policy = proposed_policy + b"\n# workspace changed\n"
     comparison = refresh.RefreshComparison(
         artifact_path="docs/specs/example/spec.md",
         artifact_kind="spec",
@@ -1753,13 +1754,13 @@ active = []
     return {
         "repo": repo,
         "artifact": artifact,
-        "workspace": workspace,
+        "policy": policy_file,
         "before_artifact": before_artifact,
-        "before_workspace": before_workspace,
+        "before_policy": before_policy,
         "artifact_digest": artifact_digest,
-        "workspace_digest": workspace_digest,
+        "policy_digest": policy_digest,
         "proposed_artifact": proposed_artifact,
-        "proposed_workspace": proposed_workspace,
+        "proposed_policy": proposed_policy,
         "comparison": comparison,
         "authority": refresh.parse_source_authority(before_artifact.decode()),
     }
@@ -1779,9 +1780,9 @@ def test_coordinator_commits_authority_mirror_and_receipt_leaving_workspace_unch
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
@@ -1792,8 +1793,8 @@ def test_coordinator_commits_authority_mirror_and_receipt_leaving_workspace_unch
     assert durable.conflicts[0]["status"] == "unresolved"
     assert durable.local_receipts[0]["status"] == "committed"
     assert durable.owned_fields["Outcome"] == "local"
-    workspace_text = fixture["workspace"].read_text()
-    assert workspace_text.encode() == fixture["before_workspace"]
+    workspace_text = fixture["policy"].read_text()
+    assert workspace_text.encode() == fixture["before_policy"]
 
 
 def test_coordinator_accepts_length_change_when_authority_trails_changed_section(
@@ -1829,8 +1830,8 @@ stable
         policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
         decisions={"Constraint": "accept-source"},
         expected_artifact_digest=refresh.digest_bytes(before.encode()),
-        expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=proposed.encode(),
-        workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
+        expected_policy_digest=fixture["policy_digest"], artifact_bytes=proposed.encode(),
+        policy_bytes=fixture["proposed_policy"], now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.local_mutation == "committed"
@@ -1869,8 +1870,8 @@ stable
         policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
         decisions={"Constraint": "accept-source"},
         expected_artifact_digest=refresh.digest_bytes(before.encode()),
-        expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=proposed.encode(),
-        workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
+        expected_policy_digest=fixture["policy_digest"], artifact_bytes=proposed.encode(),
+        policy_bytes=fixture["proposed_policy"], now=datetime(2026, 8, 17, tzinfo=UTC),
     )
     assert result.local_mutation == "committed"
 
@@ -1896,8 +1897,8 @@ second
         policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
         decisions={"Outcome": "accept-source"},
         expected_artifact_digest=refresh.digest_bytes(before),
-        expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=proposed,
-        workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
+        expected_policy_digest=fixture["policy_digest"], artifact_bytes=proposed,
+        policy_bytes=fixture["proposed_policy"], now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.local_mutation == "committed"
@@ -1917,16 +1918,16 @@ def test_coordinator_refuses_relocated_authority_after_changed_section(tmp_path:
         policy=refresh.parse_refresh_authorization_policy(_policy()), approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=refresh.digest_bytes(before.encode()),
-        expected_workspace_digest=fixture["workspace_digest"], artifact_bytes=relocated.encode(),
-        workspace_bytes=fixture["proposed_workspace"], now=datetime(2026, 8, 17, tzinfo=UTC),
+        expected_policy_digest=fixture["policy_digest"], artifact_bytes=relocated.encode(),
+        policy_bytes=fixture["proposed_policy"], now=datetime(2026, 8, 17, tzinfo=UTC),
     )
     assert result.code == "invalid_local_update"
     assert fixture["artifact"].read_bytes() == before.encode()
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 @pytest.mark.parametrize(
-    "workspace_policy",
+    "policy_text",
     [
         "",
         _policy().replace(
@@ -1937,13 +1938,13 @@ def test_coordinator_refuses_relocated_authority_after_changed_section(tmp_path:
 )
 def test_coordinator_rejects_missing_or_substituted_workspace_policy(
     tmp_path: Path,
-    workspace_policy: str,
+    policy_text: str,
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(
         refresh,
         tmp_path,
-        workspace_policy=workspace_policy,
+        policy_text=policy_text,
     )
 
     result = refresh.coordinate_local_refresh(
@@ -1954,16 +1955,16 @@ def test_coordinator_rejects_missing_or_substituted_workspace_policy(
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "invalid_refresh_policy"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 @pytest.mark.parametrize(
@@ -2028,32 +2029,32 @@ def test_coordinator_rejects_extra_authority_history(
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "invalid_local_update"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 @pytest.mark.parametrize(
-    ("mutate_workspace", "mutate_coordination_receipt"),
+    ("mutate_policy", "mutate_coordination_receipt"),
     [(True, False), (False, True)],
 )
 def test_coordinator_rejects_workspace_or_coordination_receipt_changes(
     tmp_path: Path,
-    mutate_workspace: bool,
+    mutate_policy: bool,
     mutate_coordination_receipt: bool,
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(
         refresh,
         tmp_path,
-        mutate_workspace=mutate_workspace,
+        mutate_policy=mutate_policy,
         mutate_coordination_receipt=mutate_coordination_receipt,
     )
 
@@ -2065,16 +2066,16 @@ def test_coordinator_rejects_workspace_or_coordination_receipt_changes(
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "invalid_local_update"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 def test_coordinator_rejects_ownership_map_changes_from_authorized_refresh(
@@ -2096,16 +2097,16 @@ def test_coordinator_rejects_ownership_map_changes_from_authorized_refresh(
         approver=_approver(refresh),
         decisions={"Outcome": "accept-source"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "invalid_local_update"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 @pytest.mark.parametrize(
@@ -2149,16 +2150,16 @@ def test_coordinator_rejects_unverified_requirement_body_changes(
         approver=_approver(refresh),
         decisions={"Outcome": "accept-source"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "invalid_local_update"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 def _coordinate(refresh, fixture: dict[str, Any], **overrides: Any):
@@ -2170,9 +2171,9 @@ def _coordinate(refresh, fixture: dict[str, Any], **overrides: Any):
         "approver": _approver(refresh),
         "decisions": {"Outcome": "revise-both"},
         "expected_artifact_digest": fixture["artifact_digest"],
-        "expected_workspace_digest": fixture["workspace_digest"],
+        "expected_policy_digest": fixture["policy_digest"],
         "artifact_bytes": fixture["proposed_artifact"],
-        "workspace_bytes": fixture["proposed_workspace"],
+        "policy_bytes": fixture["proposed_policy"],
         "now": datetime(2026, 8, 17, tzinfo=UTC),
     }
     arguments.update(overrides)
@@ -2185,21 +2186,281 @@ def _assert_refused_without_effects(
     assert result.code == "invalid_local_update"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == (artifact or fixture["before_artifact"])
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
-def test_ac0006_coordinator_commits_without_a_workspace_entry(tmp_path: Path) -> None:
+def test_ac0006_coordinator_commits_with_no_workspace_file(tmp_path: Path) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
-    assert b"[\"ini-001\".work]\nactive = []" in fixture["before_workspace"]
+    assert not (fixture["repo"] / "workspace.toml").exists()
 
     result = _coordinate(refresh, fixture)
 
     assert result.local_mutation == "committed"
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
     durable = refresh.parse_source_authority(fixture["artifact"].read_text())
     assert durable.source_revision == "rev-2"
     assert durable.tracker_profile == {"id": "example-service", "version": "1.0"}
+    (receipt,) = durable.local_receipts
+    assert receipt["policy_digest"] == fixture["policy_digest"]
+    assert "workspace_digest" not in receipt
+
+
+@pytest.mark.parametrize("policy_text", [None, "not toml ["])
+def test_ac0006_coordinator_refuses_absent_or_invalid_policy_file(
+    tmp_path: Path, policy_text: str | None
+) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    if policy_text is None:
+        fixture["policy"].unlink()
+        result = _coordinate(refresh, fixture)
+    else:
+        fixture["policy"].write_text(policy_text, encoding="utf-8")
+        result = _coordinate(
+            refresh,
+            fixture,
+            expected_policy_digest=refresh.digest_bytes(policy_text.encode()),
+            policy_bytes=policy_text.encode(),
+        )
+
+    assert result.code == "invalid_refresh_policy"
+    assert result.local_mutation == "refused"
+    assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
+
+
+def test_ac0007_policy_change_between_comparison_and_commit_writes_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path)
+    original = refresh.guarded_write_pair
+
+    def change_then_write(**kwargs: Any):
+        fixture["policy"].write_bytes(fixture["before_policy"] + b"\n# changed\n")
+        return original(**kwargs)
+
+    monkeypatch.setattr(refresh, "guarded_write_pair", change_then_write)
+
+    result = _coordinate(refresh, fixture)
+
+    assert result.local_mutation == "refused"
+    assert result.code == "fingerprint_mismatch"
+    assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
+
+
+def test_ac0007_workspace_change_in_the_commit_window_does_not_refuse(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    refresh = _load_refresh()
+    fixture = _semantic_refresh_pair(refresh, tmp_path, registry=True)
+    workspace = fixture["repo"] / "workspace.toml"
+    original = refresh.guarded_write_pair
+
+    def change_then_write(**kwargs: Any):
+        workspace.write_bytes(workspace.read_bytes() + b"\n# changed\n")
+        return original(**kwargs)
+
+    monkeypatch.setattr(refresh, "guarded_write_pair", change_then_write)
+
+    result = _coordinate(refresh, fixture)
+
+    assert result.local_mutation == "committed"
+    assert workspace.read_bytes().endswith(b"# changed\n")
+
+
+def _receipt(refresh, confirmation_id: str = "confirm-1"):
+    return refresh.RemoteActionReceipt(
+        confirmation_id=confirmation_id,
+        mutation_digest="a" * 64,
+        profile_version="1.0",
+        payload_digest="b" * 64,
+        identity="Example Approver",
+        role="maintainer",
+        confirmed_at="2026-08-17T00:00:00Z",
+        authorization_source="current-human-session",
+        action="comment",
+        target="ITEM-1",
+    )
+
+
+def test_ac0006_remote_store_works_with_no_workspace_file(tmp_path: Path) -> None:
+    refresh = _load_refresh()
+    store = _confirmation_store(refresh, tmp_path)
+    assert not (store.repository_root / "workspace.toml").exists()
+
+    store.record(_receipt(refresh))
+
+    assert store.confirmation_ids() == {"confirm-1"}
+
+
+@pytest.mark.parametrize("policy_text", [None, "not toml ["])
+def test_ac0006_remote_store_refuses_absent_or_invalid_policy_file(
+    tmp_path: Path, policy_text: str | None
+) -> None:
+    refresh = _load_refresh()
+    repo = tmp_path / "repo"
+    artifact = repo / "docs/specs/example/spec.md"
+    artifact.parent.mkdir(parents=True)
+    artifact.write_text(_authority_block(), encoding="utf-8")
+    policy = repo / ".work-intake.toml"
+    if policy_text is not None:
+        policy.write_text(policy_text, encoding="utf-8")
+    expected = "invalid_refresh_policy" if policy_text is None else "fingerprint_mismatch"
+    with pytest.raises(refresh.RefreshRefusal, match=expected):
+        refresh.RemoteReceiptStore.open(
+            repository_root=repo,
+            artifact_path="docs/specs/example/spec.md",
+            expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
+            expected_policy_digest=refresh.digest_bytes(b""),
+        )
+
+
+def test_ac0007_policy_change_after_open_refuses_consume_and_record(
+    tmp_path: Path,
+) -> None:
+    refresh = _load_refresh()
+    store = _confirmation_store(refresh, tmp_path)
+    artifact = store.repository_root / store.artifact_path
+    before = artifact.read_bytes()
+    policy = store.repository_root / ".work-intake.toml"
+    policy.write_bytes(policy.read_bytes() + b"\n# changed\n")
+
+    with pytest.raises(refresh.RefreshRefusal, match="fingerprint_mismatch"):
+        store.confirmation_ids()
+    with pytest.raises(refresh.RefreshRefusal, match="fingerprint_mismatch"):
+        store.record(_receipt(refresh))
+    binding = refresh.ConfirmationBinding(
+        artifact_path="docs/specs/example/spec.md",
+        source_revision="rev-2",
+        profile_id="example-service",
+        profile_version="1.0",
+        destination="https://tracker.example/api",
+        action="comment",
+        target="ITEM-1",
+        payload_digest="a" * 64,
+    )
+    now = datetime(2026, 8, 17, tzinfo=UTC)
+    with pytest.raises(refresh.RefreshRefusal, match="invalid_refresh_policy"):
+        refresh.consume_remote_confirmation(
+            confirmation=refresh.RemoteConfirmation.issue(
+                confirmation_id="confirm-1",
+                binding=binding,
+                approver=_approver(refresh),
+                confirmed_at=now,
+            ),
+            expected_binding=binding,
+            policy=refresh.parse_refresh_authorization_policy(_policy()),
+            receipt_store=store,
+            used_confirmation_ids=set(),
+            now=now,
+        )
+    assert artifact.read_bytes() == before
+
+
+def test_ac0007_workspace_change_after_open_does_not_refuse(tmp_path: Path) -> None:
+    refresh = _load_refresh()
+    store = _confirmation_store(refresh, tmp_path)
+    workspace = store.repository_root / "workspace.toml"
+    workspace.write_text('["ini-001"]\nname = "Example"\n', encoding="utf-8")
+
+    store.record(_receipt(refresh))
+    workspace.write_text('["ini-001"]\nname = "Changed"\n', encoding="utf-8")
+
+    assert store.confirmation_ids() == {"confirm-1"}
+
+
+def test_ac0021_remote_receipt_write_holds_the_repair_lock(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    refresh = _load_refresh()
+    store = _confirmation_store(refresh, tmp_path)
+    lock = store.repository_root / ".workspace-repair.lock"
+    seen: list[bool] = []
+    original = Path.replace
+
+    def observe(self: Path, target: Any) -> Path:
+        seen.append(lock.exists())
+        return original(self, target)
+
+    monkeypatch.setattr(Path, "replace", observe)
+    store.record(_receipt(refresh))
+
+    assert seen and all(seen)
+    assert not lock.exists()
+
+
+def _local_receipt_record(**extra: str) -> str:
+    keys = "".join(f'{key} = "{value}"\n' for key, value in extra.items())
+    return _authority_block(
+        extra=f'''
+[[local_receipts]]
+update_id = "refresh-1"
+artifact_digest = "{"a" * 64}"
+{keys}status = "committed"
+recorded_at = "2026-08-17T00:00:00Z"
+'''
+    )
+
+
+_RECEIPT_SHAPES = [
+    ({"workspace_digest": "b" * 64}, True),
+    ({"policy_digest": "c" * 64}, True),
+    ({"workspace_digest": "b" * 64, "policy_digest": "c" * 64}, False),
+    ({}, False),
+]
+
+
+@pytest.mark.parametrize(("keys", "accepted"), _RECEIPT_SHAPES)
+def test_ac0008_parser_and_renderer_accept_exactly_one_digest_key(
+    keys: dict[str, str], accepted: bool
+) -> None:
+    refresh = _load_refresh()
+    if not accepted:
+        with pytest.raises(refresh.RefreshRefusal, match="invalid_source_authority"):
+            refresh.parse_source_authority(_local_receipt_record(**keys))
+        return
+    authority = refresh.parse_source_authority(_local_receipt_record(**keys))
+    rendered = refresh.render_source_authority(authority)
+    assert refresh.parse_source_authority(f"# T\n\n{rendered}") == authority
+    for key in keys:
+        assert f"{key} = " in rendered
+    order = [rendered.index(f"{key} = ") for key in ("artifact_digest", *keys, "status")]
+    assert order == sorted(order)
+
+
+def test_ac0008_renderer_refuses_both_or_neither_digest_key() -> None:
+    refresh = _load_refresh()
+    base = refresh.parse_source_authority(_local_receipt_record(policy_digest="c" * 64))
+    receipt = dict(base.local_receipts[0])
+    for bad in (
+        {**receipt, "workspace_digest": "b" * 64},
+        {k: v for k, v in receipt.items() if k != "policy_digest"},
+    ):
+        with pytest.raises(refresh.RefreshRefusal):
+            refresh.render_source_authority(replace(base, local_receipts=(bad,)))
+
+
+@pytest.mark.parametrize(("keys", "accepted"), _RECEIPT_SHAPES)
+def test_ac0009_schema_accepts_exactly_one_digest_key(
+    keys: dict[str, str], accepted: bool
+) -> None:
+    receipt = {
+        "update_id": "refresh-1",
+        "artifact_digest": "a" * 64,
+        **keys,
+        "status": "committed",
+        "recorded_at": "2026-08-17T00:00:00Z",
+    }
+    data = {
+        "contract_version": "source-authority.v1",
+        "mode": "tracker-origin",
+        "source_ref": "example-service://work/ITEM-1",
+        "source_revision": "rev-2",
+        "owned_fields": {"Outcome": "local"},
+        "local_receipts": [receipt],
+    }
+    assert _profile_authority_schema_validator().is_valid(data) is accepted
 
 
 def test_ac0007_coordinator_refuses_changed_workspace_bytes(tmp_path: Path) -> None:
@@ -2209,7 +2470,7 @@ def test_ac0007_coordinator_refuses_changed_workspace_bytes(tmp_path: Path) -> N
     result = _coordinate(
         refresh,
         fixture,
-        workspace_bytes=fixture["proposed_workspace"] + b"\n# changed\n",
+        policy_bytes=fixture["proposed_policy"] + b"\n# changed\n",
     )
 
     _assert_refused_without_effects(result, fixture)
@@ -2292,28 +2553,26 @@ def test_ac0026_front_matter_does_not_hide_a_spec_title(tmp_path: Path) -> None:
     )
 
     assert result.local_mutation == "committed"
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 @pytest.mark.parametrize("tamper", ["initiative", "authorization-policy"])
-def test_coordinator_rejects_unrelated_workspace_changes(
+def test_coordinator_rejects_unrelated_policy_changes(
     tmp_path: Path,
     tamper: str,
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
     if tamper == "initiative":
-        fixture["proposed_workspace"] = fixture["proposed_workspace"].replace(
-            b'name = "Example"', b'name = "Changed by tracker"', 1
+        fixture["proposed_policy"] = fixture["proposed_policy"].replace(
+            b'draft_approver_roles = ["maintainer"]',
+            b'draft_approver_roles = ["tracker-role"]',
+            1,
         )
     else:
-        fixture["proposed_workspace"] += b'''
-
-[authorization.refresh]
-contract_version = "refresh-authorization-policy.v1"
-draft_approver_roles = ["tracker-role"]
-accepted_approver_roles = ["tracker-role"]
-remote_mutation_approver_roles = ["tracker-role"]
+        fixture["proposed_policy"] += b'''
+[authorization.other]
+extra = "tracker"
 '''
 
     result = refresh.coordinate_local_refresh(
@@ -2324,32 +2583,32 @@ remote_mutation_approver_roles = ["tracker-role"]
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "invalid_local_update"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 @pytest.mark.parametrize("tamper", ["comment", "formatting"])
-def test_coordinator_rejects_nonsemantic_workspace_byte_injection(
+def test_coordinator_rejects_nonsemantic_policy_byte_injection(
     tmp_path: Path,
     tamper: str,
 ) -> None:
     refresh = _load_refresh()
     fixture = _semantic_refresh_pair(refresh, tmp_path)
     if tamper == "comment":
-        fixture["proposed_workspace"] += (
-            b"\n# untrusted tracker text must not enter workspace comments\n"
+        fixture["proposed_policy"] += (
+            b"\n# untrusted tracker text must not enter policy comments\n"
         )
     else:
-        fixture["proposed_workspace"] = fixture["proposed_workspace"].replace(
-            b'name = "Example"', b'name  = "Example"', 1
+        fixture["proposed_policy"] = fixture["proposed_policy"].replace(
+            b'contract_version = ', b'contract_version  = ', 1
         )
 
     result = refresh.coordinate_local_refresh(
@@ -2360,16 +2619,16 @@ def test_coordinator_rejects_nonsemantic_workspace_byte_injection(
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "invalid_local_update"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 @pytest.mark.parametrize(
@@ -2409,15 +2668,15 @@ def test_coordinator_rejects_source_authority_byte_injection(
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=proposed,
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "invalid_local_update"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 def test_coordinator_workspace_replace_failure_rolls_back_semantic_pair(
@@ -2428,7 +2687,7 @@ def test_coordinator_workspace_replace_failure_rolls_back_semantic_pair(
     original_replace = Path.replace
 
     def fail_workspace_replace(source: Path, target: Path) -> Path:
-        if source.name.startswith(".workspace.toml."):
+        if source.name.startswith("..work-intake.toml."):
             raise OSError("injected")
         return original_replace(source, target)
 
@@ -2442,16 +2701,16 @@ def test_coordinator_workspace_replace_failure_rolls_back_semantic_pair(
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
     assert result.code == "local_write_failed"
     assert result.local_mutation == "refused"
     assert fixture["artifact"].read_bytes() == fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 def test_coordinator_reports_inconsistent_pair_when_rollback_fails(
@@ -2478,9 +2737,9 @@ def test_coordinator_reports_inconsistent_pair_when_rollback_fails(
         approver=_approver(refresh),
         decisions={"Outcome": "revise-both"},
         expected_artifact_digest=fixture["artifact_digest"],
-        expected_workspace_digest=fixture["workspace_digest"],
+        expected_policy_digest=fixture["policy_digest"],
         artifact_bytes=fixture["proposed_artifact"],
-        workspace_bytes=fixture["proposed_workspace"],
+        policy_bytes=fixture["proposed_policy"],
         now=datetime(2026, 8, 17, tzinfo=UTC),
     )
 
@@ -2488,7 +2747,7 @@ def test_coordinator_reports_inconsistent_pair_when_rollback_fails(
     assert result.local_mutation == "inconsistent"
     assert result.as_record()["local_mutation"] != "refused"
     assert fixture["artifact"].read_bytes() != fixture["before_artifact"]
-    assert fixture["workspace"].read_bytes() == fixture["before_workspace"]
+    assert fixture["policy"].read_bytes() == fixture["before_policy"]
 
 
 def test_guarded_pair_write_rolls_back_workspace_replace_failure(
@@ -2497,17 +2756,17 @@ def test_guarded_pair_write_rolls_back_workspace_replace_failure(
     refresh = _load_refresh()
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    policy_file = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text("before artifact\n", encoding="utf-8")
-    workspace.write_text("before workspace\n", encoding="utf-8")
+    policy_file.write_text("before workspace\n", encoding="utf-8")
     before_artifact = artifact.read_bytes()
-    before_workspace = workspace.read_bytes()
+    before_policy = policy_file.read_bytes()
 
     original_replace = Path.replace
 
     def fail_workspace_replace(source: Path, target: Path) -> Path:
-        if source.name.startswith(".workspace.toml."):
+        if source.name.startswith("..work-intake.toml."):
             raise OSError("injected")
         return original_replace(source, target)
 
@@ -2516,13 +2775,13 @@ def test_guarded_pair_write_rolls_back_workspace_replace_failure(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(before_artifact),
-        expected_workspace_digest=refresh.digest_bytes(before_workspace),
+        expected_policy_digest=refresh.digest_bytes(before_policy),
         artifact_bytes=b"after artifact\n",
-        workspace_bytes=b"after workspace\n",
+        policy_bytes=b"after workspace\n",
     )
     assert result.code == "local_write_failed"
     assert artifact.read_bytes() == before_artifact
-    assert workspace.read_bytes() == before_workspace
+    assert policy_file.read_bytes() == before_policy
 
 
 def test_guarded_pair_write_redacts_rollback_failure(
@@ -2531,10 +2790,10 @@ def test_guarded_pair_write_redacts_rollback_failure(
     refresh = _load_refresh()
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    policy_file = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text("before artifact\n", encoding="utf-8")
-    workspace.write_text("before workspace\n", encoding="utf-8")
+    policy_file.write_text("before workspace\n", encoding="utf-8")
     calls = 0
     original_replace = Path.replace
 
@@ -2550,23 +2809,23 @@ def test_guarded_pair_write_redacts_rollback_failure(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(b"before artifact\n"),
-        expected_workspace_digest=refresh.digest_bytes(b"before workspace\n"),
+        expected_policy_digest=refresh.digest_bytes(b"before workspace\n"),
         artifact_bytes=b"after artifact\n",
-        workspace_bytes=b"after workspace\n",
+        policy_bytes=b"after workspace\n",
     )
     assert result.code == "local_write_inconsistent"
     assert artifact.read_bytes() == b"after artifact\n"
-    assert workspace.read_bytes() == b"before workspace\n"
+    assert policy_file.read_bytes() == b"before workspace\n"
 
 
 def test_guarded_pair_write_respects_shared_workspace_lock(tmp_path: Path) -> None:
     refresh = _load_refresh()
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    policy_file = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text("before artifact\n", encoding="utf-8")
-    workspace.write_text("before workspace\n", encoding="utf-8")
+    policy_file.write_text("before workspace\n", encoding="utf-8")
     lock = repo / ".workspace-repair.lock"
     lock.write_text("another writer", encoding="utf-8")
 
@@ -2574,15 +2833,15 @@ def test_guarded_pair_write_respects_shared_workspace_lock(tmp_path: Path) -> No
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
-        expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
+        expected_policy_digest=refresh.digest_bytes(policy_file.read_bytes()),
         artifact_bytes=b"after artifact\n",
-        workspace_bytes=b"after workspace\n",
+        policy_bytes=b"after workspace\n",
     )
 
     assert result.code == "lock_busy"
     assert lock.read_text(encoding="utf-8") == "another writer"
     assert artifact.read_text(encoding="utf-8") == "before artifact\n"
-    assert workspace.read_text(encoding="utf-8") == "before workspace\n"
+    assert policy_file.read_text(encoding="utf-8") == "before workspace\n"
 
 
 def test_guarded_pair_rechecks_both_fingerprints_immediately_before_replace(
@@ -2592,10 +2851,10 @@ def test_guarded_pair_rechecks_both_fingerprints_immediately_before_replace(
     refresh = _load_refresh()
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    policy_file = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text("before artifact\n", encoding="utf-8")
-    workspace.write_text("before workspace\n", encoding="utf-8")
+    policy_file.write_text("before workspace\n", encoding="utf-8")
     original_mkstemp = refresh.tempfile.mkstemp
     stage_count = 0
 
@@ -2604,7 +2863,7 @@ def test_guarded_pair_rechecks_both_fingerprints_immediately_before_replace(
         stage_count += 1
         result = original_mkstemp(*args, **kwargs)
         if stage_count == 2:
-            workspace.write_text("concurrent workspace\n", encoding="utf-8")
+            policy_file.write_text("concurrent workspace\n", encoding="utf-8")
         return result
 
     monkeypatch.setattr(refresh.tempfile, "mkstemp", mutate_during_second_stage)
@@ -2612,14 +2871,14 @@ def test_guarded_pair_rechecks_both_fingerprints_immediately_before_replace(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(b"before artifact\n"),
-        expected_workspace_digest=refresh.digest_bytes(b"before workspace\n"),
+        expected_policy_digest=refresh.digest_bytes(b"before workspace\n"),
         artifact_bytes=b"after artifact\n",
-        workspace_bytes=b"after workspace\n",
+        policy_bytes=b"after workspace\n",
     )
 
     assert result.code == "fingerprint_mismatch"
     assert artifact.read_text(encoding="utf-8") == "before artifact\n"
-    assert workspace.read_text(encoding="utf-8") == "concurrent workspace\n"
+    assert policy_file.read_text(encoding="utf-8") == "concurrent workspace\n"
     assert not (repo / ".workspace-repair.lock").exists()
 
 
@@ -2627,24 +2886,24 @@ def test_guarded_pair_write_preserves_existing_file_modes(tmp_path: Path) -> Non
     refresh = _load_refresh()
     repo = tmp_path / "repo"
     artifact = repo / "docs/specs/example/spec.md"
-    workspace = repo / "workspace.toml"
+    policy_file = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text("before artifact\n", encoding="utf-8")
-    workspace.write_text("before workspace\n", encoding="utf-8")
+    policy_file.write_text("before workspace\n", encoding="utf-8")
     artifact.chmod(0o640)
-    workspace.chmod(0o644)
+    policy_file.chmod(0o644)
 
     result = refresh.guarded_write_pair(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
-        expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
+        expected_policy_digest=refresh.digest_bytes(policy_file.read_bytes()),
         artifact_bytes=b"after artifact\n",
-        workspace_bytes=b"after workspace\n",
+        policy_bytes=b"after workspace\n",
     )
     assert result.code == "written"
     assert artifact.stat().st_mode & 0o777 == 0o640
-    assert workspace.stat().st_mode & 0o777 == 0o644
+    assert policy_file.stat().st_mode & 0o777 == 0o644
 
 
 def test_guarded_pair_write_rejects_symlink_escape(tmp_path: Path) -> None:
@@ -2658,15 +2917,15 @@ def test_guarded_pair_write_rejects_symlink_escape(tmp_path: Path) -> None:
         link.symlink_to(outside)
     except OSError:
         pytest.skip("symlinks unavailable")
-    (repo / "workspace.toml").write_text("workspace\n", encoding="utf-8")
+    (repo / ".work-intake.toml").write_text("workspace\n", encoding="utf-8")
 
     result = refresh.guarded_write_pair(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest=refresh.digest_bytes(b"outside\n"),
-        expected_workspace_digest=refresh.digest_bytes(b"workspace\n"),
+        expected_policy_digest=refresh.digest_bytes(b"workspace\n"),
         artifact_bytes=b"changed\n",
-        workspace_bytes=b"changed\n",
+        policy_bytes=b"changed\n",
     )
     assert result.code == "invalid_target"
     assert outside.read_text(encoding="utf-8") == "outside\n"
@@ -2678,25 +2937,25 @@ def test_guarded_pair_write_rejects_stale_fingerprint_and_traversal(tmp_path: Pa
     artifact = repo / "docs/specs/example/spec.md"
     artifact.parent.mkdir(parents=True)
     artifact.write_text("artifact\n", encoding="utf-8")
-    (repo / "workspace.toml").write_text("workspace\n", encoding="utf-8")
+    (repo / ".work-intake.toml").write_text("workspace\n", encoding="utf-8")
 
     stale = refresh.guarded_write_pair(
         repository_root=repo,
         artifact_path="docs/specs/example/spec.md",
         expected_artifact_digest="0" * 64,
-        expected_workspace_digest=refresh.digest_bytes(b"workspace\n"),
+        expected_policy_digest=refresh.digest_bytes(b"workspace\n"),
         artifact_bytes=b"changed\n",
-        workspace_bytes=b"changed\n",
+        policy_bytes=b"changed\n",
     )
     traversing = refresh.guarded_write_pair(
         repository_root=repo,
         artifact_path="docs/specs/example/../../../workspace.toml",
         expected_artifact_digest=refresh.digest_bytes(b"workspace\n"),
-        expected_workspace_digest=refresh.digest_bytes(b"workspace\n"),
+        expected_policy_digest=refresh.digest_bytes(b"workspace\n"),
         artifact_bytes=b"changed\n",
-        workspace_bytes=b"changed\n",
+        policy_bytes=b"changed\n",
     )
     assert stale.code == "fingerprint_mismatch"
     assert traversing.code == "invalid_target"
     assert artifact.read_text(encoding="utf-8") == "artifact\n"
-    assert (repo / "workspace.toml").read_text(encoding="utf-8") == "workspace\n"
+    assert (repo / ".work-intake.toml").read_text(encoding="utf-8") == "workspace\n"

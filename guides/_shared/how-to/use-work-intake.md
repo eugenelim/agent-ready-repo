@@ -85,7 +85,8 @@ Show every changed field and do not write back yet.
 
 The artifact must carry one valid source-authority record and an exact profile
 version with a configured processor. The repository must also declare its
-closed role policy:
+closed role policy in `.work-intake.toml` at the repository root, not in
+`workspace.toml`:
 
 ```toml
 [authorization.refresh]
@@ -97,7 +98,9 @@ remote_mutation_approver_roles = ["maintainer"]
 
 Replace the example role with repository-authorized roles. The policy stores
 roles, not identities or tracker-supplied evidence; missing, unknown, or empty
-role sets fail closed.
+role sets fail closed. A repository that still has the table in `workspace.toml`
+runs `repair-plan` and `repair-apply --yes`; the `refresh-policy-move` step
+creates `.work-intake.toml` and removes the old table.
 
 The canonical artifact carries provenance and ownership in one closed fence:
 

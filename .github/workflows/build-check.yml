@@ -783,6 +783,12 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_pre_cutover_closure.py
 
+      # AC-0012 to AC-0015 and AC-0018 of last-registry-entries: the record rows,
+      # the errata entry, the refresh-policy and anchor text, and the brief.
+      - name: pytest last registry entries (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_last_registry_entries.py
+
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a

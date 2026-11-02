@@ -107,7 +107,7 @@ def _confirmation(
 def _receipt_store(refresh_mod: types.ModuleType, tmp_path: Path):
     repo = tmp_path / "repo"
     artifact = repo / "docs/product/briefs/example.md"
-    workspace = repo / "workspace.toml"
+    workspace = repo / ".work-intake.toml"
     artifact.parent.mkdir(parents=True)
     artifact.write_text(
         '''# Example
@@ -137,7 +137,7 @@ remote_mutation_approver_roles = ["product"]
         repository_root=repo,
         artifact_path="docs/product/briefs/example.md",
         expected_artifact_digest=refresh_mod.digest_bytes(artifact.read_bytes()),
-        expected_workspace_digest=refresh_mod.digest_bytes(workspace.read_bytes()),
+        expected_policy_digest=refresh_mod.digest_bytes(workspace.read_bytes()),
     )
 
 
