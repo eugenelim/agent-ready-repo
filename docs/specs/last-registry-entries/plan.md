@@ -193,6 +193,14 @@ Owned by: T13, T14
 - **Tests:** for AC-0010 (LRE-ADV4-01): one test shows a valid captured file larger than `_MAX_FILE_BYTES` does not resolve, without asserting parity with the reader for that case, per the read-cap design decision; the `captured_file_resolves` docstring names the cap as the one accepted difference. LRE-QE4-01: the `case-variant` parity row carries a short note that it guards case-insensitive filesystems only, and that `upper-file` and `off-grammar` carry the name check on case-sensitive ones.
 - **Done when:** `packs/core/tests/skills/work-loop/` passes and `make lint-ruff lint-mypy` passes.
 
+### T15: Repairs from the fifth implementation review
+
+- **Depends on:** T14
+- **Verification mode:** TDD
+- **Touches:** `packs/core/tests/skills/work-loop/test_lint_spec_status_deferred.py`, `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
+- **Tests:** for AC-0010 (LRE-QE5-01): the over-cap test asserts its padded body passes `captured_text_is_valid` before asserting the file does not resolve, so the read cap is shown to be the only reason. LRE-ADV5-02: the module docstring's invariant (iv) states the same acceptance rule as `captured_file_resolves` (a regular, singly linked captured file the captured-item reader's grammar accepts, whatever its status, with the read cap as the one accepted difference) and points to that function instead of restating the grammar. LRE-ADV5-01 is accepted by the owner as risk and settled at the pre-PR rebase: the squashed commit names the `core` patch successor that `tools/check-core-release.py` accepts against freshly fetched `origin/main`, in `pack.toml`, `plugin.json` and the changelog fragment's version and anchor, its text unchanged.
+- **Done when:** `packs/core/tests/skills/work-loop/` passes and `make lint-ruff lint-mypy` passes.
+
 ## Rollout
 
 - **Delivery:** one `core` release. An adopter's refresh refuses `invalid_refresh_policy` until they run `repair-plan` and `repair-apply --yes`.
