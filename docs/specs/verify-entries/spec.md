@@ -35,6 +35,7 @@ An agent running `work-loop` in any adopter repository proves a user-facing chan
 - Eval cases — `work-loop` `evals/evals.json` and `adapt-to-project` `evals/eval_queries.json`.
 - The adopter-facing explanation — `guides/core/explanation/core-pack.md`.
 - This repository's own entry for the `agentbundle` CLI — `docs/VERIFICATION.md`, routed by a row in root `AGENT_RULES.md`; the roster test that pins root `AGENT_RULES.md` to the seed accepts adopter rows after the seed table.
+- Self-host keeps a repository's root `AGENT_RULES.md` (seeded once, then repository-owned) — `EXCLUDED_PATTERNS` in `packages/agentbundle/agentbundle/build/self_host.py`, released as an agentbundle patch.
 - The core version, a core changelog fragment, and the self-hosted projections.
 
 ## Durable Outputs
@@ -47,6 +48,7 @@ An agent running `work-loop` in any adopter repository proves a user-facing chan
 | Operations | This repository's own way to drive its CLI surface | `docs/VERIFICATION.md`, root `AGENT_RULES.md` row | repository maintainers | live run and failing run in the verification ledger | live run's commit differs from the delivery commit in nothing the entry drives |
 | Decision rationale | The default file name and detection order rest on research | `docs/product/research/product-run-docs-survey.md` | repository maintainers | survey retained | survey cited from this spec |
 | Release history | A non-cosmetic pack change ships under a new version | `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, a core fragment in `docs/product/changelog.d/` | core pack maintainers | version-equality assertion; `tools/check-core-release.py` exit 0 | release check recorded in the ledger |
+| Release history (agentbundle) | The self-host change ships in the `agentbundle` package | `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/CHANGELOG.md`, `packages/agentbundle/README-pypi.md`, an agentbundle fragment in `docs/product/changelog.d/` | `agentbundle` maintainers | regression test in `test_self_host_check.py`; `Engine-Change-RFC:` trailer | curation guard exits 0 against `origin/main` |
 
 ## Agent Rules
 

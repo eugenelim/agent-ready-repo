@@ -227,6 +227,20 @@ Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entri
 
 **Done when:** `python3 -m pytest packages/agentbundle/tests/build_pipeline/test_self_host_check.py -q` exits 0, and `agentbundle catalogue self-host --root . --write` followed by `git diff --exit-code -- AGENT_RULES.md` exits 0.
 
+### T12: Close the agentbundle release paperwork
+
+**Depends on:** T11
+
+**Touches:** `docs/architecture/pack-layout.md`, `docs/specs/verify-entries/spec.md` (What Changes and Durable Outputs, working material)
+
+**Approach:** the repair commit carries the `Engine-Change-RFC:` trailer `docs/guides/how-to/cut-a-package-release.md` requires for a range that touches `packages/agentbundle/`.
+
+**Tests:** no stub (goal-based — exit status and content)
+- AC-0031: `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main` exits 0.
+- AC-0025: `docs/architecture/pack-layout.md` lists root `AGENT_RULES.md` among the seeded-once paths, not the seed-projected ones.
+
+**Done when:** `python3 tools/lint-catalogue-curation-guard.py --root . --base origin/main` exits 0.
+
 ## Risks
 
 - A spike install once reported drift on a fresh scratch install and did not reproduce in two retries. If it recurs in T6 it is a product bug to report, never an expected result in the entry.
