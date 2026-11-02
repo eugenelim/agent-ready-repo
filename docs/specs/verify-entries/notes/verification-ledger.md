@@ -7,12 +7,12 @@ Execution observations for this delivery. Paths are placeholders: `<checkout>` i
 Driven at commit `b693f1ed070738f45ea5780fc5cf88876502db65` from `docs/VERIFICATION.md` as first written.
 
 - `<ab> render <checkout>/packs/core --target codex --output <scratch>/render` exited 0 and wrote no files.
-- Classification: doc drift. `agentbundle render` selects distribution recipes by target, and a direct-install adapter target such as `codex` selects none, as the command's own module docstring states. The entry's Drive and Evidence were corrected to render with no `--target` and to check `<scratch>/render/apm/core/.apm/skills/work-loop/SKILL.md`. Run r1 reports no grade; r2 is the retry.
+- Classification: doc drift. `agentbundle render` selects distribution recipes by target, and a direct-install adapter target such as `codex` selects none, as the command's own module docstring states. The entry's Drive and Evidence were corrected to render with no `--target` and to check `<scratch>/render/apm/core/.apm/skills/work-loop/SKILL.md`. Grade: `blocked` — the run stopped at run start on doc drift. r2 is the retry.
 - Observation for the CLI's owners, not part of this delivery: a render that selects no recipe exits 0 silently. A message naming the empty selection would have made the drift visible without reading the output tree.
 
 ## Run r2 — live-verified
 
-Driven at commit `b693f1ed070738f45ea5780fc5cf88876502db65` with the corrected entry. Grade: `live-verified`.
+Driven from the working tree on top of commit `b693f1ed070738f45ea5780fc5cf88876502db65`, with the corrected `docs/VERIFICATION.md` not yet committed, so no commit holds the tree it drove. Grade: `live-verified`. It carries no receipt; r3 is the recorded live run.
 
 | Step | Command | Exit | Observed |
 | --- | --- | --- | --- |
@@ -31,15 +31,58 @@ Driven at commit `b693f1ed070738f45ea5780fc5cf88876502db65` with the corrected e
 - **Expected failure:** `agentbundle diff` exits 1 and names `.agents/skills/work-loop/SKILL.md`.
 - **Observed failure:** `agentbundle diff` printed `.agents/skills/work-loop/SKILL.md` and exited with exit 1.
 
+## Run r3 — live-verified from a committed tree
+
+Driven at commit `abbb7dd3ba666c6f94bfa3bbab65b7c1b160f1b1`, which holds `docs/VERIFICATION.md` as driven; the working tree was clean. Grade: `live-verified`. Output is copied verbatim with paths replaced by placeholders; long listings are cut after their first lines.
+
+```text
+$ <ab> --version
+agentbundle 0.59.0 (spec 0.18, catalogue specification 0.1)
+exit=0
+$ <ab> render <checkout>/packs/core --output <scratch>/render
+agent-plugin: pack "core" excluded by dropped primitives ["adapter-root-bins","agent","command","hook-body","hook-wiring","kiro-ide-hook"]
+apm/core/.apm/adapter-root-bins/_file_safety.py
+apm/core/.apm/adapter-root-bins/intent_delivery_relations.py
+apm/core/.apm/agents/adversarial-reviewer.md
+(listing continues)
+exit=0
+$ test -f <scratch>/render/apm/core/.apm/skills/work-loop/SKILL.md
+exit=0
+$ git init -q <scratch>/repo
+exit=0
+$ <ab> install <checkout> --pack core --scope repo --adapter codex --yes --output <scratch>/repo
+warning: pack core ships 1 command that codex projects as 'dropped'; these primitives will not be installed. The compatible primitives (agents, hook-bodies, hook-wirings, and skills) will proceed.
+install: delivered 15 seed(s) for pack core
+Installed core for codex (repo).
+  Skills → .agents/skills/ — also read by cursor, gemini, copilot.
+  Hooks & subagents → .codex/ — codex only; install those adapters
+  separately to get them there.
+adapt: no .adapt-discovery.toml at repo root; markers left unresolved
+installed: core @ repo via codex
+exit=0
+$ test -f <scratch>/repo/.agentbundle-state.toml
+exit=0
+$ <ab> diff --root <scratch>/repo --scope repo <checkout>/packs/core
+exit=0
+$ rm -rf <scratch>
+exit=0
+$ test ! -e <scratch>
+exit=0
+$ test -s <evidence-dir>/drive4-diff.log
+exit=0
+```
+
+- Observation for the CLI's owners, not part of this delivery: the render listing also held `apm/core/.apm/adapter-root-bins/__pycache__/intent_delivery_relations.cpython-314.pyc`, a local bytecode file from the checkout, so a render from a working checkout can package untracked build residue.
+
 ## Receipts
 
-Run r2:
+Run r3:
 
 ```json
 {
   "schema_version": 1,
-  "receipt_id": "verify:agentbundle-cli:r2",
-  "acceptance_fingerprint": "git:b693f1ed070738f45ea5780fc5cf88876502db65",
+  "receipt_id": "verify:agentbundle-cli:r3",
+  "acceptance_fingerprint": "git:abbb7dd3ba666c6f94bfa3bbab65b7c1b160f1b1",
   "lineage": {"criterion_ref": "AC-0026"},
   "selector": {"term": "verify"},
   "freshness_mode": "exact-subject",
