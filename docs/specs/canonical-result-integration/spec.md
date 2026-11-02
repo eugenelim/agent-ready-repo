@@ -3,7 +3,7 @@
 - **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
-- **Constrained by:** ADR-0144, ADR-0153, ADR-0151, ADR-0152, ADR-0150
+- **Constrained by:** ADR-0144, ADR-0154, ADR-0151, ADR-0152, ADR-0150
 - **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none
 - **Depends on:** spec:execution-supervisor-cutover
@@ -32,7 +32,7 @@ Maintainers running full-mode `work-loop` get a product result held in a protect
 - Attempt checks treat a change to this run's product ref that the supervisor did not make as a Git control-state change — `_supervisor_attempt.py`.
 - A new `history-adoption` human decision lets the owner admit history the supervisor did not make — `_supervisor_loop.py`, the execution request and result schemas.
 - `supervisor-policy.json` gains `result_authority`: the shadow release ships `legacy-worktree`, and the switch release ships `protected-product-ref`, under which the delivery subject reads the product ref.
-- ADR-0153 supersedes ADR-0144 D9 for the result boundary, and the architecture pages describe the product ref as current.
+- ADR-0154 supersedes ADR-0144 D9 for the result boundary, and the architecture pages describe the product ref as current.
 - Core ships the shadow and the switch as two releases, and the Windows CI job runs the product-ref suites.
 
 ## Scope and Non-goals
@@ -40,7 +40,7 @@ Maintainers running full-mode `work-loop` get a product result held in a protect
 This spec owns the sequential result boundary: the product ref, its
 compare-and-swap, the conflict outcome, crash and partial-update repair,
 divergence handling, owner adoption of foreign history, worker-forgery
-detection, provider parity, the authority switch, and its reversal. ADR-0153
+detection, provider parity, the authority switch, and its reversal. ADR-0154
 is Accepted before the first change that alters supervisor behavior merges,
 and the switch release ships only after the shadow release.
 
@@ -57,7 +57,7 @@ change reaches a run in flight.
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Decision rationale | Result authority moves only under an accepted record. | `docs/adr/0153-work-loop-product-result-is-a-protected-ref.md`; ADR-0144's `Superseded in part` mirror; the ADR index | Platform Core decision-maker | ADR shape lint | ADR-0153 is `Accepted` and ADR-0144 lists `D9` and `D11` as superseded in part by it. |
+| Decision rationale | Result authority moves only under an accepted record. | `docs/adr/0154-work-loop-product-result-is-a-protected-ref.md`; ADR-0144's `Superseded in part` mirror; the ADR index | Platform Core decision-maker | ADR shape lint | ADR-0154 is `Accepted` and ADR-0144 lists `D9` and `D11` as superseded in part by it. |
 | Current architecture | The result boundary changes. | `ARCHITECTURE.md`; `docs/architecture/` `work-loop-result-integration.md`, `work-loop-authority-migration.md`, `work-loop-execution-supervisor.md`, `acceptance-centered-work-loop.md`, `work-loop-acceptance-evidence.md`, `work-loop-review-disposition.md`, `runtime-security-primitives.md` § 11 | Platform Core | Architecture review recorded in the ledger | Each page describes the product ref as the result boundary, and `work-loop-result-integration.md` separates what ships from what Slice 7 adds. |
 | Maintainer procedure | The controller meets new refusals and a new human decision. | `work-loop/SKILL.md` and `work-loop/references/supervisor.md` | Core pack maintainers | Skill evals | The supervisor reference's refusal and human-decision tables name `integration-conflict`, `product-ref-diverged`, `projection-blocked`, `adoption-refused`, `unsupported-ref-storage`, and `history-adoption` with the controller's next action, including restoring a product ref to its recorded value. |
 | Interface compatibility | The policy file gains a key; two delivery schemas gain values. | `work-loop/supervisor-policy.json`; `contracts/delivery/` | Core pack and `agentbundle` contract maintainers | Delivery contract tests | Every existing subject, request, and result record still validates. |

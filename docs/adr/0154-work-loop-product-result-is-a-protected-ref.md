@@ -1,4 +1,4 @@
-# ADR-0153: The work-loop product result is a protected Git ref that only the supervisor advances by compare-and-swap
+# ADR-0154: The work-loop product result is a protected Git ref that only the supervisor advances by compare-and-swap
 
 - **Status:** Accepted
 - **Date:** 2026-10-30

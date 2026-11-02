@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** ADR-0153 governs once Accepted; it supersedes ADR-0144 D9 and D11 in part.
+- **Repository anchors:** ADR-0154 governs once Accepted; it supersedes ADR-0144 D9 and D11 in part.
   - **Commit builder:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`
     (`GitPort.build_commit` moves `HEAD` by `update-ref HEAD new old`, with
     kill points `commit-built`, `head-moved`, `synced`; `record_made` and
@@ -26,7 +26,7 @@
 
 ## Approach
 
-ADR-0153 is accepted with this spec and plan, before `start`, so it is a
+ADR-0154 is accepted with this spec and plan, before `start`, so it is a
 readable cited record from the first step and no task edits its decision
 section. T1 ships the product ref in shadow: the two-ref transaction, ref
 identity, recovery classification, owner adoption, attempt checks, and parity
@@ -42,7 +42,7 @@ point, so extending it to the new writes is the main proof.
 
 ## Constraints
 
-- ADR-0153 D1–D6; ADR-0144 D2 (standard library only, inside the skill), D7,
+- ADR-0154 D1–D6; ADR-0144 D2 (standard library only, inside the skill), D7,
   D11 (worker attempts untrusted).
 - ADR-0152: on hosts without descriptor walking, confined writes use the
   path-checked route; working-tree updates during repair go through Git.
@@ -72,7 +72,7 @@ point, so extending it to the new writes is the main proof.
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Decision rationale | before T1 (with approval) | ADR shape lint | ADR-0153 `Accepted`; ADR-0144 mirror |
+| Decision rationale | before T1 (with approval) | ADR shape lint | ADR-0154 `Accepted`; ADR-0144 mirror |
 | Current architecture | T2 | Architecture review in the ledger | Pages describe the product ref |
 | Maintainer procedure | T1, T2 | Skill evals | Supervisor reference tables |
 | Interface compatibility | T1 | Delivery contract tests | Existing records validate |
@@ -284,7 +284,7 @@ Owned by: T1.
 
 ### T1: The product ref ships in shadow, and every boundary converges
 
-- **Depends on:** none (ADR-0153 Accepted before `start`)
+- **Depends on:** none (ADR-0154 Accepted before `start`)
 - **Spec behavior:** AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0020, AC-0021, AC-0022, AC-0023; TDD, and goal-based for the corpus and CI.
 - **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`, `_supervisor_loop.py`, `_supervisor_admission.py`, `_supervisor_attempt.py`, `_supervisor_recovery.py`, `_supervisor_readiness.py`, `work-supervisor.py`, `supervisor-policy.json`, `SKILL.md`, `references/supervisor.md`, `evals/evals.json`; `contracts/delivery/execution-request.v1.schema.json`, `execution-result.v1.schema.json`; `packs/core/tests/skills/work-loop/`; `.github/workflows/catalogue-tooling-ci-gates.yml`, `.github/workflows/build-check-windows.yml`; Core manifests and `docs/product/changelog.md`.
 - **Verification mode:** TDD
@@ -397,7 +397,7 @@ Owned by: T1.
 
 ## Rollout
 
-- **Delivery:** ADR-0153 is accepted with the spec and plan. T1 ships in one
+- **Delivery:** ADR-0154 is accepted with the spec and plan. T1 ships in one
   Core release with `legacy-worktree`; T2 ships in the next with
   `protected-product-ref`. Each takes the next free version above the merge
   base with freshly fetched `origin/main`.
