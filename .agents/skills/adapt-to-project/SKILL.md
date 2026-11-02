@@ -147,6 +147,12 @@ point. Present the diagnosis first and obtain approval before each write. Merge
 into an existing root or scoped file without overwriting unrelated guidance.
 Do not batch-apply inferred findings.
 
+When the adopter asks, this skill may seed verify entries for the surfaces it
+found, in the same format and locations `work-loop` uses (see
+[verification modes](../work-loop/references/verification-modes.md#verify-entries)).
+Offer each entry for approval like any other write. `work-loop` does not
+depend on this skill having run.
+
 ## Pre-flight
 
 Before any proposal, read **both** scopes' state files and surface

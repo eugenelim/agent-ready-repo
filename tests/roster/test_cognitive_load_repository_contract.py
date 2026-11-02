@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import tomllib
 from pathlib import Path
 
@@ -137,9 +138,49 @@ def test_root_and_seed_inline_the_chat_clauses_and_route_conditionally() -> None
         assert "[`docs/AGENTS.md`](docs/AGENTS.md)" not in content
 
 
+_ROW = re.compile(r"^\| ([^|]+?) \| `([^`|]+)` \| ([^|]+?) \|$")
+
+
+def _adopter_row_problems(root_bytes: bytes, seed_bytes: bytes) -> list[str]:
+    """Return why the root router differs from the seed by anything but valid rows."""
+    if not root_bytes.startswith(seed_bytes):
+        return ["root router does not start with the seed bytes"]
+    problems = []
+    for line in root_bytes[len(seed_bytes) :].decode("utf-8").splitlines():
+        if not line.strip():
+            continue
+        match = _ROW.match(line)
+        if match is None:
+            problems.append(f"not a three-cell row with one backticked path: {line}")
+            continue
+        target = match.group(2)
+        segments = target.split("/")
+        if (
+            target.startswith("/")
+            or "\\" in target
+            or any(seg in ("", ".", "..") for seg in segments)
+        ):
+            problems.append(f"read path is not a safe relative path: {target}")
+            continue
+        try:
+            body = file_safety.read_confined_regular_file(
+                ROOT, ROOT / target, max_bytes=64 * 1024
+            ).decode("utf-8")
+        except (OSError, file_safety.UnsafeContentError, UnicodeDecodeError) as exc:
+            problems.append(f"read path is missing, unsafe, or unreadable: {target} ({exc})")
+            continue
+        if "AGENT_RULES.md" in body:
+            problems.append(f"target mentions AGENT_RULES.md: {target}")
+    return problems
+
+
 def test_seed_and_repository_lookups_are_identical_and_well_formed() -> None:
-    for relative in LOOKUPS:
-        assert (ROOT / relative).read_bytes() == (SEEDS / relative).read_bytes()
+    # The seed router ships no rows; this repository, as an adopter, may add rows.
+    assert (ROOT / "docs/AGENTS.md").read_bytes() == (SEEDS / "docs/AGENTS.md").read_bytes()
+    assert not _adopter_row_problems(
+        (ROOT / "AGENT_RULES.md").read_bytes(),
+        (SEEDS / "AGENT_RULES.md").read_bytes(),
+    )
     assert not _agent_rules_violations(SEEDS / "AGENT_RULES.md", SEEDS)
 
 
@@ -296,17 +337,18 @@ def test_lookup_chain_is_shared_by_claude_codex_and_gemini() -> None:
     assert (ROOT / "CLAUDE.md").is_symlink()
     assert (ROOT / "CLAUDE.md").resolve() == (ROOT / "AGENTS.md").resolve()
     root_context = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    router = (ROOT / "AGENT_RULES.md").read_text(encoding="utf-8")
+    seed_router = (SEEDS / "AGENT_RULES.md").read_text(encoding="utf-8")
     adapter_contract = (ROOT / "contracts/adapter.toml").read_text(encoding="utf-8")
     # Every host reaches the clauses the same way: the file it already loads.
     assert "not instruction authority" in root_context
     assert "Start with the useful result or next step." in root_context
     # The router survives as the extension point, still named, and read every
-    # time -- it ships no rows, so the read is one short file and no further hop.
+    # time -- the shipped router has no rows; an adopter (this repository) may
+    # add rows, which the seed-comparison test validates.
     assert "AGENT_RULES.md" in root_context
     rows = [
         line
-        for line in router.splitlines()
+        for line in seed_router.splitlines()
         if line.startswith("| ") and "---" not in line and "| when |" not in line
     ]
     assert rows == [], rows
