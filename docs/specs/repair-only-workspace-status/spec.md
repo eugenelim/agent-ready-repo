@@ -37,7 +37,7 @@ A maintainer or agent learns what is ready, active or blocked from `work-loop`'s
   - the prune and retirement modules, the `workspace.toml` template, the `explain` and `reconcile` references, and every engine function the repair does not reach.
 
   The repair keeps its existing loads of `work-intake`'s `refresh.py` and `close-work`'s `cooling.py`.
-- **`[authorization.migration]`.** No code reads it. These are deleted: the four `contracts/jsonschema/work-intake-migration-*.schema.json` files, `contracts/jsonschema/spec-retirement-candidates.schema.json`, their `contracts/README.md` rows, and the migration eval fixture.
+- **`[authorization.migration]`.** No code reads it. These are deleted: the four `contracts/jsonschema/work-intake-migration-*.schema.json` files, `contracts/jsonschema/spec-retirement-candidates.schema.json`, their `contracts/README.md` rows, and `work-intake`'s `migration-read-only-plan` routing case with its four `evals/files/routing/migration-*` fixtures and its evaluator path.
 - **Work-intake.** `refresh.py` and its packaged copy validate a normalized intake with their own code, and load no `workspace-status` file. The router's status route and its routing-matrix cases name `navigate-intents`.
 - **MCP.** `agentbundle`'s `workspace_status()` tool builds `ready`, `active`, `blocked` and `canonical` from a packaged copy of dispatch, keeping the base slug guard and spec filter. Items carry no `ini_slug`, and `shaping` is empty. A non-FSM item's branch is `<type>/<slug>`, from a dispatched item `type:slug`; the legacy `ini_slug/type:slug` form still derives its three-part branch. The `_data/` copies follow: dispatch and the readiness module are added; the engine and prune copies are dropped.
 - **Text.** These say where status, queue and repair now live:
@@ -48,7 +48,8 @@ A maintainer or agent learns what is ready, active or blocked from `work-loop`'s
   - `close-work`'s SKILL.md;
   - `new-spec`'s `references/spec-and-plan-contract.md`;
   - the `work-loop`, `workspace-status` and `work-intake` evals;
-  - the MCP server's instructions and its `git_branch` description.
+  - the MCP server's instructions, the `workspace_status` tool description and both `git_branch` descriptions;
+  - `packages/agentbundle/README-pypi.md`'s `workspace_status` row and `WORKSPACE_MCP_DISPATCHED_ITEM` text.
 - **Tests outside the two skills.** Each suite that loads an engine function this spec deletes, or runs a retired subcommand, either reaches the surviving code with its assertions unchanged, or loses the cases that pinned only the retired behavior. The plan names each suite and its fate.
 - **Repository tools.** `tools/compare-registry.py` is deleted. The tools that load a `workspace-status` script either run against what remains or are deleted with their tests.
 - **Governance and records.**
@@ -70,9 +71,9 @@ A maintainer or agent learns what is ready, active or blocked from `work-loop`'s
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Interface compatibility: dispatch output | Applicable: `work-loop`, the readiness bridge and the MCP tool parse it | `work-loop` SKILL.md Step 0; the `dispatch.py` module docstring | Platform Core maintainer | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0027 pass | Docstring and SKILL.md name `--captured` and `unmigrated_workspace` |
+| Interface compatibility: dispatch output | Applicable: `work-loop`, the readiness bridge and the MCP tool parse it | `work-loop` SKILL.md Step 0; the `dispatch.py` module docstring | Platform Core maintainer | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0027, AC-0030, AC-0031 pass | Docstring and SKILL.md name `--captured` and `unmigrated_workspace` |
 | Interface compatibility: the `workspace-status` CLI | Applicable: adopters run the repair | `workspace-status` SKILL.md and `references/mutate.md` | Platform Core maintainer | AC-0008, AC-0009, AC-0010, AC-0011 pass | The mode table lists only the two repair rows |
-| Interface compatibility: the MCP tool | Applicable: control planes poll `workspace_status()` and set the dispatched item | the tool description, the server instructions and the `git_branch` description in `packages/agentbundle/agentbundle/workspace_mcp.py` | Platform Core maintainer | AC-0014, AC-0015, AC-0028 pass | None of them names `ini_slug` as a `workspace_status()` field |
+| Interface compatibility: the MCP tool | Applicable: control planes poll `workspace_status()` and set the dispatched item | the tool description, the server instructions and both `git_branch` descriptions in `packages/agentbundle/agentbundle/workspace_mcp.py`; `packages/agentbundle/README-pypi.md` | Platform Core maintainer | AC-0014, AC-0015, AC-0028, AC-0032 pass | None of them names `ini_slug` as a `workspace_status()` field |
 | Decision rationale | Applicable: modes, migration tooling and MCP fields are removed | RFC-0106 § Errata; RFC-0083 § Errata | eugenelim, Approver | AC-0019, AC-0020 pass | Each entry carries owner-approved wording |
 | Retirement evidence | Applicable: RFC-0105 D3 gates 3 and 4 | `retirement-record.md` § Equivalence and § Compatibility closure; `inventory.toml` | Platform Core maintainer | AC-0021, AC-0022, AC-0023 pass | The closure entry names this spec and the replay |
 | Delivery membership | Applicable: the after-cutover list and a non-goal change | `docs/product/briefs/workspace-registry-retirement-delivery.md` | eugenelim, brief owner | AC-0024 passes | The brief names `repair-only-workspace-status` |
@@ -109,11 +110,11 @@ the plan's `## Design (LLD)`, not here.
 
 ## Testing Strategy
 
-- **Headers-only dispatch (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0027): TDD.** The base dispatch suites are the oracle: their assertions stay, apart from the cases AC-0002 names, and new cases cover the refusal, the isolation, the load failures and `--captured`.
+- **Headers-only dispatch (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0027, AC-0030, AC-0031): TDD.** The base dispatch suites are the oracle: their assertions stay, apart from the cases AC-0002 names, and new cases cover the refusal, the isolation, the load failures, the dispatch after a repair and `--captured`.
 - **Dispatch equivalence (AC-0007): manual QA.** A replay runs the base and the new dispatch over each repository the suites plant and over this repository, and records the counts in the ledger.
 - **The CLI and the engine (AC-0008, AC-0009, AC-0010, AC-0011, AC-0012): TDD.** The base repair suites are the oracle, with argument-vector cases for each retired subcommand and a static reachability check over the scripts.
 - **Copies and the bridge (AC-0013, AC-0017): goal-based.** Byte pins, and the parity tests re-pointed to `work-loop`'s table.
-- **MCP and work-intake (AC-0014, AC-0015, AC-0016, AC-0028, AC-0029): TDD.** The package's MCP suites with planted repositories and dispatched items, the `work-intake` suites unchanged, and the router's status case.
+- **MCP and work-intake (AC-0014, AC-0015, AC-0016, AC-0028, AC-0029, AC-0032): TDD.** The package's MCP suites with planted repositories and dispatched items, a pin over the MCP texts and the README, the `work-intake` suites unchanged, and the router's status case.
 - **Text, records and release (AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0026): goal-based.** A roster check over the lists AC-0018 states, the inventory and record check, `lint-brief-coverage.py`, `tools/check-core-release.py` and the changelog checks.
 
 ## Acceptance Criteria
@@ -133,8 +134,9 @@ the plan's `## Design (LLD)`, not here.
 **Dispatch**
 
 - [ ] **AC-0001.** `dispatch.py` run from a skill tree holding only the `work-loop` skill directory prints, for each repository the dispatch suites plant, the same output as when it runs from the full `core` skill tree.
-- [ ] **AC-0002.** Every dispatch-suite test at the base whose planted repository is entry-free, other than the engine-pinning tests, passes against the new dispatch with its assertions unchanged. The selector test asserts the base selector's accept or refuse result on each of its base inputs, as literal expectations.
-- [ ] **AC-0027.** When `_header_readiness.py`, `cooling.py`, `close_work.py` or `file_safety.py` in dispatch's directory is missing, is a symbolic link resolving outside that directory, fails to import, or lacks a name dispatch calls, dispatch exits 2 with nothing on standard output, and standard error starts `engine_unavailable: <that file name>`.
+- [ ] **AC-0002.** Every dispatch-suite test at the base whose planted repository is entry-free, other than the engine-pinning tests, passes against the new dispatch with its assertions unchanged. The selector test asserts, for each of its base inputs, the canonical path the base selector returns or its refusal, as literal expectations.
+- [ ] **AC-0027.** When `_header_readiness.py` or `file_safety.py` in dispatch's directory is missing, is a symbolic link resolving outside that directory, fails to import, or lacks a name dispatch calls from it, dispatch exits 2 with nothing on standard output, and standard error starts `engine_unavailable: <that file name>`.
+- [ ] **AC-0031.** When `cooling.py` or `close_work.py` in dispatch's directory is missing, is a symbolic link resolving outside that directory, or fails to import, dispatch on a repository with a `docs/lifecycle/` directory prints the base `cooling_state_unavailable` finding and treats no artifact as cooled, and no file outside that directory executes.
 - [ ] **AC-0003.** For a repository whose `workspace.toml` holds at least one entry, argless dispatch, `--start` and `--resume` each print `decision.action` `refuse`, empty `ready`, `active` and `blocked`, and exactly one finding: code `unmigrated_workspace`, path `workspace.toml`, whatever the specs' headers say.
 - [ ] **AC-0004.** A `workspace.toml` that the base dispatch refuses as `invalid_workspace` is refused the same way, with the same output.
 - [ ] **AC-0005.** With `--captured`, dispatch's output adds one key, `captured`, equal to what the base `workspace-status` `_captured_projection` returns for the same repository, recorded as literal expectations, with or without `workspace.toml`. Without the flag, the output has exactly the keys the base dispatch prints.
@@ -151,7 +153,8 @@ the plan's `## Design (LLD)`, not here.
   - `test_refresh_policy_move.py`, `test_spec_registration_stop_repair.py` and `test_tracker_entry_drop.py`;
   - every other test under `packs/core/tests/skills/workspace-status/` at the base that runs only `repair-plan` or `repair-apply`.
 
-  The one exception is an assertion that dispatch prints the same output before and after an apply over a planted `workspace.toml` with entries. It asserts the AC-0003 refusal before the apply, and the output the base test expected after it.
+  Two kinds of assertion are exempt. An assertion about dispatch output is replaced by AC-0030. A test in `test_spec_registration_stop_repair.py` that reaches its entry through a migration form plants that entry directly, as the literal the migration produced, and keeps its other assertions.
+- [ ] **AC-0030.** For each tree the AC-0011 suites plant, after `repair-apply --yes`, dispatch prints the AC-0003 refusal while `workspace.toml` still holds an entry. Otherwise it prints output byte-identical to dispatch on the same tree with `workspace.toml` removed.
 - [ ] **AC-0012.** Every top-level function and class in `workspace_status.py` and `workspace_status_engine.py` is reached from `workspace_status.py`'s `main` by the static closure. That closure follows each reference by name or attribute to a top-level name of either file, and treats each name `_bind_engine` binds as a reference to the engine name it binds. The skill's `scripts/` directory holds no prune or retirement module.
 
 **Copies, work-intake and MCP**
@@ -159,21 +162,19 @@ the plan's `## Design (LLD)`, not here.
 - [ ] **AC-0013.** `work-loop/scripts/cooling.py` and `work-loop/scripts/close_work.py` are byte-identical to their `close-work` sources. The readiness module's source-authority parser accepts and refuses each source-authority record in the repository's fixtures and docs exactly as `work-intake`'s `parse_source_authority` does, with the same parsed fields.
 - [ ] **AC-0014.** The MCP `workspace_status()` result's `canonical` is the argless output of `agentbundle`'s packaged dispatch for the repository, and `shaping` is `[]`. Its `ready`, `active` and `blocked` hold one item per item of that output, in its order, apart from the items the base tool's slug guard, spec filter and pack-presence filter skip. Each item carries the item's `path`, `slug` and `findings` and the tool's other base fields, apart from `ini_slug`, which no item carries.
 - [ ] **AC-0015.** The MCP tool loads dispatch only from `agentbundle`'s `_data/`, and returns that result with `workspace.toml` absent.
-- [ ] **AC-0028.** With `WORKSPACE_MCP_DISPATCHED_ITEM` set to `<type>:<slug>`, the expected branch is `<type>/<slug>` and `git_commit`'s scope is the base scope for that type and slug. With `<ini>/<type>:<slug>`, both are as at the base. The server instructions and the `git_branch` description name `<type>/<slug>`, and none of them tells an agent to read `ini_slug` from `workspace_status()`.
+- [ ] **AC-0028.** A `WORKSPACE_MCP_DISPATCHED_ITEM` value is three-part when a `/` precedes its first `:`, and two-part otherwise. For a two-part `<type>:<slug>`, the expected branch is `<type>/<slug>`, and `git_commit`'s scope equals the base scope for `<ini>/<type>:<slug>` with a safe `<ini>`. A three-part value behaves as at the base. A value whose slug fails the base slug guard, or whose type the lifecycle manifest does not know, gets the base malformed-item handling: no expected branch, no `git_commit` scope, and git writes blocked.
+- [ ] **AC-0032.** The server instructions, the `workspace_status` tool description, both `git_branch` descriptions and `README-pypi.md` name `<type>/<slug>` as the branch and `type:slug` as the dispatched item. None of them names `ini_slug` as a `workspace_status()` field or describes `shaping` as anything but an empty list.
 - [ ] **AC-0016.** `work-intake`'s `refresh.py` and `_data/work_intake_refresh.py` load no file from the `workspace-status` directory or a `workspace_status*` module. `packs/core/tests/skills/work-intake/test_work_intake.py` and `tests/roster/test_tracker_intake_adapters.py` pass with their base assertions unchanged.
 - [ ] **AC-0029.** `work-intake`'s router routes a status request to `navigate-intents`, and the routing matrix's status cases expect `navigate-intents`.
 - [ ] **AC-0017.** `navigate-intents`'s pinned finding table equals `work-loop`'s finding table, and the parity tests that compared it with the engine's table compare it with `work-loop`'s.
 
 **Text**
 
-- [ ] **AC-0018.** A roster check holds each of these, comparing text after collapsing runs of whitespace:
-  - none of the retired tokens appears in `workspace-status`'s SKILL.md or `references/mutate.md`, in the SKILL.md of `work-loop`, `work-intake`, `navigate-intents` or `close-work`, in `new-spec`'s `references/spec-and-plan-contract.md`, or in any JSON file under `packs/core/.apm/skills/*/evals/`;
-  - `workspace-status`'s SKILL.md `description` contains none of `orient`, `what's ready`, `session start`, `show the queue` and `prune`;
-  - `work-loop`'s SKILL.md contains `dispatch.py --captured`, and contains neither `["ini-NNN"]` nor `` `captured.items` in the `workspace-status` ``;
-  - `work-intake`'s SKILL.md contains `` Route status directly to `navigate-intents` ``, and not `` Route status directly to `workspace-status` ``;
-  - `navigate-intents`'s SKILL.md contains neither `` queue: use `workspace-status` instead `` nor `` Use `workspace-status` for queue order ``;
-  - `close-work`'s SKILL.md does not contain `` Do not exclude ordinary context from `workspace-status`. ``;
-  - `new-spec`'s reference contains neither `` Run `workspace-status` to see open backlog items `` nor `` `workspace-status` reconciliation matches it ``.
+- [ ] **AC-0018.** A roster check holds each of these. It compares text after collapsing runs of whitespace. A sentence is the text between two sentence ends (`.`, `!` or `?` followed by whitespace), blank lines, headings or list-item starts.
+  - None of the retired tokens appears in `workspace-status`'s SKILL.md or `references/mutate.md`, in the SKILL.md of `work-loop`, `work-intake`, `navigate-intents`, `close-work`, `intake-intent` or `author-delivery-brief`, in `new-spec`'s `references/spec-and-plan-contract.md`, or in any JSON file under `packs/core/.apm/skills/*/evals/`.
+  - In those files other than `workspace-status`'s own, no sentence names `workspace-status` together with any of the words `status`, `queue`, `orient`, `orientation`, `ready`, `next`, `eligibility`, `reconciliation` or `backlog`. Words match whole and case-insensitively, and a word joined to another by `-` or `_` does not count.
+  - `workspace-status`'s SKILL.md `description` contains none of `orient`, `what's ready`, `session start`, `show the queue` and `prune`.
+  - `work-loop`'s SKILL.md contains `dispatch.py --captured`, and `work-intake`'s SKILL.md contains `` Route status directly to `navigate-intents` ``.
 
 **Records and governance**
 

@@ -56,10 +56,10 @@ A second probe on 2026-11-02 traced the base dispatch over those suites. It exec
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Dispatch output | T1, T2, T3 | dispatch suites; isolation and copy pins | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0013, AC-0027 checked |
+| Dispatch output | T1, T2, T3 | dispatch suites; isolation and copy pins | AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0013, AC-0027, AC-0030, AC-0031 checked |
 | Dispatch equivalence | T4 | the replay record | AC-0007 checked |
 | The `workspace-status` CLI | T6, T7 | repair suites; reachability check | AC-0008, AC-0009, AC-0010, AC-0011, AC-0012 checked |
-| MCP tool and work-intake | T5 | `agentbundle` MCP suites; `work-intake` suites | AC-0014, AC-0015, AC-0016, AC-0028, AC-0029 checked |
+| MCP tool and work-intake | T5 | `agentbundle` MCP suites; `work-intake` suites | AC-0014, AC-0015, AC-0016, AC-0028, AC-0029, AC-0032 checked |
 | Readiness bridge | T2 | the parity tests | AC-0017 checked |
 | Text | T8 | the roster check | AC-0018 checked |
 | Repository tools | T9 | the kept tools' tests; no reference to a deleted tool | construction only |
@@ -87,11 +87,14 @@ Owned by: T2
 
 Owned by: T2
 
-- **Every load is a sibling load.** `dispatch.py` loads `_header_readiness.py` and `file_safety.py` from `Path(__file__).parent`, through the base confined loader with its symlink and callable checks. The readiness module loads `cooling.py` the same way, and `cooling.py` already loads `close_work.py` and, through it, `file_safety.py` as siblings. A load failure keeps the base `engine_unavailable: <file>` exit. The base layout check (`scripts/` under `skills/`) goes, so the same files run unchanged from `agentbundle`'s flat `_data/`. `work-loop`'s `file_safety.py` is already byte-identical to `close-work`'s. The five engine-load tests break each of these files instead of the engine.
+- **Every load is a sibling load.** Nothing is loaded from outside dispatch's own resolved directory. The base engine's cross-skill `close-work/scripts/cooling.py` candidate is not ported, so the base layout check (`scripts/` under `skills/`) that guarded it goes too. The same files then run unchanged from `agentbundle`'s flat `_data/`.
+  - `dispatch.py` loads `_header_readiness.py` and `file_safety.py` from `Path(__file__).parent`, through the base confined loader with its symlink and callable checks. A failure keeps the base `engine_unavailable: <file>` exit. The callable names are the ones dispatch calls from each file: `_SAFETY_NAMES` and `UnsafeContentError` for `file_safety.py`, and the readiness module's public entry points.
+  - The cooling chain keeps the base behavior: it is resolved only when `docs/lifecycle/` exists, and a failure is the `cooling_state_unavailable` finding. The readiness module first loads `close_work.py` through the same confined loader and registers it as `sys.modules["cooling_close_work"]`, with the `__file__` that `cooling.py`'s `_close_work()` compares. It then loads `cooling.py` the same way. `cooling.py`'s own lazy, unconfined load therefore always finds the confined module, and a linked or missing file fails before anything runs.
+  - `work-loop`'s `file_safety.py` is already byte-identical to `close-work`'s. The five engine-load tests break `_header_readiness.py` and `file_safety.py` in each AC-0027 condition. New cases break `cooling.py` and `close_work.py` in each AC-0031 condition, with a decoy outside the directory that records whether it ran.
 
 Owned by: T1, T2
 
-- **The selector test keeps its cases as literals.** `test_selector_rule_matches_workspace_status` compared dispatch's selector with `workspace_status.py`'s. It records the base selector's result for each of its inputs as a literal table, so it still fails if either rule drifts from the base.
+- **The selector test keeps its cases as literals.** `test_selector_rule_matches_workspace_status` compared dispatch's selector with `workspace_status.py`'s. It records, for each of its inputs, the canonical path the base selector returns or its refusal, as a literal table, so it still fails if dispatch's rule drifts from the base.
 
 Owned by: T2
 
@@ -111,11 +114,11 @@ Owned by: T2
 
 Owned by: T5
 
-- **The dispatched item has two forms.** `_derive_expected_branch` and `_resolve_output_spec` accept `type:slug`, giving branch `type/slug`, and keep accepting `ini_slug/type:slug`, giving the base three-part branch. Each component passes the base slug guard. Rule 5 of the server instructions and the `git_branch` description name `<type>/<slug>`; the legacy form is accepted, not advertised.
+- **The dispatched item has two forms.** `_derive_expected_branch` and `_resolve_output_spec` share one parse. A `/` before the first `:` selects the three-part form, which keeps the base handling. Otherwise the value is two-part `type:slug`, giving branch `type/slug`, with the scope the base computes for that type and slug. Each component passes the base slug guard, and the type must be in the lifecycle manifest; any failure takes the base malformed-item path. Rule 5 of the server instructions, the `workspace_status` tool description, both `git_branch` descriptions and `README-pypi.md` name `<type>/<slug>`; the legacy form is accepted, not advertised.
 
 Owned by: T5
 
-- **Normalized-intake validation moves to `work-intake`.** `validate_normalized_intake` and its 25-name closure (about 389 lines) move into a `work-intake` script that `refresh.py` already loads as a sibling. The exact module is `implementation-discovered`: it is `intake_guard.py` unless its sibling-closure exemption forbids it. The router's status case returns the `navigate-intents` passthrough. The engine loses the function in T7, and `tools/work_intake_routing_evaluation.py` loads it from `work-intake`.
+- **Normalized-intake validation moves to `work-intake`.** `validate_normalized_intake` and its 25-name closure (about 389 lines) move into a `work-intake` script that `refresh.py` already loads as a sibling. The exact module is `implementation-discovered`: it is `intake_guard.py` unless its sibling-closure exemption forbids it. The router's status case returns the `navigate-intents` passthrough, and the `status-passthrough` literal in `test_registration_stop_routes.py` records it. The engine loses the function in T7, and `tools/work_intake_routing_evaluation.py` loads it from `work-intake`.
 
 Owned by: T5
 
@@ -129,7 +132,10 @@ Owned by: T6, T7
 
 - **Suites outside the two skills.** Their fates:
   - `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py` and `tests/roster/test_status_projection_and_context_exclusion.py` lose the cases that call `project_closeout_status`, a status-only projection.
-  - `packs/core/tests/skills/work-intake/test_work_intake.py` and `packs/core/tests/pack/test_work_intake_surface.py` load normalized-intake validation from `work-intake`, assertions unchanged.
+  - `packs/core/tests/skills/work-intake/test_work_intake.py` loads normalized-intake validation from `work-intake`, assertions unchanged. `packs/core/tests/pack/test_work_intake_surface.py` does the same, and loses its `migration-read-only-plan` row and `validate_migration_selection` cases.
+  - The `migration-read-only-plan` routing case, its four `evals/files/routing/migration-*` fixtures, `tools/work_intake_routing_evaluation.py`'s `_evaluate_migration` path, and `tests/roster/test_work_intake_refresh_coordinator.py`'s `test_integrated_matrix_has_a_read_only_migration_planner_row` are deleted with the migration tooling.
+  - The dispatch assertions in the repair suites move to AC-0030's form. They are `test_dispatch_output_is_identical_across_apply` in `test_captured_entry_drop.py`; `test_dispatch_output_is_byte_identical_before_and_after_apply` and `test_dispatch_output_is_identical_across_a_held_entrys_second_run` in `test_spec_registration_stop_repair.py`; and `test_dispatch_output_differs_only_by_the_archived_spec_blocked_item`, the three `test_dispatch_output_is_identical_across_apply_on_*` tests and every other dispatch comparison in `test_tracker_entry_drop.py`. Each runs dispatch after the apply and compares it with dispatch on the same tree without `workspace.toml`.
+  - `test_spec_registration_stop_repair.py`'s `migrate_legacy_entry` helper plants the entry its migration produced as a literal, so `test_a_migrated_entry_is_planned_as_a_spec_entry_drop` and `test_a_migrated_entry_held_by_its_record_gets_the_type_6_manual_item` keep their assertions.
   - `packages/agentbundle/tests/integration/test_zipapp.py` loads the packaged dispatch in place of `_load_workspace_status_engine`.
   - `packs/core/tests/skills/work-loop/test_lint_spec_status_deferred.py`'s reader-parity table and `tools/test_pack_test_compatibility.py` keep the engine while the repair reaches the functions they load. Otherwise they retarget `_header_readiness`'s ported captured-item reader, assertions unchanged.
   - The `workspace-status` reader and equivalence suites keep every case whose engine function the repair still reaches. A case driving `status`, `explain` or `analyze_bounded` retargets dispatch or `_header_readiness` with its assertion unchanged where the behavior survives, and is deleted where it pinned only status output.
@@ -151,7 +157,7 @@ Owned by: T9
 - **Depends on:** none
 - **Verification mode:** goal-based
 - **Touches:** controller commits only: `docs/rfc/0106-stop-registering-derivable-work.md`, `docs/rfc/0083-work-intake-and-artifact-routing.md`, `docs/product/briefs/workspace-registry-retirement-delivery.md`, `docs/specs/repair-only-workspace-status/notes/verification-ledger.md`
-- **Tests:** for AC-0019, AC-0020, AC-0024, AC-0025: the owner approves each text, and the ledger holds its SHA-256 and the hand-over owner's agreement. `lint-brief-coverage.py` passes.
+- **Tests:** for AC-0019, AC-0020, AC-0024, and AC-0025's errata, brief and hand-over records: the owner approves each text, and the ledger holds its SHA-256 and the hand-over owner's agreement. `lint-brief-coverage.py` passes.
 - **Done when:** both errata entries and the brief text are committed with their approvals recorded.
 
 ### T1: Vendor `cooling.py` and `close_work.py` into `work-loop`
@@ -170,7 +176,8 @@ Owned by: T9
 - **Tests:**
   - AC-0001: the isolation suite copies only `work-loop/` into a temporary `skills/` tree and compares output for each planted repository.
   - AC-0002: the 97 entry-free tests keep their assertions; only their fixture helpers change, if a helper loaded the engine. The selector test's literal table.
-  - AC-0027: the five engine-load tests break `_header_readiness.py`, `cooling.py`, `close_work.py` and `file_safety.py` in turn.
+  - AC-0027: the five engine-load tests, rewritten, break `_header_readiness.py` and `file_safety.py` in each condition.
+  - AC-0031: `cooling.py` and `close_work.py` broken in each condition, over a repository with `docs/lifecycle/`, each with an outside decoy that records whether it ran.
   - AC-0003: the 19 entry-planting tests become refusal cases. One case plants an entry in each of `[backlog]`, an initiative's `work`, `brief_queue` and `shaping_queue`, and a repo-origin spec entry with `needs = []`. One `[authorization.migration]` table alone does not refuse.
   - AC-0004: the base `invalid_workspace` cases are unchanged.
   - AC-0006: the coverage check over the finding table.
@@ -199,15 +206,16 @@ Owned by: T9
 - **Depends on:** T2
 - **Verification mode:** TDD
 - **Touches:**
-  - MCP and packaging: `packages/agentbundle/agentbundle/workspace_mcp.py`, `packages/agentbundle/agentbundle/build/self_host.py`, `packages/agentbundle/agentbundle/_data/dispatch.py`, `packages/agentbundle/agentbundle/_data/_header_readiness.py`, `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`, `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`, `.gitattributes`;
+  - MCP and packaging: `packages/agentbundle/agentbundle/workspace_mcp.py`, `packages/agentbundle/README-pypi.md`, `packages/agentbundle/agentbundle/build/self_host.py`, `packages/agentbundle/agentbundle/_data/dispatch.py`, `packages/agentbundle/agentbundle/_data/_header_readiness.py`, `packages/agentbundle/agentbundle/_data/workspace_status_engine.py`, `packages/agentbundle/agentbundle/_data/workspace_status_prune.py`, `packages/agentbundle/agentbundle/_data/work_intake_refresh.py`, `.gitattributes`;
   - package tests: `packages/agentbundle/tests/**/test_workspace_mcp*.py`, `packages/agentbundle/tests/integration/test_build_check_drift_gates.py`, `packages/agentbundle/tests/integration/test_zipapp.py`, `tests/roster/test_packaged_runtime_closure.py`;
-  - work-intake: `packs/core/.apm/skills/work-intake/scripts/refresh.py`, `intake_guard.py`, `intake_router.py`, `packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json`, `packs/core/tests/skills/work-intake/test_work_intake.py`, `packs/core/tests/pack/test_work_intake_surface.py`, `tools/work_intake_routing_evaluation.py`, `tests/roster/test_tracker_intake_adapters.py`, `.claude/skills/work-intake/**`, `.agents/skills/work-intake/**`;
+  - work-intake: `packs/core/.apm/skills/work-intake/scripts/refresh.py`, `intake_guard.py`, `intake_router.py`, `packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json`, `packs/core/tests/skills/work-intake/test_work_intake.py`, `packs/core/tests/skills/work-intake/test_registration_stop_routes.py`, `packs/core/tests/pack/test_work_intake_surface.py`, `tools/work_intake_routing_evaluation.py`, `tests/roster/test_tracker_intake_adapters.py`, `.claude/skills/work-intake/**`, `.agents/skills/work-intake/**`;
   - `docs/specs/workspace-retirement/inventory.toml`.
 - **Tests:**
   - AC-0014 and AC-0015: MCP cases over planted fixture repositories. These are entry-free, unmigrated, without `workspace.toml`, with a ready spec, with an active spec, and with a blocked non-spec path the filters skip. Each compares the tool's lists with the packaged dispatch's output and asserts no `ini_slug`.
-  - AC-0028: dispatched-item cases for `type:slug`, `ini/type:slug`, and an unsafe component, each asserting the expected branch and the `git_commit` scope; a pin on the instructions and the `git_branch` description.
+  - AC-0028: dispatched-item cases for `type:slug`, `ini/type:slug`, `spec:a/b`, an unsafe slug and an unknown type in each form, each asserting the expected branch, the `git_commit` scope and whether git writes are blocked.
+  - AC-0032: a pin over the server instructions, the tool description, both `git_branch` descriptions and `README-pypi.md`.
   - AC-0016: the two `work-intake` suites keep their assertions, and a pin shows `refresh.py` names no `workspace_status` module.
-  - AC-0029: the router's status case and the matrix's status rows.
+  - AC-0029: the router's status case, the matrix's status rows and the `status-passthrough` literal.
   - The sibling-closure pin, the drift gate and the zipapp test follow the new `_data/` set.
 - **Done when:** `packages/agentbundle/tests/`, the `work-intake` suites, `tests/roster/test_packaged_runtime_closure.py` and `tests/roster/test_tracker_intake_adapters.py` pass.
 
@@ -217,12 +225,13 @@ Owned by: T9
 - **Verification mode:** TDD
 - **Touches:**
   - scripts and skill files: `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`, the five `workspace_status_prune.py` and `workspace_status_retirement*.py` scripts, `packs/core/.apm/skills/workspace-status/assets/workspace.toml.template`, `references/explain.md` and `references/reconcile.md`;
-  - deleted contracts and fixtures: `contracts/jsonschema/work-intake-migration-*.schema.json`, `contracts/jsonschema/spec-retirement-candidates.schema.json`, `contracts/README.md`, `packs/core/.apm/skills/work-intake/evals/files/routing/migration-selection.json`;
+  - deleted contracts and fixtures: `contracts/jsonschema/work-intake-migration-*.schema.json`, `contracts/jsonschema/spec-retirement-candidates.schema.json`, `contracts/README.md`, `packs/core/.apm/skills/work-intake/evals/files/routing/migration-*`, the `migration-read-only-plan` case in `matrix.json`, `tools/work_intake_routing_evaluation.py`, `tests/roster/test_work_intake_refresh_coordinator.py`, `packs/core/tests/pack/test_work_intake_surface.py`;
   - tests: `packs/core/tests/skills/workspace-status/**`, `packs/core/tests/skills/workspace-status/test_repair_only_reachability.py`, `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py`, `tests/roster/test_status_projection_and_context_exclusion.py`, `tools/test_workspace_status_cli.py`, `tools/test_workspace_status.py`, `tests/roster/test_workspace_status_progressive_disclosure.py`, and the roster tests that drive a retired subcommand;
   - records and projections: `docs/specs/workspace-retirement/inventory.toml`, `.claude/skills/workspace-status/**`, `.agents/skills/workspace-status/**`.
 - **Tests:**
   - AC-0008 and AC-0009: argument-vector cases for each retired subcommand, a bare call, and each migration form. These assert exit 2, empty standard output, the standard-error prefix, and an unchanged tree.
-  - AC-0011: the listed repair suites keep their assertions. The three cross-apply dispatch assertions in `test_captured_entry_drop.py`, `test_spec_registration_stop_repair.py` and `test_tracker_entry_drop.py` assert the refusal before and the base expected output after.
+  - AC-0011: the listed repair suites keep their assertions, with the migration-form setup planted as a literal.
+  - AC-0030: the dispatch assertions the design's suite fates list, each comparing dispatch after the apply with dispatch on the same tree without `workspace.toml`, or with the refusal while an entry remains.
   - The migration, prune, retirement and status-output suites are deleted, each with its fixtures. Reader and equivalence cases follow the design's suite fates.
   - AC-0010: a grep pin over both trees.
   - `BACKEND_DIGESTS` and the mode-row check follow the new scripts.
@@ -263,6 +272,7 @@ Owned by: T9
 - **Touches:** `docs/specs/workspace-retirement/retirement-record.md`, `docs/specs/workspace-retirement/inventory.toml`, `tests/roster/test_repair_only_workspace_status.py`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `.claude-plugin/marketplace.json`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, `docs/product/changelog.d/*`
 - **Tests:**
   - AC-0021, AC-0022, AC-0023: the record and inventory checks, the earlier rows' evidence, and the roster check's closure-entry case.
+  - AC-0025's closure-entry record: the ledger holds the owner's approval with the entry's SHA-256.
   - AC-0026: `tools/check-core-release.py --base "$(git merge-base HEAD origin/main)"` after `git fetch origin`, and the changelog checks.
   - Also: `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** the owner has approved the closure entry, the controller has recorded it, and each check passes.
