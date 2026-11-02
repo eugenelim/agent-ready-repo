@@ -22,7 +22,7 @@
 
 ## Approach
 
-The doctrine lands first (T1), because every other task points at it: the routing sentences, the seeding paragraph, the guide, the dogfood entry, and the receipt test all cite its anchor or parse its stated fields. The release (T8) lands before the live run (T6), so the run drives the tree that ships. The dogfood is the riskiest part: its entry must run live against the real CLI and yield a receipt the unchanged schema accepts. The spike before review showed `install` then `diff` exits 0 on a clean scratch install and 1 with the tampered file named. T5 also relaxes two roster pins on root `AGENT_RULES.md` without loosening what they protect: the seed's preamble and header, and one-hop routing. Checks that compare against a moving merge base run once at delivery (T9) and live in the ledger, never in a standing suite.
+The doctrine lands first (T1), because every other task points at it: the routing sentences, the seeding paragraph, the guide, the dogfood entry, and the receipt test all cite its anchor or parse its stated fields. The release (T8) lands before the live run (T6), so the run drives the tree that ships. The dogfood is the riskiest part: its entry must run live against the real CLI and yield a receipt the unchanged schema accepts. The spike before review showed `install` then `diff` exits 0 on a clean scratch install and 1 with the tampered file named. T5 also relaxes two roster pins on root `AGENT_RULES.md` without loosening what they protect: the seed's preamble and header, and one-hop routing. Checks that compare against a moving merge base run once at closeout and live in the ledger, never in a standing suite.
 
 ## Constraints
 
@@ -45,17 +45,17 @@ The doctrine lands first (T1), because every other task points at it: the routin
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | Maintainer procedure | T1, T2, T3 | `test_verify_entries_contract.py` green | suite green at the delivery commit |
-| Interface compatibility | T4, T9 | `test_verify_entry_receipts.py` green | schema diff recorded empty in the ledger |
+| Interface compatibility | T4, T8 closeout | `test_verify_entry_receipts.py` green | schema diff recorded empty in the ledger |
 | User-facing promise | T7 | roster guide assertion | guide reads as stated |
-| Operations | T5, T6, T9 | roster entry assertions; ledger records | live run's commit check recorded |
+| Operations | T5, T6, T8 closeout | roster entry assertions; ledger records | live run's commit check recorded |
 | Decision rationale | none — survey already committed | survey file | cited from spec `Discovery:` |
-| Release history | T8, T9 | version-equality assertion; fragment | `check-core-release.py` exit 0 recorded |
+| Release history | T8 | version-equality assertion; fragment | `check-core-release.py` exit 0 recorded |
 
 ## Design (LLD)
 
 ### Design decisions
 
-Owned by: T1, T4, T5, T6, T8, T9.
+Owned by: T1, T4, T5, T6, T8.
 
 **Section shape.** `## Verify entries` sits between `## Exploratory / visual fuzz` and `## Behavior pin`. Its sub-headings, in order: When an entry is needed, Where entries live, Building an entry, Proving an entry, Recording and promoting, Drift, Fields, Rules, Grades, Receipt mapping, Placeholders and trust. Each section criterion lives under exactly one sub-heading, so a test reads one sub-section.
 
@@ -178,21 +178,9 @@ Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entri
 **Tests:** no stub (goal-based — version and exit status)
 - AC-0030: `test_t8_…` asserts both version fields are equal.
 - AC-0029, AC-0031: the three named suites and the catalogue commands.
+- AC-0023, AC-0038, and the delivery halves of AC-0026, AC-0029, and AC-0031: closeout, after the run is terminal (design: Delivery-time checks). Each command and its exit status is recorded in the ledger; a non-zero result returns the work to this task, then the rerun.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_verify_entries_contract.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py tests/roster/test_tdd_stub_lifecycle_contract.py packs/core/tests/skills/adapt-to-project/test_adapt_skill_body.py -q` exits 0, `python3 tools/changelog.py validate` exits 0, `agentbundle catalogue lint --root . --deep` and `agentbundle catalogue verify --root .` exit 0, and `agentbundle catalogue self-host --root . --write && git diff --exit-code` exits 0.
-
-### T9: Delivery-time checks
-
-**Depends on:** T6
-
-**Touches:** `docs/specs/verify-entries/notes/verification-ledger.md`
-
-**Approach:** a controller step once the run is terminal: fetch, rebase, repeat the live drive on the rebased tree, then run the checks. An upstream move after that returns the work to T8, then the rerun. Design: Delivery-time checks.
-
-**Tests:** no stub (goal-based — exit status recorded)
-- AC-0023, AC-0038, AC-0026's commit check, AC-0029's unedited-suites diff, and AC-0031's post-rebase self-host check: each command and its exit status recorded in the ledger.
-
-**Done when:** the ledger records all five commands with exit status 0; a non-zero result returns the work to T8, then T6.
 
 ## Risks
 
