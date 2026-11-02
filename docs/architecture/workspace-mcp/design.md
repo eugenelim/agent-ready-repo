@@ -31,11 +31,12 @@ does not write the event stream.
 | Response file | Per-elicitation temporary directory | ACP client response writer | `elicit` |
 | Loop events | `.loop-run/events.jsonl` | `work-loop` `work-supervisor.py` | Workspace MCP event bridge |
 | Full-mode run status | `docs/specs/<feature>/.supervisor/run.json` | `work-loop` `work-supervisor.py` | Event bridge and `workspace_status` (display only) |
-| Workspace lifecycle | `workspace.toml` and artifacts | Owning workflow | `workspace_status` and Git tools |
+| Workspace lifecycle | Artifact headers; `workspace.toml` holds only legacy entries | Owning workflow | `workspace_status` and Git tools |
 
 ## 4. Dependencies and allowed edges
 
-Workspace MCP reads `workspace.toml`, lifecycle artifacts,
+Workspace MCP reads `workspace.toml` (through the `workspace-status` engine's
+reconciliation of its remaining entries), lifecycle artifacts,
 `.loop-run/events.jsonl`, and the bound spec's supervisor `run.json`. It tails
 events by byte offset and never writes them. It reads `run.json` through the
 confined regular-file read with a 64 KiB bound; a link, non-regular, oversized,
@@ -47,7 +48,10 @@ staging scope's wildcard structure comes only from that built-in manifest: a
 configured `output_dir` supplies the scope's static base and nothing else, and
 a base carrying `*`, `?`, `[`, `{`, or `}` is refused before it reaches the
 pattern.
-Third-party pack types may extend `workspace-types.d/` additively.
+The lifecycle manifest is a built-in constant. The `workspace-types.d/`
+extension that [ADR-0067](../../adr/0067-lifecycle-manifest-builtin-defaults-workspace-types-d.md)
+decides is not read by the server yet. `workspace_status` does not call
+`work-loop`'s `dispatch.py`.
 
 ## 5. Primary flows
 
@@ -115,4 +119,5 @@ security boundaries or notification delivery.
 
 ## 10. Last verified against commit
 
-`c8cf4b37`
+Not re-verified in full. The workspace-state, supervisor `run.json`, and
+lifecycle-manifest claims were checked against `ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`.

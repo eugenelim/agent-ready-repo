@@ -21,8 +21,11 @@ live in [RFCs](../rfc/).
 - [`verification-graph.md`](verification-graph.md) — measured facts: local gate graph, remote workflow fleet, required contexts, and platform classification.
 - [`security.md`](security.md) — security-review posture.
 - [`credentials.md`](credentials.md) — brokers, storage, and trust boundaries.
+- [`portable-catalogue-authentication.md`](portable-catalogue-authentication.md) — how a remote catalogue fetch picks bearer, JFrog CLI, `.netrc`, or anonymous access.
 - [`knowledge-capture.md`](knowledge-capture.md) — capture, distillation, and enquiry.
 - [`telemetry.md`](telemetry.md) — what a pack records about its own execution, and the export boundary.
+- [`catalogue/upstream-sync.md`](catalogue/upstream-sync.md) — `agentbundle catalogue sync`, the path a derived catalogue takes upstream changes by.
+- [`decision-graph.md`](decision-graph.md) — the reference-policy graph and decision navigation; its section 8 stays provisional.
 
 Architecture docs are a living snapshot. Update them with layout or dependency
 changes.
@@ -34,9 +37,6 @@ rules live with that split.
 
 ## Planned architecture
 
-- **STATUS: PLANNED** — [Upstream sync](catalogue/upstream-sync.md) designs
-  `agentbundle catalogue sync`, the path a derived catalogue takes upstream
-  changes by.
 - **STATUS: PLANNED** — [Binder publishing](binder-publishing/README.md) is
   designed but not implemented. [ADR-0073](../adr/0073-zensical-as-the-v1-binder-renderer.md)
   governs its renderer decision.
@@ -56,10 +56,6 @@ rules live with that split.
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by
   [RFC-0097](../rfc/0097-agent-skill-engineering.md).
-- **STATUS: PLANNED** — [Decision graph](decision-graph.md) describes the
-  reference-policy graph, multi-form decision navigation, bounded context
-  checks, and trust boundaries shaped by the accepted decision-graph capability
-  and governed by [RFC-0105](../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md).
 
 ## What belongs here
 

@@ -233,9 +233,8 @@ one mechanical answer:
 The conservative full-tree default stales on any product change. Control
 records stay outside it; no projector invents a narrower policy.
 
-Eligible criteria and gate events dual-emit during shadowing. Parity covers
-every projection and refusal row before phase removal; rollback ignores the new
-receipts.
+No dual-emit or shadow path exists: the supervisor commits gate evidence
+directly (ADR-0144 D7).
 
 The importer reproduces `approve-plan` canonicalization, verifies both digests,
 then atomically appends one spec-policy approval and one initial review bound to
@@ -243,15 +242,14 @@ the envelope and baseline plan while authorizing current terminal intent. The
 plan digest is audit evidence, not continuing task authority.
 
 Ambiguity, refusal, digest mismatch, missing authority, or either write failure
-publishes neither record. Recovery recomputes from the legacy pin. The reverse
-reader reconstructs the pair during dual-read. After cutover, downgrade needs
-explicit approval of the current plan snapshot because the old engine cannot
-represent mutable tasks. Task projections use mechanical revisions, not
-approvals.
+publishes neither record. Recovery recomputes from the legacy pin. `reverse_read` in
+`_policy_import.py` can reconstruct the original pair, and no supervisor path
+calls it. Downgrade to the old engine needs explicit approval of the current
+plan snapshot because that engine cannot represent mutable tasks. Task
+projections use mechanical revisions, not approvals.
 
 | Responsibility | Owner |
 | --- | --- |
-| Cutover and compatibility-window observation | Core pack maintainers |
 | Legacy approval canonicalization and atomic import | Core pack and `agentbundle` contract maintainers |
 | Evidence-store operation and recovery drill | `agentbundle` maintainers |
-| Rollback authorization | Core pack maintainer on call after unexplained shadow divergence |
+| Downgrade authorization | Core pack maintainer |

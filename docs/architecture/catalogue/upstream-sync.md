@@ -152,9 +152,9 @@ advisory rows from metadata the repository already maintains:
 
 | Signal | Source | Declared by |
 | --- | --- | --- |
-| Pack version moved | `[pack] version` | all 21 default-selected packs |
-| Adapter-contract version moved | `[pack.adapter-contract] version` vs `SPEC_VERSION` | all 24 packs |
-| Declared dependency violated | `[pack.dependencies] required` / `conflicts` | 8 of 24 packs |
+| Pack version moved | `[pack] version` | all 22 default-selected packs |
+| Adapter-contract version moved | `[pack.adapter-contract] version` vs `SPEC_VERSION` | all 25 packs |
+| Declared dependency violated | `[pack.dependencies] required` / `conflicts` | 7 of 25 packs |
 
 This is a deliberate decision against a maintained compatibility matrix.
 Creating a signal strong enough to refuse safely means carrying versioned packs

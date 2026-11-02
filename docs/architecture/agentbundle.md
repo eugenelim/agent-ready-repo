@@ -150,7 +150,7 @@ default adapter when the pack admits it, and otherwise the first entry in
 `allowed-adapters`, which means a repo-scope install can land on whatever the
 publisher happened to list first.
 
-### 6.1 Hook-wiring drop behaviour is per adapter### 6.1 Hook-wiring drop behaviour is per adapter
+### 6.1 Hook-wiring drop behaviour is per adapter
 
 There is no single rule here, and this page deliberately does not state one.
 Whether an incompatible hook-wiring file is dropped individually, passed through
@@ -241,11 +241,12 @@ RFC-0040 names three routes:
 | Skill elicitation, on consent | yes | its own section |
 | `_append_layout_section` | no | an existing file |
 
-A default install writes nothing. All five declaring packs — `architect`,
-`desk-research`, `experience-design`, `product-engineering`,
-`product-strategy` — set `default-scope = "user"` and declare no
-`[pack.layout.user]`, so the user-scope append has no section to write, and a
-repo-scope install writes only into a file that already exists. The route that
+A default install creates no file. Six packs declare `[pack.layout.repo]`:
+`architect`, `desk-research`, `experience-design`, `product-engineering`,
+`product-strategy`, and `repo-governance`. None declares `[pack.layout.user]`,
+so the user-scope append has no section to write. Five default to user scope
+and `repo-governance` defaults to repo scope; a repo-scope install writes only
+into a file that already exists. The route that
 delivers a first file is therefore the skill's own: when no section resolves, a
 consuming skill offers its pack default and, on consent, scaffolds the file
 with that one section.
@@ -325,4 +326,4 @@ does not govern, and what it supersedes in ADR-0030.
 
 ## 10. Last verified against commit
 
-`29bad7200`
+`ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`

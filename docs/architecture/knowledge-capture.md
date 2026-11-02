@@ -251,5 +251,6 @@ named command enforces it.
 The candidate mode, § 4a, and § 8a were added by
 `docs/specs/delivery-knowledge-projection/spec.md` and match its T1-T3 code.
 § 4a's feed source was then revised by
-`docs/specs/execution-supervisor-cutover/spec.md`; that revision is not
-re-verified by this marker.
+`docs/specs/execution-supervisor-cutover/spec.md`; that revision, the
+entrypoints in § 2, and the file names in §§ 3 and 7 were checked against
+`ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`.
