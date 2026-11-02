@@ -423,6 +423,9 @@ An attempt opens when `next` issues `implement-task`, `write-stub`,
 supervisor itself launches repository code for a red proof. Its manifest
 records the size and digest of every trusted file — the spec, its plan, the
 records it cites, and the installed skill — and of the Git control state. A
+`config` or `config.worktree` entry records the config fingerprint instead: the
+file's size and digest with its canonical tracking blocks removed, prefixed
+`config-view:`. A
 `regenerate` manifest leaves out the installed skill, because regenerating it
 is the request.
 

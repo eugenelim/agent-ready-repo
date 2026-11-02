@@ -192,6 +192,14 @@ again, at most three times in all. An `unknowable` answer, or a stuck effect,
 opens `effect-unresolved`: a named human then decides with `resolve-effect`
 (`effect-confirmed`, `do-not-retry`, or one `retry-authorized`).
 
+Push, pull, and merge with an explicit remote, ref, and pull request every
+time, or verify them first. Name the repository on every `gh` command with
+`--repo`, or verify the base repository first, with or without a pull request
+number: `remote.<name>.gh-resolved` picks the base repository even when a number
+is given. A worker attempt may change `branch.<name>.remote`, `merge`,
+`pushremote`, `rebase`, or `description`, or `remote.<name>.gh-resolved`, without
+refusal, and each steers a bare `git push`, `git pull`, or `gh` command (see [the open-attempt rule](#the-open-attempt-rule--when-the-plan-may-change)).
+
 ## Refusals and their owners
 
 | `owner` | Meaning | Controller action |
@@ -207,7 +215,7 @@ who acts next, and the rows group codes that share one answer.
 
 | `code` | Cause and answer |
 | --- | --- |
-| `attempt-residue` | A trusted file or Git control state changed while a request was open. Restore the named paths, then `next` clears it. |
+| `attempt-residue` | A trusted file or Git control state changed while a request was open. Restore the named paths, then `next` clears it. A `config` or `config.worktree` file is compared with its canonical tracking blocks removed (see [Git config and the open attempt](#git-config-and-the-open-attempt)); any other byte change to it still refuses. The detail marks each config path `(recorded as config-view)` or `(recorded as raw)`. A `config-view` path changed outside a canonical tracking block: undo that change. A `raw` path comes from a manifest an older release recorded, which counts every byte, so even a tracking write refuses it: restore the file to its recorded bytes, then `next` clears the refusal and re-issues the request under a new manifest. |
 | `attempt-refused` | `report` found the same change `attempt-residue` names. Nothing from the result is committed; restore the paths. |
 | `protected-path-changed` | A result touched the spec, plan, cited records, installed skill, Git control state, or `delivery/`. Nothing from it is committed; restore the paths. |
 | `unexpected-change` | A result changed files its kind may not change. |
@@ -272,6 +280,25 @@ Two routes depend on that timing:
   and before the next `next`. It does not go to the verification ledger, which
   keeps execution observations. See
   [`delivery-contract-lifecycle.md`](delivery-contract-lifecycle.md).
+
+### Git config and the open attempt
+
+A sibling session in a linked worktree writes the shared Git config when it runs
+`git push -u`, `git checkout -b <branch> origin/<branch>`, `gh pr checkout`, or
+`gh repo set-default`. Those writes do not refuse an open attempt. For each
+`config` and `config.worktree` file the attempt records a fingerprint of the
+file with its canonical tracking blocks removed:
+
+- A `[branch "<name>"]` block whose lines are only `remote`, `merge`,
+  `pushremote`, `rebase`, or `description`, written as `\t<key> = <value>`.
+- A `gh-resolved` line inside a `[remote "<name>"]` block, written the same way.
+
+Every other byte stays in the fingerprint, so any other change refuses the
+attempt, including `core.hooksPath`, `include.path`, a remote URL, `user.email`,
+a key outside that set in a branch block, and an excluded key in a shape Git does
+not write. A file that holds a carriage return, a line ending in a backslash, or
+no final newline is fingerprinted whole. The refusal still names `common:config`
+or `git:config.worktree`.
 
 ## Recovering from a stub that is not red
 

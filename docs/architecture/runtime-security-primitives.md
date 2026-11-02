@@ -280,7 +280,15 @@ files and Git control state in its store, `<git dir>/agentbundle-supervisor/<run
 Trusted files are the spec, the plan, every cited record, and the installed
 skill. Every later `next` and `report` compares against the manifest first. A
 difference refuses the attempt, leaves `attempt-residue` naming each path until
-the paths are restored, and is never committed. During an attempt, `HEAD` may
+the paths are restored, and is never committed. A `config` or `config.worktree`
+entry records the config fingerprint (`config-view:` and the size and sha256 of
+the file with its canonical tracking blocks removed), not the raw-file size and
+sha256. The excluded keys are `branch.<name>.remote`, `merge`, `pushremote`,
+`rebase`, and `description`, and `remote.<name>.gh-resolved`, removed only in the
+exact form Git writes them in a file that ends in a newline with no `\r` and no
+line ending in a backslash. Every other byte stays in the digest, so any other
+change refuses, and a manifest recorded as a raw-file fingerprint is still
+compared against the raw file. During an attempt, `HEAD` may
 move only through commits the store lists as the supervisor's. After each
 supervisor-launched run of repository code the check runs again before any
 commit. Residue lives in the store, so deleting the journal, `run.json`, or

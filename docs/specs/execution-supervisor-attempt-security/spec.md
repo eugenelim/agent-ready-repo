@@ -128,10 +128,16 @@ that leaves open.
   `config` file; and `HEAD` and the current branch ref. `HEAD` and the branch
   ref match the manifest when the manifest's `HEAD` is an ancestor of the
   current `HEAD` and every commit after it is listed in the supervisor store.
+  The "every repository and worktree `config` file" member is narrowed to the
+  config fingerprint that
+  [`supervisor-config-tracking-keys`](../supervisor-config-tracking-keys/spec.md)
+  defines.
 - **Worker request.** An `implement-task`, `write-stub`, `review-role`, or
   `assess-finding` request.
 - **Manifest.** Path, size, and sha256 of every trusted file and Git control
-  state file, excluding `__pycache__` directories, recorded in the supervisor
+  state file (a `config` entry records the config fingerprint instead of size
+  and sha256, per `supervisor-config-tracking-keys`), excluding `__pycache__`
+  directories, recorded in the supervisor
   store each time `next` issues or re-issues a worker, `run-gates`, or
   `regenerate` request after any residue has cleared, and each time the
   supervisor launches a red proof or scratch receipt with no attempt open; it
