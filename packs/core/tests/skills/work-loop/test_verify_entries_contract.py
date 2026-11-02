@@ -98,7 +98,7 @@ def test_t1_where_entries_live() -> None:
     positions = [s.index(p) for p in order]
     assert positions == sorted(positions)
     assert "offer to add the entry there" in s
-    assert "Create `docs/VERIFICATION.md` only when no file covers the surface" in s
+    assert "Create `docs/VERIFICATION.md` only when no human-facing file covers the surface" in s
     assert "or the adopter declines" in s
     assert "An unanswered or ambiguous offer writes nothing" in s
     assert "the surface's grade is `blocked`" in s
@@ -302,3 +302,20 @@ def test_t8_pack_and_plugin_versions_agree() -> None:
     pack = tomllib.loads((_PACK / "pack.toml").read_text(encoding="utf-8"))
     plugin = json.loads((_PACK / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
     assert pack["pack"]["version"] == plugin["version"]
+
+
+def test_t9_agent_files_are_mapped_never_hosted() -> None:
+    s = _section("Where entries live")
+    assert "A human-facing file is any place in the list above other than agent instruction files and host skills" in s
+    assert "for commands to map into an entry" in s
+    assert "They are mapped, never hosted: an entry is never written into one" in s
+    assert "When an existing human-facing file covers the surface, offer to add the entry there" in s
+    assert "only when no human-facing file covers the surface or the adopter declines" in s
+
+
+def test_t9_drift_grades_run_start_stop() -> None:
+    s = _section("Drift")
+    assert (
+        "A run stopped at run start reports `blocked` for doc drift or a harness gap "
+        "and `failed` for a product bug" in s
+    )

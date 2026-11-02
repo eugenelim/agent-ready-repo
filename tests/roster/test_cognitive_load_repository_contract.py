@@ -154,9 +154,22 @@ def _adopter_row_problems(root_bytes: bytes, seed_bytes: bytes) -> list[str]:
             problems.append(f"not a three-cell row with one backticked path: {line}")
             continue
         target = match.group(2)
-        if not (ROOT / target).is_file():
-            problems.append(f"read path does not exist: {target}")
-        if "AGENT_RULES.md" in (ROOT / target).read_text(encoding="utf-8"):
+        segments = target.split("/")
+        if (
+            target.startswith("/")
+            or "\\" in target
+            or any(seg in ("", ".", "..") for seg in segments)
+        ):
+            problems.append(f"read path is not a safe relative path: {target}")
+            continue
+        try:
+            body = file_safety.read_confined_regular_file(
+                ROOT, ROOT / target, max_bytes=64 * 1024
+            ).decode("utf-8")
+        except (OSError, file_safety.UnsafeContentError, UnicodeDecodeError) as exc:
+            problems.append(f"read path is missing, unsafe, or unreadable: {target} ({exc})")
+            continue
+        if "AGENT_RULES.md" in body:
             problems.append(f"target mentions AGENT_RULES.md: {target}")
     return problems
 

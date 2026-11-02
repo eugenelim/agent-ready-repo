@@ -167,3 +167,13 @@ def test_ledger_records_the_failing_proof_run() -> None:
     text = " ".join(LEDGER.read_text(encoding="utf-8").split())
     for needle in ("Catching test", "agentbundle diff", "Exact mutation", "exit 1"):
         assert needle in text, needle
+
+
+def test_root_router_routes_to_verification_entry() -> None:
+    """A table row of the root router reads `docs/VERIFICATION.md`."""
+    rows = [
+        line.strip().strip("|").split("|")
+        for line in (ROOT / "AGENT_RULES.md").read_text(encoding="utf-8").splitlines()
+        if line.startswith("|")
+    ]
+    assert any(len(cells) >= 2 and cells[1].strip() == "`docs/VERIFICATION.md`" for cells in rows)

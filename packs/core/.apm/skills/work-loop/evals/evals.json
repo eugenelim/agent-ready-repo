@@ -1507,7 +1507,7 @@
     {
       "id": "verify-entry-missing-is-task-zero",
       "prompt": "Your plan has a visual / manual QA task that changes the output of the `acme` CLI. The repository has no verify entry for the CLI surface. What is the task's first step, and when may the task claim its verification mode?",
-      "expected_output": "Creating or mapping the verify entry for the CLI surface is the task's first step. The task proves the entry runs (launch and ready check) and that it can fail before it claims the manual QA mode.",
+      "expected_output": "Creating or mapping the verify entry for the CLI surface is the task's first step. The task proves the entry with one run from start to finish plus one recorded failing run before it claims the manual QA mode.",
       "assertions": [
         "Response says creating or mapping the verify entry for the CLI surface is the task's first step",
         "Response says to prove the entry runs before claiming the verification mode",

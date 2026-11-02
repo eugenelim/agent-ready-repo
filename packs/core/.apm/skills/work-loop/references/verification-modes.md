@@ -94,12 +94,16 @@ Look in this order before creating a file:
 5. Agent instruction files and host skills: `AGENTS.md`,
    `.github/copilot-instructions.md`, `GEMINI.md`, and `.claude/skills/verify/`.
 
-A file covers the surface when it already states how to launch or drive it.
+A file covers the surface when it already states how to launch or drive it. A
+human-facing file is any place in the list above other than agent instruction
+files and host skills.
 
-- When an existing file covers the surface, offer to add the entry there. The
-  offer names the file and the fields to add.
-- Create `docs/VERIFICATION.md` only when no file covers the surface or the
-  adopter declines.
+- Read agent instruction files and host skills for commands to map into an
+  entry. They are mapped, never hosted: an entry is never written into one.
+- When an existing human-facing file covers the surface, offer to add the entry
+  there. The offer names the file and the fields to add.
+- Create `docs/VERIFICATION.md` only when no human-facing file covers the
+  surface or the adopter declines.
 - An unanswered or ambiguous offer writes nothing.
 - While an offer is unanswered, the surface's grade is `blocked`. The run names
   the pending offer and records no receipt, because no command ran. The task
@@ -145,6 +149,9 @@ An in-scope entry that fails at run start is one of three things:
   mapped tooling in that tooling.
 - **Product bug:** the product is wrong. Report it. Never write it into the
   entry as expected behavior.
+
+A run stopped at run start reports `blocked` for doc drift or a harness gap and
+`failed` for a product bug.
 
 ### Fields
 
