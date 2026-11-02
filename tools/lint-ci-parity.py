@@ -1756,22 +1756,10 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / Pull-request template installer and "
             "release checker"
         ),
-    'tools/test_compare_registry.py':
-        NO_PR_GATE(
-            "Tests a maintainer-run comparison that has no CI job by owner decision "
-            "(FEAT-0034 Registry comparison). `make test` runs it; CI reaches it "
-            "through the non-required test-corpus.yml."
-        ),
     'tools/test_require_junit_ran_without_skips.py':
         PR_GATED(
             "build-check.yml / gate-main / "
             "pytest JUnit no-skip gate checker (windows-confined-write)"
-        ),
-    'tools/test_replay_dispatch.py':
-        NO_PR_GATE(
-            "Tests a maintainer-run replay that has no CI job by owner decision "
-            "(header-derived-dispatch AC-0019). `make test` runs it; CI reaches it "
-            "through the non-required test-corpus.yml."
         ),
     'tools/test_intent_corpus_gate.py':
         NO_PR_GATE(

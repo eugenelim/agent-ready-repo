@@ -318,11 +318,9 @@ FIRST_TOOL_BATCH = (
     # Membership only: appended to this existing batch, so no group count moves.
     # `lint-ci-parity` disposes it NO_PR_GATE: the comparison has no CI job by
     # owner decision (FEAT-0034 § Registry comparison).
-    "tools/test_compare_registry.py",
     # Added 2026-10-29 with the dispatch replay tool (spec header-derived-dispatch).
     # Membership only: appended to this existing batch, so no group count moves.
     # `lint-ci-parity` disposes it NO_PR_GATE, as for the registry comparison.
-    "tools/test_replay_dispatch.py",
     # Added 2026-10-30 with the JUnit no-skip checker (spec windows-confined-write).
     # Membership only: appended to this existing batch, so no group count moves.
     # `lint-ci-parity` disposes it PR_GATED through its own build-check.yml step.
@@ -1127,11 +1125,16 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `packs/github/tests/skills/github-brief-intake/`; no other line changed.
 # Prior pins were current: origin/main's Makefile, which lacks only that line,
 # matches `9d8022f1…` and `1470603e…`.
+# Re-pinned for repair-only-workspace-status. Sole cause: the paths
+# `tools/test_compare_registry.py` and `tools/test_replay_dispatch.py` left the
+# tools batch with their deleted tools; no line was added, removed or reordered.
+# Prior pins were current: this Makefile with only those two paths restored
+# matches `eca2ef48…` and `cb2b7c58…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "eca2ef48ad704579d1abd7df95ce118a5e23f5b12d1b0c5c0cd3a0b2b2a448bc"
+    "f3ae1ea332ab8d97ab449dad46f1d16fce63837106b178c08bd6ceb0cd29e4b7"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "cb2b7c58235596500b564fbb053df478a24771191eb442f93c709c2633fc35d6"
+    "fb54a049893c935ba92c378e15f291bf2130ebde7e055dc1c64a81b87143c819"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
