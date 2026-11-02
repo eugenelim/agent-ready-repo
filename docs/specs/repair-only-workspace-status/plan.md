@@ -1,7 +1,7 @@
 # Plan: Dispatch reads only headers, and workspace-status keeps only the repair
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1, D3 and § Errata; RFC-0105 D3; RFC-0083 (the migration contracts); RFC-0078 (the MCP tool); RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-loop/scripts/dispatch.py`: the engine names it loads (`_ENGINE_NAMES`, line 67), the workspace read (line 227), and the run (line 337).
@@ -292,3 +292,6 @@ Owned by: T9
 - A control plane that reads `ini_slug` from `workspace_status()` breaks on upgrade; one that sets the three-part dispatched item keeps working.
 
 ## Changelog
+
+- 2026-11-02: spec approved by eugenelim at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, with the round-4 repairs accepted unreviewed.
+- 2026-11-02: plan approved by eugenelim at `63ed6819e`.

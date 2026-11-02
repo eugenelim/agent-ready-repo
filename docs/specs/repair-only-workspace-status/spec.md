@@ -1,6 +1,7 @@
 # Spec: Dispatch reads only headers, and workspace-status keeps only the repair
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Approved:** 2026-11-02 by eugenelim, spec and plan at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, each adjudicated (three adjudications were invalid; one was re-run), with the round-4 repairs accepted unreviewed; records under `.context/reviews/c2bc3c0b-0c0c-44a9-9a99-0028fa5e7927/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105 (D3, the retirement gates and the one retirement record), RFC-0106 (D1, a registration's readers go when its replacement ships; D3, list-and-ask; § Errata, each removal's authority), RFC-0083 (the work-intake migration contracts this spec retires), RFC-0078 (the `workspace_status()` MCP tool), RFC-0055 (errata entries on an Accepted RFC), ADR-0074 (standard-library skill scripts)
