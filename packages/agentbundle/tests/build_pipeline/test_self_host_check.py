@@ -1100,6 +1100,48 @@ class SeedProjectionTests(unittest.TestCase):
             on_disk = (output / "workspace.toml").read_text(encoding="utf-8")
             self.assertEqual(on_disk, curated, "workspace.toml was clobbered by reprojection")
 
+    def test_agent_rules_curated_rows_preserved_and_absent_file_scaffolded(self) -> None:
+        """A curated root AGENT_RULES.md keeps its adopter row through
+        `_project_seeds`; an absent one is scaffolded from the seed.
+
+        Regression guard: if `AGENT_RULES.md` leaves EXCLUDED_PATTERNS, every
+        self-host would delete the repository's routing rows.
+        """
+        from agentbundle.build.self_host import _project_seeds
+
+        seed = "# Agent rules\n\n| when | rule |\n| --- | --- |\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_path = Path(tmp)
+            packs_dir = tmp_path / "packs"
+            pack = packs_dir / "core"
+            (pack / "seeds").mkdir(parents=True)
+            (pack / "seeds" / "AGENT_RULES.md").write_text(
+                seed, encoding="utf-8", newline="\n"
+            )
+            (pack / "pack.toml").write_text(
+                '[pack]\nname = "core"\nversion = "0.1.0"\n'
+                '\n[pack.adapter-contract]\nversion = "0.3"\n\n[pack.install]\ndefault-scope = "repo"\nallowed-scopes = ["repo", "user"]\nuser-scope-hooks = true\n', encoding="utf-8", newline="\n"
+            )
+            curated_out = tmp_path / "curated"
+            curated_out.mkdir()
+            curated = seed + "| editing X | read Y |\n"
+            (curated_out / "AGENT_RULES.md").write_text(
+                curated, encoding="utf-8", newline="\n"
+            )
+            _project_seeds(packs_dir, curated_out)
+            self.assertEqual(
+                (curated_out / "AGENT_RULES.md").read_text(encoding="utf-8"),
+                curated,
+                "AGENT_RULES.md was clobbered by reprojection",
+            )
+
+            fresh_out = tmp_path / "fresh"
+            fresh_out.mkdir()
+            _project_seeds(packs_dir, fresh_out)
+            self.assertEqual(
+                (fresh_out / "AGENT_RULES.md").read_text(encoding="utf-8"), seed
+            )
+
     def test_excluded_path_missing_on_disk_gets_seed(self) -> None:
         """First-install case: when an Excluded path does NOT exist on
         disk, the placeholder seed IS projected (so adopters get the

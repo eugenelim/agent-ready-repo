@@ -1693,8 +1693,12 @@ _WORK_LOOP_CONTRACT_HASH = (
 # `[backlog].open`. Reviewed as the pin requires, and the engine needs no edit:
 # the bullet still runs the read-only spec-status lint and mutates no
 # workspace.toml array.
+# Re-pinned 2026-11-02 for verify-entries: "Verification passed" gains a bullet
+# asking whether the run drove a surface its verify entry does not cover.
+# Reviewed as the pin requires, and the engine needs no edit: the item reads no
+# workspace.toml and mutates no queue.
 _WORK_LOOP_FINISH_HASH = (
-    "73aeafacbd8f12549931ba7bc35b19e428caea5a9ed86603106cbdfae1a7fa02"
+    "118fde80feabcfce9a0b0f2aedeb49072506286c6e278712510debe20e0c15ee"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent

@@ -923,6 +923,12 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_evidence_store_schema_parity.py
 
+      # Verify-entry receipt fit: every grade-to-receipt mapping row in
+      # verification-modes.md must validate against evidence-receipt.v1.
+      - name: pytest verify-entry receipts (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_verify_entry_receipts.py
+
       # T9a conformance roll-up: verifies that both adapter projections
       # (.claude/skills/work-loop/scripts/ and .agents/skills/work-loop/scripts/)
       # are byte-identical to the pack source, plus import smoke-tests from each

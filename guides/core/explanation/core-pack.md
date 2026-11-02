@@ -212,6 +212,12 @@ tests) plus an adversarial review pass replace "feel" with verifiable
 termination. The loop keeps going until both kinds of check are satisfied —
 or it pauses for human replanning.
 
+When a change must be shown working, `work-loop` keeps a saved verify entry
+for each product surface. It first checks for an existing file that already says
+how to run that surface, such as `CONTRIBUTING.md` or a developer guide, and
+offers to add the entry there. It proposes `docs/VERIFICATION.md` only when no
+existing file covers it. The file is yours: you own it and can edit it.
+
 Before construction, a caller may use `shaping-reviewer` to test a contract's
 scope and observability. That is distinct from the later code-review lenses:
 adversarial review checks delivery drift, security review checks threats, and

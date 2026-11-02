@@ -139,6 +139,7 @@ protected = [
   "docs/specs/two-sided-prune-closure-invariant",
   "docs/specs/unrelated",
   "docs/specs/verification-ledger",
+  "docs/specs/verify-entries",
   "docs/specs/work-intake-migration-docs",
   "docs/specs/work-item-capture",
   "docs/specs/workspace-retirement",

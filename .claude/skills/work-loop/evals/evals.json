@@ -1516,6 +1516,39 @@
         "Response says to pass an explicit remote, ref, and pull request to every push, pull, and merge, or verify them first",
         "Response says to name the repository with --repo on every gh command, or verify the base repository first, with or without a pull request number"
       ]
+    },
+    {
+      "id": "verify-entry-missing-is-task-zero",
+      "prompt": "Your plan has a visual / manual QA task that changes the output of the `acme` CLI. The repository has no verify entry for the CLI surface. What is the task's first step, and when may the task claim its verification mode?",
+      "expected_output": "Creating or mapping the verify entry for the CLI surface is the task's first step. The task proves the entry with one run from start to finish plus one recorded failing run before it claims the manual QA mode.",
+      "assertions": [
+        "Response says creating or mapping the verify entry for the CLI surface is the task's first step",
+        "Response says to prove the entry runs before claiming the verification mode",
+        "Response says to prove the entry can fail before claiming the verification mode",
+        "Response does not say to skip or defer the entry and claim the mode anyway"
+      ]
+    },
+    {
+      "id": "verify-entry-extends-contribution-guide",
+      "prompt": "A manual-QA task changes the web app. The repository's CONTRIBUTING.md already says how to launch the web app, and no verify entry exists. Where do you put the entry, what do you add to AGENT_RULES.md, and what happens if the adopter never answers your offer?",
+      "expected_output": "Offer to add the verify entry to CONTRIBUTING.md, naming the file and fields, rather than creating docs/VERIFICATION.md. On acceptance, add one AGENT_RULES.md row routing to it. If the offer goes unanswered, write nothing; the surface's grade is blocked, the pending offer is named, no receipt is recorded, and the task does not claim its mode.",
+      "assertions": [
+        "Response offers to add the entry to CONTRIBUTING.md rather than creating docs/VERIFICATION.md",
+        "Response says to add one AGENT_RULES.md row on acceptance",
+        "Response says to write nothing if the offer is unanswered",
+        "Response grades the unanswered surface blocked and does not claim the mode"
+      ]
+    },
+    {
+      "id": "verify-entry-product-bug-at-run-start",
+      "prompt": "You run a mapped verify entry at run start. It launches, but the product returns the wrong result for the entry's drive step. Do you edit the entry so it passes? How do you classify and grade this?",
+      "expected_output": "Classify it as a product bug, not an entry defect. Report it and never write the wrong result into the entry as the expected one. The grade is failed.",
+      "assertions": [
+        "Response classifies the failure as a product bug",
+        "Response says to report the product bug",
+        "Response says never to write the wrong result into the entry as expected",
+        "Response grades the run failed"
+      ]
     }
   ]
 }
