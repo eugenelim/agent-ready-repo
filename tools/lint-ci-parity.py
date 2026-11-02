@@ -158,9 +158,9 @@ WORKFLOW_SCOPE: dict[str, str | None] = {
         "selection lives in the Makefile (tools/shard_test_roster.py reads "
         "`make -n test-unleased`), so the workflow still enumerates no suite and "
         "there is nothing for a parity check to compare. Sharding moved where "
-        "the roster runs, not what states it. Dispatch-only: it runs on no pull "
-        "request, so it gates nothing and claims nothing beyond what `make test` "
-        "claims (spec/remote-gate-dispatch).",
+        "the roster runs, not what states it. It runs on no pull request (weekly "
+        "schedule on main plus dispatch), so it gates nothing and claims nothing "
+        "beyond what `make test` claims (spec/remote-gate-dispatch).",
     "test-roster.yml":
         "Out of scope. It runs one suite in parallel, which is deliberately NOT "
         "equivalent to any local invocation: `make test` reaches the roster "
@@ -1323,7 +1323,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/integration/':
         NO_PR_GATE(
             "Pack integration suite. `make test` runs it in the core batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/adapt-to-project/':
         PR_GATED_IF(
@@ -1333,12 +1333,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/skills/author-brief/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/author-delivery-brief/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/bug-fix/':
         PR_GATED_IF(
@@ -1353,7 +1353,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/skills/contract-acquisition/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/repo-governance/tests/skills/navigate-decisions/':
         NO_PR_GATE(
@@ -1367,12 +1367,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/skills/explain-diff/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/intake-intent/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/navigate-intents/':
         NO_PR_GATE(
@@ -1382,7 +1382,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/skills/new-spec/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the core batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/core/tests/skills/project-knowledge/':
         PR_GATED_IF(
@@ -1397,7 +1397,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/skills/repository-grounding/':
         NO_PR_GATE(
             "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
-            "the full suite directory; it reaches CI only through the dispatch-only "
+            "the full suite directory; it reaches CI only through the non-required "
             "test-corpus.yml. The path-filtered build-check-windows.yml step `pytest "
             "repository-grounding locator reader (Windows placement)`, in the job "
             "`AgentBundle compatibility (windows)`, also runs test_read_locator.py on a "
@@ -1407,7 +1407,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/core/tests/skills/repository-exploration/':
         NO_PR_GATE(
             "`make test` runs the whole suite in the core batch. No pull-request workflow gates "
-            "the full suite directory; it reaches CI only through the dispatch-only "
+            "the full suite directory; it reaches CI only through the non-required "
             "test-corpus.yml."
         ),
     'packs/core/tests/skills/work-intake/':
@@ -1428,12 +1428,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/catalogue-curation/tests/pack/':
         NO_PR_GATE(
             "Pack suite for catalogue-curation. `make test` runs it; no workflow names it, so it "
-            "reaches CI only through the dispatch-only test-corpus.yml."
+            "reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/catalogue-curation/tests/skills/compile-okf/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the catalogue-curation batch; no workflow "
-            "names it, so it reaches CI only through the dispatch-only test-corpus.yml."
+            "names it, so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/product-documentation/tests/':
         PR_GATED_IF(
@@ -1473,7 +1473,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/architect/tests/skills/architect-review/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the architect batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/credential-brokers/tests/pack/':
         PR_GATED(
@@ -1488,12 +1488,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/atlassian/tests/skills/jira/test_intake_policy.py':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/jira-align/test_jira_align_intake_policy.py':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/flow-metrics/':
         PR_GATED(
@@ -1508,22 +1508,22 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/atlassian/tests/skills/jira-brief-intake/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/atlassian/tests/skills/jira-align-brief-intake/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the atlassian batch; no workflow names it, "
-            "so it reaches CI only through the dispatch-only test-corpus.yml."
+            "so it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/github/tests/skills/github-brief-intake/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/github/tests/skills/github-pr/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the github batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/product-engineering/tests/pack/':
         PR_GATED(
@@ -1558,12 +1558,12 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'packs/linear/tests/skills/linear-brief-intake/':
         NO_PR_GATE(
             "Pack skill suite. `make test` runs it in the linear batch; no workflow names it, so "
-            "it reaches CI only through the dispatch-only test-corpus.yml."
+            "it reaches CI only through the non-required test-corpus.yml."
         ),
     'packs/code-intelligence/tests/pack/':
         NO_PR_GATE(
             "Pack manifest and surface-vocabulary suite. `make test` runs it; no pull-request "
-            "workflow names it, so it reaches CI only through the dispatch-only "
+            "workflow names it, so it reaches CI only through the non-required "
             "test-corpus.yml. The vocabulary guard it carries is also enforced statically by "
             "lint-pack-test-boundary, which every pull request does run."
         ),
@@ -1572,7 +1572,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "Pack skill suite. Its integration half executes the `wicked-estate` binary against "
             "a real index and skips wholesale when that binary is absent, which is every "
             "hosted runner — gating a pull request on a suite that cannot run there would "
-            "record a pass that proves nothing. `make test` runs it; the dispatch-only "
+            "record a pass that proves nothing. `make test` runs it; the non-required "
             "test-corpus.yml is its CI route."
         ),
     'packs/converters/tests/skills/markdown-to-html/':
@@ -1747,7 +1747,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Tests a maintainer-run comparison that has no CI job by owner decision "
             "(FEAT-0034 Registry comparison). `make test` runs it; CI reaches it "
-            "through the dispatch-only test-corpus.yml."
+            "through the non-required test-corpus.yml."
         ),
     'tools/test_require_junit_ran_without_skips.py':
         PR_GATED(
@@ -1758,7 +1758,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
         NO_PR_GATE(
             "Tests a maintainer-run replay that has no CI job by owner decision "
             "(header-derived-dispatch AC-0019). `make test` runs it; CI reaches it "
-            "through the dispatch-only test-corpus.yml."
+            "through the non-required test-corpus.yml."
         ),
     'tools/test_intent_corpus_gate.py':
         NO_PR_GATE(
@@ -1768,7 +1768,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "pull-request gated, by that job; this suite only guards their "
             "wiring, and gating it would cost the lean job a pip install for "
             "pytest. `make test` runs it; CI reaches it through the "
-            "dispatch-only test-corpus.yml."
+            "non-required test-corpus.yml."
         ),
     'tools/test_workspace_status.py':
         PR_GATED(
@@ -1825,7 +1825,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_branch_added_paths.py':
         NO_PR_GATE(
             "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
-            "through the dispatch-only test-corpus.yml."
+            "through the non-required test-corpus.yml."
         ),
     'tools/test_bootstrap.py':
         NO_PR_GATE(
@@ -1847,7 +1847,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_playwright_evidence_lifecycle.py':
         NO_PR_GATE(
             "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
-            "through the dispatch-only test-corpus.yml."
+            "through the non-required test-corpus.yml."
         ),
     'tools/test_worktree_lifecycle_hooks.py':
         NO_PR_GATE(
@@ -1858,7 +1858,7 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
     'tools/test_frontend_runtime.py':
         NO_PR_GATE(
             "Runs under `make test` only; no pull-request workflow names it, so it reaches CI "
-            "through the dispatch-only test-corpus.yml."
+            "through the non-required test-corpus.yml."
         ),
     'tools/test_check_artifact_contents.py':
         PR_GATED(

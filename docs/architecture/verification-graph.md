@@ -272,7 +272,7 @@ updates are deliberately disabled for that reason.
 | `release-agentbundle.yml` | `push`, `pull_request` | Build, smoke, pre-release gates, PyPI and Artifactory publication |
 | `release-credbroker.yml` | `push`, `pull_request` | The same shape for CredBroker |
 | `release-jsonl-otlp-exporter.yml` | `pull_request`, `push` on a `jsonl-otlp-exporter-v*` tag | Build and wheel smoke on every pull request; the publish job is tag-gated and uses OIDC trusted publishing with no stored credential |
-| `test-corpus.yml` | `workflow_dispatch` | Four-shard remote execution of `make test`; it is scoped evidence, not a required status check |
+| `test-corpus.yml` | `schedule` (weekly, default branch), `workflow_dispatch` | Four-shard remote execution of `make test`. The schedule is what exercises the suites no pull-request check gates; it is scoped evidence, not a required status check |
 | `test-roster.yml` | `workflow_dispatch` | Parallel execution of the roster suite only; it does not stand in for `make test` or a required status check |
 
 ### 3.1 Workflow-posture tests

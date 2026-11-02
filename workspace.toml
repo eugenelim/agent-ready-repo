@@ -1407,7 +1407,7 @@ open = [
   # `run-test-suite` define obliges a SUITE_DISPOSITION entry in
   # tools/lint-ci-parity.py naming the PR check that gates the suite, and the
   # honest answer is probably NO_PR_GATE or PR_GATED_IF — `make test` runs via
-  # the dispatch-only test-corpus.yml, not on a pull request. That disposition
+  # the non-required test-corpus.yml (weekly and dispatch), not on a pull request. That disposition
   # is a human-review control whose reasons are checked for presence, not
   # truth, so it wants a deliberate decision rather than a merge-time guess.
   # Unblocks when: someone decides which check should gate CSS tokens, and
