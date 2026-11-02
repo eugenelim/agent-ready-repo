@@ -12,7 +12,7 @@ Driven at commit `b693f1ed070738f45ea5780fc5cf88876502db65` from `docs/VERIFICAT
 
 ## Run r2 — live-verified
 
-Driven from the working tree on top of commit `b693f1ed070738f45ea5780fc5cf88876502db65`, with the corrected `docs/VERIFICATION.md` not yet committed, so no commit holds the tree it drove. Grade: `live-verified`. It carries no receipt; r3 is the recorded live run.
+Driven from the working tree on top of commit `b693f1ed070738f45ea5780fc5cf88876502db65`, with the corrected `docs/VERIFICATION.md` not yet committed, so no commit holds the tree it drove. Grade: `live-verified`. It carries no receipt; r4 is the recorded live run.
 
 | Step | Command | Exit | Observed |
 | --- | --- | --- | --- |
