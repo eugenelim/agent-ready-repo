@@ -192,12 +192,26 @@ Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entri
 
 **Tests:** no stub (goal-based — content check, plus a live rerun of the dogfood entry)
 - AC-0004: `### Where entries live` states that agent instruction files and host skills are mapped but never hold an entry, and that the human-facing offer and the `docs/VERIFICATION.md` fallback apply otherwise.
-- AC-0010: `### Drift` names the grade a run stopped at run start reports: `blocked` for doc drift or a harness gap, `failed` for a product bug; the ledger grades run r1 accordingly.
+- AC-0014: the grade a run stopped at run start reports — `blocked` for doc drift or a harness gap, `failed` for a product bug — is stated under `### Grades`, the sub-section AC-0014 owns; the ledger grades run r1 accordingly.
 - AC-0025: a roster assertion that some root `AGENT_RULES.md` row has the read cell `` `docs/VERIFICATION.md` ``; the row check rejects an absolute, backslash, empty, `.`, or `..` segment, reads each target through `file_safety.read_confined_regular_file`, and records a missing or unsafe target as a problem instead of raising.
 - AC-0026 (visual / manual QA, gated by the closeout commit check): the ledger's live run is driven from a commit that contains `docs/VERIFICATION.md` as driven, records each command verbatim (cleanup included) with its exit status and placeholder-redacted output, and its receipt's fingerprint is `git:` of that commit.
 - AC-0021: the `verify-entry-missing-is-task-zero` reference answer requires a run from start to finish.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_verify_entries_contract.py tests/roster/test_verify_entry_receipts.py tests/roster/test_cognitive_load_repository_contract.py -q -k "not self_host_skill"` exits 0; the deselected projection check waits for the supervisor's `regenerate` step.
+
+### T10: Place the run-start grade under Grades
+
+**Depends on:** T9
+
+**Touches:** `packs/core/.apm/skills/work-loop/references/verification-modes.md`, `packs/core/tests/skills/work-loop/test_verify_entries_contract.py`, `docs/specs/verify-entries/notes/verification-ledger.md`
+
+**Approach:** the ledger's run r4, which replaces r3's non-verbatim record, is a controller commit made before this task's attempt.
+
+**Tests:** no stub (goal-based — content check)
+- AC-0014: the run-start grade sentence moves from `### Drift` to `### Grades`; `test_t9_drift_grades_run_start_stop` reads `### Grades`.
+- AC-0026 (visual / manual QA, gated by the closeout commit check): the ledger's run r4 shows the entry's commands as written, `mktemp -d` and `git init` included.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_verify_entries_contract.py tests/roster/test_verify_entry_receipts.py -q` exits 0.
 
 ## Risks
 
