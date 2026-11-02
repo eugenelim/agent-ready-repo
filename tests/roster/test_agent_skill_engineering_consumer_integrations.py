@@ -747,17 +747,12 @@ def test_ac15_qa_records_each_review_walk_item_and_session() -> None:
 
 
 def test_ac16_provider_absence_follow_on_is_registered() -> None:
-    """T6a turns AC16 green by registering the provider-absence follow-on."""
-    backlog = _workspace().get("backlog")
-    open_entries = backlog.get("open") if isinstance(backlog, dict) else None
-    entries = open_entries if isinstance(open_entries, list) else []
-    matches = [
-        entry
-        for entry in entries
-        if isinstance(entry, dict)
-        and entry.get("slug") == "agent-skill-engineering-provider-absence-behaviour"
-        and entry.get("source") == f"{SPEC_PATH}#follow-ons"
-    ]
-    assert len(matches) == 1  # same-slice
-    summary = matches[0].get("summary")
-    assert isinstance(summary, str) and summary.strip()  # same-slice
+    """T6a turns AC16 green by registering the provider-absence follow-on.
+
+    The follow-on lives in its captured-item file, which carries the summary the
+    registry entry carried before the entry was retired.
+    """
+    item = ROOT / "docs/product/captured/agent-skill-engineering-provider-absence-behaviour.md"
+    text = item.read_text(encoding="utf-8")
+    assert "- **Status:**" in text  # same-slice
+    assert "Discharge the behavioural half of the provider-absence obligation" in text  # same-slice

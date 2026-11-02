@@ -304,7 +304,7 @@ checklists; verification-mode awareness applies to every review that carries a v
      `(deferred: <anchor>)` marker. An unchecked, undeferred AC on a shipping
      spec is a Blocker.
    - (c) **Deferred items recorded in the register.** Every `(deferred: <anchor>)`
-     resolves through a `workspace.toml [backlog].open` entry or an open intent, brief or spec file. A deferral that
+     resolves through its captured-item file `docs/product/captured/<anchor>.md` or an open intent, brief or spec file. A deferral that
      lives only in the PR description rots — flag it.
    - (d) **Intra-repo references resolve.** Doc links and `<spec>/<anchor>`
      references the diff touches actually resolve. Dangling refs are drift.

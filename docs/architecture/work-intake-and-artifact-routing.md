@@ -132,19 +132,23 @@ its `Depends on:` targets, read by `work-loop`'s `dispatch.py`. A tracker-origin
 artifact carries its tracker profile in the `tracker_profile` table of its own
 `source-authority` record. Existing entries stay readable until
 `workspace-status` `repair-plan` and `repair-apply` remove them (the
-`needs-to-header`, `captured-to-file`, `intent-brief-drop`, `spec-entry-drop`,
-and `tracker-entry-drop` operations).
+`needs-to-header`, `captured-to-file`, `captured-entry-drop`,
+`intent-brief-drop`, `spec-entry-drop`, and `tracker-entry-drop` operations).
 
 `workspace.toml` still exists in this repository. It is not a requirements
 store. A remaining entry has `path`, `kind`, `source`, `summary`, and `needs`;
 comments, summaries, order, labels, and hints cannot select a route, satisfy a
-dependency, or authorize dispatch. Deleting the file, and moving the
-`[authorization.*]` policy tables out of it, is the last
+dependency, or authorize dispatch. Refresh reads its role policy from the
+`[authorization.refresh]` table of `.work-intake.toml` at the repository root,
+and the `refresh-policy-move` repair moves an existing table there.
+`[authorization.migration]` stays in `workspace.toml` until deleting the file,
+which is the last
 [retirement slice](../product/briefs/workspace-registry-retirement-delivery.md).
 
-`[backlog].open` is the legacy register of deferral anchors. What it means for
-a spec's deferral marker is the loop contract's
-[§ 7](loop-contract.md#7-mechanical-invariants).
+The captured-item file `docs/product/captured/<slug>.md` is the register for
+captured work and for a spec's deferral anchors, and `workspace-status`
+projects those files. How a deferral marker resolves through it is the loop
+contract's [§ 7](loop-contract.md#7-mechanical-invariants).
 
 ### Delivery-brief lifecycle
 

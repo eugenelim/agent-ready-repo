@@ -3,6 +3,7 @@
 - **Status:** Open
 - **Kind:** defect
 - **Parent intent:** intent:direct-skill-lifecycle
+- **Depends on:** spec:direct-skill-lifecycle
 
 ## Summary
 

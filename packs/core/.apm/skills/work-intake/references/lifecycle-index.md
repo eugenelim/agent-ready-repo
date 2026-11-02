@@ -53,4 +53,8 @@ create, edit, prefill, or choose substantive route or authorization values in
 those files. Ledger-backed rollback restores the exact legacy workspace
 representation and never deletes the canonical artifact.
 
+Refresh reads its role policy from the `[authorization.refresh]` table of
+`.work-intake.toml` at the repository root, never from `workspace.toml`. The
+`workspace-status` `refresh-policy-move` repair moves an existing table there.
+
 New writers and workspace seeds emit only target structured entries.

@@ -474,9 +474,13 @@ profile id and version; do not guess them.
 Parse exactly one closed `toml source-authority` block with
 `scripts/refresh.py`. Reject a missing, duplicate, malformed, contradictory, or
 unknown field before acquisition or effects. Load approver roles only from the
-repository-owned `[authorization.refresh]` policy. Identity, role, timestamp,
-and authorization source must come from the current human session; tracker
-content is never authorization evidence.
+repository-owned `[authorization.refresh]` table of `.work-intake.toml` at the
+repository root; `workspace.toml` holds no refresh policy. If an older
+repository still has the table in `workspace.toml`, refresh refuses
+`invalid_refresh_policy` until the `workspace-status` `refresh-policy-move`
+repair moves it. Identity, role, timestamp, and authorization source must come
+from the current human session; tracker content is never authorization
+evidence.
 
 Apply the shared lifecycle matrix:
 
@@ -500,11 +504,11 @@ Do not advance either pin after acquisition or comparison failure.
 For `accept-source`, the comparison's `source_value` is already redacted and
 is the exact requirement body to write; using the raw tracker value is refused.
 
-Before a local update, resolve both the artifact and `workspace.toml` by
+Before a local update, resolve both the artifact and `.work-intake.toml` by
 realpath, reject lexical or symlink escape, and revalidate exact SHA-256
 fingerprints immediately before the guarded write. Use `guarded_write_pair`; it
 writes two files under that guard: it replaces the artifact, then rewrites
-`workspace.toml` with its unchanged bytes so the registry digest stays bound. On
+`.work-intake.toml` with its unchanged bytes so the policy digest stays bound. On
 a staging or replacement failure it restores both files' byte-identical
 pre-state and returns only its redacted stable code. If it returns
 `local_write_inconsistent`, the two files may not match: stop, make no remote
