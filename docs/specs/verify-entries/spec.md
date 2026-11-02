@@ -1,6 +1,6 @@
 # Spec: verify entries
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144
@@ -91,7 +91,7 @@ Unless a criterion names another region, "the section" is the text of `packs/cor
 - [ ] **AC-0001.** The section states that at PLAN a task whose verification mode is visual / manual QA, behavior pin, or measurement looks for a verify entry for each surface the task changes or must drive to prove its outcome, and that a missing entry makes creating it the task's first step.
 - [ ] **AC-0002.** The section states that a surface the change neither touches nor must drive is recorded as uncovered and is not mapped, drafted, or fixed.
 - [ ] **AC-0003.** The section lists, in this order, where an agent looks before creating a file: a verify file an `AGENT_RULES.md` row already routes to; `CONTRIBUTING.md` in `.github/`, the root, or `docs/`, and the guides it links to; developer guides, naming `DEVELOPMENT.md`, `docs/DEVELOPMENT.md`, `docs/development/`, `contribute/`, `BUILD.md`, `BUILDING.md`, `TESTING.md`, `HACKING.md`, and `VERIFICATION.md`; README sections on running or building locally; agent instruction files and host skills, naming `AGENTS.md`, `.github/copilot-instructions.md`, `GEMINI.md`, and `.claude/skills/verify/`.
-- [ ] **AC-0004.** The section states that when an existing file covers the surface the agent offers to add the entry there, that `docs/VERIFICATION.md` is created only when no file covers the surface or the adopter declines, and that an unanswered or ambiguous offer writes nothing.
+- [ ] **AC-0004.** The section states that when an existing human-facing file covers the surface the agent offers to add the entry there; that agent instruction files and host skills are read for commands to map into an entry but never hold one; that `docs/VERIFICATION.md` is created only when no human-facing file covers the surface or the adopter declines; and that an unanswered or ambiguous offer writes nothing. A human-facing file is any place AC-0003 lists other than agent instruction files and host skills.
 - [ ] **AC-0032.** The section states that while an offer is unanswered the surface's grade is `blocked`, the run names the pending offer and records no receipt, because no command ran, and the task does not claim its mode.
 - [ ] **AC-0005.** The section states that after writing an entry in a file no `AGENT_RULES.md` row routes to, the agent adds one row under the same adopter acceptance as the entry, whose `read` cell is that file's repository-relative path and whose `when` is limited to verifying the surfaces that file covers.
 - [ ] **AC-0006.** The section states that `RUNBOOK.md` and `docs/runbooks/` are not extended with launch steps.

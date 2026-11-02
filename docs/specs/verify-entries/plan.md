@@ -1,7 +1,7 @@
 # Plan: verify entries
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations); `tests/AGENTS.md` (roster placement and its three wiring edits); `docs/specs/work-loop-evidence-modes/` and its `test_evidence_modes_contract.py` as the analogous section-scoped guidance delivery; `tests/roster/test_evidence_store_schema_parity.py` as the analogous schema-validation roster test; `docs/product/research/product-run-docs-survey.md` for the detection order and default name. Deviation: `tests/roster/test_cognitive_load_repository_contract.py` pins root `AGENT_RULES.md` byte-identical to the seed and row-free, which forbids any adopter row in this repository; T5 relaxes both pins for the root file to "seed bytes, then table rows".
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -55,7 +55,7 @@ The doctrine lands first (T1), because every other task points at it: the routin
 
 ### Design decisions
 
-Owned by: T1, T4, T5, T6, T8.
+Owned by: T1, T4, T5, T6, T8, T9.
 
 **Section shape.** `## Verify entries` sits between `## Exploratory / visual fuzz` and `## Behavior pin`. Its sub-headings, in order: When an entry is needed, Where entries live, Building an entry, Proving an entry, Recording and promoting, Drift, Fields, Rules, Grades, Receipt mapping, Placeholders and trust. Each section criterion lives under exactly one sub-heading, so a test reads one sub-section.
 
@@ -63,7 +63,7 @@ Owned by: T1, T4, T5, T6, T8.
 
 **Mutation proof, not receipt.** The failing proof run fills `mutation-proof.md`'s record with the entry's evidence check as its catching test and one deliberate break of the driven subject as its exact mutation, the break standing in for that reference's revert to the pre-fix implementation. It reports no grade and no receipt, so it can never contradict the real subject.
 
-**Locating the file.** "Covers the surface" means the file already states how to launch or drive that surface. The offer names the file and the fields to add; on acceptance the entry is written there under a `## Verify: <surface>` heading. While the offer is unanswered the run grades the surface `blocked` and names the pending offer. One `AGENT_RULES.md` row routes to the file, under the same acceptance, with a `when` naming verification of those surfaces. The verify file never mentions `AGENT_RULES.md`, so routing stays one hop.
+**Locating the file.** "Covers the surface" means the file already states how to launch or drive that surface. Agent instruction files (`AGENTS.md` and host equivalents) and host skills are sources to map, never entry homes: a seeded `AGENTS.md` loads `AGENT_RULES.md`, so a row routing back to it would loop, and every session would pay for the entry. The offer names the file and the fields to add; on acceptance the entry is written there under a `## Verify: <surface>` heading. While the offer is unanswered the run grades the surface `blocked` and names the pending offer. One `AGENT_RULES.md` row routes to the file, under the same acceptance, with a `when` naming verification of those surfaces. The verify file never mentions `AGENT_RULES.md`, so routing stays one hop.
 
 **Placeholders.** Raw transcripts stay in an evidence directory version control ignores. Anything copied into a committed record replaces absolute paths with `<checkout>`, `<scratch>`, or `<evidence-dir>`, and drops hostnames, usernames, and credential values.
 
@@ -79,7 +79,7 @@ Owned by: T1, T4, T5, T6, T8.
 
 ## Tasks
 
-Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entries_contract.py` is named for its task (`test_t1_…`, `test_t2_…`, `test_t3_…`, `test_t8_…`), so each `Done when` selects one task's tests with `-k tN_`.
+Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entries_contract.py` is named for its task (`test_t1_…`, `test_t2_…`, `test_t3_…`, `test_t8_…`, `test_t9_…`), so each `Done when` selects one task's tests with `-k tN_`.
 
 ### T1: Verify-entry doctrine and template
 
@@ -150,7 +150,7 @@ Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entri
 
 **Touches:** `docs/specs/verify-entries/notes/verification-ledger.md`
 
-**Approach:** the controller drives the entry and commits the ledger between attempts; the attempt itself carries any entry correction the run found and the ledger tests. The rebased-tree rerun belongs to T9.
+**Approach:** the controller drives the entry and commits the ledger between attempts; the attempt itself carries any entry correction the run found and the ledger tests. The rebased-tree rerun belongs to closeout.
 
 **Tests:** visual / manual QA — drive `docs/VERIFICATION.md`'s entry from the checkout as written.
 - AC-0026: one full run graded `live-verified`, with each command, exit status, and placeholder-redacted output, and its receipt in a fenced `json` block under `## Receipts`.
@@ -182,6 +182,23 @@ Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entri
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_verify_entries_contract.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py tests/roster/test_tdd_stub_lifecycle_contract.py packs/core/tests/skills/adapt-to-project/test_adapt_skill_body.py -q` exits 0, `python3 tools/changelog.py validate` exits 0, `agentbundle catalogue lint --root . --deep` and `agentbundle catalogue verify --root .` exit 0, and `agentbundle catalogue self-host --root . --write && git diff --exit-code` exits 0.
 
+### T9: Repair code-review findings
+
+**Depends on:** T1, T3, T5, T6
+
+**Touches:** `packs/core/.apm/skills/work-loop/references/verification-modes.md`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/tests/skills/work-loop/test_verify_entries_contract.py`, `tests/roster/test_verify_entry_receipts.py`, `tests/roster/test_cognitive_load_repository_contract.py`, `docs/specs/verify-entries/notes/verification-ledger.md`
+
+**Approach:** the ledger rerun is a controller commit between attempts, as in T6. T9 does not run self-host: the run pins the installed skill, so the supervisor's `regenerate` step rebuilds the adapter projections after review readiness, and closeout checks AC-0031 on the result. Its new tests in `test_verify_entries_contract.py` are named `test_t9_…`.
+
+**Tests:** no stub (goal-based — content check, plus a live rerun of the dogfood entry)
+- AC-0004: `### Where entries live` states that agent instruction files and host skills are mapped but never hold an entry, and that the human-facing offer and the `docs/VERIFICATION.md` fallback apply otherwise.
+- AC-0010: `### Drift` names the grade a run stopped at run start reports: `blocked` for doc drift or a harness gap, `failed` for a product bug; the ledger grades run r1 accordingly.
+- AC-0025: a roster assertion that some root `AGENT_RULES.md` row has the read cell `` `docs/VERIFICATION.md` ``; the row check rejects an absolute, backslash, empty, `.`, or `..` segment, reads each target through `file_safety.read_confined_regular_file`, and records a missing or unsafe target as a problem instead of raising.
+- AC-0026 (visual / manual QA, gated by the closeout commit check): the ledger's live run is driven from a commit that contains `docs/VERIFICATION.md` as driven, records each command verbatim (cleanup included) with its exit status and placeholder-redacted output, and its receipt's fingerprint is `git:` of that commit.
+- AC-0021: the `verify-entry-missing-is-task-zero` reference answer requires a run from start to finish.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_verify_entries_contract.py tests/roster/test_verify_entry_receipts.py tests/roster/test_cognitive_load_repository_contract.py -q -k "not self_host_skill"` exits 0; the deselected projection check waits for the supervisor's `regenerate` step.
+
 ## Risks
 
 - A spike install once reported drift on a fresh scratch install and did not reproduce in two retries. If it recurs in T6 it is a product bug to report, never an expected result in the entry.
@@ -193,3 +210,5 @@ Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entri
 
 - 2026-11-02: spec approved by eugenelim
 - 2026-11-02: plan approved by eugenelim
+- 2026-11-02: spec amendment approved by eugenelim (AC-0004: agent instruction files and host skills are mapped, never hold an entry)
+- 2026-11-02: plan amendment approved by eugenelim (T9 repairs the code-review findings)
