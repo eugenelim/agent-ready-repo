@@ -258,3 +258,38 @@ def test_t2_finish_checklist_asks_uncovered_surface() -> None:
     )
     assert "its verify entry does not cover" in region
     assert "record or promote it" in region
+
+
+_ADAPT = _PACK / ".apm" / "skills" / "adapt-to-project"
+
+
+def test_t3_adapt_section_states_seeding_and_no_dependency() -> None:
+    raw = (_ADAPT / "SKILL.md").read_text(encoding="utf-8")
+    i = raw.index("### Compose without taking ownership")
+    region = _flat(raw[i : raw.index("## Pre-flight", i)])
+    assert "seed verify entries" in region
+    assert "../work-loop/references/verification-modes.md#verify-entries" in region
+    assert "approval" in region
+    assert "`work-loop` does not depend on this skill having run" in region
+
+
+def test_t3_eval_cases_exist_with_assertions() -> None:
+    import json
+
+    cases = json.loads((_WORK_LOOP / "evals" / "evals.json").read_text(encoding="utf-8"))["evals"]
+    by_id = {c["id"]: c for c in cases}
+    for eid in (
+        "verify-entry-missing-is-task-zero",
+        "verify-entry-extends-contribution-guide",
+        "verify-entry-product-bug-at-run-start",
+    ):
+        case = by_id[eid]
+        assert case["prompt"].strip() and case["expected_output"].strip()
+        assert case["assertions"] and all(a.strip() for a in case["assertions"])
+
+
+def test_t3_adapt_eval_query_mentions_verify_entries() -> None:
+    import json
+
+    queries = json.loads((_ADAPT / "evals" / "eval_queries.json").read_text(encoding="utf-8"))
+    assert any(q["should_trigger"] is True and "verify entr" in q["query"] for q in queries)
