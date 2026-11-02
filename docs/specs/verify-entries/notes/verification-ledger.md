@@ -12,7 +12,7 @@ Driven at commit `b693f1ed070738f45ea5780fc5cf88876502db65` from `docs/VERIFICAT
 
 ## Run r2 — live-verified
 
-Driven from the working tree on top of commit `b693f1ed070738f45ea5780fc5cf88876502db65`, with the corrected `docs/VERIFICATION.md` not yet committed, so no commit holds the tree it drove. Grade: `live-verified`. It carries no receipt; r4 is the recorded live run.
+Driven from the working tree on top of commit `b693f1ed070738f45ea5780fc5cf88876502db65`, with the corrected `docs/VERIFICATION.md` not yet committed, so no commit holds the tree it drove. Grade: `live-verified`. It carries no receipt; r5 is the recorded live run.
 
 | Step | Command | Exit | Observed |
 | --- | --- | --- | --- |
@@ -35,9 +35,9 @@ Driven from the working tree on top of commit `b693f1ed070738f45ea5780fc5cf88876
 
 Driven at commit `abbb7dd3ba666c6f94bfa3bbab65b7c1b160f1b1` and graded `live-verified`, but its record ran `git init -q` where the entry says `git init` and did not show the Isolation step's `mktemp -d`. Run r4 replaces it.
 
-## Run r4 — live-verified, as the entry is written
+## Run r4 — superseded by the delivery rerun
 
-Driven at commit `3357364813e2318c977f1966d1002181067709fb`, which holds `docs/VERIFICATION.md` as driven; the working tree was clean. Grade: `live-verified`. Each command is the entry's own, in order, with its output and exit status. Paths are placeholders, `<ab>` is the entry's launch prefix, and the render listing's 399 lines under `apm/core/.apm/` (the skills, agents, and hooks tree) are omitted; every other output line is as printed.
+Driven at commit `3357364813e2318c977f1966d1002181067709fb` before the final squash and rebase; run r5 is the recorded run. Recorded at, which holds `docs/VERIFICATION.md` as driven; the working tree was clean. Grade: `live-verified`. Each command is the entry's own, in order, with its output and exit status. Paths are placeholders, `<ab>` is the entry's launch prefix, and the render listing's 399 lines under `apm/core/.apm/` (the skills, agents, and hooks tree) are omitted; every other output line is as printed.
 
 ```text
 $ mktemp -d
@@ -115,15 +115,105 @@ exit=0
 
 - Observation for the CLI's owners, not part of this delivery: the omitted render listing includes 16 local bytecode files under `__pycache__/` directories, such as `apm/core/.apm/adapter-root-bins/__pycache__/intent_delivery_relations.cpython-314.pyc`, so a render from a working checkout can package untracked build residue.
 
+## Run r5 — live-verified on the delivery commit
+
+Driven at commit `1e2c089c98f3b84e7e1bcf3a58f5262c1cf843df`, the squashed delivery commit rebased onto `origin/main`, with a clean working tree. Grade: `live-verified`. Each command is the entry's own, in order, with its output and exit status. Paths are placeholders, `<ab>` is the entry's launch prefix, and the render listing's 399 lines under `apm/core/.apm/` are omitted; every other output line is as printed.
+
+```text
+$ mktemp -d
+<scratch>
+exit=0
+$ <ab> --version
+agentbundle 0.59.1 (spec 0.18, catalogue specification 0.1)
+exit=0
+$ <ab> render <checkout>/packs/core --output <scratch>/render
+agent-plugin: pack "core" excluded by dropped primitives ["adapter-root-bins","agent","command","hook-body","hook-wiring","kiro-ide-hook"]
+apm/core/README.md
+apm/core/apm.yml
+apm/core/pack.toml
+apm/core/seeds/.gitignore
+apm/core/seeds/AGENTS.md
+apm/core/seeds/AGENT_RULES.md
+apm/core/seeds/_agents-footer.md
+apm/core/seeds/docs/AGENTS.md
+apm/core/seeds/docs/CHARTER.md
+apm/core/seeds/docs/README.md
+apm/core/seeds/docs/architecture/README.md
+apm/core/seeds/docs/architecture/overview.md
+apm/core/seeds/docs/knowledge/README.md
+apm/core/seeds/docs/knowledge/patterns.jsonl
+apm/core/seeds/docs/product/README.md
+apm/core/seeds/docs/product/briefs/_template.md
+apm/core/seeds/docs/product/changelog.md
+apm/core/seeds/docs/product/roadmap.md
+apm/core/seeds/docs/specs/README.md
+apm/core/seeds/workspace.toml
+claude-plugins/marketplace.json
+exit=0
+$ test -f <scratch>/render/apm/core/.apm/skills/work-loop/SKILL.md
+exit=0
+$ git init <scratch>/repo
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: will change to "main" in Git 3.0. To configure the initial branch name
+hint: to use in all of your new repositories, which will suppress this warning,
+hint: call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+Initialized empty Git repository in <scratch>/repo/.git/
+exit=0
+$ <ab> install <checkout> --pack core --scope repo --adapter codex --yes --output <scratch>/repo
+warning: pack core ships 1 command that codex projects as 'dropped'; these primitives will not be installed. The compatible primitives (agents, hook-bodies, hook-wirings, and skills) will proceed.
+install: delivered 15 seed(s) for pack core
+Installed core for codex (repo).
+  Skills → .agents/skills/ — also read by cursor, gemini, copilot.
+  Hooks & subagents → .codex/ — codex only; install those adapters
+  separately to get them there.
+adapt: no .adapt-discovery.toml at repo root; markers left unresolved
+installed: core @ repo via codex
+
+Verify:   Run workspace-status and confirm your workspace.toml queue state is displayed.
+Next:     Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable.
+exit=0
+$ test -f <scratch>/repo/.agentbundle-state.toml
+exit=0
+$ <ab> diff --root <scratch>/repo --scope repo <checkout>/packs/core
+exit=0
+$ rm -rf <scratch>
+exit=0
+$ test ! -e <scratch>
+exit=0
+$ test -s <evidence-dir>/transcript.txt
+exit=0
+```
+
+## Delivery-time checks
+
+Run once after the final rebase, against merge base `18fae8dacfc8e32469ea93caada19256444373fc` with freshly fetched `origin/main`.
+
+| Check | Command | Exit |
+| --- | --- | --- |
+| Receipt schema unchanged | `git diff --exit-code <merge-base> HEAD -- contracts/delivery/evidence-receipt.v1.schema.json` | 0 |
+| Live run's commit drives the delivery tree | `git diff --quiet 1e2c089c98f3b84e7e1bcf3a58f5262c1cf843df HEAD -- . ':(exclude)docs/specs/verify-entries'` | 0 |
+| Pinned suites unedited | `git diff --exit-code <merge-base> HEAD -- packs/core/tests/skills/work-loop/test_evidence_modes_contract.py tests/roster/test_tdd_stub_lifecycle_contract.py packs/core/tests/skills/adapt-to-project/test_adapt_skill_body.py` | 0 |
+| Core release consistent | `python3 tools/check-core-release.py --base <merge-base>` | 0 |
+| Self-host leaves no tracked change | `agentbundle catalogue self-host --root . --write && git diff --exit-code` | 0 |
+
 ## Receipts
 
-Run r4:
+Run r5:
 
 ```json
 {
   "schema_version": 1,
-  "receipt_id": "verify:agentbundle-cli:r4",
-  "acceptance_fingerprint": "git:3357364813e2318c977f1966d1002181067709fb",
+  "receipt_id": "verify:agentbundle-cli:r5",
+  "acceptance_fingerprint": "git:1e2c089c98f3b84e7e1bcf3a58f5262c1cf843df",
   "lineage": {"criterion_ref": "AC-0026"},
   "selector": {"term": "verify"},
   "freshness_mode": "exact-subject",

@@ -1,7 +1,7 @@
 # Plan: verify entries
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations); `tests/AGENTS.md` (roster placement and its three wiring edits); `docs/specs/work-loop-evidence-modes/` and its `test_evidence_modes_contract.py` as the analogous section-scoped guidance delivery; `tests/roster/test_evidence_store_schema_parity.py` as the analogous schema-validation roster test; `docs/product/research/product-run-docs-survey.md` for the detection order and default name. Deviation: `tests/roster/test_cognitive_load_repository_contract.py` pins root `AGENT_RULES.md` byte-identical to the seed and row-free, which forbids any adopter row in this repository; T5 relaxes both pins for the root file to "seed bytes, then table rows".
 
 > **Plan contract:** this is the implementation strategy. After approval, a

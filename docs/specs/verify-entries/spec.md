@@ -1,6 +1,6 @@
 # Spec: verify entries
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144
@@ -89,68 +89,68 @@ Unless a criterion names another region, "the section" is the text of `packs/cor
 
 ### Scope and location
 
-- [ ] **AC-0001.** The section states that at PLAN a task whose verification mode is visual / manual QA, behavior pin, or measurement looks for a verify entry for each surface the task changes or must drive to prove its outcome, and that a missing entry makes creating it the task's first step.
-- [ ] **AC-0002.** The section states that a surface the change neither touches nor must drive is recorded as uncovered and is not mapped, drafted, or fixed.
-- [ ] **AC-0003.** The section lists, in this order, where an agent looks before creating a file: a verify file an `AGENT_RULES.md` row already routes to; `CONTRIBUTING.md` in `.github/`, the root, or `docs/`, and the guides it links to; developer guides, naming `DEVELOPMENT.md`, `docs/DEVELOPMENT.md`, `docs/development/`, `contribute/`, `BUILD.md`, `BUILDING.md`, `TESTING.md`, `HACKING.md`, and `VERIFICATION.md`; README sections on running or building locally; agent instruction files and host skills, naming `AGENTS.md`, `.github/copilot-instructions.md`, `GEMINI.md`, and `.claude/skills/verify/`.
-- [ ] **AC-0004.** The section states that when an existing human-facing file covers the surface the agent offers to add the entry there; that agent instruction files and host skills are read for commands to map into an entry but never hold one; that `docs/VERIFICATION.md` is created only when no human-facing file covers the surface or the adopter declines; and that an unanswered or ambiguous offer writes nothing. A human-facing file is any place AC-0003 lists other than agent instruction files and host skills.
-- [ ] **AC-0032.** The section states that while an offer is unanswered the surface's grade is `blocked`, the run names the pending offer and records no receipt, because no command ran, and the task does not claim its mode.
-- [ ] **AC-0005.** The section states that after writing an entry in a file no `AGENT_RULES.md` row routes to, the agent adds one row under the same adopter acceptance as the entry, whose `read` cell is that file's repository-relative path and whose `when` is limited to verifying the surfaces that file covers.
-- [ ] **AC-0006.** The section states that `RUNBOOK.md` and `docs/runbooks/` are not extended with launch steps.
+- [x] **AC-0001.** The section states that at PLAN a task whose verification mode is visual / manual QA, behavior pin, or measurement looks for a verify entry for each surface the task changes or must drive to prove its outcome, and that a missing entry makes creating it the task's first step.
+- [x] **AC-0002.** The section states that a surface the change neither touches nor must drive is recorded as uncovered and is not mapped, drafted, or fixed.
+- [x] **AC-0003.** The section lists, in this order, where an agent looks before creating a file: a verify file an `AGENT_RULES.md` row already routes to; `CONTRIBUTING.md` in `.github/`, the root, or `docs/`, and the guides it links to; developer guides, naming `DEVELOPMENT.md`, `docs/DEVELOPMENT.md`, `docs/development/`, `contribute/`, `BUILD.md`, `BUILDING.md`, `TESTING.md`, `HACKING.md`, and `VERIFICATION.md`; README sections on running or building locally; agent instruction files and host skills, naming `AGENTS.md`, `.github/copilot-instructions.md`, `GEMINI.md`, and `.claude/skills/verify/`.
+- [x] **AC-0004.** The section states that when an existing human-facing file covers the surface the agent offers to add the entry there; that agent instruction files and host skills are read for commands to map into an entry but never hold one; that `docs/VERIFICATION.md` is created only when no human-facing file covers the surface or the adopter declines; and that an unanswered or ambiguous offer writes nothing. A human-facing file is any place AC-0003 lists other than agent instruction files and host skills.
+- [x] **AC-0032.** The section states that while an offer is unanswered the surface's grade is `blocked`, the run names the pending offer and records no receipt, because no command ran, and the task does not claim its mode.
+- [x] **AC-0005.** The section states that after writing an entry in a file no `AGENT_RULES.md` row routes to, the agent adds one row under the same adopter acceptance as the entry, whose `read` cell is that file's repository-relative path and whose `when` is limited to verifying the surfaces that file covers.
+- [x] **AC-0006.** The section states that `RUNBOOK.md` and `docs/runbooks/` are not extended with launch steps.
 
 ### Building and proving an entry
 
-- [ ] **AC-0007.** The section states that an entry for a surface with existing tooling points at that tooling and records only what it lacks: the exact invocation, the ready signal, which output is the evidence, and cleanup; and that new commands are drafted from the repository's manifests, scripts, CI, and docs only where no tooling covers the surface.
-- [ ] **AC-0008.** The section states that an entry is a draft until it has run once from start to finish; that it also needs one recorded failing run whose `mutation-proof.md` record names the entry's evidence check as its catching test and one deliberate break of the driven subject as its exact mutation, the break standing in for that reference's revert to the pre-fix implementation; and that the task does not claim its mode before both exist.
-- [ ] **AC-0009.** The section states that drive commands are recorded in the verification ledger, and that when a second run drives the same surface by hand its commands move into the verify file, a test, or the repository's own tooling.
-- [ ] **AC-0010.** The section states that an in-scope entry failing at run start is classified as doc drift, a harness gap, or a product bug; that a harness gap in mapped tooling is fixed in that tooling; and that a product bug is reported and never written into the entry as expected behavior.
+- [x] **AC-0007.** The section states that an entry for a surface with existing tooling points at that tooling and records only what it lacks: the exact invocation, the ready signal, which output is the evidence, and cleanup; and that new commands are drafted from the repository's manifests, scripts, CI, and docs only where no tooling covers the surface.
+- [x] **AC-0008.** The section states that an entry is a draft until it has run once from start to finish; that it also needs one recorded failing run whose `mutation-proof.md` record names the entry's evidence check as its catching test and one deliberate break of the driven subject as its exact mutation, the break standing in for that reference's revert to the pre-fix implementation; and that the task does not claim its mode before both exist.
+- [x] **AC-0009.** The section states that drive commands are recorded in the verification ledger, and that when a second run drives the same surface by hand its commands move into the verify file, a test, or the repository's own tooling.
+- [x] **AC-0010.** The section states that an in-scope entry failing at run start is classified as doc drift, a harness gap, or a product bug; that a harness gap in mapped tooling is fixed in that tooling; and that a product bug is reported and never written into the entry as expected behavior.
 
 ### Entry contents
 
-- [ ] **AC-0011.** The section names these twelve fields, each with what it holds: Surface, Launch, Ready, Doctor, Isolation, Drive, Features, Evidence, Proof limits, Cleanup, Helpers, Stand-in gap; and states that Doctor is one read-only check.
-- [ ] **AC-0012.** The section states each of these rules: ready means usable, not that the process answers; never drive an instance this run did not start; drive by stable handles such as roles, labels, and prompt strings, never coordinates; evidence survives cleanup and the run checks that it did; test-only endpoints and internal setters are not proof; a dry-run is checked by observing what it skips.
-- [ ] **AC-0033.** The section states that cleanup stops or removes only processes, containers, and directories this run started or created, identified by the handle the run recorded and never by process name or pattern.
-- [ ] **AC-0013.** `packs/core/.apm/skills/work-loop/assets/verify-entry.md` holds one heading per field AC-0011 names, in that order, and every value in it is an angle-bracket placeholder.
+- [x] **AC-0011.** The section names these twelve fields, each with what it holds: Surface, Launch, Ready, Doctor, Isolation, Drive, Features, Evidence, Proof limits, Cleanup, Helpers, Stand-in gap; and states that Doctor is one read-only check.
+- [x] **AC-0012.** The section states each of these rules: ready means usable, not that the process answers; never drive an instance this run did not start; drive by stable handles such as roles, labels, and prompt strings, never coordinates; evidence survives cleanup and the run checks that it did; test-only endpoints and internal setters are not proof; a dry-run is checked by observing what it skips.
+- [x] **AC-0033.** The section states that cleanup stops or removes only processes, containers, and directories this run started or created, identified by the handle the run recorded and never by process name or pattern.
+- [x] **AC-0013.** `packs/core/.apm/skills/work-loop/assets/verify-entry.md` holds one heading per field AC-0011 names, in that order, and every value in it is an angle-bracket placeholder.
 
 ### Grades and receipts
 
-- [ ] **AC-0014.** The section names exactly five grades — `live-verified`, `test-verified`, `build-only`, `blocked`, `failed` — states that each run other than the failing proof run reports one, and states that a grade its recorded commands and output do not support is reported as `blocked`.
-- [ ] **AC-0015.** The section holds a table mapping each of the five grades to an `observation.type` from `command-result` and `test-result` and to an `outcome` equal to the grade, and states the receipt's `schema_version` `1`, its `receipt_id` form `verify:<surface>:<run-id>`, its `freshness_mode` `exact-subject`, and its producer class `verify-entry` with the identity `verify:<surface>`.
-- [ ] **AC-0016.** The section states that which criterion a run proves comes from the task and the criterion's approved evidence policy, never from the verify entry.
+- [x] **AC-0014.** The section names exactly five grades — `live-verified`, `test-verified`, `build-only`, `blocked`, `failed` — states that each run other than the failing proof run reports one, and states that a grade its recorded commands and output do not support is reported as `blocked`.
+- [x] **AC-0015.** The section holds a table mapping each of the five grades to an `observation.type` from `command-result` and `test-result` and to an `outcome` equal to the grade, and states the receipt's `schema_version` `1`, its `receipt_id` form `verify:<surface>:<run-id>`, its `freshness_mode` `exact-subject`, and its producer class `verify-entry` with the identity `verify:<surface>`.
+- [x] **AC-0016.** The section states that which criterion a run proves comes from the task and the criterion's approved evidence policy, never from the verify entry.
 
 ### Safety
 
-- [ ] **AC-0017.** The section states that recorded commands, and any output copied into the verification ledger or another committed record, use placeholders for paths, hostnames, and usernames, never include a credential value, and name a credential only by its environment variable.
-- [ ] **AC-0018.** The section states that a verify entry is agent guidance whose edits change a tool surface, that its commands run only under the host's permission mode, and that an entry never widens network, credential, or write scope beyond what the task's verification needs.
+- [x] **AC-0017.** The section states that recorded commands, and any output copied into the verification ledger or another committed record, use placeholders for paths, hostnames, and usernames, never include a credential value, and name a credential only by its environment variable.
+- [x] **AC-0018.** The section states that a verify entry is agent guidance whose edits change a tool surface, that its commands run only under the host's permission mode, and that an entry never widens network, credential, or write scope beyond what the task's verification needs.
 
 ### Routing, seeding, evals
 
-- [ ] **AC-0019.** In `work-loop` SKILL.md, PLAN step 7's paragraph beginning `**Confirm the mechanism exists before claiming the mode` links `references/verification-modes.md#verify-entries`.
-- [ ] **AC-0034.** In `work-loop` SKILL.md, the finish checklist's "Verification passed" item asks whether the run drove a surface or feature its verify entry does not cover.
-- [ ] **AC-0020.** `adapt-to-project` SKILL.md states that it may seed verify entries in the format `work-loop` uses, and that `work-loop` does not depend on it having run.
-- [ ] **AC-0021.** `work-loop`'s `evals/evals.json` holds one case each for a missing entry becoming task zero, an existing contribution guide offered for extension, and a product bug found at run start, and each carries `id`, `prompt`, `expected_output`, and a non-empty `assertions` list.
-- [ ] **AC-0035.** `adapt-to-project`'s `evals/eval_queries.json` holds one `should_trigger: true` query about seeding verify entries.
+- [x] **AC-0019.** In `work-loop` SKILL.md, PLAN step 7's paragraph beginning `**Confirm the mechanism exists before claiming the mode` links `references/verification-modes.md#verify-entries`.
+- [x] **AC-0034.** In `work-loop` SKILL.md, the finish checklist's "Verification passed" item asks whether the run drove a surface or feature its verify entry does not cover.
+- [x] **AC-0020.** `adapt-to-project` SKILL.md states that it may seed verify entries in the format `work-loop` uses, and that `work-loop` does not depend on it having run.
+- [x] **AC-0021.** `work-loop`'s `evals/evals.json` holds one case each for a missing entry becoming task zero, an existing contribution guide offered for extension, and a product bug found at run start, and each carries `id`, `prompt`, `expected_output`, and a non-empty `assertions` list.
+- [x] **AC-0035.** `adapt-to-project`'s `evals/eval_queries.json` holds one `should_trigger: true` query about seeding verify entries.
 
 ### Contract fit
 
-- [ ] **AC-0022.** For each row of AC-0015's table, a receipt whose `observation.type` and `outcome` come from that row, whose `schema_version`, `receipt_id`, `freshness_mode`, and `producer` come from the section's stated forms with `<surface>` and `<run-id>` filled, and whose lineage, selector, and fingerprint are placeholders, validates against `contracts/delivery/evidence-receipt.v1.schema.json`.
-- [ ] **AC-0023.** At delivery, `git diff --exit-code <merge-base> HEAD -- contracts/delivery/evidence-receipt.v1.schema.json` exits 0, and the ledger records the command and its exit status.
+- [x] **AC-0022.** For each row of AC-0015's table, a receipt whose `observation.type` and `outcome` come from that row, whose `schema_version`, `receipt_id`, `freshness_mode`, and `producer` come from the section's stated forms with `<surface>` and `<run-id>` filled, and whose lineage, selector, and fingerprint are placeholders, validates against `contracts/delivery/evidence-receipt.v1.schema.json`.
+- [x] **AC-0023.** At delivery, `git diff --exit-code <merge-base> HEAD -- contracts/delivery/evidence-receipt.v1.schema.json` exits 0, and the ledger records the command and its exit status.
 
 ### This repository's entry
 
-- [ ] **AC-0024.** `docs/VERIFICATION.md` holds one `agentbundle` CLI entry with a heading for every field AC-0011 names.
-- [ ] **AC-0036.** That entry's Drive renders the core pack with `agentbundle render`, installs it into a scratch Git repository with `agentbundle install` and `--adapter codex`, and verifies it with `agentbundle diff`.
-- [ ] **AC-0037.** Neither `docs/VERIFICATION.md` nor `docs/specs/verify-entries/notes/verification-ledger.md` contains a `/Users/`, `/home/`, `/private/var/`, `/var/folders/`, or `C:\Users` path, or an email address.
-- [ ] **AC-0025.** Root `AGENT_RULES.md` is the seed `AGENT_RULES.md` followed by table rows only, one of which has the `read` cell `` `docs/VERIFICATION.md` ``.
-- [ ] **AC-0026.** The verification ledger records one run of the entry graded `live-verified`, with each command, its exit status, and its output, and one receipt for it whose `acceptance_fingerprint` is `git:<commit>` of the commit driven and which validates against the schema; at delivery, `git diff --quiet <commit> HEAD -- . ':(exclude)docs/specs/verify-entries'` exits 0 and the ledger records it.
-- [ ] **AC-0027.** The ledger records one failing run as a mutation proof naming: the invariant (the install matches a fresh render); the catching check (`agentbundle diff`); the exact mutation (one line appended to one installed file in the scratch repository); and the expected and observed failure (`agentbundle diff` exiting 1 and naming that file).
+- [x] **AC-0024.** `docs/VERIFICATION.md` holds one `agentbundle` CLI entry with a heading for every field AC-0011 names.
+- [x] **AC-0036.** That entry's Drive renders the core pack with `agentbundle render`, installs it into a scratch Git repository with `agentbundle install` and `--adapter codex`, and verifies it with `agentbundle diff`.
+- [x] **AC-0037.** Neither `docs/VERIFICATION.md` nor `docs/specs/verify-entries/notes/verification-ledger.md` contains a `/Users/`, `/home/`, `/private/var/`, `/var/folders/`, or `C:\Users` path, or an email address.
+- [x] **AC-0025.** Root `AGENT_RULES.md` is the seed `AGENT_RULES.md` followed by table rows only, one of which has the `read` cell `` `docs/VERIFICATION.md` ``.
+- [x] **AC-0026.** The verification ledger records one run of the entry graded `live-verified`, with each command, its exit status, and its output, and one receipt for it whose `acceptance_fingerprint` is `git:<commit>` of the commit driven and which validates against the schema; at delivery, `git diff --quiet <commit> HEAD -- . ':(exclude)docs/specs/verify-entries'` exits 0 and the ledger records it.
+- [x] **AC-0027.** The ledger records one failing run as a mutation proof naming: the invariant (the install matches a fresh render); the catching check (`agentbundle diff`); the exact mutation (one line appended to one installed file in the scratch repository); and the expected and observed failure (`agentbundle diff` exiting 1 and naming that file).
 
 ### Guide, regression, release
 
-- [ ] **AC-0028.** `guides/core/explanation/core-pack.md` states that `work-loop` looks for an existing file covering a surface before proposing `docs/VERIFICATION.md`, and that the adopter owns the file.
-- [ ] **AC-0029.** `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py`, `tests/roster/test_tdd_stub_lifecycle_contract.py`, and `packs/core/tests/skills/adapt-to-project/test_adapt_skill_body.py` pass, and at delivery `git diff --exit-code <merge-base> HEAD --` over those three files exits 0, and the ledger records it.
-- [ ] **AC-0030.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same version.
-- [ ] **AC-0038.** At delivery, `python3 tools/check-core-release.py --base <merge-base>` exits 0, and the tool owns the release facts it checks; the ledger records the command and its exit status.
-- [ ] **AC-0031.** `agentbundle catalogue lint --root . --deep` and `agentbundle catalogue verify --root .` exit 0, and `agentbundle catalogue self-host --root . --write` leaves no tracked change after the delivery commit.
+- [x] **AC-0028.** `guides/core/explanation/core-pack.md` states that `work-loop` looks for an existing file covering a surface before proposing `docs/VERIFICATION.md`, and that the adopter owns the file.
+- [x] **AC-0029.** `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py`, `tests/roster/test_tdd_stub_lifecycle_contract.py`, and `packs/core/tests/skills/adapt-to-project/test_adapt_skill_body.py` pass, and at delivery `git diff --exit-code <merge-base> HEAD --` over those three files exits 0, and the ledger records it.
+- [x] **AC-0030.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same version.
+- [x] **AC-0038.** At delivery, `python3 tools/check-core-release.py --base <merge-base>` exits 0, and the tool owns the release facts it checks; the ledger records the command and its exit status.
+- [x] **AC-0031.** `agentbundle catalogue lint --root . --deep` and `agentbundle catalogue verify --root .` exit 0, and `agentbundle catalogue self-host --root . --write` leaves no tracked change after the delivery commit.
 
 ## Terminal Intent
 
