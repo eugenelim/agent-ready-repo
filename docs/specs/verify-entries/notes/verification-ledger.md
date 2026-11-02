@@ -41,6 +41,7 @@ agentbundle 0.59.0 (spec 0.18, catalogue specification 0.1)
 exit=0
 $ <ab> render <checkout>/packs/core --output <scratch>/render
 agent-plugin: pack "core" excluded by dropped primitives ["adapter-root-bins","agent","command","hook-body","hook-wiring","kiro-ide-hook"]
+apm/core/.apm/adapter-root-bins/__pycache__/intent_delivery_relations.cpython-314.pyc
 apm/core/.apm/adapter-root-bins/_file_safety.py
 apm/core/.apm/adapter-root-bins/intent_delivery_relations.py
 apm/core/.apm/agents/adversarial-reviewer.md
