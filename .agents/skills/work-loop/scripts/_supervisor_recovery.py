@@ -498,14 +498,15 @@ def _exits(ws: Any, div: Divergence) -> tuple[str, str]:
 
 
 _NO_COMMAND = (
-    "no command is named: the approval's base is not a commit this repository holds, so "
-    "return HEAD to the commit before the approval yourself, keeping your uncommitted "
-    "changes, then run start again"
+    "no command is named: the approval's base is not the parent of the commit at HEAD, "
+    "so HEAD may no longer be the cut-off approval. Find that approval commit, keep any "
+    "commits made on top of it that you need, return HEAD to the approval's parent "
+    "yourself, keeping your uncommitted changes, then run start again"
 )
 
 
 def _first_admission_base(ws: Any) -> str | None:
-    """The approval's base, only when it is a full commit id that resolves to a commit."""
+    """The approval's base, only when it is the parent of the approval commit at HEAD."""
     return ws.git.valid_base(ws.approvals()[0]["base"])  # type: ignore[no-any-return]
 
 

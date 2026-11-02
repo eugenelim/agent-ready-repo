@@ -1014,9 +1014,11 @@ class Attempts:
                 command = self.ws.git.first_admission_exit(approvals[0]["base"])
                 exit_text = (
                     f"restore with {command}, then run start again" if command
-                    else "no command is named: the approval's base is not a commit this "
-                    "repository holds, so return HEAD to the commit before the approval "
-                    "yourself, keeping your uncommitted changes, then run start again"
+                    else "no command is named: the approval's base is not the parent of the "
+                    "commit at HEAD, so HEAD may no longer be the cut-off approval. Find that "
+                    "approval commit, keep any commits made on top of it that you need, return "
+                    "HEAD to the approval's parent yourself, keeping your uncommitted changes, "
+                    "then run start again"
                 )
                 raise _unverifiable(
                     "supervisor-changed",

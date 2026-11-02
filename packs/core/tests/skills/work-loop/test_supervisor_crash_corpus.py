@@ -261,7 +261,7 @@ def recover_start(repo: Path, started: dict[str, Any]) -> bool:
         return True
     if code == "supervisor-changed" and "git reset --soft" in detail:
         # The first admission's approval was cut off after its refs moved: run the exit it
-        # prints, which keeps uncommitted work and removes the orphaned product ref.
+        # prints, which keeps uncommitted work; the leftover product ref stays inert.
         variant.require("cut-off", "reset-first-admission")
         command = detail.split("restore with ", 1)[1].split(", then")[0]
         done = subprocess.run(command, shell=True, cwd=repo, env={**os.environ, **h.GIT_ENV},

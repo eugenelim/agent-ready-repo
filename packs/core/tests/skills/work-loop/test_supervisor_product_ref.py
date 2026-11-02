@@ -1417,7 +1417,9 @@ def test_an_approval_base_that_is_not_the_approvals_parent_is_never_used(
         assert "git reset" not in text and "git update-ref" not in text, text
     # start reads the committed record and says no command is named; the others stop at the
     # pin check and point at start.
-    assert "no command is named" in outcomes["start"][1]["refusal"]["detail"]
+    start_detail = outcomes["start"][1]["refusal"]["detail"]
+    assert "no command is named" in start_detail
+    assert "not the parent of the commit at HEAD" in start_detail, start_detail
     for verb in ("next", "status"):
         assert "run start" in outcomes[verb][1]["refusal"]["detail"], verb
     assert not any(forged in argument for call in seen for argument in call if isinstance(argument, str))
@@ -1458,6 +1460,7 @@ def test_a_run_whose_made_list_and_product_ref_are_gone_refuses_naming_no_comman
         assert out["refusal"]["code"] == "supervisor-changed", (verb, out)
         detail = out["refusal"]["detail"]
         assert "no command is named" in detail and "git reset" not in detail, (verb, detail)
+        assert "not the parent of the commit at HEAD" in detail, (verb, detail)
 
 
 @pytest.mark.parametrize("state", ["store-built", "approvals-restored"])

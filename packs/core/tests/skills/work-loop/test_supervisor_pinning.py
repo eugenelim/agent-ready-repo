@@ -1280,6 +1280,8 @@ def test_a_kill_before_the_store_rename_leaves_no_run_directory_and_blocks_nothi
     code, out = h.start(repo)
     assert code == 1 and "no command is named" in out["refusal"]["detail"], out
     assert "git reset" not in out["refusal"]["detail"], out
+    # The reason is the one the check established; the base itself exists.
+    assert "not the parent of the commit at HEAD" in out["refusal"]["detail"], out
 
 
 def test_a_store_directory_is_born_with_its_spec_record(tmp_path: Path) -> None:
