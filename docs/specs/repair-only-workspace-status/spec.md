@@ -219,6 +219,7 @@ the plan's `## Design (LLD)`, not here.
 ## Follow-ons
 
 - eugenelim: 9F — publish the upgrade notes, adding the retired subcommands, migration tooling and MCP fields. Move the seeds, guides, `JOURNEY.md`, `web/` pages, `packs/core/pack.toml`'s first-value check, `packs/core/README.md`, `DESIGN.md` and `docs/index.md`, and the other packs' skills and manifests that still route to a retired subcommand: `desk-research-project-status`, `experience-status`, `run-okr-cascade`'s cross-pack routing, `new-rfc` and `packs/repo-governance/pack.toml`.
+- eugenelim, as `navigate-intents` owner: the readiness bridge maps a dispatch refusal with `unmigrated_workspace` to `wrong_schema`, because the code is not in `intent_readiness.py`'s `_WORKSPACE_FAILURE_CODES`; mapping it to `bad_workspace` is outside this spec's `navigate-intents` boundary (owner decision, 2026-11-02).
 - eugenelim: 9G — retire `.workspace-prune-protected.toml` and its `tests/AGENTS.md` rule with the closure checklist, since nothing reads it once `prune` is gone.
 
 ## Assumptions
