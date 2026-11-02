@@ -216,3 +216,18 @@ def test_plan_guide_states_bundle_split_and_guidance_edit_rules() -> None:
         "published schema",
     ):
         assert phrase in pitfall
+
+
+def test_why_the_loop_explains_verify_entry_home() -> None:
+    """The loop rationale says where a verify entry lives and who owns it."""
+    guide = _collapsed(REPOSITORY_ROOT / "guides/core/explanation/core-pack.md")
+    start = guide.index("## Why the loop")
+    end = guide.find(" ## ", start + 1)
+    section = guide[start : end if end != -1 else len(guide)]
+
+    for phrase in (
+        "checks for an existing file",
+        "`docs/VERIFICATION.md`",
+        "The file is yours",
+    ):
+        assert phrase in section
