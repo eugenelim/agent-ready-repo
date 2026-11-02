@@ -234,10 +234,10 @@ invocation already supplies bounded content at the matching pinned revision.
    reconciles any remaining legacy entries, provenance, authority, and
    lifecycle. Only a ready or active spec may start or resume the work-loop,
    and several candidates are listed for the caller to choose from.
-4. Every dispatchable, queued, or resumable build item resolves to an
+4. Every workspace-dispatchable, queued, or resumable build item resolves to an
    existing durable `spec.md` and sibling `plan.md`; execution receives those
    files rather than tracker payloads or index comments. An explicit
-   direct-light request is session-local, creates no artifact or entry, and is
+   direct-light request is session-local, creates no workspace entry, and is
    ineligible for argless dispatch or fresh-session resumption.
 5. Refresh resolves the exact configured processor, acquires and compares one
    source revision, presents field decisions, and applies guarded local changes
@@ -293,7 +293,7 @@ validate and classify
     |
     +-- direct light --> work-loop from current request
     |
-    +-- durable single slice --> spec + plan --> work-loop
+    +-- durable single slice --> spec + plan --> workspace --> work-loop
     |
     +-- multi-slice outcome --> brief --> confirmed specs + plans
 ```

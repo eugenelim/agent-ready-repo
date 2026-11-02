@@ -270,12 +270,6 @@ consumer = "architecture page stating how workspace.toml and workspace-status fi
 owner = 9
 
 [[row]]
-pattern = "docs/architecture/overview.md"
-class = "guide"
-consumer = "architecture page stating how workspace.toml and workspace-status fit"
-owner = 9
-
-[[row]]
 pattern = "docs/architecture/pack-layout.md"
 class = "guide"
 consumer = "architecture page stating how workspace.toml and workspace-status fit"
