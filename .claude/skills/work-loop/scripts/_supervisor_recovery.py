@@ -609,9 +609,9 @@ def _create(ws: Any, run_id: str, head: str) -> Any:
     """Give a run that records no product ref one at its latest made commit, or report why not."""
     git = ws.git
     latest = _latest_made(ws, run_id, clean=True)
-    if latest is None and not git.made_list(run_id):
-        # Nothing was ever recorded: HEAD holds the approval of a first admission the run
-        # never recorded, so it is measured from the commit the approval was made on.
+    if latest is None and not git.made_list(run_id) and git.approval_only(run_id):
+        # Nothing was ever recorded and the approval is the run's only commit: it is a first
+        # admission the run never recorded, measured from the commit the approval was made on.
         base = _first_admission_base(ws)
         if base is None:
             raise _unnamed_first_admission()
@@ -709,7 +709,12 @@ def inspect(ws: Any) -> Any:
     git = ws.git
     record = git.product_record(approvals[0]["run_id"])
     if record is None:
-        if not git.made_list(approvals[0]["run_id"]) and _first_admission_base(ws) is None:
+        run_id = approvals[0]["run_id"]
+        if (
+            not git.made_list(run_id)
+            and git.approval_only(run_id)
+            and _first_admission_base(ws) is None
+        ):
             return _unnamed_first_admission()
         return None
     kind, value, trusted = git.product_ref_view(record)
@@ -745,7 +750,7 @@ def peek(ws: Any) -> Divergence | None:
         latest = _latest_made(ws, run_id, clean=True)
         if latest is not None and (latest == head or git.made_only(run_id, head, latest)):
             return None
-        if latest is None and not git.made_list(run_id):
+        if latest is None and not git.made_list(run_id) and git.approval_only(run_id):
             base = _first_admission_base(ws)
             if base is None:
                 return None  # ``inspect`` reports the refusal that names no command

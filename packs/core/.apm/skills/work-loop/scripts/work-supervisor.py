@@ -405,7 +405,8 @@ def _store_absent(store: Path) -> bool:
 
 
 # Only ``start`` can name the exit of a first admission nothing recorded: the check that
-# finds it reads Git, which the entry point may not load before the pin check passes.
+# finds it reads Git, which the entry point may not load before the pin check passes. Added
+# only where a store directory exists, which a clone of a finished run does not have.
 _START_NAMES_EXIT = (
     ". If HEAD holds the approval of a first admission this run never recorded, run start: "
     "it names the exit that undoes it"
@@ -479,9 +480,8 @@ def _preflight(
         and verb != "start"
         and (verb != "status" or not _store_absent(base / working))
     ):
-        raise _PinRefused(
-            f"the supervisor's pin record is missing{_START_NAMES_EXIT}", unverifiable=True
-        )
+        # Plain text: a clone with committed records and no store looks the same here.
+        raise _PinRefused("the supervisor's pin record is missing", unverifiable=True)
     matched: set[str] = set()
     for store, name, digests in guarded:
         if installed != digests and installed != _open_regeneration(store, name):

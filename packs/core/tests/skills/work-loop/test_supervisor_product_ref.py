@@ -1412,7 +1412,9 @@ def test_an_approval_base_that_is_not_the_approvals_parent_is_never_used(
     for verb, (code, out) in outcomes.items():
         text = json.dumps(out)
         refusal = out["refusal"]
-        assert code == 1 and refusal["code"] == "supervisor-changed", (verb, out)
+        # status answers from the committed records, so it reports and exits 0.
+        assert code == (0 if verb == "status" else 1), (verb, out)
+        assert refusal["code"] == "supervisor-changed", (verb, out)
         assert forged not in text and "curl" not in text and "--output" not in text, text
         assert "git reset" not in text and "git update-ref" not in text, text
     # start reads the committed record and says no command is named; the others stop at the
@@ -1420,8 +1422,10 @@ def test_an_approval_base_that_is_not_the_approvals_parent_is_never_used(
     start_detail = outcomes["start"][1]["refusal"]["detail"]
     assert "no command is named" in start_detail
     assert "not the parent of the commit at HEAD" in start_detail, start_detail
-    for verb in ("next", "status"):
-        assert "run start" in outcomes[verb][1]["refusal"]["detail"], verb
+    status_detail = outcomes["status"][1]["refusal"]["detail"]
+    assert "no command is named" in status_detail, status_detail
+    # next stops at the pin check, whose text is the plain one: no store directory exists.
+    assert outcomes["next"][1]["refusal"]["detail"] == "the supervisor's pin record is missing"
     assert not any(forged in argument for call in seen for argument in call if isinstance(argument, str))
     assert marker is None or not marker.exists()
 
@@ -1445,22 +1449,20 @@ def test_a_run_whose_made_list_and_product_ref_are_gone_is_measured_from_the_app
     assert "adopt-history" not in question and "Adoption would be refused" in question
 
 
-def test_a_run_whose_made_list_and_product_ref_are_gone_refuses_naming_no_command_off_the_approval(
+def test_a_run_with_later_steps_and_no_record_is_not_read_as_a_first_admission(
     tmp_path: Path,
 ) -> None:
-    """The same state with HEAD past the approval: the base is not HEAD's parent."""
+    """A run with later steps, or a clone of a finished run, is not a cut-off first admission."""
     repo = started(tmp_path)
     advance(repo, controller(repo, tmp_path), calc_implement)
     make_legacy(repo)
     (store_dir(repo) / "made-commits").unlink()
-    for verb in ("next", "status"):
+    assert not h.workspace(repo).git.approval_only(h.workspace(repo).approvals()[0]["run_id"])
+    for verb in ("status", "next"):
         argv = (verb, h.SPEC_DIR) + (("--json",) if verb == "status" else ())
         code, out = h.run_cli(repo, *argv)
-        assert code == (0 if verb == "status" else 1), (verb, out)  # status reports, writes nothing
-        assert out["refusal"]["code"] == "supervisor-changed", (verb, out)
-        detail = out["refusal"]["detail"]
-        assert "no command is named" in detail and "git reset" not in detail, (verb, detail)
-        assert "not the parent of the commit at HEAD" in detail, (verb, detail)
+        assert code == 0 and not out.get("refusal"), (verb, out)
+        assert "first admission" not in json.dumps(out), (verb, out)
 
 
 @pytest.mark.parametrize("state", ["store-built", "approvals-restored"])
@@ -1486,12 +1488,23 @@ def test_every_first_admission_state_refuses_every_verb_and_start_names_the_exit
         h.git(repo, "reset", "-q", "--hard", "HEAD")
         git_dir = Path(h.git(repo, "rev-parse", "--absolute-git-dir").strip())
         assert not list((git_dir / "agentbundle-supervisor").glob("run-*"))
-    for verb in ("next", "report", "status"):
+    for verb in ("next", "report"):
         argv = ("report", h.SPEC_DIR, str(tmp_path / "none.json")) if verb == "report" \
             else (verb, h.SPEC_DIR)
         code, out = h.run_cli(repo, *argv)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (verb, out)
-        assert "run start" in out["refusal"]["detail"], (verb, out)
+        detail = out["refusal"]["detail"]
+        if state == "store-built":  # a store directory exists, so the pin check points at start
+            assert "run start" in detail, (verb, out)
+        else:  # no store: the text a clone of a finished run gets, which cannot be told apart
+            assert detail == "the supervisor's pin record is missing", (verb, out)
+    code, out = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    if state == "store-built":
+        assert code == 1 and "run start" in out["refusal"]["detail"], out
+    else:  # main's no-store exemption: status answers from the committed records
+        assert code == 0 and out["request"]["reason"] == "history-adoption", out
+        assert f"git reset --soft {base}" in out["request"]["question"], out
+        assert not list((git_dir / "agentbundle-supervisor").glob("run-*"))
     code, out = h.start(repo)
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
     assert f"git reset --soft {base}" in out["refusal"]["detail"]

@@ -466,6 +466,15 @@ class GitPort:
         line = self.text("rev-list", "--parents", "-n", "1", self.head()).split()
         return value if len(line) == 2 and line[1] == value else None
 
+    def approval_only(self, run_id: str) -> bool:
+        """Whether the run's only supervisor commit reachable from ``HEAD`` is its approval.
+
+        A run that nothing recorded is a cut-off first admission only then. A checkout of a
+        finished run, or one whose history was squashed, has more commits or none.
+        """
+        commits = self.supervisor_commits(run_id)
+        return len(commits) == 1 and commits[0].operation == "approval"
+
     def changed_paths(self, older: str, newer: str) -> list[str]:
         """The paths whose content differs between two commits, sorted."""
         out = self.run(
@@ -930,8 +939,8 @@ class GitPort:
         if first:
             held = (
                 f"HEAD names {new}, the approval of a first admission the run did not "
-                "record, so every verb but start refuses supervisor-changed (status too, since "
-                "the pin check runs first) and start names the exit to take."
+                "record, so every verb but start refuses supervisor-changed (status "
+                "reports it) and start names the exit to take."
             )
         elif adopting and record is not None:
             held = (

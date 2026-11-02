@@ -1010,7 +1010,7 @@ class Attempts:
             ):
                 self.pin(run_id)
                 return
-            if not made and len(approvals) == 1 and commits:
+            if not made and len(approvals) == 1 and self.ws.git.approval_only(run_id):
                 command = self.ws.git.first_admission_exit(approvals[0]["base"])
                 exit_text = (
                     f"restore with {command}, then run start again" if command
