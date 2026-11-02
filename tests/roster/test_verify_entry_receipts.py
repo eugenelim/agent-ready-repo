@@ -83,3 +83,60 @@ def test_receipt_mapping_rows_fit_schema() -> None:
         }
         errors = [e.message for e in validator.iter_errors(receipt)]
         assert not errors, (obs_type, outcome, errors)
+
+
+VERIFICATION = ROOT / "docs/VERIFICATION.md"
+LEDGER = ROOT / "docs/specs/verify-entries/notes/verification-ledger.md"
+FIELDS = [
+    "Surface",
+    "Launch",
+    "Ready",
+    "Doctor",
+    "Isolation",
+    "Drive",
+    "Features",
+    "Evidence",
+    "Proof limits",
+    "Cleanup",
+    "Helpers",
+    "Stand-in gap",
+]
+FORBIDDEN = ("/Users/", "/home/", "/private/var/", "/var/folders/", "C:\\Users")
+EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
+
+
+def _entry() -> str:
+    """Return the agentbundle CLI entry text from docs/VERIFICATION.md."""
+    text = VERIFICATION.read_text(encoding="utf-8")
+    start = text.index("## Verify: agentbundle CLI")
+    end = text.find("\n## ", start + 1)
+    return text[start : end if end != -1 else len(text)]
+
+
+def _field(name: str) -> str:
+    """Return the body of one ``### `` field in the entry."""
+    parts = re.split(r"^### ", _entry(), flags=re.M)[1:]
+    return next(p for p in parts if p.startswith(name + "\n"))
+
+
+def test_dogfood_entry_has_twelve_fields_in_order() -> None:
+    """The agentbundle CLI entry carries every template field, in order."""
+    headings = re.findall(r"^### (.+)$", _entry(), flags=re.M)
+    assert headings == FIELDS
+
+
+def test_dogfood_drive_holds_render_install_and_diff() -> None:
+    """The Drive field names the render, codex install, and diff commands."""
+    drive = _field("Drive")
+    for needle in ("agentbundle render", "--adapter codex", "install", " diff --root"):
+        assert needle in drive, needle
+
+
+def test_verification_and_notes_hold_no_paths_or_emails() -> None:
+    """The entry (and the notes file, once it exists) names no host path or email."""
+    files = [VERIFICATION] + ([LEDGER] if LEDGER.exists() else [])
+    for path in files:
+        text = path.read_text(encoding="utf-8")
+        for bad in FORBIDDEN:
+            assert bad not in text, (path.name, bad)
+        assert not EMAIL.search(text), path.name

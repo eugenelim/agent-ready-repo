@@ -8,3 +8,4 @@ Higher-priority instructions, repository and scoped security or privacy rules, a
 
 | when | read | purpose |
 | --- | --- | --- |
+| verifying the agentbundle CLI surface (build, install, verify) | `docs/VERIFICATION.md` | how to launch, drive, and capture evidence for that surface |
