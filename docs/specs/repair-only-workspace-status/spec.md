@@ -1,6 +1,6 @@
 # Spec: Dispatch reads only headers, and workspace-status keeps only the repair
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-11-02 by eugenelim, spec and plan at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, each adjudicated (three adjudications were invalid; one was re-run), with the round-4 repairs accepted unreviewed; records under `.context/reviews/c2bc3c0b-0c0c-44a9-9a99-0028fa5e7927/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)

@@ -1,7 +1,7 @@
 # Plan: Dispatch reads only headers, and workspace-status keeps only the repair
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1, D3 and § Errata; RFC-0105 D3; RFC-0083 (the migration contracts); RFC-0078 (the MCP tool); RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-loop/scripts/dispatch.py`: the engine names it loads (`_ENGINE_NAMES`, line 67), the workspace read (line 227), and the run (line 337).

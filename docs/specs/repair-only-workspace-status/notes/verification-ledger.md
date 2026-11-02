@@ -9,3 +9,4 @@
 | 2026-11-02 | eugenelim | agreement, as owner of the readiness hand-over, to re-point `navigate-intents`'s finding table and its parity tests to `work-loop`'s table | — | — |
 
 ## Run notes
+- 2026-11-02, spec-approved gate: `project-knowledge --capture --producer-profile work-loop` refused with `map_mismatch` (not retryable); the owner chose to record it and continue. No fallback file was created.
