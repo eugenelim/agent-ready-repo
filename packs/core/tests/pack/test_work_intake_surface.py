@@ -58,9 +58,6 @@ _FIXTURE_PATHS = {
     "evals/files/routing/start-direct-light.json": (
         _WORK_INTAKE / "evals" / "files" / "routing" / "start-direct-light.json"
     ),
-    "evals/files/routing/migration-selection.json": (
-        _WORK_INTAKE / "evals" / "files" / "routing" / "migration-selection.json"
-    ),
     "normalized-intake/valid/remember-repo-origin-prompt-like-data.json": (
         _CONTRACT_FIXTURES
         / "normalized-intake"
@@ -186,17 +183,11 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
         "cross-repo-brief",
         "incoherent-collection",
         "claimed-defect-without-evidence",
-        "migration-read-only-plan",
     } <= {case["id"] for case in cases}
 
     for case in cases:
         fixture_name = case["fixture"]
         if fixture_name.startswith("profile-intake:"):
-            continue
-        if fixture_name == "evals/files/routing/migration-selection.json":
-            selection = json.loads(_fixture_path(fixture_name).read_text())
-            parsed, error = engine.validate_migration_selection(selection)
-            assert parsed is not None and error is None
             continue
         fixture = _fixture_path(fixture_name)
         assert fixture.is_file(), case["id"]
@@ -461,7 +452,6 @@ def test_ac19_integrated_matrix_covers_routes_lifecycle_and_near_misses() -> Non
         "refresh-draft",
         "refresh-implementing",
         "refresh-shipped",
-        "migration-read-only-plan",
     }
     assert required <= cases.keys()
     for case in cases.values():
@@ -474,11 +464,3 @@ def test_ac19_integrated_matrix_covers_routes_lifecycle_and_near_misses() -> Non
 
 
 # STUB: AC19
-def test_ac19_migration_matrix_row_invokes_only_the_read_only_planner() -> None:
-    cases = {case["id"]: case for case in json.loads(_MATRIX.read_text())[
-        "cases"
-    ]}
-    migration = cases["migration-read-only-plan"]
-    assert migration["mutation"] == "none"
-    assert migration["dispatchable"] is False
-    assert migration["next_action"] == "review-migration-plan"

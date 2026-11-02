@@ -1245,9 +1245,8 @@ EXPECTED_SKIP_XFAIL_CALLS = {
         ): 1,
     },
     SHARED_TESTS[4]: {
-        "self.skipTest('CLI not yet created')": 16,
+        "self.skipTest('CLI not yet created')": 6,
         "self.skipTest('Engine not yet moved')": 3,
-        "self.skipTest(f'symlinks unavailable: {exc}')": 1,
         (
             "unittest.skipIf(sys.platform == 'win32', "
             "'symlink test not portable on Windows')"
@@ -1256,20 +1255,12 @@ EXPECTED_SKIP_XFAIL_CALLS = {
             "unittest.skipIf(sys.platform == 'win32', "
             "'symlink needs elevated privs on Windows')"
         ): 1,
-        (
-            "unittest.skipIf(sys.platform == 'win32', "
-            "'symlink needs elevated privileges')"
-        ): 1,
     },
 }
 
 EXPECTED_WINDOWS_SKIPS = {
     f"{SHARED_TESTS[4]}::SymlinkConfinementTests::test_symlink_escape_not_read",
     f"{SHARED_TESTS[4]}::RepairPlanTests::test_repair_plan_plan_file_is_symlink",
-    (
-        f"{SHARED_TESTS[4]}::WorkIntakeMigrationCliStubTests::"
-        "test_ac27_migration_workspace_symlink_escape_uses_result_envelope"
-    ),
 }
 
 APPROVED_ENVIRONMENT_SKIP_SOURCES = {
@@ -1810,7 +1801,11 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
     # Re-pinned 2026-10-26: 168 -> 169. One addition, no removals, no renames:
     #   test_explain_refuses_an_entry_still_carrying_needs
     # It pins the unmigrated_needs refusal once blocking reads Depends on:.
-    assert len(cli_contract) == len(direct_cli_nodes) == 169
+    # Re-pinned for repair-only-workspace-status: 169 -> 88. The CLI keeps only
+    # `repair-plan` and `repair-apply`, so the cases that drove `status`,
+    # `reconcile`, `explain`, the migration forms and the migration stub class
+    # left the file, and the argument-vector and migration-reader cases joined it.
+    assert len(cli_contract) == len(direct_cli_nodes) == 88
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1923,11 +1918,11 @@ def test_runtime_skip_policy_covers_all_five_owner_routes() -> None:
     old_cli = cli_module._CLI
     cli_module._CLI = REPO_ROOT / "missing-workspace-status-cli.py"
     try:
-        case = cli_module.CLIContractTests("test_cli_success")
+        case = cli_module.CLIContractTests("test_cli_malformed_toml")
         try:
-            case.test_cli_success()
+            case.test_cli_malformed_toml()
         except unittest.SkipTest as exc:
-            cli_skip = (SHARED_TESTS[4], "CLIContractTests.test_cli_success", str(exc))
+            cli_skip = (SHARED_TESTS[4], "CLIContractTests.test_cli_malformed_toml", str(exc))
         else:
             raise AssertionError("CLI missing-path mutation did not skip")
     finally:
@@ -1935,76 +1930,7 @@ def test_runtime_skip_policy_covers_all_five_owner_routes() -> None:
     assert _runtime_skip_errors([cli_skip], platform=sys.platform) == [
         (
             f"unexpected runtime skip: {SHARED_TESTS[4]}::"
-            "CLIContractTests.test_cli_success: CLI not yet created"
-        )
-    ]
-
-    with tempfile.NamedTemporaryFile(prefix="shared-symlink-target-") as target_handle:
-        target = Path(target_handle.name)
-        link = target.with_name(f"{target.name}-link")
-        try:
-            try:
-                link.symlink_to(target)
-            except OSError as exc:
-                observed.append(
-                    (
-                        SHARED_TESTS[4],
-                        (
-                            "WorkIntakeMigrationCliStubTests."
-                            "test_ac7_status_refuses_linked_workspace_before_"
-                            "projecting_legacy_bytes"
-                        ),
-                        f"symlinks unavailable: {exc}",
-                    )
-                )
-            assert _runtime_skip_errors(observed, platform=sys.platform) == []
-        finally:
-            link.unlink(missing_ok=True)
-
-    migration_case = cli_module.WorkIntakeMigrationCliStubTests(
-        "test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes"
-    )
-
-    class FakeTemporaryDirectory:
-        def __enter__(self) -> str:
-            return "/construction-skip-probe"
-
-        def __exit__(self, *_args: object) -> None:
-            return None
-
-    with (
-        mock.patch.object(
-            cli_module.tempfile,
-            "TemporaryDirectory",
-            return_value=FakeTemporaryDirectory(),
-        ),
-        mock.patch.object(cli_module.Path, "write_text", return_value=0),
-        mock.patch.object(
-            cli_module.Path,
-            "symlink_to",
-            side_effect=OSError("forced symlink failure"),
-        ),
-    ):
-        try:
-            migration_case.test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes()
-        except unittest.SkipTest as exc:
-            symlink_skip = (
-                SHARED_TESTS[4],
-                (
-                    "WorkIntakeMigrationCliStubTests."
-                    "test_ac7_status_refuses_linked_workspace_before_"
-                    "projecting_legacy_bytes"
-                ),
-                str(exc),
-            )
-        else:
-            raise AssertionError("CLI symlink mutation did not exercise its skip")
-    assert _runtime_skip_errors([symlink_skip], platform=sys.platform) == [
-        (
-            f"unexpected runtime skip: {SHARED_TESTS[4]}::"
-            "WorkIntakeMigrationCliStubTests."
-            "test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes: "
-            "symlinks unavailable: forced symlink failure"
+            "CLIContractTests.test_cli_malformed_toml: CLI not yet created"
         )
     ]
 
@@ -2033,7 +1959,7 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
 
     # Same delta as the re-pin note above; both literals move together.
     # Same delta as the re-pin note above; both literals move together.
-    assert len(direct_ids) == 169
+    assert len(direct_ids) == 88
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 

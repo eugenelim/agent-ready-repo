@@ -24,19 +24,6 @@ _CONTRACT_ROOT = _ROOT / "contracts/jsonschema"
 
 
 # STUB: AC20
-def test_integrated_matrix_has_a_read_only_migration_planner_row() -> None:
-    matrix = json.loads(
-        (
-            _ROOT / "packs/core/.apm/skills/work-intake/evals/files/routing/matrix.json"
-        ).read_text(encoding="utf-8")
-    )
-    migration = next(
-        case for case in matrix["cases"] if case["id"] == "migration-read-only-plan"
-    )
-    assert migration["mutation"] == "none"
-    assert migration["result_code"] == "planned"
-
-
 def _load_refresh():
     spec = importlib.util.spec_from_file_location("work_intake_refresh", _REFRESH_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -1252,17 +1239,20 @@ def test_acquisition_refuses_schema_invalid_normalized_intake(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     refresh = _load_refresh()
-    validate = refresh._workspace_status_callable("validate_normalized_intake")
+    validate = refresh._intake_guard_callable("validate_normalized_intake")
 
     def invalidating_validator(record: object) -> tuple[object, list[object]]:
         invalid = json.loads(json.dumps(record))
         invalid["source"]["revision"] = 7
         return validate(invalid)
 
+    original = refresh._intake_guard_callable
     monkeypatch.setattr(
         refresh,
-        "_workspace_status_callable",
-        lambda _name: invalidating_validator,
+        "_intake_guard_callable",
+        lambda name: (
+            invalidating_validator if name == "validate_normalized_intake" else original(name)
+        ),
     )
     registration = refresh.ProcessorRegistration(
         name="example-refresh",

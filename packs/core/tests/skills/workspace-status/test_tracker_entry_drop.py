@@ -15,6 +15,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+import tomllib
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any, Callable
@@ -263,12 +264,46 @@ def assert_refresh_resolves_former_profile(root: Path, path: str, kind: str) -> 
     assert resolver.asked == [(PROFILE["id"], PROFILE["version"])]
 
 
-def assert_dispatch_unchanged_by_apply(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    """Run ``repair-apply --yes`` and compare ``dispatch.py`` output before and after."""
-    before = dispatch_stdout(root, capsys)
+def apply_then_assert_dispatch(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Run ``repair-apply --yes``, then assert AC-0030 for ``dispatch.py``."""
     code, result = apply(root, capsys)
     assert code == 0, result
-    assert dispatch_stdout(root, capsys) == before
+    assert_dispatch_after_apply(root, capsys)
+
+
+def _holds_entry(value: Any) -> bool:
+    """True when a TOML value holds an element of an array, at any depth."""
+    if isinstance(value, list):
+        return bool(value)
+    if isinstance(value, dict):
+        return any(_holds_entry(item) for item in value.values())
+    return False
+
+
+def assert_dispatch_after_apply(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Assert AC-0030 for dispatch run after a ``repair-apply --yes``.
+
+    A ``workspace.toml`` that still holds an entry gets the ``unmigrated_workspace``
+    refusal; otherwise the output is byte-identical to dispatch on the same tree with
+    ``workspace.toml`` removed. These fixtures plant workspaces dispatch accepts, so
+    the ``invalid_workspace`` refusal is itself a failure here.
+    """
+    after = dispatch_stdout(root, capsys)
+    workspace = root / "workspace.toml"
+    document = tomllib.loads(workspace.read_text(encoding="utf-8"))
+    if any(_holds_entry(v) for k, v in document.items() if k != "authorization"):
+        data = json.loads(after)
+        assert [f["code"] for f in data["decision"]["findings"]] == ["unmigrated_workspace"]
+        assert data["decision"]["action"] == "refuse"
+        assert data["ready"] == data["active"] == data["blocked"] == []
+        return
+    held = workspace.read_bytes()
+    workspace.unlink()
+    try:
+        bare = dispatch_stdout(root, capsys)
+    finally:
+        workspace.write_bytes(held)
+    assert after == bare
 
 
 def unusable_lifecycle(root: Path, outside: Path) -> None:
@@ -308,8 +343,6 @@ def test_a_matched_entry_gets_an_operation_and_apply_moves_its_profile(
     assert op["profile"] == PROFILE
     assert op["artifact_sha256"] == hashlib.sha256(before_text.encode()).hexdigest()
     assert len(op["registry_fingerprint"]) == 64
-    dispatch_before = dispatch_stdout(repo, capsys)
-
     code, result = apply(repo, capsys)
     assert code == 0, result
     assert result["operations_applied"] == 1
@@ -331,8 +364,8 @@ def test_a_matched_entry_gets_an_operation_and_apply_moves_its_profile(
     assert drops(again) == [] and tracker_items(again) == []
     # AC-0014: refresh on the migrated artifact resolves the entry's former profile.
     assert_refresh_resolves_former_profile(repo, path, kind)
-    # AC-0015
-    assert dispatch_stdout(repo, capsys) == dispatch_before
+    # AC-0015, AC-0030
+    assert_dispatch_after_apply(repo, capsys)
 
 
 def test_a_record_already_holding_an_equal_table_gets_an_operation_with_no_profile(
@@ -344,10 +377,9 @@ def test_a_record_already_holding_an_equal_table_gets_an_operation_with_no_profi
     before = (repo / path).read_bytes()
     [op] = drops(plan(repo, capsys))
     assert op["profile"] is None
-    dispatch_before = dispatch_stdout(repo, capsys)
     code, result = apply(repo, capsys)
     assert code == 0 and result["operations_applied"] == 1, result
-    assert dispatch_stdout(repo, capsys) == dispatch_before
+    assert_dispatch_after_apply(repo, capsys)
     assert (repo / path).read_bytes() == before
     assert path not in registry_text(repo)
     assert_refresh_resolves_former_profile(repo, path, "brief")
@@ -509,16 +541,9 @@ def test_dispatch_output_differs_only_by_the_archived_spec_blocked_item(
         },
     )
     assert [op["path"] for op in drops(plan(repo, capsys))] == [tracked]
-    before = json.loads(dispatch_stdout(repo, capsys))
     code, result = apply(repo, capsys)
     assert code == 0, result
-    after = json.loads(dispatch_stdout(repo, capsys))
-    # dispatch.py lists an Archived spec as blocked only while a queue entry names
-    # it, so the one allowed difference is that item leaving the blocked list.
-    [archived] = [item for item in before["blocked"] if item["path"] == tracked]
-    assert "unapproved_spec" in [finding["code"] for finding in archived["findings"]]
-    before["blocked"] = [item for item in before["blocked"] if item is not archived]
-    assert after == before
+    assert_dispatch_after_apply(repo, capsys)
     assert tracked not in registry_text(repo)
 
 
@@ -546,17 +571,16 @@ def test_a_held_entry_gets_the_held_item_until_its_record_gains_parent(
     assert item["spec_path"] == path
     assert item["record_path"] == "docs/lifecycle/t-spec.json"
     assert item["parent"] == BRIEF
-    before = dispatch_stdout(repo, capsys)
     code, result = apply(repo, capsys)
     assert code == 0 and result["operations_applied"] == 0, result
     assert path in registry_text(repo)
-    assert dispatch_stdout(repo, capsys) == before
+    assert_dispatch_after_apply(repo, capsys)
 
     write(repo, "docs/lifecycle/t-spec.json", lifecycle("t-spec", path, BRIEF))
     second = plan(repo, capsys)
     assert held(second) == []
     assert [op["path"] for op in drops(second)] == [path]
-    assert_dispatch_unchanged_by_apply(repo, capsys)
+    apply_then_assert_dispatch(repo, capsys)
     assert path not in registry_text(repo)
     assert_refresh_resolves_former_profile(repo, path, "spec")
 
@@ -640,7 +664,7 @@ def test_dispatch_output_is_identical_across_apply_on_unmatched_trees(
     pytest.importorskip("tomlkit")
     repo, _ = _unmatched(tmp_path, reason)
     plan(repo, capsys)
-    assert_dispatch_unchanged_by_apply(repo, capsys)
+    apply_then_assert_dispatch(repo, capsys)
 
 
 def test_dispatch_output_is_identical_across_apply_on_a_pathless_entry(
@@ -650,9 +674,8 @@ def test_dispatch_output_is_identical_across_apply_on_a_pathless_entry(
     # `repair-apply` refuses; the output must still not move.
     pytest.importorskip("tomlkit")
     repo, _ = _unmatched(tmp_path, "path-missing")
-    before = dispatch_stdout(repo, capsys)
     apply(repo, capsys)
-    assert dispatch_stdout(repo, capsys) == before
+    assert_dispatch_after_apply(repo, capsys)
 
 
 def test_dispatch_output_is_identical_across_apply_on_an_entry_finding_tree(
@@ -661,7 +684,7 @@ def test_dispatch_output_is_identical_across_apply_on_an_entry_finding_tree(
     pytest.importorskip("tomlkit")
     repo = _entry_finding_tree(tmp_path)
     plan(repo, capsys)
-    assert_dispatch_unchanged_by_apply(repo, capsys)
+    apply_then_assert_dispatch(repo, capsys)
 
 
 # ── AC-0013: apply refusals for state that changes after the plan ────────────

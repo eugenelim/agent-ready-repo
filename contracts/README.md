@@ -71,10 +71,6 @@ disagree, `contracts/` is authoritative.
 | `jsonschema/delivery-lifecycle-record.schema.json` | Git-tracked delivery lifecycle record | no |
 | `jsonschema/normalized-intake.schema.json` | Transient normalized work-intake envelope | no |
 | `jsonschema/workspace-entry.schema.json` | Target structured `workspace.toml` entry | no |
-| `jsonschema/work-intake-migration-selection.schema.json` | Human-reviewed legacy-route selection | no |
-| `jsonschema/work-intake-migration-confirmation.schema.json` | Human-authored, single-use apply/rollback confirmation | no |
-| `jsonschema/work-intake-migration-manifest.schema.json` | Repository-root reversible migration ledger | no |
-| `jsonschema/work-intake-migration-result.schema.json` | Closed workspace-status migration result object | no |
 | `delivery/delivery-subject.v1.schema.json` | Canonical delivery subject binding product, spec, evidence policy, exclusions, lineage, and acceptance fingerprint | no |
 | `delivery/acceptance-property.v1.schema.json` | Normalized acceptance property from approved spec criterion with authority, selector, observations, freshness, satisfaction, and contradiction rules | no |
 | `delivery/approval-record.v1.schema.json` | Spec-policy approval record binding authority, decision scope, base, lineage, and spec-policy fingerprint | no |
@@ -128,9 +124,8 @@ disagree, `contracts/` is authoritative.
   [agentskills.io standard](../guides/_shared/reference/agentskills-io-standard.md),
   which travels with this catalogue.
 - **The work-intake JSON Schemas** under `jsonschema/` come from the
-  [normalized intake/workspace contract][work-intake-contracts] and
-  [migration contract][work-intake-migration]. They are public authored
-  repository contracts, not declared AgentBundle CLI data copies.
+  [normalized intake/workspace contract][work-intake-contracts]. They are public
+  authored repository contracts, not declared AgentBundle CLI data copies.
 - **The canonical delivery schemas** under `delivery/` come from the
   [acceptance authority and evidence spec][delivery-contracts]. They define the
   portable record shapes for acceptance properties, approvals, evidence,
@@ -165,7 +160,6 @@ Future contracts land here too, each in its own PR.
 [composition]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0076-catalogue-contracts-composition-semantics-discovery.md
 [routes]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/rfc/0092-first-class-distribution-routes.md
 [work-intake-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/normalized-intake-workspace-contracts/spec.md
-[work-intake-migration]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/work-intake-migration-docs/spec.md
 [delivery-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/acceptance-authority-and-evidence/spec.md
 [projection-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/delivery-knowledge-projection/spec.md
 [review-contracts]: https://github.com/eugenelim/agent-ready-repo/blob/main/docs/specs/structured-review-boundary/spec.md

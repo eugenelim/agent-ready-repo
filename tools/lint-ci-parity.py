@@ -728,10 +728,6 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest retired-name pinned sites (roster-owned)":
         LOCAL("test-after-build-check"),
-    "pytest spec-retirement candidate contract (roster-owned)":
-        LOCAL("test-after-build-check"),
-    "pytest spec-retirement candidate CLI (roster-owned)":
-        LOCAL("test-after-build-check"),
     "pytest brief lifecycle single home (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest workspace retirement inventory (roster-owned)":
@@ -1136,8 +1132,6 @@ _GATE_MAIN_CHECKS = (
     "pytest header-readiness source-authority parity (roster-owned)",
     "pytest installed-skill supervisor run (roster-owned)",
     "pytest retired-name pinned sites (roster-owned)",
-    "pytest spec-retirement candidate contract (roster-owned)",
-    "pytest spec-retirement candidate CLI (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest workspace retirement inventory (roster-owned)",
     "pytest depends-on headers instructions (roster-owned)",

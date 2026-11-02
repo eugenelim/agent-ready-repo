@@ -48,9 +48,9 @@ def _offending_constants(path: Path) -> list[str]:
     ]
 
 
-def test_the_scope_is_not_empty_and_holds_the_engine_copy() -> None:
+def test_the_scope_is_not_empty_and_holds_the_packaged_readiness_copy() -> None:
     assert MODULES
-    assert _DATA / "workspace_status_engine.py" in MODULES
+    assert _DATA / "_header_readiness.py" in MODULES
     assert _SKILLS / "workspace-status/scripts/workspace_status.py" in MODULES
 
 

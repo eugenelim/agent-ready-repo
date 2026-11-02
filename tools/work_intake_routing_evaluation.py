@@ -400,58 +400,6 @@ def _evaluate_refresh(
     return result
 
 
-def _evaluate_migration(
-    staged_root: Path, case: dict[str, Any], engine: ModuleType
-) -> dict[str, object]:
-    """Invoke T2's actual read-only planner with a reviewed versioned fixture."""
-    fixture_root = (
-        staged_root / "packs/core/.apm/skills/work-intake/evals/files/routing"
-    )
-    workspace = staged_root / "workspace.toml"
-    shutil.copy2(fixture_root / "migration-workspace.toml", workspace)
-    artifact = staged_root / case["artifact"]
-    artifact.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(fixture_root / "migration-target-spec.md", artifact)
-    shutil.copy2(fixture_root / "migration-target-plan.md", artifact.with_name("plan.md"))
-    selection = json.loads((fixture_root / "migration-selection.json").read_text())
-    before = {
-        path.relative_to(staged_root): path.read_bytes()
-        for path in staged_root.rglob("*")
-        if path.is_file()
-    }
-    plan = engine.compute_migration_plan(staged_root, workspace, selection)
-    after = {
-        path.relative_to(staged_root): path.read_bytes()
-        for path in staged_root.rglob("*")
-        if path.is_file()
-    }
-    if before != after:
-        raise AssertionError("migration routing evaluation performed a write")
-    operation = plan.proposed_operation
-    if operation is None:
-        raise AssertionError(
-            "migration routing evaluation did not produce a plan: "
-            + str(plan.result.get("result_code"))
-        )
-    if plan.result["next_action"] != "confirm-migration":
-        raise AssertionError("migration planner returned an unexpected next action")
-    result = _record(
-        case,
-        profile_id=case["profile_id"],
-        profile_version=case["profile_version"],
-        artifact=operation["artifact_receipt"]["path"],
-        artifact_kind=operation["target_entry"]["kind"],
-        lifecycle_membership=operation["target_membership"]["collection"],
-        processor=operation["owning_processor"],
-        authority_mode=operation["target_entry"]["source"]["mode"],
-        dispatchable=False,
-        result_code=plan.result["result_code"],
-        next_action="review-migration-plan",
-    )
-    _assert_expected(case, result)
-    return result
-
-
 def evaluate_in_clean_root(
     clean_root: Path, *, source_root: Path | None = None
 ) -> bytes:
@@ -490,8 +438,6 @@ def evaluate_in_clean_root(
             )
         elif case["mode"] == "refresh":
             results.append(_evaluate_refresh(clean_root, case, index, router, refresh))
-        elif case["mode"] == "migration":
-            results.append(_evaluate_migration(clean_root, case, engine))
         else:
             raise AssertionError(f"unsupported routing evaluation mode: {case['mode']}")
     results.sort(key=lambda item: tuple(str(item[name]) for name in _RESULT_FIELDS))

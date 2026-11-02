@@ -26,10 +26,6 @@ _BASELINE = "dfa3fe067"
 # file -> phrases it must not hold (each present at the baseline).
 _ABSENT: dict[str, tuple[str, ...]] = {
     # T2 (AC-0024): the Type 1 sentences.
-    "packs/core/.apm/skills/workspace-status/references/reconcile.md": (
-        "finds work nobody registered",
-        "without being added to `workspace.toml`",
-    ),
     "packs/core/.apm/skills/workspace-status/SKILL.md": (
         "Register or reconcile the canonical entry explicitly",
         "Autonomous dispatch consumers must use `canonical.ready` as the ready set",

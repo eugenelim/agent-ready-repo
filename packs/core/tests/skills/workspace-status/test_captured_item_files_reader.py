@@ -416,12 +416,14 @@ def test_finding_echo_withholds_an_overlong_path(tmp_path: Path) -> None:
     assert finding.path == ""
 
 
-# Status output (AC-0002, AC-0006) --------------------------------------------
+# Dispatch `--captured` output (AC-0002, AC-0006) ------------------------------
+
+_DISPATCH = _SCRIPTS.parents[1] / "work-loop/scripts/dispatch.py"
 
 
-def _status(root: Path, mode: str = "status") -> dict:
+def _status(root: Path) -> dict:
     done = subprocess.run(
-        [sys.executable, "-I", str(_SCRIPTS / "workspace_status.py"), mode, "--root", str(root)],
+        [sys.executable, "-I", str(_DISPATCH), "--captured", "--root", str(root)],
         capture_output=True, text=True, check=False,
     )
     return json.loads(done.stdout)
@@ -440,18 +442,17 @@ def _workspace(root: Path, *entries: str) -> None:
     )
 
 
-def test_status_and_reconcile_emit_the_captured_object(tmp_path: Path) -> None:
+def test_dispatch_emits_the_captured_object(tmp_path: Path) -> None:
     _write(tmp_path, f"{DIR}/one.md", _record(OPEN, KIND))
     _write(tmp_path, f"{DIR}/bad.md", _record(OPEN))
     _workspace(tmp_path)
-    for mode in ("status", "reconcile"):
-        captured = _status(tmp_path, mode)["captured"]
-        assert [i["slug"] for i in captured["items"]] == ["bad", "one"]
-        assert captured["items"][0] == {"path": f"{DIR}/bad.md", "slug": "bad", "invalid": True}
-        [finding] = captured["findings"]
-        assert finding["code"] == "invalid_captured_item"
-        assert finding["path"] == f"{DIR}/bad.md"
-        assert finding["field"] == "Kind"
+    captured = _status(tmp_path)["captured"]
+    assert [i["slug"] for i in captured["items"]] == ["bad", "one"]
+    assert captured["items"][0] == {"path": f"{DIR}/bad.md", "slug": "bad", "invalid": True}
+    [finding] = captured["findings"]
+    assert finding["code"] == "invalid_captured_item"
+    assert finding["path"] == f"{DIR}/bad.md"
+    assert finding["field"] == "Kind"
 
 
 def test_captured_object_is_the_same_under_two_registries(tmp_path: Path) -> None:
@@ -473,7 +474,7 @@ def test_captured_object_survives_a_failed_reconciliation(tmp_path: Path) -> Non
     expected = _status(tmp_path)["captured"]
     (tmp_path / "workspace.toml").write_text("not = [valid\n", encoding="utf-8")
     broken = _status(tmp_path)
-    assert broken["canonical"]["findings"][0]["code"] == "invalid_workspace"
+    assert broken["decision"]["findings"][0]["code"] == "invalid_workspace"
     assert broken["captured"] == expected
 
 

@@ -118,24 +118,6 @@ consumer = "contract index listing the workspace entry schema and the workspace-
 owner = 9
 
 [[row]]
-pattern = "contracts/jsonschema/spec-retirement-candidates.schema.json"
-class = "promise"
-consumer = "published JSON schema describing a workspace.toml entry or a workspace-status result"
-owner = 9
-
-[[row]]
-pattern = "contracts/jsonschema/work-intake-migration-manifest.schema.json"
-class = "promise"
-consumer = "published JSON schema describing a workspace.toml entry or a workspace-status result"
-owner = 9
-
-[[row]]
-pattern = "contracts/jsonschema/work-intake-migration-result.schema.json"
-class = "promise"
-consumer = "published JSON schema describing a workspace.toml entry or a workspace-status result"
-owner = 9
-
-[[row]]
 pattern = "contracts/jsonschema/workspace-entry.schema.json"
 class = "promise"
 consumer = "published JSON schema describing a workspace.toml entry or a workspace-status result"
@@ -1284,6 +1266,24 @@ consumer = "workspace MCP server: serves workspace_status from the packaged disp
 owner = 9
 
 [[row]]
+pattern = "packages/agentbundle/agentbundle/_data/dispatch.py"
+class = "reader"
+consumer = "packaged copy of the headers-only dispatch the workspace MCP server loads; it reads workspace.toml only to refuse an unusable or unmigrated one"
+owner = 9
+
+[[row]]
+pattern = "packages/agentbundle/agentbundle/_data/_header_readiness.py"
+class = "reader"
+consumer = "packaged copy of the readiness module the packaged dispatch loads; it reads workspace.toml only to refuse an unusable or unmigrated one"
+owner = 9
+
+[[row]]
+pattern = "packages/agentbundle/tests/test_workspace_mcp_dispatch.py"
+class = "fixture"
+consumer = "package test that drives the workspace MCP server's workspace_status handler over the packaged dispatch"
+owner = 9
+
+[[row]]
 pattern = "packages/agentbundle/tests/build_pipeline/test_self_host_check.py"
 class = "fixture"
 consumer = "package test that builds or reads workspace.toml or the workspace-status engine"
@@ -1578,27 +1578,9 @@ consumer = "roster test that reads workspace.toml or the workspace-status engine
 owner = 9
 
 [[row]]
-pattern = "tests/roster/test_selection_scoped_membership_absence.py"
-class = "fixture"
-consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
-owner = 9
-
-[[row]]
 pattern = "tests/roster/test_shaping_handoff_pack_surface.py"
 class = "fixture"
 consumer = "roster test test_shaping_handoff_pack_surface.py that exercises the registry consumers of its feature"
-owner = 9
-
-[[row]]
-pattern = "tests/roster/test_spec_retirement_candidates_cli.py"
-class = "fixture"
-consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
-owner = 9
-
-[[row]]
-pattern = "tests/roster/test_spec_retirement_candidates_contract.py"
-class = "fixture"
-consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
 owner = 9
 
 [[row]]
@@ -1614,21 +1596,9 @@ consumer = "roster test that reads workspace.toml or the workspace-status engine
 owner = 9
 
 [[row]]
-pattern = "tests/roster/test_two_sided_prune_closure_invariant.py"
-class = "fixture"
-consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
-owner = 9
-
-[[row]]
 pattern = "tests/roster/test_wave4_durable_outputs_and_release.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
-owner = 9
-
-[[row]]
-pattern = "tests/roster/test_work_intake_migration_contracts.py"
-class = "fixture"
-consumer = "roster test test_work_intake_migration_contracts.py that exercises the registry consumers of its feature"
 owner = 9
 
 [[row]]
