@@ -10,3 +10,4 @@
 
 ## Run notes
 - 2026-11-02, spec-approved gate: `project-knowledge --capture --producer-profile work-loop` refused with `map_mismatch` (not retryable); the owner chose to record it and continue. No fallback file was created.
+- 2026-11-02, plan-locked gate (run `run-33b41daae1a10319`): the capture refused with the same `map_mismatch`; recorded under the same owner decision, with no fallback file.
