@@ -72,6 +72,10 @@ Owned by: T2, T3
 
 Owned by: T4
 
+- **The lint's read cap is the one accepted difference from the reader.** `captured_file_resolves` agrees with the captured-item reader on every captured file of at most the lint's 8 MiB `_MAX_FILE_BYTES` read cap (T13); a larger file does not resolve even when the reader accepts it. The cap bounds memory on untrusted repository input, so it stays, and the reader stays unchanged (owner decision, 2026-11-01).
+
+Owned by: T13, T14
+
 ## Tasks
 
 ### T1: Refresh reads `.work-intake.toml`
@@ -180,6 +184,14 @@ Owned by: T4
 - **Tests:** for AC-0010 (LRE-ADV3-01): `captured_file_resolves` is true exactly when the captured-item reader would list `docs/product/captured/<anchor>.md` with no finding: a repeat refuses only among the reader's six grammar fields, the file is decoded strictly as UTF-8 and a decode failure does not resolve, and the anchor must fully match the reader's captured-file name pattern; the parity cases gain a repeated non-grammar field (two `Depends on:` lines), a non-UTF-8 body, and an off-grammar and a case-variant anchor, each failing if the lint and the reader disagree. For AC-0010 (LRE-QE3-01): the parity table gains a tilde fence, a four-backtick opener with a three-backtick line inside, and a closing fence followed by an info string, so removing any one of those fence rules from the lint fails the parity test.
 - **Text, no test:** LRE-ADV3-03: `SKILL.md`'s `finding_type` 9 reason list includes `refresh-module-unavailable`.
 - **Done when:** `packs/core/tests/skills/work-loop/` and `packs/core/tests/skills/workspace-status/` pass, `make lint-ruff lint-mypy` passes, and the workspace-status projections match the source.
+
+### T14: Repairs from the fourth implementation review
+
+- **Depends on:** T13
+- **Verification mode:** TDD
+- **Touches:** `packs/core/tests/skills/work-loop/test_lint_spec_status_deferred.py`, `packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py`
+- **Tests:** for AC-0010 (LRE-ADV4-01): one test shows a valid captured file larger than `_MAX_FILE_BYTES` does not resolve, without asserting parity with the reader for that case, per the read-cap design decision; the `captured_file_resolves` docstring names the cap as the one accepted difference. LRE-QE4-01: the `case-variant` parity row carries a short note that it guards case-insensitive filesystems only, and that `upper-file` and `off-grammar` carry the name check on case-sensitive ones.
+- **Done when:** `packs/core/tests/skills/work-loop/` passes and `make lint-ruff lint-mypy` passes.
 
 ## Rollout
 
