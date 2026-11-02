@@ -184,12 +184,18 @@ Crash and lag repair
   converges. A kill during an adoption after its refs moved ends in the
   AC-0005 refusal instead, and restoring the ref asks the adoption again. A
   kill during a first admission after its refs moved and before the run
-  recorded it instead ends with every verb refusing `supervisor-changed`:
-  `start` names an exit that returns `HEAD` to the approval's base and keeps
-  every uncommitted tracked change, and every other verb points to `start`;
-  after the exit, `start` admits again. That exit is named only when the base is the parent of the approval
-  commit at `HEAD`; otherwise the refusal names no command, and no verb passes
-  that base to Git.
+  recorded it, which leaves `HEAD` on an approval that is the run's only
+  supervisor commit, instead ends as follows. `start` refuses
+  `supervisor-changed` and names an exit that returns `HEAD` to the
+  approval's base and keeps every uncommitted tracked change; after the exit,
+  `start` admits again. Where the run store directory exists, every other verb
+  refuses `supervisor-changed` and points to `start`. Where it does not, every
+  other verb but `status` refuses that the pin record is missing, and `status`
+  answers from the committed records, naming the same exit. A checkout with no
+  run store of a run that holds only its approval reads the same way, and the
+  exit starts the run afresh there. The exit is named only when the base is
+  the parent of the approval commit at `HEAD`; otherwise no verb names a
+  command, and no verb passes that base to Git.
 - [ ] **AC-0008.** When the product ref, `HEAD`, or both name a commit the run
   never recorded as made whose parent is the recorded value, no verb counts
   that commit as made or moves a ref to it. With no attempt open, `next`
