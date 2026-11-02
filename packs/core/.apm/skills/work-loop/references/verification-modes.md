@@ -10,7 +10,8 @@
 > **What this is:** the progressive-disclosure depth behind those modes.
 > `SKILL.md` keeps the load-bearing one-liner for each; the full doctrine lives
 > here. For visual / manual QA that means the per-surface shapes, the
-> accelerants, when to automate, and the exploratory flavor.
+> accelerants, when to automate, and the exploratory flavor. It also holds the
+> doctrine for verify entries: saved recipes for driving a surface.
 
 ## Exercise the real artifact, assert on the observed result
 
@@ -63,6 +64,169 @@ A third flavor — *exploratory / visual fuzz* — drives the UI with varied or
 random input and asserts **invariants** ("didn't crash, didn't render garbage,
 layout holds, no overflow") rather than specific outputs. Reach for it when the
 failure mode is open-ended and you can't enumerate the gestures up front.
+
+## Verify entries
+
+A verify entry is a saved, repository-owned recipe for launching and driving
+one surface so a run can prove a change by using it. The template is
+`assets/verify-entry.md`.
+
+### When an entry is needed
+
+- At PLAN, a task whose verification mode is visual / manual QA, behavior pin,
+  or measurement looks for a verify entry for each surface the task changes or
+  must drive to prove its outcome.
+- When no entry exists for such a surface, creating it is the task's first step.
+- A surface the change neither touches nor must drive is recorded as uncovered.
+  Do not map, draft, or fix it.
+
+### Where entries live
+
+Look in this order before creating a file:
+
+1. A verify file an `AGENT_RULES.md` row already routes to.
+2. `CONTRIBUTING.md` in `.github/`, the root, or `docs/`, and the guides it
+   links to.
+3. Developer guides: `DEVELOPMENT.md`, `docs/DEVELOPMENT.md`,
+   `docs/development/`, `contribute/`, `BUILD.md`, `BUILDING.md`, `TESTING.md`,
+   `HACKING.md`, and `VERIFICATION.md`.
+4. README sections on running or building locally.
+5. Agent instruction files and host skills: `AGENTS.md`,
+   `.github/copilot-instructions.md`, `GEMINI.md`, and `.claude/skills/verify/`.
+
+A file covers the surface when it already states how to launch or drive it.
+
+- When an existing file covers the surface, offer to add the entry there. The
+  offer names the file and the fields to add.
+- Create `docs/VERIFICATION.md` only when no file covers the surface or the
+  adopter declines.
+- An unanswered or ambiguous offer writes nothing.
+- While an offer is unanswered, the surface's grade is `blocked`. The run names
+  the pending offer and records no receipt, because no command ran. The task
+  does not claim its mode.
+- Write an accepted entry under a `## Verify: <surface>` heading.
+- After writing an entry in a file no `AGENT_RULES.md` row routes to, add one
+  row under the same adopter acceptance as the entry. Its `read` cell is that
+  file's repository-relative path. Its `when` is limited to verifying the
+  surfaces that file covers.
+- The verify file never mentions `AGENT_RULES.md`, so routing stays one hop.
+- `RUNBOOK.md` and `docs/runbooks/` are not extended with launch steps.
+
+### Building an entry
+
+- An entry for a surface with existing tooling points at that tooling. It
+  records only what the tooling lacks: the exact invocation, the ready signal,
+  which output is the evidence, and cleanup.
+- Draft new commands from the repository's manifests, scripts, CI, and docs
+  only where no tooling covers the surface.
+
+### Proving an entry
+
+- An entry is a draft until it has run once from start to finish.
+- It also needs one recorded failing run. That run's `mutation-proof.md`
+  record names the entry's evidence check as its catching test and one
+  deliberate break of the driven subject as its exact mutation. The break
+  stands in for that reference's revert to the pre-fix implementation.
+- The failing proof run reports no grade and no receipt.
+- The task does not claim its mode before both runs exist.
+
+### Recording and promoting
+
+- Record drive commands in the verification ledger.
+- When a second run drives the same surface by hand, move its commands into
+  the verify file, a test, or the repository's own tooling.
+
+### Drift
+
+An in-scope entry that fails at run start is one of three things:
+
+- **Doc drift:** the entry or its source doc is stale. Update it.
+- **Harness gap:** the tooling lacks something the entry needs. Fix a gap in
+  mapped tooling in that tooling.
+- **Product bug:** the product is wrong. Report it. Never write it into the
+  entry as expected behavior.
+
+### Fields
+
+An entry holds these twelve fields, in this order:
+
+- **Surface:** the one surface the entry drives.
+- **Launch:** the exact command that starts it.
+- **Ready:** the signal that it is usable.
+- **Doctor:** one read-only check that the setup is sound.
+- **Isolation:** how the run keeps its instance, state, and files apart.
+- **Drive:** the ordered steps that exercise the surface.
+- **Features:** the features the drive covers.
+- **Evidence:** which output proves the result, and where it is kept.
+- **Proof limits:** what the evidence does not prove.
+- **Cleanup:** how the run removes what it started.
+- **Helpers:** scripts or tooling the entry relies on.
+- **Stand-in gap:** where a stand-in replaces the real thing, and what stays
+  uncovered.
+
+### Rules
+
+- Ready means usable, not that the process answers.
+- Never drive an instance this run did not start.
+- Drive by stable handles such as roles, labels, and prompt strings, never
+  coordinates.
+- Evidence survives cleanup, and the run checks that it did.
+- Test-only endpoints and internal setters are not proof.
+- A dry-run is checked by observing what it skips.
+- Cleanup stops or removes only processes, containers, and directories this run
+  started or created. It finds them by the handle the run recorded, never by
+  process name or pattern.
+
+### Grades
+
+Each run other than the failing proof run reports exactly one of five grades:
+
+- `live-verified`: the real surface ran and showed the result.
+- `test-verified`: a targeted test showed the result.
+- `build-only`: the surface built, and nothing more ran.
+- `blocked`: the run could not complete a needed step.
+- `failed`: the run ran and the result was wrong.
+
+A grade its recorded commands and output do not support is reported as
+`blocked`. Which criterion a run proves comes from the task and the
+criterion's approved evidence policy, never from the verify entry.
+
+### Receipt mapping
+
+| Grade | observation.type | outcome |
+| --- | --- | --- |
+| `live-verified` | `command-result` | `live-verified` |
+| `build-only` | `command-result` | `build-only` |
+| `blocked` | `command-result` | `blocked` |
+| `failed` | `command-result` | `failed` |
+| `test-verified` | `test-result` | `test-verified` |
+| `failed` | `test-result` | `failed` |
+
+A `blocked` receipt records the command that could not complete, such as a
+failed doctor or launch.
+
+- `schema_version` is `1`.
+- `receipt_id` is `verify:<surface>:<run-id>`.
+- `freshness_mode` is `exact-subject`.
+- The producer is `{"class": "verify-entry", "identity": "verify:<surface>"}`.
+
+`acceptance_fingerprint` is the supervised run's current fingerprint, or
+`git:<commit>` of the tree driven when no supervisor runs. A receipt with the
+latter is audit-only. The criterion reference and selector term come from the
+task.
+
+### Placeholders and trust
+
+- Keep raw transcripts in an evidence directory version control ignores.
+- Recorded commands, and any output copied into the verification ledger or
+  another committed record, use placeholders such as `<checkout>`, `<scratch>`,
+  and `<evidence-dir>` for paths, hostnames, and usernames.
+- Never include a credential value. Name a credential only by its environment
+  variable.
+- A verify entry is agent guidance. Editing it changes a tool surface.
+- Its commands run only under the host's permission mode.
+- An entry never widens network, credential, or write scope beyond what the
+  task's verification needs.
 
 ## Behavior pin
 
