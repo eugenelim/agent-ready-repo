@@ -1272,7 +1272,8 @@ def test_every_participating_writer_is_mutually_exclusive_in_both_orders(
 
     refresh_root = repository("refresh-first", "refresh")
     refresh_artifact = refresh_root / "docs/specs" / "refresh/spec.md"
-    refresh_workspace = refresh_root / "workspace.toml"
+    refresh_workspace = refresh_root / ".work-intake.toml"
+    refresh_workspace.write_text("# policy\n", encoding="utf-8")
     refresh_observed: list[bool] = []
     original_confined = refresh._confined_existing_file
     confined_calls = 0
@@ -1300,24 +1301,25 @@ def test_every_participating_writer_is_mutually_exclusive_in_both_orders(
             repository_root=refresh_root,
             artifact_path="docs/specs/" + "refresh/spec.md",
             expected_artifact_digest=refresh.digest_bytes(refresh_artifact.read_bytes()),
-            expected_workspace_digest=refresh.digest_bytes(refresh_workspace.read_bytes()),
+            expected_policy_digest=refresh.digest_bytes(refresh_workspace.read_bytes()),
             artifact_bytes=b"# refreshed\n",
-            workspace_bytes=refresh_workspace.read_bytes(),
+            policy_bytes=refresh_workspace.read_bytes(),
         )
     assert refresh_result.code == "written" and refresh_observed == [True, True]
 
     refresh_prune_root = repository("refresh-prune-first", "refresh")
+    (refresh_prune_root / ".work-intake.toml").write_text("# policy\n", encoding="utf-8")
 
     def refresh_contender() -> None:
         artifact = refresh_prune_root / "docs/specs" / "refresh/spec.md"
-        workspace = refresh_prune_root / "workspace.toml"
+        workspace = refresh_prune_root / ".work-intake.toml"
         result = refresh.guarded_write_pair(
             repository_root=refresh_prune_root,
             artifact_path="docs/specs/" + "refresh/spec.md",
             expected_artifact_digest=refresh.digest_bytes(artifact.read_bytes()),
-            expected_workspace_digest=refresh.digest_bytes(workspace.read_bytes()),
+            expected_policy_digest=refresh.digest_bytes(workspace.read_bytes()),
             artifact_bytes=b"must not write\n",
-            workspace_bytes=workspace.read_bytes(),
+            policy_bytes=workspace.read_bytes(),
         )
         assert result.code == "lock_busy"
 

@@ -1385,6 +1385,7 @@ class CLIImportPurityTests(unittest.TestCase):
         "math", "os", "pathlib", "re", "stat", "sys", "tempfile", "time", "tomllib",
         "typing", "unittest", "__future__", "collections", "functools", "secrets",
         "itertools", "abc", "contextlib", "io", "shutil", "traceback", "errno",
+        "types",
     })
 
     def _check_script(self, path: Path, allowed_extras: frozenset[str] = frozenset()) -> None:
@@ -1933,15 +1934,25 @@ shipped = []
                 f"repo backlog display data changed status {key}",
             )
         # A slug-only entry is a legacy captured item, so the repair plans its own
-        # `captured-to-file` record. Every other operation must be unchanged.
+        # `captured-to-file` record, moves its legacy `needs` into that record's
+        # header, and drops the entry. Every other operation must be unchanged.
 
         def other_operations(plan: dict) -> list:
             return [
                 op for op in plan["automatic_operations"]
                 if op["operation_type"] != "captured-to-file"
+                and op.get("slug") != "display-only"
             ]
 
         self.assertEqual(other_operations(backlog_plan), other_operations(baseline_plan))
+        self.assertEqual(
+            sorted(
+                op["operation_type"] for op in backlog_plan["automatic_operations"]
+                if op.get("slug") == "display-only"
+                and op["operation_type"] != "captured-to-file"
+            ),
+            ["captured-entry-drop", "needs-to-header"],
+        )
         self.assertEqual(
             [
                 op["slug"] for op in backlog_plan["automatic_operations"]

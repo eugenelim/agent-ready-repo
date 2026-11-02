@@ -529,6 +529,12 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest JUnit no-skip gate checker (windows-confined-write)":
         LOCAL("test-after-build-check"),
+    "pytest supervisor config fingerprint (zero skips)":
+        CI_ONLY(
+            "the suite itself runs locally under `test-after-build-check`; this "
+            "step adds the JUnit zero-skip check over it, which no make target "
+            "runs, so a skipped config-fingerprint case fails only on CI"
+        ),
     "Pull-request template installer and release checker":
         LOCAL("test-after-build-check"),
         "pytest guides sidebar generation":
@@ -739,6 +745,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "pytest tracker-origin registration stop (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest pre-cutover closure (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest last registry entries (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest closure guide surface (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -1060,6 +1068,7 @@ _GATE_MAIN_CHECKS = (
     "pytest gitattributes merge-driver scope (AC1)",
     "pytest merge-driver behaviour (AC2-AC4)",
     "pytest JUnit no-skip gate checker (windows-confined-write)",
+    "pytest supervisor config fingerprint (zero skips)",
     "Pull-request template installer and release checker",
     "pytest guides sidebar generation",
     "pytest journey editorial decisions",
@@ -1132,6 +1141,7 @@ _GATE_MAIN_CHECKS = (
     "pytest spec registration stop (roster-owned)",
     "pytest tracker-origin registration stop (roster-owned)",
     "pytest pre-cutover closure (roster-owned)",
+    "pytest last registry entries (roster-owned)",
     "pytest closure guide surface (roster-owned)",
     "pytest visual-target guide excerpt (roster-owned)",
     "pytest visual-target release surface (roster-owned)",

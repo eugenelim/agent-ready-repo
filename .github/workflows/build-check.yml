@@ -377,6 +377,14 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tools/test_merge_driver_behaviour.py
 
+      # The config fingerprint suite needs no repository; it reads shapes through
+      # `git config --file`. The report is checked so a skipped or empty run fails.
+      - name: pytest supervisor config fingerprint (zero skips)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: |
+          python -m pytest packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py -q -rs --junitxml="$RUNNER_TEMP/config-fingerprint-junit.xml"
+          python tools/require-junit-ran-without-skips.py "$RUNNER_TEMP/config-fingerprint-junit.xml"
+
       # The Windows job's real-host confined-write step passes only through this
       # checker, so a checker that stops seeing skips would turn that gate vacuous.
       - name: pytest JUnit no-skip gate checker (windows-confined-write)
@@ -782,6 +790,12 @@ jobs:
       - name: pytest pre-cutover closure (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_pre_cutover_closure.py
+
+      # AC-0012 to AC-0015 and AC-0018 of last-registry-entries: the record rows,
+      # the errata entry, the refresh-policy and anchor text, and the brief.
+      - name: pytest last registry entries (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_last_registry_entries.py
 
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a

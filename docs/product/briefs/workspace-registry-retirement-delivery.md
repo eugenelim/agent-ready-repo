@@ -99,8 +99,8 @@ Numbers give the delivery order. Slices 2 to 6 may start once slice 1 lands, and
    - **After the cutover:**
      - move the engine rules `dispatch.py` still needs into `work-loop`;
      - shrink `workspace-status` to the repair;
-     - remove the legacy registry entries (the migrated captured memberships and the slug-only entries), and re-point the spec-status lint's deferral anchors from `[backlog].open` to captured-item files;
-     - give the `[authorization.refresh]` and `[authorization.migration]` policy tables a home;
+     - remove the legacy registry entries (the migrated captured memberships and the slug-only entries), and re-point the spec-status lint's deferral anchors from `[backlog].open` to captured-item files (`last-registry-entries`);
+     - give the `[authorization.refresh]` and `[authorization.migration]` policy tables a home (`last-registry-entries`);
      - publish the upgrade notes, and move seeds, manifests and operative references;
      - complete the closure checklist, and record the certification in the retirement spec and the retiring change;
      - then delete `workspace.toml`.
@@ -124,6 +124,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `readiness-bridge-dispatch-input` | <auto> |
 | `tracker-origin-registration-stop` | <auto> |
 | `pre-cutover-closure` | <auto> |
+| `last-registry-entries` | <auto> |
 
 ## Governance references (optional)
 

@@ -97,6 +97,11 @@ comment, trace link, pull-request link, display-status change, or closure needs
 one fresh confirmation bound to the exact target and payload. Unsupported
 actions never fall back to generic tracker access.
 
+Refresh reads its approver roles from the `[authorization.refresh]` table of
+`.work-intake.toml` at the repository root, and binds that file's digest when
+it writes locally. A repository whose table is still in `workspace.toml` gets
+`invalid_refresh_policy` until the `refresh-policy-move` repair moves it.
+
 ## Migration recovery boundary
 
 Former legacy workspace entries surface as `unsupported_legacy` findings and

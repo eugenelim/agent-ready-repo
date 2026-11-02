@@ -109,9 +109,17 @@ CORE_COLLECTIONS = {
     # and the spec directory as a whole path. The last of the four is the
     # positive control: without it, tightening the check to reject everything
     # would satisfy the other three.
+    # Re-pinned 2026-11-02 for last-registry-entries: count unchanged at 91,
+    # digest moved. Dispositioned against `origin/main`: two renames, no other
+    # addition or removal. `test_invariant_iv_resolves_workspace_slug` ->
+    # `test_invariant_iv_resolves_captured_item` and
+    # `test_workspace_symlink_outside_root_does_not_resolve_deferral` ->
+    # `test_captured_symlink_outside_root_does_not_resolve_deferral`, because a
+    # deferral anchor now resolves through a captured-item file, not
+    # `[backlog].open`.
     SHARED_TESTS[0]: (
         91,
-        "0d8bd4b911c50348a4173bee57c35d7f10d9633f3909bade5ef94a5ff1030dc4",
+        "876e441ca7c931cd9aaf23c91e9302d67309d87857e852657c0ba1b971654dec",
     ),
     # Re-pinned 2026-09-01: 16 -> 27. `885176fad` ("separate brief withdrawal
     # from cancellation") added the six-state lifecycle coverage without

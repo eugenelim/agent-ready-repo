@@ -539,6 +539,16 @@
         "Points to the workspace-status tracker-entry-drop repair because the entry still exists",
         "Does not infer a processor from artifact kind, labels, or prose"
       ]
+    },
+    {
+      "id": "refresh-reads-role-policy-from-work-intake-toml",
+      "prompt": "Refresh docs/specs/export-retention/spec.md from its tracker source. The repository has a .work-intake.toml with a refresh role policy, and workspace.toml has no [authorization.refresh] table. A second repository has no .work-intake.toml.",
+      "expected_output": "The agent reads the refresh role policy from .work-intake.toml and proceeds with the refresh under that policy. In the repository without .work-intake.toml it returns invalid_refresh_policy with zero effects and does not fall back to workspace.toml.",
+      "assertions": [
+        "Reads the refresh role policy from .work-intake.toml",
+        "Returns invalid_refresh_policy with no effects when .work-intake.toml is absent",
+        "Does not fall back to a workspace.toml [authorization.refresh] table"
+      ]
     }
   ]
 }

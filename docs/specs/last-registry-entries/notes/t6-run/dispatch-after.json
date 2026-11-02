@@ -1,0 +1,319 @@
+{
+    "schema_version": 1,
+    "ready": [],
+    "active": [
+        {
+            "path": "docs/specs/last-registry-entries/spec.md",
+            "slug": "last-registry-entries",
+            "status": "Implementing",
+            "findings": []
+        },
+        {
+            "path": "docs/specs/plan-evolution-experiments/spec.md",
+            "slug": "plan-evolution-experiments",
+            "status": "Implementing",
+            "findings": []
+        },
+        {
+            "path": "docs/specs/workspace-retirement/spec.md",
+            "slug": "workspace-retirement",
+            "status": "Implementing",
+            "findings": []
+        }
+    ],
+    "blocked": [],
+    "findings": [
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/agentbundle-surface-doc-reconciliation/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/apm-internal-ref-sweep/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/architect-diagram-mermaid-guidance/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/ast10-pack-compliance/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/atlassian-docs-retrofit/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/bandit-nosec-comment-hygiene/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/bandit-nosec-form-lint/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/build-check-coverage-gaps/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/build-check-windows/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/capture-evidence-repo-dot-segments/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/catalogue-curation-qa-coverage/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/catalogue-hygiene-part1/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/cdn-sri-mermaid/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/check-base-freshness-guidance-fixes/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/ci-windows-sso-concurrency-test-fix/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/compare-bandit-suppressions/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/converters-extraction-fixes/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/engagement-shaping-guides/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/externalize-self-host-config/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/extraction-image-pixel-bomb-guard/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/frozen-doc-supersession-annotations/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "invalid_dependency",
+            "path": "docs/specs/guide-typed-asides-test-gate/spec.md",
+            "dispatchable": false,
+            "next_action": "Rewrite the item as a typed reference or a captured-item path, or correct its receipt, in the waiting item's header."
+        },
+        {
+            "code": "invalid_dependency",
+            "path": "docs/specs/guide-typed-asides-test-gate/spec.md",
+            "dispatchable": false,
+            "next_action": "Rewrite the item as a typed reference or a captured-item path, or correct its receipt, in the waiting item's header."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/guides-readme-outcome-label-drift/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/kiro-cli-agent-skill-resources/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/local-claude-manifest-validator-gate/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "invalid_dependency",
+            "path": "docs/specs/loop-telemetry-export/spec.md",
+            "dispatchable": false,
+            "next_action": "Rewrite the item as a typed reference or a captured-item path, or correct its receipt, in the waiting item's header."
+        },
+        {
+            "code": "invalid_dependency",
+            "path": "docs/specs/loop-telemetry-export/spec.md",
+            "dispatchable": false,
+            "next_action": "Rewrite the item as a typed reference or a captured-item path, or correct its receipt, in the waiting item's header."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/mermaid-rendering-improvements/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/new-adr-decision-capture/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/open-rfc-format-retrofit/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/optimize-windows-ci-gates/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/packages-governance-marker-sweep/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/phase4b-product-docs-completion/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/product-strategy-web-journey/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/publish-control-evidence-repo-binding/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/research-ambiguity-preservation/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/ruff-preview-spacing-fixes/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/self-host-preferred-adapter-fix/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/self-host-sweep-respects-state/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/skill-dev-guides/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/skills-rendering-directives/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/split-image-pixel-bomb-guard/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/web-catalogue-improvements/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/windows-build-self-entry/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/workspace-toml-adopter-seeding/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        },
+        {
+            "code": "missing_plan",
+            "path": "docs/specs/xd-web-journey-skill-count/spec.md",
+            "dispatchable": false,
+            "next_action": "Create and approve the plan before dispatch."
+        }
+    ],
+    "decision": {
+        "action": "ask",
+        "path": null,
+        "candidates": [
+            "docs/specs/last-registry-entries/spec.md",
+            "docs/specs/plan-evolution-experiments/spec.md",
+            "docs/specs/workspace-retirement/spec.md"
+        ],
+        "findings": []
+    }
+}

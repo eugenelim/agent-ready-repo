@@ -440,7 +440,7 @@ class PinnedDestination:
 
 @dataclass(frozen=True)
 class GuardedWriteResult:
-    """Redacted outcome of the guarded artifact/workspace write."""
+    """Redacted outcome of the guarded artifact/policy write."""
 
     code: str
 
@@ -473,6 +473,7 @@ _TOP_AUTHORITY_KEYS = {
     "remote_actions",
 }
 _APPROVAL_KEYS = {"identity", "role", "decided_at", "authorization_source"}
+POLICY_FILE = ".work-intake.toml"
 _POLICY_KEYS = {
     "contract_version",
     "draft_approver_roles",
@@ -673,13 +674,13 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
                 "update_id",
                 "artifact_digest",
                 "workspace_digest",
+                "policy_digest",
                 "status",
                 "recorded_at",
             },
             {
                 "update_id",
                 "artifact_digest",
-                "workspace_digest",
                 "status",
                 "recorded_at",
             },
@@ -687,7 +688,12 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
         for item in local_receipts:
             _bounded_string(item["update_id"], 200, "invalid_source_authority")
             _digest(item["artifact_digest"], "invalid_source_authority")
-            _digest(item["workspace_digest"], "invalid_source_authority")
+            if ("workspace_digest" in item) == ("policy_digest" in item):
+                raise RefreshRefusal("invalid_source_authority")
+            _digest(
+                item["workspace_digest" if "workspace_digest" in item else "policy_digest"],
+                "invalid_source_authority",
+            )
             if item["status"] not in {"pending", "failed", "committed"}:
                 raise RefreshRefusal("invalid_source_authority")
             _timestamp(item["recorded_at"], "invalid_source_authority")
@@ -865,6 +871,7 @@ def render_source_authority(authority: SourceAuthority) -> str:
                 "update_id",
                 "artifact_digest",
                 "workspace_digest",
+                "policy_digest",
                 "status",
                 "recorded_at",
             ),
@@ -1019,14 +1026,16 @@ def _replace_source_authority(markdown: str, authority: SourceAuthority) -> str:
 
 
 def parse_refresh_authorization_policy(text: str) -> RefreshAuthorizationPolicy:
-    """Parse the role-only policy from a complete repository workspace file."""
+    """Parse the role-only policy from the complete `.work-intake.toml` text."""
 
     try:
         root = tomllib.loads(text)
-        if not isinstance(root.get("authorization"), dict):
+        if set(root) != {"authorization"} or not isinstance(root["authorization"], dict):
             raise RefreshRefusal("invalid_refresh_policy")
         authorization = root["authorization"]
-        if not isinstance(authorization.get("refresh"), dict):
+        if set(authorization) != {"refresh"} or not isinstance(
+            authorization["refresh"], dict
+        ):
             raise RefreshRefusal("invalid_refresh_policy")
         policy = authorization["refresh"]
         _require_exact_keys(policy, _POLICY_KEYS, _POLICY_KEYS, "invalid_refresh_policy")
@@ -1231,14 +1240,12 @@ def consume_remote_confirmation(
     ):
         raise RefreshRefusal("invalid_refresh_policy")
     try:
-        workspace = _confined_existing_file(
-            receipt_store.repository_root, "workspace.toml"
-        )
-        workspace_bytes = workspace.read_bytes()
-        if digest_bytes(workspace_bytes) != receipt_store.workspace_digest:
+        policy_file = _policy_file(receipt_store.repository_root)
+        policy_bytes = policy_file.read_bytes()
+        if digest_bytes(policy_bytes) != receipt_store.policy_digest:
             raise RefreshRefusal("invalid_refresh_policy")
         durable_policy = parse_refresh_authorization_policy(
-            workspace_bytes.decode("utf-8")
+            policy_bytes.decode("utf-8")
         )
     except (OSError, UnicodeDecodeError, RefreshRefusal) as exc:
         raise RefreshRefusal("invalid_refresh_policy") from exc
@@ -1457,32 +1464,41 @@ def _confined_existing_file(root: Path, relative: str) -> Path:
     return resolved
 
 
+def _policy_file(root: Path) -> Path:
+    """Resolve the repository policy file or refuse as an invalid policy."""
+
+    try:
+        return _confined_existing_file(root, POLICY_FILE)
+    except (OSError, RefreshRefusal) as exc:
+        raise RefreshRefusal("invalid_refresh_policy") from exc
+
+
 def guarded_write_pair(
     *,
     repository_root: Path,
     artifact_path: str,
     expected_artifact_digest: str,
-    expected_workspace_digest: str,
+    expected_policy_digest: str,
     artifact_bytes: bytes,
-    workspace_bytes: bytes,
+    policy_bytes: bytes,
 ) -> GuardedWriteResult:
-    """Replace an artifact and workspace file under the shared workspace lock."""
+    """Replace an artifact and the policy file under the shared repair lock."""
 
     temp_paths: list[Path] = []
     artifact: Path | None = None
-    workspace: Path | None = None
+    policy_file: Path | None = None
     lock_path: Path | None = None
     lock_fd = -1
     lock_acquired = False
     before_artifact = b""
-    before_workspace = b""
+    before_policy = b""
     artifact_replaced = False
-    workspace_replaced = False
+    policy_replaced = False
     try:
         resolved_root = repository_root.resolve(strict=True)
         if not resolved_root.is_dir():
             raise RefreshRefusal("invalid_target")
-        # Share the existing workspace writer's repository-scoped lock so its
+        # Share the existing policy file writer's repository-scoped lock so its
         # fingerprint check and this two-file transaction cannot interleave.
         # The lock is acquired before target resolution and held through any
         # rollback and temporary-file cleanup.
@@ -1501,12 +1517,12 @@ def guarded_write_pair(
         lock_fd = -1
 
         artifact = _confined_existing_file(resolved_root, artifact_path)
-        workspace = _confined_existing_file(resolved_root, "workspace.toml")
+        policy_file = _policy_file(resolved_root)
         before_artifact = artifact.read_bytes()
-        before_workspace = workspace.read_bytes()
+        before_policy = policy_file.read_bytes()
         if (
             digest_bytes(before_artifact) != expected_artifact_digest
-            or digest_bytes(before_workspace) != expected_workspace_digest
+            or digest_bytes(before_policy) != expected_policy_digest
         ):
             return GuardedWriteResult("fingerprint_mismatch")
 
@@ -1522,29 +1538,29 @@ def guarded_write_pair(
             return staged
 
         staged_artifact = stage(artifact, artifact_bytes)
-        staged_workspace = stage(workspace, workspace_bytes)
+        staged_policy = stage(policy_file, policy_bytes)
 
         # Authenticate both exact targets again after staging, immediately
         # before the first replacement. Cooperative writers are serialized by
         # the lock; this re-resolution also rejects a target swap by a writer
         # that ignored it.
         checked_artifact = _confined_existing_file(resolved_root, artifact_path)
-        checked_workspace = _confined_existing_file(resolved_root, "workspace.toml")
+        checked_policy = _policy_file(resolved_root)
         current_artifact = checked_artifact.read_bytes()
-        current_workspace = checked_workspace.read_bytes()
+        current_policy = checked_policy.read_bytes()
         if (
             checked_artifact != artifact
-            or checked_workspace != workspace
+            or checked_policy != policy_file
             or digest_bytes(current_artifact) != expected_artifact_digest
-            or digest_bytes(current_workspace) != expected_workspace_digest
+            or digest_bytes(current_policy) != expected_policy_digest
         ):
             return GuardedWriteResult("fingerprint_mismatch")
         staged_artifact.replace(artifact)
         artifact_replaced = True
         temp_paths.remove(staged_artifact)
-        staged_workspace.replace(workspace)
-        workspace_replaced = True
-        temp_paths.remove(staged_workspace)
+        staged_policy.replace(policy_file)
+        policy_replaced = True
+        temp_paths.remove(staged_policy)
         return GuardedWriteResult("written")
     except RefreshRefusal:
         return GuardedWriteResult("invalid_target")
@@ -1554,10 +1570,10 @@ def guarded_write_pair(
                 staged_artifact = stage(artifact, before_artifact)
                 staged_artifact.replace(artifact)
                 temp_paths.remove(staged_artifact)
-            if workspace is not None and workspace_replaced:
-                staged_workspace = stage(workspace, before_workspace)
-                staged_workspace.replace(workspace)
-                temp_paths.remove(staged_workspace)
+            if policy_file is not None and policy_replaced:
+                staged_policy = stage(policy_file, before_policy)
+                staged_policy.replace(policy_file)
+                temp_paths.remove(staged_policy)
         except OSError:
             # A failed rollback leaves the reviewed pair inconsistent.  Do
             # not report this as the recoverable, clean-rollback outcome.
@@ -1598,7 +1614,7 @@ def write_remote_action_receipt(
     repository_root: Path,
     artifact_path: str,
     expected_artifact_digest: str,
-    expected_workspace_digest: str,
+    expected_policy_digest: str,
     receipt: RemoteActionReceipt,
 ) -> RemoteReceiptWriteResult:
     """Durably append or terminally update one exact remote-action receipt."""
@@ -1606,12 +1622,12 @@ def write_remote_action_receipt(
     try:
         resolved_root = repository_root.resolve(strict=True)
         artifact = _confined_existing_file(resolved_root, artifact_path)
-        workspace = _confined_existing_file(resolved_root, "workspace.toml")
+        policy_file = _policy_file(resolved_root)
         current_artifact = artifact.read_bytes()
-        current_workspace = workspace.read_bytes()
+        current_policy = policy_file.read_bytes()
         if (
             digest_bytes(current_artifact) != expected_artifact_digest
-            or digest_bytes(current_workspace) != expected_workspace_digest
+            or digest_bytes(current_policy) != expected_policy_digest
         ):
             raise RefreshRefusal("fingerprint_mismatch")
         current_text = current_artifact.decode("utf-8")
@@ -1648,15 +1664,15 @@ def write_remote_action_receipt(
         else:
             raise RefreshRefusal("invalid_remote_receipt")
         updated_text = _replace_source_authority(current_text, updated)
-        # The paired guard also authenticates an unchanged workspace fingerprint,
-        # while the exact original workspace bytes are written back unchanged.
+        # The paired guard also authenticates an unchanged policy file fingerprint,
+        # while the exact original policy file bytes are written back unchanged.
         result = guarded_write_pair(
             repository_root=resolved_root,
             artifact_path=artifact_path,
             expected_artifact_digest=expected_artifact_digest,
-            expected_workspace_digest=expected_workspace_digest,
+            expected_policy_digest=expected_policy_digest,
             artifact_bytes=updated_text.encode("utf-8"),
-            workspace_bytes=current_workspace,
+            policy_bytes=current_policy,
         )
         if result.code != "written":
             return RemoteReceiptWriteResult(result.code)
@@ -1680,7 +1696,7 @@ class RemoteReceiptStore:
     repository_root: Path
     artifact_path: str
     artifact_digest: str
-    workspace_digest: str
+    policy_digest: str
 
     @classmethod
     def open(
@@ -1689,18 +1705,18 @@ class RemoteReceiptStore:
         repository_root: Path,
         artifact_path: str,
         expected_artifact_digest: str,
-        expected_workspace_digest: str,
+        expected_policy_digest: str,
     ) -> RemoteReceiptStore:
         """Open only when both exact durable fingerprints are still current."""
 
         resolved_root = repository_root.resolve(strict=True)
         artifact = _confined_existing_file(resolved_root, artifact_path)
-        workspace = _confined_existing_file(resolved_root, "workspace.toml")
+        policy_file = _policy_file(resolved_root)
         artifact_bytes = artifact.read_bytes()
-        workspace_bytes = workspace.read_bytes()
+        policy_bytes = policy_file.read_bytes()
         if (
             digest_bytes(artifact_bytes) != expected_artifact_digest
-            or digest_bytes(workspace_bytes) != expected_workspace_digest
+            or digest_bytes(policy_bytes) != expected_policy_digest
         ):
             raise RefreshRefusal("fingerprint_mismatch")
         parse_source_authority(artifact_bytes.decode("utf-8"))
@@ -1708,18 +1724,18 @@ class RemoteReceiptStore:
             resolved_root,
             artifact_path,
             expected_artifact_digest,
-            expected_workspace_digest,
+            expected_policy_digest,
         )
 
     def confirmation_ids(self) -> set[str]:
         """Reload the durable artifact ledger at the current fingerprint."""
 
         artifact = _confined_existing_file(self.repository_root, self.artifact_path)
-        workspace = _confined_existing_file(self.repository_root, "workspace.toml")
+        policy_file = _policy_file(self.repository_root)
         artifact_bytes = artifact.read_bytes()
         if (
             digest_bytes(artifact_bytes) != self.artifact_digest
-            or digest_bytes(workspace.read_bytes()) != self.workspace_digest
+            or digest_bytes(policy_file.read_bytes()) != self.policy_digest
         ):
             raise RefreshRefusal("fingerprint_mismatch")
         authority = parse_source_authority(artifact_bytes.decode("utf-8"))
@@ -1732,7 +1748,7 @@ class RemoteReceiptStore:
             repository_root=self.repository_root,
             artifact_path=self.artifact_path,
             expected_artifact_digest=self.artifact_digest,
-            expected_workspace_digest=self.workspace_digest,
+            expected_policy_digest=self.policy_digest,
             receipt=receipt,
         )
         if result.code != "written" or result.artifact_digest is None:
@@ -1993,22 +2009,20 @@ def coordinate_local_refresh(
     approver: ApproverEvidence,
     decisions: Mapping[str, str],
     expected_artifact_digest: str,
-    expected_workspace_digest: str,
+    expected_policy_digest: str,
     artifact_bytes: bytes,
-    workspace_bytes: bytes,
+    policy_bytes: bytes,
     now: datetime | None = None,
 ) -> RefreshResult:
     """Evaluate and durably commit one semantic local refresh transaction."""
 
     try:
         resolved_root = repository_root.resolve(strict=True)
-        current_workspace_bytes = _confined_existing_file(
-            resolved_root, "workspace.toml"
-        ).read_bytes()
-        if digest_bytes(current_workspace_bytes) != expected_workspace_digest:
+        current_policy_bytes = _policy_file(resolved_root).read_bytes()
+        if digest_bytes(current_policy_bytes) != expected_policy_digest:
             raise RefreshRefusal("invalid_local_update")
         configured_policy = parse_refresh_authorization_policy(
-            current_workspace_bytes.decode("utf-8")
+            current_policy_bytes.decode("utf-8")
         )
         if configured_policy != policy:
             raise RefreshRefusal("invalid_refresh_policy")
@@ -2019,7 +2033,11 @@ def coordinate_local_refresh(
             else "invalid_local_update"
         )
         return RefreshResult(code, "not-started", local_mutation="refused")
-    except (OSError, UnicodeDecodeError):
+    except UnicodeDecodeError:
+        return RefreshResult(
+            "invalid_refresh_policy", "not-started", local_mutation="refused"
+        )
+    except OSError:
         return RefreshResult(
             "invalid_local_update", "not-started", local_mutation="refused"
         )
@@ -2052,7 +2070,7 @@ def coordinate_local_refresh(
             comparison=comparison,
             result=result,
         )
-        if current_workspace_bytes != workspace_bytes:
+        if current_policy_bytes != policy_bytes:
             raise RefreshRefusal("invalid_local_update")
         current_profile = current_authority.tracker_profile
         if (
@@ -2095,7 +2113,7 @@ def coordinate_local_refresh(
             "current_revision": comparison.current_revision,
             "compared_revision": result.compared_revision,
             "artifact_digest": expected_artifact_digest,
-            "workspace_digest": expected_workspace_digest,
+            "policy_digest": expected_policy_digest,
             "recorded_at": approver.confirmed_at,
         }
         receipt = {
@@ -2106,7 +2124,7 @@ def coordinate_local_refresh(
                 ).encode("utf-8")
             ),
             "artifact_digest": expected_artifact_digest,
-            "workspace_digest": expected_workspace_digest,
+            "policy_digest": expected_policy_digest,
             "status": "committed",
             "recorded_at": approver.confirmed_at,
         }
@@ -2135,9 +2153,9 @@ def coordinate_local_refresh(
         repository_root=repository_root,
         artifact_path=comparison.artifact_path,
         expected_artifact_digest=expected_artifact_digest,
-        expected_workspace_digest=expected_workspace_digest,
+        expected_policy_digest=expected_policy_digest,
         artifact_bytes=committed_artifact_bytes,
-        workspace_bytes=workspace_bytes,
+        policy_bytes=policy_bytes,
     )
     if write_result.code != "written":
         local_mutation = (

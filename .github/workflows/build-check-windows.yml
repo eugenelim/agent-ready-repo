@@ -141,6 +141,17 @@ jobs:
           python tools/require-junit-ran-without-skips.py "$env:RUNNER_TEMP\confined-write-junit.xml"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: pytest supervisor config fingerprint (zero skips)
+        # Gating: the fingerprint is a pure function of config bytes, and its
+        # `git config --file` cases run against Git for Windows. The report is
+        # checked, so a skipped case or zero tests fails the step.
+        shell: pwsh
+        run: |
+          python -m pytest packs/core/tests/skills/work-loop/test_supervisor_config_fingerprint.py -q -rs --junitxml="$env:RUNNER_TEMP\config-fingerprint-junit.xml"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python tools/require-junit-ran-without-skips.py "$env:RUNNER_TEMP\config-fingerprint-junit.xml"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - name: pytest safe-process POSIX suite on Windows (evidence only)
         # Not a gate: this suite was written for POSIX hosts. Its Windows
         # result is recorded as evidence for the Job Object launch path, and a
