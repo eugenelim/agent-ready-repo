@@ -187,9 +187,9 @@ Crash and lag repair
   recorded it instead ends with every verb but `status` refusing
   `supervisor-changed`, naming an exit that returns `HEAD` to the approval's
   base and keeps every uncommitted tracked change; after it, `start` admits
-  again. That exit is named only when the base is a full commit id that exists
-  in the repository; otherwise the refusal names no command, and no verb
-  passes that base to Git.
+  again. That exit is named only when the base is the parent of the approval
+  commit at `HEAD`; otherwise the refusal names no command, and no verb passes
+  that base to Git.
 - [ ] **AC-0008.** When the product ref, `HEAD`, or both name a commit the run
   never recorded as made whose parent is the recorded value, no verb counts
   that commit as made or moves a ref to it. With no attempt open, `next`

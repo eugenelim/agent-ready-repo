@@ -215,8 +215,10 @@ the approval commit of a first admission included: a first admission cut off aft
 its refs moved leaves `HEAD` on an approval nothing counts, and the pin check names
 the exit: move `HEAD` back to the base without touching the index or working tree
 (a soft reset), then run `start` again (AC-0007). The base comes from a file a
-worker can write, so it is printed or passed to Git only after it matches a full
-commit id and resolves to a commit; otherwise the refusal names no command. Every
+worker can write, so it is printed or passed to Git only when it is the parent of
+the approval commit at `HEAD`; otherwise the refusal names no command. A leftover
+product ref from the cut-off transaction is inert and is not deleted: refs are
+shared across worktrees and two runs can share a run id. Every
 revision argument the supervisor passes to Git is marked as a revision, never an
 option. A failed store write after the move leaves the refs on a commit the run did
 not record, and the verb answers `denied-product-record` with the state it actually
@@ -425,3 +427,5 @@ Owned by: T1.
 - 2026-10-31: plan approved by eugenelim (amended for the same change)
 - 2026-11-01: spec approved by eugenelim (amended AC-0007 and AC-0023 for a first admission cut off after its refs moved)
 - 2026-11-01: plan approved by eugenelim (amended for the same change)
+- 2026-11-01: spec approved by eugenelim (amended AC-0007: the first-admission base must be the approval commit's parent)
+- 2026-11-01: plan approved by eugenelim (amended for the same change; the leftover-ref delete is removed)
