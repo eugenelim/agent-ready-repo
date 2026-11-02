@@ -150,9 +150,6 @@ An in-scope entry that fails at run start is one of three things:
 - **Product bug:** the product is wrong. Report it. Never write it into the
   entry as expected behavior.
 
-A run stopped at run start reports `blocked` for doc drift or a harness gap and
-`failed` for a product bug.
-
 ### Fields
 
 An entry holds these twelve fields, in this order:
@@ -195,7 +192,8 @@ Each run other than the failing proof run reports exactly one of five grades:
 - `failed`: the run ran and the result was wrong.
 
 A grade its recorded commands and output do not support is reported as
-`blocked`. Which criterion a run proves comes from the task and the
+`blocked`. A run stopped at run start reports `blocked` for doc drift or a harness gap
+and `failed` for a product bug. Which criterion a run proves comes from the task and the
 criterion's approved evidence policy, never from the verify entry.
 
 ### Receipt mapping

@@ -314,7 +314,7 @@ def test_t9_agent_files_are_mapped_never_hosted() -> None:
 
 
 def test_t9_drift_grades_run_start_stop() -> None:
-    s = _section("Drift")
+    s = _section("Grades")
     assert (
         "A run stopped at run start reports `blocked` for doc drift or a harness gap "
         "and `failed` for a product bug" in s
