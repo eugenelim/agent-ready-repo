@@ -41,8 +41,9 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         the observed warn rate.
   (iv)  deferral anchors resolve — every real `(deferred: <slug>)` marker
         resolves through its captured-item file `docs/product/captured/<anchor>.md`
-        (a regular, singly linked file with a readable `- **Status:**` header,
-        whatever the status, Closed included). An open intent or brief file
+        (a regular, singly linked file the captured-item reader's grammar
+        accepts, whatever its status, Closed included, within the lint's read
+        cap; see `captured_file_resolves`). An open intent or brief file
         (`docs/product/intents/<anchor>.md` or `docs/product/briefs/<anchor>.md`,
         a regular non-link file whose preamble status is not terminal) also
         resolves an anchor. So does an open spec file: `docs/specs/<anchor>/spec.md`

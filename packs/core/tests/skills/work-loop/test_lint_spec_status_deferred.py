@@ -447,6 +447,7 @@ def test_captured_file_over_the_read_cap_does_not_resolve(tmp_path: Path) -> Non
     lint = _load_lint_module()
     padding = "x" * (lint._MAX_FILE_BYTES + 1)
     data = _BASE + f"\n<!-- {padding} -->\n"
+    assert lint.captured_text_is_valid(data)
     path = _captured(tmp_path, "my-item", data)
     assert path.stat().st_size > lint._MAX_FILE_BYTES
     assert not lint.captured_file_resolves(tmp_path, "my-item")
