@@ -38,6 +38,16 @@ _PACKAGED_DATA = (
 )
 
 
+def _load_intake_guard():
+    """Load work-intake's own `intake_guard.py`, which owns the intake actions."""
+    path = CORE_PACK / ".apm" / "skills" / "work-intake" / "scripts" / "intake_guard.py"
+    spec = importlib.util.spec_from_file_location("intake_guard_contract", path)
+    guard = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = guard
+    spec.loader.exec_module(guard)
+    return guard
+
+
 def _load_workspace_status_engine():
     path = (
         CORE_PACK
@@ -74,7 +84,7 @@ def test_t1_group2_schema_constants_match_engine() -> None:
     ) == engine.SURFACE_ROLES
     assert tuple(
         intake_schema["properties"]["action"]["enum"]
-    ) == engine.NORMALIZED_INTAKE_ACTIONS
+    ) == _load_intake_guard().NORMALIZED_INTAKE_ACTIONS
 
 
 def test_workspace_status_package_runtimes_match_canonical_sources() -> None:

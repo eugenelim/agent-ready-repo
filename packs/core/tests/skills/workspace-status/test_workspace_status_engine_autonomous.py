@@ -240,21 +240,6 @@ def test_t1_group2_pack_contract_surface() -> None:
         assert isinstance(parsed, mod.WorkspaceEntry), path.name
         assert parsed_findings == [], path.name
 
-    legacy_cases = mod.parse_legacy_fixture_file(
-        _CONTRACT_FIXTURES / "workspace/context/legacy-valid.toml"
-    )
-    assert legacy_cases
-    assert all(isinstance(case, mod.LegacyWorkspaceEntry) for case in legacy_cases)
-    assert {case.finding.code for case in legacy_cases} == {"legacy_entry"}
-    assert not any(case.dispatchable for case in legacy_cases)
-
-    invalid_legacy = mod.parse_legacy_fixture_file(
-        _CONTRACT_FIXTURES / "workspace/context/legacy-invalid.toml"
-    )
-    assert invalid_legacy
-    assert {case.finding.code for case in invalid_legacy} == {"unsupported_legacy"}
-    assert not any(case.dispatchable for case in invalid_legacy)
-
     for collection in ("work.queue", "work.active", "work.shipped"):
         case = mod.parse_legacy_workspace_entry(collection, "spec/password-reset")
         assert case.finding.code == "legacy_entry"
@@ -296,45 +281,6 @@ def test_t1_group2_pack_contract_surface() -> None:
             else "invalid_entry"
         )
         assert {finding.code for finding in parsed_findings} == {expected_code}, path.name
-
-    valid_intake = json.loads(
-        (
-            _CONTRACT_FIXTURES
-            / "normalized-intake/valid/refresh-tracker-origin.json"
-        ).read_text(encoding="utf-8")
-    )
-    intake, intake_findings = mod.validate_normalized_intake(valid_intake)
-    assert isinstance(intake, mod.NormalizedIntake)
-    assert intake.action == "refresh"
-    assert intake.refresh_target == "docs/specs/work-intake/spec.md"
-    assert intake_findings == []
-
-    for path in (_CONTRACT_FIXTURES / "normalized-intake/valid").glob("*.json"):
-        parsed_intake, parsed_findings = mod.validate_normalized_intake(
-            json.loads(path.read_text(encoding="utf-8"))
-        )
-        assert isinstance(parsed_intake, mod.NormalizedIntake), path.name
-        assert parsed_findings == [], path.name
-
-    for path in (_CONTRACT_FIXTURES / "normalized-intake/invalid").glob("*.json"):
-        parsed_intake, parsed_findings = mod.validate_normalized_intake(
-            json.loads(path.read_text(encoding="utf-8"))
-        )
-        assert parsed_intake is None, path.name
-        assert parsed_findings, path.name
-        expected_code = (
-            "invalid_artifact_path"
-            if path.name == "windows-drive-refresh-target.json"
-            else "invalid_entry"
-        )
-        assert {finding.code for finding in parsed_findings} == {expected_code}, path.name
-
-    for non_finite in (float("nan"), float("inf"), float("-inf")):
-        payload = json.loads(json.dumps(valid_intake))
-        payload["constraints"]["score"] = non_finite
-        parsed_intake, parsed_findings = mod.validate_normalized_intake(payload)
-        assert parsed_intake is None
-        assert {finding.code for finding in parsed_findings} == {"invalid_entry"}
 
 
 def test_t2_exact_canonical_path_shapes_and_legacy_extraction() -> None:

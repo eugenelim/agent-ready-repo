@@ -5,8 +5,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-import pytest
-
 _SCRIPTS = (
     Path(__file__).resolve().parents[3] / ".apm" / "skills" / "workspace-status" / "scripts"
 )
@@ -101,6 +99,5 @@ def test_scripts_hold_no_prune_or_retirement_module() -> None:
     assert stray == []
 
 
-@pytest.mark.xfail(strict=True, reason="T7 trims the engine")
 def test_every_top_level_def_is_reached_from_main() -> None:
     assert _unreached() == []

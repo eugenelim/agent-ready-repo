@@ -1746,7 +1746,10 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
             workspace_class
         )
     }
-    assert len(workspace_nodes) == len(direct_workspace_nodes) == 88
+    # Re-pinned for repair-only-workspace-status T7: 88 -> 55. The cases that drove
+    # the deleted engine functions (bounded analysis, explain, shaping guard, stale
+    # warnings, migration stubs) left with them.
+    assert len(workspace_nodes) == len(direct_workspace_nodes) == 55
     assert set(workspace_nodes) == direct_workspace_nodes
     assert not any(
         metadata["markers"]
@@ -1818,10 +1821,10 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
 
 
 def test_workspace_status_direct_and_pytest_share_one_case_registry() -> None:
-    """Direct and pytest entrypoints must consume the same 88 semantic cases."""
+    """Direct and pytest entrypoints must consume the same 55 semantic cases."""
     module = _load_module(SHARED_TESTS[3], "_shared_workspace_status_contract")
     cases = module.CASES
-    assert len(cases) == 88
+    assert len(cases) == 55
     labels = [label for label, _case in cases]
     functions = [case for _label, case in cases]
     assert len(set(labels)) == len(labels)
