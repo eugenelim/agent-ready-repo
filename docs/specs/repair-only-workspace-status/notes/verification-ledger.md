@@ -16,3 +16,12 @@
 - 2026-11-02, plan-locked gate (run `run-33b41daae1a10319`): the capture refused with the same `map_mismatch`; recorded under the same owner decision, with no fallback file.
 - T10: the errata and brief texts sit in records the supervisor protects from workers, so T10's first attempt was reported as a failed gate (retry 1) and the controller committed the owner-approved texts between attempts.
 - T2: the implementer inverted `test_dispatch_outside_a_skills_directory`, a seventh test pinning the layout check the plan drops. The owner accepted it on 2026-11-02, to be carried by one batched controlled amendment of AC-0002's engine-pinning list before the final `run-gates`. The owner also chose to leave the readiness bridge's `wrong_schema` reading of `unmigrated_workspace` as a follow-on.
+
+## T4 — the dispatch replay (AC-0007)
+
+2026-11-02, base `ab4e4b71c` (its `packs/core/.apm/skills/` extracted with `git archive`) against the working tree after T3, both run as `python -I dispatch.py --root <tree>`, comparing standard output bytes and exit codes.
+
+- Trees: 157 — the 156 distinct repositories the four dispatch suites plant (`test_dispatch.py`, `test_header_derived_dispatch_replay.py`, `test_work_intake_dispatch.py`, `test_dispatch_isolation.py`), captured by a throwaway pytest plugin that snapshots every root passed to `dispatch()` or `dispatch.py --root`, plus this repository.
+- Not entry-free, so not replayed: 101 (a `workspace.toml` holding an entry, unparseable, or a link).
+- Runs compared: 202 — an argless run of each of the 56 entry-free trees, and `--start` and `--resume` of every spec either listed in `ready`, `active` or `blocked`.
+- Differing outputs: 0.
