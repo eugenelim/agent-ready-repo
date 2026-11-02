@@ -134,7 +134,7 @@ Owned by: T6, T7
   - `packs/core/tests/skills/close-work/test_pause_receipts_and_initiative.py` and `tests/roster/test_status_projection_and_context_exclusion.py` lose the cases that call `project_closeout_status`, a status-only projection.
   - `packs/core/tests/skills/work-intake/test_work_intake.py` loads normalized-intake validation from `work-intake`, assertions unchanged. `packs/core/tests/pack/test_work_intake_surface.py` does the same, and loses its `migration-read-only-plan` row and `validate_migration_selection` cases.
   - The `migration-read-only-plan` routing case, its four `evals/files/routing/migration-*` fixtures, `tools/work_intake_routing_evaluation.py`'s `_evaluate_migration` path, and `tests/roster/test_work_intake_refresh_coordinator.py`'s `test_integrated_matrix_has_a_read_only_migration_planner_row` are deleted with the migration tooling.
-  - The dispatch assertions in the repair suites move to AC-0030's form. They are `test_dispatch_output_is_identical_across_apply` in `test_captured_entry_drop.py`; `test_dispatch_output_is_byte_identical_before_and_after_apply` and `test_dispatch_output_is_identical_across_a_held_entrys_second_run` in `test_spec_registration_stop_repair.py`; and `test_dispatch_output_differs_only_by_the_archived_spec_blocked_item`, the three `test_dispatch_output_is_identical_across_apply_on_*` tests and every other dispatch comparison in `test_tracker_entry_drop.py`. Each runs dispatch after the apply and compares it with dispatch on the same tree without `workspace.toml`.
+  - The dispatch assertions in the repair suites are AC-0030's dispatch-comparison tests. Each asserts AC-0030 after the apply.
   - `test_spec_registration_stop_repair.py`'s `migrate_legacy_entry` helper plants the entry its migration produced as a literal, so `test_a_migrated_entry_is_planned_as_a_spec_entry_drop` and `test_a_migrated_entry_held_by_its_record_gets_the_type_6_manual_item` keep their assertions.
   - `packages/agentbundle/tests/integration/test_zipapp.py` loads the packaged dispatch in place of `_load_workspace_status_engine`.
   - `packs/core/tests/skills/work-loop/test_lint_spec_status_deferred.py`'s reader-parity table and `tools/test_pack_test_compatibility.py` keep the engine while the repair reaches the functions they load. Otherwise they retarget `_header_readiness`'s ported captured-item reader, assertions unchanged.
@@ -145,6 +145,10 @@ Owned by: T5, T6, T7
 - **Earlier equivalence rows.** Each § Equivalence row whose cited evidence loses every tracked file gains, in the same change, the retargeted suite that now proves its behavior. No row's category or authority changes.
 
 Owned by: T11
+
+- **No sentence routes a status question to `workspace-status`.** The roster check that proves AC-0018 also carries a content pin, which is design and not contract. In the Markdown files AC-0018 lists, other than `workspace-status`'s own SKILL.md and `references/mutate.md`, no sentence names `workspace-status` together with any of `status`, `queue`, `orient`, `orientation`, `ready`, `next`, `eligibility`, `reconciliation` or `backlog`. Sentences are split on the raw text, at sentence ends, blank lines, headings and list-item starts, and whitespace is collapsed inside each sentence. Words match whole and case-insensitively, and a token joined to another by `-` or `_` counts as neither. The pin skips JSON. The controller may narrow its word list when a repair sentence trips it.
+
+Owned by: T8
 
 - **Tools.** `tools/compare-registry.py` and `tools/test_compare_registry.py` are deleted, since every registration stop has run. `tools/replay-dispatch.py` and `tools/bench-workspace-status.py` stay if their tests pass against the shrunk engine, and are deleted with their tests otherwise. Either outcome is recorded in the ledger.
 
@@ -231,7 +235,7 @@ Owned by: T9
 - **Tests:**
   - AC-0008 and AC-0009: argument-vector cases for each retired subcommand, a bare call, and each migration form. These assert exit 2, empty standard output, the standard-error prefix, and an unchanged tree.
   - AC-0011: the listed repair suites keep their assertions, with the migration-form setup planted as a literal.
-  - AC-0030: the dispatch assertions the design's suite fates list, each comparing dispatch after the apply with dispatch on the same tree without `workspace.toml`, or with the refusal while an entry remains.
+  - AC-0030: each dispatch-comparison test AC-0030 names asserts AC-0030 after the apply.
   - The migration, prune, retirement and status-output suites are deleted, each with its fixtures. Reader and equivalence cases follow the design's suite fates.
   - AC-0010: a grep pin over both trees.
   - `BACKEND_DIGESTS` and the mode-row check follow the new scripts.
@@ -254,7 +258,7 @@ Owned by: T9
   - evals: `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/.apm/skills/workspace-status/evals/evals.json`, `packs/core/.apm/skills/workspace-status/evals/eval_queries.json`, `packs/core/.apm/skills/work-intake/evals/evals.json`;
   - tests: `tests/roster/test_repair_only_workspace_status.py`, and the roster phrase-pin tests that pin removed text;
   - CI and projections: `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py`, `.workspace-prune-protected.toml`, `.claude/skills/**`, `.agents/skills/**` other than `work-loop`.
-- **Tests:** for AC-0018: the new roster check over AC-0018's lists. Each phrase pin that pinned removed text pins the replacement text, or is deleted with the behavior it guarded. The eval schema suites pass.
+- **Tests:** for AC-0018: the new roster check over AC-0018's lists, with the design's sentence content pin. Each phrase pin that pinned removed text pins the replacement text, or is deleted with the behavior it guarded. The eval schema suites pass.
 - **Done when:** the new roster check, the touched roster tests, the eval suites and `tools/lint-ci-parity.py` pass, and the supervisor's `regenerate` request has rebuilt the installed `work-loop` copy.
 
 ### T9: Repository tools
