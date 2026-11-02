@@ -1495,6 +1495,11 @@ def test_a_finished_run_squashed_into_its_terminal_commit_is_not_a_first_admissi
         code, out = h.run_cli(repo, *argv)
         text = json.dumps(out)
         assert "git reset --soft" not in text and "first admission" not in text, (verb, out)
+        if verb == "status":  # answers the finished run from its committed records
+            assert code == 0 and out.get("terminal") is True, out
+        else:  # no store, so no pins: the plain refusal, never the first-admission exit
+            assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+            assert out["refusal"]["detail"] == "the supervisor's pin record is missing", out
 
 
 @pytest.mark.parametrize("state", ["store-built", "approvals-restored"])
