@@ -1,7 +1,7 @@
 # Plan: Canonical result integration
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0154 governs once Accepted; it supersedes ADR-0144 D9 and D11 in part.
   - **Commit builder:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`
     (`GitPort.build_commit` moves `HEAD` by `update-ref HEAD new old`, with
