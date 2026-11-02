@@ -121,7 +121,7 @@ the plan's `## Design (LLD)`, not here.
 
 **Terms**
 
-- **Base.** Commit `5fe7ca91f`.
+- **Base.** Commit `ab4e4b71c`.
 - **Base dispatch.** `packs/core/.apm/skills/work-loop/scripts/dispatch.py` and the skill tree it loads, both at the base.
 - **Entry.** An element of an array that `workspace.toml` holds under any top-level key other than `authorization`.
 - **Entry-free repository.** One with no `workspace.toml`, or with a `workspace.toml` that is a readable regular file the base dispatch accepts and that holds no entry.
@@ -154,7 +154,12 @@ the plan's `## Design (LLD)`, not here.
   - every other test under `packs/core/tests/skills/workspace-status/` at the base that runs only `repair-plan` or `repair-apply`.
 
   Two kinds of assertion are exempt. An assertion about dispatch output in the dispatch-comparison tests AC-0030 names is replaced by AC-0030. A test in `test_spec_registration_stop_repair.py` that reaches its entry through a migration form plants that entry directly, as the literal the migration produced, and keeps its other assertions.
-- [ ] **AC-0030.** Each dispatch-comparison test runs dispatch after its `repair-apply --yes`. While the applied `workspace.toml` still holds an entry, dispatch prints the AC-0003 refusal, unless AC-0004 applies. Otherwise it prints output byte-identical to dispatch on the same tree with `workspace.toml` removed. The dispatch-comparison tests are:
+- [ ] **AC-0030.** Each dispatch-comparison test runs dispatch after each `repair-apply --yes` it runs. Exactly one of these holds for each run, taken in this order:
+  1. when AC-0004 applies, dispatch prints the AC-0004 refusal;
+  2. otherwise, while the applied `workspace.toml` still holds an entry, it prints the AC-0003 refusal;
+  3. otherwise, it prints output byte-identical to dispatch on the same tree with `workspace.toml` removed.
+
+  The dispatch-comparison tests are:
   - `test_dispatch_output_is_identical_across_apply` in `test_captured_entry_drop.py`;
   - `test_dispatch_output_is_byte_identical_before_and_after_apply` and `test_dispatch_output_is_identical_across_a_held_entrys_second_run` in `test_spec_registration_stop_repair.py`;
   - every test in `test_tracker_entry_drop.py` that ran dispatch at the base.
@@ -169,7 +174,7 @@ the plan's `## Design (LLD)`, not here.
   - one that does not split into a type and a slug;
   - one whose slug fails the base slug guard;
   - one whose type the lifecycle manifest does not know.
-- [ ] **AC-0032.** Rule 5 of the server instructions and both `git_branch` descriptions each name `<type>/<slug>` as the branch. `README-pypi.md`'s `WORKSPACE_MCP_DISPATCHED_ITEM` text names `type:slug` as the dispatched item. None of the server instructions, the `workspace_status` tool description, the two `git_branch` descriptions, `README-pypi.md`'s `workspace_status` row or that `WORKSPACE_MCP_DISPATCHED_ITEM` text names `ini_slug` as a `workspace_status()` field. None of them describes `shaping` as anything but an empty list.
+- [ ] **AC-0032.** Rule 5 of the server instructions and both `git_branch` descriptions each name `<type>/<slug>` as the branch, and none of them names a three-part `<ini_slug>/<type>/<slug>` branch. `README-pypi.md`'s `WORKSPACE_MCP_DISPATCHED_ITEM` text names `type:slug` as the form to set, and marks any three-part `ini_slug/type:slug` it names as legacy. None of the server instructions, the `workspace_status` tool description, the two `git_branch` descriptions, `README-pypi.md`'s `workspace_status` row or that `WORKSPACE_MCP_DISPATCHED_ITEM` text names `ini_slug` as a `workspace_status()` field. None of them describes `shaping` as anything but an empty list.
 - [ ] **AC-0016.** `work-intake`'s `refresh.py` and `_data/work_intake_refresh.py` load no file from the `workspace-status` directory or a `workspace_status*` module. `packs/core/tests/skills/work-intake/test_work_intake.py` and `tests/roster/test_tracker_intake_adapters.py` pass with their base assertions unchanged.
 - [ ] **AC-0029.** `work-intake`'s router routes a status request to `navigate-intents`, and the routing matrix's status cases expect `navigate-intents`.
 - [ ] **AC-0017.** `navigate-intents`'s pinned finding table equals `work-loop`'s finding table, and the parity tests that compared it with the engine's table compare it with `work-loop`'s.

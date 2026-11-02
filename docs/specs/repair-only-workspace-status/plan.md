@@ -146,7 +146,7 @@ Owned by: T5, T6, T7
 
 Owned by: T11
 
-- **No sentence routes a status question to `workspace-status`.** The roster check that proves AC-0018 also carries a content pin, which is design and not contract. In the Markdown files AC-0018 lists, other than `workspace-status`'s own SKILL.md and `references/mutate.md`, no sentence names `workspace-status` together with any of `status`, `queue`, `orient`, `orientation`, `ready`, `next`, `eligibility`, `reconciliation` or `backlog`. Sentences are split on the raw text, at sentence ends, blank lines, headings and list-item starts, and whitespace is collapsed inside each sentence. Words match whole and case-insensitively, and a token joined to another by `-` or `_` counts as neither. The pin skips JSON. The controller may narrow its word list when a repair sentence trips it.
+- **No sentence routes a status question to `workspace-status`.** The roster check that proves AC-0018 also carries a content pin, which is design and not contract. In the Markdown files AC-0018 lists, other than `workspace-status`'s own SKILL.md and `references/mutate.md`, no sentence names `workspace-status` together with any of `status`, `queue`, `orient`, `orientation`, `ready`, `next`, `eligibility`, `reconciliation` or `backlog`. Sentences are split on the raw text, at sentence ends, blank lines, headings and list-item starts, and whitespace is collapsed inside each sentence. The name matches only as the exact token `workspace-status`, bounded by characters other than a letter, digit, `-` or `_`. The listed words match whole and case-insensitively, and a listed word joined to another by `-` or `_` does not count. The pin skips JSON. The controller may narrow its word list when a repair sentence trips it.
 
 Owned by: T8
 
