@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.59.1] — 2026-11-02
+
+### Fixed
+
+- `catalogue self-host` no longer projects the core seed over a repository's root
+  `AGENT_RULES.md`. The file is seeded once and then repository-owned, so routing
+  rows an adopter adds survive regeneration. A missing file is still scaffolded.
+
+Engine-Change-RFC: n/a — adds one root path to the seeded-once exclusion list; no CLI surface or schema change
+
 ## [0.59.0] — 2026-10-29
 
 ### Changed

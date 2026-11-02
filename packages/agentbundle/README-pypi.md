@@ -14,6 +14,11 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.59.1
+
+`catalogue self-host` keeps a repository's root `AGENT_RULES.md`, so routing
+rows an adopter adds survive regeneration.
+
 ## What's new in 0.59.0
 
 The workspace bridge now reads a supervisor run's status file only. The old
