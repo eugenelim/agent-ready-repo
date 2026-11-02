@@ -351,17 +351,6 @@ def test_ac23_pinned_files_are_byte_unchanged() -> None:
         assert actual_digest == expected_digest, relative_path
 
 
-def test_ac14_skill_states_cooled_exclusion() -> None:
-    """AC14: the workspace-status skill states the cooled exclusion."""
-    normalized = " ".join(
-        (
-            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
-        ).read_text(encoding="utf-8").split()
-    )
-
-    assert "the queue emptiness flag excludes entries named by a lifecycle record" in normalized
-
-
 def test_ac15_skill_drops_authoritative_queue_claim() -> None:
     """AC15: the workspace-status skill drops the authoritative queue claim."""
     normalized = " ".join(
@@ -371,17 +360,6 @@ def test_ac15_skill_drops_authoritative_queue_claim() -> None:
     )
 
     assert "is the authoritative check" not in normalized
-
-
-def test_ac16_skill_withholds_closeout_for_blockers() -> None:
-    """AC16: the workspace-status skill withholds closeout for blockers."""
-    normalized = " ".join(
-        (
-            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
-        ).read_text(encoding="utf-8").split()
-    )
-
-    assert "do not offer closeout while `closeout_blockers` is non-empty" in normalized
 
 
 def test_ac25_wave_ownership_statements_survive() -> None:
@@ -430,18 +408,6 @@ def test_ac27_reference_states_closeout_derivation() -> None:
         "an entry named by a lifecycle record counts toward neither closeout consumer"
         in normalized
     )
-
-
-def test_ac32_skill_retains_queue_and_shipped_conditions() -> None:
-    """AC32: the workspace-status skill retains both further conditions."""
-    normalized = " ".join(
-        (
-            ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
-        ).read_text(encoding="utf-8").split()
-    )
-
-    assert "`initiatives[i].queue_empty` is `true`" in normalized
-    assert "filtered shipped is non-empty" in normalized
 
 
 def _normalized_rfc_errata() -> str:

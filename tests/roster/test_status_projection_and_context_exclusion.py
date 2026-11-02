@@ -301,7 +301,6 @@ def test_prose_criteria_have_their_verification_artifact() -> None:
 
     skill = _normalized("packs/core/.apm/skills/workspace-status/SKILL.md")  # AC50
     assert "remains visible because ordinary-context exclusion is not part of this wave" not in skill
-    assert "Cooling context is excluded from ordinary orientation" in skill
 
     spec = (ROOT / "docs/specs/status-projection-and-context-exclusion/spec.md").read_text(
         encoding="utf-8"

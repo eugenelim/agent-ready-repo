@@ -1808,7 +1808,9 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
     # `repair-plan` and `repair-apply`, so the cases that drove `status`,
     # `reconcile`, `explain`, the migration forms and the migration stub class
     # left the file, and the argument-vector and migration-reader cases joined it.
-    assert len(cli_contract) == len(direct_cli_nodes) == 88
+    # Then 88 -> 81: the seven SkillWiringTests that pinned the retired status
+    # rendering text (display fields, repo_backlog, parallel graph, cleanup) left.
+    assert len(cli_contract) == len(direct_cli_nodes) == 81
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1962,7 +1964,7 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
 
     # Same delta as the re-pin note above; both literals move together.
     # Same delta as the re-pin note above; both literals move together.
-    assert len(direct_ids) == 88
+    assert len(direct_ids) == 81
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 

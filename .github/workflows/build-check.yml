@@ -677,6 +677,10 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_work_loop_cooling_mirror.py
 
+      - name: pytest repair-only workspace-status text (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_repair_only_workspace_status.py
+
       - name: pytest header-readiness source-authority parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_header_readiness_source_authority_parity.py

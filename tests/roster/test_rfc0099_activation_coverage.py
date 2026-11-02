@@ -199,9 +199,12 @@ ROUTING_SCENARIOS = (
         "core-only",
         "Core-only: “What is ready to work on?”",
         "`workspace-status` directly",
+        # The frozen card still names `workspace-status`; the installed skill
+        # text now routes status to `navigate-intents` and `dispatch.py`, so the
+        # evidence pins that replacement route.
         ((
-            "packs/core/.apm/skills/workspace-status/SKILL.md",
-            ("see what's ready to work on next",),
+            "packs/core/.apm/skills/work-intake/SKILL.md",
+            ("Route status directly to `navigate-intents`",),
         ),),
     ),
 )

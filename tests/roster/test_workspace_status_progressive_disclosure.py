@@ -206,7 +206,7 @@ def test_the_body_keeps_the_mutation_consent_rule_always_loaded() -> None:
     """
     never = _section(_skill_text(), "## Never", "## Conditional references")
     assert "references/mutate.md" in never
-    for subcommand in ("prune", "repair-apply", "repair-rollback"):
+    for subcommand in ("repair-apply",):
         assert f"`{subcommand}`" in never, f"{subcommand} is not named in Never"
     assert "confirmation" in never.lower()
 

@@ -526,88 +526,6 @@ class SkillWiringTests(unittest.TestCase):
     def _skill_text(self) -> str:
         return self._SKILL_PATH.read_text(encoding="utf-8")
 
-    def test_skill_contract_handles_empty_display_fields(self) -> None:
-        """An omitted `name` or `milestone` must not render as a blank segment.
-
-        Both project as empty strings with no finding, because neither key is
-        required by the workspace.toml schema and no validator fires for a
-        missing one. Before display metadata was projected as authored, the
-        redaction sentinel made both unconditionally non-empty, so the template
-        could never reach this state; it can now, and the template is where it
-        is handled.
-        """
-        text = self._skill_text()
-        template_line = next(
-            (
-                line for line in text.splitlines()
-                if line.startswith("`<ini-slug>`")
-            ),
-            None,
-        )
-        self.assertIsNotNone(
-            template_line, "the Active initiatives template line is absent from SKILL.md"
-        )
-        # The rule may wrap, so read the paragraph the template line opens.
-        start = text.index(template_line)
-        paragraph = text[start:text.index("\n- **Brief queue**", start)]
-        # Whitespace-normalised: the rule wraps, and a phrase split across a
-        # line break is still the phrase. Asserting the raw text would pin the
-        # wrapping rather than the content.
-        flat = " ".join(paragraph.split())
-        self.assertIn("omit", flat.lower())
-        self.assertIn("`name` is empty", flat)
-        self.assertIn("`milestone` is empty", flat)
-
-    def test_skill_contract_describes_display_fields_as_values(self) -> None:
-        """AC-0003: the shipped contract describes and renders both fields.
-
-        One method, five assertions -- one per conjunct. The absence conjunct
-        needs two of them and runs case-insensitively over the whole file: the
-        key-list rows used to carry `see "redacted display fields" below` in
-        lower case, which a check on the capitalised heading misses, and those
-        rows are not a paragraph.
-        """
-        text = self._skill_text()
-
-        # 1. The summary row enumerates both fields.
-        summary = next(
-            (
-                line for line in text.splitlines()
-                if line.startswith("initiatives ")
-            ),
-            None,
-        )
-        self.assertIsNotNone(
-            summary, "the `initiatives` summary row is absent from SKILL.md"
-        )
-        for field in ("slug", "name", "status", "milestone", "brief_queue", "queue_empty"):
-            self.assertIn(field, summary, f"{field} missing from the initiatives summary row")
-
-        # 2-3. Both per-field rows describe a value read from workspace.toml.
-        for field in ("name", "milestone"):
-            row = next(
-                (
-                    line for line in text.splitlines()
-                    if line.startswith(f"initiatives[].{field}")
-                ),
-                None,
-            )
-            self.assertIsNotNone(
-                row, f"the `initiatives[].{field}` key-list row is absent from SKILL.md"
-            )
-            self.assertIn("workspace.toml", row)
-            self.assertIn("as authored", row)
-
-        # 4. The rendering template carries both values.
-        self.assertIn(
-            "`<ini-slug>` — `<name>` (milestone: `<milestone>`)", text
-        )
-
-        # 5. No redaction statement survives, in any letter case or form.
-        lowered = text.lower()
-        for banned in ("redacted display fields", "always the literal", "slug alone"):
-            self.assertNotIn(banned, lowered, f"redaction statement survives: {banned!r}")
-
     def test_skill_invokes_cli(self) -> None:
         """AC4: SKILL.md contains scripts/workspace_status.py."""
         text = self._skill_text()
@@ -623,22 +541,11 @@ class SkillWiringTests(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, text, f"SKILL.md still contains: {forbidden!r}")
 
-    def test_skill_cleanup_preserved(self) -> None:
-        """AC7: Cleanup confirmation language is preserved."""
-        text = self._skill_text()
-        self.assertIn("Reply Y", text)
-
     def test_skill_no_quickfull(self) -> None:
         """AC15: No quick/full mode flags."""
         text = self._skill_text()
         self.assertNotIn("--quick", text)
         self.assertNotIn("--full", text)
-
-    def test_skill_parallel_graph_preserved(self) -> None:
-        """AC6: §6b/§6c parallel-opportunity graph strings are present."""
-        text = self._skill_text()
-        self.assertIn("parallel opportunities", text)
-        self.assertIn("--bg", text)
 
     def test_skill_quoted_root(self) -> None:
         """Boundaries: SKILL.md passes --root safely (quoted or discrete argv)."""
@@ -650,33 +557,8 @@ class SkillWiringTests(unittest.TestCase):
             "SKILL.md must pass --root as a quoted shell arg or discrete argv element",
         )
 
-    def test_skill_uses_repo_backlog_json_contract(self) -> None:
-        """Repository backlog membership and count come from the backend JSON."""
-        text = self._skill_text()
-        self.assertIn("repo_backlog.open", text)
-        self.assertIn("N = len(repo_backlog.open)", text)
-        self.assertIn("authoritative", text)
-        self.assertIn("Do not reread raw TOML to determine backlog membership", text)
-
-    def test_skill_renders_both_repo_backlog_identifiers(self) -> None:
-        """Legacy slugs and target paths both have an explicit render route."""
-        text = self._skill_text()
-        self.assertIn("`slug` when present, otherwise display `path`", text)
-        self.assertIn("declared `room` (`[shape]` or `[build]`)", text)
-
-    def test_skill_omits_empty_repo_backlog_and_keeps_comment_fallback(self) -> None:
-        """The section is conditional and raw TOML is summary fallback only."""
-        text = self._skill_text()
-        normalized = " ".join(text.split())
-        self.assertIn("repo_backlog.open` is absent or", text)
-        self.assertIn(
-            "Only when a legacy `slug` entry has no `summary`",
-            normalized,
-        )
-        self.assertIn("comment line", text)
-
-
 # ── Test: Order 1B subcommands ────────────────────────────────────────────────
+
 
 _SIMPLE_TOML = """\
 ["ini-001"]
