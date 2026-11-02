@@ -21,6 +21,7 @@ live in [RFCs](../rfc/).
 - [`verification-graph.md`](verification-graph.md) — measured facts: local gate graph, remote workflow fleet, required contexts, and platform classification.
 - [`security.md`](security.md) — security-review posture.
 - [`credentials.md`](credentials.md) — brokers, storage, and trust boundaries.
+- [`portable-catalogue-authentication.md`](portable-catalogue-authentication.md) — how a remote catalogue fetch picks bearer, JFrog CLI, `.netrc`, or anonymous access.
 - [`knowledge-capture.md`](knowledge-capture.md) — capture, distillation, and enquiry.
 - [`telemetry.md`](telemetry.md) — what a pack records about its own execution, and the export boundary.
 - [`catalogue/upstream-sync.md`](catalogue/upstream-sync.md) — `agentbundle catalogue sync`, the path a derived catalogue takes upstream changes by.
