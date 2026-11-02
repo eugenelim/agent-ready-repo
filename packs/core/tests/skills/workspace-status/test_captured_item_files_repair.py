@@ -41,6 +41,9 @@ def _load() -> ModuleType:
 
 
 WS = _load()
+# Tests below call helpers directly; bind the engine here rather than rely on an
+# earlier test having run `main` in this process.
+assert WS._bind_engine()
 PLAN = ".workspace-repair-plan.json"
 CAPTURED = "docs/product/captured"
 NOTES = "docs/product/notes"
@@ -311,7 +314,8 @@ def test_a_refused_twin_keeps_its_prefix_after_the_other_migrated(
     second = plan(repo, capsys)
     assert captured_ops(second) == []
     [again] = captured_findings(second)
-    assert (again["reason"], again["slug"]) == ("status-conflict", "b-x")
+    # The migrated twin's entry left in the same apply, so the base slug is no longer shared.
+    assert (again["reason"], again["slug"]) == ("status-conflict", "x")
 
 
 # ── AC-0019, AC-0020: the record text ────────────────────────────────────────
@@ -733,7 +737,8 @@ def test_apply_writes_records_then_repoints_paths_and_nothing_else(
     workspace_before = (repo / "workspace.toml").read_text(encoding="utf-8")
     code, result = apply(repo, capsys)
     assert code == 0, result
-    assert result["operations_applied"] == 4
+    # Each of the four records also drops the entry it backs.
+    assert result["operations_applied"] == 8
     after = snapshot(repo)
     records = {op["record_path"]: op for op in captured_ops(data)}
     assert set(after) - set(before) == set(records)
@@ -742,13 +747,11 @@ def test_apply_writes_records_then_repoints_paths_and_nothing_else(
             assert after[rel] == text, rel
     for rel, op in records.items():
         assert after[rel] == op["record_text"].encode("utf-8")
-    expected = workspace_before
+    workspace_after = after["workspace.toml"].decode("utf-8")
+    assert len(workspace_after) < len(workspace_before)
     for op in records.values():
-        if "source_path" in op:
-            expected = expected.replace(
-                f'path = "{op["source_path"]}"', f'path = "{op["record_path"]}"'
-            )
-    assert after["workspace.toml"] == expected.encode("utf-8")
+        assert op["record_path"] not in workspace_after
+        assert op.get("source_path", "\0") not in workspace_after
     assert not (repo / ".workspace-repair.lock").exists()
     again = plan(repo, capsys)
     assert captured_ops(again) == [] and captured_findings(again) == []
@@ -812,7 +815,9 @@ def test_a_plan_with_needs_and_captured_operations_applies_each_by_its_own_contr
     data = plan(repo, capsys)
     kinds = sorted(op["operation_type"] for op in data["automatic_operations"])
     # The waiting spec's `needs` empties in this plan, so its entry is dropped too.
-    assert kinds == ["captured-to-file", "needs-to-header", "spec-entry-drop"]
+    assert kinds == [
+        "captured-entry-drop", "captured-to-file", "needs-to-header", "spec-entry-drop",
+    ]
     before = snapshot(repo)
     code, result = apply(repo, capsys)
     assert code == 0, result
@@ -822,7 +827,7 @@ def test_a_plan_with_needs_and_captured_operations_applies_each_by_its_own_contr
     assert after[peer] == before[peer] and after[f"{NOTES}/d1.md"] == before[f"{NOTES}/d1.md"]
     assert set(after) - set(before) == {f"{CAPTURED}/d1.md"}
     workspace = after["workspace.toml"].decode()
-    assert f'path = "{CAPTURED}/d1.md"' in workspace and "needs = []" in workspace
+    assert f"{CAPTURED}/d1.md" not in workspace and "needs = []" in workspace
     assert f'path = "{waiter}"' not in workspace
     assert result["edges_equal"] is True and result["captured_equal"] is True
 
@@ -1008,7 +1013,7 @@ def test_an_identical_confined_record_is_kept(
     assert len(captured_ops(data)) == 1 and captured_findings(data) == []
     code, result = apply(repo, capsys)
     assert code == 0 and result["per_operation"][0]["record"] == "kept"
-    assert 'path = "docs/product/captured/d1.md"' in (repo / "workspace.toml").read_text()
+    assert f"{NOTES}/d1.md" not in (repo / "workspace.toml").read_text()
     assert result["captured_equal"] is True
 
 
@@ -1509,7 +1514,7 @@ def test_a_failed_directory_flush_never_reports_an_applied_repair_as_unapplied(
     assert result["applied"] is True
     [op] = captured_ops(data)
     assert (repo / op["record_path"]).read_text(encoding="utf-8") == op["record_text"]
-    assert f'path = "{op["record_path"]}"' in (repo / "workspace.toml").read_text(encoding="utf-8")
+    assert f"{NOTES}/d1.md" not in (repo / "workspace.toml").read_text(encoding="utf-8")
 
 
 def test_a_failed_directory_fsync_never_reports_an_applied_repair_as_unapplied(
@@ -1530,7 +1535,7 @@ def test_a_failed_directory_fsync_never_reports_an_applied_repair_as_unapplied(
     assert result["applied"] is True
     [op] = captured_ops(data)
     assert (repo / op["record_path"]).read_text(encoding="utf-8") == op["record_text"]
-    assert f'path = "{op["record_path"]}"' in (repo / "workspace.toml").read_text(encoding="utf-8")
+    assert f"{NOTES}/d1.md" not in (repo / "workspace.toml").read_text(encoding="utf-8")
 
 
 def test_apply_makes_records_and_the_registry_durable_in_order(

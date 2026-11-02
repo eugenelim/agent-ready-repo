@@ -272,7 +272,7 @@ updates are deliberately disabled for that reason.
 | `release-agentbundle.yml` | `push`, `pull_request` | Build, smoke, pre-release gates, PyPI and Artifactory publication |
 | `release-credbroker.yml` | `push`, `pull_request` | The same shape for CredBroker |
 | `release-jsonl-otlp-exporter.yml` | `pull_request`, `push` on a `jsonl-otlp-exporter-v*` tag | Build and wheel smoke on every pull request; the publish job is tag-gated and uses OIDC trusted publishing with no stored credential |
-| `test-corpus.yml` | `workflow_dispatch` | Four-shard remote execution of `make test`; it is scoped evidence, not a required status check |
+| `test-corpus.yml` | `schedule` (weekly, default branch), `workflow_dispatch` | Four-shard remote execution of `make test`. The schedule is what exercises the suites no pull-request check gates; it is scoped evidence, not a required status check |
 | `test-roster.yml` | `workflow_dispatch` | Parallel execution of the roster suite only; it does not stand in for `make test` or a required status check |
 
 ### 3.1 Workflow-posture tests
@@ -338,8 +338,9 @@ receipt is distinct evidence: the two answer different questions.
 ### 4.1 Reachable from `make ci` but not from any required remote job
 
 **The complete test corpus.** `test-corpus.yml` runs `make test`, but only
-on `workflow_dispatch` — so no *automatic* run of any kind reaches it, and no
-job runs `make test-after-build-check` at all. Since
+on a weekly `schedule` on the default branch and on `workflow_dispatch` — so no
+pull request or push reaches it, and no job runs `make test-after-build-check`
+at all. Since
 spec/test-corpus-sharding it runs the target across four matrix jobs, each
 invoking `make test SHARD=<n> SHARDS=4`; the Makefile stays the single roster
 and the workflow enumerates no suite, so what a green run proves is unchanged
@@ -408,17 +409,15 @@ native contract. That distinction is the whole reason the classification exists.
 
 ### 5.1 Darwin census
 
-The table below is a **copy**. `tools/lint-platform-census.py` derives the
-canonical set from the repository and fails when this copy disagrees, following
-the canonical-versus-duplicate shape of `tools/lint-knowledge-surface-parity.py`.
-Do not hand-edit a row to fix a lint failure; re-derive.
+The table below is hand-kept. No tool derives it or fails when it disagrees
+with the repository, so re-measure before relying on a row.
 
-The derivation must reach `packs/` as well as `packages/` and `tools/`. Two
+A re-measurement must reach `packs/` as well as `packages/` and `tools/`. Two
 hand-written drafts of this census missed the live Darwin dispatch in
 `packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py`,
 `packs/credential-brokers/.apm/shared-libs/credentials_shim.py` and
 `packs/atlassian/.apm/skills/flow-metrics/scripts/flow_metrics/__init__.py`,
-which is why the census is derived rather than proofread.
+which is why a census is measured rather than proofread.
 
 Each site is named by its guard rather than by line number.
 
@@ -547,15 +546,15 @@ explicitly, in `build-check.yml`.
 ### 7.0 Measured starting state
 
 Most of what an on-demand surface needs already exists. These four facts were
-measured against the fleet on 2026-09-04 and should be treated as the baseline
-rather than re-derived:
+measured against the fleet on 2026-09-04. The last two rows now name the
+dispatch workflows that landed after that date:
 
 | Capability | Current state | Remaining work |
 | --- | --- | --- |
 | Security scan, separately runnable | `build-check.yml`'s `gate-sast` job already runs `make sast` on its own runner | none — it is reached by any dispatch of that workflow |
 | Site and browser gate, dispatchable | `pages.yml` already declares `workflow_dispatch` | none |
-| Build and policy chain, dispatchable | `build-check.yml` declares only `pull_request` and `push: branches: [main]` | add `workflow_dispatch` |
-| Complete test corpus, runnable remotely | no job runs it; `build-check.yml` invokes roughly twenty individually named, file-targeted `pytest` commands | a corpus job is genuinely new |
+| Build and policy chain, dispatchable | `build-check.yml` declares `pull_request`, `push: branches: [main]`, and `workflow_dispatch` | none |
+| Complete test corpus, runnable remotely | `test-corpus.yml` runs on a weekly schedule and on dispatch, never on a pull request, and runs `make test` in four shards; `test-roster.yml` runs the roster suite only. Both are scoped evidence, not required checks | the composition and its receipt |
 
 Two supporting facts follow from the same measurement:
 
@@ -564,10 +563,11 @@ Two supporting facts follow from the same measurement:
   `if: steps.changes.outputs.skip_sast != 'true'`. On a dispatch the detector
   never runs, so the output is empty and the comparison is true. The detector
   fails open toward scanning.
-- **`workflow_dispatch` is established practice here, not a new pattern.** Six
-  workflows already declare it: `iac-release-loop-canary.yml`,
-  `iac-staleness.yml`, `pack-evals.yml`, `pages.yml`,
-  `publish-catalogue.yml`, and `publish-claude-plugins.yml`.
+- **`workflow_dispatch` is established practice here, not a new pattern.** Ten
+  workflows declare it: `build-check.yml`, `iac-release-loop-canary.yml`,
+  `iac-staleness.yml`, `pack-evals.yml`, `pack-javascript.yml`, `pages.yml`,
+  `publish-catalogue.yml`, `publish-claude-plugins.yml`, `test-corpus.yml`,
+  and `test-roster.yml`.
 
 The gap a dispatch surface closes is therefore narrower than it first appears:
 every non-release workflow triggers on `push: branches: [main]` only, so

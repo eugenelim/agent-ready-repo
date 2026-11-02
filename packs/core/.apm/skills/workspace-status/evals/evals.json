@@ -576,6 +576,28 @@
         "Applies nothing until the owner confirms the exact plan file",
         "Does not edit workspace.toml directly"
       ]
+    },
+    {
+      "id": 22,
+      "prompt": "Run repair-plan. workspace.toml holds a captured membership entry with only a slug whose captured-item file exists, and the file has no Depends on header while the entry lists needs.",
+      "expected_output": "The agent runs repair-plan and shows the whole plan. It holds a captured-entry-drop operation for the entry, which first moves the entry's legacy needs into the captured file's Depends on: header and then removes the entry. The plan never writes the captured file itself in a way the owner has not confirmed, and nothing applies until the owner confirms the plan file.",
+      "assertions": [
+        "Plans a captured-entry-drop operation for the slug-only captured entry whose captured file exists",
+        "Moves the legacy needs into the file's Depends on: header before the entry is removed",
+        "Never writes the captured file directly outside the confirmed plan",
+        "Applies nothing until the owner confirms the exact plan file"
+      ]
+    },
+    {
+      "id": 23,
+      "prompt": "Run repair-plan. workspace.toml still holds an [authorization.refresh] table, and the repository root already has a .work-intake.toml.",
+      "expected_output": "The agent runs repair-plan and shows the whole plan. It holds a refresh-policy-move operation that moves the [authorization.refresh] table into .work-intake.toml. Because a .work-intake.toml already exists, the plan never overwrites it and holds the move as a manual item instead. Nothing applies until the owner confirms the plan file.",
+      "assertions": [
+        "Plans a refresh-policy-move operation for the [authorization.refresh] table",
+        "Never overwrites an existing .work-intake.toml",
+        "Applies nothing until the owner confirms the exact plan file",
+        "Does not edit workspace.toml directly"
+      ]
     }
   ]
 }

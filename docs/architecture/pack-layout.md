@@ -107,7 +107,8 @@ contents:
   `core` pack is the only one with a full `.apm/` set (skills, agents,
   hooks, hook-wiring, commands); the other repo-only packs
   (`repo-governance`, `user-guide-diataxis`, `monorepo-extras`) ship
-  `.apm/skills/` plus `seeds/` and nothing else. User-scope packs
+  `.apm/skills/` and, where they need it, `seeds/` (`user-guide-diataxis`
+  ships none). User-scope packs
   (`converters`, `atlassian`, `figma`, `contracts`) ship `.apm/skills/`
   only. A repo-only pack omitting `seeds/` or `.apm/hooks/` is fine —
   it just didn't need them.
@@ -306,8 +307,8 @@ that contribute to the AGENTS.md managed block.
    handlers.
 4. [`build/recipes/`](../../packages/agentbundle/agentbundle/build/recipes/)
    sequences which adapter targets to run for which output route. See
-   [`agentbundle.md`](agentbundle.md) for the seven canonical recipes
-   and the phases they participate in.
+   [`agentbundle.md`](agentbundle.md#distribution-route-dispatch) for how
+   routes declare and select recipes.
 
 ## Where to read next
 
@@ -413,9 +414,9 @@ Each pack declares its install **scope** — `repo` (project-local), `user`
 (shared across every repo the adopter opens), or both — in
 `pack.toml`'s `[pack.install]` table. The pack author picks the
 dimension; adopters can override within the publisher's declared set
-via `--scope`. Of the twenty-two packs shipped today — the
+via `--scope`. Of the twenty-three packs shipped today — the
 underscore-prefixed directories are authoring assets, not payload — fourteen
-default to `user` and eight to `repo`; user-scope eligibility requires content
+default to `user` and nine to `repo`; user-scope eligibility requires content
 portability — no hooks
 wired into a specific repo's surface, no seeds that name a particular
 project. The schema holds `default-scope ∈ allowed-scopes` outside the CLI —

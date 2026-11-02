@@ -8,14 +8,15 @@
 
 ## Constraints
 
-- `packages/agentbundle/` is Python standard-library-only. Its scripts are
+- `packages/agentbundle/` has no third-party runtime dependency; its one
+  dependency is `credbroker`. Its scripts are
   projected into arbitrary adopter repositories and installed agent runtimes,
   where no third-party dependency can be assumed.
 - `packages/credbroker/` is also Python standard-library-only and is the only
   credential path. Credentialed primitives use its public API and never read
   credential stores directly.
-- `web/` uses Astro 7.3.1; `docs-site/` uses Astro 7.3.1 with Starlight
-  0.42.0.
+- `web/` uses Astro 7.3.8; `docs-site/` uses Astro 7.3.8 with Starlight
+  0.42.6.
 - Portable contracts are TOML plus JSON Schema in `contracts/`; compatible
   changes preserve both the contract declaration and its schema validation.
 - Python quality tooling is pytest, ruff, and mypy. The SAST/SCA floor is

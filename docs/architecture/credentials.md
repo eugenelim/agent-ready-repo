@@ -20,7 +20,8 @@ remains operator-only.
 - `credbroker.load_sso_cookies`, `refresh_sso_session`, and
   `register_sso_session` are the consumer SSO API.
 - `sso-broker.py` provides `get-cookies`, `test`, `rm`,
-  `list-profiles`, `register`, and `refresh`.
+  `list-profiles`, `register`, `refresh`, and `show-tier2-backend` (a
+  diagnostic probe that prints the active Tier 2 backend).
 - `credential-setup` reads `references/creds-schema.toml`, prompts with
   `getpass` or `input`, writes the highest available tier, and reports it on
   stderr.
@@ -55,8 +56,7 @@ outbound HTTP header. Direct credential reads require the explicit
 the engine never imports `credbroker`. Consumers call the library and do not
 construct broker argv or subprocesses themselves.
 
-**`agentbundle` → `credbroker.resolve_http_access`.** AgentBundle 0.51.0
-calls `credbroker.resolve_http_access(url, env=env)` from
+**`agentbundle` → `credbroker.resolve_http_access`.** AgentBundle calls `credbroker.resolve_http_access(url, env=env)` from
 `agentbundle.catalogue_fetch.open_fetch_session` when fetching
 `catalogue+https://` or `archive+https://` sources. This is a one-directional
 dependency: `credbroker` never imports `agentbundle`. The resolved credential
@@ -169,4 +169,4 @@ validates the captured session and may use the bounded auto-recovery flow.
 
 ## 10. Last verified against commit
 
-`c8cf4b37`
+`ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`

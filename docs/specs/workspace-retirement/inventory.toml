@@ -58,20 +58,6 @@ consumer = "the retirement record: names every registry fact and its home"
 owner = "none"
 
 [[row]]
-pattern = ".claude/agents/adversarial-reviewer.md"
-class = "projection"
-consumer = "generated Claude Code projection of the adversarial-reviewer agent"
-owner = 9
-source = "packs/core/.apm/agents/adversarial-reviewer.md"
-
-[[row]]
-pattern = ".codex/agents/adversarial-reviewer.toml"
-class = "projection"
-consumer = "generated Codex projection of the adversarial-reviewer agent"
-owner = 9
-source = "packs/core/.apm/agents/adversarial-reviewer.md"
-
-[[row]]
 pattern = ".gitattributes"
 class = "fixture"
 consumer = "merge-driver wiring for the packaged workspace-status engine copies"
@@ -265,12 +251,6 @@ owner = "none"
 
 [[row]]
 pattern = "docs/architecture/loop-contract.md"
-class = "guide"
-consumer = "architecture page stating how workspace.toml and workspace-status fit"
-owner = 9
-
-[[row]]
-pattern = "docs/architecture/overview.md"
 class = "guide"
 consumer = "architecture page stating how workspace.toml and workspace-status fit"
 owner = 9
@@ -1431,12 +1411,6 @@ consumer = "pack test that lists workspace.toml among the artifacts the bridge m
 owner = 9
 
 [[row]]
-pattern = "packs/core/.apm/agents/adversarial-reviewer.md"
-class = "guide"
-consumer = "reviewer rule: a deferral resolves to a slug entry in workspace.toml [backlog].open"
-owner = 9
-
-[[row]]
 pattern = "packs/core/AGENTS.md"
 class = "guide"
 consumer = "core pack rules naming the tomlkit write dependency of workspace-status repair-apply"
@@ -1575,12 +1549,6 @@ consumer = "roster test test_cooling_scope_closure.py that exercises the registr
 owner = 9
 
 [[row]]
-pattern = "tests/roster/test_credential_broker_contract_docs.py"
-class = "fixture"
-consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
-owner = 9
-
-[[row]]
 pattern = "tests/roster/test_decision_record_destination_contract.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
@@ -1593,12 +1561,6 @@ consumer = "roster test test_dependency_scoped_completion_receipts.py that exerc
 owner = 9
 
 [[row]]
-pattern = "tests/roster/test_github_refresh_processor.py"
-class = "fixture"
-consumer = "roster test test_github_refresh_processor.py that exercises the registry consumers of its feature"
-owner = 9
-
-[[row]]
 pattern = "tests/roster/test_repo_governance_standalone_install.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
@@ -1608,18 +1570,6 @@ owner = 9
 pattern = "tests/roster/test_graph_pointer_authoring.py"
 class = "fixture"
 consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
-owner = 9
-
-[[row]]
-pattern = "tests/roster/test_jira_refresh_processor.py"
-class = "fixture"
-consumer = "roster test test_jira_refresh_processor.py that exercises the registry consumers of its feature"
-owner = 9
-
-[[row]]
-pattern = "tests/roster/test_linear_refresh_processor.py"
-class = "fixture"
-consumer = "roster test test_linear_refresh_processor.py that exercises the registry consumers of its feature"
 owner = 9
 
 [[row]]
@@ -2746,6 +2696,12 @@ consumer = "roster test for pre-cutover-closure: the retired close-work registry
 owner = 9
 
 [[row]]
+pattern = "tests/roster/test_last_registry_entries.py"
+class = "fixture"
+consumer = "roster test for last-registry-entries: the record rows, the errata entry, the .work-intake.toml and captured-file anchor text, and the brief"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/tracker-origin-registration-stop/*"
 class = "contract"
 consumer = "tracker-origin registration stop: the tracker profile in the source-authority record, refresh reading it there, the stopped tracker-origin writers, and the tracker-entry-drop repair"
@@ -2761,6 +2717,12 @@ owner = 9
 pattern = "docs/specs/pre-cutover-closure/*"
 class = "contract"
 consumer = "pre-cutover compatibility closure: the retired close-work closure-packet registry field, the inventory re-owned to slice 9, and the adopter upgrade-notes draft"
+owner = 9
+
+[[row]]
+pattern = "docs/specs/last-registry-entries/*"
+class = "contract"
+consumer = "the last registry entries: the captured-entry-drop and refresh-policy-move repairs, refresh reading .work-intake.toml, and deferral anchors on captured-item files"
 owner = 9
 
 [[row]]

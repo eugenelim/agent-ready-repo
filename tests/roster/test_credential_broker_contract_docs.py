@@ -51,15 +51,10 @@ def test_ac41_conventions_credentialed_section_names_brokers():
 
 
 def test_ac42_roadmap_entry_carries_manual_qa_matrix():
-    """A workspace.toml [backlog] entry tracks the six manual-QA rows."""
-    workspace = (REPO_ROOT / "workspace.toml").read_text(encoding="utf-8")
-    slug = "credential-broker-contract-manual-qa"
-    assert f'slug = "{slug}"' in workspace, (
-        f"workspace.toml [backlog] missing {slug!r} entry"
-    )
-    # Find the entry and its surrounding comment (up to 600 chars before the slug line).
-    idx = workspace.find(f'slug = "{slug}"')
-    section = workspace[max(0, idx - 600) : idx + 100]
+    """The captured item tracks the six manual-QA rows."""
+    item = REPO_ROOT / "docs/product/captured/credential-broker-contract-manual-qa.md"
+    text = item.read_text(encoding="utf-8")
+    assert "- **Status:**" in text, f"{item} is not a captured item"
     # Six rows: creds × {macOS, Windows, Linux} and sso-cookie × {macOS, Windows, Linux}.
     for combo in (
         "`creds` × macOS",
@@ -69,7 +64,7 @@ def test_ac42_roadmap_entry_carries_manual_qa_matrix():
         "`sso-cookie` × Windows",
         "`sso-cookie` × Linux",
     ):
-        assert combo in section, f"workspace.toml backlog entry missing manual-QA row: {combo}"
+        assert combo in text, f"captured item missing manual-QA row: {combo}"
 
 
 def test_ac44_skill_secrets_footer_present():

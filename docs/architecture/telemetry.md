@@ -482,6 +482,9 @@ against `_supervisor_journal.py` (`reconcile_events`, `_project_events`, and
 `OPERATION_STAGE`) and against `contracts/jsonschema/loop-run-event.schema.json`
 at that commit. The ten-field line and the stage mapping are read from the
 source, not from an emitted line.
+`_supervisor_journal.py` and `_supervisor_loop.py` are unchanged between that
+commit and `ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`, so those checks hold
+there too.
 
 **Carried forward, not re-checked.** §§ 4, 5.2, 5.3, 7 (the backend table), and
 10 do not depend on which script writes the line. § 10.3 holds on its

@@ -1688,8 +1688,13 @@ _WORK_LOOP_CONTRACT_HASH = (
 # now resolves through `[backlog].open` or an open intent, brief or spec file.
 # Reviewed as the pin requires, and the engine needs no edit: the bullet still
 # runs the read-only spec-status lint and mutates no workspace.toml array.
+# Re-pinned 2026-11-02 for last-registry-entries: a historical deferral anchor
+# resolves through `docs/product/captured/<slug>.md` instead of
+# `[backlog].open`. Reviewed as the pin requires, and the engine needs no edit:
+# the bullet still runs the read-only spec-status lint and mutates no
+# workspace.toml array.
 _WORK_LOOP_FINISH_HASH = (
-    "f246811ea42fa608de1a4aa3355f49f9425359f78d8870f8062ff478a00cf05f"
+    "73aeafacbd8f12549931ba7bc35b19e428caea5a9ed86603106cbdfae1a7fa02"
 )
 _WORK_LOOP_MD = (
     Path(__file__).resolve().parent.parent
