@@ -29,7 +29,7 @@ The doctrine lands first (T1), because every other task points at it: the routin
 - ADR-0144: the supervisor owns procedure and commits gate evidence directly; this delivery adds no evidence-store writer and no script edit.
 - `evidence-receipt.v1` is consumed unchanged; `observation.type`, `outcome`, and `producer.class` are free strings whose admissible values come from each criterion's `required_observations`.
 - The architecture's legacy projection reserves `manual-observation` for a named human authority, so an agent's drive is a `command-result`; a criterion whose policy requires a human observation is not discharged by a verify-entry receipt.
-- The seed `AGENT_RULES.md` table ships empty, and the catalogue lint admits only `.agents/rules/*.md` read targets in pack-shipped rows. Self-host projects core seeds onto this repository's root unless `EXCLUDED_PATTERNS` in `packages/agentbundle/agentbundle/build/self_host.py` marks the path seeded-once; root `AGENT_RULES.md` joins `docs/README.md` and `workspace.toml` there, because the seed itself says an adopter adds the rows it needs.
+- The seed `AGENT_RULES.md` table ships empty, and the catalogue lint admits only `.agents/rules/*.md` read targets in pack-shipped rows. Self-host projects core seeds onto this repository's root unless `EXCLUDED_PATTERNS` in `packages/agentbundle/agentbundle/build/self_host.py` marks the path seeded-once; root `AGENT_RULES.md` joins `docs/README.md` and the other seeded-once paths there, because the seed itself says an adopter adds the rows it needs.
 - `test_evidence_modes_contract.py` reads `verification-modes.md` from `## Behavior pin` to `## Measurement`, and from `## Measurement` to end of file; the new section goes before `## Behavior pin` so neither region changes.
 - A standing test never compares against the merge base: on main the merge base is `HEAD`, so such a test checks nothing, and a later legitimate change turns it red.
 - The supervisor protects the spec directory during a worker attempt, so ledger records are controller commits between attempts.
@@ -219,7 +219,7 @@ Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entri
 
 **Touches:** `packages/agentbundle/agentbundle/build/self_host.py`, `packages/agentbundle/tests/build_pipeline/test_self_host_check.py`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, a new agentbundle fragment under `docs/product/changelog.d/`, and any test that pins the agentbundle version
 
-**Approach:** follow the `workspace.toml` and `docs/README.md` precedent: one `EXCLUDED_PATTERNS` literal with a comment, and a regression test that a curated root `AGENT_RULES.md` survives reprojection. The agentbundle version moves one patch, per `packages/AGENTS.md`.
+**Approach:** follow the seeded-once precedent of `docs/README.md`: one `EXCLUDED_PATTERNS` literal with a comment, and a regression test that a curated root `AGENT_RULES.md` survives reprojection. The agentbundle version moves one patch, per `packages/AGENTS.md`.
 
 **Tests:** no stub (goal-based — regression test and exit status)
 - AC-0025: a reprojection over a root `AGENT_RULES.md` that carries an adopter row leaves that row in place, and `agentbundle catalogue self-host --root . --write` leaves this repository's row untouched.

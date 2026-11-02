@@ -37,7 +37,7 @@ Driven at commit `abbb7dd3ba666c6f94bfa3bbab65b7c1b160f1b1` and graded `live-ver
 
 ## Run r4 — superseded by the delivery rerun
 
-Driven at commit `3357364813e2318c977f1966d1002181067709fb` before the final squash and rebase; run r5 is the recorded run. Recorded at, which holds `docs/VERIFICATION.md` as driven; the working tree was clean. Grade: `live-verified`. Each command is the entry's own, in order, with its output and exit status. Paths are placeholders, `<ab>` is the entry's launch prefix, and the render listing's 399 lines under `apm/core/.apm/` (the skills, agents, and hooks tree) are omitted; every other output line is as printed.
+Driven at commit `3357364813e2318c977f1966d1002181067709fb` before the final squash and rebase; run r5 is the recorded run. That commit held `docs/VERIFICATION.md` as driven, and the working tree was clean. Grade: `live-verified`. Each command is the entry's own, in order, with its output and exit status. Paths are placeholders, `<ab>` is the entry's launch prefix, and two kinds of output line are omitted: the render command's file listing, and the installer's closing `Verify:` and `Next:` hints. Every other output line is as printed.
 
 ```text
 $ mktemp -d
@@ -48,27 +48,6 @@ agentbundle 0.59.0 (spec 0.18, catalogue specification 0.1)
 exit=0
 $ <ab> render <checkout>/packs/core --output <scratch>/render
 agent-plugin: pack "core" excluded by dropped primitives ["adapter-root-bins","agent","command","hook-body","hook-wiring","kiro-ide-hook"]
-apm/core/README.md
-apm/core/apm.yml
-apm/core/pack.toml
-apm/core/seeds/.gitignore
-apm/core/seeds/AGENTS.md
-apm/core/seeds/AGENT_RULES.md
-apm/core/seeds/_agents-footer.md
-apm/core/seeds/docs/AGENTS.md
-apm/core/seeds/docs/CHARTER.md
-apm/core/seeds/docs/README.md
-apm/core/seeds/docs/architecture/README.md
-apm/core/seeds/docs/architecture/overview.md
-apm/core/seeds/docs/knowledge/README.md
-apm/core/seeds/docs/knowledge/patterns.jsonl
-apm/core/seeds/docs/product/README.md
-apm/core/seeds/docs/product/briefs/_template.md
-apm/core/seeds/docs/product/changelog.md
-apm/core/seeds/docs/product/roadmap.md
-apm/core/seeds/docs/specs/README.md
-apm/core/seeds/workspace.toml
-claude-plugins/marketplace.json
 exit=0
 $ test -f <scratch>/render/apm/core/.apm/skills/work-loop/SKILL.md
 exit=0
@@ -98,8 +77,6 @@ Installed core for codex (repo).
 adapt: no .adapt-discovery.toml at repo root; markers left unresolved
 installed: core @ repo via codex
 
-Verify:   Run workspace-status and confirm your workspace.toml queue state is displayed.
-Next:     Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable.
 exit=0
 $ test -f <scratch>/repo/.agentbundle-state.toml
 exit=0
@@ -113,11 +90,11 @@ $ test -s <evidence-dir>/transcript.txt
 exit=0
 ```
 
-- Observation for the CLI's owners, not part of this delivery: the omitted render listing includes 16 local bytecode files under `__pycache__/` directories, such as `apm/core/.apm/adapter-root-bins/__pycache__/intent_delivery_relations.cpython-314.pyc`, so a render from a working checkout can package untracked build residue.
+- Observation for the CLI's owners, not part of this delivery: the omitted render listing included 16 local bytecode files under `__pycache__/` directories, such as `apm/core/.apm/adapter-root-bins/__pycache__/intent_delivery_relations.cpython-314.pyc`, so a render from a working checkout can package untracked build residue.
 
 ## Run r5 — live-verified on the delivery commit
 
-Driven at commit `1e2c089c98f3b84e7e1bcf3a58f5262c1cf843df`, the squashed delivery commit rebased onto `origin/main`, with a clean working tree. Grade: `live-verified`. Each command is the entry's own, in order, with its output and exit status. Paths are placeholders, `<ab>` is the entry's launch prefix, and the render listing's 399 lines under `apm/core/.apm/` are omitted; every other output line is as printed.
+Driven at commit `1e2c089c98f3b84e7e1bcf3a58f5262c1cf843df`, the squashed delivery commit rebased onto `origin/main`, with a clean working tree. Grade: `live-verified`. Each command is the entry's own, in order, with its output and exit status. Paths are placeholders, `<ab>` is the entry's launch prefix, and two kinds of output line are omitted: the render command's file listing, and the installer's closing `Verify:` and `Next:` hints. Every other output line is as printed.
 
 ```text
 $ mktemp -d
@@ -128,27 +105,6 @@ agentbundle 0.59.1 (spec 0.18, catalogue specification 0.1)
 exit=0
 $ <ab> render <checkout>/packs/core --output <scratch>/render
 agent-plugin: pack "core" excluded by dropped primitives ["adapter-root-bins","agent","command","hook-body","hook-wiring","kiro-ide-hook"]
-apm/core/README.md
-apm/core/apm.yml
-apm/core/pack.toml
-apm/core/seeds/.gitignore
-apm/core/seeds/AGENTS.md
-apm/core/seeds/AGENT_RULES.md
-apm/core/seeds/_agents-footer.md
-apm/core/seeds/docs/AGENTS.md
-apm/core/seeds/docs/CHARTER.md
-apm/core/seeds/docs/README.md
-apm/core/seeds/docs/architecture/README.md
-apm/core/seeds/docs/architecture/overview.md
-apm/core/seeds/docs/knowledge/README.md
-apm/core/seeds/docs/knowledge/patterns.jsonl
-apm/core/seeds/docs/product/README.md
-apm/core/seeds/docs/product/briefs/_template.md
-apm/core/seeds/docs/product/changelog.md
-apm/core/seeds/docs/product/roadmap.md
-apm/core/seeds/docs/specs/README.md
-apm/core/seeds/workspace.toml
-claude-plugins/marketplace.json
 exit=0
 $ test -f <scratch>/render/apm/core/.apm/skills/work-loop/SKILL.md
 exit=0
@@ -178,8 +134,6 @@ Installed core for codex (repo).
 adapt: no .adapt-discovery.toml at repo root; markers left unresolved
 installed: core @ repo via codex
 
-Verify:   Run workspace-status and confirm your workspace.toml queue state is displayed.
-Next:     Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable.
 exit=0
 $ test -f <scratch>/repo/.agentbundle-state.toml
 exit=0

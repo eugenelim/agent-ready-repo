@@ -58,7 +58,6 @@
 .claude-plugin/marketplace.json                           merge=regen
 .codex/agents/**                                          merge=regen
 .codex/hooks.json                                         merge=regen
-/AGENT_RULES.md                                           merge=regen
 docs/AGENTS.md                                            merge=regen
 governance/manifest.example.yaml                          merge=regen
 packages/agentbundle/agentbundle/_data/_content_safety.py merge=regen
