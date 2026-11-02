@@ -29,7 +29,7 @@ The doctrine lands first (T1), because every other task points at it: the routin
 - ADR-0144: the supervisor owns procedure and commits gate evidence directly; this delivery adds no evidence-store writer and no script edit.
 - `evidence-receipt.v1` is consumed unchanged; `observation.type`, `outcome`, and `producer.class` are free strings whose admissible values come from each criterion's `required_observations`.
 - The architecture's legacy projection reserves `manual-observation` for a named human authority, so an agent's drive is a `command-result`; a criterion whose policy requires a human observation is not discharged by a verify-entry receipt.
-- The seed `AGENT_RULES.md` table ships empty, and the catalogue lint admits only `.agents/rules/*.md` read targets in pack-shipped rows. Self-host does not write root `AGENT_RULES.md`; the seed itself says an adopter adds the rows it needs.
+- The seed `AGENT_RULES.md` table ships empty, and the catalogue lint admits only `.agents/rules/*.md` read targets in pack-shipped rows. Self-host projects core seeds onto this repository's root unless `EXCLUDED_PATTERNS` in `packages/agentbundle/agentbundle/build/self_host.py` marks the path seeded-once; root `AGENT_RULES.md` joins `docs/README.md` and `workspace.toml` there, because the seed itself says an adopter adds the rows it needs.
 - `test_evidence_modes_contract.py` reads `verification-modes.md` from `## Behavior pin` to `## Measurement`, and from `## Measurement` to end of file; the new section goes before `## Behavior pin` so neither region changes.
 - A standing test never compares against the merge base: on main the merge base is `HEAD`, so such a test checks nothing, and a later legitimate change turns it red.
 - The supervisor protects the spec directory during a worker attempt, so ledger records are controller commits between attempts.
@@ -55,7 +55,7 @@ The doctrine lands first (T1), because every other task points at it: the routin
 
 ### Design decisions
 
-Owned by: T1, T4, T5, T6, T8, T9.
+Owned by: T1, T4, T5, T6, T8, T9, T11.
 
 **Section shape.** `## Verify entries` sits between `## Exploratory / visual fuzz` and `## Behavior pin`. Its sub-headings, in order: When an entry is needed, Where entries live, Building an entry, Proving an entry, Recording and promoting, Drift, Fields, Rules, Grades, Receipt mapping, Placeholders and trust. Each section criterion lives under exactly one sub-heading, so a test reads one sub-section.
 
@@ -212,6 +212,20 @@ Every pack test function in `packs/core/tests/skills/work-loop/test_verify_entri
 - AC-0026 (visual / manual QA, gated by the closeout commit check): the ledger's run r4 shows the entry's commands as written, `mktemp -d` and `git init` included.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_verify_entries_contract.py tests/roster/test_verify_entry_receipts.py -q` exits 0.
+
+### T11: Keep root AGENT_RULES.md repository-owned
+
+**Depends on:** T5
+
+**Touches:** `packages/agentbundle/agentbundle/build/self_host.py`, `packages/agentbundle/tests/build_pipeline/test_self_host_check.py`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/pyproject.toml`, a new agentbundle fragment under `docs/product/changelog.d/`, and any test that pins the agentbundle version
+
+**Approach:** follow the `workspace.toml` and `docs/README.md` precedent: one `EXCLUDED_PATTERNS` literal with a comment, and a regression test that a curated root `AGENT_RULES.md` survives reprojection. The agentbundle version moves one patch, per `packages/AGENTS.md`.
+
+**Tests:** no stub (goal-based — regression test and exit status)
+- AC-0025: a reprojection over a root `AGENT_RULES.md` that carries an adopter row leaves that row in place, and `agentbundle catalogue self-host --root . --write` leaves this repository's row untouched.
+- AC-0031: self-host on the delivery tree leaves no tracked change.
+
+**Done when:** `python3 -m pytest packages/agentbundle/tests/build_pipeline/test_self_host_check.py -q` exits 0, and `agentbundle catalogue self-host --root . --write` followed by `git diff --exit-code -- AGENT_RULES.md` exits 0.
 
 ## Risks
 
