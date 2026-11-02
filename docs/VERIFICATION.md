@@ -28,18 +28,18 @@ Create `<scratch>` with `mktemp -d` and record the path as the handle. Every ren
 
 Run in order:
 
-1. `PYTHONPATH=<checkout>/packages/agentbundle python3 -m agentbundle render <checkout>/packs/core --target codex --output <scratch>/render`
+1. `PYTHONPATH=<checkout>/packages/agentbundle python3 -m agentbundle render <checkout>/packs/core --output <scratch>/render`
 2. `git init <scratch>/repo`
 3. `PYTHONPATH=<checkout>/packages/agentbundle python3 -m agentbundle install <checkout> --pack core --scope repo --adapter codex --yes --output <scratch>/repo`
 4. `PYTHONPATH=<checkout>/packages/agentbundle python3 -m agentbundle diff --root <scratch>/repo --scope repo <checkout>/packs/core`
 
 ### Features
 
-Render of the core pack, repo-scope install with the Codex adapter, and drift detection between the install and a fresh render.
+Render of the core pack's distribution build, repo-scope install with the Codex adapter, and drift detection between the install and a fresh render.
 
 ### Evidence
 
-Write each command, its exit status, and its output to `<evidence-dir>`, which is `.context/verify/agentbundle-cli/<run-id>/` (ignored by Git). Render passes when it exits 0 and the rendered `work-loop/SKILL.md` exists. Install passes when it exits 0. Diff passes when it exits 0.
+Write each command, its exit status, and its output to `<evidence-dir>`, which is `.context/verify/agentbundle-cli/<run-id>/` (ignored by Git). Render passes when it exits 0 and `<scratch>/render/apm/core/.apm/skills/work-loop/SKILL.md` exists. Render with no `--target`: a direct-install adapter target such as `codex` selects no distribution recipe, so it exits 0 and writes nothing. Install passes when it exits 0. Diff passes when it exits 0.
 
 ### Proof limits
 

@@ -140,3 +140,30 @@ def test_verification_and_notes_hold_no_paths_or_emails() -> None:
         for bad in FORBIDDEN:
             assert bad not in text, (path.name, bad)
         assert not EMAIL.search(text), path.name
+
+
+def _ledger_receipts() -> list[dict[str, Any]]:
+    """Every fenced json block under the ledger's `## Receipts` heading."""
+    text = LEDGER.read_text(encoding="utf-8")
+    assert "## Receipts" in text, "ledger has no ## Receipts heading"
+    section = text.split("## Receipts", 1)[1].split("\n## ", 1)[0]
+    return [json.loads(block) for block in re.findall(r"```json\n(.*?)\n```", section, re.S)]
+
+
+def test_ledger_records_a_live_verified_receipt_that_fits_schema() -> None:
+    """The ledger's live run yields a schema-valid, verify-entry receipt."""
+    validator = Draft202012Validator(json.loads(SCHEMA.read_text(encoding="utf-8")))
+    receipts = _ledger_receipts()
+    assert receipts, "ledger records no receipt"
+    for receipt in receipts:
+        validator.validate(receipt)
+        assert receipt["producer"]["class"] == "verify-entry"
+        assert receipt["acceptance_fingerprint"].startswith("git:")
+    assert any(r["outcome"] == "live-verified" for r in receipts)
+
+
+def test_ledger_records_the_failing_proof_run() -> None:
+    """The ledger's mutation proof names the catching check and its failure."""
+    text = " ".join(LEDGER.read_text(encoding="utf-8").split())
+    for needle in ("Catching test", "agentbundle diff", "Exact mutation", "exit 1"):
+        assert needle in text, needle
