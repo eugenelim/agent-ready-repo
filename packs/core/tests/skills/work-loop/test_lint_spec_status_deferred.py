@@ -418,6 +418,8 @@ def test_anchor_resolution_matches_the_reader_listing(tmp_path: Path) -> None:
         ("non-utf8", "my-item", _BASE.encode() + b"\xff\xfe\n", "my-item"),
         ("off-grammar", "my_item", _BASE.encode(), "my_item"),
         ("leading-hyphen", "-item", _BASE.encode(), "-item"),
+        # Guards case-insensitive filesystems only; `upper-file` and `off-grammar`
+        # carry the name check on case-sensitive ones.
         ("case-variant", "my-item", _BASE.encode(), "My-Item"),
         ("upper-file", "My-Item", _BASE.encode(), "My-Item"),
         ("plain", "my-item", _BASE.encode(), "my-item"),
@@ -434,3 +436,17 @@ def test_anchor_resolution_matches_the_reader_listing(tmp_path: Path) -> None:
     assert not lint.captured_file_resolves(tmp_path / "non-utf8", "my-item")
     assert not lint.captured_file_resolves(tmp_path / "case-variant", "My-Item")
     assert not lint.captured_file_resolves(tmp_path / "off-grammar", "my_item")
+
+
+def test_captured_file_over_the_read_cap_does_not_resolve(tmp_path: Path) -> None:
+    """The lint's read cap is the one accepted difference from the reader.
+
+    The padding is a comment line, so the file is otherwise valid; no parity
+    with the reader is asserted for this case.
+    """
+    lint = _load_lint_module()
+    padding = "x" * (lint._MAX_FILE_BYTES + 1)
+    data = _BASE + f"\n<!-- {padding} -->\n"
+    path = _captured(tmp_path, "my-item", data)
+    assert path.stat().st_size > lint._MAX_FILE_BYTES
+    assert not lint.captured_file_resolves(tmp_path, "my-item")

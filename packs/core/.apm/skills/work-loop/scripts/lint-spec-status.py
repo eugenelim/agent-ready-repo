@@ -1032,7 +1032,9 @@ def captured_file_resolves(root: Path, anchor: str) -> bool:
     reader's captured-file name pattern, and the bytes must decode as strict
     UTF-8 within the size cap; a decode failure does not resolve. Its status
     value does not matter: a Closed captured item still pins a frozen spec's
-    deferral. Any OSError means the file does not resolve.
+    deferral. Any OSError means the file does not resolve. The read cap
+    (`_MAX_FILE_BYTES`) is the one accepted difference from the reader: a
+    larger file does not resolve even when the reader accepts it.
     """
     try:
         docs = root.resolve() / "docs"
