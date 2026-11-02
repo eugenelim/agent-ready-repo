@@ -1452,17 +1452,49 @@ def test_a_run_whose_made_list_and_product_ref_are_gone_is_measured_from_the_app
 def test_a_run_with_later_steps_and_no_record_is_not_read_as_a_first_admission(
     tmp_path: Path,
 ) -> None:
-    """A run with later steps, or a clone of a finished run, is not a cut-off first admission."""
+    """A run with a later step and a wiped made list and record carries on; nothing is refused."""
     repo = started(tmp_path)
     advance(repo, controller(repo, tmp_path), calc_implement)
     make_legacy(repo)
     (store_dir(repo) / "made-commits").unlink()
     assert not h.workspace(repo).git.approval_only(h.workspace(repo).approvals()[0]["run_id"])
-    for verb in ("status", "next"):
-        argv = (verb, h.SPEC_DIR) + (("--json",) if verb == "status" else ())
+    code, out = h.run_cli(repo, "status", h.SPEC_DIR, "--json")
+    assert code == 0 and not out.get("refusal"), out
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 0 and out["request"]["kind"] == "implement-task", out
+    assert "first admission" not in json.dumps(out)
+
+
+def test_a_finished_run_squashed_into_its_terminal_commit_is_not_a_first_admission(
+    tmp_path: Path,
+) -> None:
+    """One commit keeping only the last step's trailers, on the base, with no store.
+
+    Its single supervisor commit is a terminal one, which only the operation check in
+    ``approval_only`` tells from the approval. A squash that keeps the approval's trailers
+    (or a fixup folded into the approval) still reads as the approval, and is not told apart.
+    """
+    repo = started(tmp_path)
+    assert h.Controller(repo, tmp_path / "effects.log").drive().get("terminal")
+    approval = h.workspace(repo).approvals()[0]["base"]  # the commit the approval was made on
+    message = h.git(repo, "log", "-1", "--format=%B").strip()
+    assert "Supervisor-Operation: terminal" in message
+    tree = h.git(repo, "rev-parse", "HEAD^{tree}").strip()
+    squashed = h.git(repo, "commit-tree", tree, "-p", approval, "-m", message).strip()
+    h.git(repo, "update-ref", "refs/heads/main", squashed)
+    h.git(repo, "reset", "-q", "--hard", squashed)
+    shutil.rmtree(store_dir(repo))
+    run_id = h.workspace(repo).approvals()[0]["run_id"]
+    commits = h.workspace(repo).git.supervisor_commits(run_id)
+    assert [c.operation for c in commits] == ["terminal"]
+    assert not h.workspace(repo).git.approval_only(run_id)
+    for verb in ("status", "start"):
+        argv = ("status", h.SPEC_DIR, "--json") if verb == "status" else (
+            "start", h.SPEC_DIR, "--intent", "code", "--code-trust", "trusted",
+            "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab")
         code, out = h.run_cli(repo, *argv)
-        assert code == 0 and not out.get("refusal"), (verb, out)
-        assert "first admission" not in json.dumps(out), (verb, out)
+        text = json.dumps(out)
+        assert "git reset --soft" not in text and "first admission" not in text, (verb, out)
 
 
 @pytest.mark.parametrize("state", ["store-built", "approvals-restored"])

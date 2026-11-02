@@ -225,13 +225,17 @@ shared across worktrees and two runs can share a run id. The approval's base is
 only compared with the commit's parent, never passed to Git. The two commit ids the
 diff, merge-base and range readers take pass `revision()`, which refuses anything
 that is not a full commit id and names the input (not its value). In that state
-every verb but `start` refuses `supervisor-changed` and `start` names the exit (`status`
-reports the refusal from the committed records and writes nothing; with no store directory
-the pin check's text is the plain "pin record is missing"). A run is read as a cut-off
-first admission only when the approval is its only supervisor commit on `HEAD`'s history
-(`approval_only`), so a clone of a finished run is not misread; a pinned run with no
-record and no made list is measured from the approval's parent by `reconcile`, `inspect`
-and `peek`. A failed store write after the move leaves the refs on a commit the run did
+`start` refuses `supervisor-changed` and names the exit. With the run store directory
+present every other verb refuses `supervisor-changed` and points at `start` (`status` too, exit
+code 1). Without it every other verb but `status` refuses the plain "pin record is missing", and
+`status` answers from the committed records (a history-adoption request naming the exit for a
+valid base, otherwise a `supervisor-changed` report naming no command). A store-less checkout of
+a run holding only its approval reads the same, and the exit starts the run afresh there. `status`
+writes nothing to run state; its pin refusal still records a security event. A run is read as a
+cut-off first admission only when the approval is its only supervisor commit on `HEAD`'s
+history (`approval_only`), so a finished run's checkout or a squash into a later step is not
+misread. `reconcile`, `inspect` and `peek` measure a pinned run with no record and no made
+list from the approval's parent only when `approval_only` holds. A failed store write after the move leaves the refs on a commit the run did
 not record, and the verb answers `denied-product-record` with the state it actually
 left (AC-0008 for a step, AC-0005 for an adoption, AC-0007's first-admission state
 for a first admission), a directory that exists, and "make it writable" (AC-0023). The decision and the refusals
@@ -239,7 +243,8 @@ describe an unrecorded commit on the recorded value as "a step cut off after its
 moved, or a commit made outside the supervisor", never as either alone; they always
 name the restore exit, and name adoption only when an `adopt-history` answer would be
 admitted (not when the history changes `delivery/`). Every verb that finds the product
-ref on an unrecorded commit writes a denial line; `status` writes nothing.
+ref on an unrecorded commit writes a denial line; `status` writes nothing to run state (its
+pin refusal still records a security event).
 
 Forward projection (AC-0009) is `implementation-discovered` in its means. Its
 predicate: for each path the skipped commits change, compare the working-tree

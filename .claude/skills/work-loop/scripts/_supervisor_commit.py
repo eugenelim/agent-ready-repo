@@ -469,8 +469,12 @@ class GitPort:
     def approval_only(self, run_id: str) -> bool:
         """Whether the run's only supervisor commit reachable from ``HEAD`` is its approval.
 
-        A run that nothing recorded is a cut-off first admission only then. A checkout of a
-        finished run, or one whose history was squashed, has more commits or none.
+        A run that nothing recorded is a cut-off first admission only then. Told apart from
+        it: a checkout of a finished run (several commits), a squash that keeps no run
+        trailer (none), and a squash that keeps only a later step's trailers (one commit
+        whose operation is not ``approval``). Not told apart: a squash that keeps the
+        approval's trailers, such as a fixup folded into the approval; it reads as the
+        approval, which AC-0007 accepts.
         """
         commits = self.supervisor_commits(run_id)
         return len(commits) == 1 and commits[0].operation == "approval"
@@ -939,8 +943,10 @@ class GitPort:
         if first:
             held = (
                 f"HEAD names {new}, the approval of a first admission the run did not "
-                "record, so every verb but start refuses supervisor-changed (status "
-                "reports it) and start names the exit to take."
+                "record. start names the exit to take. While the run store directory exists every "
+                "other verb refuses supervisor-changed and points at start; without it every "
+                "other verb but status refuses that the pin record is missing, and status "
+                "answers from the committed records."
             )
         elif adopting and record is not None:
             held = (
