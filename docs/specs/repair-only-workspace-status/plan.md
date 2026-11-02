@@ -1,7 +1,7 @@
 # Plan: Dispatch reads only headers, and workspace-status keeps only the repair
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1, D3 and § Errata; RFC-0105 D3; RFC-0083 (the migration contracts); RFC-0078 (the MCP tool); RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-loop/scripts/dispatch.py`: the engine names it loads (`_ENGINE_NAMES`, line 67), the workspace read (line 227), and the run (line 337).
@@ -31,7 +31,7 @@ Dispatch moves first, because the shrink cannot delete engine code that dispatch
 
 The riskiest part is the port. About 2,000 lines of readiness rules leave the engine, and a mistake changes what an agent is told it may start. The replay (T4) is the check. It runs the base dispatch, extracted from the base commit, beside the new one on every entry-free planted repository and on this one.
 
-A probe on 2026-11-02 sized the oracle. Of the 122 dispatch-suite tests at the base, 103 plant no `workspace.toml` entry. Six of those are the engine-pinning tests AC-0002 names, so 97 must pass unchanged. The other 19 plant entries that base dispatch dropped or judged, and are rewritten to expect `unmigrated_workspace`.
+A probe on 2026-11-02 sized the oracle. Of the 122 dispatch-suite tests at the base, 103 plant no `workspace.toml` entry. Seven of those are the engine-pinning tests AC-0002 names, so 96 must pass unchanged. The other 19 plant entries that base dispatch dropped or judged, and are rewritten to expect `unmigrated_workspace`.
 
 A second probe on 2026-11-02 traced the base dispatch over those suites. It executed 130 engine functions (about 3,160 lines), 18 `cooling.py` functions and the refresh source-authority parser. On this repository, its output was identical with and without `workspace.toml`.
 
@@ -87,7 +87,7 @@ Owned by: T2
 
 Owned by: T2
 
-- **Every load is a sibling load.** Nothing is loaded from outside dispatch's own resolved directory. The base engine's cross-skill `close-work/scripts/cooling.py` candidate is not ported, so the base layout check (`scripts/` under `skills/`) that guarded it goes too. The same files then run unchanged from `agentbundle`'s flat `_data/`.
+- **Every load is a sibling load.** Nothing is loaded from outside dispatch's own resolved directory. The base engine's cross-skill `close-work/scripts/cooling.py` candidate is not ported, so the base layout check (`scripts/` under `skills/`) that guarded it goes too. The same files then run unchanged from `agentbundle`'s flat `_data/`. `test_dispatch_outside_a_skills_directory`, which asserted the layout check's refusal, now asserts that dispatch runs from a directory that is not a skills tree.
   - `dispatch.py` loads `_header_readiness.py` and `file_safety.py` from `Path(__file__).parent`, through the base confined loader with its symlink and callable checks. A failure keeps the base `engine_unavailable: <file>` exit. The callable names are the ones dispatch calls from each file: `_SAFETY_NAMES` and `UnsafeContentError` for `file_safety.py`, and the readiness module's public entry points.
   - The cooling chain keeps the base behavior: it is resolved only when `docs/lifecycle/` exists, and a failure is the `cooling_state_unavailable` finding. The readiness module first loads `close_work.py` through the same confined loader and registers it as `sys.modules["cooling_close_work"]`, with the `__file__` that `cooling.py`'s `_close_work()` compares. It then loads `cooling.py` the same way. `cooling.py`'s own lazy, unconfined load therefore always finds the confined module, and a linked or missing file fails before anything runs.
   - `work-loop`'s `file_safety.py` is already byte-identical to `close-work`'s. The five engine-load tests break `_header_readiness.py` and `file_safety.py` in each AC-0027 condition. New cases break `cooling.py` and `close_work.py` in each AC-0031 condition, with a decoy outside the directory that records whether it ran.
@@ -179,7 +179,7 @@ Owned by: T9
 - **Touches:** `packs/core/.apm/skills/work-loop/scripts/_header_readiness.py`, `packs/core/.apm/skills/work-loop/scripts/dispatch.py`, the dispatch suites, `packs/core/tests/skills/work-loop/test_dispatch_isolation.py`, `tests/roster/test_header_readiness_source_authority_parity.py`, `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`, `packs/core/tests/skills/navigate-intents/test_export_readiness.py`, `tests/roster/test_spec_registration_stop.py`, `.github/workflows/build-check.yml`, `tools/lint-ci-parity.py`, `docs/specs/workspace-retirement/inventory.toml`, `.claude/skills/navigate-intents/**`, `.agents/skills/navigate-intents/**`
 - **Tests:**
   - AC-0001: the isolation suite copies only `work-loop/` into a temporary `skills/` tree and compares output for each planted repository.
-  - AC-0002: the 97 entry-free tests keep their assertions; only their fixture helpers change, if a helper loaded the engine. The selector test's literal table.
+  - AC-0002: the 96 entry-free tests keep their assertions; only their fixture helpers change, if a helper loaded the engine. The selector test's literal table.
   - AC-0027: the five engine-load tests, rewritten, break `_header_readiness.py` and `file_safety.py` in each condition.
   - AC-0031: `cooling.py` and `close_work.py` broken in each condition, over a repository with `docs/lifecycle/`, each with an outside decoy that records whether it ran.
   - AC-0003: the 19 entry-planting tests become refusal cases. One case plants an entry in each of `[backlog]`, an initiative's `work`, `brief_queue` and `shaping_queue`, and a repo-origin spec entry with `needs = []`. One `[authorization.migration]` table alone does not refuse.
@@ -295,3 +295,4 @@ Owned by: T9
 
 - 2026-11-02: spec approved by eugenelim at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, with the round-4 repairs accepted unreviewed.
 - 2026-11-02: plan approved by eugenelim at `63ed6819e`.
+- 2026-11-02: amended under controlled amendment after T9 (owner decisions during T2 and T6): AC-0002's engine-pinning list adds `test_dispatch_outside_a_skills_directory`, and the Migration forms term adds `repair-plan --yes`; spec and plan set back to Draft and Drafting for review and re-approval.

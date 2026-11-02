@@ -1,6 +1,6 @@
 # Spec: Dispatch reads only headers, and workspace-status keeps only the repair
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-11-02 by eugenelim, spec and plan at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, each adjudicated (three adjudications were invalid; one was re-run), with the round-4 repairs accepted unreviewed; records under `.context/reviews/c2bc3c0b-0c0c-44a9-9a99-0028fa5e7927/`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -127,9 +127,9 @@ the plan's `## Design (LLD)`, not here.
 - **Entry.** An element of an array that `workspace.toml` holds under any top-level key other than `authorization`.
 - **Entry-free repository.** One with no `workspace.toml`, or with a `workspace.toml` that is a readable regular file the base dispatch accepts and that holds no entry.
 - **Dispatch suites.** `packs/core/tests/skills/work-loop/test_dispatch.py`, `test_header_derived_dispatch_replay.py` and `test_work_intake_dispatch.py`.
-- **Engine-pinning tests.** `test_missing_engine`, `test_engine_symlinked_out_of_the_tree`, `test_engine_import_raises`, `test_engine_without_the_entry_point`, `test_engine_name_that_is_not_callable` and `test_selector_rule_matches_workspace_status`, all in `test_dispatch.py`.
+- **Engine-pinning tests.** `test_missing_engine`, `test_engine_symlinked_out_of_the_tree`, `test_engine_import_raises`, `test_engine_without_the_entry_point`, `test_engine_name_that_is_not_callable`, `test_selector_rule_matches_workspace_status` and `test_dispatch_outside_a_skills_directory`, all in `test_dispatch.py`.
 - **Retired subcommands.** `status`, `reconcile`, `explain`, `selected-membership`, `prune`, `retirement-candidates` and `repair-rollback`.
-- **Migration forms.** `repair-plan` given `--migration-selection`, and `repair-apply` given `--migration-selection`, `--operation-id` or `--confirmation-file`.
+- **Migration forms.** `repair-plan` given `--migration-selection` or `--yes`, and `repair-apply` given `--migration-selection`, `--operation-id` or `--confirmation-file`.
 - **Retired tokens.** `workspace-status status`, `workspace-status reconcile`, `workspace-status explain`, `selected-membership`, `retirement-candidates`, `repair-rollback`, `--migration-selection` and `prune --select`.
 
 **Dispatch**
