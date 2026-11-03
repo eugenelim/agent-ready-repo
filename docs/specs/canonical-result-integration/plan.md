@@ -1,7 +1,7 @@
 # Plan: Canonical result integration
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** ADR-0154 governs once Accepted; it supersedes ADR-0144 D9 and D11 in part.
   - **Commit builder:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py`
     (`GitPort.build_commit` moves `HEAD` by `update-ref HEAD new old`, with
@@ -290,6 +290,8 @@ Owned by: T1.
   `reanchor` emits one `.loop-run/events.jsonl` line like every step.
 
 ### A regenerated install lands as a supervisor step
+
+Owned by: T4.
 
 In a repository that tracks its installed skill, admitting a `regenerate` result re-pins the
 rebuilt install but leaves it uncommitted, and a controller commit of it is foreign history

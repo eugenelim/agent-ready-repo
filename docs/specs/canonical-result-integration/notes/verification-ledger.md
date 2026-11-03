@@ -52,3 +52,41 @@ VI-0513 builds the "run with no recorded product ref" state by deleting the ref
 and its run-store record, rather than by a real crossing from a run pinned to
 the previous Core. The first run never reached `regenerate`, so no real
 crossing was observed.
+
+## T2: architecture review
+
+The design reviewer reviewed T2's architecture pages in five rounds. Round 1
+returned MAJOR REWRITE: the execution-supervisor page lacked the product-ref
+procedure, still said a rebase converges on its own, and five pages gave three
+reversal routes. The rounds that followed fixed those findings. They also fixed
+the classification table's order, the crash-recovery wording, and ADR-0154's
+correction, which the owner chose to record as a dated `## Errata` entry. Round
+5 returned SHIP IT. Security was clean from round 2, and the adversarial and
+quality reviewers were clean on their last code-bearing round.
+
+## T2: the regenerate crossing found a defect
+
+The second run's `regenerate` was the real crossing the T1 entry above had not
+observed. The rebuilt install had to be committed by the controller. Under the
+product ref, that commit was foreign history: leaving it uncommitted answered
+`uncommitted-changes`, and restoring it answered `supervisor-changed`. On
+2026-11-03 the owner adopted the controller's commit once (`reanchor`), and
+chose to fix the defect in this slice as T4.
+
+## T4: a regenerated install lands as a supervisor step
+
+T4 makes the next `next` after a `regenerate` admission commit the pack source's
+own entries at every copy of the skill that counts, as one recorded step. It
+took five review rounds, which fixed steerable copy roots, a check-then-commit
+gap, mode changes, staged versions, and the index after adoption. The run's own
+second regenerate proved it: the supervisor committed both installs
+(`.claude/` and `.agents/`) as one `regenerate` step, with no adoption, and
+`HEAD` and the product ref named the same commit. Gates of record: 857
+supervisor suite tests, the 203-case crash corpus, 97 roster tests, and every
+PR CI check on #1678, Windows included.
+
+## T3: closeout
+
+VI-0531 is met by the closeout commit on #1678: the spec is `Shipped` with
+every criterion checked, the plan is `Done`, and `lint-spec-status.py` passes.
+The brief's Spec map already lists this spec.
