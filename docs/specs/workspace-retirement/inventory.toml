@@ -376,6 +376,12 @@ consumer = "live delivery brief for retiring workspace.toml"
 owner = 9
 
 [[row]]
+pattern = "docs/product/changelog.d/3b067f0b-0306-4aef-8cc4-0c8422a68514.md"
+class = "historical"
+consumer = "released changelog entry for core 4.0.9 and agentbundle 0.60.0 that names the retired workspace-status subcommands and the repair"
+owner = "none"
+
+[[row]]
 pattern = "docs/product/changelog.d/63f095d4-35ac-4274-a2f9-6b4cffa2bd9e.md"
 class = "historical"
 consumer = "released changelog entry that names the workspace_status tool"
