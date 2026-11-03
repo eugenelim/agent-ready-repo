@@ -698,6 +698,9 @@ class RepairOnlyArgumentVectorTests(_CliBase):
     def test_each_migration_form_exits_2_and_writes_nothing(self) -> None:
         forms = [
             ["repair-plan", "--migration-selection", "selection.json"],
+            ["repair-plan", "--yes"],
+            ["repair-plan", "--operation-id", "migration-" + "a" * 64],
+            ["repair-plan", "--confirmation-file", "confirmation.json"],
             ["repair-apply", "--migration-selection", "selection.json"],
             ["repair-apply", "--operation-id", "migration-" + "a" * 64],
             ["repair-apply", "--confirmation-file", "confirmation.json"],
