@@ -48,10 +48,12 @@ rules live with that split.
   supersedes [ADR-0125](../adr/0125-engine-invoked-cohort-mutations.md)).
 - **STATUS: PARTLY IMPLEMENTED** — [Acceptance-centered work loop](acceptance-centered-work-loop.md)
   is the parent design for the work-loop refactor. Its rows marked
-  `STATUS: PLANNED` (runtime extensions, leases, and the protected product ref)
+  `STATUS: PLANNED` (runtime extensions and leases)
   are later slices; the
   [brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
   owns each slice's status.
+- **STATUS: PARTLY IMPLEMENTED** — [Product result integration](work-loop-result-integration.md):
+  the sequential protected product ref ships (§ 1a), and its parallel design (§§ 2–8) is Slice 7.
 - **STATUS: PLANNED** — [Agent skill engineering](agent-skill-engineering.md)
   describes the portable workflow, compiled knowledge-provider, runtime-profile,
   and self-host migration architecture accepted by

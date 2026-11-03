@@ -72,7 +72,8 @@ dependency of pack source or of a target runtime.
 | Legacy work registry (being retired; the last slice deletes it) | `workspace.toml` | No intake route or workflow adds an entry. Only `workspace-status` repair effects change it | `workspace-status`, workspace MCP, and the spec-status lint's deferral anchors |
 | Tracker provenance | The `source-authority` block of the canonical artifact (its `tracker_profile` table) | The accepting intake workflow | Refresh and reconciliation workflows |
 | Full-mode delivery records | `docs/specs/**/delivery/` (committed) | `work-loop` `work-supervisor.py` | Supervisor re-derivation, pre-PR hooks, delivery fact feed, reviewers |
-| Full-mode run store | Under the Git directory: attempt manifests, pinned supervisor digests, owed confirmations | `work-loop` `work-supervisor.py` | The supervisor only (attempt-security trust root) |
+| Full-mode run store | Under the Git directory: attempt manifests, pinned supervisor digests, owed confirmations, the product ref's recorded value, and the made-commit list | `work-loop` `work-supervisor.py` | The supervisor only (attempt-security trust root) |
+| Full-mode product result | `refs/agentbundle/delivery/<run-id>/<token>/product`, moved with `HEAD` in one compare-and-swap per step | `work-loop` `work-supervisor.py` only | The delivery subject under `result_authority` `protected-product-ref`, readiness, and reviewers |
 | Full-mode run status | `docs/specs/**/.supervisor/` (self-ignoring, deletable) | `work-loop` `work-supervisor.py` | Harness operators and workspace MCP |
 | Harness events | `.loop-run/events.jsonl` (ephemeral) | `work-loop` `work-supervisor.py` | Harness operators, workspace MCP, and the separately installed `jsonl-otlp-exporter` |
 | Knowledge records | `docs/knowledge/` | `project-knowledge/scripts/knowledge_store.py` | Capture, enquiry, review, and research workflows |
@@ -177,7 +178,8 @@ dependency of pack source or of a target runtime.
 - [Credentials](docs/architecture/credentials.md)
 - [Work intake and artifact routing](docs/architecture/work-intake-and-artifact-routing.md)
 - [Loop infrastructure](docs/architecture/loop-infrastructure.md),
-  [execution supervisor](docs/architecture/work-loop-execution-supervisor.md), and
+  [execution supervisor](docs/architecture/work-loop-execution-supervisor.md),
+  [product result integration](docs/architecture/work-loop-result-integration.md) (the sequential product ref ships; its parallel design is **STATUS: PLANNED**), and
   [workspace MCP](docs/architecture/workspace-mcp/design.md)
 - [Knowledge capture](docs/architecture/knowledge-capture.md)
 - [Telemetry](docs/architecture/telemetry.md)

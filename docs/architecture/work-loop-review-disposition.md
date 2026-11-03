@@ -4,7 +4,7 @@
 reports, actual-failure findings, and explicit dispositions.
 **Author(s):** Platform Core maintainers
 **Status:** Implemented
-**Last updated:** 2026-10-29
+**Last updated:** 2026-11-02
 **Reviewers:** Core reviewer-role maintainers
 
 ## 1. Scope and Context
@@ -29,8 +29,8 @@ reports, actual-failure findings, and explicit dispositions.
 
 Review simplification follows acceptance authority because it consumes the
 approved `delivery-subject.v1`, `semantic-evidence-transaction.v1`, and shared
-content-safety port. Until protected-ref integration exists, the supervisor
-derives the review subject from the run's `HEAD` tree. Neither a parallel
+content-safety port. The supervisor derives the review subject from the product ref's tree under
+`protected-product-ref`, and from `HEAD`'s tree under the reversal setting `legacy-worktree`. Neither a parallel
 scheduler nor knowledge intake is required.
 
 Review and knowledge both expose typed producer boundaries, but only review
@@ -197,10 +197,11 @@ validity.
 The example's `subject` fingerprints the complete canonical
 `review-subject.v1`, not only a tree. Under the supervisor, base and result
 come from the run itself: `_supervisor_readiness.py` projects the delivery
-subject from the `HEAD` tree with the spec directory excluded, under the
-`work-supervisor` provider, and the changed paths are those the run's own
-`stub` and `implement` commits touched. **STATUS: PLANNED** (Slice 5; see the
-[brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)): `protected-product-ref` will supply the result.
+subject from the product ref's tree with the spec directory excluded, under the
+`protected-product-ref` provider (`work-supervisor` under the reversal setting
+`legacy-worktree`, which reads `HEAD`), and the changed paths are those the run's own
+`stub` and `implement` commits touched. A change of provider changes the subject, so
+reviews recorded before it do not count and run again once.
 
 Host merge bases, default branches,
 and unacknowledged checkouts never substitute for either manifest.
@@ -294,7 +295,7 @@ Core 4.0.0 moved full-mode review authority to structured readiness in one
 step for every reviewer role (ADR-0144 D8). The supervisor's
 `_supervisor_review.py` decides closure, and which roles run is
 `review-rules.json` data. No compatibility adapter or reverse reader ships
-(ADR-0144 D7). Reversal is reinstalling the prior Core major.
+(ADR-0144 D7). Reversal is reinstalling the prior Core major. For the product ref and `result_authority`, see [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal).
 
 Ambiguous, unsafe, invalid, or unpaired input yields `unable` or `indeterminate`
 and cannot close an obligation.

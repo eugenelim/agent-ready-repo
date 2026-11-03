@@ -8,7 +8,7 @@ path ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D7).
 Parallel admission and the knowledge capture gates have not moved yet.
 **Author:** Platform Core
 **Status:** Current
-**Last updated:** 2026-10-29
+**Last updated:** 2026-11-02
 **Reviewers:** Core, `agentbundle`, and architecture-governance maintainers
 
 ## 1. Scope and Context
@@ -37,7 +37,7 @@ pages change in the same reviewed change.
 | The planned `wave-decision` contract | Retired with its schema; the supervisor dispatches sequentially | ADR-0144; the [parallelism page](loop-parallelism.md) records what remains | Slice 7 decides any parallel scheduler decision record |
 | ADR-0061 D5's ban on parallel-wave orchestration | Unchanged; sequential is the only mode | ADR-0061 D5 | Slice 7: an accepted record supersedes it and names the admitted modes |
 | ADR-0005 D3 safe categories and D4 post-write `git merge-tree` disjointness gate | Unchanged | ADR-0005 | Slice 7: a parallelism record supersedes D3 and D4 while keeping fail-closed admission and merge-conflict handling |
-| The mutable execution-root worktree as the product result | Unchanged | ADR-0144 D9 | Slice 5: [product result integration](work-loop-result-integration.md) |
+| The mutable execution-root worktree as the product result | A protected product ref the supervisor advances; the worktree and `HEAD` are its projection | ADR-0154, superseding ADR-0144 D9 and D11 in part | [Product result integration](work-loop-result-integration.md); Slice 7 adds parallel results |
 | The `project-knowledge --producer-profile work-loop` capture gates `spec-approved` and `plan-locked` | Retained under those names, beside the read-only delivery fact feed over each spec's committed `delivery/evidence.jsonl` | [Knowledge capture](knowledge-capture.md) | Slice 8 removes both gates |
 | Close-time `work-item` capture | Retained as an explicit capture | [Knowledge capture](knowledge-capture.md) | None |
 
@@ -51,14 +51,14 @@ pages change in the same reviewed change.
 | Raw reviewer output and the review verdict record | Structured review records | Full-mode code review reads only the structured records |
 
 Reversal is reinstalling the prior Core major. That release cannot read
-supervisor records, so they are discarded rather than projected backwards.
+supervisor records, so they are discarded rather than projected backwards. For the product ref and `result_authority`, see [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal).
 
 ## 4. Runtime and Failure Model
 
 A move follows four steps:
 
 1. The governing record is accepted and names the decisions it supersedes.
-2. One change switches the reader and writer together.
+2. One change switches the reader and writer together, or a shadow release writes first and a later release switches the reader (ADR-0154 D6).
 3. The same change updates the baseline architecture pages.
 4. The release names the consequence for in-flight work.
 
@@ -79,7 +79,6 @@ the terminal intent refuses until its owner acts.
 
 | Slice | Sources that change together | Proof |
 | --- | --- | --- |
-| Slice 5 result integration | `work-loop-result-integration.md`, the subject provider, `ARCHITECTURE.md` | Old and new providers yield the same manifest; conflict and crash recovery pass |
 | Slice 7 parallel admission | `ARCHITECTURE.md`, `loop-parallelism.md`, a record superseding ADR-0061 D5 and ADR-0005 D3, D4, the scheduler, and security and integration ports | Missing governance or read proof serializes; permutations equal the sequential result |
 | Slice 8 removal | The `spec-approved` and `plan-locked` capture gates, `knowledge-capture.md`, `work-loop-knowledge-handoff.md` | Removal rehearsal in a clean environment |
 

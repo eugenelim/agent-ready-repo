@@ -1,6 +1,6 @@
 # Spec: Canonical result integration
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** Platform Core
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0154, ADR-0151, ADR-0152, ADR-0150
@@ -140,32 +140,32 @@ change reaches a run in flight.
 
 Integration boundary and identity
 
-- [ ] **AC-0001.** After `start` admits a run, its product ref exists and
+- [x] **AC-0001.** After `start` admits a run, its product ref exists and
   names the commit of its `approval` step. Two runs admitted from the same
   spec and commit, in two worktrees or one after another, name different
   product refs.
-- [ ] **AC-0002.** After every step a verb commits for a run with a recorded
+- [x] **AC-0002.** After every step a verb commits for a run with a recorded
   product ref, the product ref and `HEAD` name the same commit, and a `HEAD` that named a branch when the step began
   still names that branch.
-- [ ] **AC-0003.** A product result whose source commit the product ref no
+- [x] **AC-0003.** A product result whose source commit the product ref no
   longer names at the moment the supervisor moves it refuses with
   `integration-conflict`; neither ref, the index, nor any `delivery/` file
   changes.
-- [ ] **AC-0004.** After an `integration-conflict`, every file the result
+- [x] **AC-0004.** After an `integration-conflict`, every file the result
   changed keeps its bytes; `next` answers `attempt-residue` until the product
   ref names its recorded value again; the `next` after that re-issues the
   same request, and reporting its result commits those bytes.
 
 Product-ref trust
 
-- [ ] **AC-0005.** With no attempt open, when a recorded product ref is
+- [x] **AC-0005.** With no attempt open, when a recorded product ref is
   missing, symbolic, or names a commit other than its recorded value, and the
   AC-0008 state does not hold, every verb but `status` refuses with
   `product-ref-diverged`, owner `controller`, naming the ref and its recorded
   value, writes a denial line to the run's security log, and moves no ref.
   Restoring the ref to its recorded value clears the refusal. While an
   attempt is open, AC-0015's answer applies instead.
-- [ ] **AC-0006.** A run with no recorded product ref, at every verb other
+- [x] **AC-0006.** A run with no recorded product ref, at every verb other
   than `status` with no attempt open, gains one naming its latest made commit
   when `HEAD` is that commit or that commit descends from `HEAD` through made
   commits only, after which AC-0009 and AC-0010 apply; otherwise `next`
@@ -174,7 +174,7 @@ Product-ref trust
 
 Crash and lag repair
 
-- [ ] **AC-0007.** A supervisor killed at any write of a step, of lag repair,
+- [x] **AC-0007.** A supervisor killed at any write of a step, of lag repair,
   or of adoption, and then resumed, ends with the same product ref tree,
   `HEAD` tree, `delivery/` bytes, and supervisor step list as the
   uninterrupted run, with no step committed twice. At every kill point the
@@ -196,7 +196,7 @@ Crash and lag repair
   exit starts the run afresh there. The exit is named only when the base is
   the parent of the approval commit at `HEAD`; otherwise no verb names a
   command, and no verb passes that base to Git.
-- [ ] **AC-0008.** When the product ref, `HEAD`, or both name a commit the run
+- [x] **AC-0008.** When the product ref, `HEAD`, or both name a commit the run
   never recorded as made whose parent is the recorded value, no verb counts
   that commit as made or moves a ref to it. With no attempt open, `next`
   issues the AC-0011 decision naming it and every other verb but `status`
@@ -204,71 +204,71 @@ Crash and lag repair
   return the product ref and `HEAD` to the recorded value, after which the
   step is rebuilt — and name adoption only when an `adopt-history` answer
   would be admitted. While an attempt is open, AC-0015's answer applies.
-- [ ] **AC-0009.** With no attempt open, when the product ref names its
+- [x] **AC-0009.** With no attempt open, when the product ref names its
   recorded value and descends from `HEAD` through made commits only, the next
   verb moves `HEAD` to it, and every tracked product file those commits
   changed then matches the product ref's tree, provided each such file's
   working-tree bytes and index entry match either `HEAD`'s or the product
   ref's version.
-- [ ] **AC-0010.** When such a file matches neither version, the verb refuses
+- [x] **AC-0010.** When such a file matches neither version, the verb refuses
   with `projection-blocked`, owner `controller`, naming the file, and changes
   no ref, index entry, or file.
 
 Divergence and adoption
 
-- [ ] **AC-0011.** With no attempt open, when `HEAD` differs from the anchor
+- [x] **AC-0011.** With no attempt open, when `HEAD` differs from the anchor
   in a way AC-0008 and AC-0009 do not repair, and AC-0005 does not refuse, `next`
   issues a `history-adoption`
   `human-decision` naming the `HEAD` commit, the count and at most 20 of the
   product paths adoption would change relative to the anchor, and whether it
   would change any file in the spec directory, and commits nothing.
-- [ ] **AC-0012.** An `adopt-history` answer from an `owner` authority
+- [x] **AC-0012.** An `adopt-history` answer from an `owner` authority
   reference that names the current `HEAD` commit commits one `reanchor` step
   on `HEAD`, recording the anchor and the authority reference, and moves
   both refs to it, creating the product ref when none is recorded; the next `next` issues no
   `history-adoption` for that history. An answer naming any other commit, or
   with another authority role, refuses with `adoption-refused`, owner
   `controller`, and commits nothing.
-- [ ] **AC-0013.** An `adopt-history` answer refuses with `adoption-refused`,
+- [x] **AC-0013.** An `adopt-history` answer refuses with `adoption-refused`,
   owner `controller`, and commits nothing when
   the adopted history changes any `delivery/` file relative to the anchor.
-- [ ] **AC-0014.** After a `reanchor` that changes the product manifest or a
+- [x] **AC-0014.** After a `reanchor` that changes the product manifest or a
   file in the spec directory, no evidence or review recorded before it counts
   toward readiness.
 
 Worker forgery
 
-- [ ] **AC-0015.** A worker attempt during which this run's product ref comes
+- [x] **AC-0015.** A worker attempt during which this run's product ref comes
   to name anything other than its recorded value — created,
   moved, made symbolic, or deleted — has its result refused, `report` with
   `attempt-refused` and `next` with `attempt-residue`, until the ref is
   restored. The supervisor's own move while it commits that attempt's result
   is not refused within the invocation that made it.
-- [ ] **AC-0016.** Another run's product-ref change in a sibling worktree
+- [x] **AC-0016.** Another run's product-ref change in a sibling worktree
   during this run's attempt leaves the attempt admissible.
 
 Parity, switch, and reversal
 
-- [ ] **AC-0017.** In synthetic full `code` runs under each authority, after
+- [x] **AC-0017.** In synthetic full `code` runs under each authority, after
   every committed step with no attempt open, and after every resumption in the
   AC-0007 corpus, the product manifest computed from the working tree's
   tracked files, the `HEAD` subject's manifest, and the product-ref subject's
   manifest are equal.
-- [ ] **AC-0018.** Under `protected-product-ref`, the delivery subject carries
+- [x] **AC-0018.** Under `protected-product-ref`, the delivery subject carries
   lineage provider `protected-product-ref` and `result_ref` equal to the
   product ref commit, and foreign history on `HEAD` changes neither until an
   `adopt-history` answer admits it.
-- [ ] **AC-0019.** A run regenerated from one authority to the other, in each
+- [x] **AC-0019.** A run regenerated from one authority to the other, in each
   direction, reaches `terminal` with the uninterrupted run's final product
   manifest, and evidence recorded under the earlier lineage does not count
   toward readiness under the later one.
-- [ ] **AC-0020.** `start` refuses with `invalid-policy`, owner
+- [x] **AC-0020.** `start` refuses with `invalid-policy`, owner
   `skill maintainer`, when the installed policy's `result_authority` is
   missing or names neither authority.
-- [ ] **AC-0022.** In a repository whose ref storage is not Git's files
+- [x] **AC-0022.** In a repository whose ref storage is not Git's files
   backend, `start` and every later verb but `status` refuse with
   `unsupported-ref-storage`, owner `owner`, and create no ref.
-- [ ] **AC-0023.** A run-store write that fails during a step never makes a
+- [x] **AC-0023.** A run-store write that fails during a step never makes a
   commit count as made and never moves a ref to a commit the run did not
   record; the verb answers with the refusal the step raised, with the write
   failure appended to its detail, and the run is left in the AC-0005 or
@@ -278,7 +278,7 @@ Parity, switch, and reversal
 
 Portability
 
-- [ ] **AC-0021.** `test_supervisor_product_ref.py`,
+- [x] **AC-0021.** `test_supervisor_product_ref.py`,
   `test_supervisor_attempt.py`, and `test_supervisor_pinning.py` pass on the
   POSIX supervisor-integration CI job and on the Windows CI job;
   `test_supervisor_crash_corpus.py` passes on the POSIX job; and the

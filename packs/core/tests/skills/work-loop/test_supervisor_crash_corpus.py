@@ -11,12 +11,13 @@ journal deleted at each kill point, and four live-lease and rebase scenarios.
 from __future__ import annotations
 
 import collections
+import contextlib
 import importlib.util
 import json
 import os
 import subprocess
 import sys
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -51,7 +52,7 @@ pytestmark = sup.INTEGRATION
 EVENT_FIELDS = {"seq": int, "run_id": str, "spec": str, "from": str, "event": str, "to": str,
                 "at": str, "schema": int, "step_id": str, "awaiting_input": bool}
 ATTEMPT_KINDS = ("write-stub", "implement-task", "run-gates", "review-role", "assess-finding")
-STEP_KINDS = {"approval", "replan", "reanchor", "stub", "red", "implement", "evidence", "gate-fail", "review",
+STEP_KINDS = {"approval", "replan", "reanchor", "regenerate", "stub", "red", "implement", "evidence", "gate-fail", "review",
               "effect-intent", "effect-dispatch", "effect-receipt", "claim", "resolution",
               "terminal"}
 RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}
@@ -97,6 +98,48 @@ def assert_three_way_parity(repo: Path) -> None:
     }
     assert _rev(repo, name) == _rev(repo, "HEAD")
     assert _manifest(repo, "HEAD") == _manifest(repo, name) == working
+    assert_subject_authority(repo)
+
+
+AUTHORITIES = ("protected-product-ref", "legacy-worktree")
+_PROVIDERS = {"legacy-worktree": "work-supervisor", "protected-product-ref": "protected-product-ref"}
+
+
+def active_authority() -> str:
+    """The ``result_authority`` of the policy the supervisor is reading now."""
+    return str(json.loads(h.admission._POLICY_PATH.read_text("utf-8"))["result_authority"])
+
+
+def assert_subject_authority(repo: Path) -> None:
+    """The delivery subject carries the active authority's lineage and names the run's result.
+
+    Where ``HEAD`` and the ref agree the two authorities name the same commit, so the
+    provider is what tells them apart; the diverged case is VI-0521's.
+    """
+    ws = h.workspace(repo)
+    subject = h.cli._supervisor("_supervisor_readiness.py").delivery_subject(ws, h.loop.derive(ws))
+    authority = active_authority()
+    assert subject["lineage"]["provider"] == _PROVIDERS[authority]
+    store = _run_store(repo)
+    assert store is not None
+    name = json.loads((store / "product-ref").read_text("utf-8"))["name"]
+    assert subject["product"]["result_ref"] == _rev(
+        repo, name if authority == "protected-product-ref" else "HEAD")
+
+
+@contextlib.contextmanager
+def under_authority(name: str, directory: Path) -> Generator[None]:
+    """Run with a policy file naming *name* as ``result_authority``, and only while inside."""
+    policy = json.loads(h.admission._POLICY_PATH.read_text("utf-8"))
+    policy["result_authority"] = name
+    path = directory / "supervisor-policy.json"
+    path.write_text(json.dumps(policy), encoding="utf-8", newline="\n")
+    patch = pytest.MonkeyPatch()
+    patch.setattr(h.admission, "_POLICY_PATH", path)
+    try:
+        yield
+    finally:
+        patch.undo()
 
 
 STEP_POINTS = ("refs-moved", "made-recorded", "synced")
@@ -346,6 +389,7 @@ def run_variant(tmp: Path, *, kill_at: int = 0, delete_at: int = 0,
             raise AssertionError("the run did not finish after restarts")
     finally:
         h.commit_module.set_kill_hook(None)
+    assert_subject_authority(repo)  # every variant, under whichever authority is active
     result = summarize(repo, tmp / "effects.log", end, log, recorder, problems, crashes)
     result["exits"] = list(variant.exits)
     return result
@@ -695,3 +739,60 @@ def test_every_write_of_lag_repair_and_adoption_converges(
             expected = ["adopt"] + (["restore"] if cut_off else [])
         assert run["exits"] == expected, (run["seen"][idx], run["exits"])
     assert_converged(baseline, run, trees=name == "lag-repair", adopted=SCENARIOS[name][1])
+
+
+# ── each authority ──────────────────────────────────────────────────────────
+# The whole corpus above runs under the authority the policy ships, whichever that is. Each
+# authority also runs a sample here under a policy file naming it, so both are covered
+# whichever one ships: the product ref is written identically under both, and every run
+# ends by asserting the subject's lineage for the authority in force.
+
+
+@pytest.fixture(scope="module", params=AUTHORITIES)
+def authority_baseline(request: pytest.FixtureRequest, tmp_path_factory: pytest.TempPathFactory
+                       ) -> tuple[str, dict[str, Any]]:
+    directory = tmp_path_factory.mktemp("authority")
+    with under_authority(request.param, directory):
+        return request.param, run_variant(directory / "run")
+
+
+def test_each_authority_run_reaches_terminal(authority_baseline: tuple[str, dict[str, Any]]) -> None:
+    _name, base = authority_baseline
+    assert base["end"] == "terminal"
+    assert len(base["seen"]) == BOUNDARIES
+    assert base["staged_after_sync"] == []
+
+
+@pytest.mark.parametrize("name", ["commit-built", "refs-moved", "made-recorded", "synced"])
+def test_each_authority_converges_when_killed_at(
+    authority_baseline: tuple[str, dict[str, Any]], tmp_path: Path, name: str
+) -> None:
+    authority, base = authority_baseline
+    # The fourth step's point of this kind: a plain implementation step, past the admission.
+    point = [i for i, seen in enumerate(base["seen"], 1) if seen == name][3]
+    with under_authority(authority, tmp_path):
+        run = run_variant(tmp_path / "run", kill_at=point)
+    assert run["crashes"] == 1
+    assert_converged(base, run)
+
+
+def test_each_authority_converges_with_the_journal_deleted(
+    authority_baseline: tuple[str, dict[str, Any]], tmp_path: Path
+) -> None:
+    authority, base = authority_baseline
+    point = [i for i, seen in enumerate(base["seen"], 1) if seen == "synced"][3]
+    with under_authority(authority, tmp_path):
+        run = run_variant(tmp_path / "run", delete_at=point)
+    assert run["crashes"] == 0 and run["exits"] == []
+    assert_converged(base, run)
+
+
+@pytest.mark.parametrize("scenario", sorted(SCENARIOS))
+def test_each_authority_repairs_or_adopts_a_diversion(
+    authority_baseline: tuple[str, dict[str, Any]], tmp_path: Path, scenario: str
+) -> None:
+    authority, base = authority_baseline
+    with under_authority(authority, tmp_path):
+        run, _at = _scenario(tmp_path / "run", scenario)
+    assert run["exits"] == (["adopt"] if scenario == "adoption" else [])
+    assert_converged(base, run, trees=scenario == "lag-repair", adopted=SCENARIOS[scenario][1])

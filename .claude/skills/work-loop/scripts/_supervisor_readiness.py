@@ -7,9 +7,10 @@ eligible. Nothing here reads a stored verdict or readiness answer: criteria
 verdicts are evaluated from receipts on every call, and review readiness is
 computed from the durable review records.
 
-Freshness is exact-subject over the product: every file at HEAD outside the
-spec directory, so a supervisor step that appends only ``delivery/`` records
-never stales evidence.
+Freshness is exact-subject over the product: every file outside the spec
+directory in the result commit the run's authority reads (the product ref's
+commit, or HEAD under the reversal setting), so a supervisor step that appends only
+``delivery/`` records never stales evidence.
 
 Standard library only. Python 3.11+.
 """
@@ -90,11 +91,31 @@ def criteria(ws: Any) -> list[str]:
     return list(dict.fromkeys(found))
 
 
+def result_lineage(ws: Any, state: Any) -> tuple[str, str, str]:
+    """``(provider, result commit, projection version)`` the run's authority reads.
+
+    Under ``protected-product-ref`` the result is the commit the run store recorded for
+    the product ref, so history on ``HEAD`` the owner has not adopted changes nothing;
+    a run with no recorded ref (steps committed while an attempt was open) reads ``HEAD``.
+    Under ``legacy-worktree`` the result is ``HEAD``.
+
+    The run's supervisor commits (``state.commits``, which feed the reanchor salt and the
+    changed paths' first touch) are always read from ``HEAD``'s history. Every verb that acts
+    refuses a diverged ``HEAD`` before it reads the subject, so only ``status`` can show a
+    subject computed while foreign history sits on ``HEAD``, and it is display only.
+    """
+    if ws.policy["result_authority"] == "protected-product-ref":
+        record = ws.git.product_record(state.run_id)
+        return "protected-product-ref", (record.recorded if record else state.head), "1"
+    return "work-supervisor", state.head, "1"
+
+
 def delivery_subject(ws: Any, state: Any) -> dict[str, Any]:
-    """The ``delivery-subject.v1`` for the product at HEAD."""
+    """The ``delivery-subject.v1`` for the product the run's authority reads."""
     prefix = ws.spec_rel + "/"
+    provider, result, version = result_lineage(ws, state)
     manifest = tuple(
-        sorted((p, oid) for p, oid in ws.git.tree_entries() if not p.startswith(prefix))
+        sorted((p, oid) for p, oid in ws.git.tree_entries(result) if not p.startswith(prefix))
     )
     spec_fingerprint = state.latest["envelope"]["envelope_fingerprint"]
     for commit in reversed(state.commits):
@@ -110,13 +131,13 @@ def delivery_subject(ws: Any, state: Any) -> dict[str, Any]:
     return sibling("_subject_projection.py").project_delivery_subject(
         subject_id=state.run_id,
         base_ref=state.base,
-        result_ref=state.head,
+        result_ref=result,
         spec_path=f"{ws.spec_rel}/spec.md",
         spec_fingerprint=spec_fingerprint,
         evidence_policy_ref=EVIDENCE_POLICY,
         exclusions=(prefix,),
-        provider="work-supervisor",
-        projection_version="1",
+        provider=provider,
+        projection_version=version,
         manifest_pairs=manifest,
     )
 
@@ -128,6 +149,7 @@ def changed_files(ws: Any, state: Any) -> list[dict[str, str]]:
     upstream work never makes that work part of the run's review.
     """
     prefix = ws.spec_rel + "/"
+    result = result_lineage(ws, state)[1]
     first_touch: dict[str, str] = {}
     for commit in state.commits:
         if commit.operation in ("stub", "implement"):
@@ -136,7 +158,7 @@ def changed_files(ws: Any, state: Any) -> list[dict[str, str]]:
                     first_touch.setdefault(path, commit.sha)
     changes = []
     for path, sha in sorted(first_touch.items()):
-        if ws.git.show(path) is None:
+        if ws.git.show(path, result) is None:
             status = "deleted"
         elif ws.git.show(path, f"{sha}^") is None:
             status = "added"

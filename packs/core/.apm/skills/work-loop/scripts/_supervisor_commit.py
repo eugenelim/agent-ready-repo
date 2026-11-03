@@ -652,6 +652,46 @@ class GitPort:
         """``(path, object id)`` for every file at *rev*."""
         return sorted(self._tree(rev).items())
 
+    def tree_modes(self, rev: str = "HEAD") -> dict[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for every entry at *rev*, modes included."""
+        sha = self.resolve(rev)
+        if not sha:
+            return {}
+        out = self.run("ls-tree", "-r", "-z", "--full-tree", sha)
+        found: dict[str, tuple[str, str]] = {}
+        for record in out.split(b"\0"):
+            if record:
+                meta, _, path = record.partition(b"\t")
+                mode, _kind, oid = meta.decode().split()
+                found[path.decode("utf-8", "surrogateescape")] = (mode, oid)
+        return found
+
+    def working_changes(self) -> dict[str, tuple[str, str] | None]:
+        """What ``change_set`` names, each with the ``(mode, object id)`` Git would stage.
+
+        ``None`` marks a removal. Read from one private index, so the paths and their entries
+        come from the same read of the working tree.
+        """
+        excluded = (f"{self.spec_rel}/.supervisor/", ".loop-run/", f"{self.delivery_rel}/")
+        with self._private_index() as env:
+            self.run("add", "-A", env=env)
+            out = self.run(
+                "diff", "--cached", "--raw", "--no-abbrev", "-z", "--no-renames", "HEAD",
+                env=env,
+            )
+        fields = out.split(b"\0")
+        found: dict[str, tuple[str, str] | None] = {}
+        position = 0
+        while position + 1 < len(fields):
+            meta, path = fields[position].decode().split(), fields[position + 1]
+            position += 2
+            name = path.decode("utf-8", "surrogateescape")
+            if name.startswith(excluded):
+                continue
+            new_mode, new_oid = meta[1], meta[3]
+            found[name] = None if new_mode == "000000" else (new_mode, new_oid)
+        return dict(sorted(found.items()))
+
     def product_tree(self, rev: str = "HEAD") -> str:
         """A digest of the tree at *rev* without the spec directory."""
         prefix = self.spec_rel + "/"
@@ -767,6 +807,8 @@ class GitPort:
         trailers: dict[str, str] | None = None,
         paths: Iterable[str] = (),
         contents: dict[str, bytes | None] | None = None,
+        entries: dict[str, tuple[str, str] | None] | None = None,
+        verify_tree: Callable[[str], None] | None = None,
         appends: dict[str, bytes] | None = None,
         summary: str = "",
         known_steps: set[str] | None = None,
@@ -779,7 +821,9 @@ class GitPort:
 
         *paths* are working-tree paths taken into the commit; *contents* maps a path
         to the exact bytes to commit there (``None`` removes it), staged without
-        reading the working tree again; *appends* maps a ``delivery/`` file name to
+        reading the working tree again; *entries* maps a path to the exact ``(mode, object
+        id)`` to stage there (``None`` removes it), and *verify_tree* sees the built tree's
+        id and refuses before any ref moves; *appends* maps a ``delivery/`` file name to
         bytes appended to its HEAD version.
 
         A run with a recorded product ref moves it with ``HEAD`` in one transaction.
@@ -827,6 +871,14 @@ class GitPort:
                     continue
                 blob = self.text("hash-object", "-w", "--stdin", stdin=data).strip()
                 self.run("update-index", "--add", "--cacheinfo", f"100644,{blob},{rel}", env=env)
+            for rel, entry in sorted((entries or {}).items()):
+                if entry is None:
+                    self.run("update-index", "--force-remove", "--", rel, env=env)
+                else:
+                    mode, oid = entry
+                    self.run(
+                        "update-index", "--add", "--cacheinfo", f"{mode},{oid},{rel}", env=env
+                    )
             for name, extra in sorted((appends or {}).items()):
                 rel = f"{self.delivery_rel}/{name}"
                 content = (self.show(rel) or b"") + extra
@@ -834,6 +886,8 @@ class GitPort:
                 self.run("update-index", "--add", "--cacheinfo", f"100644,{blob},{rel}", env=env)
                 appended[rel] = content
             tree = self.text("write-tree", env=env).strip()
+        if verify_tree is not None:
+            verify_tree(tree)
         message = f"work-supervisor: {operation}{(' ' + summary) if summary else ''}\n\n"
         message += "".join(f"{k}: {v}\n" for k, v in all_trailers.items())
         name, email = self.hardened.commit_identity()
@@ -851,7 +905,7 @@ class GitPort:
         self._record_landing(run_id, new, create_ref, adopting)
         kill_point("made-recorded")
         self.write_delivery(appended)
-        self.refresh_index(path_list + sorted(exact) + sorted(appended))
+        self.refresh_index(path_list + sorted(exact) + sorted(entries or ()) + sorted(appended))
         kill_point("synced")
         return new
 
@@ -1015,6 +1069,31 @@ class GitPort:
             literal_pathspecs=True,
             stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in sorted(set(paths))),
         )
+
+    def index_entries(self) -> dict[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for each entry of the real index."""
+        out = self.run("ls-files", "-s", "-z")
+        indexed: dict[str, tuple[str, str]] = {}
+        for record in out.split(b"\0"):
+            if record:
+                meta, _, path = record.partition(b"\t")
+                mode, oid, _stage = meta.decode().split()
+                indexed[path.decode("utf-8", "surrogateescape")] = (mode, oid)
+        return indexed
+
+    def refresh_stale_index(self, paths: list[str], anchor: str) -> None:
+        """Make the real index match HEAD for each of *paths* it still holds as at *anchor*.
+
+        A step cut off after its refs moved leaves the index on the old content. A path whose
+        index entry already differs from the anchor's is someone's staged change, and stays.
+        """
+        if not paths:
+            return
+        indexed = self.index_entries()
+        at_anchor = self.tree_modes(anchor)
+        # Added, modified and removed alike: an entry still as it was at the anchor (absent
+        # included) is stale, and one anyone staged otherwise is left as it is.
+        self.refresh_index([p for p in paths if indexed.get(p) == at_anchor.get(p)])
 
     def read_working(self, rel: str) -> bytes | None:
         """Read a working-tree file through the confined reader, or None if absent."""

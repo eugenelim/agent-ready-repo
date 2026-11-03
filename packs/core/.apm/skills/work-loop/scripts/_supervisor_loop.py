@@ -535,6 +535,23 @@ def _prepare(ws: Workspace) -> tuple[State, Refusal | None]:
         )
         state = derive(ws)
         ws.local.reconcile_events(state.run_id, state.commits)
+    plan = ws.attempts.regenerate_plan(state.run_id)
+    if plan is not None:
+        # A tracked install the regeneration rebuilt is the pack source the repository
+        # already holds, so the supervisor commits the pack source's own entries as its step
+        # (never the working tree's bytes), and a controller commit of it stays foreign history.
+        key = hashlib.sha256(f"{state.head}\0{plan.digest}".encode()).hexdigest()[:24]
+        ws.git.build_commit(
+            run_id=state.run_id,
+            step=f"regenerate:{key}",
+            operation="regenerate",
+            entries=plan.entries,
+            verify_tree=lambda tree: plan.verify(ws.git, tree),
+            summary="regenerate",
+            known_steps=state.steps,
+        )
+        state = derive(ws)
+        ws.local.reconcile_events(state.run_id, state.commits)
     return state, None
 
 
@@ -544,6 +561,9 @@ def _act(ws: Workspace, state: State) -> tuple[State, Action]:
     effects = _supervisor("_supervisor_effects.py")
     for _ in range(64):
         action = decide(ws, state)
+        if action.kind in ("auto-red", "effect-intent", "terminal"):
+            # Nothing commits on top of a regenerate step the install does not match.
+            ws.attempts.confirm_admitted(state.run_id)
         if action.kind == "auto-red":
             refusal = tdd.commit_supervisor_red(ws, state, action.detail["task"])
             if refusal is not None:
@@ -832,8 +852,36 @@ def status(ws: Workspace) -> dict[str, Any]:
             "terminal": False,
             "retry_count": _safe_count(ws, state),
         }
-    action = decide(ws, state)
     readiness = _supervisor("_supervisor_readiness.py")
+    pending = ws.attempts.regenerate_plan(state.run_id)  # a damaged record refuses, as it should
+    if pending is not None and ws.divergence is None:
+        # The next verb commits the install first and then asks for whatever follows; until
+        # then nothing is terminal, no gate is open, and the run is gating.
+        return {
+            "run": {**run_status(ws, state, None), "stage": "gating", "active": True},
+            "pending_step": {
+                "operation": "regenerate",
+                "paths": sorted(pending.entries)[:20],
+                "path_count": len(pending.entries),
+            },
+            "terminal": False,
+            "retry_count": state.retry_count,
+            "retry_cap": int(ws.policy["implementation_retry_cap"]),
+            "recovery_decisions": [],
+            "recovery_leftovers": [],
+            "tasks": [
+                {
+                    "task_id": t["task_id"],
+                    "position": t["position"],
+                    "title": t["title"],
+                    "complete": state.is_complete(t),
+                }
+                for t in state.tasks
+            ],
+            "request": None,
+            "refusal": {},
+        }
+    action = decide(ws, state)
     return {
         "run": run_status(ws, state, action),
         "terminal": action.kind == "terminal",

@@ -4,7 +4,7 @@
 logic into versioned, reusable infrastructure capabilities.
 **Author(s):** Platform Core maintainers
 **Status:** Draft
-**Last updated:** 2026-10-01
+**Last updated:** 2026-11-02
 **Reviewers:** Security and `agentbundle` maintainers
 
 ## 1. Scope and Context
@@ -142,8 +142,8 @@ adapter package.
 
 Untrusted grants deny writes to `.git`, protected integration refs, and
 delivery-control paths. A broker may expose bounded read-only Git queries, but
-only the result-integration port may create integration objects or update its
-protected ref.
+only the supervisor's Git helper creates integration objects or moves the run's
+product ref today. Slice 7 moves that to a result-integration port.
 
 ## 5. Data and State
 
@@ -175,7 +175,7 @@ protected ref.
 | Untrusted adapter lacks verified host containment | Trust-boundary rule refuses activation | Zero untrusted same-process adapters receive direct authority | Adapter activation fixture |
 | Worker writes a semantic record directly | Verified sandbox or restricted principal denies every control-plane path | Zero forged criteria, evidence, reports, or dispositions through every adapter | Cross-adapter forgery suite |
 | Contained child issues a direct filesystem syscall | Verified OS containment denies it before the control plane | Zero broker-bypass writes | Direct-syscall bypass fixture |
-| Worker writes Git metadata or the protected product ref | Grant and host containment deny direct mutation | Zero integration-boundary bypasses | Git-ref and object-store forgery fixture |
+| Worker writes Git metadata or the protected product ref | Grant and host containment deny direct mutation; the supervisor's attempt check refuses a result whose attempt changed this run's product ref | Zero integration-boundary bypasses | Git-ref and object-store forgery fixture; the attempt suite |
 | Launcher proposes network, child-process, or resource bounds broader than the grant | Attestation comparison refuses launch | Zero host-selected overgrant and deny-all omission behavior | Network, process-tree, CPU, memory, time, output, and process-count fixtures |
 | Parallel task reads an undeclared product path | Enforced allowlist denies it or complete tracing records it; other hosts mark access incomplete | Zero false complete attestations | Cross-adapter undeclared-read and trace-gap fixtures |
 | Process request relies on ambient state or outlives timeout | Primitive rejects undeclared env, cwd, executable, or stdin and kills the full process group on breach | Zero inherited variables, unbounded durable bytes, or orphan children that stayed in the process group (see the accepted residuals in §4) | Environment, cwd escape, executable-swap, stdin, process-tree kill, and redaction fixtures |
@@ -294,6 +294,15 @@ supervisor-launched run of repository code the check runs again before any
 commit. Residue lives in the store, so deleting the journal, `run.json`, or
 the local security log clears nothing.
 
+**Product ref.** The run's result lives in `refs/agentbundle/delivery/<run-id>/<token>/product`,
+which the supervisor moves with `HEAD` in one compare-and-swap per step. The trust rule, the
+classification of `HEAD` and the ref, and the `adopt-history` decision are in the
+[execution supervisor page](work-loop-execution-supervisor.md#product-ref).
+
+An attempt during which this run's ref changes, other than the supervisor's own move, is
+refused, and another run's ref never counts against it. The residual in the opening of this
+section applies: a deliberate worker acting as the same user can still write the store's record.
+
 **Pinning and regeneration.** The first admitted `start` records the sha256 of
 every installed `scripts/` file and of the two policy files in the store. Every
 entry point compares them before it imports a sibling and refuses
@@ -302,9 +311,9 @@ entry point compares them before it imports a sibling and refuses
 spec in the work tree. When `HEAD` holds the Core work-loop source, review
 readiness holds, and the installed skill differs, `next` emits one `regenerate`
 request. The supervisor admits it only when every installed file equals that
-source, then re-pins. When the installed skill is tracked in the work tree,
-`next` answers `uncommitted-changes` until the controller commits the
-regenerated skill.
+source, then re-pins. When the installed skill is tracked, the supervisor commits the rebuilt
+install as a `regenerate` step; the [execution supervisor page](work-loop-execution-supervisor.md#product-ref)
+owns which copies count and when it acts.
 
 **Untrusted code.** Under an `untrusted` classification with no verified
 containment, the supervisor launches no red proof or scratch receipt, emits no
