@@ -6,7 +6,7 @@
   "red_proof_budget_seconds": 1800,
   "run_lock_stale_seconds": 2400,
   "run_lock_timeout_seconds": 30,
-  "result_authority": "legacy-worktree",
+  "result_authority": "protected-product-ref",
   "authority_roles": {
     "start_authority_ref": "owner",
     "start_review_authority_ref": "plan-reviewer",

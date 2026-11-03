@@ -175,10 +175,31 @@ name the same commit after a step. Only the supervisor moves it. Before each ver
 compares `HEAD` with the ref: it moves `HEAD` forward to the ref after a reset, and
 stops with `product-ref-diverged`, `projection-blocked`, or a `history-adoption` decision
 when it cannot do that safely. A commit counts as the run's own only when the invocation
-that moved the refs to it recorded it, so a step a crash cut off after its refs moved is
-never completed or trusted: it is that decision.
+that moved the refs to it recorded it, so a step a crash cut off after its refs moved but
+before it was recorded is never completed or trusted: it is that decision.
 A run that had no ref before this feature gains one at its latest commit the supervisor
 made. Repositories whose ref storage is not Git's files backend are refused.
+
+The policy's `result_authority` picks the commit acceptance reads. Under
+`protected-product-ref` the delivery subject names the product ref's commit (lineage
+provider `protected-product-ref`), so history on `HEAD` the owner has not adopted changes
+neither the subject nor readiness until an `adopt-history` answer admits it. Under
+`legacy-worktree` the subject names `HEAD`. Both authorities write the ref the same way,
+and a run keeps the authority it was pinned to at `start`. While foreign history sits on
+`HEAD`, only `status` reads a subject at all, and it reads the run's own commits from
+`HEAD`'s history: its displayed fingerprint is informational, and no verb that acts uses it.
+
+A release that changes the value reaches a run in flight only where the repository
+holds the pack source (a repository that self-hosts the pack): `next` then issues
+`regenerate`, and after you rebuild and report it the run's gate evidence and reviews
+recorded under the earlier subject no longer count, so `run-gates` and the reviews run
+once more. Any other run refuses `supervisor-changed` once the installed skill changes:
+finish it on the prior release or start it again on the new one. The lineage names only
+the authority, so a run taken back to an authority it already used can match evidence
+recorded in that earlier stretch again; only one crossing is guaranteed to start the
+evidence over. To go back to `legacy-worktree`, install the prior release for new runs,
+or, where the pack source is present, release a patch that sets `result_authority` back
+and cross runs in flight by `regenerate`.
 
 ### Human decisions
 

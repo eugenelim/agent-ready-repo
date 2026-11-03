@@ -70,3 +70,15 @@ has shipped.
 - **A per-worktree `refs/worktree/` product ref.** Rejected: `git gc` run in another worktree pruned its commits in a probe.
 - **Switch in one release with no shadow.** Rejected: the brief requires shadow parity before result authority moves.
 - **Keep the provider lineage stable across the switch.** Rejected: the evidence record would no longer show which provider produced its subject.
+
+## Errata
+
+**2026-11-02 (Decision-maker: eugenelim) — D3 and D5 trust the recorded value only.** D3 and D5 mention a pending commit beside the recorded value; D3 trusts the ref while it equals either. What shipped, and what these decisions mean, is narrower: the supervisor trusts only the commit the run store recorded for the product ref, and no pending value is ever trusted. A commit counts as made only after the invocation that moved the refs records it.
+
+- An unrecorded commit on the ref whose parent is the recorded value goes to the owner (adopt it with `adopt-history`, or restore both refs so the step is rebuilt) only while `HEAD` is on the recorded value or on that same commit. Any other ref value, including a missing, symbolic, rolled-back, or planted ref, and that same unrecorded commit with `HEAD` anywhere else, refuses with `product-ref-diverged` until the ref is restored. While the ref is at its recorded value, a `HEAD` that lags it through made commits moves forward on its own (or refuses `projection-blocked` when a file matches neither version), and any other `HEAD` is foreign history for the owner.
+- D3's "Recovery completes a step that moved one ref" does not happen: a step moves both refs in one transaction, and a step whose refs moved but was not recorded is never completed; it is the owner decision above.
+- D5 refuses an attempt during which this run's product ref leaves its recorded value.
+- The Positive consequence "A crash, a lost race, or a partial ref update converges without losing a step" holds as follows: a step cut off before its refs moved, or after they moved and the run recorded it, converges; one cut off between the move and the record waits for the owner to adopt it or restore both refs.
+- The Confirmation signal is met as follows: the full crash corpus runs under the shipped `result_authority`, and a named sample (an uninterrupted run, a kill at each of four step kill points, a journal deletion, and the lag-repair and adoption scenarios) runs under the other.
+
+The `docs/specs/canonical-result-integration/plan.md` Changelog entry dated 2026-10-31 that ends "no pending commit is ever trusted" records the approved spec change that made this reading.

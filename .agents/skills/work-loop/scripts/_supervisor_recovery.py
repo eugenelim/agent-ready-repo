@@ -16,8 +16,8 @@ controller removes it or restores it to ``HEAD``; rewriting it to other bytes do
 clear it.
 
 The second half of this module classifies how ``HEAD`` and the run's product ref
-relate before every verb derives anything. It completes a transaction that moved
-one ref, creates the ref for a run that has none, moves ``HEAD`` forward over
+relate before every verb derives anything. It never completes a step whose refs
+moved unrecorded, creates the ref for a run that has none, moves ``HEAD`` forward over
 commits the supervisor made, refuses a ref that is not at its recorded value, and
 turns any other difference into an owner decision, ``history-adoption``, whose
 answer commits one ``reanchor`` step.

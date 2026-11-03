@@ -398,6 +398,141 @@ def test_a_run_from_before_the_product_ref_gains_one_across_a_regenerate(
     assert not h.git(repo, "for-each-ref", name).strip()
 
 
+# ── VI-0522: AC-0019 ────────────────────────────────────────────────────────
+
+_AUTHORITIES = ("legacy-worktree", "protected-product-ref")
+_POLICY = "supervisor-policy.json"
+
+
+def _set_authority(root: Path, authority: str) -> None:
+    """Write *authority* as the ``result_authority`` of the policy file under *root*."""
+    path = root / _POLICY
+    policy = json.loads(path.read_text("utf-8"))
+    policy["result_authority"] = authority
+    path.write_text(json.dumps(policy, indent=2) + "\n", "utf-8", newline="\n")
+
+
+class _AuthorityEditor(h.Controller):
+    """A controller whose worker, in its task, switches the authority of the pack source."""
+
+    target = ""
+
+    def work(self, request: dict[str, Any]) -> dict[str, Any]:
+        result = super().work(request)
+        if request["kind"] == "implement-task":
+            _set_authority(self.repo / _SOURCE, self.target)
+        report = result.get("report")
+        if report is not None:
+            # A run reviewed under two subjects files two reports from one role: the synthetic
+            # reviewer's ids carry the subject, as a real reviewer's would.
+            tag = report["subject"]["review_subject_fingerprint"][-8:]
+            report["report_id"] += f"-{tag}"
+            for finding in report["findings"]:
+                finding["finding_id"] += f"-{tag}"
+        return result
+
+
+def _manifest(repo: Path) -> dict[str, str]:
+    """The product manifest at HEAD: every path outside the spec directory with its object id."""
+    pairs = {}
+    for line in h.git(repo, "ls-tree", "-r", "HEAD").splitlines():
+        meta, path = line.split("\t", 1)
+        if not path.startswith(SPEC + "/"):
+            pairs[path] = meta.split()[2]
+    return pairs
+
+
+def _authority_run(base: Path, start: str, target: str) -> set[str]:
+    """A run pinned to *start* whose task publishes *target*, stopped at its ``regenerate`` request.
+
+    Returns the reviewer roles it asked a report from before that request.
+    """
+    skill = _copy_skill(base / "skill")
+    _set_authority(skill, start)
+    repo = h.make_repo(base, plan=RELEASE_PLAN)
+    _publish_source(repo, skill)
+    controller = _AuthorityEditor(repo, base / "effects.log")
+    controller.target = target
+    cli = _load_cli(skill)
+    roles: set[str] = set()
+    with _via(cli):
+        assert h.start(repo)[0] == 0
+        for _ in range(12):
+            code, payload = h.run_cli(repo, "next", SPEC)
+            assert code == 0, payload
+            request = payload["request"]
+            if request["kind"] == "regenerate":
+                return roles
+            if request["kind"] == "review-role" and "role" in request:
+                roles.add(request["role"])
+            assert controller.report(controller.work(request))[0] == 0
+    raise AssertionError("no regenerate request")
+
+
+@pytest.fixture(scope="module", params=[(a, b) for a in _AUTHORITIES for b in _AUTHORITIES if a != b],
+                ids=lambda pair: f"{pair[0]}-to-{pair[1]}")
+def crossing(request: pytest.FixtureRequest, tmp_path_factory: pytest.TempPathFactory
+             ) -> tuple[str, str, Path, dict[str, str], set[str]]:
+    """A run at its ``regenerate`` request, the final manifest of the same run left alone, and
+    the reviewer roles the first run had reports from."""
+    start, target = request.param
+    base = tmp_path_factory.mktemp("crossing")
+    roles = _authority_run(base, start, target)
+    assert roles, "the run reviewed nothing before the crossing"
+    steady = tmp_path_factory.mktemp("steady")
+    skill = _copy_skill(steady / "skill")
+    _set_authority(skill, target)
+    repo = h.make_repo(steady, plan=RELEASE_PLAN)
+    _publish_source(repo, skill)
+    controller = _AuthorityEditor(repo, steady / "effects.log")
+    controller.target = target
+    with _via(_load_cli(skill)):
+        assert h.start(repo)[0] == 0
+        assert controller.drive().get("terminal") is True
+    return start, target, base, _manifest(repo), roles
+
+
+def test_a_run_regenerated_across_authorities_reaches_the_uninterrupted_manifest(
+    crossing: tuple[str, str, Path, dict[str, str], set[str]], tmp_path: Path
+) -> None:
+    start, target, template, steady_manifest, roles = crossing
+    repo, skill, _copy_cli = _regen_copy(template, tmp_path)
+    # The copy holds the pack's current policy; the run was pinned to *start*, so match it.
+    _set_authority(skill, start)
+    cli = _load_cli(skill)
+
+    def fingerprint(module: ModuleType) -> str:
+        ws = module._supervisor("_supervisor_admission.py").Workspace(
+            repo, SPEC, clock=lambda: h.FIXED_TIME)
+        state = module._supervisor("_supervisor_loop.py").derive(ws)
+        return str(module._supervisor("_supervisor_readiness.py").delivery_subject(
+            ws, state)["acceptance_fingerprint"])
+
+    with _via(cli):
+        before = fingerprint(cli)
+        again = h.run_cli(repo, "next", SPEC)[1]["request"]
+        assert again["kind"] == "regenerate"
+        # The controller regenerates the installed skill from the pack source at HEAD.
+        shutil.copyfile(repo / _SOURCE / _POLICY, skill / _POLICY)
+        controller = _AuthorityEditor(repo, tmp_path / "effects.log")
+        controller.target = target
+        code, out = controller.report(_regenerate_result(again))
+        assert code == 0 and out == {"admitted": "regenerate"}, out
+        assert json.loads((skill / _POLICY).read_text("utf-8"))["result_authority"] == target
+        # The earlier lineage's gate evidence names another subject, so it counts for nothing:
+        # the gates run again under the new one.
+        assert fingerprint(cli) != before
+        code, payload = h.run_cli(repo, "next", SPEC)
+        assert code == 0 and payload["request"]["kind"] == "run-gates", payload
+        assert controller.drive().get("terminal") is True
+    # Reviews recorded under the earlier subject do not count either: every reviewer that filed
+    # a report before the crossing is asked for one again (a selection request alone is not that).
+    asked = {r["request"]["role"] for r in controller.log
+             if r.get("request", {}).get("kind") == "review-role" and "role" in r["request"]}
+    assert roles <= asked, (roles, asked)
+    assert _manifest(repo) == steady_manifest
+
+
 def _tracked_regenerate(tmp_path: Path) -> tuple[Path, Path, ModuleType, h.Controller, dict[str, Any]]:
     """A run at the issued ``regenerate`` request whose installed skill is tracked in the work tree."""
     repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)

@@ -736,7 +736,7 @@ def test_start_refuses_an_invalid_result_authority(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, value: str | None
 ) -> None:
     policy = json.loads(h.admission._POLICY_PATH.read_text("utf-8"))
-    assert policy["result_authority"] == "legacy-worktree"
+    assert policy["result_authority"] in ("legacy-worktree", "protected-product-ref")
     if value is None:
         del policy["result_authority"]
     else:
@@ -1715,3 +1715,102 @@ def test_an_unwritable_store_fails_the_write_that_records_a_step(tmp_path: Path)
     assert request["reason"] == "history-adoption"
     run_restore_exit(repo, request["question"])
     assert "request" in next_ok(repo)
+
+
+# ── VI-0521: AC-0018 ────────────────────────────────────────────────────────
+
+AUTHORITIES = ("protected-product-ref", "legacy-worktree")
+
+
+@pytest.fixture(params=AUTHORITIES)
+def authority(request: pytest.FixtureRequest, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> str:
+    """Run the test under a policy file naming one authority, whichever one the pack ships."""
+    policy = json.loads(h.admission._POLICY_PATH.read_text("utf-8"))
+    policy["result_authority"] = request.param
+    path = tmp_path / "authority-policy.json"
+    path.write_text(json.dumps(policy), **h._LF)
+    monkeypatch.setattr(h.admission, "_POLICY_PATH", path)
+    return str(request.param)
+
+
+def readiness_module() -> Any:
+    return h.cli._supervisor("_supervisor_readiness.py")
+
+
+def subject_of(repo: Path) -> dict[str, Any]:
+    """The ``delivery-subject.v1`` the run's authority reads, derived the way acceptance derives it."""
+    ws = h.workspace(repo)
+    return readiness_module().delivery_subject(ws, h.loop.derive(ws))  # type: ignore[no-any-return]
+
+
+def _write(tmp: Path, result: dict[str, Any]) -> Path:
+    path = tmp / "decision.json"
+    path.write_text(json.dumps(result), **h._LF)
+    return path
+
+
+def test_the_subject_reads_the_authority_it_is_pinned_to(tmp_path: Path, authority: str) -> None:
+    repo = started(tmp_path / "run")
+    ctl = controller(repo, tmp_path)
+    advance(repo, ctl, calc_implement)
+    assert_parity(repo)
+    before = subject_of(repo)
+    ref = rev(repo, ref_name(repo))
+    protected = authority == "protected-product-ref"
+    assert before["lineage"] == {
+        "provider": "protected-product-ref" if protected else "work-supervisor",
+        "projection_version": "1",
+    }
+    assert before["product"]["result_ref"] == ref == rev(repo, "HEAD")
+    # A controller commit on HEAD: the protected subject stays put, the legacy one follows HEAD.
+    top = foreign_commit(repo)
+    assert rev(repo, ref_name(repo)) == ref and rev(repo, "HEAD") == top
+    during = subject_of(repo)
+    assert (during == before) is protected
+    assert during["product"]["result_ref"] == (ref if protected else top)
+    request = next_ok(repo)["request"]
+    assert request["reason"] == "history-adoption"
+    assert subject_of(repo) == during
+    # The owner's answer admits it: the subject now names the adopted commit under both.
+    code, admitted = h.run_cli(repo, "report", h.SPEC_DIR, str(_write(tmp_path, decision_result(
+        request, top))))
+    assert code == 0, admitted
+    after = subject_of(repo)
+    adopted = rev(repo, ref_name(repo))
+    assert adopted == rev(repo, "HEAD") != ref
+    assert after["product"]["result_ref"] == adopted
+    assert after["lineage"] == before["lineage"]
+    assert after["acceptance_fingerprint"] != before["acceptance_fingerprint"]
+
+
+def test_the_changed_paths_are_read_from_the_result_commit(tmp_path: Path, authority: str) -> None:
+    """A commit on HEAD that deletes a file the run added shows as deleted only where HEAD is read."""
+    repo = started(tmp_path / "run")
+    advance(repo, controller(repo, tmp_path), calc_implement)
+    h.git(repo, "rm", "-q", "calc.py")
+    h.git(repo, "commit", "-q", "-m", "controller removes calc.py")
+    ws = h.workspace(repo)
+    changes = {c["path"]: c["status"] for c in readiness_module().changed_files(ws, h.loop.derive(ws))}
+    assert changes["calc.py"] == (
+        "added" if authority == "protected-product-ref" else "deleted"
+    )
+
+
+def test_result_authority_is_read_only_on_the_subject_path() -> None:
+    """The corpus samples each authority at the subject read, so no other script may mention it.
+
+    Any mention of the key, whatever the form (a subscript, ``get``, a constant, a membership
+    test), beyond the admission check and the one subject read, fails here.
+    """
+    scripts = h.admission._SCRIPTS_DIR
+    mentions = sorted(
+        (path.name, line.strip())
+        for path in scripts.glob("*.py")
+        for line in path.read_text("utf-8").splitlines()
+        if "result_authority" in line
+    )
+    assert mentions == [
+        ("_supervisor_admission.py", '"result_authority must be legacy-worktree or protected-product-ref",'),
+        ("_supervisor_admission.py", 'if data.get("result_authority") not in RESULT_AUTHORITIES:'),
+        ("_supervisor_readiness.py", 'if ws.policy["result_authority"] == "protected-product-ref":'),
+    ], mentions
