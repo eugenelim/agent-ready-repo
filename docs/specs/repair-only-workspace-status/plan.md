@@ -345,4 +345,4 @@ Owned by: T9
 - 2026-11-02: amended under controlled amendment during T11 (owner decision): AC-0021's `reproduced` row carries authority `none`, as the record check requires of every reproduced row; the seven removal and intended-change rows still cite the RFC-0106 errata entry. Spec and plan set back to Draft and Drafting for review and re-approval.
 - 2026-11-02: spec and plan re-approved by eugenelim at `6d546c55b` after the AC-0021 amendment review.
 - 2026-11-03: replanned after the second implementation review (owner decision): T15 repairs QE2-01, QE2-02 and ADV2-01; the finding-table note now points to the next action T14 records (ADV2-02).
-- 2026-11-03: shipped as `core` 4.0.9 and `agentbundle` 0.60.0 after four implementation review rounds; T14 and T15 repaired the supported findings, and rounds 3 and 4 were clean.
+- 2026-11-03: shipped as `core` 4.0.10 and `agentbundle` 0.60.0 after four implementation review rounds; T14 and T15 repaired the supported findings, and rounds 3 and 4 were clean.
