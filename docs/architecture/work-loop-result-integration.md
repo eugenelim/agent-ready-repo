@@ -4,8 +4,8 @@
 runtime-neutral integration boundary before it can change the canonical product
 tree or support acceptance.
 **Author(s):** Platform Core and `agentbundle` maintainers
-**Status:** Draft
-**Last updated:** 2026-09-30
+**Status:** Partly implemented: § 1a ships; §§ 2–8 are the planned Slice 7 design
+**Last updated:** 2026-11-02
 **Reviewers:** Core pack and `agentbundle` maintainers
 
 ## 1. Scope and Context
@@ -27,7 +27,34 @@ tree or support acceptance.
 
 - Automatically resolving semantic merge conflicts or choosing task priority.
 
+## 1a. What ships and what Slice 7 adds
+
+**Shipped: the sequential result boundary** ([ADR-0154](../adr/0154-work-loop-product-result-is-a-protected-ref.md)),
+for full-mode `code` runs.
+
+- Each run has its own product ref, `refs/agentbundle/delivery/<run-id>/<token>/product`. The
+  supervisor moves `HEAD` and that ref together in one `git update-ref --stdin`
+  transaction per step, so both name the same commit and `HEAD` stays on its branch.
+- A result integrates only while the ref still names the commit its request was issued
+  from. Otherwise `report` refuses `integration-conflict` and keeps the worker's files.
+- The run store records the ref's name and value, and the trust rule and refusals are in the
+  [execution-supervisor page](work-loop-execution-supervisor.md#product-ref). A reftable repository refuses `unsupported-ref-storage`.
+- After a reset back to an earlier supervisor commit, the supervisor projects `HEAD` and the working tree forward through its
+  own commits, or refuses `projection-blocked` when a file matches neither version.
+- History the supervisor did not make enters the ref only through an owner-authorized
+  `reanchor` step. An answer that would change a `delivery/` file refuses `adoption-refused`.
+- Under `result_authority` `protected-product-ref` the delivery subject reads this ref.
+  The execution-supervisor page's [Product ref](work-loop-execution-supervisor.md#product-ref)
+  section owns the classification table, kill points, and decision.
+
+**Planned, Slice 7:** the three-tree apply, `result-integration.v1` and
+`integration-conflict.v1`, read and write sets, sibling cancellation, the Product addition
+profile, path and byte caps, and the worktree materializer. Sections 2–8 below describe that
+design, including its proposed module paths and its ref name, and are **STATUS: PLANNED**.
+
 ## 2. Structural Model
+
+**STATUS: PLANNED (Slice 7).** Sections 2–8 describe the parallel design; § 1a is what ships.
 
 | Element | Type | Responsibility | State |
 | --- | --- | --- | --- |
@@ -45,7 +72,9 @@ the stable integration operation key. The approval lineage retains the
 starting commit or equivalent immutable tree manifest.
 
 Task capabilities deny
-direct `.git` and protected-ref writes; only the integration port holds them.
+direct `.git` and protected-ref writes; only the integration port holds them. Today the
+shipped boundary detects a worker's change to the ref and refuses the result instead of
+denying the write (§ 1a).
 
 ## 3. Runtime Model
 
@@ -156,18 +185,25 @@ unless its observation is explicitly pre-execution evidence.
 
 ## 10. Rollout, Migration, and Reversal
 
-The compatibility adapter constructs the shadow tree from the acknowledged
-legacy result manifest, never the raw worktree, and compares it with the old
-result. Shadow mode never changes the user worktree. Cutover makes the
-protected ref and `protected-product-ref` subject provider authoritative only
-after their manifest matches `legacy-worktree-snapshot` and sequential,
-parallel-permutation, conflict, and crash parity pass.
+**Current state.** `result_authority` is `protected-product-ref`: acceptance reads the product
+ref, and both refs are written under either setting. The full crash corpus runs under the
+shipped authority and a named sample under the other, and a test fails on any second read of
+the setting. Parallel-permutation and conflict-parity conditions belong to Slice 7's design above.
 
-Rollback inside dual-read
-restores the legacy provider and matching worktree authority.
+**Reversal.** This is the one place the route is stated.
+
+- **Adopters:** reinstall the prior Core release for new runs. A run in flight finishes on
+  the release that started it or starts again.
+- **Maintainers who hold the pack source:** release a Core patch that sets `result_authority`
+  back to `legacy-worktree`. Runs started after it read `HEAD`; a run in flight crosses
+  through `regenerate` and runs its gates and reviews once more, because the subject's
+  lineage changes. No product change is lost, since both refs carry the same commits.
+- A lineage names the authority only, so a run taken back to an authority it already
+  used can match evidence recorded in that stretch. One crossing always starts the evidence
+  over.
 
 | Responsibility | Owner |
 | --- | --- |
-| Integration contract and cutover | `agentbundle` maintainers |
-| Conflict and rework policy | Core pack maintainers |
-| Rollback authorization | Joint Core and `agentbundle` maintainer after tree divergence |
+| Integration contract and the authority setting | Core pack maintainers |
+| Rollback authorization (the reversal patch or reinstall) | Core pack release maintainers |
+| Parallel cutover and its contracts (Slice 7) | `agentbundle` maintainers |

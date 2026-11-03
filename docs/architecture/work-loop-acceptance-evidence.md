@@ -4,7 +4,7 @@
 and evaluate completion from fingerprinted evidence rather than gate phases.
 **Author(s):** Platform Core maintainers
 **Status:** Draft
-**Last updated:** 2026-10-01
+**Last updated:** 2026-11-02
 **Reviewers:** Core pack maintainers
 
 ## 1. Scope and Context
@@ -98,9 +98,18 @@ Projection excludes `.git`, spec, plan, delivery-control, and approved
 mechanical paths. Spec enters acceptance identity; plan hash is execution
 provenance. The approval record retains the immutable base manifest or tree.
 
-In slices 1–4, `legacy-worktree-snapshot` accepts only an acknowledged result;
-other drift blocks. Slice 5 adds `protected-product-ref`. Provider parity on
-the same tree precedes the source switch.
+Under the supervisor, `result_authority` picks the subject's provider. With
+`protected-product-ref` the subject's lineage provider is `protected-product-ref` and its
+`result_ref` is the commit the run store recorded for the product ref, so `HEAD` history the owner has not adopted changes
+neither. With the reversal setting `legacy-worktree` the provider is `work-supervisor` and the
+result is `HEAD` (the `legacy-worktree-snapshot` provider of `_subject_source.py` is not used by
+the supervisor).
+
+A subject recorded under the other provider does not count. Lineage names only the authority,
+so a run taken back to an authority it already used can match evidence from that stretch.
+
+Where the subject still reads `HEAD` (`status` while foreign history sits there, and a run with no
+recorded ref) is in the execution-supervisor page's [Product ref](work-loop-execution-supervisor.md#product-ref) section.
 
 `acceptance-property.v1` carries an author-owned, approval-bound evidence policy:
 
@@ -218,6 +227,8 @@ both stay fixed. A protected change needs owner action and fresh review.
 - **Risk:** Volume slows evaluation. Disposable indexes rebuild from the log.
 
 ## 10. Rollout, Migration, and Reversal
+
+The subject authority's own rollout and reversal are stated once in [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal).
 
 The compatibility projector accepts only legacy forms whose missing fields have
 one mechanical answer:
