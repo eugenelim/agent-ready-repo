@@ -424,3 +424,245 @@ def test_t2_default_v1_assessment_is_admitted_unchanged(tmp_path: Path) -> None:
     repo, controller, assess = _assess_request(tmp_path)
     code, admitted = controller.report(_result(assess, assessment=h.assessment(assess)))
     assert code == 0, admitted
+
+
+# --- proof-run CLI (plan T4) -----------------------------------------------
+
+_T4_ALLOWED = {"rev-parse", "status"}
+_T4_FLAG_PREFIXES = ("--git-dir=", "--work-tree=", "--no-replace-objects", "--literal-pathspecs")
+_T4_MIB = 1024 * 1024
+
+
+@pytest.fixture(scope="module")
+def t4_gate() -> ModuleType:
+    """The shipped evidence-gate CLI under a name unique to this suite."""
+    return _load_module("work_loop_proof_by_run_evidence_gate", SCRIPTS / "evidence-gate.py")
+
+
+def _t4_subcommand(argv: list[str]) -> str:
+    index = 1
+    while index < len(argv):
+        token = argv[index]
+        if token == "-c":
+            index += 2
+        elif token.startswith(_T4_FLAG_PREFIXES):
+            index += 1
+        else:
+            return token
+    raise AssertionError(f"no subcommand in {argv}")
+
+
+def _t4_helper_call(argv: list[str]) -> bool:
+    sub = _t4_subcommand(argv)
+    if sub in {"version", "config"}:
+        return True
+    return sub == "rev-parse" and "--show-toplevel" in argv and "--git-common-dir" in argv
+
+
+class _T4Launches(list):
+    """Recorded Git vectors; a refusal before any launch sets ``may_be_empty``."""
+
+    may_be_empty = False
+
+
+@pytest.fixture
+def t4_launches(t4_gate: ModuleType, monkeypatch: pytest.MonkeyPatch):
+    """Record every launch; at teardown only rev-parse and status may appear besides helper reads."""
+    module = t4_gate.supervisor_git()
+    recorded = _T4Launches()
+    real = module._launch
+
+    def spy(argv: list[str], **kwargs: object) -> object:
+        recorded.append(list(argv))
+        return real(argv, **kwargs)
+
+    monkeypatch.setattr(module, "_launch", spy)
+    yield recorded
+    assert recorded or recorded.may_be_empty, "no Git launch was recorded"
+    for argv in recorded:
+        if not _t4_helper_call(argv):
+            assert _t4_subcommand(argv) in _T4_ALLOWED, argv
+
+
+def _t4_git(cwd: Path, *args: str) -> str:
+    import subprocess
+
+    env = {
+        **{k: v for k, v in os.environ.items() if not k.startswith("GIT_")},
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_NOSYSTEM": "1",
+        "GIT_AUTHOR_NAME": "T", "GIT_AUTHOR_EMAIL": "t@example.invalid",
+        "GIT_COMMITTER_NAME": "T", "GIT_COMMITTER_EMAIL": "t@example.invalid",
+    }
+    done = subprocess.run(["git", *args], cwd=cwd, env=env, capture_output=True, check=True)
+    return done.stdout.decode().strip()
+
+
+class _T4Repo:
+    """A temporary repository with one commit and a populated ``.context/``."""
+
+    def __init__(self, root: Path) -> None:
+        self.path = root.resolve() / "work"
+        self.path.mkdir()
+        _t4_git(self.path, "init", "-q", "-b", "main")
+        (self.path / ".gitignore").write_text(".context/\n")
+        self.commit("tracked.txt", "one\n")
+        self.context = self.path / ".context"
+        self.context.mkdir()
+        self.files = {}
+        for name, text in (("cmd.txt", "pytest -q"), ("out.txt", "out"), ("err.txt", "err")):
+            (self.context / name).write_text(text)
+            self.files[name] = self.context / name
+
+    def commit(self, name: str, text: str) -> str:
+        (self.path / name).write_text(text)
+        _t4_git(self.path, "add", "--", name)
+        _t4_git(self.path, "-c", "commit.gpgsign=false", "commit", "-q", "-m", "c")
+        return _t4_git(self.path, "rev-parse", "HEAD")
+
+    def args(self, **over: str) -> list[str]:
+        values = {
+            "--report-id": "report-pbr", "--finding-id": "finding-pbr",
+            "--assessment-id": "assessment-pbr",
+            "--review-subject-fingerprint": "review-subject-fp-pbr",
+            "--observed": "fail", "--exit-status": "1",
+            "--authority": "authority:controller",
+            "--command-file": str(self.files["cmd.txt"]),
+            "--stdout-file": str(self.files["out.txt"]),
+            "--stderr-file": str(self.files["err.txt"]),
+            **over,
+        }
+        return ["proof-run", *[x for pair in values.items() for x in pair]]
+
+    def envelopes(self) -> list[Path]:
+        folder = self.context / "proof-runs"
+        return sorted(folder.iterdir()) if folder.is_dir() and not folder.is_symlink() else []
+
+
+@pytest.fixture
+def t4_repo(tmp_path: Path) -> _T4Repo:
+    return _T4Repo(tmp_path)
+
+
+@pytest.fixture
+def t4_run(t4_gate, t4_repo, t4_launches, capsys, monkeypatch):
+    """Run ``proof-run`` in the repository; return ``(exit code, parsed stdout)``."""
+    monkeypatch.chdir(t4_repo.path)
+
+    def invoke(**over: str) -> tuple[int, dict]:
+        code = t4_gate.main(t4_repo.args(**over))
+        return code, json.loads(capsys.readouterr().out)
+
+    return invoke
+
+
+def test_t4_happy_path_writes_envelope_and_prints_recomputable_reference(
+    t4_run, t4_repo, t4_launches
+) -> None:
+    code, out = t4_run()
+    assert code == 0, out
+    head = _t4_git(t4_repo.path, "rev-parse", "HEAD")
+    files = t4_repo.envelopes()
+    assert len(files) == 1
+    stored = json.loads(files[0].read_text())
+    assert stored["stdout"] == "out" and stored["stderr"] == "err"
+    assert stored["command"] == "pytest -q"
+    five = {k: stored[k] for k in (
+        "command_sha256", "exit_status", "stderr_sha256", "stdout_sha256", "subject_commit")}
+    assert five["subject_commit"] == head and five["exit_status"] == 1
+    assert five["stdout_sha256"] == _sha("out")
+    digest = _digest(five)
+    sha_assessment = hashlib.sha256(b"assessment-pbr").hexdigest()
+    assert files[0].name == f"{sha_assessment}-{digest}.json"
+    assessment = out["assessment"]
+    assert assessment["assessment"] == "supported"
+    assert assessment["evidence_refs"] == [f"proof-run:v1:{head}:fail:{digest}"]
+    subs = {_t4_subcommand(a) for a in t4_launches if not _t4_helper_call(a)}
+    assert subs == {"rev-parse", "status"}
+
+
+def test_t4_redo_after_new_commit_adds_envelope_and_identical_rerun_does_not_write(
+    t4_run, t4_repo
+) -> None:
+    assert t4_run()[0] == 0
+    (first,) = t4_repo.envelopes()
+    before = first.stat().st_mtime_ns
+    assert t4_run()[0] == 0
+    assert t4_repo.envelopes() == [first]
+    assert first.stat().st_mtime_ns == before
+    t4_repo.commit("tracked.txt", "two\n")
+    assert t4_run()[0] == 0
+    assert len(t4_repo.envelopes()) == 2
+
+
+def _t4_refused(result: tuple[int, dict], code: str, repo: _T4Repo, before: list[Path]) -> None:
+    assert result[0] == 2, result
+    assert result[1]["refused"] == code
+    assert repo.envelopes() == before
+
+
+def test_t4_dirty_tracked_file_is_refused(t4_run, t4_repo) -> None:
+    (t4_repo.path / "tracked.txt").write_text("dirty\n")
+    _t4_refused(t4_run(), "denied-tree-dirty", t4_repo, [])
+
+
+def test_t4_existing_envelope_with_different_bytes_is_refused(t4_run, t4_repo) -> None:
+    assert t4_run()[0] == 0
+    (target,) = t4_repo.envelopes()
+    target.write_text("different")
+    _t4_refused(t4_run(), "denied-envelope-exists", t4_repo, [target])
+    assert target.read_text() == "different"
+
+
+def test_t4_envelope_path_that_is_a_symlink_is_refused(t4_run, t4_repo) -> None:
+    assert t4_run()[0] == 0
+    (target,) = t4_repo.envelopes()
+    keep = t4_repo.context / "keep.json"
+    target.rename(keep)
+    target.symlink_to(keep)
+    _t4_refused(t4_run(), "denied-envelope-exists", t4_repo, [target])
+    assert target.is_symlink()
+
+
+def test_t4_symlinked_proof_runs_directory_is_refused(t4_run, t4_repo) -> None:
+    elsewhere = t4_repo.path.parent / "elsewhere"
+    elsewhere.mkdir()
+    (t4_repo.context / "proof-runs").symlink_to(elsewhere)
+    result = t4_run()
+    assert result[0] == 2 and result[1]["refused"] == "denied-proof-runs-dir"
+    assert list(elsewhere.iterdir()) == []
+
+
+def test_t4_input_outside_context_is_refused(t4_run, t4_repo) -> None:
+    outside = t4_repo.path / "outside.txt"
+    outside.write_text("x")
+    _t4_refused(t4_run(**{"--stdout-file": str(outside)}), "denied-input-path", t4_repo, [])
+
+
+def test_t4_input_under_reviews_is_refused(t4_run, t4_repo) -> None:
+    (t4_repo.context / "reviews").mkdir()
+    held = t4_repo.context / "reviews" / "r.txt"
+    held.write_text("x")
+    _t4_refused(t4_run(**{"--stderr-file": str(held)}), "denied-input-path", t4_repo, [])
+
+
+def test_t4_fifo_input_is_refused(t4_run, t4_repo) -> None:
+    fifo = t4_repo.context / "pipe"
+    os.mkfifo(fifo)
+    _t4_refused(t4_run(**{"--stdout-file": str(fifo)}), "denied-input-unreadable", t4_repo, [])
+
+
+def test_t4_oversized_stdout_is_refused(t4_run, t4_repo) -> None:
+    big = t4_repo.context / "big.txt"
+    big.write_bytes(b"x" * (_T4_MIB + 1))
+    _t4_refused(t4_run(**{"--stdout-file": str(big)}), "denied-input-too-large", t4_repo, [])
+
+
+def test_t4_unknown_argument_is_refused_before_any_launch(
+    t4_gate, t4_repo, t4_launches, capsys, monkeypatch
+) -> None:
+    t4_launches.may_be_empty = True
+    monkeypatch.chdir(t4_repo.path)
+    assert t4_gate.main([*t4_repo.args(), "--extra", "x"]) == 2
+    assert json.loads(capsys.readouterr().out)["refused"] == "denied-not-in-catalog"
+    assert not t4_launches
