@@ -128,7 +128,7 @@ never asserts them.
 | `assess-finding` | Judge whether the named finding's actual failure is real, from the repository, as a typed assessment. | `{"assessment": {...}}` |
 | `external-effect` | Perform the named effect once (a push, a publish) and record its receipt. | `{"effect": {"outcome": "completed"\|"not-executed", "receipt_ref": "..."}}` |
 | `effect-query` | Ask the effect's source whether it already happened. | `{"effect": {"outcome": "running"\|"present"\|"absent"\|"unknowable", "receipt_ref": "..."}}` |
-| `regenerate` | Rebuild the installed skill from its pack source with the repository's documented self-host command, then run the gates. | `{"gate": {"passed": ...}}` |
+| `regenerate` | Rebuild the installed skill from its pack source with the repository's documented self-host command, then run the gates. Leave the rebuilt files uncommitted: where the repository tracks its installed skill, the next `next` commits them as one `regenerate` step, and a commit of your own would be foreign history the owner must adopt. | `{"gate": {"passed": ...}}` |
 | `human-decision` | Put the `question` to the named human. See [Human decisions](#human-decisions). | `{"decision": {...}}`, only for the reasons below |
 
 A request for a worker (`write-stub`, `implement-task`, `review-role` with a
@@ -201,6 +201,16 @@ evidence over. To go back to `legacy-worktree`, install the prior release for ne
 or, where the pack source is present, release a patch that sets `result_authority` back
 and cross runs in flight by `regenerate`.
 
+The next `next` commits a tracked install itself, as one `regenerate` step made of the pack
+source's own entries (the same objects and modes). It acts only when every change in the working
+tree lies in a copy of the skill, and every copy ends equal to the pack source: the rebuilt ones
+are committed, and a tracked copy left stale means no step. A copy is a directory
+`<adapter>/skills/<skill name>/` (adapter `.claude`, `.agents`, `.kiro` or `.github`) that the
+repository already holds at `HEAD` with the same files as the running install's copy. A new home
+or a directory the product owns is never a copy, nor is a directory anywhere else. Any other change, such as a stray or extra file, a
+changed mode, a link, or a stale copy, keeps the answer `uncommitted-changes`. `status` names the
+pending step as `pending_step`, reports no terminal state or gate beside it, and commits nothing.
+
 ### Human decisions
 
 A `human-decision` request carries `reason`, `question`, and sometimes
@@ -212,7 +222,7 @@ human's authority reference; never invent one.
 | --- | --- | --- |
 | `review-not-eligible` | `owner` for `reselect-review`, a `risk-owner` for `accept-risk` | Report `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`, or `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": [...]}}`. |
 | `replan-confirmation` | `owner` | See [Recovering from a stub that is not red](#recovering-from-a-stub-that-is-not-red). |
-| `history-adoption` | `owner` | `HEAD` or the product ref holds a commit the run never recorded: a rebase, an amend, a reset past a step, a commit of yours, or a commit on the run's last recorded value. That last case may be a step the supervisor was committing when it was cut off after its refs moved, or a commit made outside the supervisor; the supervisor cannot tell which and says so. The request names the `HEAD` commit (`head_commit`), how many product paths it would change (`changed_path_count`, with at most 20 in `changed_paths`), and whether it would change a file in the spec directory (`spec_dir_changed`). Nothing is committed until the owner answers. The question always gives the restore exit: put the product ref (when the run has one) and `HEAD` back on the recorded value with the command it prints, after which the run carries on and a step the supervisor was committing is rebuilt. It offers `adopt-history` (`{"decision": {"decision": "adopt-history", "authority_ref": "owner:<hex>", "commit": "<head_commit>"}}`) only when that answer would be admitted, never when the history changes `delivery/`, which a step the supervisor committed always does. With an attempt open the answer is `attempt-residue`, and the same restore ends it. Adopting records one `reanchor` step: with `HEAD` past the recorded value, the product ref moves to it; with `HEAD` still on the recorded value, `HEAD` stays and the product ref's unrecorded step is replaced by the `reanchor` on `HEAD`, dropping that step's changes. If it changes the product or the spec directory, gates and reviews run again. |
+| `history-adoption` | `owner` | `HEAD` or the product ref holds a commit the run never recorded: a rebase, an amend, a reset past a step, a commit of yours, or a commit on the run's last recorded value. That last case may be a step the supervisor was committing when it was cut off after its refs moved, or a commit made outside the supervisor; the supervisor cannot tell which and says so. The request names the `HEAD` commit (`head_commit`), how many product paths it would change (`changed_path_count`, with at most 20 in `changed_paths`), and whether it would change a file in the spec directory (`spec_dir_changed`). Nothing is committed until the owner answers. The question always gives the restore exit: put the product ref (when the run has one) and `HEAD` back on the recorded value with the command it prints, after which the run carries on and a step the supervisor was committing is rebuilt. It offers `adopt-history` (`{"decision": {"decision": "adopt-history", "authority_ref": "owner:<hex>", "commit": "<head_commit>"}}`) only when that answer would be admitted, never when the history changes `delivery/`, which most steps the supervisor committed do. A `regenerate` step changes only installed-skill files, so a cut-off one is offered adoption too; adopting it records a `reanchor` on `HEAD` that holds the install, after which the run carries on and no second `regenerate` step is made. With an attempt open the answer is `attempt-residue`, and the same restore ends it. Adopting records one `reanchor` step: with `HEAD` past the recorded value, the product ref moves to it; with `HEAD` still on the recorded value, `HEAD` stays and the product ref's unrecorded step is replaced by the `reanchor` on `HEAD`, dropping that step's changes. If it changes the product or the spec directory, gates and reviews run again. |
 | `retry-cap` | no one | The count never resets. Surface; the run stops. |
 | `gates-failed`, `criteria-unsupported`, `uncommitted-changes` | no one through `report` | Fix the cause in the working tree or the plan, restore stray files, or stop; then `next` again. |
 | `untrusted-code` | `owner` | Start the run again with `--code-trust trusted` and an owner reference, or supply verified containment. |

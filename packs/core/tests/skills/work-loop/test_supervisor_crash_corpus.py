@@ -52,7 +52,7 @@ pytestmark = sup.INTEGRATION
 EVENT_FIELDS = {"seq": int, "run_id": str, "spec": str, "from": str, "event": str, "to": str,
                 "at": str, "schema": int, "step_id": str, "awaiting_input": bool}
 ATTEMPT_KINDS = ("write-stub", "implement-task", "run-gates", "review-role", "assess-finding")
-STEP_KINDS = {"approval", "replan", "reanchor", "stub", "red", "implement", "evidence", "gate-fail", "review",
+STEP_KINDS = {"approval", "replan", "reanchor", "regenerate", "stub", "red", "implement", "evidence", "gate-fail", "review",
               "effect-intent", "effect-dispatch", "effect-receipt", "claim", "resolution",
               "terminal"}
 RUN_FIELDS = {"run_id", "active", "stage", "gate_pending", "gate_question", "refusal"}

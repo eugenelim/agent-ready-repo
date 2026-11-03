@@ -72,6 +72,7 @@ OPERATION_STAGE: dict[str, str | None] = {
     "approval": "admitted",
     "replan": None,
     "reanchor": None,
+    "regenerate": None,
     "stub": "implementing",
     "red": "implementing",
     "implement": "implementing",

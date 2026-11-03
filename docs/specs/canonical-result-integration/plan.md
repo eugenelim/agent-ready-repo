@@ -289,6 +289,19 @@ Owned by: T1.
   denial line to `security-events.jsonl` and names the restore command;
   `reanchor` emits one `.loop-run/events.jsonl` line like every step.
 
+### A regenerated install lands as a supervisor step
+
+In a repository that tracks its installed skill, admitting a `regenerate` result re-pins the
+rebuilt install but leaves it uncommitted, and a controller commit of it is foreign history
+the owner must adopt. The supervisor commits it instead: on the first verb after the
+admission, when the only working-tree changes are tracked installed-skill paths and the
+installed skill equals both the pins and the pack source at `HEAD`, it commits those paths as
+one recorded step (operation `regenerate`) through the same two-ref transaction and record
+as any step, so `HEAD` and the product ref move together and the step counts as made. Any
+other working-tree change still answers `uncommitted-changes`, and a controller-made commit
+of the install is still foreign history. Discovered at T2's regenerate crossing (VI-0513's
+real crossing).
+
 ## Tasks
 
 ### T1: The product ref ships in shadow, and every boundary converges
@@ -403,6 +416,24 @@ Owned by: T1.
   - **VI-0531:** `lint-spec-status.py` and the brief-coverage lint pass with
     the spec `Shipped` and every criterion checked.
 - **Done when:** VI-0531 passes.
+
+### T4: A regenerated install lands as a supervisor step
+
+- **Depends on:** T2
+- **Spec behavior:** AC-0007, AC-0019; goal-based.
+- **Touches:** `_supervisor_attempt.py`, `_supervisor_loop.py`, `_supervisor_commit.py`, `references/supervisor.md`, `SKILL.md`, `evals/evals.json`; `packs/core/tests/skills/work-loop/`; `docs/architecture/work-loop-execution-supervisor.md`; the core changelog fragment.
+- **Verification mode:** goal-based
+- **Tests:**
+  - **VI-0532 (AC-0019):** in a harness repository whose installed skill is tracked, a
+    `regenerate` result is admitted with the rebuilt install uncommitted; the next verb
+    commits it as one recorded step that moves `HEAD` and the product ref together, and the
+    run reaches `terminal` with no `history-adoption` and no `uncommitted-changes`, under
+    each authority; a controller-made commit of the install still asks `history-adoption`,
+    and any other working-tree change still answers `uncommitted-changes`.
+  - **VI-0533 (AC-0007):** a kill at each kill point of that commit converges like any
+    other step.
+- **Done when:** T4's `Tests` pass, and security-reviewer, adversarial-reviewer, and
+  quality-engineer return clean.
 
 ## Rollout
 

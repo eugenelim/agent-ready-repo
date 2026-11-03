@@ -952,5 +952,7 @@ def report_adoption(
         adopting=True,
         product_old=div.ref_value if record is not None else None,
     )
+    if div.step is not None:
+        git.refresh_stale_index(div.paths, div.anchor)  # the cut-off step never synced the index
     ws.divergence = None
     return "reanchor"

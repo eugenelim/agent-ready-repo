@@ -260,7 +260,7 @@ so it can differ from `run.json`'s stage:
 | Operation | Event-line stage |
 | --- | --- |
 | `approval` | `admitted` |
-| `replan`, `reanchor` | unchanged |
+| `replan`, `reanchor`, `regenerate` | unchanged |
 | `stub`, `red`, `implement`, `gate-fail` | `implementing` |
 | `effect-intent`, `effect-dispatch`, `effect-receipt`, `claim` | `implementing` |
 | `evidence` | `gating` |
@@ -308,6 +308,17 @@ A `history-adoption` answer is `adopt-history` from the `adopt_history` role (`o
 `HEAD` commit. It commits one `reanchor` step that moves both refs, and refuses `adoption-refused`
 if it would change a `delivery/` file. After a `reanchor` that changes the product or the spec
 directory, gates and reviews run again.
+
+A `regenerate` step is the supervisor's commit of a rebuilt install in a repository that
+tracks its installed skill. The next `next` after the admission stages the pack source's own
+entries (object and mode) at each rebuilt copy, checks the built tree before any ref moves, and
+uses the same two-ref transaction and kill points as any step. A copy counts only at an adapter's
+skill home (`.claude/skills/`, `.agents/skills/`, `.kiro/skills/`, `.github/skills/`, taken from the
+adapter contract) where `HEAD` already holds the same files as the running install's copy. The step
+acts only when every such copy ends equal to the pack source and nothing else changed, and
+otherwise `next` answers `uncommitted-changes`. `status` shows it as
+`pending_step` with no terminal state or gate, and a controller commit of the install is still
+foreign history.
 
 A run that predates the ref gains one at its latest made commit when that is safe, and otherwise
 asks the same decision. Until it has a recorded ref, a run whose steps were committed with an

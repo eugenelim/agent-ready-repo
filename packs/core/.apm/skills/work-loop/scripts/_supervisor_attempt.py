@@ -146,6 +146,37 @@ def _refusal(code: str, detail: str) -> Exception:
     return _supervisor("_supervisor_admission.py").Refusal(code, "controller", detail)
 
 
+_FILE_MODES = ("100644", "100755")
+
+# Where the self-host command projects a skill, one directory per adapter: the ``skill``
+# primitive's ``target-path`` values in ``contracts/adapter.toml`` (``.claude/skills/``,
+# ``.agents/skills/``, ``.kiro/skills/``) and the Copilot ``.github/skills/`` allowed prefix.
+# A copy is valid only at one of these homes, under the running skill's own directory name.
+_SKILL_HOMES = (".claude/skills/", ".agents/skills/", ".kiro/skills/", ".github/skills/")
+
+
+@dataclass(frozen=True)
+class RegeneratePlan:
+    """What a ``regenerate`` step stages: path to ``(mode, object id)``, ``None`` removing."""
+
+    entries: dict[str, tuple[str, str] | None]
+    digest: str
+    head: dict[str, tuple[str, str]]
+
+    def verify(self, git: Any, tree: str) -> None:
+        """Refuse unless *tree* is ``HEAD``'s with exactly these entries changed."""
+        expected = dict(self.head)
+        for path, entry in self.entries.items():
+            if entry is None:
+                expected.pop(path, None)
+            else:
+                expected[path] = entry
+        if git.tree_modes(tree) != expected:
+            raise _refusal(
+                "supervisor-changed", "the regenerate step's tree differs from the pack source"
+            )
+
+
 def _json(record: dict[str, Any]) -> bytes:
     return json.dumps(record, sort_keys=True, separators=(",", ":")).encode()
 
@@ -845,10 +876,14 @@ class Attempts:
                 if open_attempt.stale:
                     self._reissue(open_attempt)
                 return
-            self._confirm_admitted_skill(state.run_id)
+            regenerating = request["kind"] == "regenerate"
+            if regenerating:
+                # A new regeneration replaces an admitted one that never landed.
+                (self._store_dir(state.run_id) / ADMITTED_FILE).unlink(missing_ok=True)
+            else:
+                self._confirm_admitted_skill(state.run_id)
             if open_attempt is not None:
                 self._supersede(open_attempt)
-            regenerating = request["kind"] == "regenerate"
             self._record(state, request, skill=not regenerating)
             if regenerating:
                 self._put(
@@ -1300,12 +1335,10 @@ class Attempts:
                 "supervisor-changed",
                 "the installed skill does not match the pack source at HEAD",
             )
-        self._put(
-            issuance.run_id, PINS_FILE, self._pin_body(issuance.run_id, source), replace=True
-        )
-        (issuance.store / REGENERATE_FILE).unlink(missing_ok=True)
-        # A tracked install is committed by the controller; the next issuance checks that
-        # what it committed is what was admitted.
+        # A crash inside this admission leaves the regenerate attempt open, so reporting the same
+        # result again admits it whichever write came first (``next`` only issues the request
+        # again). The record goes first so a half-written admission never holds new pins
+        # without it.
         prefix = self._tracked_skill_prefix()
         if prefix is not None and self._whole_skill_at_head(prefix) is not None:
             self._put(
@@ -1318,12 +1351,100 @@ class Attempts:
                 }),
                 replace=True,
             )
+        self._put(
+            issuance.run_id, PINS_FILE, self._pin_body(issuance.run_id, source), replace=True
+        )
+        (issuance.store / REGENERATE_FILE).unlink(missing_ok=True)
+        # A tracked install is committed by the supervisor as a ``regenerate`` step on the next
+        # verb (``regenerate_plan``); until then, and before anything else commits on top of
+        # it, ``confirm_admitted`` checks that what ``HEAD`` holds is what was admitted.
+
+    def regenerate_plan(self, run_id: str) -> RegeneratePlan | None:
+        """The ``regenerate`` step the supervisor may commit now, or ``None``.
+
+        A plan exists only when a regeneration was admitted and its install is not yet
+        committed, no attempt is open, and the working tree's every change lies under a
+        copy of the installed skill at a known home (``<adapter>/skills/<skill name>/``, see
+        ``_SKILL_HOMES``). A copy counts only when ``HEAD`` already holds it with the same
+        entries as the running install's copy, so a new home, or a directory the product owns
+        at a home, never does, whatever it holds. Every counted copy ends equal to the pack
+        source at ``HEAD`` in every entry, object and mode, or there is no plan: a rebuilt
+        copy is staged, an untouched one must already match, and the running install's copy
+        must be rebuilt. The plan stages the pack source's own entries, so no byte of the
+        working tree is committed.
+        """
+        if self.open is not None:
+            return None
+        record = self._store_record(run_id, ADMITTED_FILE)
+        prefix = self._tracked_skill_prefix()
+        if record is None or prefix is None:
+            return None
+        tree = self._digest_map_any(record, "tree")
+        source = self.source_digests()
+        if (
+            self.installed is None
+            or source != self.installed
+            or self._whole_skill_at_head(SOURCE_REL + "/") != tree
+        ):
+            return None
+        git = self.ws.git
+        head = git.tree_modes()
+        origin = SOURCE_REL + "/"
+        pack = {p[len(origin) :]: e for p, e in head.items() if p.startswith(origin)}
+        if not pack or any(mode not in _FILE_MODES for mode, _ in pack.values()):
+            return None
+        name = Path(os.path.realpath(SKILL_DIR)).name
+        homes = [home + name + "/" for home in _SKILL_HOMES]
+        if prefix not in homes:
+            return None
+
+        def held_at(root: str) -> dict[str, tuple[str, str]]:
+            return {p[len(root) :]: e for p, e in head.items() if p.startswith(root)}
+
+        running = held_at(prefix)
+        # A copy of the same release: ``HEAD`` holds exactly what it holds for the running one.
+        roots = [r for r in homes if r == prefix or (running and held_at(r) == running)]
+        changes = git.working_changes()
+        touched = {r for r in roots if any(c.startswith(r) for c in changes)}
+        covered = all(any(c.startswith(r) for r in touched) for c in changes)
+        if prefix not in touched or not covered:
+            return None
+        for root in roots:  # a copy at HEAD that was not rebuilt must already be the source
+            if root not in touched and held_at(root) != pack:
+                return None
+        staged: dict[str, tuple[str, str] | None] = {}
+        for root in sorted(touched):
+            held = held_at(root)
+            for rel in sorted(set(held) | set(pack)):
+                path = root + rel
+                now = changes[path] if path in changes else held.get(rel)
+                if now != pack.get(rel):
+                    return None
+                if held.get(rel) != pack.get(rel):
+                    staged[path] = pack.get(rel)
+        if set(staged) != set(changes):
+            return None
+        # The step resets these paths in the real index afterwards, so a version someone staged
+        # that is neither HEAD's nor the pack source's would be lost: leave it to its owner.
+        indexed = git.index_entries()
+        if any(indexed.get(p) not in (head.get(p), e) for p, e in staged.items()):
+            return None
+        digest = hashlib.sha256(_json({"tree": tree, "roots": sorted(touched)})).hexdigest()
+        return RegeneratePlan(staged, digest, head)
+
+    def confirm_admitted(self, run_id: str) -> None:
+        """Refuse when a regeneration was admitted and what ``HEAD`` holds differs from it.
+
+        Run before the supervisor commits anything on top of a regenerate step.
+        """
+        self._confirm_admitted_skill(run_id)
 
     def _confirm_admitted_skill(self, run_id: str) -> None:
-        """Before the first issuance after a regeneration, check the committed install.
+        """Check the committed install against what the regeneration admitted.
 
-        The controller commits a tracked install; what it committed must equal what the
-        regeneration admitted, or nothing more is issued.
+        Once the supervisor's ``regenerate`` step has landed (or a controller's own commit of
+        the install has been adopted), what ``HEAD`` holds must equal what the regeneration
+        admitted, or nothing more is issued or committed.
         """
         record = self._store_record(run_id, ADMITTED_FILE)
         if record is None:

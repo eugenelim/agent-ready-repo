@@ -17,6 +17,7 @@ import io
 import json
 import os
 import py_compile
+import re
 import shutil
 import stat
 import subprocess
@@ -288,16 +289,22 @@ def test_a_planted_bytecode_file_is_never_executed(pinned_template: Path, tmp_pa
 # ── VI-5032: regeneration ───────────────────────────────────────────────────
 
 _SOURCE = "packs/core/.apm/skills/work-loop"
+_ADDED, _REMOVED = "references/added.md", "assets/pull-request-template.md"
 _EDITED = "scripts/install-pr-template.py"
 
 
 class _SourceEditor(h.Controller):
     """A controller whose worker also edits the pack source its task owns."""
 
+    churn = False  # also add one source file and remove another
+
     def work(self, request: dict[str, Any]) -> dict[str, Any]:
         result = super().work(request)
         if request["kind"] == "implement-task":
             _append(self.repo / _SOURCE / _EDITED, "\n# changed by the task\n")
+            if self.churn:
+                (self.repo / _SOURCE / _ADDED).write_text("added by the task\n", **h._LF)
+                (self.repo / _SOURCE / _REMOVED).unlink()
         return result
 
 
@@ -533,13 +540,40 @@ def test_a_run_regenerated_across_authorities_reaches_the_uninterrupted_manifest
     assert _manifest(repo) == steady_manifest
 
 
-def _tracked_regenerate(tmp_path: Path) -> tuple[Path, Path, ModuleType, h.Controller, dict[str, Any]]:
-    """A run at the issued ``regenerate`` request whose installed skill is tracked in the work tree."""
+_SECOND = ".agents/skills/work-loop"  # a second tracked copy, as self-host writes per adapter
+
+
+def _tracked_regenerate(
+    tmp_path: Path, authority: str | None = None, *, second: bool = False,
+    unignore_caches: bool = False, plant: bool = False, churn: bool = False, owned: bool = False,
+) -> tuple[Path, Path, ModuleType, h.Controller, dict[str, Any]]:
+    """A run at the issued ``regenerate`` request whose installed skill is tracked in the work tree.
+
+    *second* tracks another copy of the skill; *unignore_caches* stops ``.gitignore``
+    hiding ``__pycache__`` directories; *plant* commits a directory that looks like a copy of
+    the skill (it holds ``scripts/work-supervisor.py``) at a place no adapter installs to.
+    """
     repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
-    skill = _copy_skill(repo / ".installed" / "work-loop")
+    skill = _copy_skill(repo / ".claude" / "skills" / "work-loop")
+    if authority is not None:
+        _set_authority(skill, authority)
+    if second:
+        shutil.copytree(skill, repo / _SECOND)
+    if plant:
+        planted = repo / "product" / "tool"
+        (planted / "scripts").mkdir(parents=True)
+        (planted / "scripts" / "work-supervisor.py").write_text("# planted\n", **h._LF)
+        (planted / "keep.txt").write_text("belongs to the product\n", **h._LF)
+    if owned:  # a directory the product owns at an adapter home, not a copy of the skill
+        notes = repo / ".github" / "skills" / "work-loop"
+        notes.mkdir(parents=True)
+        (notes / "team-notes.md").write_text("belongs to the product\n", **h._LF)
+    if unignore_caches:
+        (repo / ".gitignore").write_text("*.log\n.loop-run/\n", encoding="utf-8", newline="\n")
     _publish_source(repo, skill)  # also commits the installed skill: `add -A`
-    assert h.git(repo, "ls-files", ".installed/work-loop/SKILL.md").strip()
+    assert h.git(repo, "ls-files", ".claude/skills/work-loop/SKILL.md").strip()
     controller = _SourceEditor(repo, tmp_path / "effects.log")
+    controller.churn = churn
     cli = _load_cli(skill)
     with _via(cli):
         assert h.start(repo)[0] == 0
@@ -582,45 +616,443 @@ def _adopt(repo: Path, spec: str = SPEC) -> None:
     assert code == 0, out
 
 
-def test_a_tracked_install_waits_for_the_controller_to_commit_the_regenerated_skill(
+def _converge(repo: Path, controller: h.Controller) -> list[str]:
+    """Drive a run to terminal, answering each request; return the request kinds it asked."""
+    kinds: list[str] = []
+    for _ in range(12):
+        code, out = h.run_cli(repo, "next", SPEC)
+        assert code == 0, out
+        if out.get("terminal") is True:
+            return kinds
+        kinds.append(out["request"]["kind"])
+        result = controller.work(out["request"])
+        report = result.get("report")
+        if report is not None:  # a second review round must not reuse the first round's ids
+            report["report_id"] += "-again"
+            report["lineage"]["source_event_id"] += "-again"
+            for finding in report["findings"]:
+                finding["finding_id"] += "-again"
+        assert controller.report(result)[0] == 0, kinds
+    raise AssertionError(f"the run did not converge: {kinds}")
+
+
+def _regenerate_steps(repo: Path) -> list[str]:
+    """The commits of the run's ``regenerate`` steps."""
+    body = h.git(repo, "log", "--format=%H %(trailers:key=Supervisor-Operation,valueonly,separator=)")
+    return [line.split()[0] for line in body.splitlines() if line.endswith(" regenerate")]
+
+
+def _admit_tracked(
+    tmp_path: Path, authority: str, *, second: bool = False, unignore_caches: bool = False,
+    plant: bool = False, rebuild_second: bool = True, churn: bool = False, owned: bool = False,
+) -> tuple[Path, Path, ModuleType, h.Controller]:
+    """A tracked-install run with its regenerate admitted and the rebuilt install uncommitted."""
+    repo, skill, cli, controller, request = _tracked_regenerate(
+        tmp_path, authority, second=second, unignore_caches=unignore_caches, plant=plant,
+        churn=churn, owned=owned)
+    for target in (skill, *([repo / _SECOND] if second and rebuild_second else [])):
+        shutil.copyfile(repo / _SOURCE / _EDITED, target / _EDITED)
+        if churn:
+            shutil.copyfile(repo / _SOURCE / _ADDED, target / _ADDED)
+            (target / _REMOVED).unlink()
+    with _via(cli):
+        code, out = h.Controller(repo, tmp_path / "effects.log").report(_regenerate_result(request))
+    assert code == 0 and out == {"admitted": "regenerate"}, out
+    assert h.git(repo, "status", "--porcelain", "--", ".claude").strip()
+    return repo, skill, cli, controller
+
+
+def _step_files(repo: Path, commit: str) -> list[str]:
+    return h.git(repo, "show", "--name-only", "--format=", commit).split()
+
+
+@pytest.mark.parametrize("second", [False, True], ids=["one-install", "two-installs"])
+@pytest.mark.parametrize("authority", _AUTHORITIES)
+def test_a_tracked_install_is_committed_as_a_supervisor_step(
+    tmp_path: Path, authority: str, second: bool
+) -> None:
+    repo, skill, cli, controller = _admit_tracked(tmp_path, authority, second=second)
+    before = _head(repo)
+    with _via(cli):
+        kinds = _converge(repo, controller)
+        assert "regenerate" not in kinds and "human-decision" not in kinds, kinds
+        steps = _regenerate_steps(repo)
+        assert len(steps) == 1
+        # One step moved HEAD and the product ref together; the run counts it as made.
+        name = json.loads((_store(repo) / "product-ref").read_text("utf-8"))["name"]
+        assert h.git(repo, "rev-parse", name).strip() == _head(repo)
+        assert h.git(repo, "merge-base", "--is-ancestor", before, steps[0]) == ""
+        assert _step_files(repo, steps[0]) == sorted(
+            [f".claude/skills/work-loop/{_EDITED}"] + ([f"{_SECOND}/{_EDITED}"] if second else []))
+        # Every projection holds the pack source's own objects.
+        source = h.git(repo, "rev-parse", f"{steps[0]}:{_SOURCE}/{_EDITED}").strip()
+        for root in (".claude/skills/work-loop", *([_SECOND] if second else [])):
+            assert h.git(repo, "rev-parse", f"{steps[0]}:{root}/{_EDITED}").strip() == source
+        assert not h.git(repo, "status", "--porcelain").strip()
+        assert json.loads(_pins(repo).read_text("utf-8"))["digests"] == _digests(skill)
+        # The step is an event like any other, and leaves the stage where it was.
+        events = [json.loads(line) for line in
+                  (repo / ".loop-run" / "events.jsonl").read_text("utf-8").splitlines()]
+        moved = [e for e in events if e["event"] == "regenerate"]
+        assert len(moved) == 1 and moved[0]["from"] == moved[0]["to"], moved
+
+
+def test_status_names_the_pending_step_and_writes_nothing(tmp_path: Path) -> None:
+    repo, _skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref")
+    before, porcelain = _head(repo), h.git(repo, "status", "--porcelain")
+    with _via(cli):
+        code, out = h.run_cli(repo, "status", SPEC, "--json")
+        # What `next` then does: it commits the step first, and the run is not terminal.
+        assert code == 0, out
+        assert out["pending_step"]["operation"] == "regenerate"
+        assert out["pending_step"]["paths"] == [f".claude/skills/work-loop/{_EDITED}"]
+        assert out["terminal"] is False
+        assert out["run"]["stage"] == "gating" and out["run"]["active"] is True
+        assert out["run"]["gate_pending"] is False and out["run"]["gate_question"] == ""
+        assert out["request"] is None and out["refusal"] == {}
+    assert _head(repo) == before and h.git(repo, "status", "--porcelain") == porcelain
+    assert _regenerate_steps(repo) == []
+
+
+def test_status_refuses_a_damaged_admission_record_like_every_other_verb(tmp_path: Path) -> None:
+    repo, _skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref")
+    # A damaged record means the run store was edited, so refusing is right; it is a clean
+    # refusal with the code every store-integrity failure uses, not a crash.
+    (_store(repo) / "admitted-skill.json").write_text("{not json", encoding="utf-8")
+    with _via(cli):
+        code, out = h.run_cli(repo, "status", SPEC, "--json")
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert _regenerate_steps(repo) == []
+
+
+def test_a_controller_commit_of_the_install_is_adopted_and_the_run_finishes(
     tmp_path: Path,
 ) -> None:
-    repo, skill, cli, controller, request = _tracked_regenerate(tmp_path)
+    repo, skill, cli, controller = _admit_tracked(tmp_path, "protected-product-ref")
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "regenerate the installed skill")
     with _via(cli):
-        old = json.loads(_pins(repo).read_text("utf-8"))["digests"]
-        shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+        _adopt(repo)  # the controller's commit is history the run did not make
+        kinds = _converge(repo, controller)
+        # The supervisor makes no second commit of what the controller committed.
+        assert _regenerate_steps(repo) == []
+        assert "human-decision" not in kinds, kinds
+        assert json.loads(_pins(repo).read_text("utf-8"))["digests"] == _digests(skill)
+
+
+def _perturb(case: str, repo: Path, skill: Path) -> None:
+    """Change the rebuilt install, or the tree beside it, so it is not exactly the pack source."""
+    target = skill / "references"
+    if case == "stray-file":
+        (repo / "stray.txt").write_text("not the install\n", encoding="utf-8", newline="\n")
+    elif case == "edited-install-file":
+        _append(skill / "SKILL.md", "\n<!-- slipped in after admission -->\n")
+    elif case == "extra-install-file":
+        (target / "extra.md").write_text("not in the pack source\n", encoding="utf-8", newline="\n")
+    elif case == "unignored-cache":
+        cache = target / "__pycache__"
+        cache.mkdir()
+        (cache / "payload.md").write_text("payload\n", encoding="utf-8", newline="\n")
+    elif case == "mode-change":
+        (skill / "SKILL.md").chmod(0o755)
+    elif case == "symlink":
+        (skill / "SKILL.md").unlink()
+        (skill / "SKILL.md").symlink_to(skill / "evals" / "evals.json")
+    else:  # a second projection rebuilt wrongly
+        _append(repo / _SECOND / "SKILL.md", "\n<!-- edited -->\n")
+
+
+@pytest.mark.parametrize("case", [
+    "stray-file", "edited-install-file", "extra-install-file", "unignored-cache",
+    pytest.param("mode-change", marks=pytest.mark.skipif(os.name == "nt", reason="POSIX modes")),
+    pytest.param("symlink", marks=pytest.mark.skipif(os.name == "nt", reason="POSIX links")),
+    "second-projection-edited",
+])
+def test_anything_beside_the_pack_source_is_not_committed(tmp_path: Path, case: str) -> None:
+    repo, skill, cli, _controller = _admit_tracked(
+        tmp_path, "protected-product-ref", second=case == "second-projection-edited",
+        unignore_caches=case == "unignored-cache")
+    _perturb(case, repo, skill)
+    before = _head(repo)
+    with _via(cli):
+        code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and out["request"]["reason"] == "uncommitted-changes", out
+    assert _head(repo) == before and _regenerate_steps(repo) == []
+
+
+def test_a_file_swapped_after_the_check_is_never_committed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref")
+    commit = cli._supervisor("_supervisor_commit.py")
+    original = commit.GitPort.build_commit
+
+    def swapping(self: Any, **kwargs: Any) -> Any:
+        if kwargs.get("operation") == "regenerate":
+            _append(skill / _EDITED, "\n# swapped between the check and the commit\n")
+        return original(self, **kwargs)
+
+    monkeypatch.setattr(commit.GitPort, "build_commit", swapping)
+    with _via(cli):
+        code, out = h.run_cli(repo, "next", SPEC)
+    steps = _regenerate_steps(repo)
+    assert len(steps) == 1, (code, out)
+    # The commit holds the pack source's SKILL.md, not the swapped bytes in the work tree.
+    held = h.git(repo, "rev-parse", f"{steps[0]}:.claude/skills/work-loop/{_EDITED}").strip()
+    assert held == h.git(repo, "rev-parse", f"{steps[0]}:{_SOURCE}/{_EDITED}").strip()
+    assert "swapped" in (skill / _EDITED).read_text("utf-8")
+
+
+def test_every_step_operation_the_supervisor_writes_has_a_stage_entry() -> None:
+    """A new step operation names the stage it leaves the run in, even when that is unchanged."""
+    written = set()
+    for path in h.admission._SCRIPTS_DIR.glob("_supervisor_*.py"):
+        written |= set(re.findall(r'operation="([a-z-]+)"', path.read_text("utf-8")))
+    assert "regenerate" in written
+    assert written <= set(h.journal.OPERATION_STAGE), written - set(h.journal.OPERATION_STAGE)
+
+
+def test_a_built_tree_that_is_not_the_pack_source_lands_nothing(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, _skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref")
+    commit = cli._supervisor("_supervisor_commit.py")
+    original = commit.GitPort.text
+
+    def wrong_tree(self: Any, *args: str, **kwargs: Any) -> Any:
+        if args and args[0] == "write-tree":
+            return h.git(repo, "rev-parse", "HEAD^{tree}")  # the tree without the rebuilt install
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(commit.GitPort, "text", wrong_tree)
+    before = _head(repo)
+    with _via(cli):
+        code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
+    assert _head(repo) == before and _regenerate_steps(repo) == []
+
+
+def test_nothing_commits_on_top_while_the_install_is_not_the_admitted_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo, _skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref")
+    (repo / "stray.txt").write_text("keeps the install uncommittable\n", **h._LF)
+    loop = cli._supervisor("_supervisor_loop.py")
+    monkeypatch.setattr(loop, "decide", lambda ws, state: loop.Action("terminal"))
+    ws = cli._supervisor("_supervisor_admission.py").Workspace(
+        repo, SPEC, clock=lambda: h.FIXED_TIME)
+    before = _head(repo)
+    with _via(cli), h.git_identity(), pytest.raises(Exception, match="admitted|differs") as caught:
+        loop._act(ws, loop.derive(ws))
+    assert getattr(caught.value, "code", "") == "supervisor-changed"
+    assert _head(repo) == before
+
+
+def _restore_exit(repo: Path, text: str) -> None:
+    """Run exactly the restore exit a decision prints after ``Restore:``."""
+    found = re.search(r"Restore: (.+?)\.(?: Or | Adoption |$)", text)
+    assert found is not None, text
+    command = found.group(1).split(", then")[0]
+    done = subprocess.run(command, shell=True, cwd=repo, env={**os.environ, **h.GIT_ENV},
+                          capture_output=True, text=True, check=False)
+    assert done.returncode == 0, (command, done.stderr)
+
+
+@pytest.mark.parametrize("point", ["commit-built", "refs-moved", "made-recorded", "synced", "event"])
+def test_a_kill_at_each_point_of_the_install_step_converges(tmp_path: Path, point: str) -> None:
+    repo, skill, cli, controller = _admit_tracked(tmp_path, "protected-product-ref", second=True)
+    cut_off: list[str] = []
+
+    def crash(name: str) -> None:
+        if name == point:
+            raise h.Crash(name)
+
+    commit = cli._supervisor("_supervisor_commit.py")  # this copy of the skill's own module
+    with _via(cli):
+        commit.set_kill_hook(crash)
+        try:
+            with pytest.raises(h.Crash):
+                h.run_cli(repo, "next", SPEC)
+        finally:
+            commit.set_kill_hook(None)
+        if point == "refs-moved":
+            # Cut off after its refs moved: the owner takes the restore exit the request names.
+            cut_off = _regenerate_steps(repo)
+            assert len(cut_off) == 1
+            code, out = h.run_cli(repo, "next", SPEC)
+            assert code == 0 and out["request"]["reason"] == "history-adoption", out
+            _restore_exit(repo, out["request"]["question"])
+        kinds = _converge(repo, controller)
+        assert "human-decision" not in kinds, kinds
+    steps = _regenerate_steps(repo)
+    assert len(steps) == 1
+    if cut_off:  # the rebuilt step carries the same step key as the one that was cut off
+        key = "%(trailers:key=Supervisor-Step,valueonly,separator=)"
+        assert h.git(repo, "show", "-s", f"--format={key}", steps[0]) == h.git(
+            repo, "show", "-s", f"--format={key}", cut_off[0])
+    name = json.loads((_store(repo) / "product-ref").read_text("utf-8"))["name"]
+    assert h.git(repo, "rev-parse", name).strip() == _head(repo)
+    assert not h.git(repo, "status", "--porcelain").strip()
+    events = (repo / ".loop-run" / "events.jsonl").read_text("utf-8").splitlines()
+    assert sum(json.loads(e)["event"] == "regenerate" for e in events) == 1
+
+
+def test_a_new_home_is_not_a_copy_the_step_may_add(tmp_path: Path) -> None:
+    """A byte-exact copy at an adapter home the repository does not hold is not committed."""
+    repo, _skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref")
+    shutil.copytree(repo / _SOURCE, repo / ".kiro" / "skills" / "work-loop")
+    before = _head(repo)
+    with _via(cli):
+        code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and out["request"]["reason"] == "uncommitted-changes", out
+    assert _head(repo) == before and _regenerate_steps(repo) == []
+
+
+def test_a_directory_the_product_owns_at_a_home_is_not_a_copy(tmp_path: Path) -> None:
+    """Content that differs from the running install at HEAD is the product's, whatever its name."""
+    repo, _skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref", owned=True)
+    owned = repo / ".github" / "skills" / "work-loop"
+    shutil.rmtree(owned)
+    shutil.copytree(repo / _SOURCE, owned)  # would delete team-notes.md if taken for a copy
+    before = _head(repo)
+    with _via(cli):
+        code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and out["request"]["reason"] == "uncommitted-changes", out
+    assert _head(repo) == before and _regenerate_steps(repo) == []
+    h.git(repo, "cat-file", "-e", f"{before}:.github/skills/work-loop/team-notes.md")
+
+
+def test_status_answers_what_next_answers_before_the_pending_step(tmp_path: Path) -> None:
+    repo, _skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref")
+    (repo / "OTHER.md").write_text("foreign\n", **h._LF)
+    h.git(repo, "add", "OTHER.md")
+    h.git(repo, "commit", "-q", "-m", "a commit made outside the supervisor")
+    with _via(cli):
+        code, status = h.run_cli(repo, "status", SPEC, "--json")
+        _code, asked = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and "pending_step" not in status, status
+    assert status["run"]["gate_pending"] is True
+    assert status["request"]["reason"] == asked["request"]["reason"] == "history-adoption"
+
+
+def test_a_version_someone_staged_of_an_install_file_is_never_dropped(tmp_path: Path) -> None:
+    """The step resets its paths in the real index, so it waits for a staged version it would lose."""
+    repo, _skill, cli, _controller = _admit_tracked(tmp_path, "protected-product-ref")
+    path = f".claude/skills/work-loop/{_EDITED}"
+    pack = (repo / path).read_bytes()
+    (repo / path).write_bytes(pack + b"\n# staged intermediate\n")
+    h.git(repo, "add", path)
+    staged = h.git(repo, "ls-files", "-s", path).split()[1]
+    (repo / path).write_bytes(pack)  # the working tree is the pack source again
+    before = _head(repo)
+    with _via(cli):
+        code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and out["request"]["reason"] == "uncommitted-changes", out
+    assert _head(repo) == before and _regenerate_steps(repo) == []
+    assert h.git(repo, "ls-files", "-s", path).split()[1] == staged
+
+
+def test_work_staged_at_other_paths_survives_the_step(tmp_path: Path) -> None:
+    repo, _skill, cli, controller = _admit_tracked(tmp_path, "protected-product-ref")
+    (repo / "OTHER.md").write_text("staged\n", **h._LF)
+    h.git(repo, "add", "OTHER.md")
+    (repo / "OTHER.md").unlink()
+    with _via(cli):
+        _converge(repo, controller)
+    assert len(_regenerate_steps(repo)) == 1
+    assert h.git(repo, "ls-files", "--stage", "OTHER.md").strip()  # still staged
+
+
+def test_a_planted_directory_is_never_taken_for_a_copy_of_the_skill(tmp_path: Path) -> None:
+    """A directory with the supervisor's file name, anywhere but an adapter's skill home, is data."""
+    repo, skill, cli, _controller = _admit_tracked(
+        tmp_path, "protected-product-ref", plant=True)
+    # The reviewer's probe: after admission the planted directory is replaced by a pack-source
+    # copy, which would delete keep.txt if the supervisor took it for a projection.
+    planted = repo / "product" / "tool"
+    shutil.rmtree(planted)
+    shutil.copytree(repo / _SOURCE, planted)
+    before = _head(repo)
+    with _via(cli):
+        code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and out["request"]["reason"] == "uncommitted-changes", out
+    assert _head(repo) == before and _regenerate_steps(repo) == []
+    assert h.git(repo, "cat-file", "-e", f"{_head(repo)}:product/tool/keep.txt") == ""
+
+
+def test_a_copy_left_stale_keeps_the_step_from_being_taken(tmp_path: Path) -> None:
+    """The step lands every copy equal to the pack source, or none of them."""
+    repo, _skill, cli, _controller = _admit_tracked(
+        tmp_path, "protected-product-ref", second=True, rebuild_second=False)
+    before = _head(repo)
+    with _via(cli):
+        code, out = h.run_cli(repo, "next", SPEC)
+    assert code == 0 and out["request"]["reason"] == "uncommitted-changes", out
+    assert _head(repo) == before and _regenerate_steps(repo) == []
+
+
+@pytest.mark.parametrize("write", ["admitted-skill.json", "pins.json"])
+def test_a_crash_inside_the_admission_leaves_the_regeneration_reportable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, write: str
+) -> None:
+    repo, skill, cli, controller, request = _tracked_regenerate(tmp_path, "protected-product-ref")
+    shutil.copyfile(repo / _SOURCE / _EDITED, skill / _EDITED)
+    attempt = cli._supervisor("_supervisor_attempt.py")
+    original = attempt.Attempts._put
+
+    def cut_off(self: Any, run_id: str, name: str, *args: Any, **kwargs: Any) -> Any:
+        if name == write:
+            raise h.Crash(write)
+        return original(self, run_id, name, *args, **kwargs)
+
+    with _via(cli):
+        monkeypatch.setattr(attempt.Attempts, "_put", cut_off)
+        with pytest.raises(h.Crash):
+            h.Controller(repo, tmp_path / "effects.log").report(_regenerate_result(request))
+        monkeypatch.undo()
+        # The same result, reported again, is admitted, and the install lands as a step.
         code, out = h.Controller(repo, tmp_path / "effects.log").report(_regenerate_result(request))
         assert code == 0 and out == {"admitted": "regenerate"}, out
-        new = json.loads(_pins(repo).read_text("utf-8"))["digests"]
-        assert new == _digests(skill) and new != old
-        # The regenerated skill is a tracked, modified file until the controller commits it.
-        code, out = h.run_cli(repo, "next", SPEC)
-        asked = out.get("request", {})
-        assert code == 0 and asked.get("kind") == "human-decision", out
-        assert asked["reason"] == "uncommitted-changes", out
-        h.git(repo, "add", "-A")
-        h.git(repo, "commit", "-q", "-m", "regenerate the installed skill")
-        _adopt(repo)  # the controller's commit is history the run did not make
-        # The commit moved HEAD, so the run re-earns its evidence before it converges.
-        kinds: list[str] = []
-        for _ in range(12):
-            code, out = h.run_cli(repo, "next", SPEC)
-            assert code == 0, out
-            if out.get("terminal") is True:
-                break
-            kinds.append(out["request"]["kind"])
-            result = controller.work(out["request"])
-            report = result.get("report")
-            if report is not None:  # a second review round must not reuse the first round's ids
-                report["report_id"] += "-again"
-                report["lineage"]["source_event_id"] += "-again"
-                for finding in report["findings"]:
-                    finding["finding_id"] += "-again"
-            assert controller.report(result)[0] == 0, kinds
-        else:
-            raise AssertionError(f"the run did not converge: {kinds}")
-        assert "regenerate" not in kinds, kinds
-        assert json.loads(_pins(repo).read_text("utf-8"))["digests"] == _digests(skill)
+        kinds = _converge(repo, controller)
+    assert "human-decision" not in kinds, kinds
+    assert len(_regenerate_steps(repo)) == 1
+
+
+@pytest.mark.parametrize("staged", [False, True], ids=["unstaged", "staged-differently"])
+def test_adopting_a_cut_off_install_step_leaves_the_index_on_head(
+    tmp_path: Path, staged: bool
+) -> None:
+    repo, _skill, cli, controller = _admit_tracked(
+        tmp_path, "protected-product-ref", second=True, churn=True)
+    mine = f"{_SECOND}/{_EDITED}"
+
+    def crash(name: str) -> None:
+        if name == "refs-moved":
+            raise h.Crash(name)
+
+    commit = cli._supervisor("_supervisor_commit.py")
+    with _via(cli):
+        commit.set_kill_hook(crash)
+        try:
+            with pytest.raises(h.Crash):
+                h.run_cli(repo, "next", SPEC)
+        finally:
+            commit.set_kill_hook(None)
+        if staged:  # someone staged this path's own change before adopting
+            _append(repo / mine, "\n# staged by someone else\n")
+            h.git(repo, "add", mine)
+        _adopt(repo)  # the owner adopts the cut-off step instead of restoring
+        if staged:
+            assert h.git(repo, "status", "--porcelain").splitlines() == [f"M  {mine}"]
+            return
+        kinds = _converge(repo, controller)
+    assert "human-decision" not in kinds, kinds
+    assert len(_regenerate_steps(repo)) == 1
+    # The step added a file and removed one; the index still ends on HEAD.
+    assert h.git(repo, "status", "--porcelain").strip() == ""
+    operations = h.git(
+        repo, "log", "--format=%(trailers:key=Supervisor-Operation,valueonly,separator=)").split()
+    assert operations.count("reanchor") == 1 and operations.count("regenerate") == 1
 
 
 def test_a_committed_skill_that_differs_from_the_admitted_one_is_refused(tmp_path: Path) -> None:

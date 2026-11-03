@@ -1552,14 +1552,15 @@
     },
     {
       "id": "supervisor-regenerate-across-result-authority",
-      "prompt": "A full-mode run in a repository that holds the pack source is ready, and `work-supervisor.py next` issues a `regenerate` request because the task changed the pack source, which includes a new `result_authority` in `supervisor-policy.json`. After you rebuild the installed skill and report it, `next` issues `run-gates` again instead of `terminal`. Is that a fault? And what happens to a run in a repository that does not hold the pack source when its installed skill changes?",
-      "expected_output": "It is not a fault. The delivery subject's lineage changed with the result authority, so gate evidence and reviews recorded before the regenerate do not count toward readiness under the new one. The controller answers the `run-gates` request, then any review requests, as usual, and the run reaches terminal with the same product. It does not report the earlier gate results again or edit the evidence. A run in a repository without the pack source is never asked for `regenerate`: once its installed skill changes it refuses `supervisor-changed`, and the controller finishes it on the prior release or starts it again.",
+      "prompt": "A full-mode run in a repository that holds the pack source is ready, and `work-supervisor.py next` issues a `regenerate` request because the task changed the pack source, which includes a new `result_authority` in `supervisor-policy.json`. After you rebuild the installed skill and report it, `next` issues `run-gates` again instead of `terminal`. Is that a fault? And what happens to a run in a repository that does not hold the pack source when its installed skill changes? The repository tracks its installed skill in the work tree, and after your report `git status` still shows the rebuilt install as modified. What do you do about it, and why?",
+      "expected_output": "It is not a fault. The delivery subject's lineage changed with the result authority, so gate evidence and reviews recorded before the regenerate do not count toward readiness under the new one. The controller answers the `run-gates` request, then any review requests, as usual, and the run reaches terminal with the same product. It does not report the earlier gate results again or edit the evidence. A run in a repository without the pack source is never asked for `regenerate`: once its installed skill changes it refuses `supervisor-changed`, and the controller finishes it on the prior release or starts it again. The controller leaves the rebuilt files alone and runs `next`. A commit the controller makes of them is foreign history that the owner has to adopt, whereas the supervisor commits the pack source's own entries as one `regenerate` step.",
       "assertions": [
         "Says the second run-gates request is expected, not a fault",
         "Explains that evidence recorded under the earlier result authority does not count under the later one",
         "Answers the run-gates and review requests as usual rather than reusing earlier results",
         "Does not edit evidence or the delivery records to skip the rerun",
-        "Says a repository without the pack source gets supervisor-changed, not regenerate, and finishes or restarts the run"
+        "Says a repository without the pack source gets supervisor-changed, not regenerate, and finishes or restarts the run",
+        "Runs next rather than committing the rebuilt install, and gives the reason: a controller commit is foreign history the owner must adopt"
       ]
     }
   ]
