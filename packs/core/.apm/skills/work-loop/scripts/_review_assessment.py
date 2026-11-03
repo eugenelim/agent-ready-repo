@@ -23,6 +23,7 @@ __all__ = [
     "ReviewAssessmentRefused",
     "PROOF_BY_RUN_PREDICATE_VERSION",
     "assess_finding_actual_failure",
+    "check_proof_by_run",
     "proof_by_run_assessment",
     "proof_run_envelope_digest",
     "proof_run_reference",
@@ -559,3 +560,36 @@ def proof_by_run_assessment(
     if not ok:
         _refuse(code, f"generated finding assessment is invalid: {code}")
     return record
+
+
+_PROOF_RUN_REF = re.compile(
+    r"proof-run:v1:([0-9a-f]{40}|[0-9a-f]{64}):(fail|pass):[0-9a-f]{64}"
+)
+
+
+def check_proof_by_run(assessment: dict[str, Any], subject_commit: str) -> str | None:
+    """Return a denial code when a proof-by-run assessment is inconsistent, else ``None``.
+
+    Only records whose ``lineage.predicate_version`` is the proof-by-run version are
+    inspected. Such a record holds exactly one well-formed proof-run reference naming
+    ``subject_commit``; ``fail`` pairs with ``supported`` and ``pass`` with
+    ``unsupported-opinion``.
+    """
+    lineage = assessment.get("lineage")
+    if (
+        not isinstance(lineage, dict)
+        or lineage.get("predicate_version") != PROOF_BY_RUN_PREDICATE_VERSION
+    ):
+        return None
+    refs = assessment.get("evidence_refs")
+    if not isinstance(refs, list) or len(refs) != 1 or not isinstance(refs[0], str):
+        return "denied-proof-run-reference-count"
+    match = _PROOF_RUN_REF.fullmatch(refs[0])
+    if match is None:
+        return "denied-proof-run-reference-malformed"
+    if match.group(1) != subject_commit:
+        return "denied-proof-run-stale"
+    expected = "supported" if match.group(2) == "fail" else "unsupported-opinion"
+    if assessment.get("assessment") != expected:
+        return "denied-proof-run-assessment-mismatch"
+    return None

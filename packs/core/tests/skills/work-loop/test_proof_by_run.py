@@ -270,3 +270,157 @@ def test_t1_non_dict_envelope_is_refused(review_assessment: ModuleType) -> None:
     with pytest.raises(review_assessment.ReviewAssessmentRefused) as caught:
         _call(review_assessment, envelope=[])
     assert caught.value.denial_code == "denied-invalid-proof-run-envelope"
+
+
+# --- Supervisor consistency check (plan T2, integration) -------------------
+
+_HELPER_PATHS = {
+    "supervisor_harness": Path(__file__).resolve().parent / "supervisor_harness.py",
+    "supervisor_support": Path(__file__).resolve().parent / "supervisor_support.py",
+}
+
+
+def _helper(name: str) -> ModuleType:
+    """Load a shared supervisor test helper by path under a pack-qualified name."""
+    alias = f"core_work_loop_{name}"
+    if alias not in sys.modules:
+        spec = importlib.util.spec_from_file_location(alias, _HELPER_PATHS[name])
+        assert spec is not None and spec.loader is not None
+        sys.modules[alias] = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(sys.modules[alias])
+    return sys.modules[alias]
+
+
+h = _helper("supervisor_harness")
+sup = _helper("supervisor_support")
+
+
+def _result(request: dict, **fields: object) -> dict:
+    """Wrap a controller result for a request."""
+    return {
+        "schema_version": 1,
+        "request_id": request["request_id"],
+        "run_id": request["run_id"],
+        "kind": request["kind"],
+        **fields,
+    }
+
+
+def _next(repo: Path) -> dict:
+    """Return the current request."""
+    code, payload = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 0, payload
+    return payload["request"]
+
+
+def _assess_request(tmp_path: Path) -> tuple[Path, object, dict]:
+    """Drive a real run to its first assess-finding request."""
+    repo = h.make_repo(tmp_path)
+    assert h.start(repo)[0] == 0
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    request: dict = {}
+    for _ in range(60):
+        request = _next(repo)
+        if request["kind"] == "review-role":
+            break
+        if request["kind"] == "external-effect":
+            controller.handle_effect(request)
+            continue
+        code, admitted = controller.report(controller.work(request))
+        assert code == 0, admitted
+    assert request["kind"] == "review-role"
+    code, admitted = controller.report(
+        _result(request, selection=h.select_none(request))
+    )
+    assert code == 0, admitted
+    role_request = _next(repo)
+    report = h.report_review("adversarial-reviewer", role_request["review_subject"], 1)
+    report["findings"][0]["material"] = True
+    code, admitted = controller.report(_result(role_request, report=report))
+    assert code == 0, admitted
+    assess = _next(repo)
+    assert assess["kind"] == "assess-finding"
+    return repo, controller, assess
+
+
+def _pbr(review_assessment: ModuleType, request: dict, observed: str, commit: str) -> dict:
+    """Build a proof-by-run assessment for a request."""
+    return review_assessment.proof_by_run_assessment(
+        assessment_id="assessment-pbr",
+        report_id=request["report_id"],
+        finding_id=request["finding_id"],
+        review_subject_fingerprint=request["review_subject_fingerprint"],
+        observed=observed,
+        envelope=_envelope(commit, 1 if observed == "fail" else 0),
+        current_subject_commit=commit,
+        judgment_authority="reviewer:test",
+    )
+
+
+def _ref(observed: str, commit: str) -> str:
+    """Build a well-formed proof-run reference."""
+    return f"proof-run:v1:{commit}:{observed}:{'c' * 64}"
+
+
+def _bad_none(a: dict, head: str) -> None:
+    a["evidence_refs"] = ["calc.py"]
+
+
+def _bad_two(a: dict, head: str) -> None:
+    a["evidence_refs"] = [a["evidence_refs"][0], _ref("fail", head)]
+
+
+def _bad_commit(a: dict, head: str) -> None:
+    a["evidence_refs"] = [_ref("fail", OTHER_COMMIT)]
+
+
+def _bad_fail_unsupported(a: dict, head: str) -> None:
+    a["evidence_refs"] = [_ref("fail", head)]
+    a["assessment"] = "unsupported-opinion"
+
+
+def _bad_pass_supported(a: dict, head: str) -> None:
+    a["evidence_refs"] = [_ref("pass", head)]
+    a["assessment"] = "supported"
+
+
+@sup.INTEGRATION
+@pytest.mark.parametrize(
+    "corrupt",
+    [_bad_none, _bad_two, _bad_commit, _bad_fail_unsupported, _bad_pass_supported],
+)
+def test_t2_inconsistent_proof_by_run_assessment_is_refused(
+    tmp_path: Path, review_assessment: ModuleType, corrupt: object
+) -> None:
+    """An inconsistent proof-by-run assessment is refused and writes nothing."""
+    repo, controller, assess = _assess_request(tmp_path)
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    record = _pbr(review_assessment, assess, "fail", head)
+    corrupt(record, head)  # type: ignore[operator]
+    code, refused = controller.report(_result(assess, assessment=record))
+    assert code == 1, refused
+    assert refused["refusal"]["code"] == "review-record-refused", refused
+    assert h.git(repo, "rev-parse", "HEAD").strip() == head
+
+
+@sup.INTEGRATION
+def test_t2_consistent_proof_by_run_assessment_is_admitted(
+    tmp_path: Path, review_assessment: ModuleType
+) -> None:
+    """A consistent supported proof-by-run assessment is admitted and repair is requested."""
+    repo, controller, assess = _assess_request(tmp_path)
+    head = h.git(repo, "rev-parse", "HEAD").strip()
+    record = _pbr(review_assessment, assess, "fail", head)
+    code, admitted = controller.report(_result(assess, assessment=record))
+    assert code == 0, admitted
+    assert h.git(repo, "rev-parse", "HEAD").strip() != head
+    evidence = h.git(repo, "show", f"HEAD:{h.SPEC_DIR}/delivery/evidence.jsonl")
+    assert "repair-request" in evidence
+
+
+@sup.INTEGRATION
+def test_t2_default_v1_assessment_is_admitted_unchanged(tmp_path: Path) -> None:
+    """The harness's predicate_version v1 assessment still passes the check."""
+    repo, controller, assess = _assess_request(tmp_path)
+    code, admitted = controller.report(_result(assess, assessment=h.assessment(assess)))
+    assert code == 0, admitted
