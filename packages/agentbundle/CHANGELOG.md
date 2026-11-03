@@ -6,6 +6,21 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.60.0] — 2026-11-02
+
+### Changed
+
+- **Breaking:** the `workspace_status()` MCP tool builds `ready`, `active` and
+  `blocked` from the packaged header-only work-loop dispatch instead of the
+  workspace-status engine. Items no longer carry `ini_slug`, `shaping` is always
+  an empty list, and `canonical` holds the dispatch output. While
+  `workspace.toml` still holds an entry, the lists are empty and `canonical`
+  carries the `unmigrated_workspace` refusal.
+- A dispatched item `type:slug` (`WORKSPACE_MCP_DISPATCHED_ITEM`) gives the
+  branch `type/slug`; the three-part `ini_slug/type:slug` form keeps working.
+- The packaged runtime ships `dispatch.py` and `_header_readiness.py` and no
+  longer ships the workspace-status engine or prune modules.
+
 ## [0.59.0] — 2026-10-29
 
 ### Changed

@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.0
+
+The `workspace_status()` MCP tool reads the packaged header-only dispatch: items
+carry no `ini_slug`, `shaping` is empty, and `canonical` holds the dispatch
+output. A dispatched item `type:slug` gives the branch `type/slug`; the legacy
+three-part form still works.
+
 ## What's new in 0.59.0
 
 The workspace bridge now reads a supervisor run's status file only. The old
