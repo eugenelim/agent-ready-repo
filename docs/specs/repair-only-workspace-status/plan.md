@@ -289,6 +289,14 @@ Owned by: T9
   - Also: `make lint-ruff lint-mypy`, and the dispatched `test-roster.yml`, `test-corpus.yml` and `pack-javascript.yml` runs.
 - **Done when:** the owner has approved the closure entry, the controller has recorded it, and each check passes.
 
+### T13: The release fragment's inventory row
+
+- **Depends on:** T11
+- **Verification mode:** goal-based
+- **Touches:** `docs/specs/workspace-retirement/inventory.toml`
+- **Tests:** for AC-0023: the changelog fragment T11 adds names `workspace-status`, so it carries a `historical` row with owner `none`, as earlier released fragments do; the inventory check passes.
+- **Done when:** `tests/roster/test_workspace_retirement_inventory.py` passes.
+
 ## Rollout
 
 - **Delivery:** one `core` release and one `agentbundle` release. An adopter whose `workspace.toml` still holds entries is refused by dispatch until they run `repair-plan` and `repair-apply --yes`.
