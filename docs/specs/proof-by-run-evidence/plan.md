@@ -55,7 +55,7 @@ The pure predicate lands first (T1), because the supervisor check (T2), the `pro
 
 Owned by: T1, T2, T3, T4.
 
-**Run envelope.** Canonical JSON (sorted keys, no spaces, ASCII) of `{"command_sha256", "exit_status", "stderr_sha256", "stdout_sha256", "subject_commit"}`. Its SHA-256 is the reference digest. The envelope file stored under `.context/proof-runs/<sha256 of assessment id>.json` also holds the raw command, stdout, and stderr for audit; the digest covers only the five fields, so the raw bytes are checked against their own digests on read.
+**Run envelope.** Canonical JSON (sorted keys, no spaces, ASCII) of `{"command_sha256", "exit_status", "stderr_sha256", "stdout_sha256", "subject_commit"}`. Its SHA-256 is the reference digest. The envelope file stored at `.context/proof-runs/<sha256 of assessment id>-<envelope digest>.json` also holds the raw command, stdout, and stderr for audit; the digest covers only the five fields, so the raw bytes are checked against their own digests on read.
 
 **When the run is made.** Between `next` issuing the finding's `assess-finding` request and `report`, no supervisor step commits, so `HEAD` is the result commit for the whole window. Only the `proof-run` invocation is bound to the commit: an invocation made before an earlier finding's assessment was admitted is refused by the supervisor, and is redone inside the open request, which writes a new envelope. When the command itself ran is the controller's attestation.
 
@@ -65,7 +65,7 @@ Owned by: T1, T2, T3, T4.
 
 **git-history module.** `_git_history.py` exposes `git_history(git, *, base, path) -> dict` and raises `GitHistoryRefused(code)`. Order, so that no caller value reaches a launch before it is replaced by a trusted one: refuse arguments outside one `--path` and an optional `--base` in the CLI parser (`denied-not-in-catalog`); refuse a supplied base unless `re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", base)` (`denied-ref-form`); refuse a path under `.context/` by its first segment (`denied-artifact-path`); refuse object sources from `git.pins` (`objects/info/alternates` under the common dir) and `git.config_entries()` (`extensions.partialclone`, `remote.*.promisor`) (`denied-object-source`); refuse a non-empty `_supervisor_git.code_running_keys(git.config_entries())` (`denied-git-config`); resolve `HEAD^{commit}`; resolve `symbolic-ref -q refs/remotes/origin/HEAD` (`denied-no-change-base` when empty) and compute the change base with `merge-base <head> <default-ref>`; refuse a supplied base that does not byte-equal it (`denied-ref-outside-subject-history`); compute the path set with `diff --name-only -z --no-renames <base> <head>`; select the member byte-equal to the caller's path or refuse (`denied-path-not-in-change`); only then run `cat-file -t <base>:<member>`, `cat-file -s`, `rev-parse --verify <base>:<member>` for the blob ID, `show` when the size is within the content cap, and `log --format=%H --max-count=51 <base>..<head> -- <member>` with literal pathspecs. Content cap 256 KiB; the envelope is checked against 1 MiB before it is printed. The helper's in-memory capture of `diff --name-only` for a very large change is an accepted limit (ADR-0155 D5).
 
-**CLI.** `evidence-gate.py` with subcommands `proof-run` and `git-history`, argparse with `allow_abbrev=False`, UTF-8 stream reconfiguration, sibling modules loaded by path as `_review_assessment.py` does. Exit 0 prints JSON; a refusal prints `{"refused": "<code>", "detail": "<fixed remedy text for that code>"}` to stdout and exits 2. `proof-run` checks the tracked tree with `status --porcelain=v1 -z --untracked-files=no` through `HardenedGit`, reads its three inputs with `_file_safety.read_confined_regular_file(<checkout>/.context, path, max_bytes=1 MiB)` after refusing a path under `.context/reviews/` or `.context/proof-runs/`, refuses a symbolic-link `.context/proof-runs`, and creates the envelope with `_confined_mutation.confined_create`.
+**CLI.** `evidence-gate.py` with subcommands `proof-run` and `git-history`, argparse with `allow_abbrev=False`, UTF-8 stream reconfiguration, sibling modules loaded by path as `_review_assessment.py` does. Exit 0 prints JSON; a refusal prints `{"refused": "<code>", "detail": "<fixed remedy text for that code>"}` to stdout and exits 2. `proof-run` checks the tracked tree with `status --porcelain=v1 -z --untracked-files=no` through `HardenedGit`, reads its three inputs with `_file_safety.read_confined_regular_file(<checkout>/.context, path, max_bytes=1 MiB)` after refusing a path under `.context/reviews/` or `.context/proof-runs/`, refuses a symbolic-link `.context/proof-runs`, and creates the envelope with `_confined_mutation.confined_create`; when the path already exists it first reads it with `read_confined_regular_file` and exits 0 on identical bytes, refusing otherwise.
 
 ### Failure, edge cases & resilience
 
@@ -110,7 +110,7 @@ Owned by: T3.
 **Tests:** TDD — integration, in temporary Git repositories with a bare `origin` remote and `refs/remotes/origin/HEAD` set, through `evidence-gate.py`'s `main`, with `_supervisor_git._launch` wrapped by a spy that records each argument vector
 - AC-0009, AC-0015: a base commit on `origin`, an added path, a modified path, and a path touched by 51 commits for the log bound.
 - AC-0010, AC-0011, AC-0012, AC-0013, AC-0027, AC-0028, AC-0031: one test per refusal family; each asserts the code and the spy's substring check.
-- AC-0033: one session-scoped spy log collected across the T3 and T4 tests, checked by a final test in each file.
+- AC-0033: a function-scoped spy fixture used only by the covered tests asserts, at teardown, a non-empty launch list inside the allowed set, so the check runs with every test whatever the order or `-k` filter.
 - AC-0014, AC-0029: a blob over the content cap; a changed path named `-x` and one named `:(glob)*`.
 - AC-0030: an `ast` walk over both files.
 
@@ -125,7 +125,7 @@ Owned by: T3.
 **Tests:** TDD — integration, in a temporary Git repository through `main`
 - AC-0007: the printed record's reference digest recomputes from the created envelope file, and the spy shows only Git launches.
 - AC-0032: a redo after a test commit, and an identical rerun.
-- AC-0008: a dirty tracked file, an existing envelope path, a symbolic-link `.context/proof-runs`, an input outside `.context/`, an input under `.context/reviews/`, a FIFO input, and a stdout file over 1 MiB each refuse with no envelope written.
+- AC-0008: a dirty tracked file, an existing envelope path holding different bytes, an envelope path that is a symbolic link, a symbolic-link `.context/proof-runs`, an input outside `.context/`, an input under `.context/reviews/`, a FIFO input, and a stdout file over 1 MiB each refuse with no envelope written.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py -q -k t4_` exits 0.
 
