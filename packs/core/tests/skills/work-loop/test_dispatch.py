@@ -1472,8 +1472,17 @@ def _plant_fixture(root: Path, repository: dict[str, Any]) -> None:
         (root / relative).symlink_to(target)
 
 
+# Literal paths, so the pack-test boundary lint can see each read stays in the pack.
+_CAPTURED_FIXTURE_FILES = {
+    "mixed-empty-workspace": _CAPTURED_FIXTURES / "mixed-empty-workspace.json",
+    "mixed-no-workspace": _CAPTURED_FIXTURES / "mixed-no-workspace.json",
+    "mixed-unmigrated-workspace": _CAPTURED_FIXTURES / "mixed-unmigrated-workspace.json",
+    "no-captured-directory": _CAPTURED_FIXTURES / "no-captured-directory.json",
+}
+
+
 def _fixture_names() -> list[str]:
-    return sorted(path.stem for path in _CAPTURED_FIXTURES.glob("*.json"))
+    return sorted(_CAPTURED_FIXTURE_FILES)
 
 
 @pytest.mark.skipif(not hasattr(os, "symlink") or os.name == "nt", reason="needs symlinks")
@@ -1482,7 +1491,7 @@ def _fixture_names() -> list[str]:
 def test_captured_equals_recorded_base_projection(
     D: ModuleType, tmp_path: Path, name: str, mode: tuple[str | None, str | None]
 ) -> None:
-    fixture = json.loads((_CAPTURED_FIXTURES / f"{name}.json").read_text(encoding="utf-8"))
+    fixture = json.loads(_CAPTURED_FIXTURE_FILES[name].read_text(encoding="utf-8"))
     root = tmp_path / "r"
     root.mkdir()
     _plant_fixture(root, fixture["repository"])
@@ -1491,6 +1500,10 @@ def test_captured_equals_recorded_base_projection(
     assert flagged["captured"] == fixture["captured"]
     assert set(plain) == _BASE_KEYS
     assert {key: flagged[key] for key in _BASE_KEYS} == plain
+
+
+def test_every_captured_fixture_file_is_listed() -> None:
+    assert sorted(path.stem for path in _CAPTURED_FIXTURES.glob("*.json")) == _fixture_names()
 
 
 def test_captured_fixtures_cover_every_route_and_failure() -> None:
