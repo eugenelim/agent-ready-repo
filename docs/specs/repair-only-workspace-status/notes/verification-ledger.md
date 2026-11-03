@@ -9,6 +9,7 @@
 | 2026-11-02 | eugenelim | agreement, as owner of the readiness hand-over, to re-point `navigate-intents`'s finding table and its parity tests to `work-loop`'s table | — | — |
 | 2026-11-02 | eugenelim | amended spec and plan re-approved, at `e90919690` | `docs/specs/repair-only-workspace-status/spec.md`; `plan.md` | `681edbf50ee189184a39e251c765aee16202b26e8daadea89da90e48bfde2a74`; `240741e788bcd8393cfea18630d3fac50dbe6d198a26f764fbb76f298f0f72aa` |
 | 2026-11-02 | eugenelim | § Compatibility closure entry | `docs/specs/workspace-retirement/retirement-record.md` | `3ee13f684f90d7f26b0e93f4b4ed55a1b0a899393706acbd64254ce90e1868ea` |
+| 2026-11-02 | eugenelim | spec and plan re-approved after the AC-0021 amendment, at `6d546c55b` | `docs/specs/repair-only-workspace-status/spec.md`; `plan.md` | `6aeba539a6589e78c0be595199a98910e1c3ccc11c39e04a0c17a297afe68b90`; `6543da90b81f5ff6de26b9d2840e869f9dcbf8a1956b19cb548a56898583cede` |
 | 2026-11-02 | eugenelim | RFC-0106 errata entry of 2026-11-02, before T6's deletions | `docs/rfc/0106-stop-registering-derivable-work.md` | `dcf5870f76ead4fcb0a962143365a022bf81753172969dbe975566b198828088` |
 | 2026-11-02 | eugenelim | RFC-0083 pointer erratum of 2026-11-02 | `docs/rfc/0083-work-intake-and-artifact-routing.md` | `183fc3213c9b4ca6e41468d79dc1423f5d2f3ea805cc5a74aa60b3eae52476e2` |
 | 2026-11-02 | eugenelim | brief non-goal widening, after-cutover annotations and Spec map row | `docs/product/briefs/workspace-registry-retirement-delivery.md` | `e0421a04ca7c441afc99af18721f3b8b462b079ce10ee2a2199be2851d67915b` |
