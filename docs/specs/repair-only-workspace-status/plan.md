@@ -110,7 +110,7 @@ Owned by: T2
 
 Owned by: T3
 
-- **The finding table is the codes dispatch can emit.** It is the base table minus the codes that only a registry entry can raise, plus `unmigrated_workspace`: "Run workspace-status repair-plan, then repair-apply, to move the remaining workspace.toml entries onto their artifacts." AC-0006's coverage clause removes any code no test reaches.
+- **The finding table is the codes dispatch can emit.** It is the base table minus the codes that only a registry entry can raise, plus `unmigrated_workspace`, whose next action is the one T14 records. AC-0006's coverage clause removes any code no test reaches.
 
 Owned by: T2
 
@@ -315,6 +315,17 @@ Owned by: T9
   - QE-01, for AC-0005: the deleted base `list_captured_items` cases whose behaviour survives — symlinked `docs/product/captured/` and `docs/product/`, a captured path that is a file, an unlistable directory, a hard-linked entry, a directory named like a record, an entry swapped for a link between check and open, an overlong path withheld from the echo, ignored names and sort order, and a cooled entry listed with no read under a planted `docs/lifecycle/` — assert their base outcomes against `_header_readiness.list_captured_items` or `dispatch.py --captured`.
 - **Done when:** the dispatch suites, `packs/core/tests/skills/navigate-intents/test_export_readiness.py`, the touched roster tests and `make lint-ruff lint-mypy` pass, and the `_data/` copies are byte-identical to their sources.
 
+### T15: Repairs from the second implementation review
+
+- **Depends on:** T14
+- **Verification mode:** TDD
+- **Touches:** `packs/core/tests/skills/work-loop/test_dispatch.py`
+- **Tests:**
+  - QE2-01, for AC-0001 and AC-0007: a spec whose `Depends on:` names a spec with an unsafe `Brief:` gives the base output, argless and named, recorded as a literal expectation computed from the base dispatch; the dependent carries the base `unsatisfied_dependency` finding, so the case fails if the refused spec stops blocking its dependents.
+  - QE2-02, for AC-0002: the depth-2000 dotted-key case expects the `invalid_workspace` refusal only when the running `tomllib` rejects a 2000-part key, and skips with a stated reason otherwise; the 700 and 990 cases are unchanged.
+  - ADV2-01: the comment over the repair cases no longer calls the `brief_queue.executing` case a base literal; that case says it pins the settled output.
+- **Done when:** the dispatch suites and `make lint-ruff lint-mypy` pass.
+
 ## Rollout
 
 - **Delivery:** one `core` release and one `agentbundle` release. An adopter whose `workspace.toml` still holds entries is refused by dispatch until they run `repair-plan` and `repair-apply --yes`.
@@ -333,3 +344,4 @@ Owned by: T9
 - 2026-11-02: spec and plan re-approved by eugenelim at `e90919690` after the amendment review.
 - 2026-11-02: amended under controlled amendment during T11 (owner decision): AC-0021's `reproduced` row carries authority `none`, as the record check requires of every reproduced row; the seven removal and intended-change rows still cite the RFC-0106 errata entry. Spec and plan set back to Draft and Drafting for review and re-approval.
 - 2026-11-02: spec and plan re-approved by eugenelim at `6d546c55b` after the AC-0021 amendment review.
+- 2026-11-03: replanned after the second implementation review (owner decision): T15 repairs QE2-01, QE2-02 and ADV2-01; the finding-table note now points to the next action T14 records (ADV2-02).
