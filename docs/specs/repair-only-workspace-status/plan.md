@@ -87,6 +87,10 @@ Owned by: T2
 
 Owned by: T2
 
+- **The refusal keeps the base's structural checks.** Before evaluating any spec, dispatch refuses with the base `invalid_workspace` output for every structural shape the base engine's membership extraction rejected, with the same finding paths. The entry walk is iterative, so no parsed `workspace.toml` can raise out of `dispatch()`.
+
+Owned by: T14
+
 - **Every load is a sibling load.** Nothing is loaded from outside dispatch's own resolved directory. The base engine's cross-skill `close-work/scripts/cooling.py` candidate is not ported, so the base layout check (`scripts/` under `skills/`) that guarded it goes too. The same files then run unchanged from `agentbundle`'s flat `_data/`. The base `test_dispatch_outside_a_skills_directory`, which asserted the layout check's refusal, becomes `test_dispatch_runs_from_a_directory_that_is_not_a_skills_tree`, which asserts that dispatch runs from a directory that is not a skills tree.
   - `dispatch.py` loads `_header_readiness.py` and `file_safety.py` from `Path(__file__).parent`, through the base confined loader with its symlink and callable checks. A failure keeps the base `engine_unavailable: <file>` exit. The callable names are the ones dispatch calls from each file: `_SAFETY_NAMES` and `UnsafeContentError` for `file_safety.py`, and the readiness module's public entry points.
   - The cooling chain keeps the base behavior: it is resolved only when `docs/lifecycle/` exists, and a failure is the `cooling_state_unavailable` finding. The readiness module first loads `close_work.py` through the same confined loader and registers it as `sys.modules["cooling_close_work"]`, with the `__file__` that `cooling.py`'s `_close_work()` compares. It then loads `cooling.py` the same way. `cooling.py`'s own lazy, unconfined load therefore always finds the confined module, and a linked or missing file fails before anything runs.
@@ -296,6 +300,20 @@ Owned by: T9
 - **Touches:** `docs/specs/workspace-retirement/inventory.toml`
 - **Tests:** for AC-0023: the changelog fragment T11 adds names `workspace-status`, so it carries a `historical` row with owner `none`, as earlier released fragments do; the inventory check passes.
 - **Done when:** `tests/roster/test_workspace_retirement_inventory.py` passes.
+
+### T14: Repairs from the first implementation review
+
+- **Depends on:** T13
+- **Verification mode:** TDD
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/dispatch.py`, `packs/core/.apm/skills/work-loop/scripts/_header_readiness.py`, `packages/agentbundle/agentbundle/_data/dispatch.py`, `packages/agentbundle/agentbundle/_data/_header_readiness.py`, `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py`, `packs/core/.apm/skills/work-intake/references/lifecycle-index.md`, `docs/product/changelog.d/3b067f0b-0306-4aef-8cc4-0c8422a68514.md`, `packs/core/tests/skills/work-loop/**`, `packs/core/tests/skills/navigate-intents/test_export_readiness.py`, `tests/roster/test_spec_registration_stop.py`, `tests/roster/test_repair_only_workspace_status.py`, `.claude/skills/work-intake/**`, `.agents/skills/work-intake/**`, `.claude/skills/navigate-intents/**`, `.agents/skills/navigate-intents/**`
+- **Tests:**
+  - ADV-01, for AC-0004: one dispatch case per structural shape the base refused as `invalid_workspace` — a top-level entry section that is not a table, a non-canonical `ini-*` key, an initiative section or subsection that is not a table, and a lifecycle collection that is neither a list nor a string — each giving the base output, argless and named, recorded as literal expectations computed from the base dispatch.
+  - SEC-01, for AC-0002: a dotted-key `workspace.toml` nested 700 and 990 levels deep gives the base output (an entry-free decision), never a traceback or exit 1; the entry walk holds no recursion.
+  - ADV-02, for AC-0002: a spec whose `Brief:` is `../outside.md`, an absolute path, a backslash path or a URL gives the base output, recorded as a literal.
+  - ADV-04, for AC-0006: the `unmigrated_workspace` next action reads "Run workspace-status repair-plan, then repair-apply, to move the remaining workspace.toml entries onto their artifacts; rewrite or remove by hand any entry the repair leaves." `_KNOWN_FINDINGS` and both parity tests follow; the changelog fragment names the hand edit for legacy entries.
+  - ADV-05: `work-intake`'s `references/lifecycle-index.md` names no retired token, no `[authorization.migration]` and no `unsupported_legacy`, under owner sign-off (2026-11-02); the AC-0018 roster check gains that file.
+  - QE-01, for AC-0005: the deleted base `list_captured_items` cases whose behaviour survives — symlinked `docs/product/captured/` and `docs/product/`, a captured path that is a file, an unlistable directory, a hard-linked entry, a directory named like a record, an entry swapped for a link between check and open, an overlong path withheld from the echo, ignored names and sort order, and a cooled entry listed with no read under a planted `docs/lifecycle/` — assert their base outcomes against `_header_readiness.list_captured_items` or `dispatch.py --captured`.
+- **Done when:** the dispatch suites, `packs/core/tests/skills/navigate-intents/test_export_readiness.py`, the touched roster tests and `make lint-ruff lint-mypy` pass, and the `_data/` copies are byte-identical to their sources.
 
 ## Rollout
 

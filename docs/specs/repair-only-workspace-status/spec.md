@@ -224,5 +224,6 @@ the plan's `## Design (LLD)`, not here.
 
 ## Assumptions
 
+- Product: an adopter whose `workspace.toml` still holds a legacy-form entry (a bare `spec/<slug>` string or a `{slug = …}` table) gets the `unmigrated_workspace` refusal, but the repair plans nothing for it; the next action and the changelog fragment name the hand edit, which is the only route (owner decision, 2026-11-02).
 - Product: adopters with an unfinished `.workspace-migrations.json` operation are invisible from here. After the upgrade they cannot roll it back, and 9F's upgrade notes are the only notice.
 - Product: external control planes that read `ini_slug` from `workspace_status()`, or set a three-part dispatched item, are invisible from here. The changelog fragment names the change; the legacy dispatched-item form keeps working.
