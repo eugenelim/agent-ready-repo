@@ -8,8 +8,10 @@ outcome it expects.
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -281,3 +283,254 @@ def test_captured_object_survives_a_failed_reconciliation(tmp_path: Path) -> Non
 def test_captured_object_is_empty_for_an_absent_directory(tmp_path: Path) -> None:
     _workspace(tmp_path)
     assert _status(tmp_path)["captured"] == {"items": [], "findings": []}
+
+
+# Listing, retargeted from the base engine to the readiness module ---------------
+# Each case keeps the assertion the base engine's listing test made.
+
+_READINESS_PATH = _SCRIPTS.parents[1] / "work-loop/scripts/_header_readiness.py"
+
+
+def _load_readiness() -> ModuleType:
+    name = "core_work_loop_header_readiness_captured_listing_test"
+    spec = importlib.util.spec_from_file_location(name, _READINESS_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(name, None)
+    return module
+
+
+READINESS = _load_readiness()
+
+
+def _list(root: Path, cooled: frozenset[Path] = frozenset()):
+    return READINESS.list_captured_items(root, cooled)
+
+
+def test_absent_directory_lists_nothing(tmp_path: Path) -> None:
+    listing = _list(tmp_path)
+    assert listing.items == [] and listing.findings == ()
+    _write(tmp_path, "docs/product/other.md", "x")
+    listing = _list(tmp_path)
+    assert listing.items == [] and listing.findings == ()
+
+
+def test_valid_entry_has_the_full_shape(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/one.md", _record(
+        OPEN, "- **Kind:** intent", "- **Type:** strategy",
+        "- **Parent intent:** outcome:growth", "- **Detail:** a/b.md",
+    ))
+    _write(tmp_path, f"{DIR}/plain.md", _record(OPEN, KIND))
+    listing = _list(tmp_path)
+    assert listing.findings == ()
+    assert listing.items == [
+        {
+            "path": f"{DIR}/one.md", "slug": "one", "status": "Open",
+            "kind": "intent", "type": "strategy", "routes_to": "frame-situation",
+            "resolution": None, "parent_intent": "outcome:growth", "detail": "a/b.md",
+        },
+        {
+            "path": f"{DIR}/plain.md", "slug": "plain", "status": "Open",
+            "kind": "defect", "type": None, "routes_to": None,
+            "resolution": None, "parent_intent": None, "detail": None,
+        },
+    ]
+
+
+def test_routes_to_follows_each_shaping_type(tmp_path: Path) -> None:
+    expected = {
+        "shape": "intent", "research": "desk-research-project-start",
+        "strategy": "frame-situation", "design": "experience-status",
+        "signal": "(signal \u2014 no action)",
+    }
+    for shaping in expected:
+        _write(tmp_path, f"{DIR}/{shaping}.md", _record(OPEN, KIND, f"- **Type:** {shaping}"))
+    routes = {i["slug"]: i["routes_to"] for i in _list(tmp_path).items}
+    assert routes == expected
+
+
+def test_items_are_sorted_by_path(tmp_path: Path) -> None:
+    for name in ("zeta", "alpha", "mid-1"):
+        _write(tmp_path, f"{DIR}/{name}.md", _record(OPEN, KIND))
+    assert [i["slug"] for i in _list(tmp_path).items] == ["alpha", "mid-1", "zeta"]
+
+
+def test_other_names_are_ignored(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/ok.md", _record(OPEN, KIND))
+    for name in ("README.md", "Bad_Name.md", "-lead.md", "note.txt", "a.b.md", "x.MD"):
+        _write(tmp_path, f"{DIR}/{name}", "not a record")
+    listing = _list(tmp_path)
+    assert [i["slug"] for i in listing.items] == ["ok"]
+    assert listing.findings == ()
+
+
+def test_invalid_entry_is_marked_invalid(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/bad.md", _record(OPEN, "- **Kind:** nope"))
+    listing = _list(tmp_path)
+    assert listing.items == [{"path": f"{DIR}/bad.md", "slug": "bad", "invalid": True}]
+    [finding] = listing.findings
+    assert (finding.code, finding.path, finding.detail) == (
+        "invalid_captured_item", f"{DIR}/bad.md", "Kind",
+    )
+    assert "named field" in finding.next_action
+
+
+def test_cooled_unreadable_entry_is_listed_cooled_with_no_read(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write(tmp_path, f"{DIR}/cool.md", _record(OPEN, KIND))
+    cooled = frozenset({(tmp_path / DIR / "cool.md").resolve()})
+    opened: list[object] = []
+    real_open = os.open
+    monkeypatch.setattr(os, "open", lambda *a, **k: (opened.append(a[0]), real_open(*a, **k))[1])
+    listing = _list(tmp_path, cooled)
+    assert opened == []
+    assert listing.items == [{"path": f"{DIR}/cool.md", "slug": "cool", "cooled": True}]
+    assert listing.findings == ()
+
+
+def test_cooled_entry_with_unreadable_mode_is_still_cooled(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/cool.md", _record(OPEN, KIND))
+    target = tmp_path / DIR / "cool.md"
+    target.chmod(0)
+    try:
+        listing = _list(tmp_path, frozenset({target.resolve()}))
+    finally:
+        target.chmod(0o644)
+    assert listing.items == [{"path": f"{DIR}/cool.md", "slug": "cool", "cooled": True}]
+
+
+def test_cooled_captured_item_under_a_planted_lifecycle_record_lists_with_no_read(
+    tmp_path: Path,
+) -> None:
+    """Through `dispatch.py --captured`: a lifecycle record cools the item, which is never read."""
+    locator = f"{DIR}/cool.md"
+    _write(tmp_path, locator, "not a record: it would be invalid if it were read")
+    _write(tmp_path, f"{DIR}/live.md", _record(OPEN, KIND))
+    record = {
+        "schema": "delivery-lifecycle-record.v1",
+        "delivery_id": "d-" + hashlib.sha256(locator.encode()).hexdigest()[:8],
+        "locator": locator,
+        "aliases": [],
+        "fingerprint": "sha256:" + "0" * 64,
+        "disposition": "cool-30-days",
+        "post_closeout_result": "Cooling",
+        "completion_event": "merge",
+        "completion_evidence_ref": "commit:" + "1" * 40,
+        "completed_on": "2026-01-01",
+        "timezone": "Asia/Singapore",
+        "review_on": "2026-01-31",
+        "authority": {n: {"status": "confirmed"} for n in ("source", "write", "delete")},
+        "confirmation_proof": "sha256:" + "2" * 64,
+    }
+    _write(tmp_path, f"docs/lifecycle/{record['delivery_id']}.json", json.dumps(record))
+    captured = _status(tmp_path)["captured"]
+    assert captured["findings"] == []
+    assert [(i["slug"], i.get("cooled"), i.get("invalid")) for i in captured["items"]] == [
+        ("cool", True, None),
+        ("live", None, None),
+    ]
+    assert captured["items"][0] == {"path": locator, "slug": "cool", "cooled": True}
+
+
+def test_symlinked_entry_is_unreadable(tmp_path: Path) -> None:
+    _write(tmp_path, "outside/real.md", _record(OPEN, KIND))
+    (tmp_path / DIR).mkdir(parents=True)
+    Path(tmp_path / DIR / "link.md").symlink_to(tmp_path / "outside/real.md")
+    listing = _list(tmp_path)
+    assert listing.items == [{"path": f"{DIR}/link.md", "slug": "link", "unreadable": True}]
+    [finding] = listing.findings
+    assert (finding.code, finding.path) == ("unreadable_artifact", f"{DIR}/link.md")
+
+
+def test_hard_linked_entry_is_unreadable(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/one.md", _record(OPEN, KIND))
+    os.link(tmp_path / DIR / "one.md", tmp_path / DIR / "two.md")
+    listing = _list(tmp_path)
+    assert all(i.get("unreadable") is True for i in listing.items)
+    assert {f.path for f in listing.findings} == {f"{DIR}/one.md", f"{DIR}/two.md"}
+
+
+def test_directory_named_like_a_record_is_unreadable(tmp_path: Path) -> None:
+    (tmp_path / DIR / "dir.md").mkdir(parents=True)
+    listing = _list(tmp_path)
+    assert listing.items == [{"path": f"{DIR}/dir.md", "slug": "dir", "unreadable": True}]
+    assert [f.code for f in listing.findings] == ["unreadable_artifact"]
+
+
+def test_non_utf8_entry_is_unreadable(tmp_path: Path) -> None:
+    (tmp_path / DIR).mkdir(parents=True)
+    (tmp_path / DIR / "raw.md").write_bytes(b"\xff\xfe- **Status:** Open")
+    assert _list(tmp_path).items == [
+        {"path": f"{DIR}/raw.md", "slug": "raw", "unreadable": True}
+    ]
+
+
+def test_entry_swapped_for_a_link_between_check_and_open(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write(tmp_path, f"{DIR}/swap.md", _record(OPEN, KIND))
+    _write(tmp_path, "outside/real.md", _record(OPEN, KIND))
+    real_confine = READINESS.confine_migration_path
+
+    def swapping(root: Path, rel: str, **kwargs: object):
+        resolved = real_confine(root, rel, **kwargs)
+        if rel == f"{DIR}/swap.md" and kwargs.get("require_file"):
+            (root / rel).unlink()
+            Path(root / rel).symlink_to(root / "outside/real.md")
+        return resolved
+
+    monkeypatch.setattr(READINESS, "confine_migration_path", swapping)
+    assert _list(tmp_path).items == [
+        {"path": f"{DIR}/swap.md", "slug": "swap", "unreadable": True}
+    ]
+
+
+def test_symlinked_captured_directory(tmp_path: Path) -> None:
+    _write(tmp_path, "elsewhere/a.md", _record(OPEN, KIND))
+    (tmp_path / "docs/product").mkdir(parents=True)
+    Path(tmp_path / DIR).symlink_to(tmp_path / "elsewhere")
+    listing = _list(tmp_path)
+    assert listing.items == []
+    [finding] = listing.findings
+    assert (finding.code, finding.path) == ("unreadable_artifact", DIR)
+
+
+def test_symlinked_product_directory(tmp_path: Path) -> None:
+    _write(tmp_path, "elsewhere/captured/a.md", _record(OPEN, KIND))
+    (tmp_path / "docs").mkdir()
+    Path(tmp_path / "docs/product").symlink_to(tmp_path / "elsewhere")
+    listing = _list(tmp_path)
+    assert listing.items == []
+    assert [(f.code, f.path) for f in listing.findings] == [("unreadable_artifact", DIR)]
+
+
+def test_captured_path_that_is_a_file_is_unreadable(tmp_path: Path) -> None:
+    _write(tmp_path, DIR, "a file")
+    listing = _list(tmp_path)
+    assert listing.items == []
+    assert [(f.code, f.path) for f in listing.findings] == [("unreadable_artifact", DIR)]
+
+
+def test_unlistable_directory(tmp_path: Path) -> None:
+    (tmp_path / DIR).mkdir(parents=True)
+    (tmp_path / DIR).chmod(0)
+    try:
+        if os.access(tmp_path / DIR, os.R_OK):
+            pytest.skip("directory permissions are not enforced")
+        listing = _list(tmp_path)
+    finally:
+        (tmp_path / DIR).chmod(0o755)
+    assert listing.items == []
+    assert [(f.code, f.path) for f in listing.findings] == [("unreadable_artifact", DIR)]
+
+
+def test_finding_echo_withholds_an_overlong_path(tmp_path: Path) -> None:
+    name = "a" * 210
+    _write(tmp_path, f"{DIR}/{name}.md", _record(OPEN, "- **Kind:** nope"))
+    [finding] = _list(tmp_path).findings
+    assert finding.path == ""

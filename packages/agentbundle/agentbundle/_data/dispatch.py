@@ -71,7 +71,8 @@ _PUBLIC_PATH_CHARS = frozenset(
 _READINESS_NAMES = (
     "run_canonical_reconciliation", "_resolve_cooled_state", "_metadata_from_root",
     "_is_canonical_spec_artifact_path", "_confined_artifact_path", "_finding",
-    "WorkspaceEntry", "SourceRecord", "list_captured_items",
+    "WorkspaceEntry", "SourceRecord", "list_captured_items", "workspace_structure_findings",
+    "_is_repository_relative_path",
 )
 _SAFETY_NAMES = ("validate_confined_directory", "read_confined_regular_file")
 
@@ -252,11 +253,19 @@ def _read_workspace(safety: ModuleType, root: Path) -> dict[str, Any] | None:
 
 
 def _holds_entry(node: Any) -> bool:
-    """True when a non-empty array sits anywhere in `node`, nested tables included."""
-    if isinstance(node, list):
-        return bool(node)
-    if isinstance(node, dict):
-        return any(_holds_entry(value) for value in node.values())
+    """True when a non-empty array sits anywhere in `node`, nested tables included.
+
+    The walk keeps its own stack, so a file nested deeper than the interpreter's
+    recursion limit is still answered.
+    """
+    pending = [node]
+    while pending:
+        current = pending.pop()
+        if isinstance(current, list):
+            if current:
+                return True
+        elif isinstance(current, dict):
+            pending.extend(current.values())
     return False
 
 
@@ -390,8 +399,21 @@ def _dispatch(root: Path, mode: str | None, selector: str | None) -> dict[str, A
         root, records, [], _cooling_loader()
     )
     memberships: dict[str, list[Any]] = {"queue": [], "active": [], "shipped": []}
+    parse_findings: list[Any] = (
+        readiness.workspace_structure_findings(workspace) if workspace is not None else []
+    )
+    parse_blocked: set[str] = set()
 
     def add(path: str, collection: str, parent: str | None) -> None:
+        if parent is not None and not readiness._is_repository_relative_path(parent):
+            # The base source-record parse refused the entry and blocked its path.
+            parse_findings.append(
+                readiness._finding(
+                    "invalid_artifact_path", str(parent or ""), "source.parent is not a safe path"
+                )
+            )
+            parse_blocked.add(path)
+            return
         memberships[collection].append(
             readiness.WorkspaceEntry(
                 path=path, kind="spec",
@@ -447,7 +469,9 @@ def _dispatch(root: Path, mode: str | None, selector: str | None) -> dict[str, A
             add(path, collection, metadata.parent)
 
     try:
-        result = readiness.run_canonical_reconciliation(memberships, root, cooled)
+        result = readiness.run_canonical_reconciliation(
+            memberships, root, cooled, tuple(parse_findings), frozenset(parse_blocked)
+        )
     except Exception as exc:
         raise _Unavailable("engine run failed") from exc
 

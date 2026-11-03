@@ -50,6 +50,7 @@ OWN_MUTATE = SKILLS / "workspace-status" / "references" / "mutate.md"
 OTHER_MARKDOWN = (
     SKILLS / "work-loop" / "SKILL.md",
     SKILLS / "work-intake" / "SKILL.md",
+    SKILLS / "work-intake" / "references" / "lifecycle-index.md",
     SKILLS / "navigate-intents" / "SKILL.md",
     SKILLS / "close-work" / "SKILL.md",
     SKILLS / "intake-intent" / "SKILL.md",

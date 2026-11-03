@@ -62,7 +62,8 @@ _KNOWN_FINDINGS: dict[str, str] = {
     "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
     "unmigrated_workspace": (
         "Run workspace-status repair-plan, then repair-apply, to move the remaining "
-        "workspace.toml entries onto their artifacts."
+        "workspace.toml entries onto their artifacts; rewrite or remove by hand any entry "
+        "the repair leaves."
     ),
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",

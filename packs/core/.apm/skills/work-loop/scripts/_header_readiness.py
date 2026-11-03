@@ -66,7 +66,8 @@ _FINDING_NEXT_ACTIONS = {
     "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
     "unmigrated_workspace": (
         "Run workspace-status repair-plan, then repair-apply, to move the remaining "
-        "workspace.toml entries onto their artifacts."
+        "workspace.toml entries onto their artifacts; rewrite or remove by hand any entry "
+        "the repair leaves."
     ),
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
@@ -2430,9 +2431,12 @@ def _structural_findings(
     root: Path | None = None,
     cooled: bool = False,
     briefs_with_cooled_children: frozenset[str] = frozenset(),
+    global_invalid_workspace: bool = False,
 ) -> list[RoutingFinding]:
     entry = membership.entry
     findings: list[RoutingFinding] = []
+    if global_invalid_workspace:
+        findings.append(_finding("invalid_workspace", entry.path, "invalid workspace state"))
     if entry.path in cycle_paths:
         findings.append(_finding("dependency_cycle", entry.path, "dependency cycle"))
     require_local_brief_parent = entry.kind == "spec"
@@ -2573,6 +2577,7 @@ def evaluate_dispatch(
     briefs_with_cooled_children: frozenset[str] = frozenset(),
     cooled_scope_unknown: frozenset[str] = frozenset(),
     header: HeaderDependencies | None = None,
+    global_invalid_workspace: bool = False,
 ) -> DispatchEvaluation:
     """Evaluate the positive T2 dispatch predicate for one canonical membership.
 
@@ -2588,6 +2593,7 @@ def evaluate_dispatch(
         brief_child_states,
         root,
         briefs_with_cooled_children=briefs_with_cooled_children,
+        global_invalid_workspace=global_invalid_workspace,
     )
     if (
         entry.kind == "spec"
@@ -3255,16 +3261,83 @@ def parse_source_authority(markdown: str) -> SourceAuthority:
         raise RefreshRefusal("invalid_source_authority") from exc
 
 
+_INITIATIVE_ENTRY_COLLECTIONS = {
+    "work": ("queue", "active", "shipped"),
+    "shaping_queue": ("backlog", "active"),
+    "brief_queue": ("draft", "ready", "executing", "shipped", "withdrawn", "cancelled"),
+}
+_TOP_LEVEL_ENTRY_COLLECTIONS = {"backlog": ("open", "closed")}
+_CANONICAL_INITIATIVE_RE = re.compile(r"^ini-\d{3}$")
+
+
+def workspace_structure_findings(workspace: Mapping[str, Any]) -> list[RoutingFinding]:
+    """The `invalid_workspace` findings for a `workspace.toml` that is malformed in shape.
+
+    The base engine's membership extraction rejected: a top-level entry section that
+    is not a table, a lifecycle collection that is neither a list nor (for
+    `brief_queue.executing`) a string, an `ini-*` key that is not `ini-NNN`, an
+    initiative section that is not a table, and an initiative subsection that is
+    not a table. Entries are never read, so the walk is one bounded pass over the
+    top-level keys and the named sections, however deeply the file nests.
+    """
+    findings: list[RoutingFinding] = []
+    for section_name, top_level_names in _TOP_LEVEL_ENTRY_COLLECTIONS.items():
+        section = workspace.get(section_name, {})
+        if not isinstance(section, dict):
+            findings.append(_finding("invalid_workspace", section_name, "invalid section"))
+            continue
+        for list_name in top_level_names:
+            if not isinstance(section.get(list_name, []), list):
+                findings.append(_finding("invalid_workspace", detail="invalid lifecycle list"))
+    for key, section in workspace.items():
+        if not key.startswith("ini-"):
+            continue
+        if not _CANONICAL_INITIATIVE_RE.fullmatch(key):
+            findings.append(
+                _finding("invalid_workspace", "workspace.toml", "invalid initiative slug")
+            )
+            continue
+        if not isinstance(section, dict):
+            findings.append(_finding("invalid_workspace", detail="invalid initiative section"))
+            continue
+        for section_name, initiative_names in _INITIATIVE_ENTRY_COLLECTIONS.items():
+            subsection = section.get(section_name, {})
+            if not isinstance(subsection, dict):
+                findings.append(
+                    _finding("invalid_workspace", f"{key}.{section_name}", "invalid section")
+                )
+                continue
+            for list_name in initiative_names:
+                entries = subsection.get(list_name, [])
+                if (
+                    section_name == "brief_queue"
+                    and list_name == "executing"
+                    and isinstance(entries, str)
+                ):
+                    continue
+                if not isinstance(entries, list):
+                    findings.append(_finding("invalid_workspace", detail="invalid lifecycle list"))
+    return findings
+
+
 def run_canonical_reconciliation(
     collections: Mapping[str, list[WorkspaceEntry]],
     root: Path,
     cooled: frozenset[Path] = frozenset(),
+    parse_findings: tuple[RoutingFinding, ...] = (),
+    parse_blocked_paths: frozenset[str] = frozenset(),
 ) -> CanonicalWorkspaceResult:
     """Evaluate the header-derived `queue`, `active` and `shipped` spec lists.
 
     `collections` maps each of those names to its entries, in order. Every fact is
     derived from the artifacts' headers; a cooled artifact is seen as cooled, and
     its body is never opened.
+
+    `parse_findings` are the findings found while building the entries: an
+    `invalid_workspace` among them blocks every entry, as in the base engine, and
+    each finding is also reported at the top level. `parse_blocked_paths` are the
+    artifact paths whose entry was refused at parse time; a dependency on one is
+    refused as structurally blocked.
     """
     memberships = [
         WorkspaceMembership(entry, f"work.{name}", index)
@@ -3284,7 +3357,10 @@ def run_canonical_reconciliation(
         _finding("cooled_child_scope_unknown", path, "cooled child parent scope")
         for path in sorted(cooled_scope_unknown)
     ]
-    structurally_blocked_paths: set[str] = set()
+    global_invalid_workspace = any(
+        finding.code == "invalid_workspace" for finding in parse_findings
+    )
+    structurally_blocked_paths: set[str] = set(parse_blocked_paths)
     cooled_membership_findings: list[RoutingFinding] = []
     for membership in memberships:
         membership_cooled = _membership_is_cooled(membership, root, cooled)
@@ -3304,6 +3380,7 @@ def run_canonical_reconciliation(
             root,
             cooled=membership_cooled,
             briefs_with_cooled_children=briefs_with_cooled_children,
+            global_invalid_workspace=global_invalid_workspace,
         )
         if member_findings:
             structurally_blocked_paths.add(membership.entry.path)
@@ -3324,11 +3401,13 @@ def run_canonical_reconciliation(
             briefs_with_cooled_children=briefs_with_cooled_children,
             cooled_scope_unknown=cooled_scope_unknown,
             header=headers.get(membership.entry.path),
+            global_invalid_workspace=global_invalid_workspace,
         )
         for membership in memberships
         if not _membership_is_cooled(membership, root, cooled)
     ]
     findings = [
+        *parse_findings,
         *cooled_membership_findings,
         *cooled_scope_findings,
         *(finding for evaluation in evaluations for finding in evaluation.findings),

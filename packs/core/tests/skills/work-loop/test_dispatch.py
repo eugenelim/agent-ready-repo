@@ -31,7 +31,8 @@ _SIBLINGS = ("dispatch.py", "_header_readiness.py", "file_safety.py", "cooling.p
 SPEC = "docs/specs/{}/spec.md"
 UNMIGRATED_NEXT_ACTION = (
     "Run workspace-status repair-plan, then repair-apply, to move the remaining "
-    "workspace.toml entries onto their artifacts."
+    "workspace.toml entries onto their artifacts; rewrite or remove by hand any entry "
+    "the repair leaves."
 )
 IS_ROOT = hasattr(os, "geteuid") and os.geteuid() == 0
 
@@ -1513,3 +1514,128 @@ def test_captured_flag_prints_one_extra_key(
     assert set(json.loads(capsys.readouterr().out)) == _BASE_KEYS
     assert set(flagged) == _BASE_KEYS | {"captured"}
     assert [i["slug"] for i in flagged["captured"]["items"]] == ["a"]
+
+
+# --- repairs from the first implementation review ---------------------------------
+#
+# Every expectation below is a literal computed from the base engine's dispatch
+# (commit ab4e4b71c) on the same planted repository; nothing here calls the base.
+
+_INVALID_WORKSPACE_NEXT_ACTION = "Correct workspace.toml, then rerun reconciliation."
+
+
+def _invalid_workspace(path: str) -> dict[str, Any]:
+    return {
+        "code": "invalid_workspace", "path": path, "dispatchable": False,
+        "next_action": _INVALID_WORKSPACE_NEXT_ACTION,
+    }
+
+
+_ALPHA, _BETA = SPEC.format("alpha"), SPEC.format("beta")
+# Each structural shape the base membership extraction refused, no entry anywhere:
+# the file, and the path the base put on its one top-level finding.
+_STRUCTURAL_SHAPES = {
+    "top-level entry section that is not a table": ('backlog = "x"\n', "backlog"),
+    "lifecycle collection that is a string": ('[backlog]\nopen = "x"\n', "workspace.toml"),
+    "non-canonical initiative key": ('[ini-abc]\nname = "x"\n', "workspace.toml"),
+    "initiative section that is not a table": ('ini-001 = "x"\n', "workspace.toml"),
+    "initiative subsection that is not a table": ('[ini-001]\nwork = "x"\n', "ini-001.work"),
+    "initiative lifecycle list that is a string": (
+        '[ini-001.work]\nqueue = "x"\n', "workspace.toml"
+    ),
+    "initiative key with a trailing newline": ('"ini-001\\n" = {a = 1}\n', "workspace.toml"),
+}
+
+
+@pytest.mark.parametrize("shape", list(_STRUCTURAL_SHAPES))
+def test_a_malformed_entry_free_workspace_gives_the_base_invalid_workspace_output(
+    D: ModuleType, tmp_path: Path, shape: str
+) -> None:
+    toml, top_path = _STRUCTURAL_SHAPES[shape]
+    repo = Repo(tmp_path / "r")
+    repo.spec("alpha")
+    repo.spec("beta", "Implementing")
+    repo.put("workspace.toml", toml)
+    blocked = [
+        {"path": path, "slug": slug, "status": status, "findings": [_invalid_workspace(path)]}
+        for path, slug, status in ((_ALPHA, "alpha", "Approved"), (_BETA, "beta", "Implementing"))
+    ]
+    top = [_invalid_workspace(top_path)]
+    assert D.dispatch(repo.root) == {
+        "schema_version": 1, "ready": [], "active": [], "blocked": blocked, "findings": top,
+        "decision": {"action": "none", "path": None, "candidates": [], "findings": []},
+    }
+    for mode, selector, path in (("start", "alpha", _ALPHA), ("resume", "beta", _BETA)):
+        assert D.dispatch(repo.root, mode, selector) == {
+            "schema_version": 1, "ready": [], "active": [], "blocked": blocked, "findings": top,
+            "decision": {
+                "action": "refuse", "path": None, "candidates": [],
+                "findings": [_invalid_workspace(path)],
+            },
+        }
+
+
+def test_a_string_in_brief_queue_executing_is_not_a_structural_fault(
+    D: ModuleType, tmp_path: Path
+) -> None:
+    repo = Repo(tmp_path / "r")
+    repo.spec("alpha")
+    repo.put("workspace.toml", '[ini-001.brief_queue]\nexecuting = "x"\n')
+    result = D.dispatch(repo.root)
+    assert paths(result["ready"]) == [_ALPHA] and result["findings"] == []
+
+
+@pytest.mark.parametrize("depth", [700, 990, 2000])
+def test_a_deeply_nested_dotted_key_workspace_gives_the_entry_free_base_output(
+    D: ModuleType, tmp_path: Path, depth: int
+) -> None:
+    repo = Repo(tmp_path / "r")
+    repo.spec("alpha")
+    repo.spec("beta", "Implementing")
+    repo.put("workspace.toml", "a" + ".a" * depth + " = 1\n")
+    ready = {"path": _ALPHA, "slug": "alpha", "status": "Approved", "findings": []}
+    active = {"path": _BETA, "slug": "beta", "status": "Implementing", "findings": []}
+    if depth == 2000:
+        # Past the parser's own depth limit: the base refused the file as unusable.
+        refused = [_invalid_workspace("workspace.toml")]
+        assert D.dispatch(repo.root) == {
+            "schema_version": 1, "ready": [], "active": [], "blocked": [], "findings": refused,
+            "decision": {"action": "refuse", "path": None, "candidates": [], "findings": refused},
+        }
+        return
+    assert D.dispatch(repo.root) == {
+        "schema_version": 1, "ready": [ready], "active": [active], "blocked": [], "findings": [],
+        "decision": {"action": "resume", "path": _BETA, "candidates": [], "findings": []},
+    }
+    assert D.dispatch(repo.root, "start", "alpha")["decision"] == {
+        "action": "start", "path": _ALPHA, "candidates": [], "findings": [],
+    }
+
+
+@pytest.mark.parametrize(
+    "brief", ["../outside.md", "/etc/passwd", "docs\\x.md", "https://example.com/x"]
+)
+def test_an_unsafe_brief_parent_gives_the_base_output(
+    D: ModuleType, tmp_path: Path, brief: str
+) -> None:
+    repo = Repo(tmp_path / "r")
+    repo.spec("alpha", brief=brief)
+    assert D.dispatch(repo.root) == {
+        "schema_version": 1, "ready": [], "active": [], "blocked": [],
+        "findings": [
+            {
+                "code": "invalid_artifact_path", "path": "workspace.toml", "dispatchable": False,
+                "next_action": "Replace it with a confined canonical repository-relative path.",
+            }
+        ],
+        "decision": {"action": "none", "path": None, "candidates": [], "findings": []},
+    }
+    assert D.dispatch(repo.root, "start", "alpha")["decision"] == {
+        "action": "refuse", "path": None, "candidates": [],
+        "findings": [
+            {
+                "code": "unapproved_spec", "path": _ALPHA, "dispatchable": False,
+                "next_action": "Complete the spec approval gate.",
+            }
+        ],
+    }

@@ -42,16 +42,11 @@ entry keeps it until the item closes; closing it deletes the entry in the same
 change as the file's `Status:` edit. One registered at any other path is reported
 as unmigrated; `workspace-status repair-plan` moves it.
 
-Former legacy workspace entries surface as `unsupported_legacy` findings and
-are never dispatchable. Rewrite each in canonical form by hand. Migration
-tooling (`repair-plan --migration-selection`, `repair-apply`, `repair-rollback`)
-is only for recovering or rolling back an operation already recorded in
-`.workspace-migrations.json`. Apply and rollback each consume a fresh,
-single-use, human-authored confirmation permitted by repository
-`[authorization.migration]` policy. Agents and migration tooling must never
-create, edit, prefill, or choose substantive route or authorization values in
-those files. Ledger-backed rollback restores the exact legacy workspace
-representation and never deletes the canonical artifact.
+A `workspace.toml` that still holds an entry makes dispatch refuse with
+`unmigrated_workspace`. Run `workspace-status repair-plan`, then `repair-apply`,
+to move the entries onto their artifacts; rewrite or remove by hand any entry
+the repair leaves, such as a legacy-form entry. Agents never create, edit,
+prefill, or choose substantive route or authorization values for a human.
 
 Refresh reads its role policy from the `[authorization.refresh]` table of
 `.work-intake.toml` at the repository root, never from `workspace.toml`. The
