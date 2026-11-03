@@ -1,6 +1,6 @@
 # Spec: Dispatch reads only headers, and workspace-status keeps only the repair
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-11-02 by eugenelim, spec and plan at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, each adjudicated (three adjudications were invalid; one was re-run), with the round-4 repairs accepted unreviewed; records under `.context/reviews/c2bc3c0b-0c0c-44a9-9a99-0028fa5e7927/`. Amended 2026-11-02 under controlled amendment after T9: the Engine-pinning tests term adds `test_dispatch_outside_a_skills_directory` and the Migration forms term adds `repair-plan` given `--yes`, `--operation-id` or `--confirmation-file`, after two amendment review rounds (each adjudicated); re-approved 2026-11-02 by eugenelim at `e90919690`; records under the same directory, `5-*` and `6-*`. Amended again 2026-11-02 during T11: AC-0021's `reproduced` row carries authority `none`, as the record check requires; one amendment review round (direct clean); re-approved 2026-11-02 by eugenelim at `6d546c55b`; records `7-*`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -134,28 +134,28 @@ the plan's `## Design (LLD)`, not here.
 
 **Dispatch**
 
-- [ ] **AC-0001.** `dispatch.py` run from a skill tree holding only the `work-loop` skill directory prints, for each repository the dispatch suites plant, the same output as when it runs from the full `core` skill tree.
-- [ ] **AC-0002.** Every dispatch-suite test at the base whose planted repository is entry-free, other than the engine-pinning tests, passes against the new dispatch with its assertions unchanged. The selector test asserts, for each of its base inputs, the canonical path the base selector returns or its refusal, as literal expectations.
-- [ ] **AC-0027.** When `_header_readiness.py` or `file_safety.py` in dispatch's directory is missing, is a symbolic link resolving outside that directory, fails to import, or lacks a name dispatch calls from it, dispatch exits 2 with nothing on standard output, and standard error starts `engine_unavailable: <that file name>`.
-- [ ] **AC-0031.** When `cooling.py` or `close_work.py` in dispatch's directory is missing, is a symbolic link resolving outside that directory, fails to import, or lacks a name the readiness module calls from it, dispatch on a repository with a `docs/lifecycle/` directory prints the base `cooling_state_unavailable` finding and treats no artifact as cooled, and no file outside that directory executes.
-- [ ] **AC-0003.** For a repository whose `workspace.toml` holds at least one entry, argless dispatch, `--start` and `--resume` each print `decision.action` `refuse`, empty `ready`, `active` and `blocked`, and exactly one finding: code `unmigrated_workspace`, path `workspace.toml`, whatever the specs' headers say.
-- [ ] **AC-0004.** A `workspace.toml` that the base dispatch refuses as `invalid_workspace` is refused the same way, with the same output.
-- [ ] **AC-0005.** With `--captured`, dispatch's output adds one key, `captured`, equal to what the base `workspace-status` `_captured_projection` returns for the same repository, recorded as literal expectations, with or without `workspace.toml`. Without the flag, the output has exactly the keys the base dispatch prints.
-- [ ] **AC-0006.** Every finding dispatch prints has a code in `work-loop`'s finding table and that table's next action. Each code in the table other than `unmigrated_workspace` carries its base engine text, and each code in the table appears in at least one dispatch-suite assertion.
-- [ ] **AC-0007.** The ledger holds a replay of the base and the new dispatch over each entry-free repository the dispatch suites plant and over this repository. It covers argless runs and `--start` and `--resume` of each listed spec, with a count of runs compared and a count of differing outputs, which is 0.
+- [x] **AC-0001.** `dispatch.py` run from a skill tree holding only the `work-loop` skill directory prints, for each repository the dispatch suites plant, the same output as when it runs from the full `core` skill tree.
+- [x] **AC-0002.** Every dispatch-suite test at the base whose planted repository is entry-free, other than the engine-pinning tests, passes against the new dispatch with its assertions unchanged. The selector test asserts, for each of its base inputs, the canonical path the base selector returns or its refusal, as literal expectations.
+- [x] **AC-0027.** When `_header_readiness.py` or `file_safety.py` in dispatch's directory is missing, is a symbolic link resolving outside that directory, fails to import, or lacks a name dispatch calls from it, dispatch exits 2 with nothing on standard output, and standard error starts `engine_unavailable: <that file name>`.
+- [x] **AC-0031.** When `cooling.py` or `close_work.py` in dispatch's directory is missing, is a symbolic link resolving outside that directory, fails to import, or lacks a name the readiness module calls from it, dispatch on a repository with a `docs/lifecycle/` directory prints the base `cooling_state_unavailable` finding and treats no artifact as cooled, and no file outside that directory executes.
+- [x] **AC-0003.** For a repository whose `workspace.toml` holds at least one entry, argless dispatch, `--start` and `--resume` each print `decision.action` `refuse`, empty `ready`, `active` and `blocked`, and exactly one finding: code `unmigrated_workspace`, path `workspace.toml`, whatever the specs' headers say.
+- [x] **AC-0004.** A `workspace.toml` that the base dispatch refuses as `invalid_workspace` is refused the same way, with the same output.
+- [x] **AC-0005.** With `--captured`, dispatch's output adds one key, `captured`, equal to what the base `workspace-status` `_captured_projection` returns for the same repository, recorded as literal expectations, with or without `workspace.toml`. Without the flag, the output has exactly the keys the base dispatch prints.
+- [x] **AC-0006.** Every finding dispatch prints has a code in `work-loop`'s finding table and that table's next action. Each code in the table other than `unmigrated_workspace` carries its base engine text, and each code in the table appears in at least one dispatch-suite assertion.
+- [x] **AC-0007.** The ledger holds a replay of the base and the new dispatch over each entry-free repository the dispatch suites plant and over this repository. It covers argless runs and `--start` and `--resume` of each listed spec, with a count of runs compared and a count of differing outputs, which is 0.
 
 **workspace-status**
 
-- [ ] **AC-0008.** `workspace_status.py` with a first argument of `repair-plan` or `repair-apply`, outside the migration forms, prints the same standard output, writes the same files and exits with the same code as at the base. Any other first argument, or none, exits 2 with nothing on standard output. For each retired subcommand, standard error starts `retired_subcommand: <name>`.
-- [ ] **AC-0009.** Each migration form exits 2 with nothing on standard output and writes no file.
-- [ ] **AC-0010.** No file under `packs/core/.apm/skills/` or `packages/agentbundle/agentbundle/` reads an `[authorization.migration]` table or `.workspace-migrations.json`.
-- [ ] **AC-0011.** These suites pass with their base assertions unchanged:
+- [x] **AC-0008.** `workspace_status.py` with a first argument of `repair-plan` or `repair-apply`, outside the migration forms, prints the same standard output, writes the same files and exits with the same code as at the base. Any other first argument, or none, exits 2 with nothing on standard output. For each retired subcommand, standard error starts `retired_subcommand: <name>`.
+- [x] **AC-0009.** Each migration form exits 2 with nothing on standard output and writes no file.
+- [x] **AC-0010.** No file under `packs/core/.apm/skills/` or `packages/agentbundle/agentbundle/` reads an `[authorization.migration]` table or `.workspace-migrations.json`.
+- [x] **AC-0011.** These suites pass with their base assertions unchanged:
   - `test_captured_entry_drop.py`, `test_captured_item_files_repair.py` and `test_depends_on_headers_repair.py`;
   - `test_refresh_policy_move.py`, `test_spec_registration_stop_repair.py` and `test_tracker_entry_drop.py`;
   - every other test under `packs/core/tests/skills/workspace-status/` at the base that runs only `repair-plan` or `repair-apply`.
 
   Two kinds of assertion are exempt. An assertion about dispatch output in the dispatch-comparison tests AC-0030 names is replaced by AC-0030. A test in `test_spec_registration_stop_repair.py` that reaches its entry through a migration form plants that entry directly, as the literal the migration produced, and keeps its other assertions.
-- [ ] **AC-0030.** Each dispatch-comparison test runs dispatch after each `repair-apply --yes` it runs. Exactly one of these holds for each run, taken in this order:
+- [x] **AC-0030.** Each dispatch-comparison test runs dispatch after each `repair-apply --yes` it runs. Exactly one of these holds for each run, taken in this order:
   1. when AC-0004 applies, dispatch prints the AC-0004 refusal;
   2. otherwise, while the applied `workspace.toml` still holds an entry, it prints the AC-0003 refusal;
   3. otherwise, it prints output byte-identical to dispatch on the same tree with `workspace.toml` removed.
@@ -164,53 +164,53 @@ the plan's `## Design (LLD)`, not here.
   - `test_dispatch_output_is_identical_across_apply` in `test_captured_entry_drop.py`;
   - `test_dispatch_output_is_byte_identical_before_and_after_apply` and `test_dispatch_output_is_identical_across_a_held_entrys_second_run` in `test_spec_registration_stop_repair.py`;
   - every test in `test_tracker_entry_drop.py` that ran dispatch at the base.
-- [ ] **AC-0012.** Every top-level function and class in `workspace_status.py` and `workspace_status_engine.py` is reached from `workspace_status.py`'s `main` by the static closure. That closure follows each reference by name or attribute to a top-level name of either file, and treats each name `_bind_engine` binds as a reference to the engine name it binds. The skill's `scripts/` directory holds no prune or retirement module.
+- [x] **AC-0012.** Every top-level function and class in `workspace_status.py` and `workspace_status_engine.py` is reached from `workspace_status.py`'s `main` by the static closure. That closure follows each reference by name or attribute to a top-level name of either file, and treats each name `_bind_engine` binds as a reference to the engine name it binds. The skill's `scripts/` directory holds no prune or retirement module.
 
 **Copies, work-intake and MCP**
 
-- [ ] **AC-0013.** `work-loop/scripts/cooling.py` and `work-loop/scripts/close_work.py` are byte-identical to their `close-work` sources. The readiness module's source-authority parser accepts and refuses each source-authority record in the repository's fixtures and docs exactly as `work-intake`'s `parse_source_authority` does, with the same parsed fields.
-- [ ] **AC-0014.** The MCP `workspace_status()` result's `canonical` is the argless output of `agentbundle`'s packaged dispatch for the repository, and `shaping` is `[]`. Its `ready`, `active` and `blocked` hold one item per item of that output, in its order, apart from the items the base tool's slug guard, spec filter and pack-presence filter skip. Each item carries the item's `path`, `slug` and `findings` and the tool's other base fields, apart from `ini_slug`, which no item carries.
-- [ ] **AC-0015.** The MCP tool loads dispatch only from `agentbundle`'s `_data/`, and returns that result with `workspace.toml` absent.
-- [ ] **AC-0028.** A `WORKSPACE_MCP_DISPATCHED_ITEM` value is three-part when a `/` precedes its first `:`, and two-part otherwise. For a two-part `<type>:<slug>`, the expected branch is `<type>/<slug>`, and `git_commit`'s scope equals the base scope for `<ini>/<type>:<slug>` with a safe `<ini>`. A three-part value behaves as at the base. Any of these values gets the base malformed-item handling: no expected branch, no `git_commit` scope, and git writes blocked.
+- [x] **AC-0013.** `work-loop/scripts/cooling.py` and `work-loop/scripts/close_work.py` are byte-identical to their `close-work` sources. The readiness module's source-authority parser accepts and refuses each source-authority record in the repository's fixtures and docs exactly as `work-intake`'s `parse_source_authority` does, with the same parsed fields.
+- [x] **AC-0014.** The MCP `workspace_status()` result's `canonical` is the argless output of `agentbundle`'s packaged dispatch for the repository, and `shaping` is `[]`. Its `ready`, `active` and `blocked` hold one item per item of that output, in its order, apart from the items the base tool's slug guard, spec filter and pack-presence filter skip. Each item carries the item's `path`, `slug` and `findings` and the tool's other base fields, apart from `ini_slug`, which no item carries.
+- [x] **AC-0015.** The MCP tool loads dispatch only from `agentbundle`'s `_data/`, and returns that result with `workspace.toml` absent.
+- [x] **AC-0028.** A `WORKSPACE_MCP_DISPATCHED_ITEM` value is three-part when a `/` precedes its first `:`, and two-part otherwise. For a two-part `<type>:<slug>`, the expected branch is `<type>/<slug>`, and `git_commit`'s scope equals the base scope for `<ini>/<type>:<slug>` with a safe `<ini>`. A three-part value behaves as at the base. Any of these values gets the base malformed-item handling: no expected branch, no `git_commit` scope, and git writes blocked.
   - one that does not split into a type and a slug;
   - one whose slug fails the base slug guard;
   - one whose type the lifecycle manifest does not know.
-- [ ] **AC-0032.** Rule 5 of the server instructions and both `git_branch` descriptions each name `<type>/<slug>` as the branch, and none of them names a three-part `<ini_slug>/<type>/<slug>` branch. `README-pypi.md`'s `WORKSPACE_MCP_DISPATCHED_ITEM` text names `type:slug` as the form to set, and marks any three-part `ini_slug/type:slug` it names as legacy. None of the server instructions, the `workspace_status` tool description, the two `git_branch` descriptions, `README-pypi.md`'s `workspace_status` row or that `WORKSPACE_MCP_DISPATCHED_ITEM` text names `ini_slug` as a `workspace_status()` field. None of them describes `shaping` as anything but an empty list.
-- [ ] **AC-0016.** `work-intake`'s `refresh.py` and `_data/work_intake_refresh.py` load no file from the `workspace-status` directory or a `workspace_status*` module. `packs/core/tests/skills/work-intake/test_work_intake.py` and `tests/roster/test_tracker_intake_adapters.py` pass with their base assertions unchanged.
-- [ ] **AC-0029.** `work-intake`'s router routes a status request to `navigate-intents`, and the routing matrix's status cases expect `navigate-intents`.
-- [ ] **AC-0017.** `navigate-intents`'s pinned finding table equals `work-loop`'s finding table, and the parity tests that compared it with the engine's table compare it with `work-loop`'s.
+- [x] **AC-0032.** Rule 5 of the server instructions and both `git_branch` descriptions each name `<type>/<slug>` as the branch, and none of them names a three-part `<ini_slug>/<type>/<slug>` branch. `README-pypi.md`'s `WORKSPACE_MCP_DISPATCHED_ITEM` text names `type:slug` as the form to set, and marks any three-part `ini_slug/type:slug` it names as legacy. None of the server instructions, the `workspace_status` tool description, the two `git_branch` descriptions, `README-pypi.md`'s `workspace_status` row or that `WORKSPACE_MCP_DISPATCHED_ITEM` text names `ini_slug` as a `workspace_status()` field. None of them describes `shaping` as anything but an empty list.
+- [x] **AC-0016.** `work-intake`'s `refresh.py` and `_data/work_intake_refresh.py` load no file from the `workspace-status` directory or a `workspace_status*` module. `packs/core/tests/skills/work-intake/test_work_intake.py` and `tests/roster/test_tracker_intake_adapters.py` pass with their base assertions unchanged.
+- [x] **AC-0029.** `work-intake`'s router routes a status request to `navigate-intents`, and the routing matrix's status cases expect `navigate-intents`.
+- [x] **AC-0017.** `navigate-intents`'s pinned finding table equals `work-loop`'s finding table, and the parity tests that compared it with the engine's table compare it with `work-loop`'s.
 
 **Text**
 
-- [ ] **AC-0018.** A roster check holds each of these. It collapses runs of whitespace inside each Markdown file and inside each string value of each JSON file before matching.
+- [x] **AC-0018.** A roster check holds each of these. It collapses runs of whitespace inside each Markdown file and inside each string value of each JSON file before matching.
   - None of the retired tokens appears in `workspace-status`'s SKILL.md or `references/mutate.md`, in the SKILL.md of `work-loop`, `work-intake`, `navigate-intents`, `close-work`, `intake-intent` or `author-delivery-brief`, in `new-spec`'s `references/spec-and-plan-contract.md`, or in any string value of a JSON file under `packs/core/.apm/skills/*/evals/`.
   - `workspace-status`'s SKILL.md `description` contains none of `orient`, `what's ready`, `session start`, `show the queue` and `prune`.
   - `work-loop`'s SKILL.md contains `dispatch.py --captured`, and `work-intake`'s SKILL.md contains `` Route status directly to `navigate-intents` ``.
 
 **Records and governance**
 
-- [ ] **AC-0019.** RFC-0106 § Errata holds one owner-approved entry, dated in this delivery, that names:
+- [x] **AC-0019.** RFC-0106 § Errata holds one owner-approved entry, dated in this delivery, that names:
   - the retired subcommands and the migration forms;
   - `[authorization.migration]` and the five deleted schemas;
   - the MCP tool's removed `ini_slug`, its empty `shaping`, its `canonical` object replaced by the dispatch output, and its two-part branch;
   - dispatch's `unmigrated_workspace` refusal.
-- [ ] **AC-0020.** RFC-0083 § Errata holds one owner-approved entry that points to the AC-0019 entry for the retired migration contracts.
-- [ ] **AC-0021.** `retirement-record.md` § Equivalence holds one row at slice `9` for each of these. Each `accepted removal` and `intended change` row cites the AC-0019 entry, and the `reproduced` row's authority is `none`:
+- [x] **AC-0020.** RFC-0083 § Errata holds one owner-approved entry that points to the AC-0019 entry for the retired migration contracts.
+- [x] **AC-0021.** `retirement-record.md` § Equivalence holds one row at slice `9` for each of these. Each `accepted removal` and `intended change` row cites the AC-0019 entry, and the `reproduced` row's authority is `none`:
   - `the workspace-status orientation run`, `the delivery-artifact prune`, `the retirement-candidates report`, `the legacy migration apply and rollback`, `the MCP queue's initiative slug and shaping list` and `the MCP canonical reconciliation object`, each an `accepted removal`;
   - `dispatch over unmigrated registry entries`, an `intended change`;
   - `dispatch from headers alone`, `reproduced`.
 
   Every earlier row cites at least one tracked file that exists after this change, and the record check passes.
-- [ ] **AC-0022.** `retirement-record.md` § Compatibility closure holds an entry that links `../repair-only-workspace-status/spec.md` and names `unmigrated_workspace`, `[authorization.migration]` and the AC-0007 counts.
-- [ ] **AC-0023.** `inventory.toml` holds a `docs/specs/repair-only-workspace-status/*` `contract` row at owner `9`, holds no row for a file this spec deletes, and passes the inventory check.
-- [ ] **AC-0024.** The brief's Spec map lists `repair-only-workspace-status`. Its after-cutover list names that spec beside the engine-rules move and the `workspace-status` shrink. Its `navigate-intents` non-goal admits the queue redirect and pinning the finding table and its parity tests against `work-loop`'s table. `lint-brief-coverage.py` passes.
-- [ ] **AC-0025.** `notes/verification-ledger.md` records each of these, with the SHA-256 of the file approved where one is approved:
+- [x] **AC-0022.** `retirement-record.md` § Compatibility closure holds an entry that links `../repair-only-workspace-status/spec.md` and names `unmigrated_workspace`, `[authorization.migration]` and the AC-0007 counts.
+- [x] **AC-0023.** `inventory.toml` holds a `docs/specs/repair-only-workspace-status/*` `contract` row at owner `9`, holds no row for a file this spec deletes, and passes the inventory check.
+- [x] **AC-0024.** The brief's Spec map lists `repair-only-workspace-status`. Its after-cutover list names that spec beside the engine-rules move and the `workspace-status` shrink. Its `navigate-intents` non-goal admits the queue redirect and pinning the finding table and its parity tests against `work-loop`'s table. `lint-brief-coverage.py` passes.
+- [x] **AC-0025.** `notes/verification-ledger.md` records each of these, with the SHA-256 of the file approved where one is approved:
   - eugenelim's approval of both errata entries, the brief text and the closure entry;
   - eugenelim's agreement, as owner of the readiness hand-over, to the finding-table re-point.
 
 **Release**
 
-- [ ] **AC-0026.** `tools/check-core-release.py --base` passes against the merge base with freshly fetched `origin/main`. `agentbundle`'s `version.py` and `pyproject.toml` carry the next minor above the version on freshly fetched `origin/main`. One `docs/product/changelog.d/` fragment names both packages at their new versions, and names `unmigrated_workspace`, `repair-plan`, the `repair-rollback` removal and the dropped `ini_slug`.
+- [x] **AC-0026.** `tools/check-core-release.py --base` passes against the merge base with freshly fetched `origin/main`. `agentbundle`'s `version.py` and `pyproject.toml` carry the next minor above the version on freshly fetched `origin/main`. One `docs/product/changelog.d/` fragment names both packages at their new versions, and names `unmigrated_workspace`, `repair-plan`, the `repair-rollback` removal and the dropped `ini_slug`.
 
 ## Terminal Intent
 
