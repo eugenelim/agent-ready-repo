@@ -318,11 +318,9 @@ FIRST_TOOL_BATCH = (
     # Membership only: appended to this existing batch, so no group count moves.
     # `lint-ci-parity` disposes it NO_PR_GATE: the comparison has no CI job by
     # owner decision (FEAT-0034 § Registry comparison).
-    "tools/test_compare_registry.py",
     # Added 2026-10-29 with the dispatch replay tool (spec header-derived-dispatch).
     # Membership only: appended to this existing batch, so no group count moves.
     # `lint-ci-parity` disposes it NO_PR_GATE, as for the registry comparison.
-    "tools/test_replay_dispatch.py",
     # Added 2026-10-30 with the JUnit no-skip checker (spec windows-confined-write).
     # Membership only: appended to this existing batch, so no group count moves.
     # `lint-ci-parity` disposes it PR_GATED through its own build-check.yml step.
@@ -1127,11 +1125,16 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # `packs/github/tests/skills/github-brief-intake/`; no other line changed.
 # Prior pins were current: origin/main's Makefile, which lacks only that line,
 # matches `9d8022f1…` and `1470603e…`.
+# Re-pinned for repair-only-workspace-status. Sole cause: the paths
+# `tools/test_compare_registry.py` and `tools/test_replay_dispatch.py` left the
+# tools batch with their deleted tools; no line was added, removed or reordered.
+# Prior pins were current: this Makefile with only those two paths restored
+# matches `eca2ef48…` and `cb2b7c58…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "eca2ef48ad704579d1abd7df95ce118a5e23f5b12d1b0c5c0cd3a0b2b2a448bc"
+    "f3ae1ea332ab8d97ab449dad46f1d16fce63837106b178c08bd6ceb0cd29e4b7"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "cb2b7c58235596500b564fbb053df478a24771191eb442f93c709c2633fc35d6"
+    "fb54a049893c935ba92c378e15f291bf2130ebde7e055dc1c64a81b87143c819"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
@@ -1245,9 +1248,8 @@ EXPECTED_SKIP_XFAIL_CALLS = {
         ): 1,
     },
     SHARED_TESTS[4]: {
-        "self.skipTest('CLI not yet created')": 16,
+        "self.skipTest('CLI not yet created')": 6,
         "self.skipTest('Engine not yet moved')": 3,
-        "self.skipTest(f'symlinks unavailable: {exc}')": 1,
         (
             "unittest.skipIf(sys.platform == 'win32', "
             "'symlink test not portable on Windows')"
@@ -1256,20 +1258,12 @@ EXPECTED_SKIP_XFAIL_CALLS = {
             "unittest.skipIf(sys.platform == 'win32', "
             "'symlink needs elevated privs on Windows')"
         ): 1,
-        (
-            "unittest.skipIf(sys.platform == 'win32', "
-            "'symlink needs elevated privileges')"
-        ): 1,
     },
 }
 
 EXPECTED_WINDOWS_SKIPS = {
     f"{SHARED_TESTS[4]}::SymlinkConfinementTests::test_symlink_escape_not_read",
     f"{SHARED_TESTS[4]}::RepairPlanTests::test_repair_plan_plan_file_is_symlink",
-    (
-        f"{SHARED_TESTS[4]}::WorkIntakeMigrationCliStubTests::"
-        "test_ac27_migration_workspace_symlink_escape_uses_result_envelope"
-    ),
 }
 
 APPROVED_ENVIRONMENT_SKIP_SOURCES = {
@@ -1755,7 +1749,10 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
             workspace_class
         )
     }
-    assert len(workspace_nodes) == len(direct_workspace_nodes) == 88
+    # Re-pinned for repair-only-workspace-status T7: 88 -> 55. The cases that drove
+    # the deleted engine functions (bounded analysis, explain, shaping guard, stale
+    # warnings, migration stubs) left with them.
+    assert len(workspace_nodes) == len(direct_workspace_nodes) == 55
     assert set(workspace_nodes) == direct_workspace_nodes
     assert not any(
         metadata["markers"]
@@ -1810,7 +1807,13 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
     # Re-pinned 2026-10-26: 168 -> 169. One addition, no removals, no renames:
     #   test_explain_refuses_an_entry_still_carrying_needs
     # It pins the unmigrated_needs refusal once blocking reads Depends on:.
-    assert len(cli_contract) == len(direct_cli_nodes) == 169
+    # Re-pinned for repair-only-workspace-status: 169 -> 88. The CLI keeps only
+    # `repair-plan` and `repair-apply`, so the cases that drove `status`,
+    # `reconcile`, `explain`, the migration forms and the migration stub class
+    # left the file, and the argument-vector and migration-reader cases joined it.
+    # Then 88 -> 81: the seven SkillWiringTests that pinned the retired status
+    # rendering text (display fields, repo_backlog, parallel graph, cleanup) left.
+    assert len(cli_contract) == len(direct_cli_nodes) == 81
     assert set(cli_contract) == direct_cli_nodes
     expected_live_skips = EXPECTED_WINDOWS_SKIPS if sys.platform == "win32" else set()
     assert live_skips == expected_live_skips
@@ -1823,10 +1826,10 @@ def test_shared_skip_xfail_contracts_are_exact_and_routes_match_live() -> None:
 
 
 def test_workspace_status_direct_and_pytest_share_one_case_registry() -> None:
-    """Direct and pytest entrypoints must consume the same 88 semantic cases."""
+    """Direct and pytest entrypoints must consume the same 55 semantic cases."""
     module = _load_module(SHARED_TESTS[3], "_shared_workspace_status_contract")
     cases = module.CASES
-    assert len(cases) == 88
+    assert len(cases) == 55
     labels = [label for label, _case in cases]
     functions = [case for _label, case in cases]
     assert len(set(labels)) == len(labels)
@@ -1923,11 +1926,11 @@ def test_runtime_skip_policy_covers_all_five_owner_routes() -> None:
     old_cli = cli_module._CLI
     cli_module._CLI = REPO_ROOT / "missing-workspace-status-cli.py"
     try:
-        case = cli_module.CLIContractTests("test_cli_success")
+        case = cli_module.CLIContractTests("test_cli_malformed_toml")
         try:
-            case.test_cli_success()
+            case.test_cli_malformed_toml()
         except unittest.SkipTest as exc:
-            cli_skip = (SHARED_TESTS[4], "CLIContractTests.test_cli_success", str(exc))
+            cli_skip = (SHARED_TESTS[4], "CLIContractTests.test_cli_malformed_toml", str(exc))
         else:
             raise AssertionError("CLI missing-path mutation did not skip")
     finally:
@@ -1935,76 +1938,7 @@ def test_runtime_skip_policy_covers_all_five_owner_routes() -> None:
     assert _runtime_skip_errors([cli_skip], platform=sys.platform) == [
         (
             f"unexpected runtime skip: {SHARED_TESTS[4]}::"
-            "CLIContractTests.test_cli_success: CLI not yet created"
-        )
-    ]
-
-    with tempfile.NamedTemporaryFile(prefix="shared-symlink-target-") as target_handle:
-        target = Path(target_handle.name)
-        link = target.with_name(f"{target.name}-link")
-        try:
-            try:
-                link.symlink_to(target)
-            except OSError as exc:
-                observed.append(
-                    (
-                        SHARED_TESTS[4],
-                        (
-                            "WorkIntakeMigrationCliStubTests."
-                            "test_ac7_status_refuses_linked_workspace_before_"
-                            "projecting_legacy_bytes"
-                        ),
-                        f"symlinks unavailable: {exc}",
-                    )
-                )
-            assert _runtime_skip_errors(observed, platform=sys.platform) == []
-        finally:
-            link.unlink(missing_ok=True)
-
-    migration_case = cli_module.WorkIntakeMigrationCliStubTests(
-        "test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes"
-    )
-
-    class FakeTemporaryDirectory:
-        def __enter__(self) -> str:
-            return "/construction-skip-probe"
-
-        def __exit__(self, *_args: object) -> None:
-            return None
-
-    with (
-        mock.patch.object(
-            cli_module.tempfile,
-            "TemporaryDirectory",
-            return_value=FakeTemporaryDirectory(),
-        ),
-        mock.patch.object(cli_module.Path, "write_text", return_value=0),
-        mock.patch.object(
-            cli_module.Path,
-            "symlink_to",
-            side_effect=OSError("forced symlink failure"),
-        ),
-    ):
-        try:
-            migration_case.test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes()
-        except unittest.SkipTest as exc:
-            symlink_skip = (
-                SHARED_TESTS[4],
-                (
-                    "WorkIntakeMigrationCliStubTests."
-                    "test_ac7_status_refuses_linked_workspace_before_"
-                    "projecting_legacy_bytes"
-                ),
-                str(exc),
-            )
-        else:
-            raise AssertionError("CLI symlink mutation did not exercise its skip")
-    assert _runtime_skip_errors([symlink_skip], platform=sys.platform) == [
-        (
-            f"unexpected runtime skip: {SHARED_TESTS[4]}::"
-            "WorkIntakeMigrationCliStubTests."
-            "test_ac7_status_refuses_linked_workspace_before_projecting_legacy_bytes: "
-            "symlinks unavailable: forced symlink failure"
+            "CLIContractTests.test_cli_malformed_toml: CLI not yet created"
         )
     ]
 
@@ -2033,7 +1967,7 @@ def test_workspace_status_cli_unittest_and_pytest_method_contracts_match() -> No
 
     # Same delta as the re-pin note above; both literals move together.
     # Same delta as the re-pin note above; both literals move together.
-    assert len(direct_ids) == 169
+    assert len(direct_ids) == 81
     assert direct_ids == pytest_unittest_ids
     assert not hasattr(module, "load_tests")
 

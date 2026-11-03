@@ -39,22 +39,15 @@ _engine_spec.loader.exec_module(_engine_mod)  # type: ignore[union-attr]
 
 _safe_spec_path = _engine_mod._safe_spec_path
 analyze = _engine_mod.analyze
-analyze_bounded = _engine_mod.analyze_bounded
-explain_item = _engine_mod.explain_item
-check_shaping_guard = _engine_mod.check_shaping_guard
 classify_entries = _engine_mod.classify_entries
 classify_shaping_entries = _engine_mod.classify_shaping_entries
-collect_work_loop_stale_warnings = _engine_mod.collect_work_loop_stale_warnings
 compute_type2_cleanup = _engine_mod.compute_type2_cleanup
 extract_initiatives = _engine_mod.extract_initiatives
 extract_spec_status = _engine_mod.extract_spec_status
 extract_spec_status_with_fingerprint = _engine_mod.extract_spec_status_with_fingerprint
 extract_repo_backlog = _engine_mod.extract_repo_backlog
 extract_top_level_backlog = _engine_mod.extract_top_level_backlog
-get_active_specs = _engine_mod.get_active_specs
-normalize_for_shaping_guard = _engine_mod.normalize_for_shaping_guard
 parse_workspace = _engine_mod.parse_workspace
-run_reconciliation = _engine_mod.run_reconciliation
 compute_repair_plan = _engine_mod.compute_repair_plan
 canonical_result_identity = _engine_mod.canonical_result_identity
 canonical_result_snapshot = _engine_mod.canonical_result_snapshot
@@ -690,44 +683,6 @@ def case_spec_status_sister_function_parity() -> None:
 
 # ── AC2i: Missing spec paths ──────────────────────────────────────────────────
 
-def case_missing_spec_paths() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Missing"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = ["spec/missing-shipped"]
-            queue   = [
-              {path = "spec/missing-dep", needs = "work:spec/missing-shipped"},
-              "spec/missing-nodeps",
-            ]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        # No spec files created — all paths are missing
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        cls = classify_entries(initiatives[0], initiatives)
-        by_path = {c.entry.path: c for c in cls}
-
-        # missing-dep: prerequisite is in shipped, so ready even if spec.md absent
-        expect(by_path["spec/missing-dep"].is_ready,
-               "[AC2i] missing-dep ready (dep is shipped, spec absence irrelevant to DAG)")
-        expect(by_path["spec/missing-nodeps"].is_ready,
-               "[AC2i] missing-nodeps ready (no deps)")
-
-        # Reconciliation: missing spec files silently skipped (no warning per SKILL.md)
-        findings, _ = run_reconciliation(root, initiatives)
-        expect(
-            len(findings) == 0,
-            f"[AC2i] missing spec files should be silently skipped, got {len(findings)} findings",
-        )
-
 
 # ── AC2j: Missing dependency targets ─────────────────────────────────────────
 
@@ -798,229 +753,14 @@ def case_dependency_cycles() -> None:
 
 # ── AC2l: Untracked Approved/Implementing spec (Type 1) ──────────────────────
 
-def case_type1_untracked_live_spec() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Tracked"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = ["spec/tracked-shipped"]
-            queue   = ["spec/tracked-queued"]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        # Tracked specs
-        write_spec(root, "tracked-shipped", "Shipped")
-        write_spec(root, "tracked-queued", "Draft")
-        # Untracked specs: a spec needs no entry, so none is a Type 1 finding
-        write_spec(root, "untracked-approved", "Approved")
-        write_spec(root, "untracked-implementing", "Implementing")
-        # Untracked spec with non-live status (should NOT generate Type 1)
-        write_spec(root, "untracked-draft", "Draft")
-        write_spec(root, "untracked-shipped", "Shipped")
-        # Nested spec under a grouping directory — must also be discovered
-        write_spec(root, "group/nested-approved", "Approved")
-
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        findings, _ = run_reconciliation(root, initiatives)
-        type1 = [f for f in findings if f.finding_type == 1]
-        type1_paths = {f.spec_path for f in type1}
-
-        expect(type1 == [], f"[AC-0041] Type 1 must report nothing; got {type1_paths}")
-        expect(not [f for f in findings if f.spec_path.startswith("spec/untracked")],
-               "[AC-0041] no finding names an untracked spec")
-
 
 # ── AC2m: Stale queue/active entries (Type 2) ────────────────────────────────
-
-def case_type2_stale_entries() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Stale"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/active-but-shipped", "spec/active-but-archived"]
-            shipped = ["spec/correctly-shipped"]
-            queue   = ["spec/queue-but-shipped", "spec/queue-still-draft"]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        write_spec(root, "active-but-shipped", "Shipped")
-        write_spec(root, "active-but-archived", "Archived")
-        write_spec(root, "correctly-shipped", "Shipped")
-        write_spec(root, "queue-but-shipped", "Shipped")
-        write_spec(root, "queue-still-draft", "Draft")
-
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        findings, _ = run_reconciliation(root, initiatives)
-        type2 = [f for f in findings if f.finding_type == 2]
-        type2_paths = {(f.spec_path, f.list_name) for f in type2}
-
-        expect(("spec/active-but-shipped", "active") in type2_paths,
-               "[AC2m] active-but-shipped should be Type 2 (in active, Status=Shipped)")
-        expect(("spec/active-but-archived", "active") in type2_paths,
-               "[AC2m] active-but-archived should be Type 2 (in active, Status=Archived)")
-        expect(("spec/queue-but-shipped", "queue") in type2_paths,
-               "[AC2m] queue-but-shipped should be Type 2 (in queue, Status=Shipped)")
-        expect(("spec/queue-still-draft", "queue") not in type2_paths,
-               "[AC2m] queue-still-draft should NOT be Type 2 (Status=Draft)")
-        expect(("spec/correctly-shipped", "shipped") not in type2_paths,
-               "[AC2m] correctly-shipped in shipped list should NOT be Type 2")
 
 
 # ── AC2n: Prematurely shipped entries (Type 3) ───────────────────────────────
 
-def case_type3_premature_shipped() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Premature"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = [
-              "spec/shipped-but-approved",
-              "spec/shipped-but-implementing",
-              "spec/correctly-shipped",
-              "spec/shipped-draft",
-            ]
-            queue = []
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        write_spec(root, "shipped-but-approved", "Approved")
-        write_spec(root, "shipped-but-implementing", "Implementing")
-        write_spec(root, "correctly-shipped", "Shipped")
-        write_spec(root, "shipped-draft", "Draft")
-
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        findings, _ = run_reconciliation(root, initiatives)
-        type3 = [f for f in findings if f.finding_type == 3]
-        type3_paths = {f.spec_path for f in type3}
-
-        expect("spec/shipped-but-approved" in type3_paths,
-               "[AC2n] shipped-but-approved should be Type 3")
-        expect("spec/shipped-but-implementing" in type3_paths,
-               "[AC2n] shipped-but-implementing should be Type 3")
-        expect("spec/correctly-shipped" not in type3_paths,
-               "[AC2n] correctly-shipped should NOT be Type 3")
-        expect("spec/shipped-draft" not in type3_paths,
-               "[AC2n] shipped-draft should NOT be Type 3 (Draft is not live)")
-
 
 # ── AC2o: Multiple active items for argless work-loop ────────────────────────
-
-def case_multiple_active_for_workloop() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-
-        # Branch 0: no active
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Zero Active"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = ["spec/queued"]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        active_specs = get_active_specs(initiatives)
-        n = len(active_specs)
-        expect(n == 0, f"[AC2o] branch-0: expected 0 active, got {n}")
-
-        # Branch 1: exactly one active
-        write_workspace(root, """
-            ["ini-001"]
-            name = "One Active"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/current-work"]
-            shipped = []
-            queue   = []
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        active_specs = get_active_specs(initiatives)
-        n = len(active_specs)
-        expect(n == 1, f"[AC2o] branch-1: expected 1 active, got {n}")
-        expect(active_specs[0][1] == "spec/current-work", f"[AC2o] wrong path: {active_specs[0]}")
-
-        # Branch 2+: multiple active (two in one initiative)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Two Active"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/work-a", "spec/work-b"]
-            shipped = []
-            queue   = []
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        active_specs = get_active_specs(initiatives)
-        n = len(active_specs)
-        expect(n == 2, f"[AC2o] branch-2+: expected 2 active, got {n}")
-
-        # Branch 2+: across two initiatives
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Ini One"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/work-in-ini1"]
-            shipped = []
-            queue   = []
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-
-            ["ini-002"]
-            name = "Ini Two"
-            status = "active"
-            milestone = "M1"
-            ["ini-002".work]
-            active  = ["spec/work-in-ini2"]
-            shipped = []
-            queue   = []
-            ["ini-002".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        ws = parse_workspace(root / "workspace.toml")
-        initiatives = extract_initiatives(ws)
-        active_specs = get_active_specs(initiatives)
-        n = len(active_specs)
-        expect(n == 2, f"[AC2o] cross-ini: expected 2 active, got {n}")
 
 
 # ── AC2p: Deferred backlog anchors ───────────────────────────────────────────
@@ -1111,118 +851,8 @@ def case_strategy_prefix_gap() -> None:
 
 # ── AC3f: work-loop shaping-item guard ───────────────────────────────────────
 
-def case_shaping_item_guard() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        for slug, item_type in [
-            ("needs-shaping", "shape"),
-            ("needs-research", "research"),
-            ("needs-strategy", "strategy"),
-            ("needs-design", "design"),
-            ("backlog-signal", "signal"),
-            ("not-a-shaping-item", None),
-        ]:
-            write_captured_item(root, slug, item_type)
-        cooled: frozenset[Path] = frozenset()
-
-        expect(check_shaping_guard(root, "needs-shaping", cooled) == "intent",
-               "[AC3f] shape → intent")
-        expect(check_shaping_guard(root, "needs-research", cooled) == "desk-research-project-start",
-               "[AC3f] research → desk-research-project-start")
-        expect(check_shaping_guard(root, "needs-strategy", cooled) == "frame-situation",
-               "[AC3f] strategy → frame-situation")
-        expect(check_shaping_guard(root, "needs-design", cooled) == "experience-status",
-               "[AC3f] design → experience-status")
-        expect(check_shaping_guard(root, "backlog-signal", cooled) == "(signal — no action)",
-               "[AC3f] signal → no-action marker")
-        expect(check_shaping_guard(root, "not-a-shaping-item", cooled) is None,
-               "[AC3f] record with no Type → None (not guarded)")
-        expect(check_shaping_guard(root, "no-such-file", cooled) is None,
-               "[AC3f] absent record → None (not guarded)")
-
 
 # ── AC3f ext: shaping guard — paused initiative and top-level backlog ─────────
-
-def case_shaping_guard_cooled_record() -> None:
-    """A cooled record is not guarded, and its body is not opened."""
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_captured_item(root, "cooled-shape", "shape")
-        cooled = frozenset({(root / "docs/product/captured/cooled-shape.md").resolve()})
-
-        result = check_shaping_guard(root, "cooled-shape", cooled)
-        expect(result is None,
-               f"[AC3f-cooled] cooled record → None (not guarded), got {result!r}")
-
-
-def case_shaping_guard_ignores_registry_entries() -> None:
-    """A typed registry entry with no record is not a shaping item (the file is the source)."""
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Active Initiative"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".shaping_queue]
-            active  = [{slug = "queue-shape", type = "shape"}]
-            backlog = []
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = []
-
-            [backlog]
-            open = [
-              {slug = "top-shape",    type = "shape"},
-              {slug = "top-research", type = "research"},
-            ]
-        """)
-        cooled: frozenset[Path] = frozenset()
-        for slug in ("queue-shape", "top-shape", "top-research", "not-here"):
-            result = check_shaping_guard(root, slug, cooled)
-            expect(result is None,
-                   f"[AC3f-registry] registry entry {slug!r} without a record → None, got {result!r}")
-
-        # Top-level extraction still feeds the status JSON, so it still works.
-        top_backlog = extract_top_level_backlog(parse_workspace(root / "workspace.toml"))
-        expect([e.slug for e in top_backlog] == ["top-shape", "top-research"],
-               f"[AC3f-registry] extract_top_level_backlog unchanged, got {top_backlog!r}")
-
-
-def case_shaping_guard_refuses_invalid_and_unreadable() -> None:
-    """An invalid or unreadable record refuses with its own finding."""
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        directory = root / "docs/product/captured"
-        directory.mkdir(parents=True)
-        (directory / "bad-type.md").write_text(
-            "# Item\n\n- **Status:** Open\n- **Kind:** design\n- **Type:** bogus\n",
-            encoding="utf-8",
-        )
-        outside = root / "outside.md"
-        outside.write_text("# Item\n", encoding="utf-8")
-        (directory / "linked.md").symlink_to(outside)
-        cooled: frozenset[Path] = frozenset()
-
-        invalid = check_shaping_guard(root, "bad-type", cooled)
-        expect(isinstance(invalid, _engine_mod.ShapingGuardRefusal)
-               and invalid.finding.code == "invalid_captured_item",
-               f"[AC3f-refuse] invalid record → invalid_captured_item refusal, got {invalid!r}")
-        unreadable = check_shaping_guard(root, "linked", cooled)
-        expect(isinstance(unreadable, _engine_mod.ShapingGuardRefusal)
-               and unreadable.finding.code == "unreadable_artifact",
-               f"[AC3f-refuse] unreadable record → unreadable_artifact refusal, got {unreadable!r}")
-
-
-def case_shaping_guard_slug_outside_grammar() -> None:
-    """A slug outside the file name grammar is not guarded."""
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_captured_item(root, "x", "shape")
-        for slug in ("../x", "Bad_Name"):
-            expect(check_shaping_guard(root, slug, frozenset()) is None,
-                   f"[AC3f-grammar] {slug!r} → None")
 
 
 def case_extract_repo_backlog_preserves_declared_display_data() -> None:
@@ -1519,13 +1149,16 @@ _WL_FINISH_END = r'Conventional commit format'
 # the retired skill name. The engine mapping moved with it; ownership is unchanged.
 # Moved for captured-item-files: the shaping-item guard paragraph matches
 # `captured.items` instead of the registry shaping lists. The engine guard
-# moved with it (`check_shaping_guard` reads the captured-item file).
+# moved with it; the engine has since dropped the guard (repair-only-workspace-status T7).
 # Moved for spec-registration-stop T6: Step 0 runs `scripts/dispatch.py` and acts
 # on its `decision` instead of reading `canonical.ready`/`canonical.active`. The
 # engine is unchanged: dispatch.py hands the same engine its input, and the
 # shaping-item guard still reads `captured.items`; ownership is unchanged.
+# Moved for repair-only-workspace-status T3: the shaping-item guard reads
+# `captured.items` from `dispatch.py --captured`, and the orientation block no
+# longer reads `workspace.toml` initiatives. Ownership is unchanged.
 _WORK_LOOP_CONTRACT_HASH = (
-    "3a1faea1019b6b5f0fe5cfbeda14547bc98c70152d124785bdc3f1201da2e0bc"
+    "e5a3f9e7a7f07a1ab2083603587edd27580a6dbaafeb859ffb3af0eb0b3f7bca"
 )
 # Reconciled for spec-registration-stop T2: the supplied-spec-path bullet no longer
 # names the retired `unregistered_work` finding; ownership is unchanged.
@@ -1883,26 +1516,6 @@ def case_research_type_filter() -> None:
 
 # ── F1b: untyped backlog entries not treated as shaping ───────────────────────
 
-def case_untyped_backlog_not_shaping() -> None:
-    """A record with no Type (a build item) does not trigger the shaping guard."""
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_captured_item(root, "build-item", None)
-        write_captured_item(root, "typed-shape", "shape")
-        cooled: frozenset[Path] = frozenset()
-
-        r = check_shaping_guard(root, "build-item", cooled)
-        expect(
-            r is None,
-            f"[F1b] untyped record → None (not shaping), got {r!r}",
-        )
-
-        r2 = check_shaping_guard(root, "typed-shape", cooled)
-        expect(
-            r2 == "intent",
-            f"[F1b] typed shape record → intent, got {r2!r}",
-        )
-
 
 # ── F2: shaping DAG classification ───────────────────────────────────────────
 
@@ -2165,204 +1778,7 @@ def case_safe_spec_path_dot_segments() -> None:
                f"[confinement] normal slug should not be rejected, got {result_ok}")
 
 
-# ── F1: work-loop Step 0 stale-queue check ───────────────────────────────────
-
-def case_work_loop_stale_warnings() -> None:
-    """collect_work_loop_stale_warnings: characterizes work-loop Step 0 stale-queue check."""
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Active"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/stale-active"]
-            shipped = []
-            queue   = [
-              "spec/stale-queue",
-              "spec/archived-entry",
-              {path = "spec/inline-shipped", needs = "work:spec/stale-queue"},
-              "spec/approved-entry",
-              "spec/no-spec",
-            ]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-
-            ["ini-002"]
-            name = "Paused"
-            status = "paused"
-            milestone = "M1"
-            ["ini-002".work]
-            active  = []
-            shipped = []
-            queue   = ["spec/paused-stale"]
-            ["ini-002".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        # Write spec files
-        write_spec(root, "stale-queue", "Shipped")
-        write_spec(root, "stale-active", "Shipped")
-        write_spec(root, "archived-entry", "Archived")
-        write_spec(root, "inline-shipped", "Shipped")
-        write_spec(root, "approved-entry", "Approved")
-        write_spec(root, "paused-stale", "Shipped")
-        # spec/no-spec deliberately has no spec.md
-
-        ws = parse_workspace(root / "workspace.toml")
-        inits = extract_initiatives(ws)
-        warnings = collect_work_loop_stale_warnings(root, inits)
-        warned_paths = {w.spec_path for w in warnings}
-
-        # Shipped queue entry → warns
-        expect("spec/stale-queue" in warned_paths,
-               "[stale] Shipped queue entry warns")
-        # Shipped active entry → warns
-        expect("spec/stale-active" in warned_paths,
-               "[stale] Shipped active entry warns")
-        # Shipped inline-object queue entry → warns (path field used, not slug)
-        expect("spec/inline-shipped" in warned_paths,
-               "[stale] Shipped inline-object queue entry warns")
-        # Archived → does NOT warn
-        expect("spec/archived-entry" not in warned_paths,
-               "[stale] Archived entry does NOT warn")
-        # Approved → does NOT warn
-        expect("spec/approved-entry" not in warned_paths,
-               "[stale] Approved entry does NOT warn")
-        # Missing spec.md → skipped without error
-        expect("spec/no-spec" not in warned_paths,
-               "[stale] missing spec.md → no warning")
-        # Paused initiative → ignored
-        expect("spec/paused-stale" not in warned_paths,
-               "[stale] paused initiative ignored")
-        # Exactly 3 warnings (stale-queue, stale-active, inline-shipped)
-        expect(len(warnings) == 3,
-               f"[stale] expected 3 warnings, got {len(warnings)}: "
-               f"{[w.spec_path for w in warnings]}")
-
-
-def case_work_loop_stale_both_lists() -> None:
-    """Path in both queue and active → ONE warning naming both lists."""
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Active"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/in-both"]
-            shipped = []
-            queue   = ["spec/in-both"]
-            ["ini-001".shaping_queue]
-            active = []
-            backlog = []
-        """)
-        write_spec(root, "in-both", "Shipped")
-
-        ws = parse_workspace(root / "workspace.toml")
-        inits = extract_initiatives(ws)
-        warnings = collect_work_loop_stale_warnings(root, inits)
-
-        expect(len(warnings) == 1,
-               f"[stale-both] one warning for path in both lists, got {len(warnings)}")
-        w = warnings[0]
-        expect(w.spec_path == "spec/in-both", "[stale-both] correct path")
-        expect(sorted(w.source_lists) == ["active", "queue"],
-               f"[stale-both] both lists named: {w.source_lists!r}")
-
-
-def case_work_loop_slug_normalization() -> None:
-    """normalize_for_shaping_guard converts various path forms to canonical slug."""
-    cases = [
-        ("docs/specs/example/", "example"),
-        ("docs/specs/example", "example"),
-        ("spec/example", "example"),
-        ("example", "example"),
-        ("docs/specs/a/b", "a/b"),
-    ]
-    for raw, expected in cases:
-        got = normalize_for_shaping_guard(raw)
-        expect(got == expected,
-               f"[normalize] {raw!r} → {expected!r}, got {got!r}")
-
-    # End-to-end: normalization + shaping guard
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_captured_item(root, "my-feature", "shape")
-
-        # All these raw paths should route to the same captured-item file
-        for raw in ["docs/specs/my-feature/", "docs/specs/my-feature",
-                    "spec/my-feature", "my-feature"]:
-            slug = normalize_for_shaping_guard(raw)
-            result = check_shaping_guard(root, slug, frozenset())
-            expect(result == "intent",
-                   f"[normalize+guard] {raw!r} → slug={slug!r} → {result!r} (want 'intent')")
-
-
-# ── Order 1B: analyze_bounded + explain_item ─────────────────────────────────
-
-def case_analyze_bounded_skips_type1() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/alpha-active"]
-            shipped = []
-            queue   = ["spec/alpha-queue"]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        write_spec(root, "alpha-active", "Implementing")
-        write_spec(root, "alpha-queue", "Approved")
-        write_spec(root, "untracked-live", "Implementing")  # M=1 untracked live spec
-
-        result = analyze_bounded(root)
-        expect(result.type1 == [], f"[bounded-type1] expected type1==[], got {result.type1}")
-        expect(not result.global_scan_performed,
-               "[bounded-type1] global_scan_performed should be False")
-        expect(result.global_scan_files_read == 0,
-               f"[bounded-type1] global_scan_files_read={result.global_scan_files_read}")
-
-
-def case_analyze_bounded_file_counts() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/alpha-active"]
-            shipped = ["spec/alpha-shipped"]
-            queue   = ["spec/alpha-queue"]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        write_spec(root, "alpha-active", "Implementing")
-        # alpha-shipped: no spec.md — confinement returns None → not read
-        write_spec(root, "alpha-queue", "Approved")
-        write_spec(root, "untracked-1", "Implementing")
-        write_spec(root, "untracked-2", "Approved")
-
-        result = analyze_bounded(root)
-        N = 3  # active + shipped + queue entries declared
-        expect(result.declared_spec_files_read <= N,
-               f"[bounded-counts] declared={result.declared_spec_files_read} > N={N}")
-        expect(result.global_scan_files_read == 0,
-               f"[bounded-counts] global_scan_files_read={result.global_scan_files_read}")
-        expect(result.files_read == result.declared_spec_files_read,
-               f"[bounded-counts] files_read={result.files_read} "
-               f"!= declared={result.declared_spec_files_read}")
+# ── Order 1B: full-file analysis ─────────────────────────────────────────────
 
 
 def case_analyze_full_file_counts() -> None:
@@ -2395,381 +1811,6 @@ def case_analyze_full_file_counts() -> None:
             result.files_read == result.declared_spec_files_read + result.global_scan_files_read,
             f"[full-counts] files_read={result.files_read} != declared+global",
         )
-
-
-def case_explain_item_ready() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = ["spec/alpha-ready"]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "spec/alpha-ready")
-        expect(out.get("selector_status") == "matched",
-               f"[explain-ready] selector_status={out.get('selector_status')!r}")
-        item = out.get("explained_item", {})
-        expect(item.get("classification") == "ready",
-               f"[explain-ready] classification={item.get('classification')!r}")
-        expect(item.get("blocking_needs") == [],
-               f"[explain-ready] blocking_needs={item.get('blocking_needs')!r}")
-        expect(item.get("list") == "queue",
-               f"[explain-ready] list={item.get('list')!r}")
-
-
-def case_explain_item_blocked() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = [
-                "spec/alpha-dep",
-                {path = "spec/alpha-blocked", needs = ["work:spec/alpha-dep"]},
-            ]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "spec/alpha-blocked")
-        expect(out.get("selector_status") == "matched",
-               f"[explain-blocked] selector_status={out.get('selector_status')!r}")
-        item = out.get("explained_item", {})
-        expect(item.get("classification") == "blocked",
-               f"[explain-blocked] classification={item.get('classification')!r}")
-        expect("work:spec/alpha-dep" in item.get("blocking_needs", []),
-               f"[explain-blocked] blocking_needs={item.get('blocking_needs')!r}")
-        deps = item.get("dependencies", [])
-        expect(
-            len(deps) == 1
-            and deps[0]["need"] == "work:spec/alpha-dep"
-            and not deps[0]["satisfied"],
-            f"[explain-blocked] deps={deps!r}",
-        )
-
-
-def case_explain_item_active() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/alpha-active"]
-            shipped = []
-            queue   = []
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "alpha-active")  # slug form — tests normalization
-        expect(out.get("selector_status") == "matched",
-               f"[explain-active] selector_status={out.get('selector_status')!r}")
-        item = out.get("explained_item", {})
-        expect(item.get("list") == "active",
-               f"[explain-active] list={item.get('list')!r}")
-        expect(item.get("classification") == "active",
-               f"[explain-active] classification={item.get('classification')!r}")
-
-
-def case_explain_item_active_downstream() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/item-b"]
-            shipped = []
-            queue   = [
-                {path = "spec/item-a", needs = ["work:spec/item-b"]},
-            ]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "spec/item-b")
-        expect(out.get("selector_status") == "matched",
-               f"[explain-active-downstream] selector_status={out.get('selector_status')!r}")
-        item = out.get("explained_item", {})
-        downstream = item.get("downstream_unblocked", [])
-        expect("spec/item-a" in downstream,
-               f"[explain-active-downstream] downstream_unblocked={downstream!r} (want item-a)")
-
-
-def case_explain_item_shipped() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = ["spec/alpha-shipped"]
-            queue   = []
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "spec/alpha-shipped")
-        expect(out.get("selector_status") == "matched",
-               f"[explain-shipped] selector_status={out.get('selector_status')!r}")
-        item = out.get("explained_item", {})
-        expect(item.get("list") == "shipped",
-               f"[explain-shipped] list={item.get('list')!r}")
-        expect(item.get("classification") == "shipped",
-               f"[explain-shipped] classification={item.get('classification')!r}")
-
-
-def case_explain_item_not_found() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = ["spec/alpha-only"]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "spec/unknown-slug")
-        expect(out.get("selector_status") == "not_found",
-               f"[explain-not-found] selector_status={out.get('selector_status')!r}")
-
-
-def case_explain_item_ambiguous_cross_initiative() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = ["spec/shared-slug"]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-
-            ["ini-002"]
-            name = "Beta"
-            status = "active"
-            milestone = "M1"
-            ["ini-002".work]
-            active  = []
-            shipped = []
-            queue   = ["spec/shared-slug"]
-            ["ini-002".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "shared-slug")
-        expect(out.get("selector_status") == "ambiguous",
-               f"[explain-ambiguous] selector_status={out.get('selector_status')!r}")
-        matches = out.get("matches", [])
-        expect(len(matches) == 2,
-               f"[explain-ambiguous] len(matches)={len(matches)} (want 2)")
-        ini_slugs = {m["ini_slug"] for m in matches}
-        expect("ini-001" in ini_slugs and "ini-002" in ini_slugs,
-               f"[explain-ambiguous] ini_slugs={ini_slugs!r}")
-
-
-def case_explain_item_within_ini_duplicate_not_ambiguous() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = ["spec/dup-slug"]
-            shipped = ["spec/dup-slug"]
-            queue   = []
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "dup-slug")
-        expect(out.get("selector_status") == "matched",
-               f"[explain-dup] selector_status={out.get('selector_status')!r}")
-        item = out.get("explained_item", {})
-        expect(item.get("list") == "active",
-               f"[explain-dup] list={item.get('list')!r} (want active > shipped)")
-        expect(item.get("classification") == "active",
-               f"[explain-dup] classification={item.get('classification')!r}")
-
-
-def case_explain_item_shaping_only_not_found() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = []
-            ["ini-001".shaping_queue]
-            active  = [{slug = "shape-only", type = "shape"}]
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "shape-only")
-        expect(out.get("selector_status") == "not_found",
-               f"[explain-shaping-only] selector_status={out.get('selector_status')!r}")
-
-
-def case_explain_item_downstream_sole_blocker() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = [
-                "spec/item-b",
-                {path = "spec/item-a", needs = ["work:spec/item-b"]},
-            ]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "spec/item-b")
-        expect(out.get("selector_status") == "matched",
-               f"[downstream-sole] selector_status={out.get('selector_status')!r}")
-        item = out.get("explained_item", {})
-        downstream = item.get("downstream_unblocked", [])
-        expect("spec/item-a" in downstream,
-               f"[downstream-sole] downstream_unblocked={downstream!r} (want item-a)")
-
-
-def case_explain_item_downstream_not_sole_blocker() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = [
-                "spec/item-b",
-                "spec/item-c",
-                {path = "spec/item-a", needs = ["work:spec/item-b", "work:spec/item-c"]},
-            ]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "spec/item-b")
-        item = out.get("explained_item", {})
-        downstream = item.get("downstream_unblocked", [])
-        expect("spec/item-a" not in downstream,
-               f"[downstream-not-sole] item-a should not be in downstream: {downstream!r}")
-
-
-def case_explain_item_downstream_cross_ini_excluded() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = ["spec/item-b"]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-
-            ["ini-002"]
-            name = "Beta"
-            status = "active"
-            milestone = "M1"
-            ["ini-002".work]
-            active  = []
-            shipped = []
-            queue   = [{path = "spec/item-a", needs = ["ini-001:work:spec/item-b"]}]
-            ["ini-002".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        out = explain_item(result, "spec/item-b")
-        item = out.get("explained_item", {})
-        downstream = item.get("downstream_unblocked", [])
-        expect("spec/item-a" not in downstream,
-               f"[downstream-cross-ini] item-a should not be in downstream: {downstream!r}")
-
-
-def case_analyze_bounded_path_traversal_entry() -> None:
-    with tempfile.TemporaryDirectory() as tmp:
-        root = Path(tmp)
-        write_workspace(root, """
-            ["ini-001"]
-            name = "Alpha"
-            status = "active"
-            milestone = "M1"
-            ["ini-001".work]
-            active  = []
-            shipped = []
-            queue   = ["spec/../../../etc/passwd"]
-            ["ini-001".shaping_queue]
-            active  = []
-            backlog = []
-        """)
-        result = analyze_bounded(root)
-        expect(result.declared_spec_files_read == 0,
-               f"[traversal] declared_spec_files_read={result.declared_spec_files_read} (want 0)")
-        expect(isinstance(result.reconciliation, list),
-               "[traversal] result must be structurally valid")
 
 
 # ── shared direct/pytest runner adapter ─────────────────────────────────────
@@ -3333,24 +2374,9 @@ def case_migration_finding_projects_exact_legacy_context() -> None:
     _migration_surface("build_migration_finding")
 
 
-# STUB: AC3
-def case_migration_selection_is_closed_and_human_selected() -> None:
-    _migration_surface("validate_migration_selection")
-
-
-# STUB: AC4
-def case_migration_missing_artifact_returns_processor_handoff() -> None:
-    _migration_surface("compute_migration_plan")
-
-
 # STUB: AC7
 def case_migration_plan_confines_every_repository_path() -> None:
     _migration_surface("confine_migration_path")
-
-
-# STUB: AC8
-def case_migration_plan_is_read_only_and_deterministic() -> None:
-    _migration_surface("compute_migration_plan")
 
 
 # STUB: AC20
@@ -3358,21 +2384,12 @@ def case_migration_candidate_routes_are_explicit_and_non_dispatchable() -> None:
     _migration_surface("migration_candidate_routes")
 
 
-# STUB: AC27
-def case_migration_result_uses_the_closed_result_contract() -> None:
-    _migration_surface("build_migration_result")
-
-
 # ── Runner ────────────────────────────────────────────────────────────────────
 
 CASES = [
     ("migration AC2 finding projection", case_migration_finding_projects_exact_legacy_context),
-    ("migration AC3 reviewed selection", case_migration_selection_is_closed_and_human_selected),
-    ("migration AC4 processor handoff", case_migration_missing_artifact_returns_processor_handoff),
     ("migration AC7 path confinement", case_migration_plan_confines_every_repository_path),
-    ("migration AC8 deterministic plan", case_migration_plan_is_read_only_and_deterministic),
     ("migration AC20 candidate routes", case_migration_candidate_routes_are_explicit_and_non_dispatchable),
-    ("migration AC27 result contract", case_migration_result_uses_the_closed_result_contract),
     ("AC2a multiple_active_initiatives", case_multiple_active_initiatives),
     ("AC2b paused_closed_initiatives", case_paused_closed_initiatives),
     ("AC2c ordered_queues", case_ordered_queues),
@@ -3387,58 +2404,25 @@ CASES = [
     ("AC2h spec_statuses", case_spec_statuses),
     ("AC2h spec_status_parser_boundaries", case_spec_status_parser_boundaries),
     ("AC2h spec_status_sister_function_parity", case_spec_status_sister_function_parity),
-    ("AC2i missing_spec_paths", case_missing_spec_paths),
     ("AC2j missing_dep_targets", case_missing_dep_targets),
     ("AC2k dependency_cycles", case_dependency_cycles),
-    ("AC2l type1_untracked_live_spec", case_type1_untracked_live_spec),
-    ("AC2m type2_stale_entries", case_type2_stale_entries),
-    ("AC2n type3_premature_shipped", case_type3_premature_shipped),
-    ("AC2o multiple_active_for_workloop", case_multiple_active_for_workloop),
     ("AC2p deferred_backlog_anchors", case_deferred_backlog_anchors),
     ("KD-08 strategy_prefix_gap", case_strategy_prefix_gap),
-    ("AC3f shaping_item_guard", case_shaping_item_guard),
-    ("AC3f shaping_guard_cooled_record", case_shaping_guard_cooled_record),
-    ("AC3f shaping_guard_ignores_registry_entries", case_shaping_guard_ignores_registry_entries),
-    ("AC3f shaping_guard_refuses_invalid_and_unreadable", case_shaping_guard_refuses_invalid_and_unreadable),
-    ("AC3f shaping_guard_slug_outside_grammar", case_shaping_guard_slug_outside_grammar),
     ("repo backlog display projection", case_extract_repo_backlog_preserves_declared_display_data),
     ("AC3g type2_cleanup_ownership", case_type2_cleanup_ownership),
     ("AC3a dag_all_needs_prefixes", case_dag_all_needs_prefixes),
     ("type2_cleanup_mutation_contract", case_type2_cleanup_mutation_contract),
     ("type1_type3_no_cleanup", case_type1_type3_no_cleanup),
     ("F1a research_type_filter", case_research_type_filter),
-    ("F1b untyped_backlog_not_shaping", case_untyped_backlog_not_shaping),
     ("F2 shaping_classifications", case_shaping_classifications),
     ("F3 type2_cleanup_duplicate_source", case_type2_cleanup_duplicate_source),
     ("work_loop_contract_anchor", case_work_loop_contract_anchor),
     ("integration full_analyze", case_full_analyze),
     ("F4a shaping_deduplication", case_shaping_deduplication),
-    ("F4b work_loop_stale_warnings", case_work_loop_stale_warnings),
-    ("F4c work_loop_stale_both_lists", case_work_loop_stale_both_lists),
-    ("F4d work_loop_slug_normalization", case_work_loop_slug_normalization),
     ("F4e missing_status_not_active", case_missing_status_not_active),
     ("F4f nonletter_transition_segment", case_nonletter_transition_segment),
     ("F4g safe_spec_path_dot_segments", case_safe_spec_path_dot_segments),
-    ("1B analyze_bounded_skips_type1", case_analyze_bounded_skips_type1),
-    ("1B analyze_bounded_file_counts", case_analyze_bounded_file_counts),
     ("1B analyze_full_file_counts", case_analyze_full_file_counts),
-    ("1B explain_item_ready", case_explain_item_ready),
-    ("1B explain_item_blocked", case_explain_item_blocked),
-    ("1B explain_item_active", case_explain_item_active),
-    ("1B explain_item_active_downstream", case_explain_item_active_downstream),
-    ("1B explain_item_shipped", case_explain_item_shipped),
-    ("1B explain_item_not_found", case_explain_item_not_found),
-    ("1B explain_item_ambiguous_cross_initiative",
-     case_explain_item_ambiguous_cross_initiative),
-    ("1B explain_item_within_ini_duplicate_not_ambiguous",
-     case_explain_item_within_ini_duplicate_not_ambiguous),
-    ("1B explain_item_shaping_only_not_found", case_explain_item_shaping_only_not_found),
-    ("1B explain_item_downstream_sole_blocker", case_explain_item_downstream_sole_blocker),
-    ("1B explain_item_downstream_not_sole_blocker",
-     case_explain_item_downstream_not_sole_blocker),
-    ("1B explain_item_downstream_cross_ini_excluded",
-     case_explain_item_downstream_cross_ini_excluded),
-    ("1B analyze_bounded_path_traversal_entry", case_analyze_bounded_path_traversal_entry),
     # ── Order 2B: compute_repair_plan ─────────────────────────────────────────
     ("2B compute_repair_plan_queue_shipped", case_compute_repair_plan_queue_shipped),
     ("2B compute_repair_plan_queue_archived", case_compute_repair_plan_queue_archived),

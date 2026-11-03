@@ -8,6 +8,7 @@ outcome it expects.
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
@@ -217,11 +218,97 @@ def test_field_under_a_heading_does_not_count() -> None:
     assert fields["type"] is None and fields["status"] == "Open"
 
 
-# Listing -------------------------------------------------------------------
+# Dispatch `--captured` output (AC-0002, AC-0006) ------------------------------
+
+_DISPATCH = _SCRIPTS.parents[1] / "work-loop/scripts/dispatch.py"
+
+
+def _status(root: Path) -> dict:
+    done = subprocess.run(
+        [sys.executable, "-I", str(_DISPATCH), "--captured", "--root", str(root)],
+        capture_output=True, text=True, check=False,
+    )
+    return json.loads(done.stdout)
+
+
+def _workspace(root: Path, *entries: str) -> None:
+    body = ", ".join(entries)
+    (root / "workspace.toml").write_text(
+        '["ini-001"]\nname = "n"\nstatus = "active"\nmilestone = "m"\n\n'
+        '["ini-001".work]\nqueue = []\nactive = []\nshipped = []\n\n'
+        '["ini-001".shaping_queue]\nactive = []\nbacklog = []\n\n'
+        '["ini-001".brief_queue]\ndraft = []\nready = []\nexecuting = []\n'
+        'shipped = []\nwithdrawn = []\ncancelled = []\n\n'
+        f"[backlog]\nopen = [{body}]\nclosed = []\n",
+        encoding="utf-8",
+    )
+
+
+def test_dispatch_emits_the_captured_object(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/one.md", _record(OPEN, KIND))
+    _write(tmp_path, f"{DIR}/bad.md", _record(OPEN))
+    _workspace(tmp_path)
+    captured = _status(tmp_path)["captured"]
+    assert [i["slug"] for i in captured["items"]] == ["bad", "one"]
+    assert captured["items"][0] == {"path": f"{DIR}/bad.md", "slug": "bad", "invalid": True}
+    [finding] = captured["findings"]
+    assert finding["code"] == "invalid_captured_item"
+    assert finding["path"] == f"{DIR}/bad.md"
+    assert finding["field"] == "Kind"
+
+
+def test_captured_object_is_the_same_under_two_registries(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/one.md", _record(OPEN, KIND))
+    _write(tmp_path, f"{DIR}/odd.md", _record(OPEN, "- **Kind:** nope"))
+    _workspace(tmp_path)
+    first = _status(tmp_path)["captured"]
+    entry = (
+        f'{{path = "{DIR}/one.md", kind = "defect", source = {{mode = "repo-origin"}}, '
+        'summary = "s", needs = []}'
+    )
+    _workspace(tmp_path, entry, '{path = "docs/missing.md", kind = "defect"}')
+    assert _status(tmp_path)["captured"] == first
+
+
+def test_captured_object_survives_a_failed_reconciliation(tmp_path: Path) -> None:
+    _write(tmp_path, f"{DIR}/one.md", _record(OPEN, KIND))
+    _workspace(tmp_path)
+    expected = _status(tmp_path)["captured"]
+    (tmp_path / "workspace.toml").write_text("not = [valid\n", encoding="utf-8")
+    broken = _status(tmp_path)
+    assert broken["decision"]["findings"][0]["code"] == "invalid_workspace"
+    assert broken["captured"] == expected
+
+
+def test_captured_object_is_empty_for_an_absent_directory(tmp_path: Path) -> None:
+    _workspace(tmp_path)
+    assert _status(tmp_path)["captured"] == {"items": [], "findings": []}
+
+
+# Listing, retargeted from the base engine to the readiness module ---------------
+# Each case keeps the assertion the base engine's listing test made.
+
+_READINESS_PATH = _SCRIPTS.parents[1] / "work-loop/scripts/_header_readiness.py"
+
+
+def _load_readiness() -> ModuleType:
+    name = "core_work_loop_header_readiness_captured_listing_test"
+    spec = importlib.util.spec_from_file_location(name, _READINESS_PATH)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.modules.pop(name, None)
+    return module
+
+
+READINESS = _load_readiness()
 
 
 def _list(root: Path, cooled: frozenset[Path] = frozenset()):
-    return ENGINE.list_captured_items(root, cooled)
+    return READINESS.list_captured_items(root, cooled)
 
 
 def test_absent_directory_lists_nothing(tmp_path: Path) -> None:
@@ -258,7 +345,7 @@ def test_routes_to_follows_each_shaping_type(tmp_path: Path) -> None:
     expected = {
         "shape": "intent", "research": "desk-research-project-start",
         "strategy": "frame-situation", "design": "experience-status",
-        "signal": "(signal — no action)",
+        "signal": "(signal \u2014 no action)",
     }
     for shaping in expected:
         _write(tmp_path, f"{DIR}/{shaping}.md", _record(OPEN, KIND, f"- **Type:** {shaping}"))
@@ -317,6 +404,39 @@ def test_cooled_entry_with_unreadable_mode_is_still_cooled(tmp_path: Path) -> No
     assert listing.items == [{"path": f"{DIR}/cool.md", "slug": "cool", "cooled": True}]
 
 
+def test_cooled_captured_item_under_a_planted_lifecycle_record_lists_with_no_read(
+    tmp_path: Path,
+) -> None:
+    """Through `dispatch.py --captured`: a lifecycle record cools the item, which is never read."""
+    locator = f"{DIR}/cool.md"
+    _write(tmp_path, locator, "not a record: it would be invalid if it were read")
+    _write(tmp_path, f"{DIR}/live.md", _record(OPEN, KIND))
+    record = {
+        "schema": "delivery-lifecycle-record.v1",
+        "delivery_id": "d-" + hashlib.sha256(locator.encode()).hexdigest()[:8],
+        "locator": locator,
+        "aliases": [],
+        "fingerprint": "sha256:" + "0" * 64,
+        "disposition": "cool-30-days",
+        "post_closeout_result": "Cooling",
+        "completion_event": "merge",
+        "completion_evidence_ref": "commit:" + "1" * 40,
+        "completed_on": "2026-01-01",
+        "timezone": "Asia/Singapore",
+        "review_on": "2026-01-31",
+        "authority": {n: {"status": "confirmed"} for n in ("source", "write", "delete")},
+        "confirmation_proof": "sha256:" + "2" * 64,
+    }
+    _write(tmp_path, f"docs/lifecycle/{record['delivery_id']}.json", json.dumps(record))
+    captured = _status(tmp_path)["captured"]
+    assert captured["findings"] == []
+    assert [(i["slug"], i.get("cooled"), i.get("invalid")) for i in captured["items"]] == [
+        ("cool", True, None),
+        ("live", None, None),
+    ]
+    assert captured["items"][0] == {"path": locator, "slug": "cool", "cooled": True}
+
+
 def test_symlinked_entry_is_unreadable(tmp_path: Path) -> None:
     _write(tmp_path, "outside/real.md", _record(OPEN, KIND))
     (tmp_path / DIR).mkdir(parents=True)
@@ -355,7 +475,7 @@ def test_entry_swapped_for_a_link_between_check_and_open(
 ) -> None:
     _write(tmp_path, f"{DIR}/swap.md", _record(OPEN, KIND))
     _write(tmp_path, "outside/real.md", _record(OPEN, KIND))
-    real_confine = ENGINE.confine_migration_path
+    real_confine = READINESS.confine_migration_path
 
     def swapping(root: Path, rel: str, **kwargs: object):
         resolved = real_confine(root, rel, **kwargs)
@@ -364,7 +484,7 @@ def test_entry_swapped_for_a_link_between_check_and_open(
             Path(root / rel).symlink_to(root / "outside/real.md")
         return resolved
 
-    monkeypatch.setattr(ENGINE, "confine_migration_path", swapping)
+    monkeypatch.setattr(READINESS, "confine_migration_path", swapping)
     assert _list(tmp_path).items == [
         {"path": f"{DIR}/swap.md", "slug": "swap", "unreadable": True}
     ]
@@ -414,154 +534,3 @@ def test_finding_echo_withholds_an_overlong_path(tmp_path: Path) -> None:
     _write(tmp_path, f"{DIR}/{name}.md", _record(OPEN, "- **Kind:** nope"))
     [finding] = _list(tmp_path).findings
     assert finding.path == ""
-
-
-# Status output (AC-0002, AC-0006) --------------------------------------------
-
-
-def _status(root: Path, mode: str = "status") -> dict:
-    done = subprocess.run(
-        [sys.executable, "-I", str(_SCRIPTS / "workspace_status.py"), mode, "--root", str(root)],
-        capture_output=True, text=True, check=False,
-    )
-    return json.loads(done.stdout)
-
-
-def _workspace(root: Path, *entries: str) -> None:
-    body = ", ".join(entries)
-    (root / "workspace.toml").write_text(
-        '["ini-001"]\nname = "n"\nstatus = "active"\nmilestone = "m"\n\n'
-        '["ini-001".work]\nqueue = []\nactive = []\nshipped = []\n\n'
-        '["ini-001".shaping_queue]\nactive = []\nbacklog = []\n\n'
-        '["ini-001".brief_queue]\ndraft = []\nready = []\nexecuting = []\n'
-        'shipped = []\nwithdrawn = []\ncancelled = []\n\n'
-        f"[backlog]\nopen = [{body}]\nclosed = []\n",
-        encoding="utf-8",
-    )
-
-
-def test_status_and_reconcile_emit_the_captured_object(tmp_path: Path) -> None:
-    _write(tmp_path, f"{DIR}/one.md", _record(OPEN, KIND))
-    _write(tmp_path, f"{DIR}/bad.md", _record(OPEN))
-    _workspace(tmp_path)
-    for mode in ("status", "reconcile"):
-        captured = _status(tmp_path, mode)["captured"]
-        assert [i["slug"] for i in captured["items"]] == ["bad", "one"]
-        assert captured["items"][0] == {"path": f"{DIR}/bad.md", "slug": "bad", "invalid": True}
-        [finding] = captured["findings"]
-        assert finding["code"] == "invalid_captured_item"
-        assert finding["path"] == f"{DIR}/bad.md"
-        assert finding["field"] == "Kind"
-
-
-def test_captured_object_is_the_same_under_two_registries(tmp_path: Path) -> None:
-    _write(tmp_path, f"{DIR}/one.md", _record(OPEN, KIND))
-    _write(tmp_path, f"{DIR}/odd.md", _record(OPEN, "- **Kind:** nope"))
-    _workspace(tmp_path)
-    first = _status(tmp_path)["captured"]
-    entry = (
-        f'{{path = "{DIR}/one.md", kind = "defect", source = {{mode = "repo-origin"}}, '
-        'summary = "s", needs = []}'
-    )
-    _workspace(tmp_path, entry, '{path = "docs/missing.md", kind = "defect"}')
-    assert _status(tmp_path)["captured"] == first
-
-
-def test_captured_object_survives_a_failed_reconciliation(tmp_path: Path) -> None:
-    _write(tmp_path, f"{DIR}/one.md", _record(OPEN, KIND))
-    _workspace(tmp_path)
-    expected = _status(tmp_path)["captured"]
-    (tmp_path / "workspace.toml").write_text("not = [valid\n", encoding="utf-8")
-    broken = _status(tmp_path)
-    assert broken["canonical"]["findings"][0]["code"] == "invalid_workspace"
-    assert broken["captured"] == expected
-
-
-def test_captured_object_is_empty_for_an_absent_directory(tmp_path: Path) -> None:
-    _workspace(tmp_path)
-    assert _status(tmp_path)["captured"] == {"items": [], "findings": []}
-
-
-# AC-0014, AC-0015: the shaping-item guard ----------------------------------
-
-_NO_COOLED: frozenset[Path] = frozenset()
-
-
-def _guard(root: Path, slug: str, cooled: frozenset[Path] = _NO_COOLED):
-    return ENGINE.check_shaping_guard(root, slug, cooled)
-
-
-@pytest.mark.parametrize(
-    ("shaping_type", "skill"),
-    [
-        ("shape", "intent"),
-        ("research", "desk-research-project-start"),
-        ("strategy", "frame-situation"),
-        ("design", "experience-status"),
-        ("signal", "(signal — no action)"),
-    ],
-)
-def test_guard_routes_each_shaping_type(
-    tmp_path: Path, shaping_type: str, skill: str
-) -> None:
-    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND, f"- **Type:** {shaping_type}"))
-    assert _guard(tmp_path, "item") == skill
-
-
-def test_guard_ignores_a_record_with_no_type(tmp_path: Path) -> None:
-    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND))
-    assert _guard(tmp_path, "item") is None
-
-
-def test_guard_refuses_an_invalid_record_with_its_finding(tmp_path: Path) -> None:
-    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND, "- **Type:** bogus"))
-    refusal = _guard(tmp_path, "item")
-    assert isinstance(refusal, ENGINE.ShapingGuardRefusal)
-    finding = refusal.finding
-    assert (finding.code, finding.path) == ("invalid_captured_item", f"{DIR}/item.md")
-    assert finding == ENGINE.read_captured_item(tmp_path, "item.md", _NO_COOLED)[1]
-
-
-def test_guard_refuses_an_unreadable_record_with_its_finding(tmp_path: Path) -> None:
-    target = tmp_path / "elsewhere.md"
-    target.write_text(_record(OPEN, KIND, "- **Type:** shape"), encoding="utf-8")
-    (tmp_path / DIR).mkdir(parents=True)
-    (tmp_path / DIR / "item.md").symlink_to(target)
-    refusal = _guard(tmp_path, "item")
-    assert isinstance(refusal, ENGINE.ShapingGuardRefusal)
-    assert (refusal.finding.code, refusal.finding.path) == (
-        "unreadable_artifact", f"{DIR}/item.md",
-    )
-
-
-def test_guard_ignores_a_cooled_record(tmp_path: Path) -> None:
-    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND, "- **Type:** shape"))
-    cooled = frozenset({(tmp_path / DIR / "item.md").resolve()})
-    assert _guard(tmp_path, "item", cooled) is None
-
-
-def test_guard_ignores_a_missing_file(tmp_path: Path) -> None:
-    assert _guard(tmp_path, "item") is None
-
-
-@pytest.mark.parametrize("slug", ["../x", "Bad_Name", "", "a/b", "-x"])
-def test_guard_opens_no_file_for_a_slug_outside_the_grammar(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, slug: str
-) -> None:
-    _write(tmp_path, f"{DIR}/item.md", _record(OPEN, KIND, "- **Type:** shape"))
-    opened: list[object] = []
-    real_open = os.open
-    monkeypatch.setattr(
-        os, "open", lambda *a, **k: (opened.append(a[0]), real_open(*a, **k))[1]
-    )
-    assert _guard(tmp_path, slug) is None
-    assert opened == []
-
-
-def test_guard_does_not_match_a_registry_entry_without_a_record(
-    tmp_path: Path,
-) -> None:
-    (tmp_path / "workspace.toml").write_text(
-        '[backlog]\nopen = [{slug = "item", type = "shape"}]\n', encoding="utf-8"
-    )
-    assert _guard(tmp_path, "item") is None

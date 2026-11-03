@@ -1,0 +1,13 @@
+{
+  "repository": {
+    "files": {
+      "README.md": "# Empty\n"
+    },
+    "symlinks": {},
+    "binary": {}
+  },
+  "captured": {
+    "items": [],
+    "findings": []
+  }
+}

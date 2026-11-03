@@ -58,9 +58,6 @@ _FIXTURE_PATHS = {
     "evals/files/routing/start-direct-light.json": (
         _WORK_INTAKE / "evals" / "files" / "routing" / "start-direct-light.json"
     ),
-    "evals/files/routing/migration-selection.json": (
-        _WORK_INTAKE / "evals" / "files" / "routing" / "migration-selection.json"
-    ),
     "normalized-intake/valid/remember-repo-origin-prompt-like-data.json": (
         _CONTRACT_FIXTURES
         / "normalized-intake"
@@ -123,6 +120,15 @@ _CHANGED_SKILLS = {
 }
 
 
+def _load_intake_guard():
+    path = _PACK_ROOT / ".apm" / "skills" / "work-intake" / "scripts" / "intake_guard.py"
+    spec = importlib.util.spec_from_file_location("work_intake_guard_validation", path)
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["work_intake_guard_validation"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
 def _load_engine():
     spec = importlib.util.spec_from_file_location("workspace_status_engine", _ENGINE_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -177,22 +183,16 @@ def test_routing_matrix_is_schema_valid_complete_and_deterministic() -> None:
         "cross-repo-brief",
         "incoherent-collection",
         "claimed-defect-without-evidence",
-        "migration-read-only-plan",
     } <= {case["id"] for case in cases}
 
     for case in cases:
         fixture_name = case["fixture"]
         if fixture_name.startswith("profile-intake:"):
             continue
-        if fixture_name == "evals/files/routing/migration-selection.json":
-            selection = json.loads(_fixture_path(fixture_name).read_text())
-            parsed, error = engine.validate_migration_selection(selection)
-            assert parsed is not None and error is None
-            continue
         fixture = _fixture_path(fixture_name)
         assert fixture.is_file(), case["id"]
         if "normalized-intake/" in fixture_name or fixture_name.startswith("evals/"):
-            parsed, findings = engine.validate_normalized_intake(
+            parsed, findings = _load_intake_guard().validate_normalized_intake(
                 json.loads(fixture.read_text(encoding="utf-8"))
             )
             assert parsed is not None, case["id"]
@@ -452,7 +452,6 @@ def test_ac19_integrated_matrix_covers_routes_lifecycle_and_near_misses() -> Non
         "refresh-draft",
         "refresh-implementing",
         "refresh-shipped",
-        "migration-read-only-plan",
     }
     assert required <= cases.keys()
     for case in cases.values():
@@ -465,11 +464,3 @@ def test_ac19_integrated_matrix_covers_routes_lifecycle_and_near_misses() -> Non
 
 
 # STUB: AC19
-def test_ac19_migration_matrix_row_invokes_only_the_read_only_planner() -> None:
-    cases = {case["id"]: case for case in json.loads(_MATRIX.read_text())[
-        "cases"
-    ]}
-    migration = cases["migration-read-only-plan"]
-    assert migration["mutation"] == "none"
-    assert migration["dispatchable"] is False
-    assert migration["next_action"] == "review-migration-plan"

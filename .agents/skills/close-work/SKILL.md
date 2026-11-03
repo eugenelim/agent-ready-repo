@@ -9,8 +9,8 @@ metadata:
 # Skill: close-work
 
 Own closeout after delivery. `work-loop` returns implementation and verification
-evidence; it never chooses artifact retention or performs closeout. `workspace-status`
-may project eligibility and next actions, but it never distils, dispositions,
+evidence; it never chooses artifact retention or performs closeout. `work-loop`'s
+`dispatch.py` reports what is ready, but it never distils, dispositions,
 confirms, compacts, or deletes. Only this workflow marks Closeout-pending or
 Post-closeout and proposes or applies an authorized closeout effect.
 
@@ -251,7 +251,7 @@ disposing a delivery record.
 
 - Do not rely on a background timer; compute `review_on` during enrolment and review only with an injected instant.
 - Do not migrate or prune historical artifacts.
-- Do not exclude ordinary context from `workspace-status`.
+- Do not exclude ordinary context from `dispatch.py`.
 - Do not create a lifecycle database, global surface registry, second resolver, or
   hidden receipt store.
 - Do not use a prior confirmation after any drift or for a different target.

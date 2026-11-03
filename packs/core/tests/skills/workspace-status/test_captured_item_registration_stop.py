@@ -291,11 +291,23 @@ def test_unchanged_routes_give_the_outcome_at_dd4f7038c(
 
 
 def _run_status(root: Path) -> dict[str, Any]:
+    """Dispatch `--captured` over the planted tree, with its findings under `canonical`.
+
+    The planted `workspace.toml` is removed first: dispatch reads each spec's own
+    headers and refuses a workspace that still holds an entry.
+    """
+    (root / "workspace.toml").unlink()
+    dispatch = _SCRIPTS.parents[1] / "work-loop/scripts/dispatch.py"
     done = subprocess.run(
-        [sys.executable, "-I", str(_SCRIPTS / "workspace_status.py"), "status", "--root", str(root)],
+        [sys.executable, "-I", str(dispatch), "--captured", "--root", str(root)],
         capture_output=True, text=True, check=False,
     )
-    return json.loads(done.stdout)
+    data = json.loads(done.stdout)
+    items = [*data["ready"], *data["active"], *data["blocked"]]
+    data["canonical"] = {
+        "findings": [*data["findings"], *(f for item in items for f in item["findings"])]
+    }
+    return data
 
 
 def _named(output: dict[str, Any], path: str) -> list[Any]:

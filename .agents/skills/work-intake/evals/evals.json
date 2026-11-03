@@ -25,9 +25,9 @@
     {
       "id": 3,
       "prompt": "workspace status",
-      "expected_output": "The agent delegates to workspace-status and returns its lifecycle, findings, and next actions without reclassifying or mutating state.",
+      "expected_output": "The agent routes status to navigate-intents outstanding for placed work and to work-loop's dispatch.py for what is ready or active, returns the result without reclassifying or mutating state, and does not run workspace-status.",
       "assertions": [
-        "Uses workspace-status as the authority",
+        "Uses navigate-intents outstanding and dispatch.py as the authority",
         "Does not materialize an artifact",
         "Does not edit workspace.toml"
       ]
@@ -128,10 +128,10 @@
     {
       "id": 14,
       "prompt": "Triage workspace status and show the next safe action.",
-      "expected_output": "The agent delegates to workspace-status, preserves its findings and next action, and performs no intake classification or mutation.",
+      "expected_output": "The agent delegates to navigate-intents outstanding or work-loop's dispatch.py, preserves its findings and next action, and performs no intake classification or mutation.",
       "assertions": [
         "Keeps status and triage read-only",
-        "Uses workspace-status findings as the authority",
+        "Uses dispatch.py findings as the authority",
         "Does not create or register an artifact"
       ]
     },
@@ -148,12 +148,12 @@
     {
       "id": 16,
       "prompt": "Plan migration of this reviewed legacy workspace entry.",
-      "expected_output": "The agent does not route the request as ordinary intake, explains that a former legacy entry is rewritten in canonical form by hand, limits workspace-status migration tooling to recovering or rolling back an operation already in the migration ledger, and performs no migration effect.",
+      "expected_output": "The agent does not route the request as ordinary intake, explains that a former legacy entry is rewritten in canonical form by hand, sends the entry to the workspace-status repair-plan and repair-apply pair, and performs no migration effect.",
       "assertions": [
         "Separates migration from ordinary work intake",
         "Tells the user to rewrite the former legacy entry in canonical form by hand",
-        "Routes to workspace-status only for recovering or rolling back an operation already recorded in the migration ledger",
-        "Does not apply or roll back a migration"
+        "Routes a workspace.toml entry to workspace-status repair-plan and repair-apply, confirmed by the user",
+        "Does not apply a migration"
       ]
     },
     {

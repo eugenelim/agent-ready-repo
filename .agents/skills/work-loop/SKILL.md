@@ -185,10 +185,10 @@ branch names, or surrounding prose. A supplied spec path is decided by
 
 Run the dispatch command whether or not `workspace.toml` exists. It reads each
 spec's own `Status:` header, its sibling `plan.md` and its dependencies, and it
-writes nothing:
+writes nothing. `--captured` adds the captured-item listing as a `captured` key:
 
 ```bash
-python '<skill-dir>/scripts/dispatch.py' --root .
+python '<skill-dir>/scripts/dispatch.py' --root . --captured
 ```
 
 For a supplied spec path, add `--start <spec>` for a new start or
@@ -207,19 +207,15 @@ never reconstruct requirements from comments, summaries, list order, or
 surrounding prose. The `ready`, `active` and `blocked` lists of the same output
 are what an explicit request is checked against below.
 
-If `workspace.toml` is present, also Surface an orientation block:
-   - **Initiative:** `name` from `["ini-NNN"]` (all `status = "active"` sections).
-   - **Milestone:** `milestone` from `["ini-NNN"]`.
-   - When the decision is `start` or `resume` (argless starts and fresh-session
-     resumes only), include "Resuming `docs/specs/<slug>/spec.md`" or
-     "Starting `docs/specs/<slug>/spec.md`" for the named path.
-   - **Stale-queue check.** Use the findings in the dispatch output for drift
-     warnings. Raw membership is advisory only after dispatch has accepted the
-     spec. The orientation block is information; dispatch never depends on the file.
+Surface one orientation line. When the decision is `start` or `resume` (argless
+starts and fresh-session resumes only), say "Resuming `docs/specs/<slug>/spec.md`"
+or "Starting `docs/specs/<slug>/spec.md`" for the named path. Use the findings in
+the dispatch output for stale-queue and drift warnings. Dispatch never depends
+on `workspace.toml`.
 
 Then apply the **Shaping-item guard** when a dispatch-named or supplied slug
 exists. Derive slug (strip `docs/specs/` prefix + trailing `/`). Match it against
-`captured.items` in the `workspace-status` status output. When the matching item
+`captured.items` in the `dispatch.py --captured` output. When the matching item
 has a non-null `routes_to`, stop: "This is a shaping item (`Type: <type>`); use
 `<skill>` — `work-loop` is for build items only." (`routes_to` names the skill:
 shape→`intent`; research→`desk-research-project-start`;

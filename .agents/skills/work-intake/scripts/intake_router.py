@@ -156,7 +156,7 @@ def route_intake(
         return _route(signals, "none", "work-loop", "none")
 
     if signals.action == "status":
-        return _route(signals, "passthrough", "workspace-status", "none")
+        return _route(signals, "passthrough", "navigate-intents", "none")
 
     if signals.action == "refresh":
         processor = "none"

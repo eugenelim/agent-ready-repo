@@ -16,7 +16,6 @@ satisfy this suite.
 import importlib.util
 import json
 import re
-import subprocess
 import sys
 from pathlib import Path
 
@@ -352,36 +351,6 @@ def test_the_parent_field_reference_states_the_cooling_interaction() -> None:
     """*AC26*: the `parent` row names what cooling does to an undeclared value."""
     row = _table_row(SCHEMA_GUIDE.read_text(encoding="utf-8"), "`parent`")
     assert "unestablished once the spec has cooled" in row
-
-
-def test_the_shipped_command_emits_the_finding(tmp_path, engine) -> None:
-    """*AC25*: the shipped CLI, run from inside the checkout, emits the code.
-
-    Driven as a subprocess rather than in process because the run location is
-    part of the observable — the script under test is the projected artifact an
-    adopter invokes, not the module the rest of this suite imports. Probe 16
-    established that exit 0 holds whether or not a finding is present, so the
-    exit code is asserted as a constant rather than inferred from the payload.
-    """
-    root = tmp_path / "shipped"
-    _fixture(root, engine, parent=None)
-
-    completed = subprocess.run(
-        [sys.executable, str(STATUS_SCRIPT), "reconcile", "--root", str(root)],
-        capture_output=True,
-        text=True,
-        cwd=str(ROOT),
-        check=False,
-        timeout=120,
-    )
-    assert completed.returncode == 0, (
-        f"exited {completed.returncode}: {completed.stderr}"
-    )
-    payload = json.loads(completed.stdout)
-    codes = [
-        (f["code"], f["path"]) for f in payload["canonical"]["findings"]
-    ]
-    assert (CODE, CHILD_PATH) in codes, codes
 
 
 def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"):

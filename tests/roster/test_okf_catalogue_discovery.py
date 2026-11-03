@@ -50,7 +50,7 @@ def test_release_metadata_moves_together_for_okf_catalogue_discovery() -> None:
     # position assertions fail the moment a newer heading sits above the
     # pinned one, which is exactly the half-finished release it exists to
     # catch. 0.59.1 verified to satisfy every assertion here before the bump.
-    expected = "0.59.1"
+    expected = "0.60.0"
     pyproject = tomllib.loads(
         (PACKAGE_ROOT / "pyproject.toml").read_text(encoding="utf-8")
     )

@@ -54,32 +54,26 @@ _WORKSPACE_FAILURE_CODES = frozenset({
 })
 _STRIP = b" \t\n\r"
 
-# A pinned copy of the finding table the shipped ``workspace-status`` engine
+# A pinned copy of the finding table ``work-loop``'s header-readiness module
 # emits next actions from.  A skill may not import from another, so a test
-# compares this copy with the engine's table.  A finding whose code and sentence
+# compares this copy with that table.  A finding whose code and sentence
 # are not a pair here is shown as inert text under a generic label.
 _KNOWN_FINDINGS: dict[str, str] = {
     "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
-    "invalid_entry": "Rewrite the entry to the accepted target contract.",
-    "legacy_entry": "Materialize and register a canonical target entry.",
-    "unsupported_legacy": "Route the item manually; do not infer a target entry.",
+    "unmigrated_workspace": (
+        "Run workspace-status repair-plan, then repair-apply, to move the remaining "
+        "workspace.toml entries onto their artifacts; rewrite or remove by hand any entry "
+        "the repair leaves."
+    ),
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
     "unreadable_artifact": "Restore readable repository state, then rerun reconciliation.",
     "invalid_captured_item": (
         "Fix the named field of that captured-item file, then rerun reconciliation."
     ),
-    "unmigrated_captured_item": (
-        "Run workspace-status repair-plan to move this captured item into its "
-        "own file under docs/product/captured/."
-    ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
-    "duplicate_membership": ("Remove the duplicate after choosing the authoritative membership."),
     "impossible_transition": ("Correct the artifact or membership through a reviewed transition."),
-    "provenance_mismatch": (
-        "Resolve provenance in the canonical artifact and mirror it deliberately."
-    ),
     "cooled_child_scope_unknown": (
         "Set parent on the spec's lifecycle record: a resolving brief path, or "
         "none only when that spec has no parent brief; a tracker-origin entry "
@@ -93,19 +87,9 @@ _KNOWN_FINDINGS: dict[str, str] = {
         "Rewrite the item as a typed reference or a captured-item path, "
         "or correct its receipt, in the waiting item's header."
     ),
-    "unmigrated_needs": (
-        "Move the entry's needs into the waiting item's Depends on: header "
-        "with workspace-status repair-plan, then repair-apply."
-    ),
     "invalid_receipt": ("Replace it with a reviewed receipt matching the pinned dependency."),
     "invalid_completion_receipt": (
         "Replace it with a valid reviewed completion receipt for that dependency."
-    ),
-    "inactive_initiative": (
-        "Reactivate the initiative explicitly or move the work through governance."
-    ),
-    "configuration_mismatch": (
-        "Install or select a consistent versioned configuration, then rerun."
     ),
     "invalid_source_authority": (
         "Correct the closed source-authority block, then rerun reconciliation."

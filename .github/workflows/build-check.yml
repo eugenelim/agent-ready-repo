@@ -673,6 +673,18 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_navigate_decisions_file_safety_mirror.py
 
+      - name: pytest work-loop cooling mirror (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_work_loop_cooling_mirror.py
+
+      - name: pytest repair-only workspace-status text (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_repair_only_workspace_status.py
+
+      - name: pytest header-readiness source-authority parity (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_header_readiness_source_authority_parity.py
+
       # The installed-skill run reads the repository's `.claude/` projection and the
       # core pack's shared supervisor harness, so no pack suite may own it. Keep it
       # above the bulk tests/ step for named failure attribution.
@@ -686,19 +698,6 @@ jobs:
       - name: pytest retired-name pinned sites (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_retired_name_pinned_sites.py
-
-      # The retirement output contract spans contracts/, docs/specs/, and the
-      # core pack emitter, so the pack-test boundary requires a roster home.
-      # Keep it above the bulk tests/ step for named failure attribution.
-      - name: pytest spec-retirement candidate contract (roster-owned)
-        if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tests/roster/test_spec_retirement_candidates_contract.py
-
-      # The CLI proof spans the core pack, the live schema, and the real spec
-      # corpus. Keep it above the bulk tests/ step for named failure attribution.
-      - name: pytest spec-retirement candidate CLI (roster-owned)
-        if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tests/roster/test_spec_retirement_candidates_cli.py
 
       # Both modules read across two packs and the guides, so lint-pack-test-boundary
       # forbids a pack home and they live in the roster suite. Each sits ABOVE the

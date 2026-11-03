@@ -143,12 +143,11 @@ mechanical rule.
   as a new shipping exception: a marker left in a body that later freezes pins
   its captured-item record permanently, since the frozen body cannot be edited
   to retire it, and the record resolves whatever its status. A follow-on recorded only in a PR comment rots; the
-  register or external artifact is the stable pointer. Run `workspace-status`
-  to see open backlog items.
+  register or external artifact is the stable pointer. Run `dispatch.py --captured`
+  (or read the files under `docs/product/captured/`) to see open captured items.
 - **Brief back-link (optional).** A spec derived from a product brief carries a
   `- **Brief:**` header naming that brief. Write it as `brief:<slug>`, the only
-  form to write. `workspace-status` reconciliation matches it against the queue
-  entry's `source.parent`. Readers still accept a legacy repository path in
+  form to write. Readers take that provenance from the spec's own header. Readers still accept a legacy repository path in
   older specs; a bare slug fails that check and blocks dispatch, as it
   always has. It records *product provenance* and is distinct from
   `Constrained by:` (which cites the ADRs/RFCs that govern the spec). The field

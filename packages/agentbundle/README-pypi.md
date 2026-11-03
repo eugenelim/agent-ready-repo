@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.0
+
+The `workspace_status()` MCP tool reads the packaged header-only dispatch: items
+carry no `ini_slug`, `shaping` is empty, and `canonical` holds the dispatch
+output. A dispatched item `type:slug` gives the branch `type/slug`; the legacy
+three-part form still works.
+
 ## What's new in 0.59.1
 
 `catalogue self-host` keeps a repository's root `AGENT_RULES.md`, so routing
@@ -951,7 +958,7 @@ each Claude Code session. It exposes six tools over MCP stdio:
 
 | Tool | What it does |
 |---|---|
-| `workspace_status` | Returns the queue (ready / blocked / active / shaping items), active-run state, and safe tracker-refresh facts such as origin mode, profile, revisions, conflict, and known availability |
+| `workspace_status` | Returns the queue (ready / blocked / active items; `shaping` is always an empty list), active-run state, and safe tracker-refresh facts such as origin mode, profile, revisions, conflict, and known availability |
 | `elicit` | Sends a question to the operator and blocks until they respond (300 s timeout) |
 | `git_status` | Returns uncommitted changes (`git status --short`) |
 | `git_branch` | Creates and checks out a feature branch scoped to the dispatched item |
@@ -970,8 +977,8 @@ python3 -m agentbundle.workspace_mcp
 > spawn mode (`python3 -I -m agentbundle.workspace_mcp`) is planned for
 > Stage 2 and will require a stable non-editable install.
 
-In trusted mode, workspace status prefers an installed core-pack projection and
-falls back to the byte-identical engine projection bundled with `agentbundle`.
+Workspace status always runs the dispatch bundled with `agentbundle`, never a
+repository or installed-skill copy.
 
 **Inject the session instruction** so the agent knows to use the tools:
 
@@ -981,8 +988,9 @@ from agentbundle.workspace_mcp import DEFAULT_SESSION_INSTRUCTION
 
 Pass exactly one environment variable when spawning to set the session mode:
 `WORKSPACE_MCP_SPEC_PATH` (path to the spec directory) for FSM/work-loop items,
-or `WORKSPACE_MCP_DISPATCHED_ITEM` (`ini_slug/type:slug`) for non-FSM shaping
-items. Setting neither gives discovery-only mode (git writes disabled). Setting
+or `WORKSPACE_MCP_DISPATCHED_ITEM` (`type:slug`) for non-FSM items. The older
+three-part `ini_slug/type:slug` form is legacy; it is still accepted but not
+advertised. Setting neither gives discovery-only mode (git writes disabled). Setting
 both is unsupported — only one selects the mode.
 
 ## Corporate networks

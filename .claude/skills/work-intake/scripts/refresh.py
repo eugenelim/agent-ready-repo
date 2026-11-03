@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import importlib
 import importlib.util
 import ipaddress
 import json
@@ -18,7 +17,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from types import ModuleType
-from typing import Callable, ClassVar, Collection, Mapping
+from typing import Any, Callable, ClassVar, Collection, Mapping
 from urllib.parse import urlsplit
 
 
@@ -289,7 +288,7 @@ class ProcessorRegistration:
                 "proposed_authority": "tracker-origin",
                 "refresh_target": request.artifact_path,
             }
-            validator = _workspace_status_callable("validate_normalized_intake")
+            validator = _intake_guard_callable("validate_normalized_intake")
             parsed, findings = validator(normalized)
             if parsed is None or findings:
                 raise RefreshRefusal("invalid_normalized_intake")
@@ -1776,49 +1775,8 @@ def is_remote_receipt_store(value: object) -> bool:
         return False
 
 
-def _workspace_status_callable(name: str) -> Callable[..., tuple[object, list[object]]]:
-    """Load one canonical contract callable from the installed core runtime."""
-
-    candidate = (
-        Path(__file__).resolve().parents[2]
-        / "workspace-status"
-        / "scripts"
-        / "workspace_status_engine.py"
-    )
-    module: object
-    if candidate.is_file():
-        skills_root = Path(__file__).resolve().parents[2]
-        try:
-            candidate.resolve(strict=True).relative_to(skills_root.resolve(strict=True))
-        except (OSError, ValueError) as exc:
-            raise RefreshRefusal("invalid_local_update") from exc
-        spec = importlib.util.spec_from_file_location(
-            "_work_intake_workspace_status_runtime", candidate
-        )
-        if spec is None or spec.loader is None:
-            raise RefreshRefusal("invalid_local_update")
-        loaded = importlib.util.module_from_spec(spec)
-        sys.modules[spec.name] = loaded
-        try:
-            spec.loader.exec_module(loaded)
-        except Exception as exc:  # noqa: BLE001  # trusted bundled runtime boundary
-            raise RefreshRefusal("invalid_local_update") from exc
-        module = loaded
-    else:
-        try:
-            module = importlib.import_module(
-                "agentbundle._data.workspace_status_engine"
-            )
-        except (ImportError, OSError) as exc:
-            raise RefreshRefusal("invalid_local_update") from exc
-    parser = getattr(module, name, None)
-    if not callable(parser):
-        raise RefreshRefusal("invalid_local_update")
-    return parser
-
-
-def _intake_guard_callable(name: str) -> Callable[[str], str]:
-    """Load the intake renderer's canonical redactor from this skill tree."""
+def _intake_guard_callable(name: str) -> Callable[..., Any]:
+    """Load one canonical callable from `intake_guard.py`."""
 
     candidate = Path(__file__).resolve().with_name("intake_guard.py")
     try:

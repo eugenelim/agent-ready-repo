@@ -95,29 +95,29 @@ def _runtime_projections(root: Path) -> tuple[tuple[Path, Path], ...]:
     """Return package-runtime sync pairs confined to one target tree."""
 
     return (
-        (
-            root / "packs" / "core" / ".apm" / "skills" / "workspace-status"
-            / "scripts" / "workspace_status_engine.py",
-            root / "packages" / "agentbundle" / "agentbundle" / "_data"
-            / "workspace_status_engine.py",
+        *tuple(
+            (
+                root / "packs" / "core" / ".apm" / "skills" / "work-loop"
+                / "scripts" / name,
+                root / "packages" / "agentbundle" / "agentbundle" / "_data" / name,
+            )
+            # The control-plane tool runs this dispatch in process; its readiness
+            # sibling is loaded by path from the same directory.
+            for name in ("dispatch.py", "_header_readiness.py")
         ),
         (
-            # The prune implementation lives beside the engine and loads it as a
-            # sibling by path, so the packaged runtime needs both files or the
-            # engine resolves a module that is not there.
-            root / "packs" / "core" / ".apm" / "skills" / "workspace-status"
-            / "scripts" / "workspace_status_prune.py",
-            root / "packages" / "agentbundle" / "agentbundle" / "_data"
-            / "workspace_status_prune.py",
-        ),
-        (
-            # This packaged runtime backs source-authority parsing only; the
-            # unbundled sibling that fact excuses is recorded in
-            # `_RUNTIME_SIBLING_EXEMPTIONS`.
+            # This packaged runtime backs source-authority parsing and the
+            # normalized-intake validation it loads from `intake_guard.py`.
             root / "packs" / "core" / ".apm" / "skills" / "work-intake"
             / "scripts" / "refresh.py",
             root / "packages" / "agentbundle" / "agentbundle" / "_data"
             / "work_intake_refresh.py",
+        ),
+        (
+            root / "packs" / "core" / ".apm" / "skills" / "work-intake"
+            / "scripts" / "intake_guard.py",
+            root / "packages" / "agentbundle" / "agentbundle" / "_data"
+            / "intake_guard.py",
         ),
         *tuple(
             (
@@ -176,14 +176,7 @@ def _mirrored_pack_sources(root: Path) -> tuple[tuple[Path, Path], ...]:
 # fact about this repository's own sources rather than about whatever tree the
 # gate is pointed at, so `test_packaged_runtime_sibling_exemptions_are_live`
 # asserts it against the real tree instead.
-_RUNTIME_SIBLING_EXEMPTIONS: dict[tuple[str, str], str] = {
-    ("work_intake_refresh.py", "intake_guard.py"): (
-        "only `parse_source_authority` is called on the packaged copy and it "
-        "does not reach `_intake_guard_callable`; the acquisition path that "
-        "does runs from the installed work-intake skill tree, where the "
-        "redactor sibling is present"
-    ),
-}
+_RUNTIME_SIBLING_EXEMPTIONS: dict[tuple[str, str], str] = {}
 
 
 def _file_relative_path_kind(node: ast.expr, env: dict[str, str]) -> str | None:

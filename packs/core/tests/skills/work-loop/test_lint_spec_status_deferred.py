@@ -319,7 +319,7 @@ def test_base_cases_keep_results(tmp_path: Path) -> None:
     assert _violations(tmp_path) == []
 
 
-_ENGINE = _PACK_ROOT / ".apm/skills/workspace-status/scripts/workspace_status_engine.py"
+_ENGINE = _PACK_ROOT / ".apm/skills/work-loop/scripts/_header_readiness.py"
 _BASE = "# Item\n\n- **Status:** Open\n- **Kind:** defect\n"
 _PARITY_BODIES = {
     "open": _BASE,
