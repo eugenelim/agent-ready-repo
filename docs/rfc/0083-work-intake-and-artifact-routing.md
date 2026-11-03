@@ -1395,3 +1395,7 @@ record. Corrections are appended here, Approver-signed.
 - **2026-10-30 (Approver: eugenelim) — a tracker-origin artifact's tracker profile lives on the artifact, not in `workspace.toml`.**
 
   Under [RFC-0106](0106-stop-registering-derivable-work.md) D1, the closed `source-authority` record gains an optional `tracker_profile` table (`id`, `version`), written at intake for a tracker-origin intent, brief or spec. `refresh` resolves the processor from that table, binds the comparison's profile and artifact kind to the artifact at commit, and neither reads nor rewrites a workspace entry. The earlier statement that a spec, and a tracker-origin intent or brief, are registered as before no longer holds.
+
+- **2026-11-02 (Approver: eugenelim) — the legacy migration contracts are retired.**
+
+  The migration planning, apply and rollback this RFC defines, its `[authorization.migration]` policy and the four `contracts/jsonschema/work-intake-migration-*.schema.json` contracts are retired by the [RFC-0106 § Errata](0106-stop-registering-derivable-work.md#errata) entry of 2026-11-02, which records the removal and its authority. No other decision of this RFC changes.

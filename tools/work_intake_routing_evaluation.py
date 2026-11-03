@@ -174,6 +174,7 @@ def _evaluate_route(
     staged_root: Path,
     case: dict[str, Any],
     engine: ModuleType,
+    guard: ModuleType,
     router: ModuleType,
 ) -> dict[str, object]:
     """Invoke Group 2 validation and the actual Group 4 router."""
@@ -184,14 +185,14 @@ def _evaluate_route(
             / "packs/core/tests/pack/fixtures/work-intake-contracts"
             / fixture_name
         )
-        parsed, findings = engine.validate_normalized_intake(
+        parsed, findings = guard.validate_normalized_intake(
             json.loads(fixture.read_text(encoding="utf-8"))
         )
         if parsed is None or findings:
             raise AssertionError(f"{case['id']} Group 2 validation failed")
     elif fixture_name.startswith("evals/"):
         fixture = staged_root / "packs/core/.apm/skills/work-intake" / fixture_name
-        parsed, findings = engine.validate_normalized_intake(
+        parsed, findings = guard.validate_normalized_intake(
             json.loads(fixture.read_text(encoding="utf-8"))
         )
         if parsed is None or findings:
@@ -231,7 +232,7 @@ def _tracker_case(
     case: dict[str, Any],
     profile_id: str,
     index: int,
-    engine: ModuleType,
+    guard: ModuleType,
     router: ModuleType,
 ) -> dict[str, object]:
     """Acquire provenance, normalize, validate, and route one profile fixture."""
@@ -251,7 +252,7 @@ def _tracker_case(
     normalized = adapter.normalize_record(profile_case["normalized"], profile)
     if adapter.trusted_source(profile_case["raw"], profile) != normalized["source"]:
         raise AssertionError(f"{case['id']} provenance diverged for {profile_id}")
-    parsed, findings = engine.validate_normalized_intake(normalized)
+    parsed, findings = guard.validate_normalized_intake(normalized)
     if parsed is None or findings:
         raise AssertionError(f"{case['id']} Group 2 validation failed for {profile_id}")
     route = router.route_intake(router.RoutingSignals(**profile_case["routing_signals"]))
@@ -399,58 +400,6 @@ def _evaluate_refresh(
     return result
 
 
-def _evaluate_migration(
-    staged_root: Path, case: dict[str, Any], engine: ModuleType
-) -> dict[str, object]:
-    """Invoke T2's actual read-only planner with a reviewed versioned fixture."""
-    fixture_root = (
-        staged_root / "packs/core/.apm/skills/work-intake/evals/files/routing"
-    )
-    workspace = staged_root / "workspace.toml"
-    shutil.copy2(fixture_root / "migration-workspace.toml", workspace)
-    artifact = staged_root / case["artifact"]
-    artifact.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(fixture_root / "migration-target-spec.md", artifact)
-    shutil.copy2(fixture_root / "migration-target-plan.md", artifact.with_name("plan.md"))
-    selection = json.loads((fixture_root / "migration-selection.json").read_text())
-    before = {
-        path.relative_to(staged_root): path.read_bytes()
-        for path in staged_root.rglob("*")
-        if path.is_file()
-    }
-    plan = engine.compute_migration_plan(staged_root, workspace, selection)
-    after = {
-        path.relative_to(staged_root): path.read_bytes()
-        for path in staged_root.rglob("*")
-        if path.is_file()
-    }
-    if before != after:
-        raise AssertionError("migration routing evaluation performed a write")
-    operation = plan.proposed_operation
-    if operation is None:
-        raise AssertionError(
-            "migration routing evaluation did not produce a plan: "
-            + str(plan.result.get("result_code"))
-        )
-    if plan.result["next_action"] != "confirm-migration":
-        raise AssertionError("migration planner returned an unexpected next action")
-    result = _record(
-        case,
-        profile_id=case["profile_id"],
-        profile_version=case["profile_version"],
-        artifact=operation["artifact_receipt"]["path"],
-        artifact_kind=operation["target_entry"]["kind"],
-        lifecycle_membership=operation["target_membership"]["collection"],
-        processor=operation["owning_processor"],
-        authority_mode=operation["target_entry"]["source"]["mode"],
-        dispatchable=False,
-        result_code=plan.result["result_code"],
-        next_action="review-migration-plan",
-    )
-    _assert_expected(case, result)
-    return result
-
-
 def evaluate_in_clean_root(
     clean_root: Path, *, source_root: Path | None = None
 ) -> bytes:
@@ -461,6 +410,10 @@ def evaluate_in_clean_root(
     engine = _load(
         core / "workspace-status/scripts/workspace_status_engine.py",
         f"routing_evaluation_engine_{id(clean_root)}",
+    )
+    guard = _load(
+        core / "work-intake/scripts/intake_guard.py",
+        f"routing_evaluation_guard_{id(clean_root)}",
     )
     router = _load(
         core / "work-intake/scripts/intake_router.py",
@@ -477,16 +430,14 @@ def evaluate_in_clean_root(
     profile_ids = [profile["id"] for profile in matrix["supported_profiles"]]
     for index, case in enumerate(matrix["cases"]):
         if case["mode"] == "route":
-            results.append(_evaluate_route(clean_root, case, engine, router))
+            results.append(_evaluate_route(clean_root, case, engine, guard, router))
         elif case["mode"] == "tracker-route":
             results.extend(
-                _tracker_case(clean_root, case, profile_id, index * 10 + offset, engine, router)
+                _tracker_case(clean_root, case, profile_id, index * 10 + offset, guard, router)
                 for offset, profile_id in enumerate(profile_ids)
             )
         elif case["mode"] == "refresh":
             results.append(_evaluate_refresh(clean_root, case, index, router, refresh))
-        elif case["mode"] == "migration":
-            results.append(_evaluate_migration(clean_root, case, engine))
         else:
             raise AssertionError(f"unsupported routing evaluation mode: {case['mode']}")
     results.sort(key=lambda item: tuple(str(item[name]) for name in _RESULT_FIELDS))

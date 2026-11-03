@@ -423,6 +423,7 @@ _INTENDED_CASES = frozenset({
     "the closed captured item of another kind",
     "the child-state check on a brief that never had an entry",
     "the cooled child of a brief that never had an entry",
+    "dispatch over unmigrated registry entries",
 })
 _CATEGORIES = frozenset({
     "canonical artifact metadata",

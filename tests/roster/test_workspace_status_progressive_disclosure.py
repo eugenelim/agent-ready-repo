@@ -37,8 +37,8 @@ SKILL_DIR = ROOT / "packs/core/.apm/skills/workspace-status"
 SKILL = SKILL_DIR / "SKILL.md"
 SCRIPTS = SKILL_DIR / "scripts"
 
-REFERENCES = ("reconcile.md", "explain.md", "mutate.md")
-MODES = ("status", "reconcile", "explain", "mutate")
+REFERENCES = ("mutate.md",)
+MODES = ("mutate",)
 
 # AC-0001. The linter warns above 500 body lines and errors above 1000; this
 # holds the skill at the warning threshold rather than at the error one.
@@ -53,13 +53,12 @@ BODY_LINE_CEILING = 500
 # `workspace_status.py` and the engine were re-pinned for the needs-to-header repair and again for its code-review corrections, and both for the captured-item listing, and the engine again for the captured-item switch and again for the file-based shaping guard, and both when the captured-item repair landed and its comments dropped spec citations, and both again for the post-gates review fixes, and the engine again for the unregistered captured item's closed state.
 # 2026-10-29, spec-registration-stop: both re-pinned for the spec-entry-drop repair, the retired `unregistered_work` and Type 1 audit, and the reworded cooled-child next action. Both re-pinned again when queue moves stayed off drop candidates while cooling is unreadable.
 # 2026-10-30, tracker-origin-registration-stop (docs/specs/tracker-origin-registration-stop): `workspace_status.py` re-pinned for the tracker-entry-drop repair.
+# repair-only-workspace-status: `workspace_status.py` re-pinned when the retired subcommands, the migration section and the status builders left it; `workspace_status_prune.py` left the list with the file.
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "37e9d786b1810038e59a1e70024fd8b773044e75b574ec5ac6e7e7efb399dbcf",
+        "e23226e8f8aa43f6806b5caa76c9314f81756188c83cc33ab16db993fbe47e27",
     "workspace_status_engine.py":
-        "7d22cb905af4464cb2d1778610d2e5e53a23604ed5b847d6d7dcd71b9dd0221b",
-    "workspace_status_prune.py":
-        "88395b684b69af04b00694c830e79d72a4a3b3194fa72d276fb2763f3f28e95a",
+        "bc884d0a2d08cdcc83547329a1b2f39b0d803614daea83d3f3a599524f6f0304",
     "workspace_mcp_server.py":
         "c2b252f55c99d54558b253e3c14aa40a5feec5bbcaad1340154e57e3d2c03199",
 }
@@ -72,11 +71,6 @@ def _skill_text() -> str:
     it must not satisfy a presence assertion either.
     """
     return _COMMENT.sub("", SKILL.read_text(encoding="utf-8"))
-
-
-def _raw_skill_text() -> str:
-    """The body exactly as written, for assertions about absence."""
-    return SKILL.read_text(encoding="utf-8")
 
 
 def _body_lines(text: str) -> list[str]:
@@ -143,54 +137,6 @@ def test_ac0004_every_backend_subcommand_maps_to_exactly_one_mode() -> None:
         if len(owning) != 1:
             unmapped.append((subcommand, sorted(owning)))
     assert unmapped == [], f"subcommands not mapped to exactly one mode: {unmapped}"
-
-
-def test_ac0005_is_owned_by_the_prune_closure_suite() -> None:
-    """AC-0005 has one owner, and it is not this file.
-
-    `tests/roster/test_two_sided_prune_closure_invariant.py` already derives the
-    emitted refusal codes from the prune source, finds the anchor, slices the
-    documented list and asserts closure. Re-implementing that here would give
-    one criterion two homes whose extraction logic can drift apart, so this
-    asserts only that the owning control still points at the file the content
-    moved into.
-    """
-    owner = (
-        ROOT / "tests/roster/test_two_sided_prune_closure_invariant.py"
-    ).read_text(encoding="utf-8")
-    assert "workspace-status/references/mutate.md" in owner, (
-        "the refusal-code control no longer names references/mutate.md; "
-        "AC-0005 may have lost its owner"
-    )
-
-
-def test_ac0006_the_initialisation_template_is_an_asset() -> None:
-    """AC-0006: the template ships as a file the skill writes out."""
-    asset = SKILL_DIR / "assets/workspace.toml.template"
-    assert asset.is_file()
-    content = asset.read_text(encoding="utf-8")
-    assert content.startswith("# workspace.toml"), "the asset is not the template"
-    assert "[backlog]" in content, "the asset is truncated"
-
-
-def test_ac0007_the_body_cites_the_template_instead_of_inlining_it() -> None:
-    """AC-0007: the body points at the asset and no longer carries its text.
-
-    Separate from AC-0006 because copying the block out and forgetting to
-    delete the original leaves both halves green under one combined assertion.
-    """
-    assert "assets/workspace.toml.template" in _skill_text()
-    # Absence is checked against the raw body: text hidden in a comment still
-    # ships, so stripping comments first would excuse the very thing this
-    # assertion exists to catch. Two distinctive lines rather than one, so a
-    # partial re-inlining is caught too.
-    raw = _raw_skill_text()
-    asset = (SKILL_DIR / "assets/workspace.toml.template").read_text(encoding="utf-8")
-    inlined = [
-        line for line in asset.splitlines()
-        if len(line) > 40 and line in raw
-    ]
-    assert inlined == [], f"template content is still inlined in the body: {inlined[:3]}"
 
 
 @pytest.mark.parametrize("name,digest", sorted(BACKEND_DIGESTS.items()))
@@ -260,7 +206,7 @@ def test_the_body_keeps_the_mutation_consent_rule_always_loaded() -> None:
     """
     never = _section(_skill_text(), "## Never", "## Conditional references")
     assert "references/mutate.md" in never
-    for subcommand in ("prune", "repair-apply", "repair-rollback"):
+    for subcommand in ("repair-apply",):
         assert f"`{subcommand}`" in never, f"{subcommand} is not named in Never"
     assert "confirmation" in never.lower()
 
@@ -277,7 +223,6 @@ def test_shipped_reference_and_asset_content_stays_portable() -> None:
         r"|docs/(?:specs|rfc|adr|contracts)/[a-z0-9]"
     )
     shipped = [SKILL_DIR / "references" / name for name in REFERENCES]
-    shipped.append(SKILL_DIR / "assets/workspace.toml.template")
 
     offenders = {
         path.name: sorted(set(internal.findall(path.read_text(encoding="utf-8"))))

@@ -30,6 +30,7 @@ import json
 import os
 import subprocess
 import sys
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -681,17 +682,29 @@ def _table() -> dict[tuple[str, str, str], tuple[Any, Any, str, str | None]]:
 CLASSIFICATION: dict[tuple[str, str, str], tuple[Any, Any, str, str | None]] = _table()
 
 
-def _compute_differences(D: ModuleType, tmp_path: Path) -> tuple[dict[Any, tuple[Any, Any]], set[str]]:
+def _registered(D: ModuleType, root: Path) -> bool:
+    """True when the planted `workspace.toml` still holds an entry, which dispatch refuses."""
+    path = root / "workspace.toml"
+    if not path.is_file():
+        return False
+    return bool(D._is_unmigrated(tomllib.loads(path.read_text(encoding="utf-8"))))
+
+
+def _compute_differences(
+    D: ModuleType, tmp_path: Path
+) -> tuple[dict[Any, tuple[Any, Any]], set[str]]:
+    """Replay each entry-free case; a case that registers entries is refused, not replayed."""
     expected = json.loads(_EXPECTED_PATH.read_text(encoding="utf-8"))
     diffs: dict[Any, tuple[Any, Any]] = {}
     built: set[str] = set()
     for case in CASES:
         if IS_ROOT and case.name in SKIP_AS_ROOT:
-            built.add(case.name)
             continue
-        built.add(case.name)
         root = tmp_path / case.name
         _plant(case, root, "header")
+        if _registered(D, root):
+            continue
+        built.add(case.name)
         try:
             header = _flatten(case.name, _header_observe(D, case, root))
         finally:
@@ -709,14 +722,47 @@ def _compute_differences(D: ModuleType, tmp_path: Path) -> tuple[dict[Any, tuple
 @pytest.fixture(scope="module")
 def differences(
     D: ModuleType, tmp_path_factory: pytest.TempPathFactory
-) -> dict[Any, tuple[Any, Any]]:
-    """The replay differences, computed once for the module."""
+) -> tuple[dict[Any, tuple[Any, Any]], set[str]]:
+    """The replay differences and the replayed case names, computed once for the module."""
     if _RECORD:
-        return {}
-    return _compute_differences(D, tmp_path_factory.mktemp("replay"))[0]
+        return {}, set()
+    return _compute_differences(D, tmp_path_factory.mktemp("replay"))
+
+
+def _unmigrated_refusal(
+    D: ModuleType, root: Path, mode: str | None = None, selector: str | None = None
+) -> bool:
+    """True when dispatch refuses the tree with the one `unmigrated_workspace` finding."""
+    result = D.dispatch(root, mode, selector)
+    finding = result["findings"]
+    return (
+        result["ready"] == [] and result["active"] == [] and result["blocked"] == []
+        and result["decision"]["action"] == "refuse"
+        and [(f["code"], f["path"]) for f in finding] == [("unmigrated_workspace", "workspace.toml")]
+        and result["decision"]["findings"] == finding
+    )
 
 
 # --- tests -----------------------------------------------------------------------
+
+
+@pytest.mark.parametrize("case", CASES, ids=lambda c: c.name)
+def test_a_case_that_registers_entries_is_refused_as_unmigrated(
+    D: ModuleType, tmp_path: Path, case: RCase
+) -> None:
+    """AC-0003: whatever the headers say, a workspace that holds an entry is refused."""
+    if IS_ROOT and case.name in SKIP_AS_ROOT:
+        pytest.skip("permission bits do not bind root")
+    _plant(case, tmp_path / "r", "header")
+    try:
+        if not _registered(D, tmp_path / "r"):
+            pytest.skip("the case plants no workspace entry; the replay covers it")
+        for mode, selector in ((None, None), ("start", "docs/specs/x/spec.md"), ("resume", "x")):
+            assert _unmigrated_refusal(D, tmp_path / "r", mode, selector)
+    finally:
+        for path in (tmp_path / "r").rglob("*"):
+            if path.is_file() and not path.is_symlink():
+                path.chmod(0o644)
 
 
 def test_record_the_base_outcomes_once(tmp_path: Path) -> None:
@@ -750,14 +796,16 @@ def test_built_cases_equal_the_recorded_cases() -> None:
     assert set(names) == set(expected)
 
 
-def test_every_difference_is_classified_exactly(differences: dict[Any, tuple[Any, Any]]) -> None:
+def test_every_difference_is_classified_exactly(
+    differences: tuple[dict[Any, tuple[Any, Any]], set[str]],
+) -> None:
     """AC-0018: no unnamed difference, no wrong value, no unused table entry."""
     if _RECORD:
         pytest.skip("recording")
-    diffs = differences
+    diffs, built = differences
     if os.environ.get("HEADER_DISPATCH_DUMP"):
         print(json.dumps([[*k, v[0], v[1]] for k, v in sorted(diffs.items())], indent=1))
-    skipped = {k for k in CLASSIFICATION if IS_ROOT and k[0] in SKIP_AS_ROOT}
+    skipped = {k for k in CLASSIFICATION if k[0] not in built}
     unnamed = {k: v for k, v in diffs.items() if k not in CLASSIFICATION}
     assert not unnamed, f"unnamed differences: {unnamed}"
     for key, (base, header, kind, authority) in CLASSIFICATION.items():
@@ -772,7 +820,9 @@ def test_every_difference_is_classified_exactly(differences: dict[Any, tuple[Any
             assert key not in diffs and base == header, f"reproduced entry differs: {key}"
 
 
-def test_every_dependency_case_reproduces(differences: dict[Any, tuple[Any, Any]]) -> None:
+def test_every_dependency_case_reproduces(
+    differences: tuple[dict[Any, tuple[Any, Any]], set[str]],
+) -> None:
     """A dependency case that differs would keep spec registration: it is never a removal.
 
     The one difference in a dependency case is `dep-spec-open`'s target, an
@@ -781,7 +831,7 @@ def test_every_dependency_case_reproduces(differences: dict[Any, tuple[Any, Any]
     """
     if _RECORD:
         pytest.skip("recording")
-    diffs = differences
+    diffs, _ = differences
     edge_cases = {c.name for c in CASES if c.name.startswith("dep-")}
     edge_cases |= {c.name for c in CASES if c.name.startswith("cooled-child-")}
     edge_cases -= {"cooled-child-none-record-predates-parent"}
@@ -801,11 +851,12 @@ def test_named_start_of_a_kept_entry_carries_its_code(D: ModuleType, tmp_path: P
     case = next(c for c in CASES if c.name == name)
     root = tmp_path / name
     _plant(case, root, "header")
-    header = _header_observe(D, case, root)["named_codes"]
+    assert _registered(D, root)
     base = json.loads(_EXPECTED_PATH.read_text(encoding="utf-8"))[name]["named_codes"]
     for path, code in case.named_codes:
         assert code in base[path]["start"], (path, base[path])
-        assert code in header[path]["start"], (path, header[path])
+        # The planted entries are no longer read: the file is refused whole.
+        assert _unmigrated_refusal(D, root, "start", path)
 
 
 def test_a_symbolic_link_entry_gives_one_finding_and_spares_the_sibling(
@@ -813,6 +864,8 @@ def test_a_symbolic_link_entry_gives_one_finding_and_spares_the_sibling(
 ) -> None:
     case = next(c for c in CASES if c.name == "symlink-entry-beside-ready")
     _plant(case, tmp_path / "r", "header")
+    assert _unmigrated_refusal(D, tmp_path / "r")
+    (tmp_path / "r" / "workspace.toml").unlink()
     result = D.dispatch(tmp_path / "r")
     assert [(f["code"], f["path"]) for f in result["findings"]] == [
         ("invalid_artifact_path", "docs/specs/linked/spec.md")
@@ -823,4 +876,6 @@ def test_a_symbolic_link_entry_gives_one_finding_and_spares_the_sibling(
 def test_a_symbolic_link_readme_gives_no_finding(D: ModuleType, tmp_path: Path) -> None:
     case = next(c for c in CASES if c.name == "symlink-readme-gives-no-finding")
     _plant(case, tmp_path / "r", "header")
+    assert _unmigrated_refusal(D, tmp_path / "r")
+    (tmp_path / "r" / "workspace.toml").unlink()
     assert D.dispatch(tmp_path / "r")["findings"] == []

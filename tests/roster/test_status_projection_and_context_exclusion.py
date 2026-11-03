@@ -239,22 +239,6 @@ def test_live_obligation_stays_visible(tmp_path, engine) -> None:
 
 
 # STUB: AC4
-def test_settled_exception_cools(tmp_path, engine) -> None:
-    """AC4: a settled exception is removed from `canonical.ready`."""
-    cooled = _tree(tmp_path / "cooled", records=[
-        _record(disposition="retain-exception", result="Retired")
-    ], specs=())
-    control = _tree(tmp_path / "control", lifecycle=False, specs=())
-    for root in (cooled, control):
-        _spec(root, "alpha")
-        _workspace(root, queue=_entry("alpha"))
-
-    assert [i["path"] for i in _reconcile_json(control, engine)["canonical"]["ready"]] == [
-        "docs/specs/alpha/spec.md"
-    ]
-    assert _reconcile_json(cooled, engine)["canonical"]["ready"] == []
-
-
 def _emitted_findings(root: Path, engine) -> list[dict]:
     """Return `canonical.findings` from the emitted reconcile JSON.
 
@@ -274,15 +258,6 @@ def _emitted_codes(root: Path, engine) -> list[str]:
 
 
 # STUB: AC5
-def test_invalid_record_cools_nothing_and_is_named(tmp_path, engine) -> None:
-    root = _tree(tmp_path, records=(), specs=())
-    (root / "docs/lifecycle/spec-bad.json").write_text('{"schema":"delivery-lifecycle-record.v1"}', encoding="utf-8")
-    assert not engine._resolve_cooled_state(root)[0]
-    assert [(f["code"], f["path"]) for f in _emitted_findings(root, engine)] == [
-        ("invalid_lifecycle_record", "docs/lifecycle/spec-bad.json")
-    ]
-
-
 # STUB: AC6
 def test_non_record_file_is_skipped_silently(tmp_path, engine) -> None:
     root = _tree(tmp_path, records=(), specs=())
@@ -301,96 +276,10 @@ def test_absent_directory_is_not_an_error(tmp_path, engine) -> None:
 
 
 # STUB: AC8
-def test_unusable_directory_is_named(tmp_path, engine) -> None:
-    root = _tree(tmp_path, lifecycle=False, specs=())
-    (root / "docs").mkdir(parents=True, exist_ok=True)
-    (root / "docs/lifecycle").write_text("not a directory", encoding="utf-8")
-    assert _emitted_codes(root, engine) == ["cooling_state_unavailable"]
-
-
 # STUB: AC9
-def test_lifecycle_directory_is_confined(tmp_path, engine) -> None:
-    root = _tree(tmp_path / "repo", lifecycle=False, specs=())
-    outside = _tree(tmp_path / "outside", records=[_record()], specs=("alpha",)) / "docs/lifecycle"
-    (root / "docs").mkdir(parents=True, exist_ok=True)
-    (root / "docs/lifecycle").symlink_to(outside, target_is_directory=True)
-    assert not engine._resolve_cooled_state(root)[0]
-    assert _emitted_codes(root, engine) == ["cooling_state_unavailable"]
-
-
 # STUB: AC10
-def test_symlinked_record_is_refused(tmp_path, engine, monkeypatch) -> None:
-    root = _tree(tmp_path, records=[_record()])
-    link = root / "docs/lifecycle/spec-link.json"
-    link.symlink_to(root / "docs/lifecycle/alpha.json")
-
-    # The refusal alone cannot distinguish the engine's guard from file_safety's
-    # own O_NOFOLLOW, which would reject the same link one layer down and emit
-    # the same code. What the guard uniquely does is refuse *before* handing the
-    # path to the reader, so that is what this pins.
-    real = engine._load_cooling_module()
-    seen: list[str] = []
-
-    class _Probe:
-        """Record every record path handed to the reader, delegating the rest.
-
-        Delegation is not convenience: the emitted projection also calls
-        `is_due` and reads record attributes, and a probe that enumerated only
-        the methods it knew about would break whenever the engine used one
-        more.
-        """
-
-        def load_record(self, root_arg, path):
-            seen.append(Path(path).name)
-            return real.load_record(root_arg, path)
-
-        def __getattr__(self, name):
-            return getattr(real, name)
-
-    monkeypatch.setattr(engine, "_load_cooling_module", lambda: _Probe())
-    assert ("invalid_lifecycle_record", "docs/lifecycle/spec-link.json") in {
-        (f["code"], f["path"]) for f in _emitted_findings(root, engine)
-    }
-    assert "spec-link.json" not in seen, "symlinked record reached the reader"
-
-
 # STUB: AC11
-def test_oversized_record_refuses_without_raising(tmp_path, engine) -> None:
-    root = _tree(tmp_path, records=[])
-    # A valid record padded past the cap, not 65 KiB of whitespace. The latter
-    # is not JSON, so `parse_record_bytes` refused it regardless and removing
-    # `MAX_RECORD_BYTES` left the test green.
-    padded = json.dumps(_record()).encode("utf-8") + b" " * (65 * 1024)
-    (root / "docs/lifecycle/alpha.json").write_bytes(padded)
-    assert engine._resolve_cooled_state(root)[0] == frozenset()
-    assert _emitted_codes(root, engine) == ["invalid_lifecycle_record"]
-
-
 # STUB: AC12
-def test_membership_is_decided_on_the_real_file(tmp_path, engine) -> None:
-    """AC12: an alias path is excluded because it resolves to the cooled file.
-
-    The criterion names `canonical.ready`, and only that surface can show it.
-    The earlier form asserted the cooled set, whose second clause compared an
-    unresolved `Path` against a set of resolved ones -- a membership test that
-    cannot hold whatever the code does.
-    """
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    (root / "docs/specs/alias-alpha").symlink_to(root / "docs/specs/alpha", target_is_directory=True)
-    _workspace(root, queue=_entry("alias-alpha"))
-
-    ready = _reconcile_json(root, engine)["canonical"]["ready"]
-    assert all(item["path"] != "docs/specs/alias-alpha/spec.md" for item in ready)
-
-    control = _tree(tmp_path / "control", lifecycle=False, specs=())
-    _spec(control, "alpha")
-    (control / "docs/specs/alias-alpha").symlink_to(control / "docs/specs/alpha", target_is_directory=True)
-    _workspace(control, queue=_entry("alias-alpha"))
-    control_ready = [item["path"] for item in _reconcile_json(control, engine)["canonical"]["ready"]]
-    assert "docs/specs/alias-alpha/spec.md" in control_ready
-
-
 def _normalized(relative: str) -> str:
     """Whitespace-normalized file text, the idiom these criteria name."""
     return " ".join((ROOT / relative).read_text(encoding="utf-8").split())
@@ -412,7 +301,6 @@ def test_prose_criteria_have_their_verification_artifact() -> None:
 
     skill = _normalized("packs/core/.apm/skills/workspace-status/SKILL.md")  # AC50
     assert "remains visible because ordinary-context exclusion is not part of this wave" not in skill
-    assert "Cooling context is excluded from ordinary orientation" in skill
 
     spec = (ROOT / "docs/specs/status-projection-and-context-exclusion/spec.md").read_text(
         encoding="utf-8"
@@ -465,83 +353,7 @@ def test_packaged_runtime_carries_the_whole_closure() -> None:
 
 
 # STUB: AC38
-def test_every_resolution_route_failing_is_named(tmp_path, engine, monkeypatch) -> None:
-    monkeypatch.setattr(engine, "_cooling_module_path", lambda: None)
-    # Patch a copy bound into the engine's namespace rather than the shared
-    # `importlib` module object: the previous form replaced a stdlib callable
-    # process-wide for the duration of the test, so any lazily imported
-    # dependency in the call path would have raised for an unrelated reason.
-    import types
-    stub = types.SimpleNamespace(
-        import_module=lambda name: (_ for _ in ()).throw(ImportError(name)),
-        util=engine.importlib.util,
-    )
-    monkeypatch.setattr(engine, "importlib", stub)
-    assert _emitted_codes(_tree(tmp_path), engine) == ["cooling_state_unavailable"]
-
-
-def _ac39_fixture(root: Path) -> Path:
-    """One shaping-ready entry, one [backlog].open entry, one Shipped-but-queued spec."""
-    _spec(root, "alpha", status="Shipped")
-    (root / "workspace.toml").write_text(
-        '["ini-002"]\n'
-        'name = "Cooling fixture"\n'
-        'status = "active"\n'
-        'milestone = "M1"\n\n'
-        '["ini-002".work]\n'
-        f"queue = [{_entry('alpha')}]\n"
-        "active = []\n"
-        "shipped = []\n\n"
-        '["ini-002".shaping_queue]\n'
-        # `research` is in both _SHAPING_TYPES and the allowed kinds for these
-        # collections; `intent` is only in the latter and yields no shaping entry.
-        'active = [{slug = "shape-me", type = "research"}]\n'
-        "backlog = []\n\n"
-        "[backlog]\n"
-        'open = [{slug = "top-level-item", type = "research", source = "review", summary = "a backlog item"}]\n'
-        "closed = []\n",
-        encoding="utf-8",
-    )
-    return root
-
-
 # STUB: AC39
-def test_failed_cooling_resolution_uses_its_own_finding_code(tmp_path, engine, monkeypatch) -> None:
-    """AC39: a failed resolution costs its own finding and nothing else.
-
-    The earlier form asserted only the finding code, so it could not observe the
-    "costs nothing else" half at all -- the four surfaces the criterion names
-    were never built, let alone compared.
-    """
-    def surfaces(root):
-        status = _load_status_module()
-        result = engine.analyze(root)
-        data = status._build_json(root, result, "reconcile")
-        repair = status._build_repair_plan_json(
-            root, result, engine.compute_repair_plan(result, root / "workspace.toml")
-        )
-        return {
-            "shaping.ready": data["shaping"]["ready"],
-            "shaping.top_level_backlog": data["shaping"]["top_level_backlog"],
-            "reconciliation.type2_cleanup_ops": data["reconciliation"]["type2_cleanup_ops"],
-            "repair.automatic_operations": repair["automatic_operations"],
-        }
-
-    control_root = _ac39_fixture(_tree(tmp_path / "control", lifecycle=False, specs=()))
-    control = surfaces(control_root)
-    for name, value in control.items():
-        assert value, f"{name} is empty in the control, so the comparison below proves nothing"
-    assert "cooling_state_unavailable" not in _emitted_codes(control_root, engine)
-
-    monkeypatch.setattr(engine, "_load_cooling_module", lambda: (_ for _ in ()).throw(RuntimeError()))
-    failed_root = _ac39_fixture(_tree(tmp_path / "failed", specs=()))
-    # The fixture raises other findings by construction -- a Shipped spec still
-    # queued is the point of it -- so this asserts the code arrives, not that it
-    # arrives alone.
-    assert "cooling_state_unavailable" in _emitted_codes(failed_root, engine)
-    assert surfaces(failed_root) == control
-
-
 # STUB: AC40
 def _candidate_slot(base: Path, slot: int) -> tuple[Path, Path]:
     """Return (engine __file__, candidate cooling.py) for one resolution slot.
@@ -680,35 +492,6 @@ def test_installed_skills_tree_still_reaches_its_sibling(tmp_path) -> None:
     assert marker.exists(), "installed layout did not reach its sibling skill"
 
 
-def test_cooled_body_never_reaches_the_output(tmp_path, engine) -> None:
-    """AC13: canonical dependency probes do not read cooled artifacts."""
-    control = _tree(tmp_path / "control", lifecycle=False, specs=())
-    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
-    for root in (control, cooled):
-        _spec(root, "alpha", brief="COOLSENTINEL42")
-        _spec(root, "beta")
-        _depend_on(root, "beta", "spec:alpha")
-        _workspace(root, queue=_entry("beta"))
-
-    control_json = _reconcile_json(control, engine)
-    cooled_json = _reconcile_json(cooled, engine)
-
-    assert "COOLSENTINEL42" in json.dumps(control_json)
-    assert "COOLSENTINEL42" not in json.dumps(cooled_json)
-
-
-def test_cooled_dependency_does_not_block_its_dependant(tmp_path, engine) -> None:
-    """AC14: a cooled local spec dependency counts as satisfied."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _spec(root, "beta")
-    _depend_on(root, "beta", "spec:alpha")
-    _workspace(root, queue=_entry("beta"))
-
-    ready = _reconcile_json(root, engine)["canonical"]["ready"]
-    assert [item["path"] for item in ready] == ["docs/specs/beta/spec.md"]
-
-
 def test_cooled_spec_raises_no_type1_finding(tmp_path, engine) -> None:
     """AC-0041: the Type 1 audit is empty for a cooled tree as for a control tree."""
     control = _tree(tmp_path / "control", lifecycle=False, specs=())
@@ -741,31 +524,6 @@ def test_global_scan_counter_moves_by_exactly_one(tmp_path, engine) -> None:
     assert cooled_json["reconciliation"]["type1"] == []
 
 
-def test_cooled_queue_entry_never_becomes_dispatchable(tmp_path, engine) -> None:
-    """AC17: canonical evaluation drops cooled entries before metadata reads."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"))
-
-    canonical = _reconcile_json(root, engine)["canonical"]
-    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in canonical["ready"])
-    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in canonical["evaluations"])
-
-
-def test_alias_cooled_queue_entry_never_becomes_dispatchable(tmp_path, engine) -> None:
-    """Mutation guard: aliases participate in canonical cooling selection."""
-    root = _tree(
-        tmp_path,
-        records=[_record(locator="docs/specs/retired/spec.md", aliases=["docs/specs/alpha/spec.md"])],
-        specs=(),
-    )
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"))
-
-    canonical = _reconcile_json(root, engine)["canonical"]
-    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in canonical["evaluations"])
-
-
 def test_declared_spec_counter_moves_by_exactly_one(tmp_path, engine) -> None:
     """AC18: declared scans omit one cooled entry while retaining beta."""
     control = _tree(tmp_path / "control", lifecycle=False, specs=())
@@ -781,17 +539,6 @@ def test_declared_spec_counter_moves_by_exactly_one(tmp_path, engine) -> None:
         cooled_json["scan"]["declared_spec_files_read"]
         == control_json["scan"]["declared_spec_files_read"] - 1
     )
-
-
-def test_uncooled_sibling_still_dispatches(tmp_path, engine) -> None:
-    """AC19: cooling alpha does not suppress the uncooled beta sibling."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _spec(root, "beta")
-    _workspace(root, queue=", ".join((_entry("alpha"), _entry("beta"))))
-
-    ready = _reconcile_json(root, engine)["canonical"]["ready"]
-    assert [item["path"] for item in ready] == ["docs/specs/beta/spec.md"]
 
 
 def test_legacy_entry_is_excluded_identically(tmp_path, engine) -> None:
@@ -826,140 +573,6 @@ def test_legacy_entry_is_excluded_identically(tmp_path, engine) -> None:
     assert ("unsupported_legacy", "spec/alpha") in {
         (f["code"], f["path"]) for f in cooled_json["canonical"]["findings"]
     }
-
-
-def test_bounded_mode_excludes_identically(tmp_path, engine) -> None:
-    """AC21: status's bounded analysis carries the cooled set to canonical evaluation."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"))
-
-    status = _load_status_module()
-    data = status._build_json(root, engine.analyze_bounded(root), "status")
-    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in data["canonical"]["ready"])
-
-
-def _mcp_call(root: Path, engine, monkeypatch) -> dict:
-    """Invoke the MCP status tool bound to the source engine."""
-    spec = importlib.util.spec_from_file_location("wave6_mcp", MCP_PATH)
-    assert spec is not None and spec.loader is not None
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[spec.name] = module
-    try:
-        spec.loader.exec_module(module)
-        monkeypatch.setattr(module, "_load_workspace_status_engine", lambda _: engine)
-        bridge = type("Bridge", (), {"get_fsm_state": lambda self: {}, "has_anchored_engine_state": lambda self: False})()
-        return module._WorkspaceStatusTool(root, bridge).call()
-    finally:
-        sys.modules.pop(spec.name, None)
-
-
-def test_mcp_surface_inherits_the_exclusion(tmp_path, engine, monkeypatch) -> None:
-    """AC22: the MCP status tool uses bounded analysis with cooling exclusion."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"))
-
-    data = _mcp_call(root, engine, monkeypatch)
-    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in data["ready"])
-
-
-def test_mcp_never_parses_workspace_toml_before_its_confinement_check(
-    tmp_path, engine, monkeypatch
-) -> None:
-    """The escaping workspace.toml is never handed to the parser.
-
-    The shipped T3 criterion asserts the target's bytes are absent from the
-    result, which stayed true while the file was being read and the result
-    discarded — so the reorder that introduced the read, and the repair that
-    removed it, were both invisible. The read is the property.
-    """
-    outside = tmp_path / "outside"
-    outside.mkdir()
-    (outside / "evil.toml").write_text(
-        '["ini-001"]\nname="OUTSIDE"\nstatus="active"\nmilestone="M1"\n\n'
-        '["ini-001".work]\nqueue = []\nactive = []\nshipped = []\n',
-        encoding="utf-8",
-    )
-    root = tmp_path / "repo"
-    root.mkdir()
-    (root / "workspace.toml").symlink_to(outside / "evil.toml")
-
-    parsed: list[str] = []
-    real = engine.parse_workspace
-
-    def probe(path):
-        parsed.append(str(path))
-        return real(path)
-
-    monkeypatch.setattr(engine, "parse_workspace", probe)
-    _mcp_call(root, engine, monkeypatch)
-    assert parsed == [], f"escaping workspace.toml reached the parser: {parsed}"
-
-
-def test_mcp_surface_names_a_failed_cooling_resolution(tmp_path, engine, monkeypatch) -> None:
-    """AC22: the MCP surface carries cooling findings, not only the exclusion.
-
-    Inheriting the exclusion and reporting why it could not be performed are
-    separate obligations. Asserting only the first would stay green on a
-    surface that silently claimed an exclusion it never made.
-    """
-    root = _tree(tmp_path, lifecycle=False, specs=())
-    (root / "docs").mkdir(parents=True, exist_ok=True)
-    (root / "docs/lifecycle").write_text("not a directory", encoding="utf-8")
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"))
-
-    data = _mcp_call(root, engine, monkeypatch)
-    codes = [f["code"] for f in data["canonical"]["findings"]]
-    assert codes == ["cooling_state_unavailable"]
-
-
-def test_explain_mode_excludes_too(tmp_path, engine) -> None:
-    """AC36: explain's canonical projection receives bounded cooling state."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"))
-
-    status = _load_status_module()
-    data = status._build_explain_json(root, engine.analyze_bounded(root), "alpha", {})
-    assert all(item["path"] != "docs/specs/alpha/spec.md" for item in data["canonical"]["evaluations"])
-
-
-def test_cooling_never_satisfies_a_blocked_dependency(tmp_path, engine) -> None:
-    """AC55: a structural block beats cooling satisfaction, on the real surface.
-
-    The block is earned rather than injected: `alpha` is registered twice, so it
-    is a duplicate membership and therefore structurally blocked, and it is also
-    cooled. Passing a synthetic `structurally_blocked_paths` to
-    `_dependency_is_satisfied` proved only that the first line of that function
-    runs -- it could not show that a cooled artifact still reaches the set.
-    """
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _spec(root, "beta")
-    _depend_on(root, "beta", "spec:alpha")
-    _workspace(
-        root,
-        queue=", ".join([_entry("alpha"), _entry("alpha"), _entry("beta")]),
-    )
-
-    canonical = _reconcile_json(root, engine)["canonical"]
-    assert all(item["path"] != "docs/specs/beta/spec.md" for item in canonical["ready"])
-    assert ("unsatisfied_dependency", "docs/specs/alpha/spec.md") in {
-        (f["code"], f["path"]) for f in canonical["findings"]
-    }
-
-    # Control: the same cooled dependency without the duplicate. `beta` is ready,
-    # so the refusal above is attributable to the structural block and not to
-    # cooling refusing every dependency it touches.
-    control = _tree(tmp_path / "control", records=[_record()], specs=())
-    _spec(control, "alpha")
-    _spec(control, "beta")
-    _depend_on(control, "beta", "spec:alpha")
-    _workspace(control, queue=", ".join([_entry("alpha"), _entry("beta")]))
-    control_ready = [item["path"] for item in _reconcile_json(control, engine)["canonical"]["ready"]]
-    assert control_ready == ["docs/specs/beta/spec.md"]
 
 
 DEFECT_PATH = "docs/product/captured/alpha.md"
@@ -1027,24 +640,6 @@ def _cross_repo_fixture(root: Path, *, cooled: bool, brief_on_disk: bool = True)
         (directory / "gamma.json").write_text(json.dumps(record), encoding="utf-8")
     _workspace(root, queue=_entry("beta"))
     return root
-
-
-def _cross_repo_codes(root: Path, engine) -> set[str]:
-    """Return the finding codes the reconcile projection emits for a fixture."""
-    canonical = _reconcile_json(root, engine)["canonical"]
-    assert all(item["path"] != "docs/specs/beta/spec.md" for item in canonical["ready"])
-    return {finding["code"] for finding in canonical["findings"]}
-
-
-def test_cooled_cross_repo_dependency_is_refused_without_a_read(tmp_path, engine) -> None:
-    """AC57: the cooled cross-repo path refuses before the brief body is opened."""
-    control = _cross_repo_fixture(_tree(tmp_path / "control", lifecycle=False, specs=()), cooled=False)
-    cooled = _cross_repo_fixture(_tree(tmp_path / "cooled", specs=()), cooled=True)
-
-    # `invalid_receipt` is emitted only inside `_cross_repo_receipt_satisfied`,
-    # so its presence is the signal that the read path was entered.
-    assert _cross_repo_codes(control, engine) == {"invalid_receipt"}
-    assert _cross_repo_codes(cooled, engine) == {"unsatisfied_dependency"}
 
 
 def test_cooled_cross_repo_refusal_never_enters_the_receipt_reader(
@@ -1166,127 +761,6 @@ def test_cooled_defect_dependency_does_not_read_its_body(tmp_path, engine, monke
     assert seen == []
 
 
-def test_alias_declared_dependency_does_not_read_its_body(tmp_path, engine) -> None:
-    """Mutation guard: dependency cooling compares resolved artifact paths.
-
-    Carries the control half the Testing Strategy requires for this observable
-    class. Without it the absence assertion holds for any reason at all — a
-    `_spec()` signature change that stopped emitting the sentinel would leave
-    the guard green forever.
-    """
-    def build(base: Path, *, lifecycle: bool) -> Path:
-        root = _tree(
-            base,
-            records=[_record(locator="docs/specs/alias-alpha/spec.md")] if lifecycle else [],
-            specs=(),
-            lifecycle=lifecycle,
-        )
-        _spec(root, "alpha", brief="COOLSENTINEL42")
-        (root / "docs/specs/alias-alpha").symlink_to(
-            root / "docs/specs/alpha", target_is_directory=True
-        )
-        _spec(root, "beta")
-        _depend_on(root, "beta", "spec:alpha")
-        _workspace(root, queue=_entry("beta"))
-        return root
-
-    control = json.dumps(_reconcile_json(build(tmp_path / "control", lifecycle=False), engine))
-    cooled = json.dumps(_reconcile_json(build(tmp_path / "cooled", lifecycle=True), engine))
-    assert "COOLSENTINEL42" in control, "fixture never produced the sentinel"
-    assert "COOLSENTINEL42" not in cooled
-
-
-def test_due_reviews_are_counted_and_named(tmp_path, engine) -> None:
-    """AC23–AC26: due records project bounded review and evidence fields."""
-    root = _tree(tmp_path, records=[
-        _record(delivery_id="spec-a", completed_on="2026-07-02", review_on="2026-08-01"),
-        _record(delivery_id="spec-b", completed_on="2098-12-02", review_on="2099-01-01"),
-    ], specs=("spec-a", "spec-b"))
-    _workspace(root, queue="")
-    data = _reconcile_json(
-        root, engine, now=datetime.datetime(2026, 8, 30, tzinfo=datetime.timezone(datetime.timedelta(hours=8)))
-    )
-    cooling = data["cooling"]
-    assert cooling["due_count"] == 1
-    assert {record["delivery_id"] for record in cooling["records"]} == {"spec-a", "spec-b"}
-    assert cooling["due"] == [{
-        "delivery_id": "spec-a", "locator": "docs/specs/spec-a/spec.md", "review_on": "2026-08-01",
-    }]
-    record = next(item for item in cooling["records"] if item["delivery_id"] == "spec-a")
-    assert set(record) == {
-        "delivery_id", "locator", "disposition", "post_closeout_result",
-        "completion_event", "completion_evidence_ref", "review_on", "due",
-    }
-    assert (record["completion_event"], record["completion_evidence_ref"]) == (
-        "merge", "commit:" + "1" * 40,
-    )
-
-
-def test_retention_exceptions_and_retired_records_project_correctly(tmp_path, engine) -> None:
-    """AC27–AC28: retained work is visible; retired work is never due."""
-    root = _tree(tmp_path, records=[
-        _record(delivery_id="retained", disposition="retain-exception", result="Retained"),
-        _record(delivery_id="advisory", disposition="retain-exception", result="ExternalAdvisory"),
-        _record(delivery_id="retired", disposition="retain-exception", result="Retired", completed_on="2026-07-02", review_on="2026-08-01"),
-    ], specs=("retained", "advisory", "retired"))
-    _workspace(root, queue="")
-    cooling = _reconcile_json(
-        root, engine, now=datetime.datetime(2026, 8, 30, tzinfo=datetime.UTC)
-    )["cooling"]
-    # Both live obligations are projected; the settled one contributes nothing.
-    # Selecting on `record.exception is not None` would pass the first assertion
-    # and fail the second, because `retain-exception` makes the block mandatory
-    # for the retired record too.
-    exception_fields = {
-        "owner_role": "maintainer", "reason": "audit-obligation", "review_on": "2026-02-01",
-    }
-    # Keyed by delivery_id: the emitted order follows record filenames, which
-    # no criterion states, so pinning it would redden on a fixture rename.
-    assert {item["delivery_id"]: item for item in cooling["exceptions"]} == {
-        "advisory": {"delivery_id": "advisory", "locator": "docs/specs/advisory/spec.md", **exception_fields},
-        "retained": {"delivery_id": "retained", "locator": "docs/specs/retained/spec.md", **exception_fields},
-    }
-    retired = next(item for item in cooling["records"] if item["delivery_id"] == "retired")
-    assert retired["due"] is False
-    assert all(item["delivery_id"] != "retired" for item in cooling["due"] + cooling["exceptions"])
-
-
-def test_closeout_facts_are_projected(tmp_path, engine) -> None:
-    """AC29–AC32: closeout reflects pause, queue state, and reconciliation.
-
-    One root per case. The earlier form rewrote a single `workspace.toml` three
-    times, so a failure in an earlier phase changed what the later ones saw. Its
-    AC32 phase also asserted `all_specs_shipped` against an initiative holding
-    nothing at all, which is vacuously true and stays green under
-    `not (queue or active or shipped)`.
-    """
-    # AC29 + AC32: every spec Shipped, not merely absent.
-    shipped = _tree(tmp_path / "shipped", records=[], specs=())
-    _spec(shipped, "alpha", status="Shipped")
-    _workspace(shipped, queue="", shipped=_entry("alpha"))
-    closeout = _reconcile_json(shipped, engine)["closeout"]
-    assert set(closeout) == {
-        "paused", "all_specs_shipped", "closeout_blockers", "initiative_eligible",
-        "next_action", "cooling_context_visible",
-    }
-    assert closeout["all_specs_shipped"] is True
-    assert closeout["next_action"] == "invoke-close-work"
-
-    # AC30: a paused initiative.
-    paused = _tree(tmp_path / "paused", records=[], specs=())
-    _spec(paused, "alpha", status="Shipped")
-    _workspace(paused, queue="", shipped=_entry("alpha"), status="paused")
-    assert _reconcile_json(paused, engine)["closeout"]["next_action"] == "resume-or-keep-paused"
-
-    # AC31: an UNCOOLED queued spec blocks closeout. The earlier form queued the
-    # cooled `alpha`, so once closeout began honouring the cooled set this
-    # assertion was pinning the very disagreement the rail forbids.
-    queued = _tree(tmp_path / "queued", records=[], specs=())
-    _spec(queued, "beta")
-    _workspace(queued, queue=_entry("beta"))
-    assert "unshipped-specs" in _reconcile_json(queued, engine)["closeout"]["closeout_blockers"]
-
-
 def test_an_inactive_initiative_is_still_reported_for_a_cooled_entry(tmp_path, engine) -> None:
     """The cooled branch keeps every membership-derived finding, not just one.
 
@@ -1339,232 +813,6 @@ def test_cooling_both_halves_of_a_duplicate_still_reports_it(tmp_path, engine) -
     assert duplicates(cooled) == {("duplicate_membership", "docs/specs/alpha/spec.md")}
 
 
-def test_a_fully_cooled_initiative_reports_all_specs_shipped(tmp_path, engine) -> None:
-    """`cooling-scope-closure` retires the closeout eligibility residual.
-
-    The two closeout consumers now derive from one cooled-exclusion pass, so a
-    cooled entry counts toward neither. When the cooled reading is incomplete,
-    the `cooling-context-incomplete` blocker withholds the affirmative instead.
-    """
-    cooled = _tree(tmp_path / "cooled", records=[_record()], specs=())
-    _spec(cooled, "alpha")
-    _workspace(cooled, queue=_entry("alpha"))
-    projection = _reconcile_json(cooled, engine)
-
-    assert projection["closeout"]["all_specs_shipped"] is True
-    assert "unshipped-specs" not in projection["closeout"]["closeout_blockers"]
-    assert projection["canonical"]["ready"] == []
-
-
-@pytest.mark.parametrize("mode", ("status", "reconcile"))
-@pytest.mark.parametrize("failure", ("invalid", "unavailable", "escaping", "no-route"))
-def test_exclusion_claim_is_earned_not_declared(
-    tmp_path, engine, monkeypatch, mode, failure
-) -> None:
-    """AC33: lifecycle refusals fail closed on the exclusion claim.
-
-    All four fixtures the criterion names. `escaping` and `no-route` reach the
-    flag through directory confinement and module resolution rather than
-    through one bad record, so omitting them left half the refusal classes
-    unverified at this surface.
-    """
-    root = _tree(tmp_path / failure, records=[_record()], specs=("alpha",))
-    _workspace(root, queue="")
-    if failure == "invalid":
-        (root / "docs/lifecycle/alpha.json").write_text(
-            '{"schema":"delivery-lifecycle-record.v1"}', encoding="utf-8"
-        )
-    elif failure == "unavailable":
-        root = _tree(tmp_path / "unavailable-root", lifecycle=False, specs=("alpha",))
-        _workspace(root, queue="")
-        (root / "docs/lifecycle").write_text("unavailable", encoding="utf-8")
-    elif failure == "escaping":
-        outside = _tree(tmp_path / "outside", records=[_record()], specs=("alpha",))
-        root = _tree(tmp_path / "escaping-root", lifecycle=False, specs=("alpha",))
-        _workspace(root, queue="")
-        (root / "docs").mkdir(parents=True, exist_ok=True)
-        (root / "docs/lifecycle").symlink_to(outside / "docs/lifecycle", target_is_directory=True)
-    else:
-        monkeypatch.setattr(
-            engine, "_load_cooling_module", lambda: (_ for _ in ()).throw(RuntimeError())
-        )
-    status = _load_status_module()
-    result = engine.analyze_bounded(root) if mode == "status" else engine.analyze(root)
-    assert status._build_json(root, result, mode)["closeout"]["cooling_context_visible"] is True
-
-
-def test_clean_cooling_state_and_unrelated_canonical_refusal_keep_claim_false(tmp_path, engine) -> None:
-    """AC33–AC34: only cooling findings determine the visibility claim."""
-    root = _tree(tmp_path, records=[_record()], specs=("alpha",))
-    _workspace(root, queue=(
-        '{locator = {kind = "external", value = "https://example.test/alpha"}, '
-        'kind = "spec", surface_role = "user-documentation", source = {mode = "repo-origin"}, '
-        'summary = "fixture", needs = []}'
-    ))
-    data = _reconcile_json(root, engine)
-    assert any(
-        finding["code"] == "configuration_mismatch"
-        for item in data["canonical"]["evaluations"]
-        for finding in item["findings"]
-    )
-    assert data["closeout"]["cooling_context_visible"] is False
-
-
-def _run_cli(root: Path, engine, capsys, *args: str) -> dict:
-    """Drive the CLI subcommand end to end and return its emitted JSON."""
-    status = _load_status_module()
-    assert status.main([*args, "--root", str(root)]) == 0
-    return json.loads(capsys.readouterr().out)
-
-
-def test_no_two_ordinary_consumers_disagree_about_the_cooled_set(
-    tmp_path, engine, monkeypatch
-) -> None:
-    """`Always do`: one ordinary-orientation run, one answer on every surface.
-
-    The invariant at `spec.md:111-113` was held by nothing in code or suite,
-    while the selection was expressed at several sites. Each site could drift
-    alone and every existing criterion would stay green, because each looked at
-    one surface.
-    """
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _spec(root, "beta")
-    _workspace(root, queue=", ".join([_entry("alpha"), _entry("beta")]))
-
-    status = _load_status_module()
-    reconcile = status._build_json(root, engine.analyze(root), "reconcile")
-    bounded = status._build_json(root, engine.analyze_bounded(root), "status")
-    explain = status._build_explain_json(root, engine.analyze_bounded(root), "alpha", {})
-    mcp = _mcp_call(root, engine, monkeypatch)
-
-    def presented(payload: dict, *sections: str) -> set[str]:
-        """Every artifact path this surface offers a reader."""
-        return {
-            item["path"]
-            for section in sections
-            for item in payload.get(section, [])
-            if isinstance(item, dict) and item.get("path")
-        }
-
-    surfaces = {
-        "reconcile": presented(reconcile["canonical"], "ready", "blocked", "evaluations"),
-        "status": presented(bounded["canonical"], "ready", "blocked", "evaluations"),
-        "explain": presented(explain["canonical"], "ready", "blocked", "evaluations"),
-        "mcp": presented(mcp["canonical"], "ready", "blocked", "evaluations"),
-    }
-    for name, paths in surfaces.items():
-        assert "docs/specs/alpha/spec.md" not in paths, f"{name} presents the cooled artifact"
-        # The uncooled sibling keeps every surface non-empty, so the assertion
-        # above is about exclusion and not about a surface that returned nothing.
-        assert "docs/specs/beta/spec.md" in paths, f"{name} presents nothing at all"
-
-
-def test_no_live_initiative_means_no_closeout_block(tmp_path, engine) -> None:
-    """AC58: a closed workspace projects no closeout state, rather than a false one."""
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"), status="closed")
-
-    status = _load_status_module()
-    for mode, result in (
-        ("reconcile", engine.analyze(root)),
-        ("status", engine.analyze_bounded(root)),
-    ):
-        data = status._build_json(root, result, mode)
-        assert "closeout" not in data, f"{mode} synthesized closeout state from no initiative"
-        # `cooling` is unconditional in these modes, so the assertion above is
-        # about the closeout block rather than about the whole gate being skipped.
-        assert "cooling" in data
-
-    active = _tree(tmp_path / "active", records=[_record()], specs=())
-    _spec(active, "alpha")
-    _workspace(active, queue=_entry("alpha"))
-    assert "closeout" in status._build_json(active, engine.analyze(active), "reconcile")
-
-
-def test_generic_failure_names_its_exception_type_and_nothing_else(
-    tmp_path, engine, monkeypatch, capsys
-) -> None:
-    """The `configuration_mismatch` fallback is diagnosable without disclosure.
-
-    This branch swallows genuine programming errors, so it is the only signal an
-    operator gets. Its whole justification is a disclosure boundary — the
-    exception type, never `str(exc)`, which routinely carries an absolute host
-    path into agent context — and nothing asserted either half.
-    """
-    root = _tree(tmp_path, records=[], specs=())
-    _spec(root, "alpha")
-    _workspace(root, queue=_entry("alpha"))
-    secret = str(root / "docs" / "specs" / "alpha")
-
-    status = _load_status_module()
-
-    def explode(*args, **kwargs):
-        raise RuntimeError(f"host path leak: {secret}")
-
-    monkeypatch.setattr(status, "analyze", explode)
-    assert status.main(["reconcile", "--root", str(root)]) == 2
-    captured = capsys.readouterr()
-
-    assert "workspace-status: configuration_mismatch: RuntimeError" in captured.err
-    assert secret not in captured.err
-    assert "Traceback" not in captured.err
-    assert json.loads(captured.out)["canonical"]["findings"][0]["code"] == "configuration_mismatch"
-
-
-def test_a_raising_is_due_is_named_not_silently_not_due(tmp_path, engine, monkeypatch) -> None:
-    """A dueness failure cannot leave a clean exclusion claim behind.
-
-    Degrading to `due_now = False` alone reported an empty due queue while
-    `cooling_context_visible` stayed false — orientation under-reported the
-    maintainer's queue and asserted the run was clean, which is the opposite of
-    the Objective's promise.
-    """
-    root = _tree(tmp_path, records=[_record(review_on="2026-01-31")], specs=())
-    _spec(root, "alpha")
-    _workspace(root, queue="")
-
-    real = engine._load_cooling_module()
-
-    class _Raises:
-        def is_due(self, record, now):
-            raise RuntimeError("skewed module")
-
-        def __getattr__(self, name):
-            return getattr(real, name)
-
-    monkeypatch.setattr(engine, "_load_cooling_module", lambda: _Raises())
-    data = _reconcile_json(root, engine, now=datetime.datetime(2026, 8, 30, tzinfo=datetime.UTC))
-
-    assert data["cooling"]["due_count"] == 0
-    assert data["closeout"]["cooling_context_visible"] is True
-    assert "_unreadable" not in data["cooling"]
-
-
-def test_an_unrenderable_locator_is_omitted_not_renamed(tmp_path, engine) -> None:
-    """A locator outside the public charset is null, never another real path.
-
-    `_public_canonical_path` substitutes the literal `workspace.toml`, which is
-    a safe fallback for a finding path and a false statement for a record
-    locator: the artifact is excluded correctly while the projection names a
-    different file that exists.
-    """
-    root = _tree(tmp_path, records=[], specs=())
-    directory = root / "docs/specs/café spec"
-    directory.mkdir(parents=True)
-    (directory / "spec.md").write_text("# S\n\n- **Status:** Approved\n", encoding="utf-8")
-    (root / "docs/lifecycle").mkdir(parents=True, exist_ok=True)
-    (root / "docs/lifecycle/alpha.json").write_text(
-        json.dumps(_record(locator="docs/specs/café spec/spec.md")), encoding="utf-8"
-    )
-    _workspace(root, queue="")
-
-    records = _reconcile_json(root, engine)["cooling"]["records"]
-    assert [r["locator"] for r in records] == [None]
-    assert "workspace.toml" not in json.dumps(records)
-
-
 def test_absent_lifecycle_directory_is_clean_even_with_no_cooling_module(
     tmp_path, engine, monkeypatch
 ) -> None:
@@ -1613,96 +861,6 @@ def test_packaged_layout_does_not_reach_a_sibling_cooling_module(
         str(skills / "workspace-status" / "scripts" / "workspace_status_engine.py"),
     )
     assert engine._cooling_module_path() == (reachable / "cooling.py").resolve()
-
-
-def test_emitted_paths_are_bounded_to_the_public_charset(tmp_path, engine) -> None:
-    """The two agent-context rendering controls have an assertion.
-
-    Both were reverted by a one-line mutation with the whole suite still green,
-    so a later refactor would have removed them silently.
-    """
-    root = _tree(tmp_path, records=[], specs=())
-    directory = root / "docs/specs/blocked\u00a0entry"
-    directory.mkdir(parents=True)
-    (directory / "spec.md").write_text("# S\n\n- **Status:** Shipped\n", encoding="utf-8")
-    (directory / "plan.md").write_text("# P\n", encoding="utf-8")
-    (root / "workspace.toml").write_text(
-        '["ini-002"]\nname="x"\nstatus="active"\nmilestone="M1"\n\n'
-        '["ini-002".work]\n'
-        'queue = [{path = "docs/specs/blocked\u00a0entry/spec.md", kind = "spec", '
-        'source = {mode = "repo-origin"}, summary = "f", needs = []}]\n'
-        "active = []\nshipped = []\n",
-        encoding="utf-8",
-    )
-    blockers = _reconcile_json(root, engine)["closeout"]["closeout_blockers"]
-    assert blockers, "fixture produced no blocker; the assertion below proves nothing"
-    assert all("\u00a0" not in blocker for blocker in blockers)
-
-
-def test_repair_plan_keeps_its_pre_wave6_cooling_posture(tmp_path, engine, capsys) -> None:
-    """AC35: `repair-plan` still reaches a cooled entry, through the CLI itself.
-
-    The Wave 7 deferral rests on `cooling_enabled=False`, which only the
-    `repair-plan` subcommand passes. Every existing assertion called
-    `engine.analyze` or `_build_repair_plan_json` directly, so none of them
-    crossed that argument -- flipping it would have changed nothing they observed
-    while changing what the command does.
-    """
-    root = _tree(tmp_path, records=[_record()], specs=())
-    _spec(root, "alpha", status="Shipped")
-    _workspace(root, queue=_entry("alpha"))
-
-    plan = _run_cli(root, engine, capsys, "repair-plan")
-    reconcile = _run_cli(root, engine, capsys, "reconcile")
-
-    # `automatic_operations` is the observable that moves: the entry itself is
-    # echoed either way, so asserting the path appears anywhere in the JSON
-    # cannot distinguish the two postures.
-    # Since the spec registration stop the reach is a `spec-entry-drop` of the
-    # repo-origin entry rather than a queue move; either still proves the reach.
-    assert [
-        op for op in plan["automatic_operations"]
-        if "docs/specs/alpha/spec.md" in (op.get("spec_path"), op.get("path"))
-    ], "repair-plan lost its pre-Wave-6 reach into a cooled entry"
-    # Ordinary orientation excludes the same entry, so the assertion above is
-    # about the deferral rather than about cooling never doing anything here.
-    assert all(
-        item["path"] != "docs/specs/alpha/spec.md" for item in reconcile["canonical"]["ready"]
-    )
-
-
-def test_only_ordinary_orientation_carries_cooling_and_closeout(tmp_path, engine) -> None:
-    """AC35: repair-plan's shared builder stays outside the positive mode gate."""
-    root = _tree(tmp_path, records=[_record()], specs=("alpha",))
-    _workspace(root, queue="")
-    status = _load_status_module()
-    result = engine.analyze(root)
-    repair = status._build_repair_plan_json(root, result, engine.compute_repair_plan(result, root / "workspace.toml"))
-    explain = status._build_explain_json(root, engine.analyze_bounded(root), "alpha", {})
-    assert {"cooling", "closeout"}.isdisjoint(repair)
-    assert {"cooling", "closeout"}.isdisjoint(explain)
-
-
-def test_dueness_uses_the_recorded_zone_and_default_clock(tmp_path, engine) -> None:
-    """AC42–AC43: projection delegates to Wave 5 with an aware production clock."""
-    root = _tree(tmp_path, records=[_record(completed_on="2026-08-01", review_on="2026-08-31")])
-    _workspace(root, queue="")
-    zone_boundary = datetime.datetime(2026, 8, 30, 16, 30, tzinfo=datetime.UTC)
-    assert _reconcile_json(root, engine, now=zone_boundary)["cooling"]["records"][0]["due"] is True
-    root = _tree(tmp_path / "default", records=[_record(completed_on="2019-12-02", review_on="2020-01-01")])
-    _workspace(root, queue="")
-    assert _reconcile_json(root, engine)["cooling"]["due_count"] == 1
-
-
-def test_non_boolean_visibility_fact_is_refused(engine) -> None:
-    """AC44: the Wave 4 type guard survives context-exclusion support."""
-    with pytest.raises(ValueError, match="boolean facts"):
-        engine.project_closeout_status(
-            paused=False,
-            all_specs_shipped=True,
-            closeout_blockers=[],
-            cooling_context_visible="no",
-        )
 
 
 # ── AC59: brief child scope ────────────────────────────────────────────────────

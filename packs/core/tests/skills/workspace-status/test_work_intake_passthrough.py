@@ -12,10 +12,10 @@ _BODIES = {
 def test_status_passthrough() -> None:
     intake = _BODIES["work-intake"]
     status = _BODIES["workspace-status"]
-    assert "workspace-status" in intake
-    assert "unchanged" in intake
-    assert "canonical.ready" in status
+    assert "Route status directly to `navigate-intents`" in " ".join(intake.split())
+    assert "dispatch.py" in intake
     assert "repair-plan" in status
+    assert "repair-apply" in status
 
 
 def test_consumer_boundary_metadata() -> None:

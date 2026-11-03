@@ -13,6 +13,7 @@ import hashlib
 import importlib.util
 import json
 import sys
+import tomllib
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable
@@ -209,6 +210,41 @@ def dispatch_stdout(root: Path, capsys: pytest.CaptureFixture[str]) -> str:
     capsys.readouterr()
     assert DISPATCH.main(["--root", str(root)]) == 0
     return capsys.readouterr().out
+
+
+def _holds_entry(value: Any) -> bool:
+    """True when a TOML value holds an element of an array, at any depth."""
+    if isinstance(value, list):
+        return bool(value)
+    if isinstance(value, dict):
+        return any(_holds_entry(item) for item in value.values())
+    return False
+
+
+def assert_dispatch_after_apply(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Assert AC-0030 for dispatch run after a ``repair-apply --yes``.
+
+    A ``workspace.toml`` that still holds an entry gets the ``unmigrated_workspace``
+    refusal; otherwise the output is byte-identical to dispatch on the same tree with
+    ``workspace.toml`` removed. These fixtures plant workspaces dispatch accepts, so
+    the ``invalid_workspace`` refusal is itself a failure here.
+    """
+    after = dispatch_stdout(root, capsys)
+    workspace = root / "workspace.toml"
+    document = tomllib.loads(workspace.read_text(encoding="utf-8"))
+    if any(_holds_entry(v) for k, v in document.items() if k != "authorization"):
+        data = json.loads(after)
+        assert [f["code"] for f in data["decision"]["findings"]] == ["unmigrated_workspace"]
+        assert data["decision"]["action"] == "refuse"
+        assert data["ready"] == data["active"] == data["blocked"] == []
+        return
+    held = workspace.read_bytes()
+    workspace.unlink()
+    try:
+        bare = dispatch_stdout(root, capsys)
+    finally:
+        workspace.write_bytes(held)
+    assert after == bare
 
 
 # ── AC-0016: which entries are drop candidates ───────────────────────────────
@@ -655,10 +691,9 @@ def test_dispatch_output_is_byte_identical_before_and_after_apply(
         op["operation_type"] in ("needs-to-header", "needs-drop-cooled")
         for op in data["automatic_operations"]
     )
-    before = dispatch_stdout(tmp_path, capsys)
     code, _ = apply(tmp_path, capsys)
     assert code == 0
-    assert dispatch_stdout(tmp_path, capsys) == before
+    assert_dispatch_after_apply(tmp_path, capsys)
 
 
 def test_dispatch_output_is_identical_across_a_held_entrys_second_run(
@@ -675,89 +710,30 @@ def test_dispatch_output_is_identical_across_a_held_entrys_second_run(
         },
     )
     plan(tmp_path, capsys)
-    first = dispatch_stdout(tmp_path, capsys)
     assert apply(tmp_path, capsys)[0] == 0
-    assert dispatch_stdout(tmp_path, capsys) == first
+    assert_dispatch_after_apply(tmp_path, capsys)
     write(tmp_path, "docs/lifecycle/c.json", record("c", spec_path("c"), BRIEF))
     assert drop_paths(plan(tmp_path, capsys)) == {spec_path("c")}
-    second = dispatch_stdout(tmp_path, capsys)
     assert apply(tmp_path, capsys)[0] == 0
-    assert dispatch_stdout(tmp_path, capsys) == second
+    assert_dispatch_after_apply(tmp_path, capsys)
 
 
 # ── AC-0015: entries the legacy migration writes are drop candidates ─────────
 
-_MIGRATION_AUTH = (
-    "[authorization.migration]\n"
-    'contract_version = "work-intake-migration-authorization.v1"\n'
-    'approver_roles = ["migration-approver"]\n\n'
-)
+def plant_migrated(root: Path, files: dict[str, str], parent: str | None) -> None:
+    """A registry whose one queue entry is the row the legacy migration wrote.
 
-
-def migrate_legacy_entry(
-    root: Path, capsys: pytest.CaptureFixture[str], slug: str, parent: str | None
-) -> None:
-    """Apply the legacy migration to the one legacy queue entry, through the CLI."""
-    import datetime
-
-    # `WS._engine` stays None until a CLI call binds it; bind it here so the
-    # helper does not depend on test order.
-    assert WS._bind_engine() is True
-    engine = WS._engine
-    workspace_path = root / "workspace.toml"
-    workspace_bytes = workspace_path.read_bytes()
-    [membership] = engine.extract_legacy_migration_memberships(
-        engine.parse_workspace(workspace_path)
+    The row is the literal the migration produced for the legacy string
+    `spec/alpha`, with the reviewed target `docs/specs/target/spec.md`.
+    """
+    source = '{mode = "repo-origin"}' if parent is None else (
+        f'{{mode = "repo-origin", parent = "{parent}"}}'
     )
-    finding = engine.build_migration_finding(workspace_bytes, membership)
-    source: dict[str, str] = {"mode": "repo-origin"}
-    if parent is not None:
-        source["parent"] = parent
-    selection = {
-        "contract_version": "work-intake-migration-selection.v1",
-        "legacy_finding_id": finding["legacy_finding_id"],
-        "workspace_fingerprint": hashlib.sha256(workspace_bytes).hexdigest(),
-        "source_membership": finding["source_membership"],
-        "target_entry": {
-            "path": spec_path(slug), "kind": "spec", "source": source,
-            "summary": "Reviewed target", "needs": [],
-        },
-        "target_membership": {"ini_slug": "ini-001", "collection": "work.queue"},
-        "owning_processor": "new-spec",
-        "provenance_reference": spec_path(slug),
-        "legacy_content_approved_for_ledger": True,
-    }
-    write(root, "selection.json", json.dumps(selection))
-    code, planned = run(
-        root, capsys, "repair-plan", "--migration-selection", "selection.json"
-    )
-    assert code == 0, planned
-    operation = planned["proposed_operation"]
-    now = datetime.datetime.now(datetime.UTC).isoformat().replace("+00:00", "Z")
-    write(root, "confirmation.json", json.dumps({
-        "contract_version": "work-intake-migration-confirmation.v1",
-        "confirmation_id": "confirmation-" + "1" * 32,
-        "action": "apply",
-        "operation_id": operation["operation_id"],
-        "operation_digest": operation["operation_digest"],
-        "authorization_subject": "subject-" + "1" * 32,
-        "role": "migration-approver",
-        "confirmed_at": now,
-        "authorization_source": "current-human-session",
-    }))
-    code, applied = run(
-        root, capsys, "repair-apply", "--migration-selection", "selection.json",
-        "--operation-id", operation["operation_id"],
-        "--confirmation-file", "confirmation.json",
-    )
-    assert code == 0 and applied["migration"]["result_code"] == "applied", applied
-
-
-def plant_legacy(root: Path, files: dict[str, str]) -> None:
-    """A registry whose only entry is the legacy string `spec/alpha`."""
-    write(root, "workspace.toml", _MIGRATION_AUTH + (
+    write(root, "workspace.toml", (
         '["ini-001"]\nname = "Test"\nstatus = "active"\nmilestone = "M1"\n\n'
-        '["ini-001".work]\nactive = []\nshipped = []\nqueue = ["spec/alpha"]\n\n'
+        '["ini-001".work]\nactive = []\nshipped = []\nqueue = [\n'
+        '  {kind = "spec", needs = [], path = "docs/specs/target/spec.md", '
+        f'source = {source}, summary = "Reviewed target"}},]\n\n'
         '["ini-001".shaping_queue]\nactive = []\nbacklog = []\n'
     ))
     write(root, "AGENTS.md", "# Agents\n")
@@ -768,8 +744,7 @@ def plant_legacy(root: Path, files: dict[str, str]) -> None:
 def test_a_migrated_entry_is_planned_as_a_spec_entry_drop(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    plant_legacy(tmp_path, spec_files("target"))
-    migrate_legacy_entry(tmp_path, capsys, "target", None)
+    plant_migrated(tmp_path, spec_files("target"), None)
     assert spec_path("target") in registry_text(tmp_path)
     data = plan(tmp_path, capsys)
     assert drop_paths(data) == {spec_path("target")} and held(data) == []
@@ -778,8 +753,7 @@ def test_a_migrated_entry_is_planned_as_a_spec_entry_drop(
 def test_a_migrated_entry_held_by_its_record_gets_the_type_6_manual_item(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    plant_legacy(tmp_path, cooled_files("target"))
-    migrate_legacy_entry(tmp_path, capsys, "target", "none")
+    plant_migrated(tmp_path, cooled_files("target"), "none")
     data = plan(tmp_path, capsys)
     assert drops(data) == []
     [item] = held(data)

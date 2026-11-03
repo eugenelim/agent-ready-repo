@@ -38,6 +38,16 @@ _PACKAGED_DATA = (
 )
 
 
+def _load_intake_guard():
+    """Load work-intake's own `intake_guard.py`, which owns the intake actions."""
+    path = CORE_PACK / ".apm" / "skills" / "work-intake" / "scripts" / "intake_guard.py"
+    spec = importlib.util.spec_from_file_location("intake_guard_contract", path)
+    guard = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = guard
+    spec.loader.exec_module(guard)
+    return guard
+
+
 def _load_workspace_status_engine():
     path = (
         CORE_PACK
@@ -74,18 +84,10 @@ def test_t1_group2_schema_constants_match_engine() -> None:
     ) == engine.SURFACE_ROLES
     assert tuple(
         intake_schema["properties"]["action"]["enum"]
-    ) == engine.NORMALIZED_INTAKE_ACTIONS
+    ) == _load_intake_guard().NORMALIZED_INTAKE_ACTIONS
 
 
 def test_workspace_status_package_runtimes_match_canonical_sources() -> None:
-    status_engine = (
-        CORE_PACK
-        / ".apm"
-        / "skills"
-        / SKILL_NAME
-        / "scripts"
-        / "workspace_status_engine.py"
-    )
     refresh_runtime = (
         CORE_PACK
         / ".apm"
@@ -95,9 +97,6 @@ def test_workspace_status_package_runtimes_match_canonical_sources() -> None:
         / "refresh.py"
     )
 
-    assert (_PACKAGED_DATA / "workspace_status_engine.py").read_bytes() == (
-        status_engine.read_bytes()
-    )
     assert (_PACKAGED_DATA / "work_intake_refresh.py").read_bytes() == (
         refresh_runtime.read_bytes()
     )
@@ -187,48 +186,19 @@ def test_t3_work_loop_step0_requires_canonical_preflight() -> None:
     assert "Raw `[work].queue` or `[work].active` membership never authorizes PLAN" in normalized
     assert "collect all paths in `[\"ini-NNN\".work].active`" not in skill
     assert "use it and proceed to PLAN" not in skill
-
-
-def test_packaged_engine_projection_matches_canonical_source() -> None:
-    source = (
-        CORE_PACK
-        / ".apm"
-        / "skills"
-        / SKILL_NAME
-        / "scripts"
-        / "workspace_status_engine.py"
-    )
-    packaged = (
-        REPO_ROOT
-        / "packages"
-        / "agentbundle"
-        / "agentbundle"
-        / "_data"
-        / "workspace_status_engine.py"
-    )
-
-    assert packaged.read_bytes() == source.read_bytes()
+    # repair-only-workspace-status AC-0005/AC-0018: the guard reads the dispatch listing.
+    assert "dispatch.py' --root . --captured" in normalized
+    assert "`captured.items` in the `dispatch.py --captured` output" in normalized
+    for gone in (
+        "workspace-status status", "workspace-status reconcile", "workspace-status explain",
+        "selected-membership", "retirement-candidates", "repair-rollback",
+        "--migration-selection", "prune --select", '["ini-NNN"]',
+    ):
+        assert gone not in skill, gone
 
 
 # STUB: AC8
-def test_migration_planner_is_projected_byte_identically() -> None:
-    source_engine = _load_workspace_status_engine()
-    assert callable(getattr(source_engine, "compute_migration_plan", None))
-    packaged_spec = importlib.util.spec_from_file_location(
-        "packaged_workspace_status_migration", _PACKAGED_DATA / "workspace_status_engine.py"
-    )
-    packaged_engine = importlib.util.module_from_spec(packaged_spec)
-    sys.modules[packaged_spec.name] = packaged_engine
-    packaged_spec.loader.exec_module(packaged_engine)
-    assert callable(getattr(packaged_engine, "compute_migration_plan", None))
-
-
 # STUB: AC10
-def test_migration_rollback_contract_is_projected_byte_identically() -> None:
-    source_engine = _load_workspace_status_engine()
-    assert callable(getattr(source_engine, "validate_migration_ledger_invariants", None))
-
-
 def test_t4_repair_determinism_projection_and_release_surface() -> None:
     engine_path = (
         CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status_engine.py"
@@ -488,10 +458,7 @@ print(engine.canonical_result_identity(canonical, **{base!r}))
     # reports the code, so it loads with that mode rather than on every
     # orientation. The findings table above stays in SKILL.md and is still
     # asserted there; only this half follows the prose.
-    reconcile_reference = (
-        CORE_PACK / ".apm" / "skills" / SKILL_NAME / "references" / "reconcile.md"
-    ).read_text(encoding="utf-8")
-    for text in (reconcile_reference, reference):
+    for text in (reference,):
         assert "```toml coordination-receipts" in text
         assert "invalid_receipt" in text
         assert "refresh_conflict = false" in text
@@ -732,22 +699,6 @@ class AdapterProjectionTests(unittest.TestCase):
         skill_md = out / ".claude" / "skills" / SKILL_NAME / "SKILL.md"
         self.assertTrue(skill_md.is_file(), "SKILL.md not projected alongside scripts/ for claude-code")
 
-    def test_projected_cli_invokes_ok(self) -> None:
-        """Projected CLI (claude-code) exits 0 against the real repo root (exercise)."""
-        out = self._project_to_tmp("claude-code")
-        cli = out / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
-        if not cli.exists():
-            self.skipTest("CLI not projected — previous projection test likely failed")
-        r = subprocess.run(
-            [sys.executable, str(cli), "--root", str(REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(r.returncode, 0, f"CLI failed: {r.stderr}")
-        data = json.loads(r.stdout)
-        self.assertEqual(data.get("schema_version"), 1)
-
     def test_exit2_stderr_no_root_path(self) -> None:
         """Exit-2 stderr must not expose the --root path."""
         out = self._project_to_tmp("claude-code")
@@ -785,7 +736,7 @@ class AdapterProjectionTests(unittest.TestCase):
         outside_cwd = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, outside_cwd, True)
         r = subprocess.run(
-            [sys.executable, str(cli), "--root", str(fixture)],
+            [sys.executable, str(cli), "repair-plan", "--root", str(fixture)],
             capture_output=True, text=True, encoding="utf-8",
             cwd=str(outside_cwd),
         )
@@ -797,7 +748,7 @@ class AdapterProjectionTests(unittest.TestCase):
         # Cross-check against source engine — same fixture, same CWD.
         source_cli = CORE_PACK / ".apm" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
         r_src = subprocess.run(
-            [sys.executable, str(source_cli), "--root", str(fixture)],
+            [sys.executable, str(source_cli), "repair-plan", "--root", str(fixture)],
             capture_output=True, text=True, encoding="utf-8",
             cwd=str(outside_cwd),
         )
@@ -848,76 +799,6 @@ class RealTreeProjectionTests(unittest.TestCase):
                         source.read_bytes(),
                         f"{projected} is stale; regenerate the self-hosted projection",
                     )
-
-
-class EndToEndCLITests(unittest.TestCase):
-    """Installed CLI executed end-to-end; result recorded."""
-
-    _cli = REPO_ROOT / ".claude" / "skills" / SKILL_NAME / "scripts" / "workspace_status.py"
-    _skip_reason: str | None = None
-
-    @classmethod
-    def setUpClass(cls) -> None:
-        if not cls._cli.exists():
-            cls._skip_reason = (
-                f"Installed CLI not found at {cls._cli} — run make build-self"
-            )
-        else:
-            cls._skip_reason = None
-
-    def _skip_if_not_installed(self) -> None:
-        if self._skip_reason:
-            self.skipTest(self._skip_reason)
-
-    def test_installed_cli_exit_0(self) -> None:
-        """Installed CLI returns exit 0 against the real repo."""
-        self._skip_if_not_installed()
-        r = subprocess.run(
-            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(r.returncode, 0, f"CLI failed.\nstdout: {r.stdout[:500]}\nstderr: {r.stderr[:500]}")
-
-    def test_installed_cli_schema_version(self) -> None:
-        """Output is valid JSON with schema_version == 1."""
-        self._skip_if_not_installed()
-        r = subprocess.run(
-            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(r.returncode, 0)
-        data = json.loads(r.stdout)
-        self.assertEqual(data.get("schema_version"), 1)
-        # Record semantic counts (printed to the test runner output)
-        work = data.get("work", {})
-        diag = data.get("diagnostics", {})
-        print(
-            f"\nAC17 record — installed CLI against real repo:\n"
-            f"  exit_code=0  schema_version=1\n"
-            f"  work.ready={len(work.get('ready', []))}"
-            f"  work.blocked={len(work.get('blocked', []))}"
-            f"  work.active={len(work.get('active', []))}"
-            f"  work.shipped={len(work.get('shipped', []))}\n"
-            f"  diagnostics.spec_files_read={diag.get('spec_files_read', '?')}",
-            flush=True,
-        )
-
-    def test_installed_cli_workspace_present(self) -> None:
-        """workspace_present is True for the real repo."""
-        self._skip_if_not_installed()
-        r = subprocess.run(
-            [sys.executable, str(self._cli), "--root", str(REPO_ROOT)],
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-        )
-        self.assertEqual(r.returncode, 0)
-        data = json.loads(r.stdout)
-        self.assertTrue(data.get("workspace_present"), "workspace_present should be True for the real repo")
 
 
 class RepositoryHealthTests(unittest.TestCase):

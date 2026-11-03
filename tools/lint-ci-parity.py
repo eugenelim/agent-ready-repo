@@ -720,13 +720,15 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest navigate-decisions file_safety mirror (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest work-loop cooling mirror (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest repair-only workspace-status text (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest header-readiness source-authority parity (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest installed-skill supervisor run (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest retired-name pinned sites (roster-owned)":
-        LOCAL("test-after-build-check"),
-    "pytest spec-retirement candidate contract (roster-owned)":
-        LOCAL("test-after-build-check"),
-    "pytest spec-retirement candidate CLI (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest brief lifecycle single home (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -1131,10 +1133,11 @@ _GATE_MAIN_CHECKS = (
     "pytest new-rfc governance surfaces (roster-owned)",
     "pytest new-rfc governance script (pack suite)",
     "pytest navigate-decisions file_safety mirror (roster-owned)",
+    "pytest work-loop cooling mirror (roster-owned)",
+    "pytest repair-only workspace-status text (roster-owned)",
+    "pytest header-readiness source-authority parity (roster-owned)",
     "pytest installed-skill supervisor run (roster-owned)",
     "pytest retired-name pinned sites (roster-owned)",
-    "pytest spec-retirement candidate contract (roster-owned)",
-    "pytest spec-retirement candidate CLI (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest workspace retirement inventory (roster-owned)",
     "pytest depends-on headers instructions (roster-owned)",
@@ -1757,22 +1760,10 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / Pull-request template installer and "
             "release checker"
         ),
-    'tools/test_compare_registry.py':
-        NO_PR_GATE(
-            "Tests a maintainer-run comparison that has no CI job by owner decision "
-            "(FEAT-0034 Registry comparison). `make test` runs it; CI reaches it "
-            "through the non-required test-corpus.yml."
-        ),
     'tools/test_require_junit_ran_without_skips.py':
         PR_GATED(
             "build-check.yml / gate-main / "
             "pytest JUnit no-skip gate checker (windows-confined-write)"
-        ),
-    'tools/test_replay_dispatch.py':
-        NO_PR_GATE(
-            "Tests a maintainer-run replay that has no CI job by owner decision "
-            "(header-derived-dispatch AC-0019). `make test` runs it; CI reaches it "
-            "through the non-required test-corpus.yml."
         ),
     'tools/test_intent_corpus_gate.py':
         NO_PR_GATE(

@@ -150,13 +150,16 @@ def test_ac0018_brief_lists_the_spec_and_names_it_beside_two_items() -> None:
     slices = _section(text, "Delivery slices")
     after = slices.split("**After the cutover:**", 1)[1]
     items = re.findall(r"^ {5}- (.*)$", after, re.M)
-    named = [i for i in items if f"(`{_SLUG}`)" in i]
+    # `repair-only-workspace-status` later annotated the policy-tables item
+    # beside this slug, so match the slug as the parenthetical's first name.
+    named = [i for i in items if f"(`{_SLUG}`" in i]
     assert len(named) == 2, named
     assert named[0].startswith("remove the legacy registry entries (the migrated captured")
     assert "from `[backlog].open` to captured-item files" in named[0]
     assert named[1] == (
         "give the `[authorization.refresh]` and `[authorization.migration]` "
-        f"policy tables a home (`{_SLUG}`);"
+        f"policy tables a home (`{_SLUG}`; `repair-only-workspace-status` retires "
+        "`[authorization.migration]`);"
     )
 
 

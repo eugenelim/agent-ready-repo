@@ -28,31 +28,18 @@ class _FakeBridge:
 def _edge_workspace(tmp_path: Path, *, header: bool) -> Path:
     """A queued spec waiting on an open spec, as a header edge or a `needs` entry."""
     tmp_path.mkdir(parents=True)
-    need = (
-        '{type = "local", kind = "spec", path = "docs/specs/target/spec.md"}'
-        if not header
-        else ""
-    )
-    (tmp_path / "workspace.toml").write_text(
-        f"""\
-["ini-001"]
-name = "Edge"
-status = "active"
-milestone = "M1"
-
+    if not header:
+        (tmp_path / "workspace.toml").write_text(
+            """\
 ["ini-001".work]
 queue = [
-  {{path = "docs/specs/waiter/spec.md", kind = "spec", source = {{mode = "repo-origin"}}, summary = "waits", needs = [{need}]}},
+  {path = "docs/specs/waiter/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "waits", needs = [{type = "local", kind = "spec", path = "docs/specs/target/spec.md"}]},
 ]
 active = []
 shipped = []
-
-["ini-001".shaping_queue]
-active = []
-backlog = []
 """,
-        encoding="utf-8",
-    )
+            encoding="utf-8",
+        )
     for slug, status, extra in (
         ("waiter", "Approved", "- **Depends on:** spec:target\n" if header else ""),
         ("target", "Approved", ""),
@@ -67,8 +54,8 @@ backlog = []
     return tmp_path
 
 
-def test_mcp_blocks_on_a_header_edge_and_refuses_a_needs_entry(tmp_path: Path) -> None:
-    """A `Depends on:` header blocks the waiting spec; an entry with `needs` is refused."""
+def test_mcp_blocks_on_a_header_edge_and_refuses_a_workspace_entry(tmp_path: Path) -> None:
+    """A `Depends on:` header blocks the waiting spec; a workspace entry is refused."""
     mod = _load_module()
     header = mod._WorkspaceStatusTool(
         _edge_workspace(tmp_path / "header", header=True), _FakeBridge()
@@ -77,8 +64,9 @@ def test_mcp_blocks_on_a_header_edge_and_refuses_a_needs_entry(tmp_path: Path) -
     assert {f["code"] for f in header["blocked"][0]["findings"]} == {
         "unsatisfied_dependency"
     }
-    needs = mod._WorkspaceStatusTool(
+    entry = mod._WorkspaceStatusTool(
         _edge_workspace(tmp_path / "needs", header=False), _FakeBridge()
     ).call()
-    assert [item["slug"] for item in needs["blocked"]] == ["waiter"]
-    assert {f["code"] for f in needs["blocked"][0]["findings"]} == {"unmigrated_needs"}
+    assert entry["ready"] == entry["blocked"] == entry["active"] == []
+    assert entry["canonical"]["decision"]["action"] == "refuse"
+    assert {f["code"] for f in entry["canonical"]["findings"]} == {"unmigrated_workspace"}

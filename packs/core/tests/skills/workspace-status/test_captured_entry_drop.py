@@ -13,6 +13,7 @@ import importlib.util
 import json
 import os
 import sys
+import tomllib
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Callable
@@ -463,6 +464,47 @@ def test_membership_whose_needs_a_same_plan_header_move_covers_is_dropped_in_one
 # ── dispatch ─────────────────────────────────────────────────────────────────
 
 
+def dispatch_stdout(root: Path, capsys: pytest.CaptureFixture[str]) -> str:
+    capsys.readouterr()
+    DISPATCH.main(["--root", str(root)])
+    return capsys.readouterr().out
+
+
+def _holds_entry(value: Any) -> bool:
+    """True when a TOML value holds an element of an array, at any depth."""
+    if isinstance(value, list):
+        return bool(value)
+    if isinstance(value, dict):
+        return any(_holds_entry(item) for item in value.values())
+    return False
+
+
+def assert_dispatch_after_apply(root: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    """Assert AC-0030 for dispatch run after a ``repair-apply --yes``.
+
+    A ``workspace.toml`` that still holds an entry gets the ``unmigrated_workspace``
+    refusal; otherwise the output is byte-identical to dispatch on the same tree with
+    ``workspace.toml`` removed. These fixtures plant workspaces dispatch accepts, so
+    the ``invalid_workspace`` refusal is itself a failure here.
+    """
+    after = dispatch_stdout(root, capsys)
+    workspace = root / "workspace.toml"
+    document = tomllib.loads(workspace.read_text(encoding="utf-8"))
+    if any(_holds_entry(v) for k, v in document.items() if k != "authorization"):
+        data = json.loads(after)
+        assert [f["code"] for f in data["decision"]["findings"]] == ["unmigrated_workspace"]
+        assert data["decision"]["action"] == "refuse"
+        assert data["ready"] == data["active"] == data["blocked"] == []
+        return
+    held = workspace.read_bytes()
+    workspace.unlink()
+    try:
+        bare = dispatch_stdout(root, capsys)
+    finally:
+        workspace.write_bytes(held)
+    assert after == bare
+
+
 def test_dispatch_output_is_identical_across_apply(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -471,17 +513,10 @@ def test_dispatch_output_is_identical_across_apply(
     write(repo, f"{CAPTURED}/a-one.md", record())
     plan(repo, capsys)
 
-    def stdout() -> str:
-        capsys.readouterr()
-        DISPATCH.main(["--root", str(repo)])
-        data = json.loads(capsys.readouterr().out)
-        return json.dumps({k: data[k] for k in ("ready", "active", "blocked", "decision")})
-
-    before = stdout()
     code, result = apply(repo, capsys)
     assert code == 0, result
     assert path not in registry_text(repo)
-    assert stdout() == before
+    assert_dispatch_after_apply(repo, capsys)
 
 
 # ── AC-0022: legacy needs move to the captured file, then the entry drops ────

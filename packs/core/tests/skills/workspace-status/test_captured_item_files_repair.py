@@ -428,7 +428,6 @@ def test_a_summary_with_header_lines_stays_under_its_heading(
     fields, failing = engine.parse_captured_item((repo / op["record_path"]).read_text())
     assert failing is None and fields is not None
     assert fields["type"] is None and fields["kind"] == "defect"
-    assert engine.check_shaping_guard(repo, "sneaky", frozenset()) is None
 
 
 def test_a_summary_with_a_control_character_is_a_manual_finding(

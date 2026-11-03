@@ -58,9 +58,13 @@ def test_runtime_sibling_reaches_derives_the_real_closure() -> None:
     # `surface_resolver.py` (reached via SKILLS_DIR) are deliberately absent —
     # they leave the module's own directory and cannot resolve when packaged.
     assert observed == {
-        "workspace_status_engine.py": {"cooling.py", "work_intake_refresh.py"},
-        "workspace_status_prune.py": {"workspace_status_engine.py"},
-        "work_intake_refresh.py": {"intake_guard.py", "workspace_status_engine.py"},
+        # `dispatch.py` and `_header_readiness.py` load their siblings through a
+        # path variable the derivation does not follow; the byte-identity and
+        # AC-0016 tests below pin that set.
+        "dispatch.py": set(),
+        "_header_readiness.py": set(),
+        "work_intake_refresh.py": {"intake_guard.py"},
+        "intake_guard.py": set(),
         "cooling.py": {"close_work.py"},
         "close_work.py": {"file_safety.py"},
         "file_safety.py": set(),
@@ -148,3 +152,42 @@ def test_library_mirrors_stay_out_of_the_flat_data_layout() -> None:
         assert bundled.parent == data_dir, (
             f"{bundled.relative_to(ROOT)} belongs in `_library_mirrors`"
         )
+
+
+_WORK_INTAKE_SCRIPTS = ROOT / "packs/core/.apm/skills/work-intake/scripts"
+_DATA = ROOT / "packages/agentbundle/agentbundle/_data"
+
+
+def test_packaged_dispatch_set_is_declared_and_byte_identical() -> None:
+    """The MCP tool's dispatch and every sibling it loads sit in `_data/`, byte for byte."""
+    declared = {bundled.name for _, bundled in _runtime_projections(ROOT)}
+    assert {
+        "dispatch.py", "_header_readiness.py", "cooling.py", "close_work.py",
+        "file_safety.py", "intake_guard.py", "work_intake_refresh.py",
+    } <= declared
+    assert not {"workspace_status_engine.py", "workspace_status_prune.py"} & declared
+    for name in ("workspace_status_engine.py", "workspace_status_prune.py"):
+        assert not (_DATA / name).exists()
+    for source, bundled in _runtime_projections(ROOT):
+        assert bundled.read_bytes() == source.read_bytes(), bundled.name
+
+
+def test_work_intake_refresh_loads_no_workspace_status_module() -> None:
+    """AC-0016: the source and its packaged copy name no `workspace-status` file or module."""
+    for path in (_WORK_INTAKE_SCRIPTS / "refresh.py", _DATA / "work_intake_refresh.py"):
+        text = path.read_text(encoding="utf-8")
+        assert "workspace_status" not in text, path.name
+        assert "workspace-status" not in text, path.name
+
+
+def test_readme_names_the_two_part_dispatched_item_and_no_ini_slug_field() -> None:
+    """AC-0032: the README's status row and dispatched-item text."""
+    readme = (ROOT / "packages/agentbundle/README-pypi.md").read_text(encoding="utf-8")
+    row = next(line for line in readme.splitlines() if line.startswith("| `workspace_status` |"))
+    assert "ini_slug" not in row
+    assert "`shaping` is always an empty list" in row
+    assert "shaping items" not in row
+    paragraph = readme.split("`WORKSPACE_MCP_DISPATCHED_ITEM` (", 1)[1].split("\n\n", 1)[0]
+    assert paragraph.startswith("`type:slug`)")
+    legacy = paragraph.split("`ini_slug/type:slug`", 1)[1]
+    assert "legacy" in legacy.split(".", 1)[0]

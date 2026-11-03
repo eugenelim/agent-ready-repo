@@ -41,7 +41,6 @@ _ENGINE_PATH = Path(
         "DEPENDS_ON_HEADERS_ENGINE", _SCRIPTS / "workspace_status_engine.py"
     )
 )
-_STATUS_PATH = _SCRIPTS / "workspace_status.py"
 _FIXTURES = Path(__file__).parent / "fixtures/depends-on-headers"
 _EXPECTED_PATH = _FIXTURES / "expected.json"
 _COOLED_BRIEF_PATH = _FIXTURES / "expected-cooled-brief.json"
@@ -579,33 +578,31 @@ def test_cooled_brief_header_form_reproduces_the_recorded_outcome(
 
 # ── AC-0008: the legacy view, explain, the MCP tools, and shaping ─────────────
 
-def _cli(root: Path, *args: str) -> dict[str, Any]:
+_DISPATCH_PATH = _SCRIPTS.parents[1] / "work-loop/scripts/dispatch.py"
+
+
+def _dispatch(root: Path) -> dict[str, Any]:
+    """Run `dispatch.py` over a tree whose registry is removed, as dispatch reads headers."""
+    (root / "workspace.toml").unlink()
     done = subprocess.run(
-        [sys.executable, str(_STATUS_PATH), *args, "--root", str(root)],
+        [sys.executable, str(_DISPATCH_PATH), "--root", str(root)],
         check=False, capture_output=True, text=True,
     )
     assert done.returncode == 0, done.stderr
     return json.loads(done.stdout)
 
 
-def test_explain_reports_a_header_edge_as_it_reported_the_needs_edge(
+def test_dispatch_reports_a_header_edge_as_it_reported_the_needs_edge(
     tmp_path: Path,
 ) -> None:
-    """AC-0008: `explain` blocks on the header edge with the frozen finding codes."""
+    """AC-0008: dispatch blocks on the header edge with the frozen finding codes."""
     case = next(c for c in CASES if c.case_id == "spec-open")
     _write_repo(tmp_path, case, "header")
-    item = _cli(tmp_path, "explain", "--item", "waiter")["explained_item"]
+    [item] = [i for i in _dispatch(tmp_path)["blocked"] if i["path"] == WAITER]
     frozen_codes = [
         code for code, path in _expected()["spec-open"]["findings"]
     ]
-    assert item["classification"] == "blocked"
-    assert item["blocking_needs"] == frozen_codes == ["unsatisfied_dependency"]
-    # The bounded analysis the MCP tools read carries the same edge as the string
-    # a typed need showed.
-    legacy = ENGINE.analyze_bounded(tmp_path, autonomous_dispatch=True).blocked
-    assert [(c.entry.path, c.blocking_needs) for c in legacy] == [
-        (WAITER, ["unsupported-typed-need"])
-    ]
+    assert [f["code"] for f in item["findings"]] == frozen_codes == ["unsatisfied_dependency"]
 
 
 def test_a_shaping_backlog_intent_edge_is_read_from_its_header(tmp_path: Path) -> None:

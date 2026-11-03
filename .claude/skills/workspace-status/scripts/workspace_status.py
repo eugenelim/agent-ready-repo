@@ -1,19 +1,13 @@
 #!/usr/bin/env python3
-"""workspace-status CLI — thin JSON frontend for the production engine.
+"""workspace-status CLI — the registry repair, as JSON.
 
 Usage:
-    python3 workspace_status.py status       --root "<repo-root>"
-    python3 workspace_status.py selected-membership --root "<repo-root>" \
-        --spec-dir docs/specs/<slug> [--spec-dir docs/specs/<slug> ...]
-    python3 workspace_status.py explain      --root "<repo-root>" --item <selector>
-    python3 workspace_status.py reconcile    --root "<repo-root>"
     python3 workspace_status.py repair-plan  --root "<repo-root>" [--plan-file <path>]
-    python3 workspace_status.py repair-apply --root "<repo-root>" [--plan-file <path>]
-    python3 workspace_status.py prune        --root "<repo-root>" \
-        --select docs/specs/<slug> [--preview | --confirmation-file <path>]
-    python3 workspace_status.py retirement-candidates --root "<repo-root>" \
-        --run-date YYYY-MM-DD [--stale-after-days N]
-    python3 workspace_status.py              --root "<repo-root>"   # compat alias for reconcile
+    python3 workspace_status.py repair-apply --root "<repo-root>" [--plan-file <path>] --yes
+
+Every other first argument, or none, exits 2 with nothing on stdout. A retired
+subcommand names itself on stderr as ``retired_subcommand: <name>``, followed by
+its replacement.
 
 Output (stdout): deterministic UTF-8 JSON with schema_version = 1.
 
@@ -28,13 +22,11 @@ from __future__ import annotations
 import argparse
 import contextlib
 import dataclasses
-import datetime
 import hashlib
 import importlib.util
 import json
 import os
 import re
-import secrets
 import stat
 import sys
 import tempfile
@@ -57,37 +49,17 @@ _PUBLIC_PATH_CHARS = frozenset(
 _ENGINE_BOUND = False
 _engine: Any = None
 analyze: Any = None
-analyze_bounded: Any = None
-explain_item: Any = None
-compute_type2_cleanup: Any = None
 compute_repair_plan: Any = None
-compute_migration_plan: Any = None
-extract_legacy_migration_memberships: Any = None
+compute_type2_cleanup: Any = None
 build_migration_finding: Any = None
-build_migration_result: Any = None
 confine_migration_path: Any = None
-migration_candidate_routes: Any = None
-validate_migration_ledger_invariants: Any = None
-validate_migration_ledger_shape: Any = None
-validate_migration_selection: Any = None
-migration_selection_digest: Any = None
-extract_legacy_source_slice: Any = None
-extract_spec_status: Any = None
 extract_spec_status_with_fingerprint: Any = None
-parse_workspace: Any = None
 run_canonical_reconciliation: Any = None
 cooled_work_entry_paths: Any = None
 canonical_repository_identity: Any = None
 _safe_spec_path: Any = None
 _spec_slug_from_workspace_path: Any = None
 _repair_entry_eligibility: Any = None
-_migration_operation_digest: Any = None
-project_closeout_status: Any = None
-selected_membership_status: Any = None
-prune_preview: Any = None
-prune_execute: Any = None
-retirement_candidates_document: Any = None
-validate_retirement_document: Any = None
 
 # ── Load engine from the same scripts/ directory ──────────────────────────────
 
@@ -95,8 +67,8 @@ validate_retirement_document: Any = None
 def _bind_engine() -> bool:
     """Load the sibling engine after subcommand parsing.
 
-    Status-like public commands can then emit the canonical deny JSON with the
-    requested mode instead of leaking an import traceback or installed path.
+    A retired subcommand is refused before this runs, so the engine loads only
+    for the two repair subcommands.
     """
     global _ENGINE_BOUND
     if _ENGINE_BOUND:
@@ -115,17 +87,6 @@ def _bind_engine() -> bool:
             sys.modules.setdefault("workspace_status_engine", engine_mod)
             registered.append("workspace_status_engine")
             engine_spec.loader.exec_module(engine_mod)  # type: ignore[union-attr]
-
-        prune_mod = sys.modules.get("workspace_status_prune")
-        if prune_mod is None:
-            prune_path = engine_path.with_name("workspace_status_prune.py")
-            prune_spec = importlib.util.spec_from_file_location(
-                "workspace_status_prune", prune_path
-            )
-            prune_mod = importlib.util.module_from_spec(prune_spec)  # type: ignore[arg-type]
-            sys.modules.setdefault("workspace_status_prune", prune_mod)
-            registered.append("workspace_status_prune")
-            prune_spec.loader.exec_module(prune_mod)  # type: ignore[union-attr]
     except Exception:
         # Registration happens before exec_module, so a raising exec leaves a
         # half-built module behind that a later attempt would reuse. Drop only
@@ -136,81 +97,36 @@ def _bind_engine() -> bool:
     globals().update({
         "_engine": engine_mod,
         "analyze": engine_mod.analyze,
-        "analyze_bounded": engine_mod.analyze_bounded,
-        "explain_item": engine_mod.explain_item,
-        "compute_type2_cleanup": engine_mod.compute_type2_cleanup,
         "compute_repair_plan": engine_mod.compute_repair_plan,
-        "compute_migration_plan": engine_mod.compute_migration_plan,
-        "extract_legacy_migration_memberships": (
-            engine_mod.extract_legacy_migration_memberships
-        ),
+        "compute_type2_cleanup": engine_mod.compute_type2_cleanup,
         "build_migration_finding": engine_mod.build_migration_finding,
-        "build_migration_result": engine_mod.build_migration_result,
         "confine_migration_path": engine_mod.confine_migration_path,
-        "migration_candidate_routes": engine_mod.migration_candidate_routes,
-        "validate_migration_ledger_invariants": (
-            engine_mod.validate_migration_ledger_invariants
-        ),
-        "validate_migration_ledger_shape": engine_mod.validate_migration_ledger_shape,
-        "validate_migration_selection": engine_mod.validate_migration_selection,
-        "migration_selection_digest": engine_mod.migration_selection_digest,
-        "extract_legacy_source_slice": engine_mod.extract_legacy_source_slice,
-        "extract_spec_status": engine_mod.extract_spec_status,
         "extract_spec_status_with_fingerprint": (
             engine_mod.extract_spec_status_with_fingerprint
         ),
-        "parse_workspace": engine_mod.parse_workspace,
         "run_canonical_reconciliation": engine_mod.run_canonical_reconciliation,
         "cooled_work_entry_paths": engine_mod.cooled_work_entry_paths,
         "canonical_repository_identity": engine_mod.canonical_repository_identity,
         "_safe_spec_path": engine_mod._safe_spec_path,
         "_spec_slug_from_workspace_path": engine_mod._spec_slug_from_workspace_path,
         "_repair_entry_eligibility": engine_mod._repair_entry_eligibility,
-        "_migration_operation_digest": engine_mod._migration_operation_digest,
-        "project_closeout_status": engine_mod.project_closeout_status,
-        "selected_membership_status": engine_mod.selected_membership_status,
-        "prune_preview": prune_mod.prune_preview,
-        "prune_execute": prune_mod.prune_execute,
     })
     _ENGINE_BOUND = True
     return True
 
 
-def _bind_retirement_command() -> bool:
-    """Load the retirement command without loading the mutable engine surfaces."""
-    global retirement_candidates_document, validate_retirement_document
-    command_path = Path(__file__).with_name("workspace_status_retirement_command.py")
-    module_name = "workspace_status_retirement_command"
-    try:
-        command_mod = sys.modules.get(module_name)
-        if command_mod is None:
-            command_spec = importlib.util.spec_from_file_location(module_name, command_path)
-            if command_spec is None or command_spec.loader is None:
-                return False
-            command_mod = importlib.util.module_from_spec(command_spec)
-            sys.modules[module_name] = command_mod
-            command_spec.loader.exec_module(command_mod)
-    except Exception:
-        sys.modules.pop(module_name, None)
-        return False
-    retirement_candidates_document = command_mod.retirement_candidates_document
-    validate_retirement_document = command_mod.validate_retirement_document
-    return True
-
-
 # ── Subcommand routing ────────────────────────────────────────────────────────
 
-_SUBCOMMANDS = frozenset({
-    "status",
-    "selected-membership",
-    "explain",
-    "reconcile",
-    "repair-plan",
-    "repair-apply",
-    "repair-rollback",
-    "prune",
-    "retirement-candidates",
-})
+_SUBCOMMANDS = frozenset({"repair-plan", "repair-apply"})
+_RETIRED_REPLACEMENT = {
+    "status": "work-loop dispatch.py",
+    "reconcile": "work-loop dispatch.py",
+    "explain": "work-loop dispatch.py",
+    "selected-membership": "work-loop dispatch.py",
+    "prune": "no replacement",
+    "retirement-candidates": "no replacement",
+    "repair-rollback": "no replacement",
+}
 _DEFAULT_PLAN_FILE = ".workspace-repair-plan.json"
 _VALID_OPERATION_TYPES = frozenset({
     "queue-to-shipped",
@@ -241,16 +157,6 @@ def _work_entry_dict(entry, ini_slug: str) -> dict:
         # legacy needs prevents an unsafe raw value bypassing canonical redaction.
         "needs": [],
         "ini_slug": _public_ini_slug(ini_slug),
-    }
-
-
-def _classification_dict(c) -> dict:
-    return {
-        "path": c.entry.path,
-        "slug": c.entry.slug,
-        "needs": _public_needs(c.entry.needs),
-        "ini_slug": _public_ini_slug(c.ini_slug),
-        "blocking_needs": _public_needs(c.blocking_needs),
     }
 
 
@@ -430,12 +336,6 @@ def _public_brief_path(value: object, *, allow_empty: bool = False) -> str:
     return "workspace.toml"
 
 
-def _public_brief_paths(values: object) -> list[str]:
-    if not isinstance(values, list):
-        return ["workspace.toml"]
-    return [_public_brief_path(value) for value in values]
-
-
 def _public_brief_queue_path(value: object, *, allow_empty: bool = False) -> str:
     if allow_empty and value == "":
         return ""
@@ -463,23 +363,6 @@ def _canonical_finding_dict(f) -> dict:
         "dispatchable": f.dispatchable,
         "next_action": f.next_action,
     }
-
-
-def _captured_projection(root: Path, cooled: frozenset[Path]) -> dict:
-    """The `captured` object, from the directory listing and cooled set only."""
-    listing = _engine.list_captured_items(root, cooled)
-    findings = []
-    for found in listing.findings:
-        item = {
-            "code": found.code,
-            "path": found.path,
-            "dispatchable": found.dispatchable,
-            "next_action": found.next_action,
-        }
-        if found.code == "invalid_captured_item":
-            item["field"] = found.detail
-        findings.append(item)
-    return {"items": listing.items, "findings": findings}
 
 
 def _canonical_failure_payload(mode: str, code: str = "configuration_mismatch") -> dict:
@@ -575,9 +458,7 @@ def _cooling_selection(result, mode: str) -> tuple[frozenset[Path], tuple]:
     separately let a caller
     suppress the exclusion while still emitting findings about it.
     """
-    if mode not in {"status", "reconcile", "explain"}:
-        return frozenset(), ()
-    return result.cooled, tuple(result.cooling_findings)
+    return frozenset(), ()
 
 
 def _canonical_projection(
@@ -632,123 +513,6 @@ def _canonical_projection(
     }
 
 
-def _explain_selector_targets(selector: str) -> tuple[str, str] | None:
-    """Return the canonical work path and legacy spelling for a confined selector."""
-    if not isinstance(selector, str) or not selector or len(selector) > 240:
-        return None
-    if "\\" in selector or (len(selector) >= 2 and selector[1] == ":"):
-        return None
-    parts = selector.split("/")
-    if any(part in {"", ".", ".."} for part in parts):
-        return None
-
-    if len(parts) == 1:
-        slug = parts[0]
-    elif len(parts) == 2 and parts[0] == "spec":
-        slug = parts[1]
-    elif (
-        (len(parts) == 3 and parts[:2] == ["docs", "specs"])
-        or (
-            len(parts) == 4
-            and parts[:2] == ["docs", "specs"]
-            and parts[3] == "spec.md"
-        )
-    ):
-        slug = parts[2]
-    else:
-        return None
-
-    if (
-        not slug
-        or len(slug) > 200
-        or not slug[0].isalnum()
-        or any(not (char.isascii() and (char.isalnum() or char in "_-")) for char in slug)
-    ):
-        return None
-    return f"docs/specs/{slug}/spec.md", f"spec/{slug}"
-
-
-def _canonical_explain(root: Path, result, selector: str) -> tuple[str, dict]:
-    """Explain one canonical work entry using canonical-only resolution.
-
-    The `spec/<slug>` selector spelling still maps to the canonical path through
-    `_explain_selector_targets`. Legacy memberships are always empty after the
-    ordinary-reader removal, so only `evaluations` is searched.
-    """
-    normalized_selector = selector
-    if selector.endswith("/"):
-        directory_parts = selector[:-1].split("/")
-        if len(directory_parts) == 3 and directory_parts[:2] == ["docs", "specs"]:
-            normalized_selector = selector[:-1]
-    targets = _explain_selector_targets(normalized_selector)
-    public_selector = _public_canonical_path(normalized_selector)
-    if targets is None:
-        return public_selector, {"selector_status": "not_found"}
-
-    canonical_path, _legacy_path = targets
-    projection = _canonical_projection(root, result, *_cooling_selection(result, "explain"))
-    candidates = [
-        item
-        for item in projection["evaluations"]
-        if item["kind"] == "spec"
-        and str(item["collection"]).startswith("work.")
-        and item["path"] == canonical_path
-    ]
-    by_initiative: dict[str, list[dict]] = {}
-    for candidate in candidates:
-        by_initiative.setdefault(candidate["ini_slug"], []).append(candidate)
-
-    if not by_initiative:
-        matching_findings = [
-            finding
-            for finding in projection["findings"]
-            if finding["path"] == canonical_path
-        ]
-        if matching_findings:
-            return public_selector, {
-                "selector_status": "not_found",
-                "findings": matching_findings,
-            }
-        return public_selector, {"selector_status": "not_found", "findings": []}
-    if len(by_initiative) > 1:
-        return public_selector, {
-            "selector_status": "ambiguous",
-            "matches": [
-                {"path": items[0]["path"], "ini_slug": ini_slug}
-                for ini_slug, items in sorted(by_initiative.items())
-            ],
-        }
-
-    ini_slug, matches = next(iter(by_initiative.items()))
-    priority = {"work.active": 0, "work.shipped": 1, "work.queue": 2}
-    item = min(matches, key=lambda candidate: priority.get(candidate["collection"], 3))
-    collection = item["collection"]
-    if collection == "work.active":
-        classification = "active"
-    elif collection == "work.shipped":
-        classification = "shipped"
-    elif item["dispatchable"]:
-        classification = "ready"
-    else:
-        classification = "blocked"
-    finding_codes = [finding["code"] for finding in item["findings"]]
-    return public_selector, {
-        "selector_status": "matched",
-        "explained_item": {
-            "path": item["path"],
-            "slug": item["slug"],
-            "ini_slug": ini_slug,
-            "list": collection.removeprefix("work."),
-            "classification": classification,
-            "blocking_needs": finding_codes,
-            "dependencies": [],
-            "downstream_unblocked": [],
-            "dispatchable": item["dispatchable"],
-            "findings": item["findings"],
-        },
-    }
-
-
 def _brief_queue_dict(bq) -> dict | None:
     if bq is None:
         return None
@@ -768,85 +532,6 @@ def _scan_dict(result) -> dict:
         "workspace_files_read": 1,
         "declared_spec_files_read": result.declared_spec_files_read,
         "global_scan_spec_files_read": result.global_scan_files_read,
-    }
-
-
-def _projected_locator(value: object) -> str | None:
-    """Return a locator safe to render, or None when it cannot be shown.
-
-    `_public_canonical_path` degrades anything outside its charset to the
-    literal `workspace.toml`. For a finding path that is a safe fallback; for a
-    record locator it is a lie — the artifact is excluded correctly while the
-    projection names a different, real file. The record contract admits any
-    non-control character up to 1000 bytes, so this case is reachable.
-    """
-    public = _public_canonical_path(value)
-    return public if public == value else None
-
-
-def _cooling_projection(result) -> dict:
-    """Project validated lifecycle records using the analysis-time clock."""
-    records: list[dict] = []
-    due: list[dict] = []
-    exceptions: list[dict] = []
-    unreadable_records: list = []
-    for record in result.cooling_records:
-        # `cooling_module` is never None here: a record can only exist because
-        # the module that parsed it loaded. The guard proves `is_due` exists and
-        # is callable, not that it returns rather than raises — the module may
-        # be an older cooling.py from an installed skills tree. A raise here
-        # left the whole run as `configuration_mismatch` and exit 2.
-        try:
-            due_now = (
-                record.post_closeout_result not in {"Retired", "Reclassified"}
-                and result.cooling_module.is_due(record, result.now).due
-            )
-        except Exception:
-            # Degrading to "not due" silently under-reported the maintainer's
-            # queue while `cooling_context_visible` still claimed a clean run.
-            # This arm flips `cooling_context_visible` through `dueness_failed`,
-            # withholds the affirmative, and emits no finding naming the record.
-            due_now = False
-            unreadable_records.append(record)
-        records.append({
-            "delivery_id": record.delivery_id,
-            "locator": _projected_locator(record.locator),
-            "disposition": record.disposition,
-            "post_closeout_result": record.post_closeout_result,
-            "completion_event": record.completion_event,
-            "completion_evidence_ref": record.completion_evidence_ref,
-            "review_on": record.review_on.isoformat(),
-            "due": due_now,
-        })
-        if due_now:
-            due.append({
-                "delivery_id": record.delivery_id,
-                "locator": _projected_locator(record.locator),
-                "review_on": record.review_on.isoformat(),
-            })
-        # Gate on the post-closeout result, not on `exception is not None`.
-        # `retain-exception` makes the block mandatory, so presence alone would
-        # also admit ("retain-exception", "Retired") — a settled record that
-        # must contribute nothing. `ExternalAdvisory` is the other live
-        # obligation and was dropped entirely, losing its owner, reason and date.
-        if (
-            record.post_closeout_result in {"Retained", "ExternalAdvisory"}
-            and record.exception is not None
-        ):
-            exception = dict(record.exception)
-            exceptions.append({
-                "delivery_id": record.delivery_id,
-                "locator": _projected_locator(record.locator),
-                "owner_role": exception["owner_role"],
-                "reason": exception["reason"],
-                "review_on": exception["review_on"],
-            })
-    return {
-        "due_count": len(due),
-        "due": due,
-        "records": records,
-        "exceptions": exceptions,
-        "_unreadable": tuple(unreadable_records),
     }
 
 
@@ -880,88 +565,6 @@ def _surviving_work(
             if ("work.active", index) not in cooled_positions
         ],
     )
-
-
-def _closeout_projection(
-    result,
-    cooled_by_initiative: dict[str, set[tuple[str, int]]],
-    *,
-    dueness_failed: bool = False,
-    canonical_shaping_records: list[dict],
-) -> dict | None:
-    """Project the first active or paused initiative's closeout facts, by slug.
-
-    Returns None when no initiative is active or paused. There is no closeout
-    state to project then, and synthesizing one from the absent initiative
-    reported `unshipped-specs` against a workspace whose initiatives are all
-    closed — a blocker naming work that does not exist. The block is omitted
-    rather than emitted empty, which leaves the closed-workspace key set
-    untouched.
-    """
-    active = sorted(
-        (
-            initiative
-            for initiative in result.initiatives
-            if initiative.status in {"active", "paused"}
-        ),
-        key=lambda initiative: initiative.slug,
-    )
-    if not active:
-        return None
-    initiative = active[0]
-    paused = initiative.status == "paused"
-    surviving_queue, surviving_active = _surviving_work(
-        initiative, cooled_by_initiative.get(initiative.slug, set())
-    )
-    all_specs_shipped = not (surviving_queue or surviving_active)
-    # A record whose dueness could not be judged is an incomplete run just as
-    # a record that would not load is, so it flips the same claim. One blocker
-    # is enough to withhold the affirmative: eligibility is
-    # `all_specs_shipped and not blockers and not paused`.
-    cooling_context_visible = bool(result.cooling_findings) or dueness_failed
-    # `spec_path` is `entry.path` straight from workspace.toml with no charset
-    # rule, and this string is rendered into agent context. Every sibling
-    # emitter bounds its path through this same filter.
-    blockers = [
-        f"type{finding.finding_type}:{_public_canonical_path(finding.spec_path)}"
-        for finding in result.reconciliation
-        if finding.ini_slug == initiative.slug and finding.finding_type in {2, 3}
-    ]
-    # Shaping residue is read from the reconciled canonical evaluations, never
-    # from `initiative.shaping`: that list is built from the raw TOML with no
-    # cooling filter, so reading it would count a cooled entry as residue. An
-    # open entry no canonical parse accepted appears in neither source, so
-    # `has_unsupported_open_entry` keeps it from passing as an empty initiative.
-    #
-    # `brief_queue` has no such split. `.shipped`, `.withdrawn` and `.cancelled`
-    # are terminal and are not residue. The brief *dependency* terminal set is
-    # deliberately not reused here: it counts `Ready` and `Executing` as
-    # terminal, which answers "is this dependency satisfied", not "is this
-    # brief closed".
-    brief_queue = initiative.brief_queue
-    shaping_residue = any(
-        record["ini_slug"] == initiative.slug
-        and record["collection"] in {"shaping_queue.active", "shaping_queue.backlog"}
-        for record in canonical_shaping_records
-    )
-    if (
-        shaping_residue
-        or initiative.has_unsupported_open_entry
-        or (
-            brief_queue is not None
-            and (brief_queue.executing or brief_queue.ready or brief_queue.draft)
-        )
-    ):
-        blockers.append("initiative-residue")
-    if cooling_context_visible:
-        blockers.append("cooling-context-incomplete")
-    projection = project_closeout_status(
-        paused=paused,
-        all_specs_shipped=all_specs_shipped,
-        closeout_blockers=blockers,
-        cooling_context_visible=cooling_context_visible,
-    )
-    return dataclasses.asdict(projection)
 
 
 def _build_json(root: Path, result, mode: str) -> dict:
@@ -1035,7 +638,7 @@ def _build_json(root: Path, result, mode: str) -> dict:
     )
     if canonical_failed:
         type2_cleanup_ops = []
-    output = {
+    return {
         "schema_version": 1,
         "mode": mode,
         "workspace_present": True,
@@ -1082,35 +685,6 @@ def _build_json(root: Path, result, mode: str) -> dict:
             "workspace_files_read": 1,
             "spec_files_read": result.files_read,
         },
-    }
-    if mode in {"status", "reconcile"}:
-        output["captured"] = _captured_projection(root, result.cooled)
-        cooling = _cooling_projection(result)
-        unreadable = cooling.pop("_unreadable")
-        output["cooling"] = cooling
-        closeout = _closeout_projection(
-            result,
-            cooled_by_initiative,
-            dueness_failed=bool(unreadable),
-            canonical_shaping_records=canonical["evaluations"],
-        )
-        if closeout is not None:
-            output["closeout"] = closeout
-    return output
-
-
-def _build_explain_json(root: Path, result, selector: str, explain_result: dict) -> dict:
-    return {
-        "schema_version": 1,
-        "mode": "explain",
-        "workspace_present": True,
-        "workspace_root": ".",
-        "scan": _scan_dict(result),
-        "selector": selector,
-        "canonical": _canonical_projection(
-            root, result, *_cooling_selection(result, "explain")
-        ),
-        **explain_result,
     }
 
 
@@ -3051,14 +2625,6 @@ def _plan_legacy_item(context: dict, item: _CapturedItem):
     return "record-differs"
 
 
-def _build_captured_operations(
-    root: Path, workspace_bytes: bytes
-) -> tuple[list[dict], list[dict]]:
-    """Plan `captured-to-file` operations and their manual findings."""
-    plan = _plan_captured_items(root, workspace_bytes)
-    return plan.operations, plan.findings
-
-
 # Echo rules for the captured-to-file values: each is judged alone against its
 # position's grammar, and a value that fails appears as an empty string. A
 # record's text and a summary are free text and appear whole; `_emit` escapes
@@ -4900,141 +4466,6 @@ def _apply_policy_moves(
 
 # ── Legacy migration transaction ─────────────────────────────────────────────
 
-_MIGRATION_LEDGER_FILE = ".workspace-migrations.json"
-_MIGRATION_LOCK_FILE = ".workspace-repair.lock"
-_MIGRATION_ROLES = frozenset({
-    "migration-approver",
-    "repository-maintainer",
-    "security-approver",
-})
-_CONFIRMATION_FIELDS = frozenset({
-    "contract_version",
-    "confirmation_id",
-    "action",
-    "operation_id",
-    "operation_digest",
-    "authorization_subject",
-    "role",
-    "confirmed_at",
-    "authorization_source",
-})
-
-
-def validate_migration_confirmation(
-    raw: object,
-    *,
-    action: str,
-    operation_id: str,
-    operation_digest: str,
-    now: datetime.datetime | None = None,
-) -> tuple[dict[str, str] | None, str | None]:
-    """Validate fresh, closed, one-effect confirmation evidence."""
-    if not isinstance(raw, dict) or set(raw) != _CONFIRMATION_FIELDS:
-        return None, "confirmation_invalid"
-    if raw.get("contract_version") != "work-intake-migration-confirmation.v1":
-        return None, "confirmation_invalid"
-    confirmation_id = raw.get("confirmation_id")
-    subject = raw.get("authorization_subject")
-    role = raw.get("role")
-    if (
-        not isinstance(confirmation_id, str)
-        or re.fullmatch(r"confirmation-[a-f0-9]{32}", confirmation_id) is None
-        or not isinstance(subject, str)
-        or re.fullmatch(r"subject-[a-f0-9]{32}", subject) is None
-        or role not in _MIGRATION_ROLES
-        or raw.get("authorization_source") != "current-human-session"
-    ):
-        return None, "confirmation_invalid"
-    if raw.get("action") != action:
-        return None, "confirmation_binding_mismatch"
-    supplied_id = raw.get("operation_id")
-    supplied_digest = raw.get("operation_digest")
-    if (
-        not isinstance(supplied_id, str)
-        or not isinstance(supplied_digest, str)
-        or not secrets.compare_digest(supplied_id, operation_id)
-        or not secrets.compare_digest(supplied_digest, operation_digest)
-    ):
-        return None, "confirmation_binding_mismatch"
-    confirmed_at = raw.get("confirmed_at")
-    if not isinstance(confirmed_at, str):
-        return None, "confirmation_invalid"
-    try:
-        parsed_time = datetime.datetime.fromisoformat(confirmed_at.replace("Z", "+00:00"))
-    except ValueError:
-        return None, "confirmation_invalid"
-    if parsed_time.tzinfo is None:
-        return None, "confirmation_invalid"
-    current = now or datetime.datetime.now(datetime.UTC)
-    current = current.astimezone(datetime.UTC)
-    parsed_time = parsed_time.astimezone(datetime.UTC)
-    age = current - parsed_time
-    if age < datetime.timedelta(0) or age > datetime.timedelta(minutes=5):
-        return None, "confirmation_stale"
-    return {key: str(raw[key]) for key in _CONFIRMATION_FIELDS}, None
-
-
-def resolve_migration_authorization(
-    workspace: object,
-    confirmation: dict[str, str],
-) -> tuple[str | None, str | None]:
-    """Resolve the closed repository migration role and return its public digest."""
-    if not isinstance(workspace, dict):
-        return None, "migration_policy_invalid"
-    authorization = workspace.get("authorization")
-    migration = authorization.get("migration") if isinstance(authorization, dict) else None
-    if not isinstance(migration, dict) or set(migration) != {
-        "contract_version", "approver_roles"
-    }:
-        return None, "migration_policy_invalid"
-    roles = migration.get("approver_roles")
-    if (
-        migration.get("contract_version")
-        != "work-intake-migration-authorization.v1"
-        or not isinstance(roles, list)
-        or not roles
-        or len(roles) != len(set(roles))
-        or any(role not in _MIGRATION_ROLES for role in roles)
-    ):
-        return None, "migration_policy_invalid"
-    role = confirmation["role"]
-    if role not in roles:
-        return None, "unauthorized_approver"
-    return hashlib.sha256(role.encode("ascii")).hexdigest(), None
-
-
-def _migration_confirmation_receipt(
-    confirmation: dict[str, str], role_digest: str
-) -> dict[str, object]:
-    """Project accepted evidence without retaining its raw public role label."""
-    return {
-        "confirmation_id": confirmation["confirmation_id"],
-        "action": confirmation["action"],
-        "operation_id": confirmation["operation_id"],
-        "operation_digest": confirmation["operation_digest"],
-        "authorization_subject": confirmation["authorization_subject"],
-        "authorization_role_digest": role_digest,
-        "confirmed_at": confirmation["confirmed_at"],
-        "authorization_source": confirmation["authorization_source"],
-        "consumed_before_effect": True,
-    }
-
-
-def _migration_evidence_reused(
-    ledger: dict[str, object], confirmation: dict[str, str]
-) -> bool:
-    """Return whether either opaque one-effect identifier is already durable."""
-    for operation in ledger.get("operations", []):
-        for receipt in operation.get("confirmation_receipts", []):
-            if (
-                receipt.get("confirmation_id") == confirmation["confirmation_id"]
-                or receipt.get("authorization_subject")
-                == confirmation["authorization_subject"]
-            ):
-                return True
-    return False
-
-
 def _migration_read_bytes(root: Path, relative_path: str) -> bytes | None:
     """Read a confined regular single-link file with pre/post identity checks."""
     path = confine_migration_path(root, relative_path, require_file=True)
@@ -5071,24 +4502,6 @@ def _migration_read_bytes(root: Path, relative_path: str) -> bytes | None:
     finally:
         if descriptor is not None:
             os.close(descriptor)
-
-
-def _migration_load_ledger(root: Path) -> tuple[dict[str, object] | None, str | None]:
-    """Load and validate the ledger shape and semantic invariants in order."""
-    ledger_path = root / _MIGRATION_LEDGER_FILE
-    if not ledger_path.exists() and not ledger_path.is_symlink():
-        return None, None
-    raw = _migration_read_bytes(root, _MIGRATION_LEDGER_FILE)
-    if raw is None:
-        return None, "unsafe_path"
-    try:
-        ledger = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        return None, "ledger_invalid"
-    shape_error = validate_migration_ledger_shape(ledger)
-    if shape_error is not None:
-        return None, shape_error
-    return ledger, None
 
 
 def _fsync_directory(directory: Path) -> None:
@@ -5148,686 +4561,6 @@ def _migration_atomic_replace(
             temp_path.unlink()
 
 
-def _migration_write_ledger(
-    root: Path,
-    ledger: dict[str, object],
-    failure_point: str | None,
-) -> None:
-    """Validate then durably replace the repository-root migration ledger."""
-    error = validate_migration_ledger_shape(ledger)
-    if error is not None:
-        raise ValueError(error)
-    path = confine_migration_path(root, _MIGRATION_LEDGER_FILE, require_file=False)
-    if path is None or (path.exists() and confine_migration_path(
-        root, _MIGRATION_LEDGER_FILE, require_file=True
-    ) is None):
-        raise ValueError("unsafe_path")
-    data = json.dumps(
-        ledger, sort_keys=True, separators=(",", ":"), ensure_ascii=True
-    ).encode("ascii") + b"\n"
-    _migration_atomic_replace(
-        path, data, stage="ledger", failure_point=failure_point
-    )
-
-
-def _migration_toml_value(value: object) -> str:
-    """Serialize the closed Group 2 entry subset as a TOML inline value."""
-    if isinstance(value, str):
-        return json.dumps(value, ensure_ascii=False)
-    if value is True:
-        return "true"
-    if value is False:
-        return "false"
-    if isinstance(value, list):
-        return "[" + ", ".join(_migration_toml_value(item) for item in value) + "]"
-    if isinstance(value, dict):
-        return "{" + ", ".join(
-            f"{key} = {_migration_toml_value(item)}"
-            for key, item in sorted(value.items())
-        ) + "}"
-    raise ValueError("target_invalid")
-
-
-def _migration_collection_bounds(
-    workspace_text: str, ini_slug: str, collection: str
-) -> tuple[int, int] | None:
-    """Locate the interior bounds of one TOML lifecycle array."""
-    section_name, key = collection.split(".", 1)
-    if ini_slug:
-        header = re.compile(
-            rf"(?m)^\[(?:\"{re.escape(ini_slug)}\"|{re.escape(ini_slug)})\."
-            rf"{re.escape(section_name)}\]\s*$"
-        )
-    else:
-        header = re.compile(rf"(?m)^\[{re.escape(section_name)}\]\s*$")
-    match = header.search(workspace_text)
-    if match is None:
-        return None
-    next_header = re.search(r"(?m)^\[[^\n]+\]\s*$", workspace_text[match.end():])
-    block_end = match.end() + next_header.start() if next_header else len(workspace_text)
-    assignment = re.search(
-        rf"(?m)^[ \t]*{re.escape(key)}[ \t]*=[ \t]*\[",
-        workspace_text[match.end():block_end],
-    )
-    if assignment is None:
-        return None
-    opening = match.end() + assignment.end() - 1
-    square_depth = 0
-    brace_depth = 0
-    quote = ""
-    escaped = False
-    in_comment = False
-    for index in range(opening + 1, block_end):
-        char = workspace_text[index]
-        if in_comment:
-            if char == "\n":
-                in_comment = False
-            continue
-        if quote:
-            if escaped:
-                escaped = False
-            elif char == "\\" and quote == '"':
-                escaped = True
-            elif char == quote:
-                quote = ""
-            continue
-        if char in {'"', "'"}:
-            quote = char
-        elif char == "#":
-            in_comment = True
-        elif char == "[":
-            square_depth += 1
-        elif char == "]":
-            if square_depth == 0 and brace_depth == 0:
-                return opening + 1, index
-            square_depth -= 1
-        elif char == "{":
-            brace_depth += 1
-        elif char == "}":
-            brace_depth -= 1
-    return None
-
-
-def _migration_content_without_comments(value: str) -> str:
-    """Remove comments while preserving quoted hash characters."""
-    output: list[str] = []
-    quote = ""
-    escaped = False
-    in_comment = False
-    for char in value:
-        if in_comment:
-            if char == "\n":
-                in_comment = False
-                output.append(char)
-            continue
-        if quote:
-            output.append(char)
-            if escaped:
-                escaped = False
-            elif char == "\\" and quote == '"':
-                escaped = True
-            elif char == quote:
-                quote = ""
-        elif char in {'"', "'"}:
-            quote = char
-            output.append(char)
-        elif char == "#":
-            in_comment = True
-        else:
-            output.append(char)
-    return "".join(output)
-
-
-def _migration_collection_insert_offset(
-    workspace_text: str,
-    bounds: tuple[int, int],
-    entry_index: int,
-) -> int:
-    """Return the exact element boundary for restoring one lifecycle position."""
-    start, end = bounds
-    element_starts: list[int] = []
-    segment_start = start
-    square_depth = 0
-    brace_depth = 0
-    quote = ""
-    escaped = False
-    in_comment = False
-    for index in range(start, end):
-        char = workspace_text[index]
-        if in_comment:
-            if char == "\n":
-                in_comment = False
-            continue
-        if quote:
-            if escaped:
-                escaped = False
-            elif char == "\\" and quote == '"':
-                escaped = True
-            elif char == quote:
-                quote = ""
-            continue
-        if char in {'"', "'"}:
-            quote = char
-        elif char == "#":
-            in_comment = True
-        elif char == "[":
-            square_depth += 1
-        elif char == "]":
-            square_depth -= 1
-        elif char == "{":
-            brace_depth += 1
-        elif char == "}":
-            brace_depth -= 1
-        elif char == "," and square_depth == 0 and brace_depth == 0:
-            segment = workspace_text[segment_start:index + 1]
-            if _migration_content_without_comments(segment).strip().rstrip(",").strip():
-                element_starts.append(segment_start)
-            segment_start = index + 1
-    tail = workspace_text[segment_start:end]
-    if _migration_content_without_comments(tail).strip():
-        element_starts.append(segment_start)
-    return element_starts[entry_index] if entry_index < len(element_starts) else end
-
-
-def _migration_apply_workspace_bytes(
-    workspace_bytes: bytes,
-    operation: dict[str, object],
-) -> bytes:
-    """Replace the exact legacy slice with one deterministic target entry."""
-    text = workspace_bytes.decode("utf-8")
-    legacy_slice = operation["legacy_slice"]
-    if not isinstance(legacy_slice, str) or text.count(legacy_slice) != 1:
-        raise ValueError("workspace_changed")
-    without_legacy = text.replace(legacy_slice, "", 1)
-    membership = operation["target_membership"]
-    bounds = _migration_collection_bounds(
-        without_legacy, membership["ini_slug"], membership["collection"]
-    )
-    if bounds is None:
-        raise ValueError("target_invalid")
-    insertion = "\n  " + _migration_toml_value(operation["target_entry"]) + ","
-    converted = without_legacy[:bounds[1]] + insertion + without_legacy[bounds[1]:]
-    tomllib.loads(converted)
-    return converted.encode("utf-8")
-
-
-def _migration_rollback_workspace_bytes(
-    workspace_bytes: bytes,
-    operation: dict[str, object],
-) -> bytes:
-    """Remove the canonical target and restore the recorded exact legacy slice."""
-    workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
-    canonical = run_canonical_reconciliation(workspace)
-    target = operation["target_entry"]
-    target_membership = operation["target_membership"]
-    matches = [
-        membership
-        for membership in canonical.memberships
-        if membership.entry.path == target["path"]
-        and membership.ini_slug == target_membership["ini_slug"]
-        and membership.collection == target_membership["collection"]
-    ]
-    if len(matches) != 1:
-        raise ValueError("recovery_conflict")
-    target_slice = extract_legacy_source_slice(
-        workspace_bytes,
-        matches[0].ini_slug,
-        matches[0].collection,
-        matches[0].entry_index,
-    )
-    if target_slice is None:
-        raise ValueError("recovery_conflict")
-    text = workspace_bytes.decode("utf-8")
-    if text.count(target_slice) != 1:
-        raise ValueError("recovery_conflict")
-    without_target = text.replace(target_slice, "", 1)
-    source = operation["source_membership"]
-    bounds = _migration_collection_bounds(
-        without_target, source["ini_slug"], source["collection"]
-    )
-    if bounds is None:
-        raise ValueError("recovery_conflict")
-    offset = _migration_collection_insert_offset(
-        without_target, bounds, source["entry_index"]
-    )
-    restored = without_target[:offset] + operation["legacy_slice"] + without_target[offset:]
-    parsed = tomllib.loads(restored)
-    restored_legacy_memberships = extract_legacy_migration_memberships(parsed)
-    restored_matches = [
-        membership
-        for membership in restored_legacy_memberships
-        if membership.ini_slug == source["ini_slug"]
-        and membership.collection == source["collection"]
-        and membership.entry_index == source["entry_index"]
-    ]
-    if len(restored_matches) != 1:
-        raise ValueError("recovery_conflict")
-    return restored.encode("utf-8")
-
-
-def _migration_workspace_state(
-    workspace_bytes: bytes,
-    operation: dict[str, object],
-) -> str:
-    """Classify guarded workspace bytes using the operation's durable state."""
-    fingerprint = hashlib.sha256(workspace_bytes).hexdigest()
-    operation_state = operation.get("state")
-    if operation_state == "pending":
-        if fingerprint == operation["pre_apply_workspace_fingerprint"]:
-            return "pre_apply"
-        if fingerprint == operation.get("applied_workspace_fingerprint"):
-            return "target"
-    elif operation_state == "applied":
-        if fingerprint == operation.get("applied_workspace_fingerprint"):
-            return "target"
-    elif operation_state == "rollback_pending":
-        if fingerprint == operation.get("applied_workspace_fingerprint"):
-            return "target"
-        if fingerprint == operation.get("rolled_back_workspace_fingerprint"):
-            return "rolled_back"
-    elif operation_state == "rolled_back":
-        if fingerprint == operation.get("rolled_back_workspace_fingerprint"):
-            return "rolled_back"
-    return "conflict"
-
-
-@contextlib.contextmanager
-def _migration_lock(root: Path):
-    """Acquire the shared non-waiting workspace repair lock."""
-    path = confine_migration_path(root, _MIGRATION_LOCK_FILE, require_file=False)
-    if path is None or path.exists() or path.is_symlink():
-        raise FileExistsError("lock busy")
-    descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
-    try:
-        os.write(descriptor, str(os.getpid()).encode("ascii"))
-        os.fsync(descriptor)
-        os.close(descriptor)
-        descriptor = -1
-        yield
-    finally:
-        if descriptor >= 0:
-            os.close(descriptor)
-        with contextlib.suppress(FileNotFoundError):
-            path.unlink()
-
-
-def _migration_result_error(code: str) -> dict[str, object]:
-    """Build a stable non-echoing failure result."""
-    next_actions = {
-        "artifact_changed": "rerun-migration-plan",
-        "confirmation_invalid": "replace-confirmation",
-        "confirmation_stale": "replace-confirmation",
-        "confirmation_reused": "replace-confirmation",
-        "confirmation_binding_mismatch": "replace-confirmation",
-        "invalid_selection": "revise-selection",
-        "ledger_invalid": "repair-migration-ledger",
-        "ledger_changed": "rerun-migration-plan",
-        "migration_policy_invalid": "repair-migration-policy",
-        "operation_missing": "review-migration-ledger",
-        "operation_state_conflict": "recover-migration-state",
-        "recovery_conflict": "recover-migration-state",
-        "selection_mismatch": "revise-selection",
-        "sensitive_legacy_content": "sanitize-legacy-source",
-        "unauthorized_approver": "use-authorized-approver",
-        "unsafe_path": "repair-repository-paths",
-        "workspace_changed": "rerun-migration-plan",
-        "write_failed": "retry-migration-effect",
-    }
-    return build_migration_result(code, next_action=next_actions.get(code, "review-migration"))
-
-
-def _migration_find_operation(
-    ledger: dict[str, object], operation_id: str
-) -> dict[str, object] | None:
-    """Return exactly one ledger operation by identifier."""
-    matches = [
-        operation
-        for operation in ledger["operations"]
-        if operation.get("operation_id") == operation_id
-    ]
-    return matches[0] if len(matches) == 1 else None
-
-
-def apply_migration_operation(
-    root: Path,
-    selection_raw: object,
-    operation_id: str,
-    confirmation_raw: object,
-    *,
-    now: datetime.datetime | None = None,
-    failure_point: str | None = None,
-) -> dict[str, object]:
-    """Apply or recover one ledger-first migration under the shared lock."""
-    try:
-        with _migration_lock(root):
-            workspace_bytes = _migration_read_bytes(root, "workspace.toml")
-            if workspace_bytes is None:
-                return _migration_result_error("unsafe_path")
-            try:
-                workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
-            except (UnicodeDecodeError, tomllib.TOMLDecodeError):
-                return _migration_result_error("workspace_changed")
-            ledger, ledger_error = _migration_load_ledger(root)
-            if ledger_error is not None:
-                return _migration_result_error(ledger_error)
-            operation = _migration_find_operation(ledger, operation_id) if ledger else None
-            if ledger is None:
-                planned = compute_migration_plan(root, root / "workspace.toml", selection_raw)
-                if (
-                    planned.result["result_code"] != "planned"
-                    or planned.proposed_operation is None
-                ):
-                    return planned.result
-                operation = planned.proposed_operation
-                if operation["operation_id"] != operation_id:
-                    return _migration_result_error("selection_mismatch")
-                canonical = run_canonical_reconciliation(workspace, root)
-                ledger = {
-                    "contract_version": "work-intake-migration-ledger.v1",
-                    "repository_identity": canonical_repository_identity(
-                        workspace, canonical, root
-                    ),
-                    "operations": [operation],
-                }
-            elif operation is None:
-                return _migration_result_error("operation_missing")
-            if operation["operation_digest"] != _migration_operation_digest(
-                operation, ledger["repository_identity"]
-            ):
-                return _migration_result_error("ledger_changed")
-            selection, selection_error = validate_migration_selection(selection_raw)
-            if selection is None:
-                return _migration_result_error(selection_error or "invalid_selection")
-            if (
-                migration_selection_digest(selection)
-                != operation.get("selection_digest")
-                or selection.workspace_fingerprint
-                != operation["pre_apply_workspace_fingerprint"]
-                or selection.source_membership != operation["source_membership"]
-                or selection.target_entry_raw != operation["target_entry"]
-                or selection.target_membership != operation["target_membership"]
-                or selection.owning_processor != operation["owning_processor"]
-            ):
-                return _migration_result_error("selection_mismatch")
-            confirmation, confirmation_error = validate_migration_confirmation(
-                confirmation_raw,
-                action="apply",
-                operation_id=operation_id,
-                operation_digest=operation["operation_digest"],
-                now=now,
-            )
-            if confirmation is None:
-                return _migration_result_error(
-                    confirmation_error or "confirmation_invalid"
-                )
-            role_digest, authorization_error = resolve_migration_authorization(
-                workspace, confirmation
-            )
-            if role_digest is None:
-                return _migration_result_error(
-                    authorization_error or "migration_policy_invalid"
-                )
-            if _migration_evidence_reused(ledger, confirmation):
-                return _migration_result_error("confirmation_reused")
-            state = _migration_workspace_state(workspace_bytes, operation)
-            if operation["state"] == "applied":
-                if state != "target":
-                    return _migration_result_error("recovery_conflict")
-                return build_migration_result(
-                    "already_applied",
-                    next_action="none-required",
-                    operation_id=operation_id,
-                    operation_digest=operation["operation_digest"],
-                    ledger_state="applied",
-                )
-            if operation["state"] != "pending":
-                return _migration_result_error("operation_state_conflict")
-            if state == "conflict":
-                return _migration_result_error("recovery_conflict")
-            artifact = operation["artifact_receipt"]
-            artifact_bytes = _migration_read_bytes(root, artifact["path"])
-            if (
-                artifact_bytes is None
-                or hashlib.sha256(artifact_bytes).hexdigest()
-                != artifact["fingerprint"]
-            ):
-                return _migration_result_error("artifact_changed")
-            if state == "pre_apply":
-                legacy_workspace_bytes = workspace_bytes
-            else:
-                try:
-                    legacy_workspace_bytes = _migration_rollback_workspace_bytes(
-                        workspace_bytes, operation
-                    )
-                except ValueError:
-                    return _migration_result_error("recovery_conflict")
-                if hashlib.sha256(legacy_workspace_bytes).hexdigest() != operation[
-                    "pre_apply_workspace_fingerprint"
-                ]:
-                    return _migration_result_error("recovery_conflict")
-            expected_converted = _migration_apply_workspace_bytes(
-                legacy_workspace_bytes, operation
-            )
-            expected_applied = hashlib.sha256(expected_converted).hexdigest()
-            recorded_applied = operation.get("applied_workspace_fingerprint")
-            if recorded_applied is not None and recorded_applied != expected_applied:
-                return _migration_result_error("ledger_changed")
-            if state == "target" and expected_converted != workspace_bytes:
-                return _migration_result_error("recovery_conflict")
-            operation["applied_workspace_fingerprint"] = expected_applied
-            converted = expected_converted if state == "pre_apply" else None
-            operation["confirmation_receipts"].append(
-                _migration_confirmation_receipt(confirmation, role_digest)
-            )
-            _migration_write_ledger(root, ledger, failure_point)
-            if state == "pre_apply":
-                assert converted is not None
-                workspace_path = confine_migration_path(
-                    root, "workspace.toml", require_file=True
-                )
-                if workspace_path is None:
-                    return _migration_result_error("unsafe_path")
-                _migration_atomic_replace(
-                    workspace_path,
-                    converted,
-                    stage="workspace",
-                    failure_point=failure_point,
-                )
-                workspace_bytes = converted
-            if hashlib.sha256(workspace_bytes).hexdigest() != operation.get(
-                "applied_workspace_fingerprint"
-            ):
-                return _migration_result_error("recovery_conflict")
-            operation["state"] = "applied"
-            _migration_write_ledger(root, ledger, failure_point)
-            return build_migration_result(
-                "applied",
-                next_action="review-workspace-status",
-                operation_id=operation_id,
-                operation_digest=operation["operation_digest"],
-                ledger_state="applied",
-            )
-    except FileExistsError:
-        return _migration_result_error("lock_busy")
-    except (OSError, RuntimeError, ValueError):
-        return _migration_result_error("write_failed")
-
-
-def rollback_migration_operation(
-    root: Path,
-    operation_id: str,
-    confirmation_raw: object,
-    *,
-    now: datetime.datetime | None = None,
-    failure_point: str | None = None,
-) -> dict[str, object]:
-    """Rollback or recover one operation without reading or deleting its artifact."""
-    try:
-        with _migration_lock(root):
-            workspace_bytes = _migration_read_bytes(root, "workspace.toml")
-            if workspace_bytes is None:
-                return _migration_result_error("unsafe_path")
-            try:
-                workspace = tomllib.loads(workspace_bytes.decode("utf-8"))
-            except (UnicodeDecodeError, tomllib.TOMLDecodeError):
-                return _migration_result_error("workspace_changed")
-            ledger, ledger_error = _migration_load_ledger(root)
-            if ledger_error is not None:
-                return _migration_result_error(ledger_error)
-            if ledger is None:
-                return _migration_result_error("operation_missing")
-            operation = _migration_find_operation(ledger, operation_id)
-            if operation is None:
-                return _migration_result_error("operation_missing")
-            if operation["operation_digest"] != _migration_operation_digest(
-                operation, ledger["repository_identity"]
-            ):
-                return _migration_result_error("ledger_changed")
-            confirmation, confirmation_error = validate_migration_confirmation(
-                confirmation_raw,
-                action="rollback",
-                operation_id=operation_id,
-                operation_digest=operation["operation_digest"],
-                now=now,
-            )
-            if confirmation is None:
-                return _migration_result_error(
-                    confirmation_error or "confirmation_invalid"
-                )
-            role_digest, authorization_error = resolve_migration_authorization(
-                workspace, confirmation
-            )
-            if role_digest is None:
-                return _migration_result_error(
-                    authorization_error or "migration_policy_invalid"
-                )
-            if _migration_evidence_reused(ledger, confirmation):
-                return _migration_result_error("confirmation_reused")
-            state = _migration_workspace_state(workspace_bytes, operation)
-            if operation["state"] == "rolled_back":
-                if state != "rolled_back":
-                    return _migration_result_error("recovery_conflict")
-                return build_migration_result(
-                    "already_rolled_back",
-                    next_action="none-required",
-                    operation_id=operation_id,
-                    operation_digest=operation["operation_digest"],
-                    ledger_state="rolled_back",
-                )
-            operation_state = operation["state"]
-            if operation_state not in {"applied", "rollback_pending"}:
-                return _migration_result_error("operation_state_conflict")
-            if (
-                (operation_state == "applied" and state != "target")
-                or (
-                    operation_state == "rollback_pending"
-                    and state not in {"target", "rolled_back"}
-                )
-            ):
-                return _migration_result_error("recovery_conflict")
-            if state == "target":
-                restored = _migration_rollback_workspace_bytes(
-                    workspace_bytes, operation
-                )
-                expected_rolled_back = hashlib.sha256(restored).hexdigest()
-                recorded_rolled_back = operation.get(
-                    "rolled_back_workspace_fingerprint"
-                )
-                if (
-                    recorded_rolled_back is not None
-                    and recorded_rolled_back != expected_rolled_back
-                ):
-                    return _migration_result_error("ledger_changed")
-                operation["rolled_back_workspace_fingerprint"] = (
-                    expected_rolled_back
-                )
-            else:
-                restored = None
-            operation["confirmation_receipts"].append(
-                _migration_confirmation_receipt(confirmation, role_digest)
-            )
-            operation["state"] = "rollback_pending"
-            _migration_write_ledger(root, ledger, failure_point)
-            if state == "target":
-                assert restored is not None
-                workspace_path = confine_migration_path(
-                    root, "workspace.toml", require_file=True
-                )
-                if workspace_path is None:
-                    return _migration_result_error("unsafe_path")
-                _migration_atomic_replace(
-                    workspace_path,
-                    restored,
-                    stage="workspace",
-                    failure_point=failure_point,
-                )
-                workspace_bytes = restored
-            if hashlib.sha256(workspace_bytes).hexdigest() != operation.get(
-                "rolled_back_workspace_fingerprint"
-            ):
-                return _migration_result_error("recovery_conflict")
-            operation["state"] = "rolled_back"
-            _migration_write_ledger(root, ledger, failure_point)
-            return build_migration_result(
-                "rolled_back",
-                next_action="review-workspace-status",
-                operation_id=operation_id,
-                operation_digest=operation["operation_digest"],
-                ledger_state="rolled_back",
-            )
-    except FileExistsError:
-        return _migration_result_error("lock_busy")
-    except (OSError, RuntimeError, ValueError):
-        return _migration_result_error("write_failed")
-
-
-def recover_migration_operation(
-    root: Path,
-    operation_id: str,
-    confirmation_raw: object,
-    *,
-    action: str,
-    selection_raw: object | None = None,
-    now: datetime.datetime | None = None,
-    failure_point: str | None = None,
-) -> dict[str, object]:
-    """Resume a pending apply or rollback with new one-effect evidence."""
-    if action == "apply" and selection_raw is not None:
-        return apply_migration_operation(
-            root,
-            selection_raw,
-            operation_id,
-            confirmation_raw,
-            now=now,
-            failure_point=failure_point,
-        )
-    if action == "rollback":
-        return rollback_migration_operation(
-            root,
-            operation_id,
-            confirmation_raw,
-            now=now,
-            failure_point=failure_point,
-        )
-    return _migration_result_error("operation_state_conflict")
-
-
-def _migration_input_json(
-    root: Path,
-    relative_path: str,
-    *,
-    invalid_code: str = "confirmation_invalid",
-) -> tuple[object | None, str | None]:
-    """Read one human-authored closed JSON input without following links."""
-    raw = _migration_read_bytes(root, relative_path)
-    if raw is None:
-        return None, "unsafe_path"
-    try:
-        return json.loads(raw.decode("utf-8")), None
-    except (UnicodeDecodeError, json.JSONDecodeError):
-        return None, invalid_code
-
-
 def _emit(data: dict) -> None:
     sys.stdout.write(json.dumps(data, sort_keys=True, allow_nan=False) + "\n")
     sys.stdout.flush()
@@ -5836,122 +4569,41 @@ def _emit(data: dict) -> None:
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main(argv: list[str] | None = None) -> int:
+    """Run one repair subcommand; refuse every other first argument."""
     if argv is None:
         argv = sys.argv[1:]
     argv = list(argv)
 
-    # Pre-dispatch: first token is a known subcommand → strip it
-    if argv and argv[0] in _SUBCOMMANDS:
-        subcommand = argv.pop(0)
-        compat_alias = False
-    elif argv and not argv[0].startswith("-"):
-        print("workspace-status: unknown subcommand", file=sys.stderr)
-        _emit({
-            "schema_version": 1,
-            "mode": "error",
-            "reason": "unknown_subcommand",
-        })
-        return 2
-    else:
-        subcommand = "reconcile"
-        compat_alias = True
-
-    if compat_alias:
+    first = argv[0] if argv else None
+    if first in _RETIRED_REPLACEMENT:
         print(
-            "workspace-status: no subcommand specified; defaulting to reconcile. "
-            "Use 'reconcile' explicitly.",
+            f"retired_subcommand: {first}: {_RETIRED_REPLACEMENT[first]}",
             file=sys.stderr,
         )
+        return 2
+    if first not in _SUBCOMMANDS:
+        print(
+            "workspace-status: usage: workspace_status.py "
+            "{repair-plan,repair-apply} --root <repo-root>",
+            file=sys.stderr,
+        )
+        return 2
+    subcommand = argv.pop(0)
 
     parser = argparse.ArgumentParser(
-        description="workspace-status: parse workspace.toml and emit JSON",
-        epilog="migration rollback subcommand: repair-rollback",
+        description="workspace-status: plan and apply the workspace.toml repair",
     )
     parser.add_argument(
         "--root",
         required=True,
         help="Absolute or relative path to the repository root",
     )
-    if subcommand == "explain":
-        parser.add_argument(
-            "--item",
-            required=True,
-            help="Selector for the item to explain (slug or spec/ path)",
-        )
-    if subcommand == "status":
-        parser.add_argument(
-            "--include-evaluations",
-            action="store_true",
-            default=False,
-            help="Restore canonical.evaluations, the full per-entry evaluation "
-                 "list. It grows with the size of the workspace and can dominate "
-                 "the payload; the dispatch decisions it carries are already in "
-                 "canonical.ready/active/blocked/findings.",
-        )
-    if subcommand == "selected-membership":
-        parser.add_argument(
-            "--spec-dir",
-            action="append",
-            default=[],
-            help="Repository-relative docs/specs/<slug> directory to inspect",
-        )
-    if subcommand == "prune":
-        parser.add_argument(
-            "--select",
-            action="append",
-            default=[],
-            help="Repository-relative docs/specs/<slug> directory to remove",
-        )
-        parser.add_argument(
-            "--preview",
-            action="store_true",
-            default=False,
-            help="Emit the unsigned operation challenge without mutation",
-        )
-        parser.add_argument(
-            "--confirmation-file",
-            default=None,
-            help="Confined JSON confirmation containing independent authorization",
-        )
-    if subcommand == "retirement-candidates":
-        parser.add_argument(
-            "--run-date",
-            required=True,
-            help="Calendar date to use for deterministic age reporting (YYYY-MM-DD)",
-        )
-        parser.add_argument(
-            "--stale-after-days",
-            type=int,
-            default=30,
-            help="Recorded-change age threshold in days (default: 30)",
-        )
-    migration_subcommand = subcommand in {
-        "repair-plan", "repair-apply", "repair-rollback"
-    }
-    if migration_subcommand:
-        parser.add_argument(
-            "--plan-file",
-            default=None,
-            help="Override plan file path (default: <root>/.workspace-repair-plan.json)",
-        )
-    if migration_subcommand:
-        parser.add_argument(
-            "--migration-selection",
-            default=None,
-            help="Reviewed repository-relative migration selection JSON",
-        )
-    if migration_subcommand:
-        parser.add_argument(
-            "--operation-id",
-            default=None,
-            help="Exact migration operation identifier",
-        )
-        parser.add_argument(
-            "--confirmation-file",
-            default=None,
-            help="Human-authored current-session confirmation JSON",
-        )
-    if migration_subcommand:
+    parser.add_argument(
+        "--plan-file",
+        default=None,
+        help="Override plan file path (default: <root>/.workspace-repair-plan.json)",
+    )
+    if subcommand == "repair-apply":
         parser.add_argument(
             "--yes",
             action="store_true",
@@ -5961,103 +4613,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     root = Path(args.root)
 
-    if subcommand == "prune" and not args.select:
-        print("workspace-status: prune: empty_selection", file=sys.stderr)
-        _emit({"error": {"code": "empty_selection"}})
-        return 2
-
-    if subcommand == "selected-membership" and not args.spec_dir:
-        print("workspace-status: selected-membership requires --spec-dir", file=sys.stderr)
+    if not _bind_engine():
         _emit({
             "schema_version": 1,
-            "mode": "selected-membership",
-            "reason": "empty_selection",
+            "mode": subcommand,
+            "applied": False,
+            "reason": "engine_load_failed",
         })
         return 2
-
-    if subcommand == "retirement-candidates":
-        if not _bind_retirement_command():
-            print(
-                "workspace-status: retirement-candidates: command_load_failed",
-                file=sys.stderr,
-            )
-            return 2
-        try:
-            document = retirement_candidates_document(
-                root,
-                run_date=args.run_date,
-                stale_after_days=args.stale_after_days,
-            )
-            errors = validate_retirement_document(root, document)
-        except (OSError, RuntimeError, ValueError):
-            print(
-                "workspace-status: retirement-candidates: invalid_input",
-                file=sys.stderr,
-            )
-            return 2
-        if errors:
-            print(
-                "workspace-status: retirement-candidates: contract_invalid",
-                file=sys.stderr,
-            )
-            return 2
-        _emit(document)
-        return 0
-
-    if not _bind_engine():
-        if subcommand in {"status", "reconcile", "explain"}:
-            _emit(_canonical_failure_payload(subcommand, "configuration_mismatch"))
-        else:
-            _emit({
-                "schema_version": 1,
-                "mode": subcommand,
-                "applied": False,
-                "reason": "engine_load_failed",
-            })
-        return 2
-
-    if subcommand == "prune":
-        try:
-            if args.preview:
-                prune_result = prune_preview(root, args.select)
-            elif args.confirmation_file is None:
-                prune_result = prune_execute(root, args.select, {})
-            else:
-                prune_result = prune_execute(
-                    root,
-                    args.select,
-                    None,
-                    confirmation_file=args.confirmation_file,
-                )
-
-            prune_error = prune_result.get("error")
-            if isinstance(prune_error, dict):
-                code = prune_error.get("code", "closure_failed")
-                print(f"workspace-status: prune: {code}", file=sys.stderr)
-                _emit(prune_result)
-                return 2
-
-            if args.preview:
-                _emit(prune_result)
-                return 0
-
-            closure = prune_result.get("closure")
-            if not isinstance(closure, dict) or not (
-                closure.get("artifact_absent") is True
-                and closure.get("membership_absent") is True
-            ):
-                print("workspace-status: prune: closure_failed", file=sys.stderr)
-                _emit({"error": {"code": "closure_failed"}})
-                return 2
-            _emit(prune_result)
-            return 0
-        except Exception as exc:
-            print(
-                f"workspace-status: prune: invalid_workspace: {type(exc).__name__}",
-                file=sys.stderr,
-            )
-            _emit({"error": {"code": "invalid_workspace"}})
-            return 2
 
     try:
         # Validate root before checking workspace.toml.
@@ -6067,13 +4630,6 @@ def main(argv: list[str] | None = None) -> int:
             raise NotADirectoryError(f"--root is not a directory: {root}")
 
         workspace_toml = root / "workspace.toml"
-
-        migration_mode = (
-            subcommand == "repair-rollback"
-            or getattr(args, "migration_selection", None) is not None
-            or getattr(args, "operation_id", None) is not None
-            or getattr(args, "confirmation_file", None) is not None
-        )
 
         # repair-apply owns its workspace checks (needs exit 2, not exit 1).
         # The shared lstat + symlink guards below are skipped for repair-apply.
@@ -6085,19 +4641,6 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 workspace_toml.lstat()
             except FileNotFoundError:
-                if migration_mode:
-                    _emit({
-                        "schema_version": 1,
-                        "mode": subcommand,
-                        "workspace_present": False,
-                        "workspace_root": ".",
-                        "migration": build_migration_result(
-                            "workspace_absent",
-                            next_action="create-workspace",
-                            ledger_state="absent",
-                        ),
-                    })
-                    return 1
                 _emit({
                     "schema_version": 1,
                     "mode": subcommand,
@@ -6114,185 +4657,8 @@ def main(argv: list[str] | None = None) -> int:
                 try:
                     _ws_toml_resolved.relative_to(root.resolve())
                 except (OSError, RuntimeError, ValueError):
-                    if migration_mode:
-                        _emit({
-                            "schema_version": 1,
-                            "mode": subcommand,
-                            "workspace_present": True,
-                            "workspace_root": ".",
-                            "migration": _migration_result_error("unsafe_path"),
-                        })
-                    else:
-                        _emit(
-                            _canonical_failure_payload(
-                                subcommand, "configuration_mismatch"
-                            )
-                        )
+                    _emit(_canonical_failure_payload(subcommand, "configuration_mismatch"))
                     return 2
-
-        if subcommand == "repair-apply" and migration_mode:
-            supplied = (
-                args.migration_selection,
-                args.operation_id,
-                args.confirmation_file,
-            )
-            if (
-                not all(isinstance(value, str) and value for value in supplied)
-                or args.plan_file is not None
-                or args.yes
-            ):
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-apply",
-                    "workspace_present": workspace_toml.exists(),
-                    "workspace_root": ".",
-                    "migration": _migration_result_error("confirmation_invalid"),
-                })
-                return 2
-            if not workspace_toml.exists():
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-apply",
-                    "workspace_present": False,
-                    "workspace_root": ".",
-                    "migration": build_migration_result(
-                        "workspace_absent",
-                        next_action="create-workspace",
-                        ledger_state="absent",
-                    ),
-                })
-                return 1
-            selection_raw, selection_input_error = _migration_input_json(
-                root, args.migration_selection, invalid_code="invalid_selection"
-            )
-            confirmation_raw, confirmation_input_error = _migration_input_json(
-                root, args.confirmation_file
-            )
-            if selection_input_error is not None or confirmation_input_error is not None:
-                code = selection_input_error or confirmation_input_error or "confirmation_invalid"
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-apply",
-                    "workspace_present": True,
-                    "workspace_root": ".",
-                    "migration": _migration_result_error(code),
-                })
-                return 2
-            migration_result = apply_migration_operation(
-                root,
-                selection_raw,
-                args.operation_id,
-                confirmation_raw,
-            )
-            _emit({
-                "schema_version": 1,
-                "mode": "repair-apply",
-                "workspace_present": True,
-                "workspace_root": ".",
-                "migration": migration_result,
-            })
-            return 0 if migration_result["result_code"] in {
-                "applied", "already_applied"
-            } else 2
-
-        if subcommand == "repair-rollback":
-            if (
-                not args.operation_id
-                or not args.confirmation_file
-                or args.migration_selection is not None
-                or args.plan_file is not None
-                or args.yes
-            ):
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-rollback",
-                    "workspace_present": True,
-                    "workspace_root": ".",
-                    "migration": _migration_result_error("confirmation_invalid"),
-                })
-                return 2
-            confirmation_raw, input_error = _migration_input_json(
-                root, args.confirmation_file
-            )
-            if input_error is not None:
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-rollback",
-                    "workspace_present": True,
-                    "workspace_root": ".",
-                    "migration": _migration_result_error(input_error),
-                })
-                return 2
-            migration_result = rollback_migration_operation(
-                root, args.operation_id, confirmation_raw
-            )
-            _emit({
-                "schema_version": 1,
-                "mode": "repair-rollback",
-                "workspace_present": True,
-                "workspace_root": ".",
-                "migration": migration_result,
-            })
-            return 0 if migration_result["result_code"] in {
-                "rolled_back", "already_rolled_back"
-            } else 2
-
-        if subcommand == "repair-plan" and (
-            args.operation_id is not None
-            or args.confirmation_file is not None
-            or args.yes
-        ):
-            _emit({
-                "schema_version": 1,
-                "mode": "repair-plan",
-                "workspace_present": True,
-                "workspace_root": ".",
-                "migration": build_migration_result(
-                    "invalid_selection", next_action="remove-mixed-arguments"
-                ),
-            })
-            return 2
-
-        if subcommand == "repair-plan" and args.migration_selection is not None:
-            if args.plan_file is not None:
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-plan",
-                    "workspace_present": True,
-                    "workspace_root": ".",
-                    "migration": build_migration_result(
-                        "invalid_selection", next_action="remove-plan-file"
-                    ),
-                })
-                return 2
-            selection_raw, selection_input_error = _migration_input_json(
-                root, args.migration_selection, invalid_code="invalid_selection"
-            )
-            if selection_input_error is not None:
-                _emit({
-                    "schema_version": 1,
-                    "mode": "repair-plan",
-                    "workspace_present": True,
-                    "workspace_root": ".",
-                    "migration": _migration_result_error(selection_input_error),
-                })
-                return 2
-            migration_plan = compute_migration_plan(root, workspace_toml, selection_raw)
-            payload = {
-                "schema_version": 1,
-                "mode": "repair-plan",
-                "workspace_present": True,
-                "workspace_root": ".",
-                "migration": migration_plan.result,
-            }
-            if migration_plan.finding is not None:
-                payload["migration_finding"] = migration_plan.finding
-            if migration_plan.proposed_operation is not None:
-                payload["proposed_operation"] = migration_plan.proposed_operation
-            _emit(payload)
-            return 0 if migration_plan.result["result_code"] in {
-                "planned", "artifact_missing", "manual_routing_required"
-            } else 2
 
         if subcommand == "repair-plan":
             plan_path = Path(args.plan_file) if args.plan_file else (root / _DEFAULT_PLAN_FILE)
@@ -6715,41 +5081,7 @@ def main(argv: list[str] | None = None) -> int:
                 with contextlib.suppress(OSError):
                     lock_path.unlink()
 
-        if subcommand == "selected-membership":
-            selection = selected_membership_status(root, args.spec_dir)
-            selection_error = selection.get("error")
-            if isinstance(selection_error, dict):
-                reason = selection_error.get("code", "invalid_workspace")
-                print(f"workspace-status: selected-membership: {reason}", file=sys.stderr)
-                _emit({
-                    "schema_version": 1,
-                    "mode": "selected-membership",
-                    "reason": reason,
-                })
-                return 2
-            data = {
-                "schema_version": 1,
-                "mode": "selected-membership",
-                "results": selection["results"],
-            }
-        elif subcommand == "explain":
-            result = analyze_bounded(root)
-            public_selector, explain_result = _canonical_explain(root, result, args.item)
-            data = _build_explain_json(root, result, public_selector, explain_result)
-        elif subcommand == "status":
-            result = analyze_bounded(root)
-            data = _build_json(root, result, "status")
-            if not args.include_evaluations:
-                # Orientation payload. Dropped here, after _build_json's closeout
-                # projection has consumed canonical["evaluations"] internally, so
-                # narrowing the emitted surface cannot change any decision.
-                data["canonical"].pop("evaluations", None)
-        else:
-            result = analyze(root)
-            data = _build_json(root, result, "reconcile")
-
-        _emit(data)
-        return 0
+        return 2
     except Exception as exc:
         code = (
             "unsafe_path"
@@ -6776,15 +5108,7 @@ def main(argv: list[str] | None = None) -> int:
                 f"workspace-status: {code}: {type(exc).__name__}",
                 file=sys.stderr,
             )
-        payload = _canonical_failure_payload(subcommand, code)
-        if subcommand in {"status", "reconcile"}:
-            # The listing never reads the registry, so a failed registry
-            # still gets the same `captured` object.
-            with contextlib.suppress(Exception):
-                payload["captured"] = _captured_projection(
-                    root, _engine._resolve_cooled_state(root)[0]
-                )
-        _emit(payload)
+        _emit(_canonical_failure_payload(subcommand, code))
         return 2
 
 

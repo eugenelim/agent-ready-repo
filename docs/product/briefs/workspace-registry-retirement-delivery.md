@@ -55,7 +55,7 @@ FEAT-0034's [de-risk record](../intents/FEAT-0034-workspace-registry-retirement.
 - Any shipped skill other than the repair reading the old `workspace.toml` shape after its replacement ships. A reader may still refuse unmigrated content and name the repair.
 - Retiring the `workspace-status` skill name. A later release does that under RFC-0067.
 - Tracker sync reading the priority field. [External tracker projection](../intents/CAP-0004-external-tracker-projection.md) owns that.
-- Any change to `navigate-intents`, including its readiness bridge, except keeping the bridge's pinned copy of the `workspace-status` finding table equal to the engine's when a slice adds, removes or rewords a finding code, as the bridge's parity test requires (owner decision, 2026-10-25; widened 2026-10-29). The [readiness hand-over spec](../../specs/intent-view-readiness-handover/spec.md) gives the bridge's re-pointing to the `navigate-intents` owner, in the release where dispatch moves.
+- Any change to `navigate-intents`, including its readiness bridge, except keeping the bridge's pinned copy of the `workspace-status` finding table equal to the engine's when a slice adds, removes or rewords a finding code, as the bridge's parity test requires (owner decision, 2026-10-25; widened 2026-10-29). The [readiness hand-over spec](../../specs/intent-view-readiness-handover/spec.md) gives the bridge's re-pointing to the `navigate-intents` owner, in the release where dispatch moves. Widened 2026-11-02 for `repair-only-workspace-status`, with the `navigate-intents` owner's agreement: it re-points the bridge's pinned finding table, and the parity tests that pin it, to `work-loop`'s finding table, and re-points the queue redirect in `navigate-intents`'s SKILL.md from `workspace-status` to `work-loop`'s dispatch.
 - FEAT-0004's end state. FEAT-0004 amends it in its own record.
 - Rewriting frozen records or completed intents that name `workspace.toml` only as history.
 
@@ -97,10 +97,10 @@ Numbers give the delivery order. Slices 2 to 6 may start once slice 1 lands, and
      - the inventory rows still owned by slices 2 to 8 are re-owned or retired (`pre-cutover-closure`);
      - the upgrade notes are drafted (`pre-cutover-closure`).
    - **After the cutover:**
-     - move the engine rules `dispatch.py` still needs into `work-loop`;
-     - shrink `workspace-status` to the repair;
+     - move the engine rules `dispatch.py` still needs into `work-loop` (`repair-only-workspace-status`);
+     - shrink `workspace-status` to the repair (`repair-only-workspace-status`);
      - remove the legacy registry entries (the migrated captured memberships and the slug-only entries), and re-point the spec-status lint's deferral anchors from `[backlog].open` to captured-item files (`last-registry-entries`);
-     - give the `[authorization.refresh]` and `[authorization.migration]` policy tables a home (`last-registry-entries`);
+     - give the `[authorization.refresh]` and `[authorization.migration]` policy tables a home (`last-registry-entries`; `repair-only-workspace-status` retires `[authorization.migration]`);
      - publish the upgrade notes, and move seeds, manifests and operative references;
      - complete the closure checklist, and record the certification in the retirement spec and the retiring change;
      - then delete `workspace.toml`.
@@ -125,6 +125,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `tracker-origin-registration-stop` | <auto> |
 | `pre-cutover-closure` | <auto> |
 | `last-registry-entries` | <auto> |
+| `repair-only-workspace-status` | <auto> |
 
 ## Governance references (optional)
 

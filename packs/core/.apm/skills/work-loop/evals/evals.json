@@ -164,32 +164,32 @@
     {
       "id": "step0-no-portfolio-reconcile",
       "prompt": "You are starting work-loop. workspace.toml is present. Does work-loop scan every queue and active spec to find stale entries before proceeding to PLAN?",
-      "expected_output": "No. Work-loop does not independently scan the full portfolio at startup. Step 0 runs `scripts/dispatch.py` and acts on its `decision`, then checks the shaping-item guard. Run `workspace-status reconcile` for the exhaustive Type 2 and Type 3 reconciliation; its Type 1 spec audit is empty.",
+      "expected_output": "No. Work-loop does not independently scan the full portfolio at startup. Step 0 runs `scripts/dispatch.py` and acts on its `decision`, then checks the shaping-item guard. Run `scripts/dispatch.py --root .` for what is ready, active or blocked; it reads each spec's own headers and refuses with `unmigrated_workspace` while `workspace.toml` still holds an entry.",
       "assertions": [
         "Response states work-loop does NOT scan every queue/active spec for stale entries",
-        "Response directs portfolio reconciliation to `workspace-status reconcile`",
+        "Response directs the portfolio view to `scripts/dispatch.py`",
         "Response says Step 0 runs `scripts/dispatch.py` and acts on its `decision`",
-        "Response says the Type 1 audit is empty"
+        "Response says dispatch reads each spec's own headers"
       ]
     },
     {
       "id": "reconcile-stale-routes-to-workspace-status",
       "prompt": "Several specs in workspace.toml are showing Status: Shipped but are still listed in the queue. How do I find and fix all stale queue entries?",
-      "expected_output": "Run `workspace-status reconcile` to get an exhaustive list of workspace integrity issues, including stale entries (specs still in queue/active but showing Status: Shipped in their spec.md). Work-loop does not perform this scan — reconcile is the canonical tool for portfolio-wide stale detection.",
+      "expected_output": "Run `workspace-status repair-plan` to list the stale entries `workspace.toml` still holds (specs still in queue/active but showing Status: Shipped in their spec.md) and `repair-apply` to remove them once you confirm the plan. Work-loop does not perform this repair.",
       "assertions": [
-        "Response recommends `workspace-status reconcile` as the correct tool",
+        "Response recommends `workspace-status repair-plan` as the correct tool",
         "Response does NOT say to use work-loop for this",
-        "Response identifies reconcile as the exhaustive integrity path",
+        "Response identifies repair-plan then repair-apply as the repair path",
         "Response does not describe a stale-queue warning from work-loop"
       ]
     },
     {
       "id": "find-untracked-specs-routes-to-reconcile",
       "prompt": "I want to find spec files that exist on disk but are not declared in workspace.toml and are actively in progress (Approved or Implementing). What should I run?",
-      "expected_output": "Run `scripts/dispatch.py --root .`: it reads each spec's own `Status:` header, so a spec needs no `workspace.toml` entry to be ready or active. `workspace-status reconcile` has an empty Type 1 audit and does not report specs missing from `workspace.toml`. Work-loop does not perform portfolio-wide file discovery beyond dispatch.",
+      "expected_output": "Run `scripts/dispatch.py --root .`: it reads each spec's own `Status:` header, so a spec needs no `workspace.toml` entry to be ready or active. A spec missing from `workspace.toml` is not a problem. Work-loop does not perform portfolio-wide file discovery beyond dispatch.",
       "assertions": [
         "Response recommends `scripts/dispatch.py` for ready and active specs",
-        "Response says the Type 1 audit of `workspace-status reconcile` is empty",
+        "Response says a spec missing from workspace.toml still dispatches",
         "Response does NOT say a spec must be listed in workspace.toml to dispatch"
       ]
     },
@@ -229,21 +229,21 @@
     {
       "id": "status-query-routes-to-workspace-status",
       "prompt": "What should I work on next?",
-      "expected_output": "Run `workspace-status status` for a bounded view of what is ready to start (Type 2 and Type 3 findings). This shows ready, blocked, and actionable specs without a full portfolio scan. Work-loop is for executing a specific spec you have already selected.",
+      "expected_output": "Run `scripts/dispatch.py --root .` to see what is ready to start, active and blocked; for work placed under an intent, run `navigate-intents` `outstanding`. Work-loop executes a specific spec you have already selected.",
       "assertions": [
-        "Response recommends `workspace-status status` for triage",
+        "Response recommends `scripts/dispatch.py` for triage",
         "Response does NOT say to invoke work-loop to answer this question",
-        "Response characterizes workspace-status status as the bounded discovery tool"
+        "Response names navigate-intents outstanding for placed work"
       ]
     },
     {
       "id": "explain-query-routes-to-explain",
       "prompt": "Why is spec/foo still blocked? Its upstream dependencies look resolved to me.",
-      "expected_output": "Run `workspace-status explain --item spec/foo` to get a dependency explanation for that specific spec — it shows the item's classification (ready, blocked, active, shipped) and which declared dependencies are unsatisfied. Work-loop does not explain dependency state; workspace-status explain is the correct tool.",
+      "expected_output": "Run `scripts/dispatch.py --root .` and read the finding on spec/foo: its blocked entry carries a finding code and a next action naming the unsatisfied dependency. Work-loop does not recompute dependency state.",
       "assertions": [
-        "Response recommends `workspace-status explain --item spec/foo`",
+        "Response recommends `scripts/dispatch.py` and reading the finding on spec/foo",
         "Response does NOT describe a work-loop mechanism for explaining blocked specs",
-        "Response identifies workspace-status explain as the correct tool for dependency explanation",
+        "Response identifies the dispatch finding as the explanation for the blocked spec",
         "Response does NOT claim the command shows why each upstream dependency is itself blocked"
       ]
     },

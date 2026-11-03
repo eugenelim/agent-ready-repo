@@ -171,7 +171,6 @@ def test_normalized_intake_digest_matches_source_and_projections() -> None:
         CORE / ".apm/skills/workspace-status/scripts/workspace_status_engine.py",
         ROOT / ".agents/skills/workspace-status/scripts/workspace_status_engine.py",
         ROOT / ".claude/skills/workspace-status/scripts/workspace_status_engine.py",
-        ROOT / "packages/agentbundle/agentbundle/_data/workspace_status_engine.py",
     )
 
     for engine in engines:

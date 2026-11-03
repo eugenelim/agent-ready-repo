@@ -46,8 +46,8 @@ none` and `workspace membership: none` are valid direct-route results, not
 errors. Internally, the router carries an empty string for an absent artifact
 and the literal `none` for absent membership; `none` is a rendering literal at
 this output boundary.
-Status passthrough - For status, return the `workspace-status` result unchanged
-apart from normal chat formatting.
+Status passthrough - For status, return the `navigate-intents` `outstanding` result
+or `work-loop`'s `dispatch.py` result unchanged apart from normal chat formatting.
 
 ## Contract
 
@@ -55,7 +55,8 @@ apart from normal chat formatting.
 
 Apply this order once before intake classification:
 
-1. Route status directly to `workspace-status`.
+1. Route status directly to `navigate-intents` `outstanding` for placed work and
+   to `work-loop`'s `dispatch.py` for what is ready or active.
 2. Route a request that explicitly names a known artifact, its owning skill, or
    a distinct work type directly to that owner. This includes `intake-intent`,
    `author-delivery-brief create|continue`, `new-rfc`, `new-spec`,
@@ -191,8 +192,9 @@ behind as the workspace anchor.
 ### 1. Status
 
 If the user asks for status, do not classify intake. Delegate directly to
-`workspace-status` and pass through its lifecycle, findings, and next actions
-unchanged. Do not mutate artifacts or `workspace.toml`.
+`navigate-intents` `outstanding` for placed work, or to `work-loop`'s
+`dispatch.py` for what is ready or active, and pass through its lifecycle and
+findings unchanged. Do not mutate artifacts or `workspace.toml`.
 
 ### 2. Validate the normalized request
 
@@ -546,11 +548,11 @@ metadata:
 
 allowed-tools:
   - Read - inspect normalized input, existing artifacts, `workspace.toml`, and
-    the `workspace-status` result.
+    the `dispatch.py` or `outstanding` result.
   - Write - create a new canonical artifact after realpath and symlink
     confinement checks.
   - Edit - roll back a failed artifact or record write before dispatch.
-  - Bash - run local Python validation or the `workspace-status` backend with
+  - Bash - run local Python validation, `dispatch.py` or the repair backend with
     discrete arguments; do not use network commands.
 
 No network fetch is used by the core-only surface.

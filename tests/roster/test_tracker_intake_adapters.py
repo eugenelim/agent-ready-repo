@@ -266,7 +266,8 @@ def test_integrated_matrix_runs_byte_identically_in_two_clean_roots(
     # `all-supported` cases).
     # 71 -> 70: the capture-work alias-equivalence case was removed.
     # 70 -> 72: the repo-origin spec start and remember cases (core only).
-    assert len(results) == 72
+    # 72 -> 71: the migration planner case left with the migration tooling.
+    assert len(results) == 71
     assert all(
         set(result)
         == {

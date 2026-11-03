@@ -152,9 +152,9 @@ def _fixture(
 
 
 def _run_status(root: Path) -> dict[str, Any]:
-    """Run the shipped status command and return its JSON projection."""
+    """Run `repair-plan` and return its JSON projection, whose `canonical` is the evaluation."""
     completed = subprocess.run(
-        [sys.executable, str(STATUS_PATH), "status", "--root", str(root)],
+        [sys.executable, str(STATUS_PATH), "repair-plan", "--root", str(root)],
         check=False,
         capture_output=True,
         text=True,
