@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import copy
+import hashlib
 import importlib.util
 import json
 import os
+import re
 import stat
 import sys
 from pathlib import Path
@@ -19,8 +21,14 @@ if hasattr(sys.stderr, "reconfigure"):
 
 __all__ = [
     "ReviewAssessmentRefused",
+    "PROOF_BY_RUN_PREDICATE_VERSION",
     "assess_finding_actual_failure",
+    "proof_by_run_assessment",
+    "proof_run_envelope_digest",
+    "proof_run_reference",
 ]
+
+PROOF_BY_RUN_PREDICATE_VERSION: Final[str] = "proof-by-run.v1"
 
 _SCRIPTS_DIR: Final[Path] = Path(__file__).resolve().parent
 _review_contracts_module: ModuleType | None = None
@@ -30,6 +38,15 @@ _REQUIRED_EDGE_KEYS: Final[tuple[str, ...]] = (
     "observation-to-reachable-path",
     "reachable-path-to-actual-failure",
 )
+
+_ENVELOPE_HASH_KEYS: Final[frozenset[str]] = frozenset({
+    "command_sha256",
+    "stderr_sha256",
+    "stdout_sha256",
+})
+_ENVELOPE_KEYS: Final[frozenset[str]] = _ENVELOPE_HASH_KEYS | {"exit_status", "subject_commit"}
+_COMMIT_PATTERN: Final[re.Pattern[str]] = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
+_SHA256_PATTERN: Final[re.Pattern[str]] = re.compile(r"[0-9a-f]{64}")
 
 _FACT_KEYS: Final[frozenset[str]] = frozenset({
     "falsifiable-delivery-failure",
@@ -462,3 +479,83 @@ def assess_finding_actual_failure(
         evidence_refs=edge_refs,
         predicate_version=predicate_version,
     )
+
+
+def _is_commit(value: object) -> bool:
+    """Return whether value is a full lowercase hexadecimal commit ID."""
+    return isinstance(value, str) and _COMMIT_PATTERN.fullmatch(value) is not None
+
+
+def _check_envelope(envelope: object) -> dict[str, Any]:
+    """Return the envelope when it holds exactly the five typed fields."""
+    if not isinstance(envelope, dict) or set(envelope) != _ENVELOPE_KEYS:
+        _refuse("denied-invalid-proof-run-envelope", "envelope must hold exactly five fields")
+    status = envelope["exit_status"]
+    if not isinstance(status, int) or isinstance(status, bool):
+        _refuse("denied-invalid-proof-run-envelope", "exit_status must be an integer")
+    for key in _ENVELOPE_HASH_KEYS:
+        value = envelope[key]
+        if not isinstance(value, str) or _SHA256_PATTERN.fullmatch(value) is None:
+            _refuse("denied-invalid-proof-run-envelope", f"{key} must be a SHA-256 hex digest")
+    if not isinstance(envelope["subject_commit"], str):
+        _refuse("denied-invalid-proof-run-envelope", "subject_commit must be a string")
+    return envelope
+
+
+def proof_run_envelope_digest(envelope: dict[str, Any]) -> str:
+    """Return the SHA-256 of the canonical JSON of the five envelope fields."""
+    checked = _check_envelope(envelope)
+    return hashlib.sha256(_canonical_json(checked).encode("ascii")).hexdigest()
+
+
+def proof_run_reference(observed: str, envelope: dict[str, Any]) -> str:
+    """Return ``proof-run:v1:<commit>:<fail|pass>:<sha256>`` for an envelope."""
+    if observed not in {"fail", "pass"}:
+        _refuse("denied-invalid-proof-run-observation", "observed must be 'fail' or 'pass'")
+    digest = proof_run_envelope_digest(envelope)
+    return f"proof-run:v1:{envelope['subject_commit']}:{observed}:{digest}"
+
+
+def proof_by_run_assessment(
+    *,
+    assessment_id: str,
+    report_id: str,
+    finding_id: str,
+    review_subject_fingerprint: str,
+    observed: str,
+    envelope: dict[str, Any],
+    current_subject_commit: str,
+    judgment_authority: str,
+) -> dict[str, Any]:
+    """Map an observed run result bound to the subject commit to an assessment.
+
+    A ``fail`` observed on the current commit is ``supported``; a ``pass`` is
+    ``unsupported-opinion``. Malformed input and a stale envelope raise
+    ``ReviewAssessmentRefused`` and no record is returned.
+    """
+    if not isinstance(observed, str) or observed not in {"fail", "pass"}:
+        _refuse("denied-invalid-proof-run-observation", "observed must be 'fail' or 'pass'")
+    if not _is_commit(current_subject_commit):
+        _refuse("denied-invalid-proof-run-commit", "current subject commit is not full hex")
+    checked = _check_envelope(envelope)
+    if not _is_commit(checked["subject_commit"]):
+        _refuse("denied-invalid-proof-run-commit", "envelope commit is not full hex")
+    if checked["subject_commit"] != current_subject_commit:
+        _refuse("denied-proof-run-stale", "envelope commit differs from the current subject")
+    record = {
+        "schema_version": 1,
+        "assessment_id": assessment_id,
+        "finding_id": finding_id,
+        "report_id": report_id,
+        "review_subject_fingerprint": review_subject_fingerprint,
+        "assessment": "supported" if observed == "fail" else "unsupported-opinion",
+        "evidence_refs": [proof_run_reference(observed, checked)],
+        "lineage": {
+            "predicate_version": PROOF_BY_RUN_PREDICATE_VERSION,
+            "judgment_authority": judgment_authority,
+        },
+    }
+    ok, code = _review_contracts().validate_finding_assessment_dict(record)
+    if not ok:
+        _refuse(code, f"generated finding assessment is invalid: {code}")
+    return record
