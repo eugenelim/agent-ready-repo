@@ -1,6 +1,6 @@
 # Spec: proof-by-run evidence
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0155, ADR-0154, ADR-0144
@@ -145,7 +145,7 @@ In a full-mode `work-loop` run, a reviewer finding that carries a command gets a
 
 ## Follow-ons
 
-- eugenelim: the after-fix run at the replacement subject has no record slot — routed to the acceptance-centered brief's owner as a captured amendment request (AC-0023; link added at delivery).
+- eugenelim: the after-fix run at the replacement subject has no record slot — routed to the acceptance-centered brief's owner as a captured amendment request: [`docs/product/captured/proof-by-run-after-fix-run-binding.md`](../../product/captured/proof-by-run-after-fix-run-binding.md).
 
 ## Assumptions
 

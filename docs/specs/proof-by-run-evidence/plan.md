@@ -1,7 +1,7 @@
 # Plan: proof-by-run evidence
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams); `tests/AGENTS.md` (roster placement and its three wiring edits); `_review_assessment.assess_finding_actual_failure` and `test_review_assessment.py` as the analogous pure predicate and its tests; `_supervisor_readiness.report_readiness` as the `assess-finding` admission seam; `_supervisor_git.HardenedGit` as the only Git launcher; `test_supervisor_review_gate.py` with `supervisor_harness` as the analogous integration test; `docs/specs/verify-entries/` as the analogous guidance-plus-roster delivery.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -22,7 +22,7 @@
 
 ## Approach
 
-The pure predicate lands first (T1), because the supervisor check (T2), the `proof-run` CLI (T4), and the roster fit test (T6) all call it. The `git-history` module (T3) is independent of T1 and carries the security boundary, so its refusal tests are written red before any Git call exists. Guidance and evals (T5) follow the code they describe. The captured amendment (T7) is a controller commit outside the spec directory. The release (T8) is last. `HardenedGit.run` returns stdout and raises on a non-zero exit unless `check=False`; T3 and T4 confirm it serves every form the entry launches without a helper edit, and a needed helper change is a plan correction, not an amendment.
+The pure predicate lands first (T1), because the supervisor check (T2), the `proof-run` CLI (T4), and the roster fit test (T6) all call it. The `git-history` module (T3) is independent of T1 and carries the security boundary, so its refusal tests are written red before any Git call exists. Guidance and evals (T5) follow the code they describe. The captured amendment request and its Follow-ons link are a controller commit made before `start`. The release (T8) is last. `HardenedGit.run` returns stdout and raises on a non-zero exit unless `check=False`; T3 and T4 confirm it serves every form the entry launches without a helper edit, and a needed helper change is a plan correction, not an amendment.
 
 ## Constraints
 
@@ -46,7 +46,7 @@ The pure predicate lands first (T1), because the supervisor check (T2), the `pro
 | Maintainer procedure | T5 | content tests green | suites green at the delivery commit |
 | Interface compatibility | T6, closeout | `test_proof_by_run_contract_fit.py` green | schema diff recorded empty in the ledger |
 | Decision rationale | none — ADR-0155 committed before approval | ADR file | cited in `Constrained by:` |
-| Product direction | T7 | captured item present | linked from Follow-ons |
+| Product direction | none — controller commit before `start` | captured item present | linked from Follow-ons; ledger records AC-0023 at delivery |
 | Release history | T8 | version-equality assertion; fragment | `check-core-release.py` result recorded |
 
 ## Design (LLD)
@@ -154,17 +154,6 @@ Owned by: T3.
 
 **Done when:** `python3 -m pytest tests/roster/test_proof_by_run_contract_fit.py -q` exits 0, and `python3 tools/lint-ci-parity.py` exits 0.
 
-### T7: Captured amendment request
-
-**Depends on:** none
-
-**Touches:** `docs/product/captured/proof-by-run-after-fix-run-binding.md`
-
-**Tests:** no stub (goal-based — delivery-time check)
-- AC-0023: the file exists with `Kind: design`, names `finding-assessment.v1`, `finding-disposition.v1`, and `evidence-receipt.v1`, and proposes an optional `evidence_refs` on a `fixed-by` disposition; the spec's Follow-ons links it.
-
-**Done when:** the ledger records the file's presence and the Follow-ons link.
-
 ### T8: Core release
 
 **Depends on:** T1, T2, T3, T4, T5, T6
@@ -175,7 +164,7 @@ Owned by: T3.
 - AC-0024: the version-equality assertion the pack suite already carries, plus a ledger record of the merge-base version and the new one.
 - AC-0026: the catalogue commands' exit status and a clean tree after self-host.
 
-**Done when:** `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue lint --root . --deep` and `... catalogue verify --root .` exit 0, and the ledger records AC-0022, AC-0024, AC-0025, AC-0026, and the merge-base halves of AC-0016 and AC-0019.
+**Done when:** `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue lint --root . --deep` and `... catalogue verify --root .` exit 0, and the ledger records AC-0022, AC-0023, AC-0024, AC-0025, AC-0026, and the merge-base halves of AC-0016 and AC-0019.
 
 ## Rollout
 
@@ -188,4 +177,5 @@ Ships in the next core patch. A run in flight picks up the supervisor check only
 
 ## Changelog
 
-- 2026-11-03: drafted.
+- 2026-11-03: spec approved by eugenelim (scope).
+- 2026-11-03: plan approved by eugenelim (build strategy).
