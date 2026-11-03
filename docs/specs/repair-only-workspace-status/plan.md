@@ -1,7 +1,7 @@
 # Plan: Dispatch reads only headers, and workspace-status keeps only the repair
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0106 D1, D3 and § Errata; RFC-0105 D3; RFC-0083 (the migration contracts); RFC-0078 (the MCP tool); RFC-0055; ADR-0074.
   - `packs/core/.apm/skills/work-loop/scripts/dispatch.py`: the engine names it loads (`_ENGINE_NAMES`, line 67), the workspace read (line 227), and the run (line 337).
@@ -304,3 +304,4 @@ Owned by: T9
 - 2026-11-02: spec approved by eugenelim at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, with the round-4 repairs accepted unreviewed.
 - 2026-11-02: plan approved by eugenelim at `63ed6819e`.
 - 2026-11-02: amended under controlled amendment after T9 (owner decisions during T2 and T6): AC-0002's engine-pinning list adds `test_dispatch_outside_a_skills_directory`, and the Migration forms term adds `repair-plan` given `--yes`, `--operation-id` or `--confirmation-file`, the three flags the base refused with the retired migration-result refusal when `workspace.toml` was present; task T12 makes the AC-0009 cases cover every listed form; spec and plan set back to Draft and Drafting for review and re-approval.
+- 2026-11-02: spec and plan re-approved by eugenelim at `e90919690` after the amendment review.
