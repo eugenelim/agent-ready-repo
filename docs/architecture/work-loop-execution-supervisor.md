@@ -169,8 +169,8 @@ projected and no request issued (ADR-0144 D4).
 
 ### Request order
 
-Before any of these, every verb but `status` classifies how `HEAD` and the product
-ref relate (§ 3, *Product ref*). `next` issues the `history-adoption`
+Before any of these, every verb classifies how `HEAD` and the product
+ref relate (§ 3, *Product ref*); `status` does so read-only. `next` issues the `history-adoption`
 `human-decision` there when foreign history needs the owner, and the order below
 runs only when it does not. `next` takes the first of these that applies. When the run's code trust is
 `untrusted` and the host supplies no verified containment, every request that
@@ -291,7 +291,8 @@ The run store records the ref's name and the commit it last recorded for it, and
 ref at that value only. A commit counts as made only after the invocation that moved the refs
 records it, so a step cut off after its refs moved but before it was recorded is never completed or trusted.
 
-Before the request order, every verb but `status` classifies the refs. The first row that
+Before the request order, every verb classifies the refs (`status` read-only, never
+repairing or refusing). The first row that
 matches applies:
 
 | State | Result |
@@ -312,8 +313,9 @@ A run that predates the ref gains one at its latest made commit when that is saf
 asks the same decision. Until it has a recorded ref, a run whose steps were committed with an
 attempt open reads `HEAD` for its subject whichever authority it is pinned to. `result_authority`
 selects only what acceptance reads (the ref's commit, or `HEAD`), and both settings write the ref
-the same way. `status` does not classify, so it can show a subject computed while foreign history
-sits on `HEAD`; that view is display only.
+the same way. `status` classifies read-only: it never repairs or refuses, and it shows the subject
+beside any refusal or pending decision it found, so its subject can be computed while foreign
+history sits on `HEAD`; that view is display only.
 
 ### Replanning
 
@@ -421,7 +423,7 @@ stored verdict as input.
 1. Completion is an `implement` commit for a task's current revision. Red proof
    is a `stub` or `red` commit for its stub digest. The retry count is the
    number of `gate-fail` steps. All three re-derive from `HEAD`.
-2. A crash before a step's refs move, a deleted journal, or a reset back to an earlier supervisor commit converges to
+2. A crash before a step's refs move or after it was recorded, a deleted journal, or a reset back to an earlier supervisor commit converges to
    the uninterrupted result. A crash after the refs moved but before the step was
    recorded, a rebase, and any other history the supervisor did not make wait for
    the owner: `adopt-history`, or restoring both refs so the step is rebuilt (§ 3,

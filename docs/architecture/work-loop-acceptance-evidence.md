@@ -100,7 +100,7 @@ provenance. The approval record retains the immutable base manifest or tree.
 
 Under the supervisor, `result_authority` picks the subject's provider. With
 `protected-product-ref` the subject's lineage provider is `protected-product-ref` and its
-`result_ref` is the product ref's commit, so `HEAD` history the owner has not adopted changes
+`result_ref` is the commit the run store recorded for the product ref, so `HEAD` history the owner has not adopted changes
 neither. With the reversal setting `legacy-worktree` the provider is `work-supervisor` and the
 result is `HEAD` (the `legacy-worktree-snapshot` provider of `_subject_source.py` is not used by
 the supervisor).
