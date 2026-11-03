@@ -172,7 +172,8 @@ projected and no request issued (ADR-0144 D4).
 Before any of these, every verb classifies how `HEAD` and the product
 ref relate (§ 3, *Product ref*); `status` does so read-only. `next` issues the `history-adoption`
 `human-decision` there when foreign history needs the owner, and the order below
-runs only when it does not. `next` takes the first of these that applies. When the run's code trust is
+runs only when it does not. Then `next` commits any pending `replan`, and then any pending
+`regenerate` step, before it takes the first of these that applies. When the run's code trust is
 `untrusted` and the host supplies no verified containment, every request that
 would run repository code — `write-stub`, `implement-task`, a supervisor-run red
 proof, `run-gates`, and `regenerate` — becomes an `untrusted-code`
@@ -236,7 +237,8 @@ stateDiagram-v2
   reviewing --> implementing : a finish effect
   gating --> implementing : a finish effect
   reviewing --> terminal : ready, nothing pending
-  gating --> terminal : regenerate admitted, nothing pending
+  gating --> terminal : regenerate admitted, install untracked, nothing pending
+  gating --> gating : tracked regenerate step changes the subject
   implementing --> terminal : last finish effect done
   implementing --> awaiting_human : derived refusal or human-decision
   gating --> awaiting_human : gates failed, or derived refusal
@@ -307,18 +309,36 @@ matches applies:
 A `history-adoption` answer is `adopt-history` from the `adopt_history` role (`owner`), naming the
 `HEAD` commit. It commits one `reanchor` step that moves both refs, and refuses `adoption-refused`
 if it would change a `delivery/` file. After a `reanchor` that changes the product or the spec
-directory, gates and reviews run again.
+directory, gates and reviews run again. A cut-off `regenerate` step changes no `delivery/` file, so
+it can be adopted; the `reanchor` then holds the install and no second `regenerate` step is made.
 
-A `regenerate` step is the supervisor's commit of a rebuilt install in a repository that
-tracks its installed skill. The next `next` after the admission stages the pack source's own
-entries (object and mode) at each rebuilt copy, checks the built tree before any ref moves, and
-uses the same two-ref transaction and kill points as any step. A copy counts only at an adapter's
-skill home (`.claude/skills/`, `.agents/skills/`, `.kiro/skills/`, `.github/skills/`, taken from the
-adapter contract) where `HEAD` already holds the same files as the running install's copy. The step
-acts only when every such copy ends equal to the pack source and nothing else changed, and
-otherwise `next` answers `uncommitted-changes`. `status` shows it as
-`pending_step` with no terminal state or gate, and a controller commit of the install is still
-foreign history.
+After adopting a cut-off step, the real index is reset to `HEAD` for each of that step's paths
+still indexed as at the recorded value; a path staged otherwise is left alone.
+
+A `regenerate` step is the supervisor's commit of a rebuilt install in a repository that tracks
+its running install at an adapter's skill home (`.claude/skills/`, `.agents/skills/`,
+`.kiro/skills/`, `.github/skills/`, taken from the adapter contract). An install tracked anywhere
+else is never committed by the supervisor, and `next` answers `uncommitted-changes`.
+
+A copy counts only at such a home where `HEAD` already holds the same files as the running
+install's copy; the running copy always counts and must be the one rebuilt. A new home, or a
+directory at a home whose committed files differ from the running copy's (for example, the
+product's own skill of that name), is not a copy.
+
+The next `next` after the admission stages the pack source's own entries (object and mode) at each
+rebuilt copy, checks the built tree before any ref moves, and uses the same two-ref transaction and
+kill points as any step. It acts only when every copy that counts ends equal to the pack source,
+nothing else changed, and the index stages no version of a copy's file that is neither `HEAD`'s nor
+the pack source's; otherwise `next` answers `uncommitted-changes`. The install is product, so the
+step makes earlier gate evidence and reviews stale, and readiness runs again.
+
+`status` shows the pending step as `pending_step` (operation, up to 20 paths, `path_count`) with
+stage `gating` and no terminal state, gate, request, or readiness, unless a `history-adoption`
+decision is pending, which it shows instead. A controller commit of the install is still foreign
+history. Once a regeneration is admitted, nothing commits on top of `HEAD` and no other attempt is
+issued until `HEAD`'s install equals the admitted one, whether the supervisor's step or an adopted
+controller commit put it there; otherwise the verb refuses `supervisor-changed`. A new `regenerate`
+request replaces an admission that never landed.
 
 A run that predates the ref gains one at its latest made commit when that is safe, and otherwise
 asks the same decision. Until it has a recorded ref, a run whose steps were committed with an

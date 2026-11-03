@@ -293,9 +293,9 @@ Owned by: T1.
 
 In a repository that tracks its installed skill, admitting a `regenerate` result re-pins the
 rebuilt install but leaves it uncommitted, and a controller commit of it is foreign history
-the owner must adopt. The supervisor commits it instead: on the first verb after the
-admission, when the only working-tree changes are tracked installed-skill paths and the
-installed skill equals both the pins and the pack source at `HEAD`, it commits those paths as
+the owner must adopt. The supervisor commits it instead: on the next `next` after the
+admission, when every copy that counts ends equal to the pack source, it commits the pack
+source's own entries (object and mode) at each rebuilt copy as
 one recorded step (operation `regenerate`) through the same two-ref transaction and record
 as any step, so `HEAD` and the product ref move together and the step counts as made. Any
 other working-tree change still answers `uncommitted-changes`, and a controller-made commit
@@ -421,11 +421,11 @@ real crossing).
 
 - **Depends on:** T2
 - **Spec behavior:** AC-0007, AC-0019; goal-based.
-- **Touches:** `_supervisor_attempt.py`, `_supervisor_loop.py`, `_supervisor_commit.py`, `references/supervisor.md`, `SKILL.md`, `evals/evals.json`; `packs/core/tests/skills/work-loop/`; `docs/architecture/work-loop-execution-supervisor.md`; the core changelog fragment.
+- **Touches:** `_supervisor_attempt.py`, `_supervisor_loop.py`, `_supervisor_commit.py`, `references/supervisor.md`, `SKILL.md`, `evals/evals.json`; `packs/core/tests/skills/work-loop/`; `docs/architecture/work-loop-execution-supervisor.md`, `docs/architecture/runtime-security-primitives.md`; the core changelog fragment.
 - **Verification mode:** goal-based
 - **Tests:**
   - **VI-0532 (AC-0019):** in a harness repository whose installed skill is tracked, a
-    `regenerate` result is admitted with the rebuilt install uncommitted; the next verb
+    `regenerate` result is admitted with the rebuilt install uncommitted; the next `next`
     commits it as one recorded step that moves `HEAD` and the product ref together, and the
     run reaches `terminal` with no `history-adoption` and no `uncommitted-changes`, under
     each authority; a controller-made commit of the install still asks `history-adoption`,

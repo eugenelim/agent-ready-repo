@@ -311,12 +311,9 @@ entry point compares them before it imports a sibling and refuses
 spec in the work tree. When `HEAD` holds the Core work-loop source, review
 readiness holds, and the installed skill differs, `next` emits one `regenerate`
 request. The supervisor admits it only when every installed file equals that
-source, then re-pins. When the installed skill is tracked in the work tree,
-the next `next` commits the pack source's own entries for each rebuilt copy at an adapter's skill
-home as one `regenerate` step, when every copy that `HEAD` already holds with the running install's
-files then equals the pack source. A new home, or a directory the product owns, is not a copy. It answers
-`uncommitted-changes` when the working tree differs from the pack source in any other way, or a
-tracked copy is left stale.
+source, then re-pins. When the installed skill is tracked, the supervisor commits the rebuilt
+install as a `regenerate` step; the [execution supervisor page](work-loop-execution-supervisor.md#product-ref)
+owns which copies count and when it acts.
 
 **Untrusted code.** Under an `untrusted` classification with no verified
 containment, the supervisor launches no red proof or scratch receipt, emits no

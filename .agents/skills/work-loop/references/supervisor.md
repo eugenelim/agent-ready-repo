@@ -207,9 +207,14 @@ tree lies in a copy of the skill, and every copy ends equal to the pack source: 
 are committed, and a tracked copy left stale means no step. A copy is a directory
 `<adapter>/skills/<skill name>/` (adapter `.claude`, `.agents`, `.kiro` or `.github`) that the
 repository already holds at `HEAD` with the same files as the running install's copy. A new home
-or a directory the product owns is never a copy, nor is a directory anywhere else. Any other change, such as a stray or extra file, a
-changed mode, a link, or a stale copy, keeps the answer `uncommitted-changes`. `status` names the
-pending step as `pending_step`, reports no terminal state or gate beside it, and commits nothing.
+is never a copy, nor is a directory at a home whose committed files differ from the running
+copy's (such as the product's own skill of that name), nor a directory anywhere else.
+
+Any other change, such as a stray or extra file, a changed mode, a link, a stale copy, or a staged
+version of a copy's file that is neither `HEAD`'s nor the pack source's, keeps the answer
+`uncommitted-changes`. The install is product, so the step makes earlier gate evidence and reviews
+stale and readiness runs again. `status` names the pending step as `pending_step`, reports no
+terminal state or gate beside it, and commits nothing.
 
 ### Human decisions
 
