@@ -17,6 +17,7 @@ import os
 import shutil
 import stat
 import sys
+import tomllib
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -1520,6 +1521,7 @@ def test_captured_flag_prints_one_extra_key(
 #
 # Every expectation below is a literal computed from the base engine's dispatch
 # (commit ab4e4b71c) on the same planted repository; nothing here calls the base.
+# The one exception is the `brief_queue.executing` case, which pins the settled output.
 
 _INVALID_WORKSPACE_NEXT_ACTION = "Correct workspace.toml, then rerun reconciliation."
 
@@ -1580,6 +1582,8 @@ def test_a_string_in_brief_queue_executing_is_not_a_structural_fault(
 ) -> None:
     repo = Repo(tmp_path / "r")
     repo.spec("alpha")
+    # Pins the settled output: the base also reported `unsupported_legacy` here, which
+    # this slice drops by design.
     repo.put("workspace.toml", '[ini-001.brief_queue]\nexecuting = "x"\n')
     result = D.dispatch(repo.root)
     assert paths(result["ready"]) == [_ALPHA] and result["findings"] == []
@@ -1596,6 +1600,15 @@ def test_a_deeply_nested_dotted_key_workspace_gives_the_entry_free_base_output(
     ready = {"path": _ALPHA, "slug": "alpha", "status": "Approved", "findings": []}
     active = {"path": _BETA, "slug": "beta", "status": "Implementing", "findings": []}
     if depth == 2000:
+        text = "a" + ".a" * depth + " = 1\n"
+        try:
+            tomllib.loads(text)
+        except (RecursionError, tomllib.TOMLDecodeError):
+            pass
+        else:
+            pytest.skip(
+                "this tomllib accepts 2000-part keys; the 700 and 990 cases pin recursion safety"
+            )
         # Past the parser's own depth limit: the base refused the file as unusable.
         refused = [_invalid_workspace("workspace.toml")]
         assert D.dispatch(repo.root) == {
@@ -1638,4 +1651,31 @@ def test_an_unsafe_brief_parent_gives_the_base_output(
                 "next_action": "Complete the spec approval gate.",
             }
         ],
+    }
+
+
+def test_a_dependent_of_an_unsafe_brief_spec_stays_blocked(D: ModuleType, tmp_path: Path) -> None:
+    """The refused spec still blocks its dependent; literals computed from the base dispatch."""
+    repo = Repo(tmp_path / "r")
+    repo.spec("alpha", depends="spec:beta")
+    repo.spec("beta", brief="../outside.md")
+    unsatisfied = {
+        "code": "unsatisfied_dependency", "path": _BETA, "dispatchable": False,
+        "next_action": "Complete or explicitly revise the dependency.",
+    }
+    assert D.dispatch(repo.root) == {
+        "schema_version": 1, "ready": [], "active": [],
+        "blocked": [
+            {"path": _ALPHA, "slug": "alpha", "status": "Approved", "findings": [unsatisfied]}
+        ],
+        "findings": [
+            {
+                "code": "invalid_artifact_path", "path": "workspace.toml", "dispatchable": False,
+                "next_action": "Replace it with a confined canonical repository-relative path.",
+            }
+        ],
+        "decision": {"action": "none", "path": None, "candidates": [], "findings": []},
+    }
+    assert D.dispatch(repo.root, "start", "alpha")["decision"] == {
+        "action": "refuse", "path": None, "candidates": [], "findings": [unsatisfied],
     }
