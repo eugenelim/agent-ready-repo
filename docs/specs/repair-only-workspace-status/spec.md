@@ -1,6 +1,6 @@
 # Spec: Dispatch reads only headers, and workspace-status keeps only the repair
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-11-02 by eugenelim, spec and plan at `63ed6819e`, after four spec-mode shaping and adversarial review rounds and two security spec-stage rounds, each adjudicated (three adjudications were invalid; one was re-run), with the round-4 repairs accepted unreviewed; records under `.context/reviews/c2bc3c0b-0c0c-44a9-9a99-0028fa5e7927/`. Amended 2026-11-02 under controlled amendment after T9: the Engine-pinning tests term adds `test_dispatch_outside_a_skills_directory` and the Migration forms term adds `repair-plan` given `--yes`, `--operation-id` or `--confirmation-file`, after two amendment review rounds (each adjudicated); re-approved 2026-11-02 by eugenelim at `e90919690`; records under the same directory, `5-*` and `6-*`.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
@@ -195,7 +195,7 @@ the plan's `## Design (LLD)`, not here.
   - the MCP tool's removed `ini_slug`, its empty `shaping`, its `canonical` object replaced by the dispatch output, and its two-part branch;
   - dispatch's `unmigrated_workspace` refusal.
 - [ ] **AC-0020.** RFC-0083 § Errata holds one owner-approved entry that points to the AC-0019 entry for the retired migration contracts.
-- [ ] **AC-0021.** `retirement-record.md` § Equivalence holds one row at slice `9` for each of these, each citing the AC-0019 entry:
+- [ ] **AC-0021.** `retirement-record.md` § Equivalence holds one row at slice `9` for each of these. Each `accepted removal` and `intended change` row cites the AC-0019 entry, and the `reproduced` row's authority is `none`:
   - `the workspace-status orientation run`, `the delivery-artifact prune`, `the retirement-candidates report`, `the legacy migration apply and rollback`, `the MCP queue's initiative slug and shaping list` and `the MCP canonical reconciliation object`, each an `accepted removal`;
   - `dispatch over unmigrated registry entries`, an `intended change`;
   - `dispatch from headers alone`, `reproduced`.
