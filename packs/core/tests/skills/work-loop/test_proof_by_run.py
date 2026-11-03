@@ -666,3 +666,63 @@ def test_t4_unknown_argument_is_refused_before_any_launch(
     assert t4_gate.main([*t4_repo.args(), "--extra", "x"]) == 2
     assert json.loads(capsys.readouterr().out)["refused"] == "denied-not-in-catalog"
     assert not t4_launches
+
+
+# --- T5: shipped guidance and eval cases (content checks) -------------------
+
+_SKILL_DIR = SCRIPTS.parent
+_AGENT = SCRIPTS.parents[2] / "agents" / "finding-adjudicator.md"
+
+
+def _section(path: Path, heading: str) -> str:
+    """Return text from ``heading`` to the next heading of the same level."""
+    text = path.read_text(encoding="utf-8")
+    level = heading.split(" ", 1)[0]
+    start = text.index("\n" + heading + "\n") + 1
+    following = text.find("\n" + level + " ", start + len(heading))
+    return text[start : following if following != -1 else len(text)]
+
+
+def test_t5_fix_section_points_at_recorded_before_run() -> None:
+    section = _section(_SKILL_DIR / "SKILL.md", "## FIX")
+    assert "already recorded as the finding's assessment" in section
+    assert "references/supervisor.md#review" in section
+    assert "passes before the fix is Surfaced instead of fixed" in section
+    assert "Failing means its exit status or printed output shows the defect" in section
+    assert "passing means it no longer does" in section
+
+
+def test_t5_supervisor_review_section_names_predicate_and_run_order() -> None:
+    section = " ".join(
+        _section(_SKILL_DIR / "references" / "supervisor.md", "### Review").split()
+    )
+    assert "`proof-by-run.v1`" in section
+    assert "`supported`" in section and "`unsupported-opinion`" in section
+    assert "evidence-gate.py' proof-run" in section
+    assert "`assess-finding` request" in section
+    assert "before the controller reports it" in section
+    assert "controller's attestation" in section
+    assert "only for consistency and for the current commit" in section
+    assert "refuses an inconsistent proof-by-run assessment" in section
+    assert "`review-record-refused`" in section
+
+
+def test_t5_adjudicator_tools_unchanged() -> None:
+    lines = _AGENT.read_text(encoding="utf-8").splitlines()
+    assert "tools: Read, Grep" in lines
+
+
+def test_t5_eval_cases_have_required_fields() -> None:
+    data = json.loads((_SKILL_DIR / "evals" / "evals.json").read_text(encoding="utf-8"))
+    cases = {case["id"]: case for case in data["evals"]}
+    for case_id in (
+        "proof-by-run-passing-command-not-fixed",
+        "git-history-settles-base-versus-change",
+        "adjudicator-git-tool-refused",
+    ):
+        case = cases[case_id]
+        assert case["prompt"].strip() and case["expected_output"].strip()
+        assert case["assertions"] and all(a.strip() for a in case["assertions"])
+    assert "unsupported-opinion" in cases["proof-by-run-passing-command-not-fixed"]["expected_output"]
+    assert "git-history" in cases["git-history-settles-base-versus-change"]["expected_output"]
+    assert "Refused" in cases["adjudicator-git-tool-refused"]["expected_output"]

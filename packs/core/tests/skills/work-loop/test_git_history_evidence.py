@@ -468,3 +468,24 @@ def test_t3_no_process_launch_primitives(index: int) -> None:
                     assert func.attr != "import_module"
             if isinstance(func, ast.Name):
                 assert func.id != "__import__"
+
+
+def test_t5_adjudication_guidance_names_git_history_entry() -> None:
+    path = SCRIPTS.parent / "references" / "finding-adjudication.md"
+    text = path.read_text(encoding="utf-8")
+    start = text.index("\n## Bounded evidence retry\n") + 1
+    end = text.index("\n## ", start + 1)
+    section = " ".join(text[start:end].split())
+    assert "`git-history`" in section
+    assert "`show <oid>:<path>`" in section
+    assert "`log --format=%H --max-count=51 <base>..<head> -- <path>`" in section
+    assert "computes the change base itself" in section
+    assert "`refs/remotes/origin/HEAD`" in section
+    assert "only a path in the change's path set" in section
+    assert "under `.context/`" in section
+    assert "scoped exception to the process-level read allowlist" in section
+    assert "committed objects only" in section
+    assert "alternate or promisor object source" in section
+    assert "`_supervisor_git.HardenedGit`" in section
+    assert "evidence-gate.py' git-history --path <path>" in section
+    assert "supplies the printed envelope" in section

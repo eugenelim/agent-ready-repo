@@ -96,9 +96,9 @@ def test_nothing_in_the_skill_but_its_text_and_the_supervisor_names_it() -> None
     own = {"work-supervisor.py", "supervisor-policy.json"} | {
         p.name for p in sup.SCRIPTS.glob("_supervisor_*.py")}
     text_homes = {"SKILL.md"}
-    # The delivery feed reads committed evidence through the hardened Git helper, and
-    # names no other supervisor file.
-    git_helper_users = {"_delivery_feed.py"}
+    # The delivery feed and the evidence gate read committed objects through the
+    # hardened Git helper, and name no other supervisor file.
+    git_helper_users = {"_delivery_feed.py", "_git_history.py", "evidence-gate.py"}
     offenders = []
     for path in sorted(SKILL.rglob("*")):
         relative = path.relative_to(SKILL)

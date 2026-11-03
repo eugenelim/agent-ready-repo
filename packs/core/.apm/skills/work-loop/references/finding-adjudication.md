@@ -194,6 +194,33 @@ still insufficient, another attempt must pass this same guarded accounting
 path. Keep the original raw/first-adjudication artifacts and every
 evidence/replacement pair until handoff; store none of their paths in a record.
 
+### Built-in `git-history` entry
+
+The catalog always holds one built-in entry, `git-history`. It measures one
+fact: what the change's base held at a path, and which commits since the base
+touched it. That settles an adjudication that is indeterminate on whether a
+defect was already on the base. It has two forms:
+
+- `show <oid>:<path>` prints the file as the base held it.
+- `log --format=%H --max-count=51 <base>..<head> -- <path>` lists the commits
+  that touched the path since the base, capped at 51.
+
+The entry computes the change base itself: the merge base of `HEAD` and the
+commit that `refs/remotes/origin/HEAD` names. A caller cannot supply a
+different one. It accepts only a path in the change's path set, and refuses a
+path under `.context/`.
+
+This entry is a scoped exception to the process-level read allowlist and the
+network isolation above. Its replacement controls are these: it reads committed
+objects only, it refuses an alternate or promisor object source and any Git
+setting that runs a program, and it runs
+every Git call through the hardened Git helper (`_supervisor_git.HardenedGit`).
+
+The controller runs it with
+`python '<skill-dir>/scripts/evidence-gate.py' git-history --path <path>` and
+supplies the printed envelope as the evidence artifact. The adjudicator's tools
+do not change: it has no Git or shell tool and reads only the envelope.
+
 ## Strict classification
 
 After validating `--kind adjudication`, consume only `## Main-loop result`.
