@@ -929,6 +929,10 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_verify_entry_receipts.py
 
+      - name: pytest proof-by-run contract fit (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_proof_by_run_contract_fit.py
+
       # T9a conformance roll-up: verifies that both adapter projections
       # (.claude/skills/work-loop/scripts/ and .agents/skills/work-loop/scripts/)
       # are byte-identical to the pack source, plus import smoke-tests from each

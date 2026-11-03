@@ -810,6 +810,9 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # Verify-entry receipt fit: the bulk `pytest tests/ -q` run discovers it.
     "pytest verify-entry receipts (roster-owned)":
         LOCAL("test-after-build-check"),
+    # Proof-by-run contract fit: the bulk `pytest tests/ -q` run discovers it.
+    "pytest proof-by-run contract fit (roster-owned)":
+        LOCAL("test-after-build-check"),
     # T9a conformance roll-up: verifies byte-identity of both adapter projections
     # to the pack source and imports key modules from the projected paths.
     # LOCAL("test-after-build-check") is correct: that target's run-test-suite
@@ -1159,6 +1162,7 @@ _GATE_MAIN_CHECKS = (
     "pytest containment-attestation schema parity (roster-owned)",
     "pytest evidence-store schema parity (roster-owned)",
     "pytest verify-entry receipts (roster-owned)",
+    "pytest proof-by-run contract fit (roster-owned)",
     "pytest T9a conformance roll-up (roster-owned)",
     "pytest T9a clean-environment fence (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",

@@ -108,6 +108,7 @@ protected = [
   "docs/specs/parse-blocked",
   "docs/specs/phase-policy-registry-and-selector",
   "docs/specs/present",
+  "docs/specs/proof-by-run-evidence",
   "docs/specs/protected",
   "docs/specs/pruned-dependency",
   "docs/specs/queued",
