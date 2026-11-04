@@ -15,10 +15,10 @@ updated: 2026-07-19
 
 # Journey: Product strategist sets altitude-0 direction
 
-**Use it when:** a planning cycle, market event, or new initiative cluster requires committing altitude-0 direction into the shaping queue.
+**Use it when:** a planning cycle, market event, or new initiative cluster requires committing altitude-0 direction into `docs/product/shaping/`.
 **You provide:** company OKRs, stakeholder research outputs, and your strategic judgment at each framework (PESTLE, Porter's, BCG, SWOT, PRFAQ, OKR cascade).
-**You receive:** a committed set of altitude-0 artifacts in `docs/product/shaping/` and OKR gaps routed as `{type="strategy"}` items into the shaping queue for product engineers to pick up.
-**Your decisions:** approve the synthesized market picture; commit the PRFAQ direction; approve the OKR cascade gaps routed to the shaping queue; set initiative priority order.
+**You receive:** a committed set of altitude-0 artifacts in `docs/product/shaping/` and OKR gaps written as `{type="strategy"}` shaping items for product engineers to pick up.
+**Your decisions:** approve the synthesized market picture; commit the PRFAQ direction; approve the OKR cascade gaps written as shaping items; set initiative priority order.
 
 **Persona:** A product strategist, CPO, or senior PM working at altitude-0 — company or multi-product level. They set the strategic direction that all initiatives must align to. Their time horizon is years, not quarters. In smaller orgs this may be the same person as the product engineer; in larger orgs it is a distinct role with a distinct artifact vocabulary (OKRs, PRFAQs, market analysis, portfolio position).
 
@@ -28,7 +28,7 @@ updated: 2026-07-19
 
 **Trigger:** Annual or quarterly planning cycle; a significant market event requiring strategic re-evaluation; or a new initiative cluster being scoped and the strategist needs to anchor it in altitude-0 thinking.
 
-**End state:** Altitude-0 artifacts committed to `docs/product/shaping/`. OKR gaps routed to `[shaping_queue]` as `{type = "strategy"}` items for the product engineer to pick up via `frame-situation`. The initiative portfolio has a visible, justified strategic rationale that any team member can read.
+**End state:** Altitude-0 artifacts committed to `docs/product/shaping/`. OKR gaps written as `{type = "strategy"}` shaping items for the product engineer to pick up via `frame-situation`. The initiative portfolio has a visible, justified strategic rationale that any team member can read.
 
 ---
 
@@ -44,7 +44,7 @@ updated: 2026-07-19
 1. Install product-strategy pack at user scope — altitude-0 direction applies across repos and orgs.
 2. Install PE pack at user scope as a co-install — required for OKR cascade routing to `frame-situation`; absent PE pack produces a "frame-situation not found — install PE pack" diagnostic rather than a silent failure.
 3. Install desk-research pack at user scope if stakeholder research synthesis is needed — `synthesize-stakeholder-research` requires prior desk-research project outputs; absent inputs → surfaces "run desk-research project first."
-4. For each repo where OKR gaps will be routed to the shaping queue: install core pack at repo scope — `workspace.toml` is committed to `main` as part of M1 Batch 2; no branch configuration needed.
+4. For each repo where OKR gaps will be written as shaping items: install core pack at repo scope — items are committed to `main`; no branch configuration needed.
 
 **Scale:** both packs are user-scoped. In smaller orgs the strategist and PE may be the same person with both packs already installed. The cross-pack dependency (OKR cascade → `frame-situation`) is agent-mediated — the strategist invokes both in sequence; no mechanical cross-pack wiring is assumed.
 
@@ -67,7 +67,7 @@ sequenceDiagram
     A-->>S: Ad-hoc analysis in session context
     Note over A: Session closes — analysis lost
     S-->>S: Copy insights manually into initiative briefs
-    Note over S: No committed artifact — no cascade into shaping queue
+    Note over S: No committed artifact — no cascade into shaping items
 ```
 
 ### To-be state — M4 shipped
@@ -78,7 +78,7 @@ sequenceDiagram
     participant A as Agent
     participant SK as Skills (product-strategy pack)
     participant SA as docs/product/shaping/
-    participant WS as workspace.toml
+    participant WS as Shaping items
     participant PE as frame-situation (PE pack)
 
     Note over S,PE: Altitude-0 direction — M4+
@@ -92,11 +92,11 @@ sequenceDiagram
     SK->>SA: Write prfaq.md (altitude-0 forcing function)
     S->>SK: OKR cascade [company OKRs]
     SK->>SA: Write okr-cascade.md (company → team → initiative gaps)
-    SK-->>WS: {type="strategy", slug="gap-A"} → [shaping_queue].backlog
+    SK-->>WS: {type="strategy", slug="gap-A"} → shaping item (backlog)
     SK-->>S: Gaps identified: [gap-A, gap-B] → route to frame-situation?
-    Note over WS: Product engineer picks up gap-A via workspace-status
+    Note over WS: Product engineer picks up gap-A from docs/product/shaping/
     WS-->>PE: frame-situation consumes {type="strategy"} entry
-    PE-->>SA: Routes gap into six-step shaping sequence → [brief_queue]
+    PE-->>SA: Routes gap into six-step shaping sequence → brief file
     S->>SK: define-ux-strategy [experience strategy brief]
     SK->>SA: Write ux-strategy.md (vision → goals+measures → plan)
     S->>SK: define-content-strategy [content governance brief]
@@ -147,7 +147,7 @@ sequenceDiagram
 | **Pains** | "My BCG Matrix is a static slide — it doesn't update when initiatives ship." "No link between portfolio position and which shaping items get prioritised." "SWOT lives in planning decks, not in the committed tree — teams building the product can't access it." |
 | **Opportunities** | Committed portfolio-position artifact that updates alongside the initiative structure; SWOT as the synthesising capstone that brings macro (Stage 1) + stakeholder (Stage 0) + portfolio inputs together into a committed situation picture; strategic position drives what gets shaped next. |
 
-> **With M4** — BCG Matrix + SWOT skills ship: `portfolio-position.md` and `swot-analysis.md` committed; `swot-analysis.md` synthesises macro environment, competitive landscape, and portfolio data into a single committed situation picture; links to `[shaping_queue]` backlog priority (higher portfolio urgency → moves higher in backlog).
+> **With M4** — BCG Matrix + SWOT skills ship: `portfolio-position.md` and `swot-analysis.md` committed; `swot-analysis.md` synthesises macro environment, competitive landscape, and portfolio data into a single committed situation picture; links to shaping-item backlog priority (higher portfolio urgency → moves higher in backlog).
 
 ---
 
@@ -174,10 +174,10 @@ sequenceDiagram
 |-----|---------|
 | **Actions** | Sets company OKRs in Notion / Google Sheets. Cascades to team OKRs in planning meetings. Hopes the cascade reaches the product team's shaping backlog. Rarely does. |
 | **Emotions** | Resigned (negative). The cascade is a planning ritual, not a live connection. By the time an engineer writes a spec, the OKR that motivated it is invisible. |
-| **Pains** | "Company OKRs are in Notion; team OKRs are in a spreadsheet; the shaping queue has no idea either exists." "Gaps between current state and OKR targets are identified in planning meetings and then lost." "No mechanism for OKR gaps to flow into `frame-situation` as shaping inputs." |
-| **Opportunities** | OKR cascade skill that (a) takes company OKRs, derives team-level OKRs, and identifies gaps; (b) routes each gap as a `{type = "strategy"}` entry into `[shaping_queue].backlog` for `frame-situation` to pick up; (c) writes the cascade as a committed artifact. The altitude-0 → altitude-1 handoff becomes a skill invocation, not a meeting. |
+| **Pains** | "Company OKRs are in Notion; team OKRs are in a spreadsheet; the shaping items have no idea either exists." "Gaps between current state and OKR targets are identified in planning meetings and then lost." "No mechanism for OKR gaps to flow into `frame-situation` as shaping inputs." |
+| **Opportunities** | OKR cascade skill that (a) takes company OKRs, derives team-level OKRs, and identifies gaps; (b) writes each gap as a `{type = "strategy"}` shaping item in the backlog for `frame-situation` to pick up; (c) writes the cascade as a committed artifact. The altitude-0 → altitude-1 handoff becomes a skill invocation, not a meeting. |
 
-> **With M4** — OKR cascade skill ships: company OKRs → gap analysis → `{type = "strategy"}` entries in `[shaping_queue].backlog`; product engineer picks them up via `workspace-status` and routes each through `frame-situation`. Cross-pack dependency: PE pack (`frame-situation`, M2) must be installed.
+> **With M4** — OKR cascade skill ships: company OKRs → gap analysis → `{type = "strategy"}` shaping items in the backlog; product engineer picks them up from `docs/product/shaping/` and routes each through `frame-situation`. Cross-pack dependency: PE pack (`frame-situation`, M2) must be installed.
 
 ---
 
@@ -204,10 +204,10 @@ sequenceDiagram
 |-----|---------|
 | **Actions** | Decides which initiatives get resourced in the planning cycle. Decision is made in meetings with no committed rationale. |
 | **Emotions** | Confident in the room (positive) but aware the rationale will be lost (neutral). Six months later the team doesn't know why initiative X was picked over initiative Y. |
-| **Pains** | "Initiative prioritisation is a meeting outcome — it's not committed anywhere." "No structured betting table at altitude-0 — I can't show stakeholders the trade-offs I considered." "The shaping queue doesn't reflect strategic priority — PEs pick whatever is interesting, not whatever is most urgent." |
-| **Opportunities** | Initiative prioritisation rationale committed in `portfolio-position.md` (BCG-derived) and `okr-cascade.md` (gap-derived); shaping queue backlog ordered by strategic priority; stakeholders can read the trade-offs the strategist weighed directly from the committed artifact tree. |
+| **Pains** | "Initiative prioritisation is a meeting outcome — it's not committed anywhere." "No structured betting table at altitude-0 — I can't show stakeholders the trade-offs I considered." "The shaping backlog doesn't reflect strategic priority — PEs pick whatever is interesting, not whatever is most urgent." |
+| **Opportunities** | Initiative prioritisation rationale committed in `portfolio-position.md` (BCG-derived) and `okr-cascade.md` (gap-derived); shaping backlog ordered by strategic priority; stakeholders can read the trade-offs the strategist weighed directly from the committed artifact tree. |
 
-> **With M4** — No separate skill: initiative prioritisation is the natural output of `run-bcg-matrix` (portfolio urgency by quadrant) and `run-okr-cascade` (gaps ranked by OKR weight); the committed rationale lives in `portfolio-position.md` + `okr-cascade.md`; `[shaping_queue].backlog` ordering reflects strategic priority set by the OKR cascade routing.
+> **With M4** — No separate skill: initiative prioritisation is the natural output of `run-bcg-matrix` (portfolio urgency by quadrant) and `run-okr-cascade` (gaps ranked by OKR weight); the committed rationale lives in `portfolio-position.md` + `okr-cascade.md`; shaping backlog ordering reflects strategic priority set by the OKR cascade.
 
 ---
 
@@ -221,7 +221,7 @@ sequenceDiagram
 - **Skill:** run-bcg-matrix — Stage 2 (portfolio position)
 - **Skill:** run-swot — Stage 2 (situation synthesis; synthesises macro + portfolio + stakeholder inputs)
 - **Skill:** write-prfaq — Stage 3 (altitude-0 forcing function)
-- **Skill:** run-okr-cascade — Stage 4 (OKR cascade + `{type="strategy"}` routing to shaping queue)
+- **Skill:** run-okr-cascade — Stage 4 (OKR cascade + `{type="strategy"}` shaping items)
 - **Skill:** define-ux-strategy — Stage 5 (experience strategy)
 - **Skill:** define-content-strategy — Stage 5 (content governance)
 - *Stage 6 (Initiative Prioritisation) is not a separate skill invocation — portfolio ordering is the strategic output of `run-bcg-matrix` + `run-okr-cascade` working together; the committed prioritisation rationale is recorded in `portfolio-position.md` and `okr-cascade.md`.*
@@ -230,13 +230,13 @@ sequenceDiagram
 
 ## Emotional arc
 
-Lowest point: **Stage 4 (OKR Cascade)** — resigned — because the altitude-0 → altitude-1 handoff is a ritual that does not produce a committed artifact or a live connection to the shaping queue. OKR gaps identified in planning disappear before they reach a product engineer's workspace.
+Lowest point: **Stage 4 (OKR Cascade)** — resigned — because the altitude-0 → altitude-1 handoff is a ritual that does not produce a committed artifact or a live connection to the shaping items. OKR gaps identified in planning disappear before they reach a product engineer.
 
 Second lowest: **Stage 5 (Experience & Content Strategy)** — frustrated — because the strategist's experience vision and content governance intent are invisible to the design and content teams operating the experience-design pack.
 
 Highest-opportunity pain: "I set company OKRs and cascade them to team OKRs. By the time an engineer is writing a spec, neither exists in their context. There is no committed handoff — just hope."
 
-Primary design response: OKR cascade skill routing gaps to `[shaping_queue]` as `{type = "strategy"}` items; PRFAQ and portfolio-position committed to `docs/product/shaping/` as traceable altitude-0 anchors; UX strategy and content strategy committed as the experience-design pack's altitude-0 reference input.
+Primary design response: OKR cascade skill writing gaps as `{type = "strategy"}` shaping items; PRFAQ and portfolio-position committed to `docs/product/shaping/` as traceable altitude-0 anchors; UX strategy and content strategy committed as the experience-design pack's altitude-0 reference input.
 
 ---
 
@@ -244,6 +244,6 @@ Primary design response: OKR cascade skill routing gaps to `[shaping_queue]` as 
 
 **For `user-flow`:** Stage 4 (OKR Cascade) and Stage 6 (Initiative Prioritisation) carry the highest-opportunity pains. A portfolio-level dashboard showing which initiatives are resourced and why — with links to the committed altitude-0 artifacts — is the highest-priority screen-level input for INI-006 (control plane). Stage 5's `ux-strategy.md` is the strategic anchor for screen-flow design.
 
-**For `service-blueprint`:** backstage services include `docs/product/shaping/` (altitude-0 artifact store), `workspace.toml` (shaping queue state), PE pack's `frame-situation` (cross-pack routing target), desk-research pack (primary research inputs for Stage 0). The cross-pack dependency (OKR cascade → frame-situation) is the primary integration point — agent-mediated, not a mechanical cross-pack call. See RFC-0063 § Cross-pack routing contract for the full contract specification.
+**For `service-blueprint`:** backstage services include `docs/product/shaping/` (altitude-0 artifact store), the shaping items' headers, PE pack's `frame-situation` (cross-pack routing target), desk-research pack (primary research inputs for Stage 0). The cross-pack dependency (OKR cascade → frame-situation) is the primary integration point — agent-mediated, not a mechanical cross-pack call. See RFC-0063 § Cross-pack routing contract for the full contract specification.
 
 **For content-design skill (experience-design pack):** `content-strategy.md` (Stage 5) is the organizational governance input that content-design consumes. Content-design is execution-layer (per-surface); content strategy is governance-layer (organizational intent). The two do not overlap — content-design reads from content strategy, does not replace it.

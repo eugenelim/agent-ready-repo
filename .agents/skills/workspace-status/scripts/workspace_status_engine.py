@@ -97,15 +97,15 @@ _CROSS_REPO_NEED_FIELDS = frozenset(
     {"type", "kind", "path", "containing_brief", "receipt_id", "accepted_revision"}
 )
 _FINDING_NEXT_ACTIONS = {
-    "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
+    "invalid_workspace": "Correct workspace.toml, then run `repair-plan` again.",
     "invalid_entry": "Rewrite the entry to the accepted target contract.",
     "legacy_entry": "Materialize and register a canonical target entry.",
     "unsupported_legacy": "Route the item manually; do not infer a target entry.",
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
-    "unreadable_artifact": "Restore readable repository state, then rerun reconciliation.",
+    "unreadable_artifact": "Restore readable repository state, then run `repair-plan` again.",
     "invalid_captured_item": (
-        "Fix the named field of that captured-item file, then rerun reconciliation."
+        "Fix the named field of that captured-item file, then run `repair-plan` again."
     ),
     "unmigrated_captured_item": (
         "Run workspace-status repair-plan to move this captured item into its "
@@ -152,7 +152,7 @@ _FINDING_NEXT_ACTIONS = {
         "Install or select a consistent versioned configuration, then rerun."
     ),
     "invalid_source_authority": (
-        "Correct the closed source-authority block, then rerun reconciliation."
+        "Correct the closed source-authority block, then run `repair-plan` again."
     ),
     "source_authority_migration_required": (
         "Add the reviewed source-authority block before using refresh."

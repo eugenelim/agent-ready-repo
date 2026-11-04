@@ -11,13 +11,10 @@ durable. No route adds a `workspace.toml` entry; a work item's lifecycle is the
 session-local.
 
 Tracker adapters acquire and normalize; they do not classify artifacts or write
-repository state. `workspace-status` reads and reconciles repository state. The historical
-accepted-legacy decoder is retained in four places: canonical reconciliation
-(refuse-only alias decoding, making the canonical twin non-dispatchable while
-the alias survives), the repair seams (migration recovery and rollback, prune,
-and Type 2 repair), and the information-only status-analysis readers
-(`extract_initiatives` listings, Type 1/2/3 scans, and `explain_item`). None
-of these four surfaces dispatches a former legacy shape.
+repository state. `dispatch.py` reads each artifact's headers to say what is
+ready, active, or blocked. `workspace-status` only repairs entries a
+`workspace.toml` still holds (`repair-plan`, `repair-apply`); nothing registers
+work.
 Configured refresh processors compare tracker-origin artifacts and may apply
 authorized local changes or separately confirmed coordination actions.
 
@@ -25,9 +22,7 @@ authorized local changes or separately confirmed coordination actions.
 `close-work` owns the later inventory, whole-surface freshness audit, lifecycle
 projection, disposition intent, initiative settlement, lifecycle records in
 `docs/lifecycle/`, and any separately confirmed immediate effect. It is the only
-writer of cooling state. `workspace-status` may project closeout blockers and
-next actions, but it never distils context, selects policy, or mutates closeout
-state.
+writer of cooling state.
 
 The same boundary owns a shared read-only semantic-surface resolver. Callers
 supply bounded candidates; the resolver applies repository policy and
@@ -85,9 +80,12 @@ nowhere else to put and rolls up delivery across the per-component slices.
 - `author-delivery-brief create` turns raw multi-spec or cross-repository input
   into a Draft coordination brief; `continue` makes an existing brief Ready and
   confirms spec slices.
-- `workspace-status` reports canonical ready, active, blocked, shipped,
-  authority, refresh, reconciliation, unsupported-legacy findings, and
-  read-only closeout orientation.
+- `work-loop`'s `dispatch.py` lists the ready, active, and blocked specs from
+  their `Status:` and `Depends on:` headers, and `--captured` lists the
+  captured items. `navigate-intents` `outstanding` lists the work placed under
+  an intent.
+- `workspace-status` runs only `repair-plan` and `repair-apply`, which move the
+  entries a `workspace.toml` still holds onto their own artifacts.
 - `close-work` pauses resumable work, verifies delivery evidence and durable
   semantic owners, recommends one of RFC-0096's six dispositions, and owns
   separately authorized coordination or immediate-disposal effects.
@@ -111,43 +109,36 @@ nowhere else to put and rolls up delivery across the per-component slices.
 | State | Location | Write authority | Readers |
 | --- | --- | --- | --- |
 | Canonical requirements and decisions | `docs/product/`, `docs/specs/`, and other registered artifact paths | Owning artifact workflow | Processors, reviewers, reconciliation |
-| Legacy lifecycle index | `workspace.toml`, which no intake route or workflow adds an entry to; retired entry kinds are removed by `workspace-status repair-apply` | `workspace-status` repair and migration effects only | `workspace-status`, `dispatch.py`, the spec-status lint, review |
+| Leftover entries | `workspace.toml`, which no intake route or workflow adds an entry to; `workspace-status repair-apply` drops each entry once its fact is on the artifact | `workspace-status` repair only | `workspace-status` repair, `dispatch.py` (refuses with `unmigrated_workspace` while an entry remains) |
 | Tracker-origin authority | One closed `source-authority.v1` block in the canonical artifact; its optional `tracker_profile` table (`id`, `version`) is the one home of the tracker profile | Accepted intake/refresh workflow | Refresh and reconciliation |
-| Refresh receipts | Authority block plus guarded artifact/workspace pair | Exact configured refresh processor | Status and later refresh |
-| Migration ledger | `.workspace-migrations.json` | Authorized `workspace-status` migration transaction | Recovery, rollback, audit |
-| Selection and confirmation | Human-authored repository-relative JSON supplied out of band | Human reviewer/approver | Migration planner/effect only |
+| Refresh receipts | The artifact's authority block | Exact configured refresh processor | Later refresh |
 | Direct-light decision record | Active session only | `work-loop` | Requester and current session |
 | Completion evidence handoff | Active closeout invocation or stable evidence owner named by the delivery run | `work-loop` produces bounded references; no closeout authority | `close-work` and reviewers |
-| Pause overlay | Existing resolved writable shaping or build coordination surface | `close-work`, after exact write authority | Resume path and status projection |
+| Pause overlay | Existing resolved writable shaping or build coordination surface | `close-work`, after exact write authority | Resume path |
 | Dependency-scoped completion receipt | Existing compatible coordination surface while a live dependency cites it | `close-work`, after exact write authority | Dependent work and closeout |
-| Cooling lifecycle record | `docs/lifecycle/<delivery_id>.json` | `close-work` | Day-30 review and status projection |
-| Retirement-candidate projection | Active invocation only | none; the projection is read-only and writes no file | Maintainer selecting a prune |
+| Cooling lifecycle record | `docs/lifecycle/<delivery_id>.json` | `close-work` | Day-30 review and `dispatch.py` |
 | Semantic-surface resolution result | Active invocation only | none; resolver is read-only | Requesting workflow and reviewer |
 | Optional shaping handoff | Validated `normalized-intake.v1` envelope in the active invocation | Upstream producer owns offered content; Core owns validation and admission | `work-intake`, then the selected existing processor |
 
 A repo-origin or tracker-origin intent, brief, or spec and a captured item
-(defect, design, or research item) each live in their own file and get no
-`workspace.toml` entry. Readiness comes from each file's `Status:` header and
-its `Depends on:` targets, read by `work-loop`'s `dispatch.py`. A tracker-origin
-artifact carries its tracker profile in the `tracker_profile` table of its own
-`source-authority` record. Existing entries stay readable until
-`workspace-status` `repair-plan` and `repair-apply` remove them (the
-`needs-to-header`, `captured-to-file`, `captured-entry-drop`,
-`intent-brief-drop`, `spec-entry-drop`, and `tracker-entry-drop` operations).
+(defect, design, or research item) each live in their own file. Readiness comes
+from each file's `Status:` header and its `Depends on:` targets, read by
+`work-loop`'s `dispatch.py`. A tracker-origin artifact carries its tracker
+profile in the `tracker_profile` table of its own `source-authority` record.
+Refresh reads its role policy from the `[authorization.refresh]` table of
+`.work-intake.toml` at the repository root.
 
-`workspace.toml` still exists in this repository. It is not a requirements
-store. A remaining entry has `path`, `kind`, `source`, `summary`, and `needs`;
-comments, summaries, order, labels, and hints cannot select a route, satisfy a
-dependency, or authorize dispatch. Refresh reads its role policy from the
-`[authorization.refresh]` table of `.work-intake.toml` at the repository root,
-and the `refresh-policy-move` repair moves an existing table there.
-`[authorization.migration]` stays in `workspace.toml` until deleting the file,
-which is the last
-[retirement slice](../product/briefs/workspace-registry-retirement-delivery.md).
+A `workspace.toml` that still holds entries is repair input, not a requirements
+store. `workspace-status` `repair-plan` and `repair-apply` move each entry onto
+its artifact and drop it (the `needs-to-header`, `captured-to-file`,
+`captured-entry-drop`, `refresh-policy-move`, `intent-brief-drop`,
+`spec-entry-drop`, and `tracker-entry-drop` operations). The file stays in
+place after the repair. Comments, summaries, order, labels, and hints cannot
+select a route, satisfy a dependency, or authorize dispatch.
 
 The captured-item file `docs/product/captured/<slug>.md` is the register for
-captured work and for a spec's deferral anchors, and `workspace-status`
-projects those files. How a deferral marker resolves through it is the loop
+captured work and for a spec's deferral anchors; `dispatch.py --captured` lists
+those files. How a deferral marker resolves through it is the loop
 contract's [§ 7](loop-contract.md#7-mechanical-invariants).
 
 ### Delivery-brief lifecycle
@@ -234,23 +225,22 @@ invocation already supplies bounded content at the matching pinned revision.
 2. `work-intake` classifies the content. Direct-light stays session-local;
    durable routes materialize the artifact and register nothing.
 3. `dispatch.py` reads each spec's `Status:` header, sibling `plan.md`, and
-   `Depends on:` targets and lists the ready and active specs. `workspace-status`
-   reconciles any remaining legacy entries, provenance, authority, and
-   lifecycle. Only a ready or active spec may start or resume the work-loop,
-   and several candidates are listed for the caller to choose from.
+   `Depends on:` targets and lists the ready and active specs. It refuses with
+   `unmigrated_workspace` while a `workspace.toml` entry remains, and the
+   finding points to `workspace-status` `repair-plan`. Only a ready or active
+   spec may start or resume the work-loop, and several candidates are listed
+   for the caller to choose from.
 4. Every workspace-dispatchable, queued, or resumable build item resolves to an
    existing durable `spec.md` and sibling `plan.md`; execution receives those
    files rather than tracker payloads or index comments. An explicit
-   direct-light request is session-local, creates no workspace entry, and is
+   direct-light request is session-local, creates no entry, and is
    ineligible for argless dispatch or fresh-session resumption.
 5. Refresh resolves the exact configured processor, acquires and compares one
    source revision, presents field decisions, and applies guarded local changes
    only after authorization. Remote coordination remains separately confirmed.
-6. A former legacy entry surfaces as `unsupported_legacy` and is rewritten in
-   canonical form by hand. The migration tooling — `repair-plan
-   --migration-selection`, `repair-apply`, and `repair-rollback` — only recovers
-   or rolls back an operation already recorded in the migration ledger; rollback
-   restores the exact legacy slice without deleting the canonical artifact.
+6. A `workspace.toml` entry in a legacy form is rewritten by hand into the
+   current form; `dispatch.py` refuses with `unmigrated_workspace` until then.
+   `repair-plan` and `repair-apply` then move it onto its artifact.
 7. A semantic destination request resolves an explicit destination first,
    unless mandatory repository policy rejects it; then declared repository
    policy or optional configuration, established repository convention, and an
@@ -284,8 +274,7 @@ invocation already supplies bounded content at the matching pinned revision.
     fact and fresh human confirmation bound to the exact current
     resource and evidence.
 14. Initiative coordination can settle independently from artifact retention.
-    An RFC or decision family may remain anchored after its terse workspace entry
-    leaves. A completion receipt keeps only delivery ID, outcome, completion
+    An RFC or decision family may remain anchored after its work item leaves. A completion receipt keeps only delivery ID, outcome, completion
     event, and evidence reference while a live dependency needs it.
 
 Classification routes an explicit start to exactly one durability class:
@@ -309,10 +298,10 @@ source adapter ── normalized-intake.v1 ──> work-intake
                                                 |
               +---------------------------------+------------------+
               |                                 |                  |
-        direct-light                       artifact            status/refresh
+        direct-light                       artifact            refresh
         (session only)                         |                  |
                                                v                  v
-                                        processor/work-loop   workspace-status
+                                        processor/work-loop   refresh processor
 ```
 
 The optional producer seam composes above that unchanged pipeline:
@@ -331,24 +320,6 @@ work-intake admission
         +-- ambiguity/refusal --> stable zero-effect stop
 ```
 
-### Who reports retirement eligibility, and who may act on it
-
-`workspace-status retirement-candidates` reports which delivery contracts are
-retirement candidates and every blocker holding each one back. It reads; it
-writes nothing and succeeds against a read-only checkout. Being reported
-eligible authorizes no deletion: a human selects, and the separately confirmed
-prune executes that selection under its own two-sided closure invariant.
-
-Its absence-proving blockers rest on reading an input corpus in full, so a
-refusal naming any member of a corpus withholds eligibility from every candidate
-that blocker covers — including candidates carrying no blocker of their own,
-which are still reported rather than dropped. A shorter candidate list therefore
-never means a cleaner one.
-
-Ages come from recorded change history and are labelled as such. They are not
-the thirty-day cooling clock, which runs from a delivery-completion event on a
-lifecycle record this projection does not read.
-
 ## 6. Failure and recovery behavior
 
 Missing, malformed, duplicate, unsafe, or inconsistent state becomes a stable
@@ -356,19 +327,13 @@ non-dispatchable reconciliation finding with one safe next action. An
 unavailable or version-mismatched refresh processor performs no mutation.
 Unresolved authority or lifecycle conflicts stop before an artifact write.
 
-Migration serializes through `.workspace-repair.lock`, rechecks the workspace,
-ledger, selection, and artifact fingerprints inside the lock, and consumes
-fresh authorization before effects. A durable `pending` or `rollback_pending`
-operation is recovered from the ledger. A concurrent change or malformed
-ledger fails closed; canonical artifacts and unknown/private TOML extensions
-are never deleted or silently rewritten.
-
-A locator-only workspace entry is contract-valid and visible, but it stops at
-`configuration_mismatch` before local artifact access or dispatch. An unsafe
+A repair `workspace.toml` entry in a legacy form stops at `unsupported_legacy`
+or `unmigrated_workspace` before local artifact access or dispatch. An unsafe
 local candidate, symlink escape, symlink loop, or mandatory-policy conflict
-returns a stable refusal without raw exception text.
+returns a stable refusal without raw exception text. Canonical artifacts and
+unknown or private TOML extensions are never deleted or silently rewritten.
 
-### Queue repair
+### Repair
 
 `repair-plan` is read-only with respect to `workspace.toml`. `repair-apply`
 requires explicit confirmation and re-verifies each operation against the
@@ -383,9 +348,10 @@ Type 1 and Type 3 findings, active-source entries, and duplicates are emitted as
 `manual_findings`, each carrying its finding type, initiative, list and
 `finding_id`, for a human to act on rather than applied.
 
-The same plan also carries the retirement operations (`needs-to-header`,
-`needs-drop-cooled`, `captured-to-file`, `intent-brief-drop`,
-`spec-entry-drop`, `tracker-entry-drop`). Each moves a fact into the artifact's
+The same repair plan also carries the entry-drop operations (`needs-to-header`,
+`needs-drop-cooled`, `captured-to-file`, `captured-entry-drop`,
+`refresh-policy-move`, `intent-brief-drop`, `spec-entry-drop`,
+`tracker-entry-drop`). Each moves a fact into the artifact's
 own file or removes an entry that no longer needs one. The
 `workspace-status` `references/mutate.md` file owns their exact shapes.
 
@@ -410,21 +376,17 @@ reviewed change and never a history rewrite.
 Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine.
 It requires the platform time-zone database for `zoneinfo`; if a named zone is
 unavailable, it returns `unknown-timezone` with no UTC fallback.
-Wave 6 has shipped ordinary-context exclusion: `workspace-status` resolves the
-cooled set once per ordinary-orientation run, never loads a cooled artifact
-body, and projects `cooling` under `status` and `reconcile` only, and `closeout` under those two whenever an initiative is active or paused.
-Wave 7a-i closes cooling scope: it keeps `repair-plan`, `repair-apply`, and the
-migration paths on an empty cooled set with pre-Wave-6 behaviour, while ordinary
-status and reconciliation apply exclusion to both closeout consumers. Wave 7a-ii
-projects the completion receipt, Wave 7b classifies history, and Wave 7c prunes
+Wave 6 has shipped ordinary-context exclusion: `dispatch.py` resolves the cooled
+set once per run and never loads a cooled artifact body. Wave 7a-i closes cooling
+scope. Wave 7a-ii projects the
+completion receipt, Wave 7b classifies history, and Wave 7c prunes
 proven-eligible artifacts.
 Wave 7 owns historical migration and pruning behavior.
 
 ## 7. Observability and evidence
 
-Canonical artifacts, `dispatch.py`, and `workspace-status` provide the
-observable routing and lifecycle record, with `workspace.toml` for legacy
-entries only. Provenance records the source locator
+Canonical artifacts and `dispatch.py` provide the observable routing and
+lifecycle record. Provenance records the source locator
 and revision without copying credentials or a tracker payload.
 
 Closeout evidence is layered. Stable source, test/eval, gate, review, and release
@@ -439,26 +401,18 @@ fingerprint when known, confirmations, and source/write/deletion authority as
 independent facts. Non-resolved results omit selected locators and make those
 facts explicitly unknown.
 
-All current writers and the workspace seed emit only target entries. The
-accepted legacy reader and `capture-work` forwarding alias are removed in Core
-3.0.0 under RFC-0083's release count, advance notice, fixture/writer/guide/
-rollback evidence, and check-before-effect Approver authorization. Ordinary
-reconciliation no longer accepts former legacy shapes; they surface as
-`unsupported_legacy` findings. The historical decoder is retained in canonical reconciliation (refuse-only
-alias decoding), the repair seams (migration recovery and rollback, prune, and
-Type 2 repair), and the information-only status-analysis readers. None
-dispatches a former legacy shape.
-
-Rollback returns to the preceding dual-reader release and uses the
-ledger to restore legacy workspace representation. It preserves target
-artifacts and migration evidence.
+All current writers emit only target entries, and no seed writes a
+`workspace.toml`. The accepted legacy reader and `capture-work` forwarding alias
+are removed in Core 3.0.0 under RFC-0083's release count, advance notice,
+fixture/writer/guide/rollback evidence, and check-before-effect Approver
+authorization. A former legacy shape surfaces as an `unsupported_legacy`
+finding and is rewritten by hand.
 
 ## 8. Mechanical invariants and evaluation
 
-- JSON Schemas own normalized intake, target entries, authority/refresh,
-  migration selection/confirmation/ledger/result, and semantic-surface
-  resolution shapes.
-- Reconciliation owns stable finding codes and never makes legacy entries
+- JSON Schemas own normalized intake, the legacy entry shape the repair reads,
+  authority/refresh, and semantic-surface resolution shapes.
+- Dispatch owns stable finding codes and never makes a legacy entry
   dispatchable by inference.
 - The traceability lint recognizes a discovery-side producer node by a
   **bold-body** marker in the rendered document — `**Type:** screen-brief` for
@@ -471,14 +425,8 @@ artifacts and migration evidence.
   the trap worth knowing. Which directories it reads, when it uses a sidecar
   instead of walking the tree, and what an unrecognized shape costs are all
   the lint's to answer.
-- The `workspace-status` verbs differ by analysis depth. `status` and `explain`
-  run the workspace-wide bounded Type 2 and Type 3 analysis; `reconcile` runs
-  the exhaustive Type 1, Type 2, and Type 3 scan.
-- Orientation presents shaping and building as distinct lifecycle rooms
-  surfaced through one session-start view, with `[build]`, `[shape]`, and
-  `[brief]` room prefixes.
 - The integrated routing matrix runs acquisition, normalization, routing,
-  authority/refresh, and read-only migration planning across Jira, Jira Align,
+  and authority/refresh across Jira, Jira Align,
   GitHub, and Linear in two clean roots; canonical results and next actions must
   be byte-identical.
 - Pack/plugin versions move together for non-cosmetic pack changes. Self-hosted
@@ -546,7 +494,7 @@ arbitrary adopter repository.
   and requires a non-empty map of shipped specs for delivery.
 
 Maintainer procedures live in
-[Maintaining work intake, refresh, and legacy migration](../guides/reference/work-intake-maintenance.md).
+[Maintaining work intake and refresh](../guides/reference/work-intake-maintenance.md).
 
 ## 9. Relevant decisions
 
@@ -571,6 +519,5 @@ tests, lifecycle record documentation, workspace projection, pack metadata,
 evaluation, and documentation surfaces. The feature-delivery resolver and its
 two consumers were verified against Core `2.30.0`.
 
-The registration state in §§ 1, 3, 5, and 7 (no intake route adds a
-`workspace.toml` entry, header-derived dispatch, and the repair operations)
+The header-derived routing state in §§ 1, 3, 5, and 7 (no intake route registers work, dispatch reads headers, and `workspace-status` only repairs)
 was checked against commit `ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`, Core `4.0.4`.

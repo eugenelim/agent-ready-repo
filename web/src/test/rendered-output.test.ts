@@ -420,7 +420,7 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     const humanBoundary = position('commits the shaped result to build');
     const resultExample = position('docs/specs/export-retention/spec.md');
     const completionSignal = position('This step is done when Core has either started the build loop');
-    const nextAction = position('workspace-status');
+    const nextAction = position('dispatch.py');
     const deepReference = position('State and skill reference');
 
     expect(prompt).toBeLessThan(coreStep1);

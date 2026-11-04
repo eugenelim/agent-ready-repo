@@ -1,21 +1,20 @@
 # Dependency edges — header reference
 
 A piece of work records that it waits for another by one line in its own file:
-the `Depends on:` header. `workspace-status` reads that line and blocks the work
-until each item it names is satisfied. The registry entry in `workspace.toml`
-holds no edge: its `needs` stays `[]`.
+the `Depends on:` header. `work-loop`'s `dispatch.py` reads that line and blocks
+the work until each item it names is satisfied. A `workspace.toml` entry holds no
+edge: no reader derives one from its `needs`.
 
 The design is RFC-0106 D3. The receipt's carrier is recorded in the ADR that
 supersedes ADR-0103 D6 in part. The guide
-[`workspace-toml-schema.md`](../../guides/core/reference/workspace-toml-schema.md)
-is the adopter-facing reference. `workspace.toml` in the repository root is the
-lived example.
+[`upgrade-from-a-workspace-registry.md`](../../guides/core/how-to/upgrade-from-a-workspace-registry.md)
+is the adopter-facing upgrade path.
 
 ---
 
 ## Where the lines go
 
-Both lines go in the preamble of the file the registry entry's `path` names
+Both lines go in the preamble of the work's own file
 (a spec, brief, intent, or captured item). The preamble is every line before the
 first `## ` heading, outside fenced blocks, with HTML comments hidden.
 
@@ -36,7 +35,7 @@ word is `none` adds no item. Each item is one of:
 | `spec:<slug>` | the spec at `docs/specs/<slug>/spec.md` |
 | `brief:<slug>` | the delivery brief whose `Slug:` is `<slug>` |
 | `<intent kind>:<slug>` | the live intent of that kind with that `Slug:`; the kind is `intent`, `outcome`, `opportunity`, or `capability` |
-| a captured-item path | a repository path such as `docs/product/design/payment-routing.md`; its kind comes from its registry entry, or from its own `Kind:` line when it has none |
+| a captured-item path | a repository path such as `docs/product/design/payment-routing.md`; its kind comes from its own `Kind:` line |
 
 A slug is one or more lowercase letters, digits, and hyphens, starting with a
 letter or digit. A repository path to a spec, brief, or intent is not a
@@ -55,8 +54,7 @@ The line holds comma-separated receipts, each for an item of the same file, with
 tokens separated by whitespace:
 
 - `<reference> completion <delivery_id> <outcome> <completion_event> <evidence_ref>`
-  settles a dependency whose delivery shipped and was then removed from the
-  registry. The `outcome` is `completed`, `abandoned`, or `superseded`. A
+  settles a dependency whose delivery shipped and was then removed. The `outcome` is `completed`, `abandoned`, or `superseded`. A
   captured-item reference may not carry one.
 - `<reference> coordination <remote_kind> <receipt_id> <accepted_revision>`
   pins a cross-repository dependency on a `brief:` reference. The brief holds the
@@ -69,27 +67,25 @@ item of the same `Depends on:` line, gives `invalid_dependency`.
 
 ## What blocks
 
-The satisfaction rules are unchanged from the registry form: a spec, brief, or
-intent is satisfied at its terminal state, a defect when it is closed, and a
-removed delivery by its valid completion receipt. Only the place the edge is read
-from moved. A dependency cycle among non-cooled items gives `dependency_cycle`.
+A spec, brief, or intent is satisfied at its terminal state, a defect when it is
+closed, and a removed delivery by its valid completion receipt. A dependency cycle among non-cooled items gives `dependency_cycle`.
 A cooled waiting item contributes no edge.
 
-Agents read `workspace-status` output to decide what to work on next. They do not
+Agents read `dispatch.py` output to decide what to work on next. They do not
 enforce the graph themselves.
 
 ---
 
 ## Legacy `needs` is repair input only
 
-Older registry entries carry `needs` as a string, a list of strings, or typed
-records. No reader derives a dependency from them. An entry that still carries a
+Older `workspace.toml` entries carry `needs` as a string, a list of strings, or
+typed records. No reader derives a dependency from them. An entry that still carries a
 non-empty `needs` gets `unmigrated_needs` and is not dispatchable, whatever its
 header says.
 
 To move the edges:
 
-1. Run `workspace-status repair-plan`. It writes `.workspace-repair-plan.json`
+1. Run the `workspace-status` repair, `repair-plan`. It writes `.workspace-repair-plan.json`
    with one `needs-to-header` operation for each waiting item, holding the
    header lines it will add. An edge the header cannot hold as the same edge
    becomes a manual finding that names the waiting path.
@@ -98,6 +94,6 @@ To move the edges:
    entry to `needs = []`, and compares the header edges read before and after
    the write with the registry edges. It exits non-zero when they differ.
 
-A cooled waiting item gets a `needs-drop-cooled` operation instead: its edges
+A cooled waiting item gets a `needs-drop-cooled` repair operation instead: its edges
 are dropped, because a cooled item contributes none. The full steps are in the
 `workspace-status` skill's `references/mutate.md`.

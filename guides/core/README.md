@@ -36,7 +36,7 @@ These guides help you take work from a request to a merged change, with your app
 - [Navigate intents](how-to/navigate-intents.md)
 - [Distill project knowledge](how-to/distill-captured-project-knowledge.md)
 - [Move from capture-work](how-to/capture-work.md)
-- [Recover a migration](how-to/migrate-capture-work.md)
+- [Upgrade from a workspace.toml registry](how-to/upgrade-from-a-workspace-registry.md) — repair an older registry
 - [Export loop telemetry](how-to/export-loop-telemetry.md)
 - [Run a headless session](how-to/run-headless-session.md)
 - [Run a live demo](how-to/run-a-live-demo.md)
@@ -57,7 +57,6 @@ These guides help you take work from a request to a merged change, with your app
 ### Reference
 
 - [Work-intake routing and lifecycle](reference/work-intake-routing-and-lifecycle.md)
-- [workspace.toml schema](reference/workspace-toml-schema.md)
 - [Product brief fields](reference/product-brief-fields.md)
 - [Project knowledge topics](reference/project-knowledge-topics.md)
 - [Spec shape and plan design](reference/spec-shape-and-lld.md)

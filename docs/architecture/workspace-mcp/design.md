@@ -31,13 +31,13 @@ does not write the event stream.
 | Response file | Per-elicitation temporary directory | ACP client response writer | `elicit` |
 | Loop events | `.loop-run/events.jsonl` | `work-loop` `work-supervisor.py` | Workspace MCP event bridge |
 | Full-mode run status | `docs/specs/<feature>/.supervisor/run.json` | `work-loop` `work-supervisor.py` | Event bridge and `workspace_status` (display only) |
-| Workspace lifecycle | Artifact headers; `workspace.toml` holds only legacy entries | Owning workflow | `workspace_status` and Git tools |
+| Workspace lifecycle | Artifact headers | Owning workflow | `workspace_status` and Git tools |
 
 ## 4. Dependencies and allowed edges
 
-Workspace MCP reads `workspace.toml` (through the `workspace-status` engine's
-reconciliation of its remaining entries), lifecycle artifacts,
-`.loop-run/events.jsonl`, and the bound spec's supervisor `run.json`. It tails
+Workspace MCP reads lifecycle artifact headers (through the packaged,
+header-only `dispatch.py` that `workspace_mcp.py` loads with
+`_load_packaged_dispatch`), `.loop-run/events.jsonl`, and the bound spec's supervisor `run.json`. It tails
 events by byte offset and never writes them. It reads `run.json` through the
 confined regular-file read with a 64 KiB bound; a link, non-regular, oversized,
 unreadable, or malformed file leaves the session with no run and no gate.
@@ -50,8 +50,8 @@ a base carrying `*`, `?`, `[`, `{`, or `}` is refused before it reaches the
 pattern.
 The lifecycle manifest is a built-in constant. The `workspace-types.d/`
 extension that [ADR-0067](../../adr/0067-lifecycle-manifest-builtin-defaults-workspace-types-d.md)
-decides is not read by the server yet. `workspace_status` does not call
-`work-loop`'s `dispatch.py`.
+decides is not read by the server yet. `workspace_status` calls the packaged
+`dispatch.py`, not the copy under `work-loop`, and reads no `workspace.toml`.
 
 ## 5. Primary flows
 
@@ -94,8 +94,8 @@ repository-provided `agentbundle/` directory from shadowing the installed wheel.
 
 ## 7. Observability and evidence
 
-`workspace_status` returns ready, shaping, blocked, and active items with
-unmet dependencies and bound FSM fields. For a supervisor run, `current_state`
+`workspace_status` returns ready, blocked, and active items (`shaping` is
+always empty, and items carry no `ini_slug`) with unmet dependencies and bound FSM fields. For a supervisor run, `current_state`
 is the `run.json` stage, and `run_active` and the gate fields come from the
 same file. The event bridge emits
 `_agentbundle.core/` notifications and records its byte-offset progress.

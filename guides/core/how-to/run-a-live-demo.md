@@ -543,5 +543,5 @@ For procedural depth:
   — Core structured-handoff behavior.
 - [Shape a feature intent](../../product-engineering/how-to/shape-a-feature-intent.md)
   — Product Engineering's feature-level intent-to-Core path.
-- [Orient at session start](orient-at-session-start.md) — read workspace state
+- [Orient at session start](orient-at-session-start.md) — read what is ready
   when returning after the demo; the live demo itself does not register work.

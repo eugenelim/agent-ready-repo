@@ -17,8 +17,10 @@ Rename this intent from FEAT to STRAT and show me how to recover if it stops.
 ```
 
 You should end with a successor intent at the target token's next fresh ordinal,
-a tombstone at the old path, citations and `workspace.toml` repointed to the
-successor, and no in-place renumbering.
+a tombstone at the old path, citations repointed to the successor, and no
+in-place renumbering. If the repository has a `workspace.toml`, it is repointed
+too. If it has none, the rename leaves the registry alone and does not create
+one.
 
 ## Run the rename
 
@@ -29,9 +31,11 @@ python3 .agents/skills/work-intake/scripts/intent_rename.py rename docs/product/
 ```
 
 The command reads the source intent, Git's tracked-file view, current citations,
-`workspace.toml`, and its own transaction stage. It writes only the successor,
-the old-path tombstone, affected citation files, `workspace.toml`, and
-operation-owned stage files.
+`workspace.toml` when the repository has one, and its own transaction stage. It
+writes only the successor, the old-path tombstone, affected citation files,
+`workspace.toml` when it has an entry to repoint, and operation-owned stage
+files. A repository with no `workspace.toml` renames as usual and the command
+never creates one. A `workspace.toml` that is present is repointed as before.
 
 A successful run prints:
 
@@ -118,10 +122,10 @@ and exits 2. Check the command against the forms above.
 | `refused:source-missing`, `source-not-regular`, `source-unreadable` | Point at an existing, readable intent file. |
 | `refused:source-outside-root` | Use a path under `docs/product/intents/`, relative to the repository root. |
 | `refused:source-tombstone` | The source is already retired. Rename its successor instead; `resolve` names it. |
-| `refused:registry-unparseable`, `registry-ambiguous` | Fix `workspace.toml` so it parses and no more than one entry names the source; the successor path may not occur in it. |
+| `refused:registry-unparseable`, `registry-ambiguous` | Fix `workspace.toml` so it is a regular file that parses and no more than one entry names the source; the successor path may not occur in it. A `workspace.toml` that is a link or a directory is refused; replace it with a regular `workspace.toml` file, then rename again. |
 | `refused:token-unknown` | Use `VISION`, `STRAT`, `CAP` or `FEAT`. |
 | `refused:root-unresolved` | Run the command from inside the repository. |
-| `refused:path-dirty` | Commit or discard the uncommitted changes in the source, its citing files, or `workspace.toml`, then rename again. |
+| `refused:path-dirty` | Commit or discard the uncommitted changes in the source, its citing files, or `workspace.toml`, then rename again. A `workspace.toml` that exists in only one of the last commit, the working tree and the Git index also counts as a change. |
 | `refused:successor-exists` | The allocated successor filename is already taken. Resolve that file first. |
 | `refused:allocation-refused` | The allocator could not answer for the target namespace. Check that the intents corpus and the local `origin` refs are readable, then retry. |
 | `refused:stage-budget` | The rename is larger than the operation's limits allow, for example too many or too large citing files. It cannot be done with this command. |

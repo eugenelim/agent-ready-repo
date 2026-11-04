@@ -101,7 +101,7 @@ Numbers give the delivery order. Slices 2 to 6 may start once slice 1 lands, and
      - shrink `workspace-status` to the repair (`repair-only-workspace-status`);
      - remove the legacy registry entries (the migrated captured memberships and the slug-only entries), and re-point the spec-status lint's deferral anchors from `[backlog].open` to captured-item files (`last-registry-entries`);
      - give the `[authorization.refresh]` and `[authorization.migration]` policy tables a home (`last-registry-entries`; `repair-only-workspace-status` retires `[authorization.migration]`);
-     - publish the upgrade notes, and move seeds, manifests and operative references;
+     - publish the upgrade notes, and move seeds, manifests and operative references (`registry-upgrade-notes`);
      - complete the closure checklist, and record the certification in the retirement spec and the retiring change;
      - then delete `workspace.toml`.
 
@@ -126,6 +126,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `pre-cutover-closure` | <auto> |
 | `last-registry-entries` | <auto> |
 | `repair-only-workspace-status` | <auto> |
+| `registry-upgrade-notes` | <auto> |
 
 ## Governance references (optional)
 

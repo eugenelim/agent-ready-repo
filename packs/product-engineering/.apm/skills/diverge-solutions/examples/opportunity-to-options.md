@@ -62,17 +62,17 @@ when PEs are under pressure. No schema enforcement — an agent reading a stale 
 sparse log gets partial context with no signal about staleness.
 *Status:* parked
 
-**Option B — Workspace.toml shaping section**
-*Mechanic:* Structured TOML fields capture initiative shaping state.
-*Scope:* initiative + cross-session, version-controlled alongside the work queue.
-*Approach:* Add a `[ini-NNN.shaping]` section to `workspace.toml` that records the
-current shaping phase, active spec path, key decisions, and open questions in a
-machine-readable format. The `workspace-status` skill surfaces this at session
-start automatically.
-*Key bets:* TOML field updates are low-friction enough for PEs to maintain them
-(the format is already established by the work queue); agents can reliably parse
+**Option B — Captured-item shaping record**
+*Mechanic:* Structured fields in a captured-item file capture initiative shaping state.
+*Scope:* initiative + cross-session, version-controlled alongside the work.
+*Approach:* Add a captured-item file under `docs/product/captured/` per initiative
+that records the current shaping phase, active spec path, key decisions, and open
+questions in a fixed set of fields. `work-loop`'s `dispatch.py --captured` lists it
+at session start.
+*Key bets:* Field updates are low-friction enough for PEs to maintain them
+(the captured-item format is already established); agents can reliably parse
 and surface structured shaping state without hallucinating prose context.
-*Trade-offs:* Leverages existing infrastructure (workspace.toml + workspace-status).
+*Trade-offs:* Leverages existing infrastructure (captured-item files + `dispatch.py`).
 Requires schema discipline — fields must stay parseable. Slightly more rigid than
 freeform prose; a field the PE wants to capture may not have a home yet.
 *Status:* recommended
@@ -96,12 +96,12 @@ decisions.
 
 ## Recommendation
 
-**Workspace.toml shaping section** — the dominant bet (TOML is low-friction for PEs
-already using the work queue format) is the most defensible of the three. Option A
+**Captured-item shaping record** — the dominant bet (the format is low-friction for PEs
+already using captured-item files) is the most defensible of the three. Option A
 relies on PE discipline under pressure; Option C's synthesis risk is asymmetric
 (silent failures compound into bad shaping decisions). Option B's rigidity is the
-acceptable cost: the schema can grow incrementally, and `workspace-status` already
-surfaces the file at session start.
+acceptable cost: the schema can grow incrementally, and `dispatch.py --captured` already
+lists the file at session start.
 
 ---
 
@@ -120,7 +120,7 @@ above were generated from the confirmed signal ("PEs spend 60–80% of shaping t
 re-briefing agents"). Without a step-2 JTBD canvas, the key bets in each option
 may miss emotional and social job dimensions — for example, whether the social job
 (stakeholder traceability of shaping decisions) is better served by the structured
-log (Option A, human-readable) or the TOML section (Option B, machine-readable
+log (Option A, human-readable) or the captured-item record (Option B, machine-readable
 but less narrative). Running `identify-opportunities` first would ground these bets
 before the PE selects an option.
 
@@ -134,7 +134,7 @@ type: solution-options
 slug: pe-shaping-memory
 opportunity: "PEs spend 60–80% of shaping time re-explaining context to agents at each session start, with no durable per-initiative memory of prior framing decisions."
 date: 2026-07-21
-recommendation: Workspace.toml shaping section
+recommendation: Captured-item shaping record
 ---
 
 # Solution Options: pe-shaping-memory
@@ -157,13 +157,13 @@ read it at session start.
 under pressure. No staleness signal.
 **Status:** parked
 
-### Option B: Workspace.toml shaping section
+### Option B: Captured-item shaping record
 
-**Approach:** A `[ini-NNN.shaping]` section captures phase, active spec, key
-decisions, and open questions in structured TOML. `workspace-status` surfaces
+**Approach:** A captured-item file per initiative records phase, active spec, key
+decisions, and open questions in fixed fields. `dispatch.py --captured` lists
 it at session start.
 **Key bets:**
-- TOML updates are low-friction enough for PEs already using the work queue.
+- Field updates are low-friction enough for PEs already using captured-item files.
 - Agents can parse and surface structured shaping state reliably.
 **Trade-offs:** Leverages existing infrastructure. Requires schema discipline;
 slightly more rigid than freeform prose.
@@ -182,8 +182,8 @@ Synthesis failures are silent.
 
 ## Recommendation
 
-**Workspace.toml shaping section.** The dominant bet (TOML is low-friction for
-PEs already using the work queue format) is the most defensible. Option A relies
+**Captured-item shaping record.** The dominant bet (the format is low-friction for
+PEs already using captured-item files) is the most defensible. Option A relies
 on PE discipline under pressure; Option C's silent synthesis failures are
 asymmetric risk.
 

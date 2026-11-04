@@ -119,8 +119,7 @@ needs the record, use an established shareable surface or retain it. Keep the ex
 approved locator and fingerprint; do not replace the record with session memory.
 
 At closeout, first route lasting context and keep stable completion evidence outside
-the record being removed. Then settle any temporary `workspace.toml` membership as
-separate coordination residue. A never-pushed local record may qualify for
+the record being removed. Then settle any other temporary coordination residue separately. A never-pushed local record may qualify for
 `delete-before-push`; a PR-only record removed before integration may qualify for
 `delete-before-merge`. Both are recommendations and still require a fresh exact
 confirmation.
@@ -215,14 +214,14 @@ that older form remain unchanged until a separately governed migration.
 ## Keep workspace follow-ons terse
 
 When `work-intake` captures the follow-on, it writes the context-owning artifact
-first. Its `workspace.toml` entry contains minimal source provenance, one short
-sentence naming the current outcome or next-needed condition, and hard dependencies
-only. Do not add comment blocks with chronology, rationale, procedures, review
-history, findings, or copied discussion. Those belong in the referenced artifact.
+first. The artifact's own header carries its `Status:` and its hard
+`Depends on:` dependencies, and its body holds one short sentence naming the
+current outcome or next-needed condition. Do not add comment blocks with
+chronology, rationale, procedures, review history, findings, or copied
+discussion. Those belong in the referenced artifact.
 
 At closeout, remove settled live coordination rather than replacing it with a
-workspace history. Legacy prose that this closeout did not touch remains for a later
-migration; any entry materially updated now must use the terse form.
+workspace history.
 
 ## Pause work instead of closing it
 
@@ -246,7 +245,7 @@ that the work is resumable.
 ## Close an initiative
 
 Ask `close-work` to preview initiative closure only after every child outcome is
-settled. The preview reconciles shaping and build entries, durable outputs,
+settled. The preview reconciles shaping and build children, durable outputs,
 obligations, dependencies, and reusable findings. Live coordination can be
 removed or compacted only through the same exact authority and confirmation
 checks as any other persisted change.
@@ -259,8 +258,7 @@ source payload, artifact content, or personal identity, and references an
 evidence locator rather than a person. This matters because the receipt is
 written into a coordination surface that is normally committed. If the
 established coordination surface cannot carry that receipt, the delivery record
-stays as a retained exception. `workspace.toml` remains an index; it does not
-become the receipt, rationale, or cooling store.
+stays as a retained exception. Lifecycle lives in each artifact's `Status:` header; no registry becomes the receipt, rationale, or cooling store.
 
 ## What you have now
 
@@ -279,6 +277,5 @@ reference, actor grant, action, resource, and session value still matches this
 preview, ask me for the single-use confirmation.
 ```
 
-Run `workspace-status` afterward for a read-only projection of remaining work and
-next actions. See [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
+Run `dispatch.py` afterward for a read-only view of what is ready, and `navigate-intents` `outstanding` for work placed under an intent. See [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
 for the repository lifecycle and workflow ownership boundaries.

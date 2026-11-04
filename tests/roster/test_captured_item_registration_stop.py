@@ -37,7 +37,6 @@ _AC11_FILES = (
     "packs/product-engineering/.apm/skills/diverge-solutions/SKILL.md",
     "packs/product-engineering/.apm/skills/diverge-solutions/examples/opportunity-to-options.md",
     "guides/architect/how-to/establish-reference-architecture.md",
-    "guides/core/reference/workspace-toml-schema.md",
     "guides/core/how-to/start-or-remember-work.md",
 )
 _SIX_PACK_FILES = _AC11_FILES[4:10]

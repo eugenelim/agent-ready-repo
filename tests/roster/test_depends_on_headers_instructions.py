@@ -35,7 +35,6 @@ DEPENDS_ON_FILES = (
     "packs/core/.apm/skills/workspace-status/SKILL.md",
     "packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md",
     "packs/core/.apm/skills/new-spec/assets/spec.md",
-    "guides/core/reference/workspace-toml-schema.md",
     "guides/architect/how-to/establish-reference-architecture.md",
     "packs/architect/DESIGN.md",
     "docs/product/workspace-toml-deps.md",

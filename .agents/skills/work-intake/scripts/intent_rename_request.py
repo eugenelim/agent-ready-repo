@@ -158,6 +158,46 @@ def _git_toplevel(cwd: Path) -> Path | None:
     return Path(line) if line else None
 
 
+def _git_lists_nothing(repository_root: Path, arguments: list[str]) -> bool:
+    """Return ``True`` only when a Git query succeeds and prints nothing.
+
+    A nonzero exit, a timeout or an OS error is never an answer, so each
+    returns ``False``: the caller then treats the queried path as present.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "--no-optional-locks", "--literal-pathspecs", *arguments],
+            cwd=os.fspath(repository_root),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            timeout=10,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0 and not result.stdout
+
+
+def _registry_absent(repository_root: Path) -> bool:
+    """Return ``True`` when ``workspace.toml`` is absent from ``HEAD``, disk and index.
+
+    Absent means ``git ls-tree HEAD`` and ``git ls-files`` both succeed and
+    list nothing, and ``lstat`` finds no directory entry at the root (a
+    dangling link is an entry, so it is present).
+    """
+    try:
+        os.lstat(repository_root / "workspace.toml")
+        return False
+    except FileNotFoundError:
+        pass
+    except OSError:
+        return False
+    return _git_lists_nothing(
+        repository_root, ["ls-tree", "-z", "HEAD", "--", "workspace.toml"]
+    ) and _git_lists_nothing(repository_root, ["ls-files", "-z", "--", "workspace.toml"])
+
+
 def _is_dirty(repository_root: Path, source_rel: str) -> bool:
     """Return ``True`` when the source or workspace.toml carries any uncommitted change.
 
@@ -178,7 +218,9 @@ def _is_dirty(repository_root: Path, source_rel: str) -> bool:
     pathspecs`` so a source filename containing glob characters is not
     interpreted as a pattern.
     """
-    paths = [source_rel, "workspace.toml"]
+    # A registry absent everywhere is not guarded; one held by only some of
+    # HEAD, the disk and the index stays guarded and so reads dirty.
+    paths = [source_rel] if _registry_absent(repository_root) else [source_rel, "workspace.toml"]
     _GIT = ["git", "--no-optional-locks", "--literal-pathspecs"]
 
     # ── Step 1: verify tracked status and hidden-scan flags ───────────────────
@@ -449,22 +491,34 @@ def validate_rename_request(
         return refusal
 
     # ── Step 5: check the workspace registry ─────────────────────────────────
+    # A registry with no directory entry is left alone: the rename never
+    # writes it. Whether that absence is clean is decided at step 7.
     workspace_path = resolved_root / "workspace.toml"
     try:
-        workspace_bytes = _file_safety.read_confined_regular_file(  # type: ignore[attr-defined]
-            resolved_root, workspace_path, max_bytes=_WORKSPACE_MAX_BYTES
-        )
-    except (OSError, ValueError):
+        workspace_path.lstat()
+    except FileNotFoundError:
+        registry_present = False
+    except OSError:
         return "registry-unparseable"
+    else:
+        registry_present = True
 
-    try:
-        workspace_data = tomllib.loads(workspace_bytes.decode("utf-8"))
-    except (tomllib.TOMLDecodeError, UnicodeDecodeError):
-        return "registry-unparseable"
+    if registry_present:
+        try:
+            workspace_bytes = _file_safety.read_confined_regular_file(  # type: ignore[attr-defined]
+                resolved_root, workspace_path, max_bytes=_WORKSPACE_MAX_BYTES
+            )
+        except (OSError, ValueError):
+            return "registry-unparseable"
 
-    match_count = _count_registry_matches(workspace_data, source_rel)
-    if match_count > 1:
-        return "registry-ambiguous"
+        try:
+            workspace_data = tomllib.loads(workspace_bytes.decode("utf-8"))
+        except (tomllib.TOMLDecodeError, UnicodeDecodeError):
+            return "registry-unparseable"
+
+        match_count = _count_registry_matches(workspace_data, source_rel)
+        if match_count > 1:
+            return "registry-ambiguous"
 
     # ── Step 6: check the target token ───────────────────────────────────────
     if target_token not in _ordinal.NAMESPACE_TOKENS:  # type: ignore[attr-defined]

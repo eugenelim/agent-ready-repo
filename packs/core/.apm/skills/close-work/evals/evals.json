@@ -45,8 +45,8 @@
     },
     {
       "id": 8,
-      "prompt": "All work in this initiative is shipped. Clean up workspace.toml but keep the RFC wave specs together.",
-      "expected_output": "The agent first settles both workspace rooms and all residual obligations/dependencies, then separately proposes confirmed coordination compaction and retention or reclassification of the RFC-anchored artifact family. Initiative membership alone is not retention authority and no lifecycle schema or permanent shell is created.",
+      "prompt": "All work in this initiative is shipped. Clean up leftover workspace.toml entries but keep the RFC wave specs together.",
+      "expected_output": "The agent first settles all residual obligations/dependencies, then separately proposes confirmed coordination compaction and retention or reclassification of the RFC-anchored artifact family. Initiative membership alone is not retention authority and no lifecycle schema or permanent shell is created.",
       "assertions": ["Separates workspace cleanup from artifact retention", "Requires exact compaction confirmation", "Creates no third room or lifecycle schema"]
     },
     {

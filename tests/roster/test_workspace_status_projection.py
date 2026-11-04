@@ -183,7 +183,7 @@ def test_t3_work_loop_step0_requires_canonical_preflight() -> None:
     assert "`--start <spec>`" in normalized
     assert "`--resume <spec>`" in normalized
     assert "canonical.ready" not in normalized
-    assert "Raw `[work].queue` or `[work].active` membership never authorizes PLAN" in normalized
+    assert "A registry entry never authorizes PLAN" in normalized
     assert "collect all paths in `[\"ini-NNN\".work].active`" not in skill
     assert "use it and proceed to PLAN" not in skill
     # repair-only-workspace-status AC-0005/AC-0018: the guard reads the dispatch listing.
@@ -441,45 +441,40 @@ print(engine.canonical_result_identity(canonical, **{base!r}))
     skill = (CORE_PACK / ".apm" / "skills" / SKILL_NAME / "SKILL.md").read_text(
         encoding="utf-8"
     )
-    reference = (
-        REPO_ROOT / "guides" / "core" / "reference" / "workspace-toml-schema.md"
-    ).read_text(encoding="utf-8")
     finding_codes = set(engine._FINDING_NEXT_ACTIONS)
-    for text in (skill, reference):
-        documented_findings = _documented_finding_rows(text)
-        assert set(documented_findings) >= finding_codes
-        for code in finding_codes:
-            reason, action = documented_findings[code]
-            assert reason
-            assert action
-    # The receipt contract travelled with the reconcile depth it belongs to
-    # when the skill became a dispatcher: authoring a receipt and recovering
-    # from a bad one is remediation an agent reaches only after reconciliation
-    # reports the code, so it loads with that mode rather than on every
-    # orientation. The findings table above stays in SKILL.md and is still
-    # asserted there; only this half follows the prose.
-    for text in (reference,):
-        assert "```toml coordination-receipts" in text
-        assert "invalid_receipt" in text
-        assert "refresh_conflict = false" in text
-        receipt_blocks = re.findall(
-            r"```toml coordination-receipts\n(.*?)\n```",
-            text,
-            flags=re.DOTALL,
-        )
-        assert receipt_blocks
-        parsed_receipts = [
-            receipt
-            for block in receipt_blocks
-            for receipt in tomllib.loads(block)["coordination_receipts"]
-        ]
-        assert any(
-            set(receipt) == engine._COORDINATION_RECEIPT_FIELDS
-            and receipt["accepted_revision"] == "remote-rev-9"
-            for receipt in parsed_receipts
-        )
-        for receipt in parsed_receipts:
-            assert set(receipt).issubset(engine._COORDINATION_RECEIPT_FIELDS)
+    documented_findings = _documented_finding_rows(skill)
+    assert set(documented_findings) >= finding_codes
+    for code in finding_codes:
+        reason, action = documented_findings[code]
+        assert reason
+        assert action
+
+    # The receipt contract lives in the product-brief reference, where a brief
+    # author reaches it.
+    receipt_guide = (
+        REPO_ROOT / "guides" / "core" / "reference" / "product-brief-fields.md"
+    ).read_text(encoding="utf-8")
+    assert "```toml coordination-receipts" in receipt_guide
+    assert "invalid_receipt" in receipt_guide
+    assert "refresh_conflict = false" in receipt_guide
+    receipt_blocks = re.findall(
+        r"```toml coordination-receipts\n(.*?)\n```",
+        receipt_guide,
+        flags=re.DOTALL,
+    )
+    assert receipt_blocks
+    parsed_receipts = [
+        receipt
+        for block in receipt_blocks
+        for receipt in tomllib.loads(block)["coordination_receipts"]
+    ]
+    assert any(
+        set(receipt) == engine._COORDINATION_RECEIPT_FIELDS
+        and receipt["accepted_revision"] == "remote-rev-9"
+        for receipt in parsed_receipts
+    )
+    for receipt in parsed_receipts:
+        assert set(receipt).issubset(engine._COORDINATION_RECEIPT_FIELDS)
 
     pack_version = tomllib.loads((CORE_PACK / "pack.toml").read_text(encoding="utf-8"))[
         "pack"

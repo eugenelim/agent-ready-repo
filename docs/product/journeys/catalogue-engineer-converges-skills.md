@@ -107,7 +107,7 @@ sequenceDiagram
 |-----|---------|
 | **Actions** | Identifies a source (a repo URL, a known catalogue, a community project). Runs `assimilate-repo` pointing at the source. The skill fetches over an allowlisted scheme (HTTPS or git only), opens a ledger at a deterministic path (`~/.agentbundle/catalogue-curation/<run-id>/ledger.toml`), and inventories candidates with a verdict for each: `assimilate`, `reject`, or `needs-new-pack`. The engineer reviews the ledger — it is the audit record of what was seen and what decision was made. An interrupted survey resumes from the ledger without re-fetching. |
 | **Emotions** | Oriented (neutral → positive). The ledger gives a structured view of a potentially large source without reading every file manually. |
-| **Remaining pains** | No progress indicator during the survey beyond ledger entries being written. The survey correctly reads workspace context from the repo's own structure — the engineer does not need to supply file paths or configure input locations manually. |
+| **Remaining pains** | No progress indicator during the survey beyond ledger entries being written. The survey correctly reads repository context from the repo's own structure — the engineer does not need to supply file paths or configure input locations manually. |
 
 ---
 
@@ -159,20 +159,20 @@ sequenceDiagram
 
 ---
 
-## Workspace and queue arc
+## Work arc
 
-Catalogue curation work fits into the workspace's two-room model.
+Catalogue curation work fits into the two-room model.
 
 Survey and evaluation (Stages 1–2) are shaping work — the output is a bet (adopt this?) and a brief (here is what to build).
-These live in `[shaping_queue]` before the RFC is accepted.
-Once the RFC is accepted and a pack shell exists, individual primitive assimilations are build tasks: one spec per primitive or per pack, in `[work].queue`.
+These live under `docs/product/shaping/` before the RFC is accepted.
+Once the RFC is accepted and a pack shell exists, individual primitive assimilations are build tasks: one spec per primitive or per pack, each with its own `Status:` header.
 
-The assimilation ledger (at `~/.agentbundle/catalogue-curation/<run-id>/ledger.toml`) is the curation-specific state that complements `workspace.toml`.
-`workspace.toml` tracks which specs are queued and shipped; the ledger tracks which primitives from the source have been reviewed and what verdict each received.
+The assimilation ledger (at `~/.agentbundle/catalogue-curation/<run-id>/ledger.toml`) is the curation-specific state that complements the spec headers.
+The `Status:` headers track which specs are approved and shipped; the ledger tracks which primitives from the source have been reviewed and what verdict each received.
 
-Running `workspace-status` after Stage 2 shows the scaffolded pack's spec tasks in `[work].queue`.
+Running `dispatch.py` after Stage 2 lists the scaffolded pack's spec tasks as ready.
 Each assimilation task (Stage 3) is one `work-loop` round — plan (which primitive?) → assimilate → verify activation evals → ship.
-The pack arc — survey → scaffold → fill → ship — is the high-level arc; the workspace queue is how individual assimilation tasks are tracked and handed off between sessions or agents.
+The pack arc — survey → scaffold → fill → ship — is the high-level arc; the spec `Status:` headers are how individual assimilation tasks are tracked and handed off between sessions or agents.
 
 ---
 
@@ -184,7 +184,7 @@ The pack arc — survey → scaffold → fill → ship — is the high-level arc
 - **Tool:** `python tools/run-pack-evals.py --pack <name>` — activation eval run
 - **CLI:** `agentbundle catalogue init --preset self-hosted` — create an enterprise-derived catalogue
 - **CLI:** `agentbundle catalogue package` — produce a versioned release archive
-- **Skill:** `workspace-status` — orient at session start; surface next assimilation task
+- **Skill:** `work-loop` `dispatch.py` — orient at session start; surface next assimilation task
 
 ---
 

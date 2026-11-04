@@ -1,6 +1,6 @@
 ---
 title: Work-intake routing and lifecycle reference
-summary: Look up intake routes, authority modes, dispatch rules, refresh results, and migration boundaries across supported profiles.
+summary: Look up intake routes, authority modes, dispatch rules, refresh results, and what remains of the old registry across supported profiles.
 pack: _shared
 kind: reference
 ---
@@ -18,9 +18,8 @@ Jira Align, Linear, and GitHub profiles.
 | --- | --- |
 | Start or do work | One content-based artifact route and processor |
 | Remember work | A Draft artifact and non-dispatchable membership |
-| Inspect or triage status | The `workspace-status` result, unchanged and read-only |
+| Inspect or triage status | The `work-loop` `dispatch.py` listing, or `navigate-intents` `outstanding` for work under an intent; both read-only |
 | Refresh tracked requirements | A profile-bound comparison governed by lifecycle and source authority |
-| Recover or roll back a recorded migration operation | A read-only plan or rollback for an operation already in `.workspace-migrations.json` |
 
 ## Normalized route record
 
@@ -66,9 +65,11 @@ remembered defect, design, or research item is written as its own file under
 `docs/product/captured/` and gets no registry entry. Closing it is an edit to
 that file alone.
 
-Status delegates to `workspace-status`. It performs no intake classification
-and no mutation. Canonical, legacy, duplicate, invalid, and refresh findings
-remain visible with their stable next actions.
+Status delegates to `work-loop`'s `dispatch.py` (what is ready, active, or
+blocked; add `--captured` for captured items) and to `navigate-intents`
+`outstanding` (work placed under an intent). Neither performs intake
+classification or mutation, and findings remain visible with their stable next
+actions.
 
 ## Authority modes
 
@@ -102,32 +103,26 @@ Refresh reads its approver roles from the `[authorization.refresh]` table of
 it writes locally. A repository whose table is still in `workspace.toml` gets
 `invalid_refresh_policy` until the `refresh-policy-move` repair moves it.
 
-## Migration recovery boundary
+## Leftover registry entries
 
-Former legacy workspace entries surface as `unsupported_legacy` findings and
-are never dispatchable. Rewrite each entry in canonical form by hand.
-
-The migration tooling is retained only for recovering or rolling back an
-operation already recorded in `.workspace-migrations.json`. Recovery and
-rollback are workspace-status repair effects, not tracker routes. They require
-the repository's `[authorization.migration]` policy plus one fresh, single-use,
-current-session confirmation for the exact operation.
-See [Recover or roll back a migration operation](../../core/how-to/migrate-capture-work.md).
+A repository that still has `workspace.toml` entries from an older version keeps
+the file. `workspace-status` only plans and applies the repair that drops
+them; nothing else reads those entries as lifecycle. Dispatch refuses an entry
+written in the legacy form with `unmigrated_workspace` until you edit it by
+hand. See [Upgrade from a workspace.toml registry](../../core/how-to/upgrade-from-a-workspace-registry.md).
 
 ## Read and write limits
 
 Core-only routing uses no network. Tracker adapters enforce their declared
 page, item, byte, timeout, retry, backoff, destination, and capability limits.
-Artifact and workspace paths must remain repository-confined. Registration
-occurs only after artifact creation; processor dispatch occurs only after both
-are durable and reconciled. A route that registers nothing, such as a defect
-start or a remembered defect, design, or research item, writes only its
-captured-item file and dispatches, if it dispatches at all, once that file is
-durable.
+Artifact paths must remain repository-confined. A route is one artifact write
+and nothing registers; processor dispatch occurs only after that file is
+durable. A defect start or a remembered defect, design, or research item
+writes only its captured-item file.
 
 ## See also
 
 - [Use work intake](../how-to/use-work-intake.md)
 - [Tracker vocabulary](tracker-vocabulary.md)
 - [How work records divide responsibility](../explanation/work-artifact-responsibilities.md)
-- [workspace.toml schema reference](../../core/reference/workspace-toml-schema.md)
+- [Upgrade from a workspace.toml registry](../../core/how-to/upgrade-from-a-workspace-registry.md) (repair leftover entries)

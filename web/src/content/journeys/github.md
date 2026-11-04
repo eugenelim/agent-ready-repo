@@ -80,8 +80,8 @@ packUrl: /packs/github/
 
 ### 2. Materialize repository work
 
-- **Agent does:** `work-intake` writes the selected canonical artifact, then
-  registers it before processor dispatch.
+- **Agent does:** `work-intake` writes the selected canonical artifact
+  before processor dispatch.
 - **You decide:** continue with the named processor or stop with a Draft.
 - **Output:** durable repo-local work. GitHub remains unchanged.
 - **State:** confirmed-write

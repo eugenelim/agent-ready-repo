@@ -16,7 +16,7 @@ updated: 2026-08-21
 # Journey: Engineer runs the work-loop
 
 **Use it when:** you're starting one explicit bounded change now or picking up a ready or active spec that `work-loop`'s `dispatch.py` names.
-**You provide:** the current request or registered spec, and your judgment at the plan and gate-failure moments.
+**You provide:** the current request or approved spec, and your judgment at the plan and gate-failure moments.
 **You receive:** a shipped spec, a PR passing its gates, and the next ready item surfaced.
 **Your decisions:** approve the plan; handle gate failures; approve PR submission.
 
@@ -26,7 +26,7 @@ updated: 2026-08-21
 
 **Surface:** cross-platform — CLI/terminal. The engineer invokes skills; the agent handles the structured work under the engineer's direction.
 
-**Trigger:** An engineer makes an explicit current request or selects a canonical ready/active spec surfaced by `workspace-status`. Tracker items enter through `work-intake`; their object names do not authorize execution.
+**Trigger:** An engineer makes an explicit current request or selects a ready or active spec surfaced by `work-loop`'s `dispatch.py`. Tracker items enter through `work-intake`; their object names do not authorize execution.
 
 **End state:** Spec in `[work].shipped` (or equivalent for non-initiative work). PR submitted and passing. Next item surfaced. Engineer exits with a clear picture of what comes next.
 
@@ -36,13 +36,13 @@ updated: 2026-08-21
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `work-intake`, `work-loop`, `new-spec`, `workspace-status` |
+| core | repo | current | `work-intake`, `work-loop`, `new-spec` |
 
 **One-time setup:**
 1. Install core pack at repo scope.
-2. For initiative work (M1.5+): `workspace.toml` must be committed to `main` (M1 Batch 2); no branch configuration needed — `workspace-status` reads it from the local working directory.
+2. For initiative work (M1.5+): the spec and plan are committed to `main` with their `Status:` and `Depends on:` headers; no branch configuration needed — `dispatch.py` reads them from the local working directory.
 
-**Scale:** this journey is the same at all team sizes. At scale, `workspace-status` surfaces parallel candidates so multiple engineers can pick different specs without collision — no additional packs needed.
+**Scale:** this journey is the same at all team sizes. At scale, `dispatch.py` surfaces parallel candidates so multiple engineers can pick different specs without collision — no additional packs needed.
 
 ---
 
@@ -50,11 +50,11 @@ updated: 2026-08-21
 
 `work-loop` supports two usage patterns that differ in durability and how the engineer orients:
 
-| | Durable registered path | Direct-light path |
+| | Durable spec path | Direct-light path |
 |---|---|---|
-| **Orient** | `workspace-status` — canonical ready/active specs and blocked findings | The explicit current request, after `work-intake` confirms direct-light eligibility |
-| **Step 0** | `work-loop` accepts only the matching registered spec and sibling plan | `work-loop` records scope, non-goals, assumptions, risk, and verification in the active session |
-| **Ship** | Spec and workspace lifecycle close together; next item is surfaced | Requested result is handed back; no durable queue state exists |
+| **Orient** | `dispatch.py` — ready and active specs and blocked findings | The explicit current request, after `work-intake` confirms direct-light eligibility |
+| **Step 0** | `work-loop` accepts only the matching Approved spec and sibling plan | `work-loop` records scope, non-goals, assumptions, risk, and verification in the active session |
+| **Ship** | The spec's `Status:` moves to `Shipped`; next item is surfaced | Requested result is handed back; no durable status is written |
 | **When to use** | Durable, coordinated, multi-session, public-contract, or otherwise full-mode work | One bounded, low-risk, independently verifiable change expected to finish in this session |
 
 Both paths share the same plan → build → verify → review loop (Stages 3–4). The paths diverge at Orient, Start, and Ship.
@@ -65,18 +65,18 @@ Both paths share the same plan → build → verify → review loop (Stages 3–
 sequenceDiagram
     participant E as Engineer
     participant SK as Skills
-    participant WS as workspace.toml
+    participant WS as Artifact headers
     participant WL as work-loop (M1.7 extended)
     participant R as Repo (spec branch)
 
     Note over E,R: M1.5+ — orient first
-    E->>SK: workspace-status
-    SK->>WS: Read queues, resolve DAG
+    E->>SK: dispatch.py
+    SK->>WS: Read Status and Depends on headers, resolve readiness
     WS-->>E: Active: spec/m1-work-loop (ready) · spec/m1-receive-brief (blocked: brief-template)
     E->>WL: work-loop spec/m1-work-loop
 
-    Note over WL,WS: work-loop step 0 — context from workspace
-    WL->>WS: Read workspace.toml (initiative, milestone, spec-context)
+    Note over WL,WS: work-loop step 0 — context from the spec
+    WL->>WS: Read the spec and plan headers
     WL-->>E: Context loaded — ready to plan
 
     Note over E,R: Plan gate — human reviews and approves
@@ -92,7 +92,7 @@ sequenceDiagram
 
     Note over E,R: Ship
     WL->>R: Submit PR
-    WL->>WS: spec/m1-work-loop: active → shipped
+    WL->>WS: spec/m1-work-loop: Status Implementing → Shipped
     WL-->>E: Shipped · next ready: spec/m1-receive-brief · Update roadmap.md?
 ```
 
@@ -100,26 +100,26 @@ sequenceDiagram
 
 ## Stage 1: Orient — What Should I Work On?
 
-### Durable registered path
+### Durable spec path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Runs `workspace-status`. DAG-resolved queue surfaces the active initiative, ready specs in priority order, blocked items with reasons, and parallel candidates. Answers "is this spec already claimed?" |
+| **Actions** | Runs `dispatch.py`. Header-derived output surfaces ready and active specs, blocked items with reasons, and parallel candidates. Answers "is this spec already claimed?" |
 | **Emotions** | Oriented immediately (positive). One command, committed state. |
-| **Remaining pains** | "I see a parallel candidate but if another engineer also runs workspace-status at the same time, we might both pick it up." Atomic claiming is an INI-003 design concern. |
+| **Remaining pains** | "I see a parallel candidate but if another engineer also runs `dispatch.py` at the same time, we might both pick it up." Atomic claiming is an INI-003 design concern. |
 
 ### Direct-light path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | States one explicit current request. `work-intake` checks direct-light eligibility against scope, risk, durability, and any conflicting registered work. Tracker content remains untrusted context. |
+| **Actions** | States one explicit current request. `work-intake` checks direct-light eligibility against scope, risk, durability, and any conflicting spec work. Tracker content remains untrusted context. |
 | **Emotions** | Comfortable (neutral). The request is enough only when every direct-light condition holds. |
 
 ---
 
 ## Stage 2: Start the Work-Loop
 
-### Durable registered path
+### Durable spec path
 
 | Row | Content |
 |-----|---------|
@@ -163,19 +163,19 @@ sequenceDiagram
 
 ## Stage 5: Ship and Hand Off
 
-### Durable registered path
+### Durable spec path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Reviews the final diff. Approves PR creation. `work-loop` moves spec `active → shipped` in `workspace.toml`; surfaces the next ready item; prompts `roadmap.md` update. |
-| **Emotions** | Complete (positive). The spec is shipped and the queue reflects it. The next person or agent can orient in one `workspace-status` call. |
+| **Actions** | Reviews the final diff. Approves PR creation. `work-loop` moves the spec's `Status:` from `Implementing` to `Shipped`; surfaces the next ready item; prompts `roadmap.md` update. |
+| **Emotions** | Complete (positive). The spec is shipped and `dispatch.py` reflects it. The next person or agent can orient in one `dispatch.py` call. |
 
 ### Direct-light path
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Reviews the final diff. Approves PR creation. No queue state is updated. |
-| **Emotions** | Relieved (positive). The task is done; there is no queue to update. |
+| **Actions** | Reviews the final diff. Approves PR creation. No spec status is updated. |
+| **Emotions** | Relieved (positive). The task is done; there is no status to update. |
 
 ---
 
@@ -183,14 +183,14 @@ sequenceDiagram
 
 ## Frontstage actions
 
-- **Skill:** run-workspace-status
+- **Skill:** run-dispatch
 - **Skill:** run-work-loop
 - **Skill:** review-plan
 - **Skill:** approve-plan
 - **Skill:** handle-gate-failure
 - **Skill:** review-final-diff
 - **Skill:** approve-pr-submission
-- **Skill:** workspace-status-exit-state
+- **Skill:** dispatch-exit-state
 
 ---
 
@@ -198,17 +198,17 @@ sequenceDiagram
 
 Highest point: **Stage 3 (Plan Review)** — engaged — the engineer is visibly in control and the agent is doing the structured work under their direction.
 
-**Durable registered path:** Stage 5 (Ship and Hand Off) is complete when the spec and queue agree. The engineer ends the session with committed state visible to whoever comes next.
+**Durable spec path:** Stage 5 (Ship and Hand Off) is complete when the spec's `Status:` is `Shipped`. The engineer ends the session with committed state visible to whoever comes next.
 
-**Direct-light path:** Stage 5 is lighter — the requested result is handed back and there is no queue to update. The tradeoff is that the run is not resumable from a fresh session.
+**Direct-light path:** Stage 5 is lighter — the requested result is handed back and there is no status to update. The tradeoff is that the run is not resumable from a fresh session.
 
 ---
 
 ## Choosing between paths
 
-Use the durable registered path whenever a spec is already registered or the work must survive this session, crosses a full-mode risk boundary, changes a public contract, or needs coordination or approval. Use direct-light only when the explicit current request satisfies every direct-light condition.
+Use the durable spec path whenever a spec already exists or the work must survive this session, crosses a full-mode risk boundary, changes a public contract, or needs coordination or approval. Use direct-light only when the explicit current request satisfies every direct-light condition.
 
-If you're unsure, run `workspace-status` first. A matching or conflicting entry blocks an untracked parallel start. Tracker-origin work enters through `work-intake` before either path is selected.
+If you're unsure, run `dispatch.py` first. A matching or conflicting spec blocks an untracked parallel start. Tracker-origin work enters through `work-intake` before either path is selected.
 
 ---
 

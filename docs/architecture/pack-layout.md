@@ -354,7 +354,7 @@ seeds) lives under `packs/<pack>/`. The split is:
   files a pack seeds. (Other seed-projected paths from earlier
   phases — `AGENT_RULES.md`, `docs/CHARTER.md`, `docs/README.md`, the seed READMEs under
   `docs/<area>/`,
-  `workspace.toml`, and `packages/_example/` — were reclassified as
+  and `packages/_example/` — were reclassified as
   *Manual* with placeholder seeds; adopters receive the placeholder on
   first install via brownfield rules and own their on-disk content
   thereafter. Membership is decided by `EXCLUDED_PATTERNS`, not by this

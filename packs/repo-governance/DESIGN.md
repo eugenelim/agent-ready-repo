@@ -145,8 +145,8 @@ pack installs and runs on its own; `core` is declared as a recommended
 dependency at `^3.0` and as optional integrations.
 
 When `core` is installed, `new-rfc` gains three hand-offs: `work-loop`'s risk
-triggers to pick the RFC's decision weight, `work-intake` and `workspace-status`
-to register follow-on work in the queue, and the `adversarial-reviewer` and
+triggers to pick the RFC's decision weight, `work-intake`
+to capture follow-on work as artifacts, and the `adversarial-reviewer` and
 `security-reviewer` agents for the review gate. Without `core`, each has a
 fallback: the template's own `light` / `standard` / `heavy` definitions, a
 follow-on list in the completion receipt, and a fresh-context reviewer given

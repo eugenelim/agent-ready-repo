@@ -292,14 +292,14 @@ agentbundle oplog clear my-pack                 # wipe history (asks first)
 python3 -m agentbundle.workspace_mcp
 
 # Or via the core-pack alias (projected to .agents/ and .claude/ by build-self)
-python3 .claude/skills/workspace-status/scripts/workspace_mcp_server.py
+python3 .claude/skills/workspace-status/scripts/workspace_mcp_server.py  # repair skill's launcher
 ```
 
 Tools exposed:
 
 | Tool | Description |
 |---|---|
-| `workspace_status` | DAG-resolved queue + FSM state fields |
+| `workspace_status` | Ready, blocked, and active items from artifact headers (`shaping` is always empty, items carry no `ini_slug`) + FSM state fields |
 | `elicit` | Route questions / approvals to the control plane |
 | `git_status` | Current working-tree status |
 | `git_branch` | Create and check out a feature branch |

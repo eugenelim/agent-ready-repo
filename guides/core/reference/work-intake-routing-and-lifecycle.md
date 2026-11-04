@@ -17,7 +17,8 @@ which does not cover closeout.
 
 `work-intake` is the neutral route for raw or ambiguous requests, acquisition,
 refresh, and generic intake safety. Status goes directly to
-`workspace-status`; an explicitly named artifact, owning skill, product-shaping
+`work-loop`'s `dispatch.py` for what is ready or active, or to `navigate-intents`
+`outstanding` for placed work; an explicitly named artifact, owning skill, product-shaping
 task, architecture-design task, or defect goes directly to its owner. A
 delegation from neutral intake is the same route, not a second public answer.
 
@@ -26,9 +27,9 @@ delegation from neutral intake is the same route, not a second public answer.
 | User intent | Result |
 | --- | --- |
 | Start or do work | Select one artifact route, write it, then invoke the owning processor when dispatchable. A defect start writes only its captured-item file under `docs/product/captured/`. Nothing is registered |
-| Remember work | Write a Draft, non-dispatchable artifact; stop before implementation. No artifact is registered: an intent, brief, spec, defect, design, or research item is written as its own file with no entry, and a tracker-origin brief or spec also gets its tracker profile in its own record |
-| Inspect status | Return `workspace-status` lifecycle, findings, and next actions without mutation |
-| Refresh requirements | Resolve an existing registered artifact and exact configured profile processor, then present a reviewed field delta |
+| Remember work | Write a Draft, non-dispatchable artifact; stop before implementation. An intent, brief, spec, defect, design, or research item is written as its own file, and a tracker-origin brief or spec also gets its tracker profile in its own record |
+| Inspect status | Return the `dispatch.py` or `navigate-intents` `outstanding` result without mutation |
+| Refresh requirements | Resolve an existing artifact and exact configured profile processor, then present a reviewed field delta |
 | Admit a shaping handoff | Validate bounded context, resolve its semantic destination, and continue through an existing brief or spec processor |
 | Pause work | Persist a reference-only restorable overlay through `close-work`; keep Ready or Implementing status |
 | Close work | Hand bounded delivery evidence to `close-work`, verify durable owners, and recommend a disposition without automatic action |
@@ -46,7 +47,7 @@ delegation from neutral intake is the same route, not a second public answer.
 | Request naming `intake-intent` directly, any `Level` | Intent at `docs/product/intents/<slug>.md`, noting that no ordinal was allocated | Draft, non-dispatchable | `intake-intent` |
 | One independently shippable contract | Spec at `docs/specs/<slug>/spec.md` | Ready only after approval and a sibling plan | `new-spec` |
 | Coherent multi-spec outcome | Brief at `docs/product/briefs/<slug>.md` | Draft, non-dispatchable | `author-delivery-brief create` |
-| Cited regression or defect evidence | Captured-item file at `docs/product/captured/<slug>.md`, with no entry | Ready only after canonical context exists | `bug-fix` |
+| Cited regression or defect evidence | Captured-item file at `docs/product/captured/<slug>.md`, as its own file | Ready only after canonical context exists | `bug-fix` |
 | Incomplete or ambiguous input | Draft artifact with named gaps, or one clarifying question | Non-dispatchable | None |
 
 A Ready brief may contain zero specs. It records a viable outcome and remains
@@ -55,7 +56,7 @@ invoke `new-spec`.
 
 ## Delivery-brief lifecycle
 
-A repo-origin brief's lifecycle is its `Status:` alone. The same holds for a tracker-origin brief, which has no entry.
+A repo-origin brief's lifecycle is its `Status:` alone. The same holds for a tracker-origin brief.
 
 | Status | When it applies | Next transition |
 | --- | --- | --- |
@@ -96,24 +97,22 @@ revision matches.
 
 Input: action, bounded content, source locator and revision, constraints,
 proposed authority, an optional validated shaping handoff, and an existing
-registered refresh target when applicable.
+refresh target when applicable.
 
-Output: action, repository-relative artifact path, workspace membership,
-processor, authority mode, and stop point. Refresh also returns compared and
+Output: action, repository-relative artifact path, processor, authority mode, and stop point. Refresh also returns compared and
 accepted revisions, field decisions, conflict state, local mutation state, and
 a redacted remote-action result when one separately confirmed action ran.
 
-Workspace entries contain only path, kind, source, summary, and hard needs.
 Titles, comments, list order, tracker type, and memory are not routing
 authority.
 
 For follow-ons and remembered work, `work-intake` materializes the canonical
-artifact first. The `workspace.toml` entry is only a terse live pointer:
-minimal provenance, one short current/next summary, and hard dependencies. It
-does not store rationale, chronology, review findings, suggested order, copied
-source text, or procedures. A defect, design, or research item has no entry at
-all: its own file under `docs/product/captured/` is the record, and a
-downstream item's `Depends on:` header names it.
+artifact first. The artifact's header carries its `Status:` and its hard
+`Depends on:` dependencies, and its body holds one short current/next summary.
+It does not store rationale, chronology, review findings, suggested order,
+copied source text, or procedures. A defect, design, or research item is its own
+file under `docs/product/captured/`, and a downstream item's `Depends on:`
+header names it.
 
 ## Completion and closeout
 
@@ -149,17 +148,15 @@ change; history is never rewritten.
 A pause uses an existing resolved writable shaping or build surface and stores
 only contract/plan locators and fingerprints, current statuses, evidence
 references, coordination locator, and restore action. Resume reacquires every
-reference. `workspace-status` projects pause, closeout blockers, due cooling
-reviews, retention exceptions with their owner role and review date, and next
-action, but never distils, dispositions, confirms, or mutates. Ordinary
-orientation never loads a cooled artifact body: it reads each lifecycle record
-through the bounded reader and reports whether that resolution succeeded, so a
-run that could not establish the cooled set says so rather than implying an
-exclusion it did not perform. Across the projections, an entry named by a
-lifecycle record counts toward neither closeout consumer.
+reference. `close-work` and `dispatch.py` read lifecycle records but never
+distil, disposition, confirm, or mutate. Ordinary orientation never loads a
+cooled artifact body: it reads each lifecycle record through the bounded
+reader and reports whether that resolution succeeded, so a run that could not
+establish the cooled set says so rather than implying an exclusion it did not
+perform.
 
 Initiative coordination and artifact retention are assessed independently. A
-settled workspace entry may leave while an RFC/release/decision family remains
+settled coordination record may leave while an RFC/release/decision family remains
 anchored. A live dependency may retain a four-field completion receipt in an
 already compatible surface; absent such a surface, the delivery record remains
 a retained exception. See [Close work without losing lasting context](../how-to/close-and-disposition-work.md).
@@ -167,14 +164,12 @@ a retained exception. See [Close work without losing lasting context](../how-to/
 ## Reads and writes
 
 Reads: normalized request fields, the repository root, configured artifact
-parent, existing target, `workspace.toml`, and status output.
+parent, and existing target.
 
-Writes: at most one confined canonical artifact followed by its schema-valid
-workspace entry. Dispatch starts only after both are durable. A route that
-registers nothing, such as a defect start, writes only its artifact and
-dispatches once that artifact is durable. If registration
-fails, the artifact is rolled back when safe; otherwise it remains explicitly
-non-dispatchable for reconciliation.
+Writes: at most one confined canonical artifact, or a defect, design or research
+item's own captured-item file. Dispatch starts only after the artifact is
+durable. If a tracker-origin write fails, the artifact is rolled back when safe;
+otherwise it remains explicitly non-dispatchable for reconciliation.
 
 Limits: no network access is used by the Core-only intake surface. Configured
 tracker processors own bounded acquisition and capability-scoped remote calls.
@@ -184,7 +179,7 @@ the repository and configured artifact parent are rejected before mutation.
 
 ## Refresh lifecycle and authority
 
-Refresh resolves the existing artifact, its workspace entry, one closed
+Refresh resolves the existing artifact, one closed
 `source-authority` record, and the exact profile version before acquisition.
 Tracker text remains untrusted candidate data.
 
@@ -200,8 +195,7 @@ Tracker text remains untrusted candidate data.
 
 A completed comparison advances the compared revision even when local values
 are kept. The accepted revision advances only with accepted source values. The
-artifact authority record and the small workspace revision mirror use one
-fingerprint-guarded write.
+artifact and `.work-intake.toml` use one fingerprint-guarded write.
 
 Every tracker mutation requires a fresh confirmation bound to the exact
 artifact, source revision, profile, destination, action, target, and payload
@@ -209,13 +203,10 @@ digest. A pending receipt lands before the adapter call. Mutations are not
 silently retried, and unsupported profile actions never fall back to raw
 tracker access.
 
-## Former legacy entries
+## Older registries
 
 `capture-work` is removed in Core 3.0.0. Use `work-intake` directly.
 
-Former legacy workspace entries surface as `unsupported_legacy` findings and
-are never dispatchable. Rewrite each in canonical form by hand. Recovery and
-rollback of an operation already recorded in `.workspace-migrations.json`
-run through `workspace-status`, not ordinary intake.
-See [Move from capture-work to work-intake](../how-to/capture-work.md) and
-[Recover or roll back a migration operation](../how-to/migrate-capture-work.md).
+If your repository still has a `workspace.toml` registry, run the repair in
+[Upgrade from a workspace.toml registry](../how-to/upgrade-from-a-workspace-registry.md).
+For the prompts, see [Move from capture-work to work-intake](../how-to/capture-work.md).

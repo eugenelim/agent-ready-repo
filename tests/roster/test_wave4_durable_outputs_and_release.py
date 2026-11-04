@@ -35,7 +35,6 @@ def test_every_planned_durable_output_exists_at_its_owner() -> None:
         "guides/core/reference/work-intake-routing-and-lifecycle.md",
         "guides/core/reference/spec-shape-and-lld.md",
         "docs/README.md",
-        "guides/core/reference/workspace-toml-schema.md",
         "packs/core/README.md",
         "packs/core/JOURNEY.md",
         "docs/product/changelog.md",
@@ -53,18 +52,18 @@ def test_current_docs_form_one_closeout_story() -> None:
     """Architecture, reference, how-to, and navigation agree on ownership."""
     architecture = _read("docs/architecture/work-intake-and-artifact-routing.md")
     lifecycle = _read("guides/core/reference/work-intake-routing-and-lifecycle.md")
-    workspace = _read("guides/core/reference/workspace-toml-schema.md")
     how_to = _read("guides/core/how-to/close-and-disposition-work.md")
     readme = _read("packs/core/README.md")
     journey = _read("packs/core/JOURNEY.md")
 
     for text in (architecture, lifecycle, how_to):
         assert "disposition is intent" in text.lower()
-        assert "workspace-status" in text
         assert "cool-30-days" in text
+    assert "workspace-status" in architecture
+    for text in (lifecycle, how_to):
+        assert "dispatch.py" in text
     assert "close_work.py" in architecture
     assert "behavior tests" in architecture
-    assert "live coordination, not the artifact-retention unit" in workspace
     assert "status: draft" not in how_to
     assert "close-work" in readme
     assert "close-work" in journey

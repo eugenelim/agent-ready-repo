@@ -90,7 +90,7 @@ authentication refuses every non-GET/HEAD attempt before the transport records
 a request. Jira Align supports the reviewed local comparison but declares no
 remote write-back capability.
 
-**Likely follow-up:** run `workspace-status` to confirm the compared revision
+**Likely follow-up:** read the artifact's source-authority record to confirm the compared revision
 and any unresolved conflict, or request one supported Jira coordination action
 and review its exact target and payload.
 
