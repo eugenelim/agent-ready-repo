@@ -170,3 +170,18 @@ def test_ac_0015_order() -> None:
 
 def test_ac_0017_anti_pattern() -> None:
     assert AC_0017 in _anti_patterns()
+
+
+_TEMPLATE = _PACK / ".apm" / "skills" / "new-spec" / "assets" / "spec.md"
+AC_0016_LINE = (
+    "- Defaulted: <category>: <item> — default: <what was built on>; "
+    "if wrong: <what changes> (settled by: <owner>)"
+)
+
+
+def test_ac_0016_template_defaulted_shape() -> None:
+    raw = _TEMPLATE.read_text(encoding="utf-8")
+    section = _flat(raw[raw.index("## Assumptions") :])
+    for shape in ("open question", "named gap", "defaulted assumption"):
+        assert shape in section
+    assert AC_0016_LINE in section

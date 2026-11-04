@@ -299,7 +299,7 @@ goes into `Outcome` or `Agent Rules`. A fact that shapes how it is built goes
 into the plan's `## Design (LLD)` or `## Constraints`. There is no third
 destination, and nothing is left behind here as a receipt.
 
-Unresolved comes in two shapes, and both belong here.
+Unresolved comes in three shapes, and all belong here.
 
 An **open question** — something that could still be answered:
 `- <category>: <open question> — <what it would change> (settled by: <who or
@@ -308,6 +308,10 @@ what can answer it>)`
 A **named gap** — something that will not be answered on this delivery, such
 as a dependency that is absent or a corpus that is unreachable:
 `- <category>: <what is missing> — <what is therefore ungrounded>`
+
+A **defaulted assumption** — an item `new-spec` step 3 let proceed on a
+stated, reversible default, kept here so the owner reads it at spec approval:
+`- Defaulted: <category>: <item> — default: <what was built on>; if wrong: <what changes> (settled by: <owner>)`
 
 Write `none` when nothing is unresolved. An empty section and an unexamined
 one read the same.
