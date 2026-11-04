@@ -291,3 +291,36 @@ def test_question_route_materializes_no_artifact(git_repo: Path) -> None:
     assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
     assert dispatched == ["spec"]
     assert _captured_files(repo) == []
+
+
+# --- T12: closure evidence rides the run report -------------------------------
+
+
+def test_closure_evidence_rides_the_report(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t12-evidence")
+    ids = _seed_store(
+        repo,
+        [_request("defect", "A capture closed as overtaken",
+                  observed="The blocker is unresolved today.",
+                  intended="A later decision resolves the blocker.")],
+    )
+    evidence = {
+        "what_was_run": "grep -F 'the-blocking-decision' docs/specs/example/plan.md",
+        "what_it_showed": "The blocking decision was resolved in the plan's latest revision.",
+    }
+
+    def close(_offer: dict[str, Any], _proposal: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "close": {
+                "ground": "overtaken",
+                "test_passes": True,
+                "evidence": evidence,
+            }
+        }
+
+    report = DRAIN.drain(repo, confirmer=close)
+    assert report["counts"] == {"routed": 0, "held": 0, "closed": 1}, report
+    (closed,) = [item for item in report["items"] if item["action"] == "closed"]
+    assert closed["capture_id"] == ids[0]
+    assert closed["ground"] == "overtaken"
+    assert closed["evidence"] == evidence

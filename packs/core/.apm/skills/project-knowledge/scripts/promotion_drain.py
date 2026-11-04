@@ -768,6 +768,10 @@ def drain(
                         "capture_id": capture["capture_id"],
                         "action": "closed",
                         "ground": closure["ground"],
+                        # § D5: the evidence rides the run report beside the
+                        # closure it justifies — the store's disposition
+                        # event is reason-code-only by design.
+                        "evidence": closure["evidence"],
                     }
                 )
             else:
