@@ -492,3 +492,15 @@ def test_t5_adjudication_guidance_names_git_history_entry() -> None:
     assert "`_supervisor_git.HardenedGit`" in section
     assert "evidence-gate.py' git-history --path <path>" in section
     assert "supplies the printed envelope" in section
+
+
+def test_t13_guidance_states_log_bound_and_checkout_root() -> None:
+    """The subsection states the 50-commit report bound and where to run the entry."""
+    path = SCRIPTS.parent / "references" / "finding-adjudication.md"
+    text = path.read_text(encoding="utf-8")
+    start = text.index("\n## Bounded evidence retry\n") + 1
+    end = text.index("\n## ", start + 1)
+    section = " ".join(text[start:end].split())
+    assert "reports up to 50 of them; a 51st marks the list truncated" in section
+    assert "capped at 51" not in section
+    assert "runs it from the checkout root" in section
