@@ -119,16 +119,26 @@ _BLOCK_START_RE = re.compile(
     r"(?:#{1,6}(?:[ \t]|$)|[-+*][ \t]|\d{1,9}[.)](?:[ \t]|$)|>|<|`{3,}|~{3,}"
     r"|=+[ \t]*$|-+[ \t]*$|(?:[-*_][ \t]*){3,}$)"
 )
-_THEMATIC_RE = re.compile(r"(?:[-*_][ \t]*){3,}$")
-# One emoji presentation selector must pass; padding must not buy a larger budget.
-_INVISIBLE_CAP = 400
+_LIST_MARKER_RE = re.compile(r"(?: {0,3})(?:[-+*]|\d{1,9}[.)])(?:[ \t]+|$)")
+# An HTML block start that may interrupt a paragraph, and one that needs a fresh block.
+_HTML_INTERRUPT_RE = re.compile(
+    r"<(?:!|\?|/?(?:pre|script|style|textarea|div|p|table|details|summary|ul|ol|li"
+    r"|h[1-6]|blockquote|section|tr|td|th|hr)(?:[\s/>]|$))",
+    re.IGNORECASE,
+)
+_HTML_BLOCK_RE = re.compile(r"<[A-Za-z/!?]")
+_BLANK_INSIDE_RE = re.compile(r"\n[ \t]*\n")
+# 2,000 characters of length basis lets one emoji presentation selector in
+# (invisible_budget rounds it up); padding the artifact cannot buy more.
+_INVISIBLE_CAP = 2000
 
 
 def _fence_run(line: str) -> tuple[str, int, str] | None:
     """The fence character, run length and info string of *line*, or None.
 
     Only a run indented 0-3 spaces counts; a backtick run whose info string holds
-    a backtick is an inline code span, not a fence.
+    a backtick is not a fence. `_strip_changelog` closes a fence only with a bare
+    run of the opener's character that is at least as long.
     """
     expanded = line.expandtabs(4)
     stripped = expanded.lstrip(" ")
@@ -142,26 +152,92 @@ def _fence_run(line: str) -> tuple[str, int, str] | None:
     return marker, run, info
 
 
+def _list_item_starts_html(line: str, fresh: bool) -> bool:
+    """True when a list-item *line* starts an HTML block.
+
+    A *fresh* line (after a blank line or a list marker) starts one with any tag;
+    a line that continues a paragraph needs a tag that can interrupt it.
+    """
+    rest = line.lstrip(" ")
+    while (marker := _LIST_MARKER_RE.match(rest)) is not None:
+        rest = rest[marker.end():].lstrip(" ")
+        fresh = True
+    return (_HTML_BLOCK_RE if fresh else _HTML_INTERRUPT_RE).match(rest) is not None
+
+
+def _check_changelog_body(body: str) -> None:
+    """Refuse unless *body* is only top-level `- ` items, their continuations and blanks.
+
+    A comment may not span a blank line. An item's content cannot start another
+    block, and a continuation must be indented at least the item's content width
+    (marker plus the spaces after it); a lazy line is refused.
+    """
+    for comment in _HTML_COMMENT_RE.finditer(body):
+        if _BLANK_INSIDE_RE.search(comment.group()):
+            raise GateDigestRefused("gate-changelog-shape")
+    width = 0  # content width of the open item; 0 before the first item
+    for raw in _HTML_COMMENT_RE.sub("", body).split("\n"):
+        line = raw.expandtabs(4)
+        if line.strip() == "":
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+        if indent == 0 and line.startswith("- "):
+            content = line[2:].lstrip(" ")
+            spaces = len(line) - 1 - len(line[1:].lstrip(" "))
+            if spaces > 4 or not content.strip() or _BLOCK_START_RE.match(content):
+                raise GateDigestRefused("gate-changelog-shape")
+            width = 1 + spaces
+        elif width and indent >= width and not _BLOCK_START_RE.match(line.lstrip(" ")):
+            continue  # content of the open item
+        else:
+            raise GateDigestRefused("gate-changelog-shape")
+
+
 def _strip_changelog(text: str) -> str:
     """Validate and drop a trailing `## Changelog` section from LF-normalised *text*."""
     lines = text.split("\n")
     headings: list[int] = []
     fence_char: str | None = None
     fence_len = 0
+    in_list = False
+    fence_in_list = False  # the open fence began inside a list item
+    previous_blank = True
+    html_in_list: int | None = None  # first line of an HTML block inside a list item
     for idx, line in enumerate(lines):
-        # The same CommonMark rule as `_loop_guards.canonical_contract`: an opener
-        # records its character and run length; only a bare run of that character,
-        # at least as long, closes it.
+        blank = line.strip() == ""
+        if fence_char is None and not blank:
+            expanded = line.expandtabs(4)
+            if _LIST_MARKER_RE.match(expanded):
+                in_list = True
+            elif (
+                in_list
+                and not expanded.startswith(" ")
+                and (previous_blank or _BLOCK_START_RE.match(expanded))
+            ):
+                in_list = False
+            if (
+                in_list
+                and html_in_list is None
+                and _list_item_starts_html(expanded, previous_blank)
+            ):
+                html_in_list = idx
+        previous_blank = blank
+        # An opener records its character and run length; only a bare run of that
+        # character, at least as long, closes it (`_fence_run` limits the indent).
         fence = _fence_run(line)
         if fence is not None:
             marker, run, info = fence
             if fence_char is None:
-                fence_char, fence_len = marker, run
+                fence_char, fence_len, fence_in_list = marker, run, in_list
                 continue
             if marker == fence_char and run >= fence_len and not info:
                 fence_char, fence_len = None, 0
                 continue
         if fence_char is not None:
+            # A fence opened in a list item may end where this scan does not see it
+            # end: a Changelog heading inside it is refused, not kept in the digest.
+            if fence_in_list and line.strip() == "## Changelog":
+                raise GateDigestRefused("gate-changelog-shape")
             continue
         if _H2_RE.match(line.expandtabs(4)):
             headings.append(idx)
@@ -171,24 +247,9 @@ def _strip_changelog(text: str) -> str:
     start = changelog[0]
     if len(changelog) != 1 or headings[-1] != start:
         raise GateDigestRefused("gate-changelog-shape")
-    body = _HTML_COMMENT_RE.sub("", "\n".join(lines[start + 1 :]))
-    in_item = False
-    previous_blank = True
-    for raw in body.split("\n"):
-        line = raw.expandtabs(4)
-        if line.strip() == "":
-            previous_blank = True
-            continue
-        indent = len(line) - len(line.lstrip(" "))
-        if indent == 0 and line.startswith("- ") and not _THEMATIC_RE.match(line):
-            in_item = True
-        elif in_item and indent >= 2:
-            pass  # content of the `- ` item: its content width is 2
-        elif in_item and not previous_blank and not _BLOCK_START_RE.match(line.lstrip(" ")):
-            pass  # a lazy paragraph continuation that cannot start a block
-        else:
-            raise GateDigestRefused("gate-changelog-shape")
-        previous_blank = False
+    if html_in_list is not None and html_in_list < start:
+        raise GateDigestRefused("gate-changelog-shape")
+    _check_changelog_body("\n".join(lines[start + 1 :]))
     return "\n".join(lines[:start])
 
 

@@ -165,8 +165,9 @@ def test_t9_sec2_1_indented_heading_and_shallow_lines_refuse() -> None:
     # lines that would start a block cannot be lazy continuations
     for block in ("# h", "```", "> q", "<div>", "1. n", "* b", "- - -"):
         assert _refused(SPEC + f"\n## Changelog\n\n- a\n{block}\n") == "gate-changelog-shape"
-    # a plain lazy continuation and an in-item indented line keep the digest
-    assert _d(SPEC + "\n## Changelog\n\n- a\ncontinued\n  more\n") == _d(SPEC)
+    # a lazy continuation is refused (T10); an in-item indented line keeps the digest
+    assert _refused(SPEC + "\n## Changelog\n\n- a\ncontinued\n  more\n") == "gate-changelog-shape"
+    assert _d(SPEC + "\n## Changelog\n\n- a\n  continued\n  more\n") == _d(SPEC)
 
 
 def test_t9_sec2_2_only_a_fence_indented_up_to_three_spaces_counts() -> None:
@@ -182,3 +183,58 @@ def test_t9_sec2_3_padded_artifact_with_interleaved_selectors_refuses() -> None:
     padded = SPEC + "x" * 20000 + "".join("a\ufe0f" for _ in range(100))
     assert _refused(padded) == "gate-unsafe-content"
     assert _d(SPEC + "x" * 20000 + "heart \u2764\ufe0f here")
+
+
+_CL = "\n## Changelog\n\n"
+
+
+def test_t10_adv3_1_lazy_line_refuses() -> None:
+    assert _refused(SPEC + _CL + "- a\nlazy\n") == "gate-changelog-shape"
+    assert _refused(SPEC + _CL + "- a\n\nlazy\n") == "gate-changelog-shape"
+    assert _refused(SPEC + _CL + "- a\n x\n") == "gate-changelog-shape"
+    approval = "- 2026-11-04: spec approved by eugenelim (scope).\n"
+    assert _d(SPEC + _CL + approval + "  wrapped here.\n") == _d(SPEC)
+
+
+def test_t10_adv3_3_content_width_is_marker_plus_spaces() -> None:
+    assert _refused(SPEC + _CL + "-   foo\n\n  bar\n") == "gate-changelog-shape"
+    assert _d(SPEC + _CL + "-   foo\n\n    bar\n") == _d(SPEC)
+    assert _d(SPEC + _CL + "-   foo\n    bar\n- b\n  c\n") == _d(SPEC)
+    assert _refused(SPEC + _CL + "- foo\n  - nested\n") == "gate-changelog-shape"
+
+
+def test_t10_sec3_1_item_content_starting_a_block_refuses() -> None:
+    for bad in ("- # h", "- ```", "- <div>", "- ", "- > q", "- - x", "- ---"):
+        assert _refused(SPEC + _CL + bad + "\n") == "gate-changelog-shape", bad
+    assert _refused(SPEC + _CL + "- a <!-- x\n\ny -->\n") == "gate-changelog-shape"
+    assert _refused(SPEC + _CL + "<!-- x\n\ny -->\n- a\n") == "gate-changelog-shape"
+    assert _d(SPEC + _CL + "- a <!-- x\ny -->\n<!-- c -->\n") == _d(SPEC)
+
+
+def test_t10_adv3_2_fence_or_html_in_list_item_before_changelog_refuses() -> None:
+    opened_at_2 = "- a\n  ```\ncode\n    ```\n"
+    assert _refused(SPEC + "\n" + opened_at_2 + _CL + "- x\n") == "gate-changelog-shape"
+    assert _refused(SPEC + "\n- a\n  ~~~\n" + _CL + "- x\n") == "gate-changelog-shape"
+    assert _refused(SPEC + "\n- <div>\n" + _CL + "- x\n") == "gate-changelog-shape"
+    assert _refused(SPEC + "\n1. a\n   <pre>\n" + _CL + "- x\n") == "gate-changelog-shape"
+    # a fence in a list item that opens and closes at the scan's own reading is kept
+    closed = "- a\n  ```\ncode\n  ```\n"
+    assert _d(SPEC + "\n" + closed + _CL + "- x\n") == _d(SPEC + "\n" + closed)
+    # without a Changelog section nothing is stripped, so the text is kept
+    assert _d(SPEC + "\n" + opened_at_2)
+    # a fence outside any list item still hides the heading
+    assert _d(SPEC + "\n```\n## Changelog\n- x\n```\n") != _d(SPEC)
+
+
+def test_t10_adv3_4_invisible_budget_basis_is_2000() -> None:
+    assert G._INVISIBLE_CAP == 2000
+    forty = "".join("a\ufe0f" for _ in range(40))
+    for pad in (2000, 20000):  # a padded artifact cannot buy more than the cap
+        assert _d(SPEC + "x" * pad + forty)
+        assert _refused(SPEC + "x" * pad + forty + "a\ufe0f") == "gate-unsafe-content"
+
+
+def test_t10_adv3_5_fence_comment_does_not_claim_canonicaliser_parity() -> None:
+    source = _SCRIPT.read_text(encoding="utf-8")
+    assert "same CommonMark rule" not in source
+    assert "`_loop_guards.canonical_contract`: an opener" not in source
