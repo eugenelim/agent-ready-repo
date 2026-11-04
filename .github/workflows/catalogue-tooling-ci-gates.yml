@@ -275,6 +275,7 @@ jobs:
           packs/core/tests/skills/work-loop/test_supervisor_review_closure.py
           packs/core/tests/skills/work-loop/test_supervisor_ignore_rules.py
           packs/core/tests/skills/work-loop/test_supervisor_consumer_map.py
+          packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py
           -q -rs --durations=10
 
   supervisor-integration-corpus:

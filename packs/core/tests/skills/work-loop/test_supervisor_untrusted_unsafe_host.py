@@ -47,11 +47,23 @@ def _verbs() -> list[str]:
     return sorted(action.choices)
 
 
+# `park` is judged as trusted: it writes one supervisor-derived file and is covered by its
+# own test below, so the walks over every verb leave it out.
+_JUDGED_AS_TRUSTED = {"park"}
+
+
+def _walked() -> list[str]:
+    return [verb for verb in _verbs() if verb not in _JUDGED_AS_TRUSTED]
+
+
 def _argv(repo: Path, verb: str, tmp_path: Path, trust: str = "untrusted") -> list[str]:
     spec = h.SPEC_DIR
     if verb == "start":
         return ["start", spec, "--intent", "code", "--code-trust", trust,
                 "--authority-ref", OWNER, "--review-authority-ref", REVIEWER]
+    if verb == "park":
+        return ["park", spec, "--gate", "spec-approved", "--intent", "code",
+                "--code-trust", trust]
     if verb == "report":
         result = tmp_path / "result.json"
         result.write_text("{}", encoding="utf-8")
@@ -104,7 +116,26 @@ def _commit_approvals(repo: Path, text: str) -> None:
 
 
 def test_verb_list_is_read_from_the_parser() -> None:
-    assert {"start", "next", "report", "status", "resolve-effect"} <= set(_verbs())
+    assert {"start", "next", "report", "status", "resolve-effect", "park"} <= set(_verbs())
+
+
+def test_t2_park_is_judged_as_trusted_on_an_unsafe_host(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _admit(repo, tmp_path, "untrusted")
+    for name, old, new in (
+        ("spec.md", "**Status:** Approved", "**Status:** Draft"),
+        ("plan.md", "**Status:** Approved", "**Status:** Drafting"),
+    ):
+        path = repo / h.SPEC_DIR / name
+        path.write_text(path.read_text(encoding="utf-8").replace(old, new), encoding="utf-8")
+    h.git(repo, "add", "-A")
+    h.git(repo, "commit", "-q", "-m", "back to draft")
+    _race_free(monkeypatch, query, False)
+    _refused(repo, _argv(repo, "next", tmp_path))  # the untrusted pair at HEAD is in force
+    code, out = h.run_cli(repo, *_argv(repo, "park", tmp_path, "trusted"))
+    assert code == 0 and out["status"] == "parked", out
 
 
 def test_start_untrusted_refuses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object) -> None:
@@ -119,7 +150,7 @@ def test_every_verb_refuses_a_resumed_untrusted_run(
     repo = h.make_repo(tmp_path)
     _admit(repo, tmp_path, "untrusted")
     _race_free(monkeypatch, query, False)
-    for verb in _verbs():
+    for verb in _walked():
         _refused(repo, _argv(repo, verb, tmp_path))
 
 
@@ -129,7 +160,7 @@ def test_malformed_approvals_at_head_refuse(
     repo = h.make_repo(tmp_path)
     _commit_approvals(repo, "{not json\n")
     _race_free(monkeypatch, query, False)
-    for verb in _verbs():
+    for verb in _walked():
         if verb != "start":
             _refused(repo, _argv(repo, verb, tmp_path))
 
@@ -143,7 +174,7 @@ def test_working_copy_saying_trusted_does_not_override_head(
     path.write_text(path.read_text(encoding="utf-8").replace('"untrusted"', '"trusted"'),
                     encoding="utf-8")
     _race_free(monkeypatch, query, False)
-    for verb in _verbs():
+    for verb in _walked():
         if verb != "start":
             _refused(repo, _argv(repo, verb, tmp_path))
 

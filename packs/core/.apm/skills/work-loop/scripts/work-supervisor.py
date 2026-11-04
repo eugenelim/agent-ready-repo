@@ -6,6 +6,8 @@ Usage, from the repository root:
     work-supervisor.py start <spec-dir> --intent code|spec-plan \\
         --code-trust trusted|untrusted --authority-ref owner[:<hex>] \\
         --review-authority-ref plan-reviewer[:<hex>]
+    work-supervisor.py park <spec-dir> --gate spec-approved|plan-approved \\
+        --intent code|spec-plan --code-trust trusted|untrusted
     work-supervisor.py next <spec-dir>
     work-supervisor.py report <spec-dir> <result.json>
     work-supervisor.py status <spec-dir> [--json] [--check]
@@ -560,6 +562,11 @@ def _parser() -> argparse.ArgumentParser:
     start.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     start.add_argument("--authority-ref", required=True)
     start.add_argument("--review-authority-ref", required=True)
+    park = verbs.add_parser("park")
+    park.add_argument("spec_dir")
+    park.add_argument("--gate", required=True, choices=("spec-approved", "plan-approved"))
+    park.add_argument("--intent", required=True, choices=("code", "spec-plan"))
+    park.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     verbs.add_parser("next").add_argument("spec_dir")
     report = verbs.add_parser("report")
     report.add_argument("spec_dir")
@@ -647,8 +654,12 @@ def _untrusted_unsafe_host_refusal(
     Runs once the installed files are verified and before any verb or run lock,
     so a refusal writes nothing. ``start`` is judged by the trust it would
     record; every other verb by the latest approval pair committed at ``HEAD``.
-    A host with race-free writes skips the check.
+    A host with race-free writes skips the check. ``park`` is judged as trusted: its
+    one write is a fixed-name file whose body is supervisor-derived and holds no
+    controller free text, and a host that cannot confine writes refuses it anyway.
     """
+    if args.verb == "park":
+        return None
     admission = _supervisor("_supervisor_admission.py")
     if admission.sibling("_confined_mutation.py").race_free_mutation():
         return None
@@ -729,6 +740,18 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
         return EXIT_REFUSED
     try:
         workspace.attempts.check_pins(args.verb)
+        if args.verb == "park":
+            gates = _supervisor("_supervisor_gates.py")
+            _emit(
+                gates.park(
+                    workspace,
+                    admission,
+                    gate=args.gate,
+                    intent=args.intent,
+                    code_trust=args.code_trust,
+                )
+            )
+            return EXIT_OK
         if args.verb == "start":
             with workspace.run_lock():
                 outcome = admission.start(
