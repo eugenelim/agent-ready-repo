@@ -127,6 +127,7 @@ The Status column is derived from each spec; it is not hand-edited.
 | `last-registry-entries` | <auto> |
 | `repair-only-workspace-status` | <auto> |
 | `registry-upgrade-notes` | <auto> |
+| `workspace-toml-deletion` | <auto> |
 
 ## Governance references (optional)
 

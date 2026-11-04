@@ -2433,6 +2433,12 @@ consumer = "headers-only dispatch and a repair-only workspace-status: dispatch r
 owner = 9
 
 [[row]]
+pattern = "docs/specs/workspace-toml-deletion/*"
+class = "contract"
+consumer = "workspace retirement closure: the closure checklist, the owner's certification, the prune-protection list retired, and workspace.toml deleted while the repair keeps shipping"
+owner = 9
+
+[[row]]
 pattern = "docs/specs/readiness-bridge-dispatch-input/*"
 class = "historical"
 consumer = "readiness bridge input: the navigate-intents export reads argless work-loop dispatch output in place of workspace-status status"
