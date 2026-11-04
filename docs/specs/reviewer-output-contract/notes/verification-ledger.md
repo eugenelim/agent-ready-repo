@@ -8,8 +8,8 @@ On base `2fe8d6512`, a report of numbered findings without anchors was refused b
 
 ## Delivery checks
 
-- AC-0013: core moves from 4.0.11 to 4.0.12, and experience-design from 4.2.0 to 4.2.1. Both are measured from merge base `2fe8d6512` with freshly fetched `origin/main`. `pack.toml` equals `plugin.json` in both packs.
-- AC-0015: `tools/check-core-release.py --base 2fe8d6512` printed `release is consistent` and exited 0.
+- AC-0013: core moves from 4.0.12 to 4.0.13, and experience-design from 4.2.0 to 4.2.1. Both are measured from merge base `3fe5f2760` with freshly fetched `origin/main`, after the PR was rebased onto a core 4.0.12 release from another change. `pack.toml` equals `plugin.json` in both packs.
+- AC-0015: `tools/check-core-release.py --base 3fe5f2760` printed `release is consistent` and exited 0.
 - AC-0016: `git diff --exit-code 2fe8d6512 -- contracts/delivery/review-report.v1.schema.json contracts/delivery/finding.v1.schema.json` exited 0.
 - AC-0017: during the run, self-host differed only in the supervisor's pinned install, `.claude/skills/work-loop/` and `.agents/skills/work-loop/`. Rewriting that install refuses every verb with `supervisor-changed`. The owner approved reporting AC-0017 as `pass`, to be checked at the delivery commit. After the supervisor's `regenerate` step, `agentbundle catalogue self-host --root . --write` left 0 changed files, and `agentbundle catalogue verify --root .` printed `ok`.
 
