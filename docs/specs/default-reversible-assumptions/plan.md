@@ -56,7 +56,7 @@ Owned by: T1, T2, T3.
 
 1. A new paragraph headed `**Sort each Unverified item before you surface the list.**`, inserted after the corpus-absence paragraph. It holds, in order, the AC-0001, AC-0002, AC-0003 and AC-0004 sentences (the default is named, then checked, then the item moves to `## Defaulted`), and closes with the AC-0007 sentence.
 2. The chat-block fence gains `## Defaulted` and the AC-0009 line after the `## Unverified` bullets.
-3. The gate paragraph opens with the AC-0010 text, keeps the list of body sections it gates, then carries the AC-0011, AC-0012 and AC-0013 sentences, keeping today's "a vague "looks good" doesn't count" clause after `and wait`. The `Only once …` line becomes `Only once every waiting item has been signed off, or none waited:`, and its bullet list gains one bullet carrying the AC-0014 sentences, placed after the `Write only what is still unresolved` bullet.
+3. The gate paragraph opens with the AC-0010 text, keeps the list of body sections it gates, then carries the AC-0011, AC-0012 and AC-0013 sentences, keeping today's "a vague "looks good" doesn't count" clause after `and wait`. The `Only once …` line becomes `Only once every waiting item has been signed off, or none waited:`, and its bullet list gains one bullet carrying the AC-0014 and AC-0025 sentences, placed after the `Write only what is still unresolved` bullet.
 
 **Anti-pattern.** The entry beginning "Writing into the spec body before the Unverified list has been confirmed" becomes "… before every waiting Unverified item has been confirmed", keeping the rest of the entry.
 
@@ -76,7 +76,7 @@ Owned by: T1, T2, T3.
 - AC-0001, AC-0002, AC-0003, AC-0004, AC-0007: each literal sentence present in step 3.
 - AC-0005, AC-0006: each sentence counted exactly once in `SKILL.md`.
 - AC-0008: the three headings in order inside step 3's chat-block fence.
-- AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014: each literal text present in step 3.
+- AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0025: each literal text present in step 3.
 - AC-0015: index of the AC-0001 sentence < index of the gate phrase < index of `Only once every waiting item has been signed off`.
 - AC-0017: the anti-patterns literal present.
 - AC-0018: the existing new-spec suites, unchanged.
@@ -113,7 +113,7 @@ Owned by: T1, T2, T3.
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/<uuid>.md`
 
 **Tests:** goal-based — checks run at the gates
-- AC-0021: the how-to's `### What to expect` section contains `## Defaulted` and `Defaulted:`.
+- AC-0021: the how-to's `### What to expect` section contains `## Defaulted` and `Defaulted:` and not `each needing your input`.
 - AC-0022: `grep -c "stops\*\* before building on them" guides/core/explanation/core-pack.md` prints 0.
 - AC-0023: both versions equal, one patch above `packs/core/pack.toml` at `<merge-base>`.
 - AC-0024: `python3 tools/check-core-release.py --base <merge-base>` exits 0.

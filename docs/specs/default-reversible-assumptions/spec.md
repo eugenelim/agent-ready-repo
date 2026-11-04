@@ -70,7 +70,7 @@ A spec owner using `new-spec` is asked to stop only for the assumptions they alo
 
 ## Testing Strategy
 
-- **Shipped skill guidance (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017):** goal-based, by pytest content tests in `packs/core/tests/skills/new-spec/test_default_reversible_assumptions.py`. Each reads one slice with whitespace flattened — step 3, the anti-patterns section, or the template's `## Assumptions` section — and asserts the literal text the criterion fixes. Written red before the guidance changes.
+- **Shipped skill guidance (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0025):** goal-based, by pytest content tests in `packs/core/tests/skills/new-spec/test_default_reversible_assumptions.py`. Each reads one slice with whitespace flattened — step 3, the anti-patterns section, or the template's `## Assumptions` section — and asserts the literal text the criterion fixes. Written red before the guidance changes.
 - **Pinned texts survive (AC-0018, AC-0019):** the existing new-spec suites, run unchanged, and a `git diff` of that directory recorded in the ledger.
 - **Evals (AC-0020):** goal-based shape check in the same suite; the cases are not run against a model in this delivery.
 - **Guides (AC-0021, AC-0022):** goal-based, a `grep` run at the gates and recorded in the ledger, because a pack test may not read `guides/`.
@@ -99,8 +99,9 @@ A spec owner using `new-spec` is asked to stop only for the assumptions they alo
 - [ ] **AC-0010.** Step 3 contains `**Surface the Unverified list and wait** for confirmation or correction of every item still in it`.
 - [ ] **AC-0011.** Step 3 contains `When sorting leaves no item in Unverified, surface the block and proceed without waiting.`
 - [ ] **AC-0012.** Step 3 contains `When there were no Unverified candidates at all, name the highest-stakes Verified item. If it is a product or preference call, a question of who may approve, sign off, or decide, an item touching a protected class, or an irreversible choice, ask the user to confirm *that one specifically* and wait`.
-- [ ] **AC-0013.** Step 3 contains `Otherwise list it under `## Defaulted` with `default: as verified` and proceed.`
-- [ ] **AC-0014.** Step 3 contains `into the spec's `## Assumptions` as a defaulted assumption, in the line format that section's comment gives` and `A default does not approve the spec.`
+- [ ] **AC-0013.** Step 3 contains `Otherwise list it under `## Defaulted` with `default: as verified; if wrong: <what changes>` and proceed. It stays a settled fact and is not written to `## Assumptions`.`
+- [ ] **AC-0014.** Step 3 contains `Write each item sorted out of Unverified into the spec's `## Assumptions` as a defaulted assumption, in the line format that section's comment gives.`
+- [ ] **AC-0025.** Step 3 contains `A default does not approve the spec.`
 - [ ] **AC-0015.** In step 3, the AC-0001 sentence precedes `**Surface the Unverified list and wait**`, which precedes `Only once every waiting item has been signed off`.
 
 ### The template and anti-patterns
@@ -113,7 +114,7 @@ A spec owner using `new-spec` is asked to stop only for the assumptions they alo
 ### Evals and guides
 
 - [ ] **AC-0020.** `new-spec`'s `evals/evals.json` holds a case with id `reversible-assumption-proceeds-on-logged-default` and one with id `migration-assumption-waits-for-owner`, each carrying `id`, `prompt`, `expected_output`, and a non-empty `assertions` list.
-- [ ] **AC-0021.** In `guides/core/how-to/plan-and-execute-non-trivial-work.md`, the text from `### What to expect` to the next `### ` heading contains `## Defaulted` and `Defaulted:`, and the ledger records the check.
+- [ ] **AC-0021.** In `guides/core/how-to/plan-and-execute-non-trivial-work.md`, the text from `### What to expect` to the next `### ` heading contains `## Defaulted` and `Defaulted:` and does not contain `each needing your input`, and the ledger records the check.
 - [ ] **AC-0022.** `guides/core/explanation/core-pack.md` does not contain `stops** before building on them`, and the ledger records the check.
 
 ### Release

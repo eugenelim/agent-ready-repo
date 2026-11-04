@@ -168,7 +168,7 @@ Spec Kit's spec-driven loop terminates at `/implement` — there's no state-mach
 
 | Capability | Kiro spec-driven | Core pack |
 | --- | --- | --- |
-| Spec generated from prompt | ✓ | ✓ (but assumptions are surfaced *before* spec bodies, then user signs off) |
+| Spec generated from prompt | ✓ | ✓ (but assumptions are surfaced *before* spec bodies; the user signs off on the ones only they can settle, and reversible defaults are logged for approval) |
 | Test design before code | partial | ✓ mandated (Testing Strategy in spec; `Tests:` per plan task) |
 | Adversarial review of the diff against the spec | — | ✓ |
 | Mechanical iteration cap | — | ✓ |
