@@ -109,9 +109,37 @@ def _unsafe(
     if lint is not None and invisible:
         visible = len(text) - invisible
         # The lint's own bound: never more hidden than shown, and a share of the length.
-        if invisible > min(lint.invisible_budget(text), visible):
+        if invisible > min(lint.invisible_budget(text, cap=_INVISIBLE_CAP), visible):
             return True
     return False
+
+
+_H2_RE = re.compile(r" {0,3}##(?:[ \t]|$)")
+_BLOCK_START_RE = re.compile(
+    r"(?:#{1,6}(?:[ \t]|$)|[-+*][ \t]|\d{1,9}[.)](?:[ \t]|$)|>|<|`{3,}|~{3,}"
+    r"|=+[ \t]*$|-+[ \t]*$|(?:[-*_][ \t]*){3,}$)"
+)
+_THEMATIC_RE = re.compile(r"(?:[-*_][ \t]*){3,}$")
+# One emoji presentation selector must pass; padding must not buy a larger budget.
+_INVISIBLE_CAP = 400
+
+
+def _fence_run(line: str) -> tuple[str, int, str] | None:
+    """The fence character, run length and info string of *line*, or None.
+
+    Only a run indented 0-3 spaces counts; a backtick run whose info string holds
+    a backtick is an inline code span, not a fence.
+    """
+    expanded = line.expandtabs(4)
+    stripped = expanded.lstrip(" ")
+    if len(expanded) - len(stripped) > 3 or stripped[:1] not in ("`", "~"):
+        return None
+    marker = stripped[0]
+    run = len(stripped) - len(stripped.lstrip(marker))
+    info = stripped[run:].strip()
+    if run < 3 or (marker == "`" and "`" in info):
+        return None
+    return marker, run, info
 
 
 def _strip_changelog(text: str) -> str:
@@ -124,21 +152,18 @@ def _strip_changelog(text: str) -> str:
         # The same CommonMark rule as `_loop_guards.canonical_contract`: an opener
         # records its character and run length; only a bare run of that character,
         # at least as long, closes it.
-        stripped = line.lstrip()
-        marker = stripped[:1]
-        if marker in ("`", "~"):
-            run = len(stripped) - len(stripped.lstrip(marker))
-            info = stripped[run:].strip()
+        fence = _fence_run(line)
+        if fence is not None:
+            marker, run, info = fence
             if fence_char is None:
-                if run >= 3:
-                    fence_char, fence_len = marker, run
-                    continue
-            elif marker == fence_char and run >= fence_len and not info:
+                fence_char, fence_len = marker, run
+                continue
+            if marker == fence_char and run >= fence_len and not info:
                 fence_char, fence_len = None, 0
                 continue
         if fence_char is not None:
             continue
-        if line.startswith("## "):
+        if _H2_RE.match(line.expandtabs(4)):
             headings.append(idx)
     changelog = [i for i in headings if lines[i].strip() == "## Changelog"]
     if not changelog:
@@ -148,13 +173,22 @@ def _strip_changelog(text: str) -> str:
         raise GateDigestRefused("gate-changelog-shape")
     body = _HTML_COMMENT_RE.sub("", "\n".join(lines[start + 1 :]))
     in_item = False
-    for line in body.split("\n"):
+    previous_blank = True
+    for raw in body.split("\n"):
+        line = raw.expandtabs(4)
         if line.strip() == "":
+            previous_blank = True
             continue
-        if line.startswith("- "):
+        indent = len(line) - len(line.lstrip(" "))
+        if indent == 0 and line.startswith("- ") and not _THEMATIC_RE.match(line):
             in_item = True
-        elif not (in_item and line[:1].isspace()):
+        elif in_item and indent >= 2:
+            pass  # content of the `- ` item: its content width is 2
+        elif in_item and not previous_blank and not _BLOCK_START_RE.match(line.lstrip(" ")):
+            pass  # a lazy paragraph continuation that cannot start a block
+        else:
             raise GateDigestRefused("gate-changelog-shape")
+        previous_blank = False
     return "\n".join(lines[:start])
 
 

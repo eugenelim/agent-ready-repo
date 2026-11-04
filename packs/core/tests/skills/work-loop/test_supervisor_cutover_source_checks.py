@@ -353,7 +353,10 @@ def _refusal_section() -> str:
 def test_every_refusal_code_has_a_row_in_the_supervisor_reference() -> None:
     documented = set(re.findall(r"`([a-z]+(?:-[a-z0-9]+)+)`", _refusal_section()))
     codes = _refusal_codes()
-    assert {"supervisor-changed", "recovery-leftovers", "replan-declined"} <= codes
+    assert {
+        "supervisor-changed", "recovery-leftovers", "replan-declined",
+        "gate-unsafe-path", "gate-changelog-shape", "approval-digest-required",
+    } <= codes
     assert sorted(codes - documented) == []
 
 

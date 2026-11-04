@@ -151,3 +151,34 @@ def test_t8_qe9_bytes_outside_the_ac_section_and_in_a_plan_change_the_digest() -
     assert _d(plan, "plan.md") != _d(plan + "\nmore\n", "plan.md")
     # the one normalised region stays normalised
     assert _d(SPEC) == _d(SPEC.replace("[ ] AC-0001", "[x] AC-0001"))
+
+
+def test_t9_sec2_1_indented_heading_and_shallow_lines_refuse() -> None:
+    # an ATX heading indented 1 to 3 spaces is the last level-two heading
+    for pad in (" ", "  ", "   "):
+        assert _refused(SPEC + f"\n## Changelog\n\n- a\n\n{pad}## X\n") == "gate-changelog-shape"
+    # a setext underline, with or without a lazy-continuation position
+    assert _refused(SPEC + "\n## Changelog\n\n- a\n---\n") == "gate-changelog-shape"
+    assert _refused(SPEC + "\n## Changelog\n\n- a\n===\n") == "gate-changelog-shape"
+    # a line shallower than the item's content width, after a blank line
+    assert _refused(SPEC + "\n## Changelog\n\n- a\n\n x\n") == "gate-changelog-shape"
+    # lines that would start a block cannot be lazy continuations
+    for block in ("# h", "```", "> q", "<div>", "1. n", "* b", "- - -"):
+        assert _refused(SPEC + f"\n## Changelog\n\n- a\n{block}\n") == "gate-changelog-shape"
+    # a plain lazy continuation and an in-item indented line keep the digest
+    assert _d(SPEC + "\n## Changelog\n\n- a\ncontinued\n  more\n") == _d(SPEC)
+
+
+def test_t9_sec2_2_only_a_fence_indented_up_to_three_spaces_counts() -> None:
+    indented = SPEC + "\n    ```\n## Changelog\n\n- a\n"
+    assert "## Changelog" not in G._strip_changelog(indented)  # the 4-space run opens nothing
+    closed = SPEC + "\n```\n    ```\n## Changelog\nprose\n```\n"
+    assert _d(closed)  # a 4-space run does not close: the heading stays in the fence
+    inline = SPEC + "\n``` a`b\n## Changelog\n\n- a\n"
+    assert "## Changelog" not in G._strip_changelog(inline)  # not a fence: it is stripped
+
+
+def test_t9_sec2_3_padded_artifact_with_interleaved_selectors_refuses() -> None:
+    padded = SPEC + "x" * 20000 + "".join("a\ufe0f" for _ in range(100))
+    assert _refused(padded) == "gate-unsafe-content"
+    assert _d(SPEC + "x" * 20000 + "heart \u2764\ufe0f here")

@@ -710,7 +710,8 @@ def _start_refuses_read_only(workspace: Any, admission: Any, args: argparse.Name
     """
     roles = workspace.policy["authority_roles"]
     try:
-        workspace.attempts.guard("start")
+        if workspace.attempts.standing_refusal() is not None:
+            return True
         if not admission.check_authority_ref(
             args.authority_ref, roles["start_authority_ref"]
         ) or not admission.check_authority_ref(

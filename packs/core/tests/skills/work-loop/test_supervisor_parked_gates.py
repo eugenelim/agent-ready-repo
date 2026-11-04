@@ -5,6 +5,7 @@ Each test drives the supervisor CLI on a throwaway Git repository.
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import importlib.util
 import json
@@ -1146,3 +1147,36 @@ def test_t8_qe2_a_failing_sibling_load_under_gates_is_one_internal_error(
     assert code == 1 and set(out) == {"refusal"}, out
     assert out["refusal"]["code"] == "internal-error"
     assert "ImportError" in out["refusal"]["detail"] and ".py:" in out["refusal"]["detail"]
+
+
+# ── T9: second code-review repairs ───────────────────────────────────────────
+
+
+@pytest.mark.parametrize("with_digests", [False, True])
+def test_t9_adv2_1_start_precheck_writes_nothing_over_residue(
+    tmp_path: Path, with_digests: bool
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _admit(repo)
+    code, out = h.run_cli(repo, "next", h.SPEC_DIR)
+    assert code == 0, out
+    _edit(repo, "plan.md", "Build it.", "Build it, and skip the gates.")
+    before = _full_snapshot(repo)
+    args = argparse.Namespace(
+        authority_ref=OWNER, review_authority_ref=REVIEWER, intent="code", code_trust="trusted"
+    )
+    # The pre-check is the part that runs before the lock: it must only read.
+    assert h.cli._start_refuses_read_only(h.workspace(repo), h.admission, args) is True
+    assert _full_snapshot(repo) == before
+    extra = h.digest_args(repo) if with_digests else []
+    exit_code, refused = _start(repo, *extra)
+    assert exit_code == 1 and refused["refusal"]["code"] == "attempt-residue", refused
+    detail = refused["refusal"]["detail"]
+    assert detail.startswith("the attempt differs from its manifest"), detail
+    assert "plan.md" in detail
+
+
+def test_t9_qe2_2_start_without_digests_refuses_a_code_running_git_config(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    h.git(repo, "config", "--local", "gpg.ssh.defaultKeyCommand", "s3cr3t-value-never-echoed")
+    _start_refusal_only(repo, "unsupported-git-config")
