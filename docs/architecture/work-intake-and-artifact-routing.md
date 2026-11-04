@@ -6,10 +6,10 @@ Each artifact's own header carries its lifecycle state, and `dispatch.py` reads
 those headers to say what is ready. Tracker adapters acquire and normalize
 input but never classify or write repository state.
 
-Only `work-loop` runs
-implementation, and only `close-work` closes delivery. The legacy registry
-`workspace.toml` is read-only for dispatch and is being retired
-(**STATUS: PLANNED** deletion; see [§ 3](#3-state-and-write-authority)).
+Only `work-loop` runs implementation, and only `close-work` closes delivery.
+No workflow registers work in the legacy `workspace.toml`. Dispatch reads it
+only to refuse, and its deletion is **STATUS: PLANNED**
+(see [§ 3](#3-state-and-write-authority)).
 
 ## 1. Structure: who owns which step
 
@@ -116,16 +116,15 @@ headers. No intake route adds a `workspace.toml` entry.
 
 `dispatch.py` refuses with `unmigrated_workspace` while `workspace.toml` holds
 any entry, and with `invalid_workspace` when the file is unusable. Each refusal
-points to `workspace-status`.[^7]
+points to the `workspace-status` repair.[^7]
 
 The retirement (readers, per-fact homes, deletion) is delivered by the
 [workspace registry retirement brief](../product/briefs/workspace-registry-retirement-delivery.md)
 under [FEAT-0034](../product/intents/FEAT-0034-workspace-registry-retirement.md)
 and [RFC-0105](../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md).
-`[authorization.migration]` stays in `workspace.toml` until the last slice
-deletes the file. **STATUS: PLANNED.**
+Deleting the file is the last slice of that brief. **STATUS: PLANNED.**
 
-A remaining entry has `path`, `kind`, `source`, `summary`, and `needs`.
+A remaining entry has `path`, `kind`, `source`, `summary`, and `needs`. The file stays in place after the repair drops its entries.
 Comments, summaries, order, labels, and hints cannot select a route, satisfy a
 dependency, or authorize dispatch. Terminal status and artifact retention are
 independent: cooling or deletion policy never substitutes for `Shipped`,
@@ -176,7 +175,7 @@ The eight flows below follow a piece of work from dispatch to disposition.
    candidates. The packaged copy also backs the workspace MCP
    `workspace_status` tool.[^9]
 2. **Execution input.** Every workspace-dispatchable, queued, or resumable build item resolves to an existing durable `spec.md` and sibling `plan.md`. Execution receives
-   those files, not tracker payloads. An explicit direct-light request is session-local, creates no workspace entry, and is ineligible for argless dispatch or fresh-session resumption.[^10]
+   those files, not tracker payloads. An explicit direct-light request is session-local, creates no entry, and is ineligible for argless dispatch or fresh-session resumption.[^10]
 3. **Refresh.** The exact configured processor acquires and compares one
    source revision and presents field decisions. It applies guarded local
    changes only after authorization. An unavailable or version-mismatched
@@ -222,9 +221,8 @@ without raw exception text.
 **Queue repair.** `workspace-status` has two verbs, `repair-plan` and
 `repair-apply`.
 
-`dispatch.py` answers what `status`, `reconcile`, `explain`, and
-`selected-membership` ask. `prune`, `retirement-candidates`, and
-`repair-rollback` have no replacement.[^12]
+`dispatch.py` answers every question the retired status verbs asked. The
+retired prune, candidate-listing, and rollback tooling has no replacement.[^12]
 
 `repair-plan` is read-only. `repair-apply` needs explicit confirmation and
 re-derives each operation from the current tree.
@@ -263,7 +261,7 @@ Drift expires
 the confirmation. Committed removal is an ordinary reviewed change, never a
 history rewrite.
 
-[^12]: `_SUBCOMMANDS` and `_RETIRED_REPLACEMENT` in `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`; `packs/core/.apm/skills/workspace-status/SKILL.md`.
+[^12]: The repair's verbs: `_SUBCOMMANDS` and `_RETIRED_REPLACEMENT` in `packs/core/.apm/skills/workspace-status/scripts/workspace_status.py`; `packs/core/.apm/skills/workspace-status/SKILL.md`.
 [^16]: `_VALID_OPERATION_TYPES` in `workspace_status.py`: `queue-to-shipped`, `queue-remove`, `needs-to-header`, `needs-drop-cooled`, `captured-to-file`, `intent-brief-drop`, `spec-entry-drop`, `tracker-entry-drop`, `captured-entry-drop`, `refresh-policy-move`. `queue-to-shipped` and `queue-remove` are re-derived from spec status at apply time.
 
 ## 6. Mechanical invariants
@@ -310,4 +308,4 @@ and Python exist. They do not fail closed inside an arbitrary adopter repository
 - [ADR-0009](../adr/0009-product-brief-layer-and-plan-owned-lld.md), [ADR-0019](../adr/0019-product-intent-ontology-and-brief-projection.md), [ADR-0033](../adr/0033-intent-level-open-recognized-set-decoupled-from-scale.md)
 - [ADR-0077](../adr/0077-feature-projection-and-tracker-authority.md), [ADR-0078](../adr/0078-standalone-intake-and-deterministic-workspace-index.md), [ADR-0092](../adr/0092-direct-light-execution-session-local-boundary.md)
 
-Maintainer procedures: [Maintaining work intake, refresh, and legacy migration](../guides/reference/work-intake-maintenance.md).
+Maintainer procedures: [Maintaining work intake and refresh](../guides/reference/work-intake-maintenance.md).

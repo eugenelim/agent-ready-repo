@@ -106,19 +106,15 @@ Retaining rejected and parked options is deliberate — the artifact exists to
 prevent myopic commitment to the first idea. A future PE reviewing the artifact
 should be able to see *why* other options were set aside.
 
-## What to do with the workspace.toml suggestion
+## What to do with the captured-item suggestion
 
-After emitting the artifact, `diverge-solutions` prints a TOML snippet:
-
-```toml
-{slug = "<slug>", type = "shape"},
-```
-
-Treat the snippet as a routing suggestion, not as the requirements record. Run
-`work-intake remember` with the selected option and its source. `work-intake`
-materializes the canonical Draft artifact first, then registers schema-valid,
-non-dispatchable workspace membership. Do not paste a comment-backed or
-slug-only entry into `workspace.toml`.
+After emitting the artifact, `diverge-solutions` suggests a captured-item file
+at `docs/product/captured/<slug>.md` whose `Detail:` line names
+`solution-options.md`. The file is the whole suggestion; nothing else records
+it. Treat it as a routing suggestion, not as the requirements record. Run
+`work-intake remember` with the selected option and its source, and
+`work-intake` writes the file for you. Do not write it by hand into any other
+location.
 
 **What happens next:** once the option is selected, the next step is validation
 (`intent de-risk`, step 4). Run it on the selected option to pressure-test the

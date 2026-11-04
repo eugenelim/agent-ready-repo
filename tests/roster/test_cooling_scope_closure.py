@@ -395,20 +395,6 @@ def test_ac26_architecture_names_cooling_record_and_writer() -> None:
         assert statement in normalized, statement
 
 
-def test_ac27_reference_states_closeout_derivation() -> None:
-    """AC27: the reference guide states the closeout derivation."""
-    normalized = " ".join(
-        (
-            ROOT / "guides/core/reference/work-intake-routing-and-lifecycle.md"
-        ).read_text(encoding="utf-8").split()
-    )
-
-    assert (
-        "an entry named by a lifecycle record counts toward neither closeout consumer"
-        in normalized
-    )
-
-
 def _normalized_rfc_errata() -> str:
     """Return whitespace-normalized text scoped to RFC-0096's Errata section."""
     document = (

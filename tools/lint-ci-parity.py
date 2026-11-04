@@ -724,6 +724,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest repair-only workspace-status text (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest registry upgrade notes (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest header-readiness source-authority parity (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest installed-skill supervisor run (roster-owned)":
@@ -1141,6 +1143,7 @@ _GATE_MAIN_CHECKS = (
     "pytest navigate-decisions file_safety mirror (roster-owned)",
     "pytest work-loop cooling mirror (roster-owned)",
     "pytest repair-only workspace-status text (roster-owned)",
+    "pytest registry upgrade notes (roster-owned)",
     "pytest header-readiness source-authority parity (roster-owned)",
     "pytest installed-skill supervisor run (roster-owned)",
     "pytest retired-name pinned sites (roster-owned)",

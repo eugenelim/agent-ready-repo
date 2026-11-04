@@ -36,7 +36,7 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 ## When to invoke
 
-Any cold-start orient for the design thread: *"where are we with the design"*, *"what experience artifacts do we have"*, *"status of the design thread"*, *"what's next in the design"*, *"show me what design work exists"*. Also useful at session start alongside `workspace-status` to orient to an ongoing experience thread.
+Any cold-start orient for the design thread: *"where are we with the design"*, *"what experience artifacts do we have"*, *"status of the design thread"*, *"what's next in the design"*, *"show me what design work exists"*. Also useful at session start alongside `work-loop`'s `dispatch.py` (what is ready, active or blocked) to orient to an ongoing experience thread.
 
 Not for reviewing the quality of design artifacts — use `design-review` for that.
 
@@ -164,4 +164,4 @@ If `output_dir` exists but every pattern in the scan table has zero files: fall 
 - Not `journey-mapping` — it reads what exists; it does not author a journey map.
 - Not `user-flow` — it reads what exists; it does not sequence screens or write briefs.
 - Not `design-review` — it checks structural completeness (thread gaps), not design quality.
-- Not `workspace-status` — it gives the experience-design slice only; `workspace-status` gives the full initiative queue picture.
+- Not `work-loop`'s `dispatch.py` — it gives what is ready, active or blocked across the repository, and `navigate-intents` `outstanding` gives work placed under an intent; this skill gives the experience-design slice only.

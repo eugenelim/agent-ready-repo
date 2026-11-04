@@ -44,7 +44,7 @@ def test_workspace_dispatch_and_direct_light_have_distinct_durability() -> None:
     for required in (
         "Every workspace-dispatchable, queued, or resumable build item resolves "
         "to an existing durable `spec.md` and sibling `plan.md`",
-        "An explicit direct-light request is session-local, creates no workspace "
+        "An explicit direct-light request is session-local, creates no "
         "entry, and is ineligible for argless dispatch or fresh-session resumption.",
         "direct light: session-local, work-loop from the request",
         "durable single slice: spec and plan, then work-loop",

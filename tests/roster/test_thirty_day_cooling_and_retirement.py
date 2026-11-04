@@ -1151,11 +1151,6 @@ def test_instructional_surfaces_describe_the_shipped_cooling_engine() -> None:
             "Wave 5 owns dates, clocks, due state, and retirement",
         ),
         (
-            "guides/core/reference/workspace-toml-schema.md",
-            "workspace.toml may point at cooling state and never owns it",
-            "gains no receipt or cooling schema in Wave 4",
-        ),
-        (
             "packs/core/README.md",
             "cooling records live outside workspace.toml",
             "`cool-30-days` is classification only in this release",

@@ -244,7 +244,7 @@ To change a projected path, edit its upstream, run `make build-self` (with
 | Recreated | The `CLAUDE.md → AGENTS.md` symlink | The pipeline |
 
 `AGENT_RULES.md`, `docs/CHARTER.md`, `docs/README.md`, the seed READMEs under
-`docs/<area>/`, `workspace.toml`, and `packages/_example/` are **Manual**
+`docs/<area>/` and `packages/_example/` are **Manual**
 placeholders. Adopters receive the placeholder on first install and own the
 content afterwards. `EXCLUDED_PATTERNS` decides membership, and a seed it does not
 match stays Projected.

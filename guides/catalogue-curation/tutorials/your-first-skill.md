@@ -29,29 +29,23 @@ This tutorial introduces each standard at the point where it applies; the standa
 
 Before writing a line, know where your skill sits in the workspace design.
 
-The workspace has two rooms:
+Work moves through two stages:
 
 ```
-Shaping room → [shaping_queue]              Build room → [work].queue
+Shaping                                     Building
 ───────────────────────────────             ─────────────────────────
 Decide what the skill does.                 Write it. That's this tutorial.
 Shape it as a brief with rationale.
 ```
 
-If you've come from the shaping room with a spec, your `workspace.toml` already has your work item:
+If you've come from shaping with a spec, the spec's own `Status:` line records where
+the work stands, and its `Depends on:` line names anything it waits for.
 
-```toml
-[[work.queue]]
-id = "skill-<your-skill-name>"
-spec = "docs/specs/<pack>/<your-skill-name>.md"
-status = "In Progress"
-```
-
-If you're starting ad-hoc — no workspace set up yet — that's fine.
+If you're starting ad-hoc — no spec yet — that's fine.
 Skills must handle both: a skill that only works when the full arc has already run is fragile.
 You'll handle this in Step 3.
 
-Run `workspace-status` at any point to see what the queue currently looks like.
+Ask the agent to run `work-loop`'s `dispatch.py` at any point to see what is ready, active or blocked.
 
 **Where the skill lives on disk:**
 
@@ -73,7 +67,7 @@ packs/<pack>/
 | Verb | What it does |
 |---|---|
 | `work-intake` | Materializes a canonical work artifact |
-| `workspace-status` | Surfaces the current queue state without modifying it |
+| `work-loop` `dispatch.py` | Lists what is ready, active or blocked without modifying anything |
 | `author-delivery-brief continue` | Turns confirmed slices of a Ready brief into specs |
 
 Name your skill for what it does, not for internal mechanism.
@@ -163,13 +157,12 @@ detect what's missing, name it explicitly, and stop with a clear message.
 - Python 3.11+ on PATH.
 - `jq` on PATH — detected via `shutil.which("jq")`.
   If absent: stop and tell the user. Do not attempt to install it.
-- If a `workspace.toml` exists in the working directory, read the current queue item.
-  If no `workspace.toml` is found: note that workspace tracking is inactive and continue
-  without updating the queue. Tell the user they can run `work-intake` to create
-  the canonical artifact and register lifecycle state.
+- If the work has a spec, read its `Status:` line.
+  If there is no spec: note that nothing is tracking this work and continue.
+  Tell the user they can run `work-intake` to create the canonical artifact.
 ```
 
-The workspace-absent case shows the pattern: detect, name, proceed-with-note or stop — never silently ignore.
+The no-spec case shows the pattern: detect, name, proceed-with-note or stop — never silently ignore.
 
 ### Instructions
 
@@ -217,7 +210,7 @@ The summary has been saved to `<output-file>`.
 
 When you're ready:
 - Review the summary, then update the pack's profile or run `agentbundle catalogue package` to produce a release archive.
-- Or run `workspace-status` to see the full queue before deciding what's next.
+- Or run `dispatch.py` to see what is ready before deciding what's next.
 ```
 
 The arc handoff pattern is what makes a series of skills feel like a coherent journey
@@ -406,7 +399,7 @@ this is the writing-path subset:
 - [ ] Activation evals: all `should_trigger: true` queries > 0.5; all `should_trigger: false` < 0.5
 - [ ] `evals/evals.json` exists with at least one output-quality eval
 - [ ] `agentbundle show <pack>` lists the skill by name
-- [ ] `workspace-status` shows the work item as `Done` (if workspace tracking is active)
+- [ ] The spec's `Status:` reads `Shipped` and `dispatch.py` no longer lists it as ready (if the work has a spec)
 - [ ] PR open; adversarial review returned `Clean — ready to commit.`
 
 ---

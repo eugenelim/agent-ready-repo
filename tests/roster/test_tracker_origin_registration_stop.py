@@ -22,7 +22,6 @@ _BASELINE = "e8679a9a3"
 
 _INTAKE = "packs/core/.apm/skills/work-intake/SKILL.md"
 _BRIEF = "packs/core/.apm/skills/author-delivery-brief/SKILL.md"
-_SCHEMA_GUIDE = "guides/core/reference/workspace-toml-schema.md"
 _ARCH = "docs/architecture/work-intake-and-artifact-routing.md"
 
 # AC-0017 and AC-0018: file -> phrases it must not hold (each present at the baseline).
@@ -50,12 +49,6 @@ _ABSENT: dict[str, tuple[str, ...]] = {
     ),
     "packs/github/JOURNEY.md": ("registered tracker-origin artifact",),
     "packs/linear/JOURNEY.md": ("registered tracker-origin artifact",),
-    _SCHEMA_GUIDE: (
-        "tracker-origin intent and brief entries stay",
-        "A tracker-origin spec keeps its entry",
-        "For a tracker-origin brief entry",
-        "tracker-origin entry moves to the matching collection",
-    ),
     "guides/core/how-to/intake-an-external-brief.md": (
         "keeps a registry entry",
         "Brief file created and registered in",
@@ -111,7 +104,6 @@ _PRESENT: dict[str, tuple[str, ...]] = {
     ),
     "packs/core/.apm/skills/workspace-status/SKILL.md": ("tracker-entry-drop",),
     "packs/core/.apm/skills/workspace-status/references/mutate.md": ("tracker-entry-drop",),
-    _SCHEMA_GUIDE: ("tracker-entry-drop",),
     _ARCH: ("tracker_profile",),
 }
 
@@ -204,16 +196,6 @@ def test_section_5_names_when_to_pass_the_tracker_source() -> None:
     bodies = [_flat_text("\n".join(lines)) for head, lines in _sections(text) if head.startswith("### 5.")]
     assert len(bodies) == 1
     assert _SECTION_5_PHRASE in bodies[0]
-
-
-def test_every_tracker_origin_example_sits_in_a_section_that_names_the_repair() -> None:
-    text = (_REPO / _SCHEMA_GUIDE).read_text(encoding="utf-8")
-    seen = 0
-    for _head, lines in _sections(text):
-        if any('mode = "tracker-origin"' in line for line in lines):
-            seen += 1
-            assert "tracker-entry-drop" in "\n".join(lines), lines[:3]
-    assert seen > 0
 
 
 _MUTATE = "packs/core/.apm/skills/workspace-status/references/mutate.md"

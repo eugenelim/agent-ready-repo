@@ -863,9 +863,12 @@ def _replacement_targets_are_dirty(root: Path, derived: _Derived) -> bool:
     The request contract's own dirty check inherits the caller's environment,
     so this independent check covers the same source and registry again.
     """
+    # A registry absent from the commit, the disk and the index is not a path
+    # to guard; a registry in only some of those stays guarded and so dirty.
+    registry = [] if _registry_absent(root, derived.base_commit) else [WORKSPACE_FILE]
     paths = list(
         dict.fromkeys(
-            [derived.source, WORKSPACE_FILE, *(item.path for item in _replace_writes(derived))]
+            [derived.source, *registry, *(item.path for item in _replace_writes(derived))]
         )
     )
     return _paths_dirty(root, paths)
@@ -1293,6 +1296,58 @@ def _read_preamble_text(root: Path, relative: str) -> str:
         os.close(descriptor)
 
 
+def _tree_entry_mode(root: Path, commit: str) -> str | None:
+    """Return the Git mode of ``workspace.toml`` at ``commit``, or ``None`` when absent.
+
+    Raises ``ValueError`` on any Git failure and on an entry that is not a
+    regular file (a tree, a link, or a gitlink).
+    """
+    listing = _git(
+        root,
+        ["ls-tree", "-z", commit, "--", WORKSPACE_FILE],
+        max_bytes=_MAX_FILE_BYTES,
+    )
+    if not listing:
+        return None
+    header, _, path = listing.rstrip(b"\0").decode("utf-8").partition("\t")
+    mode = header.split(" ", 1)[0]
+    if path != WORKSPACE_FILE or mode not in {"100644", "100755"}:
+        raise ValueError("registry-entry-invalid")
+    return mode
+
+
+def _registry_absent(root: Path, commit: str) -> bool:
+    """Report whether Git and the disk both prove ``workspace.toml`` absent.
+
+    Absent means: no entry at ``commit``, no directory entry at the root (a
+    link, even a dangling one, is present), and no index entry. Every query
+    must succeed; any failure counts as present.
+    """
+    try:
+        if _tree_entry_mode(root, commit) is not None:
+            return False
+        try:
+            os.lstat(root / WORKSPACE_FILE)
+            return False
+        except FileNotFoundError:
+            pass
+        return not _git(
+            root, ["ls-files", "-z", "--", WORKSPACE_FILE], max_bytes=_MAX_FILE_BYTES
+        )
+    except (OSError, UnicodeError, ValueError, subprocess.TimeoutExpired):
+        return False
+
+
+def _read_live_registry(root: Path, mode: str) -> bytes:
+    """Read the live registry; in ``none`` mode an absent file reads as no bytes."""
+    if mode == "none":
+        try:
+            os.lstat(root / WORKSPACE_FILE)
+        except FileNotFoundError:
+            return b""
+    return _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
+
+
 def _registry_mode(root: Path, commit: str, source: str, successor: str) -> str:
     """Fix how a rename treats ``workspace.toml`` from its bytes at ``commit``.
 
@@ -1300,7 +1355,13 @@ def _registry_mode(root: Path, commit: str, source: str, successor: str) -> str:
     but the source path occurs, ``successor-only`` when only the successor path
     occurs, and ``none`` when neither occurs. The bytes come from Git, never the
     live file, so the mode cannot change after the rename's pre-write check.
+
+    A registry absent at ``commit`` is ``none``: only a successful
+    ``git ls-tree`` that lists nothing proves absence. A Git failure, or an
+    entry that is not a regular blob, refuses rather than reading as absent.
     """
+    if _tree_entry_mode(root, commit) is None:
+        return "none"
     data = _git_file(root, commit, WORKSPACE_FILE, max_bytes=_MAX_WORKSPACE_BYTES)
     parsed = tomllib.loads(data.decode("utf-8"))
     if _request._count_registry_matches(parsed, source) >= 1:  # type: ignore[attr-defined]
@@ -2319,7 +2380,7 @@ def run_intent_rename(
         mode = _registry_mode(root, base, derived.source, derived.successor)
         if mode == "successor-only":
             return RenameResult(RenameStatus.REFUSED, "registry-ambiguous")
-        live_workspace = _read_live(root, WORKSPACE_FILE, _MAX_WORKSPACE_BYTES)
+        live_workspace = _read_live_registry(root, mode)
         workspace: bytes | None = live_workspace
         if mode == "none":
             if (

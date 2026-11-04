@@ -42,8 +42,8 @@ If you shaped an architecture concept or design doc, it goes with the intent.
 When `intent decompose` cuts a feature the design covers, it carries the
 design's location in the delivery contract's design context, and `new-spec`
 reads it there when it writes the plan's design section. To make the spec wait
-until the design lands, register the design in `workspace.toml` and add it to
-the spec's `needs` array. That entry only orders the work. If your repository has a `reference.md`, the plan follows
+until the design lands, write the design as a captured-item file under `docs/product/captured/` and
+name it in the spec's `Depends on:` header. That reference only orders the work. If your repository has a `reference.md`, the plan follows
 it without any extra step.
 
 ## Keep the gates
@@ -55,4 +55,4 @@ and its required approval.
 ## What you have now
 
 - A bounded Core intake request that carries the shaped intent's outcome and boundaries into repository work.
-- The canonical artifact path, `workspace.toml` registration, and next processor are reported by Core; follow that processor's approval gate before implementation.
+- The canonical artifact path and next processor are reported by Core; follow that processor's approval gate before implementation.

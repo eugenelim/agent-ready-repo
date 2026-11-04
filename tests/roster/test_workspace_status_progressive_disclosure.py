@@ -54,11 +54,12 @@ BODY_LINE_CEILING = 500
 # 2026-10-29, spec-registration-stop: both re-pinned for the spec-entry-drop repair, the retired `unregistered_work` and Type 1 audit, and the reworded cooled-child next action. Both re-pinned again when queue moves stayed off drop candidates while cooling is unreadable.
 # 2026-10-30, tracker-origin-registration-stop (docs/specs/tracker-origin-registration-stop): `workspace_status.py` re-pinned for the tracker-entry-drop repair.
 # repair-only-workspace-status: `workspace_status.py` re-pinned when the retired subcommands, the migration section and the status builders left it; `workspace_status_prune.py` left the list with the file.
+# registry-upgrade-notes (docs/specs/registry-upgrade-notes): both re-pinned when the findings' next actions stopped saying "rerun reconciliation".
 BACKEND_DIGESTS = {
     "workspace_status.py":
-        "e23226e8f8aa43f6806b5caa76c9314f81756188c83cc33ab16db993fbe47e27",
+        "b576fb2bf73104e4914e007cdcfe2a944a13853a59371a62c7a39eed9961ad88",
     "workspace_status_engine.py":
-        "bc884d0a2d08cdcc83547329a1b2f39b0d803614daea83d3f3a599524f6f0304",
+        "fd7a9aa93488b68d3b202264b3a8b5daecfc68a373530f2ad2023d4270017855",
     "workspace_mcp_server.py":
         "c2b252f55c99d54558b253e3c14aa40a5feec5bbcaad1340154e57e3d2c03199",
 }

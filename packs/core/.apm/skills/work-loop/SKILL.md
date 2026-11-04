@@ -171,7 +171,7 @@ containing this `SKILL.md`. From the repository root, invoke every Python script
 below as `python '<skill-dir>/scripts/<name>.py' ...`, substituting the actual
 directory and passing the resolved script path as one argument.
 
-**Base freshness check.** Before reading `workspace.toml` or any spec: run `python '<skill-dir>/scripts/check-base-freshness.py'`. Read the JSON `status` value. `ok` means the base is current; proceed silently. `skipped` means freshness was not verified because the environment prevented the remote check or fetch; tell the user that the base was not verified and they may want to update it separately, then continue without retrying. `surface` stops the loop: read `message` in the JSON output and Surface it. When the message names a stale branch and gives a safe update or rebase path, ask the user before running it; when the message says this environment could not prepare the update, recommend that the user update the branch separately. Never treat a stale `surface` result as `skipped` or continue the loop from it. Pass `--target REMOTE/BRANCH` for non-default targets (stacked PRs, release branches); required when more than one remote is configured. The helper may run required local read-only Git checks. Its network-capable Git calls are only remote discovery and fetch against configured remotes, and Git metadata writes from fetch are confined to the current repository. Do not inspect credentials, bypass enterprise policy, or repeatedly retry; a skipped result is not proof that `HEAD` is current.
+**Base freshness check.** Before running dispatch or reading any spec: run `python '<skill-dir>/scripts/check-base-freshness.py'`. Read the JSON `status` value. `ok` means the base is current; proceed silently. `skipped` means freshness was not verified because the environment prevented the remote check or fetch; tell the user that the base was not verified and they may want to update it separately, then continue without retrying. `surface` stops the loop: read `message` in the JSON output and Surface it. When the message names a stale branch and gives a safe update or rebase path, ask the user before running it; when the message says this environment could not prepare the update, recommend that the user update the branch separately. Never treat a stale `surface` result as `skipped` or continue the loop from it. Pass `--target REMOTE/BRANCH` for non-default targets (stacked PRs, release branches); required when more than one remote is configured. The helper may run required local read-only Git checks. Its network-capable Git calls are only remote discovery and fetch against configured remotes, and Git metadata writes from fetch are confined to the current repository. Do not inspect credentials, bypass enterprise policy, or repeatedly retry; a skipped result is not proof that `HEAD` is current.
 
 ## Step 0. ORIENT
 
@@ -202,7 +202,7 @@ For a supplied spec path, add `--start <spec>` for a new start or
 - `none` or `refuse`: stop. Surface each entry of `decision.findings` with its
   `code`, `path` and `next_action`.
 
-Raw `[work].queue` or `[work].active` membership never authorizes PLAN, and
+A registry entry never authorizes PLAN, and
 never reconstruct requirements from comments, summaries, list order, or
 surrounding prose. The `ready`, `active` and `blocked` lists of the same output
 are what an explicit request is checked against below.
@@ -210,8 +210,8 @@ are what an explicit request is checked against below.
 Surface one orientation line. When the decision is `start` or `resume` (argless
 starts and fresh-session resumes only), say "Resuming `docs/specs/<slug>/spec.md`"
 or "Starting `docs/specs/<slug>/spec.md`" for the named path. Use the findings in
-the dispatch output for stale-queue and drift warnings. Dispatch never depends
-on `workspace.toml`.
+the dispatch output for stale-queue and drift warnings. Dispatch reads
+`workspace.toml` only to refuse an unusable or unmigrated one.
 
 Then apply the **Shaping-item guard** when a dispatch-named or supplied slug
 exists. Derive slug (strip `docs/specs/` prefix + trailing `/`). Match it against
@@ -237,7 +237,7 @@ work.
   Otherwise proceed to the direct-light decision record.
 - For an **argless start, fresh-session `resume`, or supplied spec path**: act on
   `decision.action` as above. A direct-light run is not resumable through
-  `workspace-status`; a bare `resume` in a fresh context needs a spec that
+  `dispatch.py`; a bare `resume` in a fresh context needs a spec that
   dispatch accepts for resume.
 
 ## Step 1. PLAN

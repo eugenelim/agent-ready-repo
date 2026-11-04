@@ -1,6 +1,6 @@
 ---
 title: Pack workflow design
-summary: Design a coherent pack by classifying its workflow, mapping its session arc, naming skills, choosing storage paths, and registering lifecycle state.
+summary: Design a coherent pack by classifying its workflow, mapping its session arc, naming skills, choosing storage paths, and making shaping items findable.
 pack: _shared
 kind: explanation
 ---
@@ -109,21 +109,23 @@ The `journey-mapping` skill is the canonical example: it writes customer-journey
 
 **Output from this step:** a directory layout diagram for your pack's output.
 
-## Register with workspace-status
+## Make shaping items findable
 
-If your pack has a `*-status` skill, register it so that `workspace-status` can route to it when a user cold-starts a session.
+Nothing registers a pack. A pack's shaping items are captured-item files under `docs/product/captured/`, each with a `Type:` line, and `work-loop`'s `dispatch.py --captured` lists them. Each listed item carries a `routes_to` skill when its type has one: `shape` goes to `intent`, `research` to `desk-research-project-start`, `strategy` to `frame-situation`, and `design` to `experience-status`.
 
-**How to register:**
+If your pack has a `*-status` skill, point your skills' hand-off text at it, so a user who cold-starts a session knows what to run.
 
-1. Choose a `shaping_queue` type string for your pack. This string is the `Type:` line of each captured-item file under `docs/product/captured/` for your pack's shaping items (for example, `design` for the experience-design pack, `research` for the desk-research pack); entries registered before captured items moved to their own files carry it in `workspace.toml`.
+**How to make your items findable:**
 
-2. Add a routing entry in the `workspace-status` skill's routing table: `type = "<your-type>"` → `<your-pack>-status`.
+1. Have your skills write each shaping item as a captured-item file, and use one of the `Type:` values above (for example, `design` for the experience-design pack, `research` for the desk-research pack).
 
-3. Add a fallback. When your pack is not installed, `workspace-status` skips the routing entry rather than erroring. Document the fallback message in your `*-status` skill body — it tells the user what to run to get started (for example, when the experience-design pack is not installed, `workspace-status` falls back gracefully rather than routing to `experience-status`).
+2. Make your `*-status` skill read the pack's own output directory, not a registry. It is the way back into your pack's thread.
+
+3. Add a fallback. When your pack is not installed, its skills are absent and `dispatch.py --captured` still lists the item. Document the fallback message in your `*-status` skill body, so it tells the user what to run to get started.
 
 **If your pack is episodic or stateless**, skip this step. There is no persistent thread to orient to, and a status skill for an episodic pack would have nothing to read.
 
-**Output from this step:** a `shaping_queue` type string and a routing entry.
+**Output from this step:** a captured-item `Type:` choice and, for a sustained pack, a `*-status` skill.
 
 ## Reference: worked archetypes
 

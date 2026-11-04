@@ -91,7 +91,7 @@ Teams that run market analysis first often use the analysis to confirm a concept
 
 `run-okr-cascade` is the primary bridge from this pack to `product-engineering`. Its output is not just a document — each identified gap becomes its own captured-item file at `docs/product/captured/<gap-slug>.md` with `Kind: intent` and `Type: strategy`, and nothing is added to `workspace.toml`.
 
-The PE pack's `workspace-status` reads these entries and surfaces them as strategy-driven shaping items. The PE pack's `frame-situation` picks them up and shapes them into briefs. This cross-pack routing is documented in each skill's `references/cross-pack-routing.md`.
+`work-loop`'s `dispatch.py --captured` lists these captured items and routes the strategy ones to `frame-situation`. The PE pack's `frame-situation` shapes them into briefs. This cross-pack routing is documented in each skill's `references/cross-pack-routing.md`.
 
 ### Why gaps, not features
 

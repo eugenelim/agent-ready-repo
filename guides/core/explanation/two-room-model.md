@@ -15,36 +15,32 @@ This page explains the distinction, what goes in each room, and how items move b
 
 The shape room holds work that is not yet ready to implement. The canonical question is: *do we know exactly what to build?* If the answer is no — the idea needs research, framing, or strategic validation before a spec can be written — the item belongs in the shape room.
 
-In `workspace.toml`, the shape room is the `["ini-NNN".shaping_queue]` section:
-
-- **`active`** — items currently being shaped in this initiative, plus `signal`-type entries that live here permanently as ongoing monitoring context.
-- **`backlog`** — items waiting to be picked up for shaping.
-
-Each entry carries a `type` field that routes it to the right shaping skill:
+Shape work is told apart by its artifact type and that artifact's `Status:`: an intent or brief that is still being framed, or a captured item under `docs/product/captured/`. A captured item's `Type:` routes it to the right shaping skill:
 
 | Type | What it means | Skill |
 |------|--------------|-------|
-| `shape` | Needs product-engineering shaping (default when `type` omitted) | `intent frame` |
+| `shape` | Needs product-engineering shaping | `intent frame` |
 | `research` | Needs desk research before a spec can be written | `desk-research-project-start` |
 | `strategy` | Needs market or product strategy work | `frame-situation` |
 | `signal` | Ongoing monitoring context — has no discrete end state | (informational only — no action) |
 | `design` | Needs experience-design work | `experience-status` |
 
-Shaping work ends when the item is shaped enough to write a spec. At that point, a spec is authored via `new-spec` and the spec's path moves to the build room. A `signal` item never graduates — it stays in the shape room as ongoing context.
+Shaping work ends when the item is shaped enough to write a spec. At that point, a spec is authored via `new-spec`. A `signal` item never graduates — it stays as ongoing context.
 
 ## The build room
 
 The build room holds work that is ready to implement — a spec exists, the contract is clear, and `work-loop` can carry it. The canonical question is: *does a spec exist and is the contract clear?* If yes, the item belongs in the build room.
 
-In `workspace.toml`, the build room is the `["ini-NNN".work]` section with three lists:
+The build room is the specs under `docs/specs/`. Each spec's own headers say where it stands:
 
-| List | What it means |
-|------|--------------|
-| `queue` | Ready to start, or waiting on a `needs` dependency |
-| `active` | Currently being built in this session |
-| `shipped` | Implemented — moved here on PR merge |
+| Header | What it means |
+|--------|--------------|
+| `Status: Approved` | Ready to start, once its plan exists and its dependencies are met |
+| `Status: Implementing` | Being built |
+| `Status: Shipped` | Implemented — set when the PR merges |
+| `Depends on:` | The items it waits for |
 
-Items move through the lists by list membership: an entry in `queue` is ready, in `active` is in-flight, in `shipped` is done. There is no per-entry status field — list position is the lifecycle.
+Readiness comes from `work-loop`'s `dispatch.py`, which reads those headers. Nothing is registered anywhere else.
 
 ## Why the separation matters
 
@@ -59,25 +55,25 @@ Separating the rooms makes the distinction explicit at capture time, before work
 
 The path is one-way:
 
-1. A new item arrives — a user surfaces it mid-session, a spec reveals a follow-on, or a review finds a gap. `work-intake` materializes the right canonical artifact; its `Status:` is its lifecycle state, and nothing is registered. Work that is not independently shippable remains a non-dispatchable Draft.
+1. A new item arrives — a user surfaces it mid-session, a spec reveals a follow-on, or a review finds a gap. `work-intake` materializes the right canonical artifact; its `Status:` is its lifecycle state. Work that is not independently shippable remains a non-dispatchable Draft.
 2. Shape items are worked until a spec can be written. The spec lands in `docs/specs/<slug>/`.
-3. The spec is ready for the build room once its `Status:` and sibling plan say so; a spec has no registry entry.
-4. `work-loop` builds the spec. On PR merge, its `Status:` becomes `Shipped` (no entry moves).
+3. The spec is ready for the build room once its `Status:` and sibling plan say so, and its `Depends on:` targets are met.
+4. `work-loop` builds the spec. On PR merge, its `Status:` becomes `Shipped`.
 
-A `signal` item never follows this path — it stays in the shape room as persistent context.
+A `signal` item never follows this path — it stays as persistent context.
 
-## How `workspace-status` surfaces both rooms
+## How `dispatch.py` surfaces both rooms
 
-Running `workspace-status` at session start surfaces both rooms in a single orientation pass:
+Asking what is ready at session start runs `work-loop`'s `dispatch.py`:
 
-- The **shape room** appears as shaping items in `active`, each with a suggested skill command.
-- The **build room** appears as ready-to-start items (unblocked, not in `shipped`) and active items.
-- **Signals** appear as active context without a suggested action — they inform decisions without requiring one.
+- **Build room** — `ready`, `active` and `blocked` specs, and a `decision` saying whether to start, resume, ask or stop.
+- **Shape room** — `dispatch.py --captured` adds the captured items, each with its type. Work placed under an intent shows in `navigate-intents` `outstanding`.
+- **Signals** appear as context without a suggested action.
 
-Read the orientation output to understand the full state of both rooms before picking up any work.
+Read that output to understand the state of both rooms before picking up any work.
 
 ## See also
 
 - [How to orient at the start of a session](../how-to/orient-at-session-start.md) — read both rooms at session start
 - [Start a software change](../how-to/start-or-remember-work.md) — route a new item into durable artifact and lifecycle state
-- [workspace.toml schema reference](../reference/workspace-toml-schema.md) — authoritative field and section descriptions
+- [Upgrade from a workspace.toml registry](../how-to/upgrade-from-a-workspace-registry.md) — repair a repo that still has an older registry

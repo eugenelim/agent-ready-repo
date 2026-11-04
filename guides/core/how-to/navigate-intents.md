@@ -40,7 +40,7 @@ python3 <skill-dir>/scripts/navigate_intents.py query \
 
 This output is trimmed. The capability prints under `(no parent)` because it has no parent intent of its own.
 
-For queue order and workspace repair, use `workspace-status` instead. This skill never reads `workspace.toml`.
+For what is ready to start, use `work-loop`'s `dispatch.py` instead. For workspace repair, use `workspace-status`. This skill never reads `workspace.toml`.
 
 For a page you can open offline or send to a reviewer, see [Export an offline view](#export-an-offline-view).
 
@@ -330,4 +330,4 @@ Results are candidate context derived at query time, not authoritative policy. T
 
 ## Related
 
-- [Orient at the start of a session](orient-at-session-start.md) — read queue state and pick a next action with `workspace-status`
+- [Orient at the start of a session](orient-at-session-start.md) — read what is ready and pick a next action with `dispatch.py`

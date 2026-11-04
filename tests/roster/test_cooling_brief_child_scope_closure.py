@@ -25,7 +25,6 @@ ROOT = Path(__file__).resolve().parents[2]
 ENGINE_PATH = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status_engine.py"
 SKILL_PATH = ROOT / "packs/core/.apm/skills/workspace-status/SKILL.md"
 STATUS_SCRIPT = ROOT / "packs/core/.apm/skills/workspace-status/scripts/workspace_status.py"
-SCHEMA_GUIDE = ROOT / "guides/core/reference/workspace-toml-schema.md"
 CLOSEOUT_GUIDE = ROOT / "guides/core/how-to/close-and-disposition-work.md"
 
 sys.path.insert(0, str(ROOT / "tests/roster"))
@@ -304,9 +303,9 @@ def _documented_finding_rows(text: str) -> dict[str, tuple[str, str]]:
 
 
 def test_the_code_is_documented_where_the_gate_looks(engine) -> None:
-    """*AC18*: both homes carry a row for the code, with reason and action."""
+    """*AC18*: the skill carries a row for the code, with reason and action."""
     assert CODE in engine._FINDING_NEXT_ACTIONS
-    for path in (SKILL_PATH, SCHEMA_GUIDE):
+    for path in (SKILL_PATH,):
         rows = _documented_finding_rows(path.read_text(encoding="utf-8"))
         assert CODE in rows, f"{path.name} carries no row for {CODE}"
         reason, action = rows[CODE]
@@ -321,7 +320,7 @@ def test_the_next_action_says_when_the_empty_answer_is_correct(engine) -> None:
     """
     literal = "only when that spec has no parent brief"
     assert literal in engine._FINDING_NEXT_ACTIONS[CODE]
-    for path in (SKILL_PATH, SCHEMA_GUIDE):
+    for path in (SKILL_PATH,):
         rows = _documented_finding_rows(path.read_text(encoding="utf-8"))
         assert literal in rows[CODE][1], f"{path.name} next action omits the literal"
 
@@ -348,9 +347,9 @@ def test_the_adopter_closeout_procedure_states_the_precondition() -> None:
 
 
 def test_the_parent_field_reference_states_the_cooling_interaction() -> None:
-    """*AC26*: the `parent` row names what cooling does to an undeclared value."""
-    row = _table_row(SCHEMA_GUIDE.read_text(encoding="utf-8"), "`parent`")
-    assert "unestablished once the spec has cooled" in row
+    """*AC26*: the `cool-30-days` row names what cooling does to an undeclared parent."""
+    row = _table_row(CLOSEOUT_GUIDE.read_text(encoding="utf-8"), "`cool-30-days`")
+    assert "an undeclared parent cannot be recovered" in row
 
 
 def _executing_workspace(root, *, child_parent, extra_specs=(), dep_kind="brief"):

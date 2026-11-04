@@ -180,7 +180,7 @@ def test_ac6_new_rfc_core_references_are_conditional_with_fallbacks() -> None:
         "When core is installed, dispatch `security-reviewer` for a security boundary or trust model",
         "a fresh-context reviewer given only the RFC text and the same adversarial",
         "record it in the receipt as self-review",
-        "When core is installed, hand follow-on work to its `work-intake` / `workspace-status`",
+        "When core is installed, hand follow-on work to its `work-intake`",
         "Without core, list the follow-ons in the completion receipt",
     ):
         assert phrase in skill, phrase

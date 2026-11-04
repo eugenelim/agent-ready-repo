@@ -71,8 +71,8 @@ dependency of pack source or of a target runtime.
 | Adaptation marker | `.adapt-install-marker.toml` | `agentbundle install`; `install-marker.py` for plugin and APM routes | `core` session-start hook and `adapt-to-project` |
 | Governance records | `docs/adr/`, `docs/rfc/`, and `docs/specs/` | `new-adr`, `new-rfc`, and `new-spec` | Contributors and reviewers |
 | Canonical work artifacts | `docs/product/` and `docs/specs/` | The workflow that creates the artifact | Workflows, contributors, reviewers |
-| Lifecycle state | The `Status:`, `Depends on:`, and `Priority:` headers of each canonical artifact, and a captured item's own file under `docs/product/captured/` | The workflow that owns the artifact (`work-intake`, `work-loop`, `close-work`) | `work-loop` dispatch, `workspace-status`, `navigate-intents`, review |
-| Legacy work registry (being retired; the last slice deletes it) | `workspace.toml` | No intake route or workflow adds an entry. Only `workspace-status` repair effects change it | `workspace-status`, workspace MCP, and the spec-status lint's deferral anchors |
+| Lifecycle state | The `Status:`, `Depends on:`, and `Priority:` headers of each canonical artifact, and a captured item's own file under `docs/product/captured/` | The workflow that owns the artifact (`work-intake`, `work-loop`, `close-work`) | `work-loop` dispatch, `navigate-intents`, review |
+| Legacy work registry (being retired; the last slice deletes it) | `workspace.toml` | No intake route or workflow adds an entry. Only `workspace-status` repair (`repair-plan`, `repair-apply`) changes it | `workspace-status` repair and `dispatch.py`, which refuses while an entry remains |
 | Tracker provenance | The `source-authority` block of the canonical artifact (its `tracker_profile` table) | The accepting intake workflow | Refresh and reconciliation workflows |
 | Full-mode delivery records | `docs/specs/**/delivery/` (committed) | `work-loop` `work-supervisor.py` | Supervisor re-derivation, pre-PR hooks, delivery fact feed, reviewers |
 | Full-mode run store | Under the Git directory: attempt manifests, pinned supervisor digests, owed confirmations, the product ref's recorded value, and the made-commit list | `work-loop` `work-supervisor.py` | The supervisor only (attempt-security trust root) |
@@ -100,8 +100,8 @@ dependency of pack source or of a target runtime.
    companions.
 3. **Work intake → context resolution → execution → handoff.** A tracker or
    local request enters `work-intake`, which classifies it into canonical
-   artifacts whose own headers carry their lifecycle state. `workspace-status`
-   and `work-loop` dispatch resolve context from those headers, `work-loop` performs approved work and gates, then
+   artifacts whose own headers carry their lifecycle state. `work-loop` dispatch
+   resolves context from those headers, `work-loop` performs approved work and gates, then
    hands the diff and evidence to reviewers or the requesting contributor. In
    full mode, the skill's `work-supervisor.py` owns the procedure and commits
    each step with its `delivery/` records. Light mode runs no supervisor.

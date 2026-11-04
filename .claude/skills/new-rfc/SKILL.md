@@ -312,10 +312,10 @@ A written file is a draft that the maintainers adopt through their normal review
 
 ## After acceptance
 
-When core is installed, hand follow-on work to its `work-intake` / `workspace-status`
+When core is installed, hand follow-on work to its `work-intake`
 to capture; a follow-on spec needs no registration, and do not implement queue logic
-here. Without core, list the follow-ons in the completion receipt and register
-nothing. Follow-on artifacts may include ADRs, specs where
+here. Follow-ons then surface through `work-loop`'s `dispatch.py`. Without core,
+list the follow-ons in the completion receipt and capture nothing. Follow-on artifacts may include ADRs, specs where
 warranted, convention edits, migrations, and guides. Acceptance records a decision; it
 does not make every artifact mandatory.
 When an RFC covers multiple journey phases, each phase ships its guide with the capability,

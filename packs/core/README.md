@@ -13,7 +13,7 @@ agentbundle install --pack core
 
 ## What your agent can do
 
-- Route a request into the right artifact, register it in `workspace.toml`, and show what is ready, blocked, and done with `workspace-status`.
+- Route a request into the right artifact, and show what is ready, active, and blocked with `work-loop`'s `dispatch.py`.
 - Write a spec and plan, then run `work-loop`: build, checks, and review, with your approval.
 - Fix a bug from root cause, and explain a diff.
 - Close finished work, checking that lasting context reached its owners first.
@@ -21,7 +21,7 @@ agentbundle install --pack core
 ## Skills
 
 - **`work-intake`** — Routes a request or tracker item to an artifact.
-- **`workspace-status`** — Shows queue state.
+- **`workspace-status`** — Repairs leftover `workspace.toml` entries with `repair-plan` and `repair-apply`.
 - **`navigate-intents`** — Queries the intent graph.
 - **`intake-intent`** — Admits a minimum intent.
 - **`author-delivery-brief`** — Writes a coordination brief (`author-brief`, `receive-brief` are old aliases).
@@ -65,7 +65,7 @@ Scope: repo (default) · Version: 3.1.6 · Source: [packs/core](https://github.c
 A direct install ends by printing a next action. Follow it, even if a hook also runs:
 
 ```text
-Verify:   Run workspace-status and confirm your workspace.toml queue state is displayed.
+Verify:   Ask your agent what is ready to work on; work-loop's dispatch.py prints the ready, active and blocked specs.
 Next:     Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable.
 ```
 

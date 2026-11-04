@@ -101,10 +101,9 @@ or low.
 
 ## How to hand the bet to `map-capabilities`
 
-When `bet.md` is written, the skill prints a `workspace.toml` transition
-suggestion. Treat it as routing input: use `work-intake` to materialize the
-canonical artifact and register schema-valid lifecycle state. Do not paste a
-comment-backed or slug-only entry manually.
+When `bet.md` is written, the skill prints a captured-item record for the
+slug's next step. Ask `work-intake` to capture it; it writes the file under
+`docs/product/captured/`. Nothing registers it anywhere else.
 
 To hand off: run `map-capabilities` and point it to the committed bet at
 `<output_dir>/shaping/<slug>/bet.md`. It will use the option, assumptions,

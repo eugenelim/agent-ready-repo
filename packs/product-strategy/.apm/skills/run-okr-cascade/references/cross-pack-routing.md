@@ -19,9 +19,9 @@
 - **PE pack reads** those files; neither calls the other directly.
 - The gap file survives session boundaries — it is the durable handoff, not a live API call.
 
-## `workspace-status` routing
+## Captured-item routing
 
-`workspace-status` (core pack) routes a captured-item file with `Type: strategy` to `frame-situation` (PE pack — M2) or `intent frame` as interim. This routing was updated as part of this pack's M4 implementation.
+`work-loop`'s `dispatch.py --captured` (core pack) lists captured-item files and gives a `routes_to` for each; a file with `Type: strategy` routes to `frame-situation` (PE pack) or `intent frame`.
 
 ## Co-install note
 

@@ -13,7 +13,7 @@ packaged `work-loop` dispatch, so the server holds no readiness logic of its own
 ## 1. Structure
 
 The server is one module, `agentbundle.workspace_mcp`, started with
-`python3 -m agentbundle.workspace_mcp`. The `workspace-status` skill also ships
+`python3 -m agentbundle.workspace_mcp`. The `workspace-status` repair skill also ships
 a thin launcher, `scripts/workspace_mcp_server.py`, that imports it.[^1] Tool
 calls run on a bounded thread pool, and a single write lock serializes
 responses.
@@ -29,7 +29,7 @@ session and `WORKSPACE_MCP_DISPATCHED_ITEM` binds a non-FSM item. Mutating Git
 tools are available only when `WORKSPACE_MCP_DISPATCHED_ITEM` binds a non-FSM
 item.
 
-[^1]: `packages/agentbundle/agentbundle/workspace_mcp.py` (`main`, `_dispatch_tool`); `packs/core/.apm/skills/workspace-status/scripts/workspace_mcp_server.py`.
+[^1]: `packages/agentbundle/agentbundle/workspace_mcp.py` (`main`, `_dispatch_tool`); the repair skill's launcher, `packs/core/.apm/skills/workspace-status/scripts/workspace_mcp_server.py`.
 
 ## 2. Readiness: packaged dispatch
 
@@ -77,7 +77,7 @@ decides is not read by the server. **STATUS: PLANNED.**
 | Response file | Per-elicitation temporary directory (mode 0700) | ACP client response writer | `elicit` |
 | Loop events | `.loop-run/events.jsonl` | `work-loop` `work-supervisor.py` | Event bridge |
 | Full-mode run status | `docs/specs/<feature>/.supervisor/run.json` | `work-loop` `work-supervisor.py` | Event bridge and `workspace_status` (display only) |
-| Workspace lifecycle | Artifact headers; `workspace.toml` holds legacy entries only | Owning workflow | `workspace_status`, Git tools |
+| Workspace lifecycle | Artifact headers | Owning workflow | `workspace_status`, Git tools |
 
 The server reads `run.json` through the confined regular-file read with a 64 KiB
 bound. A link, non-regular, oversized, unreadable, or malformed file leaves the
@@ -131,7 +131,7 @@ repository-provided `agentbundle/` directory from shadowing the installed wheel.
 The spawner must start the server with `-I` in an untrusted checkout, and
 nothing in the server or the launcher checks that it did.[^6]
 
-[^6]: Module docstring of `packages/agentbundle/agentbundle/workspace_mcp.py`, which lists `-I` as the isolated mode for CI and testing; `packs/core/.apm/skills/workspace-status/scripts/workspace_mcp_server.py` imports the module with no flag check.
+[^6]: Module docstring of `packages/agentbundle/agentbundle/workspace_mcp.py`, which lists `-I` as the isolated mode for CI and testing; the repair skill's launcher, `packs/core/.apm/skills/workspace-status/scripts/workspace_mcp_server.py` imports the module with no flag check.
 
 ## 7. Mechanical invariants
 

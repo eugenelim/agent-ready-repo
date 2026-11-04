@@ -1,19 +1,17 @@
 # Initiative: <initiative name>
 
 > **This is a template.** Copy it to
-> `docs/product/initiatives/<ini-NNN-slug>.md`, fill in the fields, and
-> link the corresponding `workspace.toml` initiative section. An initiative
+> `docs/product/initiatives/<ini-NNN-slug>.md`, and fill in the fields. An initiative
 > brief is an altitude-1 shaping artifact — quarters-long scope, cross-repo,
 > produced by the PE six-step shaping sequence (`map-capabilities` output
 > feeding into `author-brief`). See CONVENTIONS.md §5b for the altitude
 > hierarchy.
 
-- **ID:** `INI-NNN` <!-- matches the `["ini-NNN"]` key in workspace.toml -->
+- **ID:** `INI-NNN`
 - **Name:** <!-- short name, e.g. "Platform Core" -->
 - **Status:** <!-- Active | Paused | Shipped | Archived -->
 - **Appetite:** <!-- quarters, e.g. "3–4 quarters" -->
 - **Owner:** <!-- person accountable for this initiative's outcome -->
-- **workspace.toml section:** `["ini-NNN"]` in `workspace.toml`
 
 ## Outcome
 
@@ -46,7 +44,7 @@ covers. Each row is a capability; Status is derived from its milestone map. -->
 ## Milestone sequence
 
 <!-- High-level milestone ordering across repos. Repo-local delivery status is
-read from the initiative's canonical artifacts and `workspace.toml` entries. -->
+read from each artifact's `Status:` header, listed by `dispatch.py` and `navigate-intents` `outstanding`. -->
 
 | Milestone | Scope summary | Target quarter |
 | --- | --- | --- |
@@ -54,7 +52,6 @@ read from the initiative's canonical artifacts and `workspace.toml` entries. -->
 
 ## Links
 
-- `workspace.toml` initiative section: `["ini-NNN"]`
 - Parent: <!-- optional: the higher-level strategy doc, OKR, or bet -->
 - Briefs: <!-- links to any received briefs spawned by this initiative -->
 - Shaping artifacts: <!-- links to upstream PE outputs in docs/product/shaping/ -->

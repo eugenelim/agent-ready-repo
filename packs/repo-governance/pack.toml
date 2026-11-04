@@ -1,6 +1,6 @@
 [pack]
 name = "repo-governance"
-version = "2.5.1"
+version = "2.5.2"
 description = "Write the RFC, record the ADR, route a decision to the right record, check decision health, and navigate the decision corpus. Query and explore ADRs and RFCs with checked lineage, lifecycle facts, and offline HTML exports. Templates come with it, so nobody argues about format."
 readme = "README.md"
 display_name = "Repository Governance"
@@ -24,8 +24,8 @@ default-scope = "repo"
 allowed-scopes = ["repo"]
 
 # Core is an optional companion: repo-governance installs and runs without it.
-# When core is present, new-rfc hands off to its work-loop, work-intake,
-# workspace-status and reviewer agents (see the integrations below); when absent,
+# When core is present, new-rfc hands off to its work-loop, work-intake and
+# reviewer agents (see the integrations below); when absent,
 # each hand-off names its own fallback.
 [[pack.dependencies.recommended]]
 catalogue = "agent-ready-repo"
@@ -140,12 +140,12 @@ fallback  = "If core is absent, new-rfc uses the template's own light, standard 
 id        = "follow-on-queue-registration"
 pack      = "core"
 kind      = "handoff"
-role      = "Follow-on queue registration"
+role      = "Follow-on capture"
 consumers = ["skill:new-rfc"]
-providers = ["skill:work-intake", "skill:workspace-status"]
-when      = "core is installed and an RFC names follow-on work that belongs in the work queue."
-purpose   = "Register follow-on work through work-intake and surface it through workspace-status."
-fallback  = "If core is absent, new-rfc lists the follow-ons in the completion receipt and registers nothing."
+providers = ["skill:work-intake"]
+when      = "core is installed and an RFC names follow-on work to capture."
+purpose   = "Capture follow-on work as artifacts through work-intake; work-loop's dispatch surfaces it, and nothing is registered."
+fallback  = "If core is absent, new-rfc lists the follow-ons in the completion receipt and records nothing else."
 
 [[pack.integrations]]
 id        = "rfc-review"

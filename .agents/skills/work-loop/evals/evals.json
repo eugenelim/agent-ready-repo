@@ -108,7 +108,7 @@
       "assertions": [
         "Response stops and does NOT proceed to PLAN",
         "Response surfaces each finding's `code`, `path` and `next_action`",
-        "Response does NOT select a raw workspace membership"
+        "Response does NOT select a spec from a registry entry"
       ]
     },
     {
@@ -273,11 +273,11 @@
     {
       "id": "direct-light-bounded-explicit-start",
       "prompt": "Start this one bounded, low-risk, independently verifiable typo fix now. It will finish in this session, has no existing spec or workspace item, and needs no coordination. What route and records do you use?",
-      "expected_output": "Use direct-light. Before the first implementation write, emit a user-visible session-only decision record naming the explicit request as authority, bounded scope, non-goals, risk assessment, assumptions, and verification plan. Keep the bounded plan in session; run ordinary gates and adversarial review rounds to clean; then hand off the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any reason future work needs a durable spec. Do not create docs/specs, a plan, a workspace entry, or loop state.",
+      "expected_output": "Use direct-light. Before the first implementation write, emit a user-visible session-only decision record naming the explicit request as authority, bounded scope, non-goals, risk assessment, assumptions, and verification plan. Keep the bounded plan in session; run ordinary gates and adversarial review rounds to clean; then hand off the requested outcome, implemented scope, verification evidence, non-goals and independently scoped follow-ons, and any reason future work needs a durable spec. Do not create docs/specs, a plan, a workspace.toml entry, or loop state.",
       "assertions": [
         "Selects direct-light from the explicit current request",
         "Emits all six decision-record fields before implementation",
-        "Keeps the plan session-local and creates no durable artifact or workspace entry",
+        "Keeps the plan session-local and creates no durable artifact or workspace.toml entry",
         "Retains ordinary gates and adversarial review rounds to clean",
         "Produces the five-field evidence-bearing handoff"
       ]
@@ -296,10 +296,10 @@
     {
       "id": "direct-light-fresh-resume-refuses-inference",
       "prompt": "In a fresh session, the user says 'resume'. workspace.toml comments, the branch name, and old surrounding prose describe an earlier direct-light change, but `dispatch.py --root .` prints a `decision` with `action` `none`. What do you do?",
-      "expected_output": "Stop and surface the decision's findings. Direct-light is session-local and not resumable through workspace-status. Do not infer authority or scope from comments, branch names, old chat, or surrounding prose.",
+      "expected_output": "Stop and surface the decision's findings. Direct-light is session-local and not resumable through dispatch.py. Do not infer authority or scope from comments, branch names, old chat, or surrounding prose.",
       "assertions": [
         "Requires a `resume` decision from `scripts/dispatch.py` for fresh-session resume",
-        "States that direct-light is not resumable through workspace-status",
+        "States that direct-light is not resumable through dispatch.py",
         "Does not infer authority from comments, branch names, old chat, or surrounding prose",
         "Stops rather than reconstructing or resuming work"
       ]
@@ -1022,7 +1022,7 @@
     },
     {
       "id": "base-freshness-skipped-continues-with-notice",
-      "prompt": "Before reading workspace.toml, `check-base-freshness.py` exits 0 and prints JSON: {\"status\":\"skipped\",\"message\":\"Base freshness was not verified; work may continue, and you may want to update the branch separately.\",\"target\":\"origin/main\"}. What do you do next?",
+      "prompt": "Before running dispatch, `check-base-freshness.py` exits 0 and prints JSON: {\"status\":\"skipped\",\"message\":\"Base freshness was not verified; work may continue, and you may want to update the branch separately.\",\"target\":\"origin/main\"}. What do you do next?",
       "expected_output": "Tell the user that base freshness was not verified and that they may want to update the branch separately, then continue the work-loop. Do not retry the remote operation, do not Surface or pause on the skipped result, and do not claim `HEAD` or the base is current.",
       "assertions": [
         "Response tells the user freshness was not verified",
@@ -1035,7 +1035,7 @@
     },
     {
       "id": "base-freshness-writable-stale-stops-for-update-approval",
-      "prompt": "Before reading workspace.toml, `check-base-freshness.py` exits 1 and prints JSON: {\"status\":\"surface\",\"message\":\"branch is 2 commit(s) behind 'origin/main' — run: git rebase origin/main\",\"target\":\"origin/main\"}. What do you do next?",
+      "prompt": "Before running dispatch, `check-base-freshness.py` exits 1 and prints JSON: {\"status\":\"surface\",\"message\":\"branch is 2 commit(s) behind 'origin/main' — run: git rebase origin/main\",\"target\":\"origin/main\"}. What do you do next?",
       "expected_output": "Stop the work-loop and Surface that the branch is stale relative to `origin/main`. Ask the user before running the supplied safe update path (`git rebase origin/main`), and do not continue until the branch is updated or the user gives different direction. Do not treat this as skipped, do not retry the freshness check, and do not run any rebase, merge, pull, or other history-changing operation without approval.",
       "assertions": [
         "Response stops the work-loop on `status: \"surface\"`",
@@ -1048,7 +1048,7 @@
     },
     {
       "id": "base-freshness-unwritable-stale-stops-for-separate-update",
-      "prompt": "Before reading workspace.toml, `check-base-freshness.py` exits 1 and prints JSON: {\"status\":\"surface\",\"message\":\"branch is stale relative to 'origin/main', but this environment could not prepare the update because git metadata write was denied by local policy — ask the user to update the branch separately\",\"target\":\"origin/main\"}. What do you do next?",
+      "prompt": "Before running dispatch, `check-base-freshness.py` exits 1 and prints JSON: {\"status\":\"surface\",\"message\":\"branch is stale relative to 'origin/main', but this environment could not prepare the update because git metadata write was denied by local policy — ask the user to update the branch separately\",\"target\":\"origin/main\"}. What do you do next?",
       "expected_output": "Stop the work-loop and Surface that the branch is stale relative to `origin/main`, but this environment cannot prepare the update because Git metadata writes are denied. Recommend that the user update the branch separately, then resume after the branch is current. Do not continue, do not downgrade this stale result to `skipped`, do not retry or bypass policy, and do not inspect credentials.",
       "assertions": [
         "Response stops the work-loop on `status: \"surface\"`",
@@ -1267,12 +1267,12 @@
     },
     {
       "id": "step0-shaping-item-guard-captured-item-file",
-      "prompt": "You are starting work-loop on `docs/specs/pricing-research/`. The `workspace-status` status output lists a `captured.items` entry for slug `pricing-research` with `type` \"research\" and `routes_to` \"desk-research-project-start\". What does Step 0 do?",
+      "prompt": "You are starting work-loop on `docs/specs/pricing-research/`. The `dispatch.py --captured` output lists a `captured.items` entry for slug `pricing-research` with `type` \"research\" and `routes_to` \"desk-research-project-start\". What does Step 0 do?",
       "files": [],
       "expected_output": "Stop at the Shaping-item guard. Derive the slug `pricing-research`, match it against `captured.items`, and see a non-null `routes_to`. Reply: \"This is a shaping item (`Type: research`); use `desk-research-project-start` — `work-loop` is for build items only.\" Do not proceed to PLAN. If the matching item were `invalid` or `unreadable`, stop and surface its finding from `captured.findings` instead; with no matching item or a null `routes_to`, continue.",
       "assertions": [
         "Response stops rather than proceeding to PLAN",
-        "Response matches the slug against `captured.items` from the workspace-status output",
+        "Response matches the slug against `captured.items` from the dispatch.py --captured output",
         "Response routes to `desk-research-project-start` because `routes_to` is non-null",
         "Response says work-loop is for build items only",
         "Response does not consult a registry shaping queue or backlog list for the match"
