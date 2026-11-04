@@ -459,6 +459,10 @@ def _t12_record(predicate_version: str, refs: object, verdict: str) -> dict:
             "denied-proof-run-reference-count",
         ),
         (
+            _t12_record("proof-by-run.v1", [123], "supported"),
+            "denied-proof-run-reference-count",
+        ),
+        (
             _t12_record("proof-by-run.v1", ["calc.py"], "supported"),
             "denied-proof-run-reference-malformed",
         ),
@@ -897,14 +901,11 @@ def test_t11_identity_helper_compares_device_and_inode_not_names(t4_gate) -> Non
 # --- T12: refusals through the CLI that are not a tree or input refusal -----
 
 
-def _t12_assert_refused(
-    code: int, out: str, refused: str, repo: _T4Repo | None
-) -> None:
+def _t12_assert_refused(code: int, out: str, refused: str, repo: _T4Repo) -> None:
     """The refusal exits 2, prints one JSON object naming ``refused``, writes no envelope."""
     assert code == 2, out
     assert json.loads(out)["refused"] == refused
-    if repo is not None:
-        assert repo.envelopes() == []
+    assert repo.envelopes() == []
 
 
 def test_t12_invalid_identifier_is_refused_with_no_envelope(t4_run, t4_repo) -> None:
@@ -930,15 +931,57 @@ def test_t12_unwritable_proof_runs_directory_is_refused_with_no_envelope(
 
 
 def test_t12_helper_git_refusal_outside_a_repository_is_refused(
-    t4_gate, t4_repo, tmp_path: Path, capsys, monkeypatch
+    t4_gate, t4_repo, t4_launches, tmp_path: Path, capsys, monkeypatch
 ) -> None:
     outside = tmp_path / "not-a-repo"
     outside.mkdir()
     monkeypatch.chdir(outside)
     monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
     code = t4_gate.main(t4_repo.args())
-    out = capsys.readouterr().out
-    assert code == 2, out
-    assert json.loads(out)["refused"]
-    assert t4_repo.envelopes() == []
+    _t12_assert_refused(code, capsys.readouterr().out, "denied-git-discovery", t4_repo)
+    assert all(_t4_helper_call(argv) for argv in t4_launches), t4_launches
     assert list(outside.iterdir()) == []
+
+
+# --- T14: object sources and identity-check coverage -------------------------
+
+
+def _t14_alternates(repo: _T4Repo) -> None:
+    info = repo.path / ".git" / "objects" / "info"
+    info.mkdir(parents=True, exist_ok=True)
+    (info / "alternates").write_text("/nonexistent/objects\n")
+
+
+@pytest.mark.parametrize(
+    "plant",
+    [
+        _t14_alternates,
+        lambda repo: _t4_git(repo.path, "config", "extensions.partialClone", "origin"),
+        lambda repo: _t4_git(repo.path, "config", "remote.origin.promisor", "true"),
+    ],
+    ids=["alternates", "partial-clone", "promisor-remote"],
+)
+def test_t14_outside_object_source_is_refused_before_any_launch(
+    t4_run, t4_repo, t4_launches, plant
+) -> None:
+    plant(t4_repo)
+    _t4_refused(t4_run(), "denied-object-source", t4_repo, [])
+    assert all(_t4_helper_call(argv) for argv in t4_launches), t4_launches
+
+
+def test_t14_input_under_stubbed_excluded_identity_is_refused(
+    t4_run, t4_gate, t4_repo, monkeypatch
+) -> None:
+    (t4_repo.context / "reviews").mkdir()
+    other = t4_repo.context / "other"
+    other.mkdir()
+    (other / "out.txt").write_text("out")
+    real = t4_gate._lstat_identity
+
+    def stub(path: Path) -> tuple[int, int] | None:
+        return real(t4_repo.context / "reviews") if path == other else real(path)
+
+    monkeypatch.setattr(t4_gate, "_lstat_identity", stub)
+    result = t4_run(**{"--stdout-file": str(other / "out.txt")})
+    assert result[0] == 2 and result[1]["refused"] == "denied-input-path"
+    assert t4_repo.envelopes() == []

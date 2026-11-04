@@ -105,7 +105,7 @@ def _sha256_args(args: tuple[str, ...]) -> str:
     return hashlib.sha256("\0".join(args).encode("utf-8", "surrogateescape")).hexdigest()
 
 
-def _refuse_object_sources(git: Any) -> None:
+def refuse_object_sources(git: Any) -> None:
     """Refuse a repository whose objects may come from outside its own object store."""
     if os.path.lexists(git.pins.common_dir / "objects" / "info" / "alternates"):
         raise GitHistoryRefused("denied-object-source")
@@ -133,7 +133,7 @@ def git_history(git: Any, *, base: str | None, path: str) -> dict[str, Any]:
         raise GitHistoryRefused("denied-ref-form")
     if path.split("/", 1)[0] == ".context":
         raise GitHistoryRefused("denied-artifact-path")
-    _refuse_object_sources(git)
+    refuse_object_sources(git)
     if module.code_running_keys(git.config_entries()):
         raise GitHistoryRefused("denied-git-config")
 

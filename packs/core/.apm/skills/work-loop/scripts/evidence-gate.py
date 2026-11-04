@@ -296,6 +296,11 @@ def _run_proof(args: argparse.Namespace) -> dict[str, Any]:
     mutation = _sibling("_evidence_gate_confined_mutation", "_confined_mutation.py")
     assessment = _sibling("_evidence_gate_review_assessment", "_review_assessment.py")
     git = module.HardenedGit(Path.cwd())
+    history = _history()
+    try:
+        history.refuse_object_sources(git)
+    except history.GitHistoryRefused as exc:
+        raise _ProofRefused(exc.code) from exc
     if module.code_running_keys(git.config_entries()):
         raise _ProofRefused("denied-git-config")
     head = git.run("rev-parse", "--verify", "HEAD^{commit}").decode("ascii").strip()
