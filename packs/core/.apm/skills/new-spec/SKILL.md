@@ -77,8 +77,8 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    candidate first.** With the directory scaffolded, stop. The
    load-bearing rule: **verify a candidate assumption before you file it
    — a repo read, a web lookup, or a read-only probe script — not a
-   sweep.** Then split the result into what you confirmed and what still
-   needs the user.
+   sweep.** Then split the result into what you confirmed, what still
+   needs the user, and what proceeds on a stated default.
 
    <a id="load-bearing-claim-routing"></a>
    **Route a claim you cannot settle by what its falsehood would cost.**
@@ -175,6 +175,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    ## Unverified
    - <category>: <open item or reason it couldn't be settled>
    - …
+
+   ## Defaulted
+   - <category>: <item> — default: <what you build on>; if wrong: <what changes>
+   - …
    ```
 
    Each Verified bullet stays single-line. If a probe's output is too
@@ -190,23 +194,39 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    Three to seven *candidate* assumptions before verification is the
    usual shape; Verified is whatever subset of those candidates passed
    the check — no floor, no separate cap. Coverage check is across
-   the three categories (Technical / Product / Process), not the two
+   the three categories (Technical / Product / Process), not the three
    subsections.
 
    When no corpus of real inputs is reachable for a refusal contract over
    third-party, untrusted, or otherwise externally authored input, record that
    absence as an Unverified assumption. See step 5 for the corpus obligation.
 
-   **Surface the Unverified list and wait** for human confirmation or
-   correction before writing into `Outcome`, `What Changes`, `Agent Rules`,
-   `Testing Strategy`, or `Acceptance Criteria`. If Unverified is
-   empty, surface the Verified list with the highest-stakes item
-   called out and ask the user to confirm *that one specifically* — a
-   vague "looks good" doesn't count when the user may not have read
-   the list.
+   **Sort each Unverified item before you surface the list.** An item waits
+   for the owner when it is a product or preference call, a question of who
+   may approve, sign off, or decide, an item touching a protected class, an
+   irreversible choice, or an item with no stated default. Where you cannot
+   tell whether an item is one of these, it is. Every other item is
+   reversible with a stated default: name the default you will build on,
+   check it against the reversibility test in the routing table above, and
+   move the item to `## Defaulted`. It proceeds on that default without
+   waiting. Defaulting decides only whether an item waits; a load-bearing
+   claim still routes by the routing table.
 
-   Only once Unverified has been signed off (or the highest-stakes
-   Verified item confirmed, if Unverified was empty):
+   **Surface the Unverified list and wait** for confirmation or correction of
+   every item still in it before writing into `Outcome`, `What Changes`,
+   `Agent Rules`, `Testing Strategy`, or `Acceptance Criteria`. When
+   Unverified had candidates and sorting moved every one to `## Defaulted`,
+   surface the block and proceed without waiting. When there were no
+   Unverified candidates at all, name the highest-stakes Verified item. If it
+   is a product or preference call, a question of who may approve, sign off,
+   or decide, an item touching a protected class, or an irreversible choice,
+   ask the user to confirm *that one specifically* and wait — a vague "looks
+   good" doesn't count when the user may not have read the list. Otherwise
+   list it under `## Defaulted` with `default: as verified; if wrong: <what
+   changes>` and proceed. It stays a settled fact and is not written to
+   `## Assumptions`.
+
+   Only once every waiting item has been signed off, or none waited:
 
    - Route every settled item to where it does work, and leave nothing
      behind. A fact that bounds what the delivery does goes into `Outcome`
@@ -219,7 +239,10 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
      section — the open question, what it would change, and who can settle
      it — or `none`. A settled fact is not an assumption, and a list of
      settled ones buries the items a reader has to act on. The chat block
-     was the working surface; it is not copied anywhere.
+     was the working surface; it is not copied into the spec as-is.
+   - Write each item sorted out of Unverified into the spec's `## Assumptions`
+     as a defaulted assumption, in the line format that section's comment
+     gives. A default does not approve the spec.
    - Write the spec's `Constrained by:` header from any Verified
      items that name an ADR or RFC the feature must cite. The header
      lands before any body section; Verified items don't gate the
@@ -771,7 +794,7 @@ advisory: it informs the next round, and nothing else reads it.
   `plan.md`.
 - Skipping Agent Rules → mandatory section. Each of the three
   subsections needs at least one entry.
-- Writing into the spec body before the Unverified list has been
+- Writing into the spec body before every waiting Unverified item has been
   confirmed → the headers can stay scaffolded; the bodies are the
   commitment and stay empty until the user has signed off on or
   revised the Unverified entries, even if the original prompt sounded
