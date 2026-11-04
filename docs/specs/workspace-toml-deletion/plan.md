@@ -153,6 +153,14 @@ Owned by: T2, C2.
 - **Tests:** for AC-0016 and the `historical` class definition (IA-1): the RFC-0105, RFC-0106 and RFC-0078 rows are `contract` with owner `rfc-0067`, because each still states a rule that holds while the repair ships. For AC-0003 (IA-2): a `met` row's Evidence passes only when every backticked or bare path it names is tracked, and a run URL counts only as `https://github.com/<owner>/<repo>/actions/runs/<digits>`; one fixture each for an untracked path beside a URL, an id-less URL, and a bare untracked path beside a tracked one. For AC-0005 (QE-1): the AC-0032 rejection fixture reports the planted row's own subject. For AC-0002 (QE-2): a fixture that plants an unparseable `workspace.toml` and one that plants an extra key, and `_fact_set` reports no problem and no extra fact for either. IA-4 and IA-5: re-owned rows' `consumer` text names the RFC-0067 release instead of slice 9, and the AC-0003 message and the inventory header name `rfc-0067`.
 - **Done when:** each new fixture reds before its fix, and the inventory check passes over this repository.
 
+### T8: Evidence-check repairs
+
+- **Depends on:** T7
+- **Verification mode:** TDD
+- **Touches:** `tests/roster/test_workspace_retirement_inventory.py`
+- **Tests:** for AC-0003: a well-formed run URL passes bare, inside a code span, and inside `<>`, and a code span holding a URL is not read as a path; a URL with a valid owner and repo but no numeric run id fails; a bare token counts as a path only when, after stripping `#fragment` and `::id`, it contains `/` and ends in a file extension or `/`, so prose such as `and/or` or `41/41` beside a tracked path passes and a tracked `path#anchor` passes. A bare root-level name or an extensionless bare path is not read as a path; name a path in a code span to have it checked.
+- **Done when:** each new fixture reds before its fix, and the inventory check passes over this repository.
+
 ## Controller steps outside the run
 
 These are not supervisor tasks. C0 runs before `start`; C1 to C5 run after `next` answers `terminal`, in order, and write only the record paths of the spec's § Closeout.
