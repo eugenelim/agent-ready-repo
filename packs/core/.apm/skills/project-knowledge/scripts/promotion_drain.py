@@ -13,6 +13,7 @@ rather than being offered.
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import os
 import signal
@@ -329,6 +330,24 @@ def scan_output_for_durable_write(output: str) -> dict[str, Any]:
         KS.PK.assert_persistable_text(output)
     except KS.PK.PrivacyRefusal:
         return {"verdict": "refused", "control": "privacy_scan"}
+    return {"verdict": "pass"}
+
+
+def rerun_command_recheck(route: dict[str, Any]) -> dict[str, Any]:
+    """§ D6's pre-execution re-check: re-run the write path's own stored-
+    command validator over a route before the envelope executes it.
+
+    Calls `project_knowledge`'s `_validate_verification_route` — the same
+    function the write path calls — never a re-implementation, so a rule or
+    a case row added upstream reaches this check with no edit here. Returns
+    the validator's own catalog code on refusal.
+    """
+    try:
+        KS.PK._validate_verification_route(copy.deepcopy(route))
+    except (KS.PK.VerificationRouteRefusal, KS.PK.WorkItemRefusal) as error:
+        return {"verdict": "refused", "reason_code": error.reason_code}
+    except ValueError:
+        return {"verdict": "refused", "reason_code": "work_item_command_shape"}
     return {"verdict": "pass"}
 
 
