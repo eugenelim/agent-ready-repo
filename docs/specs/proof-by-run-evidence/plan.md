@@ -65,7 +65,7 @@ Owned by: T1, T2, T3, T4.
 
 **git-history module.** `_git_history.py` exposes `git_history(git, *, base, path) -> dict` and raises `GitHistoryRefused(code)`. Order, so that no caller value reaches a launch before it is replaced by a trusted one: refuse arguments outside one `--path` and an optional `--base` in the CLI parser (`denied-not-in-catalog`); refuse a supplied base unless `re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", base)` (`denied-ref-form`); refuse a path under `.context/` by its first segment (`denied-artifact-path`); refuse object sources from `git.pins` (`objects/info/alternates` under the common dir) and `git.config_entries()` (`extensions.partialclone`, `remote.*.promisor`) (`denied-object-source`); refuse a non-empty `_supervisor_git.code_running_keys(git.config_entries())` (`denied-git-config`); resolve `HEAD^{commit}`; resolve `symbolic-ref -q refs/remotes/origin/HEAD` (`denied-no-change-base` when empty) and compute the change base with `merge-base <head> <default-ref>`; refuse a supplied base that does not byte-equal it (`denied-ref-outside-subject-history`); compute the path set with `diff --name-only -z --no-renames <base> <head>`; select the member byte-equal to the caller's path or refuse (`denied-path-not-in-change`); only then run `cat-file -t <base>:<member>`, `cat-file -s`, `rev-parse --verify <base>:<member>` for the blob ID, `show` when the size is within the content cap, and `log --format=%H --max-count=51 <base>..<head> -- <member>` with literal pathspecs. Content cap 256 KiB; the envelope is checked against 1 MiB before it is printed. The helper's in-memory capture of `diff --name-only` for a very large change is an accepted limit (ADR-0155 D5).
 
-**CLI.** `evidence-gate.py` with subcommands `proof-run` and `git-history`, argparse with `allow_abbrev=False`, UTF-8 stream reconfiguration, sibling modules loaded by path as `_review_assessment.py` does. Exit 0 prints JSON; a refusal prints `{"refused": "<code>", "detail": "<fixed remedy text for that code>"}` to stdout and exits 2. `proof-run` checks the tracked tree with `status --porcelain=v1 -z --untracked-files=no` through `HardenedGit`, reads its three inputs with `_file_safety.read_confined_regular_file(<checkout>/.context, path, max_bytes=1 MiB)` after refusing a path under `.context/reviews/` or `.context/proof-runs/`, refuses a symbolic-link `.context/proof-runs`, and creates the envelope with `_confined_mutation.confined_create`; when the path already exists it first reads it with `read_confined_regular_file` and exits 0 on identical bytes, refusing otherwise.
+**CLI.** `evidence-gate.py` with subcommands `proof-run` and `git-history`, argparse with `allow_abbrev=False`, UTF-8 stream reconfiguration, sibling modules loaded by path as `_review_assessment.py` does. Exit 0 prints JSON; a refusal prints `{"refused": "<code>", "detail": "<fixed remedy text for that code, naming the condition to fix>"}` to stdout and exits 2. `proof-run` refuses code-running config the way `git-history` does, then checks the tracked tree with `status --porcelain=v1 -z --untracked-files=no --ignore-submodules=dirty` through `HardenedGit` (a submodule whose checked-out commit differs from `HEAD`'s gitlink still shows; no status runs inside a submodule, so no filter it configures runs), reads its three inputs with `_file_safety.read_confined_regular_file(<checkout>/.context, path, max_bytes=1 MiB)` after refusing a path whose directories include `.context/reviews/` or `.context/proof-runs/` by device and inode identity (so a case variant on a case-folding file system is refused), refuses a symbolic-link `.context/proof-runs`, and creates the envelope with `_confined_mutation.confined_create`; when the path already exists it first reads it with `read_confined_regular_file` and exits 0 on identical bytes, refusing otherwise.
 
 ### Failure, edge cases & resilience
 
@@ -110,7 +110,7 @@ Owned by: T3.
 **Tests:** TDD — integration, in temporary Git repositories with a bare `origin` remote and `refs/remotes/origin/HEAD` set, through `evidence-gate.py`'s `main`, with `_supervisor_git._launch` wrapped by a spy that records each argument vector
 - AC-0009, AC-0015: a base commit on `origin`, an added path, a modified path, and a path touched by 51 commits for the log bound.
 - AC-0010, AC-0011, AC-0012, AC-0013, AC-0027, AC-0028, AC-0031: one test per refusal family; each asserts the code and the spy's substring check.
-- AC-0033: a function-scoped spy fixture used only by the covered tests asserts, at teardown, a non-empty launch list inside the allowed set, so the check runs with every test whatever the order or `-k` filter.
+- AC-0033: a function-scoped spy fixture used only by the covered tests asserts, at teardown, a launch list inside the allowed set that is empty for the refusal tests the criterion exempts and non-empty for every other covered test, so the check runs with every test whatever the order or `-k` filter.
 - AC-0014, AC-0029: a blob over the content cap; a changed path named `-x` and one named `:(glob)*`.
 - AC-0030: an `ast` walk over both files.
 
@@ -154,9 +154,69 @@ Owned by: T3.
 
 **Done when:** `python3 -m pytest tests/roster/test_proof_by_run_contract_fit.py -q` exits 0, and `python3 tools/lint-ci-parity.py` exits 0.
 
+### T9: Identical proof-run rerun holds for every accepted input
+
+**Depends on:** T4
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/evidence-gate.py`, `packs/core/tests/skills/work-loop/test_proof_by_run.py`
+
+**Tests:** TDD — integration through `main`
+- AC-0032: a 1 MiB stdout full of control and non-ASCII bytes is accepted, and an identical rerun at the same `HEAD` exits 0 without writing.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py -q -k t9_` exits 0.
+
+### T10: proof-run tree check runs no configured program
+
+**Depends on:** T4
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/evidence-gate.py`, `packs/core/tests/skills/work-loop/test_proof_by_run.py`
+
+**Tests:** TDD — integration through `main`
+- AC-0007: a submodule whose own config defines a clean filter that a committed `.gitattributes` selects, with a stat-dirty file, runs no filter program (a marker file stays absent).
+- AC-0008: a submodule checked out at a commit other than the one `HEAD` records refuses with `denied-tree-dirty` and writes no envelope.
+- AC-0008: local code-running config refuses with `denied-git-config` before any launch other than the helper's pinning and config reads.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py -q -k t10_` exits 0.
+
+### T11: Input exclusion holds on case-insensitive file systems
+
+**Depends on:** T4
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/evidence-gate.py`, `packs/core/tests/skills/work-loop/test_proof_by_run.py`
+
+**Tests:** TDD — integration through `main`
+- AC-0008: on a file system that folds case (probed at test time), an input named through a case variant of `.context/reviews/` or `.context/proof-runs/` refuses with `denied-input-path` and writes no envelope; elsewhere that test skips with the probe result as its reason.
+- AC-0008: on any file system, a unit test drives the exclusion helper with injected directory identities and fails if it compares names instead of `(st_dev, st_ino)`.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py -q -k t11_` exits 0.
+
+### T12: Proof-by-run check and refusal paths are pinned in the default lane
+
+**Depends on:** T2, T4
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/evidence-gate.py`, `packs/core/tests/skills/work-loop/test_proof_by_run.py`
+
+**Tests:** TDD — unit and integration
+- AC-0005: a default-lane test pins each `check_proof_by_run` outcome by its exact return value (each denial code, a non-proof-by-run version, consistent `fail` and `pass`); each T2 refusal case asserts its specific denial code in the refusal detail.
+- AC-0008: `denied-proof-run-invalid` (an empty `--report-id`), `denied-envelope-write` (an unwritable `.context/proof-runs`), and a helper Git refusal (run outside a repository) each exit 2 with valid JSON and leave no envelope.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py -q -k t12_` exits 0, and `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py -q -k t2_` exits 0.
+
+### T13: Guidance wording and the amended launch check
+
+**Depends on:** T5, T12
+
+**Touches:** `packs/core/.apm/skills/work-loop/references/finding-adjudication.md`, `packs/core/tests/skills/work-loop/test_git_history_evidence.py`, `packs/core/tests/skills/work-loop/test_proof_by_run.py`
+
+**Tests:** TDD — integration and content
+- AC-0016: the shipped `git-history` subsection says up to 50 commits are reported and a 51st marks the list truncated, and says to run the entry from the checkout root.
+- AC-0033: the T3 fixture's empty-list branch applies to exactly the tests AC-0033 exempts, in both test files.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py packs/core/tests/skills/work-loop/test_git_history_evidence.py packs/core/tests/pack/test_finding_adjudication_contract.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q` exits 0.
+
 ### T8: Core release
 
-**Depends on:** T1, T2, T3, T4, T5, T6
+**Depends on:** T1, T2, T3, T4, T5, T6, T9, T10, T11, T12, T13
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/*.md`, adapter projections
 
@@ -179,3 +239,5 @@ Ships in the next core patch. A run in flight picks up the supervisor check only
 
 - 2026-11-03: spec approved by eugenelim (scope).
 - 2026-11-03: plan approved by eugenelim (build strategy).
+- 2026-11-03: amendment drafted: AC-0033 excludes tests of refusals the entry makes before its first Git launch; repair tasks T9 to T13 added from implementation review.
+- 2026-11-03: amendment approved by eugenelim (scope and build strategy).
