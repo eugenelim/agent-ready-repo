@@ -2,9 +2,9 @@
 """Inventory rules for the workspace retirement record (spec workspace-retirement).
 
 ``check_repository`` applies the spec's inventory rules (AC-0001 to AC-0009,
-AC-0019, AC-0021, AC-0029) to a repository root and returns every violation tagged with
+AC-0019, AC-0021, AC-0029, AC-0032) to a repository root and returns every violation tagged with
 its criterion. ``check_record`` applies the record rules (AC-0010 to AC-0016,
-AC-0023 to AC-0028),
+AC-0023 to AC-0028, AC-0030 to AC-0033; AC-0032 is an inventory rule),
 and ``workflow_wiring_violations`` checks that build-check runs this file on
 every pull request (AC-0017). Standard library only; the check reads the
 repository and writes nothing.
@@ -15,6 +15,7 @@ from __future__ import annotations
 import fnmatch
 import importlib.util
 import json
+import posixpath
 import re
 import subprocess
 import sys
@@ -98,6 +99,16 @@ def _status_value(text: str) -> str | None:
 def _leading_word(status: str) -> str:
     found = re.match(r"[A-Za-z]+", status.strip())
     return found.group(0) if found else ""
+
+
+def _retirement_shipped(root: Path) -> bool:
+    """True when the retirement spec's status leads with ``Shipped``; a missing file is not."""
+    try:
+        text = (root / _RETIREMENT_SPEC).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    status = _status_value(text)
+    return status is not None and _leading_word(status) == "Shipped"
 
 
 def _typed_kind(path: str) -> str | None:
@@ -272,7 +283,7 @@ def _governing_index(rows: list[dict[str, Any]], valid: list[int], path: str) ->
 
 
 def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]:
-    """Apply AC-0001 to AC-0009, AC-0019 and AC-0021 to ``root``."""
+    """Apply AC-0001 to AC-0009, AC-0019, AC-0021, AC-0029 and AC-0032 to ``root``."""
     try:
         document = tomllib.loads(inventory.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
@@ -288,6 +299,7 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
         violations.append(Violation("INPUT", str(brief), "cannot read the delivery brief"))
         slices = set()
     repo = _Repo(root)
+    shipped = _retirement_shipped(root)
 
     def label(i: int) -> str:
         return f"row[{i}] {rows[i].get('pattern')!r}"
@@ -302,7 +314,16 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
             violations.append(Violation("AC-0002", label(i), f"unknown class {cls!r}"))
         owner = row.get("owner")
         if "owner" in row:
-            if owner == "none":
+            if owner == "rfc-0067":
+                if cls in ("historical", "record"):
+                    violations.append(
+                        Violation(
+                            "AC-0003",
+                            label(i),
+                            "historical and record rows may not carry owner `rfc-0067`",
+                        )
+                    )
+            elif owner == "none":
                 if cls not in ("historical", "record"):
                     violations.append(
                         Violation(
@@ -325,6 +346,14 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
                         "AC-0029",
                         label(i),
                         f"owner {owner} is not the brief's last slice {max(slices)}",
+                    )
+                )
+            if shipped and isinstance(owner, int) and not isinstance(owner, bool):
+                violations.append(
+                    Violation(
+                        "AC-0032",
+                        label(i),
+                        f"owner {owner} is a slice number while the retirement spec is Shipped",
                     )
                 )
         if (bad := _wildcard_violation(repo, label(i), pattern, cls)) is not None:
@@ -445,6 +474,47 @@ _LITERAL_FACTS = (
 _COVERAGE_FACT = "spec registration as brief coverage evidence"
 _SCHEMA_PATH = "contracts/jsonschema/workspace-entry.schema.json"
 _REGISTRY_PATH = "workspace.toml"
+# The registry's key paths, frozen so AC-0011 survives the registry's deletion; the pin test
+# checks them against the registry at the last commit that still held it.
+_RFC_0105 = "docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md"
+_RETIREMENT_SPEC = f"{_SPEC_DIR}/spec.md"
+_REGISTRY_FACTS = (
+    "<initiative>",
+    "<initiative>.name",
+    "<initiative>.status",
+    "<initiative>.milestone",
+    "<initiative>.parent",
+    "<initiative>.brief_queue",
+    "<initiative>.brief_queue.draft",
+    "<initiative>.brief_queue.executing",
+    "<initiative>.brief_queue.ready",
+    "<initiative>.brief_queue.shipped",
+    "<initiative>.shaping_queue",
+    "<initiative>.shaping_queue.active",
+    "<initiative>.shaping_queue.backlog",
+    "<initiative>.work",
+    "<initiative>.work.active",
+    "<initiative>.work.queue",
+    "<initiative>.work.shipped",
+    "backlog",
+    "backlog.open",
+)
+_CLOSURE_COLUMNS = ("Gate", "Item", "State", "Evidence")
+_CLOSURE_GATES = (
+    "consumer inventory",
+    "state disposition",
+    "behavioral equivalence",
+    "compatibility closure",
+)
+_CLOSURE_ITEMS = (
+    "legacy entries",
+    "operative references and seeds",
+    "activation gate",
+    "corpus gate",
+    "registry contract retired",
+    "old skill deferred",
+    "workspace.toml deleted",
+)
 _HEADING = re.compile(r"^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$")
 _LINK = re.compile(r"\[[^\]]*\]\(([^)\s]*)\)")
 _ROW_SEPARATOR = re.compile(r"^:?-+:?$")
@@ -498,7 +568,10 @@ def _schema_facts(props: Any, prefix: str) -> set[str]:
 
 
 def _registry_facts(table: dict[str, Any], prefix: tuple[str, ...]) -> set[str]:
-    """Every key path of the registry, stopping at array values."""
+    """Every key path of a parsed registry, stopping at array values.
+
+    Only the pin test uses it, to prove ``_REGISTRY_FACTS`` matches the registry as frozen.
+    """
     facts: set[str] = set()
     for key, value in table.items():
         parts = prefix + (key,)
@@ -521,7 +594,10 @@ def _registry_facts_under(table: dict[str, Any], parts: tuple[str, ...]) -> set[
 
 
 def _fact_set(root: Path) -> tuple[set[str], list[Violation]]:
-    """The AC-0011 fact set for ``root``, plus any input problem found reading it."""
+    """The AC-0011 fact set for ``root``, plus any input problem found reading it.
+
+    The registry facts are the frozen ``_REGISTRY_FACTS``; no ``workspace.toml`` is read.
+    """
     problems: list[Violation] = []
     facts = set(_LITERAL_FACTS)
     try:
@@ -532,11 +608,7 @@ def _fact_set(root: Path) -> tuple[set[str], list[Violation]]:
                 facts |= _schema_facts(definition.get("properties"), f"{name}.")
     except (OSError, UnicodeDecodeError, ValueError, AttributeError) as exc:
         problems.append(Violation("INPUT", _SCHEMA_PATH, f"cannot read the schema: {exc}"))
-    try:
-        registry = tomllib.loads((root / _REGISTRY_PATH).read_text(encoding="utf-8"))
-        facts |= _registry_facts(registry, ())
-    except (OSError, UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
-        problems.append(Violation("INPUT", _REGISTRY_PATH, f"cannot read the registry: {exc}"))
+    facts |= set(_REGISTRY_FACTS)
     return facts, problems
 
 
@@ -684,8 +756,108 @@ def _equivalence_violations(root: Path, record: Path, text: str, heads: Any) -> 
     return violations
 
 
+def _evidence_violation(repo: _Repo, evidence: str) -> str | None:
+    """Why a ``met`` row's Evidence is not proof (AC-0030), or None when it is."""
+    if re.search(r"https://github\.com/\S*/actions/runs/", evidence):
+        return None
+    paths = re.findall(r"`([^`]+)`", evidence)
+    if not paths:
+        return "Evidence is neither an Actions run URL nor a backticked path"
+    tracked = set(repo.tracked)
+    untracked = [x for x in paths if posixpath.normpath(x) not in tracked]
+    if untracked:
+        return f"Evidence names no tracked path for {', '.join(untracked)}"
+    return None
+
+
+def _closure_rows(
+    text: str, heads: Any
+) -> tuple[list[dict[str, str]] | None, list[Violation]]:
+    """The checklist rows under ``## Compatibility closure``, or None plus the AC-0030 reason."""
+    at = next(
+        (i for i, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Compatibility closure"),
+        None,
+    )
+    if at is None:
+        return None, [Violation("AC-0030", "Compatibility closure", "no section")]
+    rows, problem = _disposition_rows(_section(text, heads, at), _CLOSURE_COLUMNS)
+    if problem is not None:
+        return None, [Violation("AC-0030", "Compatibility closure", problem)]
+    return rows, []
+
+
+def _closure_violations(
+    root: Path, rows: list[dict[str, str]]
+) -> list[Violation]:
+    """AC-0030 and AC-0031 for the checklist rows."""
+    violations: list[Violation] = []
+    repo = _Repo(root)
+    for row in rows:
+        gate, state = _fact_text(row["Gate"]), _fact_text(row["State"])
+        where = f"Compatibility closure row {_fact_text(row['Item'])!r}"
+        if gate not in _CLOSURE_GATES:
+            violations.append(Violation("AC-0030", where, f"Gate {gate!r} is not one of four"))
+        if state not in ("met", "open"):
+            violations.append(Violation("AC-0030", where, f"State {state!r} is not met or open"))
+        elif state == "met" and (why := _evidence_violation(repo, row["Evidence"])) is not None:
+            violations.append(Violation("AC-0030", where, why))
+    present = {_fact_text(r["Gate"]) for r in rows}
+    for gate in _CLOSURE_GATES:
+        if gate not in present:
+            violations.append(Violation("AC-0030", gate, "gate has no checklist row"))
+    closing = [r for r in rows if _fact_text(r["Gate"]) == "compatibility closure"]
+    for item in _CLOSURE_ITEMS:
+        matches = [r for r in closing if item in _fact_text(r["Item"])]
+        if not matches:
+            violations.append(Violation("AC-0031", item, "no compatibility closure row names it"))
+        elif item == "old skill deferred" and not any(
+            _RFC_0105 in _fact_text(r["Evidence"]) for r in matches
+        ):
+            violations.append(Violation("AC-0031", item, f"Evidence does not name {_RFC_0105}"))
+    return violations
+
+
+def _certification_violations(
+    root: Path, text: str, heads: Any, rows: list[dict[str, str]] | None
+) -> list[Violation]:
+    """AC-0033: what a Shipped retirement spec requires of the checklist and certification."""
+    violations = [
+        Violation("AC-0033", f"Compatibility closure row {_fact_text(r['Item'])!r}", "State is not met")
+        for r in rows or []
+        if _fact_text(r["State"]) != "met"
+    ]
+    at = next((i for i, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Certification"), None)
+    lines = text.splitlines()[heads[at][0] + 1 :] if at is not None else []
+    while lines and not lines[0].strip():
+        lines.pop(0)
+    body = lines
+    certified = re.fullmatch(
+        r"- \*\*Certified:\*\* [0-9]{4}-[0-9]{2}-[0-9]{2} by (.+)", body[0].rstrip() if body else ""
+    )
+    try:
+        rfc = (root / _RFC_0105).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        rfc = ""
+    approver = re.search(r"^- \*\*Approver:\*\*\s*(.+?)\s*$", rfc, re.MULTILINE)
+    if certified is None:
+        violations.append(
+            Violation("AC-0033", "Certification", "first line is not `- **Certified:** <date> by <signer>`")
+        )
+    elif approver is None:
+        violations.append(Violation("AC-0033", _RFC_0105, "no `- **Approver:**` value to match"))
+    elif approver.group(1) not in certified.group(1):
+        violations.append(
+            Violation("AC-0033", "Certification", f"signer does not contain {approver.group(1)!r}")
+        )
+    if len([ln for ln in body[1:] if ln.strip()]) < 1:
+        violations.append(Violation("AC-0033", "Certification", "no line follows the Certified line"))
+    if _REGISTRY_PATH in _Repo(root).tracked:
+        violations.append(Violation("AC-0033", _REGISTRY_PATH, "git still lists the registry"))
+    return violations
+
+
 def check_record(root: Path, record: Path) -> list[Violation]:
-    """Apply AC-0010 to AC-0016 to the record at ``record`` for the repository ``root``."""
+    """Apply AC-0010 to AC-0016, AC-0023 to AC-0028 and AC-0030 to AC-0033 to ``record``."""
     try:
         text = record.read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError) as exc:
@@ -702,6 +874,12 @@ def check_record(root: Path, record: Path) -> list[Violation]:
             )
         )
     violations += _equivalence_violations(root, record, text, heads)
+    closure, problems = _closure_rows(text, heads)
+    violations += problems
+    if closure is not None:
+        violations += _closure_violations(root, closure)
+    if _retirement_shipped(root):
+        violations += _certification_violations(root, text, heads, closure)
     disposition = next(
         (at for at, (_, lv, t) in enumerate(heads) if lv == 2 and t == "Disposition"), None
     )
@@ -923,6 +1101,44 @@ def test_ac0003_none_on_live_class(tmp_path: Path) -> None:
 def test_ac0003_none_on_historical_passes(tmp_path: Path) -> None:
     rows = [_row("CHANGELOG.md", "historical", owner="none")]
     assert _run(tmp_path, {"CHANGELOG.md": _MENTION}, rows) == []
+
+
+def test_ac0003_rfc0067_owner_on_live_class_passes(tmp_path: Path) -> None:
+    rows = [_row("notes.txt", "guide", owner="rfc-0067")]
+    assert _run(tmp_path, {"notes.txt": _MENTION}, rows) == []
+
+
+def test_ac0003_rfc0067_owner_on_historical_fails(tmp_path: Path) -> None:
+    rows = [_row("CHANGELOG.md", "historical", owner="rfc-0067")]
+    _only(_run(tmp_path, {"CHANGELOG.md": _MENTION}, rows), "AC-0003")
+
+
+def test_ac0003_rfc0067_owner_on_record_fails(tmp_path: Path) -> None:
+    rows = [_row(f"{_SPEC_DIR}/notes.md", "record", owner="rfc-0067")]
+    _only(_run(tmp_path, {f"{_SPEC_DIR}/notes.md": _MENTION}, rows), "AC-0003")
+
+
+def test_ac0032_shipped_spec_forbids_a_slice_owner(tmp_path: Path) -> None:
+    rows = [_row("notes.txt", "guide", owner=9)]
+    files = {"notes.txt": _MENTION, _RETIREMENT_SPEC: _SHIPPED}
+    _only(_run(tmp_path, files, rows), "AC-0032")
+
+
+def test_ac0032_shipped_spec_allows_non_slice_owners(tmp_path: Path) -> None:
+    rows = [
+        _row("notes.txt", "guide", owner="rfc-0067"),
+        _row("CHANGELOG.md", "historical", owner="none"),
+    ]
+    files = {"notes.txt": _MENTION, "CHANGELOG.md": _MENTION, _RETIREMENT_SPEC: _SHIPPED}
+    found = _run(tmp_path, files, rows)
+    # The base rows still carry slice owners; only they may report.
+    assert {v.subject for v in found if "notes.txt" in v.subject or "CHANGELOG" in v.subject} == set()
+
+
+def test_ac0032_draft_spec_control(tmp_path: Path) -> None:
+    rows = [_row("notes.txt", "guide", owner=9)]
+    files = {"notes.txt": _MENTION, _RETIREMENT_SPEC: "- **Status:** Draft\n"}
+    assert _run(tmp_path, files, rows) == []
 
 
 def test_ac0004_unrowed_mention(tmp_path: Path) -> None:
@@ -1255,7 +1471,6 @@ _FIXTURE_SCHEMA = {
         "p": {"type": "string"},
     },
 }
-_FIXTURE_REGISTRY = '["ini-099"]\nname = "x"\n[ini-099.work]\nactive = []\n[backlog]\nopen = []\n'
 _FIXTURE_FACTS = [
     "entry.path",
     "entry.summary",
@@ -1264,12 +1479,7 @@ _FIXTURE_FACTS = [
     "source.mode",
     "source.tracker",
     "source.tracker.id",
-    "<initiative>",
-    "<initiative>.name",
-    "<initiative>.work",
-    "<initiative>.work.active",
-    "backlog",
-    "backlog.open",
+    *_REGISTRY_FACTS,
     "entry position",
     _COVERAGE_FACT,
     "behavior outside tracked files",
@@ -1327,17 +1537,55 @@ def _table(columns: tuple[str, ...], rows: list[dict[str, str]]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def _base_closure() -> list[dict[str, str]]:
+    """A valid checklist: one row per gate, plus the seven compatibility-closure items."""
+    rows = [
+        {"Gate": gate, "Item": f"{gate} done", "State": "met", "Evidence": f"`{_REC_PATH}`"}
+        for gate in _CLOSURE_GATES[:3]
+    ]
+    for item in _CLOSURE_ITEMS:
+        evidence = _RFC_0105 if item == "old skill deferred" else _REC_PATH
+        rows.append(
+            {
+                "Gate": "compatibility closure",
+                "Item": f"`{item}`",
+                "State": "met",
+                "Evidence": f"`{evidence}`",
+            }
+        )
+    return rows
+
+
+def _closure_with(index: int, **changes: str) -> list[dict[str, str]]:
+    rows = _base_closure()
+    rows[index] = {**rows[index], **changes}
+    return rows
+
+
+_CERTIFICATION = "- **Certified:** 2026-11-04 by Platform Core maintainer\n\nAll four gates met.\n"
+_SHIPPED = "- **Status:** Shipped (2026-11-04)\n"
+_RFC_0105_TEXT = "# RFC 105\n\n- **Status:** Accepted\n- **Approver:** Platform Core maintainer\n"
+
+
 def _render_record(
     rows: list[dict[str, str]],
     headings: tuple[str, ...] = _RECORD_HEADINGS,
     columns: tuple[str, ...] = _COLUMNS,
     equivalence: str | None = None,
+    closure: str | None = None,
+    certification: str = "",
 ) -> str:
     out = []
     for heading in headings:
         out.append(f"## {heading}\n")
         if heading == "Disposition":
             out.append(_table(columns, rows))
+        if heading == "Compatibility closure":
+            out.append(
+                _table(_CLOSURE_COLUMNS, _base_closure()) if closure is None else closure
+            )
+        if heading == "Certification" and certification:
+            out.append(certification)
         if heading == "Equivalence":
             out.append(
                 _table(_EQ_COLUMNS, _base_equivalence()) if equivalence is None else equivalence
@@ -1351,17 +1599,16 @@ def _record_check(
     *,
     record_text: str | None = None,
     schema: dict[str, Any] | None = None,
-    registry: str = _FIXTURE_REGISTRY,
     extra_files: dict[str, str] | None = None,
 ) -> list[Violation]:
-    """Build a git repo holding schema, registry, an RFC, and a record; run the record rules."""
+    """Build a git repo holding schema, RFCs, and a record; run the record rules."""
     root = tmp_path / "repo"
     root.mkdir(parents=True)
     subprocess.run(["git", "init", "-q", str(root)], check=True, capture_output=True)
     files = {
         _SCHEMA_PATH: json.dumps(_FIXTURE_SCHEMA if schema is None else schema),
-        _REGISTRY_PATH: registry,
         _RFC_PATH: _RFC_ACCEPTED,
+        _RFC_0105: _RFC_0105_TEXT,
         _REC_PATH: _render_record(_base_rows() if rows is None else rows)
         if record_text is None
         else record_text,
@@ -1452,8 +1699,27 @@ def test_ac0011_initiative_table_written_by_its_name(tmp_path: Path) -> None:
     assert found[0].subject == "<initiative>.name"
 
 
-def test_ac0011_registry_key_without_row(tmp_path: Path) -> None:
-    _only(_record_check(tmp_path, _without(_base_rows(), "backlog.open")), "AC-0011")
+def test_ac0011_frozen_key_without_row(tmp_path: Path) -> None:
+    """The frozen list needs no workspace.toml: a missing row still fails."""
+    found = _record_check(tmp_path, _without(_base_rows(), "backlog.open"))
+    assert [(v.criterion, v.subject) for v in found] == [("AC-0011", "backlog.open")]
+    assert not (tmp_path / "repo" / _REGISTRY_PATH).exists()
+
+
+def test_fact_set_reads_no_registry_file(tmp_path: Path) -> None:
+    _record_check(tmp_path)
+    facts, problems = _fact_set(tmp_path / "repo")
+    assert problems == []
+    assert set(_REGISTRY_FACTS) <= facts
+
+
+def test_frozen_registry_facts_match_the_registry_at_3b1d0279d() -> None:
+    shown = subprocess.run(
+        ["git", "-C", str(_REPO), "show", "3b1d0279d:workspace.toml"],
+        check=True,
+        capture_output=True,
+    ).stdout.decode("utf-8")
+    assert _registry_facts(tomllib.loads(shown), ()) == set(_REGISTRY_FACTS)
 
 
 def test_ac0011_literal_fact_without_row(tmp_path: Path) -> None:
@@ -1469,7 +1735,8 @@ def test_ac0011_no_table(tmp_path: Path) -> None:
     text = _render_record([], headings=("Equivalence",)).replace(
         "## Equivalence", "## Disposition\n\n## Equivalence"
     )
-    text += "\n## Compatibility closure\n\n## Certification\n"
+    text += "\n## Compatibility closure\n\n" + _table(_CLOSURE_COLUMNS, _base_closure())
+    text += "\n## Certification\n"
     _only(_record_check(tmp_path, record_text=text), "AC-0011")
 
 
@@ -1564,7 +1831,7 @@ def test_ac0016_prose_home(tmp_path: Path) -> None:
 
 
 def test_ac0016_tracked_path_home(tmp_path: Path) -> None:
-    rows = _with(_base_rows(), _COVERAGE_FACT, Home="`workspace.toml` and prose")
+    rows = _with(_base_rows(), _COVERAGE_FACT, Home=f"`{_RFC_PATH}` and prose")
     assert _record_check(tmp_path, rows) == []
 
 
@@ -1926,3 +2193,178 @@ def test_slice6_ac0007_no_consumer_names_the_removed_fields() -> None:
         if "next_queue" in r["consumer"] or "next_shape" in r["consumer"]
     ]
     assert named == []
+
+
+# ---------------------------------------------------------------------------
+# AC-0030 to AC-0033: § Compatibility closure and § Certification.
+# ---------------------------------------------------------------------------
+
+
+def _closure_check(
+    tmp_path: Path,
+    closure: list[dict[str, str]] | str | None = None,
+    *,
+    certification: str = "",
+    status: str | None = None,
+    extra_files: dict[str, str] | None = None,
+) -> list[Violation]:
+    table = _table(_CLOSURE_COLUMNS, closure) if isinstance(closure, list) else closure
+    text = _render_record(_base_rows(), closure=table, certification=certification)
+    files = dict(extra_files or {})
+    if status is not None:
+        files[_RETIREMENT_SPEC] = f"- **Status:** {status}\n"
+    return _record_check(tmp_path, record_text=text, extra_files=files)
+
+
+def _shipped_check(
+    tmp_path: Path,
+    closure: list[dict[str, str]] | None = None,
+    *,
+    certification: str = _CERTIFICATION,
+    extra_files: dict[str, str] | None = None,
+) -> list[Violation]:
+    return _closure_check(
+        tmp_path,
+        closure,
+        certification=certification,
+        status="Shipped (2026-11-04)",
+        extra_files=extra_files,
+    )
+
+
+def test_ac0030_clean_checklist_passes(tmp_path: Path) -> None:
+    assert _closure_check(tmp_path) == []
+
+
+def test_ac0030_no_table(tmp_path: Path) -> None:
+    _only(_closure_check(tmp_path, "no table here\n"), "AC-0030")
+
+
+def test_ac0030_missing_column(tmp_path: Path) -> None:
+    rows = _base_closure()
+    table = _table(("Gate", "Item", "State"), rows)
+    _only(_closure_check(tmp_path, table), "AC-0030")
+
+
+def test_ac0030_unknown_gate(tmp_path: Path) -> None:
+    _only(_closure_check(tmp_path, _closure_with(0, Gate="a fifth gate")), "AC-0030")
+
+
+@pytest.mark.parametrize("gate", _CLOSURE_GATES[:3])
+def test_ac0030_gate_without_a_row(tmp_path: Path, gate: str) -> None:
+    rows = [r for r in _base_closure() if r["Gate"] != gate]
+    _only(_closure_check(tmp_path, rows), "AC-0030")
+
+
+def test_ac0030_state_outside_met_and_open(tmp_path: Path) -> None:
+    _only(_closure_check(tmp_path, _closure_with(0, State="done")), "AC-0030")
+
+
+def test_ac0030_met_row_with_an_untracked_path(tmp_path: Path) -> None:
+    _only(_closure_check(tmp_path, _closure_with(0, Evidence="`tools/missing.py`")), "AC-0030")
+
+
+def test_ac0030_met_row_with_one_tracked_and_one_untracked_path(tmp_path: Path) -> None:
+    evidence = f"`{_REC_PATH}` and `tools/missing.py`"
+    _only(_closure_check(tmp_path, _closure_with(0, Evidence=evidence)), "AC-0030")
+
+
+def test_ac0030_met_row_with_two_tracked_paths_passes(tmp_path: Path) -> None:
+    evidence = f"`{_REC_PATH}` and `{_RFC_PATH}`"
+    assert _closure_check(tmp_path, _closure_with(0, Evidence=evidence)) == []
+
+
+def test_ac0030_met_row_with_prose_evidence(tmp_path: Path) -> None:
+    _only(_closure_check(tmp_path, _closure_with(0, Evidence="looks fine")), "AC-0030")
+
+
+def test_ac0030_met_row_with_actions_run_url_passes(tmp_path: Path) -> None:
+    url = "https://github.com/example/repo/actions/runs/123456"
+    assert _closure_check(tmp_path, _closure_with(0, Evidence=url)) == []
+
+
+def test_ac0030_met_row_with_a_non_run_url(tmp_path: Path) -> None:
+    url = "https://github.com/example/repo/pull/12"
+    _only(_closure_check(tmp_path, _closure_with(0, Evidence=url)), "AC-0030")
+
+
+def test_ac0030_open_row_needs_no_evidence(tmp_path: Path) -> None:
+    assert _closure_check(tmp_path, _closure_with(0, State="open", Evidence="")) == []
+
+
+@pytest.mark.parametrize("item", _CLOSURE_ITEMS)
+def test_ac0031_missing_item(tmp_path: Path, item: str) -> None:
+    rows = [r for r in _base_closure() if _fact_text(r["Item"]) != item]
+    _only(_closure_check(tmp_path, rows), "AC-0031")
+
+
+def test_ac0031_item_under_another_gate_does_not_count(tmp_path: Path) -> None:
+    index = next(i for i, r in enumerate(_base_closure()) if "corpus gate" in r["Item"])
+    _only(_closure_check(tmp_path, _closure_with(index, Gate="state disposition")), "AC-0031")
+
+
+def test_ac0031_item_matches_once_code_marks_are_removed(tmp_path: Path) -> None:
+    index = next(i for i, r in enumerate(_base_closure()) if "workspace.toml deleted" in r["Item"])
+    rows = _closure_with(index, Item="`workspace.toml` deleted from the tree")
+    assert _closure_check(tmp_path, rows) == []
+
+
+def test_ac0031_old_skill_row_must_name_the_rfc(tmp_path: Path) -> None:
+    index = next(i for i, r in enumerate(_base_closure()) if "old skill deferred" in r["Item"])
+    rows = _closure_with(index, Evidence=f"`{_REC_PATH}`")
+    _only(_closure_check(tmp_path, rows), "AC-0031")
+
+
+def test_ac0033_shipped_clean_passes(tmp_path: Path) -> None:
+    assert _shipped_check(tmp_path) == []
+
+
+def test_ac0033_draft_control_ignores_open_rows_and_no_certification(tmp_path: Path) -> None:
+    rows = _closure_with(0, State="open", Evidence="")
+    assert _closure_check(tmp_path, rows, status="Draft") == []
+
+
+def test_ac0033_shipped_open_row(tmp_path: Path) -> None:
+    _only(_shipped_check(tmp_path, _closure_with(0, State="open", Evidence="")), "AC-0033")
+
+
+def test_ac0033_shipped_without_certification(tmp_path: Path) -> None:
+    _only(_shipped_check(tmp_path, certification=""), "AC-0033")
+
+
+def test_ac0033_certified_line_in_the_wrong_form(tmp_path: Path) -> None:
+    text = "Certified 2026-11-04 by Platform Core maintainer\n\nAll met.\n"
+    _only(_shipped_check(tmp_path, certification=text), "AC-0033")
+
+
+def test_ac0033_certified_date_in_the_wrong_form(tmp_path: Path) -> None:
+    text = "- **Certified:** 4 Nov 2026 by Platform Core maintainer\n\nAll met.\n"
+    _only(_shipped_check(tmp_path, certification=text), "AC-0033")
+
+
+def test_ac0033_signer_is_not_the_approver(tmp_path: Path) -> None:
+    text = "- **Certified:** 2026-11-04 by Someone Else\n\nAll met.\n"
+    _only(_shipped_check(tmp_path, certification=text), "AC-0033")
+
+
+def test_ac0033_signer_may_contain_more_than_the_approver(tmp_path: Path) -> None:
+    text = "- **Certified:** 2026-11-04 by Platform Core maintainer (Jo)\n\nAll met.\n"
+    assert _shipped_check(tmp_path, certification=text) == []
+
+
+def test_ac0033_nothing_follows_the_certified_line(tmp_path: Path) -> None:
+    text = "\n- **Certified:** 2026-11-04 by Platform Core maintainer\n\n\n"
+    _only(_shipped_check(tmp_path, certification=text), "AC-0033")
+
+
+def test_ac0033_text_runs_to_the_end_of_the_file(tmp_path: Path) -> None:
+    text = "- **Certified:** 2026-11-04 by Platform Core maintainer\n\n### Notes\n\nbody\n"
+    assert _shipped_check(tmp_path, certification=text) == []
+
+
+def test_ac0033_registry_file_still_tracked(tmp_path: Path) -> None:
+    _only(_shipped_check(tmp_path, extra_files={"workspace.toml": ""}), "AC-0033")
+
+
+def test_ac0033_draft_control_allows_a_tracked_registry(tmp_path: Path) -> None:
+    assert _closure_check(tmp_path, status="Draft", extra_files={"workspace.toml": ""}) == []

@@ -231,6 +231,18 @@ Owned by: T1
 
 **Done when:** the new fixture tests red before the rule exists and pass after, and the real-repository tests pass. The `pre-cutover-closure` spec drives this task.
 
+### T12: The closing rules
+
+**Depends on:** T11
+
+**Mode:** TDD
+
+**Tests:**
+- Criteria: AC-0003, AC-0011, AC-0030, AC-0031, AC-0032, AC-0033, AC-0018, AC-0022.
+- One planted fixture per clause of AC-0030 to AC-0033 reports only its own criterion, a row naming one tracked and one untracked path included; AC-0032 and AC-0033 report nothing on a Draft fixture. A row owned by `rfc-0067` passes unless it is `historical` or `record`. A fixture record missing one frozen key fails AC-0011 with no registry file present, and a test pins the frozen list to the registry at commit `3b1d0279d`.
+
+**Done when:** the new fixture tests red before each rule exists and pass after, and the real-repository tests pass. The `workspace-toml-deletion` spec drives this task.
+
 ## Rollout
 
 - **Delivery:** one pull request. The check blocks a pull request that adds a registry mention outside an inventoried directory, and one that removes, renames, or deletes the last mention in a file a row names.

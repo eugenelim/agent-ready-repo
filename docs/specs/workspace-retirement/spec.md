@@ -72,8 +72,8 @@ before proceeding; *Never do* is a hard rule, even under time pressure.
 
 ## Testing Strategy
 
-- **Inventory rules (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0019, AC-0021, AC-0029): TDD.** Each rule is a compressible invariant over a file list and a parsed TOML document, so a fixture repository with one planted violation per rule reds each test before the rule exists.
-- **Record rules (AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028): TDD.** A fixture schema, registry, record, and RFC with one planted violation per rule red each test.
+- **Inventory rules (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0019, AC-0021, AC-0029, AC-0032): TDD.** Each rule is a compressible invariant over a file list and a parsed TOML document, so a fixture repository with one planted violation per rule reds each test before the rule exists.
+- **Record rules (AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0030, AC-0031, AC-0033): TDD.** A fixture schema, record, spec status and RFC with one planted violation per rule red each test.
 - **Per-pull-request wiring (AC-0017, AC-0022): goal-based.** A test reads the workflow file, and one run of the step on a checkout with a planted unrowed mention fails.
 - **The real inventory and record (AC-0018): goal-based.** The same checks run against this repository and pass.
 
@@ -93,11 +93,11 @@ Terms used below:
 - **Case text.** A Case cell with backtick code-span markers removed.
 - **Slice numbers.** The numbers of the numbered items under the brief's `## Delivery slices` heading.
 
-Each criterion from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0029 is a rule the check enforces: given an input that breaks it, the check fails and names the offending path, row, or fact.
+Each criterion from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0033 is a rule the check enforces: given an input that breaks it, the check fails and names the offending path, row, or fact.
 
 - [x] **AC-0001.** `inventory.toml` parses with `tomllib` and holds a non-empty array of tables named `row`. Each row has a non-empty string `pattern`, a `class`, a non-empty string `consumer`, and an `owner`. A row may carry a boolean `reads_order`.
 - [x] **AC-0002.** Every row's `class` is one of the ten classes.
-- [x] **AC-0003.** Every row's `owner` is a slice number, or the string `none`. Only `historical` and `record` rows may carry `none`.
+- [ ] **AC-0003.** Every row's `owner` is a slice number, the string `none`, or the string `rfc-0067`. Only `historical` and `record` rows may carry `none`, and they may not carry `rfc-0067`. `rfc-0067` names the release that retires the `workspace-status` name under RFC-0067.
 - [x] **AC-0029.** A row whose `owner` is a slice number has the highest of the slice numbers.
 - [x] **AC-0004.** Every path in the scanned set has a governing row.
 - [x] **AC-0005.** A row whose `pattern` holds `*`, `?`, or `[` has a `pattern` of the form `<prefix>/*`, where `<prefix>` holds no wildcard character and is either a skill directory, with a `class` other than `historical` and `record`, or a spec directory, with a `class` of `contract` or `historical`. Every other row's `pattern` is an exact path.
@@ -107,9 +107,9 @@ Each criterion from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0029
 - [x] **AC-0008.** No path whose governing row is `historical` is a typed file with a status outside its type's terminal set, as `close-work`'s `closure_terminality` decides it, or a file under a spec directory whose `spec.md` status is outside the spec terminal set. A typed file with no `- **Status:**` line under a `historical` row also fails.
 - [x] **AC-0009.** The governing row of `packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py` has a `consumer` containing `readiness bridge`.
 - [x] **AC-0010.** `retirement-record.md` has exactly four `##` headings, in this order: `Disposition`, `Equivalence`, `Compatibility closure`, `Certification`.
-- [x] **AC-0011.** § Disposition holds a Markdown table with the columns Fact, Category, Home, Owner, and Authority, and, for each member of the fact set, a row whose Fact text equals it. The fact set is:
+- [ ] **AC-0011.** § Disposition holds a Markdown table with the columns Fact, Category, Home, Owner, and Authority, and, for each member of the fact set, a row whose Fact text equals it. The fact set is:
   - every property of `contracts/jsonschema/workspace-entry.schema.json` reached through `properties` keys alone, not through `allOf`, `anyOf`, `oneOf`, `if`, `then`, or `not`, written `entry.<property>` for a top-level property and `<definition>.<property>` for a property of a `$defs` member, with nested object properties joined by `.`;
-  - every key of this repository's `workspace.toml`, joined by `.`, stopping at a key whose value is an array, with each top-level table whose name matches `ini-[0-9]+` written `<initiative>`;
+  - the registry's key paths when `workspace.toml` was deleted, a frozen list: `<initiative>`, `<initiative>.name`, `<initiative>.status`, `<initiative>.milestone`, `<initiative>.parent`, `<initiative>.brief_queue`, `<initiative>.brief_queue.draft`, `<initiative>.brief_queue.executing`, `<initiative>.brief_queue.ready`, `<initiative>.brief_queue.shipped`, `<initiative>.shaping_queue`, `<initiative>.shaping_queue.active`, `<initiative>.shaping_queue.backlog`, `<initiative>.work`, `<initiative>.work.active`, `<initiative>.work.queue`, `<initiative>.work.shipped`, `backlog`, and `backlog.open`;
   - `entry position`, `spec registration as brief coverage evidence`, and `behavior outside tracked files`;
   - the legacy entry keys the schema does not reach: `entry.slug`, `entry.intent`, `entry.type`, `entry.source (string form)`, and `entry.needs (string form)`.
 - [x] **AC-0012.** Every Disposition row has a non-empty Home and a non-empty Owner.
@@ -119,14 +119,18 @@ Each criterion from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0029
 - [x] **AC-0016.** The Home cell of the `spec registration as brief coverage evidence` row names at least one path, resolved from the repository root, that `git ls-files` lists, or is exactly `nothing`.
 - [x] **AC-0017.** `.github/workflows/build-check.yml` triggers on `pull_request`, and holds a step that runs `python -m pytest tests/roster/test_workspace_retirement_inventory.py`. Neither the step nor its job carries `continue-on-error:`. The job carries no `if:`, and the step's `if:`, when present, is exactly `!cancelled() && steps.python.conclusion == 'success'`, the condition its neighbouring roster steps use. The workflow carries no `paths` or `paths-ignore` filter.
 - [x] **AC-0021.** The governing row of each contract RFC-0106 D1 names is a `contract` row: `docs/rfc/0064-ini-001-ai-native-ecosystem.md`, `docs/product/AGENTS.md`, `docs/product/intents/FEAT-0005-lifecycle-and-closure.md`, `docs/product/intents/FEAT-0001-intent-identity-and-registration.md`, and `docs/adr/0119-retire-the-initiative-ladder-into-the-recursive-intent-graph.md`, unless the file no longer mentions `workspace.toml`, `workspace-status` or `workspace_status`.
-- [x] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0029 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
+- [ ] **AC-0022.** The step AC-0017 names applies every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0033 to the checked-out repository on every run. On a checkout where one tracked, non-exempt file that no row governs mentions `workspace.toml`, that step fails.
 - [x] **AC-0023.** § Equivalence holds a Markdown table with the columns Case, Slice, Result, Evidence, and Authority, with at least one row.
 - [x] **AC-0024.** Every Equivalence row's Slice is a slice number, and its Result is `reproduced`, `accepted removal`, or `intended change`.
 - [x] **AC-0027.** Every Equivalence row's Case text is non-empty.
 - [x] **AC-0028.** Every `intended change` row's Case text is one of these, and no other: `entries that carry no kind`, from RFC-0106 D3's kind assignment by the migration; `a captured-item file that carries a Type: line`, the change RFC-0106 D1 calls intended; `matches nothing else`, the limit D1 sets on that guard; `the closed captured item of another kind`, which RFC-0106 § Errata authorises: a captured item of any kind with no registry entry now settles a dependency when its own file is `Status: Closed` with `Resolution: fixed`; and `the child-state check on a brief that never had an entry` and `the cooled child of a brief that never had an entry`, which RFC-0106 § Errata authorises for the intent and brief registration stop. A further intended change needs an amendment of this list.
 - [x] **AC-0025.** Every Equivalence row's Evidence cell names at least one path, resolved from the repository root, that `git ls-files` lists.
 - [x] **AC-0026.** Every `accepted removal` or `intended change` row's Authority cell meets AC-0014 and AC-0015, with the row's Case text in place of the row's Fact text; the section side of AC-0015 is unchanged. Every `reproduced` row's Authority cell is exactly `none`.
-- [x] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0029.
+- [ ] **AC-0030.** § Compatibility closure holds a Markdown table with the columns Gate, Item, State, Evidence. Every Gate is one of RFC-0105 D3's four, `consumer inventory`, `state disposition`, `behavioral equivalence` or `compatibility closure`, and each has at least one row. Every State is `met` or `open`. Every `met` row's Evidence is a `https://github.com/` Actions run URL, or names one or more paths, each resolved from the repository root and each listed by `git ls-files`.
+- [ ] **AC-0031.** Once code-span marks are removed, each of `legacy entries`, `operative references and seeds`, `activation gate`, `corpus gate`, `registry contract retired`, `old skill deferred` and `workspace.toml deleted` is a substring of some `compatibility closure` row's Item text. The Evidence of the row whose Item holds `old skill deferred` names `docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md`.
+- [ ] **AC-0032.** While this spec's `- **Status:**` is `Shipped`, no row's `owner` is a slice number.
+- [ ] **AC-0033.** While this spec's `- **Status:**` is `Shipped`: every § Compatibility closure checklist row is `met`; the first line of the certification text has the form `- **Certified:** <YYYY-MM-DD> by <signer>`, where `<signer>` contains the `- **Approver:**` value of `docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md`; at least one non-blank line follows it; and `git ls-files` lists no `workspace.toml`. The certification text is the body of § Certification, from the line after its heading to the end of the file, with surrounding blank lines trimmed.
+- [ ] **AC-0018.** Against this repository at the implementing pull request's head commit, the check passes every rule from AC-0001 to AC-0016, AC-0019, AC-0021, and AC-0023 to AC-0033.
 
 ## Follow-ons
 
