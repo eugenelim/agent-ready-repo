@@ -3,7 +3,9 @@
 - **Slug:** `evidence-decided-completion`
 - **Level:** capability
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-04 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review of revision `fa0c47dc1b339d41` returned zero MALFORMED tokens, after a first round on revision `72be1864dea98879` drew `MALFORMED(children)` and the `## Decomposition` section was added.
+- **Shaping-reviewed:** 2026-11-04
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** opportunity:autonomous-product-team-operating-model
