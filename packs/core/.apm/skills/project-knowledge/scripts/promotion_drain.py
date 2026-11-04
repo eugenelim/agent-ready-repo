@@ -589,13 +589,17 @@ def store_terminal_dispositions(repo_root: Path | str) -> list[dict[str, Any]]:
 
 def _captured_item_target(offer: dict[str, Any]) -> str:
     """The canonical context's path: a captured-item file named by the
-    record's own statement."""
+    record's own statement and capture id. The id tail keeps two records
+    whose statements share a slug prefix from colliding on one target —
+    a closed capture cannot re-materialize its handoff (§ D1)."""
     statement = offer["request"]["work_item"]["statement"]
     translated = "".join(
         character if character.isalnum() else "-" for character in statement.lower()
     )
     slug = "-".join(part for part in translated.split("-") if part)[:60]
-    return f"docs/product/captured/{slug or 'captured-item'}.md"
+    tail = offer["capture_id"][-12:]
+    base = f"{slug}-{tail}" if slug else f"captured-item-{tail}"
+    return f"docs/product/captured/{base}.md"
 
 
 def _captured_item_bytes(offer: dict[str, Any]) -> bytes:
@@ -651,8 +655,10 @@ def transact_route(
         tmp.replace(confined)
 
     def rollback_partial_state() -> None:
-        if target.exists() and target.read_bytes() != expected:
-            target.unlink()
+        # A partial artifact is only ever this transaction's `.tmp` file:
+        # `default_materialize` commits by atomic replace, so the target is
+        # either absent or a complete artifact — this transaction's or a
+        # prior one's. The rollback never removes a complete artifact (§ D1).
         target.with_name(f"{target.name}.tmp").unlink(missing_ok=True)
 
     result = _load_intake_transaction().run_intake_transaction(

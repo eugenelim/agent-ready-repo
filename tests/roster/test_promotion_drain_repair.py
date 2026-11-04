@@ -1,0 +1,175 @@
+"""Roster coverage for the review-sustained repair round (T9–T12).
+
+Spec: ``docs/specs/work-item-promotion-handoff`` — repair tasks. T9: the
+route transaction is collision-safe and its rollback never deletes a
+complete artifact. T10: one bad record never aborts the whole drain. T11:
+a materialized captured-item file parses under the destination owner's own
+grammar. T12: a closure's evidence rides the run report beside it.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+SCRIPTS_DIR = (
+    REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "project-knowledge" / "scripts"
+)
+
+
+def _load_module(name: str, path: Path) -> Any:
+    spec = importlib.util.spec_from_file_location(name, path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+DRAIN = _load_module("_roster_promotion_drain_repair", SCRIPTS_DIR / "promotion_drain.py")
+KS = DRAIN.KS
+WL = _load_module(
+    "_roster_header_readiness_repair",
+    REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts" / "_header_readiness.py",
+)
+
+
+def _request(shape: str, statement: str, **extra: str) -> dict[str, Any]:
+    work_item: dict[str, Any] = {
+        "statement": statement,
+        "shape": shape,
+        "blocker": "dependency",
+        "finished_state": "The item sits with its owning route.",
+        "necessity_rationale": "The route decides what happens to the item.",
+    }
+    if shape == "question":
+        work_item["answered_by"] = "docs/knowledge/reference/work-items.md"
+    work_item.update(extra)
+    return {
+        "contract_version": "knowledge-captured-observation.v2",
+        "kind": "work-item",
+        "work_item": work_item,
+        "project_scope": {"paths": ["docs"], "audience": "project"},
+        "competency_facets": ["CQ-ROUTE"],
+        "destination_hint": {
+            "type": "route-suggestion",
+            "path": "docs/knowledge/reference/work-items.md",
+        },
+        "producer": {"workflow": "work-loop", "workflow_version": "2.6.0"},
+        "semantic_gate": {"name": "plan-locked", "artifact": "docs/specs/example/plan.md"},
+        "provenance": {
+            "sources": [
+                {"path": "docs/specs/example/plan.md", "line_start": 10, "line_end": 20}
+            ]
+        },
+        "freshness_anchor": {
+            "path": "docs/specs/example/plan.md",
+            "digest": {"kind": "sha256-bytes-v1", "sha256": "a" * 64, "byte_length": 100},
+        },
+        "observed_at": "2026-11-04T10:00:00Z",
+        "privacy_attestation": {
+            "reviewed": True,
+            "contains_private_data": False,
+            "contains_secrets": False,
+            "contains_instructions": False,
+        },
+    }
+
+
+def _seed_store(repo: Path, requests: list[dict[str, Any]]) -> list[str]:
+    (repo / "docs" / "knowledge" / "topics").mkdir(parents=True)
+    (repo / "docs" / "product" / "captured").mkdir(parents=True)
+    KS.rebuild_topic_map(repo)
+    subprocess.run(["git", "add", "."], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-c", "user.email=t@example.invalid", "-c", "user.name=T", "commit", "-q", "-m", "map"],
+        cwd=repo, check=True, capture_output=True,
+    )
+    return [
+        KS.seed_previously_admitted_capture(repo, request)["capture_id"]
+        for request in requests
+    ]
+
+
+def _git_repo(base: Path, name: str) -> Path:
+    repo = base / name
+    subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
+    return repo
+
+
+def _captured_files(repo: Path) -> list[str]:
+    captured = repo / "docs" / "product" / "captured"
+    return sorted(path.name for path in captured.iterdir()) if captured.exists() else []
+
+
+# --- T9: collision-safe, non-destructive route transaction --------------------
+
+
+def test_two_routes_sharing_a_slug_prefix_both_commit(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t9-collision")
+    prefix = "collision " * 10  # 100 chars; the slug truncates at 60
+    ids = _seed_store(
+        repo,
+        [
+            _request("defect", prefix + " first defect needs routing",
+                     observed="The drain reports the item as unplaced today.",
+                     intended="The drain reports the item at its owner."),
+            _request("defect", prefix + " second defect needs routing",
+                     observed="The drain reports the item as unplaced today too.",
+                     intended="The drain reports the item at its owner as well."),
+        ],
+    )
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    assert report["counts"] == {"routed": 2, "held": 0, "closed": 0}, report
+    assert len(_captured_files(repo)) == 2, _captured_files(repo)
+    for capture_id in ids:
+        dispositions = [
+            d for d in DRAIN.store_terminal_dispositions(repo)
+            if d["capture_id"] == capture_id
+        ]
+        assert [d["disposition"] for d in dispositions] == ["routed"]
+
+
+def test_preexisting_differing_target_is_never_deleted(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t9-preexisting")
+    _seed_store(
+        repo,
+        [_request("defect", "A defect whose target is already taken",
+                  observed="The target path holds another file.",
+                  intended="The transaction must refuse without deleting it.")],
+    )
+    capture = DRAIN.read_open_captures(repo)[0]
+    offer = {
+        "capture_id": capture["capture_id"],
+        "partition": capture["partition"],
+        "request": capture["request"],
+    }
+    target = repo / DRAIN._captured_item_target(offer)
+    target.write_bytes(b"an operator's complete file, not this transaction's")
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    assert report["counts"] == {"routed": 0, "held": 1, "closed": 0}, report
+    assert target.read_bytes() == b"an operator's complete file, not this transaction's"
+
+
+def test_repeated_transact_is_idempotent(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t9-idempotent")
+    _seed_store(
+        repo,
+        [_request("defect", "A defect routed twice by re-drive",
+                  observed="A crash can land between dispatch and disposition.",
+                  intended="The re-drive completes the sequence once.")],
+    )
+    capture = DRAIN.read_open_captures(repo)[0]
+    offer = {
+        "capture_id": capture["capture_id"],
+        "partition": capture["partition"],
+        "request": capture["request"],
+    }
+    first = DRAIN.transact_route(repo, offer, {"route": "defect-processor"})
+    second = DRAIN.transact_route(repo, offer, {"route": "defect-processor"})
+    assert first["committed"] and second["committed"]
+    assert len(_captured_files(repo)) == 1

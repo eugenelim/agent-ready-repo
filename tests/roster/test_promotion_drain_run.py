@@ -126,7 +126,16 @@ def _captured_files(repo: Path) -> list[str]:
     return sorted(path.name for path in captured.iterdir()) if captured.exists() else []
 
 
-ARTIFACT_NAME = "the-drain-leaves-routed-items-unplaced.md"
+ARTIFACT_STATEMENT = "The drain leaves routed items unplaced"
+
+
+def _artifact_name(repo: Path, capture_id: str) -> str:
+    translated = "".join(
+        character if character.isalnum() else "-"
+        for character in ARTIFACT_STATEMENT.lower()
+    )
+    slug = "-".join(part for part in translated.split("-") if part)[:60]
+    return f"{slug}-{capture_id[-12:]}.md"
 
 
 @pytest.mark.parametrize(
@@ -150,10 +159,12 @@ def test_crash_at_each_effect_boundary_then_re_drive_completes_once(
         },
     )
     capture_id = seeded["routed"]["capture_id"]
-    artifact = repo / "docs" / "product" / "captured" / ARTIFACT_NAME
+    artifact = repo / "docs" / "product" / "captured" / _artifact_name(repo, capture_id)
 
     def partial_then_raise(confined: Path) -> None:
-        confined.write_bytes(b"partial")
+        # The materializer's own failure mode: partial bytes in the `.tmp`
+        # file the atomic replace never reaches.
+        confined.with_name(f"{confined.name}.tmp").write_bytes(b"partial")
         raise Crash(stage)
 
     def crashing_transact(offer: dict[str, Any], decision: dict[str, Any]) -> dict[str, Any]:
@@ -224,7 +235,7 @@ def test_crash_at_each_effect_boundary_then_re_drive_completes_once(
     )
     assert report["counts"] == expected_counts
     assert len(_dispositions_for(repo, capture_id)) == 1
-    assert _captured_files(repo) == [ARTIFACT_NAME]
+    assert _captured_files(repo) == [_artifact_name(repo, capture_id)]
     assert "The drain leaves routed items unplaced" in artifact.read_text(encoding="utf-8")
 
 
