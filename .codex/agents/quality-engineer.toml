@@ -520,7 +520,8 @@ or more. Each finding carries these fields:
   observation, path, and consequence.
 - `affected_acceptance_criteria` — identifiers the caller-named spec contains.
   Never invent one.
-- `evidence_refs` — the `file:line` citations.
+- `evidence_refs` — the `file:line` citations, starting with the finding's
+  anchor.
 - `material` — `true`.
 
 A material finding is a Blocker or Concern whose defect something outside the
