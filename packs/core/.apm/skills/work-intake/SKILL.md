@@ -539,6 +539,38 @@ stricter boundaries, including Jira SSO-cookie zero-wire refusal for every
 non-GET/HEAD request and GitHub mutations through the fixed-host approved `gh`
 surface only.
 
+### 8. Drain captured work items
+
+An operator invokes the drain to hand a captured work item to its owner or to
+close it, and to record which happened. The drain reads the open `work-item`
+captures in the knowledge store through
+`packs/core/.apm/skills/project-knowledge/scripts/promotion_drain.py`: per item
+it assembles an offer — the record, the write-path prose controls re-run over
+its scanned fields, the stored command's pre-execution re-check, and the
+command's run under the execution envelope — then classifies a question-shaped
+item through the § 4 table over its framed fields and proposes one route, hold,
+or closure.
+
+Every route and every closure is attended: the operator confirms each item's
+disposition before any effect commits. Confirming a route runs the § 5
+transaction — the captured-item file under `docs/product/captured/` for a
+defect, then the processor handoff — through the same
+`scripts/intake_transaction.py` seam every other route uses. A closure states
+one ground — overtaken, superseded, or falsified — with the evidence its test
+needs; a ground whose test fails is refused and the item stays open.
+
+The terminal disposition is written only after every effect: a route's
+disposition is `routed`, a closure records `rejected` or `superseded` with the
+ground in its reason code, and a held item records nothing. A crash at any
+point ahead of the disposition leaves the capture open, and re-running the
+drain completes the sequence without a second artifact or a second terminal
+event. When nobody can confirm — an unattended drain — the drain performs the
+read-only half only: it reports the offers and holds every item, writes no
+artifact, dispatches no processor, and records no terminal disposition.
+
+The drain registers nothing: no route it reaches writes a `workspace.toml`
+entry, and the captured-item files it materializes carry no membership.
+
 ## Boundaries
 
 metadata:
