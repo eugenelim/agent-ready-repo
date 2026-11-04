@@ -126,7 +126,7 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_untrusted_unsafe_host.py`
 
 **Tests:** TDD — integration, as T2, each test named `test_t3_…`
-- AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0031; the three every-verb walks in `test_supervisor_untrusted_unsafe_host.py` exempt `gates`, and the separate full-argv test covers it; AC-0039's `gates` clause lists an entry `stale` after the spec gains a zero-width space; AC-0011 includes a planted well-formed record whose digests are the live ones and whose commit is an older revision, which lists `stale`; AC-0013 and AC-0031 plant each bad record kind, including shell metacharacters in `spec_dir` and a non-hex `commit`, beside one good record; AC-0009 plants a `refs/replace/` entry for the spec blob, `pager.cat-file` and `core.pager` config, and a promisor remote with `core.sshCommand` while the blob is deleted (the command fails and the planted program never runs), checks the listing and digests are unchanged, and runs each `read` command with a pseudo-terminal as stdout and checks its output equals the blob; AC-0011 plants a well-formed record under another name and a `plan-approved` record for a `Draft` spec, both not `pending`; AC-0013 also plants a symlink, a subdirectory, and a 5000-byte padded valid body; AC-0014 snapshots the store bytes as well as T2's set.
+- AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0031; the three every-verb walks in `test_supervisor_untrusted_unsafe_host.py` exempt `gates`, and the separate full-argv test covers it; AC-0039's `gates` clause lists an entry `stale` after the spec gains a zero-width space; AC-0011 includes a planted well-formed record whose digests are the live ones and whose commit is an older revision, which lists `stale`; AC-0013 and AC-0031 plant each bad record kind, including shell metacharacters in `spec_dir` and a non-hex `commit`, beside one good record; AC-0009 plants a `refs/replace/` entry for the spec blob and `pager.cat-file` and `core.pager` config and checks the listing and digests are unchanged and `pending`, then adds a promisor remote with `core.sshCommand` while the blob is deleted (the command fails, the planted program never runs, and every entry lists `stale`), and runs each `read` command with a pseudo-terminal as stdout and checks its output equals the blob; AC-0011 plants a well-formed record under another name and a `plan-approved` record for a `Draft` spec, both not `pending`; AC-0013 also plants a symlink, a subdirectory, and a 5000-byte padded valid body; AC-0014 snapshots the store bytes as well as T2's set.
 
 **Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k t3_` and `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_untrusted_unsafe_host.py -q` exit 0.
 
@@ -187,6 +187,23 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 - qe-16, sec-6: `is_hidden_char` is typed `Callable[[str], bool]` with no ignore; the park-trusted docstring states the path-checked-host race window and why it is acceptable.
 
 **Done when:** under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, `test_supervisor_admission.py`, and `test_supervisor_cutover_source_checks.py` exit 0; `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; and `make lint-ruff lint-mypy` exits 0.
+
+### T9: Second code-review repairs
+
+**Depends on:** T8
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`, `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py`
+
+**Tests:** TDD — unit and integration; every new test named `test_t9_…`
+- adv2-1 (AC-0015): with an open attempt carrying residue, `start` with or without digests writes no `.refused.json` and no security event before the locked path, and gives the non-standing `attempt-residue` detail; the pre-check uses `Attempts.standing_refusal()`, never `guard`.
+- sec2-1 (AC-0025): a 1-space-indented `## X`, a setext underline, and an indented line shallower than the list item's content width under `## Changelog` each refuse `gate-changelog-shape`; an ATX heading indented 1 to 3 spaces counts when finding the last level-two heading.
+- sec2-2 (AC-0025): a backtick run indented 4 or more spaces does not open or close a fence, and a backtick opener whose info string holds a backtick is not a fence.
+- sec2-3 (AC-0039): `invisible_budget` takes a fixed per-artifact cap; a padded artifact with many interleaved VS16 refuses `gate-unsafe-content`, and one emoji VS16 keeps the digest.
+- qe2-1 (AC-0020): the cutover scan's sentinel requires `gate-unsafe-path`, `gate-changelog-shape`, and `approval-digest-required`.
+- qe2-2 (AC-0015): `start` without digests on a repository with a code-running Git config key refuses `unsupported-git-config`.
+- qe2-3 (AC-0009, AC-0011): under the replace ref and pager settings alone, `gates` equals the baseline listing with state `pending`; after the partial-clone settings every entry lists `stale`.
+
+**Done when:** under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, `test_supervisor_admission.py`, `test_supervisor_attempt.py`, and `test_supervisor_cutover_source_checks.py` exit 0; `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; and `make lint-ruff lint-mypy` exits 0.
 
 ### T7: Core release
 
