@@ -372,7 +372,7 @@ def test_ac25_wave_ownership_statements_survive() -> None:
 
     for statement in (
         "`workspace-status` has two verbs, `repair-plan` and `repair-apply`",
-        "`prune`, `retirement-candidates`, and `repair-rollback` have no replacement",
+        "The retired prune, candidate-listing, and rollback tooling has no replacement",
         "Terminal status and artifact retention are independent",
     ):
         assert statement in normalized, statement

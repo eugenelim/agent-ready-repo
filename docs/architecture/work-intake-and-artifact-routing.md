@@ -123,9 +123,9 @@ The retirement (readers, per-fact homes, deletion) is delivered by the
 under [FEAT-0034](../product/intents/FEAT-0034-workspace-registry-retirement.md)
 and [RFC-0105](../rfc/0105-artifact-derived-navigation-and-workspace-retirement.md).
 Deleting the file is the last slice of that brief. **STATUS: PLANNED.**
+The file stays in place after the repair drops its entries.
 
-A remaining entry has `path`, `kind`, `source`, `summary`, and `needs`. The file stays in place after the repair drops its entries.
-Comments, summaries, order, labels, and hints cannot select a route, satisfy a
+A remaining entry has `path`, `kind`, `source`, `summary`, and `needs`. Comments, summaries, order, labels, and hints cannot select a route, satisfy a
 dependency, or authorize dispatch. Terminal status and artifact retention are
 independent: cooling or deletion policy never substitutes for `Shipped`,
 `Withdrawn`, or `Cancelled`.
