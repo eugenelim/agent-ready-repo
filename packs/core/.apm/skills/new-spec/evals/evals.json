@@ -337,7 +337,7 @@
     },
     {
       "id": "reversible-assumption-proceeds-on-logged-default",
-      "prompt": "Draft the spec for a new internal list view of support tickets. The framework, the data source and the owning team are all verified from the repository. One assumption is open: the default page size. Nobody has stated one, and any value can be changed later by editing one constant.",
+      "prompt": "Draft the spec for a new internal list view of support tickets. The framework, the data source and the owning team are all verified from the repository. One assumption is open: the default page size. A default is offered: 50 per page, held in one constant that can be changed later by editing that line.",
       "expected_output": "The agent sorts the page-size item under `## Defaulted` with a stated default and what changes if it is wrong, proceeds without waiting for the owner on it, records it in the spec's `## Assumptions` as a `Defaulted:` line, and does not treat the default as approving the spec.",
       "assertions": [
         "Lists the page-size item under `## Defaulted` with a default and an if-wrong consequence",

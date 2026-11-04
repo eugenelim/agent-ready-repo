@@ -202,3 +202,21 @@ def test_ac_0020_eval_cases_present_and_shaped() -> None:
         for key in ("id", "prompt", "expected_output"):
             assert isinstance(case[key], str) and case[key]
         assert isinstance(case["assertions"], list) and case["assertions"]
+
+
+AC_STATED_DEFAULT = (
+    "A default you propose counts as stated once you name it; an item for "
+    "which you cannot name one waits."
+)
+
+
+def test_stated_default_sentence_follows_tie_break() -> None:
+    step = _step_3()
+    assert AC_STATED_DEFAULT in step
+    assert step.index(AC_0002) < step.index(AC_STATED_DEFAULT)
+
+
+def test_page_size_eval_prompt_offers_a_default() -> None:
+    cases = {c["id"]: c for c in json.loads(_EVALS.read_text(encoding="utf-8"))["evals"]}
+    prompt = cases[AC_0020_IDS[0]]["prompt"]
+    assert "Nobody has stated one" not in prompt

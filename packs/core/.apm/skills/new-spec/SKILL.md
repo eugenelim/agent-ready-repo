@@ -205,11 +205,12 @@ opaque: do not fetch, search, probe, read, execute, or derive a path from it.
    for the owner when it is a product or preference call, a question of who
    may approve, sign off, or decide, an item touching a protected class, an
    irreversible choice, or an item with no stated default. Where you cannot
-   tell whether an item is one of these, it is. Every other item is
-   reversible with a stated default: name the default you will build on,
-   check it against the reversibility test in the routing table above, and
-   move the item to `## Defaulted`. It proceeds on that default without
-   waiting. Defaulting decides only whether an item waits; a load-bearing
+   tell whether an item is one of these, it is. A default you propose counts
+   as stated once you name it; an item for which you cannot name one waits.
+   Every other item is reversible with a stated default: name the default you
+   will build on, check it against the reversibility test in the routing
+   table above, and move the item to `## Defaulted`. It proceeds on that
+   default without waiting. Defaulting decides only whether an item waits; a load-bearing
    claim still routes by the routing table.
 
    **Surface the Unverified list and wait** for confirmation or correction of
