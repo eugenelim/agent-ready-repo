@@ -4,8 +4,9 @@ How `agentbundle` authenticates to a remote catalogue, and where each part of
 that work lives. A remote catalogue is a `catalogue+https://` or
 `archive+https://` source. `agentbundle` reaches a protected one with
 credentials the user already manages: an exact-host `.netrc` entry or a matching
-JFrog CLI profile. The older explicit bearer token still works and wins over
-both.
+JFrog CLI profile.
+
+The explicit bearer token override wins over both.
 
 **Status:** Implemented. Governing decisions:
 [ADR-0135](../adr/0135-catalogue-auth-resolves-through-credbroker.md),
@@ -25,9 +26,12 @@ boundary this page works within.
 | Concern | Owner |
 | --- | --- |
 | Choosing credentials for a target URL | `credbroker.resolve_http_access` in [`_http_access.py`](../../packages/credbroker/credbroker/_http_access.py) |
-| Bounded network acquisition from the chosen credentials | [`agentbundle/catalogue_fetch/`](../../packages/agentbundle/agentbundle/catalogue_fetch/) |
+| Bounded network acquisition from the chosen credentials | [`agentbundle/catalogue_fetch/`](../../packages/agentbundle/agentbundle/catalogue_fetch/): the facade and error type in `__init__.py` and `models.py`, the direct provider in `direct_http.py`, the JFrog provider in `jfrog_cli.py` |
 | Descriptor validation, artifact URL choice, digest check, safe extraction | [`https_catalogue.py`](../../packages/agentbundle/agentbundle/https_catalogue.py) |
-| Catalogue source precedence and URI forms | [Catalogue capability](../../packages/agentbundle/DESIGN.md#2-catalogue-capability) |
+| Catalogue source precedence and URI forms | [Catalogue resolution](catalogue/README.md#resolution) |
+| Required `credbroker` dependency | `packages/agentbundle/pyproject.toml` |
+| Credential-boundary test | `packages/agentbundle/tests/contracts/test_catalogue_fetch_credential_boundary.py` |
+| Resolver tests | `packages/credbroker/tests/unit/test_http_access*.py` |
 | Publisher CI upload identities (`ARTIFACTORY_USER`, `ARTIFACTORY_TOKEN`) | The CI secret store, a separate trust boundary |
 
 `catalogue.toml` may hold non-secret Artifactory publication coordinates, and
@@ -104,11 +108,12 @@ no credential, only the pinned fields it needs to run `jf api`.
 `agentbundle` declares `credbroker>=0.7,<0.8` and imports only public
 `credbroker` names, and only from the catalogue-fetch modules. `credbroker`
 does not depend on `agentbundle`. Credential-aware skills import `credbroker`
-directly, and ordinary skills import neither package. AgentBundle's
+directly, and ordinary skills import neither package.
+
+AgentBundle's
 package-manager environment and the credential-brokers pack's user-library
 floor are separate deployment paths. When both exist in one Python
-environment, Python prefers the `site-packages` distribution, so the 0.7 series
-keeps the 0.6 skill-facing API.
+environment, Python prefers the `site-packages` distribution.
 
 ## 3. Provider selection
 
@@ -185,14 +190,18 @@ is HTTPS-only and honors proxy and CA-bundle settings. Its
 `_DirectHttpRedirectHandler` allows same-origin HTTPS redirects and forwards
 Authorization on them. It rejects cross-origin redirects, scheme downgrades,
 and redirect URLs with user-info before any request reaches the redirect
-target. Bearer authorization stays locked to the origin of the original request
+target.
+
+Bearer authorization stays locked to the origin of the original request
 for both source forms.
 
 For `.netrc`, `credbroker` follows Python's
 [standard user-file and POSIX permission contract](https://docs.python.org/3.13/library/netrc.html).
 It reads the exact machine map, checks `host:port` first for a non-default port
 and then `host`, and ignores the ambient `default` record. A match must supply
-a login and a password. `credbroker` builds an ephemeral HTTP Basic value
+a login and a password.
+
+`credbroker` builds an ephemeral HTTP Basic value
 in-process for the bound direct provider. Neither the inputs nor the derived
 value reach a URL, argument, state file, provenance field, log, or diagnostic.
 A `.netrc` file over 1 MiB is refused.
@@ -202,13 +211,17 @@ A `.netrc` file over 1 MiB is refused.
 **Discovery.** `credbroker` runs
 [`jf config show --format=json`](https://docs.jfrog.com/integrations/docs/jf-config-show)
 without a shell. Output is size-limited, and unmasked credentials are never
-requested. After bounded JSON parsing, `credbroker` keeps only `serverId`,
+requested.
+
+After bounded JSON parsing, `credbroker` keeps only `serverId`,
 platform `url`, `artifactoryUrl`, and `isDefault`, and discards every other
 field at once.
 
 **Matching.** A profile matches when its normalized `artifactoryUrl` is an
 origin-equal, path-segment-aligned prefix of the initial fetch URL. The longest
-base path wins. Equal longest matches are ambiguous unless the user-local
+base path wins.
+
+Equal longest matches are ambiguous unless the user-local
 `JFROG_CLI_SERVER_ID` names one of them.
 
 **Topology.** A profile is eligible only when its normalized `artifactoryUrl`
@@ -217,14 +230,18 @@ is an origin-equal, path-segment-aligned descendant of its normalized
 `unsupported_jfrog_topology`.
 
 **Pinning.** The session pins `{serverId, platformUrl, artifactoryUrl}`. The
-named server must still URL-match. AgentBundle persists neither the ID nor
+named server must still URL-match.
+
+AgentBundle persists neither the ID nor
 profile data.
 
 **Endpoint confinement.** Before each JFrog invocation, the descriptor or
 artifact URL must remain an origin-equal, segment-aligned descendant of the
 pinned `artifactoryUrl`. `credbroker` validates the initial target during
 resolution, and AgentBundle revalidates each fetch URL before endpoint
-conversion. These are rejected: user-info, query, fragment, literal and encoded
+conversion.
+
+These are rejected: user-info, query, fragment, literal and encoded
 dot segments, encoded path separators, backslashes, and decoded control
 characters. The
 [`jf api` contract](https://docs.jfrog.com/integrations/docs/use-api-endpoints-via-cli)
@@ -232,20 +249,24 @@ prepends the configured platform base, so AgentBundle derives the CLI endpoint
 relative to the pinned `platformUrl`. The stricter `artifactoryUrl` check stays
 the authorization boundary.
 
-**Invocation.** The endpoint and server ID go in an argument vector, never a
-shell string. The process receives no credential, no credential-bearing URL,
-and no unrelated full URL. Standard input is closed. The child environment
-comes from a closed allowlist: `PATH` and `HOME` on POSIX, a Windows set on
-Windows, and `SSL_CERT_FILE` and `SSL_CERT_DIR` on both. `jf api` ignores the
-CLI's own trust store and, on Linux, reads trust anchors from those two Go
-variables, so a corporate CA reaches the delegated leg through them. On macOS
-`jf api` trusts only the system keychain, which is a stated residual. Both
-variables hold file paths, not secrets. A session runs at most two `jf api`
-processes, one per fetch.
+**Invocation.**
+
+- The endpoint and server ID go in an argument vector, never a shell string.
+- The process receives no credential, no credential-bearing URL, and no
+  unrelated full URL. Standard input is closed.
+- The child environment comes from a closed allowlist: `PATH` and `HOME` on
+  POSIX, a Windows set on Windows, and `SSL_CERT_FILE` and `SSL_CERT_DIR` on both.
+- `jf api` ignores the CLI's own trust store and, on Linux, reads trust anchors
+  from those two Go variables, so a corporate CA reaches the delegated leg through
+  them. On macOS `jf api` trusts only the system keychain, which is a stated
+  residual. Both variables hold file paths, not secrets.
+- A session runs at most two `jf api` processes, one per fetch.
 
 **Version.** After a profile matches, `credbroker` runs `jf --version` with
 closed standard input, an 8 KiB cap on each of stdout and stderr, and a 5-second
-timeout. A version below 2.105.0 fails as `incompatible_jfrog_cli`. JFrog
+timeout. A version below 2.105.0 fails as `incompatible_jfrog_cli`.
+
+JFrog
 documents `jf api` from
 [2.100.0](https://docs.jfrog.com/integrations/docs/use-api-endpoints-via-cli)
 and the required [`--format` output option from 2.105.0](https://docs.jfrog.com/integrations/docs/jfrog-cli-command-reference),
@@ -257,14 +278,18 @@ endpoint, but it cannot apply the direct provider's per-redirect hook inside
 another process.
 
 **Output limits.** Descriptor stdout is capped at 1 MiB plus one byte. Archive
-stdout streams to a temporary file capped at 256 MiB plus one byte. The extra
+stdout streams to a temporary file capped at 256 MiB plus one byte.
+
+The extra
 byte allows for the trailing `0x0a` that `jf api` appends when the body does not
 already end in it. Output at exactly the cap plus one is accepted only if its
 last byte is `0x0a`, and that byte is then removed, so no more than the cap
 reaches parsing, digest checking, or extraction. For archives,
 `_verify_jfrog_archive_sha256` accepts either the exact bytes or the bytes
 trimmed by one `0x0a`, and truncates the file to the verified candidate before
-extraction. Stderr is capped at 64 KiB per subprocess and never appears in
+extraction.
+
+Stderr is capped at 64 KiB per subprocess and never appears in
 diagnostics.
 
 ## 6. Limits and failure codes
@@ -282,7 +307,9 @@ diagnostics.
 Expiry terminates the process, waits for cleanup, and removes partial output.
 The complete install has no front-door duration bound. Direct streaming can
 stay active while data arrives, and digest checking and extraction are
-size-bounded rather than time-bounded. Work runs in one local AgentBundle
+size-bounded rather than time-bounded.
+
+Work runs in one local AgentBundle
 process with at most one JFrog subprocess at a time. No daemon or shared
 service exists.
 
@@ -317,7 +344,7 @@ credential-bearing URLs, or unbounded stderr.
 | Consumer credentials are user-owned. None appears in catalogue config, AgentBundle config, state, provenance, or docs | Schema and config negative tests, secret-pattern checks |
 | `agentbundle` reads no credential source. It imports only the public `credbroker` API, depends on `credbroker>=0.7,<0.8`, and only `jfrog_cli.py` builds a `jf api` command | [`test_catalogue_fetch_credential_boundary.py`](../../packages/agentbundle/tests/contracts/test_catalogue_fetch_credential_boundary.py) checks the packaged source by AST |
 | Derived Authorization bytes travel only in the in-process typed result, never in a URL, argument, persistent state, log, or diagnostic | Same test, plus `credbroker` secret-canary tests |
-| Skills do not depend on `agentbundle`. Credential-aware skills import `credbroker` directly | [ADR-0003](../adr/0003-credential-broker-contract.md), [credentials](credentials.md#4-dependencies-and-allowed-edges) |
+| Skills do not depend on `agentbundle`. Credential-aware skills import `credbroker` directly | [ADR-0003](../adr/0003-credential-broker-contract.md), [credentials](credentials.md#2-dependency-edges-run-one-way) |
 | Provider precedence is closed. One provider serves both descriptor and artifact, and a retrieval error is never retried on another provider | `credbroker` unit tests `test_http_access*.py` under `packages/credbroker/tests/unit/` |
 | `.netrc` matching is exact: `host:port`, then `host`, never `default` | `test_http_access_netrc.py` |
 | JFrog profile binding, topology, endpoint confinement, and minimum CLI version | `test_http_access_jfrog.py` and `test_http_access_version.py` |
@@ -326,6 +353,7 @@ credential-bearing URLs, or unbounded stderr.
 `agentbundle` adds no consumer `ARTIFACTORY_USER` or `ARTIFACTORY_TOKEN`
 setting. Those names stay in publisher CI. Users may already hold a standard
 `.netrc` record or a JFrog profile from their organization's login flow.
+
 AgentBundle re-reads those local settings on every run.
 
 ## 8. State
@@ -333,17 +361,5 @@ AgentBundle re-reads those local settings on every run.
 No AgentBundle state holds a catalogue credential. AgentBundle config, install
 state, and `catalogue.toml` carry none. `.netrc` and JFrog profiles are external
 files that AgentBundle reads and never creates, edits, imports, or deletes.
+
 AgentBundle does not persist a provider choice or a server ID.
-
-## 9. Source map
-
-| Element | Source |
-| --- | --- |
-| Fetch facade and error type | `packages/agentbundle/agentbundle/catalogue_fetch/__init__.py`, `models.py` |
-| Direct HTTP provider | `packages/agentbundle/agentbundle/catalogue_fetch/direct_http.py` |
-| JFrog CLI provider | `packages/agentbundle/agentbundle/catalogue_fetch/jfrog_cli.py` |
-| HTTP access resolution and selection | `packages/credbroker/credbroker/_http_access.py`, exported by `credbroker.__init__` |
-| Catalogue integration | `packages/agentbundle/agentbundle/https_catalogue.py` |
-| Required package dependency | `packages/agentbundle/pyproject.toml` |
-| Credential-boundary test | `packages/agentbundle/tests/contracts/test_catalogue_fetch_credential_boundary.py` |
-| Resolver tests | `packages/credbroker/tests/unit/test_http_access*.py` |

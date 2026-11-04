@@ -17,7 +17,7 @@ Direct-install state now records a SHA-256 content hash for each installed file,
 
 ### skill-governance-inventory-gap
 
-AST09 requires an auditable inventory of per-skill version, content hash, and scan status for the installed set, plus a logged-execution trail tying an agent action to the skill version that instructed it. `agentbundle` install markers and state files remain a partial record. The original premise that they carried no per-skill content hash has changed: `packages/agentbundle/agentbundle/direct_install.py:943` records `relpath: {"sha": _hashlib.sha256(payload).hexdigest()}`. No scan-status or execution-trail field was found.
+AST09 requires an auditable inventory of per-skill version, content hash, and scan status for the installed set, plus a logged-execution trail tying an agent action to the skill version that instructed it. `agentbundle` install markers and state files remain a partial record. The original premise that they carried no per-skill content hash has changed: `_record_direct_rows` in `packages/agentbundle/agentbundle/direct_install.py` records `relpath: {"sha": _hashlib.sha256(payload).hexdigest()}`. No scan-status or execution-trail field was found.
 
 The recorded fix options are to extend the install-marker schema with content hash and scan status per skill, or document that the install marker is the sanctioned governance surface and flag the missing hash field as the AST09 closure condition in `agentic-skills.md`. The changed evidence means the closure choice must account for the existing per-file SHA-256 record rather than claim the hash is absent.
 

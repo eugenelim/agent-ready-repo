@@ -1,135 +1,170 @@
 # Credentials and trust boundaries
 
-## 1. Purpose and boundary
+Credentialed primitives obtain secrets at runtime through `credbroker` and the
+`sso-broker.py` engine, so secret bytes never reach argv, shell history, or an
+agent transcript. The design stops accidental exposure and cross-user access at
+rest. It does not stop a hostile process running as the same OS user, and a
+human login page is never driven by an agent: first capture is an operator
+action.[^c1]
 
-Credentialed primitives obtain credentials at runtime without placing secret bytes
-on argv, in process-visible shell history, or in agent transcripts. The
-subsystem protects against accidental exposure and cross-user access at rest.
+## 1. Four brokers, one rule: the model never sees the value
 
-It does not protect against a hostile process running as the same OS principal.
-That process can read local stores, alter adopter configuration, or invoke the
-engine. A human login page is different: an agent-influenced destination could
-harvest credentials the agent did not already have. Headed capture therefore
-remains operator-only.
+A credentialed primitive declares exactly one broker in `SKILL.md`: `creds`,
+`env`, `cli`, or `sso-cookie`. A fallback declaration needs both brokers'
+security phrases.
 
-## 2. Entrypoints
+| Broker | Resolves by | Consumer receives |
+| --- | --- | --- |
+| `creds` | First hit per required key across three storage tiers (§ 3) | A value, used only inside the primitive's own subprocess |
+| `env` | An environment value already present | That value |
+| `cli` | The vendor CLI's own login | Nothing; the CLI authenticates |
+| `sso-cookie` | A stored browser session | A cookie-jar file path, never cookie bytes |
 
-- Credentialed primitives declare one broker in `SKILL.md`: `creds`, `env`,
-  `cli`, or `sso-cookie`.
-- `credbroker.load_credentials` resolves `creds` in-process.
-- `credbroker.load_sso_cookies`, `refresh_sso_session`, and
-  `register_sso_session` are the consumer SSO API.
-- `sso-broker.py` provides `get-cookies`, `test`, `rm`,
-  `list-profiles`, `register`, `refresh`, and `show-tier2-backend` (a
-  diagnostic probe that prints the active Tier 2 backend).
-- `credential-setup` reads `references/creds-schema.toml`, prompts with
-  `getpass` or `input`, writes the highest available tier, and reports it on
-  stderr.
-- [Credentialed-skill authoring guidance](../../guides/credential-brokers/how-to/add-a-credentialed-skill.md)
-  covers broker and primitive declarations, not operator setup.
+Three rules follow from that:
 
-## 3. Owned state and write authority
+- Skills orchestrate credentialed primitives and never read credentials.
+- No `get` verb or tool returns cleartext to the model. A primitive calls
+  `credbroker.load_credentials` inside its own process and uses the value only
+  in an outbound HTTP header.
+- A `credentialed-cli` refuses value-shaped flags (`--token`, `--api-key`,
+  `--bearer`, `--pat`, `--password`). An MCP server may accept header-naming
+  flags, never value-shaped ones.
 
-| State | Location | Write authority | Readers |
+`credential-setup` prompts with `getpass` or `input` from
+`references/creds-schema.toml`, writes the highest available tier, and reports
+the tier on stderr.[^c2]
+
+## 2. Dependency edges run one way
+
+`credbroker` subprocesses `sso-broker.py` and imports no engine code; the
+engine never imports `credbroker`. Consumers call the library and never build
+broker argv themselves. The public consumer API is `load_credentials`,
+`load_sso_cookies`, `refresh_sso_session`, and `register_sso_session`.
+
+`agentbundle` depends on `credbroker`, never the reverse.
+`agentbundle.catalogue_fetch.open_fetch_session` calls
+`credbroker.resolve_http_access(url, env=env)` for `catalogue+https://` and
+`archive+https://` sources. The resolved credential lives only inside the
+`FetchSession`; error messages and state files carry none of it.[^c3]
+
+Direct credential reads need the explicit marker
+`# credentialed-primitive: reads-creds-directly`.
+
+The `credbroker` implementation exists in two trees:
+`packages/credbroker/credbroker/` (the published library) and
+`packs/credential-brokers/.apm/user-libs/credbroker/` (the projected copy).
+`agentbundle.build.user_libs.check_drift` is the read-only gate that reports a
+difference between them, and the build rewrites the copy from the library.[^c4]
+
+## 3. Secrets live in three tiers, and failure never falls through silently
+
+| Tier | Storage | Boundary |
+| --- | --- | --- |
+| 1 | `<NAMESPACE>_<KEY>` environment variable | Used as supplied, for CI or wrappers. |
+| 2 | macOS Keychain or Windows Credential Manager | Linux has no Tier 2. A documented hard failure raises `Tier2HardFailError` and does not fall through. macOS writes through child stdin, never argv. |
+| 3 | `~/.agentbundle/credentials.env` | Opt-in. POSIX requires file `0600` and parent `0700`; Windows verifies the DACL. A permission failure raises `PermissiveAclError`. |
+
+The Tier 3 parser rejects an `export ` prefix, variable expansion, and
+multiline values. The optional `credbroker[crypto]` extra encrypts the file
+into a vault; without it the file is plaintext.
+
+On Linux, which has no Tier 2,
+`credential-setup` writes Tier 3 directly. On macOS and Windows it refuses the
+Tier 3 fallback unless given `--allow-insecure-fallback`.[^c5]
+
+### State and write authority
+
+| State | Location | Writer | Readers |
 | --- | --- | --- | --- |
 | Tokens | OS credential store or `~/.agentbundle/credentials.env` | `credbroker` write API | Credentialed primitive subprocesses |
-| SSO profile and jar | `~/.agentbundle/sso-profiles/` and SSO store | `sso-broker.py` | `credbroker` and the engine |
+| SSO profile and jar | `~/.agentbundle/sso-profiles/` and the SSO store | `sso-broker.py` | `credbroker` and the engine |
 | Materialised cookie jar | `~/.agentbundle/sso-cookies/<profile>.jar` | `sso-broker.py get-cookies` | Credentialed primitive |
 | Profile lock | `~/.agentbundle/sso-locks/<profile>.lock` | `sso-broker.py` | Store-touching SSO verbs |
 
-Consumers receive a jar path, never cookie bytes. SSO lockfiles contain no
-credential material and are never deleted.
+Lockfiles hold no credential material and are never deleted, which prevents
+split locking.
 
-## 4. Dependencies and allowed edges
+## 4. SSO sessions recover once, headlessly, and never by showing a login page
 
-Skills orchestrate credentialed primitives but never read credentials. A
-`credentialed-cli` refuses value-shaped credential flags such as `--token`,
-`--api-key`, `--bearer`, `--pat`, and `--password`. An MCP server may
-accept header-naming flags but never value-shaped flags.
+`sso-broker.py` has seven verbs: `register`, `get-cookies`, `test`, `refresh`,
+`list-profiles`, `rm`, and `show-tier2-backend` (a probe that prints the active
+Tier 2 backend). Capture is `register` (headed, 300-second sign-in poll) or
+`refresh` (headless, 20-second silent window).[^c6]
 
-No `get` verb or tool returns cleartext to the model. A primitive calls
-`load_credentials` inside its own subprocess and uses the value only in an
-outbound HTTP header. Direct credential reads require the explicit
-`# credentialed-primitive: reads-creds-directly` marker.
+Exit codes carry the recovery decision:
 
-`credbroker` imports no SSO engine code. It subprocesses `sso-broker.py`;
-the engine never imports `credbroker`. Consumers call the library and do not
-construct broker argv or subprocesses themselves.
-
-**`agentbundle` → `credbroker.resolve_http_access`.** AgentBundle calls `credbroker.resolve_http_access(url, env=env)` from
-`agentbundle.catalogue_fetch.open_fetch_session` when fetching
-`catalogue+https://` or `archive+https://` sources. This is a one-directional
-dependency: `credbroker` never imports `agentbundle`. The resolved credential
-is used only within the `FetchSession` context; no credential material is
-included in error messages or state files.
-
-The `creds` broker uses first-hit-wins per required key. `env` consumes an
-already-present environment value. `cli` delegates to the vendor CLI.
-A fallback declaration requires both brokers' security phrases.
-
-## 5. Primary flows
-
-1. `creds` resolves each required key through Tier 1, Tier 2, then Tier 3.
-2. `sso-cookie` loads a stored session, materialises a jar path, and passes
-   that path to the consumer.
-3. An expired typed SSO session may trigger one headless refresh and one
-   re-probe. First capture and re-registration are operator actions.
-4. A credentialed primitive uses the resolved value inside its own process for
-   the outbound request.
-
-## 6. Failure and recovery behavior
-
-### Three storage tiers
-
-| Tier | Storage | Refusal or boundary |
+| Code | Meaning | Recovery |
 | --- | --- | --- |
-| 1 | `<NAMESPACE>_<KEY>` environment variable | Used as supplied for CI or wrappers. |
-| 2 | macOS Keychain or Windows Credential Manager | Linux has no Tier 2. Documented hard failures raise `Tier2HardFailError` and do not fall through. macOS writes by child stdin, never argv. |
-| 3 | `~/.agentbundle/credentials.env` | Opt-in fallback. POSIX requires file `0600` and parent `0700`; Windows verifies the DACL. Permission failures raise `PermissiveAclError`. |
+| `0` | Ok | None |
+| `2` | No usable session | Re-authenticate |
+| `4` | Profile not registered | Register |
+| `6` | Another process holds the profile's store lock | Retry the same call |
+| `3` | Engine failure | Terminal |
+| `5` | Headless refresh needs a human | Terminal for automation; ask the operator to re-register |
 
-The Tier-3 parser rejects `export ` prefixes, variable expansion, and
-multiline values. Optional `credbroker[crypto]` uses an encrypted vault;
-the stdlib floor remains plaintext. `credential-setup` refuses Tier-3 fallback
-without `--allow-insecure-fallback`.
+An expired session triggers one headless refresh and one re-probe, and only on
+the typed session-unavailable signal. Refresh takes a profile and never a
+destination. A generic authentication error, timeout, confinement failure, or
+missing engine is not an expired-session signal.[^c7]
 
-SSO exit code `2` means no usable session, `4` means an unregistered
-profile, and `6` means a contended store. Only those are recoverable:
-`2` and `4` require re-authentication, while `6` retries the same call.
-Engine failure (`3`) and required human interaction (`5`) are terminal.
+Every mutating verb (`get-cookies`, `test`, `rm`, `register`, `refresh`) takes
+the per-profile lock; `list-profiles` is advisory and unlocked. `get-cookies`
+rewrites the materialised jar after each retrieval so a stale keychain-backed
+session is never served. Locking is guaranteed only on a local filesystem; on
+an unsupported network home, serialization can degrade or report permanent
+contention.
 
-Automatic refresh takes only a profile, never a destination. It is headless and
-returns `5` rather than displaying a login page. Consumers recover only from
-the typed session-unavailable signal, refresh once, and re-probe once. A generic
-authentication error, timeout, confinement failure, or missing engine is not an
-expired-session signal.
+Profile names match `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` via `re.fullmatch`,
+reject Windows reserved device names, and pass resolved-path containment. `rm`
+is gated on containment alone, so a profile registered under a now-invalid name
+stays deletable. Cookie values, names, and jar paths never cross argv.
 
-Every SSO mutation uses a per-profile lock. `list-profiles` is advisory and
-unlocked. `get-cookies`, `test`, `rm`, `register`, and `refresh` share that
-lock. `get-cookies` rewrites the materialised jar after each retrieval to avoid
-serving a stale keychain-backed session. The lockfile is retained to prevent
-split locking. Locking is only guaranteed on a local filesystem; unsupported
-network-home locking can degrade serialization or report permanent contention.
-
-Profile names match `^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$` with
-`re.fullmatch`, reject Windows reserved device names, and pass resolved-path
-containment. Cookie values, names, and jar paths never cross argv.
+### First-capture destination derivation
 
 First capture may derive an HTTPS destination from protected-resource metadata,
-OIDC discovery, or a registered vendor probe. Failure to derive refuses; it
-never falls back to configured input. Derivation compares only origin and does
-not close same-principal configuration poisoning. Some same-host topologies
-short-circuit derivation and provide no attestation.
+OIDC discovery, or a registered vendor probe. A failed derivation refuses; it
+never falls back to configured input. Every derivation request uses HTTPS,
+follows no redirects, has 5-second connect and read limits inside a 15-second
+total budget, caps bodies at 64 KiB, verifies certificates, accepts no insecure
+flag, and sends no authorization, cookie, or proxy-authentication header.
 
-Every derivation request uses HTTPS, follows no redirects, has a 5-second
-connect and read limit within a 15-second total budget, caps bodies at 64 KiB,
-verifies certificates, accepts no insecure flag, and sends no authorization,
-cookie, or proxy-authentication header.
+Derivation compares origin only. It does not close same-principal
+configuration poisoning, and some same-host topologies short-circuit it and
+give no attestation.
+
+`validate_https_url` checks only the scheme of
+`login_url`, `success_url_pattern`, and `base_url`; it does not confine the
+`success_url_pattern` host to the cookie domains. Cookie-send confinement is
+enforced separately on the consumer side.[^c8]
+
+## 5. Observability: the caller gets a typed result; cookie bytes never cross, engine stderr does
+
+Per-verb exit codes make SSO refusals and lock contention observable without
+returning cookie bytes. A primitive's `check` verb exits zero only when every
+required key resolves; for `sso-cookie` it validates the captured session and
+may use the bounded auto-recovery flow in § 4.
+
+The `credbroker` library inherits the engine's stderr during interactive
+`register` and `refresh`, and `load_sso_cookies` also inherits it, so engine
+diagnostics reach the caller's stream unfiltered. When an agent runs the
+primitive, that stderr lands in the agent's transcript; capturing and
+translating it is **STATUS: PLANNED** (§ 7). Recapture notices go to the invoking process's stderr, not to a durable audit
+log.[^c9]
+
+## 6. Mechanical invariants
+
+- `agentbundle catalogue lint` rule `CAT-L031` checks declared brokers, broker
+  security phrases, argv bans, dotfile-read refusals, and broker-specific
+  resolution patterns.
+- `tools/lint-sso-config.py` requires shipped `sso-config.toml` files to stay
+  placeholder-shaped: no real instance configuration, captured cookie value, or
+  non-`creds` default ships upstream.
 
 ### The substring trap
 
 A primitive's defensive path check must not literally name
 `.agentbundle/credentials.env`; the credential-read rule treats that as a
-direct read unless the primitive carries its direct-read opt-out marker.
+direct read unless the primitive carries the opt-out marker.
 
 ```python
 # Correct
@@ -142,31 +177,45 @@ if str(suspect) == ".agentbundle/credentials.env":
     refuse(...)
 ```
 
-## 7. Observability and evidence
+## 7. Open design work
 
-`sso-broker.py` returns per-verb exit codes. SSO refusals and lock contention
-are observable without returning cookie bytes. Credential resolution exposes
-success or typed failure to the invoking primitive, not to the agent context.
+- **STATUS: PLANNED** — Replace the `persist` and `headless` Boolean pair in
+  `sso-broker.py` `_capture` with named modes `operator-register`,
+  `ephemeral-register`, and `automatic-refresh`, and capture and translate
+  refresh stderr before the caller sees a failure:
+  [`credential-broker-bounded-modes-and-errors`](../product/intents/credential-broker-bounded-modes-and-errors.md).
+- **STATUS: PLANNED** — Bound browser-session lifetime, minimise stored
+  cookies, serialize browser launches per profile, and budget macOS keychain
+  calls:
+  [`sso-browser-state-protection`](../product/intents/sso-browser-state-protection.md).
+- **STATUS: PLANNED** — Retry once on exit `6` in the Jira check path and write
+  recapture records to a durable log:
+  [`sso-store-contention-and-audit-trail`](../product/intents/sso-store-contention-and-audit-trail.md).
+- No operator setup guide exists. `guides/credential-brokers/` holds
+  authoring guidance only, including
+  [add a credentialed skill](../../guides/credential-brokers/how-to/add-a-credentialed-skill.md):
+  [`credential-operator-guide`](../product/intents/credential-operator-guide.md).
 
-A consumer primitive's `check` verb verifies its declared credential ladder
-and exits zero only when every required key resolves. An `sso-cookie` check
-validates the captured session and may use the bounded auto-recovery flow.
-
-## 8. Mechanical invariants
-
-- `agentbundle catalogue lint` (`CAT-L031`) checks declared credential
-  brokers, broker security phrases, argv bans, dotfile-read refusals, and
-  broker-specific primitive resolution patterns.
-- `tools/lint-sso-config.py` requires shipped `sso-config.toml` files to be
-  placeholder-shaped: no real instance configuration, captured cookie value,
-  or non-`creds` default may ship upstream.
-
-## 9. Relevant ADRs
+## 8. Decisions
 
 - [ADR-0003 — Credential broker contract](../adr/0003-credential-broker-contract.md)
 - [ADR-0026 — SSO consumer resolution in credbroker](../adr/0026-sso-consumer-resolution-in-credbroker.md)
 - [ADR-0080 — Generic headed SSO capture remains operator-only](../adr/0080-generic-headed-sso-capture-remains-operator-only.md)
 
-## 10. Last verified against commit
+[^c1]: Boundary statements: `docs/adr/0003-credential-broker-contract.md`, `docs/adr/0080-generic-headed-sso-capture-remains-operator-only.md`.
 
-`ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`
+[^c2]: `packs/credential-brokers/.apm/skills/credential-setup/` (`SKILL.md`, `scripts/setup.py`); authoring guide `guides/credential-brokers/how-to/add-a-credentialed-skill.md`.
+
+[^c3]: `packages/credbroker/credbroker/_http_access.py` (`resolve_http_access`); `packages/agentbundle/agentbundle/catalogue_fetch/__init__.py` (`open_fetch_session`).
+
+[^c4]: `packages/agentbundle/agentbundle/build/user_libs.py` (`check_drift`, `collect_sources`); `packages/agentbundle/tests/build_pipeline/test_user_libs_projection.py`. `packages/credbroker/credbroker/` and `packs/credential-brokers/.apm/user-libs/credbroker/` hold the same module set (`_core`, `_sso`, `_http_access`, `_vault`, `_keychain_macos`, `_credman_windows`).
+
+[^c5]: `packages/credbroker/credbroker/_core.py` (Tier 3 parser, `PermissiveAclError`), `_keychain_macos.py` (stdin write), `packages/credbroker/pyproject.toml` (`crypto` extra), `credential-setup` `setup.py` (`--allow-insecure-fallback`).
+
+[^c6]: `packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py`: `_build_parser`, `_REGISTER_SIGNIN_POLL_S`, `_REFRESH_SILENT_WINDOW_S`, module docstring exit-code table, `_GRAMMAR_GUARDED_VERBS`.
+
+[^c7]: `packages/credbroker/credbroker/_sso.py`: `refresh_sso_session`, `SsoStoreContendedError`, `SsoSessionUnavailableError`.
+
+[^c8]: `packages/credbroker/credbroker/_sso.py`: `_DERIVE_TOTAL_BUDGET_S`, `_DERIVE_BODY_CAP_BYTES`, `_derivation_opener`, `validate_https_url`; cookie-send confinement: `docs/specs/atlassian-sso-cookie/spec.md` (AC4, AC5, AC6, AC20).
+
+[^c9]: `packages/credbroker/credbroker/_sso.py` (engine runner: `capture=False` inherits every stream, `capture=True` inherits stderr); `packs/atlassian/.apm/skills/jira/scripts/jira.py` (`main` configures `logging.basicConfig` without a filename).

@@ -1,203 +1,110 @@
-# Verification facts
+# Verification topology
 
-**This is a facts document, not a design document.** Almost every claim here is
-a measurement of what currently exists — the target set `make ci` reaches, the
-workflow fleet and its triggers, which contexts block a merge, which checks one
-surface reaches and the other does not, and how many tests actually exercise a
-second operating system. Where it explains rather than measures, it says so:
-sections 2.1, 2.2 and 2.3 carry the reasoning a measurement cannot supply.
+Two surfaces verify this repository, and neither contains the other. Local
+`make ci` is the contributor gate: it reaches repository policy, projections,
+lints, scanners, and the complete test corpus, on one machine. The remote
+GitHub Actions fleet is the merge gate: it reaches a clean checkout, a fresh
+interpreter, native Windows, GitHub-hosted analysis, and the built site, on the
+pull request's merge result.
 
-That distinction matters because **a measured fact typed by hand goes stale
-silently.** Three platform censuses in this document's own history were wrong,
-and section 3.2 records two in-repository prose claims about required contexts
-that are still incomplete today. Prefer re-measuring over trusting a number
-here, and treat every count as dated rather than invariant. The standing
-question of which of these facts should be generated instead of written is
-surveyed in
-[`../product/research/derived-repository-facts-survey.md`](../product/research/derived-repository-facts-survey.md).
+Five remote contexts block a merge. Everything
+else the fleet reports is advisory.
 
-Decisions live in [ADRs](../adr/); proposals live in [RFCs](../rfc/). Section 7
-is **PLANNED** and carries its own banner; sections 1-6 and 8 describe current
-behavior.
+This page records measured facts about that topology. Counts and required
+contexts are observations dated 2026-11-04; re-measure before relying on one.
 
-Citations name a symbol or a literal string where one exists, and a line number
-only where nothing stabler is available. Line numbers move; the code they point
-at is what the claim rests on.
-
-## 1. Purpose and boundary
-
-Two surfaces verify this repository, and they prove different things.
-
-- **Local `make ci`** is the contributor gate. It is authoritative for semantic
-  coverage: repository policy, projections, lints, scanners, and the complete
-  test corpus. It runs on one contributor machine, so it proves nothing about
-  another operating system and nothing about an installed-package layout.
-- **The remote GitHub Actions fleet** is the merge gate. It is authoritative for
-  environment: a clean checkout, a fresh interpreter, native Windows, and
-  GitHub-hosted analysis. Its automatic jobs are path-filtered and verify the
-  pull request's *merge result*, not its head revision.
-
-Neither surface is a superset of the other. Section 4 inventories the gap in
-both directions.
-
-This document owns the verification topology. It does not own the rules of any
-individual gate: `tools/lint-ci-parity.py` owns local-to-CI step correspondence,
+Individual gate rules live with the gate:
 [ADR-0096](../adr/0096-composed-local-ci-test-target.md) owns the composed test
-route, and [ADR-0101](../adr/0101-pack-test-isolation-by-default-with-declared-compatibility-classes.md)
-owns pack-test isolation.
+route, [ADR-0101](../adr/0101-pack-test-isolation-by-default-with-declared-compatibility-classes.md)
+owns pack-test isolation, and `tools/lint-ci-parity.py` owns local-to-CI step
+correspondence. Section 7 points to a `STATUS: PLANNED` design; sections 1-6 describe
+current behavior.
 
-## 2. The `make ci` semantic graph
+## 1. Local `make ci` is the semantic gate
 
-`make ci` has exactly four direct prerequisites:
+`make ci` has four direct prerequisites: `lint-ruff`, `lint-mypy`,
+`build-check`, and `test-after-build-check`.[^1] A test pins that set, so a
+fifth prerequisite cannot be added silently.
 
-```make
-ci: lint-ruff lint-mypy build-check test-after-build-check
-```
+`derive_reachable_targets` in `tools/lint-ci-parity.py` reads the target
+closure mechanically. It skips variable-named prerequisites and sub-makes
+reached through `$(call …)` macros, so a target reachable only that way is
+outside its domain.[^2] The individual checks sit below the targets in four
+groups: the step list of `build_check()` in `tools/repo/build_gate_chain.py`,
+the checks in `tools/catalogue/pre_pr_catalogue.py`, the SAST commands, and the
+invocations of the Makefile's `run-test-suite` macro. Read each from source.
 
-That set is pinned. `tools/test-lint-ci-parity.py`'s `local-ci-direct-prereqs`
-case asserts it verbatim, so a fifth prerequisite cannot be added silently.
+### 1.1 Targets play one of four roles
 
-Read its target closure mechanically rather than by eye —
-`derive_reachable_targets` in `tools/lint-ci-parity.py` exposes the reader:
+A target's role decides whether a caller may address its contents directly.
 
-```python
-derive_reachable_targets(Path("Makefile").read_text(), entrypoint="ci")
-# {'build-check', 'build-check-unleased', 'ci', 'lint-editable-install',
-#  'lint-mypy', 'lint-ruff', 'sast', 'sast-unleased',
-#  'test-after-build-check', 'test-after-build-check-unleased'}
-```
-
-That reader is useful but not total. `iter_makefile_rules` drops any
-prerequisite token beginning with `$`, `_sub_make_targets` drops any `$(MAKE)`
-operand containing `=` or beginning with `$`, and the recipe scan for `$(MAKE)`
-does not expand `$(call …)` macros — so a variable-named prerequisite, or a
-sub-make reached only through a Make macro, is outside the computed domain.
-`ci`'s own recipe is `$(call gate_verdict,make ci)`.
-
-Underneath those targets sit the individual checks, in four groups:
-`build_check()`'s step list in `tools/repo/build_gate_chain.py` (whose first
-step, `catalogue verify`, is itself a step table), the checks in
-`tools/catalogue/pre_pr_catalogue.py`, the SAST leg's commands, and the
-invocations in the Makefile's `run-test-suite` macro. Read each from its source;
-a count here would be wrong by the next commit that touches one.
-
-### 2.1 Invocation role — why the pieces are not independently substitutable
-
-A `make` target here plays one of four roles, and the role decides whether a
-caller may address the target's contents directly.
-
-| Role | What it means | Examples |
+| Role | Meaning | Examples |
 | --- | --- | --- |
-| `PRODUCER` | Writes repository or build output that a later check reads. Invoke the target; do not substitute its body. | `catalogue build --output dist`; `build-site.py --journeys-only` inside `pre_pr_catalogue.py` |
-| `STATEFUL-VERIFIER` | Verifies against state a `PRODUCER` must already have written, so it carries an implicit ordering edge. | self-host drift and output drift in `catalogue_tooling/verify.py`; journey parity in `lint-web-journey-parity.py`; the projected cases in `pytest tests/` |
-| `SUITE-DISPATCHER` | Carries no verification logic of its own; it only invokes other checks. | `ci`; `sast` / `sast-unleased`; `test-after-build-check` / `-unleased`; `catalogue verify`; `pre_pr_catalogue.py` |
-| `SELF-CONTAINED-CHECK` | Reads only committed source and needs no prior step. | `lint-ruff`; `lint-mypy`; the lint and self-test steps in the chain |
+| `PRODUCER` | Writes output a later check reads. Invoke the target; do not substitute its body. | `catalogue build --output dist`; `build-site.py --journeys-only` |
+| `STATEFUL-VERIFIER` | Verifies against state a producer wrote, so it carries an ordering edge. | self-host and output drift in `catalogue_tooling/verify.py`; `lint-web-journey-parity.py` |
+| `SUITE-DISPATCHER` | Holds no check logic; invokes other checks. | `ci`, `sast`, `test-after-build-check`, `catalogue verify`, `pre_pr_catalogue.py` |
+| `SELF-CONTAINED-CHECK` | Reads committed source only. | `lint-ruff`, `lint-mypy`, the chain's lint steps |
 
-Two dispatchers have no per-check callable name. `catalogue verify`'s steps
-are internal callables with no CLI or Make entry point, and
-`test-after-build-check`'s invocations are addressable by path but have no
-per-suite Make target.
+### 1.2 Provisioning edges are held by `make` or by the environment
 
-### 2.2 Provisioning and ordering edges
+A split of `make ci` fails when it severs an implicit provisioning edge.
+`docs/specs/ci-gate-parallelization/spec.md` records four revisions of one
+split that each severed a different edge.[^3] The edges divide in two:
 
-The graph carries implicit edges that a naive split severs.
-`docs/specs/ci-gate-parallelization/spec.md` records why: it is "a 56-step
-sequence with **implicit, order-dependent provisioning**, built so each step
-inherits everything before it, and no manifest exists." Four revisions of that
-split each severed a different edge, and its plan records the conclusion —
-"Reconstruction by inspection kept missing edges."
+- **Ordering edges, held by `make`.** `dist/apm/` from `catalogue build`
+  before projected pytest cases; the journeys-only projection before journey
+  lints and `test_build_site_routing.py`; verify's temporary build before drift
+  checks; both source packages on `PYTHONPATH` for the directory-scoped
+  `catalogue-curation` suites; the `pythonpath` entries in pytest
+  configuration; `PYTHONDONTWRITEBYTECODE=1` for verify's fresh-output
+  comparison; and the `build-check` dependency of `test-after-build-check`. A
+  caller that invokes `make ci` whole inherits them.
+- **Provisioning edges, held by nothing.** `npm ci --prefix docs-site`;
+  `bandit` on `PATH`; full git history for `test-lint-boundary-golden.py`;
+  `PyYAML` and `jsonschema`; `cryptography` and `argon2-cffi` for CredBroker
+  vault tests; `httpx` for Atlassian suites; a non-editable installed package
+  for one provenance-refusal case; and `bandit`, `pip-audit`, `semgrep`, and
+  `npm` for the SAST leg.[^4] `make` installs none of them and sets no fetch
+  depth.
 
-The edges a caller must reproduce **if it decomposes the graph**:
+Two provisioning edges fail open. Without `bandit`, `lint-nosec-form` sets a
+caveat and exits 0.
 
-| # | Consumer that fails | Missing provisioning | Recorded evidence |
-| --- | --- | --- | --- |
-| 1 | projected cases in `pytest tests/` | `dist/apm/` from `catalogue build` | `pytest.skip("dist/apm/ absent — run make build-self")` in `tests/roster/test_credential_user_scope_invocation.py` |
-| 2 | journey parity, pack-journey and journey-contract lints, `test_build_site_routing.py` | the journeys-only projection outputs | `… is stale — run python3 tools/build-site.py --journeys-only` |
-| 3 | generated-manifest and drift checks | the temporary-directory build from verify's build step | `catalogue_tooling/verify.py` |
-| 4 | `npm run test:plugins --prefix docs-site` | `npm ci --prefix docs-site` | `make test: docs-site deps missing` in the Makefile |
-| 5 | `lint-nosec-form` | Bandit on `PATH` — without it the check "sets a caveat and exits 0, dropping its unknown-id check" | `tools/repo/build_gate_chain.py` |
-| 6 | `test-lint-boundary-golden.py` | full git history | `empty stdout — fetch full history` |
-| 7 | the two directory-scoped `catalogue-curation` suites | both source packages on `PYTHONPATH` after the `cwd` change | `tools/repo/build_gate_chain.py` |
-| 8 | bare root and `tools/` collection | `pythonpath = [".", "packages/agentbundle", "packages/credbroker"]` | `ModuleNotFoundError: No module named 'tools'` |
-| 9 | verify's fresh-output comparison | `PYTHONDONTWRITEBYTECODE=1` | stale `__pycache__` fails it "on a clean tree too" |
-| 10 | deep catalogue lint, guide validation | `PyYAML`, `jsonschema` | `tools/requirements.txt` |
-| 11 | CredBroker vault semantics | `cryptography>=42`, `argon2-cffi>=23` | 21 vault tests and 11 `@requires_crypto` cases skip silently |
-| 12 | Atlassian suites | `httpx>=0.27` | `tools/lint-ci-parity.py` |
-| 13 | one provenance-refusal case in the AgentBundle suite | a non-editable installed package | `tools/repo/editable_install_guard.py` |
-| 14 | the SAST leg | `bandit`, `pip-audit`, `semgrep`, `npm`/Node | the Makefile's four `command -v` guards |
-| 15 | `test-after-build-check-unleased` run alone | the `build-check` dependency edge, which owns the checks it therefore skips | ADR-0096 |
+Without `cryptography` or `argon2-cffi`, 21 vault tests and
+11 `@requires_crypto` cases skip. The check passes while gating nothing, so an
+invoking environment must prove its provisioning by effect.
 
-Edges 5 and 11 are the dangerous class: absent provisioning makes the check pass
-while gating nothing.
+### 1.3 SAST delegation is a command-line switch
 
-**The operative lesson splits the table in two.** The *ordering* edges — 1, 2,
-3, 7, 8, 9 and 15 — are held by `make` itself, so a caller that invokes
-`make ci` whole inherits them and cannot sever them. That is why section 7's
-composition does not decompose.
+`build-check` chains `make sast` unless `SKIP_SAST` is set (a contributor
+shortcut that prints an `INCOMPLETE` banner) or `SAST_DELEGATED` is passed on the
+make command line (CI saying another job owns the scan). The origin test is
+deliberate: `CI`, `GITHUB_ACTIONS`, `GITHUB_WORKFLOW`, and `RUNNER_ENVIRONMENT`
+can each be synthesised by `act` or exported from a shell profile, so none can
+tell delegation from ambient state.
 
-The *provisioning* edges — 4, 5, 10, 11, 12, 13 and 14, plus full history — are
-not held by anything. `make` installs no `bandit`, no `cryptography`, no
-`pytest`, and sets no fetch depth. An invoking environment must supply them, and
-six of these are the fail-open class: the check passes while gating nothing.
-Invoking `make ci` whole is therefore necessary and not sufficient — the
-environment is a separate obligation, and section 7 discharges it with a probe
-of effect rather than a list of install steps.
-
-### 2.3 The SAST delegation switch
-
-`build-check` chains `make sast` unless one of two things holds:
-
-- `SKIP_SAST` is set — a contributor shortcut that prints an `INCOMPLETE` banner.
-- `SAST_DELEGATED` is passed **on the make command line**, which is how CI says
-  "another job owns the scan."
-
-The command-line origin test is deliberate. The Makefile records why: `CI`,
-`GITHUB_ACTIONS`, `GITHUB_WORKFLOW` and `RUNNER_ENVIRONMENT` are each either
-synthesised by `act` or exportable from a shell profile, so none can distinguish
-a deliberate delegation from ambient environment state. An ambient
-`SAST_DELEGATED` runs the scan.
-
+An ambient `SAST_DELEGATED` still scans.[^5]
+`make ci` with neither switch runs the SAST leg inline.
 [ADR-0086](../adr/0086-split-the-sast-gate-into-its-own-ci-job.md) owns the
-split and keeps the Makefile chain intact so a contributor machine still scans.
-`tools/assert-sast-chain-reachable.py` pins that branch, because after the split
-no CI path executes it and nothing else would notice its deletion.
+split; `tools/assert-sast-chain-reachable.py` pins the inline branch because no
+CI path executes it.
 
-A consequence that section 7 relies on: `make ci` invoked with **neither**
-switch runs the SAST leg inline, so one undecomposed invocation covers both
-`gate-main`'s and `gate-sast`'s semantic content.
+`gate-sast` runs `make sast` bare. `make sast` guards each tool with
+`command -v <tool> || exit 1`, so a green `gate-sast` proves all four tools were
+present, and the Python legs share the version bounds in
+`tools/requirements-sast.txt`.
 
-**Tool parity between `gate-sast` and a local `make sast` is enforced for three
-legs of four.** `gate-sast` runs the target bare — it passes no
-`SAST_DELEGATED`, so it executes the same undelegated code path a contributor
-machine runs. `make sast` guards each tool with `command -v <tool> || exit 1`,
-so an absent tool fails the target rather than skipping a leg silently; a green
-`gate-sast` therefore proves all four were present. Versions agree for the
-Python legs because the job installs `tools/requirements-sast.txt`, the same
-manifest `tools/check-semgrep-version.py` reads its bounds from.
+The npm audit leg is the exception: no pip
+manifest pins it, `gate-sast` runs no `actions/setup-node`, and both
+`web/package.json` and `docs-site/package.json` declare `"node": ">=24.0.0"`.
+That leg runs on the runner image's default Node, and no check asserts the floor.[^6]
 
-The npm SCA leg is the exception. `make sast` requires `command -v npm`, but
-`tools/requirements-sast.txt` is a pip manifest and cannot pin it, and
-`gate-sast` runs no `actions/setup-node` step. That leg therefore executes
-against the runner image's default Node, while `docs-site/package.json` and
-`web/package.json` both declare `"node": ">=24.0.0"` for local work. No check
-asserts the runner satisfies that floor, so this is the one leg on which a
-remote scan and a local scan can disagree without either reporting a version
-problem.
+### 1.4 Every scanner runs behind a wrapper with a self-test
 
-### 2.4 Inside `make sast`: a self-test in front of each gate
+Each SAST scanner runs behind a wrapper script, and a self-test runs before the
+wrapper.[^7]
 
-The SAST leg is not five tool invocations. Every scanner runs behind a wrapper
-script — `run-bandit-gate.py`, `audit-requirements.py`, `run-pip-audit-gate.py`,
-`audit-npm.py`, `run-semgrep-gate.py` — and each wrapper is preceded by a
-self-test of its own. pip-audit is the mixed case, and it now has two wrappers
-rather than one: four recipe calls go through `audit-requirements.py`, one
-goes through `run-pip-audit-gate.py` (`tools/requirements-sast.txt` — the
-manifest `audit-requirements.py` deliberately excludes, because its accepted
-advisories belong to a dedicated invocation), and one still runs pip-audit
-directly, against a generated list of the optional extras declared by the two
-packages that have any.
-
-| Self-test | Gate it precedes |
+| Self-test | Wrapper it precedes |
 | --- | --- |
 | `tools/test-sast-stderr-gate.py` | `tools/run-bandit-gate.py` |
 | `tools/test-audit-requirements.py` | `tools/audit-requirements.py` |
@@ -205,656 +112,323 @@ packages that have any.
 | `tools/test-audit-npm.py` | `tools/audit-npm.py` |
 | `tools/test-semgrep-strict-gate.py` | `tools/run-semgrep-gate.py` |
 
-The ordering is the point. The Makefile gives the reason for the Bandit leg
-directly: a live scan against a healthy input is silent when the gate works and
-just as silent when it has been broken, so from the outside the two look
-identical, and the self-test runs first to be loud about the difference. The
-npm and pip-audit self-tests are ordered the same way, for the narrower risk
-that the wrapper's own logic stops reaching the scanner — a filter bug that
-dropped a third-party pin would take the leg green over an unaudited
-dependency.
+A scan of healthy input is silent whether the gate works or is broken, so the
+self-test runs first to make the difference loud. Self-tests exercise wrapper
+logic (filtering, payload handling, canary detection) and stop at the subprocess
+boundary: none proves the scanner ran.
 
-Read each self-test for what it actually covers before citing one as evidence.
-They exercise their wrapper's own logic — filtering, payload handling, canary
-detection, diagnostic reporting — and stop at the subprocess boundary; none of
-them proves the scanner ran. `tools/test-semgrep-argv-boundary.py` is the
-exception and runs *after* the scan rather than before: it asserts an exact
-finding count against a deliberately vulnerable fixture and its fixed twin, so
-that rule cannot quietly become a no-op. It covers one of the two custom rule
-files. The other, `tools/semgrep/env-path-taint.yml`, records in its own body
-that it has no fixture and no self-test, and so can match nothing while the
-leg reads green.
+Bandit's stderr is a gate signal
+([ADR-0084](../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md)).
+Semgrep under `--strict --quiet` exits non-zero with empty streams for a
+partial-parse or timeout diagnostic, so a bare invocation fails with nothing to
+read.
 
-The wrappers exist because two of these scanners have a failure mode a bare
-invocation cannot see. Bandit's stderr is a gate signal rather than chatter
-([ADR-0084](../adr/0084-nosec-reason-delimiter-and-stderr-as-a-gate.md)): under
-`-q` it carries only diagnostics about the scan's own integrity — an
-unparseable `# nosec`, one that matched no finding, a file it could not read —
-and none of those move its exit code. Semgrep under `--strict --quiet`, as
-measured at 1.166.0, exits non-zero with zero bytes on both streams for a
-strict-promoted partial-parse or timeout diagnostic, so a bare line would fail
-with nothing to read.
+`tools/test-semgrep-argv-boundary.py` runs after the scan and asserts an exact
+finding count against a vulnerable fixture and its fixed twin. It covers one of
+two custom rule files; `tools/semgrep/env-path-taint.yml` has no fixture and no
+self-test. The SCA leg carries no suppressions, and adding one needs a written
+diagnosis and an unblock condition.
 
-The SCA leg carries no suppressions today. Adding one requires a written
-diagnosis and a recorded unblock condition, which is the discipline that
-retired the last four when semgrep 1.174 cleared their advisories.
+Known gaps are registered in
+[`gates-that-read-clean-while-gating-nothing`](../product/intents/gates-that-read-clean-while-gating-nothing.md):
 
-One gap here is known and registered rather than closed. `--strict` escalates a
-*partial* parse failure, but a whole-file or whole-construct parse failure still
-yields empty errors, empty skipped, empty stderr and exit 0 — a target that was
-never really scanned reads as scanned with no findings. It is carried as
-`sast-semgrep-unparseable-target-reads-clean` in
-[the gates-that-read-clean register](../product/intents/gates-that-read-clean-while-gating-nothing.md),
-whose unblock condition is a parse-success assertion per ratcheted target.
+- A whole-file Semgrep parse failure yields exit 0 with empty output under
+  `--strict`.
+- `_step_output_drift` in `catalogue_tooling/verify.py` returns no diagnostics
+  when the configured output directory is absent, so CAT-V-014 cannot fire in CI
+  without `dist/`.
+- The `Detect whether SAST-relevant files changed` step in `build-check.yml`
+  reads `git diff --name-only` without `-z`. Git C-quotes a path with non-ASCII
+  characters, the anchored `^(<dirs>)/` match fails, `skip_sast` is set, and
+  `gate-sast` reports success without scanning.
+- The parity roster cannot see a command added inside an already-dispositioned
+  step (§3.4).
 
-## 3. The remote workflow fleet
+## 2. The remote fleet is the merge gate
 
-Eighteen workflows. Every `uses:` in the fleet is pinned to a 40-character
-commit SHA; `.github/zizmor.yml` requires pinning rather than suppressing
-`unpinned-uses`, and `.github/dependabot.yml` records that `github-actions`
-updates are deliberately disabled for that reason.
+The fleet has 18 workflows. Every `uses:` is pinned to a 40-character commit
+SHA; `.github/zizmor.yml` requires pinning, and `.github/dependabot.yml`
+disables `github-actions` updates for that reason.[^8]
 
-| Workflow | Triggers | What it establishes |
+| Workflow | Triggers | Establishes |
 | --- | --- | --- |
-| `build-check.yml` | `pull_request`, `push` on `main`, `workflow_dispatch` | Four parallel gates — `gate-main`, `gate-sast`, `gate-export-boundary`, `gate-credbroker` — aggregated by a job displayed as `make build-check`. `gate-main` runs `make build-check … SAST_DELEGATED=1` plus ruff and mypy, **and further pytest steps wired directly in the workflow rather than through a Make target** |
-| `build-check-windows.yml` | `pull_request`, `push` on `main`, `paths-ignore: docs/**, Makefile, *.md` | Three `windows-latest` jobs plus an `ubuntu-latest` aggregate displayed as `make build-check (windows)` |
-| `catalogue-tooling-ci-gates.yml` | `pull_request`, `push` | Gates A-G, with Gate A split into `Gate A-tests`, `Gate A-packs`, and `Gate A-supervisor` (the git-backed execution-supervisor suites). **`Gate A-tests` and `Gate A-packs` run agentbundle, pack and hook suites across more than one operating system and Python version** — the largest existing remote pytest coverage, though not a required context, and each leg set is deliberately asymmetric (read the matrices in the file; they are not the cross product). Gates B-G cover external-catalogue portability, enterprise distribution, artifact smoke, disconnected smoke, repo rewire, release impact |
-| `ci-security.yml` | `pull_request`, `push` | `gitleaks` secret scan; `actionlint` + `zizmor --min-severity high`, plus an excessive-permissions checker |
-| `codeql.yml` | `pull_request`, `push`, `schedule` | GitHub-hosted CodeQL analysis for Python |
-| `docs.yml` | `pull_request`, `push` | Nine documentation and governance lints, including ADR immutability |
-| `pages.yml` | `push`, `pull_request` on `main` (path-filtered), `workflow_dispatch` | Site build, rendered-link audit, docs-site plugin suite, web unit suite, Playwright browser gate, then deployment |
-| `pack-evals.yml` | `schedule`, `workflow_dispatch` | Report-only activation evaluation against a metered model API; [RFC-0037](../rfc/0037-pack-activation-evals.md) keeps it off the pull-request path |
-| `pack-javascript.yml` | path-scoped `pull_request`, `workflow_dispatch` | Installs canonical pack npm projects from committed lockfiles and runs the render-proof JavaScript suites. It is dispatchable scoped evidence, separate from `make sast`, which remains the npm-audit owner. |
+| `build-check.yml` | `pull_request` and `push` on `main`, `workflow_dispatch` | Five parallel gates (`gate-main`, `gate-sast`, `gate-export-boundary`, `gate-credbroker`, `gate-css-tokens`) joined by an aggregator job displayed as `make build-check`. `gate-main` runs `make build-check … SAST_DELEGATED=1`, ruff, mypy, and curated pytest steps wired in the workflow rather than through a Make target |
+| `build-check-windows.yml` | `pull_request`, `push` on `main`, `paths-ignore: docs/**, Makefile, *.md` | Four `windows-latest` jobs and an `ubuntu-latest` aggregate displayed as `make build-check (windows)` |
+| `catalogue-tooling-ci-gates.yml` | `pull_request`, `push` | Agentbundle, pack, and hook suites across more than one OS and Python version; supervisor integration; external-catalogue, enterprise-distribution, artifact, disconnected, repo-rewire, and release-impact smokes |
+| `ci-security.yml` | `pull_request`, `push` | `gitleaks`; `actionlint`; `zizmor --min-severity high`; an excessive-permissions check |
+| `codeql.yml` | `pull_request`, `push`, weekly `schedule` | GitHub-hosted CodeQL analysis for Python |
+| `docs.yml` | `pull_request`, `push` | Ten documentation, governance, and hook jobs, including ADR immutability and the intent corpus |
+| `pages.yml` | `push` and `pull_request` on `main` (path-filtered), `workflow_dispatch` | Site build, rendered-link audit, plugin suite, web unit suite, browser gate, then deployment ([site publishing](site-publishing.md)) |
+| `pack-evals.yml` | weekly `schedule`, `workflow_dispatch` | Report-only activation evaluation against a metered model API ([RFC-0037](../rfc/0037-pack-activation-evals.md)) |
+| `pack-javascript.yml` | path-scoped `pull_request`, `workflow_dispatch` | Pack npm installs from lockfiles and render-proof JavaScript suites |
 | `iac-release-loop-canary.yml` | `push`, `pull_request`, `workflow_dispatch` | Operational-safety module references |
 | `iac-staleness.yml` | weekly `schedule`, `workflow_dispatch` | Terraform and OpenTofu example validation |
 | `publish-catalogue.yml` | `workflow_dispatch`, `workflow_call` | Packaging and Artifactory upload |
-| `publish-claude-plugins.yml` | `push` on `main` (`paths:` allowlist — the 15 published pack directories, every pack's two scope-declaring manifests, and the ten other paths the job consumes), `workflow_dispatch` | Claude plugin publication. The job is gated on the `claude-plugin-publish` environment, so a push that cannot change the published tree would otherwise open a deployment approval; `tools/lint-plugin-roster.py` fails when the allowlist and its `PUBLISHED` roster disagree in either direction |
+| `publish-claude-plugins.yml` | `push` on `main` (allowlist of the 16 published pack directories plus every pack's scope manifests), `workflow_dispatch` | Claude plugin publication, gated on the `claude-plugin-publish` environment. `tools/lint-plugin-roster.py` fails when the allowlist and its `PUBLISHED` roster disagree |
 | `release-agentbundle.yml` | `push`, `pull_request` | Build, smoke, pre-release gates, PyPI and Artifactory publication |
 | `release-credbroker.yml` | `push`, `pull_request` | The same shape for CredBroker |
-| `release-jsonl-otlp-exporter.yml` | `pull_request`, `push` on a `jsonl-otlp-exporter-v*` tag | Build and wheel smoke on every pull request; the publish job is tag-gated and uses OIDC trusted publishing with no stored credential |
-| `test-corpus.yml` | `schedule` (weekly, default branch), `workflow_dispatch` | Four-shard remote execution of `make test`. The schedule is what exercises the suites no pull-request check gates; it is scoped evidence, not a required status check |
-| `test-roster.yml` | `workflow_dispatch` | Parallel execution of the roster suite only; it does not stand in for `make test` or a required status check |
+| `release-jsonl-otlp-exporter.yml` | `pull_request`, tag push `jsonl-otlp-exporter-v*` | Build and wheel smoke on every pull request; tag-gated publish by OIDC trusted publishing |
+| `test-corpus.yml` | weekly `schedule`, `workflow_dispatch` | `make test` in four shards, each `make test SHARD=<n> SHARDS=4`, 25-minute timeout |
+| `test-roster.yml` | `workflow_dispatch` | The roster suite only, in parallel, 30-minute timeout |
 
-### 3.1 Workflow-posture tests
+Ten workflows declare `workflow_dispatch`: `build-check`, `iac-release-loop-canary`,
+`iac-staleness`, `pack-evals`, `pack-javascript`, `pages`, `publish-catalogue`,
+`publish-claude-plugins`, `test-corpus`, and `test-roster`.[^9]
 
-Seven tests assert properties of workflow files, wired in **three** places:
+### 2.1 Five contexts block a merge
 
-- Four as `_script_step` entries in `build_check()` —
-  `test-build-check-windows-workflow.py`, `test-build-check-workflow.py`,
-  `test-ci-security-workflow.py`, `test-codeql-workflow.py`.
-- Two in the `run-test-suite` macro, so they run via `make test` —
-  `test-pages-workflow.py` and `test-pages-concurrency.py`.
-- One in `pre_pr_catalogue.py` — `test-pack-evals-workflow.py`.
+Branch protection on `main` requires `make build-check`, `gate-main`,
+`gate-sast`, `gate-export-boundary`, and `gate-credbroker`. `gate-css-tokens`
+runs and feeds the aggregator but is not itself required.
 
-Four of them share `tools/posture_harness.py` — the windows, ci-security,
-codeql and pack-evals tests — which drives an in-process mutation matrix,
-refuses a transform whose literal is not present exactly once, and fails an
-assertion family that is evaluated but never mutated.
-`tools/test-build-check-workflow.py` carries its own mutation driver instead,
-and records why such a matrix ships rather than being run once: a transform that silently stopped matching still printed a
-green result, and "a verification that cannot produce a negative is not a
-verification."
+`codeql.yml`,
+`build-check-windows.yml`, and `pages.yml` are absent from the set. No repository
+ruleset exists.[^10]
 
-### 3.2 Required contexts
+Branch protection is repository settings, not repository content. The API is the
+source; the in-repository prose records of the set (`build-check.yml` and
+`codeql.yml` comments) are incomplete against it.
 
-Branch protection is repository settings rather than repository content, so no
-file here is authoritative. It is readable through the authenticated API, and
-`GET /repos/{owner}/{repo}/branches/main/protection` returned this required set
-on 2026-09-04:
+### 2.2 Automatic checks verify the merge result
 
-```
-make build-check   gate-main   gate-sast   gate-export-boundary   gate-credbroker
-```
+For a `pull_request` event, `GITHUB_REF` is `refs/pull/<n>/merge`, and
+`actions/checkout` uses it by default. The automatic fleet therefore verifies
+the merged result, which GitHub regenerates when the base moves. A head-revision
+receipt answers a different question and is distinct evidence.
 
-**Both in-repository prose records are incomplete against that set.**
-`build-check.yml` names `gate-main`, `gate-sast` and `gate-export-boundary` —
-three of the five, omitting `gate-credbroker`. `codeql.yml` says branch
-protection requires only `"make build-check"`, which is one of the five rather
-than the whole set. `gate-credbroker` is required by the ruleset and named by
-neither record.
+### 2.3 Workflow-posture tests pin each workflow's security shape
 
-Read this table as a dated observation, not an invariant: settings change
-outside version control, and a stale copy here is the failure mode the
-divergence above demonstrates. Treat the API as the source and re-read it
-before relying on the set.
+Ten tests assert properties of workflow files. The four on the shared harness
+refuse a mutation transform that matches nothing, so a transform that stops
+matching fails instead of passing green.[^11]
 
-`tools/test-pages-workflow.py` records that `pages.yml` is *not* a required
-merge context, which the API confirms — `codeql.yml`,
-`build-check-windows.yml` and `pages.yml` are all absent from the required set,
-so most surfaces in the fleet report without blocking.
+| Test | Wired through | Driver |
+| --- | --- | --- |
+| `test-build-check-windows-workflow.py`, `test-ci-security-workflow.py`, `test-codeql-workflow.py` | `build_gate_chain.py` | `tools/posture_harness.py` |
+| `test-pack-evals-workflow.py` | `pre_pr_catalogue.py` | `tools/posture_harness.py` |
+| `test-build-check-workflow.py`, `test-release-agentbundle-workflow.py` | `build_gate_chain.py` | own driver |
+| `test-pages-workflow.py`, `test-pages-concurrency.py` | the Makefile `run-test-suite` macro | own driver |
+| `test-pack-javascript-workflow.py` | `pack-javascript.yml` itself | own driver |
+| `test-release-jsonl-otlp-exporter-workflow.py` | no caller found in the chain, Makefile, `pre_pr_catalogue.py`, or any workflow | own driver |
 
-### 3.3 What an automatic pull-request check verifies
+`test-corpus.yml` and `test-roster.yml` have no posture test. A change that
+widens either file's token, drops its timeout, adds a trigger, or adds a
+dispatch input passes every gate except `actionlint` and `zizmor`.
 
-For the `pull_request` event, `GITHUB_SHA` is the last merge commit and
-`GITHUB_REF` is `refs/pull/<n>/merge`. `actions/checkout` uses `GITHUB_REF` by
-default, so the automatic fleet verifies the **merged result**, not the head
-revision, and that merge ref is regenerated whenever the base branch moves.
+`tools/check-zizmor-excessive-permissions.py` scopes its permissions check to
+three workflows: `build-check-windows.yml`, `catalogue-tooling-ci-gates.yml`, and
+`codeql.yml`. `ci-security.yml` runs the broad scan at `--min-severity high`,
+and `artipacked` (checkout `persist-credentials`) ranks below that floor.
 
-This is the right default for a merge gate and the reason a head-revision
-receipt is distinct evidence: the two answer different questions.
+## 3. Coverage gaps run in both directions
 
-## 4. Coverage inventory: local versus remote
+### 3.1 Reachable from `make ci`, not from any required remote job
 
-### 4.1 Reachable from `make ci` but not from any required remote job
+The complete test corpus is the largest gap. `test-corpus.yml` runs it only on a
+weekly schedule and on dispatch, so no pull request or push reaches it. No job
+runs `make test-after-build-check`.
 
-**The complete test corpus.** `test-corpus.yml` runs `make test`, but only
-on a weekly `schedule` on the default branch and on `workflow_dispatch` — so no
-pull request or push reaches it, and no job runs `make test-after-build-check`
-at all. Since
-spec/test-corpus-sharding it runs the target across four matrix jobs, each
-invoking `make test SHARD=<n> SHARDS=4`; the Makefile stays the single roster
-and the workflow enumerates no suite, so what a green run proves is unchanged
-and only the wall clock moved (about 15 minutes serial to about 4). Read the row below as describing
-what a pull request does, which is unchanged: reaching the corpus still takes a
-deliberate dispatch. `gate-main` runs `make build-check … SAST_DELEGATED=1`
-plus ruff and mypy, and `build-check.yml` then wires curated
-pytest paths directly rather than invoking the Makefile's test route. The
-accepted intent records the same gap: "the required workflow does not cover the
-complete local `make ci` test corpus."
+`gate-main` instead wires curated pytest
+paths in the workflow. `catalogue-tooling-ci-gates.yml` narrows the gap with
+multi-OS agentbundle, pack, and hook suites, but it is not a required context
+and its selection is its own.
 
-`catalogue-tooling-ci-gates.yml`'s two Gate A legs narrow it considerably — they
-run agentbundle test discovery and the pack and hook suites across two operating
-systems and two Python versions — but that workflow is not a required context
-and its selection is its own, not the Makefile's.
-
-`tools/lint-ci-parity.py` holds a disposition per `build-check.yml` step: each
-declares the make target that covers it locally, or why no local gate can. Its
-own limitation bounds what a clean run proves:
-
-> A gate added inside a step that already has a disposition is not caught: the
-> disposition is per step, so a second command on a later line of an existing
-> step changes nothing the roster sees.
-
-Only `build-check.yml` is in scope for that linter. `WORKFLOW_SCOPE` classifies
-the other seventeen as out of scope, each with a reason, and fails on an
-unclassified new workflow.
-
-### 4.2 Semantic checks in the repository that `make ci` does not reach
+### 3.2 Checks the fleet reaches and `make ci` does not
 
 | Check | Why `make ci` excludes it |
 | --- | --- |
-| `make external-catalogue-smoke` | "Deliberately NOT a prerequisite of `ci`" — ADR-0096 pins `ci`'s direct prerequisites, so chaining it would need a frozen-spec amendment |
-| `make site-sync`, `site-build`, `site-link-check` | Separate site-generation targets; require `make bootstrap-sites`, and build order is load-bearing because the web build cleans `build/` before docs write `build/docs/` |
+| `make external-catalogue-smoke` | Not a prerequisite of `ci`; ADR-0096 pins `ci`'s prerequisites |
+| `make site-sync`, `site-build`, `site-link-check` | Separate site targets; need `make bootstrap-sites`; build order is load-bearing |
 | `make web-browser-gate` | Needs a leased preview port and a downloaded Playwright Chromium |
-| `npm test --prefix web` (unit suite) | No Make target invokes it; only `pages.yml` runs it |
-| Canonical pack npm installation and render-proof JavaScript suites | No Make target invokes them; only the path-scoped, dispatchable `pack-javascript.yml` runs them, while `make sast` retains npm audit |
-| `tools/check-site-plugin-offers.py` | No Make target invokes it |
-| The 30-subprocess pack-compatibility characterization | Deliberately omitted from local `make test`; `build-check.yml` runs it instead |
-| Windows self-host compatibility | `agentbundle catalogue self-host --check --windows --root .` cannot be reproduced by a POSIX `make ci` |
-| CodeQL, `gitleaks`, `actionlint`, `zizmor` | GitHub-hosted or workflow-shaped analysis with no local equivalent |
-| Installed-package suites | The subject hard-exits 3 when CredBroker is not installed, so the behavior requires an installed layout |
+| `npm test --prefix web` | No Make target; only `pages.yml` runs it |
+| Pack npm installation and render-proof suites | No Make target; only the dispatchable `pack-javascript.yml` runs them; `make sast` keeps npm audit |
+| `tools/check-site-plugin-offers.py` | No Make target |
+| The pack-compatibility characterization (30 subprocesses) | Omitted from local `make test`; `build-check.yml` runs it |
+| Windows self-host compatibility | `agentbundle catalogue self-host --check --windows` cannot run on POSIX |
+| CodeQL, `gitleaks`, `actionlint`, `zizmor` | GitHub-hosted or workflow-shaped analysis |
+| Installed-package suites | The subject hard-exits 3 when CredBroker is not installed |
 | Live model evaluation | Metered API; report-only by RFC-0037 |
 
-The site and browser column is the largest gap: a green `make ci` says nothing
-about whether the site builds, its internal links resolve, or the rendered pages
-pass their quality gate.
+A green `make ci` says nothing about whether the site builds, its internal links
+resolve, or its rendered pages pass the browser gate.
 
-## 5. Platform classification
+### 3.3 Two rosters keep the local and remote views in step
 
-Classify a check by what it proves, not by where it happens to run. A second
-operating system is warranted only when the classification changes the
-observable contract.
+`tools/lint-ci-parity.py` holds two rosters.[^12]
+
+- `STEP_DISPOSITION` (167 entries) gives every `run:` or `uses:` step of an
+  in-scope workflow either a `LOCAL("<target>")` naming a target reachable from
+  `make ci`, or a `CI_ONLY("<reason>")`. Both directions fail: an undispositioned
+  step, and a disposition naming no step. A second axis names each step's phase
+  and dependencies: `PROVISIONING(id=…)` or `CHECK(needs=(…), evidence=…)`.
+- `SUITE_DISPOSITION` (149 entries) gives every command of the `run-test-suite`
+  macro either `PR_GATED` or `NO_PR_GATE("<reason>")`, so a suite that no pull
+  request gates is a written fact.
+- `WORKFLOW_SCOPE` classifies all 18 workflows. Only `build-check.yml` is in
+  scope; the other 17 carry a stated reason, and a new workflow fails until
+  classified.
+
+### 3.4 What the rosters do not prove
+
+A gate added inside a step that already has a disposition is not caught: the
+disposition is per step. `roster-residual-hidden-gate-in-known-step` in
+`tools/test-lint-ci-parity.py` asserts the residual. A reason string is checked
+for presence, never truth.
+
+`PR_GATED_IF` records a condition nobody evaluates.
+A declared `_SUITE_SOURCE_EXCEPTIONS` entry asserts coverage by digest-pinned
+step body and does not establish that the step executes.
+
+## 4. Platform classification decides what counts as native evidence
+
+Classify a check by what it proves, not where it runs. A second operating system
+is warranted only when the classification changes the observable contract.
 
 | Class | Meaning |
 | --- | --- |
-| `host-neutral` | The result is identical on every supported host. |
-| `posix-shared` | Depends on POSIX semantics shared by Linux and macOS, but not Windows. |
-| `linux-native` | Depends on Linux specifically. |
-| `windows-native` | Depends on Windows APIs, filesystem, locking, ACL, or encoding behavior. |
-| `darwin-native` | Depends on macOS: Keychain, system trust, `~/Library` layout, APFS, or BSD process behavior. |
-| `platform-simulated` | Forces or parametrises a platform identifier and passes on any host. |
+| `host-neutral` | Identical result on every supported host. |
+| `posix-shared` | POSIX semantics shared by Linux and macOS, not Windows. |
+| `linux-native` | Depends on Linux. |
+| `windows-native` | Depends on Windows APIs, filesystem, locking, ACL, or encoding. |
+| `darwin-native` | Depends on macOS: Keychain, system trust, `~/Library`, APFS, BSD process behavior. |
+| `platform-simulated` | Forces a platform identifier and passes on any host. |
 
-A `platform-simulated` check is useful and cheap, and it is never evidence for a
-native contract. That distinction is the whole reason the classification exists.
+A `platform-simulated` check is cheap and useful, and it is never evidence for a
+native contract.
 
-### 5.1 Darwin census
+### 4.1 Darwin: eleven sites, one live native test
 
-The table below is hand-kept. No tool derives it or fails when it disagrees
-with the repository, so re-measure before relying on a row.
+The Darwin census is hand-kept; no tool derives it. Sites are named by guard,
+not line.[^13]
 
-A re-measurement must reach `packs/` as well as `packages/` and `tools/`. Two
-hand-written drafts of this census missed the live Darwin dispatch in
-`packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py`,
-`packs/credential-brokers/.apm/shared-libs/credentials_shim.py` and
-`packs/atlassian/.apm/skills/flow-metrics/scripts/flow_metrics/__init__.py`,
-which is why a census is measured rather than proofread.
-
-Each site is named by its guard rather than by line number.
-
-| # | Site | What is Darwin-specific |
+| # | Site | Darwin-specific behavior |
 | --- | --- | --- |
-| 1 | `agentbundle/system_trust.py`, guarded by `if sys.platform != "darwin"` | Reads `/Library/Keychains/System.keychain`, optionally `/etc/ssl/cert.pem` or `SystemRootCertificates.keychain`, and invokes `/usr/bin/security find-certificate -a -p <keychain>` |
-| 2 | `credbroker/_keychain_macos.py`, the `SECURITY_BIN` argv builders | The native `/usr/bin/security` backend. Its `add-generic-password`, read and delete argv carry **no keychain operand**, so every operation targets the *default* keychain |
-| 3 | `credbroker/_core.py`, the Tier-2 dispatch | Imports `_keychain_macos` only on live Darwin; labels Tier 2 `"macOS Keychain"` |
-| 4 | `agentbundle/user_config.py`, the `p == "darwin"` branch | `~/Library/Application Support/agentbundle/config.toml` |
-| 5 | `agentbundle/catalogue.py`, its `sys.platform` branches | Diagnostics and retry messaging differ on Darwin |
-| 6 | `tools/repo/worktree_hygiene.py`, the Playwright cache resolver | `~/Library/Caches/ms-playwright` |
-| 7 | `tools/repo/frontend_runtime.py`, the Playwright cache resolver | The same cache location |
-| 8 | `tools/diagnose-tls-trust.py`, the administrator-keychain retry | A retry path taken only on Darwin |
-| 9 | `packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py`, its `sys.platform == "darwin"` dispatch | Selects `_sso_keychain_macos` on Darwin |
-| 10 | `packs/credential-brokers/.apm/shared-libs/credentials_shim.py`, its two `sys.platform == "darwin"` branches | Tier-2 backend selection in the shipped shim |
-| 11 | `packs/atlassian/.apm/skills/flow-metrics/scripts/flow_metrics/__init__.py`, its `sys.platform == "darwin"` branch | `/private` path-prefix normalisation, which only Darwin applies |
+| 1 | `agentbundle/system_trust.py`, `sys.platform != "darwin"` guard | Reads the System keychain, optionally `/etc/ssl/cert.pem`, and runs `/usr/bin/security find-certificate` |
+| 2 | `credbroker/_keychain_macos.py`, `SECURITY_BIN` argv builders | Native backend; its argv carry no keychain operand, so every operation targets the default keychain |
+| 3 | `credbroker/_core.py`, Tier-2 dispatch | Imports `_keychain_macos` only on live Darwin |
+| 4 | `agentbundle/user_config.py`, `darwin` branch | `~/Library/Application Support/agentbundle/config.toml` |
+| 5 | `agentbundle/catalogue.py`, `sys.platform` branches | Diagnostics and retry messaging |
+| 6 | `tools/repo/worktree_hygiene.py` | `~/Library/Caches/ms-playwright` |
+| 7 | `tools/repo/frontend_runtime.py` | The same cache location |
+| 8 | `tools/diagnose-tls-trust.py` | Administrator-keychain retry |
+| 9 | `packs/credential-brokers/.apm/adapter-root-bins/sso-broker.py` | Selects `_sso_keychain_macos` |
+| 10 | `packs/credential-brokers/.apm/shared-libs/credentials_shim.py` | Tier-2 backend selection, two branches |
+| 11 | `packs/atlassian/.apm/skills/flow-metrics/scripts/flow_metrics/__init__.py` | `/private` path-prefix normalisation |
 
-Plus one filesystem assumption the census tracks separately: the APFS filename
-refusal in `tools/test-lint-git-ignore.py`, which is simulated at the encoding
-seam because the filename cannot be planted on APFS. Being necessarily
-simulated, it is not admissible as native evidence.
+A re-measurement must reach `packs/` as well as `packages/` and `tools/`, and
+must count the projected copies the build tracks. The APFS filename refusal in
+`tools/test-lint-git-ignore.py` is simulated at the encoding seam and is not
+admissible as native evidence. Sites 6, 7, and 8 have no live-platform test.
 
-Three sites carry no live-platform test today — site 6 and site 7 have test
-files with no platform reference, and site 8 has no test file at all. They are
-recorded here as `darwin-native` with no native coverage, which is a stated gap
-rather than an unmet promise.
+Most Darwin-facing tests are `platform-simulated`. `test_system_trust.py`,
+`test_catalogue_trust_fallback.py`, `test_user_config_path.py`, and
+`test_trust_fallback_tls.py` force an identifier and pass on Linux. Exactly one
+test reads the live platform:
+`packs/credential-brokers/tests/pack/test_sso_broker_user_scope.py`.
 
-**Most Darwin-facing tests are `platform-simulated`, but not all.**
-`test_system_trust.py`, `test_catalogue_trust_fallback.py`,
-`test_user_config_path.py` and `test_trust_fallback_tls.py` force a platform
-identifier or substitute an anchor, and pass on Linux. A search for a
-Darwin-only skip marker across every test and `conftest.py` returns nothing.
+On a
+Darwin host it proves native dispatch. Running the simulated suites on macOS does
+not prove a Darwin branch ran. `fcntl.flock` use is `posix-shared`.
 
-The exception matters, because it is the evidence a macOS job most wants:
-`packs/credential-brokers/tests/pack/test_sso_broker_user_scope.py` branches on
-the *live* `sys.platform` and asserts the Darwin backend is the one selected. It
-forces nothing, so on a Darwin host it proves native dispatch.
+### 4.2 Windows: a curated subset with no floor
 
-The consequence matters: running these suites on a macOS host does not by itself
-prove a Darwin branch executed, because the simulated cases pass either way.
-Native macOS evidence needs a positive assertion that the host is Darwin and the
-native path was taken.
+`build-check-windows.yml` runs four jobs: AgentBundle compatibility
+(`agentbundle catalogue self-host --check --windows --root .` plus the work-loop
+safe-process suites), CredBroker's full suite, byte-range lock semantics
+(`tools/test_windows_lock_semantics.py`, `tools/test_coordination_lease.py`), and
+the work-loop supervisor product-ref suites.
 
-`fcntl.flock` usage in `frontend_runtime.py`, `coordination_lease.py` and
-`test_sso_profile_lock.py` is `posix-shared`, not `darwin-native`.
+Jobs run under `PYTHONUTF8=1` and `PYTHONIOENCODING=utf-8`. The
+workflow declares no collection floor and no expected-skip set, no
+`workflow_call`, and no `persist-credentials: false` on its checkouts; two jobs
+use `cache: 'pip'`.[^14]
 
-### 5.2 Windows census
+Three native Windows behaviors are covered only by non-native tests: cp1252
+broker hardening is source-asserted, unlock reporting injects a
+`PermissionError`, and `PureWindowsPath` normalization runs on any host.
 
-Native Windows behavior is broad — `msvcrt` byte-range locking, Credential
-Manager `ctypes` bindings, ACL verification via `icacls … /findsid`, the
-CredBroker environment allowlist, path normalization, and process termination.
+### 4.3 A contributor's macOS run is advisory
 
-`build-check-windows.yml` covers a curated subset: the Windows self-host
-compatibility command, the full CredBroker suite, `test_windows_lock_semantics.py`,
-`test_coordination_lease.py`, the work-loop safe-process suites
-(`test_process_safety_windows.py` and `test_process_safety.py`), and the
-work-loop supervisor's synthetic full code run, all under
-`PYTHONUTF8=1` and `PYTHONIOENCODING=utf-8`. It asserts no collection floor and
-no expected-skip set.
+`make ci` on a Mac is early evidence for `host-neutral` and `posix-shared`
+checks. It is not a controlled macOS contract: device management and local
+toolchain state can suppress the native behavior it appears to cover. Native
+macOS evidence needs a positive assertion that the host is Darwin and the
+native path ran.
 
-Three native Windows behaviors are represented only by non-native tests, and are
-recorded here so the gap is visible rather than assumed closed: cp1252 broker
-hardening is source-asserted; Windows unlock reporting injects a `PermissionError`
-rather than exercising the platform; and `PureWindowsPath` separator
-normalization runs on any host.
+## 5. Test processes are isolated and floor-guarded
 
-### 5.3 Contributor macOS is advisory
-
-A contributor running `make ci` on a Mac produces useful early evidence for
-`host-neutral` and `posix-shared` checks, and incidentally exercises some Darwin
-branches. It is not a controlled macOS contract: it proves nothing about the
-Ubuntu runner, it cannot substitute for a controlled macOS runner, and
-enterprise device management or local toolchain state may suppress the very
-native behavior it appears to cover.
-
-## 6. Process isolation and collection floors
-
-Pack test suites run one pytest process each by default
-([ADR-0101](../adr/0101-pack-test-isolation-by-default-with-declared-compatibility-classes.md)).
-Grouping requires an explicitly declared compatibility class in
-`tools/pack_test_compatibility.py`, re-derived from source on every run by
-`tools/lint-pack-test-boundary.py`. Five classes are declared:
+Pack test suites run one pytest process each by default. Grouping needs a
+declared compatibility class in `tools/pack_test_compatibility.py`, re-derived
+from source by `tools/lint-pack-test-boundary.py`. Five classes exist:
 `agent-skill-engineering-contract`, `architect-contract`,
 `converters-invocation-contract`, `desk-research-content`, and `linear-intake`.
 
-Two constraints bind any caller that addresses a suite directly:
+Two rules bind a caller that addresses a suite directly. A grouped invocation
+names every member, because an ancestor path would let a new suite join the
+class silently. A floor-bearing suite is the sole target of its invocation,
+because `tools/pytest_collection_floor.py` counts the whole session.
 
-- A grouped invocation must name **every** member. An ancestor path would let a
-  future suite join the class silently, and `lint-pack-test-boundary.py` refuses
-  it.
-- A floor-bearing suite must be the **sole** target of its invocation, because
-  `tools/pytest_collection_floor.py` counts the whole pytest session while
-  `--collection-floor-suite` is only a label.
+Five collection floors exist. Three are Makefile literals: `packages/agentbundle/tests/`
+at 3200, `desk-research` at 9, and `desk-research-project-start` at 7.
 
-Five collection floors exist. Three are Makefile literals —
-`packages/agentbundle/tests/` at 3200, `desk-research` at 9,
-`desk-research-project-start` at 7. Two are supplied by
-`tools/repo/build_gate_chain.py`, which formats `--minimum-collected={floor}`
-from its own step table rather than carrying literals inline. A floor fails
-before execution with `{suite}: collected {actual} test(s), expected at least
-{minimum}`.
+Two come
+from the step table in `tools/repo/build_gate_chain.py`, at 30 and 7. A floor
+fails before execution with `{suite}: collected {actual} test(s), expected at
+least {minimum}`.
 
-Expected skips are real and load-bearing. They fall into five classes:
-platform-conditional, optional-dependency-conditional (covering `httpx`,
-`credbroker`, the `[crypto]` extra, `docx`, `openpyxl`, `pptx`, Pillow, `build`,
-`setuptools`, PyYAML, `cryptography`, `argon2`), binary-on-`PATH`-conditional
-(`mmdc`, `node`, `openssl`, `git`), environment-conditional, and unconditional
-`STUB` skips concentrated in the workspace-MCP and loop-events suites. A skip
-outside those classes is a defect, not a fact about the host.
+Expected skips fall into five classes: platform-conditional,
+optional-dependency-conditional, binary-on-`PATH`-conditional,
+environment-conditional, and unconditional `STUB` skips in the workspace-MCP and
+loop-events suites. A skip outside those classes is a defect. Every
+`run-test-suite` invocation uses bare `-q`, so skip reasons print nowhere except
+`build-check.yml`, which passes `-rs`.
 
-One reporting constraint bounds what a caller can observe: every invocation in
-the `run-test-suite` macro is bare `-q`, and pytest's default reporting prints
-no skip *reasons*. The repository's one place that needs them passes `-rs`
-explicitly, in `build-check.yml`.
+## 6. Open gaps are registered as intents
 
-## 7. PLANNED: on-demand remote verification
-
-> **STATUS: PLANNED.** This section describes the future-state surface accepted
-> by [`remote-ci-verification-parity`](../product/intents/remote-ci-verification-parity.md).
-> It is not a statement of current repository behavior — no `remote-verify.yml`
-> exists yet, and `build-check-windows.yml` declares no `workflow_call`. Keep
-> this banner until every job, the receipt contract, and the construction tests
-> described here are implemented and verified, then update it to **CURRENT** and
-> fold the roster into section 3.
-
-### 7.0 Measured starting state
-
-Most of what an on-demand surface needs already exists. These four facts were
-measured against the fleet on 2026-09-04. The last two rows now name the
-dispatch workflows that landed after that date:
-
-| Capability | Current state | Remaining work |
-| --- | --- | --- |
-| Security scan, separately runnable | `build-check.yml`'s `gate-sast` job already runs `make sast` on its own runner | none — it is reached by any dispatch of that workflow |
-| Site and browser gate, dispatchable | `pages.yml` already declares `workflow_dispatch` | none |
-| Build and policy chain, dispatchable | `build-check.yml` declares `pull_request`, `push: branches: [main]`, and `workflow_dispatch` | none |
-| Complete test corpus, runnable remotely | `test-corpus.yml` runs on a weekly schedule and on dispatch, never on a pull request, and runs `make test` in four shards; `test-roster.yml` runs the roster suite only. Both are scoped evidence, not required checks | the composition and its receipt |
-
-Two supporting facts follow from the same measurement:
-
-- **A dispatched `build-check.yml` scans.** Its SAST relevance detector is
-  `if: github.event_name == 'pull_request'`, and its consumer is
-  `if: steps.changes.outputs.skip_sast != 'true'`. On a dispatch the detector
-  never runs, so the output is empty and the comparison is true. The detector
-  fails open toward scanning.
-- **`workflow_dispatch` is established practice here, not a new pattern.** Ten
-  workflows declare it: `build-check.yml`, `iac-release-loop-canary.yml`,
-  `iac-staleness.yml`, `pack-evals.yml`, `pack-javascript.yml`, `pages.yml`,
-  `publish-catalogue.yml`, `publish-claude-plugins.yml`, `test-corpus.yml`,
-  and `test-roster.yml`.
-
-The gap a dispatch surface closes is therefore narrower than it first appears:
-every non-release workflow triggers on `push: branches: [main]` only, so
-pushing a feature branch fires nothing, while opening a pull request already
-fires the decomposed gate set in parallel.
-
-### 7.1 Outcome
-
-A maintainer selects a pull request whose head is a branch in this repository
-and dispatches one named lane or the complete composition. The run resolves that
-pull request's head to an immutable commit SHA, checks out exactly that SHA, and
-reports it. A selective run is labelled partial evidence. Only the composition
-may claim completion.
-
-### 7.2 Completeness is definitional, not proven
-
-The composition runs **`make ci` itself, undecomposed**, on the checked-out
-revision. There is no partition to omit a target from and no roster that can
-drift from the graph it claims to cover, because the composition does not
-enumerate targets — it invokes the one target whose definition *is* the
-coverage.
-
-This is the direct lesson of section 2.2. Four revisions of a comparable split
-each severed a provisioning edge, and the record concludes that reconstruction
-by inspection kept missing them. `make` already holds those edges; a caller that
-invokes `make ci` whole inherits every one.
-
-Two properties follow without further machinery:
-
-- `make ci` invoked with neither `SKIP_SAST` nor `SAST_DELEGATED` runs the SAST
-  leg inline (§2.3), so one invocation covers `gate-main` and `gate-sast`.
-- `test-after-build-check` omits only the checks `build-check` already ran
-  (ADR-0096), so the union across `make ci` is the complete test macro.
-
-Three further jobs cover what `make ci` does not reach at all, per §4.2: native
-Windows, native macOS, and the site and browser gate.
-
-The selective lanes are **accelerators**. They carry partial evidence, make no
-completeness claim, and may be added, split or removed without changing what a
-complete run means.
-
-### 7.3 Job roster
-
-**Composition membership and dispatchability are independent properties.** A
-job can be in the composition, individually dispatchable, both, or neither, and
-conflating them is how a roster starts contradicting itself.
-
-Composition — two scaffolding jobs and four evidence jobs. Runner labels follow
-the fleet's `ubuntu-latest` idiom — no job in it pins a versioned Ubuntu; timeout
-origins are stated per §7.7.
-
-| Job | Kind | Command | Runner |
-| --- | --- | --- | --- |
-| `resolve` | scaffolding | resolve the head SHA and refuse a foreign head, a non-default dispatch ref, an unreadable pull request, a non-SHA response, or an expected-SHA mismatch. Does not check out the revision under test | `ubuntu-latest` |
-| `verify-make-ci` | evidence | the provisioning probe, then `make ci` | `ubuntu-latest` |
-| `windows-native` | evidence | `build-check-windows.yml` via a `./`-relative `workflow_call` — its three `windows-latest` jobs plus its `ubuntu-latest` aggregate, four jobs in total | `windows-latest` x3 + `ubuntu-latest` |
-| `macos-native` | evidence | the checks the census classifies `darwin-native` for which a live-platform test exists, under a scratch keychain and a `RUNNER_TEMP`-confined `HOME` | `macos-15` |
-| `site-browser` | evidence | the site build, rendered-link audit, `web` unit suite and `web` browser gate. The docs-site plugin suite is **not** repeated — `make ci` already runs it | `ubuntu-latest` |
-| `receipt` | scaffolding | re-resolve the head and emit the receipt. Does not check out the revision under test | `ubuntu-latest` |
-
-Individually dispatchable — the six surfaces the accepted intent requires, each
-carrying partial evidence only: `build-policy`
-(`make build-check … SAST_DELEGATED=1`, `make lint-ruff`, `make lint-mypy`),
-`sast-sca` (`make sast`), `pytest-corpus` (`make test`), `site-browser`,
-`windows-native`, `macos-native`.
-
-Three of those — `site-browser`, `windows-native`, `macos-native` — are both
-dispatchable and composition members. The other three are dispatchable only:
-their semantic content is inside `make ci`, so the composition reaches it
-without running them, and removing one weakens no completeness claim.
-
-`macos-latest` is deliberately unused: it currently resolves to arm64 macOS 26
-and GitHub documents that `-latest` labels move between stable images.
-
-### 7.4 Verdict vocabulary
-
-The receipt is one fenced `json remote-verify-receipt.v1` block in the run's
-job summary, following the closed-object shape `review-verdict.v1` establishes.
-
-```json remote-verify-receipt.v1
-{
-  "schema_version": "remote-verify-receipt.v1",
-  "state": "complete",
-  "lane": "composition",
-  "pull_request": 0,
-  "head_sha": "<40 hex>",
-  "base_revision": "<40 hex>",
-  "draft": true,
-  "dispatch_ref": "refs/heads/main",
-  "dispatched_by": "<actor>",
-  "job_results": {}
-}
-```
-
-A closed object with exactly those ten keys. `state` is one of exactly four
-values, and the set is total over the outcome space — a composition run in which
-a job failed has a state, which a three-token vocabulary did not provide.
-
-| State | Meaning |
+| Gap | Intent |
 | --- | --- |
-| `partial` | One named lane ran. Evidence about that lane only, never completion, whatever its result. |
-| `complete` | Every composition job ran and succeeded, and the head is unchanged since it was pinned. |
-| `incomplete` | Every composition job ran, at least one did not succeed, and the head is unchanged. `job_results` names each one. |
-| `superseded` | The head moved during the run, or the re-resolution could not be performed. The evidence does not describe the current head. |
+| A gate that reads clean while gating nothing (Semgrep parse, output drift, hidden gate, C-quoted path) | [`gates-that-read-clean-while-gating-nothing`](../product/intents/gates-that-read-clean-while-gating-nothing.md) |
+| `gate-main` over its 200-second budget on docs-only pull requests | [`ci-gate-main-runtime-budget`](../product/intents/ci-gate-main-runtime-budget.md) |
+| Parity linter covers one of 18 workflows | [`ci-parity-linter-scope`](../product/intents/ci-parity-linter-scope.md) |
+| No posture test for `test-corpus.yml` or `test-roster.yml` | [`dispatch-workflow-posture-assertions`](../product/intents/dispatch-workflow-posture-assertions.md) |
+| Regex YAML modelling in the build-check posture test; `artipacked` unguarded | [`workflow-posture-harness-consolidation`](../product/intents/workflow-posture-harness-consolidation.md) |
+| Windows contract has no floor or skip set; macOS has one native test | [`native-platform-verification-coverage`](../product/intents/native-platform-verification-coverage.md) |
+| Required-workflow pinning, Pages required context, deploy ordering | [`required-check-and-deploy-ordering`](../product/intents/required-check-and-deploy-ordering.md) |
+| Roster suite not isolated from the working tree | [`roster-suite-parallel-execution`](../product/intents/roster-suite-parallel-execution.md) |
+| Untracked plant window in the boundary self-test | [`selftest-untracked-plant-window`](../product/intents/selftest-untracked-plant-window.md) |
+| Orphan `tools/test*.py` and e2e specs | [`test-runner-boundary-completion`](../product/intents/test-runner-boundary-completion.md) |
+| Scanner suppression and pin hygiene | [`scanner-suppression-and-pin-hygiene`](../product/intents/scanner-suppression-and-pin-hygiene.md) |
+| Pack-eval Tier 2-5 rollout and converters gate | [`pack-eval-rollout-completion`](../product/intents/pack-eval-rollout-completion.md) |
+| No live-client evidence for Cursor, Claude clean-room, mock MCP, post-merge marketplace | [`live-adapter-and-client-smoke-evidence`](../product/intents/live-adapter-and-client-smoke-evidence.md) |
 
-`base_revision` is load-bearing, not decoration: `make ci` is **not** a function
-of the head alone. `lint-catalogue-curation-guard.py` defaults its diff base to
-`origin/main` and `tools/repo/branch_added_paths.py` resolves
-`origin/main`/`origin/HEAD`, both at run time — so the same pinned head can
-verify against different bases on two dispatches. Recording the base is what
-makes a `complete` reproducible.
+## 7. Planned: on-demand remote verification
 
-A dispatch run's check runs attach to the dispatch ref's head, not to the pull
-request's, so the receipt is read from the run's own page. It is not visible in
-the pull request's checks list, and posting it back would need
-`pull-requests: write`, which the posture forbids.
+**STATUS: PLANNED.** [`remote-verification.md`](remote-verification.md) holds the dispatchable composition accepted by [`remote-ci-verification-parity`](../product/intents/remote-ci-verification-parity.md). Sections 1-6 describe current behavior.
 
-### 7.5 Revision identity and staleness
+[^1]: `Makefile` target `ci`; `tools/test-lint-ci-parity.py` case `local-ci-direct-prereqs`.
 
-- The head SHA is resolved once, in `resolve`, and passed to every job.
-- Every job checks out that SHA and refuses to run a check if the checked-out
-  commit differs from it.
-- `receipt` re-resolves the head. A changed value, or a re-resolution that
-  cannot be performed, yields `superseded` and fails the run — so a push during
-  the run cannot leave a stale receipt reading as current proof.
-- An optional expected-SHA input fails the run closed on mismatch.
-- The receipt records the pull request number, the pinned SHA, the draft state,
-  and the dispatch ref.
+[^2]: `iter_makefile_rules` and `_sub_make_targets` in `tools/lint-ci-parity.py`.
 
-### 7.6 Trust boundary and security posture
+[^3]: `docs/specs/ci-gate-parallelization/spec.md` and its plan record the severed edges.
 
-**A job executes repository code from the selected pull request.** `make ci`
-runs the checked-out revision's Makefile, its test suites, its `npm ci` lifecycle
-scripts and its build. Dispatching is therefore a trust decision, and the
-maintainer procedure records it as one.
+[^4]: Skip strings and guards: `tests/roster/test_credential_user_scope_invocation.py`, `tools/repo/build_gate_chain.py`, `tools/repo/editable_install_guard.py`, the Makefile `command -v` guards.
 
-Two residuals follow from that and are accepted rather than mitigated. Every job
-carries the Actions cache service endpoint and runtime token in its environment
-whether or not a step declares a cache, so forbidding declared cache writes
-bounds the declared surface and not the capability. And a dispatched run is free
-compute on standard runners with nothing bounding concurrent dispatches across
-pull requests. The control for both is the same: dispatch requires a maintainer
-with write access, and the receipt records which one.
+[^5]: The `SAST_DELEGATED` origin test and its comment in the `Makefile`; `tools/assert-sast-chain-reachable.py`.
 
-Two constraints bound that decision:
+[^6]: `gate-sast` job in `.github/workflows/build-check.yml`; `tools/requirements-sast.txt`; `tools/check-semgrep-version.py`; `engines.node` in `web/package.json` and `docs-site/package.json`.
 
-- **Same-repository heads only.** The run fails when the resolved pull request's
-  head repository is not this repository, so every executed revision comes from
-  someone who already holds write access. Fork pull requests are out of scope.
-- **Default-branch dispatch only — WITHDRAWN 2026-09-04.** This constraint said
-  the run fails when the dispatch ref is not the default branch, which made the
-  posture below a property of the ref that actually ran rather than an
-  assumption about it. It is incompatible with the accepted purpose of
-  dispatch — reaching verification from a worktree branch — so it is withdrawn
-  deliberately rather than quietly.
+[^7]: `sast` target in the `Makefile`; wrapper and self-test scripts under `tools/`.
 
-  **What the withdrawal costs.** `workflow_dispatch` resolves the workflow from
-  the selected ref, so a dispatched run executes that ref's copy of the workflow
-  file, including its `permissions:` block. Every control asserted by
-  `tools/test-build-check-workflow.py` is evaluated only as a step of the
-  aggregator job — on a pull request to the default branch, and on a push to it.
-  It never evaluates the copy a dispatch of a feature branch runs. So a branch
-  whose workflow declares broader `permissions:` can be dispatched, and no
-  required check will have reviewed it.
+[^8]: `.github/zizmor.yml`; `.github/dependabot.yml`.
 
-  **The measured basis for accepting it.** Read from the API on 2026-09-04, all
-  four values:
+[^9]: `grep -l workflow_dispatch .github/workflows/*` on 2026-11-04 returns the ten files named.
 
-  | Setting | Value |
-  | --- | --- |
-  | `default_workflow_permissions` | `read` |
-  | `can_approve_pull_request_reviews` | `false` |
-  | `allowed_actions` | `all` |
-  | `sha_pinning_required` | `false` |
+[^10]: `GET /repos/{owner}/{repo}/branches/main/protection` on 2026-11-04 returned the five contexts; `GET …/actions/permissions` and `…/permissions/workflow` returned the four settings recorded in remote-verification.md. The aggregator job `build-check` in `build-check.yml` lists five `needs:`.
 
-  An unmodified workflow therefore receives a read-only token. **A read default
-  is not a ceiling** — an explicit `permissions:` block can still request write —
-  but requesting it takes a push, which takes write access. And `pull_request`
-  also resolves the workflow from the head ref, so an actor with write access can
-  already run a modified workflow by opening a pull request. **The withdrawal
-  therefore removes reviewability, not capability**: what dispatch adds is that
-  the modified file runs without a pull request to show it.
+[^11]: `tools/posture_harness.py`; the `_script_step` entries in `tools/repo/build_gate_chain.py`; `run-test-suite` in the `Makefile`; `tools/catalogue/pre_pr_catalogue.py`.
 
-  `allowed_actions: all` and `sha_pinning_required: false` mean the dispatched
-  ref may also introduce an unpinned third-party action. `ci-security.yml`'s
-  scanner reports unpinned actions, but on the reviewed pull-request copy — not
-  on a later unreviewed rewrite of the selected ref.
+[^12]: `STEP_DISPOSITION`, `SUITE_DISPOSITION`, and `WORKFLOW_SCOPE` in `tools/lint-ci-parity.py`; entry counts measured by importing the module on 2026-11-04.
 
-  No in-workflow control closes this. A step that verifies the workflow's own
-  permissions is deleted by the same edit that would widen them, so it cannot
-  observe its own absence.
+[^13]: Each named module under `packages/`, `tools/`, and `packs/`; the live-platform test is `test_sso_broker_user_scope.py`.
 
-  **Residual, accepted by the repository owner on 2026-09-04:** a dispatch runs
-  a workflow file that no required check has reviewed.
-
-  **The effective bound is the dispatcher's write authority**, plus any enforced
-  enterprise, organization, or repository maximum. It is *not* the token
-  default: that default governs only a workflow which declines to declare its
-  own permissions, so it bounds the honest case and not the case this residual
-  is about. Whether an enforced maximum exists above this repository is
-  **unestablished** — it needs the effective enterprise and organization Actions
-  policy payloads, which are not readable from this working environment.
-
-  Re-price this on any of: a change to any of the four values above; an
-  organization or enterprise Actions-policy change; a ruleset or bypass-actor
-  change affecting who may push to a dispatchable ref; or dispatch being granted
-  to a role weaker than write.
-
-  One control was identified as possibly helping without defeating branch
-  dispatch, and is **not** yet evaluated: a ruleset that externally restricts
-  unreviewed changes to workflow files on every dispatchable ref. An environment
-  with required reviewers does *not* suffice on its own, because the selected
-  ref's workflow can delete its own `environment:` declaration.
-
-The remaining controls:
-
-- **No Actions cache in any job with a foreign revision checked out**, and none
-  in a workflow the composition calls. A dispatch run's `GITHUB_REF` is the
-  default branch, so a cache save would write the default-branch scope that the
-  required Windows gate and the Pages build later restore from. This is why
-  `build-check-windows.yml`'s two `cache: 'pip'` steps need explicit handling on
-  the `workflow_call` path.
-- `permissions: contents: read` at the top level, `pull-requests: read` added
-  only on `resolve`, and no write on any scope under any spelling.
-- Every checkout the composition causes — including inside the called workflow —
-  sets `persist-credentials: false`. The pinned `actions/checkout` (v4.4.0)
-  defaults it to `true`.
-- No `secrets.` context and no `pull_request_target` trigger.
-- Dispatch inputs reach shell bodies only through `env:` bindings.
-- Every `uses:` is a 40-character SHA already present in the fleet, so the change
-  adds no supply-chain edge.
-- Standard hosted runner labels only, as literals. Larger runners are "always
-  charged for, even when used by public repositories."
-- Artifacts are diagnostic only, bounded by `retention-days`, and no verdict
-  reads one.
-
-The accepted residual: a dispatched run is free compute on standard runners, and
-nothing bounds concurrent dispatches across pull requests. The control is that
-dispatch requires a maintainer with write access.
-
-### 7.7 Concurrency and bounds
-
-The concurrency group keys on the pull request and the selected lane, with
-`cancel-in-progress: true`, so an obsolete run neither consumes capacity nor
-masquerades as current proof. Job and workflow concurrency share one namespace,
-so the group prefix must differ from every prefix already in the fleet.
-
-Every job declares `timeout-minutes`, and every value records an origin: an
-existing repository job budget the job reproduces; that budget scaled for a
-named runner-class difference; or a recorded workflow-duration median and tail
-scaled by a stated factor. Per-job timeouts are what keep the composition inside
-GitHub's 6-hour job ceiling. Standard macOS concurrency is capped at 5
-concurrent jobs on Free and Pro plans.
-
-### 7.8 Activation boundary
-
-GitHub requires a `workflow_dispatch` definition to exist on the default branch
-before it will accept a manual dispatch. Rollout therefore has two stages:
-
-1. **Pre-merge** proves *construction* — the construction tests plus the
-   existing automatic pull-request checks. Manual dispatch is unavailable.
-2. **Post-merge** proves *operation* — one selective run and one complete run
-   against the same immutable head SHA, plus one run that receives a push while
-   in flight and returns `superseded`.
-
-That activation proof is rollout evidence for this surface, not a dependency on
-another queued item.
-
-### 7.9 Out of scope
-
-Release, publication, deployment, code signing, simulators, Xcode builds, nested
-virtualization, live model evaluation, larger or self-hosted runners, custom
-runner images, fork pull requests, changes to organization billing or runner
-policy, and any weakening of a local gate, test, security control, or existing
-required check.
-
-## 8. Provenance
-
-The shaping intents behind this document, most recent first. All six were
-recorded on 2026-09-03; within that date the accepted intent leads and the
-drafts follow alphabetically.
-
-| Intent | Status | What it shapes here |
-| --- | --- | --- |
-| [`remote-ci-verification-parity`](../product/intents/remote-ci-verification-parity.md) | Accepted | Section 7 in full: the dispatch surface, the partial-versus-complete contract, the platform coverage contract, and the activation boundary |
-| [`ci-parity-linter-scope`](../product/intents/ci-parity-linter-scope.md) | Draft | Informational only. Concerns local-correspondence checks for newly admitted workflows — §4.1's disposition roster. Not a dependency of section 7 |
-| [`pack-javascript-ci-workflow`](../product/intents/pack-javascript-ci-workflow.md) | Draft | The JavaScript coverage gap named in §4.2 |
-| [`scanner-suppression-and-pin-hygiene`](../product/intents/scanner-suppression-and-pin-hygiene.md) | Draft | Suppression and pin integrity for the SAST leg in §2.3 |
-| [`test-runner-boundary-completion`](../product/intents/test-runner-boundary-completion.md) | Draft | The no-runner contracts behind §4.2 |
-| [`workflow-posture-harness-consolidation`](../product/intents/workflow-posture-harness-consolidation.md) | Draft | The shared harness described in §3.1, which section 7's construction tests extend |
+[^14]: `.github/workflows/build-check-windows.yml` job list and steps; `agentbundle/catalogue_tooling/self_host_windows.py` holds the canonical Windows test list.

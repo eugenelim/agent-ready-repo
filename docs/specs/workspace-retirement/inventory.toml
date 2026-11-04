@@ -58,6 +58,12 @@ consumer = "the retirement record: names every registry fact and its home"
 owner = "none"
 
 [[row]]
+pattern = "docs/specs/workspace-retirement/notes/closure-checklist.md"
+class = "record"
+consumer = "the compatibility closure checklist: which retirement gates and slice 9 items are done and which stay open"
+owner = "none"
+
+[[row]]
 pattern = ".workspace-prune-protected.toml"
 class = "fixture"
 consumer = "prune-protection list naming workspace-status spec directories that roster tests cite"

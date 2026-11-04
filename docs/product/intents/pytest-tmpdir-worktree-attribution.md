@@ -18,7 +18,7 @@ Pytest has no per-worktree `TMPDIR` attribution, so a dead worktree's temporary 
 
 ### pytest-tmpdir-worktree-attribution
 
-Use `TMPDIR` to give pytest temporary trees per-worktree attribution. Detect workspace versus single-checkout users from Git topology, leaving single-checkout behavior unchanged. `docs/rfc/0097-agent-skill-engineering.md:476` says: “Keep open; make it an application case for worktree attribution.” No per-worktree pytest `TMPDIR` implementation was found.
+Use `TMPDIR` to give pytest temporary trees per-worktree attribution. Detect workspace versus single-checkout users from Git topology, leaving single-checkout behavior unchanged. The `pytest-tmpdir-worktree-attribution` row of the backlog table in `docs/rfc/0097-agent-skill-engineering.md` says: “Keep open; make it an application case for worktree attribution.” No per-worktree pytest `TMPDIR` implementation was found.
 
 ## Assumptions
 

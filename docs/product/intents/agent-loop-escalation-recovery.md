@@ -4,14 +4,18 @@
 - **Level:** feature
 - **Parent intent:** capability:work-loop-delivery-efficiency
 - **Status:** Draft
-- **Owner:** Repository maintainers (`ini-002`)
+- **Owner:** eugenelim, Platform Core maintainer
 
 ## Why this exists, and what it is not
 
 Better input reduces what a loop has to find; it does not make the contract
 right. When a loop discovers mid-flight that the artifact above it is wrong, it
-has to decide **which level to return to** — and today it has no procedure, so
-it does the only thing it knows: repair in place, repeatedly.
+has to decide **which level to return to** — and today it has no routing
+procedure, so it does the only thing it knows: repair in place, repeatedly. The one
+stop that exists is coarse: `new-spec` tells the author to surface to a human when a
+spec review cannot reach clean in three passes (hypothesis H1 with an
+unjustified N). Nothing routes the discovery to the artifact level it
+invalidated, and no stop exists outside spec-mode review.
 
 Prevention is the sibling brief,
 [`docs/product/briefs/agent-authoring-input-quality.md`](../briefs/agent-authoring-input-quality.md), and it is

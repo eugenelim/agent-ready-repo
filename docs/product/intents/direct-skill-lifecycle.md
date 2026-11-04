@@ -11,7 +11,7 @@
 
 An adopter who installed a skill straight from someone else's repository can bring it to a known-current state, and see what changed, without remembering the source string or hand-editing state.
 
-**Steerable input:** the share of directly installed skills reachable by an update path that names what changed. Today it is zero: `upgrade` requires `--pack` or `--all` and exits 2 on a bare `--skill`, and an install naming a different revision is refused as a different source (`CAT-D009`), so an installed skill has no route to a later revision at all.
+**Steerable input:** the share of directly installed skills reachable by an update path that names what changed. At framing it was zero: `upgrade` required `--pack` or `--all` and exited 2 on a bare `--skill`, and an install naming a different revision was refused as a different source (`CAT-D009`), so an installed skill had no route to a later revision. `docs/specs/direct-skill-lifecycle/` shipped `upgrade --skill <name>` on 2026-09-09; `upgrade` also refuses any direct upgrade that widens the capability surface (`allowed-tools`, `boundaries`, credentialed status; unknown installed history counts as a widening), so an update never consents to less than an install does. What remains is the half that names what changed: the rendered old-to-new difference, the acceptance flag and bulk `upgrade --all` re-consent (`direct-lifecycle-capability-reconsent`), and a per-skill inspection surface (`direct-lifecycle-capability-inspection`), recorded as that spec's follow-ons.
 
 **Lagging outcome:** adopters keep third-party skills current rather than install-and-forget, so a defect the publisher fixed actually reaches the agent that runs it.
 

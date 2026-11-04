@@ -140,7 +140,7 @@ def test_core_release_metadata_rejects_manifest_version_drift() -> None:
 
 
 def test_wave4_docs_keep_the_remaining_wave_boundary() -> None:
-    """Waves 5 and 6 have shipped; Wave 7 retains its stated boundary."""
+    """The architecture page states the repair verbs and the retention boundary."""
     # Asserted against the architecture document alone. The earlier form joined
     # three files, so the mutation clause held only because these strings
     # happened to appear nowhere else; scoping it to the owning document makes
@@ -151,9 +151,9 @@ def test_wave4_docs_keep_the_remaining_wave_boundary() -> None:
     # test whose meaning is unchanged.
     normalized = " ".join(architecture.split())
     for statement in (
-        "Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine",
-        "Wave 6 has shipped ordinary-context exclusion",
-        "Wave 7 owns historical migration and pruning behavior",
+        "`workspace-status` has two verbs, `repair-plan` and `repair-apply`",
+        "The retired prune, candidate-listing, and rollback tooling has no replacement",
+        "Terminal status and artifact retention are independent",
     ):
         assert statement in normalized, statement
     assert "Wave 6 and 7 own ordinary-context exclusion" not in normalized

@@ -44,7 +44,7 @@ See [Shape an idea](../../product-engineering/how-to/frame-the-intent.md).
 
 The `core` pack's work loop builds the piece: features, fixes, refactors, migrations, and upgrades. Small, low-risk work runs straight from your request. Riskier work gets a written spec and plan, which you approve before any code is written.
 
-Lint, type checks, and tests must pass: the agent cannot report success while one fails. A shaping review checks the spec before code starts, and three reviewers then read every change cold: an adversarial reviewer for drift between spec and code, a security reviewer, and a quality reviewer. The merge is always yours. See [Run the build loop](../../core/how-to/start-the-work.md).
+Lint, type checks, and tests must pass: the agent cannot report success while one fails. A shaping review checks the spec before code starts, and an adversarial reviewer then reads every change cold for drift between spec and code. Security, quality, and other specialist reviewers join when the change touches their area. The merge is always yours. See [Run the build loop](../../core/how-to/start-the-work.md).
 
 ## Ship it
 

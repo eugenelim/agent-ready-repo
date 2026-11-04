@@ -18,7 +18,7 @@ The remaining posture checks duplicate driver mechanics, and the required build-
 ### ci-gate-parallelization-posture-test-yaml-parser
 
 - **Authority:** [spec/ci-gate-parallelization](../../specs/ci-gate-parallelization/spec.md)
-- `tools/test-build-check-workflow.py` still models YAML with regex helpers, including `_key_re` at line 239, `_key_values`, `_sub_mapping`, `_step_key_values`, `_run_body`'s three-style folding, `_steps`, `_job_ids`, and both `*-modelled` fail-closed checks.
+- `tools/test-build-check-workflow.py` still models YAML with regex helpers, including `_key_re`, `_key_values`, `_sub_mapping`, `_step_key_values`, `_run_body`'s three-style folding, `_steps`, `_job_ids`, and both `*-modelled` fail-closed checks.
 - Five of six adversarial review rounds found YAML-MODELLING root causes rather than security-reasoning defects: scalar folding, duplicate keys, inferred base indent, a positive substring over a block, and key-spelling encodings.
 - The recorded fix is `yaml.safe_load` plus structural comparison, retiring those helpers and checks in exchange for one assumption: PyYAML resolution matches the GitHub Actions parser.
 - Do not assume that equivalence. Check duplicate keys, escaped keys, explicit keys, and anchors before adopting it.

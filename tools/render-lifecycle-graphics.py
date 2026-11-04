@@ -511,7 +511,7 @@ BUILD: list[Item] = [
     Step("Write the spec and plan", ["new-spec"],
          note=["follows reference.md and", "reads the design as context"], num=2),
     Gate("Approve spec and plan"),
-    Step("Build and check", ["work-loop"], note="lint, types, tests, three reviews", num=3),
+    Step("Build and check", ["work-loop"], note="lint, types, tests, selected reviews", num=3),
 ]
 SHIP: list[Item] = [
     Step(["Set an error budget", "(optional)"], ["define-slo"], dashed=True),
@@ -692,10 +692,10 @@ def render_full() -> str:
 
     st = STAGES["ship"]
     sx, sw2 = xs["ship"] + 14, widths["ship"] - 28
-    sy = draw_column(svg, sx, body, sw2, SHIP, st)
-    svg.text(sx + sw2 / 2, sy + 30, "Nothing reaches production", size=12, fill=SOFT,
+    ship_y = draw_column(svg, sx, body, sw2, SHIP, st)
+    svg.text(sx + sw2 / 2, ship_y + 30, "Nothing reaches production", size=12, fill=SOFT,
              anchor="middle")
-    svg.text(sx + sw2 / 2, sy + 47, "until you say so.", size=12, fill=SOFT, anchor="middle")
+    svg.text(sx + sw2 / 2, ship_y + 47, "until you say so.", size=12, fill=SOFT, anchor="middle")
     ending("ship", "Ends in: production", "You ship it", "G5")
 
     deploy_y = body + item_height(SHIP[0]) + 15 + 34
@@ -703,11 +703,11 @@ def render_full() -> str:
             f'{work_loop_mid:.1f} {bx + bw + 2},{work_loop_mid:.1f}" fill="none" '
             f'stroke="{st.hi}" stroke-width="1.8" stroke-dasharray="6 4" '
             'marker-end="url(#arrow-ship)"/>')
-    fx, fy = (sx + bx + bw) / 2, (deploy_y + work_loop_mid) / 2
-    svg.add(f'<rect x="{fx - 19:.1f}" y="{fy - 14:.1f}" width="38" height="30" rx="6" '
+    flow_x, flow_y = (sx + bx + bw) / 2, (deploy_y + work_loop_mid) / 2
+    svg.add(f'<rect x="{flow_x - 19:.1f}" y="{flow_y - 14:.1f}" width="38" height="30" rx="6" '
             f'fill="{BG_BOTTOM}"/>')
-    svg.text(fx, fy - 2, "if it", size=11, fill=st.hi, anchor="middle")
-    svg.text(fx, fy + 11, "fails", size=11, fill=st.hi, anchor="middle")
+    svg.text(flow_x, flow_y - 2, "if it", size=11, fill=st.hi, anchor="middle")
+    svg.text(flow_x, flow_y + 11, "fails", size=11, fill=st.hi, anchor="middle")
 
     ay = bot + 26
     svg.add(f'<rect x="{m}" y="{ay}" width="{w_ - 2 * m}" height="96" rx="16" fill="{SURFACE}" '
@@ -722,12 +722,12 @@ def render_full() -> str:
     extra = (w_ - 2 * m - 40 - 10 * (len(chips) - 1) - sum(nat)) / len(chips)
     cx = m + 20
     for (n, d), nw in zip(chips, nat, strict=True):
-        w = nw + extra
-        svg.add(f'<rect x="{cx:.1f}" y="{ay + 40}" width="{w:.1f}" height="44" rx="10" '
+        chip_w = nw + extra
+        svg.add(f'<rect x="{cx:.1f}" y="{ay + 40}" width="{chip_w:.1f}" height="44" rx="10" '
                 f'fill="{CARD}" stroke="{CARD_EDGE}"/>')
         svg.text(cx + 14, ay + 58, n, size=11.5, family=MONO, fill=INK, weight=600)
         svg.text(cx + 14, ay + 75, d, size=12, fill=MUTED)
-        cx += w + 10
+        cx += chip_w + 10
     svg.add("</svg>")
     return svg.render()
 

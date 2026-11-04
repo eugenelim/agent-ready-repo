@@ -39,19 +39,18 @@
 └── .agents/              # Codex self-host skills (committed, generated)
 ```
 
-`.claude/`, `.codex/`, and `.agents/` are committed, and are generated from each pack's
-`.apm/` sources by `make build-self` **solely so the catalogue eats its
-own dog food** — the Claude Code and Codex projections are active when
-you open this repo in those tools. They are **not** part of any pack's
-deployment surface; adopters never see this exact self-host directory
-set. The adopter-facing equivalents are produced by `make build` into
-`dist/` (gitignored build output, regenerated on every CI run) under
-`dist/claude-plugins/<pack>/.claude-plugin/` and
-`dist/apm/<pack>/`; the install routes project equivalent content
-straight into the adopter's own repo without needing to expose `dist/`.
+`.claude/`, `.codex/`, and `.agents/` are committed projections generated from
+each pack's `.apm/` sources by `make build-self`. They are active when you open
+this repo in those tools, and they are not part of any pack's deployment surface.
+
+Adopter-facing output comes from `make build` into `dist/` (gitignored), under
+`dist/claude-plugins/<pack>/.claude-plugin/` and `dist/apm/<pack>/`. Install
+routes project equivalent content into the adopter's repo without exposing
+`dist/`.
+
 Edit portable primitives under `packs/<pack>/.apm/` and seeds under
-`packs/<pack>/seeds/`, not these projections. See
-[`AGENTS.local.md`](../../AGENTS.local.md) for the full drift workflow.
+`packs/<pack>/seeds/`, never these projections. [`AGENTS.local.md`](../../AGENTS.local.md)
+holds the drift workflow.
 
 ## Subsystems
 

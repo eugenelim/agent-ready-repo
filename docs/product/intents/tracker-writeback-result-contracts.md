@@ -26,12 +26,12 @@ The guarded-write boundary accepts a structurally matching receipt without a sha
 - **Authority:** [spec/tracker-refresh-writeback AC24](../../specs/tracker-refresh-writeback/spec.md)
 - `RefreshResult` is closed through `RESULT_CODES` and the `refresh-result.schema.json` enum, but each processor result still has no closed result-code set, allowing typos to ship silently.
 - A single shared `frozenset` would falsely authorize codes an adapter cannot return. Close each result type's vocabulary and define a deliberate shared base as a multi-file public-result-contract change.
-- The named `WriteBackResult` type no longer exists. Current processor-result types include `RemoteReceiptWriteResult` and `GuardedWriteResult`, both with unconstrained `code: str`; the gap remains while the old type name is stale.
+- Processor-result types are `RemoteReceiptWriteResult` and `GuardedWriteResult` in `packs/core/.apm/skills/work-intake/scripts/refresh.py`, and `WriteBackResult` in each of the `jira-refresh` and `jira-align-refresh` processors under `packs/atlassian/.apm/skills/`. Each carries an unconstrained `code: str`.
 - The work was deferred to avoid widening the reviewed surface after adversarial review round 2.
 
 ## Assumptions
 
-- The processor-result premise changed: `WriteBackResult` has been replaced by `RemoteReceiptWriteResult` and `GuardedWriteResult`, each retaining unconstrained `code: str`.
+- Every processor-result type (`RemoteReceiptWriteResult`, `GuardedWriteResult`, and each Jira processor's `WriteBackResult`) carries an unconstrained `code: str`.
 
 ## Source
 

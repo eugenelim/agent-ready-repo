@@ -1,67 +1,71 @@
 # Runtime mechanism crosswalk
 
-**Purpose:** Map Pi, Claude Code, Codex, Conductor, and tmux mechanisms onto the
-neutral contracts owned by the execution supervisor.
-**Author:** Platform Core
-**Status:** Draft
-**Last updated:** 2026-10-01
-**Reviewers:** Runtime-adapter and Core maintainers
+**STATUS: PLANNED** — runtime adapters, the capability selector, and Pi
+conformance are later slices of the
+[acceptance-centered work loop brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
+(slices 6 and 7), under [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md).
+Only the supervisor-realization column below is current.
 
-## 1. Scope and Context
+The work-loop supervisor reaches an agent runtime only through typed request
+and result contracts, so a runtime changes how a step is hosted and never what
+acceptance means. This page maps each concern to its contract target and to the
+supervisor's current realization.
 
-This document maps runtime mechanisms, not product equivalence. The
-[execution supervisor](work-loop-execution-supervisor.md) owns the contracts;
-no runtime named here owns acceptance meaning or becomes mandatory. Pi is a
+How packs are projected into runtimes is in
+[distribution-routes.md](distribution-routes.md). The comparison of Pi, Claude
+Code, Conductor, and tmux mechanisms is research input in
+[`runtime-mechanism-comparison.md`](../product/research/runtime-mechanism-comparison.md).
+
+## 1. Ownership
+
+The [execution supervisor](work-loop-execution-supervisor.md) owns the
+contracts. No runtime owns acceptance meaning or becomes mandatory. Pi is a
 reference decomposition and optional compatibility target: Core does not
-import, bundle, install, select by default, or depend on Pi.
+import, bundle, install, select by default, or depend on Pi.[^1]
 
-## 2. Pi Reference Decomposition
+## 2. Contract targets and supervisor realization
 
-| Pi package or surface | Architectural lesson | Agent-ready-repo mapping | Adoption |
-| --- | --- | --- | --- |
-| `pi-ai` | Providers sit below loops | Runtime capability | Retain the seam, not the API |
-| `pi-agent-core` | Tool and event loop is separable | External agent extension consuming the neutral protocol | Compatibility target; no bundled adapter or Core dependency |
-| `pi-coding-agent` | Interfaces share mechanics | Supervisor transports | Pattern only |
-| Extensions and resources | Executable modules stay outside core policy | Extensions and skills | Procedure outside policy |
-| Sessions and `pi-durable` | Conversation is not product truth; durability is optional | Journal adapter | Attempts, never acceptance proof |
-| `pi-telemetry` | Events cross typed adapter contracts | Supervisor events and fixtures | Adopt the pattern |
-| `chord` and `pi-tui` | Multiprocess services and UI sit above the runtime | Deferred transports | No core dependency |
+| Concern | Contract target | Supervisor realization |
+| --- | --- | --- |
+| Policy and context | Skills state obligations | `SKILL.md` states obligations; procedure lives in the supervisor |
+| Agent loop | Runtime extension | The host agent issues one supervisor request at a time[^2] |
+| Tool and model binding | Provider capability | Host is implicit |
+| Transport | Request and result contracts | `work-supervisor.py` CLI requests and results[^2] |
+| Recovery state | Replaceable journal | State re-derived from `HEAD`, the product ref, and `delivery/`; the journal is advisory[^3] |
+| Parallelism | Scheduler plus workspace and agent capabilities | Sequential; parallel scheduling is `STATUS: PLANNED` in [loop-parallelism.md](loop-parallelism.md) |
+| Verification and review | Evidence and reports | Gates and reviewer results recorded as delivery records |
+| Security | Shared file and process confinement | Confined-file and process-spec helpers in the `work-loop` scripts[^4] |
 
-## 3. Runtime Crosswalk
+## 3. Adapter invariants
 
-The named sources are [Pi packages](https://github.com/earendil-works/pi#all-packages),
-[Claude Code architecture](https://code.claude.com/docs/en/how-claude-code-works),
-[Claude Code extensions](https://code.claude.com/docs/en/features-overview),
-[Conductor parallel agents](https://www.conductor.build/docs/concepts/parallel-agents),
-[Conductor workspaces](https://www.conductor.build/docs/concepts/workspaces-and-branches),
-[Git worktrees](https://git-scm.com/docs/git-worktree), and
-[tmux sessions](https://github.com/tmux/tmux/wiki/Getting-Started).
+**STATUS: PLANNED.** No runtime adapter, selector, shared adapter suite, or Pi
+conformance environment exists in the tree.[^5] The supervisor's
+[§ 9](work-loop-execution-supervisor.md) hands runtime adapters to this
+mapping as later slices. Each row is a target for those slices.
 
-| Concern | Agent-ready-repo target | Current work-loop | Pi | Claude Code | Conductor | tmux |
-| --- | --- | --- | --- | --- | --- | --- |
-| Policy and context | Skills state obligations | Skill mixes policy and procedure | Resources, prompts, skills | `CLAUDE.md`, rules, skills | Project instructions | Configuration only |
-| Agent loop | Runtime extension | Active host works around phase commands | `pi-agent-core` | Built-in harness loop | Selected coding agent | Any attached process |
-| Tool and model binding | Provider capability | Host is implicit | `pi-ai`, tools, providers | Tools, MCP, plugins | Hosted agent | None |
-| Transport | Request/result contracts | Python engine and cohort commands | JSON, RPC, SDK | CLI, SDK, hooks | UI, terminal, API | CLI and control socket |
-| Recovery state | Replaceable journal | Engine/cohort events and locks | Sessions; optional `pi-durable` | Resumable session | Workspace, branch, chat, process | Server, session, window, pane |
-| Parallelism | Scheduler plus workspace and agent capabilities | Cohorts and waves | Extension concern | Subagents and sessions | Shared or isolated workspaces | Panes without isolation |
-| Verification and review | Evidence and reports | Gates and reviews drive phases | Extension concern | Tools and hooks | Checks and diff review | Process output only |
-| Security | Shared file/process confinement | Prose plus helpers | OS authority unless sandboxed | Permissions and hooks | Workspace is not security | Child-user authority |
-
-## 4. Adapter Invariants
-
-| Invariant | Enforcement |
+| Invariant | Enforcement target |
 | --- | --- |
 | Runtime sophistication cannot change delivery meaning | Every adapter passes the shared semantic and recovery suite |
 | A workspace or terminal is not a sandbox | Untrusted execution requires a verified host containment capability |
-| Session loss cannot erase acceptance facts | Sessions and journals contain only repairable mechanical state |
+| Session loss cannot erase acceptance facts | Sessions and journals contain only repairable mechanical state (current for the supervisor journal; see recovery above) |
 | Missing runtime capabilities degrade safely | The selector chooses the sequential floor or refuses before dispatch |
 | Provider-specific APIs do not enter skill policy | Typed requests and results terminate at the adapter boundary |
 | Optional compatibility cannot become a critical-path dependency | Pi conformance runs from a separately installed environment; supervisor cutover, result integration, parallelism, and legacy removal pass with Pi absent |
 
-## 5. Verification authority
+## 4. Verification authority
 
-The execution supervisor's
-[runtime support matrix](work-loop-execution-supervisor.md#7-quality-scenarios-and-verification)
-is the sole owner of support status, capability declarations, and required
-conformance. This crosswalk adds no runtime-specific proof obligation.
+No runtime support matrix exists. Support status, capability declarations, and
+required conformance are defined with the adapter slices; until then this page
+adds no runtime-specific proof obligation.
+
+## Evidence
+
+[^1]: [`work-loop-execution-supervisor.md`](work-loop-execution-supervisor.md) § 6: the supervisor never imports or executes anything from `tools/`, `packages/`, or another installed package. No script under `packs/core/.apm/skills/work-loop/scripts/` references Pi.
+
+[^2]: `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`.
+
+[^3]: `packs/core/.apm/skills/work-loop/scripts/_supervisor_journal.py`; [supervisor §§ 4–5](work-loop-execution-supervisor.md).
+
+[^4]: `_file_safety.py`, `_confined_mutation.py`, and `_process_safety.py` in `packs/core/.apm/skills/work-loop/scripts/`.
+
+[^5]: Brief slice table: [slices 6 and 7](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices).

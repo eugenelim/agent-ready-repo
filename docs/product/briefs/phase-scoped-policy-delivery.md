@@ -36,7 +36,7 @@ table rather than repeating them.
   built `claude-code` and `codex` projections. No result is claimed for an
   untested host. Byte-equivalence of the registry file itself is not the metric:
   every adapter copies a skill directory byte-for-byte
-  ([cited](../../architecture/skill-and-pack-format.md#L49)), so an empty or
+  ([cited](../../architecture/skill-and-pack-format.md#layer-1--the-skill-an-open-standard)), so an empty or
   wrong registry would satisfy that already.
 
 ## Scope / Non-goals
@@ -105,10 +105,10 @@ rg -n "Shape:|verification mode|TDD|goal-based|visual/manual|infra/deploy|task f
 
 Skills are the available carrier because every adapter copies a skill directory
 byte-for-byte, while projection fans the same pack source to each host
-([cited](../../architecture/skill-and-pack-format.md#L49)).
+([cited](../../architecture/skill-and-pack-format.md#layer-1--the-skill-an-open-standard)).
 `evals/evals.json` already travels inside the optional, projected `evals/`
 directory
-([cited](../../architecture/pack-layout.md#L168)). A new
+([cited](../../architecture/pack-layout.md#boundaries)). A new
 top-level `policies/` directory is not neutral: `CAT-S004` warns on any
 top-level skill subdirectory outside `scripts`, `references`, `assets`, and
 `evals`

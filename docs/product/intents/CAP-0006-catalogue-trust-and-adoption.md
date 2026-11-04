@@ -9,6 +9,7 @@
 - **Parent intent:** opportunity:trustworthy-org-owned-catalogues
 - **Accepted:** 2026-09-24 three independent intent-mode shaping reviews of this revision; two returned zero MALFORMED tokens and one returned MALFORMED(owner) against an Owner field byte-identical to the revision that passed that condition earlier the same day, with CAP-0007 passing it on an identical field in the same minutes; eugenelim confirmed
 - **Shaping-reviewed:** 2026-09-24
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The `catalogue-package-sync` citation no longer points at an `upstream-sync.md § Rollout` section, which the page no longer carries; it links the page itself. This is an evidence-link correction: no opportunity, outcome, boundary, owner, assumption, or projection changed, so the prior review evidence stands.
 
 ## Outcome
 
@@ -74,8 +75,9 @@ child intent produced. They are grouped by the question each answered.
 - **Upstream sync** — an adopter's derived catalogue taking later upstream
   change: `catalogue-sync-dry-run`, `catalogue-sync-apply`, and
   [`catalogue-package-sync`](../../specs/catalogue-package-sync/spec.md), the
-  last phase of
-  [`upstream-sync.md`](../../architecture/catalogue/upstream-sync.md) § Rollout.
+  last phase of the
+  upstream-sync delivery, whose current design is
+  [`upstream-sync.md`](../../architecture/catalogue/upstream-sync.md).
 - **Documentation and navigation** — `documentation-entry-navigation`,
   `rendered-site-link-debt`, `governance-guides-cleanup`,
   `direct-skill-repository-installation`, `lint-performance-p0`.

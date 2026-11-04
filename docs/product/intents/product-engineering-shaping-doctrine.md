@@ -3,6 +3,8 @@
 - **Slug:** `product-engineering-shaping-doctrine` <!-- canonical identity; independent of any filename ordinal -->
 - **Status:** Accepted
 - **Accepted:** 2026-10-01 by eugenelim, lifecycle owner. Revision `8c9328fc8bf98443` returned zero `MALFORMED` tokens in an independent intent-mode shaping review, and a fresh adversarial intent read returned no material open question or replacement validation hook. The feature-level assumption survived its predeclared kill condition, and the remaining work stays one feature projected to one spec and plan.
+
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The shaping skills `frame-intent` and `de-risk-intent` are now the `frame` and `de-risk` modes of the single `intent` skill (product-engineering 1.0.0), and the Digital Experience Contract reference lives under that skill; the five citations were updated. The 2026-10-01 observed-state table was re-checked against the tree and still holds: `place-bet` has no thin-slice, learning-plan or evidence-ladder field, and the `G0`/`G1.5`/`G2` codes remain in `DESIGN.md`, `JOURNEY.md` and the discovery-loop skill. Wording and citation only; the opportunity, outcome, boundary, assumptions, unresolved questions, source and projection are unchanged, so the prior review evidence stands.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -60,7 +62,7 @@ Kill or reframe if thin slice, evidence ladder, or learning contract cannot be e
 
 - The pack-local Digital Experience Contract already defines Evidence Ladder, First-Success Operationalization, Thin Slice, Capabilities, Rollout and Recovery Plan, and Learning Plan. The missing qualitative-feedback and expansion-condition details are additive fields, not a second owner.
 - `place-bet` already owns one `bet.md` handoff and emits rationale, risks, assumptions, a kill condition, and the pointer to capability mapping. It is the natural single writer; no new artifact or loop is needed.
-- `frame-intent` now supplies the human-facing outcome and evidence context, while `de-risk-intent` supplies the predeclared kill condition. `place-bet` can consume those facts without absorbing either skill's job.
+- `intent frame` now supplies the human-facing outcome and evidence context, while `intent de-risk` supplies the predeclared kill condition. `place-bet` can consume those facts without absorbing either skill's job.
 - Capability availability, consent, fallback, retry, duplicate, cancellation, and recovery can remain semantic fields. No required criterion needs MCP, A2A, Agent Skills, or host-specific transport implementation.
 
 The three required additions fit one existing writer and one portable artifact. No kill arm fired. The spec must wire the contract into `place-bet` and its review/eval surfaces rather than redesigning the shaping sequence.
@@ -125,9 +127,9 @@ experience handoff and first-success context, but it does not deliver the
 The unfinished thin-slice, evidence-ladder, and learning-contract rows share a
 cause worth stating before anyone picks them up: **the concepts are already
 defined in this pack and wired to nothing.**
-`frame-intent/references/digital-experience-contract.md` carries § Thin Slice,
+`packs/product-engineering/.apm/skills/intent/references/digital-experience-contract.md` carries § Thin Slice,
 § Evidence Ladder, § Learning Plan and § Instrumentation — and no skill in the
-pack, including `frame-intent` itself, references that file. So the work is not
+pack, including the `intent` skill itself, references that file. So the work is not
 "design these concepts"; it is "wire `place-bet` to definitions that already
 ship". Two gaps survive even there: qualitative feedback and expansion
 conditions are named nowhere in the pack.
@@ -148,7 +150,7 @@ Neither is an RFC-0071 requirement. Both surfaced while working in
 `packs/product-engineering/` and are recorded here because this is the pack's
 intent, not because this intent's decision requires them.
 
-- **A `shaping-review` slot in the discovery sidecar.** `frame-intent` asks the
+- **A `shaping-review` slot in the discovery sidecar.** the `intent` skill's `frame` mode asks the
   author to hold the dispatched-intent-revision binding in prose, because "an
   empty pass state carries no bytes to carry it", so nothing records that an
   optional review ran or against which revision. Storing reviewer-authored text
@@ -170,7 +172,7 @@ intent, not because this intent's decision requires them.
 
 - Implementing MCP, A2A, Agent Skills adapter transports, host-specific runtime
   bridges, or telemetry storage.
-- Replacing `frame-intent`, `de-risk-intent`, or the whole product-engineering
+- Replacing the `intent` skill's `frame` and `de-risk` modes, or the whole product-engineering
   discovery loop.
 - Closing the two pack-local open items above; both need their own owner and
   intake route.

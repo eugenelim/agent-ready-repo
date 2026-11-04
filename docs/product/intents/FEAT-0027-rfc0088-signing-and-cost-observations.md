@@ -27,11 +27,11 @@ browser foundation, or treat an unresolved observation as settled.
 
 ### rfc0088-signing-identity-update-survival
 
-The present run measures signing identity and tamper discrimination, but one installation cannot prove survival across a vendor update. `docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md:96` records that the item stays carried. **Unblocks when:** a second dated observation records the same system browser after a real vendor update.
+The present run measures signing identity and tamper discrimination, but one installation cannot prove survival across a vendor update. `docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md` records that the item stays carried. **Unblocks when:** a second dated observation records the same system browser after a real vendor update.
 
 ### rfc0088-destination-group-split-cost
 
-The reference-consumer spike was a null result because neither browser channel supplied a discriminating authentication oracle. `docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md:30` says no discriminating oracle could be established on either channel. **Unblocks when:** per-group interactive sign-in cost is measured on a destination class with a proven discriminating oracle.
+The reference-consumer spike was a null result because neither browser channel supplied a discriminating authentication oracle. `docs/rfc/0088-notes/spikes/2026-08-24-reference-consumer-observation.md` says no discriminating oracle could be established on either channel. **Unblocks when:** per-group interactive sign-in cost is measured on a destination class with a proven discriminating oracle.
 
 ## Assumptions
 

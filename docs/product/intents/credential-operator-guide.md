@@ -12,7 +12,7 @@ An operator can store a credential by following a dedicated credential-broker se
 
 ## Opportunity
 
-`guides/credential-brokers/` has the author-facing `how-to/add-a-credentialed-skill.md`, whose line 2 summary says `"Build a lint-clean authenticated skill ..."`, but it has no guide for the operator who must store a credential. The credential-setup skill already ships without that guide.
+`guides/credential-brokers/` has the author-facing `how-to/add-a-credentialed-skill.md`, whose summary is `"Keep credentials out of the AI loop ..."`, but it has no guide for the operator who must store a credential. The credential-setup skill already ships without that guide.
 
 ## What this absorbs
 

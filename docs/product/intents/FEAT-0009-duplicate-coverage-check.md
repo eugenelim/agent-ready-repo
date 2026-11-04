@@ -2,13 +2,14 @@
 
 - **Slug:** `duplicate-coverage-check` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The intent-template citation now names the `intent` skill's asset, which replaced `frame-intent` (ADR-0140). The `Depends on:` comment now says what the header does today. The text decides nothing new.
 - **Level:** `feature`
 - **Owner:** eugenelim
 - **Kind:** `opportunity`
 - **Scale:** `app`
 - **Maturity:** `brownfield`
 - **Parent intent:** capability:work-item-capture-and-disposition
-- **Depends on:** docs/product/intents/FEAT-0007-work-item-promotion-routing.md <!-- stated for a reader; the enforceable edge is a typed `needs` entry on the workspace registration, which does not exist yet -->
+- **Depends on:** docs/product/intents/FEAT-0007-work-item-promotion-routing.md <!-- stated for a reader; dispatch reads `Depends on:` on specs and briefs only -->
 - **Decomposed:** 2026-09-19 spec
 
 ## Outcome
@@ -85,7 +86,7 @@ not whether it still holds. Open them.
   proposal trees, plus the registers under `docs/product/findings/`. Which of
   them a check searches is a spec decision, not settled here.
 - **What an intent records about its territory.**
-  `packs/product-engineering/.apm/skills/frame-intent/assets/intent-template.md`.
+  `packs/product-engineering/.apm/skills/intent/assets/intent-template.md`.
   Read its field list against the question of whether coverage is machine-findable.
 - **What a captured item records about scope.** `_validate_project_scope` in
   `packs/core/.apm/skills/project-knowledge/scripts/project_knowledge.py`.

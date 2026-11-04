@@ -3,6 +3,7 @@
 - **Slug:** `catalogue-wave7-marketing-evaluator`
 - **Status:** Accepted
 - **Accepted:** 2026-10-21 by eugenelim, lifecycle owner. Basis: explicit owner direction to accept; the recorded de-risking verdict is re-sequenced behind RFC-0109 slice S4, and intent-mode review of this revision produced no malformed findings.
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The Dependencies and sequencing section and the de-risk verdict now state that RFC-0109 slice S4 has shipped and name the re-de-risk as the next step. These are evidence updates: no opportunity, outcome, boundary, owner, assumption, or projection changed, so the prior review evidence stands.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -63,8 +64,8 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
 
 ### Dependencies and sequencing
 
-- `/evaluate/` depends on [`catalogue-specification-publication`](catalogue-specification-publication.md) for the specification pages its open-formats and versioned-contracts claims link to. [RFC-0109](../../rfc/0109-catalogue-specification-publication.md), accepted on 2026-10-21 and merged in PR #1592 (`99dafc6ef`), governs it. Its slice S4, the one-way 0.1 release, is what unblocks Wave 7's specification links (RFC-0109 D8). Until then only the `draft/` pages from slice S3 exist, and a draft `$id` is not a promise.
-- `/evaluate/` also links into the Build a Catalogue route that [`catalogue-wave6-technical-docs-ia`](catalogue-wave6-technical-docs-ia.md) owns. That intent's Status and Decomposed lines own its state. On `main` at `3cc898b9` there is no Wave 6 spec and no open Wave 6 PR; the owner reports Wave 6 delivery running in parallel.
+- `/evaluate/` depends on [`catalogue-specification-publication`](catalogue-specification-publication.md) for the specification pages its open-formats and versioned-contracts claims link to. [RFC-0109](../../rfc/0109-catalogue-specification-publication.md), accepted on 2026-10-21 and merged in PR #1592 (`99dafc6ef`), governs it. Its slice S4, the one-way 0.1 release (RFC-0109 D8), shipped on 2026-10-23 and published the specification at `/docs/spec/catalogue/0.1/`, so Wave 7's specification links have a stable destination.
+- `/evaluate/` also links into the Build a Catalogue route that [`catalogue-wave6-technical-docs-ia`](catalogue-wave6-technical-docs-ia.md) owns. That intent's Status and Decomposed lines own its state.
 - `workspace.toml` registers [`catalogue-wave9-migration-closeout`](catalogue-wave9-migration-closeout.md) as needing this intent. Wave 7 is therefore on the critical path for closing RFC-0076.
 
 ## Assumptions
@@ -96,7 +97,7 @@ Other owners keep the rest. The Build a Catalogue documentation route belongs to
   8. Optional composition: § 11 of [`catalogue-authoring-standards.md`](../../../guides/_shared/reference/catalogue-authoring-standards.md) and [`pack-catalogue.md`](../../../guides/_shared/explanation/pack-catalogue.md).
   9. Technical evidence: the docs site, `contracts/` in the public repository, and the PyPI destination declared in [`site.toml`](../../../site.toml).
 - **Owner reframe (2026-10-21):** The predeclared line accepted a raw file under `contracts/` as public proof. The owner rejects that: a platform publishes its specification on its website, and `contracts/` mixes catalogue, work-loop, and delivery schemas with no version or stable URL. Without that destination kind, claim 1 (open formats) and claim 2 (versioned contracts) have no published specification page, and claim 9 loses its contracts link.
-- **Verdict:** **Re-sequenced.** The line as written did not fire, but the owner's reframe removes the destination two claims rested on. Wave 7 waits for [`catalogue-specification-publication`](catalogue-specification-publication.md) through RFC-0109 slice S4, and is de-risked again against the published specification once that exists. Whether platform leads make the decision from the page remains `to-validate`.
+- **Verdict:** **Re-sequenced.** The line as written did not fire, but the owner's reframe removes the destination two claims rested on. Wave 7 waited for [`catalogue-specification-publication`](catalogue-specification-publication.md) through RFC-0109 slice S4, which has shipped. The re-de-risk against the published specification is the next shaping step. Whether platform leads make the decision from the page remains `to-validate`.
 - **Adversarial validation hook:** Stop the page if a claim can only be proved by following a link into maintainer-only material. Before release, open every `/evaluate/` link on the deployed site from a signed-out browser, and treat the first link that lands on an RFC, spec, `docs/guides/` page, or a 404 as a stop condition.
 
 ```yaml

@@ -17,7 +17,7 @@ Required dependencies currently pass on installed name and version without catal
 
 ### pre-existing-install-dependency-source-provenance
 
-Required dependencies are satisfied by installed name and version without proving catalogue source identity. `packages/agentbundle/agentbundle/commands/install.py:4487` builds `installed: dict[str, str] = {}`, a pack-name-to-installed-version map that is range-checked without retaining catalogue identity. Persist canonical catalogue identity, migrate state, and require identity together with name and range. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
+Required dependencies are satisfied by installed name and version without proving catalogue source identity. `validate_dependencies_required` in `packages/agentbundle/agentbundle/commands/install.py` builds `installed: dict[str, str] = {}`, a pack-name-to-installed-version map that is range-checked without retaining catalogue identity. Persist canonical catalogue identity, migrate state, and require identity together with name and range. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
 
 ### pack-dependency-scope-qualifier
 
@@ -25,11 +25,11 @@ Dependency validation also unions repository and user installation state, so a r
 
 ### multi-adapter-state-lock-uninstall-upgrade
 
-Uninstall and upgrade bypass `persist_state_locked`, so concurrent state writers can lose an update. `packages/agentbundle/agentbundle/commands/uninstall.py:450` serializes previously loaded state with `serialised = dump_state(state)` after mutation; upgrade likewise serializes at `upgrade.py:598`. Use fresh-state mutate closures and add multi-process install/uninstall/upgrade coverage. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
+Uninstall and upgrade bypass `persist_state_locked`, so concurrent state writers can lose an update. `packages/agentbundle/agentbundle/commands/uninstall.py` serializes previously loaded state with `serialised = dump_state(state)` after mutation; `commands/upgrade.py` likewise serializes with `dump_state` in `_apply_single_row`. Use fresh-state mutate closures and add multi-process install/uninstall/upgrade coverage. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
 
 ### untrusted-catalogue-symlink-exfiltration
 
-Install no longer reads through source symlinks, so the exfiltration primitive is closed, but install still renders without first running `lint_pack`. `packages/agentbundle/agentbundle/commands/install.py:1185` reaches `repo_projection = render_pack(` without an install-path `lint_pack` gate. Gate install-path `render_pack` with `lint_pack` so malicious packs are refused rather than partially dropped. The install-path change is under protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
+Install no longer reads through source symlinks, so the exfiltration primitive is closed, but install still renders without first running `lint_pack`. `_run` in `packages/agentbundle/agentbundle/commands/install.py` reaches `repo_projection = render_pack(` without an install-path `lint_pack` gate. Gate install-path `render_pack` with `lint_pack` so malicious packs are refused rather than partially dropped. The install-path change is under protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
 
 ## Assumptions
 
