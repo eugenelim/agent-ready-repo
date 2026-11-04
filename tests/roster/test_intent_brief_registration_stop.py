@@ -266,7 +266,9 @@ def _repo_origin_intent_and_brief_entries(node: object) -> list[str]:
 def test_ac0030_registry_holds_no_repo_origin_intent_or_brief_entry() -> None:
     import tomllib
 
-    data = tomllib.loads((_REPO / "workspace.toml").read_text(encoding="utf-8"))
+    registry = _REPO / "workspace.toml"
+    # A deleted registry holds no entry.
+    data = tomllib.loads(registry.read_text(encoding="utf-8")) if registry.exists() else {}
     assert _repo_origin_intent_and_brief_entries(data) == []
 
 

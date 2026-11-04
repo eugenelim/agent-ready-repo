@@ -680,7 +680,9 @@ def test_an_update_survives_the_process(tmp_path) -> None:
 def test_workspace_toml_holds_no_cooling_state() -> None:
     import tomllib
 
-    data = tomllib.loads((ROOT / "workspace.toml").read_text(encoding="utf-8"))
+    registry = ROOT / "workspace.toml"
+    # A deleted registry holds no cooling state.
+    data = tomllib.loads(registry.read_text(encoding="utf-8")) if registry.exists() else {}
     forbidden = {"cooling", "review_on", "completed_on", "lifecycle_record"}
 
     def walk(node: object) -> None:

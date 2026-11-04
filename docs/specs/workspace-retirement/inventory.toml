@@ -28,12 +28,6 @@ consumer = "ADR-0119 D4, superseded in part: a tracker-origin intent still regis
 owner = 9
 
 [[row]]
-pattern = "workspace.toml"
-class = "contract"
-consumer = "the registry itself: initiative tables, queues, backlog, and lifecycle collections"
-owner = 9
-
-[[row]]
 pattern = "docs/specs/workspace-retirement/spec.md"
 class = "record"
 consumer = "the retirement spec, part of the retirement record"
