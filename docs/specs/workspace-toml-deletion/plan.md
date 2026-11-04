@@ -1,7 +1,7 @@
 # Plan: Closing the workspace retirement and deleting workspace.toml
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0105 D3 (line 112), gate 4 at line 121, and the certification sentence after the gate list; RFC-0064 § Errata (line 626), whose current-state table ends at row 13; RFC-0055.
   - `tests/roster/test_workspace_retirement_inventory.py`: `_LITERAL_FACTS` (line 435), `_REGISTRY_PATH` (line 447), `_registry_facts` (line 500), `_fact_set` (line 523, which parses the registry at line 536), `check_inventory` (line 274, the owner rule at lines 303 to 320), `check_record` (line 687), the fixture builder that writes a registry (line 1353).

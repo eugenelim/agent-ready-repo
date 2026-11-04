@@ -1,6 +1,6 @@
 # Spec: Closing the workspace retirement and deleting workspace.toml
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Approved:** 2026-11-03 by eugenelim, spec (sha256 `df3dec6e444d262a584d8a5f47f38145ce2e09d9a340d95667e7ff15dda4d357`) and plan (sha256 `8a41b8e11ef277a2e0b9d886e79bf0272265b5aaad4916de0dec06600e05000c`), after five spec-mode shaping and adversarial review rounds and a spec-stage security pass, each adjudicated; the round-5 repairs were accepted without a further round; records under `.context/reviews/workspace-toml-deletion/`. Amended 2026-11-04 before `start`, approved by eugenelim: `Permitted surfaces` adds `tests/roster/test_registry_upgrade_notes.py`'s ledger check, which 9F's head-bound AC-0016 pin forces, and `Depends on:` names 9F's spec.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
