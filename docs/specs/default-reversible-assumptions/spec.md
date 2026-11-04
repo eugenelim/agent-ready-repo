@@ -1,6 +1,6 @@
 # Spec: default reversible assumptions
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -84,43 +84,43 @@ A spec owner using `new-spec` is asked to stop only for the assumptions they alo
 
 ### The sort
 
-- [ ] **AC-0001.** Step 3 contains `An item waits for the owner when it is a product or preference call, a question of who may approve, sign off, or decide, an item touching a protected class, an irreversible choice, or an item with no stated default.`
-- [ ] **AC-0002.** Step 3 contains `Where you cannot tell whether an item is one of these, it is.`
-- [ ] **AC-0003.** Step 3 contains `Every other item is reversible with a stated default` and `It proceeds on that default without waiting.`
-- [ ] **AC-0004.** Step 3 contains `check it against the reversibility test in the routing table above`.
-- [ ] **AC-0005.** `SKILL.md` contains `Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract` exactly once.
-- [ ] **AC-0006.** `SKILL.md` contains `The protected classes are a security boundary, data loss or durability, migration or persisted state, a public interface, and an irreversible operation.` exactly once.
-- [ ] **AC-0007.** Step 3 contains `Defaulting decides only whether an item waits; a load-bearing claim still routes by the routing table.`
+- [x] **AC-0001.** Step 3 contains `An item waits for the owner when it is a product or preference call, a question of who may approve, sign off, or decide, an item touching a protected class, an irreversible choice, or an item with no stated default.`
+- [x] **AC-0002.** Step 3 contains `Where you cannot tell whether an item is one of these, it is.`
+- [x] **AC-0003.** Step 3 contains `Every other item is reversible with a stated default` and `It proceeds on that default without waiting.`
+- [x] **AC-0004.** Step 3 contains `check it against the reversibility test in the routing table above`.
+- [x] **AC-0005.** `SKILL.md` contains `Reversible means undoing it needs no migration, no external side effect, and no change to a user-visible contract` exactly once.
+- [x] **AC-0006.** `SKILL.md` contains `The protected classes are a security boundary, data loss or durability, migration or persisted state, a public interface, and an irreversible operation.` exactly once.
+- [x] **AC-0007.** Step 3 contains `Defaulting decides only whether an item waits; a load-bearing claim still routes by the routing table.`
 
 ### The chat block and the wait
 
-- [ ] **AC-0008.** Step 3's chat-block fence carries the headings `## Verified`, `## Unverified`, and `## Defaulted`, in that order.
-- [ ] **AC-0009.** Step 3 contains `- <category>: <item> — default: <what you build on>; if wrong: <what changes>`.
-- [ ] **AC-0010.** Step 3 contains `**Surface the Unverified list and wait** for confirmation or correction of every item still in it`.
-- [ ] **AC-0011.** Step 3 contains `When Unverified had candidates and sorting moved every one to `## Defaulted`, surface the block and proceed without waiting.`
-- [ ] **AC-0012.** Step 3 contains `When there were no Unverified candidates at all, name the highest-stakes Verified item. If it is a product or preference call, a question of who may approve, sign off, or decide, an item touching a protected class, or an irreversible choice, ask the user to confirm *that one specifically* and wait`.
-- [ ] **AC-0013.** Step 3 contains `Otherwise list it under `## Defaulted` with `default: as verified; if wrong: <what changes>` and proceed. It stays a settled fact and is not written to `## Assumptions`.`
-- [ ] **AC-0014.** Step 3 contains `Write each item sorted out of Unverified into the spec's `## Assumptions` as a defaulted assumption, in the line format that section's comment gives.`
-- [ ] **AC-0025.** Step 3 contains `A default does not approve the spec.`
-- [ ] **AC-0015.** In step 3, the AC-0001 sentence precedes `**Surface the Unverified list and wait**`, which precedes `Only once every waiting item has been signed off`.
+- [x] **AC-0008.** Step 3's chat-block fence carries the headings `## Verified`, `## Unverified`, and `## Defaulted`, in that order.
+- [x] **AC-0009.** Step 3 contains `- <category>: <item> — default: <what you build on>; if wrong: <what changes>`.
+- [x] **AC-0010.** Step 3 contains `**Surface the Unverified list and wait** for confirmation or correction of every item still in it`.
+- [x] **AC-0011.** Step 3 contains `When Unverified had candidates and sorting moved every one to `## Defaulted`, surface the block and proceed without waiting.`
+- [x] **AC-0012.** Step 3 contains `When there were no Unverified candidates at all, name the highest-stakes Verified item. If it is a product or preference call, a question of who may approve, sign off, or decide, an item touching a protected class, or an irreversible choice, ask the user to confirm *that one specifically* and wait`.
+- [x] **AC-0013.** Step 3 contains `Otherwise list it under `## Defaulted` with `default: as verified; if wrong: <what changes>` and proceed. It stays a settled fact and is not written to `## Assumptions`.`
+- [x] **AC-0014.** Step 3 contains `Write each item sorted out of Unverified into the spec's `## Assumptions` as a defaulted assumption, in the line format that section's comment gives.`
+- [x] **AC-0025.** Step 3 contains `A default does not approve the spec.`
+- [x] **AC-0015.** In step 3, the AC-0001 sentence precedes `**Surface the Unverified list and wait**`, which precedes `Only once every waiting item has been signed off`.
 
 ### The template and anti-patterns
 
-- [ ] **AC-0016.** The `## Assumptions` section of `assets/spec.md` names three shapes — `open question`, `named gap`, and `defaulted assumption` — and contains `- Defaulted: <category>: <item> — default: <what was built on>; if wrong: <what changes> (settled by: <owner>)`.
-- [ ] **AC-0017.** The anti-patterns section of `SKILL.md` contains `before every waiting Unverified item has been confirmed`.
-- [ ] **AC-0018.** Every test under `packs/core/tests/skills/new-spec/` passes.
-- [ ] **AC-0019.** Each assertion in an existing file under `packs/core/tests/skills/new-spec/` that differs from `<merge-base>` is named in the ledger with the step-3 sentence that moved it, or the ledger records that none differs.
+- [x] **AC-0016.** The `## Assumptions` section of `assets/spec.md` names three shapes — `open question`, `named gap`, and `defaulted assumption` — and contains `- Defaulted: <category>: <item> — default: <what was built on>; if wrong: <what changes> (settled by: <owner>)`.
+- [x] **AC-0017.** The anti-patterns section of `SKILL.md` contains `before every waiting Unverified item has been confirmed`.
+- [x] **AC-0018.** Every test under `packs/core/tests/skills/new-spec/` passes.
+- [x] **AC-0019.** Each assertion in an existing file under `packs/core/tests/skills/new-spec/` that differs from `<merge-base>` is named in the ledger with the step-3 sentence that moved it, or the ledger records that none differs.
 
 ### Evals and guides
 
-- [ ] **AC-0020.** `new-spec`'s `evals/evals.json` holds a case with id `reversible-assumption-proceeds-on-logged-default` and one with id `migration-assumption-waits-for-owner`, each carrying `id`, `prompt`, `expected_output`, and a non-empty `assertions` list.
-- [ ] **AC-0021.** In `guides/core/how-to/plan-and-execute-non-trivial-work.md`, the text from `### What to expect` to the next `### ` heading contains `## Defaulted` and `Defaulted:` and does not contain `each needing your input`, and the ledger records the check.
-- [ ] **AC-0022.** `guides/core/explanation/core-pack.md` does not contain `stops** before building on them`, and the ledger records the check.
+- [x] **AC-0020.** `new-spec`'s `evals/evals.json` holds a case with id `reversible-assumption-proceeds-on-logged-default` and one with id `migration-assumption-waits-for-owner`, each carrying `id`, `prompt`, `expected_output`, and a non-empty `assertions` list.
+- [x] **AC-0021.** In `guides/core/how-to/plan-and-execute-non-trivial-work.md`, the text from `### What to expect` to the next `### ` heading contains `## Defaulted` and `Defaulted:` and does not contain `each needing your input`, and the ledger records the check.
+- [x] **AC-0022.** `guides/core/explanation/core-pack.md` does not contain `stops** before building on them`, and the ledger records the check.
 
 ### Release
 
-- [ ] **AC-0023.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same version, one patch above `packs/core/pack.toml` at `<merge-base>`.
-- [ ] **AC-0024.** `python3 tools/check-core-release.py --base <merge-base>` exits 0, and the ledger records it.
+- [x] **AC-0023.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry the same version, one patch above `packs/core/pack.toml` at `<merge-base>`.
+- [x] **AC-0024.** `python3 tools/check-core-release.py --base <merge-base>` exits 0, and the ledger records it.
 
 ## Closeout
 

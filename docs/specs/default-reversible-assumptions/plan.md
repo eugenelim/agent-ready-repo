@@ -1,7 +1,7 @@
 # Plan: default reversible assumptions
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations); `packs/core/.apm/skills/new-spec/SKILL.md` step 3 (the gate, its routing table, and its protected-class list); `packs/core/tests/skills/new-spec/test_load_bearing_claim_grounding.py` `_step_3` as the analogous step-scoped content test; `test_acceptance_criteria_discipline.py` (pins `Surface the Unverified list and wait` and its order after the corpus-absence rule); `test_lld_change_preserves_pinned_texts.py` (pins the reversibility condition and a 900-line body budget); `test_artifact_prose_discipline.py` (pins the template's `## Assumptions` shapes).
 
 > **Plan contract:** this is the implementation strategy. After approval, a
