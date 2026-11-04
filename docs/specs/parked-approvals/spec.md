@@ -1,6 +1,6 @@
 # Spec: parked approvals
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0157, RFC-0099, ADR-0154
@@ -155,4 +155,10 @@ none
 
 ## Assumptions
 
-none
+- Security: who may run `park`, `gates`, and `start`, or write under the Git directory, is the host's tool separation, which this delivery does not change — a controller or worker that can do all three can still relay digests no human gave (settled by: the host's permission model; the Agent Rules state the relay limit).
+- Security: lookalike letters and right-to-left letters that need no format character can still mislead a reader of `read` output — AC-0039 covers only characters that render as nothing or reorder text (settled by: a later review if this proves exploitable).
+- Security: the approver's own Git environment (`GIT_DIR`, `GIT_CONFIG_*`, global config) is trusted — the `read` commands neutralize only repository-controlled behaviour.
+- Security: `start`'s `--intent` and `--code-trust` are not pinned to the parked entry; only the two digests are — a controller can start with a different trust from the one the approver saw (settled by: the authority references and review of the start command; a later delivery may pin them).
+- Operations: the `read` commands need Git 2.44 or later for `--no-lazy-fetch`; an older Git fails the command rather than fetching — whether CI runners and adopters meet that floor is checked at code stage.
+- Testing: `test_supervisor_parked_gates.py`, including its pseudo-terminal test, does not run on Windows CI — Windows behaviour of `park` and `gates` is untested.
+- Review: the final narrow-check edit (AC-0003, AC-0006, AC-0009, AC-0038, AC-0039 wording and the matching plan lines) had no spec-stage reviewer pass — the code-stage security, adversarial, and quality passes cover it.
