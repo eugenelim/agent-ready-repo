@@ -214,9 +214,23 @@ Owned by: T3.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py packs/core/tests/skills/work-loop/test_git_history_evidence.py packs/core/tests/pack/test_finding_adjudication_contract.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q` exits 0.
 
+### T14: proof-run refuses outside object sources, and the round-2 test gaps close
+
+**Depends on:** T10, T11, T12
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/evidence-gate.py`, `packs/core/.apm/skills/work-loop/scripts/_git_history.py`, `packs/core/tests/skills/work-loop/test_proof_by_run.py`
+
+**Tests:** TDD — integration through `main` and unit
+- AC-0007: a repository with an alternates file, an `extensions.partialClone` setting, or a promisor remote makes `proof-run` refuse `denied-object-source` with no launch beyond the helper's pinning and config reads, so no lazy fetch can start; the check is the one `git-history` already uses.
+- AC-0008: run from a temp directory outside any repository, `proof-run` refuses with the helper-Git refusal's exact code, under the launch spy.
+- AC-0008: on any file system, a test stubs the directory-identity lookup in `evidence-gate.py` so a differently named directory under `.context/` reports the identity of `.context/reviews`, and `proof-run` refuses `denied-input-path`; it fails if `_input_file` stops calling the identity check.
+- AC-0005: the `check_proof_by_run` outcome table gains a single non-string reference, expecting `denied-proof-run-reference-count`.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_proof_by_run.py packs/core/tests/skills/work-loop/test_git_history_evidence.py -q` exits 0.
+
 ### T8: Core release
 
-**Depends on:** T1, T2, T3, T4, T5, T6, T9, T10, T11, T12, T13
+**Depends on:** T1, T2, T3, T4, T5, T6, T9, T10, T11, T12, T13, T14
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/*.md`, adapter projections
 
