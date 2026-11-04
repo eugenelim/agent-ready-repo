@@ -274,7 +274,8 @@ def test_ac0023_inventory_holds_the_contract_row() -> None:
 
     rows = tomllib.loads(INVENTORY.read_text(encoding="utf-8"))["row"]
     mine = [r for r in rows if r["pattern"] == f"docs/specs/{SLUG}/*"]
-    assert [(r["class"], r["owner"]) for r in mine] == [("contract", 9)]
+    # Once the spec shipped, workspace-toml-deletion moved its row to the history set.
+    assert [(r["class"], r["owner"]) for r in mine] == [("historical", "none")]
 
 
 def test_ac0024_brief_names_the_spec_and_widens_the_non_goal() -> None:

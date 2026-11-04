@@ -1010,7 +1010,8 @@ def _rows() -> list[dict[str, object]]:
 def test_ac0013_inventory_rows() -> None:
     rows = {row["pattern"]: row for row in _rows()}
     own = rows["docs/specs/registry-upgrade-notes/*"]
-    assert (own["class"], own["owner"]) == ("contract", 9)
+    # Once the spec shipped, workspace-toml-deletion moved its row to the history set.
+    assert (own["class"], own["owner"]) == ("historical", "none")
     assert UPGRADE_PAGE in rows
     draft = rows[DRAFT_NOTES]
     assert (draft["class"], draft["owner"]) == ("historical", "none")
