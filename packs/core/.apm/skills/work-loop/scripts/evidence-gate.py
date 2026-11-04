@@ -53,6 +53,9 @@ _DETAILS = {
         "Use `git-history --path <path> [--base <commit>]`, each option at most once."
     ),
     "denied-tree-dirty": "Commit or discard changes to tracked files, then retry.",
+    "denied-git-config": (
+        "Remove the repository config entries that make Git run a program, then retry."
+    ),
     "denied-input-path": (
         "Pass files under .context/, outside .context/reviews/ and .context/proof-runs/."
     ),
@@ -266,8 +269,14 @@ def _run_proof(args: argparse.Namespace) -> dict[str, Any]:
     mutation = _sibling("_evidence_gate_confined_mutation", "_confined_mutation.py")
     assessment = _sibling("_evidence_gate_review_assessment", "_review_assessment.py")
     git = module.HardenedGit(Path.cwd())
+    if module.code_running_keys(git.config_entries()):
+        raise _ProofRefused("denied-git-config")
     head = git.run("rev-parse", "--verify", "HEAD^{commit}").decode("ascii").strip()
-    if git.run("status", "--porcelain=v1", "-z", "--untracked-files=no"):
+    # Ignoring submodule dirtiness keeps status from running inside a submodule, whose own
+    # config Git would honor; a submodule checked out at another commit still shows.
+    if git.run(
+        "status", "--porcelain=v1", "-z", "--untracked-files=no", "--ignore-submodules=dirty"
+    ):
         raise _ProofRefused("denied-tree-dirty")
     context = git.pins.root / ".context"
     command = _read_input(safety, context, args.command_file)

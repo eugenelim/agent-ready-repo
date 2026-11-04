@@ -744,3 +744,51 @@ def test_t9_identical_rerun_holds_for_maximal_inflating_input(t4_run, t4_repo) -
     assert t4_run()[0] == 0
     assert t4_repo.envelopes() == [first]
     assert first.read_bytes() == data and first.stat().st_mtime_ns == before
+
+
+# --- T10: the tree check runs no configured program -------------------------
+
+
+def _t10_submodule(repo: _T4Repo, tmp_path: Path) -> Path:
+    """Add a one-file submodule to *repo*, commit it, and return the submodule path."""
+    origin = tmp_path / "origin"
+    origin.mkdir()
+    _t4_git(origin, "init", "-q", "-b", "main")
+    (origin / "f.txt").write_text("one\n")
+    (origin / ".gitattributes").write_text("f.txt filter=x\n")
+    _t4_git(origin, "add", "--", ".")
+    _t4_git(origin, "-c", "commit.gpgsign=false", "commit", "-q", "-m", "s")
+    _t4_git(repo.path, "-c", "protocol.file.allow=always", "submodule", "add", "-q",
+            str(origin), "s")
+    _t4_git(repo.path, "-c", "commit.gpgsign=false", "commit", "-q", "-m", "add s")
+    return repo.path / "s"
+
+
+def test_t10_submodule_filter_config_is_never_run(t4_run, t4_repo, tmp_path: Path) -> None:
+    sub = _t10_submodule(t4_repo, tmp_path)
+    marker = tmp_path / "marker"
+    script = tmp_path / "filter.sh"
+    script.write_text(f"#!/bin/sh\ntouch {marker}\ncat\n")
+    script.chmod(0o755)
+    _t4_git(sub, "config", "filter.x.clean", str(script))
+    (sub / "f.txt").write_text("one\n")  # same bytes, new stat data
+    os.utime(sub / "f.txt", (1, 1))
+    code, out = t4_run()
+    assert code == 0, out
+    assert not marker.exists()
+
+
+def test_t10_submodule_at_other_commit_is_dirty(t4_run, t4_repo, tmp_path: Path) -> None:
+    sub = _t10_submodule(t4_repo, tmp_path)
+    (sub / "f.txt").write_text("two\n")
+    _t4_git(sub, "add", "--", "f.txt")
+    _t4_git(sub, "-c", "commit.gpgsign=false", "commit", "-q", "-m", "moved")
+    _t4_refused(t4_run(), "denied-tree-dirty", t4_repo, [])
+
+
+def test_t10_code_running_config_is_refused_before_any_run(
+    t4_run, t4_repo, t4_launches
+) -> None:
+    _t4_git(t4_repo.path, "config", "gpg.program", "/bin/true")
+    _t4_refused(t4_run(), "denied-git-config", t4_repo, [])
+    assert all(_t4_helper_call(argv) for argv in t4_launches), t4_launches
