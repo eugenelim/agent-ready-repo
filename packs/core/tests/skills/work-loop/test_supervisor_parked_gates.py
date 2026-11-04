@@ -1002,3 +1002,28 @@ def test_t4_ac0035_and_ac0039_the_first_applicable_digest_refusal_wins(tmp_path:
     _refused_start(repo, "approval-digest-required", "owner", "--approved-spec-digest", ZEROS)
     _refused_start(repo, "approval-digest-required", "owner", "--approved-plan-digest", ZEROS)
     _refused_start(repo, "approval-digest-mismatch", "owner", *_pins(spec, ZEROS))
+
+
+# ── T5: a parked gate is never approved by default ───────────────────────────
+
+
+def test_t5_ac0019_a_parked_gate_with_no_answer_is_never_approved(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    code, parked = _park(repo)
+    assert code == 0 and parked["status"] == "parked", parked
+    for _ in range(3):
+        (entry,) = _gates(repo)
+        assert entry["state"] == "pending"
+    approvals = repo / h.SPEC_DIR / "delivery" / "approvals.jsonl"
+
+    # A non-approver sets both statuses and edits the spec body; no human answered.
+    _edit(repo, "spec.md", "**Status:** Draft", "**Status:** Implementing")
+    _edit(repo, "plan.md", "**Status:** Drafting", "**Status:** Executing")
+    _edit(repo, "spec.md", "answers 42.", "answers 43.")
+    _commit(repo, "statuses set with no answer")
+
+    pins = _pins(parked["spec_digest"], parked["plan_digest"])
+    _refused_start(repo, "approval-digest-mismatch", "owner", *pins)
+    assert not approvals.exists() and _approval_count(repo) == 0
+    _refused_start(repo, "approval-digest-required", "owner")
+    assert not approvals.exists() and _approval_count(repo) == 0
