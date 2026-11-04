@@ -265,6 +265,39 @@ def _recorded_commit_holds(ws: Any, admission: Any, rec: dict[str, Any]) -> bool
     return True
 
 
+def _already_admitted(
+    ws: Any, admission: Any, spec_text: str, intent: str, code_trust: str
+) -> bool:
+    """Whether `start` with *intent* and *code_trust* would answer `current` for the spec.
+
+    True when the latest approval pair at HEAD carries the envelope fingerprint the
+    spec derives now, *intent*, and *code_trust*. May raise `admission.Refusal` or
+    a Git error when the records cannot be read.
+    """
+    approvals = ws.approvals("HEAD")
+    if not approvals:
+        return False
+    refs, _cited = ws.envelope(spec_text)
+    envelope = admission.sibling("_acceptance.py").derive_envelope(refs)
+    latest = approvals[-1]
+    return bool(
+        latest["envelope"]["envelope_fingerprint"] == envelope["envelope_fingerprint"]
+        and latest["terminal_intent"] == intent
+        and latest["code_trust"] == code_trust
+    )
+
+
+def _status_fit(
+    admission: Any, gate: str, spec_text: str, plan_text: str
+) -> tuple[bool, str | None, str | None]:
+    """``(fits, spec status, plan status)``: whether *gate* fits the two artifacts' statuses."""
+    want_spec, want_plan = _GATE_STATUSES[gate]
+    spec_status = admission._projector.spec_status(spec_text)
+    plan_status = admission._projector.plan_status(plan_text)
+    fits = spec_status == want_spec and (want_plan is None or plan_status == want_plan)
+    return fits, spec_status, plan_status
+
+
 def park(
     ws: Any, admission: Any, *, gate: str, intent: str, code_trust: str
 ) -> dict[str, Any]:
@@ -301,23 +334,15 @@ def park(
     for name, data in (("spec.md", spec_bytes), ("plan.md", plan_bytes)):
         if not _is_clean(ws, f"{spec_rel}/{name}", data):
             raise refuse("gate-uncommitted", f"{name} differs from its committed bytes at HEAD")
-    approvals = ws.approvals("HEAD")
-    if approvals:
-        refs, _cited = ws.envelope(spec_text)
-        envelope = admission.sibling("_acceptance.py").derive_envelope(refs)
-        latest = approvals[-1]
-        if (
-            latest["envelope"]["envelope_fingerprint"] == envelope["envelope_fingerprint"]
-            and latest["terminal_intent"] == intent
-            and latest["code_trust"] == code_trust
-        ):
-            raise refuse(
-                "gate-already-admitted", "start would answer current for this intent and trust"
-            )
+    if _already_admitted(ws, admission, spec_text, intent, code_trust):
+        raise refuse(
+            "gate-already-admitted", "start would answer current for this intent and trust"
+        )
     want_spec, want_plan = _GATE_STATUSES[gate]
-    spec_status = admission._projector.spec_status(spec_text)
-    plan_status = admission._projector.plan_status(plan_bytes.decode("utf-8", "replace"))
-    if spec_status != want_spec or (want_plan is not None and plan_status != want_plan):
+    fits, spec_status, plan_status = _status_fit(
+        admission, gate, spec_text, plan_bytes.decode("utf-8", "replace")
+    )
+    if not fits:
         raise refuse(
             "gate-status-mismatch",
             f"{gate} needs spec {want_spec}"
@@ -381,3 +406,158 @@ def park(
             "gate-record-unwritable", f"the park record could not be written: {exc}"
         ) from exc
     return {"status": "parked", **{k: v for k, v in body.items() if k != "schema_version"}}
+
+
+# ── gates ────────────────────────────────────────────────────────────────────
+
+_RECORD_NAME_RE = re.compile(r"[0-9a-f]{16}\.json")
+_READ_PREFIX = "git --no-pager --no-replace-objects --no-lazy-fetch cat-file blob"
+_NO_ANSWER = (
+    "the gate stays unapproved; the controller dispatches no implementation work for this spec"
+)
+_REJECT = "the pair returns to Draft and Drafting and is reviewed again"
+ANSWERS: dict[str, dict[str, str]] = {
+    "spec-approved": {
+        "approve": "the spec approver writes Status: Approved and the plan Changelog entry; "
+        "the controller then parks plan-approved",
+        "reject": _REJECT,
+        "no-answer": _NO_ANSWER,
+    },
+    "plan-approved": {
+        "approve": "the plan approver writes Status: Approved and the Changelog entry; the "
+        "controller runs start with the spec digest from the spec approver's own answer and "
+        "the plan digest from the plan approver's own answer",
+        "reject": _REJECT,
+        "no-answer": _NO_ANSWER,
+    },
+}
+
+
+def _store_state(git_dir: Path) -> str:
+    """``absent``, ``plain`` or ``bad``: what the store's `gates/` path is, link-free."""
+    current = git_dir
+    for part in _STORE_REL.split("/"):
+        current = current / part
+        try:
+            info = os.lstat(current)
+        except FileNotFoundError:
+            return "absent"
+        except OSError:
+            return "bad"
+        if stat.S_ISLNK(info.st_mode) or not stat.S_ISDIR(info.st_mode):
+            return "bad"
+    return "plain"
+
+
+def _read_entry(fs: Any, gates_dir: Path, name: str) -> bytes | None:
+    """The bytes of one store entry, or ``None`` when it is not a readable small regular file.
+
+    A non-regular entry or one over the size bound is judged by `lstat` alone, unread.
+    """
+    path = gates_dir / name
+    try:
+        info = os.lstat(path)
+        if not stat.S_ISREG(info.st_mode) or info.st_size > _MAX_RECORD_BYTES:
+            return None
+        return bytes(fs.read_confined_regular_file(gates_dir, path, max_bytes=_MAX_RECORD_BYTES))
+    except (OSError, fs.UnsafeContentError):
+        return None
+
+
+def _invalid_entry(name: str, data: bytes | None) -> dict[str, Any]:
+    """The listing entry for a store entry that is not a valid park record."""
+    entry: dict[str, Any] = {"state": "invalid"}
+    if data is not None:
+        try:
+            body = json.loads(data.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            body = None
+        if isinstance(body, dict) and safe_spec_path(body.get("spec_dir")):
+            entry["spec_dir"] = body["spec_dir"]
+    if _RECORD_NAME_RE.fullmatch(name):
+        entry["record"] = name
+    return entry
+
+
+def _is_pending(ws: Any, admission: Any, fs: Any, name: str, rec: dict[str, Any]) -> bool:
+    """Whether the record still describes a waiting gate: name, commit, working tree, statuses."""
+    if name != record_name(rec["spec_dir"]):
+        return False
+    texts: dict[str, str] = {}
+    try:
+        for art, key in (("spec.md", "spec_digest"), ("plan.md", "plan_digest")):
+            committed = ws.git.show(f"{ws.spec_rel}/{art}", rec["commit"])
+            working = _read_artifact(ws, fs, art)
+            if committed is None or working is None:
+                return False
+            if gate_digest(committed, name=art) != rec[key]:
+                return False
+            if gate_digest(working, name=art) != rec[key]:
+                return False
+            texts[art] = committed.decode("utf-8")
+        return _status_fit(admission, rec["gate"], texts["spec.md"], texts["plan.md"])[0]
+    except (GateDigestRefused, admission._git.SupervisorGitError, OSError, ValueError):
+        return False
+
+
+def _valid_entry(
+    root: Path, admission: Any, fs: Any, name: str, rec: dict[str, Any]
+) -> dict[str, Any] | None:
+    """The listing entry for a valid record, or ``None`` when `park` would call it admitted."""
+    ws = admission.Workspace(root, rec["spec_dir"])
+    ws.git.hardened.no_lazy_fetch = True  # a missing object fails, never fetches
+    state = "stale"
+    try:
+        working_spec = _read_artifact(ws, fs, "spec.md")
+        if working_spec is not None and _already_admitted(
+            ws, admission, working_spec.decode("utf-8"), rec["intent"], rec["code_trust"]
+        ):
+            return None
+        if working_spec is not None and _is_pending(ws, admission, fs, name, rec):
+            state = "pending"
+    except (
+        admission.Refusal, admission._git.SupervisorGitError, OSError, ValueError, KeyError,
+        TypeError,
+    ):
+        state = "stale"  # records that cannot be read never list as approvable
+    return {
+        "spec_dir": rec["spec_dir"],
+        "gate": rec["gate"],
+        "spec_digest": rec["spec_digest"],
+        "plan_digest": rec["plan_digest"],
+        "intent": rec["intent"],
+        "code_trust": rec["code_trust"],
+        "commit": rec["commit"],
+        "read": [f"{_READ_PREFIX} {rec['commit']}:{rec['spec_dir']}/{art}"
+                 for art in ("spec.md", "plan.md")],
+        "answers": dict(ANSWERS[rec["gate"]]),
+        "state": state,
+    }
+
+
+def list_gates(root: Path, admission: Any) -> list[dict[str, Any]]:
+    """Every park record's listing entry, sorted by spec directory then record; writes nothing."""
+    fs = admission.sibling("_file_safety.py")
+    git_dir = admission._git.HardenedGit(root).pins.git_dir
+    kind = _store_state(git_dir)
+    if kind == "absent":
+        return []
+    if kind == "bad":
+        return [{"state": "invalid"}]
+    gates_dir = git_dir / _STORE_REL
+    try:
+        with os.scandir(gates_dir) as scan:
+            names = sorted(entry.name for entry in scan)
+    except OSError:
+        return [{"state": "invalid"}]
+    found: list[tuple[str, str, dict[str, Any]]] = []
+    for name in names:
+        data = _read_entry(fs, gates_dir, name)
+        rec = valid_record(root, data) if data is not None else None
+        entry = _invalid_entry(name, data) if rec is None else _valid_entry(
+            root, admission, fs, name, rec
+        )
+        if entry is not None:
+            found.append((entry.get("spec_dir", ""), entry.get("record", name), entry))
+    found.sort(key=lambda item: item[:2])
+    return [item[2] for item in found]

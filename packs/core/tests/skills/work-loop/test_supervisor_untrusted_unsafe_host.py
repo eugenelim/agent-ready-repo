@@ -47,9 +47,9 @@ def _verbs() -> list[str]:
     return sorted(action.choices)
 
 
-# `park` is judged as trusted: it writes one supervisor-derived file and is covered by its
-# own test below, so the walks over every verb leave it out.
-_JUDGED_AS_TRUSTED = {"park"}
+# `park` is judged as trusted: it writes one supervisor-derived file. `gates` writes nothing
+# and skips the check. Both are covered by their own tests below, so the walks leave them out.
+_JUDGED_AS_TRUSTED = {"park", "gates"}
 
 
 def _walked() -> list[str]:
@@ -64,6 +64,8 @@ def _argv(repo: Path, verb: str, tmp_path: Path, trust: str = "untrusted") -> li
     if verb == "park":
         return ["park", spec, "--gate", "spec-approved", "--intent", "code",
                 "--code-trust", trust]
+    if verb == "gates":
+        return ["gates"]
     if verb == "report":
         result = tmp_path / "result.json"
         result.write_text("{}", encoding="utf-8")
@@ -116,7 +118,7 @@ def _commit_approvals(repo: Path, text: str) -> None:
 
 
 def test_verb_list_is_read_from_the_parser() -> None:
-    assert {"start", "next", "report", "status", "resolve-effect", "park"} <= set(_verbs())
+    assert {"start", "next", "report", "status", "resolve-effect", "park", "gates"} <= set(_verbs())
 
 
 def test_t2_park_is_judged_as_trusted_on_an_unsafe_host(
@@ -136,6 +138,19 @@ def test_t2_park_is_judged_as_trusted_on_an_unsafe_host(
     _refused(repo, _argv(repo, "next", tmp_path))  # the untrusted pair at HEAD is in force
     code, out = h.run_cli(repo, *_argv(repo, "park", tmp_path, "trusted"))
     assert code == 0 and out["status"] == "parked", out
+
+
+def test_t3_gates_runs_on_an_unsafe_host_with_an_untrusted_pair(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _admit(repo, tmp_path, "untrusted")
+    _race_free(monkeypatch, query, False)
+    _refused(repo, _argv(repo, "next", tmp_path))  # the untrusted pair at HEAD is in force
+    before = _snapshot(repo)
+    code, out = h.run_cli(repo, *_argv(repo, "gates", tmp_path))
+    assert code == 0 and out == {"gates": []}, out
+    assert _snapshot(repo) == before
 
 
 def test_start_untrusted_refuses(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, query: object) -> None:

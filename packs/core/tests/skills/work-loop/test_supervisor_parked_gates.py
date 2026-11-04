@@ -1,4 +1,4 @@
-"""`park`: record a waiting approval gate without touching Git or the working tree.
+"""`park` and `gates`: record a waiting approval gate, and list it, without touching Git.
 
 Each test drives the supervisor CLI on a throwaway Git repository.
 """
@@ -9,6 +9,8 @@ import hashlib
 import importlib.util
 import json
 import os
+import select
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -429,3 +431,299 @@ def test_t2_ac0039_invalid_utf8_refuses(tmp_path: Path) -> None:
     path.write_bytes(path.read_bytes() + b"\xff\xfe\n")
     _commit(repo)
     _refused(repo, "gate-unsafe-content")
+
+
+# ── gates ────────────────────────────────────────────────────────────────────
+
+READ_PREFIX = "git --no-pager --no-replace-objects --no-lazy-fetch cat-file blob"
+
+
+def _gates(repo: Path) -> list[dict[str, Any]]:
+    code, out = h.run_cli(repo, "gates")
+    assert code == 0 and set(out) == {"gates"}, out
+    return out["gates"]
+
+
+def _plant(repo: Path, name: str, body: dict[str, Any] | bytes) -> Path:
+    directory = _gates_dir(repo)
+    directory.mkdir(parents=True, exist_ok=True)
+    path = directory / name
+    path.write_bytes(
+        body if isinstance(body, bytes)
+        else (json.dumps(body, sort_keys=True, separators=(",", ":")) + "\n").encode()
+    )
+    return path
+
+
+def _parked_body(repo: Path, **changes: Any) -> dict[str, Any]:
+    """The parked record's body, after a `park`, with *changes* applied."""
+    (record,) = _records(repo)
+    return {**json.loads(record.read_text(encoding="utf-8")), **changes}
+
+
+def _by_state(entries: list[dict[str, Any]], state: str) -> list[dict[str, Any]]:
+    return [e for e in entries if e["state"] == state]
+
+
+def test_t3_ac0009_entry_fields_and_read_commands(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _, parked = _park(repo)
+    (entry,) = _gates(repo)
+    assert set(entry) == {
+        "spec_dir", "gate", "spec_digest", "plan_digest", "intent", "code_trust", "commit",
+        "read", "answers", "state",
+    }
+    assert {k: entry[k] for k in parked if k != "status"} == {
+        k: v for k, v in parked.items() if k != "status"
+    }
+    commit = parked["commit"]
+    assert entry["read"] == [
+        f"{READ_PREFIX} {commit}:{h.SPEC_DIR}/spec.md",
+        f"{READ_PREFIX} {commit}:{h.SPEC_DIR}/plan.md",
+    ]
+    assert entry["state"] == "pending"
+
+
+def test_t3_ac0009_no_gates_directory_lists_nothing(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    code, out = h.run_cli(repo, "gates")
+    assert code == 0 and out == {"gates": []}
+
+
+def test_t3_ac0009_entries_sort_by_spec_dir(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    shutil.copytree(repo / h.SPEC_DIR, repo / "docs" / "specs" / "alpha")
+    _commit(repo, "second spec")
+    for spec_dir in (h.SPEC_DIR, "docs/specs/alpha"):
+        code, out = _park(repo, spec_dir=spec_dir)
+        assert code == 0, out
+    assert [e["spec_dir"] for e in _gates(repo)] == ["docs/specs/alpha", h.SPEC_DIR]
+
+
+def _read_with_pty(repo: Path, command: str) -> tuple[int, bytes]:
+    """Run *command* with a pseudo-terminal as stdout; return its exit code and raw output."""
+    import tty  # POSIX only; the caller skips where there is no pseudo-terminal
+
+    master, slave = os.openpty()
+    tty.setraw(slave)  # no newline translation: the bytes must come back as stored
+    try:
+        proc = subprocess.Popen(  # noqa: S603 - a fixed git argv from the listing
+            command.split(), cwd=repo, stdout=slave, stderr=subprocess.DEVNULL,
+            env={**os.environ, **h.GIT_ENV},
+        )
+        chunks = []
+        # Drain while the slave end is still open: some hosts drop unread data when it closes.
+        while True:
+            ready = select.select([master], [], [], 0.2)[0]
+            if ready:
+                chunks.append(os.read(master, 65536))
+            elif proc.poll() is not None:
+                break
+        return proc.wait(timeout=60), b"".join(chunks)
+    finally:
+        os.close(slave)
+        os.close(master)
+
+
+def test_t3_ac0009_read_commands_ignore_repository_behaviour(tmp_path: Path) -> None:
+    if not hasattr(os, "openpty"):
+        pytest.skip("no pseudo-terminal on this platform")
+    repo = _repo(tmp_path)
+    _, parked = _park(repo)
+    baseline = _gates(repo)
+    blob = h.git(repo, "rev-parse", f"HEAD:{h.SPEC_DIR}/spec.md").strip()
+    other = subprocess.run(
+        ["git", "hash-object", "-w", "--stdin"], cwd=repo, input=b"swapped\n",
+        capture_output=True, check=True, env={**os.environ, **h.GIT_ENV},
+    ).stdout.decode().strip()
+    h.git(repo, "replace", blob, other)
+    marker = tmp_path / "ran"
+    program = tmp_path / "planted.sh"
+    program.write_text(f"#!/bin/sh\ntouch {marker}\ncat\n", encoding="utf-8")
+    program.chmod(0o755)
+    for key, value in (
+        ("pager.cat-file", str(program)), ("core.pager", str(program)),
+        ("core.repositoryformatversion", "1"), ("extensions.partialClone", "origin"),
+        ("remote.origin.url", "ssh://example.invalid/none"), ("remote.origin.promisor", "true"),
+        ("core.sshCommand", str(program)),
+    ):
+        h.git(repo, "config", key, value)
+    assert _gates(repo) == baseline  # listing and digests unchanged
+
+    for command in entry_read_commands(baseline):
+        code, output = _read_with_pty(repo, command)
+        assert code == 0, command
+        name = command.rsplit("/", 1)[1]
+        assert output == (repo / h.SPEC_DIR / name).read_bytes(), command
+    assert not marker.exists()
+    assert h.git(repo, "cat-file", "blob", blob) == "swapped\n"
+
+    h.git(repo, "replace", "-d", blob)
+    (repo / ".git" / "objects" / blob[:2] / blob[2:]).unlink()
+    code, _ = _read_with_pty(repo, entry_read_commands(baseline)[0])
+    assert code != 0 and not marker.exists()
+    (entry,) = _gates(repo)
+    assert entry["state"] == "stale" and entry["spec_digest"] == parked["spec_digest"]
+    assert not marker.exists()
+
+
+def entry_read_commands(entries: list[dict[str, Any]]) -> list[str]:
+    (entry,) = entries
+    return list(entry["read"])
+
+
+def test_t3_ac0010_answers_are_fixed_per_gate(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    (entry,) = _gates(repo)
+    answers = entry["answers"]
+    assert set(answers) == {"approve", "reject", "no-answer"}
+    assert "unapproved" in answers["no-answer"]
+    assert answers["approve"].endswith("the controller then parks plan-approved")
+
+    _edit(repo, "spec.md", "**Status:** Draft", "**Status:** Approved")
+    _commit(repo, "spec approved")
+    _park(repo, "plan-approved")
+    plan_gate = [e for e in _gates(repo) if e["gate"] == "plan-approved"]
+    (plan_entry,) = plan_gate
+    assert plan_entry["state"] == "pending"
+    approve = plan_entry["answers"]["approve"]
+    assert "spec digest from the spec approver's own answer" in approve
+    assert "plan digest from the plan approver's own answer" in approve
+    assert "unapproved" in plan_entry["answers"]["no-answer"]
+    assert plan_entry["answers"]["reject"] == answers["reject"]
+
+
+def test_t3_ac0011_pending_requires_every_condition(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    (record,) = _records(repo)
+    assert [e["state"] for e in _gates(repo)] == ["pending"]
+
+    # a well-formed record under another name is stale; the right name stays pending
+    _plant(repo, "0123456789abcdef.json", record.read_bytes())
+    assert sorted(e["state"] for e in _gates(repo)) == ["pending", "stale"]
+    (_gates_dir(repo) / "0123456789abcdef.json").unlink()
+
+    # a plan-approved record for a Draft spec fits no status
+    _plant(repo, record.name, _parked_body(repo, gate="plan-approved"))
+    assert [e["state"] for e in _gates(repo)] == ["stale"]
+
+
+def test_t3_ac0011_older_commit_with_live_digests_is_stale(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    older = h.git(repo, "rev-parse", "HEAD").strip()
+    _edit(repo, "spec.md", "answers 42.", "answers 43.")
+    _commit(repo, "newer spec")
+    _park(repo)
+    assert [e["state"] for e in _gates(repo)] == ["pending"]
+    (record,) = _records(repo)
+    _plant(repo, record.name, _parked_body(repo, commit=older))
+    (entry,) = _gates(repo)
+    assert entry["state"] == "stale" and entry["commit"] == older
+
+
+def test_t3_ac0011_unreadable_commit_and_edits_are_stale(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    (record,) = _records(repo)
+    good = _parked_body(repo)
+    _plant(repo, record.name, {**good, "commit": "1" * 40})
+    assert [e["state"] for e in _gates(repo)] == ["stale"]
+    _plant(repo, record.name, good)
+    assert [e["state"] for e in _gates(repo)] == ["pending"]
+    _edit(repo, "plan.md", "Build it.", "Build it well.")  # the working tree moves on
+    assert [e["state"] for e in _gates(repo)] == ["stale"]
+
+
+def test_t3_ac0012_an_admitted_record_is_omitted(tmp_path: Path) -> None:
+    repo = _repo(tmp_path, spec=sup.SPEC, plan=sup.PLAN)
+    _admit(repo)
+    body = {
+        "schema_version": 1, "spec_dir": h.SPEC_DIR, "gate": "plan-approved", "intent": "code",
+        "code_trust": "trusted", "spec_digest": "a" * 64, "plan_digest": "b" * 64,
+        "commit": h.git(repo, "rev-parse", "HEAD").strip(),
+    }
+    _plant(repo, _record_name(), body)
+    assert _gates(repo) == []
+    _plant(repo, _record_name(), {**body, "code_trust": "untrusted"})  # park would park it
+    (entry,) = _gates(repo)
+    assert entry["state"] == "stale" and entry["code_trust"] == "untrusted"
+
+
+def test_t3_ac0013_ac0031_bad_entries_list_invalid_beside_a_good_one(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    good = _parked_body(repo)
+    (record,) = _records(repo)
+    directory = _gates_dir(repo)
+    (directory / "aaaaaaaaaaaaaaaa.json").symlink_to(record)
+    (directory / "bbbbbbbbbbbbbbbb.json").mkdir()
+    padded = json.dumps(good).encode() + b" " * 5000
+    _plant(repo, "cccccccccccccccc.json", padded)
+    _plant(repo, "dddddddddddddddd.json", {**good, "spec_dir": "docs/specs/a;b$(x)"})
+    _plant(repo, "eeeeeeeeeeeeeeee.json", {**good, "commit": "G" * 40})
+    _plant(repo, "not-a-record.txt", b"{not json")
+    _plant(repo, "ffffffffffffffff.json", {**good, "extra": 1})
+    entries = _gates(repo)
+    assert [e["state"] for e in entries].count("pending") == 1
+    invalid = {e.get("record", "<none>"): e for e in _by_state(entries, "invalid")}
+    assert set(invalid) == {
+        "aaaaaaaaaaaaaaaa.json", "bbbbbbbbbbbbbbbb.json", "cccccccccccccccc.json",
+        "dddddddddddddddd.json", "eeeeeeeeeeeeeeee.json", "<none>", "ffffffffffffffff.json",
+    }
+    for entry in invalid.values():
+        assert set(entry) <= {"state", "spec_dir", "record"}
+    assert "spec_dir" not in invalid["aaaaaaaaaaaaaaaa.json"]  # not a regular file, unread
+    assert "spec_dir" not in invalid["bbbbbbbbbbbbbbbb.json"]
+    assert "spec_dir" not in invalid["cccccccccccccccc.json"]  # over 4096 bytes, unread
+    assert "spec_dir" not in invalid["dddddddddddddddd.json"]  # not a safe path
+    assert invalid["eeeeeeeeeeeeeeee.json"]["spec_dir"] == h.SPEC_DIR
+    assert invalid["ffffffffffffffff.json"]["spec_dir"] == h.SPEC_DIR
+    assert "record" not in invalid["<none>"] and "spec_dir" not in invalid["<none>"]
+
+
+def test_t3_ac0031_a_spec_dir_through_a_link_or_missing_is_invalid(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    good = _parked_body(repo)
+    _plant(repo, "1111111111111111.json", {**good, "spec_dir": "docs/specs/missing"})
+    (repo / "docs" / "specs" / "link").symlink_to(repo / h.SPEC_DIR)
+    _plant(repo, "2222222222222222.json", {**good, "spec_dir": "docs/specs/link"})
+    invalid = _by_state(_gates(repo), "invalid")
+    assert sorted(e["record"] for e in invalid) == ["1111111111111111.json", "2222222222222222.json"]
+
+
+def test_t3_ac0039_a_hidden_character_makes_the_entry_stale(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    _edit(repo, "spec.md", "answers.", f"answers.{ZWSP}")
+    _commit(repo)
+    (entry,) = _gates(repo)
+    assert entry["state"] == "stale"
+
+
+def _store_bytes(repo: Path) -> dict[str, bytes]:
+    return {
+        p.relative_to(repo).as_posix(): p.read_bytes()
+        for p in sorted(_gates_dir(repo).rglob("*"))
+        if p.is_file() and not p.is_symlink()
+    }
+
+
+def test_t3_ac0014_gates_changes_nothing(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    (repo / "scratch.log").write_text("ignored\n", **h._LF)
+    (repo / ".loop-run").mkdir()
+    (repo / ".loop-run" / "x").write_text("ignored too\n", **h._LF)
+    _park(repo)
+    _plant(repo, "9999999999999999.json", b"{not json")
+    past = 1_000_000_000
+    for name in ("spec.md", "plan.md"):
+        os.utime(repo / h.SPEC_DIR / name, (past, past))  # stale index stat data
+    assert _gates(repo)
+    _edit(repo, "plan.md", "Build it.", "Build it well.")  # a stale entry path too
+    before = (_snapshot(repo), _store_bytes(repo), sorted(p.name for p in _gates_dir(repo).iterdir()))
+    assert _gates(repo)
+    after = (_snapshot(repo), _store_bytes(repo), sorted(p.name for p in _gates_dir(repo).iterdir()))
+    assert after == before

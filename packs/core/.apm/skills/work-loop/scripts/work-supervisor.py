@@ -8,6 +8,7 @@ Usage, from the repository root:
         --review-authority-ref plan-reviewer[:<hex>]
     work-supervisor.py park <spec-dir> --gate spec-approved|plan-approved \\
         --intent code|spec-plan --code-trust trusted|untrusted
+    work-supervisor.py gates
     work-supervisor.py next <spec-dir>
     work-supervisor.py report <spec-dir> <result.json>
     work-supervisor.py status <spec-dir> [--json] [--check]
@@ -567,6 +568,7 @@ def _parser() -> argparse.ArgumentParser:
     park.add_argument("--gate", required=True, choices=("spec-approved", "plan-approved"))
     park.add_argument("--intent", required=True, choices=("code", "spec-plan"))
     park.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
+    verbs.add_parser("gates")
     verbs.add_parser("next").add_argument("spec_dir")
     report = verbs.add_parser("report")
     report.add_argument("spec_dir")
@@ -658,7 +660,7 @@ def _untrusted_unsafe_host_refusal(
     one write is a fixed-name file whose body is supervisor-derived and holds no
     controller free text, and a host that cannot confine writes refuses it anyway.
     """
-    if args.verb == "park":
+    if args.verb in ("park", "gates"):
         return None
     admission = _supervisor("_supervisor_admission.py")
     if admission.sibling("_confined_mutation.py").race_free_mutation():
@@ -690,10 +692,28 @@ def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
         undo()
 
 
+def _gates(cwd: Path | None) -> int:
+    """List the parked gates; read-only, with no spec directory and no pin check."""
+    root = _repo_root(cwd)
+    admission = _supervisor("_supervisor_admission.py")
+    gates = _supervisor("_supervisor_gates.py")
+    try:
+        listing = gates.list_gates(root, admission)
+    except (admission.Refusal, admission._git.SupervisorGitError) as exc:
+        refusal = exc.as_dict() if hasattr(exc, "as_dict") else {
+            "code": exc.code, "owner": "controller", "detail": str(exc)}
+        _emit({"refusal": refusal})
+        return EXIT_REFUSED
+    _emit({"gates": listing})
+    return EXIT_OK
+
+
 def _main(argv: list[str] | None, cwd: Path | None) -> int:
     spec_dir = ""
     try:
         args = _parser().parse_args(argv)
+        if args.verb == "gates":
+            return _gates(cwd)
         spec_dir = args.spec_dir
         installed = _installed_digests(_SCRIPTS_DIR.parent)
         matched = _preflight(args.verb, args.spec_dir, cwd, installed)
