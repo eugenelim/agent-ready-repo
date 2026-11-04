@@ -145,6 +145,14 @@ Owned by: T2, C2.
 - **Tests:** for AC-0008: current-state row 14 and its audit-trail entry, with the wording the owner approved before this task's attempt; the inventory check, whose criterion 0021 keeps RFC-0064 a `contract` row while it mentions the registry.
 - **Done when:** both hold.
 
+### T7: Implementation-review repairs
+
+- **Depends on:** T5, T6
+- **Verification mode:** TDD
+- **Touches:** `docs/specs/workspace-retirement/inventory.toml`, `tests/roster/test_workspace_retirement_inventory.py`
+- **Tests:** for AC-0016 and the `historical` class definition (IA-1): the RFC-0105, RFC-0106 and RFC-0078 rows are `contract` with owner `rfc-0067`, because each still states a rule that holds while the repair ships. For AC-0003 (IA-2): a `met` row's Evidence passes only when every backticked or bare path it names is tracked, and a run URL counts only as `https://github.com/<owner>/<repo>/actions/runs/<digits>`; one fixture each for an untracked path beside a URL, an id-less URL, and a bare untracked path beside a tracked one. For AC-0005 (QE-1): the AC-0032 rejection fixture reports the planted row's own subject. For AC-0002 (QE-2): a fixture that plants an unparseable `workspace.toml` and one that plants an extra key, and `_fact_set` reports no problem and no extra fact for either. IA-4 and IA-5: re-owned rows' `consumer` text names the RFC-0067 release instead of slice 9, and the AC-0003 message and the inventory header name `rfc-0067`.
+- **Done when:** each new fixture reds before its fix, and the inventory check passes over this repository.
+
 ## Controller steps outside the run
 
 These are not supervisor tasks. C0 runs before `start`; C1 to C5 run after `next` answers `terminal`, in order, and write only the record paths of the spec's § Closeout.
