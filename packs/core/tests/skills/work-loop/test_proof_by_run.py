@@ -885,12 +885,18 @@ def _t11_folds_case(folder: Path) -> bool:
         probe.unlink()
 
 
-@pytest.mark.parametrize(("real", "alias"), [("reviews", "Reviews"), ("proof-runs", "Proof-Runs")])
-def test_t11_case_folded_excluded_folder_is_refused(
-    t4_run, t4_repo, real: str, alias: str
-) -> None:
+@pytest.fixture
+def t11_case_folding_repo(t4_repo: _T4Repo) -> _T4Repo:
+    """The T4 repository, skipping before the launch spy exists when case is not folded."""
     if not _t11_folds_case(t4_repo.context):
         pytest.skip("file system is case-sensitive: probe found no case folding")
+    return t4_repo
+
+
+@pytest.mark.parametrize(("real", "alias"), [("reviews", "Reviews"), ("proof-runs", "Proof-Runs")])
+def test_t11_case_folded_excluded_folder_is_refused(
+    t11_case_folding_repo, t4_run, t4_repo, real: str, alias: str
+) -> None:
     (t4_repo.context / real).mkdir()
     (t4_repo.context / real / "x").write_text("held")
     result = t4_run(**{"--stdout-file": str(t4_repo.context / alias / "x")})

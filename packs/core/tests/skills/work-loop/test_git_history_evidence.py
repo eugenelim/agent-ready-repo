@@ -498,11 +498,12 @@ _ARMORS = {
 }
 
 
-@pytest.mark.parametrize("verifier", ["gpg", "gpgsm", "ssh-keygen"])
-def test_t15_signature_verifier_never_runs(
-    run: Callable[..., Any], repo: Repo, tmp_path: Path,
-    monkeypatch: pytest.MonkeyPatch, verifier: str
-) -> None:
+@pytest.fixture
+def signed_repo(
+    repo: Repo, tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request: pytest.FixtureRequest
+) -> tuple[Repo, Path]:
+    """A repository whose signed head provokes the verifier stub; skips before the spy exists."""
+    verifier = request.node.callspec.params["verifier"]
     stubs = tmp_path / "stubs"
     stubs.mkdir()
     marker = tmp_path / f"{verifier}-ran"
@@ -521,6 +522,14 @@ def test_t15_signature_verifier_never_runs(
     if not marker.exists():
         pytest.skip(f"the fixture cannot make git launch the {verifier} stub on this host")
     marker.unlink()
+    return repo, marker
+
+
+@pytest.mark.parametrize("verifier", ["gpg", "gpgsm", "ssh-keygen"])
+def test_t15_signature_verifier_never_runs(
+    signed_repo: tuple[Repo, Path], run: Callable[..., Any], verifier: str
+) -> None:
+    _repo, marker = signed_repo
     code, out = run("--path", "signed_file_zq.txt")
     assert code == 0, out
     assert len(out["commits"]) == 1
