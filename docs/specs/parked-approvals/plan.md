@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `_supervisor_admission.start` and `_policy_import.import_policy` as the approval seam; `_loop_guards.canonical_contract` as the only canonicalizer; `_supervisor_attempt` `_put` and `_confined_mutation.confined_create` / `confined_atomic_replace` as the store-write path; `_file_safety.list_confined_regular_files` / `read_confined_regular_file` as the store-read path; `_supervisor_git.HardenedGit` as the only Git launcher; `supervisor_harness.py` and `test_supervisor_admission.py` as the analogous integration tests.
+- **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `_supervisor_admission.start` and `_policy_import.import_policy` as the approval seam; `_loop_guards.canonical_contract` as the only canonicalizer; `_confined_mutation.confined_create` / `confined_atomic_replace` as the store-write path; `_file_safety.read_confined_regular_file` as the store-read path; `_supervisor_git.HardenedGit` as the only Git launcher and `_supervisor_commit.GitPort.show` as the commit read; `supervisor_harness.py` and `test_supervisor_admission.py` as the analogous integration tests.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
 > change needs an **amendment** only when it touches the spec's protected
@@ -28,7 +28,7 @@ This delivery runs from the installed supervisor copy, which these edits do not 
 
 ## Constraints
 
-- ADR-0156 D1–D7 fix the verbs, the record location, the no-default rule, the gate digest, the required `start` pins, and the controller rule; widening any of them needs a new ADR.
+- ADR-0157 D1–D7 fix the verbs, the record location, the no-default rule, the gate digest, the required `start` pins, and the controller rule; widening any of them needs a new ADR.
 - RFC-0099 §7: both human gates stay, in order; "parked" means no implementation dispatch for the parked spec.
 - `approval-record.v1`, `initial-plan-review.v1`, and the `approvals.jsonl` line are unchanged; `start` keeps passing the whole-file canonical digests to `import_policy`.
 - The supervisor pins every file under `scripts/` at `start`, so `_supervisor_gates.py` is pinned with no pin-list edit.
@@ -44,7 +44,7 @@ This delivery runs from the installed supervisor copy, which these edits do not 
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Decision rationale | none — ADR-0156 committed `Accepted` before approval | ADR file | cited in `Constrained by:` |
+| Decision rationale | none — ADR-0157 committed `Accepted` before approval | ADR file | cited in `Constrained by:` |
 | Maintainer procedure | T6 | content tests green | suites green at the delivery commit |
 | Current architecture | T6 | command-surface row edited | row lists the parser's verbs |
 | Operations (state) | T6 | state-schema row added | row present |
@@ -56,36 +56,36 @@ This delivery runs from the installed supervisor copy, which these edits do not 
 
 Owned by: T2, T3, T4. Traces to AC-0001, AC-0009, AC-0010, AC-0015, AC-0016.
 
-- `park <spec-dir> --gate spec-approved|plan-approved` → `{"status": "parked"|"current", "gate", "spec_dir", "spec_digest", "plan_digest", "commit"}`, exit 0; refusals use the existing `{"refusal": {"code", "owner", "detail"}}` shape, exit 1. Codes, checked in AC-0029's order: `gate-unsafe-path`, `gate-uncommitted`, `gate-already-admitted`, `gate-status-mismatch`, `gate-spec-changed`, `gate-changelog-shape` (owner `controller` for all).
-- `gates` (no positional) → `{"gates": [<entry>, ...]}` sorted by `spec_dir`, exit 0. Entry fields per AC-0009; `state` is `pending`, `stale`, or `invalid`; an `invalid` entry carries `spec_dir` only when the record yields a confined one, else `record` (the file name).
-- `start` gains optional argparse arguments `--approved-spec-digest <64 hex>` and `--approved-plan-digest <64 hex>`; a malformed value is a usage error. Whether `start` would record a pair is decided from the committed `approvals.jsonl` at `HEAD` and the derived envelope, intent, and trust, before `reconcile`, `sync`, or `commit_terminal` run: no pair yet, or a latest pair that differs, means it would record. On that path `start` reads `spec.md` and `plan.md` once each, refuses `approval-digest-required`, `gate-changelog-shape`, or `approval-digest-mismatch` from those bytes, and passes the whole-file canonical digests of the same bytes to `import_policy` as `approved_spec_digest` and `approved_plan_digest`. `import_policy` re-reads the files and refuses its existing `denied-spec-digest-mismatch` / `denied-plan-digest-mismatch` when they changed, which is AC-0034's refusal. On the `current` path the arguments are ignored.
-- Consequence text, fixed per gate, lives as constants in `_supervisor_gates.py`. `spec-approved`: approve → "the spec approver writes Status: Approved and the plan Changelog entry; the controller then parks plan-approved"; reject → "the pair returns to Draft and Drafting and is reviewed again"; no-answer → "the gate stays unapproved; the controller dispatches no implementation work for this spec". `plan-approved`: approve → "the plan approver writes Status: Approved and the Changelog entry; the controller runs start with these two digests"; reject and no-answer as above.
+- `park <spec-dir> --gate spec-approved|plan-approved` → `{"status": "parked"|"current", "gate", "spec_dir", "spec_digest", "plan_digest", "commit"}`, exit 0; refusals use the existing `{"refusal": {"code", "owner", "detail"}}` shape, exit 1. Codes, checked in AC-0029's order (owner `controller` for all).
+- `gates` (no positional) → `{"gates": [<entry>, ...]}` sorted by `spec_dir` then `record`, exit 0. Valid entries per AC-0009; invalid entries per AC-0013.
+- `start` gains optional argparse arguments `--approved-spec-digest <64 hex>` and `--approved-plan-digest <64 hex>`, format-checked by argparse on every path (AC-0036). In `_main`, before `check_pins` and `run_lock` (both write: the orphan mark and `<spec>/.supervisor/.gitignore`), a read-only pre-check decides whether `start` would record a pair, from the committed `approvals.jsonl` at `HEAD` and the derived envelope, intent, and trust: no pair yet, or a latest pair that differs, means it would. On that path the pre-check reads `spec.md` and `plan.md` once each and refuses in AC-0035's order from those bytes. `admission.start` receives the bytes and passes their whole-file canonical digests to `import_policy` as `approved_spec_digest` and `approved_plan_digest`; just before `build_commit` it re-reads both files and refuses `approval-digest-mismatch` unless the bytes are identical (AC-0034). On the `current` path the digests are ignored.
+- Consequence text, fixed per gate, lives as constants in `_supervisor_gates.py`. `spec-approved`: approve → "the spec approver writes Status: Approved and the plan Changelog entry; the controller then parks plan-approved"; reject → "the pair returns to Draft and Drafting and is reviewed again"; no-answer → "the gate stays unapproved; the controller dispatches no implementation work for this spec". `plan-approved`: approve → "the plan approver writes Status: Approved and the Changelog entry; the controller runs start with the spec digest from the spec approver's own answer and the plan digest from the plan approver's own answer"; reject and no-answer as above.
 
 ### Data & schema
 
 Owned by: T2, T3. Traces to AC-0001, AC-0006, AC-0013.
 
 - Record path: `<git-dir>/agentbundle-supervisor/gates/<sha256(spec_rel)[:16]>.json`; the `gates` name never matches the run-ID pattern the pin check lists.
-- Record body: canonical JSON (sorted keys) of `{"schema_version": 1, "spec_dir", "gate", "spec_digest", "plan_digest", "commit"}`, field shapes per AC-0031. A record is read with `read_confined_regular_file`, capped at 4096 bytes, and `spec_dir` also passes `_spec_rel` confinement.
-- `park` creates with `confined_create` and replaces with `confined_atomic_replace`; `current` is decided by byte equality of the would-be body.
+- Record body: canonical JSON (sorted keys) of `{"schema_version": 1, "spec_dir", "gate", "spec_digest", "plan_digest", "commit"}`, field shapes per AC-0031. `gates` lists `gates/` with one `os.scandir` level and classifies each entry by `lstat` on its own: a non-regular entry, a subdirectory, or a file over 4096 bytes is `invalid` without being read; a regular file is read with `_file_safety.read_confined_regular_file(gates_dir, path, max_bytes=4096)` and its `spec_dir` passes both AC-0032 and `_spec_rel` confinement. `list_confined_regular_files` is not used, because one bad entry would fail the whole listing.
+- `park` creates `gates/` with the existing `ensure_directory` helper under the Git directory and the record with `_confined_mutation.confined_create`, and replaces it with `confined_atomic_replace`; the run-store helpers (`Attempts._put`, `ensure_store`) are not used, because they accept only run IDs; `current` is decided by byte equality of the would-be body.
 - `park --gate plan-approved` reads the existing record first and requires its `spec_digest` to equal the live spec gate digest (AC-0030); the replacement keeps that value, so the spec approver's digest survives every later `plan-approved` re-park.
-- For each valid record, `gates` reads `<commit>:<spec-dir>/spec.md` and `plan.md` through `HardenedGit` `show` with literal arguments, computes their gate digests, and compares them and the working-tree gate digests with the record (AC-0011).
+- For each valid record, `gates` reads `<commit>:<spec-dir>/spec.md` and `plan.md` through `GitPort.show` (`_supervisor_commit.py`) with the full commit ID and literal path, computes their gate digests, and compares them and the working-tree gate digests with the record (AC-0011).
 
 ### Behavior & rules
 
 Owned by: T1. Traces to AC-0007, AC-0008, AC-0025.
 
-- Gate digest: split the text into lines after CRLF/CR → LF; find level-two headings (`## ` at line start) outside fenced code blocks; when `## Changelog` occurs, it must occur once, be the last level-two heading, and every line after it, with HTML comments stripped, must be blank or start with `- `; otherwise raise `GateDigestRefused("gate-changelog-shape")`. Drop the section, then SHA-256 of `_loop_guards.canonical_contract(text, ac_section_only=(name != "plan.md"))`.
+- Gate digest: split the text into lines after CRLF/CR → LF; find level-two headings (`## ` at line start) outside fenced code blocks; when `## Changelog` occurs, it must occur once, be the last level-two heading, and every line after it, with HTML comments stripped, must be blank, start with `- `, or be an indented continuation of a list item; otherwise raise `GateDigestRefused("gate-changelog-shape")`. Drop the section, then SHA-256 of `_loop_guards.canonical_contract(text, ac_section_only=(name != "plan.md"))`.
 - Statuses for AC-0004 come from the existing status parser `_loop_guards` already loads.
-- "Clean" for AC-0003: `HardenedGit` `diff --quiet HEAD -- <spec.md> <plan.md>` and `diff --quiet --cached HEAD -- ...` both exit 0, and both files are tracked at `HEAD`.
-- "Admitted at `HEAD`" for AC-0005 and AC-0012: `Workspace.approvals("HEAD")` is non-empty.
+- "Clean" for AC-0003, without writing the index: compare the blob IDs of `HEAD:<path>` (`rev-parse`), the index entry (`ls-files -s`), and the working-tree bytes (`hash-object --no-filters --stdin` fed the bytes `park` already read), all through `HardenedGit` with `GIT_OPTIONAL_LOCKS=0`. No `diff` or `status` runs, because they refresh the index's stat cache.
+- "Admitted" for AC-0005 and AC-0012: the latest line of `Workspace.approvals("HEAD")` carries `envelope.envelope_fingerprint` equal to `_acceptance.derive_envelope` of the spec's current references.
 
 ### Failure, edge cases & resilience
 
 Owned by: T2, T3, T4.
 
 - `gates` with no `gates/` directory prints `{"gates": []}`.
-- `park` and `gates` take the same pin preflight as every other verb; `gates` runs it with no spec directory, so only the store-wide checks apply (implementation-discovered: whether `_preflight` needs a no-spec path or `gates` skips it, decided by keeping every existing pin refusal reachable).
+- Entry path: `park` takes the same preflight, `_spec_rel`, `Workspace`, and ref-storage checks as every verb. `gates` takes no spec directory, so `_main` branches on it before `args.spec_dir` is read; it runs `_installed_digests` and the store-wide part of `_preflight`, and no `Workspace`. The untrusted-unsafe-host check judges `park` and `gates` as `trusted`, because neither runs repository code; `test_supervisor_untrusted_unsafe_host.py`'s every-verb walk gains their argv forms.
 - `gates` lists `stale` for an artifact that no longer exists or now fails the Changelog shape.
 
 ### Quality attributes (NFRs)
@@ -101,6 +101,7 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`
 
 **Tests:** TDD — unit, at `_supervisor_gates.gate_digest`
+- AC-0025 also covers an indented continuation line, which keeps the digest.
 - AC-0007, AC-0008: parametrized edits over one fixture spec and one fixture plan, each asserting digest equality or inequality with the unedited text.
 - AC-0025: the three shape violations (two Changelog headings, a later `##` heading, a non-list line) and a `## Changelog` inside a fenced block that is not treated as a heading.
 
@@ -110,12 +111,12 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 
 **Depends on:** T1
 
-**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `.github/workflows/catalogue-tooling-ci-gates.yml`
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_untrusted_unsafe_host.py`, `.github/workflows/catalogue-tooling-ci-gates.yml`
 
 **Tests:** TDD — integration, through `supervisor_harness.run_cli` on `make_repo` repositories
-- AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0026, AC-0029, AC-0030, AC-0032: one test per criterion; AC-0002 snapshots `git for-each-ref`, `git ls-files -s`, `HEAD`, and the working-tree bytes before and after; AC-0029 builds inputs that break two rules at once; AC-0030 edits the spec body after `spec-approved` and commits it with `Status: Approved`.
+- AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0026, AC-0029, AC-0030, AC-0032: one test per criterion, each named `test_t2_…`; AC-0002 snapshots `git for-each-ref`, the index file's bytes, `HEAD`, and the bytes of every working-tree file, ignored files included, before and after, on a repository whose index stat data is stale; AC-0005 also parks a spec whose latest pair carries an older envelope fingerprint; AC-0029 builds inputs that break two rules at once; AC-0030 edits the spec body after `spec-approved` and commits it with `Status: Approved`.
 
-**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k park` exits 0.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k t2_` exits 0.
 
 ### T3: `gates`
 
@@ -123,22 +124,22 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`
 
-**Tests:** TDD — integration, as T2
-- AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0028, AC-0031; AC-0011 includes a planted well-formed record whose digests are the live ones and whose commit is an older revision, which lists `stale`; AC-0013 and AC-0031 plant each bad record kind, including shell metacharacters in `spec_dir` and a non-hex `commit`, beside one good record; AC-0014 snapshots the store bytes as well as T2's set.
+**Tests:** TDD — integration, as T2, each test named `test_t3_…`
+- AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0031; the every-verb walk in `test_supervisor_untrusted_unsafe_host.py` covers `gates`; AC-0011 includes a planted well-formed record whose digests are the live ones and whose commit is an older revision, which lists `stale`; AC-0013 and AC-0031 plant each bad record kind, including shell metacharacters in `spec_dir` and a non-hex `commit`, beside one good record; AC-0013 also plants a symlink, a subdirectory, and a 5000-byte padded valid body; AC-0014 snapshots the store bytes as well as T2's set.
 
-**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k gates` exits 0.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k t3_` exits 0.
 
 ### T4: `start` binds to the approved digests
 
 **Depends on:** T1
 
-**Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_admission.py`, `packs/core/tests/skills/work-loop/supervisor_harness.py`, `packs/core/tests/skills/work-loop/test_supervisor_*.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_admission.py`, `packs/core/tests/skills/work-loop/supervisor_harness.py`, `packs/core/tests/skills/work-loop/test_supervisor_*.py`, `packs/core/tests/skills/work-loop/test_proof_by_run.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `tests/roster/test_t9a_clean_env_fence.py`
 
-**Tests:** TDD — integration
-- AC-0015, AC-0016, AC-0017, AC-0018, AC-0027, AC-0033, AC-0034 in `test_supervisor_parked_gates.py`; AC-0016 asserts no write on both the first-admission and the re-approval path; AC-0018 runs `start` four times from one repository state with the record present, absent, truncated, and rewritten; AC-0033 admits, makes an in-envelope plan edit, and re-runs `start` three ways; AC-0034 patches the `import_policy` seam to edit `plan.md` after the gate check.
+**Tests:** TDD — integration, each test named `test_t4_…`
+- AC-0015, AC-0016, AC-0017, AC-0018, AC-0027, AC-0033, AC-0034, AC-0035, AC-0036 in `test_supervisor_parked_gates.py`; the no-write assertions snapshot the store and every file under the spec directory, ignored files included; AC-0016 asserts no write on both the first-admission and the re-approval path; AC-0018 runs `start` four times from one repository state with the record present, absent, truncated, and rewritten; AC-0033 admits, makes an in-envelope plan edit, and re-runs `start` three ways; AC-0034 patches the seam between `import_policy` and `build_commit` to make a whitespace-only edit to `plan.md`.
 - `supervisor_harness.start` computes both digests with `_supervisor_gates.gate_digest`; each direct `start` argv in the other suites that records a pair gains the two arguments.
 
-**Done when:** every suite in the supervisor integration lane's file list, plus `test_supervisor_parked_gates.py`, exits 0 under `WORK_SUPERVISOR_INTEGRATION=1`, and the pack lane `python3 -m pytest packs/core/tests/skills/work-loop -q` exits 0.
+**Done when:** under `WORK_SUPERVISOR_INTEGRATION=1`, every suite in the supervisor integration lane's file list plus `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, and `test_proof_by_run.py` exits 0; the pack lane `python3 -m pytest packs/core/tests/skills/work-loop -q` exits 0; and `python3 -m pytest tests/roster/test_t9a_clean_env_fence.py -q` exits 0.
 
 ### T5: A parked gate is never approved by default
 
@@ -146,20 +147,21 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 
 **Touches:** `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`
 
-**Tests:** TDD — integration
+**Tests:** TDD — integration, test named `test_t5_…`
 - AC-0019: one test that parks, runs `gates` three times, sets `Implementing` and `Executing` with no answer, edits the spec body, commits, and runs `start` with the parked record's digests and with none; after each, `approvals.jsonl` is absent.
 
-**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k never_default` exits 0.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k t5_` exits 0.
 
 ### T6: Guidance, evals, and docs
 
 **Depends on:** T2, T3, T4
 
-**Touches:** `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `docs/architecture/work-loop-execution-supervisor.md`, `packs/core/tests/skills/work-loop/test_parked_gates_guidance.py`
+**Touches:** `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md`, `docs/architecture/work-loop-execution-supervisor.md`, `docs/architecture/loop-infrastructure.md`, `packs/core/tests/skills/work-loop/test_parked_gates_guidance.py`
 
 **Tests:** goal-based — content test over the shipped files
 - AC-0020, AC-0021: substring pins on the verb table rows and the step-12 rules.
 - AC-0022: the eval case's id and assertions are present, and the existing eval-schema test over `evals.json` stays green.
+- Every `start` command line in the Touches files names both digest arguments; the existing `evals.json` case that shows `start` is updated.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_parked_gates_guidance.py -q` exits 0 and the existing work-loop eval tests exit 0.
 
