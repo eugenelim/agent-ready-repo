@@ -334,6 +334,27 @@
         "Keeps the existing source-authority block byte for byte",
         "Adds no workspace.toml entry"
       ]
+    },
+    {
+      "id": "reversible-assumption-proceeds-on-logged-default",
+      "prompt": "Draft the spec for a new internal list view of support tickets. The framework, the data source and the owning team are all verified from the repository. One assumption is open: the default page size. A default is offered: 50 per page, held in one constant that can be changed later by editing that line.",
+      "expected_output": "The agent sorts the page-size item under `## Defaulted` with a stated default and what changes if it is wrong, proceeds without waiting for the owner on it, records it in the spec's `## Assumptions` as a `Defaulted:` line, and does not treat the default as approving the spec.",
+      "assertions": [
+        "Lists the page-size item under `## Defaulted` with a default and an if-wrong consequence",
+        "Does not wait for the owner on the page-size item",
+        "Writes the item into the spec's `## Assumptions` as a `Defaulted:` line",
+        "Does not treat the default as approval of the spec"
+      ]
+    },
+    {
+      "id": "migration-assumption-waits-for-owner",
+      "prompt": "Draft the spec for adding a required `region` column to an existing customers table. One assumption is open: whether existing rows are backfilled or left empty. A default is offered: backfill every row with `unknown`.",
+      "expected_output": "The agent keeps the backfill item in `## Unverified` because it touches a migration of persisted state, stops and waits for the owner before writing the spec body, and does not move it to `## Defaulted`.",
+      "assertions": [
+        "Keeps the backfill item in `## Unverified`",
+        "Stops and waits for the owner before writing into the spec body",
+        "Does not move the backfill item to `## Defaulted`"
+      ]
     }
   ]
 }
