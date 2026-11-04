@@ -1,13 +1,13 @@
 # Spec: Closing the workspace retirement and deleting workspace.toml
 
 - **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
-- **Approved:** 2026-11-03 by eugenelim, spec (sha256 `df3dec6e444d262a584d8a5f47f38145ce2e09d9a340d95667e7ff15dda4d357`) and plan (sha256 `8a41b8e11ef277a2e0b9d886e79bf0272265b5aaad4916de0dec06600e05000c`), after five spec-mode shaping and adversarial review rounds and a spec-stage security pass, each adjudicated; the round-5 repairs were accepted without a further round; records under `.context/reviews/workspace-toml-deletion/`.
+- **Approved:** 2026-11-03 by eugenelim, spec (sha256 `df3dec6e444d262a584d8a5f47f38145ce2e09d9a340d95667e7ff15dda4d357`) and plan (sha256 `8a41b8e11ef277a2e0b9d886e79bf0272265b5aaad4916de0dec06600e05000c`), after five spec-mode shaping and adversarial review rounds and a spec-stage security pass, each adjudicated; the round-5 repairs were accepted without a further round; records under `.context/reviews/workspace-toml-deletion/`. Amended 2026-11-04 before `start`, approved by eugenelim: `Permitted surfaces` adds `tests/roster/test_registry_upgrade_notes.py`'s ledger check, which 9F's head-bound AC-0016 pin forces, and `Depends on:` names 9F's spec.
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0105 (D3, the four retirement gates, gate 4's order "remove operative references and seeds, pass activation and corpus gates, and only then delete the old skill and registry contract", and the Approver's certification "in that specification and the retiring change"; § Errata, the entry this spec adds that moves the old skill's deletion to the RFC-0067 release), RFC-0106 (§ Errata, the no-seam removals), RFC-0055 (errata entries on an Accepted RFC), RFC-0067 (the later retirement of the `workspace-status` name)
 - **Brief:** brief:workspace-registry-retirement-delivery
 - **Discovery:** none
-- **Depends on:** <!-- 9F's spec, written at the plan's C0 step once 9F has merged -->
+- **Depends on:** spec:registry-upgrade-notes
 - **Contract:** none — the inventory and record shapes are contracted by the `workspace-retirement` spec, which this spec amends.
 - **Shape:** mixed
 
@@ -106,7 +106,7 @@ the plan's `## Design (LLD)`, not here.
 - **Registry token.** Any of `workspace.toml`, `workspace-status`, `workspace_status`.
 - **Reader suites.** `tests/roster/test_agent_skill_engineering_consumer_integrations.py`, `tests/roster/test_close_work_extraction_and_immediate_disposition.py`, `tests/roster/test_intent_brief_registration_stop.py`, `tests/roster/test_repo_governance_rename_completeness.py`, `tests/roster/test_thirty_day_cooling_and_retirement.py`, `tests/roster/test_workspace_status_projection.py`, `tools/test_guide_typed_asides.py`, `tools/test_workspace_status_cli.py`.
 - **Closeout rows.** The inventory rows whose `pattern` is `docs/product/briefs/workspace-registry-retirement-delivery.md`, `docs/product/intents/FEAT-0034-workspace-registry-retirement.md` or `docs/specs/workspace-toml-deletion/*`.
-- **Permitted surfaces.** The record paths § Closeout names, and any path an amendment adds to them, the reader suites, `tests/roster/test_workspace_retirement_inventory.py`, `tools/test_local_ci_shared_test_deduplication.py`, `.workspace-prune-protected.toml`, `tests/AGENTS.md`, `workspace.toml`, `tools/measure-changelog-conflicts.py`, `Makefile`, `.github/workflows/build-check.yml`, `.github/dependabot.yml`, `packages/agentbundle/agentbundle/build/projections/gemini_command_toml.py`, `llms.txt`, `docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md`, `docs/rfc/0064-ini-001-ai-native-ecosystem.md`.
+- **Permitted surfaces.** The record paths § Closeout names, and any path an amendment adds to them, the reader suites, `tests/roster/test_workspace_retirement_inventory.py`, `tests/roster/test_registry_upgrade_notes.py` (only its ledger check for `retirement-record.md` and the brief, bound to 9F's merge commit), `tools/test_local_ci_shared_test_deduplication.py`, `.workspace-prune-protected.toml`, `tests/AGENTS.md`, `workspace.toml`, `tools/measure-changelog-conflicts.py`, `Makefile`, `.github/workflows/build-check.yml`, `.github/dependabot.yml`, `packages/agentbundle/agentbundle/build/projections/gemini_command_toml.py`, `llms.txt`, `docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md`, `docs/rfc/0064-ini-001-ai-native-ecosystem.md`.
 - **Gates.** RFC-0105 D3's four: `consumer inventory`, `state disposition`, `behavioral equivalence`, `compatibility closure`.
 
 **Inventory check and records**
