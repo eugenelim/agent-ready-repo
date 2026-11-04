@@ -53,8 +53,12 @@ scope: discovery ships at user scope, while build and release are repo-scoped.
 
 - `work-supervisor.py`, full mode only. Every verb prints one JSON object.
   - `start <spec-dir> --intent code|spec-plan --code-trust trusted|untrusted
-    --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>]`
+    --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>]
+    --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>`
     admits the approved pair.
+  - `park <spec-dir> --gate spec-approved|plan-approved --intent code|spec-plan
+    --code-trust trusted|untrusted` records a waiting human gate; `gates` lists
+    the parked gates.
   - `next <spec-dir>` derives and prints the current request.
   - `report <spec-dir> <result.json>` admits that request's result and commits
     it.

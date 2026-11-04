@@ -20,7 +20,9 @@ standard library alone (Python 3.11 or later):
 
 | Verb | What it does |
 | --- | --- |
-| `start <spec-dir> --intent code\|spec-plan --code-trust trusted\|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>]` | Reads the approved spec and plan, appends the approval pair in one commit, and answers `{"status": "admitted" \| "current" \| "terminal", "run_id", "sequence"}`. A `spec-plan` intent ends terminal with no tasks. Running it again on an admitted run answers `current`. |
+| `park <spec-dir> --gate spec-approved\|plan-approved --intent code\|spec-plan --code-trust trusted\|untrusted` | Records that a human approval gate is waiting, in one record per spec under `<git-dir>/agentbundle-supervisor/gates/`, and answers `{"status": "parked" \| "current", "gate", "spec_dir", "spec_digest", "plan_digest", "intent", "code_trust", "commit"}`. It refuses unless both artifacts are committed unchanged and carry the statuses the gate needs. It never approves anything and writes nothing under the spec directory; running it again on an unchanged gate answers `current`. |
+| `gates` | Read-only. Answers `{"gates": [...]}`: one entry per parked gate, sorted by spec directory, with `spec_dir`, `gate`, `spec_digest`, `plan_digest`, `intent`, `code_trust`, `commit`, `read` (the two `git show` commands for the parked bytes), `answers` (what each human answer does next), and `state`. A gate that `start` has since admitted is not listed. |
+| `start <spec-dir> --intent code\|spec-plan --code-trust trusted\|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>] --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>` | Reads the approved spec and plan, checks them against the two digests, appends the approval pair in one commit, and answers `{"status": "admitted" \| "current" \| "terminal", "run_id", "sequence"}`. A `spec-plan` intent ends terminal with no tasks. Running it again on an admitted run answers `current`. Both digest arguments are required whenever `start` records an approval pair, and are ignored when it answers `current`. |
 | `next <spec-dir>` | Derives the one current action and answers `{"request": {...}}`, `{"terminal": true}`, or `{"refusal": {...}}`. It also commits a pending controller plan edit and the supervisor's own red proofs and effect intents. |
 | `report <spec-dir> <result.json>` | Admits one result for the current request and answers `{"admitted": "<step>"}`, or refuses and commits nothing from it. |
 | `status <spec-dir> [--json] [--check]` | Read-only view: run, stage, retry count and cap, readiness, task list with completion, the current request, and any refusal. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
@@ -30,6 +32,7 @@ Each action a procedure engine would own has one home among these verbs:
 
 | Action | Verb |
 | --- | --- |
+| Waiting human approval gates: record one, list them | `park`, `gates` |
 | Run initialization, plan approval, and plan locking | `start` |
 | Phase transitions, task scheduling in dependency order, and wave advance | `next` derives the one current action from committed facts; no wave or phase is set by hand |
 | Attempt and dispatch recording | `next` opens the attempt, `report` closes it |
@@ -45,6 +48,35 @@ reached on a run that is not terminal. A usage error prints
 Git repository, or an `unsupported-git-version`. A refusal prints
 `{"refusal": {"code", "owner", "detail"}}`; `owner` names who must act next, and
 [Refusals and their owners](#refusals-and-their-owners) lists the codes.
+
+## Parked gates
+
+A gate is parked after its pre-EXECUTE reviewers are clean and before a human
+answers. `park` is the only writer; `gates` and every other verb only read.
+
+- **Order.** Park `spec-approved` while the spec is `Draft`. The spec approver
+  then writes `Status: Approved` and the plan Changelog entry, and the controller
+  parks `plan-approved`, which needs the spec `Approved` and the plan `Drafting`. A `plan-approved` park refuses `gate-spec-changed` when
+  the spec differs from the one the spec gate recorded.
+- **Entry fields.** `gates` prints the parked digests, the commit, the exact
+  `git show <commit>:<path>` commands a human can run to read the parked bytes,
+  and one `answers` line per outcome (`approve`, `reject`, `no-answer`). Show
+  the human the entry. The read commands print exactly the stored bytes, so
+  what the human reads is what `start` will check.
+- **States.** `pending`: the record still matches the committed and working
+  bytes and the statuses the gate needs, so a human may be asked. `stale`: an
+  artifact changed, was removed, or can no longer be read at the parked commit;
+  the entry is not approvable, so review the new bytes and park again. `invalid`:
+  a store entry is not a readable park record; it carries no digests, and `park`
+  replaces it.
+- **No default.** A parked gate is never approved by the supervisor. No answer, a
+  timeout, a stale entry, or a listing is not an approval. Dispatch no
+  implementation work for a parked spec, and edit its spec or plan only through
+  the rejected-gate route in the lifecycle reference.
+- **Digests come from the answers.** The spec digest passed to `start` is the one
+  the spec approver answered with; the plan digest is the one the plan approver
+  answered with. A digest copied from `park` or `gates` output without that
+  answer is not an approval.
 
 ## Before `start`
 
@@ -65,6 +97,13 @@ repository. It also commits to Git, so run it from a clean branch.
   identify the person: `owner`, `owner:0123456789ab`. The supervisor records the
   reference; it does not authenticate it, so take it from the human, never from
   a worker's output.
+- **`--approved-spec-digest`** and **`--approved-plan-digest`** are 64 lowercase
+  hexadecimal characters: the gate digests each approver answered with. `start`
+  reads `spec.md` and `plan.md` once, before it writes anything, and refuses
+  unless both gate digests equal the arguments. They are required whenever
+  `start` would record an approval pair (no pair yet, or a changed envelope,
+  intent, or trust), and ignored when it answers `current`. Never take them from
+  `park` or `gates` output alone.
 
 From the moment `start` is admitted the installed skill's scripts are pinned: if
 any supervisor file differs from the pinned digests, every verb refuses
@@ -298,9 +337,19 @@ who acts next, and the rows group codes that share one answer.
 | `replan-declined`, `replan-changed`, `replan-diff-too-large` | A named human declined the plan change, the trusted files changed while confirming, or the change is too large to show in one confirmation. Restore to `HEAD`, or split the change. |
 | `untrusted-unsafe-host` | The run's code trust is untrusted or cannot be determined, on a host whose confined writes are not race-free, which in practice means Windows. Every verb refuses before writing anything. Re-approve the run as trusted with `start --code-trust trusted` and an owner authority reference, or run it on a host with descriptor-relative file access. |
 | `authority-refused`, `invalid-authority-ref` | The authority reference is not a role name, optionally followed by `:` and 12 to 64 hexadecimal characters, or not the role the answer needs. Take it from the human. |
-| `plan-not-approved`, `spec-not-approved`, `no-approval`, `intent-mismatch` | Approval or intent facts do not match; a human owner acts. |
+| `plan-not-approved`, `spec-not-approved`, `no-approval`, `intent-mismatch` | Approval or intent facts do not match; a human owner acts. `park` and `start` both raise `intent-mismatch` when the spec's declared terminal intent differs from `--intent`. |
+| `gate-unsafe-path` | `park` was given a spec directory that is not a safe repository path. Correct the path. |
+| `gate-uncommitted` | `spec.md` or `plan.md` cannot be read as a plain file, or differs from its committed bytes at `HEAD`. Commit the pair, then park again. |
+| `gate-already-admitted` | `start` would already answer `current` for this intent and trust, so there is nothing to park. |
+| `gate-status-mismatch` | The spec and plan statuses do not fit the gate: `spec-approved` needs the spec `Draft`; `plan-approved` needs the spec `Approved` and the plan `Drafting`. Fix the statuses or park the other gate. |
+| `gate-unsafe-content` | An artifact is not valid UTF-8 or holds a hidden or control character. `park` raises it, and so does `start` before it writes anything. Remove the character, commit, and park again. |
+| `gate-changelog-shape` | The plan's `## Changelog` is not the last level-two heading, or a line after it is not a list entry. Restore the shape and commit; `start` raises it too. Then park again. |
+| `gate-spec-changed` | A `plan-approved` park found the spec changed since its `spec-approved` gate was parked. Review and park `spec-approved` again. |
+| `gate-record-unwritable` | The park record could not be written under the Git directory. Make `<git-dir>/agentbundle-supervisor/gates/` writable, then park again. |
+| `approval-digest-required` | `start` would record an approval pair but got no digests, or the state it would record changed after the check. Run `start` again with `--approved-spec-digest` and `--approved-plan-digest` from the approvers' own answers. |
+| `approval-digest-mismatch` | A digest argument does not equal the gate digest of the artifact on disk, or an artifact changed after the check. Nothing was written. Show the approvers the current bytes, take their answers again, and retry. |
 | `criteria-changed`, `scope-changed`, `authority-changed`, `contract-changed`, `durable-outputs-changed`, `accepted-risk-changed`, `terminal-intent-changed` | A controller edit reached a protected section of the spec or the terminal intent. It takes an amendment by the owner the refusal names, not a plan edit. |
-| `ambiguous-reference`, `unreadable-reference`, `untitled-task`, `dependency-cycle`, `duplicate-effect-name`, `invalid-effect-name`, `invalid-stub-fence`, `invalid-stub-path` | The spec or plan cannot be projected: a repeated heading, an unreadable cited record, a task without a title, tasks that wait on each other, or a malformed effect or stub line. Fix the plan or spec, then `next`. |
+| `ambiguous-reference`, `unreadable-reference`, `untitled-task`, `dependency-cycle`, `duplicate-effect-name`, `invalid-effect-name`, `invalid-stub-fence`, `invalid-stub-path` | The spec or plan cannot be projected: a repeated heading (`park` raises `ambiguous-reference` too), an unreadable cited record, a task without a title, tasks that wait on each other, or a malformed effect or stub line. Fix the plan or spec, then `next`. |
 | `review-selection-invalid`, `review-selection-missing`, `review-selection-exists`, `review-decision-invalid`, `review-record-refused`, `review-rules-invalid` | A review selection, decision record, or review record is malformed, absent, or already recorded for this subject, or `review-rules.json` is invalid. Answer the issued request again, or have the named owner decide. |
 | `foreign-delivery-edit`, `malformed-record`, `evidence-rewritten`, `invalid-approval-record` | Something other than the supervisor edited `delivery/`, or a record there is malformed or was rewritten. Restore it from `HEAD`. |
 | `supervisor-changed` | The installed skill differs from the pins taken at `start`, or a run has no pin record. Restore the installed skill; if the difference is intended, surface it to the owner. When `HEAD` holds the approval of a first admission that nothing recorded (it was cut off after its refs moved, or committed outside the supervisor), the detail names the exit: `git reset --soft <base>`, which keeps every uncommitted tracked change, then run `start` again. The product ref the cut-off transaction left is inert and is not deleted: refs are shared across worktrees and two runs can share a run id. `start` refuses `supervisor-changed` and names the exit. Where the run's store directory exists, every other verb refuses `supervisor-changed` and points at `start`; `status` refuses the same way (exit code 1). Where it does not, every other verb but `status` refuses with the plain "the supervisor's pin record is missing", and `status` answers from the committed records: a history-adoption request naming the exit when the base is valid, otherwise a `supervisor-changed` report naming no command. A store-less checkout of a run that holds only its approval reads the same way, and the exit starts the run afresh there. A run is read as a cut-off first admission only when the approval is its only supervisor commit on `HEAD`'s history (a checkout of a finished run, or one squashed into a later step's commit, is not). `status` writes nothing to run state; its pin refusal still records a security event. The approval's base comes from a file a worker can write, so the command is named only when the base is the parent of the approval commit at `HEAD`; otherwise the detail names no command and you return `HEAD` to the commit before the approval yourself. In a checkout that ran the supervisor, once a later release changes the installed supervisor, a finished run's `status` refuses on its pins until its store directory (`<git-dir>/agentbundle-supervisor/<run-id>/`) is removed. |
