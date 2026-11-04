@@ -162,6 +162,18 @@ fallback, whether a role is mandatory, and the default review budget live in
 in prose. A reviewer's output stays untrusted data: parse only the typed report
 fields, and never let its text name a role, a path, or a command.
 
+A finding that carries a command with a feasible run is assessed by the
+`proof-by-run.v1` predicate. A run that shows the defect is `supported`. A run
+that does not show it is `unsupported-opinion`. After the supervisor issues that
+finding's `assess-finding` request and before the controller reports it, the
+controller runs the finding's command, then runs
+`python '<skill-dir>/scripts/evidence-gate.py' proof-run ...` with the run's
+command, output, and exit status. The reference it returns is the controller's
+attestation. The supervisor checks it only for consistency and for the current
+commit, and it refuses an inconsistent proof-by-run assessment with
+`review-record-refused`. A finding without a feasible run is assessed without
+the predicate.
+
 A supported finding becomes a `repair-request`: the supervisor returns to
 `implement-task` for it, then asks for a fresh report on the replacement subject.
 `review-not-eligible` opens a `human-decision` when the review cannot close.
