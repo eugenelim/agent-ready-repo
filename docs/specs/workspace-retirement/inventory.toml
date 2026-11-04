@@ -1,18 +1,20 @@
 # Consumer inventory for the workspace.toml and workspace-status retirement.
 # First matching row governs (fnmatch, file order), so exact rows precede the
 # directory wildcards that would also match. Owner is the brief slice that
-# disposes the consumer; `none` is only for historical and record rows.
+# disposes the consumer, `rfc-0067` for a surface that lives while the
+# `workspace-status` repair ships (retired with that name under RFC-0067), or
+# `none`, which is only for historical and record rows.
 
 [[row]]
 pattern = "docs/rfc/0064-ini-001-ai-native-ecosystem.md"
 class = "contract"
-consumer = "RFC-0064 registry contract: D2-D9 schema, D4 and its work-loop writer rows, the receive-brief writer row; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "RFC-0064 registry contract: D2-D9 schema, D4 and its work-loop writer rows, the receive-brief writer row; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0005-lifecycle-and-closure.md"
 class = "contract"
-consumer = "FEAT-0005 lifecycle contract: close-work moves registrations at a terminal transition; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "FEAT-0005 lifecycle contract: close-work moves registrations at a terminal transition; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -138,7 +140,7 @@ owner = "none"
 [[row]]
 pattern = "docs/adr/0076-briefs-persist-dispatch-starts-from-specs.md"
 class = "historical"
-consumer = "ADR-0076: briefs persist and dispatch starts from specs registered in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "ADR-0076: briefs persist and dispatch starts from specs registered in workspace.toml"
 owner = "none"
 
 [[row]]
@@ -156,19 +158,19 @@ owner = "none"
 [[row]]
 pattern = "docs/adr/0092-direct-light-execution-session-local-boundary.md"
 class = "historical"
-consumer = "ADR-0092: direct-light execution never registers itself in workspace.toml or workspace dispatch; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "ADR-0092: direct-light execution never registers itself in workspace.toml or workspace dispatch"
 owner = "none"
 
 [[row]]
 pattern = "docs/adr/0103-the-completion-receipt-carries-a-delivery-outcome-not-a-disposition.md"
 class = "historical"
-consumer = "ADR-0103: the completion receipt close-work writes and workspace-status reads; D6 names the registry edge as the carrier, and ADR-0148 supersedes that D6 in part; slice 9: moved with the operative references after the cutover"
+consumer = "ADR-0103: the completion receipt close-work writes and workspace-status reads; D6 names the registry edge as the carrier, and ADR-0148 supersedes that D6 in part"
 owner = "none"
 
 [[row]]
 pattern = "docs/adr/0110-cooled-child-scope-is-declared-on-the-entry-not-inferred-from-absence.md"
 class = "historical"
-consumer = "ADR-0110: a cooled spec declares its child scope on its workspace.toml entry; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "ADR-0110: a cooled spec declares its child scope on its workspace.toml entry"
 owner = "none"
 
 [[row]]
@@ -312,7 +314,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "docs/product/briefs/intent-lifecycle-and-closure.md"
 class = "contract"
-consumer = "live brief tracing whether the closure check touches workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "live brief tracing whether the closure check touches workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -450,7 +452,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "docs/product/intents/CAP-0004-external-tracker-projection.md"
 class = "contract"
-consumer = "CAP-0004: tracker dependencies recorded in the waiting child Depends on: header; the file still names workspace.toml in its research history; slice 9: moved with the operative references after the cutover"
+consumer = "CAP-0004: tracker dependencies recorded in the waiting child Depends on: header; the file still names workspace.toml in its research history; moved with the operative references after the cutover until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -474,7 +476,7 @@ owner = "none"
 [[row]]
 pattern = "docs/product/intents/FEAT-0007-work-item-promotion-routing.md"
 class = "contract"
-consumer = "FEAT-0007: promotion routing that still registers spec entries and reads workspace-status scripts; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "FEAT-0007: promotion routing that still registers spec entries and reads workspace-status scripts; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -528,7 +530,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "docs/product/intents/brief-backlink-provenance-lints.md"
 class = "contract"
-consumer = "live intent: brief back-link lints and the coverage lint; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "live intent: brief back-link lints and the coverage lint; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -588,7 +590,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "docs/product/intents/work-loop-delivery-efficiency.md"
 class = "contract"
-consumer = "live intent: queue membership lives in workspace.toml and the status payload is large; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "live intent: queue membership lives in workspace.toml and the status payload is large; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -767,9 +769,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/rfc/0078-workspace-mcp.md"
-class = "historical"
-consumer = "RFC-0078: workspace-mcp serves workspace-status and reads workspace.toml"
-owner = "none"
+class = "contract"
+consumer = "RFC-0078: workspace-mcp serves workspace-status and reads workspace.toml; still states the status tool contract that holds while the `workspace-status` repair ships"
+owner = "rfc-0067"
 
 [[row]]
 pattern = "docs/rfc/0079-codebase-context-pack.md"
@@ -840,13 +842,13 @@ owner = "none"
 [[row]]
 pattern = "docs/rfc/0093-intent-scoped-completion.md"
 class = "historical"
-consumer = "RFC-0093: work-loop stops its own workspace.toml backlog write; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "RFC-0093: work-loop stops its own workspace.toml backlog write"
 owner = "none"
 
 [[row]]
 pattern = "docs/rfc/0094-direct-light-execution-without-durable-planning-artifacts.md"
 class = "historical"
-consumer = "RFC-0094: direct-light execution never registers itself in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "RFC-0094: direct-light execution never registers itself in workspace.toml"
 owner = "none"
 
 [[row]]
@@ -882,20 +884,20 @@ owner = "none"
 [[row]]
 pattern = "docs/rfc/0103-cross-artifact-reference-grammar.md"
 class = "historical"
-consumer = "RFC-0103: workspace_status_engine reads the Brief header on the dispatch path; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "RFC-0103: workspace_status_engine reads the Brief header on the dispatch path"
 owner = "none"
 
 [[row]]
 pattern = "docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md"
-class = "historical"
-consumer = "RFC-0105: gated retirement of workspace-status and workspace.toml"
-owner = "none"
+class = "contract"
+consumer = "RFC-0105: gated retirement of workspace-status and workspace.toml; still states the gate rules that hold while the `workspace-status` repair ships"
+owner = "rfc-0067"
 
 [[row]]
 pattern = "docs/rfc/0106-stop-registering-derivable-work.md"
-class = "historical"
-consumer = "RFC-0106: registration stops one responsibility at a time"
-owner = "none"
+class = "contract"
+consumer = "RFC-0106: registration stops one responsibility at a time; still states the stop-registering rules that hold while the `workspace-status` repair ships"
+owner = "rfc-0067"
 
 [[row]]
 pattern = "docs/rfc/0107-verb-mode-shaping-and-intake-with-slice-handover.md"
@@ -1164,7 +1166,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "packages/agentbundle/tests/test_workspace_mcp_depends_on.py"
 class = "fixture"
-consumer = "package test that the MCP status tool blocks on Depends on: headers and refuses unmigrated needs in workspace.toml; slice 9: goes with workspace.toml"
+consumer = "package test that the MCP status tool blocks on Depends on: headers and refuses unmigrated needs in workspace.toml; goes with workspace.toml until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1278,7 +1280,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "tests/roster/test_close_work_extraction_and_immediate_disposition.py"
 class = "fixture"
-consumer = "roster test test_close_work_extraction_and_immediate_disposition.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "roster test test_close_work_extraction_and_immediate_disposition.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1290,7 +1292,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "tests/roster/test_cooling_brief_child_scope_closure.py"
 class = "fixture"
-consumer = "roster test test_cooling_brief_child_scope_closure.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "roster test test_cooling_brief_child_scope_closure.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1302,7 +1304,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "tests/roster/test_cooling_scope_closure.py"
 class = "fixture"
-consumer = "roster test test_cooling_scope_closure.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "roster test test_cooling_scope_closure.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1332,7 +1334,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "tests/roster/test_priority_field_never_read.py"
 class = "fixture"
-consumer = "roster test that scans the workspace-status engine and its packaged copy for the Priority field name; slice 9: changes when workspace-status shrinks to the repair"
+consumer = "roster test that scans the workspace-status engine and its packaged copy for the Priority field name; changes when workspace-status shrinks to the repair until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1524,7 +1526,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "packs/core/.apm/skills/navigate-intents/scripts/intent_readiness.py"
 class = "reader"
-consumer = "navigate-intents readiness bridge: reads dispatch.py's output, which still loads the workspace-status engine until slice 9"
+consumer = "navigate-intents readiness bridge: reads dispatch.py's output, which still loads the workspace-status engine until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 reads_order = true
 
@@ -1598,14 +1600,14 @@ reads_order = true
 [[row]]
 pattern = "packs/core/.apm/skills/work-loop/*"
 class = "writer"
-consumer = "work-loop dispatch and finish: selects the first canonical ready item and writes spec registrations; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "work-loop dispatch and finish: selects the first canonical ready item and writes spec registrations; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 reads_order = true
 
 [[row]]
 pattern = "packs/core/.apm/skills/close-work/*"
 class = "writer"
-consumer = "close-work closure index, spec collection moves, and the tracker-origin brief terminal move in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "close-work closure index, spec collection moves, and the tracker-origin brief terminal move in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1643,7 +1645,7 @@ source = "packs/core/.apm/skills/intake-intent/*"
 [[row]]
 pattern = "packs/core/.apm/skills/author-delivery-brief/*"
 class = "writer"
-consumer = "author-delivery-brief registration and Draft-to-Ready move of a tracker-origin brief entry in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "author-delivery-brief registration and Draft-to-Ready move of a tracker-origin brief entry in workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1745,13 +1747,13 @@ owner = "rfc-0067"
 [[row]]
 pattern = "packs/core/tests/skills/work-loop/*"
 class = "fixture"
-consumer = "work-loop tests, evals contract, and recorded corpus specs that cite workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "work-loop tests, evals contract, and recorded corpus specs that cite workspace.toml; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
 pattern = "packs/core/tests/skills/close-work/*"
 class = "fixture"
-consumer = "close-work tests of the closure packet and pause receipts; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "close-work tests of the closure packet and pause receipts; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1769,7 +1771,7 @@ owner = "rfc-0067"
 [[row]]
 pattern = "packs/core/tests/skills/author-delivery-brief/*"
 class = "fixture"
-consumer = "author-delivery-brief tests of the coverage lint and the entry move; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "author-delivery-brief tests of the coverage lint and the entry move; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]
@@ -1793,28 +1795,28 @@ owner = "rfc-0067"
 [[row]]
 pattern = ".claude/skills/author-delivery-brief/*"
 class = "projection"
-consumer = "generated .claude projection of the author-delivery-brief skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "generated .claude projection of the author-delivery-brief skill; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 source = "packs/core/.apm/skills/author-delivery-brief/*"
 
 [[row]]
 pattern = ".agents/skills/author-delivery-brief/*"
 class = "projection"
-consumer = "generated .agents projection of the author-delivery-brief skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "generated .agents projection of the author-delivery-brief skill; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 source = "packs/core/.apm/skills/author-delivery-brief/*"
 
 [[row]]
 pattern = ".claude/skills/close-work/*"
 class = "projection"
-consumer = "generated .claude projection of the close-work skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "generated .claude projection of the close-work skill; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 source = "packs/core/.apm/skills/close-work/*"
 
 [[row]]
 pattern = ".agents/skills/close-work/*"
 class = "projection"
-consumer = "generated .agents projection of the close-work skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "generated .agents projection of the close-work skill; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 source = "packs/core/.apm/skills/close-work/*"
 
@@ -1891,14 +1893,14 @@ source = "packs/core/.apm/skills/work-intake/*"
 [[row]]
 pattern = ".claude/skills/work-loop/*"
 class = "projection"
-consumer = "generated .claude projection of the work-loop skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "generated .claude projection of the work-loop skill; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 source = "packs/core/.apm/skills/work-loop/*"
 
 [[row]]
 pattern = ".agents/skills/work-loop/*"
 class = "projection"
-consumer = "generated .agents projection of the work-loop skill; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
+consumer = "generated .agents projection of the work-loop skill; tracker-origin spec entries and the engine dispatch.py loads remain until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 source = "packs/core/.apm/skills/work-loop/*"
 
@@ -2465,13 +2467,13 @@ owner = "none"
 [[row]]
 pattern = "docs/adr/0148-completion-receipt-rides-on-the-waiting-items-header.md"
 class = "historical"
-consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces; slice 9: moved with the operative references after the cutover"
+consumer = "ADR-0148: the completion receipt rides on the waiting item Dependency receipts: header line, and names the registry only as the carrier it replaces"
 owner = "none"
 
 [[row]]
 pattern = "tests/roster/test_depends_on_headers_instructions.py"
 class = "fixture"
-consumer = "roster test that no shipped instruction teaches a registry needs edge and that each instruction site names the Depends on: header; slice 9: changes when workspace-status shrinks to the repair"
+consumer = "roster test that no shipped instruction teaches a registry needs edge and that each instruction site names the Depends on: header; changes when workspace-status shrinks to the repair until the release that retires the `workspace-status` name under RFC-0067"
 owner = "rfc-0067"
 
 [[row]]

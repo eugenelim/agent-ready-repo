@@ -337,7 +337,7 @@ def check_inventory(root: Path, inventory: Path, brief: Path) -> list[Violation]
                     Violation(
                         "AC-0003",
                         label(i),
-                        f"owner {owner!r} is neither `none` nor a brief slice number",
+                        f"owner {owner!r} is not `none`, `rfc-0067`, or a brief slice number",
                     )
                 )
             elif owner != max(slices):
@@ -756,13 +756,35 @@ def _equivalence_violations(root: Path, record: Path, text: str, heads: Any) -> 
     return violations
 
 
+_RUN_URL_EXACT = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/actions/runs/[0-9]+")
+_URL_ANY = re.compile(r"https?://\S+")
+_GITHUB_URL = re.compile(r"https://github\.com/\S*")
+_PATH_EXTENSIONS = (
+    ".md", ".py", ".toml", ".json", ".yml", ".yaml", ".txt", ".sh", ".js", ".ts", ".cfg", ".ini",
+)
+
+
+def _evidence_paths(evidence: str) -> list[str]:
+    """Backticked spans and bare repo-path-looking tokens outside URLs."""
+    spans = re.findall(r"`([^`]+)`", evidence)
+    rest = _URL_ANY.sub(" ", re.sub(r"`[^`]*`", " ", evidence))
+    bare = [
+        t
+        for raw in rest.split()
+        if (t := raw.strip(".,;:()[]\"'")) and ("/" in t or t.endswith(_PATH_EXTENSIONS))
+    ]
+    return spans + bare
+
+
 def _evidence_violation(repo: _Repo, evidence: str) -> str | None:
     """Why a ``met`` row's Evidence is not proof (AC-0030), or None when it is."""
-    if re.search(r"https://github\.com/\S*/actions/runs/", evidence):
-        return None
-    paths = re.findall(r"`([^`]+)`", evidence)
-    if not paths:
-        return "Evidence is neither an Actions run URL nor a backticked path"
+    urls = _GITHUB_URL.findall(evidence)
+    paths = _evidence_paths(evidence)
+    if not urls and not paths:
+        return "Evidence is neither an Actions run URL nor a path"
+    malformed = [u for u in urls if not _RUN_URL_EXACT.fullmatch(u.rstrip(".,;:)"))]
+    if malformed:
+        return f"Evidence names a URL that is not an Actions run URL: {', '.join(malformed)}"
     tracked = set(repo.tracked)
     untracked = [x for x in paths if posixpath.normpath(x) not in tracked]
     if untracked:
@@ -1080,7 +1102,9 @@ def test_ac0002_unknown_class(tmp_path: Path) -> None:
 
 def test_ac0003_owner_not_a_slice(tmp_path: Path) -> None:
     rows = [_row("notes.txt", "guide", owner=10)]
-    _only(_run(tmp_path, {"notes.txt": _MENTION}, rows), "AC-0003")
+    found = _run(tmp_path, {"notes.txt": _MENTION}, rows)
+    _only(found, "AC-0003")
+    assert "`rfc-0067`" in found[0].detail
 
 
 def test_ac0029_owner_below_last_slice(tmp_path: Path) -> None:
@@ -1121,7 +1145,9 @@ def test_ac0003_rfc0067_owner_on_record_fails(tmp_path: Path) -> None:
 def test_ac0032_shipped_spec_forbids_a_slice_owner(tmp_path: Path) -> None:
     rows = [_row("notes.txt", "guide", owner=9)]
     files = {"notes.txt": _MENTION, _RETIREMENT_SPEC: _SHIPPED}
-    _only(_run(tmp_path, files, rows), "AC-0032")
+    found = [v for v in _run(tmp_path, files, rows) if v.criterion == "AC-0032"]
+    planted = [v for v in found if "'notes.txt'" in v.subject]
+    assert len(planted) == 1, [str(v) for v in found]
 
 
 def test_ac0032_shipped_spec_allows_non_slice_owners(tmp_path: Path) -> None:
@@ -1446,6 +1472,39 @@ def test_real_inventory_passes_the_inventory_rules() -> None:
     assert found == [], "\n".join(str(v) for v in found)
 
 
+def _real_rows() -> list[dict[str, Any]]:
+    return tomllib.loads(DEFAULT_INVENTORY.read_text(encoding="utf-8"))["row"]
+
+
+def test_live_rule_rfcs_are_contract_rows_owned_by_rfc0067() -> None:
+    """Each RFC still states a rule that holds while the `workspace-status` repair ships."""
+    wanted = {
+        "docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md",
+        "docs/rfc/0106-stop-registering-derivable-work.md",
+        "docs/rfc/0078-workspace-mcp.md",
+    }
+    rows = {r["pattern"]: r for r in _real_rows() if r["pattern"] in wanted}
+    assert set(rows) == wanted
+    for pattern, row in rows.items():
+        assert (row["class"], row["owner"]) == ("contract", "rfc-0067"), pattern
+        assert "repair" in row["consumer"], pattern
+
+
+def test_re_owned_rows_name_no_slice_nine_deadline() -> None:
+    stale = [
+        r["pattern"]
+        for r in _real_rows()
+        if r["owner"] in ("rfc-0067", "none")
+        and ("until slice 9" in r["consumer"] or "slice 9:" in r["consumer"])
+    ]
+    assert stale == []
+
+
+def test_inventory_header_describes_the_rfc0067_owner() -> None:
+    header = DEFAULT_INVENTORY.read_text(encoding="utf-8").split("[[row]]", 1)[0]
+    assert "rfc-0067" in header
+
+
 # ───────────────────────────── record rule fixtures ──────────────────────────────
 
 _REC_PATH = "docs/specs/workspace-retirement/retirement-record.md"
@@ -1706,11 +1765,28 @@ def test_ac0011_frozen_key_without_row(tmp_path: Path) -> None:
     assert not (tmp_path / "repo" / _REGISTRY_PATH).exists()
 
 
-def test_fact_set_reads_no_registry_file(tmp_path: Path) -> None:
+def _baseline_facts(tmp_path: Path) -> set[str]:
     _record_check(tmp_path)
     facts, problems = _fact_set(tmp_path / "repo")
     assert problems == []
-    assert set(_REGISTRY_FACTS) <= facts
+    return facts
+
+
+def test_fact_set_ignores_an_unparseable_registry_file(tmp_path: Path) -> None:
+    expected = _baseline_facts(tmp_path / "plain")
+    _record_check(tmp_path / "bad", extra_files={_REGISTRY_PATH: "[[["})
+    facts, problems = _fact_set(tmp_path / "bad" / "repo")
+    assert problems == []
+    assert facts == expected
+
+
+def test_fact_set_ignores_an_extra_registry_key(tmp_path: Path) -> None:
+    expected = _baseline_facts(tmp_path / "plain")
+    _record_check(tmp_path / "extra", extra_files={_REGISTRY_PATH: "[extra]\nkey = []\n"})
+    facts, problems = _fact_set(tmp_path / "extra" / "repo")
+    assert problems == []
+    assert facts == expected
+    assert "extra" not in facts and "extra.key" not in facts
 
 
 def test_frozen_registry_facts_match_the_registry_at_3b1d0279d() -> None:
@@ -2286,6 +2362,32 @@ def test_ac0030_met_row_with_actions_run_url_passes(tmp_path: Path) -> None:
 def test_ac0030_met_row_with_a_non_run_url(tmp_path: Path) -> None:
     url = "https://github.com/example/repo/pull/12"
     _only(_closure_check(tmp_path, _closure_with(0, Evidence=url)), "AC-0030")
+
+
+_RUN_URL = "https://github.com/example/repo/actions/runs/123456"
+
+
+def test_ac0030_untracked_backticked_path_beside_a_run_url(tmp_path: Path) -> None:
+    evidence = f"{_RUN_URL} and `tools/missing.py`"
+    _only(_closure_check(tmp_path, _closure_with(0, Evidence=evidence)), "AC-0030")
+
+
+def test_ac0030_run_url_without_owner_repo_or_id(tmp_path: Path) -> None:
+    url = "https://github.com//actions/runs/"
+    _only(_closure_check(tmp_path, _closure_with(0, Evidence=url)), "AC-0030")
+
+
+def test_ac0030_bare_untracked_path_beside_a_tracked_path(tmp_path: Path) -> None:
+    evidence = f"`{_REC_PATH}` and tools/missing.py"
+    _only(_closure_check(tmp_path, _closure_with(0, Evidence=evidence)), "AC-0030")
+
+
+def test_ac0030_run_url_alone_passes(tmp_path: Path) -> None:
+    assert _closure_check(tmp_path, _closure_with(0, Evidence=_RUN_URL)) == []
+
+
+def test_ac0030_tracked_bare_path_passes(tmp_path: Path) -> None:
+    assert _closure_check(tmp_path, _closure_with(0, Evidence=_REC_PATH)) == []
 
 
 def test_ac0030_open_row_needs_no_evidence(tmp_path: Path) -> None:
