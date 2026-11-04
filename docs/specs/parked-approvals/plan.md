@@ -73,9 +73,9 @@ Owned by: T2, T3. Traces to AC-0001, AC-0006, AC-0013.
 
 ### Behavior & rules
 
-Owned by: T1. Traces to AC-0007, AC-0008, AC-0025.
+Owned by: T1, T10. Traces to AC-0007, AC-0008, AC-0025.
 
-- Gate digest: decode the bytes as strict UTF-8 and refuse `GateDigestRefused("gate-unsafe-content")` on failure or when a character fails AC-0039; the hidden-character half calls `is_hidden_char` from `lint-knowledge.py`, loaded by path as a sibling, so one definition serves both; the Cc, U+2028/U+2029, and U+FFF9 to U+FFFB checks are added in `_supervisor_gates.py`; then split the text into lines after CRLF/CR → LF; find level-two headings (`##` indented at most 3 spaces) outside fenced code blocks; when `## Changelog` occurs, it must occur once, be the last level-two heading, and every line after it, with HTML comments stripped, must be blank, start with `- `, or be an indented continuation of a list item; otherwise raise `GateDigestRefused("gate-changelog-shape")`. Drop the section, then SHA-256 of `_loop_guards.canonical_contract(text, ac_section_only=(name != "plan.md"))`.
+- Gate digest: decode the bytes as strict UTF-8 and refuse `GateDigestRefused("gate-unsafe-content")` on failure or when a character fails AC-0039 (the hidden-character half calls `is_hidden_char` from `lint-knowledge.py`, loaded by path as a sibling; the Cc, U+2028/U+2029, and U+FFF9 to U+FFFB checks and the invisible budget, length basis 2,000, live in `_supervisor_gates.py`); normalize CRLF/CR to LF; after the last line that is exactly `## Changelog`, drop every line whose `str.rstrip()` form fully matches the approval-entry pattern `^- [0-9]{4}-[0-9]{2}-[0-9]{2}: (spec|plan|amendment) approved by [A-Za-z0-9][A-Za-z0-9-]{0,38}( \((scope|build strategy|scope and build strategy)\))?\.?$` (compiled with `re.ASCII`); fold each run of blank lines into one and drop blank lines at the end; then SHA-256 of `_loop_guards.canonical_contract(text, ac_section_only=(name != "plan.md"))`. No Markdown structure is parsed. AC-0025 is the one statement of the grammar; this pattern implements it.
 - Statuses for AC-0004 come from the existing status parser `_loop_guards` already loads.
 - "Clean" for AC-0003, without writing the index: `ls-files -s -- <path>` must print exactly one stage-0 entry; its blob must equal `rev-parse HEAD:<path>`; and `hash-object --no-filters --stdin`, fed the bytes `park` already read, must equal that blob either for the raw bytes or for the bytes with CRLF turned into LF. All three run through `HardenedGit` unchanged; none of them takes Git's optional index lock, so no extra environment is passed. No `diff` or `status` runs, because they refresh the index's stat cache.
 - "Admitted" for AC-0005 and AC-0012: the latest line of `Workspace.approvals("HEAD")` carries `envelope.envelope_fingerprint` equal to `_acceptance.derive_envelope` of the spec's current references, `terminal_intent` equal to the given intent, and `code_trust` equal to the given trust: the same three values `start` compares.
@@ -101,10 +101,9 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`
 
 **Tests:** TDD — unit, at `_supervisor_gates.gate_digest`
-- AC-0025 also covers an indented continuation line, which keeps the digest.
 - AC-0039: one case per class (invalid UTF-8, an ESC sequence, a bare CR, DEL, a C1 control, a bidi override, a zero-width space, a tag-character payload, a variation-selector payload, a Mongolian free variation selector, U+2028, U+FFF9), each refusing `gate-unsafe-content`, and a tab and a CRLF, which keep the digest.
 - AC-0007, AC-0008: parametrized edits over one fixture spec and one fixture plan, each asserting digest equality or inequality with the unedited text.
-- AC-0025: the three shape violations (two Changelog headings, a later `##` heading, a non-list line) and a `## Changelog` inside a fenced block that is not treated as a heading.
+- AC-0025: an approval-entry line after the last `## Changelog` line is dropped and keeps the digest; the same line before that heading, a wrapped approval entry, and any other line under `## Changelog` (HTML, a comment, a fence, a heading) change the digest; no input refuses `gate-changelog-shape`.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py -q` exits 0.
 
@@ -115,7 +114,7 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_untrusted_unsafe_host.py`, `.github/workflows/catalogue-tooling-ci-gates.yml`
 
 **Tests:** TDD — integration, through `supervisor_harness.run_cli` on `make_repo` repositories
-- AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0026, AC-0029, AC-0030, AC-0032, AC-0038, AC-0039: one test per criterion, each named `test_t2_…`; AC-0002 snapshots `git for-each-ref`, the index file's bytes, `HEAD`, and the bytes of every working-tree file, ignored files included, before and after, on a repository whose index stat data is stale; AC-0005 also parks a spec whose latest pair differs only in envelope fingerprint, only in terminal intent, and only in code trust; AC-0003 includes a CRLF working tree of an LF blob, which parks, and an unmerged index entry, which refuses; AC-0006 re-parks with a different code trust, and after the recorded commit is rewritten away and pruned, and checks the record is replaced each time; AC-0038 parks a spec with no Terminal Intent section and refuses one with two; AC-0029 builds inputs that break two rules at once; AC-0030 edits the spec body after `spec-approved` and commits it with `Status: Approved`.
+- AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0029, AC-0030, AC-0032, AC-0038, AC-0039: one test per criterion, each named `test_t2_…`; AC-0002 snapshots `git for-each-ref`, the index file's bytes, `HEAD`, and the bytes of every working-tree file, ignored files included, before and after, on a repository whose index stat data is stale; AC-0005 also parks a spec whose latest pair differs only in envelope fingerprint, only in terminal intent, and only in code trust; AC-0003 includes a CRLF working tree of an LF blob, which parks, and an unmerged index entry, which refuses; AC-0006 re-parks with a different code trust, and after the recorded commit is rewritten away and pruned, and checks the record is replaced each time; AC-0038 parks a spec with no Terminal Intent section and refuses one with two; AC-0029 builds inputs that break two rules at once; AC-0030 edits the spec body after `spec-approved` and commits it with `Status: Approved`.
 
 **Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k t2_` and `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_untrusted_unsafe_host.py -q` exit 0.
 
@@ -137,7 +136,7 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_admission.py`, `packs/core/tests/skills/work-loop/supervisor_harness.py`, `packs/core/tests/skills/work-loop/test_supervisor_*.py`, `packs/core/tests/skills/work-loop/test_proof_by_run.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `tests/roster/test_t9a_clean_env_fence.py`
 
 **Tests:** TDD — integration, each test named `test_t4_…`
-- AC-0015, AC-0016, AC-0017, AC-0018, AC-0027, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, and AC-0039's `start` clause (owner and no appended line, and first in AC-0035's order) in `test_supervisor_parked_gates.py`; the no-write assertions snapshot the store and every file under the spec directory, ignored files included; AC-0016 asserts no write on both the first-admission and the re-approval path; AC-0018 runs `start` four times from one repository state with the record present, absent, truncated, and rewritten; AC-0033 admits, makes an in-envelope plan edit, and re-runs `start` three ways; AC-0034 patches the seam between `import_policy` and `build_commit` to make a whitespace-only edit to `plan.md`; AC-0037 patches the seam between the pre-check and `run_lock` twice: once so the pre-check answers `current` and the locked decision records, once so a cited record changes while `spec.md` and `plan.md` bytes stay the same.
+- AC-0015, AC-0016, AC-0017, AC-0018, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037, and AC-0039's `start` clause (owner and no appended line, and first in AC-0035's order) in `test_supervisor_parked_gates.py`; the no-write assertions snapshot the store and every file under the spec directory, ignored files included; AC-0016 asserts no write on both the first-admission and the re-approval path; AC-0018 runs `start` four times from one repository state with the record present, absent, truncated, and rewritten; AC-0033 admits, makes an in-envelope plan edit, and re-runs `start` three ways; AC-0034 patches the seam between `import_policy` and `build_commit` to make a whitespace-only edit to `plan.md`; AC-0037 patches the seam between the pre-check and `run_lock` twice: once so the pre-check answers `current` and the locked decision records, once so a cited record changes while `spec.md` and `plan.md` bytes stay the same.
 - `supervisor_harness.start` computes both digests with `_supervisor_gates.gate_digest`; each direct `start` argv in the other suites that records a pair gains the two arguments.
 
 **Done when:** under `WORK_SUPERVISOR_INTEGRATION=1`, every suite in the supervisor integration lane's file list plus `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, and `test_proof_by_run.py` exits 0; the pack lane `python3 -m pytest packs/core/tests/skills/work-loop -q` exits 0; and `python3 -m pytest tests/roster/test_t9a_clean_env_fence.py -q` exits 0.
@@ -174,7 +173,6 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 
 **Tests:** TDD — unit and integration; every new test named `test_t8_…`
 - qe-1 (AC-0015, AC-0035): `start` with no digests on a `Draft` spec refuses `spec-not-approved`, as before; the pre-check runs `start`'s read-only refusals (authority-ref format, intent and code-trust values, untrusted-unsafe-host, Git config, statuses) before any digest refusal.
-- sec-1, adv-4 (AC-0025): a nested-fence case where a three-backtick line inside a four-backtick fence does not close it; an indented line directly under `## Changelog`, or after a non-list line, refuses `gate-changelog-shape`.
 - sec-2 (AC-0039): a run of three U+FE0F and an alternating U+FE0E/U+FE0F sequence over the knowledge lint's invisible budget refuse `gate-unsafe-content`; one emoji VS16 keeps the digest.
 - sec-3 (AC-0009, AC-0011): in a partial clone or with a promisor remote, `park` refuses and `gates` lists `stale` before any record-named commit is read; `park`'s commit read passes `no_lazy_fetch`.
 - qe-2 (AC-0014): a failing sibling load under `gates` prints one JSON `internal-error` refusal.
@@ -183,7 +181,7 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 - qe-9 (AC-0008): byte changes outside the spec's AC section and in a plan body each change the digest.
 - qe-11 (AC-0009): the pseudo-terminal read loop has a deadline that kills the child and fails, and the child's stdin is `/dev/null`.
 - qe-13 (AC-0036): the malformed-digest cases share one fresh and one admitted repository.
-- adv-7, adv-10 (AC-0020): the reference names the exact `git --no-pager --no-replace-objects --no-lazy-fetch cat-file blob` commands, says no flag may be removed, and the `gate-changelog-shape` row names either artifact.
+- adv-7, adv-10 (AC-0020): the reference names the exact `git --no-pager --no-replace-objects --no-lazy-fetch cat-file blob` commands, and says no flag may be removed.
 - qe-16, sec-6: `is_hidden_char` is typed `Callable[[str], bool]` with no ignore; the park-trusted docstring states the path-checked-host race window and why it is acceptable.
 
 **Done when:** under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, `test_supervisor_admission.py`, and `test_supervisor_cutover_source_checks.py` exit 0; `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; and `make lint-ruff lint-mypy` exits 0.
@@ -196,30 +194,41 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 
 **Tests:** TDD — unit and integration; every new test named `test_t9_…`
 - adv2-1 (AC-0015): with an open attempt carrying residue, `start` with or without digests writes no `.refused.json` and no security event before the locked path, and gives the non-standing `attempt-residue` detail; the pre-check uses `Attempts.standing_refusal()`, never `guard`.
-- sec2-1 (AC-0025): a 1-space-indented `## X`, a setext underline, and an indented line shallower than the list item's content width under `## Changelog` each refuse `gate-changelog-shape`; an ATX heading indented 1 to 3 spaces counts when finding the last level-two heading.
-- sec2-2 (AC-0025): a backtick run indented 4 or more spaces does not open or close a fence, and a backtick opener whose info string holds a backtick is not a fence.
 - sec2-3 (AC-0039): `invisible_budget` takes a fixed per-artifact cap; a padded artifact with many interleaved VS16 refuses `gate-unsafe-content`, and one emoji VS16 keeps the digest.
-- qe2-1 (AC-0020): the cutover scan's sentinel requires `gate-unsafe-path`, `gate-changelog-shape`, and `approval-digest-required`.
+- qe2-1 (AC-0020): the cutover scan's sentinel requires `gate-unsafe-path`, `gate-unsafe-content`, and `approval-digest-required`.
 - qe2-2 (AC-0015): `start` without digests on a repository with a code-running Git config key refuses `unsupported-git-config`.
 - qe2-3 (AC-0009, AC-0011): under the replace ref and pager settings alone, `gates` equals the baseline listing with state `pending`; after the partial-clone settings every entry lists `stale`.
 
 **Done when:** under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, `test_supervisor_admission.py`, `test_supervisor_attempt.py`, and `test_supervisor_cutover_source_checks.py` exit 0; `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; and `make lint-ruff lint-mypy` exits 0.
 
-### T10: Strict Changelog whitelist
+### T10: Approval-entry grammar
 
 **Depends on:** T9
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`
 
-**Tests:** TDD — unit, at `_supervisor_gates.gate_digest`; every new test named `test_t10_…`
-- adv3-1, sec3-1 (AC-0025): an unindented lazy line under `## Changelog` refuses `gate-changelog-shape`; the T9 test that kept a lazy line now expects the refusal.
-- adv3-3, sec3-1 (AC-0025): an item's content width is its marker plus following spaces; `-   foo`, a blank line, then `  bar` refuses; a continuation indented at least the content width that cannot start a block keeps the digest.
-- sec3-1 (AC-0025): a `- ` line whose content starts another block (`- # h`, `- ```, `- <div>`, an empty `- `) refuses; an HTML comment that spans a blank line refuses.
-- adv3-2, sec3-2 (AC-0007, AC-0008, AC-0025): a fence or HTML block inside a list item before the `## Changelog` heading refuses, including a fence opened at 2 spaces and closed at 4.
-- adv3-4 (AC-0039): `invisible_budget`'s length basis is 2,000 characters; 40 emoji presentation selectors in one artifact keep the digest and 41 refuse; a padded artifact cannot buy more.
-- adv3-5: the fence-rule comment describes the rule `_fence_run` applies, without claiming parity with the contract canonicaliser.
+**Tests:** TDD — unit, at `_supervisor_gates.gate_digest`; every test named `test_t10_…`
+- AC-0025: the template form `- 2026-11-04: spec approved by example-owner`, the same with ` (scope).`, a plan entry with ` (build strategy)`, and an amendment entry with ` (scope and build strategy).` each keep the digest when added after the last `## Changelog` line, also with trailing spaces or a trailing U+00A0; a handle of 40 characters, a handle with `_`, a reason outside the set, non-ASCII digits in the date, and any extra text each change the digest.
+- AC-0007: adding a first approval entry with a separating blank line, and adding a second after an existing one, keep the digest; a run of extra blank lines folds to one.
+- AC-0008: removing a blank line between two paragraphs changes the digest.
+- AC-0039: the invisible budget's length basis is 2,000 characters; 40 emoji presentation selectors in one artifact keep the digest and 41 refuse.
 
-**Done when:** `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py` exits 0; and `make lint-ruff lint-mypy` exits 0.
+**Done when:** `test_supervisor_gates_digest.py` exits 0 and `make lint-ruff lint-mypy` exits 0.
+
+### T11: Approver surfaces and review must-fixes
+
+**Depends on:** T10
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/pre-execute-review.md`, `packs/core/.apm/skills/work-loop/SKILL.md`, `packs/core/.apm/skills/new-spec/assets/plan.md`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `packs/core/tests/skills/work-loop/test_parked_gates_guidance.py`, `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`
+
+**Tests:** TDD — goal-based content tests and integration; every new test named `test_t11_…`
+- AC-0021, AC-0020: the new-spec plan template, `SKILL.md`, `supervisor.md`, `pre-execute-review.md`, and the `gates` answer text each state the approval-entry form or point to the supervisor reference's one statement of it; the reference has no `gate-changelog-shape` row and every remaining refusal code has one.
+- AC-0029: an input that is both unsafe-content and spec-changed under `park --gate plan-approved` refuses `gate-unsafe-content`.
+- AC-0035: a `start` input with unsafe content and no digests refuses `gate-unsafe-content`.
+- AC-0039: every `gate-unsafe-content` refusal detail names the artifact and the first offending line number, and the budget comment states the 40-character bound.
+- Test fixtures use a generic placeholder handle, never a real account name.
+
+**Done when:** `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, `test_supervisor_admission.py`, and `test_supervisor_cutover_source_checks.py` exit 0; and `make lint-ruff lint-mypy` exits 0.
 
 ### T7: Core release
 
@@ -246,3 +255,4 @@ Ships in the next core patch. Every controller that records an approval with `st
 
 - 2026-11-04: spec approved by eugenelim (scope).
 - 2026-11-04: plan approved by eugenelim (build strategy).
+- 2026-11-04: amendment approved by eugenelim (scope and build strategy).

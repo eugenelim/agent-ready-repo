@@ -30,7 +30,7 @@ A human approving a full-mode work-loop spec or plan sees every waiting `spec-ap
 
 - New supervisor verb `park <spec-dir> --gate spec-approved|plan-approved` — `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py` and one new `_supervisor_gates.py` module beside it.
 - New read-only supervisor verb `gates` — the same two files.
-- The gate digest: the canonical contract digest over the artifact without its `## Changelog` section — `_supervisor_gates.py`, calling the existing canonicalizer in `_loop_guards.py`.
+- The gate digest: the canonical contract digest over the artifact without its approval-entry lines — `_supervisor_gates.py`, calling the existing canonicalizer in `_loop_guards.py`.
 - `start` takes `--approved-spec-digest` and `--approved-plan-digest`, needs both whenever it records an approval pair, and refuses a mismatch before any write — `work-supervisor.py` and `_supervisor_admission.py`.
 - Park records live in the checkout's local supervisor store, `<git-dir>/agentbundle-supervisor/gates/`, one per spec.
 - Controller procedure for parking, listing, answering, and working other specs while a gate waits — work-loop `SKILL.md` step 12, `references/supervisor.md`, `references/session-resumption.md`, `references/state-schema.md`.
@@ -74,9 +74,9 @@ A human approving a full-mode work-loop spec or plan sees every waiting `spec-ap
 
 ## Testing Strategy
 
-- **Gate digest (AC-0007, AC-0008, AC-0025): TDD, unit.** A pure function of the artifact text, so each normalization and each shape violation is one small case.
-- **`park` and `gates` behaviour (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0026, AC-0029, AC-0030, AC-0031, AC-0032, AC-0038, AC-0039): TDD, integration** through the supervisor CLI on a real Git repository built by the existing supervisor test harness, because each criterion is about what lands in Git and the store.
-- **`start` digest binding and the no-default rule (AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0027, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037): TDD, integration** through the CLI, gated like the other supervisor integration suites, because the property is that no Git state changes.
+- **Gate digest (AC-0007, AC-0008, AC-0025): TDD, unit.** A pure function of the artifact text, so each normalization and each approval-entry match or non-match is one small case.
+- **`park` and `gates` behaviour (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0029, AC-0030, AC-0031, AC-0032, AC-0038, AC-0039): TDD, integration** through the supervisor CLI on a real Git repository built by the existing supervisor test harness, because each criterion is about what lands in Git and the store.
+- **`start` digest binding and the no-default rule (AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0033, AC-0034, AC-0035, AC-0036, AC-0037): TDD, integration** through the CLI, gated like the other supervisor integration suites, because the property is that no Git state changes.
 - **Guidance and evals (AC-0020, AC-0021, AC-0022): goal-based**, a content test over the shipped skill files plus the eval harness's own schema check.
 - **Release (AC-0023, AC-0024): goal-based**, the release and catalogue checks.
 
@@ -90,18 +90,17 @@ A human approving a full-mode work-loop spec or plan sees every waiting `spec-ap
 - [ ] **AC-0004.** `park --gate spec-approved` refuses with `gate-status-mismatch` unless the spec is `Draft`; `park --gate plan-approved` refuses with `gate-status-mismatch` unless the spec is `Approved` and the plan is `Drafting`.
 - [ ] **AC-0005.** `park` refuses with `gate-already-admitted` exactly when `start` with the same intent and code trust would answer `current`: the latest approval pair in `<spec-dir>/delivery/approvals.jsonl` at `HEAD` carries the envelope fingerprint the spec derives now, the `--intent` given to `park`, and the `--code-trust` given to `park`. A spec whose latest pair differs in any of the three parks like a spec with no pair.
 - [ ] **AC-0006.** A second `park` with the same gate, the same digests, the same intent, and the same code trust prints `status` `current` and leaves the record byte-identical, provided the recorded commit can still be read and holds the recorded digests; a successful `park` for the same spec that differs in any of them, or whose recorded commit fails that condition, replaces the record, so the spec has one record.
-- [ ] **AC-0029.** When an input meets more than one `park` refusal, `park` returns the first that applies in this order: `gate-unsafe-path`, `ambiguous-reference`, `intent-mismatch`, `gate-uncommitted`, `gate-already-admitted`, `gate-status-mismatch`, `gate-unsafe-content`, `gate-changelog-shape`, `gate-spec-changed`.
+- [ ] **AC-0029.** When an input meets more than one `park` refusal, `park` returns the first that applies in this order: `gate-unsafe-path`, `ambiguous-reference`, `intent-mismatch`, `gate-uncommitted`, `gate-already-admitted`, `gate-status-mismatch`, `gate-unsafe-content`, `gate-spec-changed`.
 - [ ] **AC-0038.** `park` refuses with `intent-mismatch` and owner `owner`, writing no record, when the spec declares a Terminal Intent that differs from `--intent`, and with `ambiguous-reference` when the spec has more than one `## Terminal Intent` section, the same refusals `start` gives; a spec that declares none parks with the given intent.
 - [ ] **AC-0030.** `park --gate plan-approved` refuses with `gate-spec-changed` and writes no record when the spec has no valid park record (AC-0031) or its record holds a `spec_digest` other than the current gate digest of `spec.md`; on success, the record it writes holds that same `spec_digest`.
 - [ ] **AC-0032.** A safe spec path is a repository-relative path with no leading `/`, whose segments are non-empty, are not `.` or `..`, do not start with `-`, and hold only `A-Z`, `a-z`, `0-9`, `.`, `_`, and `-`. Among paths the supervisor's shared spec-directory check accepts, `park` refuses every unsafe one with `gate-unsafe-path`; a path the shared check rejects exits 2 with a usage error before any verb runs.
 - [ ] **AC-0039.** An artifact that is not valid UTF-8, or that holds a character in Unicode category Cc other than tab, LF, or a CR immediately before LF, a character in category Cf, a Default_Ignorable_Code_Point (the work-loop knowledge lint's one hidden-character definition), U+2028, U+2029, or U+FFF9 to U+FFFB, has no gate digest: `park` refuses it with `gate-unsafe-content`, `gates` lists its entry as `stale`, and `start` that would record a pair refuses with `gate-unsafe-content` and owner `controller` and appends no line.
-- [ ] **AC-0026.** `park` refuses with `gate-changelog-shape` and writes no record when either artifact has no gate digest under AC-0025.
 
 ### Gate digest
 
-- [ ] **AC-0007.** The gate digest of an artifact is unchanged when only its `Status:` token changes, when lines are added to or removed from its `## Changelog` section, or when line endings or trailing whitespace change.
-- [ ] **AC-0008.** The gate digest of an artifact changes when any byte outside its status token, its `## Changelog` section, line endings, trailing whitespace, and checkbox contents changes.
-- [ ] **AC-0025.** An artifact has no gate digest when, counting only lines outside fenced code blocks, its `## Changelog` heading occurs more than once, is not its last level-two heading, or heads a section holding, outside HTML comments, any line other than a blank line, a `- ` list item, or an indented continuation line of a list item.
+- [ ] **AC-0007.** The gate digest of an artifact is unchanged when only its `Status:` token changes, when approval-entry lines (AC-0025) are added or removed, when runs of blank lines are folded or blank lines are added at its end, or when line endings or trailing whitespace change.
+- [ ] **AC-0008.** The gate digest of an artifact changes when any byte outside its status token, its approval-entry lines, blank-line runs, line endings, trailing whitespace, and checkbox contents changes, including a wrapped approval entry, an approval-shaped line before the last `## Changelog` line, and any other line under `## Changelog`.
+- [ ] **AC-0025.** An approval-entry line is a line, after the file's last line that is exactly `## Changelog`, whose form with trailing whitespace removed (as the contract canonicalizer removes it) is `- YYYY-MM-DD: <kind> approved by <handle>`, optionally followed by ` (<reason>)` and optionally ending in `.`, where the date uses the ASCII digits 0 to 9 with no calendar check, `<kind>` is `spec`, `plan`, or `amendment`, `<handle>` is 1 to 39 characters of `A-Z`, `a-z`, `0-9`, and `-` starting with a letter or digit, and `<reason>` is `scope`, `build strategy`, or `scope and build strategy`.
 
 ### `gates`
 
@@ -122,18 +121,17 @@ A human approving a full-mode work-loop spec or plan sees every waiting `spec-ap
 - [ ] **AC-0033.** `start` on an admitted run whose envelope, intent, and code trust are unchanged answers `current` whether well-formed digests are absent, equal to the current gate digests, or different from them, including after an in-envelope plan edit.
 - [ ] **AC-0034.** The whole-file digests in a recorded approval pair come from the same bytes of `spec.md` and `plan.md` whose gate digests matched the pins; when either file's bytes change between the digest check and the last read before the approval commit, `start` refuses with `approval-digest-mismatch` and owner `owner` and appends no line.
 - [ ] **AC-0037.** `start` records an approval pair only from bytes its digest check verified: when the read-only decision before its first write answers `current` but the decision under the run lock would record a pair, or the envelope fingerprint, intent, or code trust derived under the lock differs from the one the digest check used, `start` refuses with `approval-digest-required` and owner `owner` and appends no line.
-- [ ] **AC-0027.** `start` that would record an approval pair refuses with `gate-changelog-shape` and owner `controller`, writing nothing to Git, the store, or the working tree, ignored files included, when either artifact has no gate digest under AC-0025.
-- [ ] **AC-0035.** When an input meets more than one `start` digest refusal, `start` returns the first that applies in this order: `gate-unsafe-content`, `gate-changelog-shape`, `approval-digest-required`, `approval-digest-mismatch`.
+- [ ] **AC-0035.** When an input meets more than one `start` digest refusal, `start` returns the first that applies in this order: `gate-unsafe-content`, `approval-digest-required`, `approval-digest-mismatch`.
 - [ ] **AC-0018.** For the same arguments, `start`'s exit code and output are the same whether the spec's park record is present, absent, malformed, or rewritten to hold other digests.
 
 ### Never approved by default
 
-- [ ] **AC-0019.** Given a parked gate, both statuses then set to `Implementing` and `Executing` with no human answer, and a spec edit outside `## Changelog`, `start` with the digests from the parked record refuses `approval-digest-mismatch` and `start` with no digests refuses `approval-digest-required`, and `approvals.jsonl` stays absent after each.
+- [ ] **AC-0019.** Given a parked gate, both statuses then set to `Implementing` and `Executing` with no human answer, and a spec edit that is not an approval-entry line (AC-0025), `start` with the digests from the parked record refuses `approval-digest-mismatch` and `start` with no digests refuses `approval-digest-required`, and `approvals.jsonl` stays absent after each.
 
 ### Guidance and evals
 
 - [ ] **AC-0020.** The work-loop supervisor reference's verb table lists `park` and `gates`, and its `start` row names `--approved-spec-digest` and `--approved-plan-digest`.
-- [ ] **AC-0021.** The work-loop `SKILL.md` approval step tells the controller to park each gate, to pass `start` the spec digest from the spec approver's answer and the plan digest from the plan approver's answer, to dispatch no implementation work for a parked spec, and never to treat a parked gate as approved.
+- [ ] **AC-0021.** The work-loop `SKILL.md` approval step, the supervisor reference, the pre-EXECUTE review reference, the new-spec plan template, and the `gates` answer text tell the controller to park each gate, to pass `start` the spec digest from the spec approver's answer and the plan digest from the plan approver's answer, to have each approver write the Changelog entry as one approval-entry line (AC-0025), to dispatch no implementation work for a parked spec, and never to treat a parked gate as approved.
 - [ ] **AC-0022.** `evals.json` carries a case in which a gate is parked with no answer and another independent spec is ready, whose assertions require the controller to work the other spec, not run `start` for the parked one, and not report the gate approved.
 
 ### Release
@@ -143,6 +141,8 @@ A human approving a full-mode work-loop spec or plan sees every waiting `spec-ap
 
 ## Retired identifiers
 
+- AC-0026
+- AC-0027
 - AC-0028
 
 ## Terminal Intent
