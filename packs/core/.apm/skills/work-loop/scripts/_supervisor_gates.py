@@ -1,8 +1,8 @@
 """Approval-gate digest for the work-loop supervisor.
 
 `gate_digest` hashes a spec.md or plan.md the way an approval pins it: the
-text is checked for hidden or control characters, a trailing `## Changelog`
-section is validated and dropped, and the rest goes through the single
+text is checked for hidden or control characters, approval-entry lines after
+the last `## Changelog` line are dropped, and the rest goes through the single
 canonicaliser in `_loop_guards.canonical_contract`.
 
 `park` records one local, controller-free-text-free approval gate waiting for a
@@ -29,7 +29,6 @@ from types import ModuleType
 from typing import Any, Callable
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
-_HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 _LINE_SEPARATORS = frozenset({0x2028, 0x2029, 0xFFF9, 0xFFFA, 0xFFFB})
 
 _modules: dict[str, ModuleType] = {}
@@ -114,150 +113,43 @@ def _unsafe(
     return False
 
 
-_H2_RE = re.compile(r" {0,3}##(?:[ \t]|$)")
-_BLOCK_START_RE = re.compile(
-    r"(?:#{1,6}(?:[ \t]|$)|[-+*][ \t]|\d{1,9}[.)](?:[ \t]|$)|>|<|`{3,}|~{3,}"
-    r"|=+[ \t]*$|-+[ \t]*$|(?:[-*_][ \t]*){3,}$)"
-)
-_LIST_MARKER_RE = re.compile(r"(?: {0,3})(?:[-+*]|\d{1,9}[.)])(?:[ \t]+|$)")
-# An HTML block start that may interrupt a paragraph, and one that needs a fresh block.
-_HTML_INTERRUPT_RE = re.compile(
-    r"<(?:!|\?|/?(?:pre|script|style|textarea|div|p|table|details|summary|ul|ol|li"
-    r"|h[1-6]|blockquote|section|tr|td|th|hr)(?:[\s/>]|$))",
-    re.IGNORECASE,
-)
-_HTML_BLOCK_RE = re.compile(r"<[A-Za-z/!?]")
-_BLANK_INSIDE_RE = re.compile(r"\n[ \t]*\n")
 # 2,000 characters of length basis lets one emoji presentation selector in
 # (invisible_budget rounds it up); padding the artifact cannot buy more.
 _INVISIBLE_CAP = 2000
 
 
-def _fence_run(line: str) -> tuple[str, int, str] | None:
-    """The fence character, run length and info string of *line*, or None.
+_APPROVAL_ENTRY_RE = re.compile(
+    r"^- [0-9]{4}-[0-9]{2}-[0-9]{2}: (spec|plan|amendment) approved by "
+    r"[A-Za-z0-9][A-Za-z0-9-]{0,38}"
+    r"( \((scope|build strategy|scope and build strategy)\))?\.?$",
+    re.ASCII,
+)
 
-    Only a run indented 0-3 spaces counts; a backtick run whose info string holds
-    a backtick is not a fence. `_strip_changelog` closes a fence only with a bare
-    run of the opener's character that is at least as long.
+
+def _drop_approval_entries(text: str) -> str:
+    """Drop approval-entry lines after the last `## Changelog` line of LF-normalised *text*.
+
+    No Markdown structure is parsed. Runs of blank lines fold into one and blank
+    lines at the end are dropped.
     """
-    expanded = line.expandtabs(4)
-    stripped = expanded.lstrip(" ")
-    if len(expanded) - len(stripped) > 3 or stripped[:1] not in ("`", "~"):
-        return None
-    marker = stripped[0]
-    run = len(stripped) - len(stripped.lstrip(marker))
-    info = stripped[run:].strip()
-    if run < 3 or (marker == "`" and "`" in info):
-        return None
-    return marker, run, info
-
-
-def _list_item_starts_html(line: str, fresh: bool) -> bool:
-    """True when a list-item *line* starts an HTML block.
-
-    A *fresh* line (after a blank line or a list marker) starts one with any tag;
-    a line that continues a paragraph needs a tag that can interrupt it.
-    """
-    rest = line.lstrip(" ")
-    while (marker := _LIST_MARKER_RE.match(rest)) is not None:
-        rest = rest[marker.end():].lstrip(" ")
-        fresh = True
-    return (_HTML_BLOCK_RE if fresh else _HTML_INTERRUPT_RE).match(rest) is not None
-
-
-def _check_changelog_body(body: str) -> None:
-    """Refuse unless *body* is only top-level `- ` items, their continuations and blanks.
-
-    A comment may not span a blank line. An item's content cannot start another
-    block, and a continuation must be indented at least the item's content width
-    (marker plus the spaces after it); a lazy line is refused.
-    """
-    for comment in _HTML_COMMENT_RE.finditer(body):
-        if _BLANK_INSIDE_RE.search(comment.group()):
-            raise GateDigestRefused("gate-changelog-shape")
-    width = 0  # content width of the open item; 0 before the first item
-    for raw in _HTML_COMMENT_RE.sub("", body).split("\n"):
-        line = raw.expandtabs(4)
-        if line.strip() == "":
-            continue
-        indent = len(line) - len(line.lstrip(" "))
-        if indent == 0 and line.startswith("- "):
-            content = line[2:].lstrip(" ")
-            spaces = len(line) - 1 - len(line[1:].lstrip(" "))
-            if spaces > 4 or not content.strip() or _BLOCK_START_RE.match(content):
-                raise GateDigestRefused("gate-changelog-shape")
-            width = 1 + spaces
-        elif width and indent >= width and not _BLOCK_START_RE.match(line.lstrip(" ")):
-            continue  # content of the open item
-        else:
-            raise GateDigestRefused("gate-changelog-shape")
-
-
-def _strip_changelog(text: str) -> str:
-    """Validate and drop a trailing `## Changelog` section from LF-normalised *text*."""
     lines = text.split("\n")
-    headings: list[int] = []
-    fence_char: str | None = None
-    fence_len = 0
-    in_list = False
-    fence_in_list = False  # the open fence began inside a list item
-    previous_blank = True
-    html_in_list: int | None = None  # first line of an HTML block inside a list item
+    heading = max((i for i, line in enumerate(lines) if line == "## Changelog"), default=None)
+    kept: list[str] = []
     for idx, line in enumerate(lines):
-        blank = line.strip() == ""
-        if fence_char is None and not blank:
-            expanded = line.expandtabs(4)
-            if _LIST_MARKER_RE.match(expanded):
-                in_list = True
-            elif (
-                in_list
-                and not expanded.startswith(" ")
-                and (previous_blank or _BLOCK_START_RE.match(expanded))
-            ):
-                in_list = False
-            if (
-                in_list
-                and html_in_list is None
-                and _list_item_starts_html(expanded, previous_blank)
-            ):
-                html_in_list = idx
-        previous_blank = blank
-        # An opener records its character and run length; only a bare run of that
-        # character, at least as long, closes it (`_fence_run` limits the indent).
-        fence = _fence_run(line)
-        if fence is not None:
-            marker, run, info = fence
-            if fence_char is None:
-                fence_char, fence_len, fence_in_list = marker, run, in_list
-                continue
-            if marker == fence_char and run >= fence_len and not info:
-                fence_char, fence_len = None, 0
-                continue
-        if fence_char is not None:
-            # A fence opened in a list item may end where this scan does not see it
-            # end: a Changelog heading inside it is refused, not kept in the digest.
-            if fence_in_list and line.strip() == "## Changelog":
-                raise GateDigestRefused("gate-changelog-shape")
+        if heading is not None and idx > heading and _APPROVAL_ENTRY_RE.match(line.rstrip()):
             continue
-        if _H2_RE.match(line.expandtabs(4)):
-            headings.append(idx)
-    changelog = [i for i in headings if lines[i].strip() == "## Changelog"]
-    if not changelog:
-        return text
-    start = changelog[0]
-    if len(changelog) != 1 or headings[-1] != start:
-        raise GateDigestRefused("gate-changelog-shape")
-    if html_in_list is not None and html_in_list < start:
-        raise GateDigestRefused("gate-changelog-shape")
-    _check_changelog_body("\n".join(lines[start + 1 :]))
-    return "\n".join(lines[:start])
+        if line.strip() == "" and kept and kept[-1].strip() == "":
+            continue
+        kept.append(line)
+    while kept and kept[-1].strip() == "":
+        kept.pop()
+    return "\n".join(kept)
 
 
 def gate_digest(text_or_bytes: str | bytes, *, name: str) -> str:
     """Return the lowercase hex SHA-256 pinning *text_or_bytes* as `spec.md` or `plan.md`.
 
-    Raises `GateDigestRefused` with code `gate-unsafe-content` or
-    `gate-changelog-shape`.
+    Raises `GateDigestRefused` with code `gate-unsafe-content`.
     """
     if isinstance(text_or_bytes, bytes):
         try:
@@ -270,7 +162,7 @@ def gate_digest(text_or_bytes: str | bytes, *, name: str) -> str:
     if _unsafe(text, lint.is_hidden_char, lint):
         raise GateDigestRefused("gate-unsafe-content")
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    remaining = _strip_changelog(text)
+    remaining = _drop_approval_entries(text)
     guards = _load_sibling("core_work_loop_gates_loop_guards", "_loop_guards.py")
     canonical = guards.canonical_contract(remaining, ac_section_only=(name != "plan.md"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
