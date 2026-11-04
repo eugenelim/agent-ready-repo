@@ -25,6 +25,7 @@ import json
 import os
 import stat
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 from types import ModuleType
 from typing import Any, NoReturn
@@ -180,6 +181,24 @@ class _ProofRefused(Exception):
         self.code = code
 
 
+def _lstat_identity(path: Path) -> tuple[int, int] | None:
+    """Return ``(st_dev, st_ino)`` of *path* without following a link, or ``None`` when absent."""
+    try:
+        info = os.lstat(path)
+    except OSError:
+        return None
+    return (info.st_dev, info.st_ino)
+
+
+def _passes_through_excluded(
+    path_identities: Iterable[tuple[int, int] | None],
+    excluded: Iterable[tuple[int, int] | None],
+) -> bool:
+    """Return whether any identity on an input's directory path is an excluded one."""
+    barred = {identity for identity in excluded if identity is not None}
+    return any(identity in barred for identity in path_identities if identity is not None)
+
+
 def _input_file(context: Path, raw: str) -> Path:
     """Resolve *raw* to a path under *context*, outside the review and proof-run folders."""
     candidate = Path(os.path.normpath(Path.cwd() / raw))
@@ -189,7 +208,15 @@ def _input_file(context: Path, raw: str) -> Path:
         except ValueError:
             continue
         if relative.parts and relative.parts[0] not in {_REVIEWS_DIR, _PROOF_RUNS_DIR}:
-            return base
+            folders = [
+                context.joinpath(*relative.parts[: n + 1]) for n in range(len(relative.parts) - 1)
+            ]
+            excluded = (
+                _lstat_identity(context / _REVIEWS_DIR),
+                _lstat_identity(context / _PROOF_RUNS_DIR),
+            )
+            if not _passes_through_excluded(map(_lstat_identity, folders), excluded):
+                return base
         break
     raise _ProofRefused("denied-input-path")
 

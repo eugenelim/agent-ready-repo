@@ -792,3 +792,38 @@ def test_t10_code_running_config_is_refused_before_any_run(
     _t4_git(t4_repo.path, "config", "gpg.program", "/bin/true")
     _t4_refused(t4_run(), "denied-git-config", t4_repo, [])
     assert all(_t4_helper_call(argv) for argv in t4_launches), t4_launches
+
+
+# --- T11: input exclusion by directory identity -----------------------------
+
+
+def _t11_folds_case(folder: Path) -> bool:
+    probe = folder / "CaseProbe"
+    probe.write_text("x")
+    try:
+        return (folder / "caseprobe").exists()
+    finally:
+        probe.unlink()
+
+
+@pytest.mark.parametrize(("real", "alias"), [("reviews", "Reviews"), ("proof-runs", "Proof-Runs")])
+def test_t11_case_folded_excluded_folder_is_refused(
+    t4_run, t4_repo, real: str, alias: str
+) -> None:
+    if not _t11_folds_case(t4_repo.context):
+        pytest.skip("file system is case-sensitive: probe found no case folding")
+    (t4_repo.context / real).mkdir()
+    (t4_repo.context / real / "x").write_text("held")
+    result = t4_run(**{"--stdout-file": str(t4_repo.context / alias / "x")})
+    assert result[0] == 2 and result[1]["refused"] == "denied-input-path"
+    assert [f.name for f in t4_repo.envelopes() if f.name != "x"] == []
+
+
+def test_t11_identity_helper_compares_device_and_inode_not_names(t4_gate) -> None:
+    barred = (7, 100)
+    other = (7, 200)
+    check = t4_gate._passes_through_excluded
+    assert check([other, barred], [barred, (7, 300)])  # any name, excluded identity
+    assert not check([other, (8, 100)], [barred, None])  # same inode, other device
+    assert not check([None, other], [barred])
+    assert not check([], [barred])
