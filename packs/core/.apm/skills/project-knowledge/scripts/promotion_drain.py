@@ -95,31 +95,48 @@ def rerun_prose_controls(request: dict[str, Any]) -> dict[str, str | None]:
     return verdicts
 
 
-def assemble_offer(capture: dict[str, Any]) -> dict[str, Any]:
+def assemble_offer(
+    capture: dict[str, Any],
+    repo_root: Path | str | None = None,
+) -> dict[str, Any]:
     """Assemble the drain's offer for one open capture.
 
     The § D4 prose re-run runs here, before the record influences any
     classification, reasoning, or durable write. A record failing the
     privacy scan or the instruction-shape refusal is refused as a routing
     input: ``routing_input`` is ``"refused"`` and ``refusals`` names each
-    refusing control and field, for the drain's report. The envelope and
-    re-check verdicts join the offer in later tasks.
+    refusing control and field, for the drain's report. When the record
+    carries a ``verification_route``, the § D6 pre-execution re-check runs
+    here too, and the envelope runs the stored command only when the
+    re-check passes and ``repo_root`` is given — read-only evidence before
+    any classification (§ D3, § D11); a refused re-check leaves the command
+    unexecuted.
     """
-    verdicts = rerun_prose_controls(capture["request"])
+    request = capture["request"]
+    verdicts = rerun_prose_controls(request)
     refusals = [
         {"control": control, "field": field}
         for control, field in verdicts.items()
         if field is not None
     ]
+    recheck = None
+    envelope_result = None
+    route = request.get("verification_route")
+    if route is not None:
+        recheck = rerun_command_recheck(route)
+        if recheck["verdict"] == "pass" and repo_root is not None:
+            envelope_result = run_stored_command(repo_root, route)
     return {
         "capture_id": capture["capture_id"],
         "partition": capture["partition"],
         "captured_at": capture["captured_at"],
-        "request": capture["request"],
+        "request": request,
         "terminal_disposition": capture["terminal_disposition"],
         "prose_controls": verdicts,
         "refusals": refusals,
         "routing_input": "refused" if refusals else "admitted",
+        "recheck": recheck,
+        "envelope_result": envelope_result,
     }
 
 
@@ -349,6 +366,184 @@ def rerun_command_recheck(route: dict[str, Any]) -> dict[str, Any]:
     except ValueError:
         return {"verdict": "refused", "reason_code": "work_item_command_shape"}
     return {"verdict": "pass"}
+
+
+# --- § D2, § D5, § D6, § D10, § D11: the per-item decision function ---------
+
+# § D2's shape-to-family map — this spec's only routing rule. The classify
+# table inside work-intake stays the authority for everything within the
+# question family; this map holds no per-shape table of its own (§ D3).
+ROUTE_FAMILIES = {
+    "defect": "defect-processor",
+    "decision": "governance",
+    "question": "work-intake",
+}
+
+# § D6's promoted-or-pruned split, exactly as CAP-0005 § Riskiest assumption
+# reads it. `promoted` stays the review path's and is never written by a
+# drain; `duplicate` stays the duplicate-coverage sibling's.
+PROMOTED_SIDE = frozenset({"promoted", "routed"})
+PRUNED_SIDE = frozenset({"rejected", "superseded", "duplicate"})
+
+# § D5's three closure grounds and § D6's reason codes: overtaken and
+# falsified record `rejected`, superseded records `superseded`, the ground
+# riding in the reason code.
+CLOSURE_GROUNDS = {
+    "overtaken": ("rejected", "closed_overtaken"),
+    "falsified": ("rejected", "closed_falsified"),
+    "superseded": ("superseded", "closed_superseded"),
+}
+
+
+def _defect_ready(offer: dict[str, Any]) -> bool:
+    """§ D10's readiness: a verification_route whose re-check passes and
+    whose envelope run completes within the cap, or both `observed` and
+    `intended`. A run terminated or truncated at a cap does not meet it."""
+    work_item = offer["request"]["work_item"]
+    if "observed" in work_item and "intended" in work_item:
+        return True
+    recheck = offer.get("recheck")
+    envelope = offer.get("envelope_result")
+    return bool(
+        recheck is not None
+        and recheck["verdict"] == "pass"
+        and envelope is not None
+        and envelope["outcome"] == "completed"
+        and not envelope["output_truncated"]
+    )
+
+
+def decide(
+    offer: dict[str, Any],
+    *,
+    attended: bool,
+    classification: str | None = None,
+) -> dict[str, Any]:
+    """One offer → a route proposal, a hold, or the hold that precedes a
+    closure (§ D2, § D4, § D10, § D11).
+
+    Pure: no effect, no store write, no dispatch — § D3's procedure confirms,
+    transacts, and commits the terminal disposition. An unattended run holds
+    every item and proposes no disposition. A prose-refused record is not a
+    routing input. A stored path the envelope refused holds the item. The
+    stored command is never a classification input and is never executed
+    here; only the envelope runs it, after the re-check.
+    """
+    capture_id = offer["capture_id"]
+    if not attended:
+        return {
+            "capture_id": capture_id,
+            "action": "hold",
+            "reason": "unattended",
+            "terminal_disposition": None,
+        }
+    if offer["routing_input"] == "refused":
+        return {
+            "capture_id": capture_id,
+            "action": "hold",
+            "reason": "prose-refused",
+            "refusals": offer["refusals"],
+            "terminal_disposition": None,
+        }
+    envelope = offer.get("envelope_result")
+    if envelope is not None and envelope["outcome"] == "refused":
+        return {
+            "capture_id": capture_id,
+            "action": "hold",
+            "reason": "envelope-refused",
+            "refusal": envelope["refusal"],
+            "terminal_disposition": None,
+        }
+    work_item = offer["request"]["work_item"]
+    shape = work_item["shape"]
+    if shape == "decision":
+        # § D2: routes to the governance sibling, held until it ships
+        # (AC-0007).
+        return {
+            "capture_id": capture_id,
+            "action": "hold",
+            "reason": "governance-route-absent",
+            "terminal_disposition": None,
+        }
+    if shape == "defect":
+        if not _defect_ready(offer):
+            return {
+                "capture_id": capture_id,
+                "action": "hold",
+                "reason": "defect-readiness",
+                "terminal_disposition": None,
+            }
+        return {
+            "capture_id": capture_id,
+            "action": "route",
+            "route": ROUTE_FAMILIES["defect"],
+            "terminal_disposition": {
+                "disposition": "routed",
+                "reason_code": "routed-to-defect-processor",
+            },
+        }
+    if shape == "question":
+        if not classification:
+            return {
+                "capture_id": capture_id,
+                "action": "hold",
+                "reason": "unroutable",
+                "terminal_disposition": None,
+            }
+        return {
+            "capture_id": capture_id,
+            "action": "route",
+            "route": ROUTE_FAMILIES["question"],
+            "classification": classification,
+            "terminal_disposition": {
+                "disposition": "routed",
+                "reason_code": "routed-to-work-intake",
+            },
+        }
+    return {
+        "capture_id": capture_id,
+        "action": "hold",
+        "reason": "unknown-shape",
+        "terminal_disposition": None,
+    }
+
+
+def decide_closure(
+    ground: str,
+    *,
+    test_passes: bool,
+    evidence: dict[str, Any],
+) -> dict[str, Any]:
+    """§ D5 and § D6: one closure ground, its test's verdict, the evidence.
+
+    A ground whose stated test fails is refused (AC-0003): no disposition,
+    the item stays open. A passing ground maps through § D6 — overtaken and
+    falsified record ``rejected``, superseded records ``superseded``, the
+    ground in the reason code. The evidence rides the drain's run report,
+    never the store: § D6's three-code enumeration is what keeps a citation
+    out of the disposition event.
+    """
+    if ground not in CLOSURE_GROUNDS:
+        return {
+            "verdict": "refused",
+            "reason": "unknown-ground",
+            "ground": ground,
+            "terminal_disposition": None,
+        }
+    if not test_passes:
+        return {
+            "verdict": "refused",
+            "reason": "ground-test-failed",
+            "ground": ground,
+            "terminal_disposition": None,
+        }
+    disposition, reason_code = CLOSURE_GROUNDS[ground]
+    return {
+        "verdict": "closed",
+        "ground": ground,
+        "evidence": evidence,
+        "terminal_disposition": {"disposition": disposition, "reason_code": reason_code},
+    }
 
 
 def render_output_presentation(output: str) -> str:
