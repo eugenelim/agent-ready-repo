@@ -1,6 +1,6 @@
 ---
 title: Move from capture-work to work-intake
-summary: Replace capture-work prompts and legacy workspace entries with the current work-intake front door.
+summary: Replace capture-work prompts with the current work-intake front door.
 pack: core
 kind: how-to
 ---
@@ -14,7 +14,7 @@ guides, and automations.
 Remember that export retries need idempotent replay. Do not start implementation.
 ```
 
-The agent creates the smallest safe Draft artifact and stops. It gets no `workspace.toml` entry: an intent, brief or spec is its file alone.
+The agent creates the smallest safe Draft artifact and stops. An intent, brief or spec is its file alone.
 
 ## Replace an existing prompt
 
@@ -30,43 +30,17 @@ to:
 work-intake: remember that export retries need idempotent replay; stop without implementation
 ```
 
-## Rewrite a former legacy workspace entry
+## Move a former registry entry
 
-If `workspace-status` reports an `unsupported_legacy` finding for an entry in
-`workspace.toml`, rewrite it in canonical form by hand. Ordinary reconciliation
-no longer accepts legacy shapes; they are never dispatchable. Old shaping
-entries (for example, `{slug = "...", type = "design"}`) still appear in the
-information-only shaping lists (the lists the agent reads but that do not drive
-dispatch) until you rewrite them too.
-
-Write a target entry directly in the correct collection:
-
-```toml
-{path = "docs/specs/<slug>/spec.md", kind = "spec", source = {mode = "repo-origin"}, summary = "<current outcome>", needs = []}
-```
-
-Then remove the legacy record in the same edit — a canonical entry stays blocked
-with a `duplicate_membership` finding while its old alias survives anywhere in
-the workspace. Run `workspace-status` to confirm the entry reconciles as
-expected. For the full set of accepted shapes and
-collections, see the
-[Target Entry](../reference/workspace-toml-schema.md#target-entry),
-[Lifecycle Membership](../reference/workspace-toml-schema.md#lifecycle-membership),
-and [Legacy Forms](../reference/workspace-toml-schema.md#legacy-forms) sections
-of the schema reference.
+If your repo still has a `capture-work` entry in `workspace.toml`, the older registry is still in place. Follow
+[Upgrade from a workspace.toml registry](upgrade-from-a-workspace-registry.md): the repair moves what it can onto the artifacts, and the page shows how to rewrite by hand an entry it cannot read.
 
 ## Verify the result
 
-Run `workspace-status`. The artifact should appear in the lifecycle state
-chosen by `work-intake`; remembered work remains Draft and non-dispatchable.
-The artifact must exist before its schema-valid workspace entry is registered.
+Ask what is ready, which runs `work-loop`'s `dispatch.py`; add `--captured` to list the captured items. The artifact carries the lifecycle state chosen by `work-intake`; remembered work remains Draft and non-dispatchable.
 A remembered defect, design, or research item is its own file under
-`docs/product/captured/` and has no workspace entry.
+`docs/product/captured/`.
 
 See [Use work intake](../../_shared/how-to/use-work-intake.md)
 for the current workflow and [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
 for exact routes and boundaries.
-
-If you have an operation already recorded in `.workspace-migrations.json`
-(a prior interrupted apply or a completed apply that you want to roll back),
-follow [Recover or roll back a migration operation](migrate-capture-work.md).

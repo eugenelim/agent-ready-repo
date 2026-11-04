@@ -43,9 +43,9 @@ The `architect-assess` skill writes a current-state model, the weak spots, and a
 Ask your agent where the planned work stands:
 
 ```text
-Show me the workspace status and help me choose my first ready work item.
+What is ready to work on? Help me choose my first work item.
 ```
 
-The agent reads `workspace.toml`, the file where the repository tracks planned work, and lists what is ready to start and what is blocked and why. [Orient at the start of a session](orient-at-session-start.md) explains each part of that report.
+The agent runs `work-loop`'s `dispatch.py`, which reads each spec's own `Status:` and `Depends on:` headers, and lists what is ready to start and what is blocked and why. [Orient at the start of a session](orient-at-session-start.md) explains each part of that report.
 
 Next, [connect your tracker](../../_shared/how-to/choose-a-tracker-integration.md) if your team plans work elsewhere.

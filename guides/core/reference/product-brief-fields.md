@@ -162,6 +162,50 @@ Write a brief's `Parent intent:` as the target intent's registered kind and `Slu
 - It **no-ops** (exit 0, silent) when no brief exists.
 - The shipped `_template.md` is skipped — it's the template, not a brief.
 
+## Cross-repository dependency receipts
+
+A cross-repository dependency is satisfied only by a reviewed receipt held in the containing brief. A waiting item's `Depends on:` line names `brief:<slug>`, and its `Dependency receipts:` line carries one receipt per dependency:
+
+```text
+<reference> coordination <remote_kind> <receipt_id> <accepted_revision>
+```
+
+`remote_kind` is `brief` or `spec`. The receipt pins the receipt id and the accepted revision.
+
+The containing brief holds exactly one fenced block whose info string is exactly `toml coordination-receipts`. The block is parsed as TOML; surrounding prose and other fenced blocks are inert. Each `[[coordination_receipts]]` table has exactly these fields: `id`, `remote_kind`, `remote_ref`, `accepted_revision`, `required_status`, `reported_status`, `reviewed_by`, `reviewed_at`, and `refresh_conflict`.
+
+A valid receipt block, for a dependency pinned at `remote-rev-9`:
+
+```toml coordination-receipts
+[[coordination_receipts]]
+id = "remote-prereq"
+remote_kind = "brief"
+remote_ref = "example-service://projects/example-artifact"
+accepted_revision = "remote-rev-9"
+required_status = "Shipped"
+reported_status = "Shipped"
+reviewed_by = "Example Reviewer"
+reviewed_at = "2026-08-10T00:00:00Z"
+refresh_conflict = false
+```
+
+An invalid receipt block:
+
+```toml coordination-receipts
+[[coordination_receipts]]
+id = "remote-prereq"
+remote_kind = "brief"
+remote_ref = "example-service://projects/example-artifact"
+accepted_revision = "remote-rev-8"
+required_status = "Shipped"
+reported_status = "Shipped"
+reviewed_by = "Example Reviewer"
+reviewed_at = "2026-08-10T00:00:00Z"
+refresh_conflict = false
+```
+
+The invalid block fails because its `accepted_revision` does not match the dependency's pinned revision. The finding code is `invalid_receipt`. To recover, replace it with a reviewed receipt that matches the pinned dependency.
+
 ## See also
 
 - [Receive a product brief and decompose it into specs](../how-to/receive-a-product-brief-and-decompose-it-into-specs.md)

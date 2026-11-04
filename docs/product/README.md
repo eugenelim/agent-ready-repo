@@ -33,8 +33,8 @@ The table below does not cover these; they are described and governed here.
 - [`voice/`](voice/) — the product's voice and register.
 - [`ini-003-phase0-reconciliation.md`](ini-003-phase0-reconciliation.md) — a
   one-off parity audit retained as evidence.
-- [`workspace-toml-deps.md`](workspace-toml-deps.md) — the `workspace.toml`
-  inline dependency notation.
+- [`workspace-toml-deps.md`](workspace-toml-deps.md) — the `Depends on:` and
+  `Dependency receipts:` header form.
 
 ## What does NOT live here
 

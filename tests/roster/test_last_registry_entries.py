@@ -45,7 +45,6 @@ _CASES = (
 _POLICY_FILES = (
     "guides/_shared/how-to/use-work-intake.md",
     "guides/_shared/reference/work-intake-routing-and-lifecycle.md",
-    "guides/core/reference/workspace-toml-schema.md",
     "packs/core/.apm/skills/work-intake/SKILL.md",
     "packs/core/.apm/skills/work-intake/references/lifecycle-index.md",
 )
@@ -53,7 +52,6 @@ _POLICY_FILES = (
 # registry), kept literal so the check fails if it comes back.
 _STALE_POLICY_PHRASES = {
     "guides/_shared/how-to/use-work-intake.md": "declare its closed role policy:",
-    "guides/core/reference/workspace-toml-schema.md": "role policy outside initiative entries",
     "packs/core/.apm/skills/work-intake/SKILL.md": "so the registry digest stays bound",
 }
 _STATUS_FILES = (

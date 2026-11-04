@@ -24,7 +24,7 @@ Things a reasonable reader might expect this pack to solve. It doesn't, by desig
 
 `work-intake` is the public front door before the build loop. It separates a
 source request from the canonical artifact that carries product meaning, the
-`workspace.toml` entry that carries lifecycle, and the processor that owns the
+header `Status:` that carries lifecycle, and the processor that owns the
 next workflow step.
 
 Routing is deterministic from content and altitude. A minimal opportunity
@@ -33,11 +33,11 @@ coherent multi-spec outcome becomes a brief, and cited regression evidence
 becomes a defect file under `docs/product/captured/`. Ambiguous work remains Draft or produces one bounded
 question; it never becomes ready by inference.
 
-The write order is an invariant: materialize the confined artifact, register a
-schema-valid workspace entry when the route registers one, then dispatch. A
-defect, design, or research item registers nothing. A failure before durable
-registration leaves no executable state. `workspace-status` remains the
-read-side authority for reconciliation and workspace state.
+The write order is an invariant: materialize the confined artifact, then
+dispatch. Nothing is registered: the artifact's own header carries its
+lifecycle, and `work-loop`'s `dispatch.py` derives readiness from the headers.
+A failure before the artifact is written leaves no executable state.
+`workspace-status` only repairs leftover `workspace.toml` entries.
 
 ---
 
@@ -284,32 +284,31 @@ If the implementation diverges from the spec, the spec must update in the same P
 
 Without persistent context, every session starts blind. The agent doesn't know what was decided last session, what's in progress, what's blocked, or what the current priorities are. Teams working this way spend 10–15 minutes at session start reconstructing context that was already established.
 
-`workspace.toml` is the coordination artifact that solves the cold-start problem for a single-engineer or small-team workflow.
+The artifacts themselves solve the cold-start problem. Each intent, brief and spec carries its lifecycle in its header (`Status:`, `Depends on:`), and `work-loop`'s `dispatch.py` derives what is ready, active and blocked from those headers.
 
-### The queue model
+### The dispatch model
 
 ```
-[backlog]           ← unscheduled ideas and follow-ons
-[initiative.N]
-  shaping_queue     ← needs framing (intake-intent, optional Product Engineering)
-  work_queue        ← ready to build (spec approved, unblocked)
-  done              ← shipped items
+docs/product/captured/   ← captured follow-ons, one file each (dispatch.py --captured)
+intent / brief           ← needs framing (intake-intent, optional Product Engineering)
+spec                     ← ready to build once approved and unblocked
+Status: Shipped          ← done
 ```
 
-Items flow left to right: from backlog → shaping → work → done. `workspace-status` reads this structure and surfaces what's actionable right now.
+Items flow left to right: from captured → shaping → work → done. Moving an item changes its header; no other file records it.
 
 ### Orient and close
 
-**Every session starts with `workspace-status`.** It replaces reading multiple product docs by hand — you get a ready/blocked/done summary in one shot.
+**Every session starts with dispatch.** `work-loop`'s `dispatch.py` replaces reading multiple product docs by hand — you get a ready/active/blocked summary in one shot.
 
 **A session closes captured follow-ons with `work-intake remember`.** An owner
 explicitly requests capture when a follow-on, excluded scope, or discovered
 issue should survive the session; it then becomes a canonical Draft artifact
-plus, for an intent, brief, or spec, a schema-valid, non-dispatchable `workspace.toml` entry; a defect, design, or research follow-on is its own file under `docs/product/captured/` with no entry. Work excluded
+and a defect, design, or research follow-on is its own file under `docs/product/captured/`. Nothing is registered. Work excluded
 without that request is acknowledged in the PR or final summary, not made
 durable by default.
 
-This orient/close discipline is the habit that makes workspace.toml accurate over time. A workspace.toml that is only written once and never updated is stale within a week.
+This orient/close discipline keeps the headers accurate over time. A header that is written once and never updated is stale within a week.
 
 ---
 
@@ -401,8 +400,7 @@ These constraints must never be violated by any skill in the core pack or any sk
 5. **The loop cannot modify its own termination criteria.** The done-checklist is fixed by the skill, not by the loop's runtime judgments about what "done" should mean for this particular task.
 
 6. **`work-intake remember` runs at session end.** Follow-ons discovered during
-   the loop become canonical Draft artifacts, with a structured workspace entry for an
-   intent, brief, or spec, not comments or chat-only reminders. Silently dropping scope creep findings
+   the loop become canonical Draft artifacts, not comments or chat-only reminders. Silently dropping scope creep findings
    is not a valid optimization.
 
 ---
@@ -497,7 +495,7 @@ Three co-located helper copies ride alongside the derivation:
 
 The `navigate-intents` query script (`navigate_intents.py`) consumes this derivation. `close-work` loads a byte-identical copy at `close-work/scripts/intent_graph.py`, pinned by `test_intent_delivery_relations_copies.py`, for its ancestor walk and its `children` arm. It holds no second parent-edge parser, and `tools/check_closure_terminality_parity.py` pins the parent kinds the derivation reads.
 
-The derivation also reads an intent's `Related intents:` field into related edges, which `navigate-intents` shows from both ends. No reconciler reads them: `close-work`'s closure, the delivery resolver, `lint-traceability`, `work-supervisor`, and `workspace-status` ignore the field, and a source scan over the pack's Python files pins that. The `work-intake` corpus lint checks the field's shape and its targets.
+The derivation also reads an intent's `Related intents:` field into related edges, which `navigate-intents` shows from both ends. No reconciler reads them: `close-work`'s closure, the delivery resolver, `lint-traceability`, `work-supervisor`, and the `workspace-status` repair ignore the field, and a source scan over the pack's Python files pins that. The `work-intake` corpus lint checks the field's shape and its targets.
 
 The `dependencies` query operation and the view's `dependencies` payload member read an intent's `Depends on:` header. `derive` drops preamble fields, so the operation re-reads the intent collection through the same confined helpers (`_file_safety.py`, the same admission, tombstone and identity rules) and refuses with `unsafe_input` if the live intents it read differ from `derive`'s. It resolves typed ids and legacy repository paths, lists values it cannot resolve as diagnostics and cycles as groups, and is display only: it is not the enforcing reader, never reads `workspace.toml` or workspace dependencies, and decides no readiness. A scoped `export` carries the dependency records of the intents linked to its subtree and names those outside it by id.
 
@@ -508,6 +506,8 @@ The export has one piped input, `--readiness -`: the output of `work-loop`'s arg
 **Alternative considered:** housing the derivation in `adapter-root-bins/` alongside the delivery resolver and file-safety helpers. Rejected because `adapter-root-bins/` is for helpers that adopter bins call directly; no adopter bin consumes the graph derivation. The source lives in the skill that first ships it, and a byte-identical copy rides into `close-work`.
 
 ### Why workspace.toml and not a tasks file or issue tracker (2026-06-xx)
+
+> Superseded: headers now carry lifecycle and nothing is registered in a workspace file; see the upgrade guide. The rationale below is kept as a dated record.
 
 A tasks file captures what to do but not the DoR state (is this brief? is the spec approved? is it blocked and why?). An issue tracker requires a network call and browser context to update. workspace.toml is a versioned TOML file in the repo: it's readable by any tool, diff-able in PRs, and greppable. The tradeoff is that it's single-tenant (one person's queue, not a team's board) — the intended use case is a solo engineer or a very small team. Multi-person coordination belongs in the issue tracker; workspace.toml is the local layer.
 

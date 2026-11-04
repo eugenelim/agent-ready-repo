@@ -50,11 +50,6 @@ _PRESENT: dict[str, tuple[str, ...]] = {
     "packs/core/.apm/skills/work-intake/SKILL.md": ("tracker-origin", "spec-entry-drop"),
     # T2 (AC-0005): the owner-approved cooled-child next action.
     "packs/core/.apm/skills/workspace-status/SKILL.md": (_COOLED_CHILD_ACTION,),
-    "guides/core/reference/workspace-toml-schema.md": (
-        _COOLED_CHILD_ACTION,
-        "tracker-origin",
-        "spec-entry-drop",
-    ),
 }
 _PRESENT["packs/core/.apm/skills/workspace-status/SKILL.md"] += (
     "tracker-origin",
@@ -66,9 +61,6 @@ _ABSENT.update({
     "packs/core/.apm/skills/work-intake/SKILL.md": (
         "A spec is registered, including when remembered",
         "register an already-materialized spec",
-    ),
-    "guides/core/reference/workspace-toml-schema.md": (
-        "Register or reconcile the canonical entry explicitly",
     ),
     "packs/core/.apm/skills/new-spec/SKILL.md": ("The workspace entry for a",),
     "packs/repo-governance/.apm/skills/new-rfc/SKILL.md": ("for queue registration",),
@@ -106,7 +98,6 @@ _RETIRED_CODE_TREES = (
     "packs/core/.apm/skills",
     "packages/agentbundle/agentbundle/_data",
 )
-_RETIRED_CODE_FILES = ("guides/core/reference/workspace-toml-schema.md",)
 
 # AC-0005: the three Python tables that hold the next action.
 _NEXT_ACTION_TABLES = (
@@ -169,7 +160,7 @@ def test_every_required_phrase_is_present(rel: str) -> None:
 
 def test_retired_finding_code_is_gone_from_shipped_trees() -> None:
     """AC-0003: no shipped file holds ``unregistered_work``."""
-    files = [_REPO / rel for rel in _RETIRED_CODE_FILES]
+    files: list[Path] = []
     for tree in _RETIRED_CODE_TREES:
         files.extend(p for p in (_REPO / tree).rglob("*") if p.is_file())
     holders = []

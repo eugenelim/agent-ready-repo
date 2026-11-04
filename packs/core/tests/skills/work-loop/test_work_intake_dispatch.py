@@ -90,7 +90,7 @@ def test_direct_light_is_session_local_and_fail_closed() -> None:
     # These two stay in Step 0, which owns invocation-shape routing.
     for required in (
         "a matching or conflicting spec surfaces the conflict",
-        "A direct-light run is not resumable through `workspace-status`",
+        "A direct-light run is not resumable through `dispatch.py`",
     ):
         assert _normalized(required) in operative, required
 

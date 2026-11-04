@@ -1,6 +1,6 @@
 [pack]
 name = "core"
-version = "4.0.13"
+version = "4.0.14"
 
 description = "Supervised coding, brief to merged PR. The agent writes a spec, works it, runs your gates, and hands the diff to reviewers that argue with it before you ever look."
 readme = "README.md"
@@ -75,8 +75,8 @@ email = "eugenelim@users.noreply.github.com"
 audience-posture = "technical"
 surfaces         = ["claude-code", "codex", "copilot", "kiro-ide", "kiro-cli", "cursor", "gemini"]
 prerequisites    = ["Python 3.11+"]
-verification     = "Run workspace-status and confirm your workspace.toml queue state is displayed."
-recovery         = "If workspace-status does not activate, re-run adapt-to-project to refresh your repo's skill index."
+verification     = "Ask your agent what is ready to work on; work-loop's dispatch.py prints the ready, active and blocked specs."
+recovery         = "If work-loop's dispatch.py is unavailable, re-run adapt-to-project to refresh your repo's skill index."
 next-action      = "Ask your agent to run adapt-to-project for a read-only readiness check; start a new session if the skill is unavailable."
 
 [[pack.integrations]]

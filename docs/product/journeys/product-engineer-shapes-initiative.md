@@ -2,13 +2,13 @@
 type: customer-journey
 slug: product-engineer-shapes-initiative
 persona: product-engineer
-outcome: shaped-brief-committed-and-queued
+outcome: shaped-brief-committed-and-ready
 surface: cross-platform
 status: proposed
 initiative_links:
   - id: INI-002
     name: Platform Core
-    milestones: M2 (primary); M1 (prerequisite — brief queue must exist)
+    milestones: M2 (primary); M1 (prerequisite — brief `Status:` headers must exist)
     role: primary
 updated: 2026-07-18
 ---
@@ -17,18 +17,18 @@ updated: 2026-07-18
 
 **Use it when:** a signal arrives — a user pain, market observation, OKR gap, or engineering finding — and you need to shape it into a DoR-ready brief with a committed artifact trail.
 **You provide:** the raw signal or gap, your judgment at the opportunity-assessment and validation stages, and the final bet decision.
-**You receive:** a committed shaping artifact chain (situation → opportunity → options → bet → capability map) and a brief in `[brief_queue].ready` ready for spec decomposition.
+**You receive:** a committed shaping artifact chain (situation → opportunity → options → bet → capability map) and a brief with `Status: Ready` ready for spec decomposition.
 **Your decisions:** classify the signal and approve the opportunity ranking; select and validate the preferred solution; commit the bet; fill the DoR fields for the brief.
 
-**Persona:** A product engineer (or PM with technical depth) responsible for shaping an initiative — moving from a raw signal or strategic gap through the six-step sequence (Outcome → Problem → Diverge → Validate → Bet → Spec) to produce a shaped brief that can enter the build queue. In smaller orgs this is one person; in larger orgs this role is distinct from both the product strategist (altitude-0) and the engineer executing specs (build room).
+**Persona:** A product engineer (or PM with technical depth) responsible for shaping an initiative — moving from a raw signal or strategic gap through the six-step sequence (Outcome → Problem → Diverge → Validate → Bet → Spec) to produce a shaped brief that can go to spec decomposition. In smaller orgs this is one person; in larger orgs this role is distinct from both the product strategist (altitude-0) and the engineer executing specs (build room).
 
-**Outcome:** A shaped brief — with Outcome, Appetite, Rabbit holes, and Instrumentation — committed to `docs/product/briefs/` and queued in `[brief_queue].draft`. Backed by a chain of committed shaping artifacts (situation finding → opportunity assessment → solution options → capability map → bet) that any agent or reviewer can trace.
+**Outcome:** A shaped brief — with Outcome, Appetite, Rabbit holes, and Instrumentation — committed to `docs/product/briefs/` with `Status: Draft`. Backed by a chain of committed shaping artifacts (situation finding → opportunity assessment → solution options → capability map → bet) that any agent or reviewer can trace.
 
 **Surface:** cross-platform — CLI/terminal, agent-assisted. The PE does the judgment calls; the agent does the structured artifact generation under the PE's direction.
 
-**Trigger:** A signal arrives — a user pain, a market observation, an engineering finding surfaced by `work-loop`, or a shaping queue item becoming active. Alternatively: a strategic gap identified by the altitude-0 layer (product-strategist journey) routes into frame-situation.
+**Trigger:** A signal arrives — a user pain, a market observation, an engineering finding surfaced by `work-loop`, or an open shaping item becoming active. Alternatively: a strategic gap identified by the altitude-0 layer (product-strategist journey) routes into frame-situation.
 
-**End state:** Brief passes the DoR gate (`Status: Ready`), enters `[brief_queue].ready`, and is assigned to an engineer or agent for spec decomposition via `receive-brief`.
+**End state:** Brief passes the DoR gate (`Status: Ready`), stays in `docs/product/briefs/`, and is assigned to an engineer or agent for spec decomposition via `receive-brief`.
 
 ---
 
@@ -37,14 +37,14 @@ updated: 2026-07-18
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
 | PE pack | user | current (M1 skills); M2 skills planned | `intent frame`, `intent de-risk` (current); `frame-situation`, `identify-opportunities`, `diverge-solutions`, `place-bet`, `map-capabilities` (M2) |
-| core | repo | M1 required for queue write-back | `workspace-status`, `author-brief`, `receive-brief`; `[shaping_queue]` and `[brief_queue]` schema |
+| core | repo | M1 required for `Status:` write-back | `author-brief`, `receive-brief`; the `Status:` header contract |
 
 **One-time setup:**
 1. Install PE pack at user scope — PEs shape across repos, so user scope is the right level.
 2. Install core pack at repo scope for the repo where briefs will be committed.
-3. `workspace.toml` is committed to `main` as part of M1 Batch 2 — no branch configuration needed; core pack install at repo scope is sufficient.
+3. Briefs and shaping artifacts are committed to `main` with their `Status:` headers — no branch configuration needed; core pack install at repo scope is sufficient.
 
-**Scale:** PE pack is user-scoped because the PE shapes across multiple repos. Core pack is repo-scoped because queue state is per-repo. In orgs where the same person does PE and engineering work, both scopes are needed — this is the common small-team case.
+**Scale:** PE pack is user-scoped because the PE shapes across multiple repos. Core pack is repo-scoped because artifact state is per-repo. In orgs where the same person does PE and engineering work, both scopes are needed — this is the common small-team case.
 
 ---
 
@@ -75,9 +75,9 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-    participant SIG as Signal / queue item
+    participant SIG as Signal / open item
     participant PE as Product Engineer
-    participant CW as workspace-status
+    participant CW as Shaping files
     participant FS as frame-situation
     participant IO as identify-opportunities
     participant DS as diverge-solutions
@@ -86,18 +86,18 @@ sequenceDiagram
     participant MC as map-capabilities
     participant AB as author-brief
     participant SA as docs/product/shaping/
-    participant WS as workspace.toml
+    participant WS as Artifact headers
 
-    Note over SIG,PE: Trigger — signal arrives or queue item surfaces
+    Note over SIG,PE: Trigger — signal arrives or open item surfaces
     SIG->>PE: User pain / OKR gap / engineering finding / metric drop
-    PE->>CW: workspace-status
-    CW->>WS: Read [shaping_queue]
+    PE->>CW: List open shaping items
+    CW->>WS: Read Status headers
     WS-->>CW: opp-assessment-X ready · backlog: [...]
     CW-->>PE: Ready to start: opp-assessment-X · run frame-situation
 
     PE->>FS: frame-situation [signal description]
     FS->>SA: situation-finding.md (typed finding + six-step route)
-    FS->>WS: [shaping_queue].active = opp-assessment-X
+    FS->>WS: situation-finding Status: Active
     FS-->>PE: Signal typed: user-pain · route → identify-opportunities
 
     PE->>IO: identify-opportunities
@@ -119,14 +119,14 @@ sequenceDiagram
 
     PE->>MC: map-capabilities
     MC->>SA: capability-map.md (vision → all capability areas)
-    MC->>WS: Graduate → [brief_queue].draft
+    MC->>WS: Graduate → brief file Status: Draft
     MC-->>PE: Capability map done · author brief?
 
     PE->>AB: author-brief [bet + capability map]
     AB-->>PE: Outcome? Appetite? Rabbit holes?
     PE->>AB: [fills DoR fields]
-    AB->>WS: [brief_queue].draft += briefs/initiative-X.md
-    AB-->>PE: Brief queued · receive-brief to decompose into specs
+    AB->>WS: Write briefs/initiative-X.md Status: Draft
+    AB-->>PE: Brief written · receive-brief to decompose into specs
 ```
 
 ---
@@ -142,7 +142,7 @@ sequenceDiagram
 | **Pains** | "I've framed the intent but I don't know what kind of problem this is or which step of the six-step sequence to run next." "The framing lives in session context — if I close the terminal, it's gone." "No structured way to classify signals (user pain vs. market gap vs. strategic gap vs. engineering finding)." |
 | **Opportunities** | A situation-framing skill that classifies the signal type, produces a typed finding, and routes to the right next step. Committed output that survives the session. |
 
-> **With M2** — `frame-situation` ships: typed finding committed to `docs/product/shaping/`; signal classification routes directly to the next six-step skill; `[shaping_queue]` updated with the active item.
+> **With M2** — `frame-situation` ships: typed finding committed to `docs/product/shaping/`; signal classification routes directly to the next six-step skill; the shaping artifact's `Status:` set to the active item.
 
 ---
 
@@ -215,9 +215,9 @@ sequenceDiagram
 | **Actions** | Writes a brief from memory (the framing, options, and bet all lived in sessions). Runs `receive-brief` to decompose into specs. Brief is created but not traceable to any committed shaping chain. |
 | **Emotions** | Relieved to be done (positive) but aware the brief has no provenance — it can't be reviewed against the original signal. |
 | **Pains** | "My brief is not traceable to the shaping work — someone reviewing it can't check whether the bet was well-reasoned." "I had to reconstruct the context from memory — the brief may miss something from the shaping chain." "No capability map — I don't know if the brief covers all the relevant capability areas." |
-| **Opportunities** | `map-capabilities` producing a capability map before brief authoring; `author-brief` creating the brief from the bet + capability map with full provenance; `[brief_queue]` updated automatically. |
+| **Opportunities** | `map-capabilities` producing a capability map before brief authoring; `author-brief` creating the brief from the bet + capability map with full provenance; the brief's `Status:` set automatically. |
 
-> **With M2** — `map-capabilities` ships first, then `author-brief` creates the brief from the committed shaping chain; traceability lint links brief → bet → situation finding; brief enters `[brief_queue].draft` with full provenance.
+> **With M2** — `map-capabilities` ships first, then `author-brief` creates the brief from the committed shaping chain; traceability lint links brief → bet → situation finding; brief is written with `Status: Draft` and full provenance.
 
 ---
 
@@ -249,4 +249,4 @@ Primary design response: committed shaping artifact chain (situation → opportu
 
 **For `map-screen-flow`:** Stage 5 (Place Bet) and Stage 6 (Brief) carry the highest-opportunity pains. The betting table view and the brief-with-provenance view are the highest-priority screen-level inputs for any future PM-facing web surface (INI-006).
 
-**For `blueprint-service`:** backstage services implied by the shaping chain include `docs/product/shaping/` (artifact store per initiative), `workspace.toml` (shaping queue state), and the traceability lint (brief → bet → situation link enforcement). The validation-notes gap (Stage 4) is an unresolved design question for the M2 sub-RFC.
+**For `blueprint-service`:** backstage services implied by the shaping chain include `docs/product/shaping/` (artifact store per initiative), the shaping artifacts' `Status:` headers, and the traceability lint (brief → bet → situation link enforcement). The validation-notes gap (Stage 4) is an unresolved design question for the M2 sub-RFC.

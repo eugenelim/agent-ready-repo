@@ -84,14 +84,14 @@ Every refusal the repair reports carries a stable code, `dispatchable:false`, on
 
 | Code | Why blocked | Safe action |
 | --- | --- | --- |
-| `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then rerun reconciliation. |
+| `invalid_workspace` | TOML parse failure or invalid lifecycle collection shape. | Correct workspace.toml, then run `repair-plan` again. |
 | `invalid_entry` | Malformed target record, unknown field or kind, or failed schema conditional. | Rewrite the entry to the accepted target contract. |
-| `legacy_entry` | Historical form decoded only by migration recovery or rollback; ordinary reconciliation never emits it. | Materialize and register a canonical target entry. |
+| `legacy_entry` | Historical entry form; the repair never emits it. | Materialize and register a canonical target entry. |
 | `unsupported_legacy` | Legacy-like or unrecognized form; never dispatchable. The user rewrites a former legacy entry in canonical form by hand and chooses its target collection. | Route the item manually; do not infer a target entry. |
 | `invalid_artifact_path` | Unsafe, noncanonical, or out-of-repository artifact-like path. | Replace it with a confined canonical repository-relative path. |
 | `missing_artifact` | Registered canonical artifact does not exist. | Create and review the canonical artifact before dispatch. |
-| `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then rerun reconciliation. |
-| `invalid_captured_item` | A captured-item file breaks its field grammar. | Fix the named field of that captured-item file, then rerun reconciliation. |
+| `unreadable_artifact` | A confined artifact cannot be read safely. | Restore readable repository state, then run `repair-plan` again. |
+| `invalid_captured_item` | A captured-item file breaks its field grammar. | Fix the named field of that captured-item file, then run `repair-plan` again. |
 | `unmigrated_captured_item` | A captured item is registered at a path outside `docs/product/captured/`. | Run workspace-status repair-plan to move this captured item into its own file under docs/product/captured/. |
 | `missing_plan` | A spec has no sibling `plan.md`. | Create and approve the plan before dispatch. |
 | `unapproved_spec` | Queue spec is not `Approved`. | Complete the spec approval gate. |
@@ -100,7 +100,7 @@ Every refusal the repair reports carries a stable code, `dispatchable:false`, on
 | `provenance_mismatch` | Workspace source metadata disagrees with canonical artifact metadata. | Resolve provenance in the canonical artifact and mirror it deliberately. |
 | `cooled_child_scope_unknown` | A cooled spec entry's parent scope is not established: `source.parent` is absent, or names neither a brief file nor a brief entry. | Set parent on the spec's lifecycle record: a resolving brief path, or none only when that spec has no parent brief; a tracker-origin entry declares source.parent instead. |
 | `refresh_conflict` | Tracker-origin refresh conflict remains unresolved. | Resolve the conflict through the artifact's authority workflow. |
-| `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then rerun reconciliation. |
+| `invalid_source_authority` | Tracker-origin source authority is missing, duplicated, malformed, or violates its closed contract. | Correct the closed source-authority block, then run `repair-plan` again. |
 | `source_authority_migration_required` | A legacy tracker-origin artifact has no closed source-authority record. | Add the reviewed authority record before using refresh. |
 | `invalid_lifecycle_record` | A `docs/lifecycle/` record failed to load, was a symlink, or was not a regular file. | Repair or remove that record; other records still cool. |
 | `cooling_state_unavailable` | The cooled set could not be established at all: `docs/lifecycle/` is unusable or escapes the root, no cooling module resolved, or its confinement authority is unavailable. | Install `close-work` or repair `docs/lifecycle/`; no artifact is excluded this run. |

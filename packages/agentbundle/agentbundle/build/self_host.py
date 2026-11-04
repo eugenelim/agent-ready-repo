@@ -641,7 +641,6 @@ EXCLUDED_PATTERNS: tuple[str, ...] = (
     "profiles/**",
     "tests/**",
     # Seeded-once / adopter-curated files (Manual semantics).
-    "workspace.toml",  # Seeded once; adopter-curated thereafter
     # Seeded once; the adopter adds routing rows, and projecting the seed would delete them.
     "AGENT_RULES.md",
     # Manual seed-projected root path (amendment 2026-05-25). The subtree

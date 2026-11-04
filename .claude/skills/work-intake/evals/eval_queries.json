@@ -26,7 +26,7 @@
   {"query": "Search the web for current pricing", "should_trigger": false},
   {"query": "Render this Mermaid diagram", "should_trigger": false},
   {"query": "Open the spreadsheet and format column B", "should_trigger": false},
-  {"query": "Plan migration of this legacy workspace entry from the reviewed selection", "should_trigger": false},
+  {"query": "Plan migration of this legacy workspace.toml entry from the reviewed selection", "should_trigger": false},
   {"query": "Apply the approved workspace migration operation", "should_trigger": false},
   {"query": "Diagnose this already-routed defect against its expected behavior", "should_trigger": false},
   {"query": "Close this shipped work and move its durable outputs", "should_trigger": false},

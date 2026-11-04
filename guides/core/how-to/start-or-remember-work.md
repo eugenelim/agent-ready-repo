@@ -24,19 +24,18 @@ Start work on adding export retention controls for workspace owners.
 1. Reads your request and the repository's current work state.
 2. Chooses the shortest safe route: direct build, spec, delivery brief, or
    defect diagnosis.
-3. Starts the next workflow only after any required artifact and workspace entry
-   are safely written.
+3. Starts the next workflow only after any required artifact is safely written.
 
 For a bounded, low-risk change, Core can enter the build loop directly. That
-immediate route creates no intake artifact and no workspace entry.
+immediate route creates no intake artifact.
 
-For durable work, Core writes the artifact, and a spec or brief gets no `workspace.toml` entry:
+For durable work, Core writes the artifact:
 
 - one independently shippable change becomes a spec and plan;
 - work that spans several changes or repositories becomes a delivery brief.
 
 Cited regression evidence is written as its own file under
-`docs/product/captured/`, with no entry, and diagnosis starts before
+`docs/product/captured/`, and diagnosis starts before
 implementation.
 
 You decide only at real gates: clarify an ambiguous route, approve a brief,
@@ -70,7 +69,7 @@ A typical durable result looks like this:
 
 ```text
 route        durable spec
-created      docs/specs/export-retention/spec.md and a workspace entry
+created      docs/specs/export-retention/spec.md
 waiting for  your spec and plan approval
 next         approve the spec and plan before implementation
 ```
@@ -81,10 +80,10 @@ created artifact and the next approval it needs.
 Next, follow the reported action. If a later session resumes the work, ask:
 
 ```text
-workspace-status
+What is ready to work on?
 ```
 
-Use the status result to see what is ready, blocked, active, or recently done.
+The agent runs `work-loop`'s `dispatch.py`, which shows what is ready, blocked or active.
 
 ## Remember work for later
 
@@ -94,15 +93,9 @@ To park something that is not an intent, such as a defect or a research question
 Remember this for later: the nightly export drops rows with an empty name.
 ```
 
-Core writes the item as its own file under `docs/product/captured/` and adds nothing to `workspace.toml`. To close it later, set the file's `Status:` to `Closed` and add `Resolution:` (`fixed`, `declined`, or `superseded`). A downstream item that lists the file in its `Depends on:` header is unblocked once the file is `Closed` with `Resolution: fixed`. If the item still has an older registry entry, delete that entry in the same change.
+Core writes the item as its own file under `docs/product/captured/`. To close it later, set the file's `Status:` to `Closed` and add `Resolution:` (`fixed`, `declined`, or `superseded`). A downstream item that lists the file in its `Depends on:` header is unblocked once the file is `Closed` with `Resolution: fixed`. To list your captured items, ask the agent to run `dispatch.py --captured`.
 
-If your repository already registered captured items at other paths, upgrade `core` and run the repair once:
-
-```text
-workspace-status repair-plan
-```
-
-The plan lists every captured item it will move, with each record's text. Read it, confirm that exact plan file, and then run `workspace-status repair-apply --yes`. The repair writes one record per item, points each entry at its record, and compares the items before and after. Until you run it, `status` reports `unmigrated_captured_item` for each such item.
+If your repository registered captured items in `workspace.toml` in an older release, run the repair in [Upgrade from a workspace.toml registry](upgrade-from-a-workspace-registry.md).
 
 ## State and skill reference
 

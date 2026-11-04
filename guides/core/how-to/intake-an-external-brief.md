@@ -1,6 +1,6 @@
 ---
 title: Intake external source material into a product brief
-summary: Route a coherent multi-feature outcome into a Draft brief and workspace entry.
+summary: Route a coherent multi-feature outcome into a Draft brief.
 pack: core
 kind: how-to
 ---
@@ -9,7 +9,7 @@ kind: how-to
 
 **Use this when:** Intake has identified a coherent multi-feature outcome that needs a Draft brief.
 **Prerequisites:** The `core` pack installed and normalized source content to hand; no existing brief file at the target slug path.
-**Result:** A Draft brief at `docs/product/briefs/<slug>.md` with a matching non-dispatchable `workspace.toml` entry.
+**Result:** A Draft brief at `docs/product/briefs/<slug>.md` that is not dispatchable.
 
 Start with `work-intake` when you have an email, issue, or conversation rather
 than a confirmed artifact route. It normalizes the bounded facts and invokes
@@ -65,7 +65,7 @@ You need:
 
 5. **Brief file created.** The skill writes `docs/product/briefs/<slug>.md` with `Status: Draft` and no `workspace.toml` entry. A tracker-origin brief carries its tracker profile in the `tracker_profile` table of its own `source-authority` record, which the intake step writes with the file, and refresh reads the profile from there. If that record write fails, the skill rolls back the file when safe or leaves an explicit non-dispatchable reconciliation finding. It never silently degrades to file-only success.
 
-6. **Brief is queued as draft.** The skill confirms the brief is at `docs/product/briefs/<slug>.md` and tells you to run `author-delivery-brief continue` next for readiness and optional slice selection.
+6. **Brief stays a Draft.** The skill confirms the brief is at `docs/product/briefs/<slug>.md` and tells you to run `author-delivery-brief continue` next for readiness and optional slice selection.
 
 ## What create mode does and does not do
 

@@ -8,7 +8,7 @@ status: shipped
 initiative_links:
   - id: INI-002
     name: Platform Core
-    milestones: M1 (delivered — workspace-status M1.5, work-loop M1.7)
+    milestones: M1 (delivered — dispatch M1.5, work-loop M1.7)
     role: primary
   - id: INI-003
     name: Coding CLI Adapter Pack
@@ -20,19 +20,19 @@ updated: 2026-08-21
 # Journey: Agent executes a spec autonomously
 
 **Use it when:** an authorized headless session is assigned an already Approved, canonically ready or active spec and sibling plan.
-**You provide:** a workspace with valid canonical lifecycle state, the exact spec path, its approved plan, and the control-plane authority required for the run.
-**You receive:** a shipped spec, a PR passing gates, and `workspace.toml` updated so the next agent orients immediately.
+**You provide:** a repository with valid artifact headers, the exact spec path, its approved plan, and the control-plane authority required for the run.
+**You receive:** a shipped spec, a PR passing gates, and the spec's `Status:` set to `Shipped` so the next agent orients immediately.
 **Your decisions:** None — this journey runs headless.
 
 **Persona:** An AI agent — Claude Code, Codex CLI, Kiro CLI, or any headless harness — starting a fresh session with no persistent memory of prior sessions. The agent has no human in the execution phase, so every durable approval and dispatch input must already exist; it cannot infer authority from a ticket, comment, summary, or queue order.
 
-**Outcome:** The spec is in `[work].shipped`. A PR is submitted and passing. `workspace.toml` reflects the new state. The next ready item is surfaced. The next agent starting a session can orient immediately without reading any prior session's context.
+**Outcome:** The spec's `Status:` is `Shipped`. A PR is submitted and passing. `dispatch.py` lists the next ready item. The next agent starting a session can orient immediately without reading any prior session's context.
 
-**Surface:** cross-platform — runs identically across Claude Code (`claude`), Codex CLI (`codex`), Kiro CLI (`kiro`), GitHub Copilot CLI, Gemini CLI. The skill surface (`workspace-status`, `work-loop`) is harness-agnostic; harness-specific conventions (MCP vs static `.md`, context window limits) are adapter concerns (INI-003).
+**Surface:** cross-platform — runs identically across Claude Code (`claude`), Codex CLI (`codex`), Kiro CLI (`kiro`), GitHub Copilot CLI, Gemini CLI. The skill surface (`work-loop` and its `dispatch.py`) is harness-agnostic; harness-specific conventions (MCP vs static `.md`, context window limits) are adapter concerns (INI-003).
 
 **Trigger:** A human or control plane invokes the session with one exact registered spec path after the required approval boundary is durable.
 
-**End state:** Spec shipped. PR submitted. `[work].active` updated to `[work].shipped`. Next ready item surfaced. Session exits cleanly with committed state — the next agent picks up from a known-good position.
+**End state:** Spec shipped. PR submitted. `Status:` moved from `Implementing` to `Shipped`. Next ready item surfaced. Session exits cleanly with committed state — the next agent picks up from a known-good position.
 
 ---
 
@@ -40,16 +40,16 @@ updated: 2026-08-21
 
 | Pack | Scope | Status | Provides |
 |---|---|---|---|
-| core | repo | current | `workspace-status`, `work-loop` (workspace integration), `new-spec` |
+| core | repo | current | `work-loop` (with `dispatch.py`), `new-spec` |
 | coding CLI adapter pack | user | planned (INI-003) | Harness-specific invocation, write-back contract implementation; one adapter per harness (Claude Code, Codex CLI, Kiro, etc.) |
 
 **One-time setup:**
 1. Install core pack at repo scope.
 2. Install the harness-specific coding CLI adapter pack at user scope (when INI-003 ships).
-3. `workspace.toml` must contain one unique valid target entry for the supplied Approved spec, and its sibling `plan.md` must exist and be approved.
-4. Agent must have write access to the spec branch — edits to `workspace.toml` commit with the spec PR (resolved write protocol; RFC-0064 Known Unknowns).
+3. The supplied spec's `Status:` must be `Approved` (or `Implementing`), its `Depends on:` targets satisfied, and its sibling `plan.md` must exist and be approved.
+4. Agent must have write access to the spec branch — the `Status:` edit commits with the spec PR.
 
-**Scale:** all harness shapes (interactive Claude Code, headless CI, remote agents via INI-004) use the same write protocol: edit `workspace.toml` locally in the working directory and commit in the same spec PR. Adapter-specific concerns (CLI invocation, tool surface, context window) are INI-003's scope.
+**Scale:** all harness shapes (interactive Claude Code, headless CI, remote agents via INI-004) use the same write protocol: edit the spec's `Status:` header locally and commit it in the same spec PR. Adapter-specific concerns (CLI invocation, tool surface, context window) are INI-003's scope.
 
 ---
 
@@ -59,29 +59,29 @@ updated: 2026-08-21
 sequenceDiagram
     participant A as Agent
     participant SK as Skills
-    participant WS as workspace.toml
+    participant WS as Artifact headers
     participant WL as work-loop (extended M1.7)
     participant R as Repo (spec branch)
 
     Note over A,WS: Session start — M1.5+
-    A->>SK: workspace-status
-    SK->>WS: Read [shaping_queue]+[brief_queue]+[work], resolve DAG
-    WS-->>SK: Active initiative · spec/m1-work-loop is ready · spec/m1-receive-brief blocked (needs brief-template)
+    A->>SK: dispatch.py
+    SK->>WS: Read Status and Depends on headers, resolve readiness
+    WS-->>SK: spec/m1-work-loop is ready · spec/m1-receive-brief blocked (depends on brief-template)
     SK-->>A: Oriented · next action: work-loop spec/m1-work-loop
 
-    Note over A,WS: Canonical preflight — never infer from raw membership
-    A->>WS: Require one matching canonical.ready or canonical.active entry
+    Note over A,WS: Header preflight — never infer from prose or order
+    A->>WS: Require the spec in dispatch ready or active
 
     Note over A,R: Execution — M1.7
     A->>WL: work-loop spec/m1-work-loop
-    WL->>WS: Read workspace.toml at step 0 (context: initiative, milestone, spec)
+    WL->>WS: Read the spec and plan headers at step 0
     Note over A: plan → build → verify → review
-    WL->>WS: On ship: active → shipped · surface next ready item
+    WL->>WS: On ship: Status Implementing → Shipped · surface next ready item
     WL-->>A: Shipped · next: spec/m1-receive-brief · Update roadmap.md?
     A->>R: Submit PR
 
     Note over A,WS: Exit — next agent starts from known-good state
-    A->>SK: workspace-status (final — confirms shipped state visible)
+    A->>SK: dispatch.py (final — confirms shipped state visible)
     SK-->>A: spec/m1-work-loop: shipped · spec/m1-receive-brief: ready
 ```
 
@@ -91,8 +91,8 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Runs `workspace-status` canonical reconciliation for the supplied path. Continues only for the unique matching canonical ready or active entry; blocked findings and retained legacy memberships refuse dispatch. |
-| **Failure modes** | Supplied path is unregistered, ambiguous, legacy, missing its artifact/plan, unapproved, dependency-blocked, or already conflicts with active work; stale workspace state if a prior agent did not write back on ship. |
+| **Actions** | Runs `dispatch.py` for the supplied path. Continues only when the spec is listed ready or active; blocked findings, and `unmigrated_workspace` while a `workspace.toml` entry remains, refuse dispatch. |
+| **Failure modes** | Supplied path is ambiguous, missing its artifact/plan, unapproved, dependency-blocked, or already conflicts with active work; stale `Status:` if a prior agent did not write it back on ship. |
 | **Remaining pains** | "I can see the spec is ready but I can't confirm no other agent has claimed it — atomic claiming is an INI-003 adapter concern." |
 
 ---
@@ -101,7 +101,7 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Reads the accepted spec and sibling plan. `work-loop` binds its run to the canonical evaluation and loads any declared brief/dependency provenance. It never creates a missing contract from workspace prose. |
+| **Actions** | Reads the accepted spec and sibling plan. `work-loop` binds its run to the canonical evaluation and loads any declared brief/dependency provenance. It never creates a missing contract from index prose. |
 | **Failure modes** | Spec or plan is missing or no longer approved; provenance is ambiguous; prior session decisions were not committed. Each condition stops the headless attempt for human/control-plane repair. |
 | **Remaining pains** | "If a prior agent made decisions mid-session that weren't committed, I have no way to see them." Partial-progress capture (gate-boundary handoff notes) is a post-M1 backlog item deferred to INI-005. |
 
@@ -137,30 +137,30 @@ sequenceDiagram
 
 | Row | Content |
 |-----|---------|
-| **Actions** | Submits PR. `work-loop` moves spec `active → shipped` in `workspace.toml` on ship; surfaces next ready item; prompts `roadmap.md` update. Exit state is committed — next agent orients in one `workspace-status` call. |
-| **Failure modes** | PR submitted but write-back skipped (agent interrupted before `work-loop` completes write-back); `roadmap.md` update skipped. Next agent should run `workspace-status` to confirm state before starting. |
+| **Actions** | Submits PR. `work-loop` moves the spec's `Status:` from `Implementing` to `Shipped` on ship; surfaces next ready item; prompts `roadmap.md` update. Exit state is committed — next agent orients in one `dispatch.py` call. |
+| **Failure modes** | PR submitted but write-back skipped (agent interrupted before `work-loop` completes write-back); `roadmap.md` update skipped. Next agent should run `dispatch.py` to confirm state before starting. |
 | **Remaining pains** | Partial-progress capture if the agent was interrupted mid-build (not committed). Full session continuity feeds INI-005. |
 
 ---
 
 ## Frontstage actions
 
-- **Skill:** run-workspace-status
-- **Skill:** validate-spec-in-active-queue
+- **Skill:** run-dispatch
+- **Skill:** validate-spec-ready-or-active
 - **Skill:** write-plan
 - **Skill:** execute-plan-tasks
 - **Skill:** run-gates
 - **Skill:** submit-pr
-- **Skill:** update-workspace-on-ship
-- **Skill:** run-workspace-status-exit-state
+- **Skill:** update-spec-status-on-ship
+- **Skill:** run-dispatch-exit-state
 
 ---
 
 ## Failure mode arc (replaces emotional arc for agent persona)
 
-Most critical failure: **Stage 1 (Orient)** — spec already claimed by another agent, or `workspace.toml` stale because a prior agent didn't write back. `workspace-status` catches the second; atomic claiming (INI-003) closes the first.
+Most critical failure: **Stage 1 (Orient)** — spec already claimed by another agent, or a spec `Status:` stale because a prior agent didn't write back. `dispatch.py` catches the second; atomic claiming (INI-003) closes the first.
 
-Second most critical: **Stage 5 (Ship & Exit)** — PR submitted but `work-loop` write-back interrupted. Next agent re-picks the same spec. Mitigation: always run `workspace-status` at session start to confirm state before claiming.
+Second most critical: **Stage 5 (Ship & Exit)** — PR submitted but `work-loop` write-back interrupted. Next agent re-picks the same spec. Mitigation: always run `dispatch.py` at session start to confirm state before claiming.
 
 Remaining failure modes (partial-progress capture, budget tracking, gate diagnostics) are post-M1 backlog items — some feed INI-005 design.
 
@@ -168,6 +168,6 @@ Remaining failure modes (partial-progress capture, budget tracking, gate diagnos
 
 ## Handoff notes
 
-**For `blueprint-service`:** backstage services include `workspace.toml` on `main` (spec claiming — INI-003 adapter concern; write-back on ship via resolved write protocol: agent edits locally and commits with the spec PR), spec branch (plan and build), gates (lint, typecheck, tests, traceability lint), PR submission. Atomic claiming across concurrent headless agents is an open INI-003 design question.
+**For `blueprint-service`:** backstage services include the spec headers on `main` (spec claiming — INI-003 adapter concern; write-back on ship: agent edits `Status:` locally and commits with the spec PR), spec branch (plan and build), gates (lint, typecheck, tests, traceability lint), PR submission. Atomic claiming across concurrent headless agents is an open INI-003 design question.
 
-**For INI-003:** the headless dispatch variant of this journey (agent invoked via `claude -p` or equivalent) adds the adapter layer between Stage 1 (Orient) and Stage 2 (Validate Spec Context). The adapter consumes canonical reconciliation rather than raw workspace membership, formats the invocation, and handles write-back. Stages 3–5 are identical.
+**For INI-003:** the headless dispatch variant of this journey (agent invoked via `claude -p` or equivalent) adds the adapter layer between Stage 1 (Orient) and Stage 2 (Validate Spec Context). The adapter consumes `dispatch.py` output rather than raw prose, formats the invocation, and handles write-back. Stages 3–5 are identical.

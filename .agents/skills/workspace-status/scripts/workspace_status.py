@@ -370,7 +370,7 @@ def _canonical_failure_payload(mode: str, code: str = "configuration_mismatch") 
         "configuration_mismatch": (
             "Install or select a consistent versioned configuration, then rerun."
         ),
-        "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
+        "invalid_workspace": "Correct workspace.toml, then run `repair-plan` again.",
         "unsafe_path": "Replace linked or aliased workspace input, then rerun.",
     }
     finding = {

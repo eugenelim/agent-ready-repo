@@ -3598,7 +3598,7 @@ Outcome = "local"
     assert len(authority_findings) == 1
     assert authority_findings[0].path == artifact_path
     assert authority_findings[0].next_action == (
-        "Correct the closed source-authority block, then rerun reconciliation."
+        "Correct the closed source-authority block, then run `repair-plan` again."
     )
 
 

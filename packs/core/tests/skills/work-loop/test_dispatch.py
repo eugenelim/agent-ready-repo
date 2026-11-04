@@ -1536,7 +1536,7 @@ def test_captured_flag_prints_one_extra_key(
 # (commit ab4e4b71c) on the same planted repository; nothing here calls the base.
 # The one exception is the `brief_queue.executing` case, which pins the settled output.
 
-_INVALID_WORKSPACE_NEXT_ACTION = "Correct workspace.toml, then rerun reconciliation."
+_INVALID_WORKSPACE_NEXT_ACTION = "Correct workspace.toml, then run `dispatch.py` again."
 
 
 def _invalid_workspace(path: str) -> dict[str, Any]:

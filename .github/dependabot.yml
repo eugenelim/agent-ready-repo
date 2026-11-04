@@ -21,10 +21,10 @@
 # meaningful here.
 #
 # NOT WIRED, deliberately:
-#   * `pip` — `sast-requirements-not-audited` in workspace.toml [backlog].open carries
-#     an explicit audit-vs-Dependabot decision for the Python side ("Decide which, then
-#     do one -- doing both duplicates the noise"). Adding a pip ecosystem here would
-#     pre-empt it.
+#   * `pip` — the audit-vs-Dependabot decision for the Python CI-tooling files
+#     (`sast-requirements-not-audited`, recorded in
+#     docs/specs/build-check-coverage-gaps/spec.md) is still open: pick one, since
+#     doing both duplicates the noise. Adding a pip ecosystem here would pre-empt it.
 #   * `github-actions` — every action in this repo is already SHA-pinned, and turning
 #     this on is its own volume decision nobody has taken.
 version: 2

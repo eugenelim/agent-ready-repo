@@ -12,7 +12,7 @@ flowchart LR
     alt0["Altitude-0 direction\n(strategy, OKRs)"]
     shape["Shaping room\n(PE six-step sequence)"]
     ext["External intake\n(tracker, email)"]
-    bq["[brief_queue]"]
+    bq["Briefs (Status Ready)"]
     build["Build room\n(spec → execute → ship)"]
 
     adopt --> shape
@@ -23,17 +23,17 @@ flowchart LR
     bq --> build
 ```
 
-**Shaping room** — where strategy, product thinking, and external signals are transformed into a shaped brief with a committed rationale. The output is a DoR-compliant brief in `[brief_queue]`. The personas here are the product strategist, the product engineer, and any PM bridging from a tracker.
+**Shaping room** — where strategy, product thinking, and external signals are transformed into a shaped brief with a committed rationale. The output is a DoR-compliant brief file with `Status: Ready`. The personas here are the product strategist, the product engineer, and any PM bridging from a tracker.
 
-**Build room** — where a brief becomes specs, then code. The work queue (`[work]`) holds specs; `work-loop` executes them; the engineer or agent is the actor. Headless agents (INI-003) are a scaling variant of the build room, not a separate room.
+**Build room** — where a brief becomes specs, then code. Specs are files with a `Status:` header; `work-loop` executes them; the engineer or agent is the actor. Headless agents (INI-003) are a scaling variant of the build room, not a separate room.
 
 **Work intake is the handoff point.** `work-intake` materializes a canonical
-artifact and registers its lifecycle state. A brief can pass the human Ready
-gate and enter `[brief_queue].ready` with zero specs; `receive-brief` invokes
-`new-spec` only after a slice is confirmed. From there, `workspace-status`
+artifact whose own `Status:` header carries its lifecycle state. A brief can pass the human Ready
+gate with zero specs; `receive-brief` invokes
+`new-spec` only after a slice is confirmed. From there, `work-loop`'s `dispatch.py`
 drives the session.
 
-Journeys below are grouped by room. The three shaping journeys are distinct personas who all write to the brief queue through different paths. The four build journeys are distinct execution modes for the same work-loop pattern.
+Journeys below are grouped by room. The three shaping journeys are distinct personas who all write briefs through different paths. The four build journeys are distinct execution modes for the same work-loop pattern.
 
 ---
 
@@ -52,13 +52,13 @@ A journey can be partially shipped — some stages updated to current, others st
 
 ## Shaping room journeys
 
-These journeys all converge on the brief queue — each persona takes a different path in but writes to the same `[brief_queue].draft` output.
+These journeys all converge on the brief file — each persona takes a different path in but writes the same Draft brief output.
 
 | Journey | Persona | Status | Initiative links |
 |---|---|---|---|
 | [Product strategist sets direction](product-strategist-sets-direction.md) | Strategist / CPO anchoring initiative clusters in altitude-0 artifacts (stakeholder synthesis, PRFAQ, OKR cascade, market analysis, UX strategy, content strategy) | planned | INI-002 M4 (primary); M2 (prerequisite) |
 | [Product engineer shapes initiative](product-engineer-shapes-initiative.md) | PE or PM running the six-step shaping sequence (situation → opportunities → diverge → validate → bet → brief) | proposed | INI-002 M2 (primary); M1 (prerequisite) |
-| [PM intakes from tracker](pm-intakes-from-tracker.md) | PM bridging Linear / Jira / GitHub issues into the brief queue without manual reformatting | proposed | INI-002 M5 (primary); M1 (prerequisite) |
+| [PM intakes from tracker](pm-intakes-from-tracker.md) | PM bridging Linear / Jira / GitHub issues into a brief without manual reformatting | proposed | INI-002 M5 (primary); M1 (prerequisite) |
 
 ---
 
@@ -74,12 +74,12 @@ The adoption journey is the prerequisite for everything else. It covers two path
 
 ## Build room journeys
 
-All four journeys converge on the work queue — different actors, same `work-loop` infrastructure. The core loop (plan → build → verify → ship) is the same; what changes is the orientation source and the degree of human involvement.
+All four journeys converge on the ready specs `dispatch.py` lists — different actors, same `work-loop` infrastructure. The core loop (plan → build → verify → ship) is the same; what changes is the orientation source and the degree of human involvement.
 
 | Journey | Persona | Status | Initiative links |
 |---|---|---|---|
 | [Engineer adopts AI-native coordination](engineer-adopts-coordination.md) | Engineer installing Platform Core and operating it end-to-end for the first time | planned | INI-002 M1–M6 (primary); M1 delivered |
-| [Engineer runs the work-loop](engineer-runs-work-loop.md) | Interactive implementer using `work-loop` day-to-day; human in the loop for plan review and gate navigation. Two paths: initiative (workspace.toml) and ad-hoc. | shipped | INI-002 M1 (delivered) |
+| [Engineer runs the work-loop](engineer-runs-work-loop.md) | Interactive implementer using `work-loop` day-to-day; human in the loop for plan review and gate navigation. Two paths: durable spec and ad-hoc. | shipped | INI-002 M1 (delivered) |
 | [Agent executes spec autonomously](agent-executes-spec.md) | Headless agent cold-starting, orienting, executing, and shipping without human intervention | shipped | INI-002 M1 (delivered); INI-003 M1+ (pending) |
 | [Engineer scales to coordinated agent swarm](engineer-scales-to-swarm.md) | Team with INI-002 M1 in place, scaling to headless CLI agent pipelines across multiple specs in parallel | shaping | INI-003 M1+ (primary); INI-002 M1 (prerequisite) |
 
@@ -106,15 +106,15 @@ flowchart TB
     S["Product Strategist\nproduct-strategist-sets-direction"]
     PE["Product Engineer\nproduct-engineer-shapes-initiative"]
     PM["PM\npm-intakes-from-tracker"]
-    BQ["[brief_queue].draft"]
-    WQ["[work].queue"]
+    BQ["Brief (Status Draft)"]
+    WQ["Spec (Status Approved)"]
     E["Engineer (interactive)\nengineer-runs-work-loop"]
     AG["Agent (autonomous)\nagent-executes-spec"]
     SW["Swarm\nengineer-scales-to-swarm"]
     ADO["Adopting engineer\nengineer-adopts-coordination"]
     D["Designer\ndesigner-designs-surface"]
 
-    S -->|"OKR gaps → shaping_queue"| PE
+    S -->|"OKR gaps → shaping items"| PE
     PE -->|"bet + capability map"| BQ
     PM -->|"intake skill"| BQ
     BQ -->|"receive-brief"| WQ

@@ -53,7 +53,6 @@ _ABSENT: dict[str, tuple[str, ...]] = {
     ),
     _SKILLS + "intake-intent/SKILL.md": ("register one non-dispatchable pointer",),
     _SKILLS + "workspace-status/SKILL.md": ("names no registered brief",),
-    "guides/core/reference/workspace-toml-schema.md": ("names no registered brief",),
     "guides/core/how-to/intake-an-external-brief.md": ("then registers the structured Draft entry",),
     "guides/core/how-to/capture-work.md": ("Draft artifact, registers a",),
     "guides/_shared/how-to/use-work-intake.md": ("Draft artifact, registers a",),

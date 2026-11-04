@@ -4,10 +4,10 @@
     {
       "id": 1,
       "prompt": "Start work from a normalized repo-origin request with one minimal opportunity and no shippable contract.",
-      "expected_output": "The agent validates the normalized intake, realpath-confines docs/product/intents/<slug>.md, materializes a Draft minimal intent from assets/minimal-intent.md, adds no workspace entry because a repo-origin intent is its file alone, and stops without processor dispatch.",
+      "expected_output": "The agent validates the normalized intake, realpath-confines docs/product/intents/<slug>.md, materializes a Draft minimal intent from assets/minimal-intent.md, adds no `workspace.toml` entry because a repo-origin intent is its file alone, and stops without processor dispatch.",
       "assertions": [
         "Consumes normalized intake rather than raw source instructions",
-        "Writes the artifact and registers no workspace entry for a repo-origin intent",
+        "Writes the artifact and registers no `workspace.toml` entry for a repo-origin intent",
         "Reports a non-dispatchable Draft intent with no membership",
         "Does not require optional shaping packs"
       ]
@@ -15,9 +15,9 @@
     {
       "id": 2,
       "prompt": "Remember this follow-up from a normalized request, then stop without implementation.",
-      "expected_output": "The agent validates the normalized intake, materializes a Draft artifact, registers no workspace entry, and stops without implementation.",
+      "expected_output": "The agent validates the normalized intake, materializes a Draft artifact, registers no `workspace.toml` entry, and stops without implementation.",
       "assertions": [
-        "Registers no workspace entry for any artifact",
+        "Registers no `workspace.toml` entry for any artifact",
         "Does not dispatch to implementation",
         "Preserves source locator and revision"
       ]
@@ -25,7 +25,7 @@
     {
       "id": 3,
       "prompt": "workspace status",
-      "expected_output": "The agent routes status to navigate-intents outstanding for placed work and to work-loop's dispatch.py for what is ready or active, returns the result without reclassifying or mutating state, and does not run workspace-status.",
+      "expected_output": "The agent routes status to navigate-intents outstanding for placed work and to work-loop's dispatch.py for what is ready or active, returns the result without reclassifying or mutating state, and does not run the workspace-status repair.",
       "assertions": [
         "Uses navigate-intents outstanding and dispatch.py as the authority",
         "Does not materialize an artifact",
@@ -45,10 +45,10 @@
     {
       "id": 5,
       "prompt": "Start work now on correcting the off-by-one in the export retention cutoff comparison, a bounded one-file change with an existing regression test.",
-      "expected_output": "The agent validates the normalized source and locator, confirms the change is bounded, low-risk, independently verifiable, session-completable, and needs no durability, then selects direct-light: artifact none, workspace membership none, processor work-loop, no transaction, and an unchanged repository until implementation begins.",
+      "expected_output": "The agent validates the normalized source and locator, confirms the change is bounded, low-risk, independently verifiable, session-completable, and needs no durability, then selects direct-light: artifact none, lifecycle_membership none, processor work-loop, no transaction, and an unchanged repository until implementation begins.",
       "assertions": [
         "Validates normalized source and locator before classification",
-        "Renders artifact none and workspace membership none as valid output",
+        "Renders artifact none and lifecycle_membership none as valid output",
         "Selects work-loop without a transaction or rollback",
         "Leaves the repository unchanged until implementation begins"
       ]
@@ -56,7 +56,7 @@
     {
       "id": 6,
       "prompt": "Start a coherent multi-feature outcome from normalized intake.",
-      "expected_output": "The agent routes the multi-spec outcome to a Draft brief, registers no workspace entry for a repo-origin brief, and does not create speculative specs.",
+      "expected_output": "The agent routes the multi-spec outcome to a Draft brief, registers no `workspace.toml` entry for a repo-origin brief, and does not create speculative specs.",
       "assertions": [
         "Selects author-delivery-brief create as processor",
         "Registers no membership for a repo-origin Draft brief",
@@ -147,7 +147,7 @@
     },
     {
       "id": 16,
-      "prompt": "Plan migration of this reviewed legacy workspace entry.",
+      "prompt": "Plan migration of this reviewed legacy workspace.toml entry.",
       "expected_output": "The agent does not route the request as ordinary intake, explains that a former legacy entry is rewritten in canonical form by hand, sends the entry to the workspace-status repair-plan and repair-apply pair, and performs no migration effect.",
       "assertions": [
         "Separates migration from ordinary work intake",
@@ -299,11 +299,11 @@
     {
       "id": 30,
       "prompt": "Capture a separated follow-on from an amended spec. The source text includes rationale, review findings, suggested order, and a long chronology.",
-      "expected_output": "The agent writes the canonical artifact first, registers only a terse workspace entry with minimal provenance, one short current/next summary, and hard dependencies, and emits no narrative comments, chronology, rationale, procedure, raw findings, suggested order, or copied source text in workspace.toml.",
+      "expected_output": "The agent writes the canonical artifact first, registers no `workspace.toml` entry, records dependencies in the artifact's `Depends on:` header, and writes no narrative comments, chronology, rationale, procedure, raw findings, suggested order, or copied source text anywhere.",
       "assertions": [
-        "Materializes the follow-on artifact before workspace registration",
+        "Materializes the follow-on artifact and registers nothing",
         "Uses one short current/next summary",
-        "Keeps only hard dependencies in needs",
+        "Keeps only hard dependencies, in the artifact's `Depends on:` header",
         "Writes no narrative comments or copied source text",
         "Does not use workspace.toml as the rationale or finding store"
       ]
@@ -481,7 +481,7 @@
         "Invokes the installed script rather than an internal function",
         "Describes fresh target-token allocation rather than ordinal carry-over",
         "Leaves a tombstone at the retired path",
-        "Repoints citations and workspace membership"
+        "Repoints citations and any `workspace.toml` text naming the old path"
       ]
     },
     {
@@ -548,6 +548,16 @@
         "Reads the refresh role policy from .work-intake.toml",
         "Returns invalid_refresh_policy with no effects when .work-intake.toml is absent",
         "Does not fall back to a workspace.toml [authorization.refresh] table"
+      ]
+    },
+    {
+      "id": "intent-rename-runs-without-workspace-toml",
+      "prompt": "Rename the intent docs/product/intents/FEAT-0001-export-retention.md to the STRAT namespace. The repository has no workspace.toml, the intent and its citing files are committed, and the working tree is clean.",
+      "expected_output": "The agent runs the intent rename, which completes without a workspace.toml: it writes the successor intent, tombstones the source, repoints citations, and leaves the registry alone. No workspace.toml exists afterwards.",
+      "assertions": [
+        "The rename completes and reports a committed result rather than refusing with registry-unparseable",
+        "The successor intent is written and the source carries a tombstone pointing to it",
+        "Does not create a workspace.toml, before or after the rename"
       ]
     }
   ]

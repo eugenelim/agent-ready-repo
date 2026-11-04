@@ -16,7 +16,6 @@ contract:
     - "Approve the plan"
     - "Approve each local refresh field decision"
     - "Confirm every remote tracker mutation separately"
-    - "Recover or roll back an operation already recorded in a migration ledger, using the operation ID from `.workspace-migrations.json`"
     - "Confirm semantic freshness and every exact close-work mutation separately"
     - "Merge the PR"
   decisionGateIds:
@@ -25,7 +24,7 @@ contract:
 whatChanges: "After installing core, work-intake becomes the neutral front door for raw or ambiguous start, remember, status, refresh, and intake-safety requests. Direct artifact requests go to their owner: intake-intent admits repository intents, author-delivery-brief creates or continues coordination briefs, and new-spec owns one independently shippable feature. Before construction, those callers may use shaping-reviewer to test contract scope and observability; it is separate from the later adversarial, security, and quality code-review lenses. Approved specs then move through work-loop: plan → execute → verify → independently grounded review. Stable brief/spec/plan authoring gates may capture reusable supporting practice through project-knowledge, while Draft work, reviewer scratch, findings, and normative artifact content remain untouched. After delivery, close-work verifies durable context and previews disposition without automatic deletion. The loop cannot self-certify: it surfaces plan, merge, freshness, and exact mutation decisions to you."
 skills:
   - name: work-intake
-    description: "Routes start, remember, status, and refresh requests into canonical artifacts and workspace lifecycle state before dispatch."
+    description: "Routes start, remember, status, and refresh requests into canonical artifacts; lifecycle lives in each artifact's header and nothing is registered."
     humanTouches: 0
   - name: work-loop
     description: "The build loop. Plans, executes, verifies, and reviews; spec-approved and plan-locked may capture reusable supporting practice."
@@ -70,7 +69,7 @@ skills:
     description: "Deprecated compatibility alias for author-delivery-brief continue."
     humanTouches: 0
   - name: workspace-status
-    description: "Reads workspace.toml, reconciles canonical entries, surfaces unsupported-legacy findings for former legacy entries, and provides the explicit repair surface for recovering or rolling back a recorded migration operation."
+    description: "Repairs leftover workspace.toml entries with repair-plan and repair-apply; it does not orient a session."
     humanTouches: 0
   - name: project-knowledge
     description: "Captures, distills, and enquires over committed project knowledge through one progressive skill. Capture writes observations; distill proposes topic changes; enquire reads active committed topics."
@@ -139,7 +138,8 @@ goodOutputDescription: |-
 | Say this | What happens |
 |----------|-------------|
 | `work-intake` | Route a start, remember, status, or refresh request into durable state |
-| `workspace-status` | Orient — what's ready, blocked, and done |
+| `workspace-status` | Repair leftover `workspace.toml` entries (`repair-plan`, then `repair-apply`) |
+| `dispatch.py` (in `work-loop`) | Orient — what's ready, active, and blocked |
 | `work-loop` | Plan → execute → gates → bounded evidence-assisted review → merge |
 | `close-work` | Pause or close delivery work after verifying lasting context and exact authority |
 | `bug-fix` | Diagnose and fix a specific bug |
@@ -152,15 +152,15 @@ goodOutputDescription: |-
 
 ### 1. Orient — every session
 
-Type `workspace-status` to see what's ready to start, what's blocked, and what shipped last session.
+Ask your agent what is ready to work on. `work-loop`'s `dispatch.py` prints the ready, active, and blocked specs.
 
 ```text
-● sprint-8/data-export     ready    spec approved · 3 tasks
-⚠ sprint-8/auth-refresh    blocked  needs spec/api-contract
-✓ sprint-7/payment-ui      done     shipped 2026-07-25
+ready    data-export     spec approved · 3 tasks
+blocked  auth-refresh    needs spec/api-contract
+active   payment-ui      plan locked
 ```
 
-- **Output:** queue state — ready items, blocked items with reason, recent completions.
+- **Output:** ready, active, and blocked specs, with the reason a spec is blocked.
 - **State:** read-only
 
 For intent status, hierarchy, and outstanding work — which intents, briefs, and specs are not yet terminal, what the parent of an intent is, or how the intent tree is structured — use `navigate-intents` instead. It derives answers from preamble headers at query time and never reads `workspace.toml`.
@@ -174,7 +174,7 @@ Show me the outstanding work under capability:my-capability.
 ### 2. Route the work
 
 Describe the work to `work-intake`. The agent selects one artifact route from
-the content, writes the artifact, then registers its lifecycle state. A
+the content, writes the artifact; its header carries the lifecycle state and nothing is registered. A
 multi-feature outcome becomes a Draft brief; one independently shippable change
 continues to `new-spec`; an opportunity can remain a non-dispatchable intent.
 
@@ -186,25 +186,12 @@ gate remains in place. Without the optional handoff, this stage is unchanged.
 
 ```text
   artifact    docs/product/briefs/data-export.md
-  membership  draft · non-dispatchable
+  status      draft · non-dispatchable
   processor   author-delivery-brief create
 ```
 
 - **Output:** `docs/product/briefs/data-export.md` — review the brief before it enters the work loop.
 - **State:** draft
-
-#### Optional recovery path — recover or roll back a recorded migration
-
-Use only when `.workspace-migrations.json` already records an operation from a
-previous run. Rewrite a former `unsupported_legacy` entry in canonical form by
-hand; the migration tooling is only for recovering an interrupted apply or
-rolling back a completed apply.
-
-- **You decide:** whether to recover the pending apply or roll back the applied
-  operation.
-- **Output:** a canonical workspace entry or the restored exact legacy slice,
-  plus the durable `.workspace-migrations.json` recovery record.
-- **State:** confirmed-write
 
 #### Optional return path — refresh tracked work
 
