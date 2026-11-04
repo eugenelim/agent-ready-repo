@@ -158,3 +158,4 @@
 | 0154 | [The work-loop product result is a protected Git ref that only the supervisor advances by compare-and-swap](0154-work-loop-product-result-is-a-protected-ref.md) | Accepted | 2026-10-30 |
 | 0155 | [Base-versus-change questions get one read-only git-history entry in the work-loop evidence catalog](0155-base-versus-change-questions-get-a-git-history-evidence-entry.md) | Accepted | 2026-11-03 |
 | 0156 | [Work-loop concurrency is admitted only on attested read coverage, and otherwise runs sequentially](0156-work-loop-concurrency-needs-attested-read-coverage.md) | Accepted | 2026-11-04 |
+| 0157 | [Work-loop approval gates park instead of halting, bound to exact digests](0157-work-loop-approval-gates-park-instead-of-halting.md) | Accepted | 2026-11-04 |
