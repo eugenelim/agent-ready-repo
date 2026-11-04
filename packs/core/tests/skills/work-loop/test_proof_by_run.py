@@ -386,11 +386,17 @@ def _bad_pass_supported(a: dict, head: str) -> None:
 
 @sup.INTEGRATION
 @pytest.mark.parametrize(
-    "corrupt",
-    [_bad_none, _bad_two, _bad_commit, _bad_fail_unsupported, _bad_pass_supported],
+    ("corrupt", "denial"),
+    [
+        (_bad_none, "denied-proof-run-reference-malformed"),
+        (_bad_two, "denied-proof-run-reference-count"),
+        (_bad_commit, "denied-proof-run-stale"),
+        (_bad_fail_unsupported, "denied-proof-run-assessment-mismatch"),
+        (_bad_pass_supported, "denied-proof-run-assessment-mismatch"),
+    ],
 )
 def test_t2_inconsistent_proof_by_run_assessment_is_refused(
-    tmp_path: Path, review_assessment: ModuleType, corrupt: object
+    tmp_path: Path, review_assessment: ModuleType, corrupt: object, denial: str
 ) -> None:
     """An inconsistent proof-by-run assessment is refused and writes nothing."""
     repo, controller, assess = _assess_request(tmp_path)
@@ -400,6 +406,7 @@ def test_t2_inconsistent_proof_by_run_assessment_is_refused(
     code, refused = controller.report(_result(assess, assessment=record))
     assert code == 1, refused
     assert refused["refusal"]["code"] == "review-record-refused", refused
+    assert refused["refusal"]["detail"] == denial, refused
     assert h.git(repo, "rev-parse", "HEAD").strip() == head
 
 
@@ -424,6 +431,64 @@ def test_t2_default_v1_assessment_is_admitted_unchanged(tmp_path: Path) -> None:
     repo, controller, assess = _assess_request(tmp_path)
     code, admitted = controller.report(_result(assess, assessment=h.assessment(assess)))
     assert code == 0, admitted
+
+
+def _t12_record(predicate_version: str, refs: object, verdict: str) -> dict:
+    """A minimal assessment record for the pure consistency check."""
+    return {
+        "lineage": {"predicate_version": predicate_version},
+        "evidence_refs": refs,
+        "assessment": verdict,
+    }
+
+
+@pytest.mark.parametrize(
+    ("record", "expected"),
+    [
+        (_t12_record("proof-by-run.v1", [], "supported"), "denied-proof-run-reference-count"),
+        (
+            _t12_record(
+                "proof-by-run.v1",
+                [_ref("fail", COMMIT), _ref("fail", COMMIT)],
+                "supported",
+            ),
+            "denied-proof-run-reference-count",
+        ),
+        (
+            _t12_record("proof-by-run.v1", "not-a-list", "supported"),
+            "denied-proof-run-reference-count",
+        ),
+        (
+            _t12_record("proof-by-run.v1", ["calc.py"], "supported"),
+            "denied-proof-run-reference-malformed",
+        ),
+        (
+            _t12_record("proof-by-run.v1", [_ref("fail", OTHER_COMMIT)], "supported"),
+            "denied-proof-run-stale",
+        ),
+        (
+            _t12_record("proof-by-run.v1", [_ref("fail", COMMIT)], "unsupported-opinion"),
+            "denied-proof-run-assessment-mismatch",
+        ),
+        (
+            _t12_record("proof-by-run.v1", [_ref("pass", COMMIT)], "supported"),
+            "denied-proof-run-assessment-mismatch",
+        ),
+        (_t12_record("proof-by-run.v1", [_ref("fail", COMMIT)], "supported"), None),
+        (
+            _t12_record("proof-by-run.v1", [_ref("pass", COMMIT)], "unsupported-opinion"),
+            None,
+        ),
+        (_t12_record("v1", ["anything", "else"], "supported"), None),
+        ({"evidence_refs": []}, None),
+        ({"lineage": "not-a-dict"}, None),
+    ],
+)
+def test_t12_check_proof_by_run_returns_exact_outcome(
+    review_assessment: ModuleType, record: dict, expected: str | None
+) -> None:
+    """Every outcome of ``check_proof_by_run`` is pinned by its exact return value."""
+    assert review_assessment.check_proof_by_run(record, COMMIT) == expected
 
 
 # --- proof-run CLI (plan T4) -----------------------------------------------
@@ -827,3 +892,53 @@ def test_t11_identity_helper_compares_device_and_inode_not_names(t4_gate) -> Non
     assert not check([other, (8, 100)], [barred, None])  # same inode, other device
     assert not check([None, other], [barred])
     assert not check([], [barred])
+
+
+# --- T12: refusals through the CLI that are not a tree or input refusal -----
+
+
+def _t12_assert_refused(
+    code: int, out: str, refused: str, repo: _T4Repo | None
+) -> None:
+    """The refusal exits 2, prints one JSON object naming ``refused``, writes no envelope."""
+    assert code == 2, out
+    assert json.loads(out)["refused"] == refused
+    if repo is not None:
+        assert repo.envelopes() == []
+
+
+def test_t12_invalid_identifier_is_refused_with_no_envelope(t4_run, t4_repo) -> None:
+    code, out = t4_run(**{"--report-id": ""})
+    assert code == 2 and out["refused"] == "denied-proof-run-invalid", out
+    assert t4_repo.envelopes() == []
+
+
+@pytest.mark.skipif(os.name == "nt" or os.geteuid() == 0, reason="needs POSIX permissions")
+def test_t12_unwritable_proof_runs_directory_is_refused_with_no_envelope(
+    t4_gate, t4_repo, t4_launches, capsys, monkeypatch
+) -> None:
+    folder = t4_repo.context / "proof-runs"
+    folder.mkdir()
+    folder.chmod(0o500)
+    try:
+        monkeypatch.chdir(t4_repo.path)
+        code = t4_gate.main(t4_repo.args())
+        _t12_assert_refused(code, capsys.readouterr().out, "denied-envelope-write", t4_repo)
+    finally:
+        folder.chmod(0o700)
+    assert list(folder.iterdir()) == []
+
+
+def test_t12_helper_git_refusal_outside_a_repository_is_refused(
+    t4_gate, t4_repo, tmp_path: Path, capsys, monkeypatch
+) -> None:
+    outside = tmp_path / "not-a-repo"
+    outside.mkdir()
+    monkeypatch.chdir(outside)
+    monkeypatch.setenv("GIT_CEILING_DIRECTORIES", str(tmp_path))
+    code = t4_gate.main(t4_repo.args())
+    out = capsys.readouterr().out
+    assert code == 2, out
+    assert json.loads(out)["refused"]
+    assert t4_repo.envelopes() == []
+    assert list(outside.iterdir()) == []
