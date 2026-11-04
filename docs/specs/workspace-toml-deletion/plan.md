@@ -45,7 +45,7 @@ The work runs in three stages, all after slice 9F has merged to `main`, split by
 | Old-skill deferral erratum | C0 | the RFC-0105 § Errata entry | AC-0012 checked; ledger approval |
 | Roster admission rule | T1 | `git grep` and the `tests/AGENTS.md` read | AC-0001 and AC-0015 checked |
 | Inventory check and retirement spec amendment | T2 | the check's fixture tests; the frozen-list comparison test | AC-0002 to AC-0006 checked |
-| Closure checklist | T3, C2 | the check's criteria 0030 and 0031 over this repository | criterion 0033 over this repository |
+| Closure checklist | T2, C2 | the check's criteria 0030 and 0031 over this repository | criterion 0033 over this repository |
 | Inventory | T4, T5, C3 | the check over this repository | AC-0007 and AC-0016 checked; criterion 0032 |
 | RFC-0064 errata | T6 | the RFC-0064 § Errata row | AC-0008 checked; ledger approval |
 | Certification, Shipped specs, brief closure | C3, C5 | criterion 0033; `lint-spec-status.py`; `lint-brief-coverage.py`; `close-work` | § Closeout |
@@ -67,14 +67,14 @@ Owned by: T2, T4, T5, C3.
 
   The schema facts still come from `contracts/jsonschema/workspace-entry.schema.json`, which stays.
 - **The `rfc-0067` owner.** A live row that outlives slice 9 names the release that retires the `workspace-status` name. criterion 0029's highest-slice rule still governs numbered owners. criterion 0032 removes numbered owners once the retirement spec ships.
-- **Dormant closing rules.** criterion 0032 and criterion 0033 apply only while `docs/specs/workspace-retirement/spec.md`'s `Status:` is `Shipped`. criterion 0030 and criterion 0031 apply at all times, so the drafted checklist is checked from T3 on.
+- **Dormant closing rules.** criterion 0032 and criterion 0033 apply only while `docs/specs/workspace-retirement/spec.md`'s `Status:` is `Shipped`. criterion 0030 and criterion 0031 apply at all times, so the drafted checklist is checked from T2 on.
 - **Reader suites after deletion.** A suite that asserts the registry holds no entry of some kind treats an absent file as holding none. `test_workspace_status_projection.py`'s class over the real registry is removed, because its subject is gone. Synthetic-fixture tests stay. `tools/test_workspace_status_cli.py` finds the root by `AGENTS.md` and `packs/`. `test_agent_skill_engineering_consumer_integrations.py` drops `workspace.toml` from `BOUND_SURFACES`, because the file it binds is gone. A probe at `3b1d0279d` with the file removed found exactly these eight suites and the inventory check red, out of every test module that names `workspace.toml`. Two others, `view_browser_checks.py` and `atlassian_jira_epic_outcome_view_guarantees.py`, already collect no passing test at the base, and `tools/test_local_ci_shared_test_deduplication.py` reds only through the CLI suite's root finder.
 - **Rows that settle only at closeout.** Three rows have live targets until the closeout closes them: the brief (`docs/product/briefs/workspace-registry-retirement-delivery.md`), this spec's directory, and FEAT-0034. T5 leaves them owned by 9. C3 makes them `historical` with owner `none` once each target is terminal under criterion 0008. If `close-work` leaves FEAT-0034 non-terminal, its row takes `rfc-0067`.
 - **Measurement tool.** `tools/measure-changelog-conflicts.py` keeps `workspace.toml` in `WATCHED_PATHS`, because it measures history and the path stays meaningful in `git log`. Its row becomes `historical` if criterion 0008 admits that, or `rfc-0067` if not.
 
 ### Behavior & rules
 
-Owned by: T2, T3.
+Owned by: T2.
 
 - The check reads the retirement spec's own `Status:` from `docs/specs/workspace-retirement/spec.md` in the checked root. A fixture repository writes one.
 - criterion 0033's Approver comes from RFC-0105's `- **Approver:**` line in the checked root, never from a literal.
@@ -82,9 +82,9 @@ Owned by: T2, T3.
 
 ### Drafted checklist
 
-Owned by: T3, C2.
+Owned by: T2, C2.
 
-| Gate | Item | State after T3 | Evidence |
+| Gate | Item | State after T2 | Evidence |
 | --- | --- | --- | --- |
 | consumer inventory | every tracked file with a registry token has a governing row | met | `docs/specs/workspace-retirement/inventory.toml`; `tests/roster/test_workspace_retirement_inventory.py` |
 | consumer inventory | no row is owned by a slice number | open | — |
@@ -116,22 +116,14 @@ Owned by: T3, C2.
 
 - **Depends on:** none
 - **Verification mode:** TDD
-- **Touches:** `docs/specs/workspace-retirement/spec.md`, `docs/specs/workspace-retirement/plan.md`, `tests/roster/test_workspace_retirement_inventory.py`
-- **Tests:** for AC-0002: a fixture record missing one frozen key reds criterion 0011 without any registry file; a test that parses `git show 3b1d0279d:workspace.toml` and asserts `_registry_facts` of it equals the frozen tuple (build-check checks out with `fetch-depth: 0`). For AC-0003, AC-0004, AC-0005 and AC-0006: one planted fixture per clause of criteria 0030, 0031, 0032 and 0033, each reporting only its own identifier, plus a Draft-status control for the two dormant rules. `test_clean_base_fixture_passes` gains a valid checklist table and stays empty.
+- **Touches:** `docs/specs/workspace-retirement/spec.md`, `docs/specs/workspace-retirement/plan.md`, `tests/roster/test_workspace_retirement_inventory.py`, `docs/specs/workspace-retirement/retirement-record.md`
+- **Tests:** for AC-0002: a fixture record missing one frozen key reds criterion 0011 without any registry file; a test that parses `git show 3b1d0279d:workspace.toml` and asserts `_registry_facts` of it equals the frozen tuple (build-check checks out with `fetch-depth: 0`). For AC-0003, AC-0004, AC-0005 and AC-0006: one planted fixture per clause of criteria 0030, 0031, 0032 and 0033, each reporting only its own identifier, plus a Draft-status control for the two dormant rules. `test_clean_base_fixture_passes` gains a valid checklist table and stays empty. Over this repository, the drafted table under § Compatibility closure, with the rows the owner approved, passes criteria 0030 and 0031; the real-repository tests need it, so it lands in this task. For AC-0012: the RFC-0105 § Errata entry committed at C0 holds what AC-0012 names, as the `old skill deferred` row's Evidence cites it.
 - **Approach:** the worker applies the `workspace-retirement` amendment text the owner approved before this task's attempt (criteria 0003 and 0011 reworded, criteria 0030 to 0033 added, criteria 0018 and 0022's rule lists extended and unchecked, a task added), then the check, so each new rule reds before it exists. The owner's re-approval is written onto that spec's `Approved:` line at C3.
 - **Done when:** the check passes over this repository.
 
-### T3: Draft the closure checklist
-
-- **Depends on:** T1, T2
-- **Verification mode:** goal-based
-- **Touches:** `docs/specs/workspace-retirement/retirement-record.md`
-- **Tests:** for AC-0003 and AC-0004 over this repository: the drafted table under § Compatibility closure, with the rows the owner approved, and criteria 0030 and 0031 pass on it. For AC-0012: the RFC-0105 § Errata entry committed at C0 holds what AC-0012 names, as the `old skill deferred` row's Evidence cites it.
-- **Done when:** the check passes.
-
 ### T4: Delete workspace.toml and fix its readers
 
-- **Depends on:** T3
+- **Depends on:** T1, T2
 - **Verification mode:** goal-based
 - **Touches:** `workspace.toml`, the reader suites, `tools/measure-changelog-conflicts.py`, `Makefile`, `.github/workflows/build-check.yml`, `.github/dependabot.yml`, `packages/agentbundle/agentbundle/build/projections/gemini_command_toml.py`, `llms.txt` (only if 9F left its link), `tools/test_local_ci_shared_test_deduplication.py` (only if it still reds), `docs/specs/workspace-retirement/inventory.toml`
 - **Tests:** for AC-0007: each reader suite passes with the file absent; `python3 tools/measure-changelog-conflicts.py --help` exits 0; `make lint-ruff lint-mypy`; the inventory check passes, with the rows for files that lost their last registry token removed.
