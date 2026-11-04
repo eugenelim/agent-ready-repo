@@ -54,9 +54,10 @@ Owned by: T1, T2, T3.
 
 **Step-3 placement.** Three edits inside step 3, in order:
 
+0. Two framing sentences follow the three-heading block: "split the result into what you confirmed and what still needs the user" becomes "split the result into what you confirmed, what still needs the user, and what proceeds on a stated default", and "not the two subsections" becomes "not the three subsections".
 1. A new paragraph headed `**Sort each Unverified item before you surface the list.**`, inserted after the corpus-absence paragraph. It holds, in order, the AC-0001, AC-0002, AC-0003 and AC-0004 sentences (the default is named, then checked, then the item moves to `## Defaulted`), and closes with the AC-0007 sentence.
 2. The chat-block fence gains `## Defaulted` and the AC-0009 line after the `## Unverified` bullets.
-3. The gate paragraph opens with the AC-0010 text, keeps the list of body sections it gates, then carries the AC-0011, AC-0012 and AC-0013 sentences, keeping today's "a vague "looks good" doesn't count" clause after `and wait`. The `Only once …` line becomes `Only once every waiting item has been signed off, or none waited:`, and its bullet list gains one bullet carrying the AC-0014 and AC-0025 sentences, placed after the `Write only what is still unresolved` bullet.
+3. The gate paragraph opens with the AC-0010 text, keeps the list of body sections it gates, then carries the AC-0011, AC-0012 and AC-0013 sentences, keeping today's "a vague "looks good" doesn't count" clause after `and wait`. The `Only once …` line becomes `Only once every waiting item has been signed off, or none waited:`, and its bullet list gains one bullet carrying the AC-0014 and AC-0025 sentences, placed after the `Write only what is still unresolved` bullet. That bullet keeps its opening phrase byte for byte, and its closing sentence "The chat block was the working surface; it is not copied anywhere." becomes "The chat block was the working surface; only the items sorted out of Unverified are written into the spec, by the next bullet."
 
 **Anti-pattern.** The entry beginning "Writing into the spec body before the Unverified list has been confirmed" becomes "… before every waiting Unverified item has been confirmed", keeping the rest of the entry.
 
@@ -104,7 +105,7 @@ Owned by: T1, T2, T3.
 **Tests:** goal-based — shape check
 - AC-0020: the two ids present, each case with `id`, `prompt`, `expected_output`, and a non-empty `assertions` list.
 
-**Done when:** `python3 -m pytest packs/core/tests/skills/new-spec/test_default_reversible_assumptions.py -q` exits 0.
+**Done when:** `python3 -m pytest packs/core/tests/skills/new-spec -q` exits 0.
 
 ### T4: Core release and guide checks
 
@@ -114,7 +115,7 @@ Owned by: T1, T2, T3.
 
 **Tests:** goal-based — checks run at the gates
 - AC-0021: the how-to's `### What to expect` section contains `## Defaulted` and `Defaulted:` and not `each needing your input`.
-- AC-0022: `grep -c "stops\*\* before building on them" guides/core/explanation/core-pack.md` prints 0.
+- AC-0022: `! grep -q "stops\*\* before building on them" guides/core/explanation/core-pack.md` exits 0, and the ledger records that exit status.
 - AC-0023: both versions equal, one patch above `packs/core/pack.toml` at `<merge-base>`.
 - AC-0024: `python3 tools/check-core-release.py --base <merge-base>` exits 0.
 

@@ -97,7 +97,7 @@ A spec owner using `new-spec` is asked to stop only for the assumptions they alo
 - [ ] **AC-0008.** Step 3's chat-block fence carries the headings `## Verified`, `## Unverified`, and `## Defaulted`, in that order.
 - [ ] **AC-0009.** Step 3 contains `- <category>: <item> — default: <what you build on>; if wrong: <what changes>`.
 - [ ] **AC-0010.** Step 3 contains `**Surface the Unverified list and wait** for confirmation or correction of every item still in it`.
-- [ ] **AC-0011.** Step 3 contains `When sorting leaves no item in Unverified, surface the block and proceed without waiting.`
+- [ ] **AC-0011.** Step 3 contains `When Unverified had candidates and sorting moved every one to `## Defaulted`, surface the block and proceed without waiting.`
 - [ ] **AC-0012.** Step 3 contains `When there were no Unverified candidates at all, name the highest-stakes Verified item. If it is a product or preference call, a question of who may approve, sign off, or decide, an item touching a protected class, or an irreversible choice, ask the user to confirm *that one specifically* and wait`.
 - [ ] **AC-0013.** Step 3 contains `Otherwise list it under `## Defaulted` with `default: as verified; if wrong: <what changes>` and proceed. It stays a settled fact and is not written to `## Assumptions`.`
 - [ ] **AC-0014.** Step 3 contains `Write each item sorted out of Unverified into the spec's `## Assumptions` as a defaulted assumption, in the line format that section's comment gives.`
