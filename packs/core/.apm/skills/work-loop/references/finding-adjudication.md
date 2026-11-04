@@ -202,7 +202,7 @@ touched it. That settles an adjudication that is indeterminate on whether a
 defect was already on the base. It has two forms:
 
 - `show <oid>:<path>` prints the file as the base held it.
-- `log --format=%H --max-count=51 <base>..<head> -- <path>` lists the commits
+- `log --no-show-signature --format=%H --max-count=51 <base>..<head> -- <path>` lists the commits
   that touched the path since the base. The envelope reports up to 50 of
   them; a 51st marks the list truncated.
 
@@ -216,6 +216,9 @@ network isolation above. Its replacement controls are these: it reads committed
 objects only, it refuses an alternate or promisor object source and any Git
 setting that runs a program, and it runs
 every Git call through the hardened Git helper (`_supervisor_git.HardenedGit`).
+Every Git call it makes through that helper carries `GIT_NO_LAZY_FETCH=1`, so no
+missing object is fetched, and it needs Git 2.44 or later, which honours that
+variable; an older Git is refused with `denied-git-version`.
 
 The controller runs it from the checkout root with
 `python '<skill-dir>/scripts/evidence-gate.py' git-history --path <path>` and

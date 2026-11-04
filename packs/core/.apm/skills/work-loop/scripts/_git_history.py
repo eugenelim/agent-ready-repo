@@ -32,6 +32,7 @@ __all__ = ["CONTENT_CAP", "ENVELOPE_CAP", "GitHistoryRefused", "git_history", "s
 CONTENT_CAP = 256 * 1024
 ENVELOPE_CAP = 1024 * 1024
 COMMIT_CAP = 50
+MINIMUM_GIT = (2, 44)
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _BASE_FORM = re.compile(r"[0-9a-f]{40}|[0-9a-f]{64}")
@@ -44,7 +45,11 @@ _REMEDIES = {
     ),
     "denied-artifact-path": "Ask about a changed path outside .context/.",
     "denied-object-source": (
-        "Run from a repository with no alternates file, partial clone, or promisor remote."
+        "Run from a repository with no alternates file, partial clone, promisor remote, "
+        "or partial-clone filter."
+    ),
+    "denied-git-version": (
+        "Use Git 2.44 or later, which honours GIT_NO_LAZY_FETCH, then retry."
     ),
     "denied-git-config": (
         "Remove the repository config entries that make Git run a program, then retry."
@@ -105,13 +110,41 @@ def _sha256_args(args: tuple[str, ...]) -> str:
     return hashlib.sha256("\0".join(args).encode("utf-8", "surrogateescape")).hexdigest()
 
 
+def new_git(root: Path) -> Any:
+    """A ``HardenedGit`` for *root* that tells Git never to fetch a missing object."""
+    return supervisor_git().HardenedGit(root, no_lazy_fetch=True)
+
+
+def run_environment() -> dict[str, str]:
+    """The one environment every ``run`` launch of a ``new_git`` helper receives."""
+    return supervisor_git().hardened_env(no_lazy_fetch=True)  # type: ignore[no-any-return]
+
+
+def require_git_version(git: Any) -> None:
+    """Refuse a Git older than 2.44, from the helper's own single ``version`` launch.
+
+    The helper refuses a Git older than 2.32 itself while pinning; that is the
+    same refusal here.
+    """
+    try:
+        version = git.git_version
+    except supervisor_git().SupervisorGitError as exc:
+        if exc.code == "unsupported-git-version":
+            raise GitHistoryRefused("denied-git-version") from exc
+        raise
+    if version < MINIMUM_GIT:
+        raise GitHistoryRefused("denied-git-version")
+
+
 def refuse_object_sources(git: Any) -> None:
     """Refuse a repository whose objects may come from outside its own object store."""
     if os.path.lexists(git.pins.common_dir / "objects" / "info" / "alternates"):
         raise GitHistoryRefused("denied-object-source")
     for entry in git.config_entries():
         parts = entry.key.split(".")
-        if entry.key == "extensions.partialclone" and entry.value.strip():
+        if entry.key == "extensions.partialclone":
+            raise GitHistoryRefused("denied-object-source")
+        if len(parts) >= 3 and parts[0] == "remote" and parts[-1] == "partialclonefilter":
             raise GitHistoryRefused("denied-object-source")
         if (
             len(parts) >= 3
@@ -133,6 +166,7 @@ def git_history(git: Any, *, base: str | None, path: str) -> dict[str, Any]:
         raise GitHistoryRefused("denied-ref-form")
     if path.split("/", 1)[0] == ".context":
         raise GitHistoryRefused("denied-artifact-path")
+    require_git_version(git)
     refuse_object_sources(git)
     if module.code_running_keys(git.config_entries()):
         raise GitHistoryRefused("denied-git-config")
@@ -185,8 +219,8 @@ def git_history(git: Any, *, base: str | None, path: str) -> dict[str, Any]:
         else:
             envelope["truncated"] = True
     history = (
-        run("log", "--format=%H", "--max-count=51", f"{change_base}..{head}", "--", member,
-            literal=True)
+        run("log", "--no-show-signature", "--format=%H", "--max-count=51",
+            f"{change_base}..{head}", "--", member, literal=True)
         .decode("ascii", "replace")
         .split()
     )
@@ -195,7 +229,9 @@ def git_history(git: Any, *, base: str | None, path: str) -> dict[str, Any]:
         "gate_id": "git-history",
         "argv_sha256": [_sha256_args(args) for args in sent],
         "environment_sha256": hashlib.sha256(
-            json.dumps(module.hardened_env(), sort_keys=True).encode("utf-8")
+            json.dumps(
+                run_environment(), sort_keys=True, separators=(",", ":"), ensure_ascii=True
+            ).encode("ascii")
         ).hexdigest(),
         "cwd": str(git.pins.root),
         "subject_commit": head,

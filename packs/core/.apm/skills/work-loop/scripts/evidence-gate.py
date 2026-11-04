@@ -57,6 +57,7 @@ _DETAILS = {
     "denied-git-config": (
         "Remove the repository config entries that make Git run a program, then retry."
     ),
+    "denied-git-version": "Use Git 2.44 or later, which honours GIT_NO_LAZY_FETCH, then retry.",
     "denied-input-path": (
         "Pass files under .context/, outside .context/reviews/ and .context/proof-runs/."
     ),
@@ -295,9 +296,10 @@ def _run_proof(args: argparse.Namespace) -> dict[str, Any]:
     safety = _sibling("_evidence_gate_file_safety", "_file_safety.py")
     mutation = _sibling("_evidence_gate_confined_mutation", "_confined_mutation.py")
     assessment = _sibling("_evidence_gate_review_assessment", "_review_assessment.py")
-    git = module.HardenedGit(Path.cwd())
     history = _history()
+    git = history.new_git(Path.cwd())
     try:
+        history.require_git_version(git)
         history.refuse_object_sources(git)
     except history.GitHistoryRefused as exc:
         raise _ProofRefused(exc.code) from exc
@@ -375,7 +377,7 @@ def main(argv: list[str] | None = None) -> int:
     history = _history()
     module = history.supervisor_git()
     try:
-        git = module.HardenedGit(Path.cwd())
+        git = history.new_git(Path.cwd())
         _emit(history.git_history(git, base=args.base, path=args.path))
     except history.GitHistoryRefused as exc:
         return _refuse(exc.code, exc.detail)

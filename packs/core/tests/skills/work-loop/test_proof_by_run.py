@@ -12,9 +12,11 @@ import importlib.util
 import json
 import os
 import stat
+import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
+from typing import Any
 
 import pytest
 
@@ -532,6 +534,11 @@ class _T4Launches(list):
     """Recorded Git vectors; a test of a refusal made before the first launch sets ``expect_empty``."""
 
     expect_empty = False
+    version_output: bytes | None = None
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.envs: list[dict[str, str]] = []
 
 
 @pytest.fixture
@@ -541,8 +548,11 @@ def t4_launches(t4_gate: ModuleType, monkeypatch: pytest.MonkeyPatch):
     recorded = _T4Launches()
     real = module._launch
 
-    def spy(argv: list[str], **kwargs: object) -> object:
+    def spy(argv: list[str], **kwargs: Any) -> object:
         recorded.append(list(argv))
+        recorded.envs.append(dict(kwargs["env"]))
+        if recorded.version_output is not None and _t4_subcommand(argv) == "version":
+            return subprocess.CompletedProcess(argv, 0, recorded.version_output, b"")
         return real(argv, **kwargs)
 
     monkeypatch.setattr(module, "_launch", spy)
@@ -961,7 +971,7 @@ def _t14_alternates(repo: _T4Repo) -> None:
     ],
     ids=["alternates", "partial-clone", "promisor-remote"],
 )
-def test_t14_outside_object_source_is_refused_before_any_launch(
+def test_t14_outside_object_source_is_refused_before_any_non_helper_launch(
     t4_run, t4_repo, t4_launches, plant
 ) -> None:
     plant(t4_repo)
@@ -985,3 +995,61 @@ def test_t14_input_under_stubbed_excluded_identity_is_refused(
     result = t4_run(**{"--stdout-file": str(other / "out.txt")})
     assert result[0] == 2 and result[1]["refused"] == "denied-input-path"
     assert t4_repo.envelopes() == []
+
+
+# --- T15: no repository config reaches a program or the network ---------------
+
+
+def _t15_run_envs(launches: _T4Launches) -> list[dict[str, str]]:
+    return [
+        env for argv, env in zip(launches, launches.envs, strict=True)
+        if any(a.startswith("--work-tree=") for a in argv)
+    ]
+
+
+def _t15_versions(launches: _T4Launches) -> list[list[str]]:
+    return [a for a in launches if _t4_subcommand(a) == "version"]
+
+
+def test_t15_success_path_pins_once_and_never_lazy_fetches(t4_run, t4_launches) -> None:
+    code, _ = t4_run()
+    assert code == 0
+    assert [a for a in t4_launches if not _t4_helper_call(a)]
+    assert len(_t15_versions(t4_launches)) == 1
+    envs = _t15_run_envs(t4_launches)
+    assert envs and all(env.get("GIT_NO_LAZY_FETCH") == "1" for env in envs)
+    assert all(env == envs[0] for env in envs)
+
+
+@pytest.mark.parametrize("reported", [b"git version 2.40.0\n", b"git version 2.31.1\n"])
+def test_t15_old_git_is_refused_before_any_non_helper_launch(
+    t4_run, t4_repo, t4_launches, reported: bytes
+) -> None:
+    t4_launches.version_output = reported
+    _t4_refused(t4_run(), "denied-git-version", t4_repo, [])
+    assert len(_t15_versions(t4_launches)) == 1
+    assert all(_t4_helper_call(argv) for argv in t4_launches), t4_launches
+
+
+@pytest.mark.parametrize(
+    "setting",
+    [
+        ("extensions.partialClone", ""),
+        ("remote.origin.partialclonefilter", "blob:none"),
+        ("remote.origin.partialclonefilter", ""),
+    ],
+    ids=["empty-partial-clone", "filter-blob-none", "filter-empty"],
+)
+def test_t15_partial_clone_forms_are_refused_before_any_non_helper_launch(
+    t4_run, t4_repo, t4_launches, tmp_path: Path, setting: tuple[str, str]
+) -> None:
+    marker = tmp_path / "uploadpack-ran"
+    script = tmp_path / "uploadpack.sh"
+    script.write_text(f"#!/bin/sh\necho ran >> '{marker}'\nexit 1\n")
+    script.chmod(0o755)
+    _t4_git(t4_repo.path, "remote", "add", "origin", str(tmp_path / "origin.git"))
+    _t4_git(t4_repo.path, "config", "remote.origin.uploadpack", str(script))
+    _t4_git(t4_repo.path, "config", *setting)
+    _t4_refused(t4_run(), "denied-object-source", t4_repo, [])
+    assert not marker.exists()
+    assert all(_t4_helper_call(argv) for argv in t4_launches), t4_launches
