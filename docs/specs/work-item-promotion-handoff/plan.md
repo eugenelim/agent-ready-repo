@@ -53,6 +53,11 @@ Cross-cutting, beyond the per-task tests below:
   terminal disposition (`AC-0003`).
 - One drain over the real observation store completes and reports, whatever
   it holds.
+- Repair round (review-sustained findings): the reader isolates a bad record
+  through the store's own quarantine-collecting read path, the route
+  transaction never deletes a prior committed artifact, a materialized
+  captured-item file parses under the destination owner's grammar, and a
+  closure's evidence rides the run report beside it.
 - Manual verification: the spec's § D12 adjudicated sample, gated on capture
   traffic per the spec's Follow-ons.
 
@@ -308,6 +313,85 @@ without the spec.
 
 **Done when:** each surface check passes and the real-store drain run is
 recorded in the verification ledger.
+
+## Repair tasks
+
+Findings the review round sustained, each repaired under its own task. They
+land after the original eight; the store's own surfaces absorb each fix —
+the pending-read quarantine, the transaction helper's artifact discipline,
+the captured-item grammar, and the run report.
+
+### T9: Collision-safe, non-destructive route transaction
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- Two defect captures whose statements share the first sixty slug
+  characters: both confirmed routes commit, both artifacts exist afterward,
+  and each target is named for its own capture — the capture id rides the
+  filename (`AC-0005`).
+- A pre-existing byte-differing file at a route's target: the transaction
+  fails and the item is held, and the pre-existing file is neither deleted
+  nor modified — the rollback removes only the transaction's own partial
+  artifact, the `.tmp` file (`AC-0005`).
+- Re-drive idempotency retained: a re-driven route over its own
+  already-committed artifact leaves it as it is (`AC-0005`).
+
+**Done when:** the roster suite drives the collision and the
+  pre-existing-target case and passes, and the crash-recovery suite still
+  passes unchanged.
+
+### T10: Per-record isolation in the open-capture reader
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A fixture store holding one clean capture and one dirty merged record
+  (a journal line whose free text carries a privacy-violating string,
+  identity fields recomputed over it): the reader returns the clean capture
+  plus the quarantined record with the store's own reason code, and the
+  drain completes — it offers the clean item and reports the quarantined
+  record as held with the refusing control named (`AC-0023`, `AC-0011`).
+- The reader reads through the store's own quarantine-collecting pending
+  path, never a second validation implementation — asserted by identity, the
+  same way the re-check task asserted the write-path validator.
+- The existing reader suite (open, dispositioned, envelope-only records;
+  no store file modified by a read) still passes over the new return shape.
+
+**Done when:** a dirty merged record no longer aborts the drain, and the
+  roster suite drives the mixed store end to end.
+
+### T11: Grammar-conforming materialization
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A confirmed defect route's materialized file parses valid under
+  work-loop's own captured-item parser: `Kind` inside the closed vocabulary,
+  `Detail` a repository-relative path — the capture's own journal partition
+  (`AC-0001`).
+- A confirmed question route materializes no captured-item file: the route
+  dispatches through the seam with the classification riding the decision,
+  and `docs/product/captured/` holds nothing the question route wrote
+  (`AC-0001`).
+- The drain-run suite's routed-question expectations update to the
+  dispatch-only shape and still pass.
+
+**Done when:** every artifact the drain materializes parses valid under the
+  destination owner's own parser, and the roster suite proves it.
+
+### T12: Closure evidence rides the run report
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A confirmed closure's run-report entry carries the operator's evidence
+  verbatim beside the ground (`AC-0002`).
+- The counts still agree member for member with the store-derived
+  dispositions (`AC-0019`).
+
+**Done when:** a closed item's report entry names its ground and its
+  evidence, and the roster suite drives it.
 
 ## Rollout
 
