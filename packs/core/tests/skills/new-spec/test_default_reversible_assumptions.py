@@ -7,6 +7,7 @@ its prose, so every check runs on flattened text.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 _PACK = Path(__file__).resolve().parents[3]
@@ -185,3 +186,19 @@ def test_ac_0016_template_defaulted_shape() -> None:
     for shape in ("open question", "named gap", "defaulted assumption"):
         assert shape in section
     assert AC_0016_LINE in section
+
+
+_EVALS = _PACK / ".apm" / "skills" / "new-spec" / "evals" / "evals.json"
+AC_0020_IDS = (
+    "reversible-assumption-proceeds-on-logged-default",
+    "migration-assumption-waits-for-owner",
+)
+
+
+def test_ac_0020_eval_cases_present_and_shaped() -> None:
+    cases = {c["id"]: c for c in json.loads(_EVALS.read_text(encoding="utf-8"))["evals"]}
+    for case_id in AC_0020_IDS:
+        case = cases[case_id]
+        for key in ("id", "prompt", "expected_output"):
+            assert isinstance(case[key], str) and case[key]
+        assert isinstance(case["assertions"], list) and case["assertions"]
