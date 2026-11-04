@@ -3,6 +3,7 @@
 - **Slug:** `repository-grounding-preservation`
 - **Received:** 2026-10-01
 - **Owner:** Platform Core
+- **Parent intent:** capability:evidence-decided-completion
 - **Status:** Shipped
 - **Cut-closed:** 2026-10-29 The four confirmed slices C0 to C3 shipped (#1640, #1644, #1647, #1650). `grounding-preservation-authoring-reproducibility` (#1652) repaired C3's positive-fixture proof inside C3's scope and added no slice. No further slice is intended; see § Closeout.
 - **Source / provenance:** Maintainer corrections to `mikeparcewski/wicked-estate`
