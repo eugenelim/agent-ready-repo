@@ -342,5 +342,5 @@ def test_store_derived_counts_agree_with_the_run_report(git_repo: Path) -> None:
     assert report_actions[seeded["held"]["capture_id"]] == "held"
     # The held item is the one capture still open in the store.
     assert {
-        capture["capture_id"] for capture in DRAIN.read_open_captures(git_repo)
+        capture["capture_id"] for capture in DRAIN.read_open_captures(git_repo)["captures"]
     } == {seeded["held"]["capture_id"]}

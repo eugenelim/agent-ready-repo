@@ -714,7 +714,20 @@ def drain(
 
     do_write = write_disposition or default_write
     items: list[dict[str, Any]] = []
-    for capture in read_open_captures(root):
+    read = read_open_captures(root)
+    for record in read["quarantined"]:
+        # A record the store's read rules excluded is held by the read
+        # itself: it is never a routing input, and the refusing control —
+        # the store's closed reason code — rides the report (AC-0023).
+        held: dict[str, Any] = {
+            "action": "held",
+            "reason": f"quarantined:{record['reason_code']}",
+        }
+        for key in ("path", "line", "entry", "ordinal", "omitted"):
+            if key in record:
+                held[key] = record[key]
+        items.append(held)
+    for capture in read["captures"]:
         offer = assemble_offer(capture, repo_root=root)
         classification = None
         work_item = offer["request"].get("work_item") or {}
@@ -797,29 +810,38 @@ def render_output_presentation(output: str) -> str:
     )
 
 
-def read_open_captures(repo_root: Path | str) -> list[dict[str, Any]]:
-    """Return every open work-item capture in the store, with its record.
+def read_open_captures(repo_root: Path | str) -> dict[str, Any]:
+    """Return every open work-item capture in the store, plus the records
+    the store's read rules quarantined.
 
-    A capture is open when no ``observation.dispositioned`` event names its
-    capture id. Only ``work-item`` captures are returned: the drain routes
-    work items, and knowledge observations (pattern, gotcha, antipattern)
-    belong to their own distillation path. Envelope-only records —
-    disposition events, which carry no request payload — and dispositioned
-    captures are never returned.
+    The reader is the store's own quarantine-collecting pending path
+    (`pending_page` in `direct-maintainer-pending` mode, paged by cursor to
+    exhaustion): a record the store's read rules refuse is excluded and
+    reported with the store's closed reason code, never allowed to abort
+    the whole read — one bad merged record holds itself, not the store
+    (`AC-0023`, `AC-0011`). A capture is open when no
+    ``observation.dispositioned`` event names its capture id. Only
+    ``work-item`` captures are returned: the drain routes work items, and
+    knowledge observations (pattern, gotcha, antipattern) belong to their
+    own distillation path.
 
-    A record the store's read rules refuse raises ``KnowledgeStoreError``
-    from the store itself; the reader neither swallows the refusal nor
-    offers the record. A capture id appearing in two partitions is refused
-    the same way ``knowledge_store._find_capture`` refuses it. No store file
-    is written, moved, or quarantined by this read.
+    Returns ``{'captures': [...], 'quarantined': [...]}``. A capture id
+    appearing in two partitions is refused the same way
+    ``knowledge_store._find_capture`` refuses it. No store file is
+    written, moved, or quarantined by this read.
     """
     root = KS.resolve_worktree_root(repo_root)
     captures: dict[str, dict[str, Any]] = {}
     home_partitions: dict[str, str] = {}
-    for partition in KS._observation_partitions(root):
-        events = KS._read_events(KS._journal_path(root, partition), partition)
-        terminal = KS._terminal_capture_ids(events)
-        for event in events:
+    quarantined: list[dict[str, Any]] = []
+    cursor: str | None = None
+    while True:
+        page = KS.pending_page(
+            root,
+            {"selection_mode": "direct-maintainer-pending", "scope": ".", "cursor": cursor},
+        )
+        quarantined.extend(page["quarantine"])
+        for event in page["pending"]:
             if event["event_type"] != KS._CAPTURED:
                 continue
             if event["request"]["kind"] != "work-item":
@@ -831,8 +853,6 @@ def read_open_captures(repo_root: Path | str) -> list[dict[str, Any]]:
                 # the store's own read path refuses; mirror it here.
                 KS._refuse("postimage_mismatch")
             home_partitions[capture_id] = event["partition"]
-            if capture_id in terminal:
-                continue
             captures[capture_id] = {
                 "capture_id": capture_id,
                 "partition": event["partition"],
@@ -840,7 +860,10 @@ def read_open_captures(repo_root: Path | str) -> list[dict[str, Any]]:
                 "request": event["request"],
                 "terminal_disposition": None,
             }
-    return [
+        cursor = page["cursor"]
+        if cursor is None:
+            break
+    ordered = [
         captures[capture_id]
         for capture_id in sorted(
             captures,
@@ -851,3 +874,4 @@ def read_open_captures(repo_root: Path | str) -> list[dict[str, Any]]:
             ),
         )
     ]
+    return {"captures": ordered, "quarantined": quarantined}

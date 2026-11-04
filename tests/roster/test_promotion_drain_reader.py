@@ -18,8 +18,6 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR = (
     REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "project-knowledge" / "scripts"
@@ -152,14 +150,17 @@ def _tree_digests(root: Path) -> dict[str, str]:
 def test_reader_yields_exactly_the_open_work_item_captures(git_repo: Path) -> None:
     seeded = _seed(git_repo)
 
-    open_captures = DRAIN.read_open_captures(git_repo)
+    read = DRAIN.read_open_captures(git_repo)
 
     # Only the open work-item capture: not the dispositioned one, not its
-    # envelope-only disposition line, not the pattern observation.
-    assert [capture["capture_id"] for capture in open_captures] == [
+    # envelope-only disposition line, not the pattern observation. The
+    # malformed-record case is covered below; a clean store quarantines
+    # nothing.
+    assert read["quarantined"] == []
+    assert [capture["capture_id"] for capture in read["captures"]] == [
         seeded["open"]["capture_id"]
     ]
-    record = open_captures[0]
+    record = read["captures"][0]
     assert record["partition"] == seeded["open"]["partition"]
     assert record["captured_at"] == "2026-11-04T10:00:00Z"
     assert record["terminal_disposition"] is None
@@ -184,12 +185,23 @@ def test_malformed_merged_record_is_refused_rather_than_offered(
 ) -> None:
     seeded = _seed(git_repo)
     # A merged record the write path never validated: well-formed JSON the
-    # store's event grammar refuses.
+    # store's event grammar refuses. The reader excludes it through the
+    # store's own quarantine and the clean capture is still offered — one
+    # bad record never aborts the whole read.
     _append_line(
         git_repo,
         seeded["open"]["partition"],
         b'{"event_type": "observation.merged", "schema_version": "observation-event.v1"}\n',
     )
 
-    with pytest.raises(KS.KnowledgeStoreError):
-        DRAIN.read_open_captures(git_repo)
+    read = DRAIN.read_open_captures(git_repo)
+
+    # The store's own closure rule for dependents: an invalid line whose
+    # target cannot be identified hides the whole partition — nothing from
+    # it is offered, and the quarantine names both the line and the hidden
+    # partition. (The T10 repair test covers the identifiable dirty line,
+    # which quarantines itself alone.)
+    assert read["captures"] == []
+    reasons = [entry["reason_code"] for entry in read["quarantined"]]
+    assert reasons == ["malformed", "partition_hidden"]
+    assert read["quarantined"][0]["line"] == 4

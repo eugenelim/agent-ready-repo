@@ -9,6 +9,7 @@ grammar. T12: a closure's evidence rides the run report beside it.
 
 from __future__ import annotations
 
+import copy
 import importlib.util
 import subprocess
 import sys
@@ -142,7 +143,7 @@ def test_preexisting_differing_target_is_never_deleted(git_repo: Path) -> None:
                   observed="The target path holds another file.",
                   intended="The transaction must refuse without deleting it.")],
     )
-    capture = DRAIN.read_open_captures(repo)[0]
+    capture = DRAIN.read_open_captures(repo)["captures"][0]
     offer = {
         "capture_id": capture["capture_id"],
         "partition": capture["partition"],
@@ -163,7 +164,7 @@ def test_repeated_transact_is_idempotent(git_repo: Path) -> None:
                   observed="A crash can land between dispatch and disposition.",
                   intended="The re-drive completes the sequence once.")],
     )
-    capture = DRAIN.read_open_captures(repo)[0]
+    capture = DRAIN.read_open_captures(repo)["captures"][0]
     offer = {
         "capture_id": capture["capture_id"],
         "partition": capture["partition"],
@@ -173,3 +174,78 @@ def test_repeated_transact_is_idempotent(git_repo: Path) -> None:
     second = DRAIN.transact_route(repo, offer, {"route": "defect-processor"})
     assert first["committed"] and second["committed"]
     assert len(_captured_files(repo)) == 1
+
+
+# --- T10: per-record isolation in the open-capture reader ---------------------
+
+
+def _dirty_merged_line(request: dict[str, Any]) -> bytes:
+    """One merge-path journal line: identity fields recomputed over prose
+    the write-time controls would refuse."""
+    capture_id = "kco-202611-" + "0" * 64
+    digest = KS.PK.digest_bytes(KS.PK._canonical_json_bytes(request))["sha256"]
+    event = {
+        "event_type": "observation.captured",
+        "schema_version": "observation-event.v1",
+        "capture_id": capture_id,
+        "partition": "observations/work-item/2026-11.jsonl",
+        "captured_at": "2026-11-04T10:00:00Z",
+        "state": "pending",
+        "request": request,
+        "request_sha256": digest,
+    }
+    return KS._event_line(event)
+
+
+def test_one_dirty_merged_record_holds_only_itself(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t10-dirty")
+    ids = _seed_store(
+        repo,
+        [_request("defect", "A clean capture beside a dirty merged record",
+                  observed="The dirty record must not block the clean one.",
+                  intended="The drain holds the bad record alone.")],
+    )
+    journal = repo / "docs" / "knowledge" / "observations" / "work-item" / "2026-11.jsonl"
+    journal.parent.mkdir(parents=True, exist_ok=True)
+    dirty = _request(
+        "defect", "Check /Users/leaker/credentials.txt before routing",
+        observed="The merge path can land unvalidated prose.",
+        intended="The read path quarantines the record.",
+    )
+    with journal.open("ab") as handle:
+        handle.write(_dirty_merged_line(dirty))
+
+    read = DRAIN.read_open_captures(repo)
+    assert [capture["capture_id"] for capture in read["captures"]] == ids
+    assert len(read["quarantined"]) == 1
+    assert read["quarantined"][0]["reason_code"] == "policy_invalid"
+
+    report = DRAIN.drain(repo)
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    reasons = {item.get("reason") for item in report["items"]}
+    assert "unattended" in reasons
+    assert "quarantined:policy_invalid" in reasons
+
+
+def test_reader_reads_through_the_store_pending_path(
+    git_repo: Path, monkeypatch: Any
+) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t10-identity")
+    _seed_store(
+        repo,
+        [_request("defect", "A capture read through the pending path",
+                  observed="The reader delegates to the store.",
+                  intended="No second validation implementation.")],
+    )
+    calls: list[dict[str, Any]] = []
+    real = KS.pending_page
+
+    def spy(root: Any, request: dict[str, Any]) -> dict[str, Any]:
+        calls.append(copy.deepcopy(request))
+        return real(root, request)
+
+    monkeypatch.setattr(KS, "pending_page", spy)
+    DRAIN.read_open_captures(repo)
+    assert calls and all(
+        request["selection_mode"] == "direct-maintainer-pending" for request in calls
+    )
