@@ -121,6 +121,18 @@ Owned by: T1, T2, T3.
 
 **Done when:** the four checks pass and the ledger records them. The spec's § Closeout projection checks run after the run is terminal.
 
+### T5: Repair code-review findings adv-1-1 and adv-1-2
+
+**Depends on:** T1, T3
+
+**Touches:** `packs/core/.apm/skills/new-spec/SKILL.md`, `packs/core/.apm/skills/new-spec/evals/evals.json`, `packs/core/tests/skills/new-spec/test_default_reversible_assumptions.py`
+
+**Tests:** goal-based — content tests
+- AC-0001: step 3 also contains `A default you propose counts as stated once you name it; an item for which you cannot name one waits.`, placed after the AC-0002 sentence (owner decision, 2026-11-04, on adv-1-2).
+- AC-0020: the `reversible-assumption-proceeds-on-logged-default` prompt offers a concrete default and no longer says `Nobody has stated one` (adv-1-1).
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/new-spec -q` exits 0.
+
 ## Risks
 
 - A concurrent core release may land first. The version is re-derived from `<merge-base>` at each rebase, and the fragment's version and anchor move with it.
