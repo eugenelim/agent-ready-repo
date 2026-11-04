@@ -23,6 +23,10 @@ inspection: `list-packs`, `list-profiles`, `list-targets`, `list-installed`,
 `show`, `docs`, `diff`, `reconcile`, `validate`. Install lifecycle: `install`,
 `upgrade`, `uninstall`, `init-state`, `adapt`, `scaffold`.
 
+`agentbundle show --format json` is the pre-release OKF catalogue-discovery
+surface for one selected pack. `list-packs` remains the catalogue inventory
+surface.
+
 Configuration:
 `config`, `pack-config`, `oplog`. Build and catalogue authoring: `render`,
 `package-catalogue`, `lint`, `pack` (evals), and `catalogue`, whose subcommands
@@ -41,6 +45,8 @@ are `lint`, `verify`, `build`, `self-host`, `package`, `sync-defaults`, `init`,
 | Adaptation marker | `.adapt-install-marker.toml` | `install`; `install-marker.py` on plugin and APM routes | `core` session-start hook, `adapt-to-project` |
 | Adopter layout config | `agentbundle-layout.toml` | The adopter; `install` appends one section (§ 7) | Consuming skills, workspace MCP |
 | Pack user config | `<pack dir>/config.toml` | `pack-config set` | `load_pack_config` |
+
+Two outputs span packs: `catalogue build` writes the aggregated Claude marketplace file, and `catalogue index` writes `catalogue-index.json`.[^1]
 
 **Consumer commands never write catalogue source.** `install`, `upgrade`, and
 `uninstall` write their target, state, and permitted configuration only.[^2]
