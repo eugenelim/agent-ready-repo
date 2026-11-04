@@ -249,3 +249,45 @@ def test_reader_reads_through_the_store_pending_path(
     assert calls and all(
         request["selection_mode"] == "direct-maintainer-pending" for request in calls
     )
+
+
+# --- T11: grammar-conforming materialization ---------------------------------
+
+
+def test_defect_artifact_parses_under_the_owner_grammar(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t11-defect")
+    _seed_store(
+        repo,
+        [_request("defect", "A defect whose artifact must parse",
+                  observed="The captured-item grammar is the owner's contract.",
+                  intended="The materialized file parses valid under it.")],
+    )
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
+    (artifact,) = (repo / "docs" / "product" / "captured").iterdir()
+    fields, failing = WL.parse_captured_item(artifact.read_text(encoding="utf-8"))
+    assert fields is not None, failing
+    assert fields["kind"] == "defect"
+    assert fields["detail"] == "docs/knowledge/observations/work-item/2026-11.jsonl"
+
+
+def test_question_route_materializes_no_artifact(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t11-question")
+    _seed_store(repo, [_request("question", "Where does a routed question land?")])
+    dispatched: list[str] = []
+
+    def spying_transact(offer: dict[str, Any], decision: dict[str, Any]) -> dict[str, Any]:
+        return DRAIN.transact_route(
+            repo, offer, decision,
+            dispatch_processor=lambda: dispatched.append(decision["classification"]),
+        )
+
+    report = DRAIN.drain(
+        repo,
+        classify=lambda message: "spec",
+        confirmer=lambda offer, proposal: {"confirm": True},
+        transact=spying_transact,
+    )
+    assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
+    assert dispatched == ["spec"]
+    assert _captured_files(repo) == []

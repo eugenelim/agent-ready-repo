@@ -603,13 +603,19 @@ def _captured_item_target(offer: dict[str, Any]) -> str:
 
 
 def _captured_item_bytes(offer: dict[str, Any]) -> bytes:
+    """The captured-item file's bytes, in the destination owner's grammar.
+
+    `Kind` stays inside the closed vocabulary (defect — the only route that
+    materializes) and `Detail` is a repository-relative path: the capture's
+    own journal partition, the note that owns the record's context.
+    """
     work_item = offer["request"]["work_item"]
     lines = [
         f"# {work_item['statement']}",
         "",
         "- **Status:** Open",
-        f"- **Kind:** {work_item['shape']}",
-        f"- **Detail:** {offer['partition']} capture {offer['capture_id']}",
+        "- **Kind:** defect",
+        f"- **Detail:** docs/knowledge/{offer['partition']}",
         "",
         "## Summary",
         "",
@@ -633,15 +639,31 @@ def transact_route(
 ) -> dict[str, Any]:
     """One routed item's transaction, through work-intake's own runner.
 
-    Materializes the route's canonical context — the captured-item file
-    under ``docs/product/captured/`` — then dispatches the processor. The
-    materializer is idempotent: an artifact already on disk with the same
-    bytes is left as it is, so a re-drain after a crash creates no second
-    artifact (§ D1). The rollback removes only a partial artifact, never a
-    complete one. The processor dispatch is a seam: the work-intake
+    The defect-processor route materializes its canonical context — the
+    captured-item file under ``docs/product/captured/``, per § D10 — then
+    dispatches, both through the transaction runner. Every other route
+    (the work-intake family a classified question reaches) creates no
+    durable artifact of the drain's own: the classify table names the
+    artifact its classification selects, and the routed owner's flow
+    authors it. Those routes dispatch directly — the transaction helper is
+    artifact-shaped and its own contract bars artifact-less routes from
+    it — with the classification riding the decision.
+
+    The materializer is idempotent: an artifact already on disk with the
+    same bytes is left as it is, so a re-drain after a crash creates no
+    second artifact (§ D1). The rollback removes only a partial artifact,
+    never a complete one. The processor dispatch is a seam: the work-intake
     procedure supplies the real one.
     """
     root = Path(repo_root).resolve()
+    if decision.get("route") != "defect-processor":
+        (dispatch_processor or (lambda: None))()
+        return {
+            "committed": True,
+            "failed_stage": None,
+            "status": "DISPATCHED",
+            "route": decision.get("route"),
+        }
     target = root / _captured_item_target(offer)
     expected = _captured_item_bytes(offer)
 
