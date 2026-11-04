@@ -729,3 +729,18 @@ def test_t5_eval_cases_have_required_fields() -> None:
     assert "unsupported-opinion" in cases["proof-by-run-passing-command-not-fixed"]["expected_output"]
     assert "git-history" in cases["git-history-settles-base-versus-change"]["expected_output"]
     assert "Refused" in cases["adjudicator-git-tool-refused"]["expected_output"]
+
+
+def test_t9_identical_rerun_holds_for_maximal_inflating_input(t4_run, t4_repo) -> None:
+    """Three 1 MiB inputs of control and non-ASCII bytes inflates in the file yet reruns cleanly."""
+    unit = b"\x1b[31m\xe2\x9c\x93\x00"
+    size = 1024 * 1024
+    for name in ("cmd.txt", "out.txt", "err.txt"):
+        t4_repo.files[name].write_bytes((unit * (size // len(unit) + 1))[:size])
+    assert t4_run()[0] == 0
+    (first,) = t4_repo.envelopes()
+    data, before = first.read_bytes(), first.stat().st_mtime_ns
+    assert len(data) > 4 * size
+    assert t4_run()[0] == 0
+    assert t4_repo.envelopes() == [first]
+    assert first.read_bytes() == data and first.stat().st_mtime_ns == before

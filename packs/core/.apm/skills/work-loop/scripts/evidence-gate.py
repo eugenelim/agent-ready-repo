@@ -223,12 +223,16 @@ def _ensure_proof_runs_dir(context: Path) -> Path:
 def _store_envelope(
     safety: ModuleType, mutation: ModuleType, context: Path, name: str, content: bytes
 ) -> None:
-    """Create the envelope file, or accept an existing file holding identical bytes."""
+    """Create the envelope file, or accept an existing file holding identical bytes.
+
+    The existing file is read with a bound equal to the exact length of ``content``, so a
+    file of any other size is refused without a fixed cap that a valid envelope could exceed.
+    """
     folder = _ensure_proof_runs_dir(context)
     target = folder / name
     try:
         existing: bytes | None = safety.read_confined_regular_file(
-            context, target, max_bytes=_INPUT_CAP * 4
+            context, target, max_bytes=len(content)
         )
     except (safety.UnsafeContentError, OSError) as exc:
         if os.path.lexists(target):
