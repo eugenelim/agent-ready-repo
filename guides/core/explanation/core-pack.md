@@ -32,7 +32,7 @@ A loop running on its own is also a loop making mistakes on its own, at machine 
 
 - **The model grades its own homework too kindly.** The agent that just wrote the code is the worst judge of whether it's right. `core` splits the maker from the checker: `adversarial-reviewer` reads the diff cold in a separate context, with no memory of why the code looks the way it does and no sunk cost to defend.
 - **The model forgets everything between runs.** Nothing in the agent's head carries to the next session, so the memory lives on disk — the spec, the plan, the supervisor's delivery records, `AGENTS.md`, and the learnings captured at the end of every loop. The next run reads the repo, not a transcript.
-- **Your attention is the bottleneck, not the tool.** You can spawn more agents than you can meaningfully review, and the gap between what ships and what you actually understand widens every time you wave a change through. `core` keeps you in the judgment seat on purpose: it surfaces assumptions and **stops** before building on them, gates on checks you can trust, and refuses to self-certify past a red gate.
+- **Your attention is the bottleneck, not the tool.** You can spawn more agents than you can meaningfully review, and the gap between what ships and what you actually understand widens every time you wave a change through. `core` keeps you in the judgment seat on purpose: it surfaces assumptions, **stops** on the ones only you can settle, and logs the reversible defaults it builds on for you to check, gates on checks you can trust, and refuses to self-certify past a red gate.
 
 A loop will happily make you faster on work you understand — or let you skip understanding it at all. The loop can't tell those apart. You can. `core` is built for the first kind of engineer: the one who designs the loop and stays the engineer, not just the person who presses go.
 
@@ -95,7 +95,7 @@ And a depth skill the loop reaches for by surface: **`frontend-engineering`** is
 A feature lifecycle, end to end, with the parts named:
 
 1. **User asks for X.** "Add webhook retries with exponential backoff."
-2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and **stops** to surface assumptions — technical, product, process — before filling in any spec body. The user signs off (or revises). Bodies fill in: Objective, Agent Rules (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`. For TDD tasks, that `Tests:` section names the behavior, the boundary it is checked at, and the verification mode; `new-spec` adds no test file, and the red test is written at EXECUTE.
+2. **`new-spec`** runs. The agent scaffolds `docs/specs/webhook-retries/` and surfaces assumptions — technical, product, process — before filling in any spec body. It **stops** for the ones only the user can settle, such as a product call or anything touching a security boundary or a migration; the user signs off (or revises). A reversible assumption with a stated default proceeds, and the default is logged in the spec for the user to check at approval. Bodies fill in: Objective, Agent Rules (including a structural `Never do`), Testing Strategy with a verification mode per user-visible outcome, Acceptance Criteria. The plan follows with tasks, each with `Tests:` before `Approach:` and an explicit `Depends on:`. For TDD tasks, that `Tests:` section names the behavior, the boundary it is checked at, and the verification mode; `new-spec` adds no test file, and the red test is written at EXECUTE.
 3. **`shaping-reviewer`** reads the draft contract cold before plan approval;
    then `adversarial-reviewer` reads the complete spec + plan for construction
    risk. A structurally clean spec-review report closes review mechanically;
@@ -168,7 +168,7 @@ Spec Kit's spec-driven loop terminates at `/implement` — there's no state-mach
 
 | Capability | Kiro spec-driven | Core pack |
 | --- | --- | --- |
-| Spec generated from prompt | ✓ | ✓ (but assumptions are surfaced *before* spec bodies, then user signs off) |
+| Spec generated from prompt | ✓ | ✓ (but assumptions are surfaced *before* spec bodies; the user signs off on the ones only they can settle, and reversible defaults are logged for approval) |
 | Test design before code | partial | ✓ mandated (Testing Strategy in spec; `Tests:` per plan task) |
 | Adversarial review of the diff against the spec | — | ✓ |
 | Mechanical iteration cap | — | ✓ |
