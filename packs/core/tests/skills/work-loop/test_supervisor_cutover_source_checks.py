@@ -355,7 +355,7 @@ def test_every_refusal_code_has_a_row_in_the_supervisor_reference() -> None:
     codes = _refusal_codes()
     assert {
         "supervisor-changed", "recovery-leftovers", "replan-declined",
-        "gate-unsafe-path", "gate-changelog-shape", "approval-digest-required",
+        "gate-unsafe-path", "gate-unsafe-content", "approval-digest-required",
     } <= codes
     assert sorted(codes - documented) == []
 
