@@ -757,22 +757,34 @@ def _equivalence_violations(root: Path, record: Path, text: str, heads: Any) -> 
 
 
 _RUN_URL_EXACT = re.compile(r"https://github\.com/[^/\s]+/[^/\s]+/actions/runs/[0-9]+")
-_URL_ANY = re.compile(r"https?://\S+")
-_GITHUB_URL = re.compile(r"https://github\.com/\S*")
+_URL_ANY = re.compile(r"https?://[^\s`<>]+")
+_GITHUB_URL = re.compile(r"https://github\.com/[^\s`<>]*")
 _PATH_EXTENSIONS = (
     ".md", ".py", ".toml", ".json", ".yml", ".yaml", ".txt", ".sh", ".js", ".ts", ".cfg", ".ini",
 )
 
 
+def _strip_locator(token: str) -> str:
+    """Drop a ``#fragment`` or ``::test_id`` suffix from a path token."""
+    return token.split("#", 1)[0].split("::", 1)[0]
+
+
 def _evidence_paths(evidence: str) -> list[str]:
-    """Backticked spans and bare repo-path-looking tokens outside URLs."""
-    spans = re.findall(r"`([^`]+)`", evidence)
-    rest = _URL_ANY.sub(" ", re.sub(r"`[^`]*`", " ", evidence))
-    bare = [
-        t
-        for raw in rest.split()
-        if (t := raw.strip(".,;:()[]\"'")) and ("/" in t or t.endswith(_PATH_EXTENSIONS))
+    """Code spans that are not URLs, and bare tokens shaped like repository paths.
+
+    A bare token is a path only when, once its locator suffix is dropped, it holds
+    a ``/`` and ends in a known file extension or ``/``. Prose such as ``and/or`` is
+    not; a bare root-level name is not either, so name such a path in a code span.
+    """
+    spans = [
+        _strip_locator(t) for t in re.findall(r"`([^`]+)`", evidence) if not _URL_ANY.match(t)
     ]
+    rest = _URL_ANY.sub(" ", re.sub(r"`[^`]*`", " ", evidence))
+    bare = []
+    for raw in rest.split():
+        token = _strip_locator(raw.strip(".,;:()[]<>\"'"))
+        if "/" in token and (token.endswith(_PATH_EXTENSIONS) or token.endswith("/")):
+            bare.append(token)
     return spans + bare
 
 
@@ -2388,6 +2400,35 @@ def test_ac0030_run_url_alone_passes(tmp_path: Path) -> None:
 
 def test_ac0030_tracked_bare_path_passes(tmp_path: Path) -> None:
     assert _closure_check(tmp_path, _closure_with(0, Evidence=_REC_PATH)) == []
+
+
+def test_ac0030_run_url_in_a_code_span_passes(tmp_path: Path) -> None:
+    evidence = f"`{_RUN_URL}`"
+    assert _closure_check(tmp_path, _closure_with(0, Evidence=evidence)) == []
+
+
+def test_ac0030_run_url_in_an_autolink_passes(tmp_path: Path) -> None:
+    evidence = f"<{_RUN_URL}>"
+    assert _closure_check(tmp_path, _closure_with(0, Evidence=evidence)) == []
+
+
+@pytest.mark.parametrize("tail", ["", "abc"])
+def test_ac0030_run_url_without_a_numeric_id(tmp_path: Path, tail: str) -> None:
+    url = f"https://github.com/example/repo/actions/runs/{tail}"
+    _only(_closure_check(tmp_path, _closure_with(0, Evidence=url)), "AC-0030")
+
+
+@pytest.mark.parametrize("prose", ["and/or", "41/41 suites", "N/A"])
+def test_ac0030_prose_with_a_slash_beside_a_tracked_path_passes(
+    tmp_path: Path, prose: str
+) -> None:
+    evidence = f"`{_REC_PATH}` {prose}"
+    assert _closure_check(tmp_path, _closure_with(0, Evidence=evidence)) == []
+
+
+def test_ac0030_tracked_path_with_an_anchor_passes(tmp_path: Path) -> None:
+    evidence = f"{_REC_PATH}#checklist"
+    assert _closure_check(tmp_path, _closure_with(0, Evidence=evidence)) == []
 
 
 def test_ac0030_open_row_needs_no_evidence(tmp_path: Path) -> None:
