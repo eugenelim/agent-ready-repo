@@ -393,6 +393,81 @@ the captured-item grammar, and the run report.
 **Done when:** a closed item's report entry names its ground and its
   evidence, and the roster suite drives it.
 
+### T13: A refused disposition write holds the item, not the run
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- The T10 mixed-store fixture, attended: the drain completes, the clean
+  capture whose disposition write the store refuses is held with the
+  refusing reason named, and no exception escapes the run (`AC-0005`).
+- A closure whose disposition write is refused holds the item the same
+  way (`AC-0005`).
+- A clean store's disposition writes are unchanged: routes and closures
+  still record their terminal dispositions (`AC-0001`, `AC-0002`).
+
+**Done when:** one quarantined record can no longer abort an attended
+  drain at the disposition boundary, and the roster suite drives the
+  mixed store end to end.
+
+### T14: One read path — dispositions through the store's own exclusion reader
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- The T10 mixed-store fixture: `store_terminal_dispositions` returns the
+  clean dispositions and raises nothing, using the store's own
+  per-record-exclusion reader — never a second validation implementation
+  (`AC-0019`, `AC-0020`).
+- A clean store's dispositions are unchanged by the switch.
+
+**Done when:** the module's two read paths agree on the mixed store, and
+  the counts comparison the run report makes can be made.
+
+### T15: The captured-item filename stays inside the owner's grammar
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A defect whose statement carries non-ASCII alphanumeric characters
+  (é, ü, CJK) materializes a filename matching the owner's
+  `[a-z0-9][a-z0-9-]*\.md` grammar, and the owner's own listing sees the
+  item (`AC-0001`).
+- An ASCII statement's filename is unchanged by the fix.
+
+**Done when:** every artifact the drain materializes is visible to the
+  destination owner's listing.
+
+### T16: The work-intake dispatch rides the transaction's failure shape
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- Two confirmed question items whose first dispatch raises: the drain
+  completes, the failed item is held with the failed stage named, and the
+  second item is still offered and routed (`AC-0006`).
+- No exception text from the processor escapes the drain — the held
+  entry carries a reason code, never the exception's message.
+
+**Done when:** both route families expose the same dispatch-failure
+  shape, and the roster suite drives the failing dispatch.
+
+### T17: Named CI steps for the nine roster suites
+
+**Depends on:** none
+
+**Tests:** the repository's own parity linter.
+- Each of the nine `tests/roster/test_promotion_drain_*.py` files gets a
+  named step in `.github/workflows/build-check.yml`, placed above the
+  bulk `python -m pytest tests/ -q` step with the standard guard, and a
+  matching `LOCAL("test-after-build-check")` disposition in
+  `tools/lint-ci-parity.py`; the linter exits 0 over the amended
+  workflow.
+
+**Done when:** `python3 tools/lint-ci-parity.py` (with PyYAML available)
+  reports every step dispositioned, and the nine steps sit above the
+  bulk roster step.
+
 ## Rollout
 
 Pure addition: one new module, one skill-procedure section, documentation
