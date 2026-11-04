@@ -75,7 +75,7 @@ Owned by: T2, T3. Traces to AC-0001, AC-0006, AC-0013.
 
 Owned by: T1. Traces to AC-0007, AC-0008, AC-0025.
 
-- Gate digest: decode the bytes as strict UTF-8 and refuse `GateDigestRefused("gate-unsafe-content")` on failure or when a character fails AC-0039; the hidden-character half calls `is_hidden_char` from `lint-knowledge.py`, loaded by path as a sibling, so one definition serves both; the Cc, U+2028/U+2029, and U+FFF9 to U+FFFB checks are added in `_supervisor_gates.py`; then split the text into lines after CRLF/CR → LF; find level-two headings (`## ` at line start) outside fenced code blocks; when `## Changelog` occurs, it must occur once, be the last level-two heading, and every line after it, with HTML comments stripped, must be blank, start with `- `, or be an indented continuation of a list item; otherwise raise `GateDigestRefused("gate-changelog-shape")`. Drop the section, then SHA-256 of `_loop_guards.canonical_contract(text, ac_section_only=(name != "plan.md"))`.
+- Gate digest: decode the bytes as strict UTF-8 and refuse `GateDigestRefused("gate-unsafe-content")` on failure or when a character fails AC-0039; the hidden-character half calls `is_hidden_char` from `lint-knowledge.py`, loaded by path as a sibling, so one definition serves both; the Cc, U+2028/U+2029, and U+FFF9 to U+FFFB checks are added in `_supervisor_gates.py`; then split the text into lines after CRLF/CR → LF; find level-two headings (`##` indented at most 3 spaces) outside fenced code blocks; when `## Changelog` occurs, it must occur once, be the last level-two heading, and every line after it, with HTML comments stripped, must be blank, start with `- `, or be an indented continuation of a list item; otherwise raise `GateDigestRefused("gate-changelog-shape")`. Drop the section, then SHA-256 of `_loop_guards.canonical_contract(text, ac_section_only=(name != "plan.md"))`.
 - Statuses for AC-0004 come from the existing status parser `_loop_guards` already loads.
 - "Clean" for AC-0003, without writing the index: `ls-files -s -- <path>` must print exactly one stage-0 entry; its blob must equal `rev-parse HEAD:<path>`; and `hash-object --no-filters --stdin`, fed the bytes `park` already read, must equal that blob either for the raw bytes or for the bytes with CRLF turned into LF. All three run through `HardenedGit` unchanged; none of them takes Git's optional index lock, so no extra environment is passed. No `diff` or `status` runs, because they refresh the index's stat cache.
 - "Admitted" for AC-0005 and AC-0012: the latest line of `Workspace.approvals("HEAD")` carries `envelope.envelope_fingerprint` equal to `_acceptance.derive_envelope` of the spec's current references, `terminal_intent` equal to the given intent, and `code_trust` equal to the given trust: the same three values `start` compares.
@@ -204,6 +204,22 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 - qe2-3 (AC-0009, AC-0011): under the replace ref and pager settings alone, `gates` equals the baseline listing with state `pending`; after the partial-clone settings every entry lists `stale`.
 
 **Done when:** under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, `test_supervisor_admission.py`, `test_supervisor_attempt.py`, and `test_supervisor_cutover_source_checks.py` exit 0; `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; and `make lint-ruff lint-mypy` exits 0.
+
+### T10: Strict Changelog whitelist
+
+**Depends on:** T9
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`
+
+**Tests:** TDD — unit, at `_supervisor_gates.gate_digest`; every new test named `test_t10_…`
+- adv3-1, sec3-1 (AC-0025): an unindented lazy line under `## Changelog` refuses `gate-changelog-shape`; the T9 test that kept a lazy line now expects the refusal.
+- adv3-3, sec3-1 (AC-0025): an item's content width is its marker plus following spaces; `-   foo`, a blank line, then `  bar` refuses; a continuation indented at least the content width that cannot start a block keeps the digest.
+- sec3-1 (AC-0025): a `- ` line whose content starts another block (`- # h`, `- ```, `- <div>`, an empty `- `) refuses; an HTML comment that spans a blank line refuses.
+- adv3-2, sec3-2 (AC-0007, AC-0008, AC-0025): a fence or HTML block inside a list item before the `## Changelog` heading refuses, including a fence opened at 2 spaces and closed at 4.
+- adv3-4 (AC-0039): `invisible_budget`'s length basis is 2,000 characters; 40 emoji presentation selectors in one artifact keep the digest and 41 refuse; a padded artifact cannot buy more.
+- adv3-5: the fence-rule comment describes the rule `_fence_run` applies, without claiming parity with the contract canonicaliser.
+
+**Done when:** `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py` exits 0; and `make lint-ruff lint-mypy` exits 0.
 
 ### T7: Core release
 
