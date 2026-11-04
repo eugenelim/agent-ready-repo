@@ -261,3 +261,14 @@ def test_t10_ac0007_blank_line_folding_and_entry_placement() -> None:
 
 def test_t10_ac0008_removing_a_blank_line_between_paragraphs_changes_digest() -> None:
     assert _d(SPEC + "one\n\ntwo\n") != _d(SPEC + "one\ntwo\n")
+
+
+def test_t11_ac0039_digest_refusal_detail_names_artifact_and_first_offending_line() -> None:
+    for name, text in (("spec.md", SPEC + "\nx\u200by\n"), ("plan.md", "# P\r\nline\r\nq\u202eq\n")):
+        with pytest.raises(G.GateDigestRefused) as caught:
+            G.gate_digest(text, name=name)
+        line = text.replace("\r\n", "\n").split("\u200b")[0].count("\n") + 1 if name == "spec.md" else 3
+        assert caught.value.detail == f"{name} line {line} holds a hidden or control character"
+    with pytest.raises(G.GateDigestRefused) as caught:
+        G.gate_digest(b"a\nb\n\xff", name="plan.md")
+    assert caught.value.detail == "plan.md line 3 is not valid UTF-8"

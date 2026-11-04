@@ -56,7 +56,7 @@ def test_t6_supervisor_reference_describes_gates_states_and_refusals() -> None:
     assert "print exactly the stored bytes" in text
     for code in (
         "gate-unsafe-path", "gate-uncommitted", "gate-already-admitted",
-        "gate-status-mismatch", "gate-unsafe-content", "gate-changelog-shape",
+        "gate-status-mismatch", "gate-unsafe-content",
         "gate-spec-changed", "gate-record-unwritable", "approval-digest-required",
         "approval-digest-mismatch",
     ):
@@ -108,3 +108,32 @@ def test_t6_every_start_command_line_names_both_digest_arguments() -> None:
             if "start <spec-dir>" in line and not all(arg in line for arg in DIGEST_ARGS):
                 missing.append(f"{path.name}:{number}")
     assert missing == []
+
+
+ENTRY_FORM = "- YYYY-MM-DD: spec|plan|amendment approved by <handle>"
+PRE_EXECUTE_MD = PACK_ROOT / ".apm/skills/work-loop/references/pre-execute-review.md"
+PLAN_TEMPLATE_MD = PACK_ROOT / ".apm/skills/new-spec/assets/plan.md"
+GATES_PY = PACK_ROOT / ".apm/skills/work-loop/scripts/_supervisor_gates.py"
+
+
+def test_t11_reference_states_the_approval_entry_form_once() -> None:
+    """AC-0021: the reference gives the one form; it has no changelog-shape row."""
+    raw = SUPERVISOR_MD.read_text(encoding="utf-8")
+    text = _text(SUPERVISOR_MD)
+    assert text.count(ENTRY_FORM) == 1
+    assert "optionally followed by ` (scope)`, ` (build strategy)` or ` (scope and build strategy)`" in text
+    assert "One line, placed under the file's last `## Changelog` heading" in text
+    assert "A wrapped or differently worded entry is ordinary text and changes the gate digest" in text
+    assert "| `gate-changelog-shape` |" not in raw
+
+
+def test_t11_other_surfaces_state_or_point_to_the_form() -> None:
+    """AC-0020: SKILL.md, pre-execute-review, the template, and `gates` text point to it."""
+    assert "Parked gates section of [`references/supervisor.md`]" in _text(SKILL_MD)
+    assert "Parked gates section of `supervisor.md`" in _text(PRE_EXECUTE_MD)
+    template = _text(PLAN_TEMPLATE_MD)
+    assert "`references/supervisor.md` (Parked gates) is the one statement of it" in template
+    assert "- YYYY-MM-DD: spec approved by <handle>" in template
+    script = GATES_PY.read_text(encoding="utf-8")
+    assert script.count("{_ENTRY_FORM}") == 2
+    assert "- YYYY-MM-DD: spec|plan|amendment approved by <handle>" in script

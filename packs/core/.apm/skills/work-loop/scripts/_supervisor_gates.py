@@ -37,10 +37,11 @@ _modules: dict[str, ModuleType] = {}
 class GateDigestRefused(Exception):
     """Raised when gate text cannot be digested; `code` names the reason."""
 
-    def __init__(self, code: str) -> None:
-        """Store the refusal *code* and use it as the message."""
+    def __init__(self, code: str, detail: str = "") -> None:
+        """Store the refusal *code* and an optional *detail*; the code is the message."""
         super().__init__(code)
         self.code = code
+        self.detail = detail
 
 
 def _load_sibling(alias: str, filename: str) -> ModuleType:
@@ -80,19 +81,25 @@ def _load_sibling(alias: str, filename: str) -> ModuleType:
 
 def _unsafe(
     text: str, is_hidden_char: Callable[[str], bool], lint: ModuleType | None = None
-) -> bool:
-    """True when *text* holds a control, format, hidden or separator character.
+) -> int | None:
+    """The index of the first offending character of *text*, or None when it is safe.
+
+    An offender is a control, format, hidden or separator character.
 
     With *lint* (the knowledge lint's module), also true when the zero-width joiners
-    and presentation selectors it allows run past its adjacency cap or its budget.
+    and presentation selectors it allows run past its adjacency cap or its budget; a
+    budget overrun points at the first such joiner or selector.
     """
     run = invisible = 0
+    first_invisible = -1
     for i, ch in enumerate(text):
         if lint is not None and ch in lint._RUN_CHARS:
             run += 1
             invisible += 1
+            if first_invisible < 0:
+                first_invisible = i
             if run > lint._MAX_ADJACENT_INVISIBLE:
-                return True
+                return i
         else:
             run = 0
         if ch in ("\t", "\n"):
@@ -100,21 +107,22 @@ def _unsafe(
         if ch == "\r":
             if text[i + 1 : i + 2] == "\n":
                 continue
-            return True
+            return i
         if unicodedata.category(ch) in ("Cc", "Cf") or ord(ch) in _LINE_SEPARATORS:
-            return True
+            return i
         if is_hidden_char(ch):
-            return True
+            return i
     if lint is not None and invisible:
         visible = len(text) - invisible
         # The lint's own bound: never more hidden than shown, and a share of the length.
         if invisible > min(lint.invisible_budget(text, cap=_INVISIBLE_CAP), visible):
-            return True
-    return False
+            return first_invisible
+    return None
 
 
-# 2,000 characters of length basis lets one emoji presentation selector in
-# (invisible_budget rounds it up); padding the artifact cannot buy more.
+# The budget's length basis is capped at 2,000 characters. At the lint's one
+# invisible character per 50 characters of basis that buys at most 40 invisible
+# characters (rounded up for a short text); padding the artifact cannot buy more.
 _INVISIBLE_CAP = 2000
 
 
@@ -155,12 +163,21 @@ def gate_digest(text_or_bytes: str | bytes, *, name: str) -> str:
         try:
             text = text_or_bytes.decode("utf-8")
         except UnicodeDecodeError as exc:
-            raise GateDigestRefused("gate-unsafe-content") from exc
+            line = text_or_bytes[: exc.start].count(b"\n") + 1
+            raise GateDigestRefused(
+                "gate-unsafe-content", f"{name} line {line} is not valid UTF-8"
+            ) from exc
     else:
         text = text_or_bytes
     lint = _load_sibling("core_work_loop_gates_lint_knowledge", "lint-knowledge.py")
-    if _unsafe(text, lint.is_hidden_char, lint):
-        raise GateDigestRefused("gate-unsafe-content")
+    offender = _unsafe(text, lint.is_hidden_char, lint)
+    if offender is not None:
+        # Count line starts as the digest later will: a lone CR is a line break too.
+        line = text[:offender].replace("\r\n", "\n").replace("\r", "\n").count("\n") + 1
+        raise GateDigestRefused(
+            "gate-unsafe-content",
+            f"{name} line {line} holds a hidden or control character",
+        )
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     remaining = _drop_approval_entries(text)
     guards = _load_sibling("core_work_loop_gates_loop_guards", "_loop_guards.py")
@@ -392,15 +409,15 @@ def park(
             + f"; found spec {spec_status or 'missing'}, plan {plan_status or 'missing'}",
         )
     digests: dict[str, str] = {}
-    codes: list[str] = []
+    refusals: list[GateDigestRefused] = []
     for name, data in (("spec.md", spec_bytes), ("plan.md", plan_bytes)):
         try:
             digests[name] = gate_digest(data, name=name)
         except GateDigestRefused as exc:
-            codes.append(exc.code)
-    if codes:
-        code = "gate-unsafe-content" if "gate-unsafe-content" in codes else codes[0]
-        raise refuse(code, "an artifact has no gate digest")
+            refusals.append(exc)
+    if refusals:
+        first = next((r for r in refusals if r.code == "gate-unsafe-content"), refusals[0])
+        raise refuse(first.code, first.detail or "an artifact has no gate digest")
 
     git_dir = ws.git.hardened.pins.git_dir
     gates_dir = git_dir / _STORE_REL
@@ -457,16 +474,22 @@ _READ_PREFIX = "git --no-pager --no-replace-objects --no-lazy-fetch cat-file blo
 _NO_ANSWER = (
     "the gate stays unapproved; the controller dispatches no implementation work for this spec"
 )
+_ENTRY_FORM = (
+    "one line under the last ## Changelog heading: "
+    "- YYYY-MM-DD: spec|plan|amendment approved by <handle>; "
+    "the form is in the Parked gates section of the supervisor reference"
+)
 _REJECT = "the pair returns to Draft and Drafting and is reviewed again"
 ANSWERS: dict[str, dict[str, str]] = {
     "spec-approved": {
-        "approve": "the spec approver writes Status: Approved and the plan Changelog entry; "
-        "the controller then parks plan-approved",
+        "approve": "the spec approver writes Status: Approved and the plan Changelog entry "
+        f"({_ENTRY_FORM}); the controller then parks plan-approved",
         "reject": _REJECT,
         "no-answer": _NO_ANSWER,
     },
     "plan-approved": {
-        "approve": "the plan approver writes Status: Approved and the Changelog entry; the "
+        "approve": "the plan approver writes Status: Approved and the Changelog entry "
+        f"({_ENTRY_FORM}); the "
         "controller runs start with the spec digest from the spec approver's own answer and "
         "the plan digest from the plan approver's own answer",
         "reject": _REJECT,

@@ -58,6 +58,12 @@ answers. `park` is the only writer; `gates` and every other verb only read.
   then writes `Status: Approved` and the plan Changelog entry, and the controller
   parks `plan-approved`, which needs the spec `Approved` and the plan `Drafting`. A `plan-approved` park refuses `gate-spec-changed` when
   the spec differs from the one the spec gate recorded.
+- **Approval entry.** One line, placed under the file's last `## Changelog`
+  heading: `- YYYY-MM-DD: spec|plan|amendment approved by <handle>`, optionally
+  followed by ` (scope)`, ` (build strategy)` or ` (scope and build strategy)`,
+  and a final period. A wrapped or differently worded entry is ordinary text and
+  changes the gate digest. This is the one statement of the form; other files
+  point here.
 - **Entry fields.** `gates` prints the parked digests, the commit, the exact
   `git --no-pager --no-replace-objects --no-lazy-fetch cat-file blob <commit>:<path>`
   commands a human can run to read the parked bytes (no flag may be removed),
@@ -344,7 +350,6 @@ who acts next, and the rows group codes that share one answer.
 | `gate-already-admitted` | `start` would already answer `current` for this intent and trust, so there is nothing to park. |
 | `gate-status-mismatch` | The spec and plan statuses do not fit the gate: `spec-approved` needs the spec `Draft`; `plan-approved` needs the spec `Approved` and the plan `Drafting`. Fix the statuses or park the other gate. |
 | `gate-unsafe-content` | An artifact is not valid UTF-8 or holds a hidden or control character. `park` raises it, and so does `start` before it writes anything. Remove the character, commit, and park again. |
-| `gate-changelog-shape` | The spec's or the plan's `## Changelog` is not the last level-two heading, or a line after it is not a list entry or an indented continuation of one. Restore the shape and commit; `start` raises it too. Then park again. |
 | `gate-spec-changed` | A `plan-approved` park found the spec changed since its `spec-approved` gate was parked. Review and park `spec-approved` again. |
 | `gate-record-unwritable` | The park record could not be written under the Git directory. Make `<git-dir>/agentbundle-supervisor/gates/` writable, then park again. |
 | `approval-digest-required` | `start` would record an approval pair but got no digests, or the state it would record changed after the check. Run `start` again with `--approved-spec-digest` and `--approved-plan-digest` from the approvers' own answers. |

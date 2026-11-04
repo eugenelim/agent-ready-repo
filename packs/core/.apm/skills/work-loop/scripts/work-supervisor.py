@@ -768,15 +768,16 @@ def _precheck_start(workspace: Any, admission: Any, args: argparse.Namespace) ->
     if plan_bytes is None:
         return None
     digests: dict[str, str] = {}
-    codes: list[str] = []
+    refused: list[Any] = []
     for name, data in (("spec.md", spec_bytes), ("plan.md", plan_bytes)):
         try:
             digests[name] = gates.gate_digest(data, name=name)
         except gates.GateDigestRefused as exc:
-            codes.append(exc.code)
-    if codes:
-        code = "gate-unsafe-content" if "gate-unsafe-content" in codes else codes[0]
-        raise admission.Refusal(code, "controller", "an artifact has no gate digest")
+            refused.append(exc)
+    if refused:
+        first = refused[0]
+        detail = first.detail or "an artifact has no gate digest"
+        raise admission.Refusal(first.code, "controller", detail)
     if args.approved_spec_digest is None or args.approved_plan_digest is None:
         raise admission.digest_refusal(
             "approval-digest-required",

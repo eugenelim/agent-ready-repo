@@ -427,6 +427,51 @@ def test_t2_ac0039_hidden_characters_refuse(tmp_path: Path, artifact: str, bad: 
     _refused(repo, "gate-unsafe-content")
 
 
+def test_t11_ac0029_unsafe_content_wins_over_spec_changed_after_a_parked_gate(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    _edit(repo, "spec.md", "**Status:** Draft", "**Status:** Approved")
+    _edit(repo, "spec.md", "answers 42.", "answers 43.")  # the spec changed after its gate
+    _edit(repo, "plan.md", "Build it.", f"Build it.{ZWSP}")
+    _commit(repo)
+    _refused(repo, "gate-unsafe-content", "plan-approved")
+
+
+def test_t11_ac0035_start_with_unsafe_content_and_no_digests_refuses(tmp_path: Path) -> None:
+    # The T4 first-refusal test covers a spec-side offender; this pins the plan side.
+    repo = h.make_repo(tmp_path, spec=sup.SPEC)
+    _edit(repo, "plan.md", "Build it.", f"Build it.{ZWSP}")
+    _commit(repo)
+    refusal = _refused_start(repo, "gate-unsafe-content", "controller")
+    line = next(
+        i for i, text in enumerate((repo / h.SPEC_DIR / "plan.md").read_text().split("\n"), 1)
+        if ZWSP in text
+    )
+    assert refusal["detail"].startswith(f"plan.md line {line} "), refusal
+
+
+def test_t11_ac0039_refusal_detail_names_the_artifact_and_first_offending_line(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path / "spec")
+    _edit(repo, "spec.md", "answers.", f"answers.{ZWSP}")
+    _commit(repo)
+    detail = _refused(repo, "gate-unsafe-content")["detail"]
+    spec_line = (repo / h.SPEC_DIR / "spec.md").read_text(encoding="utf-8").split(ZWSP)[0]
+    assert "spec.md" in detail and f"line {spec_line.count(chr(10)) + 1} " in detail, detail
+
+    repo = _repo(tmp_path / "plan")
+    path = repo / h.SPEC_DIR / "plan.md"
+    path.write_bytes(path.read_bytes() + b"\nok\n\xff\n")
+    _commit(repo)
+    lines = path.read_bytes().split(b"\n")
+    bad = next(i for i, line in enumerate(lines, 1) if b"\xff" in line)
+    detail = _refused(repo, "gate-unsafe-content")["detail"]
+    assert "plan.md" in detail and f"line {bad} " in detail, detail
+
+
 def test_t2_ac0039_invalid_utf8_refuses(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     path = repo / h.SPEC_DIR / "plan.md"

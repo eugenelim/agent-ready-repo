@@ -218,7 +218,8 @@ Cheap-to-fix-early applies harder to specs and structural decisions than to code
 mode, or a misplaced module boundary here costs a sentence; catching it
 post-EXECUTE costs a re-do. Gate mechanism: the spec approver writes
 `Status: Approved` in `spec.md`, the plan approver writes `Status: Approved` in
-`plan.md`, each with its Changelog entry, and `work-supervisor.py start` records
+`plan.md`, each with its Changelog entry (one line in the form the Parked gates section of
+`supervisor.md` gives), and `work-supervisor.py start` records
 both approvals with their authority references and binds them to the reviewed
 execution envelope and the terminal intent. **Both triggers respect the Profile-A
 opt-out:** skip if the project doesn't use the reviewer at all.

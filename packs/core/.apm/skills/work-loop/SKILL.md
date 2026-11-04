@@ -324,7 +324,8 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 12. **Full mode:** the **G-plan sequence** — two human approvals, run in
     order, then `start`. `spec-approved` is the scope decision and
     `plan-approved` the build-strategy decision. Each approver writes
-    `Status: Approved` and its Changelog entry. Then the supervisor takes over:
+    `Status: Approved` and its Changelog entry, one line in the form the Parked
+    gates section of [`references/supervisor.md`](references/supervisor.md) gives. Then the supervisor takes over:
     0. Park each gate once the pre-EXECUTE reviewers are clean: `python '<skill-dir>/scripts/work-supervisor.py' park <spec-dir> --gate spec-approved|plan-approved --intent code|spec-plan --code-trust trusted|untrusted`.
        Show the human the `gates` entry for the spec. Dispatch no
        implementation work for a parked spec, and edit its spec or plan only

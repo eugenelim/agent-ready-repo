@@ -350,7 +350,10 @@ authority references, the approved envelope fingerprint, the base commit, and a
 timestamp — and nothing else writes that file. A changelog entry never stands
 in for that record, and that record never stands in for the entry. `work-loop`'s
 G-plan sequence owns *when* each is written and why the order matters; this
-template owns only the form.
+template owns only the form, and `work-loop`'s `references/supervisor.md`
+(Parked gates) is the one statement of it: one line under the last
+`## Changelog` heading, with an optional scope note and a final period. A
+wrapped or reworded entry is ordinary text and changes the gate digest.
 
 - YYYY-MM-DD: spec approved by <handle>
 - YYYY-MM-DD: plan approved by <handle>
