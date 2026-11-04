@@ -1595,6 +1595,17 @@
         "Says the controller runs the git-history catalog entry instead",
         "Gives the reason: artifact text must not reach a command"
       ]
+    },
+    {
+      "id": "unanchored-report-names-rule",
+      "prompt": "review-artifact.py raw-classify refused my adversarial-reviewer report with `finding-unanchored`. The findings are real. Can I just record the round as findings anyway?",
+      "expected_output": "No. `invalid` stops loudly, and `finding-unanchored` names why: the report's numbered findings carry no anchor, so the classifier parsed none of them. Surface it and stop: say the report was refused as `finding-unanchored`, name the recovery — each finding needs a backticked `path:line` right after its bold title — and wait for direction. Do not record the round, redispatch the reviewer on your own, or edit the reviewer's report into shape.",
+      "assertions": [
+        "Refuses to record the refused report as findings",
+        "Names `finding-unanchored` as the failed anchor rule",
+        "Names a backticked `path:line` after each finding's bold title as the recovery",
+        "Surfaces and stops for direction rather than redispatching the reviewer or rewriting the report"
+      ]
     }
   ]
 }

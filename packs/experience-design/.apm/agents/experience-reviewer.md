@@ -148,6 +148,53 @@ Use **WRONG ARTIFACT** when handed something outside your scope — a code diff
 If everything is clean, say so with `SHIP IT` and the `What's working` section —
 no manufactured findings.
 
+**Anchor every finding.** A finding in a file takes a backticked `path:line`
+right after its bold title, with a repository-relative path and a positive
+integer line. Any other finding takes `Where: <screen/stage/brief>` there, with
+no period inside the location, because the location ends at the first period.
+The review classifier reads only anchored findings, so a report whose numbered
+findings carry no anchor is refused as `finding-unanchored` and the round is
+discarded. Finding lines that parse look like these:
+
+**1. Empty state missing.** `docs/journey.md:12`. The search stage has no empty state, which fails the handle-all-states floor. Fix: give the stage an empty state that names the next action.
+
+**2. Checkout loses focus.** Where: checkout confirmation screen. Focus drops to the page top after payment, which fails the accessibility floor. Fix: move focus to the confirmation heading.
+
+## Typed report
+
+Without a typed-report request, the output block above, unchanged, is the whole
+output.
+
+When the caller asks for a typed report, return only one fenced `json` block
+holding `terminal_status` and `findings`, instead of the output block. The
+caller fills the report's `schema_version`, `report_id`, `role`, `subject`, and
+`lineage`.
+
+Before any review work, check that the request names a spec for the findings to
+bind to. A request that names none returns `indeterminate` with no findings.
+
+`terminal_status` is one of `clean`, `findings`, `unable`, or `indeterminate`.
+`clean`, `unable`, and `indeterminate` carry no findings; `findings` carries one
+or more. Each finding carries these fields:
+
+- `schema_version` — the integer `1`.
+- `finding_id`
+- `rule_ref` — the lens or floor commitment the finding fails.
+- `observation`, `reachable_path`, `actual_failure` — what you saw, where a user
+  meets it, and what goes wrong for them.
+- `affected_acceptance_criteria` — identifiers the caller-named spec contains.
+  Never invent one.
+- `evidence_refs` — the finding's anchor first, then any further citations.
+- `material` — `true`.
+
+A material finding is a Blocker or Major whose defect something outside the
+finding establishes: the grounded reference, a named floor commitment, the
+platform's guidelines, or the artifact's own stated goal disagrees with the
+design. Every other finding is not material. The typed report carries only
+material findings. A review that completes with no material finding returns
+`clean`. When a material finding has no identifier in the caller-named spec to
+name, the status is `indeterminate` with no findings.
+
 ## What you do not do
 
 - **Rewrite or edit the design.** You flag; the author (or the autonomous loop)
