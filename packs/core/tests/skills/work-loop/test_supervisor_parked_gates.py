@@ -557,15 +557,11 @@ def test_t3_ac0009_read_commands_ignore_repository_behaviour(tmp_path: Path) -> 
     program = tmp_path / "planted.sh"
     program.write_text(f"#!/bin/sh\ntouch {marker}\ncat\n", encoding="utf-8")
     program.chmod(0o755)
-    for key, value in (
-        ("pager.cat-file", str(program)), ("core.pager", str(program)),
-        ("core.repositoryformatversion", "1"), ("extensions.partialClone", "origin"),
-        ("remote.origin.url", "ssh://example.invalid/none"), ("remote.origin.promisor", "true"),
-        ("core.sshCommand", str(program)),
-    ):
+    for key, value in (("pager.cat-file", str(program)), ("core.pager", str(program))):
         h.git(repo, "config", key, value)
-    # a partial clone lists every entry stale; nothing else about it changes
-    assert _gates(repo) == [{**e, "state": "stale"} for e in baseline]
+    # the replace ref and pager settings alone change nothing
+    assert baseline[0]["state"] == "pending"
+    assert _gates(repo) == baseline
 
     for command in entry_read_commands(baseline):
         code, output = _read_with_pty(repo, command)
@@ -575,13 +571,20 @@ def test_t3_ac0009_read_commands_ignore_repository_behaviour(tmp_path: Path) -> 
     assert not marker.exists()
     assert h.git(repo, "cat-file", "blob", blob) == "swapped\n"
 
+    # a partial clone with the blob missing lists every entry stale
     h.git(repo, "replace", "-d", blob)
     (repo / ".git" / "objects" / blob[:2] / blob[2:]).unlink()
-    code, _ = _read_with_pty(repo, entry_read_commands(baseline)[0])
-    assert code != 0 and not marker.exists()
-    (entry,) = _gates(repo)
-    assert entry["state"] == "stale" and entry["spec_digest"] == parked["spec_digest"]
+    for key, value in (
+        ("core.repositoryformatversion", "1"), ("extensions.partialClone", "origin"),
+        ("remote.origin.url", "ssh://example.invalid/none"), ("remote.origin.promisor", "true"),
+        ("core.sshCommand", str(program)),
+    ):
+        h.git(repo, "config", key, value)
+    assert _gates(repo) == [{**e, "state": "stale"} for e in baseline]
+    code, _ = _read_with_pty(repo, entry_read_commands(baseline)[0])  # the deleted spec blob
+    assert code != 0
     assert not marker.exists()
+    assert parked["spec_digest"] == baseline[0]["spec_digest"]
 
 
 def entry_read_commands(entries: list[dict[str, Any]]) -> list[str]:
