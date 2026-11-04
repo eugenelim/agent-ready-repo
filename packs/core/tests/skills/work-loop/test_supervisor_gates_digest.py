@@ -216,3 +216,48 @@ def test_t1_ac0025_nothing_refuses_changelog_shape() -> None:
     for body in ("prose\n", "  indented\n", "- a\ncontinued\n", "## Later\n", "```\n"):
         assert _d(SPEC + _CL + body)
         assert _d(SPEC + "\n## Changelog\n- a\n\n## Changelog\n" + body)
+
+
+_NBSP = " "
+_T10_KEEP = (
+    "- 2026-11-04: spec approved by example-owner",
+    "- 2026-11-04: spec approved by example-owner (scope).",
+    "- 2026-11-04: plan approved by example-owner (build strategy)",
+    "- 2026-11-04: amendment approved by example-owner (scope and build strategy).",
+)
+
+
+@pytest.mark.parametrize("tail", ["", "  ", _NBSP])
+@pytest.mark.parametrize("line", _T10_KEEP)
+def test_t10_ac0025_entries_after_last_changelog_keep_digest(line: str, tail: str) -> None:
+    assert _d(SPEC + _CL + line + tail + "\n") == _d(SPEC + _CL)
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "- 2026-11-04: spec approved by " + "a" * 40,
+        "- 2026-11-04: spec approved by example_owner",
+        "- 2026-11-04: spec reviewed by example-owner",
+        "- ٢٠٢٦-11-04: spec approved by example-owner",
+        "- ２０２６-11-04: spec approved by example-owner",
+        "- 2026-11-04: spec approved by example-owner (scope). extra",
+        "- 2026-11-04: spec approved by example-owner and more",
+    ],
+)
+def test_t10_ac0025_non_entries_change_the_digest(line: str) -> None:
+    assert _d(SPEC + _CL + line + "\n") != _d(SPEC + _CL)
+
+
+def test_t10_ac0007_blank_line_folding_and_entry_placement() -> None:
+    base = _d(SPEC + _CL)
+    first = "- 2026-11-04: spec approved by example-owner\n"
+    second = "- 2026-11-05: plan approved by example-owner\n"
+    assert _d(SPEC + _CL + "\n" + first) == base  # separating blank line
+    assert _d(SPEC + _CL + first + second) == base  # second after an existing one
+    assert _d(SPEC + _CL + first + "\n" + second) == base
+    assert _d(SPEC + "x\n\n\n\n\ny\n") == _d(SPEC + "x\n\ny\n")  # extra blanks fold
+
+
+def test_t10_ac0008_removing_a_blank_line_between_paragraphs_changes_digest() -> None:
+    assert _d(SPEC + "one\n\ntwo\n") != _d(SPEC + "one\ntwo\n")
