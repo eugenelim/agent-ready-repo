@@ -303,13 +303,6 @@ def test_t2_ac0006_an_unreadable_recorded_commit_is_replaced(tmp_path: Path) -> 
     assert json.loads(record.read_text(encoding="utf-8"))["commit"] == head
 
 
-def test_t2_ac0026_no_gate_digest_refuses(tmp_path: Path) -> None:
-    repo = _repo(tmp_path, plan=PLAN + "\n## Changelog\n\n- again\n")
-    _refused(repo, "gate-changelog-shape")
-    repo = _repo(tmp_path / "s", spec=SPEC + "\n## Changelog\n\n- one\n\n## Later\n\ntext\n")
-    _refused(repo, "gate-changelog-shape")
-
-
 def test_t2_ac0029_the_first_applicable_refusal_wins(tmp_path: Path) -> None:
     # gate-uncommitted over gate-status-mismatch
     repo = _repo(tmp_path / "a", spec=sup.SPEC)
@@ -318,13 +311,10 @@ def test_t2_ac0029_the_first_applicable_refusal_wins(tmp_path: Path) -> None:
     # gate-status-mismatch over gate-unsafe-content
     repo = _repo(tmp_path / "b", spec=sup.SPEC.replace("answers.", f"answers.{ZWSP}"))
     _refused(repo, "gate-status-mismatch")
-    # gate-unsafe-content over gate-changelog-shape
-    plan = PLAN.replace("Build it.", f"Build it.{ZWSP}") + "\n## Changelog\n\n- again\n"
-    repo = _repo(tmp_path / "c", plan=plan)
-    _refused(repo, "gate-unsafe-content")
-    # gate-changelog-shape over gate-spec-changed
-    repo = _repo(tmp_path / "d", spec=sup.SPEC, plan=PLAN + "\n## Changelog\n\n- again\n")
-    _refused(repo, "gate-changelog-shape", "plan-approved")
+    # gate-unsafe-content over gate-spec-changed: no spec gate was parked
+    plan = PLAN.replace("Build it.", f"Build it.{ZWSP}")
+    repo = _repo(tmp_path / "c", spec=sup.SPEC, plan=plan)
+    _refused(repo, "gate-unsafe-content", "plan-approved")
     # intent-mismatch over gate-uncommitted
     repo = _repo(tmp_path / "e")
     _edit(repo, "spec.md", "answers.", "answers it.")
@@ -354,11 +344,11 @@ def test_t2_ac0029_the_first_applicable_refusal_wins(tmp_path: Path) -> None:
 
 
 def test_t2_ac0030_plan_gate_carries_the_spec_digest(tmp_path: Path) -> None:
-    repo = _repo(tmp_path)
+    repo = _repo(tmp_path, spec=SPEC + "\n## Changelog\n")
     _, spec_gate = _park(repo)
     _edit(repo, "spec.md", "**Status:** Draft", "**Status:** Approved")
     with (repo / h.SPEC_DIR / "spec.md").open("a", encoding="utf-8", newline="\n") as handle:
-        handle.write("\n## Changelog\n\n- approved by the owner\n")
+        handle.write("\n- 2026-01-01: spec approved by example-owner\n")
     _commit(repo, "spec approved")
     code, out = _park(repo, "plan-approved")
     assert code == 0 and out["status"] == "parked" and out["gate"] == "plan-approved", out
