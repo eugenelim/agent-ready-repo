@@ -166,6 +166,28 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_parked_gates_guidance.py -q` exits 0 and the existing work-loop eval tests exit 0.
 
+### T8: Code-review repairs
+
+**Depends on:** T1, T2, T3, T4, T5, T6
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_admission.py`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`, `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py`
+
+**Tests:** TDD — unit and integration; every new test named `test_t8_…`
+- qe-1 (AC-0015, AC-0035): `start` with no digests on a `Draft` spec refuses `spec-not-approved`, as before; the pre-check runs `start`'s read-only refusals (authority-ref format, intent and code-trust values, untrusted-unsafe-host, Git config, statuses) before any digest refusal.
+- sec-1, adv-4 (AC-0025): a nested-fence case where a three-backtick line inside a four-backtick fence does not close it; an indented line directly under `## Changelog`, or after a non-list line, refuses `gate-changelog-shape`.
+- sec-2 (AC-0039): a run of three U+FE0F and an alternating U+FE0E/U+FE0F sequence over the knowledge lint's invisible budget refuse `gate-unsafe-content`; one emoji VS16 keeps the digest.
+- sec-3 (AC-0009, AC-0011): in a partial clone or with a promisor remote, `park` refuses and `gates` lists `stale` before any record-named commit is read; `park`'s commit read passes `no_lazy_fetch`.
+- qe-2 (AC-0014): a failing sibling load under `gates` prints one JSON `internal-error` refusal.
+- qe-3 (AC-0020): the cutover source scan collects codes raised through `refuse`, `refusal`, `digest_refusal`, and `GateDigestRefused`, and still finds every row.
+- qe-8 (AC-0029): an uncommitted-and-admitted case expects `gate-uncommitted`; an unsafe-path-and-doubled-Terminal-Intent case expects `gate-unsafe-path`.
+- qe-9 (AC-0008): byte changes outside the spec's AC section and in a plan body each change the digest.
+- qe-11 (AC-0009): the pseudo-terminal read loop has a deadline that kills the child and fails, and the child's stdin is `/dev/null`.
+- qe-13 (AC-0036): the malformed-digest cases share one fresh and one admitted repository.
+- adv-7, adv-10 (AC-0020): the reference names the exact `git --no-pager --no-replace-objects --no-lazy-fetch cat-file blob` commands, says no flag may be removed, and the `gate-changelog-shape` row names either artifact.
+- qe-16, sec-6: `is_hidden_char` is typed `Callable[[str], bool]` with no ignore; the park-trusted docstring states the path-checked-host race window and why it is acceptable.
+
+**Done when:** under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, `test_supervisor_admission.py`, and `test_supervisor_cutover_source_checks.py` exit 0; `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; and `make lint-ruff lint-mypy` exits 0.
+
 ### T7: Core release
 
 **Depends on:** T1, T2, T3, T4, T5, T6
