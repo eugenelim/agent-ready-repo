@@ -389,14 +389,17 @@ control does **not** close.
   removed it, because a filename-convention denylist is the documented
   antipattern for path security, it added nothing to confinement, and it
   caught `.env` while missing the three names above.
-- **§ D10's prose residual.** Three controls run on a record's own prose
-  only at the write path: `assert_persistable_text`'s eight patterns, the
-  instruction-shape refusal, and the reasoning dispatch's data-framing.
-  None of the three re-runs on a record that reached the store by the
-  unchecked merge path above, so a merged record's prose can carry an
-  email address, a bearer token, a `/Users/<name>` path, a tenant
-  identifier, or instruction-shaped text into a later reasoning context and
-  into a durable artifact, screened by nothing.
+- **§ D10's prose residual — settled by the promotion drain's read-path
+  re-run.** Three controls run on a record's own prose at the write path:
+  `assert_persistable_text`'s eight patterns, the instruction-shape
+  refusal, and the reasoning dispatch's data-framing. A record that
+  reached the store by the unchecked merge path above skipped all three,
+  which is why the residual was disclosed here as unowned.
+  `docs/specs/work-item-promotion-handoff/spec.md` § D4 now settles it:
+  the drain's offer assembly re-runs the same three controls over the
+  same schema-derived scanned field set before the record influences any
+  classification, reasoning, or durable write, and a failing record is
+  refused as a routing input and held with the refusing control named.
 - **The late-ordering residual (`AC-0069`).** § D6's argv rules run at
   write time, but *after* the per-item cold reasoning dispatch in the
   close's own ordering. So an attacker-influenced

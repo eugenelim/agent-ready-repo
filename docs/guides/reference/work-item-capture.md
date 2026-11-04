@@ -227,9 +227,30 @@ second refusal on the same item ends the close for that item. A close that
 declines more than 12 items in one pass refuses before it validates any of
 them.
 
-## What this does not cover
+## What happens to a captured record later
 
-This reference is for writing a record. What a later session does with a
-captured record — routing it, promoting it, or executing a stored
-command — is `docs/specs/work-item-promotion-handoff/spec.md`'s. Nothing
-here authorizes running a stored `verification_route.command`.
+A later session runs the **promotion drain** — the operator procedure in
+`packs/core/.apm/skills/work-intake/SKILL.md` § 8 — over the open work items
+in the store. Per item it routes, holds, or closes:
+
+- A **defect** whose evidence holds — a `verification_route` that passes its
+  pre-execution re-check and completes under the execution envelope, or both
+  `observed` and `intended` — routes to the defect processor (`bug-fix`)
+  through a captured-item file under `docs/product/captured/`.
+- A **question** is classified by work-intake's classify table over its
+  framed fields and routes to whichever input shape that table selects.
+- A **decision** is held until the governance routing sibling ships.
+- An item the drain cannot route — no classification resolves, the stored
+  path escapes the repository, the re-check or the envelope refuses the
+  stored command, or nobody is attending to confirm — is **held**: it stays
+  open in the store, records no terminal disposition, and reappears on the
+  next drain.
+- An item whose work already exists, is recorded elsewhere, or rested on a
+  premise that no longer holds can be **closed** on one of three grounds —
+  overtaken, superseded, falsified — each with evidence its own test must
+  hold; a ground whose test fails is refused and the item stays open.
+
+A routed item records the terminal disposition `routed`; a closure records
+`rejected` or `superseded` with its ground in the reason code. Nothing runs a
+stored `verification_route.command` outside the execution envelope — not
+this reference, not the classification, not the drain's reasoning.
