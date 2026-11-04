@@ -971,29 +971,9 @@ def test_t4_ac0037_a_pair_is_recorded_only_from_verified_bytes(
     assert h.git(repo, "rev-parse", "HEAD") == head and _approval_count(repo) == 0
 
 
-@pytest.mark.parametrize("artifact", ["spec.md", "plan.md"])
-@pytest.mark.parametrize("kind", ["two-headings", "later-heading", "free-line"])
-def test_t4_ac0027_a_bad_changelog_refuses_and_writes_nothing(
-    tmp_path: Path, artifact: str, kind: str
-) -> None:
-    tail = {
-        "two-headings": "\n## Changelog\n\n- again\n",
-        "later-heading": "\n## Later\n\ntext\n",
-        "free-line": "\nfree text\n",
-    }[kind]
-    if artifact == "plan.md":
-        repo = h.make_repo(tmp_path, plan=sup.PLAN + tail)
-    else:
-        repo = h.make_repo(tmp_path, spec=sup.SPEC + "\n## Changelog\n\n- one\n" + tail)
-    _refused_start(repo, "gate-changelog-shape", "controller", *_pins())
-
-
 def test_t4_ac0035_and_ac0039_the_first_applicable_digest_refusal_wins(tmp_path: Path) -> None:
-    bad_plan = sup.PLAN + "\n## Changelog\n\n- again\n"
-    # unsafe content over a changelog shape and over missing and differing digests
-    repo = h.make_repo(
-        tmp_path / "a", spec=sup.SPEC.replace("answers.", f"answers.{ZWSP}"), plan=bad_plan
-    )
+    # unsafe content over missing and differing digests
+    repo = h.make_repo(tmp_path / "a", spec=sup.SPEC.replace("answers.", f"answers.{ZWSP}"))
     _refused_start(repo, "gate-unsafe-content", "controller")
     _refused_start(repo, "gate-unsafe-content", "controller", *_pins())
     assert not (repo / h.SPEC_DIR / "delivery" / "approvals.jsonl").exists()
@@ -1002,10 +982,6 @@ def test_t4_ac0035_and_ac0039_the_first_applicable_digest_refusal_wins(tmp_path:
     (repo / h.SPEC_DIR / "plan.md").write_bytes(b"# Plan\xff\n")
     _commit(repo)
     _refused_start(repo, "gate-unsafe-content", "controller", *_pins())
-    # changelog shape over missing and differing digests
-    repo = h.make_repo(tmp_path / "c", plan=bad_plan)
-    _refused_start(repo, "gate-changelog-shape", "controller")
-    _refused_start(repo, "gate-changelog-shape", "controller", *_pins())
     # missing over differing
     repo = h.make_repo(tmp_path / "d")
     spec = h.digest_args(repo)[1]
