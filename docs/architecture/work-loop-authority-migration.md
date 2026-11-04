@@ -34,9 +34,9 @@ pages change in the same reviewed change.
 | The legacy review gate (`raw-classify` and adjudication grammar) for full-mode code review | Structured review readiness: current `review-report.v1`, `finding-assessment.v1`, and `finding-disposition.v1` records, with roles selected by `review-rules.json` | ADR-0144 D8 | Light mode and pre-approval review keep `review-artifact.py`'s classifier |
 | Unknown-effect handling, which had no durable form | `effect-resolution.v1` in `delivery/effect-resolutions.jsonl` | ADR-0144 D6; supplies what ADR-0061 D8 deferred | None |
 | The event file's producer | The supervisor, one line per step in the unchanged `loop-run-event` envelope; the bridge reads `run.json` | ADR-0144 D10; supersedes ADR-0064 D5, D6 in part (commit-derived lines replace the outbox and pending-event replay); ADR-0064 D3, D4, D7 stand | None |
-| The planned `wave-decision` contract | Retired with its schema; the supervisor dispatches sequentially | ADR-0144; the [parallelism page](loop-parallelism.md) records what remains | Slice 7 decides any parallel scheduler decision record |
-| ADR-0061 D5's ban on parallel-wave orchestration | Unchanged; sequential is the only mode | ADR-0061 D5 | Slice 7: an accepted record supersedes it and names the admitted modes |
-| ADR-0005 D3 safe categories and D4 post-write `git merge-tree` disjointness gate | Unchanged | ADR-0005 | Slice 7: a parallelism record supersedes D3 and D4 while keeping fail-closed admission and merge-conflict handling |
+| The planned `wave-decision` contract | Retired with its schema; the supervisor dispatches sequentially | ADR-0144; the [parallelism page](loop-parallelism.md) records what remains | None; [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) is the parallel scheduler's record |
+| ADR-0061 D5's ban on parallel-wave orchestration | Sequential is the only mode that ships; [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) admits `enforced-allowlist` and `complete-trace` beside the `sequential` floor | [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md), superseding ADR-0061 D5 in part (its `doc`-mode deferral stands) | Slice 7 ships the scheduler under that record |
+| ADR-0005 D3 safe categories and D4 post-write `git merge-tree` disjointness gate | Attested read coverage and read-write interference admit concurrency; results land in sequential order through a pinned three-way apply, and a conflict leaves the ref unchanged | [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) D1–D5, superseding ADR-0005 D3, D4, ADR-0144 D9 and ADR-0154 D2 in part | Slice 7 ships admission and integration under that record |
 | The mutable execution-root worktree as the product result | A protected product ref the supervisor advances; the worktree and `HEAD` are its projection | ADR-0154, superseding ADR-0144 D9 and D11 in part | [Product result integration](work-loop-result-integration.md); Slice 7 adds parallel results |
 | The `project-knowledge --producer-profile work-loop` capture gates `spec-approved` and `plan-locked` | Retained under those names, beside the read-only delivery fact feed over each spec's committed `delivery/evidence.jsonl` | [Knowledge capture](knowledge-capture.md) | Slice 8 removes both gates |
 | Close-time `work-item` capture | Retained as an explicit capture | [Knowledge capture](knowledge-capture.md) | None |
@@ -73,13 +73,13 @@ the terminal intent refuses until its owner acts.
 | An accepted record is never superseded by code alone | Each move cites its record; the ADR shape lint checks supersession mirrors |
 | One concern has one writer | Only the supervisor writes procedure state and `delivery/` records |
 | Initial review is not a permanent task lock | In-envelope plan and task changes need no approval |
-| Parallelism cannot arrive early | The supervisor dispatches one request at a time until Slice 7's record is accepted |
+| Parallelism cannot arrive early | The supervisor dispatches one request at a time until a release ships the scheduler [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) admits |
 
 ## 6. Remaining Moves
 
 | Slice | Sources that change together | Proof |
 | --- | --- | --- |
-| Slice 7 parallel admission | `ARCHITECTURE.md`, `loop-parallelism.md`, a record superseding ADR-0061 D5 and ADR-0005 D3, D4, the scheduler, and security and integration ports | Missing governance or read proof serializes; permutations equal the sequential result |
+| Slice 7 parallel admission | `ARCHITECTURE.md`, `loop-parallelism.md`, the scheduler, and security and integration ports, under [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md) | Missing governance or read proof serializes; permutations equal the sequential result |
 | Slice 8 removal | The `spec-approved` and `plan-locked` capture gates, `knowledge-capture.md`, `work-loop-knowledge-handoff.md` | Removal rehearsal in a clean environment |
 
 Frozen ADR bodies stay unchanged. A superseding record carries the
@@ -92,7 +92,7 @@ relationship, and the superseded record's status fields mirror it.
 | A spec directory holds `engine-state.json` or a cohort `state.json` | `start` never reads either | Supervisor admission fixtures |
 | A working plan reorders, splits, or replaces tasks | Reproject without approval | Replan corpus |
 | A replan changes a protected reference or terminal intent | Refuse and name the owner | Replan corpus |
-| A parallel provider appears before Slice 7's record | Nothing dispatches concurrently | Sequential dispatch only |
+| A parallel provider appears before Slice 7's scheduler ships | Nothing dispatches concurrently | Sequential dispatch only |
 
 ## 8. Risks and Ownership
 

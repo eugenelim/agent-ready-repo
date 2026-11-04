@@ -30,20 +30,20 @@ wave-decision screen went is recorded once, in
 
 Plans declare dependencies and isolation, not waves. Turning that into
 concurrent dispatch belongs to Slice 7 of the
-[acceptance-centred work loop](acceptance-centered-work-loop.md), and three
-things still hold dispatch sequential until it lands:
+[acceptance-centred work loop](acceptance-centered-work-loop.md).
 
-- [ADR-0061](../adr/0061-loop-infrastructure-phase-1.md) D5 still defers
-  parallel orchestration. Lifting it needs a record that supersedes it in part.
-- [ADR-0005](../adr/0005-supervisor-topological-default-and-write-gate.md) parallel-write gating is
-  unchanged (ADR-0144 D9).
-- The product result stays the execution-root worktree. Moving it to a
-  protected ref belongs to
-  [result integration](work-loop-result-integration.md).
+[ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md)
+is the governing record. It admits two concurrent modes beside the
+`sequential` floor, `enforced-allowlist` and `complete-trace`. Each needs a
+host attestation, verified by the supervisor, of the attempt's isolation and
+every read it makes. Results land one at a time, in sequential order, through a
+pinned three-way apply. Any missing condition runs the task sequentially. The
+record supersedes ADR-0061 D5's parallel clause and ADR-0005 D3 and D4.
 
-Slice 7 also owns the reserved owner decision on what parallel admission
-requires, recorded in
-[authority migration](work-loop-authority-migration.md).
+Dispatch stays sequential until two things exist:
+
+- the scheduler, admission, and integration code the record admits;
+- a host that can supply the attestation. None ships today.
 
 RFC-0015's 2026-09-25 erratum *"a measurement on nested worktrees"* records the
 nested-worktree destruction path and binds no layout constraint, because doing
@@ -82,9 +82,9 @@ re-requests that task. Nothing reads `Touches:` to decide order.
 
 **Make `Touches:` mandatory.** This widens nothing. It makes a disjointness
 check able to run at all, which today it cannot for most tasks. Completing the
-field can also show overlap: RFC-0015 measured about 45% file overlap among
-declared-independent tasks, so a mandate is expected to *narrow* usable width on
-a large minority. A finding at authoring still beats a collision at merge. The
+field can also show overlap: RFC-0015 found about 45% file overlap among 55
+declared-independent waves, as a lower bound, so a mandate is expected to
+*narrow* usable width on a large minority. A finding at authoring still beats a collision at merge. The
 field stays a serialise-only input, never a write authority, because tasks
 under-name what they touch.
 
@@ -100,7 +100,6 @@ false "independent" ships a break.
 
 | Question | Who decides |
 | --- | --- |
-| What a parallel batch does when one task fails — task or batch blast radius | Slice 7 owner |
 | Whether the measured nesting hazard reopens RFC-0015 open question 2, whose substrate choice is already resolved as delegate-to-driver | RFC-0015 approver |
 | Whether task-cutting guidance belongs in the plan template | `new-spec` owner |
 | Where the read-only width report lives — a `new-spec` lint or a supervisor status field | `new-spec` owner |

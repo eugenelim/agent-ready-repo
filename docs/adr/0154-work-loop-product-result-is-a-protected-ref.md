@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** ADR-0144 D9,D11
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0156 D2
 - **Related:** ADR-0144 (D9 kept the worktree as the product result boundary until this record; D11 keeps worker attempts untrusted, and this record adds one named-human decision to the ones it lists); ADR-0005 and ADR-0061 D5 (parallel writes stay sequential; a later parallelism record owns three-tree apply); spec `canonical-result-integration`
 
 ## Decision summary
