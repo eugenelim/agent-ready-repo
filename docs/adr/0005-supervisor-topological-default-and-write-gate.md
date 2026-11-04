@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** none
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0156 D3,D4
 - **Related:** RFC-0015 (`docs/rfc/0015-wave-scheduled-supervisor-mode.md`);
   `docs/CONVENTIONS.md` §Supervisor mode; `work-loop` skill.
 
