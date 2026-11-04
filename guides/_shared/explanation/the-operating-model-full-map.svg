@@ -275,7 +275,7 @@
 <circle cx="940.0" cy="667.0" r="9" fill="#6ee7b7"/>
 <text x="940.0" y="671.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11" font-weight="800" fill="#0b1020" text-anchor="middle">3</text>
 <text x="956.0" y="672.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="13.5" font-weight="650" fill="#f1f5f9" text-anchor="start">Build and check</text>
-<text x="932.0" y="691.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#a3b1c6" text-anchor="start">lint, types, tests, three reviews</text>
+<text x="932.0" y="691.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="11.5" font-weight="400" fill="#a3b1c6" text-anchor="start">lint, types, tests, selected reviews</text>
 <text x="932.0" y="708.0" font-family="'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="11" font-weight="400" fill="#6ee7b7" text-anchor="start">work-loop</text>
 <rect x="918" y="739.0" width="254" height="58" rx="10" fill="none" stroke="#cbd5e1" stroke-opacity="0.6" stroke-dasharray="5 4"/>
 <text x="932.0" y="762.0" font-family="Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="12.5" font-weight="650" fill="#f1f5f9" text-anchor="start">Small, low-risk change?</text>

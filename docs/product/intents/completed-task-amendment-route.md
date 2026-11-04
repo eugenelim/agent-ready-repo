@@ -1,9 +1,28 @@
 # A completed task's section has no amendment route
 
 - **Slug:** `completed-task-amendment-route`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+
+## Disposition — withdrawn 2026-11-04, the refusal it describes left with the old engine
+
+**Do not shape this intent.** Its premise was a refusal: `approve-plan` rejected
+an amended plan with "completed task section changed", and the only escape was a
+reset that cleared the retry counters. `validate_completed_task_sections`, the
+check behind that refusal, no longer exists. Core 4.0.0 replaced the engine with
+the supervisor ([ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)).
+Under it a plan edit that leaves the six protected references and the terminal
+intent unchanged commits as one `replan` step with no approval, completed tasks
+stay complete, and the run keeps its history in Git. Editing a pinned field of a
+completed task (`Tests:`, `Touches:`, `Done when:`, `Effects:`, title) makes that
+task due again by design. See
+[plan changes](../../architecture/work-loop-plan-changes.md) § 1. All four
+recorded instances predate the cutover and came from one author, which the
+intent's own riskiest assumption named as the case for retiring it. Open a new
+intent if a correction after the supervisor shipped is blocked or forces
+needless rework.
 
 ## Outcome
 
@@ -17,15 +36,15 @@
 - **Guardrail:** Completed work is not silently rewritten. Whatever route exists
   preserves owner authority, the reason reference, run identity and the
   approved-hash pins, and leaves an auditable record that a completed section was
-  re-pinned and why. It does not weaken `validate_completed_task_sections` into
-  accepting an unrecorded change, and it does not let an amendment reach back
+  re-pinned and why. It does not weaken the supervisor's revision-keyed completion (a task is
+  complete only for its current revision) into accepting an unrecorded change, and it does not let an amendment reach back
   into work already shipped under the old contract.
 
 ## Boundary
 
-- Includes the completed-task case only: an amendment whose correction falls inside a task already recorded complete. The supervisor derives a task's completion from Git history and committed records, and a controller's edit confined to the plan's tasks, tests, stubs, design, and approach lands as one `replan` while no attempt is open, with every completed task staying complete. An amendment that edits a task already recorded complete, or reaches a protected section of the spec, is refused and names its owner; no primitive re-pins a completed task's section.
+- Includes the completed-task case only: an amendment whose correction falls inside a task already recorded complete. The supervisor derives a task's completion from Git history and committed records, and a controller's edit confined to the plan's tasks, tests, stubs, design, and approach lands as one `replan` while no attempt is open, with every completed task staying complete. An edit to a completed task's pinned fields (title, `Tests:`, `Touches:`, `Done when:`, `Effects:`) changes its revision, so the task is due again; an edit to its other fields leaves it complete. An amendment that reaches a protected section of the spec is refused and names its owner. No primitive re-pins a completed task's section without making the task due again.
 - Excludes the pre-wave case, which `contract-amendment-pre-wave-window` already shipped in core 2.15.5 — the evidence binding is conditional on completed work existing, so an amendment before any task runs is reachable today.
-- Excludes relaxing the refusal itself as the answer. Its property — an amended plan does not rewrite completed work — is worth keeping; the gap is the absence of a licensed route, not the presence of the refusal.
+- Excludes relaxing revision-keyed completion as the answer. Its property — an amended plan does not rewrite completed work — is worth keeping; the gap is the absence of a licensed route that re-pins a completed section, not the presence of the check.
 - Excludes deleting the run's records as an acceptable route. The supervisor's retry cap never resets, so starting over would lose the retry counters and the audit trail, which is why deliveries chose to carry a false contract instead of using it.
 - Excludes progressive task locking and a settle-first lifecycle stage.
 

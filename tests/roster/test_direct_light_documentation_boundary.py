@@ -46,9 +46,9 @@ def test_workspace_dispatch_and_direct_light_have_distinct_durability() -> None:
         "to an existing durable `spec.md` and sibling `plan.md`",
         "An explicit direct-light request is session-local, creates no workspace "
         "entry, and is ineligible for argless dispatch or fresh-session resumption.",
-        "+-- direct light --> work-loop from current request",
-        "+-- durable single slice --> spec + plan --> workspace --> work-loop",
-        "+-- multi-slice outcome --> brief --> confirmed specs + plans",
+        "direct light: session-local, work-loop from the request",
+        "durable single slice: spec and plan, then work-loop",
+        "multi-slice outcome: brief, then confirmed specs and plans",
     ):
         assert _normalized(required) in architecture, required
 

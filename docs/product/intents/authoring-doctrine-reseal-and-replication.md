@@ -26,7 +26,7 @@ Re-spike only after before/after measurement on two or three unrelated specs aut
 
 ### rfc0099-execution-side-errata
 
-Implement the two remaining execution-side RFC-0099 errata from `docs/specs/shaping-review-contracts/spec.md#follow-ons`: a root-cause-cluster checkpoint after adjudication, and a touched-seam cleanup versus neighbouring-module boundary across work-loop, implementer, adversarial review, and quality review. Claim minimization has shipped. Re-measure `CAT-S003` headroom first; `work-loop/SKILL.md` is currently 832 lines. The original inspection was indeterminate because required rule lookup was refused; a current measurement of that headroom and the named follow-ons settles scope.
+Implement the two remaining execution-side RFC-0099 errata from `docs/specs/shaping-review-contracts/spec.md#follow-ons`: a root-cause-cluster checkpoint after adjudication, and a touched-seam cleanup versus neighbouring-module boundary across work-loop, implementer, adversarial review, and quality review. Claim minimization has shipped. Re-measure `CAT-S003` headroom first; `work-loop/SKILL.md` is currently 860 lines. The original inspection was indeterminate because required rule lookup was refused; a current measurement of that headroom and the named follow-ons settles scope.
 
 ### amendment-redraft-shaping-gate
 

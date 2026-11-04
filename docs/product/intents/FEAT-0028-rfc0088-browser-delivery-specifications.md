@@ -25,7 +25,7 @@ release-gate context without treating them as one implementation slice.
 
 ## Boundary
 
-- Admits: authoring the two required ADRs, the browser-session lint convention, and the three RFC-named delivery specifications.
+- Admits: authoring the two required ADRs, the browser-session credential convention, and the three RFC-named delivery specifications.
 - Excludes: implementing any specification, changing RFC-0088's accepted architecture, or treating unresolved boundary observations as settled evidence.
 - Excludes: combining the three delivery contracts. Each has a separate release gate and remains independently approvable and shippable.
 
@@ -41,7 +41,7 @@ release-gate context without treating them as one implementation slice.
 
 ### Browser-session lint convention
 
-- Amend `docs/CONVENTIONS.md` with the `auth: browser-session` taxonomy and its pack-lint contract.
+- Record the `auth: browser-session` taxonomy and its pack-lint contract. `docs/CONVENTIONS.md` is retired, so the amendment lands in the credential-broker contract ([ADR-0003](../../adr/0003-credential-broker-contract.md), [credentials architecture](../../architecture/credentials.md)) and the `CAT-L031` lint rule.
 
 ### Spec 1 — foundation delivery and lifecycle
 

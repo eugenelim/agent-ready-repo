@@ -1,7 +1,8 @@
 # Workspace registry retirement
 
 - **Slug:** `workspace-registry-retirement`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-04 by eugenelim, lifecycle owner and Platform Core maintainer. Revision `7fcca71af4d23e0cef69e5d247f40b3bd9ef73ff` (file blob) returned a clean independent intent-mode shaping review with no `MALFORMED` token on all seven conditions. The owner confirmed the transition when directing the intent through its flow.
 - **Level:** feature
 - **Owner:** Platform Core maintainer
 - **Scale:** app
@@ -179,7 +180,7 @@ No kill line was crossed. Orientation needs no registry fact that the headers ca
 - **Captured items not written as an intent, brief, or spec.** 75 entries: 51 with a file of their own, of which 49 carry no status line, and 24 with no file.
 - **One behavior, not a fact.** The first-in-list suggestion in `next_queue` and `next_shape`.
 
-What travels into `decompose-intent`:
+What travels into `intent decompose`:
 
 - **C1 — A dependency edge lives on the item that waits.** Write each edge as a header field on the waiting artifact, naming its prerequisite by typed reference. One edit touches one file, and no shared list is needed. The field must be a named dependency field distinct from FEAT-0002's non-blocking `Related intents:`. RFC-0106 D3 names it `Depends on:`, with comma-separated RFC-0103 typed references. The three intents that already carry `Depends on:` say their enforceable edge is the registry `needs` entry, and no script reads that field today. The spec names the field and its reader.
 - **C2 — A captured item gets its own file with a status line.** Give the 24 file-less items their own records first. Give the 49 file-backed items without a status line one, and move the 2 that point at a verification ledger to an item-specific record. The 3 edges that wait on file-less items move once those items have files.

@@ -2,7 +2,8 @@
 
 - **Slug:** `external-tracker-projection`
 - **Status:** Accepted
-- **Accepted:** 2026-09-23 by eugenelim, lifecycle owner, on owner authority, and re-accepted the same day after a material change: the projection rule is now stated for the authority mode it governs, and the managed-unit floor question is recorded as answered by ADR-0127. The basis: the riskiest assumption was tested under `de-risk-intent` against a kill condition predeclared before the evidence returned, and survived; the altitude was re-tested under `frame-intent` and held at `capability` on two discriminators drawn from the parent's own recorded reasoning; and Core's `shaping-reviewer` returned a clean intent-mode pass at revision `deba52f7bd484622`. A review result sets no status — this line is the owner's act, and the reviews are evidence for it.
+- **Accepted:** 2026-09-23 by eugenelim, lifecycle owner, on owner authority, and re-accepted the same day after a material change: the projection rule is now stated for the authority mode it governs, and the managed-unit floor question is recorded as answered by ADR-0127. The basis: the riskiest assumption was tested under `intent de-risk` against a kill condition predeclared before the evidence returned, and survived; the altitude was re-tested under `intent frame` and held at `capability` on two discriminators drawn from the parent's own recorded reasoning; and Core's `shaping-reviewer` returned a clean intent-mode pass at revision `deba52f7bd484622`. A review result sets no status — this line is the owner's act, and the reviews are evidence for it.
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** Forward-looking mentions of the shaping skills now name `intent frame`, `intent de-risk` and `intent decompose`, the verbs of the single `intent` skill that replaced `frame-intent`, `de-risk-intent` and `decompose-intent` (ADR-0140). Dated run records keep the names in force on the day. The text decides nothing new.
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
@@ -215,7 +216,7 @@ mechanism decision; each bounds what a mechanism may do.
 - `core` acquires no dependency on Jira, GitHub or Linear specifically, and the
   product-engineering intent model acquires no provider-specific hierarchy.
 - The named delivery systems can be served by one model with provider handling at
-  the edge. **Untested.** `decompose-intent`'s existing tracker-projection
+  the edge. **Untested.** `intent decompose`'s existing tracker-projection
   reference covers Linear and Jira Align as opposite ends of a collapse-or-expand
   axis; GitHub Issues + Projects and Jira Software are unexamined.
 - **A regulated adopter may not be reachable by this capability at all.** Where
@@ -302,7 +303,7 @@ is not the test.
 
 **One word from the lifecycle owner overrides this.** The altitude is a
 declared fact about the owner's product tree, not a derivation, and
-`frame-intent` treats the inference as a suggestion the owner corrects.
+`intent frame` treats the inference as a suggestion the owner corrects.
 
 ### Optional Core shaping review — intent mode, clean
 
@@ -369,7 +370,7 @@ needs a rung the model lacks" is answered by naming one — a dependency with a
 known shape, not an open bet. ADR-0019 D5 as refined by ADR-0077 D6–D12 is
 already in
 force, and three provider packs ship intake and narrow write-back against real
-APIs. Under `de-risk-intent`'s own rule, no experiment is manufactured for a
+APIs. Under `intent de-risk`'s own rule, no experiment is manufactured for a
 cheap reversible bet.
 
 ## Riskiest assumption
@@ -439,7 +440,7 @@ validation_hook:
 
 **Four feature children**, cut by the job each makes possible rather than by
 pack, layer or provider. Each carries a `Parent intent:` back-link here and
-re-enters the loop at `frame-intent`. All four are Accepted, de-risked
+re-enters the loop at `intent frame`. All four are Accepted, de-risked
 and decomposed — the first three into delivery briefs, the fourth into a
 single delivery contract.
 
@@ -466,7 +467,7 @@ single delivery contract.
 
 ### Decompose ran before de-risk
 
-`decompose-intent`'s first entry condition is that the riskiest assumption has
+`intent decompose`'s first entry condition is that the riskiest assumption has
 survived. The children were created on 2026-09-23 while this intent carried
 `De-risked: no`; the de-risk ran afterwards the same day and survived. The
 order was wrong and the outcome was lucky — a killed bet would have left three
@@ -479,7 +480,7 @@ later reader does not infer the gate was met when it was not.
   are **provider variants inside each child**, not children of their own. A
   per-provider cut was considered and rejected: the three would be the same
   product bet tested three times, so a green result on one would stand in for
-  the others, and `decompose-intent` refuses a cut by component when the bet is
+  the others, and `intent decompose` refuses a cut by component when the bet is
   shared. That the code will have provider-specific adapters is an
   implementation fact and is not a reason to cut here. The cut does not forbid
   shipping one provider first — sequencing inside a child is that child's to
@@ -513,7 +514,7 @@ later reader does not infer the gate was met when it was not.
   label, sprint or board — to a spec, a Draft brief, linked cross-repository
   briefs, separate units, or a defect. The
   [pm-intakes-from-tracker journey](../journeys/pm-intakes-from-tracker.md)
-  documents that end to end. `frame-intent` likewise authors an intent from
+  documents that end to end. `intent frame` likewise authors an intent from
   whatever prose it is given, and `intake-intent` admits it. So an organisation
   that works tracker-first can already get its work shaped into canonical
   repository artifacts today.
@@ -537,7 +538,7 @@ later reader does not infer the gate was met when it was not.
 
   **One thing stays out on a mechanism argument.** A de-risk record does not go
   into a tracker field. Predeclaration is the load-bearing guard of
-  `de-risk-intent`, and a mutable description cannot evidence that a kill
+  `intent de-risk`, and a mutable description cannot evidence that a kill
   condition was written *before* the result; ADR-0077 D11 already makes
   conflict decisions append-only for the same reason. Run the de-risk from a
   tracker-side conversation if that suits the team, and keep its record in the
@@ -549,7 +550,7 @@ later reader does not infer the gate was met when it was not.
 - **2026-09-23 — the order below is dependency, not priority.** The working view
   first, because the other two read work it makes intent-backed. Flow second,
   because the review reads its observations. No ranking rubric was applied;
-  dependencies already order the three, which is `decompose-intent`'s own reason
+  dependencies already order the three, which is `intent decompose`'s own reason
   to skip the optional ranking step.
 
 ## Source

@@ -193,6 +193,30 @@ Slice 2 of the delivery brief records here that each dependency-edge behavior ei
 
 Slice 9 of the delivery brief completes the closure checklist here.
 
+### Closure checklist
+
+The four gates are RFC-0105 D3's. Each slice 9 item is the brief's. A row reads `done` only where its evidence resolves in the tree. The maintainer's certification is not recorded here; § Certification stays empty until the maintainer writes it.
+
+| Item | State | Evidence | Owner of what is open |
+| --- | --- | --- | --- |
+| Gate 1, consumer inventory | done | `inventory.toml` holds 663 rows; `tests/roster/test_workspace_retirement_inventory.py` runs on every pull request | none |
+| Gate 2, state disposition | done | § Disposition names a home and an owner for every fact; AC-0011 to AC-0016 pass | none |
+| Gate 3, behavioral equivalence | recorded, not certified | § Equivalence holds rows for the slices that changed behavior, and the verification ledgers of `last-registry-entries` and `repair-only-workspace-status` hold the final replays | Platform Core maintainer judges completeness at certification |
+| Gate 4, compatibility closure | open | the rows below | slice 9 |
+| Stop registering tracker-origin work | done | `tracker-origin-registration-stop`, `core` 4.0.1 | none |
+| Retire `close-work`'s registry field | done | `pre-cutover-closure`, `core` 4.0.2 | none |
+| Re-own the inventory rows slices 2 to 8 owned | done | `pre-cutover-closure`: 10 became `historical`, 9 moved to slice 9 | none |
+| Draft the upgrade notes | done | [`notes/upgrade-notes.md`](notes/upgrade-notes.md), which replaces the earlier draft in `pre-cutover-closure` | none |
+| Move the engine rules dispatch needs into `work-loop` | done | `repair-only-workspace-status`, `core` 4.0.10 | none |
+| Shrink `workspace-status` to the repair | done | the same spec: `workspace-status` keeps `repair-plan` and `repair-apply` | none |
+| Remove the legacy registry entries and re-point the spec-status lint anchors | done | `last-registry-entries`, `core` 4.0.5 | none |
+| Give `[authorization.refresh]` and `[authorization.migration]` a home | done | refresh policy moves to `.work-intake.toml` (`last-registry-entries`); `[authorization.migration]` is retired (`repair-only-workspace-status`) | none |
+| Publish the upgrade notes | open | the draft above is unpublished | eugenelim, Approver |
+| Move seeds, manifests, guides and operative references | open | 342 inventory rows still name slice 9 as owner: 113 `contract`, 92 `fixture`, 80 `guide`, 22 `projection`, 16 `promise`, 9 `reader`, 7 `writer`, 3 `seed` | slice 9 |
+| Pass the activation and corpus gates | open | no run is recorded here | slice 9 |
+| Record the certification in this spec and the retiring change | open | § Certification is empty | Platform Core maintainer |
+| Delete `workspace.toml` | open | the registry file is still tracked and still holds initiative tables; it is deleted only after certification and with the maintainer's confirmation | Platform Core maintainer |
+
 - **Tracker-origin registration (2026-10-30).** The [`tracker-origin-registration-stop`](../tracker-origin-registration-stop/spec.md) spec ends the last registration: a tracker-origin intent, brief or spec carries its tracker profile in its `source-authority` record, refresh reads it there, and no writer adds a `workspace.toml` entry. Adopters move existing entries with the `workspace-status` `tracker-entry-drop` repair. On this repository the repair plan held 0 `tracker-entry-drop` operations and 0 tracker-origin manual items, recorded in that spec's [verification ledger](../tracker-origin-registration-stop/notes/verification-ledger.md).
 - **Pre-cutover closure (2026-10-30).** The [`pre-cutover-closure`](../pre-cutover-closure/spec.md) spec finishes the items before the execution-supervisor cutover. `close-work`'s closure packet carries no `workspace_registration` field and `check_ancestor_closure` takes no registry lookup. Of the 19 inventory rows slices 2 to 8 owned, 10 are now `historical` rows with owner `none` (the nine shipped slice 2 to 8 spec directories and `FEAT-0002`) and 9 are re-owned to slice 9, each naming the after-cutover item that ends it; the inventory check refuses a numbered owner other than the brief's last slice. The adopter upgrade notes are drafted, unpublished, at `docs/specs/pre-cutover-closure/notes/upgrade-notes.md`.
 - **Last registry entries (2026-10-31).** The [`last-registry-entries`](../last-registry-entries/spec.md) spec removes the work entries that remained: the `workspace-status` `captured-entry-drop` repair drops each captured-item membership and slug-only legacy entry whose captured-item file it can read, after `needs-to-header` moves an entry's legacy string `needs` into that file's `Depends on:` header. Refresh reads its role policy from `.work-intake.toml`, binds that file's digest as `policy_digest`, and no longer reads `workspace.toml`; the `refresh-policy-move` repair moves an existing `[authorization.refresh]` table there. Deferral anchors resolve through captured-item files. On this repository one run held 71 `captured-entry-drop` operations, 3 `needs-to-header` operations, 0 `refresh-policy-move` operations and 1 manual item, applied all 74 operations, and left dispatch's ready, active, blocked and decision unchanged, recorded in that spec's [verification ledger](../last-registry-entries/notes/verification-ledger.md).

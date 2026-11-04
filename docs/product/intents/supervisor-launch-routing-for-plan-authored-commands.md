@@ -56,11 +56,10 @@ the child's import surface is writable by the launched code:
   `HOME` prefixes a normal repository path and the hardened helper parses git's
   stdout everywhere, so git's own paths would come back rewritten before the
   supervisor read them. And the helper's stdin-bearing calls — `cat-file
-  --batch` in `_supervisor_attempt.py`, and four in `_supervisor_commit.py` —
+  --batch` in `_supervisor_attempt.py`, and six in `_supervisor_commit.py` —
   have no route, because the launch record fixes `stdin_mode` to closed and
   stdin bytes are themselves redacted from the output.
-- Includes the three live obstacles any design must clear: three copies of
-  `_process_safety.validate_process_spec_dict` refuse an unknown spec key; the
+- Includes the three live obstacles any design must clear: `_process_safety.validate_process_spec_dict` — the pack source and its two self-host mirrors — refuses an unknown spec key; the
   schema sets `additionalProperties: false`; and
   `tests/roster/test_security_primitives_schema_parity.py` builds its fixture
   without the new field, so it stays green whether the field exists or not.

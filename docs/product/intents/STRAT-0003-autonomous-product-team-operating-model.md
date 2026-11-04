@@ -20,7 +20,7 @@
 - **Functional job:** Take a product outcome through journey, screen, service and contract to something buildable, inside one operating model rather than across a handoff.
 - **Emotional job:** Contribute at your own altitude without becoming a bottleneck or a translator for someone else's.
 - **Social job:** Show that product and design work is first-class in an agentic delivery model rather than upstream commentary on it.
-- **Struggling moment:** The catalogue can build downstream of a spec but cannot act as a product team upstream of one. Nothing turns an outcome into a journey, a journey into a screen inventory, or a screen into its backing service — so every non-engineering layer's output stops at prose and waits for an engineer.
+- **Struggling moment:** The catalogue now carries skills for each upstream step — `journey-mapping`, `user-flow`, `information-architecture`, `service-blueprint` (experience-design) and `component-contract` (frontend-engineering) — under a shared Digital Experience Contract, but nothing shows that one non-engineering layer's output is acted on by the layer below without an engineer translating it. The unproven part is that composition, not the existence of the skills.
 
 ## Owner
 
@@ -47,7 +47,7 @@ Excludes the engineering loops themselves ([Platform Core](STRAT-0002-platform-c
 - A risk-calibrated gate ladder is applied honestly rather than collapsing to the lowest tier under delivery pressure. **Untested.**
 - **Knowledge surface:** in-repo doc set. Extracted 2026-09-18 from [RFC-0048](../../rfc/0048-autonomous-product-team-operating-model.md), Accepted, whose four acceptance blockers were discharged 2026-06-30.
 
-**Not de-risked.** Extracted to complete the vision's decomposition, not shaped fresh. Re-enter `frame-intent` → `de-risk-intent` before treating it as a tested bet.
+**Not de-risked.** Extracted to complete the vision's decomposition, not shaped fresh. Re-enter `intent frame` → `intent de-risk` before treating it as a tested bet.
 
 ## Source
 

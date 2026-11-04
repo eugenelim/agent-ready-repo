@@ -1,8 +1,10 @@
 # Decision navigation
 
 - **Slug:** `decision-navigation`
-- **Status:** Accepted
+- **Status:** Fulfilled
 - **Accepted:** 2026-10-02 owner ratification
+- **Fulfilled:** 2026-11-04 eugenelim: the one descendant, spec decision-navigation, is Shipped per close-work's closure check (verdict eligible; terminus spec, all descendants terminal); `navigate-decisions` ships in `packs/repo-governance` with the `query` (summary, search, record, lineage, context), `export` (self-contained read-only HTML with a 100 MiB budget and a bounded representation) and `health` operations in `navigate_decisions.py` and `explorer.py`; no `rfc-status` skill remains under `packs/`; `docs/architecture/decision-graph.md` records the shipped surface.
+- **Decomposed:** 2026-10-02 spec
 - **Level:** feature
 - **Owner:** Platform Core maintainer
 - **Scale:** app

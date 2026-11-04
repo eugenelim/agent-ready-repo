@@ -36,8 +36,9 @@ later decision.
 surface entirely, on the reasoning that it is "worth having only if the
 degradation is repaired first". That set the bar in the wrong place. Claude
 plugins carry **skills on all three surfaces**, and skills are what carry the
-method; the degradation is confined to sub-agents, affecting five of fifteen
-published packs. Deferring a surface where the primary primitive works in
+method; the degradation is confined to sub-agents, affecting six of sixteen
+published packs (five when this intent was framed; `code-intelligence` joined the
+roster on 2026-09-29). Deferring a surface where the primary primitive works in
 order to wait on a secondary one costs more than it protects.
 
 *What admitting it trades, stated plainly.* On the chat surface a reader using

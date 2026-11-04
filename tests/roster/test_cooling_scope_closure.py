@@ -363,7 +363,7 @@ def test_ac15_skill_drops_authoritative_queue_claim() -> None:
 
 
 def test_ac25_wave_ownership_statements_survive() -> None:
-    """AC25: the three wave-ownership statements survive unchanged."""
+    """AC25: the repair-verb and cooling-independence statements survive."""
     normalized = " ".join(
         (
             ROOT / "docs/architecture/work-intake-and-artifact-routing.md"
@@ -371,16 +371,16 @@ def test_ac25_wave_ownership_statements_survive() -> None:
     )
 
     for statement in (
-        "Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine",
-        "Wave 6 has shipped ordinary-context exclusion",
-        "Wave 7 owns historical migration and pruning behavior",
+        "`workspace-status` has two verbs, `repair-plan` and `repair-apply`",
+        "`prune`, `retirement-candidates`, and `repair-rollback` have no replacement",
+        "Terminal status and artifact retention are independent",
     ):
         assert statement in normalized, statement
     assert "Wave 6 and 7 own ordinary-context exclusion" not in normalized
 
 
-def test_ac26_architecture_names_four_wave_slices() -> None:
-    """AC26: the architecture surface names all four Wave 7 slices."""
+def test_ac26_architecture_names_cooling_record_and_writer() -> None:
+    """AC26: the architecture surface names the cooling record and its writer."""
     normalized = " ".join(
         (
             ROOT / "docs/architecture/work-intake-and-artifact-routing.md"
@@ -388,10 +388,9 @@ def test_ac26_architecture_names_four_wave_slices() -> None:
     )
 
     for statement in (
-        "Wave 7a-i closes cooling scope",
-        "Wave 7a-ii projects the completion receipt",
-        "Wave 7b classifies history",
-        "Wave 7c prunes proven-eligible artifacts",
+        "Cooling lifecycle record",
+        "`close-work` (sole writer)",
+        "cooling or deletion policy never substitutes for `Shipped`",
     ):
         assert statement in normalized, statement
 

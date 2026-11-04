@@ -18,7 +18,7 @@ JavaScript is absent from the configured Semgrep and CodeQL coverage, while Code
 ### sast-javascript-coverage
 
 - **Authority:** [spec/pack-script-root-boundary-validation](../../specs/pack-script-root-boundary-validation/spec.md)
-- Shipped JavaScript is not scanned by any of the three scanners. Semgrep runs only `p/python` and `p/security-audit`, and `codeql.yml` configures only `languages: python`.
+- Shipped JavaScript is not scanned by any of the three scanners. Semgrep runs only `p/python`, `p/security-audit`, and the local `tools/semgrep/` rules, and `codeql.yml` configures only `languages: python`.
 - Add JavaScript security rulesets to the Semgrep gate configuration and add `javascript-typescript` to `codeql.yml` languages.
 - Triage and fix the findings that both changes turn on.
 
@@ -26,7 +26,7 @@ JavaScript is absent from the configured Semgrep and CodeQL coverage, while Code
 
 - **Authority:** [spec/pack-script-root-boundary-validation](../../specs/pack-script-root-boundary-validation/spec.md)
 - Make the CodeQL check required in branch protection so interprocedural taint findings block a merge instead of only annotating it.
-- `Makefile` line 272 records that CodeQL is not a required check on `main`, but branch-protection and ruleset requirements are remote GitHub state.
+- The `Makefile` comment beside `SEMGREP_EXCLUDE` records that CodeQL is not a required check on `main`, but branch-protection and ruleset requirements are remote GitHub state.
 
 ## Assumptions
 

@@ -26,6 +26,17 @@
   consequence-bound blocking already measured and killed in
   [work-loop review economics](work-loop-review-economics.md).
 
+## State of the parts, 2026-11-04
+
+- **Delivered:** the ladder lives in work-loop's DECIDE step
+  (`finding-response-receptacle`, Shipped). `shaping-reviewer` carries the
+  settled-decision rule, and the intent, brief and spec shaping surfaces point at
+  DECIDE (`fd6d1687f`, 2026-09-13).
+- **Open:** the other pack reviewers, whose own finding-response prose is not
+  inventoried; the grounding probes on intent and brief authoring (none of the
+  shaping skills' `SKILL.md` files invokes `repository-grounding` today); and whether
+  `finding-adjudicator` is handed prior rounds' refutations.
+
 ## Opportunity
 
 A6 established that the eight responses to a sustained finding — repair, narrow

@@ -21,6 +21,13 @@ catch a defect on its first run.
 
 **The shape: three layers, with a model in only one.**
 
+**Current state, 2026-11-04.** The phase names `SPEC-PLAN-DRAFTING`,
+`SPEC-PLAN-REVIEW` and `SPEC-PLAN-APPROVED` below belong to the phase engine
+that Core 4.0.0 removed ([ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)).
+The supervisor's `stage` (`STAGES` in `_supervisor_journal.py`) covers a spec-backed
+delivery run. Spec authoring runs before a run exists, so it has no stage to key
+on, and the `spec-author-agent` brief owns choosing its key.
+
 **1. Teach.** Policy families are data in a skill directory, which projects to
 every host with no special handling — `evals/evals.json` is the existing proof.
 Selection is keyed to **the supervisor's `stage`** (`admitted`, `implementing`,
@@ -310,7 +317,7 @@ what**, not by dependency alone.
    - **Implementation had no dispatch envelope.** The implementer ran only on
      the parallel path, which is disabled — `dispatch-decision`, the `worktree`
      verbs and `auto-parallel` exit non-zero
-     (`work-loop/references/supervisor-mode.md:3`, still current). Sequential
+     (`work-loop/references/supervisor-mode.md`, "Dispatch is sequential", still current). Sequential
      work ran inside the skill, so there was no brief to inline a module into,
      and the two inlining precedents — `cloud-implementation-craft` and
      `operational-safety` — sat on a dormant path. **U1 closed this:**

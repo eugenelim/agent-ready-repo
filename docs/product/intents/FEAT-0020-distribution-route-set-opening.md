@@ -20,7 +20,7 @@ refused, and every path-shaped value that becomes free-form confined.
 
 `contracts/distribution-routes.schema.json` declares `route.additionalProperties`
 as `false` and `route.required` as exactly the three shipped routes, and
-`build/main.py:1297` validates the contract against the bundled copy. A fourth
+`build/main.py` validates the contract against the bundled copy of the schema. A fourth
 route therefore cannot reach the resolver, so no test can prove the dispatch layer
 is generic against a route that does not already exist — genericity is currently
 provable only by the absence of route-name branches, not by adding a route.

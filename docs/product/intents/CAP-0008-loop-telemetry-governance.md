@@ -24,9 +24,10 @@
 
 ## Boundary
 
-This capability owns two decisions created by the shipped loop integration:
-the remaining AC-0031 contract correction and reconciliation of the future
-INI-005 event vocabulary with the envelope the loop can actually emit.
+This capability owns the reconciliation of the future INI-005 event vocabulary
+with the envelope the loop can actually emit. The second decision it was framed
+around, the AC-0031 contract correction, is closed: FEAT-0016 is withdrawn with
+the verification ledger as the durable account.
 
 It does not own the separately installed sender, sender resume or bounds,
 effective-configuration diagnostics, a durable base-freshness-waiver marker,
@@ -42,8 +43,8 @@ The two unshaped ideas remain outside this tree until each earns an intent.
 
 ## Decomposition
 
-Implementation order closes the bounded repository contract question before
-reconciling the later ecosystem vocabulary.
+The bounded repository contract question is closed. The ecosystem vocabulary is
+the one live child.
 
-1. **Contract accuracy** — [FEAT-0016: Loop telemetry contract correction](FEAT-0016-loop-telemetry-contract-corrections.md)
+1. **Contract accuracy** — [FEAT-0016: Loop telemetry contract correction](FEAT-0016-loop-telemetry-contract-corrections.md) (withdrawn; decision recorded there)
 2. **Vocabulary** — [FEAT-0015: Loop telemetry event vocabulary](FEAT-0015-loop-telemetry-event-vocabulary.md)

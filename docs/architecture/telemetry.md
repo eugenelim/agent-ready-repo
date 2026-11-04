@@ -1,5 +1,13 @@
 # Telemetry
 
+The work-loop supervisor writes one ten-field JSON line per step to a local,
+gitignored file, and nothing in a pack can send it anywhere. Sending belongs to
+`jsonl-otlp-exporter`, a distribution an adopter installs on purpose and
+configures with an endpoint of their own.
+
+A pack records what its own code did.
+It cannot record what the model did, so token use and cost are not here.
+
 ## 1. Purpose and boundary
 
 A pack records what its own execution did, so an operator can see where a run
@@ -8,10 +16,13 @@ sending anything anywhere is a separate, separately installed component.
 
 This spans several parts of the system rather than belonging to one. The code
 that records sits in a pack. The settings come through the catalogue and the
-installer. What reads the result is a distribution an adopter installs on
-purpose, never a pack. One line
-divides what is possible from what is not. **A pack records what its own
-code did. It cannot record what the model did**, because the tool running the
+installer.
+
+What reads the result is a distribution an adopter installs on
+purpose, never a pack. One line divides what is possible from what is not. **A pack records what its own
+code did.
+
+It cannot record what the model did**, because the tool running the
 session makes the model call and a pack never sees the reply.
 
 Out of scope: the supervisor procedure these events describe ([execution
@@ -23,13 +34,14 @@ the runtime and is described in § 4.
 
 The work-loop supervisor, `work-supervisor.py`, is the only writer. It adds one
 JSON line to `.loop-run/events.jsonl` for each supervisor step, that is, each
-commit the supervisor makes. That file sits at the repository root, is
+commit the supervisor makes.[^1] That file sits at the repository root, is
 gitignored, and is not meant to last. Light mode runs no supervisor, so it
 writes no lines.
 
-A sender exists, and it is not part of any pack. `jsonl-otlp-exporter` is
+The sender is not part of any pack. `jsonl-otlp-exporter` is
 **separately installed**, and it
 sends nothing until an endpoint is configured.
+
 Nothing an adopter installs from this catalogue can transmit, because the thing
 that transmits is a separate distribution they choose to install. § 5.2 owns why
 that is structural rather than a setting.
@@ -44,7 +56,9 @@ that is structural rather than a setting.
 The event file is a projection, not a record. The supervisor derives each line
 from its own commits, so the lines and the commits cannot disagree for long:
 when an append is lost, the next supervisor call that can read and write the
-file adds the missing lines, matched by `step_id`. What a step decided, and the
+file adds the missing lines, matched by `step_id`.
+
+What a step decided, and the
 evidence behind it, lives in the spec's committed `delivery/` records and the
 commit itself. The line carries *when* and *which step*; the commit carries
 *what*.
@@ -60,6 +74,7 @@ instrumentation, off until `CLAUDE_CODE_ENABLE_TELEMETRY` is set, with
 independent exporters for metrics, logs and traces. It emits
 `claude_code.token.usage` and `claude_code.cost.usage`, and its
 `claude_code.api_request` event always carries model, cost, tokens and duration.
+
 An administrator can fix all of it through managed settings, which lock the
 destination and drop conflicting developer variables. Token counts are recorded
 when the API response returns usage, so an aborted request carries none.
@@ -67,13 +82,14 @@ when the API response returns usage, so an aborted request carries none.
 A pack cannot reach any of that. Skills run as subprocesses of the CLI and never
 see the API response envelope; hook payloads carry no usage either.
 
-**So a pack cannot see token use. That is settled, not postponed.** No field or
-flag will supply it, because the number is not visible from where this code
-runs. If someone proposes adding one, this paragraph is the answer.
+**A pack cannot see token use.** No field or flag can supply it, because the
+number is not visible from where this code runs.
 
 So the rule is **match them up, never copy them**: send both to the same place
 and line them up there, rather than teaching this code to guess a number it
-cannot see. The two carry different things about people. The tool's records
+cannot see. The two carry different things about people.
+
+The tool's records
 include a user id, an email address and an organisation id; these lines carry a
 run identifier and a spec path and name nobody. Putting them on one screen puts
 both in front of whoever is looking, so that is a choice someone should make on
@@ -85,7 +101,7 @@ purpose.
 
 Each line carries ten fields: the seven that identify the step (`seq`,
 `run_id`, `spec`, `from`, `event`, `to`, `at`), the envelope version
-(`schema`), `awaiting_input`, and `step_id`.
+(`schema`), `awaiting_input`, and `step_id`.[^2]
 
 Three rules govern the shape.
 
@@ -98,7 +114,7 @@ Three rules govern the shape.
   `terminal`.
 - **`awaiting_input` and `step_id` say where the run stands.**
   `awaiting_input` is true exactly when the step leaves the run waiting on a
-  human. `step_id` names the supervisor commit the line was derived from, so a
+  human.[^3] `step_id` names the supervisor commit the line was derived from, so a
   reader can match a line to its commit. Retry counts and caps are not on the
   line; `work-supervisor.py status --json` reports them.
 
@@ -112,9 +128,8 @@ service — is not part of the code that writes them. The pack writes a file.
 Anything that sends is a separate piece of software, and it decides separately
 what it is allowed to send.
 
-That separate piece of software now exists — `jsonl-otlp-exporter`, installed
-deliberately and never by a pack. Three things were decided before it was built,
-and it follows all three. The [standards survey](../product/research/agent-loop-otel-envelope-survey.md)
+That separate piece of software is `jsonl-otlp-exporter`, installed
+deliberately and never by a pack. It follows three rules. The [standards survey](../product/research/agent-loop-otel-envelope-survey.md)
 and the [vocabulary comparison](../product/research/workflow-lifecycle-vocabulary-comparison-matrix.md)
 carry the evidence.
 
@@ -132,13 +147,14 @@ the thing that sends, nothing can send, whatever any file says.
 
 ### 5.3 How the exporter is configured
 
-Settings use what the repository already has for adopter-owned pack
-configuration. Nothing new was needed.
+Settings use the repository's existing adopter-owned pack configuration.
 
 **The sender reads the layout files itself.** A caller passes
 `--config <repo>/agentbundle-layout.toml` and
 `--user-config <user-root>/agentbundle-layout.toml` — two paths, no parsing —
-and `jsonl-otlp-export` resolves `[telemetry]` from both. Nothing between the
+and `jsonl-otlp-export` resolves `[telemetry]` from both.
+
+Nothing between the
 adopter's file and the sender interprets it, so invoking the sender needs only
 the standard library, which is what lets a hook do it. The sender is never told
 the filename: the caller supplies each path, because a published capability may
@@ -163,7 +179,9 @@ and can never replace a decision they have already made.
 
 **Which scope wins is decided per setting, not per file.** `desk-research`
 reads the user file first, so someone's personal notes folder follows them
-between repositories. Whether to send data off the machine is a team decision
+between repositories.
+
+Whether to send data off the machine is a team decision
 rather than a personal one, so telemetry reads the repository file first
 instead. Same two files, opposite order — said here because you cannot guess
 one from the other.
@@ -181,10 +199,9 @@ This inverts OpenTelemetry's own rule, where a declarative configuration file
 makes `OTEL_*` inert; the inversion is deliberate, because the file here is an
 inherited default rather than an operator's own statement.
 
-> **A catalogue-level default cannot carry an endpoint — for a different reason
-> than it once could not.** The install-time append itself works as of
-> `agentbundle` 0.44.0; see [agentbundle § 7.1](agentbundle.md#71-the-install-time-layout-default).
-> What blocks it now is the value's type. `output_dir` is semantically a
+> **A catalogue-level default cannot carry an endpoint.** The install-time
+> append works; see [agentbundle § 7.1](agentbundle.md#71-the-install-time-layout-default).
+> What blocks an endpoint is the value's type. `output_dir` is semantically a
 > **directory, confined to the scope root**: `_append_layout_section` anchors a
 > relative value under that root and rejects anything resolving outside it. An
 > endpoint URL is not refused by that check — it is silently misread, so
@@ -200,13 +217,16 @@ inherited default rather than an operator's own statement.
 
 Recording never gets in the way. If the event file cannot be read or written,
 the supervisor prints a warning on stderr and the step's outcome is unchanged.
+
 The commit is already made, so the step is not lost. The next call that can
-reach the file appends every missing line. A file past its size bound stays
+reach the file appends every missing line.[^4] A file past its size bound stays
 skipped until an operator rotates it.
 
 Two things follow that are worth knowing. A run killed mid-step shows no line
 for the unfinished step, because a line exists only for a commit. And a refused
-request makes no commit, so it writes no line. In this file alone, a refused
+request makes no commit, so it writes no line.
+
+In this file alone, a refused
 run looks like a stalled one. A refusal that `next` writes also shows in
 `run.json`'s `refusal` field, and `status --check` shows the subset it
 re-derives without committing. Every other refusal shows only in the refused
@@ -218,53 +238,9 @@ These numbers describe a state machine, not a model call. So a general
 monitoring tool suits them better than an LLM-focused one. Those build their
 screens around prompts, tokens, cost and model, and none of that appears here.
 
-**Searching on our own attribute names works with no setup nearly
-everywhere.** Surveyed 2026-09-10 against vendor documentation. This is a
-snapshot, not a maintained list — products rename and change, so confirm
-against the vendor's own docs before relying on a row.
-
-| Backend | Search our names, no setup | Note |
-| --- | --- | --- |
-| Dynatrace | Yes | DQL reads any attribute; OTLP over HTTP only, no gRPC |
-| Splunk Observability Cloud | Yes | Raw traces yes; built-in breakdowns need a tag indexed first |
-| Datadog | Yes | Live search is 15 minutes; older needs a retention filter |
-| Elastic | Yes | Unmapped attributes land under `labels.*` |
-| Azure Monitor | Yes | Reaches `customDimensions`; ingest needs a Collector and Entra auth |
-| Google Cloud Trace | Stored | 1,024 attributes per span; UI filter reach not confirmed |
-| ServiceNow Cloud Observability | Yes | Lightstep heritage, OTel-native |
-| Honeycomb | Yes | No LLM-specific layer to fall outside of |
-| Pydantic Logfire | Yes | OTel-native |
-| Grafana Tempo | Yes | Dedicated columns are a speed-up, not a prerequisite |
-| Jaeger | Yes | Exact match only; a Cassandra backend can be set to stop indexing tags |
-| Chronosphere | Yes | Free to search; 1,000-series cap once made a metric |
-| Sumo Logic | Yes | — |
-| Coralogix | Yes | Mapping to its conventions recommended for built-in views |
-| IBM Instana | Visible | Readable in a trace; not a first-class filter surface |
-| AWS X-Ray | **No** | Metadata is not filterable; annotations are, capped at 50 per trace |
-| Prometheus | **n/a** | Metrics only — not a sink for this shape |
-
-Two things that do not move are worth writing down.
-
-**Searching is cheap; aggregating is where cardinality costs.** Every platform
-that charges or refuses does it at the same boundary — when an attribute
-becomes a metric dimension, not when it is searched. Splunk runs a cardinality
-check before indexing a tag. Chronosphere caps a trace-derived metric at a
-thousand series. Datadog bills custom metrics per name-and-value combination.
-Prometheus advises keeping a metric's cardinality under ten.
-
-**So `run_id` is a search key and never a dimension.** It differs on every run,
-so its range has no bound. Finding one run by it is exactly its job. Grouping
-by it turns every run into its own series, which is the shape all four of those
-limits exist to stop. Anything counting runs groups by spec, which is bounded.
-
-**Prometheus is not a sink for this at all.** It stores numbered samples
-against labels, with no model for an event or a bag of attributes — its OTLP
-endpoint takes metrics only. These lines would have to become counts and
-histograms first, losing the timestamps, the identifiers, and every attribute
-not named as a dimension. It also refuses a sample older than the newest in its
-series, so replaying a recorded log is the case it least supports. It can hold
-aggregates derived from these lines; that is a different job from storing them.
-
+Which backends can search the line's attribute names, and why `run_id` is a
+search key and never a dimension, are in
+[telemetry backends § 1](telemetry-backends.md#1-which-backends-can-search-the-attribute-names).
 
 ### 7.1 What these numbers can and cannot tell you
 
@@ -275,16 +251,17 @@ answers are already written down — does the skill trigger on the prompts it
 should, is the output good, does the procedure handle a known case. Having the
 right answer to hand is what lets those checks pass or fail a release.
 
-**While real work runs**, there is no right answer to compare against. If we
-knew what the run should produce, we would not need the run. So the questions
-change shape: is this run unlike the others, has the loop got worse since we
-changed something, did a change help, is a run in trouble right now, and where
-did the time go.
+**While real work runs**, there is no right answer to compare against: a run
+exists because its output is not known in advance. The questions change shape:
+is this run unlike the others, has the loop got worse since a change, did a
+change help, is a run in trouble, and where did the time go.
 
 That last one is the cost handle. Time spent waiting for a person costs
 nothing; time spent implementing or reviewing costs tokens. The lines cannot
-separate the two. `awaiting_input` is true only on a step that leaves the run
-`awaiting-human` — today an effect `resolution`, and a `replan` straight after
+separate the two.
+
+`awaiting_input` is true only on a step that leaves the run
+`awaiting-human` — an effect `resolution`, and a `replan` straight after
 one. Issuing a `human-decision` commits nothing, and its answer commits as
 `review` or `replan`, so most waits for a person leave no marked line. The line
 carries no duration of its own, so any duration is a difference between two
@@ -297,15 +274,21 @@ examples, by the gates, and by people reading it.
 **On comparing the path a run took.** Scoring a path means comparing it to the
 path it should have taken, which again needs an answer written in advance. At
 run time there is none — and two things make the comparison pointless here
-anyway. The state machine already refuses a step that is not allowed, so a run
+anyway.
+
+The state machine already refuses a step that is not allowed, so a run
 cannot take an invalid path. And several different paths are equally right,
 because going back to fix something is a designed part of the loop, not a
 mistake. What the numbers do support is *describing* paths: how often runs
-replan or return to `implementing`, how rounds spread out. That tells you about the set of runs
+replan or return to `implementing`, how rounds spread out.
+
+That tells you about the set of runs
 and points at an odd one. It does not mark any run pass or fail.
 
 **Do not tune against these.** Push an automated loop to improve a number and
-it will improve the number rather than the work. This loop is driven by an
+it will improve the number rather than the work.
+
+This loop is driven by an
 agent that can read its own measurements in this repository. They are here to
 help someone work out what happened.
 
@@ -349,6 +332,7 @@ help someone work out what happened.
   — why the domain vocabulary is ours and which shapes were borrowed.
 - [Execution supervisor](work-loop-execution-supervisor.md) — the supervisor
   procedure these events describe.
+- [Telemetry backends](telemetry-backends.md) — backend search support and the OTLP encoding boundary.
 - [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) — D10 makes the
   supervisor the only producer of this file, in the same envelope.
 - [`agentbundle` § 7.1](agentbundle.md#71-the-install-time-layout-default)
@@ -371,124 +355,46 @@ help someone work out what happened.
 
 ## 10. Getting these lines to a backend
 
-The sender is `jsonl-otlp-exporter` (§ 2). This section records what was
-measured before and while it was built, so an operator wiring up a backend does
-not re-derive it. Measured 2026-09-12 unless stated.
-
-### 10.1 Send to a Collector, never to a vendor endpoint
-
-This is the decision everything else follows from. A Collector accepts
-OTLP/HTTP with `Content-Type: application/json` on its `otlp` receiver with no
-configuration, auto-detecting from the content type. Vendors do not agree with
-each other: Splunk's own OTLP endpoint requires `application/x-protobuf` and
-answers JSON with **HTTP 415**, Elastic documents `proto` as its only encoding,
-and Axiom refuses JSON on `/v1/metrics`. One Collector hop makes all of that
-somebody else's problem and lets a sender speak one encoding.
-
-Splunk's own documentation agrees, for its own reasons: *send to the Collector
-you deployed* rather than to the backend, for one auth configuration point,
-batching, and infrastructure metadata.
-
-### 10.2 What a Splunk Observability team does next
-
-Two facts decide the shape, and the second surprises people.
-
-**These lines are logs, not spans.** They describe supervisor steps in time
-order, which looks span-like, but nothing converts a file of events into
-spans: the Collector's `filelog` receiver produces log records, the `transform`
-processor cannot cross signal types, and the contrib request to add a
-log-to-span path has been open since 2021 without an implementation.
-
-**Splunk Observability Cloud does not store logs.** Logs live in Splunk
-Platform — Enterprise or Cloud — and Log Observer Connect surfaces them inside
-the Observability Cloud UI. So the route is:
-
-```
-work-loop → .loop-run/events.jsonl → sender (OTLP/HTTP JSON)
-          → OTel Collector (otlp receiver)
-          → splunk_hec exporter → Splunk Platform HEC
-          → Log Observer Connect → visible beside APM
-```
-
-Concretely, the team needs: a Collector reachable from the developer machine or
-CI runner; a Splunk Platform HEC token and endpoint on the `splunk_hec`
-exporter; and Log Observer Connect configured if these should appear next to
-APM traces. An Observability Cloud ingest token is **not** what this needs —
-that is the trace/metric path.
-
-Two Splunk-specific requirements:
-
-- **Set `service.name`.** Splunk's GDI specification makes it a MUST; without it
-  a service reads as `unknown_service`.
-- **Do not index `run_id`.** Splunk APM runs a cardinality contribution analysis
-  against your entitlement before permitting a tag to be indexed, and its own
-  guidance is that high-cardinality ID tags belong in full-fidelity search
-  instead. Unindexed attributes stay searchable in raw records; they just do not
-  drive built-in breakdowns. This is § 7's rule, confirmed against the one
-  vendor that enforces it at a documented gate.
-
-### 10.3 The encoding boundary, measured
-
-Run against `otel/opentelemetry-collector-contrib` with an `otlp` receiver and a
-`debug` exporter, posting from `urllib.request`. This corrects a widely repeated
-claim that a malformed OTLP payload is silently discarded.
-
-| Payload variant | HTTP | Record ingested |
-| --- | --- | --- |
-| Conformant | 200 | yes |
-| `timeUnixNano` as a JSON number, not a quoted string | 200 | yes |
-| `severity_number` — snake_case instead of lowerCamelCase | 200 | yes |
-| Attribute `intValue` as a JSON number | 200 | yes |
-| `traceId` base64-encoded instead of hex | **400** | no |
-| `attributes` as a flat object instead of the `AnyValue` list | **400** | no |
-
-**Structural errors fail loudly.** The two rejections returned HTTP 400 with a
-parser message naming the offending byte. The receiver is tolerant exactly where
-the specification says it must be — 64-bit integers are accepted as string or
-number, and proto3 JSON accepts both the original field name and its
-lowerCamelCase form.
-
-So only two emission rules are load-bearing for acceptance: identifier fields
-are **hex**, not base64, and attributes use the `AnyValue` wrapper list. The
-remaining conventions are worth following for portability across receivers, but
-a violation is not what breaks ingestion here.
-
-What a 200 still cannot tell you is whether the data is *right*. A payload with
-correct structure and wrong attribute names is accepted and stored — the failure
-mode is wrong data, not absent data. That is what the round trip checks and a
-response assertion cannot.
-
-### 10.4 Two standing constraints on any sender
-
-**Off is off.** Sending is a second, separate yes (§ 5.2) — but "off unless an
-endpoint is configured" is a behaviour guarantee, not consent. A capability the
-adopter is never told about obtains no informed agreement either way. Any sender
-ships with its documentation stating that the capability exists, what it
-carries, and where it goes, while it sends nothing.
-
-**The wire format is stable, not frozen.** OTLP/JSON has been stable since
-`opentelemetry-proto` 0.20.0 (June 2023), and has still taken format-affecting
-changes since — v1.10.0 carried breaking JSON changes. Logs are the calmest
-corner of it: the known breaks landed in metrics and in the experimental
-profiles signal. This is why the event line carries a version.
+Send to a Collector, never to a vendor endpoint. The measured encoding boundary,
+the Splunk route, and the standing constraints on any sender are in
+[telemetry backends § 2](telemetry-backends.md#2-getting-these-lines-to-a-backend).
 
 ## 11. Last verified against commit
 
-`7dc7e9231`, re-verified 2026-10-29 for the state after the Core 4.0.0 cutover
-removes the phase engine and cohort writer.
+`7dc7e9231`.
 
-**What the re-verification checked.** §§ 2, 3, 5.1, 6, 7.1, and 8 were checked
-against `_supervisor_journal.py` (`reconcile_events`, `_project_events`, and
-`OPERATION_STAGE`) and against `contracts/jsonschema/loop-run-event.schema.json`
-at that commit. The ten-field line and the stage mapping are read from the
-source, not from an emitted line.
-`_supervisor_journal.py` and `_supervisor_loop.py` are unchanged between that
-commit and `ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`, so those checks hold
-there too.
+**Checked against code.** §§ 2, 3, 5.1, 6, 7.1, and 8 match
+`_supervisor_journal.py` (`reconcile_events`, `_project_events`, and
+`OPERATION_STAGE`) and `contracts/jsonschema/loop-run-event.schema.json`.
 
-**Carried forward, not re-checked.** §§ 4, 5.2, 5.3, 7 (the backend table), and
-10 do not depend on which script writes the line. § 10.3 holds on its
+The
+ten-field line and the stage mapping are read from the source, not from an
+emitted line. The same functions were re-read on 2026-11-04 against
+`3fe5f2760` and the line shape is unchanged.
+
+**Carried forward.** §§ 4, 5.2, and 5.3 do not depend on which script writes
+the line.
+
+[Telemetry backends](telemetry-backends.md) § 2.3 holds on its
 2026-09-13 Collector measurement, recorded in `jsonl-otlp-exporter`'s
 [verification ledger](../specs/jsonl-otlp-exporter/notes/verification-ledger.md).
-Whether `jsonl-otlp-exporter` maps the supervisor's line without the optional
-fields it once received was not re-checked here.
+Whether `jsonl-otlp-exporter` maps the supervisor's ten-field line without the
+retired engine's optional fields is unchecked.
+
+## 12. Evidence
+
+[^1]: The only writer is `reconcile_events` and `_project_events` in
+    `packs/core/.apm/skills/work-loop/scripts/_supervisor_journal.py`; the
+    path is `LocalState.events`.
+
+[^2]: The ten keys are `schema`, `seq`, `run_id`, `spec`, `from`, `event`, `to`,
+    `at`, `awaiting_input`, `step_id`, set in `_project_events`;
+    `contracts/jsonschema/loop-run-event.schema.json` is the contract.
+
+[^3]: `from` and `to` come from `OPERATION_STAGE` and `STAGES`; `awaiting_input`
+    is `stage == "awaiting-human"`, and only `resolution` maps there.
+
+[^4]: Advisory failure handling is the `advisory` tuple in `reconcile_events`.
+
+[^5]: Tested disclosure and field-count guards:
+    `tests/roster/test_loop_telemetry_disclosure_contract.py`.

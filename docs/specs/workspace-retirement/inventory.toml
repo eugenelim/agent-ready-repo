@@ -58,6 +58,12 @@ consumer = "the retirement record: names every registry fact and its home"
 owner = "none"
 
 [[row]]
+pattern = "docs/specs/workspace-retirement/notes/upgrade-notes.md"
+class = "record"
+consumer = "the adopter upgrade notes, unpublished: how to run the repair and what no longer works"
+owner = "none"
+
+[[row]]
 pattern = ".workspace-prune-protected.toml"
 class = "fixture"
 consumer = "prune-protection list naming workspace-status spec directories that roster tests cite"
