@@ -58,12 +58,6 @@ consumer = "the retirement record: names every registry fact and its home"
 owner = "none"
 
 [[row]]
-pattern = ".workspace-prune-protected.toml"
-class = "fixture"
-consumer = "prune-protection list naming workspace-status spec directories that roster tests cite"
-owner = 9
-
-[[row]]
 pattern = ".github/workflows/build-check.yml"
 class = "fixture"
 consumer = "CI wiring that runs or names the workspace-status test suites"
