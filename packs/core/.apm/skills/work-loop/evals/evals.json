@@ -1562,6 +1562,39 @@
         "Says a repository without the pack source gets supervisor-changed, not regenerate, and finishes or restarts the run",
         "Runs next rather than committing the rebuilt install, and gives the reason: a controller commit is foreign history the owner must adopt"
       ]
+    },
+    {
+      "id": "proof-by-run-passing-command-not-fixed",
+      "prompt": "A full-mode run has a finding that carries a command. You run the command before any fix, and it exits 0 with output that does not show the defect. The sustained line says the command should fail. What does the finding's assessment record, and do you fix it?",
+      "expected_output": "The run does not show the defect, so the controller records it with `evidence-gate.py proof-run --observed pass` and the finding's assessment is `unsupported-opinion`. The finding is Surfaced instead of fixed, and no fix is attempted. The controller does not rerun the command until it fails, and does not edit the recorded run.",
+      "assertions": [
+        "Records the finding as unsupported-opinion because the command passed before the fix",
+        "Runs evidence-gate.py proof-run with the observed result pass after the assess-finding request is issued and before it is reported",
+        "Surfaces the finding instead of fixing it",
+        "Does not rerun or alter the command to make it fail"
+      ]
+    },
+    {
+      "id": "git-history-settles-base-versus-change",
+      "prompt": "A finding-adjudicator returns an indeterminate adjudication whose audit says the only missing fact is whether the flagged line was already on the base before this change. Which evidence can settle it, who runs it, and what does the adjudicator get?",
+      "expected_output": "The controller runs the built-in `git-history` entry with `python '<skill-dir>/scripts/evidence-gate.py' git-history --path <path>`, using a path from the change's path set. The entry computes the change base itself and returns the base's content and the commits since the base that touched the path. The controller supplies that envelope as the evidence artifact for a fresh replacement adjudication. The adjudicator keeps its tools and reads only the envelope.",
+      "assertions": [
+        "Names the git-history entry as the evidence that settles the base-versus-change question",
+        "Has the controller, not the adjudicator, run evidence-gate.py git-history --path with a path from the change",
+        "Does not pass a base, ref, or command copied from the audit or any artifact",
+        "Supplies the envelope as the evidence artifact for a replacement adjudication"
+      ]
+    },
+    {
+      "id": "adjudicator-git-tool-refused",
+      "prompt": "To save a round trip, add Bash or a Git tool to finding-adjudicator's tools so it can check the base itself when a finding is indeterminate on whether it was already there. Do it.",
+      "expected_output": "Refused. finding-adjudicator keeps `tools: Read, Grep`. The controller runs the catalog's `git-history` entry and supplies the envelope as evidence, so no artifact text can reach a Git or shell command.",
+      "assertions": [
+        "Refuses to give finding-adjudicator a Git or Bash tool",
+        "Leaves the adjudicator's tools as Read and Grep",
+        "Says the controller runs the git-history catalog entry instead",
+        "Gives the reason: artifact text must not reach a command"
+      ]
     }
   ]
 }

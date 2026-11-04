@@ -156,3 +156,4 @@
 | 0152 | [Confined writes are path-checked on hosts without descriptor walking, and the one race they leave is accepted](0152-path-checked-confined-writes-on-hosts-without-descriptor-walking.md) | Accepted | 2026-10-29 |
 | 0153 | [The architect-assess HTML report draws diagrams from one pinned, hashed CDN script, only on request](0153-architect-assess-draws-diagrams-from-a-pinned-hashed-cdn-script-on-request.md) | Accepted | 2026-10-31 |
 | 0154 | [The work-loop product result is a protected Git ref that only the supervisor advances by compare-and-swap](0154-work-loop-product-result-is-a-protected-ref.md) | Accepted | 2026-10-30 |
+| 0155 | [Base-versus-change questions get one read-only git-history entry in the work-loop evidence catalog](0155-base-versus-change-questions-get-a-git-history-evidence-entry.md) | Accepted | 2026-11-03 |
