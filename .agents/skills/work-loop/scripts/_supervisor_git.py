@@ -136,8 +136,13 @@ def _inherited_env() -> dict[str, str]:
     return {name: os.environ[name] for name in names if name in os.environ}
 
 
-def hardened_env(env: Mapping[str, str] | None = None) -> dict[str, str]:
-    """The environment of a helper call; *env* may carry only ``GIT_INDEX_FILE``."""
+def hardened_env(
+    env: Mapping[str, str] | None = None, *, no_lazy_fetch: bool = False
+) -> dict[str, str]:
+    """The environment of a helper call; *env* may carry only ``GIT_INDEX_FILE``.
+
+    *no_lazy_fetch* adds ``GIT_NO_LAZY_FETCH=1``, so Git never fetches a missing object.
+    """
     extra = dict(env or {})
     if not set(extra) <= {"GIT_INDEX_FILE"}:
         raise ValueError("only GIT_INDEX_FILE may be passed to a supervisor git call")
@@ -145,6 +150,7 @@ def hardened_env(env: Mapping[str, str] | None = None) -> dict[str, str]:
         **_inherited_env(),
         "GIT_CONFIG_NOSYSTEM": "1",
         "GIT_CONFIG_GLOBAL": "",
+        **({"GIT_NO_LAZY_FETCH": "1"} if no_lazy_fetch else {}),
         **extra,
     }
 
@@ -202,15 +208,19 @@ def _launch(
 _MINIMUM_GIT = (2, 32)
 
 
-def _require_git_version(cwd: Path | None) -> None:
-    """Refuse a Git too old to honour the helper's config-location variables."""
+def _require_git_version(cwd: Path | None) -> tuple[int, int]:
+    """Refuse a Git too old to honour the helper's config-location variables.
+
+    Returns the ``(major, minor)`` version the one ``version`` launch reported.
+    """
     done = _launch(["git", *_fixed_flags(), "version"], cwd=cwd, env=hardened_env())
     found = re.match(rb"git version (\d+)\.(\d+)", done.stdout)
-    if done.returncode != 0 or found is None or (int(found[1]), int(found[2])) < _MINIMUM_GIT:
+    if found is None or done.returncode != 0 or (int(found[1]), int(found[2])) < _MINIMUM_GIT:
         raise SupervisorGitError(
             "unsupported-git-version",
             "the supervisor needs Git 2.32 or later, which honours GIT_CONFIG_GLOBAL",
         )
+    return int(found[1]), int(found[2])
 
 
 def discover(cwd: Path | None) -> Pins:
@@ -219,7 +229,12 @@ def discover(cwd: Path | None) -> Pins:
     Runs before any directory is pinned, so it cannot pass ``--git-dir``; it
     uses the helper's environment and flags instead.
     """
-    _require_git_version(cwd)
+    return _discover(cwd)[0]
+
+
+def _discover(cwd: Path | None) -> tuple[Pins, tuple[int, int]]:
+    """``discover``, plus the Git version its one ``version`` launch reported."""
+    version = _require_git_version(cwd)
     done = _launch(
         [
             "git",
@@ -237,7 +252,7 @@ def discover(cwd: Path | None) -> Pins:
     if done.returncode != 0 or len(lines) != 4 or not all(lines[:3]):
         raise SupervisorGitError("denied-git-discovery", "run from inside a Git repository")
     root, git_dir, common_dir = (Path(line).resolve() for line in lines[:3])
-    return Pins(root, git_dir, common_dir)
+    return Pins(root, git_dir, common_dir), version
 
 
 # ── config reads that run outside the helper ────────────────────────────────
@@ -385,8 +400,11 @@ def _small_text(path: Path) -> str | None:
 class HardenedGit:
     """The only way the supervisor runs ``git`` against one work tree."""
 
-    def __init__(self, root: Path) -> None:
+    def __init__(self, root: Path, no_lazy_fetch: bool = False) -> None:
         self.root = root
+        # When set, every ``run`` launch carries GIT_NO_LAZY_FETCH=1.
+        self.no_lazy_fetch = no_lazy_fetch
+        self._version: tuple[int, int] | None = None
         # Seam for the open-attempt comparison against the attempt's manifest.
         self.control_check: Callable[[HardenedGit], None] | None = None
         self._pins: Pins | None = None
@@ -400,13 +418,20 @@ class HardenedGit:
     def pins(self) -> Pins:
         """The directories pinned on first use."""
         if self._pins is None:
-            found = discover(self.root)
+            found, self._version = _discover(self.root)
             if not _same(found.root, self.root):
                 raise SupervisorGitError(
                     "denied-git-control-state", "the work tree is not a repository root"
                 )
             self._pins = found
         return self._pins
+
+    @property
+    def git_version(self) -> tuple[int, int]:
+        """The ``(major, minor)`` Git version the pinning launch reported."""
+        _ = self.pins
+        assert self._version is not None
+        return self._version
 
     def verify_control_state(self) -> None:
         """Refuse unless the gitfile and ``commondir`` still resolve to the pinned directories."""
@@ -517,7 +542,7 @@ class HardenedGit:
         literal_pathspecs: bool = False,
     ) -> bytes:
         """Run ``git <args>`` against the pinned directories and return stdout bytes."""
-        environment = hardened_env(env)
+        environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
         self.verify_control_state()
         if args[0] == "update-ref" and _UPDATE_HOOK is not None:
             _UPDATE_HOOK()

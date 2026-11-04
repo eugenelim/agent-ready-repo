@@ -533,6 +533,11 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
             or assessment.get("finding_id") != request["finding_id"]
         ):
             raise Refusal("invalid-result", "controller", "the assessment is not for the request")
+        denial = sibling("_review_assessment.py").check_proof_by_run(
+            assessment, result_lineage(ws, state)[1]
+        )
+        if denial is not None:
+            raise Refusal("review-record-refused", "controller", denial)
         reports = ws.open_evidence().get_semantic_records("review-report.v1")
         source = next(r for r in reports if r["report_id"] == request["report_id"])
         finding = next(f for f in source["findings"] if f["finding_id"] == request["finding_id"])
