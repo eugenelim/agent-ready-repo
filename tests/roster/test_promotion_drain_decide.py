@@ -257,3 +257,29 @@ def test_every_disposition_falls_on_exactly_one_side_of_the_split(git_repo: Path
         assert terminal["disposition"] != "promoted"
     for closure in closures:
         assert closure["terminal_disposition"]["disposition"] in DRAIN.PRUNED_SIDE
+
+
+def test_capped_envelope_run_holds_rather_than_reporting_verified() -> None:
+    # A route whose envelope run was terminated at the wall clock or
+    # truncated at the output cap does not meet § D10's readiness, so the
+    # item is held rather than reported verified (AC-0015).
+    for outcome in ("wall_clock_exceeded", "completed"):
+        envelope = {
+            "outcome": outcome,
+            "exit_status": None if outcome == "wall_clock_exceeded" else 0,
+            "output": "x",
+            "output_truncated": outcome == "completed",
+            "refusal": None,
+        }
+        offer = DRAIN.assemble_offer(
+            _capture(
+                _request("defect", route={"command": ["cat", "big.txt"], "path": "big.txt"})
+            )
+        )
+        offer["envelope_result"] = envelope
+
+        decision = DRAIN.decide(offer, attended=True)
+
+        assert decision["action"] == "hold", outcome
+        assert decision["reason"] == "defect-readiness", outcome
+        assert decision["terminal_disposition"] is None, outcome
