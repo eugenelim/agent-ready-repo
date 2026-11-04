@@ -78,3 +78,8 @@ We will make `spec-approved` and `plan-approved` parked gates: listed, answered 
 - **Derive pending gates from spec and plan statuses, with no `park` record:** rejected against "the human's answer binds to the exact revision they read". A `Draft` spec mid-authoring would list as pending, and nothing records which digests were offered.
 - **A controller-written gates file in the repository:** rejected against "the controller never supplies text the approver reads as fact" and "no run state exists before both approvals". A hand-written file can claim digests the artifacts do not have, and a committed record before `start` is history the supervisor does not own.
 - **Bind with the whole-file canonical digest:** rejected against "the human's answer binds to the exact revision they read". The approver's own Changelog entry would make every approval stale on arrival.
+
+## Errata
+
+- 2026-11-04: D6's "required" means required whenever `start` records an approval pair: a first admission, or a re-approval after an amendment. A `start` that answers `current` for an admitted run neither needs nor compares the digests, because in-envelope plan edits after approval change the plan's gate digest. Owner decision during spec review.
+- 2026-11-04: D3's states also include `invalid`, for a park record that fails its field checks. An entry is `pending` only when the recorded digests equal the gate digests of the files at the recorded commit and of the working-tree files. A well-formed record written outside `park` is in the threat model. Owner decision during spec review.

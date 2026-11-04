@@ -56,9 +56,9 @@ This delivery runs from the installed supervisor copy, which these edits do not 
 
 Owned by: T2, T3, T4. Traces to AC-0001, AC-0009, AC-0010, AC-0015, AC-0016.
 
-- `park <spec-dir> --gate spec-approved|plan-approved` → `{"status": "parked"|"current", "gate", "spec_dir", "spec_digest", "plan_digest", "commit"}`, exit 0; refusals use the existing `{"refusal": {"code", "owner", "detail"}}` shape, exit 1. Codes: `gate-uncommitted`, `gate-status-mismatch`, `gate-already-admitted`, `gate-changelog-shape` (owner `controller` for all four).
+- `park <spec-dir> --gate spec-approved|plan-approved` → `{"status": "parked"|"current", "gate", "spec_dir", "spec_digest", "plan_digest", "commit"}`, exit 0; refusals use the existing `{"refusal": {"code", "owner", "detail"}}` shape, exit 1. Codes, checked in AC-0029's order: `gate-unsafe-path`, `gate-uncommitted`, `gate-already-admitted`, `gate-status-mismatch`, `gate-spec-changed`, `gate-changelog-shape` (owner `controller` for all).
 - `gates` (no positional) → `{"gates": [<entry>, ...]}` sorted by `spec_dir`, exit 0. Entry fields per AC-0009; `state` is `pending`, `stale`, or `invalid`; an `invalid` entry carries `spec_dir` only when the record yields a confined one, else `record` (the file name).
-- `start` gains `--approved-spec-digest <64 hex>` and `--approved-plan-digest <64 hex>`, both required by argparse. A value that is not 64 lowercase hex is a usage error. A mismatch raises `Refusal("approval-digest-mismatch", "owner", ...)` before `import_policy` runs.
+- `start` gains optional argparse arguments `--approved-spec-digest <64 hex>` and `--approved-plan-digest <64 hex>`; a malformed value is a usage error. Whether `start` would record a pair is decided from the committed `approvals.jsonl` at `HEAD` and the derived envelope, intent, and trust, before `reconcile`, `sync`, or `commit_terminal` run: no pair yet, or a latest pair that differs, means it would record. On that path `start` reads `spec.md` and `plan.md` once each, refuses `approval-digest-required`, `gate-changelog-shape`, or `approval-digest-mismatch` from those bytes, and passes the whole-file canonical digests of the same bytes to `import_policy` as `approved_spec_digest` and `approved_plan_digest`. `import_policy` re-reads the files and refuses its existing `denied-spec-digest-mismatch` / `denied-plan-digest-mismatch` when they changed, which is AC-0034's refusal. On the `current` path the arguments are ignored.
 - Consequence text, fixed per gate, lives as constants in `_supervisor_gates.py`. `spec-approved`: approve → "the spec approver writes Status: Approved and the plan Changelog entry; the controller then parks plan-approved"; reject → "the pair returns to Draft and Drafting and is reviewed again"; no-answer → "the gate stays unapproved; the controller dispatches no implementation work for this spec". `plan-approved`: approve → "the plan approver writes Status: Approved and the Changelog entry; the controller runs start with these two digests"; reject and no-answer as above.
 
 ### Data & schema
@@ -66,8 +66,10 @@ Owned by: T2, T3, T4. Traces to AC-0001, AC-0009, AC-0010, AC-0015, AC-0016.
 Owned by: T2, T3. Traces to AC-0001, AC-0006, AC-0013.
 
 - Record path: `<git-dir>/agentbundle-supervisor/gates/<sha256(spec_rel)[:16]>.json`; the `gates` name never matches the run-ID pattern the pin check lists.
-- Record body: canonical JSON (sorted keys) of `{"schema_version": 1, "spec_dir", "gate", "spec_digest", "plan_digest", "commit"}`; no other key is written or accepted. A record is read with `read_confined_regular_file`, capped at 4 KiB; a record failing any field check, or whose `spec_dir` fails `_spec_rel` confinement, is `invalid`.
+- Record body: canonical JSON (sorted keys) of `{"schema_version": 1, "spec_dir", "gate", "spec_digest", "plan_digest", "commit"}`, field shapes per AC-0031. A record is read with `read_confined_regular_file`, capped at 4096 bytes, and `spec_dir` also passes `_spec_rel` confinement.
 - `park` creates with `confined_create` and replaces with `confined_atomic_replace`; `current` is decided by byte equality of the would-be body.
+- `park --gate plan-approved` reads the existing record first and requires its `spec_digest` to equal the live spec gate digest (AC-0030); the replacement keeps that value, so the spec approver's digest survives every later `plan-approved` re-park.
+- For each valid record, `gates` reads `<commit>:<spec-dir>/spec.md` and `plan.md` through `HardenedGit` `show` with literal arguments, computes their gate digests, and compares them and the working-tree gate digests with the record (AC-0011).
 
 ### Behavior & rules
 
@@ -88,7 +90,7 @@ Owned by: T2, T3, T4.
 
 ### Quality attributes (NFRs)
 
-Owned by: T3. `gates` reads each record and two artifacts per record; no Git process is launched per record.
+Owned by: T3. `gates` launches two `git show` reads per valid record and none per invalid record.
 
 ## Tasks
 
@@ -111,7 +113,7 @@ Owned by: T3. `gates` reads each record and two artifacts per record; no Git pro
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`, `.github/workflows/catalogue-tooling-ci-gates.yml`
 
 **Tests:** TDD — integration, through `supervisor_harness.run_cli` on `make_repo` repositories
-- AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, and the `park` half of AC-0025: one test per criterion; AC-0002 snapshots `git for-each-ref`, `git ls-files -s`, `HEAD`, and the working-tree bytes before and after.
+- AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0026, AC-0029, AC-0030, AC-0032: one test per criterion; AC-0002 snapshots `git for-each-ref`, `git ls-files -s`, `HEAD`, and the working-tree bytes before and after; AC-0029 builds inputs that break two rules at once; AC-0030 edits the spec body after `spec-approved` and commits it with `Status: Approved`.
 
 **Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k park` exits 0.
 
@@ -122,7 +124,7 @@ Owned by: T3. `gates` reads each record and two artifacts per record; no Git pro
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`
 
 **Tests:** TDD — integration, as T2
-- AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, and the `gates` half of AC-0025; AC-0013 plants each bad record kind beside one good record; AC-0014 snapshots the store bytes as well as T2's set.
+- AC-0009, AC-0010, AC-0011, AC-0012, AC-0013, AC-0014, AC-0028, AC-0031; AC-0011 includes a planted well-formed record whose digests are the live ones and whose commit is an older revision, which lists `stale`; AC-0013 and AC-0031 plant each bad record kind, including shell metacharacters in `spec_dir` and a non-hex `commit`, beside one good record; AC-0014 snapshots the store bytes as well as T2's set.
 
 **Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k gates` exits 0.
 
@@ -133,8 +135,8 @@ Owned by: T3. `gates` reads each record and two artifacts per record; no Git pro
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/.apm/skills/work-loop/scripts/_supervisor_admission.py`, `packs/core/tests/skills/work-loop/supervisor_harness.py`, `packs/core/tests/skills/work-loop/test_supervisor_*.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`
 
 **Tests:** TDD — integration
-- AC-0015, AC-0016, AC-0017, AC-0018, and the `start` half of AC-0025, in `test_supervisor_parked_gates.py`; AC-0018 runs `start` four times from one repository state with the record present, absent, truncated, and rewritten.
-- `supervisor_harness.start` computes both digests with `_supervisor_gates.gate_digest`; each direct `start` argv in the other suites gains the two arguments.
+- AC-0015, AC-0016, AC-0017, AC-0018, AC-0027, AC-0033, AC-0034 in `test_supervisor_parked_gates.py`; AC-0016 asserts no write on both the first-admission and the re-approval path; AC-0018 runs `start` four times from one repository state with the record present, absent, truncated, and rewritten; AC-0033 admits, makes an in-envelope plan edit, and re-runs `start` three ways; AC-0034 patches the `import_policy` seam to edit `plan.md` after the gate check.
+- `supervisor_harness.start` computes both digests with `_supervisor_gates.gate_digest`; each direct `start` argv in the other suites that records a pair gains the two arguments.
 
 **Done when:** every suite in the supervisor integration lane's file list, plus `test_supervisor_parked_gates.py`, exits 0 under `WORK_SUPERVISOR_INTEGRATION=1`, and the pack lane `python3 -m pytest packs/core/tests/skills/work-loop -q` exits 0.
 
@@ -145,7 +147,7 @@ Owned by: T3. `gates` reads each record and two artifacts per record; no Git pro
 **Touches:** `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`
 
 **Tests:** TDD — integration
-- AC-0019: one test that parks, runs `gates` three times, re-parks, then runs `start` with no digests, with digests from a `stale` entry after a spec edit, and with digests of the pre-edit revision; after each, `approvals.jsonl` is absent and both `Status:` lines equal their parked values.
+- AC-0019: one test that parks, runs `gates` three times, sets `Implementing` and `Executing` with no answer, edits the spec body, commits, and runs `start` with the parked record's digests and with none; after each, `approvals.jsonl` is absent.
 
 **Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python3 -m pytest packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py -q -k never_default` exits 0.
 
@@ -175,11 +177,11 @@ Owned by: T3. `gates` reads each record and two artifacts per record; no Git pro
 
 ## Rollout
 
-Ships in the next core patch. Every controller that calls `start` must pass the two digests after upgrading; the refusal is a usage error naming both arguments. A run already admitted is unaffected until its controller next calls `start`, which then needs the digests of the current pair.
+Ships in the next core patch. Every controller that records an approval with `start` must pass the two digests after upgrading; the refusal `approval-digest-required` names both arguments. A run already admitted answers `current` as before and needs no digests until an amendment asks for re-approval.
 
 ## Risks
 
-- A controller can still type digests a human never gave. The pins narrow what `start` admits to a revision someone quoted; they do not authenticate the human, which the authority reference already names.
+- A controller can still type digests a human never gave; the spec's Agent Rules state that limit, and the authority references name the humans.
 - Another open change edits the same supervisor scripts; whichever merges second rebases on it and rebuilds the projections.
 
 ## Changelog
