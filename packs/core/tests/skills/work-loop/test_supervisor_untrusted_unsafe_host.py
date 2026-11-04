@@ -60,7 +60,8 @@ def _argv(repo: Path, verb: str, tmp_path: Path, trust: str = "untrusted") -> li
     spec = h.SPEC_DIR
     if verb == "start":
         return ["start", spec, "--intent", "code", "--code-trust", trust,
-                "--authority-ref", OWNER, "--review-authority-ref", REVIEWER]
+                "--authority-ref", OWNER, "--review-authority-ref", REVIEWER,
+                *h.digest_args(repo)]
     if verb == "park":
         return ["park", spec, "--gate", "spec-approved", "--intent", "code",
                 "--code-trust", trust]

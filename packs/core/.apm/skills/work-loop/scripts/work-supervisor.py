@@ -554,6 +554,13 @@ class _Parser(argparse.ArgumentParser):
         raise UsageError(message)
 
 
+def _hex_digest(value: str) -> str:
+    """An argparse type: 64 lowercase hexadecimal characters, else a usage error."""
+    if not _HEX_RE.fullmatch(value):
+        raise argparse.ArgumentTypeError("must be 64 lowercase hexadecimal characters")
+    return value
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = _Parser(prog="work-supervisor.py", description=__doc__.split("\n\n")[0])
     verbs = parser.add_subparsers(dest="verb", required=True, parser_class=_Parser)
@@ -563,6 +570,8 @@ def _parser() -> argparse.ArgumentParser:
     start.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     start.add_argument("--authority-ref", required=True)
     start.add_argument("--review-authority-ref", required=True)
+    start.add_argument("--approved-spec-digest", type=_hex_digest)
+    start.add_argument("--approved-plan-digest", type=_hex_digest)
     park = verbs.add_parser("park")
     park.add_argument("spec_dir")
     park.add_argument("--gate", required=True, choices=("spec-approved", "plan-approved"))
@@ -692,6 +701,63 @@ def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
         undo()
 
 
+def _precheck_start(workspace: Any, admission: Any, args: argparse.Namespace) -> Any:
+    """``start``'s read-only digest check; it runs before any write.
+
+    Decides from the committed approvals and the derived envelope whether ``start``
+    would record a pair. When it would, reads both artifacts once and refuses in the
+    documented order. Returns what it saw for ``admission.start``, or ``None`` when
+    the state cannot be derived read-only, which leaves the locked decision to refuse.
+    """
+    gates = _supervisor("_supervisor_gates.py")
+    spec_bytes = admission.artifact_bytes(workspace, "spec.md")
+    if spec_bytes is None:
+        return None
+    try:
+        approvals = workspace.approvals("HEAD")
+        refs, _cited = workspace.envelope(spec_bytes.decode("utf-8", "replace"))
+    except (admission.Refusal, admission._git.SupervisorGitError):
+        return None
+    envelope = admission.sibling("_acceptance.py").derive_envelope(refs)
+    fingerprint = envelope["envelope_fingerprint"]
+    latest = approvals[-1] if approvals else None
+    if (
+        latest is not None
+        and latest["envelope"]["envelope_fingerprint"] == fingerprint
+        and latest["terminal_intent"] == args.intent
+        and latest["code_trust"] == args.code_trust
+    ):
+        return admission.Prechecked(fingerprint, args.intent, args.code_trust)
+    plan_bytes = admission.artifact_bytes(workspace, "plan.md")
+    if plan_bytes is None:
+        return None
+    digests: dict[str, str] = {}
+    codes: list[str] = []
+    for name, data in (("spec.md", spec_bytes), ("plan.md", plan_bytes)):
+        try:
+            digests[name] = gates.gate_digest(data, name=name)
+        except gates.GateDigestRefused as exc:
+            codes.append(exc.code)
+    if codes:
+        code = "gate-unsafe-content" if "gate-unsafe-content" in codes else codes[0]
+        raise admission.Refusal(code, "controller", "an artifact has no gate digest")
+    if args.approved_spec_digest is None or args.approved_plan_digest is None:
+        raise admission.digest_refusal(
+            "approval-digest-required",
+            "start records an approval pair only with --approved-spec-digest and "
+            "--approved-plan-digest",
+        )
+    if (
+        args.approved_spec_digest != digests["spec.md"]
+        or args.approved_plan_digest != digests["plan.md"]
+    ):
+        raise admission.digest_refusal(
+            "approval-digest-mismatch",
+            "an approved digest differs from the artifact's current gate digest",
+        )
+    return admission.Prechecked(fingerprint, args.intent, args.code_trust, spec_bytes, plan_bytes)
+
+
 def _gates(cwd: Path | None) -> int:
     """List the parked gates; read-only, with no spec directory and no pin check."""
     root = _repo_root(cwd)
@@ -759,6 +825,8 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
         _emit({"refusal": unsafe})
         return EXIT_REFUSED
     try:
+        # Read-only, and before the first write (the pin check's orphan mark, the lock).
+        prechecked = _precheck_start(workspace, admission, args) if args.verb == "start" else None
         workspace.attempts.check_pins(args.verb)
         if args.verb == "park":
             gates = _supervisor("_supervisor_gates.py")
@@ -780,6 +848,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
                     code_trust=args.code_trust,
                     authority_ref=args.authority_ref,
                     review_authority_ref=args.review_authority_ref,
+                    prechecked=prechecked,
                 )
                 state = loop.derive(workspace)
                 if state.refusal is None:

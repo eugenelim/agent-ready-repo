@@ -727,3 +727,278 @@ def test_t3_ac0014_gates_changes_nothing(tmp_path: Path) -> None:
     assert _gates(repo)
     after = (_snapshot(repo), _store_bytes(repo), sorted(p.name for p in _gates_dir(repo).iterdir()))
     assert after == before
+
+
+# ── T4: `start` binds to the approved digests ────────────────────────────────
+
+OWNER = "owner:0123456789ab"
+REVIEWER = "plan-reviewer:0123456789ab"
+ZEROS = "0" * 64
+NO_INTENT_SPEC = sup.SPEC.replace(NO_INTENT, "")
+
+
+def _start_argv(
+    *, intent: str = "code", trust: str = "trusted", spec_dir: str = h.SPEC_DIR
+) -> list[str]:
+    return [
+        "start", spec_dir, "--intent", intent, "--code-trust", trust,
+        "--authority-ref", OWNER, "--review-authority-ref", REVIEWER,
+    ]
+
+
+def _start(
+    repo: Path, *extra: str, intent: str = "code", trust: str = "trusted"
+) -> tuple[int, dict[str, Any]]:
+    return h.run_cli(repo, *_start_argv(intent=intent, trust=trust), *extra)
+
+
+def _pins(spec: str = ZEROS, plan: str = ZEROS) -> list[str]:
+    return ["--approved-spec-digest", spec, "--approved-plan-digest", plan]
+
+
+def _full_snapshot(repo: Path) -> dict[str, Any]:
+    """Git state, every working-tree file (ignored ones too), and the store's bytes."""
+    store = repo / ".git" / "agentbundle-supervisor"
+    stored = {
+        p.relative_to(store).as_posix(): p.read_bytes()
+        for p in sorted(store.rglob("*"))
+        if p.is_file()
+    }
+    return {**_snapshot(repo), "store": stored, "dirs": sorted(
+        p.relative_to(repo).as_posix() for p in (repo / h.SPEC_DIR).rglob("*") if p.is_dir()
+    )}
+
+
+def _approval_count(repo: Path) -> int:
+    raw = h.workspace(repo).git.show(f"{h.SPEC_DIR}/delivery/approvals.jsonl") or b""
+    return len(raw.splitlines())
+
+
+def _refused_start(
+    repo: Path, code: str, owner: str, *extra: str, **kw: Any
+) -> dict[str, str]:
+    before = _full_snapshot(repo)
+    exit_code, out = _start(repo, *extra, **kw)
+    assert exit_code == 1 and out["refusal"]["code"] == code, out
+    assert out["refusal"]["owner"] == owner, out
+    assert _full_snapshot(repo) == before, "a refused start wrote something"
+    return out["refusal"]
+
+
+def test_t4_ac0015_missing_digest_refuses_and_writes_nothing(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path / "first")
+    spec, plan = h.digest_args(repo)[1], h.digest_args(repo)[3]
+    _refused_start(repo, "approval-digest-required", "owner")
+    _refused_start(repo, "approval-digest-required", "owner", "--approved-spec-digest", spec)
+    _refused_start(repo, "approval-digest-required", "owner", "--approved-plan-digest", plan)
+    assert not (repo / h.SPEC_DIR / ".supervisor").exists()
+    assert not (repo / ".git" / "agentbundle-supervisor").exists()
+    assert _approval_count(repo) == 0
+    # the re-approval path: an admitted run whose trust is amended
+    repo = h.make_repo(tmp_path / "again")
+    _admit(repo)
+    _refused_start(repo, "approval-digest-required", "owner", trust="untrusted")
+    assert _approval_count(repo) == 1
+
+
+@pytest.mark.parametrize("which", ["spec", "plan"])
+@pytest.mark.parametrize("value", ["A" * 64, "0" * 63, "0" * 65, "", "g" * 64, " " + "0" * 63])
+def test_t4_ac0036_malformed_digest_is_a_usage_error_on_every_path(
+    tmp_path: Path, which: str, value: str
+) -> None:
+    flag = f"--approved-{which}-digest"
+    fresh = h.make_repo(tmp_path / "fresh")
+    admitted = h.make_repo(tmp_path / "admitted")
+    _admit(admitted)
+    for repo in (fresh, admitted):
+        other = "--approved-plan-digest" if which == "spec" else "--approved-spec-digest"
+        good = h.digest_args(repo)
+        argv = [flag, value, other, good[good.index(other) + 1]]
+        before = _full_snapshot(repo)
+        code, out = h.run_cli(repo, *_start_argv(), *argv)
+        assert code == 2 and out["error"] == "usage", out
+        assert _full_snapshot(repo) == before
+
+
+@pytest.mark.parametrize("which", ["spec", "plan"])
+def test_t4_ac0016_a_differing_digest_refuses_and_writes_nothing(
+    tmp_path: Path, which: str
+) -> None:
+    for name, prepare in (("first", lambda r: None), ("again", _admit)):
+        repo = h.make_repo(tmp_path / name)
+        prepare(repo)
+        spec, plan = h.digest_args(repo)[1], h.digest_args(repo)[3]
+        pins = _pins(ZEROS if which == "spec" else spec, ZEROS if which == "plan" else plan)
+        # an amended trust makes the second case record a new pair
+        trust = "trusted" if name == "first" else "untrusted"
+        _refused_start(repo, "approval-digest-mismatch", "owner", *pins, trust=trust)
+        assert _approval_count(repo) == (0 if name == "first" else 1)
+
+
+def test_t4_ac0017_matching_digests_admit_with_one_line_in_one_commit(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path / "code")
+    before = h.git(repo, "rev-list", "--count", "HEAD").strip()
+    code, out = _start(repo, *h.digest_args(repo))
+    assert code == 0 and out["status"] == "admitted", out
+    assert _approval_count(repo) == 1
+    assert int(h.git(repo, "rev-list", "--count", "HEAD").strip()) - int(before) == 1
+    repo = h.make_repo(tmp_path / "terminal", spec=NO_INTENT_SPEC)
+    code, out = _start(repo, *h.digest_args(repo), intent="spec-plan")
+    assert code == 0 and out["status"] == "terminal", out
+    assert _approval_count(repo) == 1
+
+
+def test_t4_ac0018_the_park_record_never_changes_start(tmp_path: Path) -> None:
+    base = _repo(tmp_path / "base")
+    code, out = _park(base)
+    assert code == 0, out
+    _edit(base, "spec.md", "**Status:** Draft", "**Status:** Approved")
+    _edit(base, "plan.md", "**Status:** Drafting", "**Status:** Approved")
+    _commit(base, "approve")
+    (record,) = _records(base)
+    original = record.read_bytes()
+    body = json.loads(original)
+    rewritten = json.dumps({**body, "spec_digest": ZEROS, "plan_digest": ZEROS}).encode()
+    variants = {
+        "present": original,
+        "absent": None,
+        "truncated": original[: len(original) // 2],
+        "rewritten": rewritten,
+    }
+    outcomes: dict[str, list[Any]] = {}
+    for name, content in variants.items():
+        repo = tmp_path / f"copy-{name}"
+        shutil.copytree(base, repo, symlinks=True)
+        target = _gates_dir(repo) / record.name
+        if content is None:
+            target.unlink()
+        else:
+            target.write_bytes(content)
+        outcomes[name] = [
+            _start(repo),
+            _start(repo, *_pins()),
+            _start(repo, *h.digest_args(repo)),
+        ]
+    first = outcomes["present"]
+    assert [code for code, _ in first] == [1, 1, 0], first
+    for name, result in outcomes.items():
+        assert result == first, name
+
+
+def test_t4_ac0033_an_admitted_run_answers_current_without_digests(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    _admit(repo)
+    _edit(repo, "plan.md", "Build it.", "Build it well.")
+    head = h.git(repo, "rev-parse", "HEAD")
+    for extra in ([], h.digest_args(repo), _pins("1" * 64, "2" * 64)):
+        code, out = _start(repo, *extra)
+        assert code == 0 and out["status"] == "current", (extra, out)
+        assert h.git(repo, "rev-parse", "HEAD") == head
+    assert _approval_count(repo) == 1
+
+
+@pytest.mark.parametrize("name", ["spec.md", "plan.md"])
+def test_t4_ac0034_bytes_changing_before_the_commit_are_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, name: str
+) -> None:
+    repo = h.make_repo(tmp_path)
+    pins = h.digest_args(repo)
+    policy = h.admission.sibling("_policy_import.py")
+    original = policy.import_policy
+
+    def import_then_edit(*args: Any, **kwargs: Any) -> Any:
+        result = original(*args, **kwargs)
+        path = repo / h.SPEC_DIR / name
+        path.write_bytes(path.read_bytes().replace(b"\n## Outcome", b"  \n## Outcome", 1)
+                         if name == "spec.md" else path.read_bytes().replace(
+                             b"Build it.", b"Build it. ", 1))
+        return result
+
+    monkeypatch.setattr(policy, "import_policy", import_then_edit)
+    head = h.git(repo, "rev-parse", "HEAD")
+    code, out = _start(repo, *pins)
+    assert code == 1 and out["refusal"]["code"] == "approval-digest-mismatch", out
+    assert out["refusal"]["owner"] == "owner"
+    assert h.git(repo, "rev-parse", "HEAD") == head and _approval_count(repo) == 0
+
+
+def test_t4_ac0037_a_pair_is_recorded_only_from_verified_bytes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    def edit_cited_record(repo: Path) -> Any:
+        original = h.admission.Workspace.run_lock
+
+        def run_lock(self: Any) -> Any:
+            adr = repo / "docs" / "adr" / "0001-calculators-answer.md"
+            adr.write_text(adr.read_text(encoding="utf-8").replace("42", "43"), **h._LF)
+            return original(self)
+
+        return run_lock
+
+    # the pre-check answers `current`; under the lock the same inputs would record
+    repo = h.make_repo(tmp_path / "current")
+    _admit(repo)
+    monkeypatch.setattr(h.admission.Workspace, "run_lock", edit_cited_record(repo))
+    head = h.git(repo, "rev-parse", "HEAD")
+    code, out = _start(repo, *h.digest_args(repo))
+    assert code == 1 and out["refusal"]["code"] == "approval-digest-required", out
+    assert out["refusal"]["owner"] == "owner"
+    assert h.git(repo, "rev-parse", "HEAD") == head and _approval_count(repo) == 1
+    monkeypatch.undo()
+
+    # the pre-check verified digests; a cited record then changes under the same bytes
+    repo = h.make_repo(tmp_path / "records")
+    pins = h.digest_args(repo)
+    spec = (repo / h.SPEC_DIR / "spec.md").read_bytes()
+    plan = (repo / h.SPEC_DIR / "plan.md").read_bytes()
+    monkeypatch.setattr(h.admission.Workspace, "run_lock", edit_cited_record(repo))
+    head = h.git(repo, "rev-parse", "HEAD")
+    code, out = _start(repo, *pins)
+    assert code == 1 and out["refusal"]["code"] == "approval-digest-required", out
+    assert out["refusal"]["owner"] == "owner"
+    assert (repo / h.SPEC_DIR / "spec.md").read_bytes() == spec
+    assert (repo / h.SPEC_DIR / "plan.md").read_bytes() == plan
+    assert h.git(repo, "rev-parse", "HEAD") == head and _approval_count(repo) == 0
+
+
+@pytest.mark.parametrize("artifact", ["spec.md", "plan.md"])
+@pytest.mark.parametrize("kind", ["two-headings", "later-heading", "free-line"])
+def test_t4_ac0027_a_bad_changelog_refuses_and_writes_nothing(
+    tmp_path: Path, artifact: str, kind: str
+) -> None:
+    tail = {
+        "two-headings": "\n## Changelog\n\n- again\n",
+        "later-heading": "\n## Later\n\ntext\n",
+        "free-line": "\nfree text\n",
+    }[kind]
+    if artifact == "plan.md":
+        repo = h.make_repo(tmp_path, plan=sup.PLAN + tail)
+    else:
+        repo = h.make_repo(tmp_path, spec=sup.SPEC + "\n## Changelog\n\n- one\n" + tail)
+    _refused_start(repo, "gate-changelog-shape", "controller", *_pins())
+
+
+def test_t4_ac0035_and_ac0039_the_first_applicable_digest_refusal_wins(tmp_path: Path) -> None:
+    bad_plan = sup.PLAN + "\n## Changelog\n\n- again\n"
+    # unsafe content over a changelog shape and over missing and differing digests
+    repo = h.make_repo(
+        tmp_path / "a", spec=sup.SPEC.replace("answers.", f"answers.{ZWSP}"), plan=bad_plan
+    )
+    _refused_start(repo, "gate-unsafe-content", "controller")
+    _refused_start(repo, "gate-unsafe-content", "controller", *_pins())
+    assert not (repo / h.SPEC_DIR / "delivery" / "approvals.jsonl").exists()
+    # a plan that is not UTF-8 is unsafe content too
+    repo = h.make_repo(tmp_path / "b")
+    (repo / h.SPEC_DIR / "plan.md").write_bytes(b"# Plan\xff\n")
+    _commit(repo)
+    _refused_start(repo, "gate-unsafe-content", "controller", *_pins())
+    # changelog shape over missing and differing digests
+    repo = h.make_repo(tmp_path / "c", plan=bad_plan)
+    _refused_start(repo, "gate-changelog-shape", "controller")
+    _refused_start(repo, "gate-changelog-shape", "controller", *_pins())
+    # missing over differing
+    repo = h.make_repo(tmp_path / "d")
+    spec = h.digest_args(repo)[1]
+    _refused_start(repo, "approval-digest-required", "owner", "--approved-spec-digest", ZEROS)
+    _refused_start(repo, "approval-digest-required", "owner", "--approved-plan-digest", ZEROS)
+    _refused_start(repo, "approval-digest-mismatch", "owner", *_pins(spec, ZEROS))
