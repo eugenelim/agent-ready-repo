@@ -323,7 +323,13 @@ def _refusal_codes() -> set[str]:
             if isinstance(node, ast.Call):
                 func = node.func
                 name = getattr(func, "id", None) or getattr(func, "attr", "")
-                if name in {"Refusal", "ProjectionRefused", "_refusal", "SupervisorGitError"}:
+                # `refuse`, `refusal`, `digest_refusal` and `GateDigestRefused` carry the
+                # parked-approval codes; the computed `Refusal(code, ...)` in the start
+                # pre-check takes its code from a `GateDigestRefused` literal.
+                if name in {
+                    "Refusal", "ProjectionRefused", "_refusal", "SupervisorGitError",
+                    "refuse", "refusal", "digest_refusal", "GateDigestRefused",
+                }:
                     first = node.args[0] if node.args else None
                     if isinstance(first, ast.Constant) and isinstance(first.value, str):
                         codes.add(first.value)

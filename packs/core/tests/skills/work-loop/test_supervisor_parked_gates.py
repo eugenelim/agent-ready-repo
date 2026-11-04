@@ -13,6 +13,7 @@ import select
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -339,6 +340,16 @@ def test_t2_ac0029_the_first_applicable_refusal_wins(tmp_path: Path) -> None:
     h.git(repo, "mv", h.SPEC_DIR, "docs/specs/has space")
     h.git(repo, "commit", "-q", "-m", "move")
     _refused(repo, "gate-unsafe-path", intent="spec-plan", spec_dir="docs/specs/has space")
+    # gate-uncommitted over gate-already-admitted: admitted, then an uncommitted edit
+    repo = _repo(tmp_path / "i", spec=sup.SPEC, plan=sup.PLAN)
+    _admit(repo)
+    _edit(repo, "plan.md", "Build it.", "Build it well.")
+    _refused(repo, "gate-uncommitted")
+    # gate-unsafe-path over ambiguous-reference: a doubled Terminal Intent on an unsafe path
+    repo = _repo(tmp_path / "j", spec=SPEC + "\n## Terminal Intent\n\n`code` — again.\n")
+    h.git(repo, "mv", h.SPEC_DIR, "docs/specs/has space")
+    h.git(repo, "commit", "-q", "-m", "move")
+    _refused(repo, "gate-unsafe-path", spec_dir="docs/specs/has space")
 
 
 def test_t2_ac0030_plan_gate_carries_the_spec_digest(tmp_path: Path) -> None:
@@ -509,11 +520,16 @@ def _read_with_pty(repo: Path, command: str) -> tuple[int, bytes]:
     try:
         proc = subprocess.Popen(  # noqa: S603 - a fixed git argv from the listing
             command.split(), cwd=repo, stdout=slave, stderr=subprocess.DEVNULL,
-            env={**os.environ, **h.GIT_ENV},
+            stdin=subprocess.DEVNULL, env={**os.environ, **h.GIT_ENV},
         )
         chunks = []
+        deadline = time.monotonic() + 60
         # Drain while the slave end is still open: some hosts drop unread data when it closes.
         while True:
+            if time.monotonic() > deadline:
+                proc.kill()
+                proc.wait()
+                pytest.fail(f"{command!r} did not finish within 60 seconds")
             ready = select.select([master], [], [], 0.2)[0]
             if ready:
                 chunks.append(os.read(master, 65536))
@@ -548,7 +564,8 @@ def test_t3_ac0009_read_commands_ignore_repository_behaviour(tmp_path: Path) -> 
         ("core.sshCommand", str(program)),
     ):
         h.git(repo, "config", key, value)
-    assert _gates(repo) == baseline  # listing and digests unchanged
+    # a partial clone lists every entry stale; nothing else about it changes
+    assert _gates(repo) == [{**e, "state": "stale"} for e in baseline]
 
     for command in entry_read_commands(baseline):
         code, output = _read_with_pty(repo, command)
@@ -801,23 +818,22 @@ def test_t4_ac0015_missing_digest_refuses_and_writes_nothing(tmp_path: Path) -> 
     assert _approval_count(repo) == 1
 
 
-@pytest.mark.parametrize("which", ["spec", "plan"])
-@pytest.mark.parametrize("value", ["A" * 64, "0" * 63, "0" * 65, "", "g" * 64, " " + "0" * 63])
-def test_t4_ac0036_malformed_digest_is_a_usage_error_on_every_path(
-    tmp_path: Path, which: str, value: str
-) -> None:
-    flag = f"--approved-{which}-digest"
+def test_t4_ac0036_malformed_digest_is_a_usage_error_on_every_path(tmp_path: Path) -> None:
+    # A usage check never writes, so one fresh and one admitted repository serve every case.
     fresh = h.make_repo(tmp_path / "fresh")
     admitted = h.make_repo(tmp_path / "admitted")
     _admit(admitted)
-    for repo in (fresh, admitted):
+    for which in ("spec", "plan"):
+        flag = f"--approved-{which}-digest"
         other = "--approved-plan-digest" if which == "spec" else "--approved-spec-digest"
-        good = h.digest_args(repo)
-        argv = [flag, value, other, good[good.index(other) + 1]]
-        before = _full_snapshot(repo)
-        code, out = h.run_cli(repo, *_start_argv(), *argv)
-        assert code == 2 and out["error"] == "usage", out
-        assert _full_snapshot(repo) == before
+        for value in ["A" * 64, "0" * 63, "0" * 65, "", "g" * 64, " " + "0" * 63]:
+            for repo in (fresh, admitted):
+                good = h.digest_args(repo)
+                argv = [flag, value, other, good[good.index(other) + 1]]
+                before = _full_snapshot(repo)
+                code, out = h.run_cli(repo, *_start_argv(), *argv)
+                assert code == 2 and out["error"] == "usage", (which, value, out)
+                assert _full_snapshot(repo) == before
 
 
 @pytest.mark.parametrize("which", ["spec", "plan"])
@@ -1027,3 +1043,103 @@ def test_t5_ac0019_a_parked_gate_with_no_answer_is_never_approved(tmp_path: Path
     assert not approvals.exists() and _approval_count(repo) == 0
     _refused_start(repo, "approval-digest-required", "owner")
     assert not approvals.exists() and _approval_count(repo) == 0
+
+
+# ── T8: code-review repairs ──────────────────────────────────────────────────
+
+
+def _start_refusal_only(repo: Path, code: str, *extra: str, **kw: Any) -> None:
+    """`start` refuses *code*, records no approval and moves no ref."""
+    before = (h.git(repo, "rev-parse", "HEAD"), h.git(repo, "for-each-ref"))
+    exit_code, out = _start(repo, *extra, **kw)
+    assert exit_code == 1 and out["refusal"]["code"] == code, out
+    assert (h.git(repo, "rev-parse", "HEAD"), h.git(repo, "for-each-ref")) == before
+    assert _approval_count(repo) == 0
+
+
+def test_t8_qe1_start_refusals_win_over_the_digest_refusals(tmp_path: Path) -> None:
+    # no digests at all: each existing read-only refusal still answers as before
+    repo = h.make_repo(tmp_path / "draft", spec=SPEC, plan=PLAN)
+    _start_refusal_only(repo, "spec-not-approved")
+    repo = h.make_repo(tmp_path / "plan", plan=PLAN)
+    _start_refusal_only(repo, "plan-not-approved")
+    repo = h.make_repo(tmp_path / "ok")
+    _start_refusal_only(repo, "intent-mismatch", intent="spec-plan")
+    argv = _start_argv()
+    argv[argv.index("--review-authority-ref") + 1] = "not-a-role:0123456789ab"
+    code, out = h.run_cli(repo, *argv)
+    assert code == 1 and out["refusal"]["code"] == "invalid-authority-ref", out
+    # with every read-only check satisfied, the digest refusal still applies and writes nothing
+    _refused_start(repo, "approval-digest-required", "owner")
+
+
+def _make_partial(repo: Path) -> None:
+    for key, value in (
+        ("core.repositoryformatversion", "1"), ("extensions.partialClone", "origin"),
+        ("remote.origin.url", "ssh://example.invalid/none"), ("remote.origin.promisor", "true"),
+    ):
+        h.git(repo, "config", key, value)
+
+
+def test_t8_sec3_a_partial_clone_refuses_park_and_lists_stale(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    (entry,) = _gates(repo)
+    assert entry["state"] == "pending"
+    _make_partial(repo)
+    (entry,) = _gates(repo)
+    assert entry["state"] == "stale"
+    before = _records(repo)
+    code, out = _park(repo)
+    assert code == 1 and out["refusal"]["code"] == "unsupported-git-config", out
+    assert "partial clone" in out["refusal"]["detail"]
+    assert _records(repo) == before
+
+
+def test_t8_sec3_alternates_refuse_park_and_list_stale(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    info = repo / ".git" / "objects" / "info"
+    info.mkdir(exist_ok=True)
+    (info / "alternates").write_text(str(tmp_path / "elsewhere") + "\n", encoding="utf-8")
+    (entry,) = _gates(repo)
+    assert entry["state"] == "stale"
+    code, out = _park(repo)
+    assert code == 1 and out["refusal"]["code"] == "unsupported-git-config", out
+
+
+def test_t8_sec3_park_reads_with_no_lazy_fetch(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _repo(tmp_path)
+    _park(repo)
+    seen: list[bool] = []
+    gates = h.cli._supervisor("_supervisor_gates.py")
+    original = gates._recorded_commit_holds
+
+    def spy(ws: Any, admission: Any, rec: dict[str, Any]) -> bool:
+        seen.append(bool(ws.git.hardened.no_lazy_fetch))
+        return bool(original(ws, admission, rec))
+
+    monkeypatch.setattr(gates, "_recorded_commit_holds", spy)
+    code, out = _park(repo)  # reads the recorded commit
+    assert code == 0 and out["status"] == "current", out
+    assert seen and all(seen), seen
+
+
+def test_t8_qe2_a_failing_sibling_load_under_gates_is_one_internal_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    repo = _repo(tmp_path)
+    original = h.cli._supervisor
+
+    def broken(name: str) -> Any:
+        if name == "_supervisor_gates.py":
+            raise ImportError("sibling failed to load")
+        return original(name)
+
+    monkeypatch.setattr(h.cli, "_supervisor", broken)
+    code, out = h.run_cli(repo, "gates")
+    assert code == 1 and set(out) == {"refusal"}, out
+    assert out["refusal"]["code"] == "internal-error"
+    assert "ImportError" in out["refusal"]["detail"] and ".py:" in out["refusal"]["detail"]

@@ -666,8 +666,9 @@ def _untrusted_unsafe_host_refusal(
     so a refusal writes nothing. ``start`` is judged by the trust it would
     record; every other verb by the latest approval pair committed at ``HEAD``.
     A host with race-free writes skips the check. ``park`` is judged as trusted: its
-    one write is a fixed-name file whose body is supervisor-derived and holds no
-    controller free text, and a host that cannot confine writes refuses it anyway.
+    one write is a fixed-name file. A host that only path-checks its writes leaves a
+    race window, accepted because the record's name and body are supervisor-derived
+    with no controller free text; only a host that cannot confine writes refuses it.
     """
     if args.verb in ("park", "gates"):
         return None
@@ -701,6 +702,38 @@ def main(argv: list[str] | None = None, *, cwd: Path | None = None) -> int:
         undo()
 
 
+def _start_refuses_read_only(workspace: Any, admission: Any, args: argparse.Namespace) -> bool:
+    """Whether one of ``start``'s own read-only refusals applies, in ``start``'s order.
+
+    The digest check yields to it, so ``admission.start`` raises the original code.
+    Nothing is written. The untrusted-unsafe-host refusal ran earlier in ``_main``.
+    """
+    roles = workspace.policy["authority_roles"]
+    try:
+        workspace.attempts.guard("start")
+        if not admission.check_authority_ref(
+            args.authority_ref, roles["start_authority_ref"]
+        ) or not admission.check_authority_ref(
+            args.review_authority_ref, roles["start_review_authority_ref"]
+        ):
+            return True
+        if args.intent not in admission.INTENTS or args.code_trust not in admission.CODE_TRUST:
+            return True
+        admission.check_git_config(workspace)
+        spec_bytes = admission.artifact_bytes(workspace, "spec.md")
+        plan_bytes = admission.artifact_bytes(workspace, "plan.md")
+        if spec_bytes is None or plan_bytes is None:
+            return False  # the digest check below declines it the same way
+        admission._status_refusals(
+            workspace, spec_bytes.decode("utf-8"), plan_bytes.decode("utf-8"), args.intent
+        )
+    except UnicodeDecodeError:
+        return False  # not text: the digest check refuses it as unsafe content
+    except (admission.Refusal, admission._git.SupervisorGitError):
+        return True
+    return False
+
+
 def _precheck_start(workspace: Any, admission: Any, args: argparse.Namespace) -> Any:
     """``start``'s read-only digest check; it runs before any write.
 
@@ -710,6 +743,8 @@ def _precheck_start(workspace: Any, admission: Any, args: argparse.Namespace) ->
     the state cannot be derived read-only, which leaves the locked decision to refuse.
     """
     gates = _supervisor("_supervisor_gates.py")
+    if _start_refuses_read_only(workspace, admission, args):
+        return None
     spec_bytes = admission.artifact_bytes(workspace, "spec.md")
     if spec_bytes is None:
         return None
@@ -760,14 +795,26 @@ def _precheck_start(workspace: Any, admission: Any, args: argparse.Namespace) ->
 
 def _gates(cwd: Path | None) -> int:
     """List the parked gates; read-only, with no spec directory and no pin check."""
-    root = _repo_root(cwd)
-    admission = _supervisor("_supervisor_admission.py")
-    gates = _supervisor("_supervisor_gates.py")
     try:
+        root = _repo_root(cwd)
+        admission = _supervisor("_supervisor_admission.py")
+        gates = _supervisor("_supervisor_gates.py")
         listing = gates.list_gates(root, admission)
-    except (admission.Refusal, admission._git.SupervisorGitError) as exc:
-        refusal = exc.as_dict() if hasattr(exc, "as_dict") else {
-            "code": exc.code, "owner": "controller", "detail": str(exc)}
+    except UsageError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - every verb ends in one JSON object
+        if hasattr(exc, "as_dict"):
+            refusal = exc.as_dict()
+        elif hasattr(exc, "code"):
+            refusal = {"code": exc.code, "owner": "controller", "detail": str(exc)}
+        else:
+            frame = traceback.extract_tb(exc.__traceback__)[-1]
+            refusal = {
+                "code": "internal-error",
+                "owner": "skill maintainer",
+                "detail": f"{type(exc).__name__}: {exc} at "
+                f"{Path(frame.filename).name}:{frame.lineno}",
+            }
         _emit({"refusal": refusal})
         return EXIT_REFUSED
     _emit({"gates": listing})

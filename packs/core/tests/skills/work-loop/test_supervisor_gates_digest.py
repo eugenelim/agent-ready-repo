@@ -115,3 +115,39 @@ def test_t1_unsafe_content_refused(bad: str | bytes) -> None:
 def test_t1_tab_and_crlf_keep_digest() -> None:
     tabbed = SPEC.replace("body", "a\tb")
     assert _d(tabbed.replace("\n", "\r\n")) == _d(tabbed)
+
+
+def test_t8_sec1_a_shorter_fence_line_does_not_close_a_longer_fence() -> None:
+    nested = SPEC + "\n````\n```\n## Changelog\nprose\n```\n````\n"
+    assert _d(nested) != _d(SPEC)  # the heading stays inside the fence: kept, no refusal
+    # a closer needs no info string; a line carrying one keeps the fence open
+    info = SPEC + "\n```\n```text\n## Changelog\nprose\n```\n"
+    assert _d(info)
+    # after the real close, a real Changelog heading counts again
+    assert _d(nested + "\n## Changelog\n\n- a\n") == _d(nested)
+
+
+def test_t8_adv4_an_indented_line_must_continue_a_list_item() -> None:
+    assert _refused(SPEC + "\n## Changelog\n\n  indented text\n") == "gate-changelog-shape"
+    assert _refused(SPEC + "\n## Changelog\n\n- a\n\nprose\n  more\n") == "gate-changelog-shape"
+    assert _d(SPEC + "\n## Changelog\n\n- a\n\n  still the item\n") == _d(SPEC)
+
+
+def test_t8_sec2_variation_selector_runs_are_bounded() -> None:
+    assert _refused(SPEC + "x️️️y") == "gate-unsafe-content"
+    alternating = "︎️" * 40
+    assert _refused(SPEC + "x" + alternating + "y") == "gate-unsafe-content"
+    spread = "".join("a️‍" for _ in range(60))  # adjacency fine, volume over budget
+    assert _refused(SPEC + spread) == "gate-unsafe-content"
+    assert _d(SPEC + "heart ❤️ here")  # one emoji presentation selector stays
+
+
+def test_t8_qe9_bytes_outside_the_ac_section_and_in_a_plan_change_the_digest() -> None:
+    assert _d(SPEC) != _d(SPEC.replace("body", "bodies"))  # after the AC section
+    assert _d(SPEC) != _d(SPEC.replace("# Spec: X", "# Spec: Y"))  # before it
+    assert _d(SPEC) != _d(SPEC.replace("- **Owner:** A", "- **Owner:** B"))
+    plan = "# Plan\n\n- **Status:** Drafting\n\n### T1\n\nBuild it.\n"
+    assert _d(plan, "plan.md") != _d(plan.replace("Build it.", "Build it!"), "plan.md")
+    assert _d(plan, "plan.md") != _d(plan + "\nmore\n", "plan.md")
+    # the one normalised region stays normalised
+    assert _d(SPEC) == _d(SPEC.replace("[ ] AC-0001", "[x] AC-0001"))

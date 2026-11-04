@@ -26,11 +26,10 @@ import sys
 import unicodedata
 from pathlib import Path
 from types import ModuleType
-from typing import Any
+from typing import Any, Callable
 
 _SCRIPTS_DIR = Path(__file__).resolve().parent
 _HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
-_FENCE_RE = re.compile(r"^ {0,3}(`{3,}|~{3,})")
 _LINE_SEPARATORS = frozenset({0x2028, 0x2029, 0xFFF9, 0xFFFA, 0xFFFB})
 
 _modules: dict[str, ModuleType] = {}
@@ -80,9 +79,23 @@ def _load_sibling(alias: str, filename: str) -> ModuleType:
     return module
 
 
-def _unsafe(text: str, is_hidden_char) -> bool:  # type: ignore[no-untyped-def]
-    """True when *text* holds a control, format, hidden or separator character."""
+def _unsafe(
+    text: str, is_hidden_char: Callable[[str], bool], lint: ModuleType | None = None
+) -> bool:
+    """True when *text* holds a control, format, hidden or separator character.
+
+    With *lint* (the knowledge lint's module), also true when the zero-width joiners
+    and presentation selectors it allows run past its adjacency cap or its budget.
+    """
+    run = invisible = 0
     for i, ch in enumerate(text):
+        if lint is not None and ch in lint._RUN_CHARS:
+            run += 1
+            invisible += 1
+            if run > lint._MAX_ADJACENT_INVISIBLE:
+                return True
+        else:
+            run = 0
         if ch in ("\t", "\n"):
             continue
         if ch == "\r":
@@ -93,6 +106,11 @@ def _unsafe(text: str, is_hidden_char) -> bool:  # type: ignore[no-untyped-def]
             return True
         if is_hidden_char(ch):
             return True
+    if lint is not None and invisible:
+        visible = len(text) - invisible
+        # The lint's own bound: never more hidden than shown, and a share of the length.
+        if invisible > min(lint.invisible_budget(text), visible):
+            return True
     return False
 
 
@@ -100,17 +118,27 @@ def _strip_changelog(text: str) -> str:
     """Validate and drop a trailing `## Changelog` section from LF-normalised *text*."""
     lines = text.split("\n")
     headings: list[int] = []
-    fence: str | None = None
+    fence_char: str | None = None
+    fence_len = 0
     for idx, line in enumerate(lines):
-        m = _FENCE_RE.match(line)
-        if m:
-            marker = m.group(1)[0]
-            if fence is None:
-                fence = marker
-            elif fence == marker:
-                fence = None
+        # The same CommonMark rule as `_loop_guards.canonical_contract`: an opener
+        # records its character and run length; only a bare run of that character,
+        # at least as long, closes it.
+        stripped = line.lstrip()
+        marker = stripped[:1]
+        if marker in ("`", "~"):
+            run = len(stripped) - len(stripped.lstrip(marker))
+            info = stripped[run:].strip()
+            if fence_char is None:
+                if run >= 3:
+                    fence_char, fence_len = marker, run
+                    continue
+            elif marker == fence_char and run >= fence_len and not info:
+                fence_char, fence_len = None, 0
+                continue
+        if fence_char is not None:
             continue
-        if fence is None and line.startswith("## "):
+        if line.startswith("## "):
             headings.append(idx)
     changelog = [i for i in headings if lines[i].strip() == "## Changelog"]
     if not changelog:
@@ -119,10 +147,14 @@ def _strip_changelog(text: str) -> str:
     if len(changelog) != 1 or headings[-1] != start:
         raise GateDigestRefused("gate-changelog-shape")
     body = _HTML_COMMENT_RE.sub("", "\n".join(lines[start + 1 :]))
+    in_item = False
     for line in body.split("\n"):
-        if line.strip() == "" or line.startswith("- ") or line[:1].isspace():
+        if line.strip() == "":
             continue
-        raise GateDigestRefused("gate-changelog-shape")
+        if line.startswith("- "):
+            in_item = True
+        elif not (in_item and line[:1].isspace()):
+            raise GateDigestRefused("gate-changelog-shape")
     return "\n".join(lines[:start])
 
 
@@ -140,7 +172,7 @@ def gate_digest(text_or_bytes: str | bytes, *, name: str) -> str:
     else:
         text = text_or_bytes
     lint = _load_sibling("core_work_loop_gates_lint_knowledge", "lint-knowledge.py")
-    if _unsafe(text, lint.is_hidden_char):
+    if _unsafe(text, lint.is_hidden_char, lint):
         raise GateDigestRefused("gate-unsafe-content")
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     remaining = _strip_changelog(text)
@@ -298,6 +330,21 @@ def _status_fit(
     return fits, spec_status, plan_status
 
 
+def _foreign_objects(ws: Any, admission: Any) -> bool:
+    """True when the repository's objects may come from outside its own store.
+
+    A partial clone, a promisor remote or an alternates file: the same test
+    `git_history` applies. A record-named commit is never read there, because the
+    read could start a fetch on a Git that ignores `GIT_NO_LAZY_FETCH`.
+    """
+    history = admission.sibling("_git_history.py")
+    try:
+        history.refuse_object_sources(ws.git.hardened)
+    except history.GitHistoryRefused:
+        return True
+    return False
+
+
 def park(
     ws: Any, admission: Any, *, gate: str, intent: str, code_trust: str
 ) -> dict[str, Any]:
@@ -314,6 +361,14 @@ def park(
     spec_rel = ws.spec_rel
     if not safe_spec_path(spec_rel):
         raise refuse("gate-unsafe-path", "the spec directory is not a safe path")
+    if _foreign_objects(ws, admission):
+        raise refusal(
+            "unsupported-git-config",
+            "owner",
+            "this repository is a partial clone or has a promisor remote or alternates; "
+            "park reads a recorded commit only from a repository whose objects are all local",
+        )
+    ws.git.hardened.no_lazy_fetch = True  # a missing object fails, never fetches
     fs = admission.sibling("_file_safety.py")
     spec_bytes = _read_artifact(ws, fs, "spec.md")
     plan_bytes = _read_artifact(ws, fs, "plan.md")
@@ -513,7 +568,11 @@ def _valid_entry(
             ws, admission, working_spec.decode("utf-8"), rec["intent"], rec["code_trust"]
         ):
             return None
-        if working_spec is not None and _is_pending(ws, admission, fs, name, rec):
+        if (
+            working_spec is not None
+            and not _foreign_objects(ws, admission)
+            and _is_pending(ws, admission, fs, name, rec)
+        ):
             state = "pending"
     except (
         admission.Refusal, admission._git.SupervisorGitError, OSError, ValueError, KeyError,
