@@ -1,6 +1,6 @@
 # Spec: parked approvals
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0157, RFC-0099, ADR-0154
