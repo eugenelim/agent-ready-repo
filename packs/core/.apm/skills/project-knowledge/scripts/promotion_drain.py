@@ -21,6 +21,7 @@ import subprocess
 import sys
 import threading
 from collections.abc import Callable
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -544,6 +545,239 @@ def decide_closure(
         "evidence": evidence,
         "terminal_disposition": {"disposition": disposition, "reason_code": reason_code},
     }
+
+
+# --- § D1, § D3: the drain run, its transaction and its recovery ------------
+
+
+def _load_intake_transaction() -> Any:
+    """Load work-intake's transaction runner, the drain's route effect."""
+    spec = importlib.util.spec_from_file_location(
+        "_work_intake_intake_transaction",
+        SCRIPT_DIR.parent.parent / "work-intake" / "scripts" / "intake_transaction.py",
+    )
+    if spec is None or spec.loader is None:
+        raise RuntimeError("intake transaction module is unavailable")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def store_terminal_dispositions(repo_root: Path | str) -> list[dict[str, Any]]:
+    """Every terminal disposition event in the store (AC-0019's store half).
+
+    The counts a drain reports are derivable from these events alone, with
+    no run log: promoted side `routed`, pruned side `rejected` and
+    `superseded`, held being the captures still open.
+    """
+    root = KS.resolve_worktree_root(repo_root)
+    dispositions: list[dict[str, Any]] = []
+    for partition in KS._observation_partitions(root):
+        events = KS._read_events(KS._journal_path(root, partition), partition)
+        for event in events:
+            if event["event_type"] == KS._DISPOSITIONED:
+                dispositions.append(
+                    {
+                        "capture_id": event["capture_id"],
+                        "disposition": event["disposition"],
+                        "reason_code": event["reason_code"],
+                    }
+                )
+    return sorted(dispositions, key=lambda item: item["capture_id"])
+
+
+def _captured_item_target(offer: dict[str, Any]) -> str:
+    """The canonical context's path: a captured-item file named by the
+    record's own statement."""
+    statement = offer["request"]["work_item"]["statement"]
+    translated = "".join(
+        character if character.isalnum() else "-" for character in statement.lower()
+    )
+    slug = "-".join(part for part in translated.split("-") if part)[:60]
+    return f"docs/product/captured/{slug or 'captured-item'}.md"
+
+
+def _captured_item_bytes(offer: dict[str, Any]) -> bytes:
+    work_item = offer["request"]["work_item"]
+    lines = [
+        f"# {work_item['statement']}",
+        "",
+        "- **Status:** Open",
+        f"- **Kind:** {work_item['shape']}",
+        f"- **Detail:** {offer['partition']} capture {offer['capture_id']}",
+        "",
+        "## Summary",
+        "",
+        work_item["statement"],
+        "",
+    ]
+    if "observed" in work_item:
+        lines += ["## Observed", "", work_item["observed"], ""]
+    if "intended" in work_item:
+        lines += ["## Intended", "", work_item["intended"], ""]
+    return "\n".join(lines).encode("utf-8")
+
+
+def transact_route(
+    repo_root: Path | str,
+    offer: dict[str, Any],
+    decision: dict[str, Any],
+    *,
+    materialize: Callable[[Path], None] | None = None,
+    dispatch_processor: Callable[[], None] | None = None,
+) -> dict[str, Any]:
+    """One routed item's transaction, through work-intake's own runner.
+
+    Materializes the route's canonical context — the captured-item file
+    under ``docs/product/captured/`` — then dispatches the processor. The
+    materializer is idempotent: an artifact already on disk with the same
+    bytes is left as it is, so a re-drain after a crash creates no second
+    artifact (§ D1). The rollback removes only a partial artifact, never a
+    complete one. The processor dispatch is a seam: the work-intake
+    procedure supplies the real one.
+    """
+    root = Path(repo_root).resolve()
+    target = root / _captured_item_target(offer)
+    expected = _captured_item_bytes(offer)
+
+    def default_materialize(confined: Path) -> None:
+        if confined.exists():
+            if confined.read_bytes() != expected:
+                raise FileExistsError(str(confined))
+            return
+        tmp = confined.with_name(f"{confined.name}.tmp")
+        tmp.write_bytes(expected)
+        tmp.replace(confined)
+
+    def rollback_partial_state() -> None:
+        if target.exists() and target.read_bytes() != expected:
+            target.unlink()
+        target.with_name(f"{target.name}.tmp").unlink(missing_ok=True)
+
+    result = _load_intake_transaction().run_intake_transaction(
+        repository_root=root,
+        configured_parent="docs/product/captured",
+        artifact_target=_captured_item_target(offer),
+        materialize_artifact=materialize or default_materialize,
+        rollback_partial_state=rollback_partial_state,
+        record_reconciliation=lambda message: None,
+        dispatch_processor=dispatch_processor or (lambda: None),
+    )
+    return {
+        "committed": result.status.name == "COMMITTED",
+        "failed_stage": result.failed_stage,
+        "status": result.status.name,
+    }
+
+
+def drain(
+    repo_root: Path | str,
+    *,
+    confirmer: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any] | None] | None = None,
+    classify: Callable[[str], str] | None = None,
+    transact: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]] | None = None,
+    write_disposition: Callable[[str, str, str], Any] | None = None,
+    recorded_at: str | None = None,
+) -> dict[str, Any]:
+    """One drain run (§ D3): offer → decide → confirm → transact → disposition.
+
+    Disposition-last (§ D1): every effect — the route's transaction — precedes
+    the terminal disposition, so a crash anywhere ahead of it leaves the
+    capture open and a re-run drain completes the sequence without a second
+    artifact or a second terminal event. An unattended run (``confirmer``
+    None) performs the read-only half only and holds every item (§ D11).
+
+    The confirmer sees each offer and the drain's proposal and answers per
+    item: ``{"confirm": True}`` proceeds with the proposed route,
+    ``{"close": {"ground": ..., "test_passes": ..., "evidence": ...}}`` closes
+    the item under § D5 instead, anything else holds it. ``transact`` and
+    ``write_disposition`` are the effect seams the crash driver wraps; their
+    defaults are the route transaction and the store's own disposition
+    writer.
+    """
+    root = KS.resolve_worktree_root(repo_root)
+    if recorded_at is None:
+        recorded_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    do_transact = transact or (lambda offer, decision: transact_route(root, offer, decision))
+
+    def default_write(capture_id: str, disposition: str, reason_code: str) -> Any:
+        return KS.write_terminal_disposition(
+            root, capture_id, disposition, reason_code=reason_code, recorded_at=recorded_at or ""
+        )
+
+    do_write = write_disposition or default_write
+    items: list[dict[str, Any]] = []
+    for capture in read_open_captures(root):
+        offer = assemble_offer(capture, repo_root=root)
+        classification = None
+        work_item = offer["request"].get("work_item") or {}
+        if classify is not None and work_item.get("shape") == "question":
+            classification = present_for_classification(offer["request"], classify)
+        proposal = decide(offer, attended=confirmer is not None, classification=classification)
+        operator = confirmer(offer, proposal) if confirmer is not None else None
+        closure_input = operator.get("close") if isinstance(operator, dict) else None
+        if closure_input is not None:
+            closure = decide_closure(**closure_input)
+            if closure["verdict"] == "closed":
+                terminal = closure["terminal_disposition"]
+                do_write(capture["capture_id"], terminal["disposition"], terminal["reason_code"])
+                items.append(
+                    {
+                        "capture_id": capture["capture_id"],
+                        "action": "closed",
+                        "ground": closure["ground"],
+                    }
+                )
+            else:
+                items.append(
+                    {
+                        "capture_id": capture["capture_id"],
+                        "action": "held",
+                        "reason": f"closure-refused:{closure['reason']}",
+                    }
+                )
+            continue
+        if (
+            proposal["action"] == "route"
+            and isinstance(operator, dict)
+            and operator.get("confirm") is True
+        ):
+            result = do_transact(offer, proposal)
+            if result.get("committed"):
+                do_write(
+                    capture["capture_id"],
+                    proposal["terminal_disposition"]["disposition"],
+                    proposal["terminal_disposition"]["reason_code"],
+                )
+                items.append(
+                    {
+                        "capture_id": capture["capture_id"],
+                        "action": "routed",
+                        "route": proposal["route"],
+                    }
+                )
+            else:
+                items.append(
+                    {
+                        "capture_id": capture["capture_id"],
+                        "action": "held",
+                        "reason": "transaction-failed",
+                        "failed_stage": result.get("failed_stage"),
+                    }
+                )
+            continue
+        items.append(
+            {
+                "capture_id": capture["capture_id"],
+                "action": "held",
+                "reason": proposal.get("reason", "not-confirmed"),
+            }
+        )
+    counts = {"routed": 0, "held": 0, "closed": 0}
+    for entry in items:
+        counts[entry["action"]] += 1
+    return {"attended": confirmer is not None, "items": items, "counts": counts}
 
 
 def render_output_presentation(output: str) -> str:
