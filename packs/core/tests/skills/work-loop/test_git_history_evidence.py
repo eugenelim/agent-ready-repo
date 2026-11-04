@@ -66,9 +66,9 @@ def is_pinning_or_config(argv: list[str]) -> bool:
 
 
 class Launches(list[list[str]]):
-    """The recorded vectors; a test sets ``may_be_empty`` when the refusal precedes every launch."""
+    """Recorded Git vectors; a test of a refusal made before the first launch sets ``expect_empty``."""
 
-    may_be_empty = False
+    expect_empty = False
 
 
 @pytest.fixture
@@ -84,7 +84,10 @@ def launches(gate: ModuleType, monkeypatch: pytest.MonkeyPatch) -> Iterator[Laun
 
     monkeypatch.setattr(module, "_launch", spy)
     yield recorded
-    assert recorded or recorded.may_be_empty, "no Git launch was recorded"
+    if recorded.expect_empty:
+        assert recorded == [], "a refusal made before the first launch launched Git"
+    else:
+        assert recorded, "no Git launch was recorded"
     for argv in recorded:
         if is_pinning_or_config(argv):
             continue
@@ -254,7 +257,7 @@ def test_t3_context_path_refused_even_when_committed(
     repo.commit(".context/notes_zq.txt", "secret\n")
     code, out = run("--path", ".context/notes_zq.txt")
     assert (code, out["refused"]) == (2, "denied-artifact-path")
-    launches.may_be_empty = True
+    launches.expect_empty = True
     never_launched(launches, "notes_zq")
     assert not {"cat-file", "show", "log"} & set(subcommands(launches))
 
@@ -269,7 +272,7 @@ def test_t3_malformed_full_id_is_refused(
     supplied = repo.base + suffix
     code, out = run("--path", "added_file_zq.txt", "--base", supplied)
     assert (code, out["refused"]) == (2, "denied-ref-form")
-    launches.may_be_empty = True
+    launches.expect_empty = True
     never_launched(launches, repo.base)
 
 
@@ -282,7 +285,7 @@ def test_t3_non_id_base_is_refused(
                 "dash": "-" + repo.base[1:]}[kind]
     code, out = run("--path", "added_file_zq.txt", f"--base={supplied}")
     assert (code, out["refused"]) == (2, "denied-ref-form")
-    launches.may_be_empty = True
+    launches.expect_empty = True
     never_launched(launches, supplied)
 
 
@@ -331,7 +334,7 @@ def test_t3_unrecognized_arguments_refuse_before_any_launch(
     code = gate.main(["git-history", *argv])
     assert (code, json.loads(capsys.readouterr().out)["refused"]) == (2, "denied-not-in-catalog")
     assert launches == []
-    launches.may_be_empty = True
+    launches.expect_empty = True
 
 
 def test_t3_subcommands_are_exactly_two(

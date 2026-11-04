@@ -460,9 +460,9 @@ def _t4_helper_call(argv: list[str]) -> bool:
 
 
 class _T4Launches(list):
-    """Recorded Git vectors; a refusal before any launch sets ``may_be_empty``."""
+    """Recorded Git vectors; a test of a refusal made before the first launch sets ``expect_empty``."""
 
-    may_be_empty = False
+    expect_empty = False
 
 
 @pytest.fixture
@@ -478,7 +478,10 @@ def t4_launches(t4_gate: ModuleType, monkeypatch: pytest.MonkeyPatch):
 
     monkeypatch.setattr(module, "_launch", spy)
     yield recorded
-    assert recorded or recorded.may_be_empty, "no Git launch was recorded"
+    if recorded.expect_empty:
+        assert recorded == [], "a refusal made before the first launch launched Git"
+    else:
+        assert recorded, "no Git launch was recorded"
     for argv in recorded:
         if not _t4_helper_call(argv):
             assert _t4_subcommand(argv) in _T4_ALLOWED, argv
@@ -661,7 +664,7 @@ def test_t4_oversized_stdout_is_refused(t4_run, t4_repo) -> None:
 def test_t4_unknown_argument_is_refused_before_any_launch(
     t4_gate, t4_repo, t4_launches, capsys, monkeypatch
 ) -> None:
-    t4_launches.may_be_empty = True
+    t4_launches.expect_empty = True
     monkeypatch.chdir(t4_repo.path)
     assert t4_gate.main([*t4_repo.args(), "--extra", "x"]) == 2
     assert json.loads(capsys.readouterr().out)["refused"] == "denied-not-in-catalog"
