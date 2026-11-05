@@ -65,6 +65,16 @@ Traces to: AC-0001, AC-0002, AC-0003. Owned by: T1.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_gate_selection_contract.py packs/core/tests/skills/work-loop/test_verify_entries_contract.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q` passes and `python3 tools/check-core-release.py --base origin/main` exits 0.
 
+### T4: repair the round-2 review finding on the pin test names and section wording
+
+**Depends on:** T3
+
+**Tests:**
+- Goal-based, at `packs/core/tests/skills/work-loop/test_gate_selection_contract.py`: the two tests T3 added carry the identifiers of the criteria they pin (AC-0001, AC-0002) in their names, and no test name claims AC-0005 or AC-0006, which no text pin covers (AC-0001, AC-0002).
+- Goal-based: the gate-selection section refers to all three places a repository declares its checks in the plural, skips a kind of file the repository does not have without reporting a gap, and points the missing-mechanism sentence at the SKILL.md rule by its wording (AC-0001, AC-0002).
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_gate_selection_contract.py packs/core/tests/skills/work-loop/test_verify_entries_contract.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q` passes and `python3 tools/check-core-release.py --base origin/main` exits 0.
+
 ## Rollout
 
 Reversible by revert. No sequencing with the precheck spec.
