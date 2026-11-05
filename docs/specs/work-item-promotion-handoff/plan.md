@@ -1,7 +1,7 @@
 # Plan: Hand a captured item to its owner or close it, and record which
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Executing
 - **Repository anchors:** `docs/specs/work-item-capture/spec.md` § D6 and § D10 — the stored-command rules, the stored-path set, and the merge-path disclosure this plan consumes; `packs/core/.apm/skills/work-intake/SKILL.md` § 4–5 — the classify table and the intake transaction the drain calls; `packs/core/.apm/skills/project-knowledge/scripts/knowledge_store.py` — the store API: partitions, event validation, the terminal-disposition writer and its identical-disposition no-op; `tests/roster/test_project_knowledge_capture_contract.py` — the repository-level test anchor pattern. Deviation: none.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
