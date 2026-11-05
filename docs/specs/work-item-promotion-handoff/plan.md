@@ -468,6 +468,21 @@ the captured-item grammar, and the run report.
   reports every step dispositioned, and the nine steps sit above the
   bulk roster step.
 
+### T18: The dispositions reader carries its quarantine collector through partition enumeration
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A fixture store holding one clean dispositioned capture plus a misnamed
+  partition file (a name the store's partition validator refuses): the reader
+  quarantines the partition, the drain completes, and
+  `store_terminal_dispositions` returns the clean dispositions without raising
+  (`AC-0019`, `AC-0020`).
+- A clean store's dispositions are unchanged.
+
+**Done when:** the module's two read paths agree on a store holding a
+  misnamed or non-regular partition file, and the roster suite drives it.
+
 ## Rollout
 
 Pure addition: one new module, one skill-procedure section, documentation
