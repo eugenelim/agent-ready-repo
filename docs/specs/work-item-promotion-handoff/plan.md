@@ -586,15 +586,16 @@ shared transaction helper and T23 in the release surfaces.
   is false is refused — the verdict is a veto on every ground (`AC-0027`).
 - Overtaken and falsified closures are unchanged: the operator's verdict
   still decides them, with the evidence riding the report (`AC-0003`).
-- Source-text assertions, the T7 pattern, over the two closure sentences
-  the citation gate falsifies: `docs/guides/reference/work-item-capture.md`'s
-  closure sentence and work-intake `SKILL.md` § 8's closure sentence each
-  name the required `citation` field and the drain-run resolution test
-  (`AC-0027`).
+- The two closure sentences the citation gate falsifies are edited under
+  this task — the T19 pattern — and pinned by source-text assertions over
+  the edited text: `docs/guides/reference/work-item-capture.md`'s closure
+  sentence and work-intake `SKILL.md` § 8's closure sentence each name the
+  required `citation` field and the drain-run resolution test (`AC-0027`).
 
 **Done when:** a superseded closure cannot commit on a citation that
-  resolves nowhere, is a path that does not exist, or is absent, and the
-  other two grounds are byte-for-byte their current behavior.
+  resolves nowhere, is a path that does not exist, or is absent, the
+  other two grounds are byte-for-byte their current behavior, and the
+  guide's and § 8's closure sentences carry the citation rule.
 
 ### T22: A stale workspace lock is recovered
 
@@ -662,11 +663,11 @@ shared transaction helper and T23 in the release surfaces.
   each asserted by a source-text check over its file.
 - The durable surfaces the hardening falsifies are updated and pinned:
   `docs/architecture/knowledge-capture.md`'s confirmed-route sentence gains
-  the no-dispatch hold, and `docs/guides/reference/work-item-capture.md`'s
-  question-routing and closure sentences gain the non-dispatchable-member
-  hold and the required-citation rule (T21's source-text assertions carry
-  the closure sentence); `tests/roster/test_promotion_drain_surfaces.py`
-  extends to pin both, and
+  the no-dispatch hold; `docs/guides/reference/work-item-capture.md`'s
+  question-routing sentence gains the non-dispatchable-member hold; and
+  the closure sentences — edited and pinned under T21 — carry the
+  required-citation rule; `tests/roster/test_promotion_drain_surfaces.py`
+  extends to pin both sentence groups, and
   its changelog-fragment assertion — one fragment matching "promotion
   drain", pinned to the released version — moves to the hardening's
   fragment and version.
