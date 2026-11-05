@@ -78,6 +78,9 @@ __all__ = [
     "committed_code_trust",
     "refuse_unsupported_ref_storage",
     "refuse_untrusted_on_unsafe_host",
+    "Prechecked",
+    "artifact_bytes",
+    "digest_refusal",
     "start",
 ]
 
@@ -465,6 +468,39 @@ def _identified(
     return out
 
 
+def artifact_bytes(ws: Workspace, name: str) -> bytes | None:
+    """The working-tree bytes of the spec's *name* through the confined reader, or ``None``."""
+    fs = sibling("_file_safety.py")
+    try:
+        return bytes(
+            fs.read_confined_regular_file(
+                ws.root, ws.root / ws.spec_rel / name, max_bytes=_MAX_TEXT_BYTES
+            )
+        )
+    except (OSError, fs.UnsafeContentError):
+        return None
+
+
+@dataclass(frozen=True)
+class Prechecked:
+    """What ``start``'s read-only digest check saw before any write.
+
+    *spec_bytes* and *plan_bytes* are set only when the check found that ``start``
+    would record an approval pair and verified the digests against exactly them.
+    """
+
+    fingerprint: str
+    intent: str
+    code_trust: str
+    spec_bytes: bytes | None = None
+    plan_bytes: bytes | None = None
+
+
+def digest_refusal(code: str, detail: str) -> Refusal:
+    """An approval-digest refusal for the given *code*, owned by ``owner``."""
+    return Refusal(code, "owner", detail)
+
+
 def start(
     ws: Workspace,
     *,
@@ -472,8 +508,13 @@ def start(
     code_trust: str,
     authority_ref: str,
     review_authority_ref: str,
+    prechecked: Prechecked | None = None,
 ) -> dict[str, Any]:
-    """Admit the approved pair; under ``spec-plan`` also commit the terminal step."""
+    """Admit the approved pair; under ``spec-plan`` also commit the terminal step.
+
+    A pair is recorded only from the bytes *prechecked* verified against the approved
+    digests; the ``current`` answer needs and compares no digest.
+    """
     ws.attempts.guard("start")
     roles = ws.policy["authority_roles"]
     if not check_authority_ref(authority_ref, roles["start_authority_ref"]):
@@ -532,8 +573,31 @@ def start(
         product_ref = ws.git.new_product_name(run_id)
     if approvals and ws.divergence is not None:
         raise _supervisor("_supervisor_recovery.py").unadopted(ws)
+    if (
+        prechecked is None
+        or prechecked.spec_bytes is None
+        or prechecked.plan_bytes is None
+        or prechecked.fingerprint != envelope["envelope_fingerprint"]
+        or prechecked.intent != intent
+        or prechecked.code_trust != code_trust
+    ):
+        raise digest_refusal(
+            "approval-digest-required",
+            "the approved digests were not checked against the state this start would record; "
+            "run start again with --approved-spec-digest and --approved-plan-digest",
+        )
     sequence = len(approvals) + 1
     pi = sibling("_policy_import.py")
+    guards = pi._guards()
+    try:
+        spec_digest = guards._sha256_canonical_text(
+            prechecked.spec_bytes.decode("utf-8"), artifact_name="spec.md"
+        )
+        plan_digest = guards._sha256_canonical_text(
+            prechecked.plan_bytes.decode("utf-8"), artifact_name="plan.md"
+        )
+    except (ValueError, ImportError) as exc:
+        raise Refusal("invalid-approval-record", "skill maintainer", "digest failed") from exc
     issuer, grant = ws.grant(["delivery/policy-import"])
     try:
         approval, review = pi.import_policy(
@@ -549,11 +613,15 @@ def start(
             approval_role=roles["start_authority_ref"],
             reviewer_identity=review_authority_ref,
             reviewer_role=roles["start_review_authority_ref"],
-            approved_spec_digest=pi.compute_spec_digest(ws.spec_path),
-            approved_plan_digest=pi.compute_plan_digest(ws.plan_path),
+            approved_spec_digest=spec_digest,
+            approved_plan_digest=plan_digest,
             approved_envelope_fingerprint=envelope["envelope_fingerprint"],
         )
     except pi.PolicyImportRefused as exc:
+        if exc.denial_code in ("denied-spec-digest-mismatch", "denied-plan-digest-mismatch"):
+            raise digest_refusal(
+                "approval-digest-mismatch", "an artifact changed after its digest was checked"
+            ) from exc
         raise Refusal(exc.denial_code, "owner", "policy import refused") from exc
     when = ws.clock()
     seed = hashlib.sha256(f"{run_id}:{sequence}".encode()).hexdigest()
@@ -573,6 +641,14 @@ def start(
             review, "review_id", f"rev-{seed[24:48]}", when, pi.validate_initial_review_dict
         ),
     }
+    # The last read before the commit: the recorded digests describe these bytes only.
+    if (
+        artifact_bytes(ws, "spec.md") != prechecked.spec_bytes
+        or artifact_bytes(ws, "plan.md") != prechecked.plan_bytes
+    ):
+        raise digest_refusal(
+            "approval-digest-mismatch", "spec.md or plan.md changed after its digest was checked"
+        )
     ws.git.build_commit(
         run_id=run_id,
         step=f"approval:{sequence}",
