@@ -1,6 +1,6 @@
 # Spec: Path-triggered precheck
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -69,23 +69,23 @@ A contributor or agent changing this repository runs `make precheck` before the 
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `tools/precheck.py` given a changed-path list that matches no trigger prints `no trigger matched` and starts no subprocess.
-- [ ] **AC-0002.** Given a changed path under `packs/<pack>/.apm/`, it runs `agentbundle catalogue self-host --root . --check` and exits with that command's status.
-- [ ] **AC-0003.** Given a changed `SKILL.md` under `packs/`, it runs `agentbundle catalogue lint --root . --deep` and exits with that command's status.
-- [ ] **AC-0004.** Given a changed path in core pack content (`packs/core/seeds/**`, `packs/core/.apm/**`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`), it runs `tools/check-core-release.py` against the resolved base and exits with its status.
-- [ ] **AC-0005.** Given a change confined to `packs/core/tests/**`, it does not run `tools/check-core-release.py`.
-- [ ] **AC-0006.** Given changed `.py` files, it scans exactly those that exist in the working tree with bandit, at the severity and confidence floor `tools/run-bandit-gate.py` defines, limited to changed files under the gate's scan roots, so a file with only LOW findings exits 0, and a MEDIUM finding or any bandit stderr exits non-zero.
-- [ ] **AC-0007.** When `agentbundle`, PyYAML (which the deep catalogue lint imports) or bandit is not installed in the interpreter, the checks that need it print `skipped: <tool> not installed` and leave the exit status unchanged.
-- [ ] **AC-0008.** When the base ref cannot be resolved, it exits with status 2 and a message naming the base, and runs no check.
-- [ ] **AC-0009.** Without `--with-tests` it runs no pytest suite and prints the pytest command for each touched pack.
-- [ ] **AC-0010.** With `--with-tests` it runs `python -m pytest packs/<pack>/tests -q` for each touched pack and exits non-zero when a run does.
-- [ ] **AC-0011.** No Makefile target other than `precheck` names `precheck` in its prerequisites or recipe.
-- [ ] **AC-0012.** The new suites are registered in the batch, mirror and disposition that run them in CI: `python3 tools/lint-ci-parity.py` and `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py -q` both pass.
-- [ ] **AC-0013.** Root `AGENTS.md` names `make precheck` in its commands block beside `make lint-ruff lint-mypy`, and `python3 tools/lint-agents-md.py` passes.
-- [ ] **AC-0014.** The root `build-self` line states that it writes projections and that `.apm/` edits require it.
-- [ ] **AC-0015.** `tools/lint-agents-md.py` exits non-zero with the diagnostic `local-gate target not defined: <target>` on a fixture whose fenced command block names `local gate` beside a `make` line of two targets when the second is missing from the fixture Makefile, and exits zero on this repository.
-- [ ] **AC-0016.** The existing `AGENT_RULES.md` row that reads `docs/VERIFICATION.md` has a `when` that also covers the precheck surface.
-- [ ] **AC-0017.** `docs/VERIFICATION.md` holds a precheck entry carrying each field named under § Verify entries → Fields in the work-loop `references/verification-modes.md`.
+- [x] **AC-0001.** `tools/precheck.py` given a changed-path list that matches no trigger prints `no trigger matched` and starts no subprocess.
+- [x] **AC-0002.** Given a changed path under `packs/<pack>/.apm/`, it runs `agentbundle catalogue self-host --root . --check` and exits with that command's status.
+- [x] **AC-0003.** Given a changed `SKILL.md` under `packs/`, it runs `agentbundle catalogue lint --root . --deep` and exits with that command's status.
+- [x] **AC-0004.** Given a changed path in core pack content (`packs/core/seeds/**`, `packs/core/.apm/**`, `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`), it runs `tools/check-core-release.py` against the resolved base and exits with its status.
+- [x] **AC-0005.** Given a change confined to `packs/core/tests/**`, it does not run `tools/check-core-release.py`.
+- [x] **AC-0006.** Given changed `.py` files, it scans exactly those that exist in the working tree with bandit, at the severity and confidence floor `tools/run-bandit-gate.py` defines, limited to changed files under the gate's scan roots, so a file with only LOW findings exits 0, and a MEDIUM finding or any bandit stderr exits non-zero.
+- [x] **AC-0007.** When `agentbundle`, PyYAML (which the deep catalogue lint imports) or bandit is not installed in the interpreter, the checks that need it print `skipped: <tool> not installed` and leave the exit status unchanged.
+- [x] **AC-0008.** When the base ref cannot be resolved, it exits with status 2 and a message naming the base, and runs no check.
+- [x] **AC-0009.** Without `--with-tests` it runs no pytest suite and prints the pytest command for each touched pack.
+- [x] **AC-0010.** With `--with-tests` it runs `python -m pytest packs/<pack>/tests -q` for each touched pack and exits non-zero when a run does.
+- [x] **AC-0011.** No Makefile target other than `precheck` names `precheck` in its prerequisites or recipe.
+- [x] **AC-0012.** The new suites are registered in the batch, mirror and disposition that run them in CI: `python3 tools/lint-ci-parity.py` and `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py -q` both pass.
+- [x] **AC-0013.** Root `AGENTS.md` names `make precheck` in its commands block beside `make lint-ruff lint-mypy`, and `python3 tools/lint-agents-md.py` passes.
+- [x] **AC-0014.** The root `build-self` line states that it writes projections and that `.apm/` edits require it.
+- [x] **AC-0015.** `tools/lint-agents-md.py` exits non-zero with the diagnostic `local-gate target not defined: <target>` on a fixture whose fenced command block names `local gate` beside a `make` line of two targets when the second is missing from the fixture Makefile, and exits zero on this repository.
+- [x] **AC-0016.** The existing `AGENT_RULES.md` row that reads `docs/VERIFICATION.md` has a `when` that also covers the precheck surface.
+- [x] **AC-0017.** `docs/VERIFICATION.md` holds a precheck entry carrying each field named under § Verify entries → Fields in the work-loop `references/verification-modes.md`.
 
 ## Follow-ons
 

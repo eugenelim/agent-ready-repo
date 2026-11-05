@@ -85,7 +85,7 @@ Run in the throwaway worktree, in order:
 
 1. Append one line to `packs/repo-governance/.apm/skills/new-adr/references/infra-decisions.md`. That pack is self-hosted, so its projections under `.claude/` and `.agents/` now differ. Commit nothing. Do not edit a `SKILL.md`, a `.py` file, or anything under `packs/core/`.
 2. Run `make precheck PRECHECK_ARGS="--base HEAD"`. The committed diff against `HEAD` is empty, so only the edit triggers. Expect a non-zero exit with a self-host drift result. No other check triggers: deep lint needs a `SKILL.md`, bandit needs a `.py` file, and the core release check needs a path under `packs/core/`. Pack tests only print a "not run" line without `--with-tests`.
-3. Run `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue self-host --root . --write`.
+3. Run `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue self-host --root . --write --force`. `--force` skips only the dirty-tree check; the tree is dirty on purpose, by the edit in step 1.
 4. Run the same `make precheck` command again. Expect exit 0 with the same single self-host check.
 
 ### Features

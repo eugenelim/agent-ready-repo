@@ -1,7 +1,7 @@
 # Plan: Path-triggered precheck
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** `tools/check-core-release.py` (argparse CLI, fails closed on an unresolvable `--base`); `tools/run-bandit-gate.py` (`FLOOR`, `CONFIG`); `tools/lint-agents-md.py` with the `tools/test_lint_agents_md_*.py` suites, which sit in `FINAL_TOOL_BATCH` in `tools/test_local_ci_shared_test_deduplication.py`, the Makefile `run-test-suite` define, and the `build-check.yml` mirror; `tools/AGENTS.md`. A new suite line in the `run-test-suite` define needs one `PR_GATED` `SUITE_DISPOSITION` entry per target, like its `test_lint_agents_md_*` neighbours.
 
 ## Approach
@@ -139,3 +139,4 @@ Local tooling and guidance only; reversible by revert. No sequencing.
 
 - 2026-11-05: spec approved by eugenelim.
 - 2026-11-05: plan approved by eugenelim.
+- 2026-11-05: run `run-a0b23fbabd9eb4f2` terminal; finish evidence recorded in the ledger.
