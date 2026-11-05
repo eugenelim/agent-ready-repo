@@ -3,7 +3,8 @@
 - **Slug:** `catalogue-evaluator-delivery`
 - **Received:** 2026-11-05
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Ready
+- **Ready confirmed:** 2026-11-05 by eugenelim, lifecycle owner. Bound to the file as reviewed `Clean` by an independent delivery-brief review at commit `b2cfd8ecf`; the later edits were wording corrections, recorded as nonmaterial by the lifecycle owner. Slice membership and status are the Spec map's; this line does not restate them.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/catalogue-wave7-marketing-evaluator.md`](../intents/catalogue-wave7-marketing-evaluator.md), cut into slices on 2026-11-05 from a read of the code and a run of the published-specification checks.
 - **Parent intent:** intent:catalogue-wave7-marketing-evaluator
 

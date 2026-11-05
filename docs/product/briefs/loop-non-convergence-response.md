@@ -4,7 +4,8 @@
 - **Received:** 2026-11-05
 - **Owner:** eugenelim
 - **Parent intent:** intent:agent-loop-escalation-recovery
-- **Status:** Draft
+- **Status:** Ready
+- **Ready confirmed:** 2026-11-05 by eugenelim, lifecycle owner. Bound to the file as reviewed `Clean` by an independent delivery-brief review at commit `b2cfd8ecf`; the later edits were wording corrections, recorded as nonmaterial by the lifecycle owner. Slice membership and status are the Spec map's; this line does not restate them.
 - **Source / provenance:** Repository origin. The intent `docs/product/intents/agent-loop-escalation-recovery.md` records one 11-round spec-authoring loop and one 8-round checker loop that did not converge. Slice sizing follows [`agent-authoring-input-quality.md`](agent-authoring-input-quality.md) § "Sizing discipline".
 
 ## Outcome
