@@ -202,6 +202,39 @@ unchanged.[^14]
   fault. A link-like or non-regular observation partition file is excluded as
   `unsafe` and never read.
 
+## 8b. The promotion drain: reading a record to act on it
+
+The promotion drain is the store's first read-and-act path. An operator
+invokes it to hand a captured `work-item` to its owning route or to close
+it. It reads the open `work-item` captures — those with no terminal
+disposition — through the same confined read helpers every other read uses,
+and per item assembles an offer: the record, the write-path prose controls
+re-run over the schema-derived scanned field set (settling the § D10 prose
+residual for everything the drain touches), the stored command's
+pre-execution re-check through the write path's own validator, and the
+command's run under the execution envelope. The envelope is the one place
+a stored command executes: repository-confinement of every stored-path
+member after symlink resolution, a neutralized environment with standard
+input closed and `LC_ALL=C`, a 10-second wall-clock cap with process-group
+t termination, a 64-KiB output cap, and `grep` pinned to `-F`. Output
+crosses toward any durable sink only through the eight-pattern privacy
+scan at that seam.
+
+The terminal disposition is the sole commit point. A confirmed route runs
+the work-intake transaction — the captured-item file under
+`docs/product/captured/`, then the processor handoff — and only then writes
+`routed`; a closure records `rejected` or `superseded` with its ground in
+the reason code; a held item writes nothing and stays open. A crash ahead
+of the disposition leaves the capture open, and re-running the drain
+completes the sequence idempotently: the transaction's existing-artifact
+path writes no second artifact and the store's identical-disposition no-op
+writes no second terminal event. An unattended drain performs the
+read-only half only and holds every item.
+
+The implementation is in
+`packs/core/.apm/skills/project-knowledge/scripts/promotion_drain.py`; the
+operator procedure is `packs/core/.apm/skills/work-intake/SKILL.md` § 8.
+
 ## 9. Observability and evidence
 
 Capture returns receipts. Distillation records dispositions and proposed store

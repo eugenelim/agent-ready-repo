@@ -1294,6 +1294,12 @@ consumer = "roster test that reads workspace.toml or the workspace-status engine
 owner = 9
 
 [[row]]
+pattern = "tests/roster/test_promotion_drain_procedure.py"
+class = "fixture"
+consumer = "roster test that reads workspace.toml or the workspace-status engine, skill, or projection"
+owner = 9
+
+[[row]]
 pattern = "tests/roster/test_close_work_extraction_and_immediate_disposition.py"
 class = "fixture"
 consumer = "roster test test_close_work_extraction_and_immediate_disposition.py that exercises the registry consumers of its feature; tracker-origin spec entries and the engine dispatch.py loads remain until slice 9"
