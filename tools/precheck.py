@@ -101,7 +101,7 @@ def scan_roots() -> list[str]:
 def changed_paths(base: str, executor: Executor) -> list[str]:
     """Union of committed (`base...HEAD`) and working-tree changes, in first-seen order."""
     paths: list[str] = []
-    diff_argv = ["git", "-c", "core.quotePath=false", "diff", "--name-only", "-z"]
+    diff_argv = ["git", "-c", "core.quotePath=false", "diff", "--name-only", "--no-renames", "-z"]
     diff_argv.append(f"{base}...HEAD")
     code, diff = executor(diff_argv, "stdout")
     if code != 0:
@@ -116,7 +116,7 @@ def changed_paths(base: str, executor: Executor) -> list[str]:
         if len(entry) < 4:
             continue
         paths.append(entry[3:])
-        if entry[0] in "RC":  # a rename or copy lists its source as the next entry
+        if "R" in entry[:2] or "C" in entry[:2]:  # either column: source is the next entry
             paths.append(next(entries, ""))
     return list(dict.fromkeys(p for p in paths if p))
 

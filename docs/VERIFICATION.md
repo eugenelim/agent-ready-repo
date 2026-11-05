@@ -83,10 +83,10 @@ Create a separate throwaway git worktree on a throwaway branch, and record its p
 
 Run in the throwaway worktree, in order:
 
-1. Touch one file under `packs/core/.apm/`.
-2. Run `make precheck`. Expect a non-zero exit with a self-host drift result.
+1. Append one line to `packs/repo-governance/.apm/skills/new-adr/references/infra-decisions.md`. That pack is self-hosted, so its projections under `.claude/` and `.agents/` now differ. Commit nothing. Do not edit a `SKILL.md`, a `.py` file, or anything under `packs/core/`.
+2. Run `make precheck`. Expect a non-zero exit with a self-host drift result. No other check triggers: deep lint needs a `SKILL.md`, bandit needs a `.py` file, and the core release check needs a path under `packs/core/`. Pack tests only print a "not run" line without `--with-tests`.
 3. Run `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue self-host --root . --write`.
-4. Run `make precheck` again. Expect exit 0.
+4. Run `make precheck` again. Expect exit 0 with the same single self-host check.
 
 ### Features
 

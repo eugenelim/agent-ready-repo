@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -261,3 +263,94 @@ def test_checkout_paths_reach_child_env_and_installed_check() -> None:
     assert parts[-1] == "keep"
     assert precheck._installed("agentbundle")
     assert not precheck._installed("no_such_module_xyz")
+
+
+def _git(repo: Path, *args: str) -> None:
+    """Run hermetic git in `repo` (no global config, fixed identity)."""
+    env = {
+        "PATH": os.environ["PATH"],
+        "HOME": str(repo),
+        "GIT_CONFIG_GLOBAL": os.devnull,
+        "GIT_CONFIG_SYSTEM": os.devnull,
+        "GIT_AUTHOR_NAME": "t",
+        "GIT_AUTHOR_EMAIL": "t@example.invalid",
+        "GIT_COMMITTER_NAME": "t",
+        "GIT_COMMITTER_EMAIL": "t@example.invalid",
+    }
+    subprocess.run(["git", *args], cwd=repo, env=env, check=True, capture_output=True)
+
+
+def _repo_executor(repo: Path) -> object:
+    def execute(argv: list[str], capture: str) -> tuple[int, str]:
+        proc = subprocess.run(
+            argv,
+            cwd=repo,
+            env={"PATH": os.environ["PATH"], "GIT_CONFIG_GLOBAL": os.devnull},
+            stdout=subprocess.PIPE,
+            check=False,
+            text=True,
+        )
+        return proc.returncode, proc.stdout
+
+    return execute
+
+
+def _scratch_repo(tmp_path: Path, source: str) -> Path:
+    repo = tmp_path / "repo"
+    (repo / Path(source).parent).mkdir(parents=True)
+    _git(repo, "init", "-q", "-b", "main")
+    (repo / source).write_text("line one\nline two\nline three\n", encoding="utf-8")
+    _git(repo, "add", "-A")
+    _git(repo, "commit", "-q", "-m", "base")
+    return repo
+
+
+def test_committed_rename_lists_source_and_fires_triggers(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    source = "packs/core/.apm/skills/a.md"
+    repo = _scratch_repo(tmp_path, source)
+    _git(repo, "checkout", "-q", "-b", "work")
+    (repo / "docs").mkdir()
+    _git(repo, "-c", "diff.renames=true", "mv", source, "docs/a.md")
+    _git(repo, "commit", "-q", "-m", "move")
+    execute = _repo_executor(repo)
+    paths = precheck.changed_paths("main", execute)
+    assert source in paths and "docs/a.md" in paths
+    ran: list[list[str]] = []
+
+    def record(argv: list[str], capture: str) -> tuple[int, str]:
+        ran.append(argv)
+        return 0, ""
+
+    _run_paths = precheck.run_checks(
+        paths,
+        base="main",
+        python=PY,
+        with_tests=False,
+        executor=record,
+        is_installed=lambda _t: True,
+        file_exists=lambda _p: False,
+        dir_exists=lambda _p: False,
+    )
+    assert _run_paths == 0
+    flat = [" ".join(c) for c in ran]
+    assert any("self-host" in c for c in flat)
+    assert any("check-core-release" in c for c in flat)
+
+
+def test_worktree_rename_column_source_is_not_truncated(tmp_path: Path) -> None:
+    source = "packs/core/.apm/x.md"
+    repo = _scratch_repo(tmp_path, source)
+    (repo / "docs").mkdir()
+    (repo / source).rename(repo / "docs" / "x.md")
+    _git(repo, "add", "-N", "docs/x.md")  # status: ` R docs/x.md` then the source entry
+    paths = precheck.changed_paths("HEAD", _repo_executor(repo))
+    assert paths == ["docs/x.md", source]
+
+
+def test_status_worktree_rename_column_consumes_source() -> None:
+    status = " R docs/x.md\0packs/core/.apm/x.md\0"
+    rec = Recorder({"status": (0, status)})
+    paths = precheck.changed_paths("origin/main", rec)
+    assert paths == ["docs/x.md", "packs/core/.apm/x.md"]
