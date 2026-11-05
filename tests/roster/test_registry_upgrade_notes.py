@@ -998,7 +998,7 @@ _RELEASED = {
     "desk-research": ("1.1.11", _FRAGMENT),
     "atlassian": ("0.10.5", _FRAGMENT),
     "linear": ("0.3.6", _FRAGMENT),
-    "github": ("0.3.1", _FRAGMENT),
+    "github": ("0.3.2", "docs/product/changelog.d/71664adf-527d-4a8d-ad93-d4183865cb75.md"),
     "product-engineering": ("2.0.6", _FRAGMENT),
 }
 
