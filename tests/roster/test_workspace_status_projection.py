@@ -796,52 +796,6 @@ class RealTreeProjectionTests(unittest.TestCase):
                     )
 
 
-class RepositoryHealthTests(unittest.TestCase):
-    """Action signals over the repository's own workspace.toml.
-
-    `workspace.toml` is a living action dashboard, not an archive: entries
-    arrive, get dispositioned, and leave. Every assertion here is therefore
-    zero-tolerance on state that is *currently broken*, and none of them counts
-    how much legacy content the file happens to hold. A count ceiling pins a
-    snapshot of hand-authored content that is expected to change on almost
-    every edit, so it nags without preventing drift and has to be re-measured
-    rather than reasoned about.
-
-    Engine *behaviour* -- that these codes are raised at all, and that each
-    finding stays individually attributable -- is proven against synthetic
-    fixtures in `WorkspaceEngineFixtureTests`, not against this file.
-
-    This class remains the only place CI runs the reconciliation engine over
-    the real `workspace.toml`, which is why the fail-closed set stays here.
-    """
-
-    def _canonical(self):
-        engine = _load_workspace_status_engine()
-        workspace = engine.parse_workspace(REPO_ROOT / "workspace.toml")
-        return engine.run_canonical_reconciliation(workspace, REPO_ROOT)
-
-    def test_no_fail_closed_lifecycle_findings(self) -> None:
-        """Codes that always mean the repository is currently broken."""
-        canonical = self._canonical()
-        for code in (
-            "missing_artifact",
-            "inactive_initiative",
-            "duplicate_membership",
-            "invalid_artifact_path",
-            "missing_dependency",
-            "invalid_entry",
-            "invalid_workspace",
-            "dependency_cycle",
-            # An artifact's status and its lifecycle membership cannot coexist.
-            # Zero-tolerance rather than ceilinged: any occurrence is a real
-            # contradiction, and repointing a backlog entry at a Shipped or
-            # Accepted carrier raises exactly one per entry.
-            "impossible_transition",
-        ):
-            offenders = sorted(f.path for f in canonical.findings if f.code == code)
-            self.assertEqual(offenders, [], f"{code} reappeared: {offenders}")
-
-
 class WorkspaceEngineFixtureTests(unittest.TestCase):
     """Engine behaviour, proven on synthetic workspaces.
 

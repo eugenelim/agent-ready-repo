@@ -199,6 +199,28 @@ Slice 9 of the delivery brief completes the closure checklist here.
 - **Headers-only dispatch and a repair-only workspace-status (2026-11-02).** The [`repair-only-workspace-status`](../repair-only-workspace-status/spec.md) spec moves the readiness rules `work-loop`'s dispatch still borrowed into `work-loop` itself, so dispatch decides from each artifact's own headers and loads no other skill. While `workspace.toml` still holds an entry, dispatch refuses with `unmigrated_workspace` and names the repair. `workspace-status` keeps only `repair-plan` and `repair-apply`: its `status`, `reconcile`, `explain`, `selected-membership`, `prune`, `retirement-candidates` and `repair-rollback` subcommands are retired, and `[authorization.migration]` is removed with the migration tooling it gated. A replay of the base and the new dispatch over 56 entry-free repositories (the trees the dispatch suites plant, and this repository) compared 202 runs and found 0 differing outputs, recorded in that spec's [verification ledger](../repair-only-workspace-status/notes/verification-ledger.md).
 - **Upgrade notes and operative references (2026-11-03).** The [`registry-upgrade-notes`](../registry-upgrade-notes/spec.md) spec publishes the adopter upgrade notes at `guides/core/how-to/upgrade-from-a-workspace-registry.md`, which name the policy file, both repair steps, the retired `workspace-status` subcommands and migration tooling, and the MCP field changes; the `pre-cutover-closure` draft stays as that spec's approved record. It removes the `workspace.toml` seed from `core`, with its self-host and catalogue-lint entries, so a fresh install writes no `workspace.toml`, and an intent rename runs with no `workspace.toml`, still refusing a registry that is a link, unreadable, invalid or present on only one side. Every guide, page, seed, manifest and skill in the operative set routes status to `work-loop`'s `dispatch.py` and names `workspace-status` only for the repair; a roster check over its 1,521 files holds that.
 
+### Checklist
+
+| Gate | Item | State | Evidence |
+| --- | --- | --- | --- |
+| consumer inventory | every tracked file with a registry token has a governing row | met | `docs/specs/workspace-retirement/inventory.toml`; `tests/roster/test_workspace_retirement_inventory.py` |
+| consumer inventory | no row is owned by a slice number | met | `docs/specs/workspace-retirement/inventory.toml` |
+| state disposition | every registry fact has a home and an owner | met | `docs/specs/workspace-retirement/retirement-record.md` |
+| state disposition | every deliberate removal cites accepted authority | met | `docs/specs/workspace-retirement/retirement-record.md`; `docs/rfc/0106-stop-registering-derivable-work.md` |
+| behavioral equivalence | every equivalence case is reproduced, an accepted removal or an intended change | met | `docs/specs/workspace-retirement/retirement-record.md` |
+| behavioral equivalence | the headers-only dispatch replay found 0 differing outputs | met | `docs/specs/repair-only-workspace-status/notes/verification-ledger.md` |
+| compatibility closure | legacy entries migrated or retired | met | `docs/specs/last-registry-entries/notes/verification-ledger.md` |
+| compatibility closure | operative references and seeds removed | met | `docs/specs/registry-upgrade-notes/spec.md` |
+| compatibility closure | upgrade notes published | met | `guides/core/how-to/upgrade-from-a-workspace-registry.md` |
+| compatibility closure | prune-protection list retired | met | `tests/AGENTS.md` |
+| compatibility closure | old skill deferred to the RFC-0067 release | met | `docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md` |
+| compatibility closure | registry contract retired in RFC-0064 | met | `docs/rfc/0064-ini-001-ai-native-ecosystem.md` |
+| compatibility closure | activation gate passed | met | `docs/specs/workspace-toml-deletion/notes/verification-ledger.md` |
+| compatibility closure | corpus gate passed | met | https://github.com/eugenelim/agent-ready-repo/actions/runs/41930296968 and https://github.com/eugenelim/agent-ready-repo/actions/runs/41930300476 |
+| compatibility closure | workspace.toml deleted | met | https://github.com/eugenelim/agent-ready-repo/actions/runs/41930300476 |
+
 ## Certification
 
-Slice 9 of the delivery brief records the certification here.
+- **Certified:** 2026-11-05 by eugenelim, Platform Core maintainer
+
+I certify that RFC-0105 D3's four retirement gates (consumer inventory, state disposition, behavioral equivalence and compatibility closure) pass, on the evidence in § Compatibility closure's checklist.

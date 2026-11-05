@@ -152,7 +152,10 @@ def _workspace_lines_are_registrations() -> bool:
         "docs/product/briefs/repo-governance-pack.md",
         "docs/specs/" + "repo-governance-rename/spec.md",
     )
-    for line in (REPO_ROOT / "workspace.toml").read_text(encoding="utf-8").splitlines():
+    registry = REPO_ROOT / "workspace.toml"
+    if not registry.exists():
+        return True
+    for line in registry.read_text(encoding="utf-8").splitlines():
         if OLD_NAME in line and not any(f'path = "{path}"' in line for path in allowed):
             return False
     return True

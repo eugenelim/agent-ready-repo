@@ -1,8 +1,9 @@
 # Workspace registry retirement
 
 - **Slug:** `workspace-registry-retirement`
-- **Status:** Accepted
+- **Status:** Fulfilled
 - **Accepted:** 2026-11-04 by eugenelim, lifecycle owner and Platform Core maintainer. Revision `7fcca71af4d23e0cef69e5d247f40b3bd9ef73ff` (file blob) returned a clean independent intent-mode shaping review with no `MALFORMED` token on all seven conditions. The owner confirmed the transition when directing the intent through its flow.
+- **Fulfilled:** 2026-11-05 eugenelim: all 18 descendants, the delivery brief workspace-registry-retirement-delivery and its 17 specs, are terminal per close-work's closure check; RFC-0105 D3's four gates are certified in docs/specs/workspace-retirement/retirement-record.md § Certification.
 - **Level:** feature
 - **Owner:** Platform Core maintainer
 - **Scale:** app
