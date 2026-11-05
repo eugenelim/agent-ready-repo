@@ -566,9 +566,10 @@ shared transaction helper and T23 in the release surfaces.
 - A superseded closure whose cited capture id resolves in the seeded store
   closes and records the disposition (`AC-0002`).
 - A superseded closure whose citation is a capture id that resolves
-  nowhere, or a path that does not exist or that escapes the repository
-  root (a `..` traversal or absolute form), or is absent — the closure
-  input carries no `citation` field — is refused by the drain
+  nowhere, or a path that does not exist, escapes the repository root
+  lexically (`..` traversal or absolute form), or resolves outside the
+  root through a symlink, or is absent — the closure input carries no
+  `citation` field — is refused by the drain
   itself, the item stays open, and the refusal names the failed citation
   (`AC-0027`).
 - The citation rides the closed item's run-report entry beside the
@@ -599,6 +600,9 @@ shared transaction helper and T23 in the release surfaces.
   (`AC-0028`).
 - A lock whose pid is owned by another live process (probe raises
   `PermissionError`) is treated as live and refused.
+- A file at the lock path that is not a regular file — a symlink, a
+  FIFO, a device — is never probed and never removed, and the payload
+  read is no-follow, non-blocking, and bounded (`AC-0028`).
 - A lock whose payload carries no parseable pid is never removed, and the
   transaction's own acquisition publishes the lock atomically — the
   `_acquire_claim` pattern: write the pid to a temporary file, then

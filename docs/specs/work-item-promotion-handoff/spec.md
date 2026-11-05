@@ -143,7 +143,11 @@ materialized. A `routed`
 disposition with no handoff is exactly the unrepairable state this section's
 ordering exists to prevent, and a silent no-op default must not be able to
 reach it. The work-intake procedure supplies the real dispatch; its § 8
-records how the operator wires it at invocation.
+records how the operator wires it at invocation. A transaction or
+disposition-write failure — a failed processor dispatch, a lock-busy
+acquisition, a store-refused disposition write — holds the item with the
+failing stage or refusing control named in the run report; no failure of
+that kind aborts the run or writes a terminal event.
 
 The workspace-writer lock the transaction takes must not outlive its owner.
 A lock left by a process that no longer exists is stale, and the transaction
@@ -156,7 +160,10 @@ then acquisition is retried once, so the
 re-run this section names as the one recovery path completes instead of
 returning lock-busy forever. A lock whose owner is alive is never taken; a
 reused pid is bounded by the lock's short critical section and is recorded
-as a residual risk, not a recovery trigger. The re-verify-to-unlink window
+as a residual risk, not a recovery trigger. A file at the lock path that
+is not a regular file — a symlink, a FIFO, a device — is alien, never
+probed and never removed, the sibling pattern's discipline; the
+acquisition's payload read is no-follow, non-blocking, and bounded. The re-verify-to-unlink window
 itself is a bounded residual on the same terms: two concurrent recoverers
 that both verify against the same stale lock before either acts can still
 race — the pattern the sibling writers' refusals name — and the token-keyed
@@ -253,8 +260,10 @@ carried as data and has already passed the re-run scan.
   input for this ground carries the citation as a required field —
   `citation` holding one of `{"capture_id": <id>}` or
   `{"path": <repository-relative path>}` — and an absent citation resolves
-  nowhere and is refused. The path is resolved within the repository root:
-a path escaping it — any `..` traversal or absolute form — resolves
+  nowhere and is refused. The path is resolved within the repository root,
+  symlinks followed — this spec's own confinement standard (§ D7): a path
+  escaping it — any `..` traversal, absolute form, or symlink whose target
+  resolves outside the root — resolves
   nowhere and is refused the same way. That an existing artifact is live —
   not withdrawn,
   tombstoned, or itself superseded — is the operator's attestation, riding
@@ -558,9 +567,11 @@ requires. The scenarios below state how each is driven.
   that each dispatchable member still routes (`AC-0026`).
 - Close an item on the superseded ground with a cited capture id that
   resolves, then with a capture id that resolves nowhere, then with a path
-  that does not exist, then with a path that escapes the repository root,
-  then with no citation at all; assert the first closes and the second
-  through fifth are refused by the drain itself (`AC-0027`).
+  that does not exist, then with a path that escapes the repository root
+  lexically, then with a repository-relative symlink whose target resolves
+  outside the root, then with no citation at all; assert the first closes
+  and the second through sixth are refused by the drain itself
+  (`AC-0027`).
 - Write a workspace lock holding a pid that no longer exists; assert the
   transaction recovers it and completes; that a fresh lock taken between the
   probe and the removal is refused, not removed; that a lock holding a
@@ -602,9 +613,9 @@ and the original work behind it and judges:
    readiness (§ D10), the pre-execution re-check, an envelope refusal, a
    prose re-run refusal (§ D4), a non-dispatchable classify member (§ D3),
    a missing processor dispatch (§ D1), a refused closure citation
-   (§ D5), a store-refused disposition write, a failed processor dispatch,
-   or a lock-busy acquisition — the last three being transaction holds
-   whose reason the run report names (§ D1).
+   (§ D5), a failed processor dispatch, a lock-busy acquisition, or a
+   store-refused disposition write — each a failure § D1 requires to hold
+   the item with its reason named in the run report.
 3. A **closed** item by whether the stated ground holds under § D5's test,
    with the recorded evidence.
 
