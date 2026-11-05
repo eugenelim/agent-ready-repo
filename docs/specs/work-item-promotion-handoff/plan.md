@@ -493,9 +493,10 @@ the captured-item grammar, and the run report.
   is held with the missing dispatch named in the reason, and
   `store_terminal_dispositions` returns no terminal event for either
   (`AC-0025`).
-- The hold precedes every transaction effect: no captured-item artifact is
-  materialized for the held defect, and no workspace lock is left behind
-  (`AC-0025`).
+- The hold precedes every transaction effect: a spy over the transaction
+  runner and the lock acquisition records zero invocations — the AC-0010
+  zero-calls pattern — and no captured-item artifact is materialized for
+  the held defect (`AC-0025`).
 - `transact_route` called directly with `dispatch_processor=None` on both
   route branches returns the hold shape and attempts no disposition.
 - A drain with a real dispatch wired still routes and records `routed`
@@ -519,10 +520,11 @@ the captured-item grammar, and the run report.
   non-dispatchable members — is held the same way (`AC-0026`).
 - A question classified with each dispatchable member still routes, with
   the classification riding the report item unchanged (`AC-0001`).
-- The member set is a module constant named by spec § D3, referenced there
-  rather than restated here, and a source-text assertion — the T7 pattern —
-  pins the constant to work-intake `SKILL.md` § 4's classify table, so a
-  table row added or renamed fails the suite until the constant follows.
+- The member set is a module constant whose members spec § D3 enumerates,
+  referenced there rather than restated here, and a source-text assertion —
+  the T7 pattern — pins the constant to work-intake `SKILL.md` § 4's
+  classify table, so a table row added or renamed fails the suite until the
+  constant follows.
 
 **Done when:** no non-empty string can route a question, the constant and
   the classify table cannot drift apart silently, and the roster
@@ -541,6 +543,8 @@ the captured-item grammar, and the run report.
 - A superseded closure whose citation is absent — the closure input carries
   no `citation` field — is refused the same way: an absent citation
   resolves nowhere (`AC-0027`).
+- A superseded closure whose citation resolves but whose operator verdict
+  is false is refused — the verdict is a veto on every ground (`AC-0027`).
 - Overtaken and falsified closures are unchanged: the operator's verdict
   still decides them, with the evidence riding the report (`AC-0003`).
 
@@ -565,7 +569,11 @@ the captured-item grammar, and the run report.
 - A lock whose pid is owned by another live process (probe raises
   `PermissionError`) is treated as live and refused.
 - A lock whose payload carries no parseable pid is never removed, and the
-  transaction's own acquisition leaves no such window (`AC-0028`).
+  transaction's own acquisition publishes the lock atomically — the
+  `_acquire_claim` pattern: write the pid to a temporary file, then
+  `os.link` it into place, so the lock never exists without its pid. The
+  test drives the seam: fault-inject the link step (a raising `os.link`)
+  and assert no lock file exists at the lock path (`AC-0028`).
 
 **Done when:** the drain's re-run recovery path survives a hard-killed
   predecessor without ever removing a live writer's lock, and the

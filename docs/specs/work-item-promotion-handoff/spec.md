@@ -156,9 +156,18 @@ then acquisition is retried once, so the
 re-run this section names as the one recovery path completes instead of
 returning lock-busy forever. A lock whose owner is alive is never taken; a
 reused pid is bounded by the lock's short critical section and is recorded
-as a residual risk, not a recovery trigger. A lock whose payload carries no
+as a residual risk, not a recovery trigger. The re-verify-to-unlink window
+itself is a bounded residual on the same terms: two concurrent recoverers
+that both verify against the same stale lock before either acts can still
+race — the pattern the sibling writers' refusals name — and the token-keyed
+reclaim `project-knowledge`'s own `_statelock.py` uses would close it, but
+that changes the shared lock's payload protocol every taker reads, and so
+belongs to the lock protocol's owner, not this spec. A lock whose payload
+carries no
 parseable pid is never removed — its owner is treated as live — and the
-transaction's own acquisition closes the create-then-write window so every
+transaction's own acquisition closes the create-then-write window — the
+lock is published by an atomic link of a pid-complete temporary file, the
+sibling `_acquire_claim` pattern, so every
 lock it leaves carries its pid; a foreign pid-less lock left by a writer
 killed mid-acquisition is a disclosed residual requiring manual removal,
 strictly narrower than the permanent wedge this rule removes.
@@ -243,7 +252,10 @@ carried as data and has already passed the re-run scan.
   nowhere and is refused. That an existing artifact is live — not withdrawn,
   tombstoned, or itself superseded — is the operator's attestation, riding
   the closure's evidence; the drain's mechanical check is resolution and
-  existence, never liveness. The closure
+  existence, never liveness. The operator's `test_passes` verdict remains a
+  veto on every ground, this one included: a false verdict refuses the
+  closure even when the citation resolves, and a resolving citation is
+  additionally required, so both gates must pass. The closure
   records the citation.
 - **Falsified** — the premise the item rested on no longer holds. Test: the
   change that falsified it is named — a commit, an artifact state, an
@@ -686,7 +698,9 @@ verifies the criteria below mechanically.
       identity — same inode, same pid payload — immediately before the
       unlink and refuses when the lock changed underneath; a lock whose
       owner is alive, or whose payload carries no parseable pid, is never
-      taken.
+      taken; and the transaction's own acquisition publishes the lock
+      atomically — a pid-complete temporary file linked into place — so a
+      lock it leaves always carries its owner's pid.
 
 ## Follow-ons
 
