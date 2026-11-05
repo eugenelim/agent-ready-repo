@@ -728,6 +728,24 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest installed-skill supervisor run (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest promotion drain decide (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain envelope (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain procedure (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain prose rerun (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain reader (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain recheck (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain repair (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain run (roster-owned)":
+        LOCAL("test-after-build-check"),
+    "pytest promotion drain surfaces (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest retired-name pinned sites (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest brief lifecycle single home (roster-owned)":
@@ -1140,6 +1158,15 @@ _GATE_MAIN_CHECKS = (
     "pytest repair-only workspace-status text (roster-owned)",
     "pytest header-readiness source-authority parity (roster-owned)",
     "pytest installed-skill supervisor run (roster-owned)",
+    "pytest promotion drain decide (roster-owned)",
+    "pytest promotion drain envelope (roster-owned)",
+    "pytest promotion drain procedure (roster-owned)",
+    "pytest promotion drain prose rerun (roster-owned)",
+    "pytest promotion drain reader (roster-owned)",
+    "pytest promotion drain recheck (roster-owned)",
+    "pytest promotion drain repair (roster-owned)",
+    "pytest promotion drain run (roster-owned)",
+    "pytest promotion drain surfaces (roster-owned)",
     "pytest retired-name pinned sites (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest workspace retirement inventory (roster-owned)",

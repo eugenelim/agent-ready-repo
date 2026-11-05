@@ -1021,6 +1021,49 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_cooling_parent_schema.py
 
+      # The promotion-drain delivery (work-item-promotion-handoff) is
+      # roster-owned: the drain script lives in the core pack while its
+      # contract spans the store, the work-intake transaction and the
+      # header-readiness owner grammar, so a pack-local test cannot reach
+      # them all. Each suite sits ABOVE the carve-out step below, whose
+      # `pytest tests/ -q` also collects it, so a failure is attributed
+      # to its named step.
+      - name: pytest promotion drain decide (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_decide.py
+
+      - name: pytest promotion drain envelope (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_envelope.py
+
+      - name: pytest promotion drain procedure (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_procedure.py
+
+      - name: pytest promotion drain prose rerun (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_prose_rerun.py
+
+      - name: pytest promotion drain reader (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_reader.py
+
+      - name: pytest promotion drain recheck (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_recheck.py
+
+      - name: pytest promotion drain repair (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_repair.py
+
+      - name: pytest promotion drain run (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_run.py
+
+      - name: pytest promotion drain surfaces (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_promotion_drain_surfaces.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
