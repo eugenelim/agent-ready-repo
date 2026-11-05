@@ -49,6 +49,20 @@ def test_ac0002_section_content() -> None:
     assert "rewrites files" in body
 
 
+def test_ac0005_section_names_declaration_places_apart_from_verify_entry() -> None:
+    body = _flat(_section())
+    assert "verification entry" not in body
+    for place in ("agent-guidance files", "build files", "pipeline definitions"):
+        assert place in body, place
+    assert "not a verify entry" in body
+
+
+def test_ac0006_section_bars_naming_undeclared_check_and_keeps_task_zero() -> None:
+    body = _flat(_section())
+    assert "not named as if declared" in body
+    assert "task-zero rule for a missing verification mechanism" in body
+
+
 def test_ac0003_new_texts_are_portable() -> None:
     for text in (_rule_paragraph(), _section()):
         for term in _FORBIDDEN:
