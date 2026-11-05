@@ -56,3 +56,58 @@ None. The entry uses `git`, `python3`, and `mktemp`.
 ### Stand-in gap
 
 Codex is the one adapter driven. The other adapters stay uncovered.
+
+## Verify: repository precheck
+
+### Surface
+
+`tools/precheck.py` (`make precheck`), run from this checkout. It maps changed paths to the checks they trigger.
+
+### Launch
+
+`python3 tools/precheck.py` (or `make precheck`).
+
+### Ready
+
+It prints each triggered check, or `no trigger matched`, and exits.
+
+### Doctor
+
+`python3 tools/precheck.py --help` exits 0.
+
+### Isolation
+
+Create a separate throwaway git worktree on a throwaway branch, and record its path and branch name as the handle. The run drives only that worktree, never the checkout under change.
+
+### Drive
+
+Run in the throwaway worktree, in order:
+
+1. Touch one file under `packs/core/.apm/`.
+2. Run `python3 tools/precheck.py`. Expect a non-zero exit with a self-host drift result.
+3. Run `agentbundle catalogue self-host --root . --write`.
+4. Run `python3 tools/precheck.py` again. Expect exit 0.
+
+### Features
+
+The four checks (self-host drift, deep skill lint, core release bump, and bandit on the changed files) and the named skips for a missing tool.
+
+### Evidence
+
+Write each command, its exit status, and its output to `<evidence-dir>`, which is `.context/verify/repository-precheck/<run-id>/` (ignored by Git). The first run passes when it exits non-zero and names self-host drift. The second passes when it exits 0.
+
+### Proof limits
+
+It is not CI. It runs pack tests only with `--with-tests`. It proves nothing about suites it does not trigger.
+
+### Cleanup
+
+Remove only the worktree and branch this run created. Check the recorded handle first, and if it is empty, do nothing. Then check that `<evidence-dir>` still holds the transcript.
+
+### Helpers
+
+None. The entry uses `git`, `python3`, and `mktemp`.
+
+### Stand-in gap
+
+A tool missing from the interpreter is a named skip, so that check stays uncovered.
