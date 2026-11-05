@@ -511,7 +511,9 @@ requires. The scenarios below state how each is driven.
   filesystem and process properties, asserted by writing a stale lock with
   a dead pid and a live lock with the running pid; the atomic publication
   is asserted by fault-injecting the link step — no lock exists at the
-  path and no temporary is left behind.
+  path and no temporary is left behind — and by a successful publication
+  leaving no temporary behind; an orphaned temporary — one its killed
+  creator never linked — is asserted not to block a later acquisition.
 - **`AC-0001`, `AC-0002` — visual / manual QA, the named adjudicator over
   the rubric below:** the disposition judgement is the adjudicator's, not a
   function's.
@@ -579,7 +581,9 @@ requires. The scenarios below state how each is driven.
   at the lock path is never probed and never removed; and that
   fault-injecting
   the acquisition's link step leaves no lock at the path and no temporary
-  behind (`AC-0028`).
+  behind; a successful publication leaves no temporary behind; and an
+  orphaned temporary — one its killed creator never linked — does not
+  block a later acquisition (`AC-0028`).
 - Add a row to `docs/specs/work-item-capture/spec.md` § D6 cases and assert
   the pre-execution re-check drives it without any edit here (`AC-0017`).
 - Drain a governance-shaped item while no governance route exists; assert it
