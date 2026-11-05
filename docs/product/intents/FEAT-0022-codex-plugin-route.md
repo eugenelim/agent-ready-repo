@@ -38,7 +38,7 @@ publication.
 ## Readiness
 
 - **Route:** delivery brief [`codex-plugin-route-delivery`](../briefs/codex-plugin-route-delivery.md), four slices. The first (extend the roster parity check from one hard-wired publisher to a declared list of publishers, against the one shared eligibility rule in `tools/pack_scope.py`) has no dependency and can ship first; the Codex publish workflow does not exist yet and slice C4 creates it.
-- **Verified 2026-11-05:** no Codex route exists in `contracts/distribution-routes.toml`; the dependencies FEAT-0020 and FEAT-0021 are both still open, so slices C2 to C4 wait.
+- **Verified 2026-11-05:** no Codex route exists in `contracts/distribution-routes.toml`; slices C2 to C4 wait on the predecessors named in their Gating cells in the brief.
 - **Agent-only proof:** golden fixtures, offline schema validation against a vendored schema, and workflow posture tests. The support claim stays `documentation-verified`.
 - **Owner decision, 2026-11-05:** the Codex route records MCP as `dropped` and refuses a declaring pack until a documented MCP path is recorded.
 - **Manual residue, non-blocking:** one real Codex install and enable check, filed in the runtime-verification record.

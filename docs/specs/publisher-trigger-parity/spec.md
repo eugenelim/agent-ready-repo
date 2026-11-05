@@ -28,7 +28,7 @@ A maintainer who adds a second marketplace publisher can have its push-path filt
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Maintainer procedure | Applicable | the header comment of `.github/workflows/publish-claude-plugins.yml`, which names `lint-plugin-roster.py` as the allowlist's closure | eugenelim | Comment names the publisher list | Comment updated |
+| Maintainer procedure | Applicable | the module docstring of `tools/lint-plugin-roster.py`, which states how a maintainer adds a publisher to the declared list | eugenelim | Docstring names the publisher list and how to add one | Docstring updated |
 | Release history | Not applicable: tools only, no shipped pack changes | none | none | none | none |
 
 ## Agent Rules
