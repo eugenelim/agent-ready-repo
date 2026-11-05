@@ -68,10 +68,10 @@ Cross-cutting, beyond the per-task tests below:
 | Decision rationale (spec § Decisions this spec makes) | — the spec itself | gate approval | the owner's approval record |
 | Current architecture (knowledge-capture entry) | T8 | entry names the drain, the disposition, and the envelope | close-work reads the entry |
 | Interface compatibility (store event shapes) | T1, T5, T6 | roster suites green over the fixture store | every drain-written disposition parses under the store's validators |
-| Maintainer procedure (work-intake drain section) | T7 | source-text assertions | an operator reads the attended rule without the spec |
+| Maintainer procedure (work-intake drain section) | T7, T19, T22 | source-text assertions | an operator reads the attended rule, the dispatch wiring, and the stale-lock recovery without the spec |
 | Current product truth (work-item guide entry) | T8 | guide names the routes and what closure means | cold-adopter check |
 | Security (`docs/architecture/security.md`) | T8 | the § D10 prose residual recorded as settled by the read-path re-run | the gap list no longer carries it as unowned |
-| Release history (core pack changelog) | T8 | changelog entry | the entry leads the release |
+| Release history (core pack changelog) | T8, T23 | changelog entry | the entry leads the release |
 
 ## Design (LLD)
 
@@ -124,9 +124,14 @@ Owned by: T1, T3, T5
 New: `packs/core/.apm/skills/project-knowledge/scripts/promotion_drain.py`,
 loaded beside `knowledge_store.py` and `project_knowledge.py` as sibling
 modules. Edited: `packs/core/.apm/skills/work-intake/SKILL.md` (the drain
-procedure section). Unchanged: the store, the transaction, the router. Traces
+procedure section, and § 5's lock paragraph under T22),
+`packs/core/.apm/skills/work-intake/scripts/intake_transaction.py` (the
+lock acquisition, under T22), and the release surfaces under T23
+(`packs/core/pack.toml`, the plugin manifest, the changelog fragment, the
+CI workflow's named steps, `tools/lint-ci-parity.py`). Unchanged: the
+store, the router. Traces
 to `AC-0016`.
-Owned by: T3, T4, T7
+Owned by: T3, T4, T7, T22, T23
 
 ### State & control flow
 
@@ -317,9 +322,10 @@ recorded in the verification ledger.
 ## Repair tasks
 
 Findings the review round sustained, each repaired under its own task. They
-land after the original eight; the store's own surfaces absorb each fix —
-the pending-read quarantine, the transaction helper's artifact discipline,
-the captured-item grammar, and the run report.
+land after the original eight; most land in the store's own surfaces — the
+pending-read quarantine, the transaction helper's artifact discipline, the
+captured-item grammar, and the run report — while T22 lands in work-intake's
+shared transaction helper and T23 in the release surfaces.
 
 ### T9: Collision-safe, non-destructive route transaction
 
@@ -499,8 +505,13 @@ the captured-item grammar, and the run report.
   the held defect (`AC-0025`).
 - `transact_route` called directly with `dispatch_processor=None` on both
   route branches returns the hold shape and attempts no disposition.
-- A drain with a real dispatch wired still routes and records `routed`
-  (the existing suites, unchanged).
+- A drain with a real dispatch wired still routes and records `routed`;
+  the existing routed-outcome suites are updated to wire one — a real
+  dispatch or a dispatch-carrying `transact` override — including
+  `test_promotion_drain_repair.py`'s direct `transact_route` assertions
+  and the attended-drain routed counts, and `test_promotion_drain_run.py`'s
+  AC-0005 crash-boundary suite and its re-drive, which currently assert
+  `routed` through the no-dispatch default (`AC-0005`, `AC-0001`).
 - A source-text assertion, the T7 pattern, over work-intake `SKILL.md` § 8:
   the wiring note names `dispatch_processor` and states that a drain without
   it holds every routable item.
@@ -537,20 +548,19 @@ the captured-item grammar, and the run report.
 **Tests:** unit, per the spec's Testing Strategy.
 - A superseded closure whose cited capture id resolves in the seeded store
   closes and records the disposition (`AC-0002`).
-- A superseded closure whose cited capture id resolves nowhere and whose
-  cited artifact path does not exist is refused by the drain itself, the
-  item stays open, and the refusal names the failed citation (`AC-0027`).
-- A superseded closure whose citation is absent — the closure input carries
-  no `citation` field — is refused the same way: an absent citation
-  resolves nowhere (`AC-0027`).
+- A superseded closure whose citation is a capture id that resolves
+  nowhere, or a path whose artifact does not exist, or is absent — the
+  closure input carries no `citation` field — is refused by the drain
+  itself, the item stays open, and the refusal names the failed citation
+  (`AC-0027`).
 - A superseded closure whose citation resolves but whose operator verdict
   is false is refused — the verdict is a veto on every ground (`AC-0027`).
 - Overtaken and falsified closures are unchanged: the operator's verdict
   still decides them, with the evidence riding the report (`AC-0003`).
 
 **Done when:** a superseded closure cannot commit on a citation that
-  resolves nowhere or is absent, and the other two grounds are byte-for-byte
-  their current behavior.
+  resolves nowhere, is a path that does not exist, or is absent, and the
+  other two grounds are byte-for-byte their current behavior.
 
 ### T22: A stale workspace lock is recovered
 
@@ -573,7 +583,15 @@ the captured-item grammar, and the run report.
   `_acquire_claim` pattern: write the pid to a temporary file, then
   `os.link` it into place, so the lock never exists without its pid. The
   test drives the seam: fault-inject the link step (a raising `os.link`)
-  and assert no lock file exists at the lock path (`AC-0028`).
+  and assert no lock file exists at the lock path (`AC-0028`). The
+  temporary's lifecycle is asserted with it: unlinked after publication,
+  on link failure, and on release, leaving no root temporary behind
+  (`AC-0028`).
+- Work-intake `SKILL.md` § 5's lock paragraph — "If another writer holds
+  the lock, the transaction returns `lock_busy` without mutating either
+  side" — is updated to state the stale-owner recovery and its limits
+  (dead owner removed after identity re-verification; live and pid-less
+  owners never taken), asserted by a T7-style source-text check.
 
 **Done when:** the drain's re-run recovery path survives a hard-killed
   predecessor without ever removing a live writer's lock, and the
@@ -594,6 +612,8 @@ the captured-item grammar, and the run report.
   step in `.github/workflows/build-check.yml` and its
   `LOCAL("test-after-build-check")` disposition in
   `tools/lint-ci-parity.py`.
+- The acquisition temporary's root name is added to `.gitignore` beside
+  `.workspace-repair.lock`.
 
 **Done when:** the local gate chain — ruff, mypy, changelog,
   lint-ci-parity, self-host check, the touched suites — is green.

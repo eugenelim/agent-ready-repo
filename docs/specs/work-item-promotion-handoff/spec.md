@@ -493,7 +493,9 @@ requires. The scenarios below state how each is driven.
   closes against a resolving, a non-resolving, and an absent citation.
 - **`AC-0028` — TDD, unit, against a real lock file:** liveness and retry are
   filesystem and process properties, asserted by writing a stale lock with
-  a dead pid and a live lock with the running pid.
+  a dead pid and a live lock with the running pid; the atomic publication
+  is asserted by fault-injecting the link step — no lock exists at the
+  path and no temporary is left behind.
 - **`AC-0001`, `AC-0002` — visual / manual QA, the named adjudicator over
   the rubric below:** the disposition judgement is the adjudicator's, not a
   function's.
@@ -548,13 +550,16 @@ requires. The scenarios below state how each is driven.
   with each non-dispatchable member; assert each is held as unroutable, and
   that each dispatchable member still routes (`AC-0026`).
 - Close an item on the superseded ground with a cited capture id that
-  resolves, then with one that resolves nowhere and a cited path that does
-  not exist, then with no citation at all; assert the first closes and the
-  second and third are refused by the drain itself (`AC-0027`).
+  resolves, then with a capture id that resolves nowhere, then with a path
+  that does not exist, then with no citation at all; assert the first
+  closes and the second, third, and fourth are refused by the drain itself
+  (`AC-0027`).
 - Write a workspace lock holding a pid that no longer exists; assert the
   transaction recovers it and completes; that a fresh lock taken between the
-  probe and the removal is refused, not removed; and that a lock holding a
-  live pid, or no parseable pid, is never taken (`AC-0028`).
+  probe and the removal is refused, not removed; that a lock holding a
+  live pid, or no parseable pid, is never taken; and that fault-injecting
+  the acquisition's link step leaves no lock at the path and no temporary
+  behind (`AC-0028`).
 - Add a row to `docs/specs/work-item-capture/spec.md` § D6 cases and assert
   the pre-execution re-check drives it without any edit here (`AC-0017`).
 - Drain a governance-shaped item while no governance route exists; assert it
@@ -687,10 +692,10 @@ verifies the criteria below mechanically.
       classify-table members, or names a non-dispatchable member, is held as
       unroutable (§ D3, extending `AC-0006`).
 - [ ] **AC-0027.** A superseded closure whose citation is absent, or whose
-      cited capture id resolves nowhere and whose cited artifact path does
-      not exist, is refused by the drain itself (§ D5, extending
-      `AC-0003`); the liveness of a cited artifact is the operator's
-      attestation, and overtaken and falsified closures remain
+      citation is a capture id that resolves nowhere, or whose citation is
+      a path whose artifact does not exist, is refused by the drain itself
+      (§ D5, extending `AC-0003`); the liveness of a cited artifact is the
+      operator's attestation, and overtaken and falsified closures remain
       operator-attested.
 - [ ] **AC-0028.** A workspace lock left by a process that no longer exists
       is recovered by the transaction, and the re-run completes the sequence
@@ -700,7 +705,9 @@ verifies the criteria below mechanically.
       owner is alive, or whose payload carries no parseable pid, is never
       taken; and the transaction's own acquisition publishes the lock
       atomically — a pid-complete temporary file linked into place — so a
-      lock it leaves always carries its owner's pid.
+      lock it leaves always carries its owner's pid; the temporary is
+      unlinked after publication, on link failure, and on release, leaving
+      no root temporary behind.
 
 ## Follow-ons
 
