@@ -111,13 +111,14 @@ denying the write (§ 1a).
 
 1. A content conflict, stale authority, or failed compare-and-swap leaves the
    canonical ref unchanged and emits a bounded conflict result.
-2. The scheduler cancels overlapping siblings and reprojects the failed task
-   from the new canonical tree. Non-overlapping siblings may continue.
+2. The scheduler reprojects the failed task from the new canonical tree and
+   cancels only running siblings whose declared sets meet its own. Other
+   siblings continue.
 3. A late result from a canceled attempt is never admitted. The task
    reprojects onto a fresh tree once the attempt's end is confirmed.
 4. A crash before ref update leaves unreachable temporary objects. After ref
-   update, retry finds the operation key, returns the same receipt, and re-emits
-   sibling invalidation before new scheduling.
+   update, the next supervisor verb finds the operation's commit trailer and
+   records the landing without a second commit.
 5. Partial worktree materialization is discarded and rebuilt from the
    canonical ref. It never changes acceptance or the next integration base.
 
@@ -125,7 +126,7 @@ denying the write (§ 1a).
 
 | Contract | Producer → consumer | Identity | Compatibility and change authority | Failure semantics | Invariant |
 | --- | --- | --- | --- | --- | --- |
-| `execution-result.v1` | Runtime adapter → result validator | Subject, task-projection revision, task, attempt, operation, source/result trees, change digest | Canonical schema owns fields; readers deploy first; unknown majors refuse | Partial, superseded, unauthorized, or unverifiable results remain isolated | Unproven completeness requires serialization and exact source |
+| `execution-result.v1` | Runtime adapter, or the supervisor for a concurrent attempt → result validator | Subject, task-projection revision, task, attempt, operation, source/result trees, change digest, access-attestation fingerprint | Canonical schema owns fields; readers deploy first; unknown majors refuse | Partial, superseded, unauthorized, or unverifiable results remain isolated | Unproven completeness requires serialization and exact source |
 | `result-integration.v1` | Integration coordinator → scheduler, subject projector, and evidence port | Operation key, attempt-authority fingerprint, access-attestation line digest, source and observed target commits, result commit and tree, algorithm version | Core and `agentbundle` owners approve merge semantics; algorithm changes require a new major; unknown majors refuse | Canceled authority, stale reads/writes, conflict, CAS loss, or limits change no ref | In-lock intervening-change validation precedes object creation and CAS |
 | `integration-conflict.v1` | Coordinator → scheduler and operator | Operation, attempt, target commit, bounded conflicting paths | Additive diagnostics are allowed; path disclosure follows repository classification | Conflict returns the task to projection and invalidates isolated observations | No partial application or silent overwrite |
 
@@ -160,10 +161,10 @@ unless its observation is explicitly pre-execution evidence.
 | Two siblings edit independent paths | Serialized CAS integrations in sequential-floor order preserve both changes | Same final tree and verdict as the sequential run in every completion order | Permutation fixture |
 | Process crashes at any integration boundary | Protected ref exposes old or new commit; operation-key replay converges | Zero partial semantic trees or duplicate commits | Crash injection before object write, before CAS, after CAS, and during materialization |
 | Canceled sibling returns late | Attempt authority rejects its result and observations | Zero late-result tree or evidence admission | Cancellation-race fixture |
-| B validates, then A commits and cancels B before B locks | In-lock authority revalidation refuses B | Zero canceled results pass the race window | Ordered cancellation-before-lock fixture |
-| A changes input read by B while B writes another path | Read-set intersection cancels and reprojects B | Same result as serial A-then-B execution | Read-after-write fixture; unknown read set must serialize |
+| B validates, then A commits before B locks | In-lock intervening-change check against the one tip read refuses B when its sets meet A's changes | Zero stale results pass the race window | Ref move between check and compare-and-swap fixture |
+| A changes input read by B while B writes another path | Read-set intersection refuses and reprojects B | Same result as serial A-then-B execution | Read-after-write fixture; unknown read set must serialize |
 | B reads an undeclared path | Allowlist denies, tracer adds the read, or result becomes incomplete and exact-source only | Zero false-complete parallel results | Cross-adapter undeclared-read fixture |
-| Crash follows A's CAS but precedes sibling cancellation | B's in-lock intervening-change check refuses; A replay re-emits cancellation | Zero stale sibling commits | Crash-after-CAS-before-cancellation read-after-write fixture |
+| Crash follows A's CAS but precedes its integration record | The next verb finds A's commit trailer and records the landing; B's in-lock intervening-change check refuses | Zero stale sibling or duplicate commits | Crash-after-CAS read-after-write fixture |
 | Result exceeds path or byte cap | Validator refuses before temporary apply | Refusal above 100,000 paths or 10 GiB | Bound-edge stress fixture |
 | Worker attempts to update Git metadata or the protected ref | Capability and host containment deny the write | Zero bypassed integration commits | Cross-adapter ref-forgery fixture |
 | Result contains ambient, ignored-secret, denied, or unprovenanced additions | Validator refuses before Git object creation | Zero manifest, object, commit, or ref writes | Addition-admission negative corpus |

@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
-- **Repository anchors:** `docs/architecture/work-loop-result-integration.md` and `runtime-security-primitives.md` § 7; ADR-0156; analogous implementations `_supervisor_commit.py` (`build_commit`, `update_refs`, `_diagnose`) and `_containment.py` (`validate_attestation_dict`, `check_attestation_within_grant`, `launch_untrusted`); tests `test_supervisor_product_ref.py`, `test_supervisor_crash_corpus.py`, `test_containment_broker.py` (`_FixtureHost`), `tests/roster/test_execution_supervisor_records.py`; deviations: no code launches a worker from the supervisor today, so the launcher boundary has no precedent beyond `launch_untrusted`; concurrent attempts use plain directories rather than ADR-0005 D7's worktree (owner decision 3 records where)
+- **Repository anchors:** `docs/architecture/work-loop-result-integration.md` and `runtime-security-primitives.md` § 7; ADR-0156; analogous implementations `_supervisor_commit.py` (`build_commit`, `update_refs`, `_diagnose`) and `_containment.py` (`validate_attestation_dict`, `check_attestation_within_grant`, `launch_untrusted`); tests `test_supervisor_product_ref.py`, `test_supervisor_crash_corpus.py`, `test_containment_broker.py` (`_FixtureHost`), `tests/roster/test_execution_supervisor_records.py`; deviations: no code launches a worker from the supervisor today, so the launcher boundary has no precedent beyond `launch_untrusted`; concurrent attempts use plain directories rather than ADR-0005 D7's worktree (ADR-0160 D1)
 
 > **Plan contract:** this is the implementation strategy. After approval, a
 > change needs an **amendment** only when it touches the spec's protected
@@ -43,14 +43,13 @@ keeps T2 shippable without it.
 
 - ADR-0156 D1–D7. Its 2.38 Git floor is raised to 2.41 for the concurrent path
   only, because `--merge-base` arrived in Git 2.40 and `--attr-source` in 2.41;
-  older Git runs on the floor (D2's fail-closed rule). Owner decision,
-  2026-11-05; its durable record is settled by owner decision 3.
+  older Git runs on the floor. ADR-0160 D2.
 - ADR-0154 D1–D6 stand for every floor result and every result without a
   complete access attestation.
 - ADR-0144 D2: standard library only, inside `work-loop/scripts/`.
 - ADR-0151: replans and stub-fence revisions wait for no open attempt.
-- ADR-0005 D2 (opt-in), D5, D6 (backstop) stand; D7's worktree isolation does
-  not hold for concurrent attempts (owner decision 3 records where).
+- ADR-0005 D2 (opt-in), D5, D6 (backstop) stand; ADR-0160 D1 supersedes D7
+  for concurrent attempts only.
 - Every Git call goes through `_supervisor_git.py`; the launcher spawn is the
   only new process call site and lives in `_supervisor_concurrency.py`.
 - `packs/AGENTS.md`: shipped text cites no internal records; each `.apm/`
@@ -59,8 +58,11 @@ keeps T2 shippable without it.
 - Pack tests may not read outside the pack (`lint-pack-test-boundary`); the
   build-output check (AC-0023) and record validation over `contracts/` live in
   `tests/roster/`.
-- `packs/core/tests/skills/work-loop/` runs on pull requests through
-  `catalogue-tooling-ci-gates.yml`; `tests/roster/` runs through a recorded
+- Git-backed supervisor suites run on pull requests only when the Gate
+  A-supervisor run line in `catalogue-tooling-ci-gates.yml` names them (with
+  `WORK_SUPERVISOR_INTEGRATION=1`); elsewhere they skip. Every task that adds
+  such a suite registers it there, and its evidence is the CI log showing the
+  suite ran with zero skips. `tests/roster/` runs through a recorded
   `test-roster.yml` dispatch on the branch.
 - Do not edit `work-loop/scripts/` while a `WORK_SUPERVISOR_INTEGRATION=1` run
   is live in the same worktree.
@@ -77,10 +79,11 @@ keeps T2 shippable without it.
   the test releases in the chosen order, and the test asserts the journal's
   observed order before comparing the product tree id and each criterion's
   outcome in `acceptance-verdict.v1`. Owned by T5.
-- **VIP-X02 (AC-0063):** each producing suite validates its records against
-  `contracts/delivery/` through the registry pattern of
-  `tests/roster/test_execution_supervisor_records.py`, and the roster suite
-  asserts at least one record of each kind. Owned by T1, extended by T5.
+- **VIP-X02 (AC-0063):** `tests/roster/test_concurrency_records.py` runs the
+  corpus schedules through the harness into a temporary store, collects every
+  record, validates each against `contracts/delivery/` through the registry
+  pattern of `tests/roster/test_execution_supervisor_records.py`, and fails
+  when any of the eight kinds is missing. Owned by T5.
 
 **Manual verification:** none.
 
@@ -115,7 +118,9 @@ token); until T5 lands, this section is their only home.
   store copy. Residual: an uncontained floor worker acting deliberately as the
   same user can replace the copy between the post-hash and the exec; the second
   hash after the containment line narrows this, and runtime-security-primitives
-  § 7 already accepts a deliberate same-user worker.
+  § 7 already accepts a deliberate same-user worker. The pin covers only the
+  launcher file: an interpreter its `#!` line resolves through the
+  supervisor-set `PATH`, and anything that interpreter loads, are outside it.
 - **`run-concurrent` is a request kind run by a blocking supervisor verb.**
   `next` emits it naming the admitted tasks; the controller runs
   `work-supervisor.py run-concurrent --request <id>`, which spawns, verifies,
@@ -128,10 +133,12 @@ token); until T5 lands, this section is their only home.
   system temporary directory, populated from the source tree with a temporary
   index and `checkout-index --prefix`. A linked worktree would need the Git
   common directory D1 denies.
-- **The access attestation binds forward, the result identity binds back.**
-  The launcher cannot know the result's digest, so the access line carries the
-  binding and release token, and the supervisor records the access line's
-  sha256 beside the tree id it ingests; `result-integration.v1` carries both.
+- **ADR-0156 D3's fingerprint binding.** The launcher cannot know the
+  result's digest, so the access line carries the binding and release token,
+  and the supervisor writes the attempt's `execution-result.v1` itself,
+  carrying the ingested tree id and the access line's sha256; that record is
+  the result D3 binds the attestation to, and `result-integration.v1` cites
+  both.
 - **Ingestion** walks the attempt directory with `list_confined_regular_files`
   and `read_confined_regular_file` semantics extended to record links by
   `readlink`, writes blobs with `hash-object -w --stdin`, and builds the tree
@@ -199,9 +206,11 @@ Owned by: T1, T2, T3
 4. Launcher → supervisor: one `access` with the attestation once the worker
    has exited, then end of stream and exit 0.
 
-stderr is drained and discarded. Test seams: the launcher path, the clock, and
-the module global that admits the fixture marker (set only by assignment in
-test code).
+stderr is drained and discarded. Test seams: the launcher path, the clock,
+the module global that admits the fixture marker, and the module global that
+integrates in completion order (AC-0060). Both globals are set only by
+assignment in test code; no environment variable, flag, policy key, or file
+reads them, and AC-0023's scan also asserts no installed file assigns them.
 
 Owned by: T2
 
@@ -220,6 +229,14 @@ Owned by: T2
   `result-integration.v1`; materialize the working tree and index; release.
 - A floor task issues only while no attempt is open; a held result is not open
   and its task is not complete.
+- **Held results after the verb exits.** Every verb that integrates (`report`
+  for a floor result, `run-concurrent`, and `next` before it derives) takes
+  `integration.lock` and then integrates every held result that is next in
+  floor order, so floor and concurrent results share one lock and one order.
+- **Recovery** runs first in every verb: for each attempt a dead
+  `run-concurrent` recorded, a commit trailer on the product ref means landed,
+  a held-result record means held, and anything else is ended, confirmed, and
+  cancelled.
 
 Owned by: T2, T3
 
@@ -250,8 +267,9 @@ Owned by: T3, T4
 
 **Tests:**
 - AC-0064: the parity and record suites' existing fixtures validate.
-- AC-0063: the registry loads the new schemas, and one valid and one invalid
-  sample per schema pass and fail.
+- The registry loads the new schemas, one valid and one invalid sample per
+  schema pass and fail, and policy validation rejects each new key's
+  out-of-range values (for example `max_concurrent_attempts` 1 and 9).
 - AC-0010, AC-0011: `test_supervisor_projector.py` parses `Reads:` and
   `Writes:`, marks each malformed form floor-only, and changes the revision on
   either field.
@@ -265,16 +283,21 @@ Core is one patch above the merge base.
 **Depends on:** T1
 
 **Tests:**
-- AC-0001, AC-0002, AC-0005, AC-0007, AC-0012:
+- AC-0001, AC-0002, AC-0005, AC-0007:
   `test_supervisor_concurrency_admission.py` removes each condition singly and
-  checks the floor issue and reason code; the shipped-policy run asserts no
+  checks the floor issue; the shipped-policy run asserts no
   `run-concurrent` request now that the kind exists.
-- AC-0013, AC-0014, AC-0015, AC-0016, AC-0022, AC-0024, AC-0025:
-  `test_supervisor_launcher.py` over approval, copy, swap-before-spawn,
-  planted-environment, fixture-marker (with each candidate variable set),
-  second-invocation, and killed-verb fixtures.
-- AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0026: the fixture launcher
-  emits each defect; the release-token test searches every output channel.
+- AC-0013, AC-0014, AC-0015, AC-0016, AC-0022, AC-0024, AC-0025, AC-0065,
+  AC-0066: `test_supervisor_launcher.py` over approval, copy,
+  swap-before-spawn, planted-environment, fixture-marker (with each candidate
+  variable set), second-invocation, and killed-verb fixtures, including a
+  recorded process-group id reused by an unrelated process and an end that
+  never confirms on the injected clock.
+- AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0026, AC-0067, AC-0068:
+  the fixture launcher
+  emits each defect; the release-token test searches every output channel for
+  the raw bytes, lowercase and uppercase hex, and standard and URL-safe
+  base64, with a planted leak in one channel as the positive control.
 - AC-0023: `tests/roster/` scans the Core install and `make build-self`
   output for the marker.
 - AC-0029, AC-0030, AC-0031, AC-0032: `test_supervisor_ingestion.py` over
@@ -296,14 +319,16 @@ merge base.
 **Tests:**
 - AC-0003, AC-0004, AC-0006, AC-0008, AC-0009, AC-0034:
   `test_supervisor_integration.py` runs two- and three-task batches whose
-  attempts finish in reverse order, with a meeting pair and a non-meeting pair.
+  attempts finish in reverse order, with a meeting pair, a non-meeting pair,
+  and three admissible tasks under `max_concurrent_attempts` 2.
 - AC-0027, AC-0028, AC-0035: read-after-write in both modes and a case alias
   on an `ignoreCase` repository.
 - AC-0036, AC-0037, AC-0038, AC-0039, AC-0041: the apply step directly, over
   same-line, worktree `merge=union`, `info/attributes`, `merge.default=union`,
   and outside-changed-path fixtures.
 - AC-0033, AC-0050: a floor attempt rewrites a held record and a held tree; a
-  trusted-file change while a sibling is open.
+  trusted-file change while a sibling is open; a held result integrates through
+  the floor result's `report` in floor order.
 - AC-0042, AC-0043, AC-0044, AC-0045, AC-0046: the crash corpus gains the five
   integration kill points, a racing ref move, and a move between check and
   compare-and-swap.
@@ -325,6 +350,9 @@ above the merge base.
 - AC-0057: a replan refused while an attempt is open, then admitted, with held
   results discarded and reprojected.
 - AC-0058: `next` issues no gate, review, or evidence while a result is held.
+- AC-0012: `status` and the journal emit every member of the closed reason
+  set, enumerated from the code table; the test fails on any member with no
+  exercised emission and on any launcher-supplied byte in either output.
 
 **Done when:** the named suites pass in CI as T1 names and Core is one patch
 above the merge base (shared with T3's release).
