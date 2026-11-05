@@ -43,7 +43,7 @@ Four slices. Hard predecessors: [FEAT-0020](../intents/FEAT-0020-distribution-ro
 
 ## Ready gaps (Draft only)
 
-None.
+None open.
 
 ## Rabbit holes
 

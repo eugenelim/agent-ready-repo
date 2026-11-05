@@ -555,7 +555,7 @@ later reader does not infer the gate was met when it was not.
 
 ## Readiness
 
-- Open children on 2026-11-05: `FEAT-0011`, `FEAT-0012`, `FEAT-0013` (each Ready brief, specs Draft). `FEAT-0014` is Fulfilled.
+- Open children on 2026-11-05: `FEAT-0011`, `FEAT-0012`, `FEAT-0013` (each Ready brief, specs Draft). `FEAT-0014` is Fulfilled. PR 1689 (`workspace.toml` deleted) changes none of them: their specs never cited the registry.
 - Two parentless Draft intents, `tracker-refresh-trusted-authority-inputs` and `tracker-writeback-result-contracts`, are about tracker write-back. Moving them under this capability is listed for the cluster that owns them.
 
 ## Source

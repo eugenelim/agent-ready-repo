@@ -39,7 +39,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 | --- | --- | --- | --- | --- |
 | G1 | Intent indexes for the three packs without one, plus a test that each route resolves to a registered skill. | The new test passes on the tree and fails on a seeded dead route; guide-index check | none | Ordering waiver (Constraints) |
 | G2 | Adapter compatibility matrix and host overlays from the adapter contract; live-eval column reads `not measured` until receipts exist. | Drift test compares the matrix with the adapter contract; link check | none | Ordering waiver (Constraints) |
-| G3 | Host-neutral end-to-end tutorial using a recorded fixture, linked from the pack guides. | The tutorial contains the contract-distinction section; guide affordance audit shows chat input, supplied input, sample output and stated outcome; links resolve | G1, brief:cross-pack-experience-eval-delivery slice E2, brief:skill-sequence-wayfinding-delivery slice W1 (edge data for the tutorial's next steps) | waits until E2 and W1 are delivered |
+| G3 | Host-neutral end-to-end tutorial using a recorded fixture, linked from the pack guides. | The tutorial contains the contract-distinction section and links an E2 golden-path report (a test fails on a missing link); guide affordance audit shows chat input, supplied input, sample output and stated outcome; links resolve | G1, brief:cross-pack-experience-eval-delivery slice E2, brief:skill-sequence-wayfinding-delivery slice W1 (edge data for the tutorial's next steps) | waits until E2 and W1 are delivered |
 
 ### Manual or live residue, split off as non-blocking follow-ups
 

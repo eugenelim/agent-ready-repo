@@ -166,7 +166,7 @@ Decision graph, workspace coordination reorganization and external tracker proje
 
 ## Readiness
 
-- Open children on 2026-11-05: `FEAT-0004` (Draft) and `FEAT-0005` (Accepted, brief Executing; one slice left). Fulfil this capability through `close-work` after both close. `FEAT-0004` runs after PR 1689.
+- Open children on 2026-11-05: `FEAT-0004` (Accepted; its spec session can start now that PR 1689 has merged and deleted `workspace.toml`) and `FEAT-0005` (Accepted, brief Executing; one slice left). Fulfil this capability through `close-work` after both close.
 
 ## Source
 

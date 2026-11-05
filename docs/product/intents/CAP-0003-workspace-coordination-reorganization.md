@@ -135,7 +135,7 @@ validation_hook:
 
 ## Readiness
 
-- Its one child, `FEAT-0034`, finishes in PR 1689. After that merges, this capability needs an independent Accept review and can then be Fulfilled through `close-work`. A Draft capability cannot go straight to Fulfilled.
+- Its one child, `FEAT-0034`, is Fulfilled (PR 1689 merged and `workspace.toml` is deleted). This capability is Accepted with no open child, so it is a candidate for closure through `close-work`.
 
 ## Source
 

@@ -222,7 +222,7 @@ repeating" is useful even while the response is still a human's judgement.
 
 2026-11-05, availability check on committed history. Counted committed review-round files with the case-insensitive glob `docs/specs/*/notes/*round*`: 56 files in 13 specs (excluding two non-round notes), 9 specs with three or more (50 files), and the longest has 16 (`work-loop-review-verdicts`). In one sampled round file, 2 lines carry a `file:line` citation, finding rows are not in a fixed severity format, and the file has one commit. So "did the previous round's diff touch the line this finding cites" is computable for specs whose findings cite lines, and not for most.
 
-**Verdict:** partly holds, not stamped. The N1 spike has a usable set of histories, but it must define overlap by cited file and section when no line is cited, restrict to specs whose round files carry citations, and report how many of the 14 qualify. The brief's risk section carries the same limit.
+**Verdict:** partly holds, not stamped. The N1 spike has a usable set of histories, but it must define overlap by cited file and section when no line is cited, restrict to specs whose round files carry citations, and report how many of the 9 specs with three or more files qualify. The brief's risk section carries the same limit.
 
 ## Readiness
 

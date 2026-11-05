@@ -40,11 +40,12 @@ Every slice is checked by an agent with no live service, credential, or human re
 | # | Slice | Agent-only verification | Depends on | Gating |
 | --- | --- | --- | --- | --- |
 | D1 | Deliverable inventory: agency baseline lines, each marked owned, referenced or out of scope with a citation to a skill, artifact or document. | A script resolves every repository citation to an existing path or skill, owned lines name a registered skill, and every baseline line carries an external source; the script fails on a line with none | none | none |
-| D2 | Pack-doc out-of-scope statement and the `experience-design` version bump that ships it, plus guide pages for owned lines that no guide teaches, and the uplift of the five existing `experience-design` guides to all five affordances (parent step 4). | A test reads the inventory and fails on an owned line with no guide link; guide-index check; `tools/audit-guide-affordances.py` shows each new page carrying all five affordances (A to E: chat input, demonstrated input, sample output, stated outcome, job to be done) | D1 | none |
-| D3 | Evidence seam: a reference that routes `evidence-level: observational` journeys to `plan-validation`, which scaffolds and synthesises and never runs sessions. | Eval case: an observational-level request names `plan-validation` and does not claim to supply observations | none | none |
+| D2 | Pack-doc out-of-scope statement and the `experience-design` version bump that ships it, plus guide pages for owned lines that no guide teaches, and the uplift of every existing guide under `guides/experience-design/` (nine files today, including the README) to all five affordances (parent step 4). | A test reads the inventory and fails on an owned line with no guide link; guide-index check; `tools/audit-guide-affordances.py` shows each new page carrying all five affordances (A to E: chat input, demonstrated input, sample output, stated outcome, job to be done) | D1 | none |
+| D3 | Evidence seam: a reference that routes `evidence-level: observational` journeys to `plan-validation`, which scaffolds and synthesises and never runs sessions. | An offline test pins the reference text: it names `plan-validation` for `evidence-level: observational` journeys and states that sessions are run by a person | none | none |
 
 ### Manual or live residue, split off as non-blocking follow-ups
 
+- Model-run eval that an observational-level request names `plan-validation` and does not claim to supply observations: owner-run, non-blocking.
 - Practitioner walkthrough of the inventory by a human design lead. Replaced by the cited inventory and the guide-coverage test; the walkthrough is a non-blocking confirmation.
 
 ## Decisions

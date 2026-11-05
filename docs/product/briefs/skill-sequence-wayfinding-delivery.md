@@ -41,11 +41,12 @@ Every slice is checked by an agent with no live service, credential, or human re
 | --- | --- | --- | --- | --- |
 | W1 | Edge model, plus a derivation script; the slice spec answers where the successor lives (skill `metadata` extension table or machine-readable `JOURNEY.md` stages; parent Unresolved question 1). The script prints every edge and terminal, and the slice states the successor rule (which skills name a successor). | Schema validation of all fifteen journeys; the script output is a stable golden list | none | none |
 | W2 | Drift lint: a skill's stated successor must match the edge model for packs that opted in, where opting in is a per-pack marker W2 itself adds; with an empty opt-in set the lint passes and says so. | pytest with a seeded disagreement, a case with zero opted-in packs that passes, and a case with one opted-in pack that fails on a disagreeing successor; clean on the tree | W1 | none |
-| W3 | Projection of next-step text into one pack's skills; first pack `experience-design`; each later pack is its own spec. W3 adds the opt-in marker for its pack and a check script that reads the pack's edge model, each skill's `SKILL.md` successor statement, and the journey stages, and asks position, next step and reason for every edge. | The check script passes for the pack, and a test fails if the pack's opt-in marker is missing; W2 stays clean | W2 | none |
+| W3 | Projection of next-step text into one pack's skills; first pack `experience-design`; each later pack is its own spec. W3 adds the opt-in marker for its pack and a check script that reads the pack's edge model, each skill's `SKILL.md` successor statement, and the journey stages, and asks position, next step and reason for every edge, and for every terminal node confirms the surface says it is terminal. | The check script passes for the pack, and a test fails if the pack's opt-in marker is missing; W2 stays clean | W2 | Pack-owner decision on each disagreement with a hand-written successor (named step, see follow-ups) |
 | W4 | Cross-pack edges: skills whose successor lives in another pack, declared once in the edge model. | Edge script lists each cross-pack edge and W2 resolves both ends | W2 | none |
 
 ### Manual or live residue, split off as non-blocking follow-ups
 
+- Pack-owner decision (eugenelim for each pack unless another owner is named) on any disagreement between the edge model and a hand-written successor, before W3 rewrites that pack's text.
 - Practitioner testing of the surface by a person; the W3 check script replaces it.
 
 ## Constraints / Appetite

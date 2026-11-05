@@ -23,7 +23,7 @@ repair it, or activate a separately governed extension.
 
 ## Assumptions
 
-- Engineering and operational integration completes before adoption closeout.
+- Closeout evaluates the workflow classes already integrated (authoring, review, research); engineering and operational integration need not complete first, and a class it later adds extends the evaluation.
 - Repository-contained verification is sufficient for programme closeout;
   physical-device or external-system evidence can follow when that capability
   is available.

@@ -34,7 +34,7 @@ Apply the argv-to-path boundary validator to the remaining ~68 sites across the 
 
 ## Current truth
 
-Measured 2026-11-05 by running `tools/semgrep/argv-path-boundary.yml` with its path ratchet removed: 159 unvalidated `Path(args.x)` sites remain in shipped code (`packages/agentbundle` 51, `packs/core` 50, `packs/converters` 23, `packs/repo-governance` 17, `packs/atlassian` 9, `packs/architect` 6, `packs/catalogue-curation` 3). The "about 68" figure is out of date. The rule misses intermediate bindings, so 159 is a lower bound, and many sites are operator-supplied scan roots.
+Measured 2026-11-05 by running `tools/semgrep/argv-path-boundary.yml` with its path ratchet removed: 159 unvalidated `Path(args.x)` sites remain in shipped code (`packages/agentbundle` 51, `packs/core` 50, `packs/converters` 23, `packs/repo-governance` 17, `packs/atlassian` 9, `packs/architect` 6, `packs/catalogue-curation` 3). Two more sites sit outside those groups (`packages/jsonl-otlp-exporter` 1, `packs/code-intelligence` 1), so the full count is 161, which the De-risk result below uses. The "about 68" figure is out of date. The rule misses intermediate bindings, so 159 is a lower bound, and many sites are operator-supplied scan roots.
 
 ## Readiness
 
@@ -55,4 +55,4 @@ Measured 2026-11-05 by running `tools/semgrep/argv-path-boundary.yml` with its p
 
 ## De-risk result
 
-2026-11-05. Re-ran the unscoped argv rule and split the matches by whether the file already uses a confinement helper (`_validated_root`, `file_safety`, `relative_to`, and similar). Result: 161 non-test sites in `packs/` and `packages/` across 91 files; 110 sites sit in files that already confine paths somewhere, and 51 sites in 24 files have no confinement helper. The count is therefore not a count of gaps: at most 51 sites are clearly unconfined, and the other 110 need the slice-1 classification to separate already-bounded from unconfined. This is a name-based heuristic, not proof. Verdict: partly holds; not stamped De-risked. Readiness is unchanged except that slice 1 now starts from the 24 helper-free files.
+2026-11-05. Re-ran the unscoped argv rule and split the matches by whether the file already uses a confinement helper (`_validated_root`, `file_safety`, `relative_to`, and similar). Result: 161 non-test sites in `packs/` and `packages/` across 91 files; 110 sites sit in files that already confine paths somewhere, and 51 sites in 24 files have no confinement helper. Slice 1 starts from those 24 helper-free files. The count is therefore not a count of gaps: at most 51 sites are clearly unconfined, and the other 110 need the slice-1 classification to separate already-bounded from unconfined. This is a name-based heuristic, not proof. Verdict: partly holds; not stamped De-risked. Readiness is unchanged except that slice 1 now starts from the 24 helper-free files.

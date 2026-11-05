@@ -42,8 +42,8 @@ Every slice is checked by an agent with no live service or credential. Two owner
 | # | Slice | Agent-only verification | Depends on | Gating |
 | --- | --- | --- | --- | --- |
 | C1 | Carrier decision (one paper-first SVG, no dark variant), token-backed generator, generated canvas on the marketing route and in the README with a text alternative. The asset ships with its visible surfaces. | Generator reproducible in a test; contrast script passes; `web` build and rendered-output test; exact sanitised-markup regression test | none | Owner approves the drafted headline before ship (named step) | 
-| C2 | The guide hub role table is the one authority for job membership; amend `guides-sidebar-generation` to add a `job` field; project the sidebar groups and `web/src/lib/catalogue-navigation.ts` from it; add the plain "pack" sentence to the hub. | Generation test; guide-index check; a test that the generated slugs match the committed slugs; the hub's measured read time within 3 minutes at 238 words per minute (about 710 words) from the top to the first job link (Decisions) | none | Owner approves the wording of the "pack" sentence before ship (named step) |
-| C3 | Cross-surface routes: hub to artifact, home to journeys index. | `web` build and rendered-output test; generated-slug diff; the hub's measured read time within 3 minutes at 238 words per minute (about 710 words) from the top to the first job link (Decisions) | C1, C2 | none; C3 is the single `site.toml` header editor (Decisions) |
+| C2 | The guide hub role table is the one authority for job membership; amend `guides-sidebar-generation` to add a `job` field; project the sidebar groups and `web/src/lib/catalogue-navigation.ts` from it; add the plain "pack" sentence to the hub. | Generation test; guide-index check; a test that the generated slugs match the committed slugs; the hub's measured read time within the read-time bound in Decisions | none | Owner approves the wording of the "pack" sentence before ship (named step) |
+| C3 | Cross-surface routes: hub to artifact, home to journeys index. | `web` build and rendered-output test; generated-slug diff; the hub's measured read time within the read-time bound in Decisions | C1, C2 | none; C3 is the single `site.toml` header editor (Decisions) |
 | C4 | Prominent documentation search with a real example query. | Build-time index produced by the site build; a test finds the example query | C2 | none; mechanism is a static build-time index, no hosted service |
 
 ### Manual or live residue, split off as non-blocking follow-ups
@@ -57,14 +57,15 @@ Every slice is checked by an agent with no live service or credential. Two owner
 
 - Decided 2026-11-05 by eugenelim: C3 is the single editor of the `site.toml` header during this brief, limited to adding the journeys link; `catalogue-wave7-marketing-evaluator` rebases onto it.
 - Decided 2026-11-05 by eugenelim: the hub read-time bound is at most 3 minutes at 238 words per minute (about 710 words) from the top to the first job link; C2 and C3 fail above it.
-Decided 2026-11-05 by eugenelim:
+- Decided 2026-11-05 by eugenelim:
+  - The guide hub table (the `guides/README.md` role table) owns job membership; ADR-0020 governs structure within a pack's guide area, not this grouping.
+  - An agent drafts the marketing headline; the owner approves it before ship.
+  - Parent question 4: the generated-slug diff and the measured read time are scripted and gate C2 and C3. The live-index query needs a network and is the non-blocking follow-up.
+  - Parent question 5: C2 adds one plain sentence ("a pack is one installable bundle of skills for a single job") to the guide hub. The owner approves the wording before ship, with the headline.
+  - Parent question 6: ADR-0020 does not engage the job grouping, which sits above areas, so C2 proceeds.
+  - Parent question 7: no new `hub` kind; the 21 area index pages keep their declared kinds and the job grouping reads the `job` field.
 
-- The guide hub table (the `guides/README.md` role table) owns job membership; ADR-0020 governs structure within a pack's guide area, not this grouping.
-- An agent drafts the marketing headline; the owner approves it before ship.
-- Parent question 4: the generated-slug diff and the measured read time are scripted and gate C2 and C3. The live-index query needs a network and is the non-blocking follow-up.
-- Parent question 5: C2 adds one plain sentence ("a pack is one installable bundle of skills for a single job") to the guide hub. The owner approves the wording before ship, with the headline.
-- Parent question 6: ADR-0020 does not engage the job grouping, which sits above areas, so C2 proceeds.
-- Parent question 7: no new `hub` kind; the 21 area index pages keep their declared kinds and the job grouping reads the `job` field.
+- Decided 2026-11-05 by eugenelim: the parent's rule that a missing relationship is a failure to revise before acceptance is waived for delivery. The influencer-tier reader test runs after C1 ships as a follow-up owned by eugenelim, and a failure reopens C1.
 
 ## Constraints / Appetite
 

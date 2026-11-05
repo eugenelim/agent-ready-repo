@@ -39,6 +39,10 @@ Three slices. P1 needs only the route contract, so it can start once [FEAT-0020]
 
 - **Riskiest assumption:** retiring fields keeps existing Claude consumers working. De-risk with a fixture that installs a pre-migration manifest through the alias.
 
+## Ready gaps (Draft only)
+
+None open.
+
 ## Rabbit holes
 
 - Do not treat the matrix as hand-written prose with a generator bolted on.

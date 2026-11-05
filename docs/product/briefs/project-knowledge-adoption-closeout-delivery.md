@@ -44,7 +44,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 
 ## Decisions
 
-- 2026-11-05, eugenelim: K2 may run before the engineering and operational integration survey, because measurement does not need it.
+- 2026-11-05, eugenelim: K1 may run before the engineering and operational integration survey, because measurement does not need it. K2's lifecycle evaluation covers only the workflow classes already integrated (authoring, review, research); if the survey later adds a class, K2's evaluation is extended rather than reopened.
 
 ## Constraints / Appetite
 

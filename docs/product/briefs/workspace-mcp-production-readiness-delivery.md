@@ -29,7 +29,7 @@ Counted 2026-11-05 by searching for `pytest.skip` and `mark.skip`.
 ## Constraints / Appetite
 
 - A stub that exposes a contract the server does not meet stops the slice and needs a follow-on RFC; it does not widen this brief.
-- `tools/AGENTS.md` protects everything under `packages/agentbundle/`, tests included, so every slice's commit needs an `Engine-Change-RFC:` trailer. Slice 1 cites `RFC-0078`; slices 2 to 5 usually use `n/a - <justification>`.
+- `tools/AGENTS.md` protects everything under `packages/agentbundle/`, tests included, so every slice's commit needs an `Engine-Change-RFC:` trailer. Slice 1 cites `RFC-0078`; slices 2 to 5 each use `Engine-Change-RFC: n/a - tests only, no engine behavior change`.
 - Appetite: one slice for the projection, one per test group, and one for brief exposure.
 
 ## Assumptions / Risks
@@ -53,6 +53,10 @@ All slices are independent and `agent-only`.
 | 3. `git` and `git_scope` tests (16) | agent-only | Zero skips |
 | 4. `event_bridge` and `tools` tests (13) | agent-only | Zero skips |
 | 5. Behavioural proof that `workspace_status` returns a brief read from its `Status:` header | agent-only | A test writes a brief fixture, calls the tool, and asserts the brief appears with that status |
+
+## Ready gaps (Draft only)
+
+None open.
 
 ## Spec map
 

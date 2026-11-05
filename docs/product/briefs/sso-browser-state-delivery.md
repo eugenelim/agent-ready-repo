@@ -8,7 +8,7 @@
 
 ## Outcome
 
-Persistent SSO browser state expires, stores only what it needs, cannot be launched twice at once for one profile, is not recaptured in a loop, and keeps macOS keychain calls inside a lock budget derived from a per-call timeout. Capture and refresh expose three named modes and bounded errors.
+Persistent SSO browser state expires, stores only what it needs, cannot be launched twice at once for one profile, is not recaptured in a loop, and keeps macOS keychain calls inside a lock budget derived from batching and a per-call timeout. Capture and refresh expose three named modes and bounded errors.
 
 ## Scope / Non-goals
 
@@ -55,7 +55,7 @@ Dependency order: none. The six slices (1a, 1b, 2, 3, 4, 5) are independent and 
 | --- | --- | --- |
 | 1a. Mode enum (`operator-register`, `ephemeral-register`, `automatic-refresh`) | agent-only | Test: the invalid fourth combination is unrepresentable |
 | 1b. Refresh stderr bounding | agent-only | A fake child that prints a path to stderr yields a bounded error |
-| 2. Keychain per-call timeout and derived lock budget | agent-only | Fake `security` binary with injected latency; budget assertion |
+| 2. Keychain batching, per-call timeout and derived lock budget | agent-only | Fake `security` binary with injected latency; the batched path makes fewer calls than the unbatched path; budget assertion |
 | 3. Per-profile browser-launch lock with stale recovery | agent-only | Two-process test with a fake singleton lock; `get-cookies` not starved |
 | 4. Session maximum age, destination-filtered cookie storage, 0700 and 0600 modes | agent-only | Expired profile refused; filtered fixture; mode assertions |
 | 5. Recapture cooldown in broker-written state | agent-only | Repeated automatic refresh inside the window is refused |
@@ -64,6 +64,10 @@ Dependency order: none. The six slices (1a, 1b, 2, 3, 4, 5) are independent and 
 
 - Real macOS keychain timing run (twenty consented timings), recorded in `docs/specs/sso-store-transition-serialization/manual-qa.md`.
 - Live corporate IdP check of the 12-hour and 15-minute defaults.
+
+## Ready gaps (Draft only)
+
+None open.
 
 ## Spec map
 
