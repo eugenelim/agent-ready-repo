@@ -379,7 +379,8 @@ above the merge base.
   table, when a table code has no exercised emission in `status` and the
   journal, and on any launcher-supplied byte in either output.
 - AC-0068: an attempt silent past `attempt_timeout_seconds` on the injected
-  clock is aborted, confirmed, and reprojected without integrating.
+  clock is aborted and never integrates; with a confirmed end it reprojects,
+  and with an end that never confirms its task goes to the floor.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
 and its CI log shows it ran with zero skips and Core is one patch
