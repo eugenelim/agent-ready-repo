@@ -24,7 +24,7 @@ Deterministic `contracts` skills have behavior evals with `expect` blocks, the c
 - Contracts `expect` blocks and fixtures.
 - Gate consolidation.
 - Tier-4 rubric authoring.
-- The four core activation-boundary cases and the reusable first-value rubric fields (first-task completion, visible-artifact presence, recovery path, next-action clarity) from RFC-0064 Amendment 4 (which defines Level A and B pack obligations). Recovered from the retired `workspace.toml` entry (commit a2cc9aae1): activation-boundary cases for `capture-work`, `author-brief`, `receive-brief` and `new-spec`, which were absent from the core eval allowlist at the baseline. `capture-work` no longer exists as a skill and `author-brief` and `receive-brief` are deprecated aliases, so the P4 spec maps each case to its current successor; `eval_queries.json` already exists for `author-brief`, `receive-brief` and `new-spec`. The four rubric fields are first-task completion, visible-artifact presence, recovery path and next-action clarity, as slice P4.
+- The four reusable first-value rubric fields (first-task completion, visible-artifact presence, recovery path, next-action clarity) from RFC-0064 Amendment 4, as slice P4. The four core activation-boundary cases already shipped with Tier 1: `eval_queries.json` exists for `author-brief`, `receive-brief` and `new-spec` with 8, 8 and 9 non-activation queries, and `capture-work` no longer exists. P4 adds none of them.
 
 **Non-goals:**
 
@@ -40,7 +40,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 | P1 | `expect` blocks and fixtures for `api-contract` and `event-contract`. | Eval schema test and a fixture validator pass; seeded wrong artifact fails | none | none |
 | P2 | Converters gate consolidation: read `[pack.evals].skills`; reconcile `mermaid-renderer`. | `lint-ci-parity` and the build-check step logic pass locally; a seeded missing skill fails | P1 | Own PR, per the intent |
 | P3 | Tier-4 judge rubrics for `new-package` and the core judgment skills that have none today (enumerate them in the slice spec from the pack manifest), authored offline. The format is RFC-0037 E4's: the eval's `expected_output` plus `assertions`; no separate rubric schema file exists. | Each rubric validates against the format the P3 spec names; a seeded malformed rubric fails | none | Spec names the core skill list and rubric format |
-| P4 | The four core activation-boundary cases added to the core `eval_queries.json` files, and the four first-value rubric fields recorded as reusable fields for the cross-pack adoption overlay. | The eval query schema test passes; each case names a skill and its expected activation or non-activation | none | Spec maps the four recovered cases to current skills |
+| P4 | The four first-value rubric fields recorded as reusable assertion fields for the cross-pack adoption overlay. | The eval schema validation passes with the fields in a fixture eval; a seeded eval missing a field fails | none | Spec cites where Amendment 4 defines Level A and B obligations |
 
 ### Manual or live residue, split off as non-blocking follow-ups
 
@@ -58,13 +58,12 @@ Four small sessions.
 
 ## Ready gaps (Draft only)
 
-None open. The P3 spec obligation is to name the core judgment skill list and the rubric format; the P4 spec obligation is to map the four recovered cases to current skills.
+None open. The P3 spec obligation is to name the core judgment skill list and the rubric format; the P4 spec obligation is to cite where Amendment 4 defines the obligations.
 
 ## Spec map
 
 | Spec | Status |
 | --- | --- |
-|  |  |
 
 ## Provenance
 

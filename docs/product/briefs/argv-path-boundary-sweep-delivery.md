@@ -59,7 +59,7 @@ Slice 3 is the largest: 76 sites across four packs, each needing a version bump 
 | 1. Classify all 161 sites, starting from the 24 helper-free files, and freeze the list in a note beside the rule | agent-only | The rule run reproduces the recorded list |
 | 2. `packs/converters` (23) | agent-only, after 1 | Rule include widened to converters scripts reports 0 |
 | 3. all `packs/core` sites (50, including workspace-status and receive-brief), `packs/repo-governance`, `packs/architect`, `packs/catalogue-curation` (76) | agent-only, after 1 | Same, per pack |
-| 4. `packs/atlassian` (9) | agent-only, after 1 | Same |
+| 4. `packs/atlassian` (9), `packs/code-intelligence` (1) and `packages/jsonl-otlp-exporter` (1) | agent-only, after 1 | Same |
 | 5. `packages/agentbundle` (51) | agent-only, after 1 | Same |
 
 Slices 2 to 5 do not depend on each other.

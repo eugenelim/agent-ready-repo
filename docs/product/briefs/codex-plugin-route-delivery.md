@@ -15,7 +15,7 @@ From the same catalogue source as the Claude marketplace, the build emits a nati
 
 - The Codex package and manifest are byte-stable across two builds and match golden fixtures.
 - The Codex route's support claim stays components-only and `documentation-verified`.
-- A change outside the eligible user-scope packs and the publication contract does not trigger either publish workflow, proved by a path-filter test.
+- A change outside the eligible user-scope packs, the publisher workflows, and the marketplace build and publication contract does not trigger either publish workflow, proved by a path-filter test.
 
 ## Scope / Non-goals
 
@@ -34,7 +34,7 @@ Four slices. Hard predecessors: [FEAT-0020](../intents/FEAT-0020-distribution-ro
 | C1 | Extract the user-scope eligibility rule into one contract file that `publish-claude-plugins.yml` reads, and suppress unrelated-commit triggers. Alone it has one consumer; C4 adopts the same file for Codex. | `.github/workflows/publish-claude-plugins.yml`, publication contract | Path-filter posture test; mutation cases for an unrelated path and a contract path | None. Independent. |
 | C2 | Codex route contract entry, package and marketplace manifest emission, vendored schema with provenance | `contracts/`, `build/` | Golden fixtures, offline schema validation, determinism and path-containment fixtures | After FEAT-0020 and FEAT-0021 |
 | C3 | Hook translation with a semantic-compatibility record; refuse a pack whose required hook semantic cannot be kept | route projector | Fixtures per hook event: preserved, dropped-with-diagnostic, refused | After C2 |
-| C4 | Create the Codex publish workflow reading the C1 eligibility file, with a fixed publisher branch and ref control | `.github/workflows` (new file), tests | Workflow posture test pins the trigger paths, branch name, and ref; a posture mutation for an unrelated path | After C1, C2, and the Accepted governance record for the Codex publisher branch (a new ADR for the Codex publisher branch identity) |
+| C4 | Create the Codex publish workflow reading the C1 eligibility file, with a fixed publisher branch and ref control | `.github/workflows` (new file), tests | Workflow posture test pins the trigger paths, branch name, and ref; a posture mutation for an unrelated path | After C1, C2, C3, and the Accepted governance record for the Codex publisher branch (a new ADR for the Codex publisher branch identity) |
 
 ## Assumptions / Risks
 

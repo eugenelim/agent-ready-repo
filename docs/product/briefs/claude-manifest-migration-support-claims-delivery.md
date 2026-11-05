@@ -25,7 +25,7 @@ Out of scope: promoting any claim by documentation alone, and removing the alias
 
 ## Constraints / Appetite
 
-Three slices. P1 needs only the route contract, so it can start once [FEAT-0020](../intents/FEAT-0020-distribution-route-set-opening.md) lands; it does not wait for the Codex or Kiro routes. The owner decided on 2026-11-05 that the compatibility alias window is one minor release of warning, then removal. The public matrix to generate is `guides/_shared/reference/adapter-support.md`. It is hand-written today (no generated marker), so P1 adds a marked generated block and a check that regenerating it changes nothing.
+Three slices. P1 needs only the route contract, so it can start once [FEAT-0020](../intents/FEAT-0020-distribution-route-set-opening.md) lands; it does not wait for the Codex or Kiro routes. P1 owns the one generator and the generated block in that file. The [digital-product-guides brief](digital-product-guides-delivery.md)'s G2 must not generate into it; G2 builds host overlays on a separate guide page that links to this block. The owner decided on 2026-11-05 that the compatibility alias window is one minor release of warning, then removal. The public matrix to generate is `guides/_shared/reference/adapter-support.md`. It is hand-written today (no generated marker), so P1 adds a marked generated block and a check that regenerating it changes nothing.
 
 ## Proposed slices
 

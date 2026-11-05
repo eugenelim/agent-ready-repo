@@ -84,7 +84,6 @@ None open.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
 
 ## Provenance
 

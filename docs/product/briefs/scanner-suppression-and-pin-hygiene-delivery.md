@@ -37,7 +37,7 @@ Checked 2026-11-05.
 ## Assumptions / Risks
 
 - **[Risk]** Making Bandit mandatory locally adds contributor cost. The CI already requires it; the spec records the cost.
-- **[Risk]** The hash lock breaks on a platform that resolves different wheels. The universal compile is the control; slice 4 proves it on this host and lists the others for the CI run.
+- **[Risk]** The hash lock breaks on a platform that resolves different wheels. The universal compile is the control; slice 4 proves it on the author's macOS arm64 host and lists the others for the CI run.
 
 ## Proposed cut
 

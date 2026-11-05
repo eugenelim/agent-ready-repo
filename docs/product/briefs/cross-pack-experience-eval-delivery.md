@@ -14,6 +14,7 @@ Maintainers run one offline, deterministic check that every handoff between `pro
 ## Success metrics
 
 - The seam check fails on a seeded phantom handoff, an unresolved skill reference, a missing risk-mode field, drifted contract copy, a missing evidence-manifest entry, and an adapter projection that leaves a transformed, degraded or dropped primitive undeclared, and passes on the current tree.
+- The host, model and adapter-contract-version fields read `not measured` until the live follow-up supplies them.
 - Each of the four fixture types (public marketing plus docs, SaaS onboarding plus workspace, internal dashboard, transactional service) has a recorded golden-path report with host, model, adapter-contract version, fixture, permissions and a measurement status per signal.
 
 ## Scope / Non-goals
@@ -39,7 +40,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 | # | Slice | Agent-only verification | Depends on | Gating |
 | --- | --- | --- | --- | --- |
 | E1 | Seam checks in `tools/`: referenced skills resolve, adapter projections declare their transformed, degraded and dropped primitives, no phantom handoffs, risk-mode contract fields, contract-copy drift, evidence-manifest entries. Built on the shipped Digital Experience Contract, `visual-handoff-golden-path` and the roster suite. | pytest with one seeded violation per class and a clean run over the real tree | none | Ordering waiver (Constraints) |
-| E2 | Four fixture types and the report-only golden-path harness over recorded transcripts, with the baseline comparison and the measurement-status record. Home: the same repository-level `tools/` area as E1, owner eugenelim; `experience-design` keeps the terminal whole-journey review (its `design-review` skill reviews the final journey), which resolves RFC-0071 D7's stale destination. The harness reports seven separate signal classes: activation, process, handoff, final artifact, journey outcome, style, and efficiency. | pytest over the fixtures; harness output validates against a schema; report-only exit code is zero | E1 | Delivered artifacts of M2a, M2b, M3c and M3d; execution waits for delivered artifacts, not approved specs, so fixtures use real field names |
+| E2 | Four fixture types and the report-only golden-path harness over transcripts that E2 itself authors as committed fixtures (owner eugenelim), with the baseline being the previous committed report (the first report records `no baseline`), with the baseline comparison and the measurement-status record. Home: the same repository-level `tools/` area as E1, owner eugenelim; `experience-design` keeps the terminal whole-journey review (its `design-review` skill reviews the final journey), which resolves RFC-0071 D7's stale destination. The harness reports seven separate signal classes: activation, process, handoff, final artifact, journey outcome, style, and efficiency. | pytest over the fixtures; harness output validates against a schema; report-only exit code is zero | E1 | Delivered artifacts of M2a, M2b, M3c and M3d; execution waits for delivered artifacts, not approved specs, so fixtures use real field names |
 
 ### Manual or live residue, split off as non-blocking follow-ups
 
@@ -69,7 +70,6 @@ None open.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
 
 ## Provenance
 

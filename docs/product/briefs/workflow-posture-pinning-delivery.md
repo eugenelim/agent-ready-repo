@@ -47,7 +47,7 @@ Three sessions; P1 medium, P2 small, P3 small to medium.
 
 ## Assumptions / Risks
 
-- Riskiest assumption: a key grammar that fails closed on every unmodelled form can be written for a flat workflow. De-risk in P1 by running each family's mutation list, including duplicate keys, quoted keys and flow forms, and requiring the check to refuse rather than skip them.
+- Riskiest assumption: a key grammar that fails closed on every unmodelled form can be written for a flat workflow. De-risk in P1 by running each family's mutation list, including duplicate keys, quoted keys, aliases and flow forms, and requiring the check to refuse rather than skip them.
 - `test-corpus.yml` is a four-job matrix, so per-job assertions need one mutation per family, not per job. The sharding spec already pins the matrix against `SHARDS=`; P1 does not repeat that.
 
 ## Ready gaps (Draft only)

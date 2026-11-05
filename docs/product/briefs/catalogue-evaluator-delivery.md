@@ -61,7 +61,6 @@ None open.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
 
 ## Governance references (optional)
 

@@ -65,7 +65,6 @@ None.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
 
 ## Provenance
 

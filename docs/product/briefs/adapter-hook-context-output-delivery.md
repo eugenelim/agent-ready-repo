@@ -33,7 +33,7 @@ Three slices, independent of each other. H3 goes last by preference because its 
 | --- | --- | --- | --- | --- |
 | H1 | Root-stable commands for both core hooks, `session-start` and `work-loop-check`, on Claude Code and Codex (`${CLAUDE_PROJECT_DIR}` or a git-root wrapper) | `hook-wiring/session-start.toml`, `hook-wiring/work-loop-check.toml`, `.codex/hooks.json` projection | Run the projected command from a subdirectory in a test; Windows-form unit test | None |
 | H2 | Per-runtime context output for Copilot, Cursor, and Gemini CLI. First task: re-read each client's current hook-output documentation (last read 2026-08-22) and record the revision. | adapter projections and wrapper | Fixture per adapter parses as the documented JSON; Claude Code and Codex output unchanged | None |
-| H3 | Kiro IDE and CLI hook projection on the standalone `.kiro/hooks/*.json` v1 schema. The only Kiro-specific hook today is `work-loop-check.kiro.hook`; core ships no Kiro session-start hook, so H3 migrates that one. | `kiro-ide-hooks` and the Kiro adapters | Schema fixtures; the superseded format is no longer emitted; installed-file ownership still tracked | None |
+| H3 | Kiro IDE and CLI hook projection on the standalone `.kiro/hooks/*.json` v1 schema. The only Kiro-specific hook today is `work-loop-check.kiro.hook`; core ships no Kiro session-start hook, so H3 migrates that one. First task: re-read Kiro's hook-output documentation and record the revision, which tests the riskiest assumption below. | `kiro-ide-hooks` and the Kiro adapters | Schema fixtures; the superseded format is no longer emitted; installed-file ownership still tracked | None |
 
 ## Assumptions / Risks
 

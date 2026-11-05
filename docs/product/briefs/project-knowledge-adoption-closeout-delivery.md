@@ -35,7 +35,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 
 | # | Slice | Agent-only verification | Depends on | Gating |
 | --- | --- | --- | --- | --- |
-| K1 | Measurement tool: topic counts by scope tier, body-envelope reachability per scope, observation journal growth under `docs/knowledge/observations`, capture loss as pending observations with no terminal disposition, counted from the observation journals, and enquiry latency recorded as report-only wall-clock time over a fixed enquiry set. | The tool computes the topic count at run time from `docs/knowledge/topics.index.json` and matches a count from the topic files; seeded fixtures test each measure; it fails if the retention or derived-index threshold (AC19 budgets) cannot be read from the repository | none | none |
+| K1 | Measurement tool: adoption (active topic count and the number of distinct `producer` values across topic occurrences), topic counts by scope tier, body-envelope reachability per scope, observation journal growth under `docs/knowledge/observations`, capture loss as pending observations with no terminal disposition, counted from the observation journals, enquiry latency recorded as report-only wall-clock time over a fixed enquiry set, and operator support (the number of refusal codes in the project-knowledge scripts that have no recovery line in the skill references; report-only). | The tool computes the topic count at run time from `docs/knowledge/topics.index.json` and matches a count from the topic files; seeded fixtures test each measure; it fails if the retention or derived-index threshold (AC19 budgets) cannot be read from the repository | none | none |
 | K2 | Closeout spec: lifecycle evaluation against existing contracts and the four follow-on dispositions. | Dispositions cite K1 output; a test checks each follow-on has a disposition record | K1 | none |
 
 ### Manual or live residue, split off as non-blocking follow-ups
@@ -52,7 +52,7 @@ Two small sessions.
 
 ## Assumptions / Risks
 
-- Riskiest assumption: repository-contained evidence is enough to close. The parent intent already says so.
+- Riskiest assumption: repository-contained evidence is enough to close. K1's test is its fail condition: it fails if the retention or derived-index threshold (AC19 budgets) cannot be read from the repository.
 - Risk: measured pressure is absent for all four follow-ons, which closes them without work.
 
 ## Ready gaps (Draft only)
@@ -63,7 +63,6 @@ None open.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
 
 ## Provenance
 

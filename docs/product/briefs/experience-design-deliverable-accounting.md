@@ -29,6 +29,7 @@ A designer who ran an agency engagement can mark every deliverable they expect a
 
 **Non-goals:**
 
+- New reference documents for gaps D1 finds; each becomes a follow-up intent.
 - Accessibility conformance reporting, research repository with consent and personal data, design-ops intake, versioned design system with contribution model, localisation, instrumentation.
 - New skills; each gap is first argued as a reference.
 - Any step that supplies observational evidence without a human.
@@ -39,8 +40,8 @@ Every slice is checked by an agent with no live service, credential, or human re
 
 | # | Slice | Agent-only verification | Depends on | Gating |
 | --- | --- | --- | --- | --- |
-| D1 | Deliverable inventory: agency baseline lines, each marked owned, referenced or out of scope with a citation to a skill, artifact or document. | A script resolves every repository citation to an existing path or skill, owned lines name a registered skill, and every baseline line carries an external source; the script fails on a line with none | none | none |
-| D2 | Pack-doc out-of-scope statement and the `experience-design` version bump that ships it, plus guide pages for owned lines that no guide teaches, and the uplift of every existing guide under `guides/experience-design/` (nine files today, including the README) to all five affordances (parent step 4). | A test reads the inventory and fails on an owned line with no guide link; guide-index check; `tools/audit-guide-affordances.py` shows each new page carrying all five affordances (A to E: chat input, demonstrated input, sample output, stated outcome, job to be done) | D1 | none |
+| D1 | Deliverable inventory (a gap that would need a new reference is marked out of scope here and becomes a follow-up intent, except the evidence seam that D3 owns): agency baseline lines, each marked owned, referenced or out of scope with a citation to a skill, artifact or document. | A script resolves every repository citation to an existing path or skill, owned lines name a registered skill, and every baseline line carries an external source; the script fails on a line with none | none | none |
+| D2 | Pack-doc out-of-scope statement and the `experience-design` version bump that ships it, plus guide pages for owned lines that no guide teaches, and the uplift of every existing guide under `guides/experience-design/` (nine files today, including the README) to all five affordances (parent step 4). | A test reads the inventory and fails on an owned line with no guide link, and the affordance audit runs over the new pages and over every uplifted existing page; guide-index check; `tools/audit-guide-affordances.py` shows each new page carrying all five affordances (A to E: chat input, demonstrated input, sample output, stated outcome, job to be done) | D1 | none |
 | D3 | Evidence seam: a reference that routes `evidence-level: observational` journeys to `plan-validation`, which scaffolds and synthesises and never runs sessions. | An offline test pins the reference text: it names `plan-validation` for `evidence-level: observational` journeys and states that sessions are run by a person | none | none |
 
 ### Manual or live residue, split off as non-blocking follow-ups
@@ -50,7 +51,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 
 ## Decisions
 
-Decided 2026-11-05 by eugenelim: D2 writes only guide pages for lines the inventory shows as unguided, following the `docs-job-pages` conventions, and does not reopen that spec's scope.
+Decided 2026-11-05 by eugenelim: D2 writes new guide pages only for lines the inventory shows as unguided, following the `docs-job-pages` conventions, and does not reopen that spec's scope. The separate uplift of the existing guides is the parent's step 4, not part of this decision.
 
 ## Constraints / Appetite
 
@@ -70,7 +71,6 @@ None open.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
 
 ## Provenance
 

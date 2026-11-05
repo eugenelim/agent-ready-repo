@@ -67,11 +67,11 @@ Verified 2026-11-05. All four remaining items are unshipped: `tools/npm-audit-al
 
 ## Riskiest assumption
 
-**Riskiest assumption:** a hash-locked SAST manifest can install on every contributor platform. Tested agent-only by a `--require-hashes` install in a fresh venv on this host, with the other platforms covered by the non-blocking runner spot-check.
+**Riskiest assumption:** a hash-locked SAST manifest can install on every contributor platform. Tested agent-only by a `--require-hashes` install in a fresh venv on macOS arm64, with the other platforms covered by the non-blocking runner spot-check.
 
 ## De-risk result
 
-2026-11-05. Ran `uv pip compile tools/requirements-sast.txt --generate-hashes --universal`, then installed the result into a fresh venv under `.context/` with `--require-hashes`. Result: 87 packages locked with hashes in 4.9 seconds; install took 11 seconds; `semgrep 1.183.0`, `bandit 1.9.4` and `pip-audit 2.10.1` all run. Two lines carry platform markers, which shows the universal compile varies by platform. This host only proves the install; Windows and Linux runners stay the non-blocking spot-check. Verdict: supported on this host.
+2026-11-05. Ran `uv pip compile tools/requirements-sast.txt --generate-hashes --universal`, then installed the result into a fresh venv under `.context/` with `--require-hashes`. Result: 87 packages locked with hashes in 4.9 seconds; install took 11 seconds; `semgrep 1.183.0`, `bandit 1.9.4` and `pip-audit 2.10.1` all run. Two lines carry platform markers, which shows the universal compile varies by platform. This host (macOS arm64) only proves the install; Windows and Linux runners stay the non-blocking spot-check. Verdict: supported on this host (macOS arm64).
 
 ## Decisions
 

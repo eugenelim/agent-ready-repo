@@ -49,9 +49,9 @@ All slices are independent and `agent-only`.
 | Slice | Gating | Proof |
 | --- | --- | --- |
 | 1. Claude `permissions.allow` projection | agent-only, RFC-0078 trailer | The 4 stubs run and pass; merge keeps user entries |
-| 2. `elicit` and `stdin` tests (20) | agent-only | Zero skips in both files |
-| 3. `git` and `git_scope` tests (16) | agent-only | Zero skips |
-| 4. `event_bridge` and `tools` tests (13) | agent-only | Zero skips |
+| 2. `elicit` and `stdin` tests (20) | agent-only | Zero skips in both files; every surviving stub is a passing test, and each deleted stub is listed with its reason |
+| 3. `git` and `git_scope` tests (16) | agent-only | Zero skips; every surviving stub is a passing test, and each deleted stub is listed with its reason |
+| 4. `event_bridge` and `tools` tests (13) | agent-only | Zero skips; every surviving stub is a passing test, and each deleted stub is listed with its reason |
 | 5. Behavioural proof that `workspace_status` returns a brief read from its `Status:` header | agent-only | A test writes a brief fixture, calls the tool, and asserts the brief appears with that status |
 
 ## Ready gaps (Draft only)

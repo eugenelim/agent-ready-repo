@@ -13,7 +13,7 @@ When a review-and-repair loop stops converging, the work loop says so from facts
 
 ## Success metrics
 
-- Replayed on committed review-round histories (the one source set: files matching `docs/specs/*/notes/*round*`, excluding `amendment-001-grounding-paths.md` and `grounding-pass.md`, which are not review rounds) and on fixtures built from the per-round counts the intent records for its two loops, the repair-size signal flags the first fixture (raw counts only, so no previous-repair share exists for it) by round 7, the previous-repair share flags the second fixture by round 5, and the detector stays silent on every converging committed history. The two loops' own round artifacts are gitignored and are not a replay source.
+- Replayed on committed review-round histories (the one source set: files matching `docs/specs/*/notes/*round*`, excluding `amendment-001-grounding-paths.md` and `grounding-pass.md`, which are not review rounds), the previous-repair share flags the second recorded loop by round 5 from the per-round shares the intent records (0/10, 3/4, 4/5, 2/5). The intent records only three repair sizes for the first loop (377, 124 and 204 lines, followed by 8, 6 and 3 blockers) and does not tie them to rounds, so that loop is reported as three (repair size, next-round blockers) pairs and carries no round-based claim. N1 pre-registers a false-positive ceiling for the detector on converging histories and reports the measured rate against it.
 - The routing rule names a return level (plan, spec, brief, intent, or retire the construct) for each discovery class in the intent's table.
 - Each shipped rule carries an activation point and a test that tells activation from presence.
 
