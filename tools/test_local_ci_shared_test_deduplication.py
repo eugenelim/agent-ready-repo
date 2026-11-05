@@ -349,6 +349,8 @@ FINAL_TOOL_BATCH = (
     "tools/test_lint_agents_md_legacy_block.py",
     "tools/test_lint_agents_md_risk_block.py",
     "tools/test_lint_agents_md_frontmatter_scope.py",
+    "tools/test_precheck.py",
+    "tools/test_lint_agents_md_local_gate.py",
     "tools/test_catalogue_curation_guard.py",
     "tools/test_contract_parity.py",
     "tools/test_marketplace_envelope_parity.py",
@@ -1130,11 +1132,17 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # tools batch with their deleted tools; no line was added, removed or reordered.
 # Prior pins were current: this Makefile with only those two paths restored
 # matches `eca2ef48…` and `cb2b7c58…`.
+# Re-pinned for precheck-path-gates. Sole cause: the paths
+# `tools/test_precheck.py` and `tools/test_lint_agents_md_local_gate.py` added
+# after `tools/test_lint_agents_md_frontmatter_scope.py`; no line was removed or
+# reordered. The `precheck` recipe's `$(PRECHECK_ARGS)` is outside the composed
+# suite plan and moved neither digest. Prior pins were current: this Makefile
+# with only those two paths deleted matches `f3ae1ea3…` and `fb54a049…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
-    "f3ae1ea332ab8d97ab449dad46f1d16fce63837106b178c08bd6ceb0cd29e4b7"
+    "72d2f04a4e15e45759a250e5f62c2d7b21bac15049485e8d637efe7595c7cb86"
 )
 APPROVED_COMPOSED_PLAN_DIGEST = (
-    "fb54a049893c935ba92c378e15f291bf2130ebde7e055dc1c64a81b87143c819"
+    "9ca8dc1a945c42bb433a60c43cd834570c9738063599bae7d72272c9baeb8801"
 )
 
 # Approved bytes of every surface this change must leave alone, taken from the
