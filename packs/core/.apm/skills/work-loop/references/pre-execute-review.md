@@ -216,12 +216,16 @@ the plan. For an execution observation rather than a plan error, follow the
 Cheap-to-fix-early applies harder to specs and structural decisions than to code
 — catching a vague behavior, a missing `Depends on:`, a mismatched verification
 mode, or a misplaced module boundary here costs a sentence; catching it
-post-EXECUTE costs a re-do. Gate mechanism: the spec approver writes
-`Status: Approved` in `spec.md`, the plan approver writes `Status: Approved` in
-`plan.md`, each with its Changelog entry (one line in the form the Parked gates section of
-`supervisor.md` gives), and `work-supervisor.py start` records
-both approvals with their authority references and binds them to the reviewed
-execution envelope and the terminal intent. **Both triggers respect the Profile-A
+post-EXECUTE costs a re-do. Gate mechanism: park each gate (`work-supervisor.py park`) once the reviewers are
+clean; the spec approver writes `Status: Approved` in `spec.md`, the plan approver
+writes `Status: Approved` in `plan.md`, each with its Changelog entry as one
+approval-entry line (the form is in the Parked gates section of `supervisor.md`,
+which also gives the rest of the parked-gate rules), and
+`work-supervisor.py start` takes `--approved-spec-digest` from the spec approver's
+own answer and `--approved-plan-digest` from the plan approver's own answer, then
+records both approvals with their authority references and binds them to the
+reviewed execution envelope and the terminal intent. Dispatch no implementation
+work for a parked spec, and never treat a parked gate as approved. **Both triggers respect the Profile-A
 opt-out:** skip if the project doesn't use the reviewer at all.
 
 ## Secure-design review — net-new wiring and the infra-mandatory pass

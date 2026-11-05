@@ -445,11 +445,7 @@ def test_t11_ac0035_start_with_unsafe_content_and_no_digests_refuses(tmp_path: P
     _edit(repo, "plan.md", "Build it.", f"Build it.{ZWSP}")
     _commit(repo)
     refusal = _refused_start(repo, "gate-unsafe-content", "controller")
-    line = next(
-        i for i, text in enumerate((repo / h.SPEC_DIR / "plan.md").read_text().split("\n"), 1)
-        if ZWSP in text
-    )
-    assert refusal["detail"].startswith(f"plan.md line {line} "), refusal
+    assert refusal["detail"].startswith("plan.md line 8 "), refusal
 
 
 def test_t11_ac0039_refusal_detail_names_the_artifact_and_first_offending_line(
@@ -459,17 +455,22 @@ def test_t11_ac0039_refusal_detail_names_the_artifact_and_first_offending_line(
     _edit(repo, "spec.md", "answers.", f"answers.{ZWSP}")
     _commit(repo)
     detail = _refused(repo, "gate-unsafe-content")["detail"]
-    spec_line = (repo / h.SPEC_DIR / "spec.md").read_text(encoding="utf-8").split(ZWSP)[0]
-    assert "spec.md" in detail and f"line {spec_line.count(chr(10)) + 1} " in detail, detail
+    assert detail == "spec.md line 11 holds a hidden or control character", detail
 
     repo = _repo(tmp_path / "plan")
     path = repo / h.SPEC_DIR / "plan.md"
     path.write_bytes(path.read_bytes() + b"\nok\n\xff\n")
     _commit(repo)
-    lines = path.read_bytes().split(b"\n")
-    bad = next(i for i, line in enumerate(lines, 1) if b"\xff" in line)
     detail = _refused(repo, "gate-unsafe-content")["detail"]
-    assert "plan.md" in detail and f"line {bad} " in detail, detail
+    assert detail == "plan.md line 53 is not valid UTF-8", detail
+
+
+def test_t12_ac0039_budget_overrun_detail_names_the_first_selector_line(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _edit(repo, "plan.md", "Build it.", "Build it." + "x" * 2000 + "a\ufe0f" * 41)
+    _commit(repo)
+    detail = _refused(repo, "gate-unsafe-content")["detail"]
+    assert detail == "plan.md line 8 holds a hidden or control character", detail
 
 
 def test_t2_ac0039_invalid_utf8_refuses(tmp_path: Path) -> None:

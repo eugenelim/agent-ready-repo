@@ -3,8 +3,11 @@
 Goal-based: reads the shipped skill files by literal path; no supervisor process runs.
 """
 
+import importlib.util
 import json
+import sys
 from pathlib import Path
+from types import ModuleType
 from typing import Any
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
@@ -116,6 +119,20 @@ PLAN_TEMPLATE_MD = PACK_ROOT / ".apm/skills/new-spec/assets/plan.md"
 GATES_PY = PACK_ROOT / ".apm/skills/work-loop/scripts/_supervisor_gates.py"
 
 
+def _load_gates() -> ModuleType:
+    """Load the shipped gates script by path under a unique, registered alias."""
+    alias = "core_work_loop_parked_gates_guidance_t12"
+    spec = importlib.util.spec_from_file_location(alias, str(GATES_PY))
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[alias] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+G = _load_gates()
+
+
 def test_t11_reference_states_the_approval_entry_form_once() -> None:
     """AC-0021: the reference gives the one form; it has no changelog-shape row."""
     raw = SUPERVISOR_MD.read_text(encoding="utf-8")
@@ -128,12 +145,46 @@ def test_t11_reference_states_the_approval_entry_form_once() -> None:
 
 
 def test_t11_other_surfaces_state_or_point_to_the_form() -> None:
-    """AC-0020: SKILL.md, pre-execute-review, the template, and `gates` text point to it."""
+    """AC-0021: SKILL.md, pre-execute-review, the template, and `gates` text point to it."""
     assert "Parked gates section of [`references/supervisor.md`]" in _text(SKILL_MD)
     assert "Parked gates section of `supervisor.md`" in _text(PRE_EXECUTE_MD)
     template = _text(PLAN_TEMPLATE_MD)
     assert "`references/supervisor.md` (Parked gates) is the one statement of it" in template
     assert "- YYYY-MM-DD: spec approved by <handle>" in template
-    script = GATES_PY.read_text(encoding="utf-8")
-    assert script.count("{_ENTRY_FORM}") == 2
-    assert "- YYYY-MM-DD: spec|plan|amendment approved by <handle>" in script
+    for gate in ("spec-approved", "plan-approved"):
+        approve = G.ANSWERS[gate]["approve"]
+        assert ENTRY_FORM in approve
+        assert "Parked gates section of the supervisor reference" in approve
+
+
+REASONS = ("`scope`", "`build strategy`", "`scope and build strategy`")
+
+
+def test_t12_ac0021_pre_execute_review_and_template_state_the_parked_gate_rules() -> None:
+    """AC-0021: each surface states the five rules or points to the reference's section."""
+    review = _text(PRE_EXECUTE_MD)
+    assert "park each gate" in review
+    assert "`--approved-spec-digest` from the spec approver's own answer" in review
+    assert "`--approved-plan-digest` from the plan approver's own answer" in review
+    assert "one approval-entry line" in review
+    assert "Dispatch no implementation work for a parked spec" in review
+    assert "never treat a parked gate as approved" in review
+    template = _text(PLAN_TEMPLATE_MD)
+    assert "park each gate" in template
+    assert "the spec digest from the spec approver's own answer" in template
+    assert "the plan digest from the plan approver's own answer" in template
+    assert "one approval-entry line per approval" in template
+    assert "dispatch no implementation work for a parked spec" in template
+    assert "never treat a parked gate as approved" in template
+
+
+def test_t12_ac0021_entry_form_paraphrases_quote_the_reasons_period_and_kind() -> None:
+    """AC-0021: the reference quotes the reason set, the optional period, and the kinds."""
+    text = _text(SUPERVISOR_MD)
+    assert "optionally followed by ` (scope)`, ` (build strategy)` or ` (scope and build strategy)`" in text
+    assert "the final period is optional" in text
+    assert "The kind is `spec`, `plan`, or `amendment`" in text
+    for surface in (PRE_EXECUTE_MD, PLAN_TEMPLATE_MD, SKILL_MD):
+        paraphrase = _text(surface)
+        assert "optional scope note" not in paraphrase
+        assert "and a final period" not in paraphrase

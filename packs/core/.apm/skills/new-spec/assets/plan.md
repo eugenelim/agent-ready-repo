@@ -351,9 +351,12 @@ timestamp — and nothing else writes that file. A changelog entry never stands
 in for that record, and that record never stands in for the entry. `work-loop`'s
 G-plan sequence owns *when* each is written and why the order matters; this
 template owns only the form, and `work-loop`'s `references/supervisor.md`
-(Parked gates) is the one statement of it: one line under the last
-`## Changelog` heading, with an optional scope note and a final period. A
-wrapped or reworded entry is ordinary text and changes the gate digest.
+(Parked gates) is the one statement of it, and of the other parked-gate rules:
+park each gate; pass `start` the spec digest from the spec approver's own answer
+and the plan digest from the plan approver's own answer; write one approval-entry
+line per approval; dispatch no implementation work for a parked spec; never treat
+a parked gate as approved. A wrapped or reworded entry is ordinary text and
+changes the gate digest.
 
 - YYYY-MM-DD: spec approved by <handle>
 - YYYY-MM-DD: plan approved by <handle>

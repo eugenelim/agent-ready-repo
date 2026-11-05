@@ -137,19 +137,25 @@ _APPROVAL_ENTRY_RE = re.compile(
 def _drop_approval_entries(text: str) -> str:
     """Drop approval-entry lines after the last `## Changelog` line of LF-normalised *text*.
 
-    No Markdown structure is parsed. Runs of blank lines fold into one and blank
-    lines at the end are dropped.
+    The boundary is the last line whose `str.rstrip()` form is exactly `## Changelog`.
+    Only the text after it is rewritten: runs of blank lines fold into one and blank
+    lines at the end are dropped. With no such line nothing is dropped or folded.
+    No Markdown structure is parsed.
     """
     lines = text.split("\n")
-    heading = max((i for i, line in enumerate(lines) if line == "## Changelog"), default=None)
-    kept: list[str] = []
-    for idx, line in enumerate(lines):
-        if heading is not None and idx > heading and _APPROVAL_ENTRY_RE.match(line.rstrip()):
+    heading = max(
+        (i for i, line in enumerate(lines) if line.rstrip() == "## Changelog"), default=None
+    )
+    if heading is None:
+        return text
+    kept = lines[: heading + 1]
+    for line in lines[heading + 1 :]:
+        if _APPROVAL_ENTRY_RE.match(line.rstrip()):
             continue
-        if line.strip() == "" and kept and kept[-1].strip() == "":
+        if line.strip() == "" and kept[-1].strip() == "":
             continue
         kept.append(line)
-    while kept and kept[-1].strip() == "":
+    while len(kept) > heading + 1 and kept[-1].strip() == "":
         kept.pop()
     return "\n".join(kept)
 
@@ -172,8 +178,8 @@ def gate_digest(text_or_bytes: str | bytes, *, name: str) -> str:
     lint = _load_sibling("core_work_loop_gates_lint_knowledge", "lint-knowledge.py")
     offender = _unsafe(text, lint.is_hidden_char, lint)
     if offender is not None:
-        # Count line starts as the digest later will: a lone CR is a line break too.
-        line = text[:offender].replace("\r\n", "\n").replace("\r", "\n").count("\n") + 1
+        # A lone CR is itself an offender, so before the first one only CRLF breaks lines.
+        line = text[:offender].replace("\r\n", "\n").count("\n") + 1
         raise GateDigestRefused(
             "gate-unsafe-content",
             f"{name} line {line} holds a hidden or control character",
@@ -416,7 +422,7 @@ def park(
         except GateDigestRefused as exc:
             refusals.append(exc)
     if refusals:
-        first = next((r for r in refusals if r.code == "gate-unsafe-content"), refusals[0])
+        first = refusals[0]
         raise refuse(first.code, first.detail or "an artifact has no gate digest")
 
     git_dir = ws.git.hardened.pins.git_dir
