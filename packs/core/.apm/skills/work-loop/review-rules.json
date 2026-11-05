@@ -73,5 +73,36 @@
       "fallback": "",
       "mandatory_when": "selected"
     }
-  ]
+  ],
+  "code_review_round_cap": 2,
+  "minor_fix_max_lines": 40,
+  "prose_allowlist": {
+    "globs": [
+      "docs/*.md",
+      "docs/*.txt",
+      "docs/guides/**/*.md",
+      "docs/architecture/**/*.md",
+      "docs/product/**/*.md",
+      "README.md",
+      "CHANGELOG.md",
+      "CONTRIBUTING.md"
+    ],
+    "instruction_names": [
+      "AGENTS.md",
+      "AGENTS.local.md",
+      "CLAUDE.md",
+      "CLAUDE.local.md",
+      "GEMINI.md",
+      "SKILL.md",
+      "AGENT_RULES.md",
+      "copilot-instructions.md"
+    ]
+  },
+  "protected_class_reviewers": {
+    "security-boundary": "security-reviewer",
+    "data-durability": "quality-engineer",
+    "migration": "quality-engineer",
+    "public-interface": "adversarial-reviewer",
+    "irreversible-operation": "adversarial-reviewer"
+  }
 }

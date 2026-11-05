@@ -26,6 +26,7 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
+import fnmatch
 import hashlib
 import importlib.util
 import json
@@ -106,6 +107,15 @@ MODES = ("light", "full")
 ROLE_KINDS = ("always", "conditional")
 MANDATORY_WHEN = ("always", "selected", "never")
 DECISIONS = ("reselect-review", "accept-risk")
+# The protected risk classes a selection may declare; each maps to one reviewer.
+PROTECTED_CLASSES = (
+    "security-boundary",
+    "data-durability",
+    "migration",
+    "public-interface",
+    "irreversible-operation",
+)
+_ALLOWLIST_FIELDS = frozenset({"globs", "instruction_names"})
 _ROLE_FIELDS = frozenset({
     "role", "kind", "condition", "mode_limit", "boundary", "fallback", "mandatory_when"
 })
@@ -188,7 +198,57 @@ def validate_rules(data: object) -> dict[str, Any]:
                 raise _invalid_rules(f"{name}: {text_field} is not a string")
     if not any(entry["kind"] == "always" for entry in roles):
         raise _invalid_rules("no role is always selected")
+    _validate_tier_rules(data, seen)
     return data
+
+
+def _positive_int(value: object) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool) and value > 0
+
+
+def _text_list(value: object) -> bool:
+    return isinstance(value, list) and bool(value) and all(_text(item) for item in value)
+
+
+def glob_match(pattern: str, path: str) -> bool:
+    """Match a POSIX path against a glob whose ``*`` never crosses ``/``.
+
+    A ``**`` segment matches zero or more whole segments; every other segment
+    matches one path segment with ``fnmatch`` rules, case-sensitively.
+    """
+    return _segments_match(pattern.split("/"), path.split("/"))
+
+
+def _segments_match(pattern: list[str], parts: list[str]) -> bool:
+    if not pattern:
+        return not parts
+    if pattern[0] == "**":
+        return any(_segments_match(pattern[1:], parts[i:]) for i in range(len(parts) + 1))
+    return (
+        bool(parts)
+        and fnmatch.fnmatchcase(parts[0], pattern[0])
+        and _segments_match(pattern[1:], parts[1:])
+    )
+
+
+def _validate_tier_rules(data: dict[str, Any], roles: set[str]) -> None:
+    """Check the review-tier keys: the round cap, the minor-fix limit, the allowlist, the map."""
+    for key in ("code_review_round_cap", "minor_fix_max_lines"):
+        if not _positive_int(data.get(key)):
+            raise _invalid_rules(f"{key} is not a positive integer")
+    allowlist = data.get("prose_allowlist")
+    if (
+        not isinstance(allowlist, dict)
+        or set(allowlist) != _ALLOWLIST_FIELDS
+        or not all(_text_list(allowlist[field]) for field in _ALLOWLIST_FIELDS)
+    ):
+        raise _invalid_rules("prose_allowlist does not hold non-empty globs and instruction_names")
+    mapping = data.get("protected_class_reviewers")
+    if not isinstance(mapping, dict) or set(mapping) != set(PROTECTED_CLASSES):
+        raise _invalid_rules("protected_class_reviewers does not map exactly the five classes")
+    for name, role in mapping.items():
+        if role not in roles:
+            raise _invalid_rules(f"protected class {name} maps to unknown role {role!r}")
 
 
 def _in_full_mode(entry: dict[str, Any]) -> bool:
