@@ -77,16 +77,16 @@ It prints each triggered check, or `no trigger matched`, and exits.
 
 ### Isolation
 
-Create a separate throwaway git worktree on a throwaway branch, and record its path and branch name as the handle. The run drives only that worktree, never the checkout under change.
+Create a throwaway worktree on a new branch cut from `origin/main`: `git worktree add -b <throwaway-branch> <scratch>/wt origin/main`. Record the worktree path and branch name as the handle. The run drives only that worktree, never the checkout under change. From any other start point, extra checks can trigger, because `make precheck` also reads committed changes against the base.
 
 ### Drive
 
 Run in the throwaway worktree, in order:
 
 1. Append one line to `packs/repo-governance/.apm/skills/new-adr/references/infra-decisions.md`. That pack is self-hosted, so its projections under `.claude/` and `.agents/` now differ. Commit nothing. Do not edit a `SKILL.md`, a `.py` file, or anything under `packs/core/`.
-2. Run `make precheck`. Expect a non-zero exit with a self-host drift result. No other check triggers: deep lint needs a `SKILL.md`, bandit needs a `.py` file, and the core release check needs a path under `packs/core/`. Pack tests only print a "not run" line without `--with-tests`.
+2. Run `make precheck PRECHECK_ARGS="--base origin/main"`. The committed diff against the base is empty, so only the edit triggers. Expect a non-zero exit with a self-host drift result. No other check triggers: deep lint needs a `SKILL.md`, bandit needs a `.py` file, and the core release check needs a path under `packs/core/`. Pack tests only print a "not run" line without `--with-tests`.
 3. Run `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue self-host --root . --write`.
-4. Run `make precheck` again. Expect exit 0 with the same single self-host check.
+4. Run the same `make precheck` command again. Expect exit 0 with the same single self-host check.
 
 ### Features
 

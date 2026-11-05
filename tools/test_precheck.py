@@ -285,7 +285,11 @@ def _repo_executor(repo: Path) -> object:
         proc = subprocess.run(
             argv,
             cwd=repo,
-            env={"PATH": os.environ["PATH"], "GIT_CONFIG_GLOBAL": os.devnull},
+            env={
+                "PATH": os.environ["PATH"],
+                "GIT_CONFIG_GLOBAL": os.devnull,
+                "GIT_CONFIG_SYSTEM": os.devnull,
+            },
             stdout=subprocess.PIPE,
             check=False,
             text=True,
@@ -345,7 +349,10 @@ def test_worktree_rename_column_source_is_not_truncated(tmp_path: Path) -> None:
     (repo / "docs").mkdir()
     (repo / source).rename(repo / "docs" / "x.md")
     _git(repo, "add", "-N", "docs/x.md")  # status: ` R docs/x.md` then the source entry
-    paths = precheck.changed_paths("HEAD", _repo_executor(repo))
+    execute = _repo_executor(repo)
+    _code, status = execute(["git", "status", "--porcelain", "-z"], "stdout")
+    assert any(e.startswith(" R ") for e in status.split("\0")), status
+    paths = precheck.changed_paths("HEAD", execute)
     assert paths == ["docs/x.md", source]
 
 
