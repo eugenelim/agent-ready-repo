@@ -344,3 +344,34 @@ def test_store_derived_counts_agree_with_the_run_report(git_repo: Path) -> None:
     assert {
         capture["capture_id"] for capture in DRAIN.read_open_captures(git_repo)["captures"]
     } == {seeded["held"]["capture_id"]}
+
+
+def test_materialize_never_writes_through_a_planted_tmp_symlink(git_repo: Path) -> None:
+    """The temp file sits beside the artifact under a predictable name, so a
+    committed symlink there must neither be written through nor block the
+    route: the target file outside the repository stays untouched."""
+    repo = git_repo.parent / f"{git_repo.name}-symlink"
+    subprocess.run(["git", "init", "-q", str(repo)], check=True, capture_output=True)
+    seeded = _seed_store(
+        repo,
+        {
+            "routed": {
+                "shape": "defect",
+                "statement": ARTIFACT_STATEMENT,
+                "observed": "The drain reports the item as unplaced today.",
+                "intended": "The drain reports the item at its owner.",
+            }
+        },
+    )
+    capture_id = seeded["routed"]["capture_id"]
+    outside = git_repo.parent / f"{git_repo.name}-outside.txt"
+    outside.write_text("untouched")
+    planted = repo / "docs" / "product" / "captured" / f"{_artifact_name(repo, capture_id)}.tmp"
+    planted.symlink_to(outside)
+
+    DRAIN.drain(repo, confirmer=_confirm_all, recorded_at="2026-11-04T12:00:00Z")
+
+    assert outside.read_text() == "untouched"
+    artifact = repo / "docs" / "product" / "captured" / _artifact_name(repo, capture_id)
+    assert not artifact.is_symlink()
+    assert artifact.exists() and artifact.read_bytes() != b"untouched"

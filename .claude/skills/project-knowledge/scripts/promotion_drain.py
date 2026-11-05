@@ -1,11 +1,13 @@
-"""Drain-side read half for the work-item promotion drain.
+"""Work-item promotion drain: the store reader, the route effects, the run.
 
 Spec: ``docs/specs/work-item-promotion-handoff/spec.md`` — the store's
 drain-side reader. Every drain offer assembles from what this module returns:
 the open work-item captures with their records and terminal state.
 
-Read-only by construction. Every access goes through ``knowledge_store``'s
-own confined read helpers, and no write path is reachable from here. A
+The reads go through ``knowledge_store``'s own confined read helpers. The
+module also has three effects: it runs a stored command inside the confined
+envelope, materializes a captured-item file through work-intake's transaction,
+and records a terminal disposition through the store's writer. A
 record the store's read rules refuse — a malformed merged record, a capture
 spread over two partitions — surfaces as the store's ``KnowledgeStoreError``
 rather than being offered.
@@ -331,6 +333,7 @@ def run_stored_command(
 
 
 def _envelope_refusal(_root: Path, refusal: dict[str, Any]) -> dict[str, Any]:
+    """The envelope result for a command that was refused before it ran."""
     return {
         "outcome": "refused",
         "exit_status": None,
@@ -550,18 +553,28 @@ def decide_closure(
 # --- § D1, § D3: the drain run, its transaction and its recovery ------------
 
 
-def _load_intake_transaction() -> Any:
-    """Load work-intake's transaction runner, the drain's route effect."""
+def _load_work_intake_script(name: str) -> Any:
+    """Load one of work-intake's scripts by path under a drain-private name."""
     spec = importlib.util.spec_from_file_location(
-        "_work_intake_intake_transaction",
-        SCRIPT_DIR.parent.parent / "work-intake" / "scripts" / "intake_transaction.py",
+        f"_work_intake_{name}",
+        SCRIPT_DIR.parent.parent / "work-intake" / "scripts" / f"{name}.py",
     )
     if spec is None or spec.loader is None:
-        raise RuntimeError("intake transaction module is unavailable")
+        raise RuntimeError(f"work-intake {name} module is unavailable")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
+
+
+def _load_intake_transaction() -> Any:
+    """Load work-intake's transaction runner, the drain's route effect."""
+    return _load_work_intake_script("intake_transaction")
+
+
+def _load_file_safety() -> Any:
+    """Load work-intake's confined file helpers, the drain's write path."""
+    return _load_work_intake_script("file_safety")
 
 
 def store_terminal_dispositions(repo_root: Path | str) -> list[dict[str, Any]]:
@@ -693,12 +706,17 @@ def transact_route(
     expected = _captured_item_bytes(offer)
 
     def default_materialize(confined: Path) -> None:
-        if confined.exists():
-            if confined.read_bytes() != expected:
+        safety = _load_file_safety()
+        if os.path.lexists(confined):
+            # A linked, non-regular or over-linked target is refused, not read.
+            if safety.read_confined_regular_file(root, confined) != expected:
                 raise FileExistsError(str(confined))
             return
         tmp = confined.with_name(f"{confined.name}.tmp")
-        tmp.write_bytes(expected)
+        # Unlinking drops a stale or planted `.tmp` itself, never its target;
+        # the exclusive no-follow create then refuses anything that reappears.
+        tmp.unlink(missing_ok=True)
+        safety.write_confined_regular_file(root, tmp, expected, expect_sha256=None)
         tmp.replace(confined)
 
     def rollback_partial_state() -> None:
