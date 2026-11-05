@@ -213,6 +213,28 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
+        "object_id": "412f737a29cff16b3a7e347f18514b766d700aef"
+      },
+      "competency_facets": [
+        "CQ-VERIFY"
+      ],
+      "freshness": {
+        "checked_at": "2026-11-04T12:53:51Z",
+        "state": "fresh"
+      },
+      "lifecycle": "active",
+      "path": "topics/a-criterions-declared-verification-mode-needs-a-matching-plan-artifact.json",
+      "scopes": [
+        "docs/specs"
+      ],
+      "title": "A criterion's declared verification mode needs a matching plan artifact",
+      "topic_key": "a-criterions-declared-verification-mode-needs-a-matching-plan-artifact"
+    },
+    {
+      "audience": "project",
+      "blob": {
+        "algorithm": "sha1",
+        "kind": "git-blob-v1",
         "object_id": "52b23d769bfc985485da1c255d30942a2115320d"
       },
       "competency_facets": [
@@ -450,7 +472,7 @@
       "blob": {
         "algorithm": "sha1",
         "kind": "git-blob-v1",
-        "object_id": "66077cb86d01075276c000712a6e6096188c32e9"
+        "object_id": "bf7a1bf51c0f325a7c7d959a9e292c2448d6724c"
       },
       "competency_facets": [
         "CQ-ORIENT",
