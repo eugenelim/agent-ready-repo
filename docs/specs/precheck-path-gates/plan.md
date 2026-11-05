@@ -94,6 +94,19 @@ Traces to: AC-0015. Owned by: T2.
 
 **Done when:** `python3 -m pytest tools/test_precheck.py tools/test_lint_agents_md_local_gate.py -q` passes, `python3 tools/lint-agents-md.py` exits 0, `python3 tools/lint-ci-parity.py` exits 0, and `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py tests/roster/test_cognitive_load_repository_contract.py tests/roster/test_verify_entry_receipts.py tools/test_agents_md_readability_floor.py -q` passes.
 
+### T6: repair the round-2 review findings on T5
+
+**Depends on:** T5
+
+**Tests:**
+- TDD, at `tools/test_precheck.py`, driven against a scratch git repository rather than a hand-written diff string: a committed rename out of `packs/core/.apm/` reports both its source and its destination, so the self-host and core release checks trigger (AC-0002, AC-0003, AC-0004); a working-tree rename whose source appears after a ` R` status entry (a move staged with `git add -N`) yields the source path intact and no truncated path (AC-0002, AC-0006).
+- Goal-based: the precheck entry's Drive edits file content under a non-core pack's `.apm/` (so the core release check does not trigger), expects a non-zero self-host drift result, then expects exit 0 after `agentbundle catalogue self-host --root . --write`, and states the expected result of every other triggered check (AC-0017).
+
+**Approach:**
+- Read the committed diff with rename and copy detection off (`--no-renames`), whatever `diff.renames` the user's config sets. Read a rename or copy source as the next status entry when either status column is `R` or `C`.
+
+**Done when:** `python3 -m pytest tools/test_precheck.py tools/test_lint_agents_md_local_gate.py -q` passes, `python3 tools/lint-agents-md.py` exits 0, and `python3 -m pytest tests/roster/test_verify_entry_receipts.py tests/roster/test_cognitive_load_repository_contract.py tools/test_agents_md_readability_floor.py -q` passes.
+
 ## Rollout
 
 Local tooling and guidance only; reversible by revert. No sequencing.
