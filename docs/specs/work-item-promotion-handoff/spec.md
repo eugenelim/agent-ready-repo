@@ -1,6 +1,6 @@
 # Spec: Hand a captured item to its owner or close it, and record which
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Mode:** full
 - **Plan:** [`plan.md`](plan.md)

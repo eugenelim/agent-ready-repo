@@ -712,3 +712,10 @@ date and the approver's own handle. -->
 - 2026-11-04: plan approved by eugenelim as the initial strategy, safety,
   dependency, scope-alignment, and terminal-intent review; tasks remain
   mutable.
+- 2026-11-05: amendment spec approved by eugenelim — AC-0025..AC-0028, the
+  § D1/D3/D5 amendments, and the disclosed residuals (both-recoverers
+  window, PID reuse, foreign pid-less locks) ratified as the hardening
+  contract after 14 pre-execute adversarial rounds and a secure-design
+  pass.
+- 2026-11-05: amendment plan approved by eugenelim — T19..T23 with their
+  test lists, dependencies, and release mechanics; tasks remain mutable.
