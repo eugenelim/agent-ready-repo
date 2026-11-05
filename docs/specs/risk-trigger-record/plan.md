@@ -1,7 +1,7 @@
 # Plan: Risk-trigger record on the spec header
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `new-spec` `references/spec-and-plan-contract.md` § Spec metadata contract (the `Shape:` and `Priority:` bullets are the analogous optional header fields); `lint-spec-status.py` invariant (vi) and its `Acceptance Criteria:` header parsing, tested in `packs/core/tests/skills/work-loop/test_lint_spec_status.py`; deviation: none.
 
 ## Approach
