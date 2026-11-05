@@ -99,12 +99,16 @@ The new decision record must:
 - Taking ownership of catalogue evaluation, release integrity, authoring documentation, migration closeout, adopter test execution, or the archive-guide corpus.
 - Producing an implementation specification before the governing decision record is accepted.
 
-## Unresolved questions
+## Current state — checked 2026-11-05
 
-- Which decision-record kind and locator will govern this intent?
-- Will search read a committed `catalogue-index.json`, or regenerate the index in memory for each query?
-- Which index facts are searchable, how are multiple constraints combined, and what matching and ordering rules apply?
-- What stable human and JSON result contracts distinguish no matches, an invalid query, an unreadable or stale index, and index-generation failure?
+`agentbundle catalogue --help` lists ten verbs (lint, verify, build, self-host, package, sync-defaults, init, sync, index, contracts) and no search verb. `agentbundle catalogue index .` on this repository yields 23 packs and 3 profiles. The five questions are answerable from required fields, but not equally on the real data: scope splits 14 user to 9 repo, journeys are present for 15 packs, integrations for 5, and `effects` is empty for all 23. Effect kind therefore discriminates only where authors declare effects, so the verb reports an empty result as "none declared", not as "no match". Four of five questions still discriminate, so the kill condition does not fire.
+
+## Resolved questions — recommended answers, pending the decision record
+
+- **Governing record:** a short ADR written first, then one feature spec.
+- **Source of truth:** regenerate the index in memory for each query. A committed `catalogue-index.json` can be stale, and the intent forbids a second schema. Accept an explicit `--index <file>` for a pre-built file.
+- **Searchable facts and combination:** exact match on identity, scope, effect kind, journey start or end state, and integration direction. Several filters combine with AND, and results sort by identity.
+- **Output and errors:** a human table and `--json`, with distinct exit codes for no match, invalid query, unreadable index, and index-generation failure.
 
 ## Projection
 
@@ -115,6 +119,15 @@ project to implementation while `Governed by:` remains pending.
 ## Decomposition
 
 None yet. After the governing decision is accepted, this feature intent projects to one focused search specification.
+
+## Readiness
+
+- **Route:** an ADR first, then new-spec. The `packages/agentbundle/**` change needs an `Engine-Change-RFC:` trailer; cite the new ADR in it. The gate (`tools/lint-catalogue-curation-guard.py`) checks only that the trailer is present, and recent commits cite an accepted record or write `n/a` with the reason, so no new RFC is needed.
+- **First slice, one session:** write the ADR from the answers above.
+- **Second slice, one session:** the read-only verb over the in-memory index.
+- **Agent-only proof:** tests run each of the five questions against indexes with every optional field removed and against a fixture that carries effects, journeys and integrations; each exit code has a case; a run against this repository's catalogue passes.
+- **Manual follow-up, not blocking:** the five-task user test named in the validation hook, run after release.
+- **Size:** M.
 
 ## Source
 

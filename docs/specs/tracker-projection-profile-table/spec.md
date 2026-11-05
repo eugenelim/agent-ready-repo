@@ -60,7 +60,7 @@ a runner checking a projection, because both read the same classification.
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
 | Maintainer procedure | Applicable — the table is the procedure a person follows to project by hand, and today its cells are free prose | `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md` | this spec | the classified, reconciled table | every row resolves against ADR-0127 by classification |
-| Release history | Applicable — `product-engineering` changes | `packs/product-engineering/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
+| Release history | Applicable — `product-engineering` changes | `docs/product/changelog.d/<fragment>.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — this slice changes a reference table, not a structure | — | — | — | — |
 
 ## Agent Rules

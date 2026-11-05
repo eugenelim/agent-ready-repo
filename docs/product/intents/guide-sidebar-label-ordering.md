@@ -1,10 +1,14 @@
 # Guide sidebar ordering remains stable when curated labels change
 
 - **Slug:** `guide-sidebar-label-ordering`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/guide-metadata-completion sidebar decision](../../specs/guide-metadata-completion/spec.md)
+
+## Disposition — withdrawn 2026-11-05, decided: not worth doing now
+
+the kind-bucket sort at `tools/build-site.py` (`bucket.sort(key=...label.casefold()...)`) is the accepted behavior of `spec/guide-metadata-completion`, which measured and approved the reorder from adopting curated titles (125 labels, 10 buckets). If a fixed order is wanted later, add the optional `order` frontmatter field in a new intent.
 
 ## Outcome
 

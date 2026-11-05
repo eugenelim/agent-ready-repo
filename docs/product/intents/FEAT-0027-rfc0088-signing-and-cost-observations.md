@@ -1,13 +1,17 @@
 # RFC-0088 signing and destination-cost observations are complete
 
 - **Slug:** `rfc0088-signing-and-cost-observations`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:rfc0088-browser-follow-on-specs
 - **Governed by:** [spec/rfc0088-round12-consumer-shaped-residuals AC5](../../specs/rfc0088-round12-consumer-shaped-residuals/spec.md); [RFC-0088 item 6 per-group amendment](../../rfc/0088-web-pilot-foundation.md)
+
+## Disposition — withdrawn 2026-11-05, parked with CAP-0010
+
+**Do not shape this on its own.** Both observations need live evidence an agent cannot produce: a real vendor browser update, and an authentication oracle the reference-consumer spike could not find. If the pilot proceeds, mark both as carried and unobserved in RFC-0088 and do not gate any delivery specification on them. See the parent's disposition for the reopen order.
 
 ## Outcome
 

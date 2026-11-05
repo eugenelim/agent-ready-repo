@@ -447,6 +447,10 @@ once and preserve its current statement that parallel fan-out is disabled.
 - Claiming support for a host outside `claude-code` and `codex` without a later
   host-specific probe.
 
+## Current truth (2026-11-05)
+
+**Spec map:** one slice has a spec, `sequential-implementer-dispatch`, for U1. U2 (direct-light policy-verdict dispatch) and U3 (task-procedure extraction from `work-loop/SKILL.md`) have none. U3 measured at roughly three movable lines, so it should be cut only if the owner still wants it as its own slice; otherwise fold those lines into the next `SKILL.md` edit. U2 depends on `phase-scoped-policy-delivery` D2.
+
 ## Spec map
 
 | Spec | Status |

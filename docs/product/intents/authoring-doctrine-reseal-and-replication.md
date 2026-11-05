@@ -1,7 +1,10 @@
 # Replicate authoring doctrine and reseal shaping gates
 
 - **Slug:** `authoring-doctrine-reseal-and-replication`
-- **Status:** Draft
+- **Status:** Accepted
+- **De-risked:** 2026-11-05
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [RFC-0099 §7](../../rfc/0099-cut-before-adding-and-artifact-shaping.md); [spec/shaping-review-contracts follow-ons](../../specs/shaping-review-contracts/spec.md)
@@ -36,6 +39,33 @@ RFC-0099 section 7 puts `shaping-reviewer` at step 2 of drafting, so a post-seal
 
 - The evidence-home premise needs a dated replication across two or three unrelated specs, including one approved spec, plus a causal test before authoring doctrine changes.
 - The RFC-0099 execution and amendment premises need a current `CAT-S003` measurement and inspection of the named execution paths because the earlier rule lookup was refused.
+
+## Riskiest assumption
+
+**Riskiest assumption:** the two execution-side RFC-0099 errata and the amendment re-draft gap still hold under a current `CAT-S003` measurement and a read of the named execution paths. Tested agent-only: re-run the measurement and grep the named paths before any authoring; a path that already carries the rule drops its item.
+
+## Non-goals
+
+- Re-spiking the evidence-home hypothesis. It was spiked and reverted on 2026-09-01, and replication needs a multi-session study.
+- Re-deriving the RFC-0099 shaping gate that `new-spec` already carries. Only the work-loop re-drafting route is in scope.
+- Editing `work-loop` scripts during a supervised integration run.
+
+## De-risk result
+
+2026-11-05, read-only. Ran `grep -rniE "cluster|touched.seam|claim minim"` over `work-loop/SKILL.md`, its `references/`, and the implementer, adversarial-reviewer and quality-engineer agents: 0 hits for a root-cause-cluster checkpoint or a touched-seam boundary. Ran `grep -ciE shaping` on `references/delivery-contract-lifecycle.md`: 0, and no work-loop file names `shaping-reviewer`, while `new-spec` does. Measured the `CAT-S003` body-line limit: `skill_spec_lint.py` errors above 1000 lines and warns above 500, and `work-loop/SKILL.md` has 860 lines, so 140 lines of headroom remain and new rule text goes in a reference, not the skill body.
+
+**Verdict:** supported. Both errata and the re-draft gap are real, and a new rule fits.
+
+## Readiness
+
+**Route:** two independent items, then close.
+
+1. **`amendment-redraft-shaping-gate`, direct-light.** `references/delivery-contract-lifecycle.md` has zero mentions of a shaping review, so a post-seal correction re-entering drafting owes no pass today. Add the pass at step 2 of the re-drafting route and pin it. Agent-only proof: a pin test on the sentence.
+2. **`rfc0099-execution-side-errata`, new-spec.** No root-cause-cluster checkpoint and no touched-seam versus neighbouring-module boundary exists in `work-loop`, the implementer, or the adversarial and quality reviewers. Re-measure `CAT-S003` first, since the earlier rule lookup was refused.
+
+**Dropped:** `spec-criteria-grounding-evidence-home`. It was spiked and reverted, and replication needs a multi-session study the owner does not buy. Its premise stays recorded here as a hypothesis only.
+
+Edit work-loop references only outside a supervised integration run.
 
 ## Source
 

@@ -164,6 +164,10 @@ Decision graph, workspace coordination reorganization and external tracker proje
   - [Workspace registry retirement](FEAT-0034-workspace-registry-retirement.md) owns retiring the old orientation entry point once the new one reaches parity.
   - A shared standard for every skill that emits HTML crosses packs, so it goes to the repository decision process rather than into this capability.
 
+## Readiness
+
+- Open children on 2026-11-05: `FEAT-0004` (Accepted; its spec session can start now that PR 1689 has merged and deleted `workspace.toml`) and `FEAT-0005` (Accepted, brief Executing; one slice left). Fulfil this capability through `close-work` after both close.
+
 ## Source
 
 - **Mode:** repo-origin

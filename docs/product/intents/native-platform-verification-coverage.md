@@ -1,7 +1,9 @@
 # Give native Windows and macOS verification a coverage contract worth running
 
 - **Slug:** `native-platform-verification-coverage`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -31,10 +33,7 @@ where a reader can act on it and enforced where a mechanism can decide it.
 
 ## Unresolved questions
 
-- Whether native macOS coverage is worth a controlled runner before native
-  Darwin tests exist. The measured position below argues the lane's present
-  value is one assertion; the decision is whether to write native tests first,
-  run the thin lane meanwhile, or defer the lane entirely.
+- **macOS, answered 2026-11-05:** defer the macOS lane. A runner today executes one meaningful Darwin assertion, and the credential backend takes no keychain operand, so a useful lane needs native tests and a keychain unlock first. Those tests are a separate feature to raise when a Darwin defect justifies them. This intent delivers the Windows lane only.
 - Whether the projected and self-hosted copies of a Darwin-dispatching module
   are separate coverage sites or one site with several tracked locations.
 - Whether `macos-15` on arm64 supports the toolchain the lane needs. Unproven.
@@ -85,6 +84,7 @@ rather than a paragraph in the dispatch-surface spec.
 
 ## Assumptions
 
+- **Riskiest assumption:** a degraded Windows runner shows up as a skip or a lower collected count that a collection floor and an expected-skip set can refuse. Agent-only test: the workflow-posture test's mutation matrix mutates the floor, the skip set, and a dependency-conditional skip, and must fail each time.
 - The public macOS runner labels move between stable images, so a versioned
   label is required rather than `-latest`. Standard macOS concurrency is capped
   well below the Ubuntu and Windows caps.
@@ -102,6 +102,14 @@ rather than a paragraph in the dispatch-surface spec.
   inadmissible, since those are what a degraded runner produces.
 - Extend the suite-addressing lint's runner set as part of the change that adds
   a caller, so its rules are enforced rather than asserted.
+
+## Readiness
+
+- **Route:** `new-spec`, full mode, for the Windows lane. The macOS half is deferred, as answered above.
+- **Verified 2026-11-05:** `.github/workflows/build-check-windows.yml` has no `workflow_call` trigger and no macOS workflow exists. The remote dispatch surface this item says it is independent of is a separate intent; this spec must not assume it exists.
+- **First slice and agent-only proof:** make the Windows workflow callable, add a per-invocation collection floor and an expected-skip set that refuses dependency-conditional skips, set `persist-credentials: false` on its checkouts, and add the workflow to the suite-addressing lint's runner set. The workflow-posture test and its mutation matrix prove each change on Linux, with no Windows run needed.
+- **Manual residue, non-blocking:** one dispatched Windows run after merge to confirm the lane.
+- **Size:** one to two sessions. The risk is the position-sensitive mutation matrix in the posture test.
 
 ## Source
 

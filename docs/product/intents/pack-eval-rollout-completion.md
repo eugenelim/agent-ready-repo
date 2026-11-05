@@ -1,9 +1,12 @@
 # Pack-eval rollout completion
 
 - **Slug:** `pack-eval-rollout-completion`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 - **Governed by:** [RFC-0037 Errata E3](../../rfc/0037-pack-activation-evals.md)
 
 ## Outcome
@@ -37,3 +40,15 @@ Address `spec/pack-activation-evals` Phase 3 and RFC-0037 Errata E3: atlassianâ€
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+## Readiness
+
+Route: brief, [`pack-eval-rollout-completion-delivery`](../briefs/pack-eval-rollout-completion-delivery.md). Checked 2026-11-05: `api-contract` and `event-contract` evals carry no `expect` block, and `build-check.yml` still lists the five converters skills by hand. First slice P1: `expect` blocks and fixtures; proof is the eval schema test and a fixture validator. Calibration needs a model key and the scheduled `pack-evals` workflow, so it is a named owner-run follow-up. Backend behavior evals (atlassian 8, figma 1) need credentials or recorded interactions; recommend deferring them until a recorded transcript exists.
+
+## Non-goals
+
+- Calibration and the report-only versus gate decision, which need live runs with a model key.
+- Behavior evals for credentialed backend skills (atlassian, figma), which need credentials or recorded interactions.
+- Reopening the shipped Tier-1 activation coverage and Tier-5 workflow wiring.
+
+**Riskiest assumption:** contracts skill output can be validated by a deterministic script. Tested agent-only by validating the fixture output with the existing schema tooling and a seeded wrong artifact.

@@ -1,9 +1,13 @@
 # Growth strategy pack charter
 
 - **Slug:** `growth-strategy-pack-charter`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+## Disposition — withdrawn 2026-11-05, decided: growth stays deferred under ADR-0053
+
+**Do not shape this intent.** The owner, as lifecycle owner, withdrew it on 2026-11-05. Checked that day: the repository has no growth pack, RFC or plan, and ADR-0053 D4 defers growth strategy on purpose. Whether growth, pricing, conversion experiments and SEO belong in one pack is a charter question that needs an RFC (`new-rfc`) when someone wants the pack, not intent shaping. The post-launch marketing question from the 2026-09-22 completion review goes with it.
 
 ## Outcome
 

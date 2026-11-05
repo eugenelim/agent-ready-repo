@@ -247,3 +247,10 @@ validation_hook:
 - **The adjudicator and rubric** the routing measure depends on.
 - **Attended versus unattended operation** — who may confirm a route, and what
   must remain held when nobody can.
+
+## Readiness
+
+- **Route:** new-spec path. The spec `work-item-promotion-handoff` is Draft (341 lines, no plan, no criterion checked). It needs a plan and the owner's approval of spec and plan.
+- **Verified 2026-11-05:** 73 captured items are Open and 10 Closed in `docs/product/captured/`, so the drain has demand. The spec names no `workspace.toml` surface, so the registry retirement does not stale it.
+- **First slice:** the drain for the work-shaped destinations, with `AC-0007` holding governance items. **Agent-only proof:** fixture captured items routed by the existing classifier, atomic effects, and the six stored-command controls from the capture contract tested without running a stored command.
+- **This is the root of the chain.** `FEAT-0008` and `FEAT-0009` follow it and are independent of each other.

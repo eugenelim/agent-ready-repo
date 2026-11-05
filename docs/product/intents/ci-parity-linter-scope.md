@@ -1,10 +1,14 @@
 # Extend CI parity to each remaining workflow
 
 - **Slug:** `ci-parity-linter-scope`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/local-gate-ci-parity](../../specs/local-gate-ci-parity/spec.md)
+
+## Disposition — withdrawn 2026-11-05, decided: not worth doing now
+
+remote CI is the gating authority since ADR-0113, nothing depends on this intent, and `WORKFLOW_SCOPE` in `tools/lint-ci-parity.py` states a reason for every workflow it leaves out; `python3 tools/lint-ci-parity.py` passes today (169 steps in the one in-scope workflow, all dispositioned). Reopen if a gate lands in `docs.yml`, `ci-security.yml` or `catalogue-tooling-ci-gates.yml` with no local counterpart and that causes a missed failure.
 
 ## Outcome
 

@@ -459,6 +459,14 @@ checks only the pre-existing `Brief:` field and needs neither half.
   defect this brief exists to remove, and it is the cheapest thing to
   accidentally ship.
 
+## Current cut (2026-11-05)
+
+**First slice, ready to shape:** B1, a standing check over the `Brief:` field. No lint refuses a spec whose `Brief:` names a Draft or Withdrawn brief today: `lint-brief-coverage.py` reconciles Spec map status against spec status, and `lint-traceability.py` reports unresolved producers as informational orphans only. B1 is agent-only: a lint plus fixtures plus a clean run on this tree.
+
+**Re-base B2b.** The guard it describes sat on `loop-engine init`, which core 4.0.0 removed. The equivalent point is the supervisor's `start` admission, which reads the approved spec and plan and is the one place a spec enters delivery. B2b's spec places the routing-answer check there.
+
+**Defer B3, B4 and B5** until a measured miss shows the existing header-readiness rules in `_header_readiness.py` and the implementer's blocked return do not already catch the case. Each deferred slice stays in this brief with its Gating cell unchanged.
+
 ## Spec map
 
 | Spec | Status |

@@ -1,13 +1,16 @@
 # Gates report their declared failure conditions
 
 - **Slug:** `gates-that-read-clean-while-gating-nothing`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 
 ## Outcome
 
-Each affected gate rejects its declared failure condition instead of reporting a clean result that proves nothing.
+The SAST relevance step, the CAT-V-014 output-drift check and the Semgrep self-test each reject their declared failure condition instead of reporting a clean result that proves nothing. The CI-parity hidden-command gap is a recorded, accepted residual and sits outside this Outcome.
 
 ## Opportunity
 
@@ -60,3 +63,15 @@ The Semgrep self-test can report zero findings after an unreported whole-file pa
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+## Non-goals
+
+- The hidden command inside an already-dispositioned CI-parity step stays accepted (option c in the absorbed item).
+- Pinned-ref requirement for the gating workflow belongs to `required-check-and-deploy-ordering`.
+- No edit under `packages/agentbundle/**`; the CAT-V-014 fix is a chain step.
+
+**Riskiest assumption:** a whole-file Semgrep parse failure leaves no error signal, so only a positive-control finding per target can prove the file parsed. Agent-only test: a seeded target the parser cannot read must fail the self-test; a file type with no usable control is recorded as unprotected.
+
+## Readiness
+
+Route: brief, [`gates-that-read-clean-delivery`](../briefs/gates-that-read-clean-delivery.md). Checked 2026-11-05 by running them: a changed `tools/weird<e9>.py` prints as `"tools/weird \303\251.py"` and fails the relevance step's `grep -qE "^(tools|packs)/"`, while `git diff --name-only -z` prints the real path. With a build output present, `agentbundle catalogue verify` does run CAT-V-014 and can fail, and `tools/repo/build_gate_chain.py` runs `catalogue verify` before `catalogue build`, so no output exists at verify time. The fix needs no edit under `packages/agentbundle/**`, which removes the `Engine-Change-RFC:` trailer blocker: add a second verify step after the build. The hidden-command gap stays accepted (option c). First slice G1 (NUL-safe changed-path read); it is a security gate and needs its own review.

@@ -1,7 +1,9 @@
 # Role-journey guidance covers coordinated agent swarms
 
 - **Slug:** `role-journey-agent-swarm-section`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -16,7 +18,8 @@ The core role-journey guide explains coordinated headless CLI swarm patterns aft
 
 ## Owner
 
-- Core journey-guide and INI-003 swarm-journey maintainers; no individual owner is recorded.
+- eugenelim, core journey-guide maintainer.
+
 
 ## Unresolved questions
 
@@ -42,3 +45,13 @@ This intent absorbs role-journey-agent-swarm-section. The current role-journey g
 - Locator: docs/product/journeys/engineer-scales-to-swarm.md
 - Revision: 79b23d2944ef2e4e534ae26331c4393aacd7360a
 - Authority: repo-origin
+
+## Readiness
+
+Route: direct-light, one documentation session. The source of authority moves: the `engineer-scales-to-swarm` journey is still `status: shaping` and tied to `ini-003`, but a coordinated supervisor and executor pipeline now ships as the work-loop execution supervisor (specs `execution-supervisor-core`, `execution-supervisor-cutover`, `execution-supervisor-review-gate`, `execution-supervisor-attempt-security`, `wave-scheduled-supervisor`). Rewrite the Agent section of `guides/core/explanation/role-journeys.md` from those specs' acceptance criteria and remove the `(deferred: role-journey-agent-swarm-section)` marker. Agent-only proof: every claim in the new section cites a Shipped spec, and the guide link check passes. Re-describe the journey as superseded by those specs when it is next touched.
+
+**Riskiest assumption:** the shipped execution-supervisor specs describe the coordinated supervisor and executor pipeline completely enough to write the guide section without inventing mechanics. Tested agent-only by requiring each claim in the section to cite an acceptance criterion of a Shipped execution-supervisor spec, checked by a link and grep pass.
+
+## De-risk result
+
+2026-11-05. Read the five execution-supervisor specs (all Shipped; 108 acceptance criteria in the four that use that format). They cover a supervisor that launches and reviews executor work, per-attempt security, retry claims, recovery and wave-scheduled concurrency. They do not describe agents that each atomically claim a ready spec, which is what the `engineer-scales-to-swarm` journey promised, and no spec uses the word "swarm". Verdict: partly holds. The guide section should describe the shipped supervised and wave-scheduled execution only, and must not present claim-based swarming as shipped. Not stamped; the Readiness route stays direct-light with this narrowed scope.
