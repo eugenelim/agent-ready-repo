@@ -117,6 +117,15 @@ Traces to: AC-0015. Owned by: T2.
 
 **Done when:** `python3 -m pytest tools/test_precheck.py tools/test_lint_agents_md_local_gate.py -q` passes, `python3 tools/lint-agents-md.py` exits 0, and `python3 -m pytest tests/roster/test_verify_entry_receipts.py tests/roster/test_cognitive_load_repository_contract.py tools/test_agents_md_readability_floor.py -q` passes.
 
+### T8: repair the round-4 review finding on the precheck entry's start point
+
+**Depends on:** T7
+
+**Tests:**
+- Goal-based: the precheck entry's Isolation cuts the throwaway worktree from the checkout's current `HEAD`, which carries `make precheck`, and Drive passes `--base HEAD` so the committed diff against the start point is empty; the entry still warns that another start point or base can trigger extra checks (AC-0017).
+
+**Done when:** `python3 tools/lint-agents-md.py` exits 0 and `python3 -m pytest tests/roster/test_verify_entry_receipts.py tests/roster/test_cognitive_load_repository_contract.py -q` passes.
+
 ## Rollout
 
 Local tooling and guidance only; reversible by revert. No sequencing.
