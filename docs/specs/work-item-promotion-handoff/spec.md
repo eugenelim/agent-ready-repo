@@ -253,7 +253,10 @@ carried as data and has already passed the re-run scan.
   input for this ground carries the citation as a required field —
   `citation` holding one of `{"capture_id": <id>}` or
   `{"path": <repository-relative path>}` — and an absent citation resolves
-  nowhere and is refused. That an existing artifact is live — not withdrawn,
+  nowhere and is refused. The path is resolved within the repository root:
+a path escaping it — any `..` traversal or absolute form — resolves
+  nowhere and is refused the same way. That an existing artifact is live —
+  not withdrawn,
   tombstoned, or itself superseded — is the operator's attestation, riding
   the closure's evidence; the drain's mechanical check is resolution and
   existence, never liveness. The operator's `test_passes` verdict remains a
@@ -555,9 +558,9 @@ requires. The scenarios below state how each is driven.
   that each dispatchable member still routes (`AC-0026`).
 - Close an item on the superseded ground with a cited capture id that
   resolves, then with a capture id that resolves nowhere, then with a path
-  that does not exist, then with no citation at all; assert the first
-  closes and the second, third, and fourth are refused by the drain itself
-  (`AC-0027`).
+  that does not exist, then with a path that escapes the repository root,
+  then with no citation at all; assert the first closes and the second
+  through fifth are refused by the drain itself (`AC-0027`).
 - Write a workspace lock holding a pid that no longer exists; assert the
   transaction recovers it and completes; that a fresh lock taken between the
   probe and the removal is refused, not removed; that a lock holding a
@@ -598,8 +601,10 @@ and the original work behind it and judges:
 2. A **held** item by whether no shape fits, or a named check refuses it —
    readiness (§ D10), the pre-execution re-check, an envelope refusal, a
    prose re-run refusal (§ D4), a non-dispatchable classify member (§ D3),
-   a missing processor dispatch (§ D1), or a refused closure citation
-   (§ D5).
+   a missing processor dispatch (§ D1), a refused closure citation
+   (§ D5), a store-refused disposition write, a failed processor dispatch,
+   or a lock-busy acquisition — the last three being transaction holds
+   whose reason the run report names (§ D1).
 3. A **closed** item by whether the stated ground holds under § D5's test,
    with the recorded evidence.
 
@@ -699,7 +704,8 @@ verifies the criteria below mechanically.
       unroutable (§ D3, extending `AC-0006`).
 - [ ] **AC-0027.** A superseded closure whose citation is absent, or whose
       citation is a capture id that resolves nowhere, or whose citation is
-      a path whose artifact does not exist, is refused by the drain itself
+      a path that does not exist or that escapes the repository root, is
+      refused by the drain itself
       (§ D5, extending `AC-0003`); the liveness of a cited artifact is the
       operator's attestation, and overtaken and falsified closures remain
       operator-attested.

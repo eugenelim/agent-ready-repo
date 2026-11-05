@@ -139,25 +139,42 @@ Per item: read offer → decide → confirm → transaction (materialize,
 dispatch) → terminal disposition. Crash windows: before the transaction
 (nothing happened), inside it (the transaction's own rollback), after it
 before the disposition (capture open; the re-drain completes the sequence),
-after the disposition (complete). Traces to `AC-0005`, `AC-0012`.
-Owned by: T6
+after the disposition (complete). The follow-up hardening adds the
+no-dispatch gate ahead of the transaction (hold before any effect) and the
+recovered-lock acquisition inside it (atomic publication, stale-owner
+recovery, identity re-verification). Traces to `AC-0005`, `AC-0012`,
+`AC-0025`, `AC-0028`.
+Owned by: T6, T19, T22
 
 ### Behavior & rules
 
 The decision function implements spec § D2 (shape → family), § D10
 (readiness), § D5 (closure grounds and tests), § D6 (disposition mapping),
 and § D11 (attended-only). The rules live in the spec; the function is their
-single executable home. Traces to `AC-0003`, `AC-0006`, `AC-0007`,
-`AC-0008`, `AC-0009`, `AC-0010`, `AC-0011`, `AC-0018`.
-Owned by: T5
+single executable home. The follow-up hardening adds: § D1's no-dispatch
+hold (no wired dispatch → held before any effect), § D3's classify-member
+gate (non-member or non-dispatchable → held), and § D5's superseded
+citation check (absent, non-resolving, escaping, or non-existent →
+refused). Traces to `AC-0003`, `AC-0006`, `AC-0007`,
+`AC-0008`, `AC-0009`, `AC-0010`, `AC-0011`, `AC-0018`, `AC-0025`,
+`AC-0026`, `AC-0027`.
+Owned by: T5, T19, T20, T21
 
 ### Failure, edge cases & resilience
 
 Envelope refusals (confinement, re-check, caps) and prose re-run refusals
 produce holds, never partial effects. Crash recovery is the re-drain. A
-repeated identical disposition is the store's no-op. Traces to `AC-0005`,
-`AC-0013`, `AC-0014`, `AC-0015`, `AC-0023`.
-Owned by: T3, T6
+repeated identical disposition is the store's no-op. The follow-up
+hardening adds: the no-dispatch gate holds before any effect; a
+non-member or non-dispatchable classification holds as unroutable; a
+refused citation (absent, non-resolving, escaping the repository root, or
+non-existent) holds the closure; and lock acquisition fails closed —
+live and pid-less owners never taken, removal re-verifies identity, and
+an orphaned acquisition temporary never blocks a later acquisition.
+Traces to `AC-0005`,
+`AC-0013`, `AC-0014`, `AC-0015`, `AC-0023`, `AC-0025`, `AC-0026`,
+`AC-0027`, `AC-0028`.
+Owned by: T3, T6, T19, T20, T21, T22
 
 ### Quality attributes (NFRs)
 
@@ -549,8 +566,9 @@ shared transaction helper and T23 in the release surfaces.
 - A superseded closure whose cited capture id resolves in the seeded store
   closes and records the disposition (`AC-0002`).
 - A superseded closure whose citation is a capture id that resolves
-  nowhere, or a path whose artifact does not exist, or is absent — the
-  closure input carries no `citation` field — is refused by the drain
+  nowhere, or a path that does not exist or that escapes the repository
+  root (a `..` traversal or absolute form), or is absent — the closure
+  input carries no `citation` field — is refused by the drain
   itself, the item stays open, and the refusal names the failed citation
   (`AC-0027`).
 - The citation rides the closed item's run-report entry beside the
@@ -621,8 +639,10 @@ shared transaction helper and T23 in the release surfaces.
 - The acquisition temporary's root glob
   (`.workspace-repair.lock.*.tmp`, the repository's own convention for
   such temporaries) is added to `.gitignore` beside
-  `.workspace-repair.lock`, asserted by a source-text check over the
-  ignore file.
+  `.workspace-repair.lock`, and to the adopter-facing seed copy at
+  `packs/core/seeds/.gitignore` beside its own lock entry — the shipped
+  `intake_transaction.py` creates the temporary in adopter trees too —
+  each asserted by a source-text check over its file.
 - The two durable surfaces the hardening falsifies are updated and pinned:
   `docs/architecture/knowledge-capture.md`'s confirmed-route sentence gains
   the no-dispatch hold, and `docs/guides/reference/work-item-capture.md`'s
