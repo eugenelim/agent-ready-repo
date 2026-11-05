@@ -56,7 +56,7 @@ Someone working on a GitHub pull request gets one skill that reviews another per
 | --- | --- | --- | --- | --- | --- |
 | User-facing promise | Three modes change what the pack offers | `packs/github/README.md`, `guides/github/how-to/` | pack maintainer | README and guide name all three modes and the approval rule | Both read as one story |
 | Journey | Pack journey lists skills and gates | `packs/github/JOURNEY.md`, generated `web/src/content/journeys/github.md` | pack maintainer | `build-site --journeys-only` changes only the github journey file, and the regenerated `repo-governance` file is restored | Generated file matches source |
-| Interface compatibility | Skill name and pack skill list change | `pack.toml`, `plugin.json`, marketplace file, skill census | pack maintainer | `catalogue verify` ok; census test green | Versions agree at 0.3.0 |
+| Interface compatibility | Skill name and pack skill list change | `pack.toml`, `plugin.json`, marketplace file, skill census | pack maintainer | `catalogue verify` ok; census test green | Versions agree at 0.3.2 |
 | Release history | Consumer-visible capability | `docs/product/changelog.d/66c8f467-39f7-4063-8aac-d8d60d42c4c2.md` (rewritten) | pack maintainer | `tools/changelog.py validate` ok | Fragment covers review, iterate, and adopt |
 | Reusable learning | Eval method and its pilot result are reusable | `docs/specs/github-pr/notes/eval-run.md` | implementer | Recorded run with isolation evidence | Note states case results and grader inputs |
 | Current architecture, decision rationale, operations | Skill content only; no new module, dependency, or service | none | n/a | n/a | n/a |
@@ -74,7 +74,7 @@ Rules for the agent building this change. How the shipped skill behaves is state
 
 - Adding a mode beyond review, iterate, and adopt (opening a PR, auto-merge, merge queue, stacking).
 - Any new dependency or any script under the skill.
-- Raising the pack version beyond 0.3.0.
+- Raising the pack version beyond 0.3.2 (the owner approved 0.3.2 for the review-depth and adopt-order amendment).
 
 ### Never do
 
@@ -170,6 +170,15 @@ Each criterion has a stable ID. Those marked **(B)** are behaviour criteria: eac
 - [x] **A12 (B)** `references/adopt.md` stops and asks on each of: a fix outside the allowed types (including any change to CI workflow files, `CODEOWNERS`, a gate's definition, or a deleted, skipped, or weakened test), a head or base that differs from the contract, a failing check unrelated to the change, a fourth push since the current contract was approved (stopping before it), and a push destination other than the contract's.
 - [x] **A13 (B)** `references/adopt.md` stops and reports, with no retry, method change, or fallback, on a refused merge, on a required check still pending after one re-read, and on a needed push to a head that is not pushable (`maintainerCanModify` false on a cross-repository PR).
 
+**Review depth and adopt order**
+
+- [x] **R1 (B)** `SKILL.md` has a review lens for design that reads the linked spec and base-branch design records and challenges the approach and the spec itself; `references/review.md` raises such a challenge as a `[design]` finding.
+- [x] **R2 (B)** `SKILL.md` has a security-boundary lens that traces each input from source to use and names its guarding control; findings carry a `[security]` label.
+- [x] **R3 (B)** `references/review.md` verifies every candidate finding against the code before drafting (claim, trace, anchor, refutation search), lists a claim that needs a run as not verified, and shows one verification line per comment that is not posted.
+- [x] **A14 (B)** `references/adopt.md` makes a behavior fix go red test, fix, gates: the failing test is committed alone and run through the named sandbox first, a test that passes before the fix stops the run, and the fix run must pass it; with no sandbox named the test is shown as unproven and the remote checks decide.
+- [x] **A15 (B)** `references/adopt.md` runs an independent security review, by a separate fresh-context agent that cannot run commands, given only the diff from the base fetched in the worktree and the base branch's rule text, after the gates and before any push, whenever the contract requires one, and stops and reports before any push when none can run; the contract states whether it is required and why.
+- [x] **A16 (B)** `references/adopt.md` stops and asks on an Important security finding the user has not cleared, sends any refutation or downgrade of one to the user before push or merge, lists every reviewer finding in the final report, and never lets reviewer output amend the contract.
+
 **Evals and run record**
 
 - [x] **E1** Every case in `evals/evals.json` has a mode tag, the IDs of the criteria it covers, fixture files, expected output, at least three assertions, and ordered turns; the first turn ends at the approval gate or at a stop the tagged criteria name, and each later turn carries the user's next message and any fresh canned read output.
@@ -177,16 +186,16 @@ Each criterion has a stable ID. Those marked **(B)** are behaviour criteria: eac
 - [x] **E3** No fixture under `evals/` is a symlink.
 - [x] **E4** The cases include approval given only in the original request in each of review, iterate, and adopt; a fix-then-merge and a zero-fix merge; a review head that moves between draft and submit; a base branch retargeted after approval; a fork PR that changes build files in iterate; a review request to run the tests with no sandbox; and a PR that edits a repository instruction file.
 - [x] **E5** The cases also include these attacks: a hidden HTML-comment instruction, a failing CI log holding an instruction and a credential-shaped string, a shell-metacharacter branch name with a quote and a leading `-`, a PR that changes hook configuration, a symlink-to-credential state described in canned output, an origin host or repository mismatch, a contract-widening comment or log, a sandbox run that alters a staged file in each of iterate and adopt, and one that writes `core.fsmonitor` or `pushInsteadOf` into git configuration, and a sandbox defined by a PR-modified file.
-- [x] **E6** A graded run of every case in `evals/evals.json` passes every assertion.
+- [x] **E6** At the 0.3.0 ship, a graded run of every case in `evals/evals.json` passes every assertion.
 - [x] **E7** Each case subagent receives only a cold copy of the skill and the case's scenario prompt and fixtures, with no expected output or assertions, and its tool allowlist is a closed set containing only Read, Glob, and Grep confined to the run copy, with no shell, network, Edit, Write, or MCP tool.
 - [x] **E8** `notes/eval-run.md` records each case subagent's tool allowlist, each turn's tool calls (a read outside the run copy or any MCP call fails the run), and one subagent identifier for every turn of the case, whose later turns are supplied by continuing that subagent.
 - [x] **E9** `notes/eval-run.md` records the exact grader input for each case, which holds only the output and the assertions.
 - [x] **E10** `notes/eval-run.md` lists each case with pass or fail and, for each run copy, its file list and an empty `find -type d -name evals` result.
-- [x] **E11** `notes/eval-run.md` records one SHA-256 digest over `SKILL.md` and `references/**` of the run copy (paths relative to the skill directory, `/`-separated, sorted by path bytes, each followed by a NUL byte and the file bytes), equal to the same digest over `SKILL.md` and `references/**` of `packs/github/.apm/skills/github-pr/` at the shipped commit.
+- [x] **E11** At the 0.3.0 ship, `notes/eval-run.md` records one SHA-256 digest over `SKILL.md` and `references/**` of the run copy (paths relative to the skill directory, `/`-separated, sorted by path bytes, each followed by a NUL byte and the file bytes), equal to the same digest over `SKILL.md` and `references/**` of `packs/github/.apm/skills/github-pr/` at the shipped commit.
 
 **Pack consistency**
 
-- [x] **P1** `pack.toml`, `plugin.json`, and the marketplace file give the pack version 0.3.0, and `[pack.evals].skills` lists `github-pr`.
+- [x] **P1** `pack.toml`, `plugin.json`, and the marketplace file give the pack version 0.3.2, and `[pack.evals].skills` lists `github-pr`.
 - [x] **P2** `git grep -l github-pr-iterate` on the working tree lists only paths under `docs/specs/github-pr/`.
 - [x] **P3** The changelog fragment names the review, iterate, and adopt modes.
 - [x] **P4** `make lint-ruff lint-mypy`, `agentbundle catalogue verify`, and the `packs/github` and skill-census tests pass.

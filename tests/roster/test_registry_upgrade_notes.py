@@ -988,16 +988,18 @@ _INVENTORY = "docs/specs/workspace-retirement/inventory.toml"
 _RECORD = "docs/specs/workspace-retirement/retirement-record.md"
 _BRIEF = "docs/product/briefs/workspace-registry-retirement-delivery.md"
 _FRAGMENT = "docs/product/changelog.d/fddd49ef-5bc1-4110-8652-21a38557e3a1.md"
+# A later release supersedes a pack's version in this map: its fragment names
+# the pack at the new version, and the map points that pack at its fragment.
 _RELEASED = {
-    "core": "4.0.14",
-    "repo-governance": "2.5.2",
-    "product-strategy": "0.2.11",
-    "experience-design": "4.2.2",
-    "desk-research": "1.1.11",
-    "atlassian": "0.10.5",
-    "linear": "0.3.6",
-    "github": "0.3.1",
-    "product-engineering": "2.0.6",
+    "core": ("4.0.15", "docs/product/changelog.d/9b9b670f-c8a1-48ea-b3bb-64819eba374c.md"),
+    "repo-governance": ("2.5.2", _FRAGMENT),
+    "product-strategy": ("0.2.11", _FRAGMENT),
+    "experience-design": ("4.2.2", _FRAGMENT),
+    "desk-research": ("1.1.11", _FRAGMENT),
+    "atlassian": ("0.10.5", _FRAGMENT),
+    "linear": ("0.3.6", _FRAGMENT),
+    "github": ("0.3.2", "docs/product/changelog.d/71664adf-527d-4a8d-ad93-d4183865cb75.md"),
+    "product-engineering": ("2.0.6", _FRAGMENT),
 }
 
 
@@ -1010,7 +1012,8 @@ def _rows() -> list[dict[str, object]]:
 def test_ac0013_inventory_rows() -> None:
     rows = {row["pattern"]: row for row in _rows()}
     own = rows["docs/specs/registry-upgrade-notes/*"]
-    assert (own["class"], own["owner"]) == ("contract", 9)
+    # Once the spec shipped, workspace-toml-deletion moved its row to the history set.
+    assert (own["class"], own["owner"]) == ("historical", "none")
     assert UPGRADE_PAGE in rows
     draft = rows[DRAFT_NOTES]
     assert (draft["class"], draft["owner"]) == ("historical", "none")
@@ -1037,12 +1040,13 @@ def test_ac0015_brief_names_the_spec() -> None:
 def test_ac0017_versions_and_fragment() -> None:
     import tomllib
 
-    fragment = read_text(REPO_ROOT / _FRAGMENT)
-    for pack, version in _RELEASED.items():
+    for pack, (version, fragment_path) in _RELEASED.items():
         manifest = tomllib.loads(read_text(REPO_ROOT / f"packs/{pack}/pack.toml"))
         plugin = json.loads(read_text(REPO_ROOT / f"packs/{pack}/.claude-plugin/plugin.json"))
         assert manifest["pack"]["version"] == version == plugin["version"], pack
+        fragment = read_text(REPO_ROOT / fragment_path)
         assert f'name = "{pack}"\nversion = "{version}"' in fragment, pack
+    fragment = read_text(REPO_ROOT / _FRAGMENT)
     assert 'name = "agentbundle"\nversion = "0.60.1"' in fragment
     assert UPGRADE_PAGE in fragment
 
@@ -1052,10 +1056,27 @@ def test_ac0017_versions_and_fragment() -> None:
 _LEDGER = "docs/specs/registry-upgrade-notes/notes/verification-ledger.md"
 
 
+# AC-0016 is a delivery-time pin. The upgrade page is still bound at head; the record
+# and the brief are bound to this spec's merge commit, because the closing slice
+# (workspace-toml-deletion) edits both after this spec shipped.
+_DELIVERY_COMMIT = "88c952f49"
+
+
+def _approved_bytes(path: str) -> bytes:
+    if path == UPGRADE_PAGE:
+        return (REPO_ROOT / path).read_bytes()
+    return subprocess.run(
+        ["git", "show", f"{_DELIVERY_COMMIT}:{path}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=True,
+    ).stdout
+
+
 def test_ac0016_ledger_binds_each_approved_file_at_head() -> None:
     ledger = read_text(REPO_ROOT / _LEDGER)
     for path in (UPGRADE_PAGE, _RECORD, _BRIEF):
-        digest = hashlib.sha256((REPO_ROOT / path).read_bytes()).hexdigest()
+        digest = hashlib.sha256(_approved_bytes(path)).hexdigest()
         rows = [
             line
             for line in ledger.splitlines()
@@ -1085,7 +1106,7 @@ def test_ac0017_release_metadata_leads_with_the_new_versions() -> None:
     assert first_news == f"## What's new in {version}"
     marketplace = json.loads(read_text(REPO_ROOT / ".claude-plugin/marketplace.json"))
     listed = {entry["name"]: entry.get("version") for entry in marketplace["plugins"]}
-    for pack, released in _RELEASED.items():
+    for pack, (released, _fragment_path) in _RELEASED.items():
         if pack in listed:
             assert listed[pack] == released, pack
 

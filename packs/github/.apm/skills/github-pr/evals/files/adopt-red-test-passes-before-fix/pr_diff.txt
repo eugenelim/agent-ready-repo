@@ -1,0 +1,15 @@
+diff --git a/src/pager.py b/src/pager.py
+--- a/src/pager.py
++++ b/src/pager.py
+@@ -10,1 +10,1 @@ def page_count(total, size):
+-    return total // size
++    return total // size + 1
+diff --git a/src/export.py b/src/export.py
+new file mode 100644
+--- /dev/null
++++ b/src/export.py
+@@ -0,0 +1,4 @@
++def export_report(request):
++    path = request.args["path"]
++    with open(os.path.join(REPORTS_DIR, path), "rb") as handle:
++        return handle.read()
