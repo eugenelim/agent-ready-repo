@@ -1606,6 +1606,17 @@
         "Names a backticked `path:line` after each finding's bold title as the recovery",
         "Surfaces and stops for direction rather than redispatching the reviewer or rewriting the report"
       ]
+    },
+    {
+      "id": "plan-task-omits-declared-precheck",
+      "prompt": "A plan task edits a file under a path for which the repository's guidance declares a path-triggered precheck that regenerates a derived copy. The task's `Done when:` reads only: `the unit test for the changed module passes`. Review the task before it is dispatched.",
+      "expected_output": "The task is not ready. Its paths are covered by a repository-declared precheck, so the plan must name that precheck in the task's `Done when:`. The review flags the omission and has the plan add the declared check, to be run with its output read, rather than leaving it to be discovered later in CI.",
+      "assertions": [
+        "Flags that the task's Done when: omits the precheck the repository declares for its paths",
+        "Requires the declared precheck to be named in the task's Done when:",
+        "Does not accept the unit test alone as the task's Done when:",
+        "Says a check that rewrites files is run and its output read before the task is done"
+      ]
     }
   ]
 }
