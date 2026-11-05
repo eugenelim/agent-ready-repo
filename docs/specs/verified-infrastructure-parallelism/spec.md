@@ -46,7 +46,7 @@ Maintainers running full-mode `work-loop` get `implement-task` attempts that may
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility | New and extended delivery records and the launcher protocol | `contracts/delivery/` five new or extended schemas plus `execution-request.v1` and `task-contract.v1` | Core pack maintainers | Schema-parity and record-validation suites | AC-0063 and AC-0064 hold |
 | Current architecture | The result-integration design becomes as-built | `docs/architecture/work-loop-result-integration.md` §§ 1a–8, `work-loop-execution-supervisor.md`, `runtime-security-primitives.md` § 7 (launcher trust root, binding, release token, and the `run-concurrent` result-acceptance row), `loop-parallelism.md` | Core pack and `agentbundle` maintainers | Page diffs in the corpus task | No `STATUS: PLANNED` remains on an element this spec builds; the Product addition profile stays planned; the known limit is stated on the result-integration page |
-| Result acceptance | `report` admits completion only for `run-concurrent` | `docs/specs/execution-supervisor-attempt-security/spec.md` Result acceptance table and its mirror in `runtime-security-primitives.md` § 7 | Core pack maintainers | Table rows | Both tables carry the `run-concurrent` row |
+| Result acceptance | `report` admits completion only for `run-concurrent`; this spec owns that row (AC-0021) | The Result acceptance table in `runtime-security-primitives.md` § 7, citing this spec for the row | Core pack maintainers | Table row | The § 7 table carries the `run-concurrent` row |
 | Maintainer procedure | Plan authors declare read and write sets; operators read admission reasons | `packs/core/.apm/skills/work-loop/references/supervisor.md`; the new-spec plan template's task grammar | Core pack maintainers | Reference and template diffs | The `Reads:` and `Writes:` grammar and the `status` reason codes are documented once |
 | Product truth | The brief's slice moves | `docs/product/briefs/acceptance-centered-work-loop.md` spec map | Brief owner | Spec-map row reporting status | The row reports `Shipped` at closeout |
 | Release history | Core changes ship as patch releases | `packs/core/pack.toml`, `plugin.json`, changelog fragment per Core PR | Core release maintainers | Version bump per Core PR | Each Core PR's version is one patch above `packs/core/pack.toml` at its merge base with freshly fetched `origin/main` |
@@ -80,11 +80,11 @@ Maintainers running full-mode `work-loop` get `implement-task` attempts that may
 ## Testing Strategy
 
 - **Admission and the floor (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012):** TDD at `start`, `next`, and `status` over a real Git repository, one fixture per missing condition plus a non-meeting pair as the positive control, because admission is a compressible predicate over a closed condition list.
-- **Launcher and attestation (AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0065, AC-0066, AC-0067, AC-0068, AC-0069, AC-0072):** TDD at the launcher boundary with the fixture launcher scripted to emit each defect, because each defect is one refusal with one oracle; the build-output check is a roster test, because pack tests may not read outside the pack.
+- **Launcher and attestation (AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0065, AC-0066, AC-0067, AC-0069):** TDD at the launcher boundary with the fixture launcher scripted to emit each defect, because each defect is one refusal with one oracle; the build-output check is a roster test, because pack tests may not read outside the pack.
 - **Reads, writes, and paths (AC-0026, AC-0027, AC-0028):** TDD through `run-concurrent`, asserting the supervisor's response to scripted attestations, never the fixture's own output.
-- **Ingestion and held results (AC-0029, AC-0030, AC-0031, AC-0032, AC-0033, AC-0070, AC-0071):** TDD at the ingestion boundary over link, special-file, oversized, late-write, and tamper fixtures.
-- **Integration (AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048):** TDD at the integration boundary over real trees and refs; the apply-level conflict and attribute cases drive the apply step directly as defence in depth, because admission keeps meeting tasks apart; kill points and ref races are integration tests.
-- **Isolation, blast radius, and plan changes (AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054, AC-0055, AC-0056, AC-0057, AC-0058):** integration tests over two- and three-attempt batches with injected refusal, failure, tamper, and cancellation.
+- **Ingestion and held results (AC-0029, AC-0030, AC-0031, AC-0032, AC-0033, AC-0070, AC-0071, AC-0073):** TDD at the ingestion boundary over link, special-file, oversized, late-write, and tamper fixtures.
+- **Integration (AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0072):** TDD at the integration boundary over real trees and refs; the apply-level conflict and attribute cases drive the apply step directly as defence in depth, because admission keeps meeting tasks apart; kill points and ref races are integration tests.
+- **Isolation, blast radius, and plan changes (AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054, AC-0055, AC-0056, AC-0057, AC-0058, AC-0068):** integration tests over two- and three-attempt batches with injected refusal, failure, tamper, and cancellation.
 - **Determinism (AC-0059, AC-0060, AC-0061, AC-0062):** goal-based permutation corpus, exercised end to end through the supervisor harness, with completion order forced by fixture coordination and observed in the journal.
 - **Contracts (AC-0063, AC-0064):** goal-based schema validation in one roster suite that runs the corpus and collects its records, plus the existing parity suites.
 
@@ -109,6 +109,7 @@ Maintainers running full-mode `work-loop` get `implement-task` attempts that may
 - **Verified containment attestation.** A `containment-attestation.v1` that passes every check AC-0017 lists.
 - **Complete access attestation.** An `access-attestation.v1` that passes every check AC-0020 lists.
 - **Result identity.** The tree id the supervisor computes when it ingests the attempt directory after confirming the attempt's end, and the sha256 of the exact `access` line bytes, both recorded at that moment in the `execution-result.v1` the supervisor writes for the attempt.
+- **Policy keys.** `concurrency` (`sequential` | `enforced-allowlist` | `complete-trace`, shipped `sequential`); `max_concurrent_attempts` (2 to 8, shipped 4); `reprojection_bound` (0 to 8, shipped 2); `attempt_timeout_seconds` (60 to 86,400, shipped 3600). A policy file with any value outside its range refuses `start`.
 - **Held result.** A finished concurrent result, recorded by its result identity, waiting for its turn in floor order. It is not an open attempt.
 - **Refusal outcome.** The product ref, `HEAD`, the index, and every `delivery/` file are unchanged; one `integration-conflict.v1` is recorded; and the task is reprojected from the new tip.
 
@@ -117,11 +118,11 @@ Maintainers running full-mode `work-loop` get `implement-task` attempts that may
 Admission and the floor
 
 - [ ] **AC-0001.** Under the shipped `supervisor-policy.json`, `concurrency` is `sequential`, and a synthetic run issues no `run-concurrent` request and never has two attempts open.
-- [ ] **AC-0002.** A task missing any one member of this closed set is never named in a `run-concurrent` request, is issued on the floor at its turn, and causes no refusal of `start`, `next`, or `report`: the policy opt-in, a `Reads:` field, a `Writes:` field, the absence of a stub fence, an unspent reprojection bound, a POSIX host, Git 2.41 or later, the absence of any `merge.*` key in repository configuration, and a launcher pin.
+- [ ] **AC-0002.** A task missing any one member of this closed set is never named in a `run-concurrent` request, is issued on the floor at its turn, and causes no refusal of `start`, `next`, or `report`: the policy opt-in, a `Reads:` field, a `Writes:` field, the absence of a stub fence, an unspent reprojection bound, a POSIX host, Git 2.41 or later, the absence of any `merge.*` key other than a `merge.<name>.driver` (which AC-0040 refuses) in repository configuration, and a launcher pin.
 - [ ] **AC-0003.** Two tasks that hold every member of AC-0002's set, have complete dependencies, and whose declared sets do not meet are named in the same `run-concurrent` request.
 - [ ] **AC-0004.** No two attempts are open at the same time when a declared read or write of either meets a declared write of the other.
 - [ ] **AC-0005.** At most one `run-concurrent` request is open at a time.
-- [ ] **AC-0006.** No `run-concurrent` request names more tasks than `max_concurrent_attempts` (shipped 4, accepted range 2 to 8).
+- [ ] **AC-0006.** No `run-concurrent` request names more tasks than `max_concurrent_attempts` (Policy keys).
 - [ ] **AC-0007.** A floor attempt is issued only while no attempt is open, and no attempt opens while it runs.
 - [ ] **AC-0008.** A held result does not prevent a floor attempt from being issued.
 - [ ] **AC-0009.** A task whose dependency has only a held result is not issued.
@@ -131,7 +132,7 @@ Admission and the floor
 
 Launcher and attestation
 
-- [ ] **AC-0013.** `start` pins a launcher only when `launcher_sha256` in the run's approval line, taken from the owner's own approval answer, equals the sha256 of a launcher file outside the work tree, and otherwise refuses `launcher-unapproved`.
+- [ ] **AC-0013.** `start` pins a launcher only when `launcher_sha256` in the run's approval line, taken from the owner's own approval answer, equals the sha256 of a launcher file outside the work tree; an approval line that names a `launcher_sha256` with no such file refuses `launcher-unapproved`, and one that names none pins nothing.
 - [ ] **AC-0014.** A run's launcher pin does not change for the life of the run.
 - [ ] **AC-0015.** The supervisor hashes the run's private launcher copy immediately before each spawn and again after reading the containment line, and a mismatch at either point sends the task to the floor without a release and records a `security-event.v1`.
 - [ ] **AC-0016.** The launcher starts in an empty private working directory, with no inherited file descriptor other than its standard input, output, and error, and with an environment of exactly `PATH=/usr/bin:/bin`, `LANG=C.UTF-8`, and `HOME` and `TMPDIR` set to supervisor-created private directories, whatever the invoking environment holds.
@@ -146,9 +147,9 @@ Launcher and attestation
 - [ ] **AC-0024.** A second `run-concurrent` invocation for a request already run refuses `request-consumed` and spawns nothing.
 - [ ] **AC-0067.** An attempt whose access line carries a binding other than the one issued, a release token other than the one sent, or is followed by a second `access` line or any other line fails without integrating, and its task is reprojected.
 - [ ] **AC-0069.** No release is sent before the launcher's process-group id and its leader's start time are durable in the run store.
-- [ ] **AC-0068.** An attempt with no `access` line within `attempt_timeout_seconds` (shipped 3600) is cancelled as AC-0052 to AC-0054 state, and its task is reprojected.
+- [ ] **AC-0068.** An attempt with no `access` line within `attempt_timeout_seconds` (Policy keys) is cancelled as AC-0052 to AC-0054 state, and its task is reprojected.
 - [ ] **AC-0025.** After a `run-concurrent` invocation dies, the next supervisor verb records as integrated each attempt of that invocation whose commit the product ref carries, keeps each attempt with a held-result record held, and for every other attempt ends its launcher process group, confirms the end within 10 seconds, closes it as cancelled, and issues its task on the floor.
-- [ ] **AC-0065.** Recovery never signals a process group whose leader's process id and start time differ from those recorded at spawn, and treats that attempt's end as confirmed.
+- [ ] **AC-0065.** Recovery never signals a process group when a process other than the recorded leader (by process id and start time) holds the leader's process id; when no process holds that id but the group still has members, recovery signals the group and confirms its end; when neither exists, the end is confirmed.
 - [ ] **AC-0066.** An end recovery cannot confirm within 10 seconds leaves that attempt's directory as residue and issues its task on the floor.
 
 Reads, writes, and paths
@@ -162,7 +163,8 @@ Ingestion and held results
 - [ ] **AC-0029.** The supervisor ingests an attempt directory only after confirming that the launcher's process group has ended and reading an access attestation whose `processes_ended` is true; an attestation without it fails the attempt.
 - [ ] **AC-0030.** Ingestion records a symbolic link as a link with its target text and never reads through it.
 - [ ] **AC-0031.** An attempt directory holding any one of a FIFO, a socket, a device node, an entry Git refuses as `.git` with both `core.protectHFS` and `core.protectNTFS` on, a hard-linked file, more than 100,000 paths, or more than 10 GiB of file bytes fails its attempt, and the task is reprojected.
-- [ ] **AC-0070.** A symbolic link in an attempt directory whose target, resolved lexically from the link's product path, leaves the work tree or names a path in the Git directory, a `.git` entry, a trusted file, or `delivery/` fails its attempt.
+- [ ] **AC-0070.** A symbolic link in an attempt directory whose target, resolved from the link's product path through every link the attempt directory holds as the checked-out tree would resolve it, leaves the work tree, names a path in the Git directory, a `.git` entry, a trusted file, or `delivery/`, or needs more than 40 link hops, fails its attempt.
+- [ ] **AC-0073.** The bytes ingested for each regular file come from one no-follow open whose identity and size match the listing, so a file or parent directory replaced by a link between listing and reading fails its attempt.
 - [ ] **AC-0071.** Ingestion checks AC-0031's caps from file metadata before writing any object, so a refused attempt leaves the object store unchanged, and the supervisor's memory per ingested file stays under 64 MiB whatever the file's size.
 - [ ] **AC-0032.** Ingestion admits exactly the paths the floor's change-set computation admits for the same files, under the same ignore rules.
 - [ ] **AC-0033.** Integration reads a held result only through its result identity, so a change to its attempt directory after ingestion leaves the integrated tree unchanged, and a change to its held-result record during a floor attempt refuses that floor attempt with `attempt-residue`.
@@ -193,7 +195,7 @@ Isolation, blast radius, and plan changes
 - [ ] **AC-0052.** A cancelled attempt's launcher process group is ended and its end confirmed within 10 seconds before the task is reprojected onto a fresh attempt directory.
 - [ ] **AC-0053.** A cancelled attempt whose end is not confirmed sends its task to the floor.
 - [ ] **AC-0054.** A cancelled attempt's result never integrates.
-- [ ] **AC-0055.** A task reprojected `reprojection_bound` times (shipped 2) runs its next attempt on the floor.
+- [ ] **AC-0055.** A task reprojected `reprojection_bound` times (Policy keys) runs its next attempt on the floor.
 - [ ] **AC-0056.** Every reprojection appears in the journal and in `status`.
 - [ ] **AC-0057.** A controller replan or stub-fence revision is admitted only while no attempt is open; it discards every held result, reprojects those tasks without counting toward the bound, and is admitted once the open attempts end.
 - [ ] **AC-0058.** No `run-gates`, `review-role`, or evidence receipt is issued while an attempt is open or a result is held, and each names only a commit the product ref has held.
@@ -208,7 +210,7 @@ Determinism and portability
 Contracts
 
 - [ ] **AC-0063.** Every `containment-attestation.v1`, `access-attestation.v1`, `launcher-message.v1`, `execution-result.v1`, `result-integration.v1`, `integration-conflict.v1`, `execution-request.v1`, and `task-contract.v1` record the corpus writes validates against its schema, and the corpus writes at least one of each.
-- [ ] **AC-0064.** Every `containment-attestation.v1` and `task-contract.v1` fixture under `tests/roster/` at T1's merge base still validates.
+- [ ] **AC-0064.** Every `containment-attestation.v1` and `task-contract.v1` fixture under `tests/roster/` at the revision this spec is approved at still validates.
 
 ## Accepted Risk
 

@@ -83,7 +83,9 @@ keeps T2 shippable without it.
   corpus schedules through the harness into a temporary store, collects every
   record, validates each against `contracts/delivery/` through the registry
   pattern of `tests/roster/test_execution_supervisor_records.py`, and fails
-  when any of the eight kinds is missing. Owned by T5.
+  when any of the eight kinds is missing. It is registered on the Gate
+  A-supervisor run line, because the harness skips without
+  `WORK_SUPERVISOR_INTEGRATION=1`. Owned by T5.
 
 **Manual verification:** none.
 
@@ -93,7 +95,7 @@ keeps T2 shippable without it.
 | --- | --- | --- | --- |
 | Interface compatibility | T1 | Schema-parity and record suites | AC-0063, AC-0064 |
 | Current architecture | T5 | Page diffs | No `STATUS: PLANNED` on a built element |
-| Result acceptance | T2 | Attempt-security spec table and § 7 mirror | `run-concurrent` row in both |
+| Result acceptance | T5 | § 7 table row | `run-concurrent` row citing this spec |
 | Maintainer procedure | T1, T5 | `references/supervisor.md` and plan-template diffs | Grammar and reason codes documented once |
 | Product truth | T6 | Brief spec-map row | Row reports `Shipped` |
 | Release history | T1–T5 | Version bumps | One changelog fragment per Core PR |
@@ -139,9 +141,12 @@ token); until T5 lands, this section is their only home.
 - **Ingestion** uses a new link-recording walk in `file_safety.py`
   (`list_confined_entries`, no-follow, descriptor-relative) that returns
   regular files with sizes and links with target text. It checks AC-0031's
-  caps and AC-0070's lexical link targets from that listing before any
-  object exists, then writes each blob with `hash-object -w --no-filters --
-  <path>` (Git streams the file, so memory stays bounded) and builds the tree
+  caps and AC-0070's link targets from that listing before any object
+  exists, resolving each target through the listing's own links with a
+  40-hop bound. It then opens each file no-follow and descriptor-relative,
+  checks the descriptor's identity and size against the listing, and streams
+  it in 1 MiB chunks into `hash-object -w --no-filters --stdin` through a
+  streaming-stdin form the hardened helper gains, and builds the tree
   with `update-index --index-info` under `-c core.protectHFS=true -c
   core.protectNTFS=true`. It then applies the floor's ignore rules to the
   attempt directory itself, not the live work tree.
@@ -278,7 +283,8 @@ Owned by: T3, T4
   `Writes:`, marks each malformed form floor-only, and changes the revision on
   either field.
 
-**Done when:** the named suites pass in `catalogue-tooling-ci-gates.yml` and a
+**Done when:** each new git-backed suite is on the Gate A-supervisor run line
+and its CI log shows it ran with zero skips, the roster suites pass in a
 recorded `test-roster.yml` dispatch, `make lint-ruff lint-mypy` is green, and
 Core is one patch above the merge base.
 
@@ -296,20 +302,23 @@ Core is one patch above the merge base.
   swap-before-spawn, planted-environment, fixture-marker (with each candidate
   variable set), second-invocation, and killed-verb fixtures (a kill before
   the process-group record is durable sends no release), including a
-  recorded process-group id reused by an unrelated process and an end that
-  never confirms on the injected clock.
-- AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0026, AC-0067, AC-0068:
-  the fixture launcher
+  recorded process-group id reused by an unrelated process, a dead leader with
+  a live group member, and an end that never confirms on the injected clock.
+- AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0026, AC-0067: the fixture
+  launcher
   emits each defect; the release-token test searches every output channel for
   the raw bytes, lowercase and uppercase hex, and standard and URL-safe
   base64, with a planted leak in one channel as the positive control.
 - AC-0023: `tests/roster/` scans the Core install and `make build-self`
   output for the marker.
-- AC-0029, AC-0030, AC-0031, AC-0032, AC-0070, AC-0071:
+- AC-0029, AC-0030, AC-0031, AC-0032, AC-0070, AC-0071, AC-0073:
   `test_supervisor_ingestion.py` over link, FIFO, socket, `.git` and its
   `.GIT`, HFS-ignorable, `git~1`, and trailing-dot aliases, hard link,
   absolute, relative, chained, and directory links into `.git` and trusted
-  files, path-cap and byte-cap (asserting no new loose objects), a 1 GiB
+  files, the link-then-`..` pair (`a/b/y -> ../../z`, `a/b/x ->
+  y/../delivery/approvals.jsonl`) for `delivery/`, a trusted file, and an
+  out-of-tree target, a 41-hop chain, a swap-to-link between listing and
+  read (AC-0073), path-cap and byte-cap (asserting no new loose objects), a 1 GiB
   sparse file under a memory probe, late-write, and floor-equivalence
   fixtures.
 - AC-0040, AC-0049: `test_supervisor_git.py` refuses a merge driver at
@@ -317,7 +326,8 @@ Core is one patch above the merge base.
 - Admission's meet relation is unit-tested over every Meets row, including
   ancestors and `root/**` writes.
 
-**Done when:** the named suites pass in CI as T1 names, the existing
+**Done when:** each new git-backed suite is on the Gate A-supervisor run line
+and its CI log shows it ran with zero skips, the existing
 product-ref and crash suites pass unchanged, and Core is one patch above the
 merge base.
 
@@ -337,7 +347,8 @@ merge base.
   and outside-changed-path fixtures.
 - AC-0033, AC-0050: a floor attempt rewrites a held record and a held tree; a
   trusted-file change while a sibling is open; a held result integrates through
-  the floor result's `report` in floor order.
+  the floor result's `report` in floor order; and AC-0025's held branch,
+  retested here against a real held result from a killed `run-concurrent`.
 - AC-0072: with each candidate variable set and no seam, results land in
   floor order.
 - AC-0042, AC-0043, AC-0044, AC-0045, AC-0046: the crash corpus gains the five
@@ -346,7 +357,8 @@ merge base.
 - AC-0047, AC-0048: records validate, and a conflict over the profile's path
   cap is written truncated.
 
-**Done when:** the named suites pass in CI as T1 names and Core is one patch
+**Done when:** each new git-backed suite is on the Gate A-supervisor run line
+and its CI log shows it ran with zero skips and Core is one patch
 above the merge base.
 
 ### T4: Blast radius, cancellation, the reprojection bound, and plan-change ordering
@@ -361,11 +373,16 @@ above the merge base.
 - AC-0057: a replan refused while an attempt is open, then admitted, with held
   results discarded and reprojected.
 - AC-0058: `next` issues no gate, review, or evidence while a result is held.
-- AC-0012: `status` and the journal emit every member of the closed reason
-  set, enumerated from the code table; the test fails on any member with no
-  exercised emission and on any launcher-supplied byte in either output.
+- AC-0012: the expected reason set is written in the test from the spec's
+  list (each AC-0002 member, AC-0017 check, AC-0020 check, AC-0067 check, and
+  refusal reason); the test fails when a code is missing from the production
+  table, when a table code has no exercised emission in `status` and the
+  journal, and on any launcher-supplied byte in either output.
+- AC-0068: an attempt silent past `attempt_timeout_seconds` on the injected
+  clock is aborted, confirmed, and reprojected without integrating.
 
-**Done when:** the named suites pass in CI as T1 names and Core is one patch
+**Done when:** each new git-backed suite is on the Gate A-supervisor run line
+and its CI log shows it ran with zero skips and Core is one patch
 above the merge base (shared with T3's release).
 
 ### T5: The permutation and conflict corpus, and the as-built pages
@@ -376,7 +393,8 @@ above the merge base (shared with T3's release).
 - AC-0059, AC-0060, AC-0061, AC-0062: VIP-X01.
 - AC-0063: VIP-X02 over the corpus records.
 
-**Done when:** both suites pass in CI as T1 names; the pages the spec's
+**Done when:** both suites are on the Gate A-supervisor run line and their CI
+log shows they ran with zero skips; the pages the spec's
 Durable Outputs name describe the concurrent path and the known limit; and
 Core is one patch above the merge base.
 
