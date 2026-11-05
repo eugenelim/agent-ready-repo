@@ -57,7 +57,7 @@ Three small sessions; G1 and G2 are independent of G3.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
+| sast-relevance-nul-safe-paths | Draft |
 
 ## Provenance
 

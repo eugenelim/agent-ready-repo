@@ -56,6 +56,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| route-support-verification-record | Draft |
 
 ## Provenance
 

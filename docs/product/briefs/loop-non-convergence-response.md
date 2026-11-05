@@ -72,6 +72,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `loop-non-convergence-signals` | <auto> |
 
 ## Provenance
 

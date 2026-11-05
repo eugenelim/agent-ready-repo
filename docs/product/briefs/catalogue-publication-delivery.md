@@ -66,6 +66,7 @@ None.
 
 | Spec | Status |
 | --- | --- |
+| `marketplace-ingress-and-config-authority` | <auto> |
 
 ## Provenance
 

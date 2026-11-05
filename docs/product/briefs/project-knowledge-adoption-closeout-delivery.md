@@ -64,6 +64,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `project-knowledge-measurement-tool` | <auto> |
 
 ## Provenance
 

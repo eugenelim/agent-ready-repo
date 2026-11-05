@@ -72,6 +72,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `experience-design-deliverable-inventory` | <auto> |
 
 ## Provenance
 

@@ -36,7 +36,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 
 ### Manual or live residue, split off as non-blocking follow-ups
 
-- None. The accepted residual that a dispatched run executes the selected ref's copy of the file stays as recorded in `docs/architecture/verification-graph.md` section 7.4.
+- None. The accepted residual that a dispatched run executes the selected ref's copy of the file stays as recorded in `docs/architecture/remote-verification.md` (accepted residual).
 
 ## Decisions
 
@@ -59,7 +59,7 @@ Three sessions; P1 medium, P2 medium, P3 small to medium.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
+| dispatch-workflow-posture-check | Draft |
 
 ## Provenance
 

@@ -85,6 +85,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `operating-model-canvas` | <auto> |
 
 ## Provenance
 

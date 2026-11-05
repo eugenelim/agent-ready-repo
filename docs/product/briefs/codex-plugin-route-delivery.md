@@ -3,14 +3,13 @@
 - **Slug:** `codex-plugin-route-delivery`
 - **Received:** 2026-11-05
 - **Owner:** eugenelim
-- **Status:** Ready
-- **Ready confirmed:** 2026-11-05 by eugenelim, lifecycle owner. Bound to the file as reviewed `Clean` by an independent delivery-brief review at commit `97221f5bb`; the later edits were wording corrections, recorded as nonmaterial by the lifecycle owner. Slice membership and status are the Spec map's; this line does not restate them.
+- **Status:** Draft
 - **Source / provenance:** [`FEAT-0022-codex-plugin-route.md`](../intents/FEAT-0022-codex-plugin-route.md), under [RFC-0092](../../rfc/0092-first-class-distribution-routes.md) and the [distribution-routes programme](distribution-routes-programme.md), Phase 3
 - **Parent intent:** intent:codex-plugin-route
 
 ## Outcome
 
-From the same catalogue source as the Claude marketplace, the build emits a native Codex plugin package and marketplace manifest. Claude and Codex publication share one user-scope eligibility rule, and a commit that touches no eligible pack schedules neither publisher.
+From the same catalogue source as the Claude marketplace, the build emits a native Codex plugin package and marketplace manifest. Claude and Codex publication are checked against one literal roster that agrees with the shared user-scope eligibility rule in `tools/pack_scope.py`, and a commit that touches no eligible pack schedules neither publisher.
 
 ## Success metrics
 
@@ -20,7 +19,7 @@ From the same catalogue source as the Claude marketplace, the build emits a nati
 
 ## Scope / Non-goals
 
-In scope: the Codex route as a contract entry, package and marketplace emission, hook translation, the shared eligibility rule, trigger suppression, and the publisher branch control.
+In scope: the Codex route as a contract entry, package and marketplace emission, hook translation, the trigger-parity check across publishers, trigger suppression, and the publisher branch control.
 
 Out of scope: adaptation or seed claims, widening user-scope eligibility, and any live Codex install check.
 
@@ -32,10 +31,10 @@ Four slices. Hard predecessors: [FEAT-0020](../intents/FEAT-0020-distribution-ro
 
 | # | Slice | Primary owning surface | Verification | Gating |
 | --- | --- | --- | --- | --- |
-| C1 | Extract the user-scope eligibility rule into one contract file that `publish-claude-plugins.yml` reads, and suppress unrelated-commit triggers. Alone it has one consumer; C4 adopts the same file for Codex. | `.github/workflows/publish-claude-plugins.yml`, publication contract | Path-filter posture test; mutation cases for an unrelated path and a contract path | None. Independent. |
+| C1 | Extend the roster parity check (`tools/lint-plugin-roster.py`) from one hard-wired publisher workflow to a declared list of publishers, each naming its workflow file and job inputs. The user-scope eligibility rule is already one shared helper in `tools/pack_scope.py`, and a workflow path filter cannot read a file, so no new contract file is extracted. Alone it has one entry (Claude); C4 adds Codex. | `tools/lint-plugin-roster.py`, tests | Mutation cases for an unrelated path and a contract path; the check fails a publisher that skips a pack it owes or runs for a change it cannot affect | None. Independent. |
 | C2 | Codex route contract entry, package and marketplace manifest emission, vendored schema with provenance | `contracts/`, `build/` | Golden fixtures, offline schema validation, determinism and path-containment fixtures | After FEAT-0020 and FEAT-0021 |
 | C3 | Hook translation with a semantic-compatibility record; refuse a pack whose required hook semantic cannot be kept | route projector | Fixtures per hook event: preserved, dropped-with-diagnostic, refused | After C2 |
-| C4 | Create the Codex publish workflow reading the C1 eligibility file, with a fixed publisher branch and ref control | `.github/workflows` (new file), tests | Workflow posture test pins the trigger paths, branch name, and ref; a posture mutation for an unrelated path | After C1, C2, C3, and the Accepted governance record for the Codex publisher branch (a new ADR for the Codex publisher branch identity) |
+| C4 | Create the Codex publish workflow, added to the C1 publisher list so its trigger paths are checked against the roster, with a fixed publisher branch and ref control | `.github/workflows` (new file), tests | Workflow posture test pins the trigger paths, branch name, and ref; a posture mutation for an unrelated path | After C1, C2, C3, and the Accepted governance record for the Codex publisher branch (a new ADR for the Codex publisher branch identity) |
 
 ## Assumptions / Risks
 
@@ -59,6 +58,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| publisher-trigger-parity | Draft |
 
 ## Provenance
 

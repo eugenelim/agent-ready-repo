@@ -68,6 +68,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `npm-allowlist-expiry` | <auto> |
 
 ## Source
 

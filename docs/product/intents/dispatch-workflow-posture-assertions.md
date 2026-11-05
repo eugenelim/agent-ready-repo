@@ -71,7 +71,7 @@ adding `permissions: contents: write` to either file passes every gate.
 
 The exposure is bounded but real: both workflows are `workflow_dispatch`-only
 and a dispatched run executes the selected ref's copy of the file, which
-`docs/architecture/verification-graph.md` §7.4 records as an accepted residual.
+`docs/architecture/remote-verification.md` records as an accepted residual.
 An assertion here does not close that residual — nothing in-workflow can — but
 it does make an unreviewed widening on the default branch fail.
 

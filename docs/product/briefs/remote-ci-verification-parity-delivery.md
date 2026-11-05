@@ -64,7 +64,7 @@ Four sessions: R1 small, R2 small to medium, R3 medium, R4 small.
 
 | Spec | Status |
 | --- | --- |
-|  |  |
+| gate-sast-node-parity | Draft |
 
 ## Provenance
 

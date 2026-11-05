@@ -68,6 +68,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `skill-sequence-edge-model` | <auto> |
 
 ## Provenance
 

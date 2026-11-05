@@ -65,6 +65,7 @@ None open. The P3 spec obligation is to name the core judgment skill list and th
 
 | Spec | Status |
 | --- | --- |
+| `contracts-skill-behavior-evals` | <auto> |
 
 ## Provenance
 

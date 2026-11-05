@@ -62,6 +62,7 @@ None.
 
 | Spec | Status |
 | --- | --- |
+| mcp-canonical-primitive-model | Draft |
 
 ## Provenance
 

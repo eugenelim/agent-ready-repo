@@ -73,6 +73,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `argv-site-classification` | <auto> |
 
 ## Source
 

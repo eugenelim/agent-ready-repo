@@ -50,7 +50,7 @@ All slices are independent and `agent-only`.
 
 | Slice | Gating | Proof |
 | --- | --- | --- |
-| 1. Claude `permissions.allow` projection | agent-only, RFC-0078 trailer | The 4 stubs run and pass; merge keeps user entries |
+| 1. Claude `permissions.allow` projection, through one new additive projection mode and a minor adapter-contract version bump (the existing `merge-json` replaces the array, so it cannot do this) | agent-only, RFC-0078 trailer | The 4 stubs run and pass; merge keeps user entries; contract parity checks pass |
 | 2. `elicit` and `stdin` tests (20) | agent-only | Zero skips in both files; every surviving stub is a passing test, and each deleted stub is listed with its reason |
 | 3. `git` and `git_scope` tests (16) | agent-only | Zero skips; every surviving stub is a passing test, and each deleted stub is listed with its reason |
 | 4. `event_bridge` and `tools` tests (13) | agent-only | Zero skips; every surviving stub is a passing test, and each deleted stub is listed with its reason |
@@ -64,6 +64,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `workspace-mcp-permissions-projection` | <auto> |
 
 ## Source
 

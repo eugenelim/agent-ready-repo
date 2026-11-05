@@ -59,6 +59,7 @@ None.
 
 | Spec | Status |
 | --- | --- |
+| installed-skill-capability-inspection | Draft |
 
 ## Provenance
 

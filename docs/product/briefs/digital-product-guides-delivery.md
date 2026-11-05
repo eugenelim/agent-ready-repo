@@ -65,6 +65,7 @@ None open; the ordering waiver is recorded.
 
 | Spec | Status |
 | --- | --- |
+| `pack-intent-indexes` | <auto> |
 
 ## Provenance
 

@@ -62,6 +62,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `evaluator-platform-lead-journey` | <auto> |
 
 ## Governance references (optional)
 

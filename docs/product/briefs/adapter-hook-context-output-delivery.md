@@ -57,6 +57,7 @@ None.
 
 | Spec | Status |
 | --- | --- |
+| root-stable-core-hook-commands | Draft |
 
 ## Provenance
 

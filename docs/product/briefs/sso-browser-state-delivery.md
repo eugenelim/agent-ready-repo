@@ -74,6 +74,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `sso-capture-mode-enum` | <auto> |
 
 ## Source
 

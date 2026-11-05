@@ -71,6 +71,7 @@ None open.
 
 | Spec | Status |
 | --- | --- |
+| `cross-pack-experience-seam-checks` | <auto> |
 
 ## Provenance
 

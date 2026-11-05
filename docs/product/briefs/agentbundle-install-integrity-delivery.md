@@ -56,6 +56,7 @@ None.
 
 | Spec | Status |
 | --- | --- |
+| state-writes-through-the-lock | Draft |
 
 ## Provenance
 
