@@ -55,6 +55,16 @@ Traces to: AC-0001, AC-0002, AC-0003. Owned by: T1.
 
 **Done when:** `python3 tools/check-core-release.py --base origin/main` and `agentbundle catalogue self-host --root . --check` both exit 0.
 
+### T3: repair the review finding on the gate-selection wording
+
+**Depends on:** T2
+
+**Tests:**
+- Goal-based, at the existing pin in `packs/core/tests/skills/work-loop/test_gate_selection_contract.py`: the new section names where a repository declares its checks (its agent-guidance files, build files and pipeline definitions) without using the phrase `verification entry`, which the same file reserves as `verify entry`, and says that a check that is not declared is not named as if it were, while the task-zero rule for a missing verification mechanism still applies (AC-0001, AC-0002).
+- Goal-based: the changelog highlight limits the rule to a task whose paths a declared check covers, and `python3 tools/check-core-release.py --base origin/main` still exits 0 (AC-0005).
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_gate_selection_contract.py packs/core/tests/skills/work-loop/test_verify_entries_contract.py packs/core/tests/skills/work-loop/test_evidence_modes_contract.py -q` passes and `python3 tools/check-core-release.py --base origin/main` exits 0.
+
 ## Rollout
 
 Reversible by revert. No sequencing with the precheck spec.
