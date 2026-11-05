@@ -26,3 +26,7 @@ Throwaway worktree cut from `HEAD`, one line appended to `packs/repo-governance/
 ## Supervisor notes
 
 `work-supervisor.py` step commits hit the 60 s `git add -A` limit under load several times; a dry `git add -A -n` to warm the file cache, then an immediate retry, admitted each.
+
+## Delivery records
+
+The supervisor's `delivery/` records for run `run-a0b23fbabd9eb4f2` are not part of the merged tree. The full history, with them committed, is on the remote branch `vlx/verification-cf8b92-evidence`.

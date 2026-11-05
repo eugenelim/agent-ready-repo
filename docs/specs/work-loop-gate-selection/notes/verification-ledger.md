@@ -23,3 +23,7 @@ Deferred, not required by the accepted intent: `test_ac0001_section_bars_naming_
 ## Heads-up for the pull request
 
 Core is 4.0.16 here and 4.0.15 on `origin/main`: merging `main` conflicts on the version lines of `pack.toml` and `plugin.json` and may conflict in the changelog. Re-run `tools/check-core-release.py --base origin/main` right before merging, since `main` can ship another core patch meanwhile.
+
+## Delivery records
+
+The supervisor's `delivery/` records for run `run-0cb3f2d23fc3ae50` are not part of the merged tree. The full history, with them committed, is on the remote branch `vlx/verification-cf8b92-evidence`.
