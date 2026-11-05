@@ -17,7 +17,7 @@
 > **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
 > `Acceptance Criteria` are what a completion gate reads, and an amendment
 > changes them. `## Decisions this spec makes` is contract on the same footing:
-> criteria dereference § D1, D2, D4–D11 for their meaning, so those decisions
+> criteria dereference § D1, D2, D3, D4–D11 for their meaning, so those decisions
 > change only by amendment. `Outcome`, `What Changes`, `Durable Outputs`,
 > `Follow-ons` and `Assumptions` are working material: they orient a reader and
 > an author corrects them in place as the work teaches, without an amendment

@@ -75,7 +75,7 @@ Cross-cutting, beyond the per-task tests below:
 | Decision rationale (spec § Decisions this spec makes) | — the spec itself | gate approval | the owner's approval record |
 | Current architecture (knowledge-capture entry) | T8, T23 | entry names the drain, the disposition, the envelope, and the no-dispatch hold | close-work reads the entry |
 | Interface compatibility (store event shapes) | T1, T5, T6 | roster suites green over the fixture store | every drain-written disposition parses under the store's validators |
-| Maintainer procedure (work-intake drain section and § 5 lock paragraph) | T7, T19, T22 | source-text assertions | an operator reads the attended rule, the dispatch wiring, and the stale-lock recovery without the spec |
+| Maintainer procedure (work-intake drain section and § 5 lock paragraph) | T7, T19, T21, T22 | source-text assertions | an operator reads the attended rule, the dispatch wiring, the closure citation rule, and the stale-lock recovery without the spec |
 | Current product truth (work-item guide entry) | T8, T21, T23 | guide names the routes, what closure means — including the superseded citation's required field and drain-run test — and the non-dispatchable-member hold | cold-adopter check |
 | Security (`docs/architecture/security.md`) | T8 | the § D10 prose residual recorded as settled by the read-path re-run | the gap list no longer carries it as unowned |
 | Release history (core pack changelog) | T8, T23 | changelog entry | the entry leads the release |
