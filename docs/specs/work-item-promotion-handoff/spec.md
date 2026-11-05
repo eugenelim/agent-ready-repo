@@ -137,7 +137,9 @@ transaction.
 
 A route commit requires a real processor dispatch. A drain invoked with no
 dispatch wired — no `transact` override and no `dispatch_processor` — holds
-the item and records no disposition, on both route branches: a `routed`
+the item and records no disposition, on both route branches, and the hold
+precedes every transaction effect: no lock is taken, no artifact is
+materialized. A `routed`
 disposition with no handoff is exactly the unrepairable state this section's
 ordering exists to prevent, and a silent no-op default must not be able to
 reach it. The work-intake procedure supplies the real dispatch; its § 8
@@ -146,11 +148,20 @@ records how the operator wires it at invocation.
 The workspace-writer lock the transaction takes must not outlive its owner.
 A lock left by a process that no longer exists is stale, and the transaction
 recovers it — the lock records its owner's pid, and a stale owner is
-detected by liveness probe, removed, and acquisition retried once — so the
+detected by liveness probe; the removal re-verifies, immediately before the
+unlink, that it removes the same lock it probed — same inode, same pid
+payload — and refuses with lock-busy when the lock changed underneath,
+patterned on the sibling `intent_rename.py` `_normalise_old_claim` defense —
+then acquisition is retried once, so the
 re-run this section names as the one recovery path completes instead of
 returning lock-busy forever. A lock whose owner is alive is never taken; a
 reused pid is bounded by the lock's short critical section and is recorded
-as a residual risk, not a recovery trigger.
+as a residual risk, not a recovery trigger. A lock whose payload carries no
+parseable pid is never removed — its owner is treated as live — and the
+transaction's own acquisition closes the create-then-write window so every
+lock it leaves carries its pid; a foreign pid-less lock left by a writer
+killed mid-acquisition is a disclosed residual requiring manual removal,
+strictly narrower than the permanent wedge this rule removes.
 
 ### D2 — `work_item.shape` selects the route family; per-shape fields select within it
 
@@ -223,9 +234,16 @@ carried as data and has already passed the re-run scan.
   state. The closure records what was run or read and what it showed.
 - **Superseded** — a later capture or an existing live artifact records the
   same work. Test: the cited capture id resolves in the store, or the cited
-  artifact path exists and is live — a mechanical test the drain itself
+  artifact path exists — a mechanical test the drain itself
   runs before the disposition commits; a superseded closure whose citation
   resolves nowhere is refused, whatever the operator attests. The closure
+  input for this ground carries the citation as a required field —
+  `citation` holding one of `{"capture_id": <id>}` or
+  `{"path": <repository-relative path>}` — and an absent citation resolves
+  nowhere and is refused. That an existing artifact is live — not withdrawn,
+  tombstoned, or itself superseded — is the operator's attestation, riding
+  the closure's evidence; the drain's mechanical check is resolution and
+  existence, never liveness. The closure
   records the citation.
 - **Falsified** — the premise the item rested on no longer holds. Test: the
   change that falsified it is named — a commit, an artifact state, an
@@ -455,11 +473,12 @@ requires. The scenarios below state how each is driven.
   claimed.
 - **`AC-0025`, `AC-0026` — TDD, unit:** each is a pure decision over the
   drain's own inputs — a missing dispatch seam, a classification string —
-  asserted through the drain's held/routed outcome and the store's absence
-  of a terminal event.
+  asserted through the drain's held/routed outcome, the store's absence of a
+  terminal event, and the absence of transaction effects (no artifact, no
+  lock).
 - **`AC-0027` — TDD, unit, against a real store:** the superseded ground's
   test resolves a citation against the store, so the check seeds a store and
-  closes against a resolving and a non-resolving citation.
+  closes against a resolving, a non-resolving, and an absent citation.
 - **`AC-0028` — TDD, unit, against a real lock file:** liveness and retry are
   filesystem and process properties, asserted by writing a stale lock with
   a dead pid and a live lock with the running pid.
@@ -518,11 +537,12 @@ requires. The scenarios below state how each is driven.
   that each dispatchable member still routes (`AC-0026`).
 - Close an item on the superseded ground with a cited capture id that
   resolves, then with one that resolves nowhere and a cited path that does
-  not exist; assert the first closes and the second is refused by the drain
-  itself (`AC-0027`).
+  not exist, then with no citation at all; assert the first closes and the
+  second and third are refused by the drain itself (`AC-0027`).
 - Write a workspace lock holding a pid that no longer exists; assert the
-  transaction recovers it and completes, and that a lock holding a live pid
-  is still refused (`AC-0028`).
+  transaction recovers it and completes; that a fresh lock taken between the
+  probe and the removal is refused, not removed; and that a lock holding a
+  live pid, or no parseable pid, is never taken (`AC-0028`).
 - Add a row to `docs/specs/work-item-capture/spec.md` § D6 cases and assert
   the pre-execution re-check drives it without any edit here (`AC-0017`).
 - Drain a governance-shaped item while no governance route exists; assert it
@@ -649,17 +669,23 @@ verifies the criteria below mechanically.
       position.
 - [ ] **AC-0025.** A route committed with no processor dispatch wired — no
       `transact` override and no `dispatch_processor`, on either route branch
-      — holds the item and records no terminal disposition (§ D1).
+      — holds the item with no transaction effect — no lock taken, no
+      artifact materialized — and records no terminal disposition (§ D1).
 - [ ] **AC-0026.** A question whose classification is not one of the six
       classify-table members, or names a non-dispatchable member, is held as
       unroutable (§ D3, extending `AC-0006`).
-- [ ] **AC-0027.** A superseded closure whose cited capture id resolves
-      nowhere and whose cited artifact path does not exist is refused by the
-      drain itself (§ D5, extending `AC-0003`); overtaken and falsified
-      closures remain operator-attested.
+- [ ] **AC-0027.** A superseded closure whose citation is absent, or whose
+      cited capture id resolves nowhere and whose cited artifact path does
+      not exist, is refused by the drain itself (§ D5, extending
+      `AC-0003`); the liveness of a cited artifact is the operator's
+      attestation, and overtaken and falsified closures remain
+      operator-attested.
 - [ ] **AC-0028.** A workspace lock left by a process that no longer exists
       is recovered by the transaction, and the re-run completes the sequence
-      (§ D1, extending `AC-0005`); a lock whose owner is alive is never
+      (§ D1, extending `AC-0005`); the removal re-verifies the lock's
+      identity — same inode, same pid payload — immediately before the
+      unlink and refuses when the lock changed underneath; a lock whose
+      owner is alive, or whose payload carries no parseable pid, is never
       taken.
 
 ## Follow-ons
@@ -675,12 +701,17 @@ verifies the criteria below mechanically.
 - The § D12 adjudicated sample: owner eugenelim — runs on the first drain the
   real store offers ten items; until capture traffic exists the measurement
   is gated, with the rubric in place above.
-- Stale-lock recovery in the other workspace-writer lock takers —
-  `workspace-status`'s `workspace_status.py` and `intent_rename.py`, and
-  `refresh.py`'s own acquisition — each takes the same lock file with no
-  stale-owner recovery; this spec's `AC-0028` fixes only the drain's
-  transaction path. Owner: eugenelim, routed when a writer other than the
-  drain wedges on a stale lock.
+- Stale-lock recovery for the lock takers outside the shared transaction —
+  `workspace-status`'s `workspace_status.py` and work-intake's
+  `refresh.py` each take the same lock file with their own acquisition and
+  refuse PID-probe recovery, each recording its own reason; the recovery
+  `AC-0028` adds lands in the shared `_acquire_workspace_lock` and so
+  reaches every `run_intake_transaction` caller — work-intake's § 5
+  artifact-creating flows included. `intent_rename.py` already recovers its
+  own dead-owner locks (`_normalise_old_claim`, the pattern `AC-0028`
+  follows); the remaining gap is each foreign taker's recovery of locks
+  other writers leave. Owner: eugenelim, routed when a writer outside the
+  transaction wedges on a foreign stale lock.
 
 ## Assumptions
 

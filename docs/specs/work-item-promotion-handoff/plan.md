@@ -493,31 +493,39 @@ the captured-item grammar, and the run report.
   is held with the missing dispatch named in the reason, and
   `store_terminal_dispositions` returns no terminal event for either
   (`AC-0025`).
+- The hold precedes every transaction effect: no captured-item artifact is
+  materialized for the held defect, and no workspace lock is left behind
+  (`AC-0025`).
 - `transact_route` called directly with `dispatch_processor=None` on both
   route branches returns the hold shape and attempts no disposition.
 - A drain with a real dispatch wired still routes and records `routed`
   (the existing suites, unchanged).
+- A source-text assertion, the T7 pattern, over work-intake `SKILL.md` § 8:
+  the wiring note names `dispatch_processor` and states that a drain without
+  it holds every routable item.
 
-**Done when:** `drain()` with defaults can no longer record `routed`, and
-  work-intake `SKILL.md` § 8 records how the operator wires the dispatch at
-  invocation.
+**Done when:** `drain()` with defaults can no longer record `routed`, the
+  hold leaves no artifact and no lock, and work-intake `SKILL.md` § 8 records
+  how the operator wires the dispatch at invocation.
 
 ### T20: A classification is one of the six classify-table members
 
 **Depends on:** none
 
 **Tests:** unit, per the spec's Testing Strategy.
-- A question classified with an output that is not one of `direct-light`,
-  `spec`, `brief`, `remember`, `defect`, `incomplete` is held as unroutable
-  (`AC-0026`).
+- A question classified with an output that is not one of the six members
+  § D3 names is held as unroutable (`AC-0026`).
 - A question classified with `remember` or `incomplete` — the
   non-dispatchable members — is held the same way (`AC-0026`).
 - A question classified with each dispatchable member still routes, with
   the classification riding the report item unchanged (`AC-0001`).
-- The member set is a module constant the spec's § D3 names, not a literal
-  repeated at each call site.
+- The member set is a module constant named by spec § D3, referenced there
+  rather than restated here, and a source-text assertion — the T7 pattern —
+  pins the constant to work-intake `SKILL.md` § 4's classify table, so a
+  table row added or renamed fails the suite until the constant follows.
 
-**Done when:** no non-empty string can route a question, and the roster
+**Done when:** no non-empty string can route a question, the constant and
+  the classify table cannot drift apart silently, and the roster
   suite drives each member and one non-member.
 
 ### T21: The superseded closure ground's test runs in the drain
@@ -530,12 +538,15 @@ the captured-item grammar, and the run report.
 - A superseded closure whose cited capture id resolves nowhere and whose
   cited artifact path does not exist is refused by the drain itself, the
   item stays open, and the refusal names the failed citation (`AC-0027`).
+- A superseded closure whose citation is absent — the closure input carries
+  no `citation` field — is refused the same way: an absent citation
+  resolves nowhere (`AC-0027`).
 - Overtaken and falsified closures are unchanged: the operator's verdict
   still decides them, with the evidence riding the report (`AC-0003`).
 
 **Done when:** a superseded closure cannot commit on a citation that
-  resolves nowhere, and the other two grounds are byte-for-byte their
-  current behavior.
+  resolves nowhere or is absent, and the other two grounds are byte-for-byte
+  their current behavior.
 
 ### T22: A stale workspace lock is recovered
 
@@ -543,15 +554,24 @@ the captured-item grammar, and the run report.
 
 **Tests:** unit, per the spec's Testing Strategy.
 - A workspace lock holding a pid that no longer exists: the transaction
-  recovers it — liveness probe, removal, one retry — and completes, where
-  the same state previously returned `LOCK_BUSY` forever (`AC-0028`).
+  recovers it — liveness probe, identity re-verification, removal, one
+  retry — and completes, where the same state previously returned
+  `LOCK_BUSY` forever (`AC-0028`).
+- Concurrent recovery: a fresh lock taken at the same path between the
+  probe and the removal is refused, not removed — the re-verification sees
+  a different inode or payload and returns lock-busy (`AC-0028`).
 - A workspace lock holding the running process's pid is still refused
   (`AC-0028`).
 - A lock whose pid is owned by another live process (probe raises
   `PermissionError`) is treated as live and refused.
+- A lock whose payload carries no parseable pid is never removed, and the
+  transaction's own acquisition leaves no such window (`AC-0028`).
 
 **Done when:** the drain's re-run recovery path survives a hard-killed
-  predecessor, and the intake-transaction suite drives both lock states.
+  predecessor without ever removing a live writer's lock, and the
+  intake-transaction suite drives every lock state. The recovery lands in
+  the shared `_acquire_workspace_lock`, so every `run_intake_transaction`
+  caller gains it (`AC-0028`).
 
 ### T23: Release mechanics for the hardening
 
