@@ -43,7 +43,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 
 ## Constraints / Appetite
 
-Three sessions; P1 medium, P2 small, P3 small to medium.
+Three sessions; P1 medium, P2 medium, P3 small to medium.
 
 ## Assumptions / Risks
 

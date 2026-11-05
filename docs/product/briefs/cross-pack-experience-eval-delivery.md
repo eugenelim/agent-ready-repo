@@ -14,7 +14,7 @@ Maintainers run one offline, deterministic check that every handoff between `pro
 ## Success metrics
 
 - The seam check fails on a seeded phantom handoff, an unresolved skill reference, a missing risk-mode field, drifted contract copy, a missing evidence-manifest entry, and an adapter projection that leaves a transformed, degraded or dropped primitive undeclared, and passes on the current tree.
-- The host, model and adapter-contract-version fields read `not measured` until the live follow-up supplies them.
+- The host and model fields read `not measured` until the live follow-up supplies them.
 - Each of the four fixture types (public marketing plus docs, SaaS onboarding plus workspace, internal dashboard, transactional service) has a recorded golden-path report with host, model, adapter-contract version, fixture, permissions and a measurement status per signal.
 
 ## Scope / Non-goals

@@ -8,7 +8,7 @@
 
 ## Outcome
 
-Each Stage 1 workspace-MCP contract is exercised by a running test instead of a skipped stub, and a Claude install writes the `permissions.allow` entries the server needs without removing any the user set.
+Each Stage 1 workspace-MCP contract is exercised by a running test instead of a skipped stub, and a Claude install writes the `permissions.allow` entries the server needs without removing any the user set. `workspace_status` is proven to return briefs read from their `Status:` headers.
 
 ## Scope / Non-goals
 
@@ -30,6 +30,7 @@ Counted 2026-11-05 by searching for `pytest.skip` and `mark.skip`.
 
 - A stub that exposes a contract the server does not meet stops the slice and needs a follow-on RFC; it does not widen this brief.
 - `tools/AGENTS.md` protects everything under `packages/agentbundle/`, tests included, so every slice's commit needs an `Engine-Change-RFC:` trailer. Slice 1 cites `RFC-0078`; slices 2 to 5 each use `Engine-Change-RFC: n/a - tests only, no engine behavior change`.
+- Slice 1 changes package behavior, so it also bumps the package version in both `version.py` and `pyproject.toml` (`packages/AGENTS.md`).
 - Appetite: one slice for the projection, one per test group, and one for brief exposure.
 
 ## Assumptions / Risks

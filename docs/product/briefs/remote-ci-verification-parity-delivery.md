@@ -14,7 +14,7 @@ A maintainer can dispatch one workflow against a pushed branch and read a single
 ## Success metrics
 
 - `gate-sast` runs under the Node version that `web/package.json` declares.
-- One named table maps every lane the parent Boundary names to its command, runner, timeout and completion label, and a construction test fails when a surface is missing from it. The lanes are build and policy, SAST/SCA, the Python corpus, the site and browser gate, and native Windows (five workflows or jobs, `build-check.yml`, `test-corpus.yml`, `pages.yml`, `build-check-windows.yml` and the SAST job inside `build-check.yml`); macOS is the sixth and belongs to the other intent.
+- One named table maps every lane the parent Boundary names except macOS (which stays with `native-platform-verification-coverage`) to its command, runner, timeout and completion label, and a construction test fails when a surface is missing from it. The lanes are build and policy, SAST/SCA, the Python corpus, the site and browser gate, and native Windows (five workflows or jobs, `build-check.yml`, `test-corpus.yml`, `pages.yml`, `build-check-windows.yml` and the SAST job inside `build-check.yml`); macOS is the sixth and belongs to the other intent.
 - A composition workflow runs `make ci` undecomposed plus the extra jobs and emits the verdict, with a provisioning probe, a verdict channel the dispatched revision cannot forge, a recorded base revision, and stale-run marking and cancellation.
 
 ## Scope / Non-goals

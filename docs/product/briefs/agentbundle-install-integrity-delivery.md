@@ -3,7 +3,8 @@
 - **Slug:** `agentbundle-install-integrity-delivery`
 - **Received:** 2026-11-05
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Ready
+- **Ready confirmed:** 2026-11-05 by eugenelim, lifecycle owner. Bound to the file as committed in `a96a878c4`, which an independent delivery-brief review returned `Clean` with no open Ready gap. Slice membership and status are the Spec map's; this line does not restate them.
 - **Source / provenance:** [`agentbundle-install-integrity`](../intents/agentbundle-install-integrity.md)
 - **Parent intent:** intent:agentbundle-install-integrity
 

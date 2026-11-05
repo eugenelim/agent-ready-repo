@@ -22,7 +22,7 @@ An adopter finds an intent index for each of the four doctrine packs, one host-n
 **In scope:**
 
 - Three missing pack indexes and the check that verifies them.
-- Host overlays on their own page under `guides/_shared/reference/`, linking to the generated support block in `guides/_shared/reference/adapter-support.md`, which `claude-manifest-migration-support-claims-delivery` slice P1 owns. The compatibility matrix and overlays use `contracts/adapter.schema.json` and `docs/architecture/runtime-adapter-crosswalk.md` (record the revision in the matrix).
+- Host overlays on their own page under `guides/_shared/reference/`, linking to the page `guides/_shared/reference/adapter-support.md`; the generated support block there is owned by `claude-manifest-migration-support-claims-delivery` slice P1 and is not a dependency of G2. The compatibility matrix and overlays use `contracts/adapter.schema.json` and `docs/architecture/runtime-adapter-crosswalk.md` (record the revision in the matrix).
 - One tutorial under the shared guides, linked from the four packs, including a section that distinguishes filesystem Agent Skills, host plugins, hooks, agents and commands, Skills over MCP, and A2A `AgentSkill` as separate contracts (owned by G3).
 
 **Non-goals:**
@@ -38,7 +38,7 @@ Every slice is checked by an agent with no live service, credential, or human re
 | # | Slice | Agent-only verification | Depends on | Gating |
 | --- | --- | --- | --- | --- |
 | G1 | Intent indexes for the three packs without one, plus a test that each route resolves to a registered skill. | The new test passes on the tree and fails on a seeded dead route; guide-index check | none | Ordering waiver (Constraints) |
-| G2 | Host overlays on a separate page that links to the generated block in `adapter-support.md` (owned by the manifest brief's P1), plus the compatibility columns from the adapter contract; live-eval column reads `not measured` until receipts exist. | Drift test compares the matrix with the adapter contract; link check | none | Ordering waiver (Constraints) |
+| G2 | Host overlays on a separate page that links to `adapter-support.md` (its generated block comes from the manifest brief's P1; G2 does not wait for it), plus the compatibility columns from the adapter contract; live-eval column reads `not measured` until receipts exist. | Drift test compares the matrix with the adapter contract; link check | none | Ordering waiver (Constraints) |
 | G3 | Host-neutral end-to-end tutorial using a recorded fixture, linked from the pack guides. | The tutorial contains the contract-distinction section and links an E2 golden-path report (a test fails on a missing link); guide affordance audit shows chat input, supplied input, sample output and stated outcome; links resolve | G1, brief:cross-pack-experience-eval-delivery slice E2, brief:skill-sequence-wayfinding-delivery slice W1 (edge data for the tutorial's next steps) | waits until E2 and W1 are delivered |
 
 ### Manual or live residue, split off as non-blocking follow-ups

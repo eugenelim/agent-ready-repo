@@ -56,7 +56,7 @@ Every slice is checked by an agent with no live service or credential. Two owner
 ## Decisions
 
 - Decided 2026-11-05 by eugenelim: C3 is the single editor of the `site.toml` header during this brief, limited to adding the journeys link; `catalogue-wave7-marketing-evaluator` rebases onto it.
-- Decided 2026-11-05 by eugenelim: the hub read-time bound is at most 3 minutes at 238 words per minute (about 710 words) from the top to the first job link; C2 and C3 fail above it.
+- Decided 2026-11-05 by eugenelim: the hub read-time bound is at most 3 minutes at 238 words per minute (714 words) from the top to the first job link; C2 and C3 fail above it.
 - Decided 2026-11-05 by eugenelim:
   - The guide hub table (the `guides/README.md` role table) owns job membership; ADR-0020 governs structure within a pack's guide area, not this grouping.
   - An agent drafts the marketing headline; the owner approves it before ship.

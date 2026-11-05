@@ -3,7 +3,8 @@
 - **Slug:** `canonical-mcp-install-parity-delivery`
 - **Received:** 2026-11-05
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Ready
+- **Ready confirmed:** 2026-11-05 by eugenelim, lifecycle owner. Bound to the file as committed in `a96a878c4`, which an independent delivery-brief review returned `Clean` with no open Ready gap. Slice membership and status are the Spec map's; this line does not restate them.
 - **Source / provenance:** [`FEAT-0021-canonical-mcp-install-parity.md`](../intents/FEAT-0021-canonical-mcp-install-parity.md), under [RFC-0092](../../rfc/0092-first-class-distribution-routes.md) and the [distribution-routes programme](distribution-routes-programme.md), Phase 1B
 - **Parent intent:** intent:canonical-mcp-install-parity
 

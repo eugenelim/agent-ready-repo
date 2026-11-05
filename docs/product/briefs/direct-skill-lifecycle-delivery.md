@@ -3,7 +3,8 @@
 - **Slug:** `direct-skill-lifecycle-delivery`
 - **Received:** 2026-11-05
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Ready
+- **Ready confirmed:** 2026-11-05 by eugenelim, lifecycle owner. Bound to the file as committed in `a96a878c4`, which an independent delivery-brief review returned `Clean` with no open Ready gap. Slice membership and status are the Spec map's; this line does not restate them.
 - **Source / provenance:** [`direct-skill-lifecycle`](../intents/direct-skill-lifecycle.md) and the follow-ons recorded in [`docs/specs/direct-skill-lifecycle/spec.md`](../../specs/direct-skill-lifecycle/spec.md)
 - **Parent intent:** intent:direct-skill-lifecycle
 

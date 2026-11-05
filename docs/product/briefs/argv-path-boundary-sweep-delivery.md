@@ -35,7 +35,7 @@ Measured 2026-11-05 by running the rule with its `paths` ratchet removed, over `
 - Non-waivable: no behaviour change for valid input. A converted script refuses only paths outside its declared root.
 - Landing in `packs/**` carries a pack version bump per `packs/AGENTS.md`.
 - Exemptions: a site classified `already-bounded` or `operator-root` carries a `nosemgrep` comment in the form `tools/lint-nosemgrep-form.py` accepts, with the reason; or its file stays out of the rule's `paths.include`. Slice 1 picks one and records it. "Reports 0" in later slices means zero unexempted matches.
-- Slice 5 edits `packages/agentbundle/`, so its commit needs an `Engine-Change-RFC:` trailer, conventionally `n/a - <justification>` when no RFC governs it (`tools/AGENTS.md`), and a package version bump in both `version.py` and `pyproject.toml` (`packages/AGENTS.md`).
+- Slice 5 edits `packages/agentbundle/`, so its commit needs an `Engine-Change-RFC:` trailer, conventionally `n/a - <justification>` when no RFC governs it (`tools/AGENTS.md`). Slices 4 and 5 edit packages (`packages/jsonl-otlp-exporter`, `packages/agentbundle`), so each also bumps that package's version in both `version.py` and `pyproject.toml` (`packages/AGENTS.md`).
 - Slices 2 to 4 edit packs, so each updates that pack's eval harness (`packs/AGENTS.md`).
 - `packages/agentbundle` ships as a published CLI, so slice 5 is in scope and not optional.
 - Appetite: five slices; slice 3 is the large one.
