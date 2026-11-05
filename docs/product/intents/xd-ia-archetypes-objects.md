@@ -3,6 +3,7 @@
 - **Slug:** `xd-ia-archetypes-objects` <!-- canonical identity; independent of any filename ordinal -->
 - **Status:** Accepted
 - **Accepted:** 2026-10-01 by eugenelim, lifecycle owner. Revision `c8eb6d0cb3c1cede` returned zero `MALFORMED` tokens in an independent intent-mode shaping review, and a fresh adversarial intent read returned no material open question or replacement validation hook. The feature-level assumption survived its predeclared kill condition, and the remaining work stays one feature projected to one spec and plan.
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The observed-state table's line-range citation into `frontend-engineering/SKILL.md` was replaced by the section name, because the range no longer locates the 12-field template. Opportunity, outcome, boundary, assumptions, altitude and projection are unchanged, and a re-check on 2026-11-04 found the same state: no `page-archetypes.md`, no spec for this intent. Prior review evidence stands.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -102,7 +103,7 @@ evidence. This is an observation on a date, not a status field.
 | Requirement | Observed | Check |
 | --- | --- | --- |
 | `references/page-archetypes.md` with ≥12 surface types | not started, but the starting structure changed | no file of that name exists. `information-architecture` now routes seven surface genres, but genre method is a broader axis than the twelve or more page archetypes this outcome requires. Four contract copies still reference the missing taxonomy |
-| per-archetype field set | partial, wrong pack and wrong axis | the field set ships as a **per-screen** contract in `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md:368-386` (12 fields). No archetype axis, no navigation-behavior field, nothing equivalent in `packs/experience-design` |
+| per-archetype field set | partial, wrong pack and wrong axis | the field set ships as a **per-screen** contract in `packs/frontend-engineering/.apm/skills/frontend-engineering/SKILL.md`, Step 0 "Page/screen contract template (12 fields)". No archetype axis, no navigation-behavior field, nothing equivalent in `packs/experience-design` |
 | product-object mapping, attention contract, permission contract in the relevant skills | partial, template only | the three headings exist in the contract template copies. In XD skill bodies: `product object` → 0 hits, `attention contract` → 0, `permission contract` → 0 |
 | deliver M3c after M3a, before M3d | ready to shape | M3a and the later genre consolidation are Shipped; no spec exists for this intent, and M3d still depends on it |
 

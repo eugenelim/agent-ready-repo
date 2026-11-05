@@ -236,11 +236,10 @@ treatment: an RFC/release/decision anchor can retain a family, while initiative
 membership alone retains nothing. Do not create a permanent initiative shell,
 shipped-spec list, third room, receipt store, or lifecycle schema.
 
-`workspace.toml` is a terse live coordination index. When this workflow materially
-updates an entry, retain minimal provenance, one short present-state or next-needed
-summary, and hard dependencies only. Put rationale, chronology, procedures,
-findings, and closeout evidence in their semantic artifacts. Settle coordination
-separately from artifact treatment.
+Lifecycle lives in each artifact's `Status:` header, and nothing is registered
+in `workspace.toml`. Put rationale, chronology, procedures, findings, and
+closeout evidence in their semantic artifacts. Settle coordination separately
+from artifact treatment.
 
 Tests remain residual executable proof of capability. They do not replace product
 intent, rationale, human promises, ownership boundaries, or non-executable

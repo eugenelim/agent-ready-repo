@@ -63,7 +63,7 @@ _COMPLETION_RECEIPT_OUTCOMES = frozenset({"completed", "abandoned", "superseded"
 
 
 _FINDING_NEXT_ACTIONS = {
-    "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
+    "invalid_workspace": "Correct workspace.toml, then run `dispatch.py` again.",
     "unmigrated_workspace": (
         "Run workspace-status repair-plan, then repair-apply, to move the remaining "
         "workspace.toml entries onto their artifacts; rewrite or remove by hand any entry "
@@ -71,9 +71,9 @@ _FINDING_NEXT_ACTIONS = {
     ),
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
-    "unreadable_artifact": "Restore readable repository state, then rerun reconciliation.",
+    "unreadable_artifact": "Restore readable repository state, then run `dispatch.py` again.",
     "invalid_captured_item": (
-        "Fix the named field of that captured-item file, then rerun reconciliation."
+        "Fix the named field of that captured-item file, then run `dispatch.py` again."
     ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
@@ -100,7 +100,7 @@ _FINDING_NEXT_ACTIONS = {
         "Replace it with a valid reviewed completion receipt for that dependency."
     ),
     "invalid_source_authority": (
-        "Correct the closed source-authority block, then rerun reconciliation."
+        "Correct the closed source-authority block, then run `dispatch.py` again."
     ),
     "source_authority_migration_required": (
         "Add the reviewed source-authority block before using refresh."

@@ -1,8 +1,7 @@
-# Maintaining work intake, refresh, and legacy migration
+# Maintaining work intake and refresh
 
 This reference is for catalogue maintainers changing an intake adapter, the
-shared router, workspace reconciliation, refresh, or the temporary compatibility
-reader. The public behavior is one pipeline; each component owns a narrow part.
+shared router, dispatch, refresh, or the `workspace-status` repair. The public behavior is one pipeline; each component owns a narrow part.
 
 ## Responsibility map
 
@@ -10,29 +9,28 @@ reader. The public behavior is one pipeline; each component owns a narrow part.
 | --- | --- | --- |
 | Source adapter | Bounded acquisition, provenance, profile-version hints, strict normalization | Artifact classification, repository writes, authorization |
 | Upstream shaping producer | Bounded handoff content after its confirmed delivery gate; capability-negotiated portable fallback | Core imports, destination self-certification, lifecycle or delivery approval |
-| `work-intake` | Neutral classification, artifact-before-registration sequencing, processor selection | Intent or brief authoring, tracker vocabulary, source credentials, legacy conversion |
+| `work-intake` | Neutral classification, artifact-before-dispatch sequencing, processor selection | Intent or brief authoring, tracker vocabulary, source credentials, legacy conversion |
 | `intake-intent` | Minimum repository-intent creation and admission | Product-level shaping, brief lifecycle, downstream implementation |
 | `author-delivery-brief` | Draft creation, Ready review, confirmed spec slices, and the six-state brief lifecycle contract | Neutral classification, implementation, governance-reference rollups, terminal closeout |
 | Handoff admission | Closed-field validation, source/revision consistency, exact resolver-result reuse, stable zero-effect disposition | Raw source storage, external acquisition, new artifact/lifecycle kinds |
 | Semantic-surface resolver | Six-step destination precedence, mandatory-policy rejection, locator confinement, complete read-only result | Candidate acquisition, artifact applicability, authoring method, lifecycle effects |
 | Architect / governance owner | Role selection and the existing architecture or ADR method after resolution | Reimplementing precedence, coercing external locators, routing architecture into product prose |
-| Canonical artifact | Requirements, decisions, acceptance state, tracker-origin authority block | Workspace membership |
-| `workspace.toml` | Artifact path/kind, lifecycle membership, source mirror, display summary, hard dependencies | Requirements or comment-backed routing |
+| Canonical artifact | Requirements, decisions, acceptance state, `Status:` and `Depends on:` headers, tracker-origin authority block | A second record of its own lifecycle |
+| `workspace.toml` | Leftover entries awaiting `repair-plan` and `repair-apply` | Requirements, new entries, or comment-backed routing |
 | Processor | The artifact-specific workflow selected by the route | Reclassifying the source from tracker object names |
 | Refresh processor | Exact-profile acquire/map/compare and declared local or remote coordination capability | Reusing intake authorization or bypassing lifecycle locks |
-| `workspace-status` | Read-only status, reconciliation, migration planning, authorized ledger/apply/rollback | Authoring artifacts or human route/authorization inputs |
+| `workspace-status` | `repair-plan` and `repair-apply` for leftover `workspace.toml` entries | Status reporting, authoring artifacts, or human route/authorization inputs |
+| `dispatch.py` (`work-loop`) | Ready, active, and blocked specs from `Status:` and `Depends on:`; `--captured` listing | Writes |
 | `close-work` | Explicit `Shipped`, `Withdrawn`, or `Cancelled` brief closeout after durable-context verification | Inferring completion from child rollup or rewriting child statuses |
 
-Target workspace entries conform to
-`contracts/jsonschema/workspace-entry.schema.json` and contain exactly `path`,
-`kind`, `source`, `summary`, and `needs`. Comments, summaries, order, tracker
-labels, and profile hints are non-semantic. Only a uniquely registered Approved
-spec with an existing sibling plan can enter `canonical.ready`; only a valid
-registered active spec can enter `canonical.active`.
+Readiness comes from the artifact headers. Only an Approved spec with an
+existing sibling plan is ready, and only a spec whose `Status:` is
+`Implementing` is active. `workspace.toml` entries that remain are repair input:
+comments, summaries, order, tracker labels, and profile hints are non-semantic.
 
 ## Maintaining brief lifecycle state
 
-A repo-origin brief's lifecycle is its `Status:` alone and it has no entry. Keep a tracker-origin brief's header and its entry's collection identical. Reconcile
+A brief's lifecycle is its `Status:` alone, repo-origin or tracker-origin, and it has no entry. Reconcile
 child progress with this closed matrix:
 
 | Brief state | Required child evidence |
@@ -47,9 +45,8 @@ move an open brief back to `Ready` after a child ships. An all-shipped current
 map remains `Executing` until the outcome owner confirms there are no remaining
 unmaterialized slices and `close-work` performs the terminal update.
 
-For a repair, change the brief header and move the complete structured workspace
-entry in one reviewed change. Preserve the entry fields, child spec statuses,
-and source authority. Rerun canonical reconciliation and
+For a repair, change the brief header in one reviewed change. Preserve the child
+spec statuses and source authority. Rerun `dispatch.py` and
 `lint-brief-coverage.py`; never edit Spec-map status cells to make the checks
 pass.
 
@@ -102,7 +99,7 @@ target, profile, and payload digest.
 
 ## Authority and refresh
 
-Workspace source mode is closed to `repo-origin` or `tracker-origin`.
+Source mode is closed to `repo-origin` or `tracker-origin`.
 Tracker-origin artifacts carry exactly one closed `source-authority.v1` block.
 Its field ownership map assigns each field to `source` or `local`, while
 compared/accepted revisions, decisions, conflicts, and receipts make changes
@@ -114,33 +111,27 @@ Withdrawn, and Cancelled must each remain represented in the versioned
 evaluation matrix. Local field decisions and remote coordination are separate
 effects and separate evidence.
 
-## Reconciliation findings
+## Dispatch findings
 
-Finding codes are public behavior. Add or change one only with its stable safe
+Dispatch finding codes are public behavior. Add or change one only with its stable safe
 next action, CLI projection, tests, guide reference, and evaluation result.
-Reconciliation fails closed for malformed or duplicate entries, missing
-artifacts/plans, invalid transitions or provenance, unresolved refresh state,
-dependency failures, inactive initiatives, and configuration mismatches.
-Ordinary reconciliation no longer accepts former legacy shapes as compatibility
-entries; they surface as `unsupported_legacy` and remain non-dispatchable.
-Unknown or private shapes also return a manual-routing finding without mutation.
+Dispatch fails closed for malformed headers, missing plans, invalid
+transitions or provenance, unresolved refresh state, and dependency failures.
+It refuses with `unmigrated_workspace` while a `workspace.toml` entry remains,
+and a former legacy shape surfaces as `unsupported_legacy`; both stay
+non-dispatchable and point to `repair-plan`. Unknown or private shapes also
+return a manual-routing finding without mutation.
 
-## Migration transaction
+## Repair
 
-Migration planning consumes one reviewed, human-authored
-`work-intake-migration-selection.v1` file and is read-only. The tool reports
-observed candidates; it never chooses a route or creates, edits, prefills, or
-suggests substantive selection values. Apply and rollback each consume a fresh,
-single-use, human-authored `work-intake-migration-confirmation.v1` file whose
-role is allowed by repository `[authorization.migration]` policy.
-
-The repository-root `.workspace-migrations.json` ledger is written before the
-workspace effect. Operations move through `pending`, `applied`,
-`rollback_pending`, and `rolled_back`; confirmation receipts are consumed before
-their effect. All migration effects share `.workspace-repair.lock`, recheck
-fingerprints inside the lock, preserve exact legacy TOML slices, and leave
-canonical artifacts untouched. Recovery resolves a durable pending state; it
-does not guess after a fingerprint conflict.
+`workspace-status` runs `repair-plan` and `repair-apply`. `repair-plan` is
+read-only apart from its plan file. `repair-apply` needs explicit confirmation
+and rechecks each operation before it writes. Each operation moves a fact onto
+its artifact and drops the entry; `references/mutate.md` in the skill owns the
+shapes. An adopter with a recorded migration operation
+finishes or rolls it back on the old version first, as the
+[upgrade guide](../../../guides/core/how-to/upgrade-from-a-workspace-registry.md)
+says.
 
 ## Release discipline
 
@@ -153,16 +144,8 @@ for at least two minor Core releases and 90 days, whichever is later. Removal
 requires advance notice and a named Approver decision at the first eligible
 release.
 
-Ordinary reconciliation no longer accepts former legacy workspace shapes;
-adopters rewrite former legacy entries in canonical form by hand. The explicit
-migration tooling (`repair-plan --migration-selection`, `repair-apply`,
-`repair-rollback`) is retained only for recovering or rolling back an operation
-already recorded in `.workspace-migrations.json`.
-
-Rolling back the Core 3.0.0 removal returns to the immediately preceding
-dual-reader release and uses the current ledger-backed rollback operation to
-restore the exact legacy workspace representation. It never deletes a canonical
-artifact or migration evidence.
+Dispatch no longer accepts former legacy workspace shapes; adopters rewrite
+them in canonical form by hand, then run `repair-plan`.
 
 ## Evaluation and release checklist
 
@@ -176,8 +159,8 @@ When any component changes:
    two terminated brief states.
 3. Run the integrated evaluator in two independent clean roots and require
    byte-identical normalized results and next actions.
-4. Run workspace-status migration planning/effect/CLI tests, including rollback
-   and failure seams.
+4. Run the `workspace-status` repair planning, apply, and CLI tests, including
+   failure seams.
 5. Update the owning pack and plugin versions together, add user-facing release
    notes, then regenerate self-hosted projections and marketplace metadata.
 6. Build marketing before docs, audit emitted links, and inspect generated

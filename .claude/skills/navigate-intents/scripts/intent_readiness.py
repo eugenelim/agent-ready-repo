@@ -59,7 +59,7 @@ _STRIP = b" \t\n\r"
 # compares this copy with that table.  A finding whose code and sentence
 # are not a pair here is shown as inert text under a generic label.
 _KNOWN_FINDINGS: dict[str, str] = {
-    "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
+    "invalid_workspace": "Correct workspace.toml, then run `dispatch.py` again.",
     "unmigrated_workspace": (
         "Run workspace-status repair-plan, then repair-apply, to move the remaining "
         "workspace.toml entries onto their artifacts; rewrite or remove by hand any entry "
@@ -67,9 +67,9 @@ _KNOWN_FINDINGS: dict[str, str] = {
     ),
     "invalid_artifact_path": "Replace it with a confined canonical repository-relative path.",
     "missing_artifact": "Create and review the canonical artifact before dispatch.",
-    "unreadable_artifact": "Restore readable repository state, then rerun reconciliation.",
+    "unreadable_artifact": "Restore readable repository state, then run `dispatch.py` again.",
     "invalid_captured_item": (
-        "Fix the named field of that captured-item file, then rerun reconciliation."
+        "Fix the named field of that captured-item file, then run `dispatch.py` again."
     ),
     "missing_plan": "Create and approve the plan before dispatch.",
     "unapproved_spec": "Complete the spec approval gate.",
@@ -92,7 +92,7 @@ _KNOWN_FINDINGS: dict[str, str] = {
         "Replace it with a valid reviewed completion receipt for that dependency."
     ),
     "invalid_source_authority": (
-        "Correct the closed source-authority block, then rerun reconciliation."
+        "Correct the closed source-authority block, then run `dispatch.py` again."
     ),
     "source_authority_migration_required": (
         "Add the reviewed source-authority block before using refresh."

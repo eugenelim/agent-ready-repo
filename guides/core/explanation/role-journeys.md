@@ -11,7 +11,7 @@ How the three primary personas — PM (and strategist), engineer, and AI agent �
 
 ## First install and orientation
 
-If you are new to this coordination system, start with the [Your first workspace](../tutorials/your-first-workspace.md) tutorial — it walks you through arriving at a repo that uses `workspace.toml`, running `workspace-status`, reading the queue, and completing your first agent session. To orient at any subsequent session start, the [orient at session start](../how-to/orient-at-session-start.md) how-to gives you the repeatable recipe. The [two-room model](two-room-model.md) explains why shaping work (deciding what to build) and build work (building it) live in separate rooms — that separation is the architectural premise behind every section below.
+If you are new to this coordination system, start with the [Your first workspace](../tutorials/your-first-workspace.md) tutorial — it walks you through arriving at a repo, asking what is ready, reading the answer, and completing your first agent session. To orient at any subsequent session start, the [orient at session start](../how-to/orient-at-session-start.md) how-to gives you the repeatable recipe. The [two-room model](two-room-model.md) explains why shaping work (deciding what to build) and build work (building it) live in separate rooms — that separation is the architectural premise behind every section below.
 
 This guide picks up after first install. It explains how each persona fits into the system at their altitude, what their primary touchpoints are, and where to go next.
 
@@ -27,7 +27,7 @@ The workspace coordination system treats strategic direction as a committed arti
 
 ### Altitude 1: Shaping
 
-A product engineer (PE) works in the shaping room, moving a signal through the shaping sequence: `frame-situation` classifies the signal and produces a typed situation finding; `identify-opportunities` surfaces the JTBD structure (functional, emotional, and social jobs); `diverge-solutions` generates structured comparable options; `intent de-risk` identifies the riskiest assumption and suggests a prototype approach; the PE validates through research, user contact, or internal review; `place-bet` commits a betting table with rationale and accepted risks; `map-capabilities` maps all capability areas the initiative touches, and the longer route continues into `intent decompose`. Each step produces a committed artifact in `docs/product/shaping/` that survives the session — when the shaping chain is complete, `author-delivery-brief` owns the delivery brief that enters `[brief_queue].draft`.
+A product engineer (PE) works in the shaping room, moving a signal through the shaping sequence: `frame-situation` classifies the signal and produces a typed situation finding; `identify-opportunities` surfaces the JTBD structure (functional, emotional, and social jobs); `diverge-solutions` generates structured comparable options; `intent de-risk` identifies the riskiest assumption and suggests a prototype approach; the PE validates through research, user contact, or internal review; `place-bet` commits a betting table with rationale and accepted risks; `map-capabilities` maps all capability areas the initiative touches, and the longer route continues into `intent decompose`. Each step produces a committed artifact in `docs/product/shaping/` that survives the session — when the shaping chain is complete, `author-delivery-brief` owns the delivery brief.
 
 The reason the chain of committed artifacts matters: when an engineer or agent picks up the spec six weeks later, they can trace the bet back to the original signal without asking anyone. The shaping chain is the provenance of the brief.
 
@@ -35,7 +35,7 @@ Before a signal enters this sequence, it is made durable. The [work intake](../h
 
 ### Tracker intake
 
-A PM who lives in a tracker takes a shorter path to a Draft brief. There is no generic intake skill — each tracker ships its own: `jira-brief-intake` and `jira-align-brief-intake` (the `atlassian` pack), `linear-brief-intake` (`linear`), and `github-brief-intake` (`github`). Each acquires the source read-only, maps its metadata to DoR fields, and prompts interactively for anything the tracker does not capture (Appetite, Rabbit holes, Instrumentation). The brief is written as a Draft, with an entry in `[brief_queue].draft` because it is tracker-origin, and an `Epic:` back-link to the originating tracker issue. When the spec ships, "Fixes #NNN" in the PR body auto-closes the issue. The PM does not need to leave their tracker — the platform adapts to the tracker, not the other way around.
+A PM who lives in a tracker takes a shorter path to a Draft brief. There is no generic intake skill — each tracker ships its own: `jira-brief-intake` and `jira-align-brief-intake` (the `atlassian` pack), `linear-brief-intake` (`linear`), and `github-brief-intake` (`github`). Each acquires the source read-only, maps its metadata to DoR fields, and prompts interactively for anything the tracker does not capture (Appetite, Rabbit holes, Instrumentation). The brief is written as a Draft, carrying its tracker profile in a `source-authority` record because it is tracker-origin, and an `Epic:` back-link to the originating tracker issue. When the spec ships, "Fixes #NNN" in the PR body auto-closes the issue. The PM does not need to leave their tracker — the platform adapts to the tracker, not the other way around.
 
 All three paths converge here: a Ready brief. From there, `author-delivery-brief continue` decomposes confirmed slices into specs, each its own file with no registry entry, for an engineer or agent to execute.
 
@@ -48,11 +48,11 @@ All three paths converge here: a Ready brief. From there, `author-delivery-brief
 
 ## Engineer
 
-An engineer using this coordination system works primarily at altitude 2 — the build room — running the work-loop on specs drawn from the initiative queue. The altitude-2 touchpoints are session orientation, spec execution, and ship write-back.
+An engineer using this coordination system works primarily at altitude 2 — the build room — running the work-loop on specs that are ready. The altitude-2 touchpoints are session orientation, spec execution, and ship write-back.
 
 ### Session orientation
 
-At the start of every session, the engineer runs `workspace-status`. It reads `workspace.toml`, resolves the dependency DAG across all queues, and surfaces in one command: the active initiative, ready specs in priority order, blocked items with their blocking reasons, and parallel candidates — specs whose dependencies are all satisfied and which can therefore proceed concurrently. Running `workspace-status` before touching any code is what distinguishes coordinated work from ad-hoc work: the queue state in `workspace.toml` is the source of truth, and a stale local mental model is the largest single source of coordination waste on multi-person or multi-agent teams.
+At the start of every session, the engineer asks what is ready, and the agent runs `work-loop`'s `dispatch.py`. It reads each spec's `Status:` and `Depends on:` headers and surfaces in one command: ready specs, active specs, blocked specs with their blocking findings, and a decision on what to do next. Several ready specs are parallel candidates, since their dependencies are all satisfied. Running `dispatch.py` before touching any code is what distinguishes coordinated work from ad-hoc work: the spec headers are the source of truth, and a stale local mental model is the largest single source of coordination waste on multi-person or multi-agent teams.
 
 ### The work-loop
 
@@ -62,9 +62,9 @@ The [plan and execute non-trivial work](../how-to/plan-and-execute-non-trivial-w
 
 ### Initiative path vs. ad-hoc path
 
-The initiative path and the ad-hoc path differ at session start and at ship. On the initiative path, the engineer orients via `workspace-status`, invokes `work-loop` with the spec slug, and on ship the spec transitions `active → shipped` in `workspace.toml` — the next engineer or agent starting a session sees the correct queue state immediately. On the ad-hoc path, the engineer picks a task from memory, a ticket, or a team discussion; `work-loop` reads the spec in isolation; no queue state is updated on ship.
+The initiative path and the ad-hoc path differ at session start and at ship. On the initiative path, the engineer orients via `dispatch.py`, invokes `work-loop` with the spec slug, and on ship the spec's `Status:` becomes `Shipped` — the next engineer or agent starting a session sees the correct state immediately. On the ad-hoc path, the engineer picks a task from memory, a ticket, or a team discussion; `work-loop` reads the spec in isolation; no spec header is updated on ship.
 
-The initiative path is the right default whenever the spec belongs to an initiative queue — the coordination overhead is near-zero and the write-back makes the team's queue state reliable for everyone who comes next. The ad-hoc path is appropriate for genuinely standalone tasks that would not belong in a brief.
+The initiative path is the right default whenever the spec lives under `docs/specs/` — the coordination overhead is near-zero and the `Status:` write-back makes the team's state reliable for everyone who comes next. The ad-hoc path is appropriate for genuinely standalone tasks that would not belong in a brief.
 
 **Source journey maps:**
 [engineer-adopts-coordination](../../../docs/product/journeys/engineer-adopts-coordination.md) ·
@@ -78,7 +78,7 @@ An AI agent using this coordination system works at altitude 2 — autonomously,
 
 ### Cold-start orientation
 
-When a headless agent starts a session, its first action is `workspace-status`. This is cold-start orientation: no context from a prior session, no human to ask "what should I work on?" The command reads `workspace.toml`, resolves the DAG, and surfaces the active initiative and the next ready spec in one step. If a spec is already in `[work].active`, the agent confirms its position and begins. If nothing is in `active`, the agent picks the first unblocked item from `[work].queue` and claims it before starting. The committed state in `workspace.toml` is what makes autonomous session handoff work — each agent exits having written back its progress, so the next agent can orient in a single command without reading any prior session's context.
+When a headless agent starts a session, its first action is `dispatch.py`. This is cold-start orientation: no context from a prior session, no human to ask "what should I work on?" The command reads each spec's headers and surfaces the next ready spec in one step. If a spec is `Implementing`, the agent resumes it. If nothing is active and one spec is ready, the agent starts it; if several are, it asks. The committed `Status:` and `Depends on:` headers are what make autonomous session handoff work — each agent exits having written back its progress, so the next agent can orient in a single command without reading any prior session's context.
 
 ### Headless execution
 
@@ -88,13 +88,13 @@ The distinction between the agent's loop and the engineer's loop is not capabili
 
 ### The ship signal
 
-When the spec is done, the agent submits a PR and sets the spec's `Status:` to `Shipped`. The ship signal is the committed write-back — not the PR submission itself, but the `Status:` header in the spec. This is what allows the next agent (or the engineer reviewing the session) to see what shipped without reading any prior session's context. `workspace-status` run at the start of the next session will show the shipped spec and surface whatever comes next.
+When the spec is done, the agent submits a PR and sets the spec's `Status:` to `Shipped`. The ship signal is the committed write-back — not the PR submission itself, but the `Status:` header in the spec. This is what allows the next agent (or the engineer reviewing the session) to see what shipped without reading any prior session's context. `dispatch.py` run at the start of the next session will show what comes next.
 
 ### Harness-controlled sessions
 
 The cold-start orientation and gate-surface behaviour described above become machine-readable when workspace-mcp is injected into the session. workspace-mcp is the per-session MCP server the `core` pack ships for control-harness use: `workspace_status()` returns a structured response — not prose — that a harness can parse directly. The `ready[]` array lists items the harness can dispatch. Gates arrive as `elicitation/create` requests from the agent — the harness routes the question to a human channel and returns the answer. `gate_pending` and `gate_question` are readable from a separate spec-bound reconciliation session but are not a push signal.
 
-The harness reads the queue, dispatches an item, monitors for gates, routes gate questions to a human channel, and resumes the session with the answer — all without a human watching each turn. The work-loop runs the same gates; the harness answers them instead of a person at a keyboard.
+The harness reads the ready list, dispatches an item, monitors for gates, routes gate questions to a human channel, and resumes the session with the answer — all without a human watching each turn. The work-loop runs the same gates; the harness answers them instead of a person at a keyboard.
 
 → [Run a headless session with workspace-mcp](../how-to/run-headless-session.md) — the end-to-end recipe.
 

@@ -15,7 +15,7 @@ AgentBundle emits a native Codex plugin package and marketplace manifest from th
 
 ## Opportunity
 
-Codex has a documented native plugin ecosystem but the catalogue emits no native Codex package or marketplace, while the Claude publication workflow starts on every push to main.
+Codex has a documented native plugin ecosystem but the catalogue emits no native Codex package or marketplace, while the Claude publication workflow starts on a push to main whose changed paths match its published-pack allowlist.
 
 ## Boundary
 

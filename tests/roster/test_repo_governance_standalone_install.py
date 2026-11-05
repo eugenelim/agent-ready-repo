@@ -74,7 +74,7 @@ def test_core_integrations_carry_consumer_provider_and_fallback():
     core = {i["id"]: i for i in integrations if i["pack"] == "core"}
     expected = {
         "decision-weight-triggers": ["skill:work-loop"],
-        "follow-on-queue-registration": ["skill:work-intake", "skill:workspace-status"],
+        "follow-on-queue-registration": ["skill:work-intake"],
         "rfc-review": ["agent:adversarial-reviewer", "agent:security-reviewer"],
     }
     for ident, providers in expected.items():

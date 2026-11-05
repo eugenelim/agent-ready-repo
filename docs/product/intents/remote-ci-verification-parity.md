@@ -5,6 +5,7 @@
 - **Level:** feature
 - **Owner:** eugenelim
 - **Outcome co-owner:** intent:native-platform-verification-coverage
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The Decomposition and the "Slice 1 is smaller than its description implies" paragraph describe dispatch reach as future work. In the tree today `build-check.yml` and `pages.yml` declare `workflow_dispatch`, and `test-corpus.yml`, `test-roster.yml` and `pack-javascript.yml` are dispatch-reachable lanes. The Python corpus has a lane, so "no job runs it" no longer holds. No completion claim, native macOS lane, dispatchable native Windows contract or full composition exists, so Outcome, Boundary and Projection are unchanged and the intent stays `Accepted` and unfulfilled. The spec `docs/specs/remote-gate-dispatch/`, which `tools/lint-ci-parity.py` and `test-corpus.yml` cite, is absent from `docs/specs/`, so the delivered map cannot be read from it.
 
 ## Outcome
 

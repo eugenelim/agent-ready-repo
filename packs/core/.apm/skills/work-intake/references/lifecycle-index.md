@@ -1,26 +1,23 @@
-# The workspace lifecycle index
+# Artifact lifecycle
 
 Use `work-intake` as the front door for starting, remembering, inspecting, or
 refreshing repository work. It classifies content by delivery role. Source
 labels such as PRD, Feature, Story, Project, Issue, board, or Milestone are
 hints; they do not select an intent, brief, spec, or defect route.
 
-Canonical artifacts own requirements and decisions. `workspace.toml` is their
-lifecycle index, not a second requirements store. A target entry contains
-exactly `path`, `kind`, `source`, `summary`, and `needs`. Comments, summaries,
-list order, tracker labels, and profile hints are non-semantic: they cannot
-select a route, satisfy a dependency, choose a processor, or authorize
-dispatch. Only an existing Approved `spec.md` with an existing sibling
-`plan.md` and valid unique workspace membership may start from the queue.
+Canonical artifacts own requirements, decisions and lifecycle: each carries its
+own `Status:` and `Depends on:` headers, and nothing is registered anywhere
+else. Comments, summaries, list order, tracker labels, and profile hints are
+non-semantic: they cannot select a route, satisfy a dependency, choose a
+processor, or authorize dispatch. Only an existing Approved `spec.md` with an
+existing sibling `plan.md` and satisfied dependencies may start, and
+`work-loop`'s `dispatch.py` decides that from the headers.
 
-Workspace prose stays terse and present-tense. A generated or materially
-updated entry carries minimal provenance, one short summary of the current
-outcome or next-needed condition, and hard dependencies only. It must not carry
+Keep artifact prose terse and present-tense. A new or materially updated
+artifact carries minimal provenance, one short summary of the current outcome
+or next-needed condition, and hard dependencies only. It must not carry
 history, rationale, procedure, review transcript, raw finding, copied source
-text, soft priority, or suggested order in comments or adjacent fields. When
-that context matters, write it to the resolved canonical artifact first and
-index only the pointer. Settled live coordination is removed or compacted; it
-is not replaced with a workspace history.
+text, soft priority, or suggested order.
 
 Repository-origin artifacts are locally authoritative. Tracker-origin
 artifacts record source reference/revision and exactly one closed authority
@@ -30,17 +27,17 @@ remote coordination action are separate effects; the latter needs its own
 fresh exact confirmation.
 
 A remembered defect, design, or research item is written as its own file at
-`docs/product/captured/<slug>.md` and has no index entry. The file carries
+`docs/product/captured/<slug>.md` and registers nothing. The file carries
 `Status:`, `Kind:`, and the optional `Type:`, `Parent intent:`, and `Detail:`
 lines, a `Resolution:` line exactly when `Status:` is `Closed`, and its summary
 under `## Summary`. An optional `Priority:` line takes one of `urgent`, `high`,
 `medium`, `low`; an item with no line has no priority, and the field never
 decides readiness, dispatch, or order of work. A downstream item names the file
 in its own `Depends on:` header, and the dependency settles when the file is
-`Closed` with `Resolution: fixed`. An older captured item that still has an index
+`Closed` with `Resolution: fixed`. An older captured item that still has a `workspace.toml`
 entry keeps it until the item closes; closing it deletes the entry in the same
-change as the file's `Status:` edit. One registered at any other path is reported
-as unmigrated; `workspace-status repair-plan` moves it.
+change as the file's `Status:` edit. `workspace-status repair-plan` moves one
+registered at any other path.
 
 A `workspace.toml` that still holds an entry makes dispatch refuse with
 `unmigrated_workspace`. Run `workspace-status repair-plan`, then `repair-apply`,
@@ -51,5 +48,3 @@ prefill, or choose substantive route or authorization values for a human.
 Refresh reads its role policy from the `[authorization.refresh]` table of
 `.work-intake.toml` at the repository root, never from `workspace.toml`. The
 `workspace-status` `refresh-policy-move` repair moves an existing table there.
-
-New writers and workspace seeds emit only target structured entries.

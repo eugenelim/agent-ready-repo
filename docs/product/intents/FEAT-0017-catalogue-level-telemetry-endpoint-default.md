@@ -65,11 +65,11 @@ Three consequences have to be accepted or solved, and none is solved here.
   before `telemetry-sender-owns-its-configuration` was approved rather than after.
 - **The value can never be updated.** `_append_layout_section` is
   never-overwrite, so a section the adopter already has is left alone, and
-  `upgrade.py` does not call it — `install.py:1931` is its only caller. An
+  `upgrade.py` does not call it — `_run` in `install.py` is its only caller. An
   enterprise changing its endpoint reaches nobody who has already installed.
   Same shape as the `collect_pack_root_bins` gap in
   `loop-telemetry-export`'s Follow-ons: delivered once, never refreshed.
-- **It never fires at `local` scope** (`install.py:1907`), so an ephemeral
+- **It never fires at `local` scope** (`_run` skips marker and layout writes for local installs), so an ephemeral
   install gets no enterprise default.
 
 ### What the projection has to carry

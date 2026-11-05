@@ -12,13 +12,13 @@ The remaining argv-to-path boundaries use the repository validator before untrus
 
 ## Opportunity
 
-`docs/specs/pack-script-root-boundary-validation/spec.md:100` identifies roughly 68 remaining argv-to-path sites across `packs/` and `packages/agentbundle`.
+`docs/specs/pack-script-root-boundary-validation/spec.md` (Out of scope) identifies roughly 68 remaining argv-to-path sites across `packs/` and `packages/agentbundle`.
 
 ## What this absorbs
 
 ### pack-argv-path-boundary-sweep
 
-Apply the argv-to-path boundary validator to the remaining ~68 sites across the converters, atlassian, workspace-status, and receive-brief packs, and `packages/agentbundle`.
+Apply the argv-to-path boundary validator to the remaining ~68 sites across the converters and atlassian packs, the core pack's `workspace-status` and `receive-brief` skills, and `packages/agentbundle`.
 
 ## Assumptions
 

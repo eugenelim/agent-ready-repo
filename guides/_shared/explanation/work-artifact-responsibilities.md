@@ -1,18 +1,18 @@
 ---
-title: How source, artifacts, workspace state, and processors divide responsibility
-summary: Understand why work intake separates incoming evidence, durable requirements, lifecycle membership, and execution.
+title: How source, artifacts, and processors divide responsibility
+summary: Understand why work intake separates incoming evidence, durable requirements, lifecycle, and execution.
 pack: _shared
 kind: explanation
 ---
 
-# How source, artifacts, workspace state, and processors divide responsibility
+# How source, artifacts, and processors divide responsibility
 
 When you say, “Start work from this issue,” the useful result is not a copied
-ticket. It is a durable repository artifact, registered in the right lifecycle
+ticket. It is a durable repository artifact, in the right lifecycle
 state, with one named processor and a clear human decision where the route is
 not yet safe.
 
-Four records participate, and each has one job.
+Three records participate, and each has one job.
 
 ## Source content is evidence
 
@@ -30,7 +30,7 @@ Content, coherence, and shippability decide the route.
 
 An intent, brief, spec, or defect context holds the durable product or
 engineering meaning. Requirements, acceptance decisions, field ownership, and
-reviewed source decisions live there. A comment in `workspace.toml` cannot
+reviewed source decisions live there. A comment or a tracker summary cannot
 replace that artifact or supply missing requirements.
 
 For tracker-origin work, the artifact also carries the closed source-authority
@@ -39,44 +39,37 @@ source revision has been compared or accepted. Repo-origin artifacts remain
 locally authoritative; refresh reports projection drift instead of importing
 tracker requirements into them.
 
-## `workspace.toml` owns lifecycle membership
+## The artifact's header owns lifecycle
 
-The workspace is an index. Its five-field entries point to artifacts, record
-their lifecycle membership, preserve minimal provenance, and name hard
-dependencies. Summary text, comments, list order, and tracker vocabulary are
-display context only.
+The artifact's own `Status:` line records where it is in its lifecycle, and its
+`Depends on:` line names hard dependencies. Summary text, comments, list order,
+and tracker vocabulary are display context only. Nothing registers the artifact
+anywhere else.
 
 This separation makes dispatch checkable. A spec can run only when its
-canonical file exists, its sibling plan exists, its status is Approved, its
-membership is unique and compatible, and its dependencies are satisfied. A
-dependency can be a design artifact, such as a design doc from
-`architect-design`: the spec stays blocked until that design lands. The
-entry only orders the work and carries no content.
+canonical file exists, its sibling plan exists, its status is Approved, and its
+dependencies are satisfied. A dependency can be a design artifact, such as a
+design doc from `architect-design`: the spec stays blocked until that design
+lands. `dispatch.py` reads those headers and reports what is ready, active, or
+blocked.
 
 ## The processor owns the next operation
 
-After artifact creation and registration are durable, the selected processor
-may continue. `new-spec` authors one shippable contract, `author-delivery-brief create` drafts a
+After the artifact is durable, the selected processor may continue. `new-spec` authors one shippable contract, `author-delivery-brief create` drafts a
 coherent multi-spec outcome, `bug-fix` diagnoses a cited regression, and
-`workspace-status` reports or repairs workspace state. A processor cannot widen
+`work-loop`'s `dispatch.py` reports what is ready. A processor cannot widen
 its authority because tracker text, a comment, or an alias asked it to.
 
 The same boundary applies to refresh. The configured profile owns acquisition;
 the shared lifecycle evaluator owns whether local requirements may change; a
 separate fresh confirmation authorizes one exact remote coordination action.
 
-## Former legacy entries and migration recovery
+## Leftover registry entries
 
-Former legacy workspace entries surface as `unsupported_legacy` findings and
-are never dispatchable. Rewrite each one in canonical form by hand.
-
-The migration tooling — `repair-plan --migration-selection`, `repair-apply`,
-and `repair-rollback` — only recovers or rolls back an operation already
-recorded in `.workspace-migrations.json`. It preserves the exact legacy TOML
-slice in a durable ledger and restores that slice on rollback without deleting
-the canonical artifact. Apply and rollback each require a new current-session
-confirmation. The tooling can show candidates and bindings, but it cannot
-choose or author those human inputs.
+An older repository may still hold entries in `workspace.toml`. They own no
+lifecycle: `workspace-status` only plans and applies the repair that drops them,
+and the file stays. Dispatch refuses an entry in the legacy form with
+`unmigrated_workspace` until you edit it by hand.
 
 ## The practical rule
 
@@ -84,10 +77,9 @@ When records disagree, repair the record that owns the fact:
 
 - source evidence is reacquired or re-normalized;
 - requirements are corrected in the canonical artifact;
-- lifecycle membership is reconciled in `workspace.toml`;
-- processor configuration is corrected in its versioned profile;
-- migration history is read from `.workspace-migrations.json`.
+- lifecycle is corrected in the artifact's `Status:` and `Depends on:` lines;
+- processor configuration is corrected in its versioned profile.
 
 See [Work-intake routing and lifecycle](../reference/work-intake-routing-and-lifecycle.md)
-for the exact routes and [workspace.toml schema reference](../../core/reference/workspace-toml-schema.md)
-for the target and compatibility shapes.
+for the exact routes. To repair an older registry, see
+[Upgrade from a workspace.toml registry](../../core/how-to/upgrade-from-a-workspace-registry.md).

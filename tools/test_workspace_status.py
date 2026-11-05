@@ -271,7 +271,7 @@ def case_local_work_deps() -> None:
 # ── AC2d-active: work: dep on active item stays blocked until shipped ──────────
 
 def case_local_work_dep_blocked_by_active() -> None:
-    """workspace-toml-schema.md §needs: work:<path> resolves to [work].shipped only.
+    """A `needs: work:<path>` entry resolves to [work].shipped only.
 
     A queue entry whose prerequisite is in work.active is NOT yet satisfied —
     it stays blocked until the prerequisite moves to work.shipped.
@@ -1157,8 +1157,11 @@ _WL_FINISH_END = r'Conventional commit format'
 # Moved for repair-only-workspace-status T3: the shaping-item guard reads
 # `captured.items` from `dispatch.py --captured`, and the orientation block no
 # longer reads `workspace.toml` initiatives. Ownership is unchanged.
+# Moved for registry-upgrade-notes T5: Step 0 names a registry entry rather than
+# raw `[work].queue` membership, and a direct-light run is not resumable through
+# `dispatch.py`. The engine is not involved; ownership is unchanged.
 _WORK_LOOP_CONTRACT_HASH = (
-    "e5a3f9e7a7f07a1ab2083603587edd27580a6dbaafeb859ffb3af0eb0b3f7bca"
+    "a5f01881045d0e75eaa911a127c6a58f12f3b4e3d1b20f05498ecf1f2d995c2c"
 )
 # Reconciled for spec-registration-stop T2: the supplied-spec-path bullet no longer
 # names the retired `unregistered_work` finding; ownership is unchanged.

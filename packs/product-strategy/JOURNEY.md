@@ -19,7 +19,7 @@ contract:
     - approve-strategy-situation
     - approve-prfaq
     - approve-okr-cascade
-whatChanges: "After installing product-strategy, every initiative starts with a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market situation (PESTLE, Porter's, BCG, SWOT), altitude-0 direction (PRFAQ), OKR gap files for product-engineering shaping, and the UX and content strategy anchors the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` — the shared path downstream packs reference by name. The OKR cascade writes one captured-item file per gap under `docs/product/captured/`, where product engineers pick up strategy-driven shaping items via `workspace-status`."
+whatChanges: "After installing product-strategy, every initiative starts with a committed artifact set instead of planning-meeting notes. Nine skills span the full strategy layer: market situation (PESTLE, Porter's, BCG, SWOT), altitude-0 direction (PRFAQ), OKR gap files for product-engineering shaping, and the UX and content strategy anchors the experience-design pack reads from. Every artifact commits to `docs/product/shaping/` — the shared path downstream packs reference by name. The OKR cascade writes one captured-item file per gap under `docs/product/captured/`, where product engineers pick up strategy-driven shaping items via `work-loop`'s `dispatch.py --captured`."
 skills:
   - name: synthesize-stakeholder-research
     description: "Converts desk-research project outputs into a strategic narrative by theme — committed as stakeholder-synthesis.md. Surfaces a 'run desk-research project first' prompt if no research inputs are found."
@@ -85,9 +85,9 @@ humanGates:
       - "Are the gaps ranked — does the highest-weight OKR produce the highest-priority gap files?"
       - "Is each gap specific enough for frame-situation to scope into a shaping brief, or is it too vague to act on?"
       - "Are there OKR targets vague enough that the cascade missed important gaps — should any OKRs be tightened before the cascade completes?"
-    whatGoodLooksLike: "A set of 3–7 gap files that a product engineer could pick up from workspace-status and route directly into frame-situation — specific, ranked by OKR weight, and traceable to a named target."
+    whatGoodLooksLike: "A set of 3–7 gap files that a product engineer could pick up from `dispatch.py --captured` and route directly into frame-situation — specific, ranked by OKR weight, and traceable to a named target."
     whatBadLooksLike: "More than 10 gap files without priority ranking. Or gaps so broad that frame-situation would need to re-scope them from scratch before shaping could begin — a sign the OKR targets aren't specific enough."
-    consequence: "The cascade write is a shared state change — gap files appear in workspace-status and signal to product engineers what strategy-driven work to shape next. Approving vague or unranked gaps means the shaping list fills with work of unclear strategic priority."
+    consequence: "The cascade write is a shared state change — gap files appear in the captured list (`dispatch.py --captured`) and signal to product engineers what strategy-driven work to shape next. Approving vague or unranked gaps means the shaping list fills with work of unclear strategic priority."
 typicalSession:
   agentTurns: "8–20"
   humanTouches: 3
@@ -144,15 +144,15 @@ Type `write-prfaq` and describe the product concept; the agent drafts the press 
 ```text
 write-prfaq
 
-  Headline:  [Company] ships workspace.toml — product engineers who
-             coordinate AI agent work across sessions.
+  Headline:  [Company] ships status-carrying artifacts — product
+             engineers who coordinate AI agent work across sessions.
 
   Customer:  A solo engineer shipping a 3-person startup's backlog
              with AI coding agents.
   Problem:   Every session starts blind. The agent doesn't know
              what was decided, what's blocked, or what ships next.
-  Solution:  workspace.toml — a version-controlled queue the agent
-             reads at session start. One grep, full context.
+  Solution:  Artifacts that carry their own status, committed to
+             the repo. The agent reads them at session start.
 
   Approve the PRFAQ? ›
 ```
@@ -180,7 +180,7 @@ run-okr-cascade
 ```
 
 - **You decide:** approve the gap list — confirm each gap reflects an actual OKR delta, is ranked by OKR weight, and is specific enough for `frame-situation` to scope without re-scoping from scratch.
-- **Output:** `docs/product/shaping/okr-cascade.md` and one gap file per gap under `docs/product/captured/` — gaps product engineers pick up from `workspace-status`.
+- **Output:** `docs/product/shaping/okr-cascade.md` and one gap file per gap under `docs/product/captured/` — gaps product engineers pick up from `dispatch.py --captured`.
 - **State:** confirmed-write
 
 ---

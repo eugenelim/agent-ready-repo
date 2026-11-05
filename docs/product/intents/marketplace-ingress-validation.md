@@ -19,13 +19,13 @@ Marketplace ingress rejects invalid Git references and empty configured branch v
 
 ### marketplace-ref-not-git-ref-validated
 
-- `contracts/marketplace-entry.schema.json:90` declares `"ref": { "type": "string" }`; the adjacent `sha` property is likewise only a string.
+- `contracts/marketplace-entry.schema.json` declares `"ref": { "type": "string" }`; the adjacent `sha` property is likewise only a string.
 - Validate `ref` and `sha` as Git references on the `archive.py` and `verify.py --root` ingress path.
 - **BLOCKER:** The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC. This applies at commit time.
 
 ### catalogue-branch-empty-falls-back-to-upstream-constant
 
-- An empty `claude-plugin-branch` passes schema validation. At `packages/agentbundle/agentbundle/catalogue_tooling/build.py:106`, `if config and config.build.claude_plugin_branch:` means it does not replace `_DIST_BRANCH`.
+- An empty `claude-plugin-branch` passes schema validation. In `packages/agentbundle/agentbundle/catalogue_tooling/build.py`, `if config and config.build.claude_plugin_branch:` means it does not replace `_DIST_BRANCH`.
 - With unchanged upstream `pack.links.repository` values, a fork's install route therefore resolves upstream. An omitted key is rejected; an absent `catalogue.toml` separately uses hardcoded defaults.
 - Require a non-empty configured branch value so it cannot fall back to the upstream `claude-plugins-dist` constant.
 - **BLOCKER:** The fix changes protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC. This applies at commit time.

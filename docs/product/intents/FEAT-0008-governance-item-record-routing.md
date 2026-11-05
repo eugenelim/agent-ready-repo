@@ -2,13 +2,14 @@
 
 - **Slug:** `governance-item-record-routing` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The `Depends on:` comment now says what the header does today: intents hold no registry entry, so no dispatch edge enforces an intent's `Depends on:`. The text decides nothing new.
 - **Level:** `feature`
 - **Owner:** eugenelim
 - **Kind:** `opportunity`
 - **Scale:** `app`
 - **Maturity:** `brownfield`
 - **Parent intent:** capability:work-item-capture-and-disposition
-- **Depends on:** docs/product/intents/FEAT-0007-work-item-promotion-routing.md <!-- stated for a reader; the enforceable edge is a typed `needs` entry on the workspace registration, which does not exist yet -->
+- **Depends on:** docs/product/intents/FEAT-0007-work-item-promotion-routing.md <!-- stated for a reader; dispatch reads `Depends on:` on specs and briefs only -->
 - **Decomposed:** 2026-09-19 spec
 
 ## Outcome

@@ -95,11 +95,11 @@ This means the skill's behavior is consistent across any workspace that has the 
 The security review at this step runs the full OWASP AST01–AST10 check against the candidate.
 The operator is the last human gate before the skill lands: the raw body is always shown verbatim, and any code (hooks, scripts) requires explicit confirmation.
 
-### Workspace queue integration
+### Tracking assimilation work
 
-Survey and evaluation work lives in `[shaping_queue]` — it is shaping work, not build work.
-Once an RFC is accepted and a pack shell exists, individual primitive assimilations move to `[work].queue` as build tasks: one spec per primitive.
-Running `workspace-status` at session start surfaces the current assimilation queue without reading any other file.
+Survey and evaluation work is shaping work, not build work: write it as captured items under `docs/product/captured/`, each with a `Type:` line.
+Once an RFC is accepted and a pack shell exists, individual primitive assimilations become build tasks: one spec per primitive, each with its own `Status:`.
+Running `work-loop`'s `dispatch.py --captured` at session start lists the captured items and the specs that are ready, active or blocked, without reading any other file.
 Between sessions, a new agent or a colleague can pick up exactly where the previous session left off.
 
 ### Profile and publish

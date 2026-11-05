@@ -34,7 +34,7 @@ Key–value / one record — For a single record's fields, use an aligned key: v
 
 ## When to invoke
 
-Any return-to-a-named-research-project phrasing: *"where are we on the X research"*, *"status of the Y investigation"*, *"resume the Z project"*, *"what phase is the research in"*, *"where did we leave off on the research"*. Also useful at session start alongside `workspace-status` to orient to a sustained research thread.
+Any return-to-a-named-research-project phrasing: *"where are we on the X research"*, *"status of the Y investigation"*, *"resume the Z project"*, *"what phase is the research in"*, *"where did we leave off on the research"*. Also useful at session start alongside `work-loop`'s `dispatch.py` (what is ready, active or blocked) to orient to a sustained research thread.
 
 For a one-off lookup (no project), use `/desk-research` instead. For a saturation check, use `/desk-research-project-check`.
 
@@ -116,4 +116,4 @@ configured project and rendering its current frontmatter perform no capture, dis
 - Not `desk-research-project-digest` — it reads the current state; it does not build the synthesis matrix.
 - Not `desk-research-project-synthesize` — it reads the current state; it does not produce the brief.
 - Not `desk-research-project-check` — it reports the `stop_signal` value as stored; it does not evaluate saturation.
-- Not `workspace-status` — it gives the research-project slice only; `workspace-status` gives the full initiative queue picture.
+- Not `work-loop`'s `dispatch.py` — it gives what is ready, active or blocked across the repository, and `navigate-intents` `outstanding` gives work placed under an intent; this skill gives the research-project slice only.

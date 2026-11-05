@@ -14,6 +14,13 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.1
+
+The `catalogue self-host` excluded-pattern list and the catalogue lint's seed
+placeholder table no longer name `workspace.toml`, because the `core` pack no
+longer seeds it. Finding next actions name `dispatch.py` instead of saying
+"rerun reconciliation".
+
 ## What's new in 0.60.0
 
 The `workspace_status()` MCP tool reads the packaged header-only dispatch: items

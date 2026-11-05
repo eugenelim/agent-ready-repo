@@ -5,10 +5,10 @@
 Full-mode `work-loop` runs one request at a time. The
 [execution supervisor](work-loop-execution-supervisor.md) owns that procedure,
 and nothing in Core dispatches two tasks at once. This page states what keeps
-one run consistent today, what parallel work still waits on, and the plan-shape
+one run consistent, what parallel work still waits on, and the plan-shape
 facts that bound how much parallelism a plan could offer.
 
-## 1. Concurrency inside one run today
+## 1. Concurrency inside one run
 
 The supervisor is the only writer of procedure state
 ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D1). Four rules
@@ -21,8 +21,8 @@ keep one run consistent; each has one home.
 
 ### Retired mechanisms
 
-Where the earlier transition protocol, the cohort effect registry, and the
-wave-decision screen went is recorded once, in
+The transition protocol, the cohort effect registry, and the wave-decision
+screen are retired. Their replacements are recorded once, in
 [authority migration](work-loop-authority-migration.md) and
 [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md).
 
@@ -36,14 +36,16 @@ concurrent dispatch belongs to Slice 7 of the
 is the governing record. It admits two concurrent modes beside the
 `sequential` floor, `enforced-allowlist` and `complete-trace`. Each needs a
 host attestation, verified by the supervisor, of the attempt's isolation and
-every read it makes. Results land one at a time, in sequential order, through a
+every read it makes.
+
+Results land one at a time, in sequential order, through a
 pinned three-way apply. Any missing condition runs the task sequentially. The
 record supersedes ADR-0061 D5's parallel clause and ADR-0005 D3 and D4.
 
 Dispatch stays sequential until two things exist:
 
 - the scheduler, admission, and integration code the record admits;
-- a host that can supply the attestation. None ships today.
+- a host that can supply the attestation. None ships.
 
 RFC-0015's 2026-09-25 erratum *"a measurement on nested worktrees"* records the
 nested-worktree destruction path and binds no layout constraint, because doing
@@ -56,12 +58,15 @@ How much a plan could run in parallel is a property of its `**Depends on:**`
 graph. These levers are proposals for Slice 7's inputs; none is built.
 
 **Two effects are easy to confuse.** `Depends on:` decides **scheduled width**:
-which tasks could be ready together. `**Touches:**` decides **usable width**:
+which tasks could be ready together.
+
+`**Touches:**` decides **usable width**:
 which of those could safely run together. A lever acts on one, never both.
 
-**How the supervisor reads the fields today.** The task projector reads
+**How the supervisor reads the fields.** The task projector reads
 `Depends on:` through the shared plan grammar in `_loop_guards.py`. Cross-spec
 forms such as `spec:<slug>/T<n>` are recorded but never scheduled against.
+
 `Touches:` is a pinned field: it is part of a task's revision, so editing it
 re-requests that task. Nothing reads `Touches:` to decide order.
 
@@ -81,7 +86,9 @@ re-requests that task. Nothing reads `Touches:` to decide order.
 ### Usable width
 
 **Make `Touches:` mandatory.** This widens nothing. It makes a disjointness
-check able to run at all, which today it cannot for most tasks. Completing the
+check able to run at all, which it cannot for most tasks.
+
+Completing the
 field can also show overlap: RFC-0015 found about 45% file overlap among 55
 declared-independent waves, as a lower bound, so a mandate is expected to
 *narrow* usable width on a large minority. A finding at authoring still beats a collision at merge. The

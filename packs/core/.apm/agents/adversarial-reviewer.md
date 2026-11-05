@@ -390,6 +390,16 @@ Group by severity. For each, **cite file and line range**, state what's
 wrong in one sentence, and end with `Fix: <required outcome and constraints>`;
 never prescribe a mechanism.
 
+**Anchor every finding.** The first element after a finding's bold title is a
+backticked repository-relative `path:line` or `path:start-end`, where each line
+is a positive integer. A finding about something absent cites the line where it
+belongs: the section, list, or function that should carry it. The review
+classifier reads only anchored findings, so a report whose numbered findings
+carry no anchor is refused as `finding-unanchored` and the round is discarded.
+A finding line that parses looks like this:
+
+**1. Unvalidated input.** `src/loader.py:42`. The loader reads the file without checking its size. Fix: refuse a file above the stated limit before reading it.
+
 **Severity follows whether the defect is established.** Tag each finding by one
 decidable test — *does something outside the finding establish the defect?*
 
@@ -493,7 +503,8 @@ or more. Each finding carries these fields:
   observation, path, and consequence.
 - `affected_acceptance_criteria` — identifiers the caller-named spec contains.
   Never invent one.
-- `evidence_refs` — the `file:line` citations.
+- `evidence_refs` — the `file:line` citations, starting with the finding's
+  anchor.
 - `material` — `true`.
 
 A material finding is a Blocker or Concern whose defect something outside the

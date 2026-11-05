@@ -1055,7 +1055,7 @@ def _failure_finding(code: str) -> dict[str, Any]:
         "configuration_mismatch": (
             "Install or select a consistent versioned configuration, then rerun."
         ),
-        "invalid_workspace": "Correct workspace.toml, then rerun reconciliation.",
+        "invalid_workspace": "Correct workspace.toml, then run `dispatch.py` again.",
     }
     return {
         "code": code,

@@ -158,7 +158,7 @@ The **one-time** PyPI Trusted Publisher — a Pending Publisher matching `releas
 | Why we chose X over Y | [`docs/adr/`](docs/adr/) |
 | In-flight proposals | [`docs/rfc/`](docs/rfc/) |
 | Accepted behavior and build plan | [`docs/specs/`](docs/specs/) |
-| Current initiative and dependency state | [`workspace.toml`](workspace.toml) |
+| Current work and dependency state | The `Status:` and `Depends on:` headers of each artifact, read by `work-loop`'s `dispatch.py`; work placed under an intent, by `navigate-intents` `outstanding` |
 | Per-IDE adapter contract | [`contracts/adapter.toml`](contracts/adapter.toml) |
 | Pack manifest schema | [`contracts/pack.schema.json`](contracts/pack.schema.json) |
 | Portable catalogue authoring standards and contracts | [`guides/_shared/reference/catalogue-authoring-standards.md`](guides/_shared/reference/catalogue-authoring-standards.md) |

@@ -118,13 +118,13 @@ Accept the proposed route and continue with the selected processor.
 
 **Agent does**
 
-`work-intake` validates confined paths, materializes the canonical artifact,
-registers lifecycle state, and dispatches only after both writes are durable.
+`work-intake` validates confined paths, materializes the canonical artifact, and
+dispatches only after the write is durable.
 The tracker adapter performs none of these writes.
 
 **You get**
 
-A canonical repository artifact, valid workspace membership, selected
+A canonical repository artifact, a `Status:` header, selected
 processor, recorded source provenance, and an explicit stop point.
 
 **Decision**

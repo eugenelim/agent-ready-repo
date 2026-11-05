@@ -7,62 +7,58 @@ kind: tutorial
 
 # Your first workspace session
 
-**What you'll build:** A complete workspace session — oriented with `workspace-status`, a spec progressed through `work-loop`, a separable follow-on remembered mid-session with `work-intake`, and a clean queue handed off for the next session.
-**Prerequisites:** A repo with `workspace.toml` at the root and the `core` pack installed; see [How to start working on a project](../how-to/start-a-project.md) for the install step.
+**What you'll build:** A complete workspace session — oriented by asking what is ready, a spec progressed through `work-loop`, a separable follow-on remembered mid-session with `work-intake`, and a clean state handed off for the next session.
+**Prerequisites:** A repo with the `core` pack installed; see [How to start working on a project](../how-to/start-a-project.md) for the install step.
 **Time:** About 30 minutes.
 
 :::note
-At the end of this tutorial you'll have run a complete workspace session: oriented using `workspace-status`, picked a spec from the build queue, invoked `work-loop`, remembered a separable follow-on mid-session using `work-intake`, and left the queue in a clean state for the next session.
+At the end of this tutorial you'll have run a complete workspace session: asked what is ready, picked a spec, invoked `work-loop`, remembered a separable follow-on mid-session using `work-intake`, and left the repo in a clean state for the next session.
 :::
 
-We use one concrete workspace throughout: the **Acme Platform** repo — a backend platform with one active initiative, two specs in its build queue, and one shaping item being framed as strategy. The session goal is to orient, pick a spec, and begin building.
+We use one concrete workspace throughout: the **Acme Platform** repo — a backend platform with two Approved specs, one of them waiting on the other through a `Depends on:` header, and one captured strategy item. The session goal is to orient, pick a spec, and begin building.
 
 ```text
-Show me the workspace status for this session and the next ready action.
+What is ready to work on in this repo?
 ```
 
 ## Before you begin
 
 You need:
 
-- A repo with `workspace.toml` at the root.
-- The `core` pack installed. If you haven't installed it yet, see [How to start working on a project](../how-to/start-a-project.md) for the install step.
+- A repo with the `core` pack installed. If you haven't installed it yet, see [How to start working on a project](../how-to/start-a-project.md) for the install step. No `workspace.toml` is needed.
 - A fresh agent session (restart your agent session if you've been working on something else — a fresh context gives you a complete orientation).
 
-## Orient: run `workspace-status`
+## Orient: ask what is ready
 
-Start every session by invoking `workspace-status`:
+Start every session by asking what is ready. Your agent runs `work-loop`'s `dispatch.py`, which reads each spec's `Status:` and `Depends on:` headers and writes nothing:
 
-```
-workspace-status
-```
-
-For the Acme Platform, you should see output like this:
-
-```
-Initiative: Platform Core
-Milestone: M1 · Workspace Foundation
-
-Active context — signals
-  [shape] infra-cost-monitoring (signal) — ongoing cost context
-
-Shape room
-  [shape] auth-strategy (strategy) — run frame-situation
-
-Build queue — Ready to start
-  [build] spec/workspace-core — work-loop docs/specs/workspace-core/
-  [build] spec/capture-work-v2 — work-loop docs/specs/capture-work-v2/
-
-Build queue — Blocked
-  [build] spec/workspace-status-phase2 — needs: work:spec/workspace-core
+```bash
+python '<skill-dir>/scripts/dispatch.py' --root . --captured
 ```
 
-Read each section before doing anything:
+For the Acme Platform, the answer reads like this:
 
-- **Active context** — `infra-cost-monitoring` is a signal. It gives ongoing cost context for architectural decisions; no action is needed today.
-- **Shape room** — `auth-strategy` needs strategic framing before it can become a spec. It is not ready to build yet.
-- **Ready to start** — two specs are unblocked and ready. Each shows the command to start it.
-- **Blocked** — `workspace-status-phase2` is waiting for `workspace-core` to ship first.
+```
+Ready
+  docs/specs/workspace-core/spec.md          Approved
+  docs/specs/capture-work-v2/spec.md         Approved
+
+Blocked
+  docs/specs/status-phase2/spec.md Approved — Depends on: spec/workspace-core
+
+Captured
+  auth-strategy (strategy) — run frame-situation
+  infra-cost-monitoring (signal) — ongoing cost context
+
+Decision: ask — two specs are ready
+```
+
+Read each part before doing anything:
+
+- **Ready** — two specs are unblocked. Each starts with `work-loop docs/specs/<slug>/`.
+- **Blocked** — `status-phase2` carries `Depends on: spec/workspace-core`, so it waits for `workspace-core` to ship first.
+- **Captured** — `auth-strategy` needs strategic framing before it can become a spec. `infra-cost-monitoring` is a signal: ongoing cost context, no action needed today.
+- **Decision** — with two ready specs, dispatch asks you to choose and never picks for you.
 
 **The agent asks:**
 
@@ -77,12 +73,12 @@ Start workspace-core, the first ready build item for the current milestone.
 ```
 
 :::note
-If your output uses different slugs, that is expected — the section structure is what matters.
+If your output uses different slugs, that is expected — the sections are what matter.
 :::
 
 ## Pick a spec and read it briefly
 
-You'll build `workspace-core` — the first ready item. It also unblocks `workspace-status-phase2` when it ships.
+You'll build `workspace-core` — the first ready item. It also unblocks `status-phase2` when it ships.
 
 Before running `work-loop`, skim the spec:
 
@@ -149,8 +145,7 @@ processor   none
 source      spec/workspace-core follow-on
 ```
 
-Confirm. The skill writes the Draft intent as its own file and adds no
-`workspace.toml` entry, because a repo-origin intent is its file alone.
+Confirm. The skill writes the Draft intent as its own file, because a repo-origin intent is its file alone.
 
 **You should see:** the new intent artifact. The artifact, not a TOML comment or
 chat transcript, is the requirements authority. Because the item is not independently shippable yet, no
@@ -169,10 +164,10 @@ Return to the loop. It completes its remaining tasks, runs gates, and routes to 
 Follow the loop's commit and PR instructions. When the PR merges:
 
 1. The spec's **Status** updates to `Shipped` in `spec.md`.
-2. Nothing else needs moving: a repo-origin spec has no `workspace.toml` entry, so its `Status:` is the whole record.
-3. Run `workspace-status` to confirm the state.
+2. Nothing else needs moving: a spec's `Status:` is the whole record.
+3. Ask what is ready again, which runs `dispatch.py`, to confirm the state.
 
-**You should see:** `workspace-core` shown as shipped, and `workspace-status-phase2` now unblocked — ready to start.
+**You should see:** `workspace-core` shown as shipped, and `status-phase2` now unblocked — ready to start.
 
 Shipping is not closeout. Before the delivery contract itself is disposed of, ask
 `close-work` for a mutation-free preview of what the spec and plan still hold that
@@ -183,23 +178,23 @@ no other document does — see
 
 In this session you:
 
-- Oriented using `workspace-status` and read both the shape room and the build room.
+- Oriented by asking what is ready, answered by `dispatch.py`, and read both the shape room and the build room.
 - Read a spec briefly before starting `work-loop`.
 - Ran a complete `work-loop` cycle — PLAN, EXECUTE, GATES, REVIEW, DECIDE.
 - Remembered a follow-on mid-session with `work-intake`, producing a Draft, non-dispatchable artifact with source provenance.
-- Ended with a clean queue: one item shipped, one backlog entry added, one build-queue item unblocked.
+- Ended clean: one spec shipped, one follow-on captured, one blocked spec unblocked.
 
 ## What you have now
 
 You have a completed workspace session: the shipped spec, a separately captured
 follow-on at `docs/product/intents/configurable-retry-backoff.md`, and an
-updated queue that identifies the next ready item. Start the next session with
-`workspace-status`.
+updated state that identifies the next ready item. Start the next session by
+asking what is ready.
 
 ## Next steps
 
 - To orient faster at future session starts: [How to orient at the start of a session](../how-to/orient-at-session-start.md).
-- To understand the two-room model behind the queue: [The two-room model](../explanation/two-room-model.md).
+- To understand the two-room model behind the two kinds of work: [The two-room model](../explanation/two-room-model.md).
 - To remember future items mid-session: [Use work intake](../../_shared/how-to/use-work-intake.md).
 - To close a finished delivery without losing its lasting context: [Close work without losing lasting context](../how-to/close-and-disposition-work.md).
-- To start the next spec: run `workspace-status`, then `work-loop docs/specs/<next-slug>/`.
+- To start the next spec: ask what is ready (`dispatch.py`), then `work-loop docs/specs/<next-slug>/`.

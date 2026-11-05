@@ -40,6 +40,7 @@ protected = [
   "docs/specs/closure-eligibility-check",
   "docs/specs/pre-cutover-closure",
   "docs/specs/last-registry-entries",
+  "docs/specs/registry-upgrade-notes",
   "docs/specs/intent-brief-registration-stop",
   "docs/specs/header-derived-dispatch",
   "docs/specs/spec-registration-stop",

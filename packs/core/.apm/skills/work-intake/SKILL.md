@@ -12,7 +12,7 @@ metadata:
 # Skill: work-intake
 
 Neutral entry point for routing normalized work requests into canonical
-artifacts and `workspace.toml`. It owns ambiguity, acquisition, refresh, and
+artifacts. It owns ambiguity, acquisition, refresh, and
 generic intake safety—not every request that happens to start work.
 
 `work-intake` works with the core pack alone. Optional shaping or tracker packs
@@ -41,11 +41,12 @@ Higher-priority instructions, repository and scoped security or privacy rules, t
 <!-- agentbundle:output-rendering:end -->
 
 Key-value / one record - For one routed item, show the action, artifact path,
-workspace membership, processor, authority mode, and stop point. `artifact:
-none` and `workspace membership: none` are valid direct-route results, not
+`lifecycle_membership`, processor, authority mode, and stop point. `artifact:
+none` and `lifecycle_membership: none` are valid direct-route results, not
 errors. Internally, the router carries an empty string for an absent artifact
 and the literal `none` for absent membership; `none` is a rendering literal at
-this output boundary.
+this output boundary. Neither value is written anywhere: the artifact's own
+header carries its lifecycle.
 Status passthrough - For status, return the `navigate-intents` `outstanding` result
 or `work-loop`'s `dispatch.py` result unchanged apart from normal chat formatting.
 
@@ -128,18 +129,16 @@ directly into `workspace.toml`.
 Comments, list order, document titles, tracker type, collection membership, and
 memory are never routing authority.
 
-### Terse workspace capture
+### Capture without a registry
 
-`workspace.toml` is the pointer, not the overflow store. Write or update the
-canonical artifact first, then register only one schema-shaped live index entry
-with minimal provenance, one short present-tense summary naming the current
-outcome or next-needed condition, and hard dependencies only.
+Write or update the canonical artifact; its header carries the lifecycle, and
+nothing is registered. Keep any dependency in the artifact's `Depends on:`
+header and a short present-tense summary in its own body.
 
 Do not put chronology, rationale, procedure, review transcript, raw finding,
 copied source text, suggested order, soft priority, or conversation residue in
-adjacent comments, summaries, or workspace-only fields. If the context cannot
-fit that shape, materialize the context-owning artifact first and point to it.
-An entry that this workflow creates or updates adopts the terse form.
+adjacent comments or summaries. If the context cannot fit that shape,
+materialize the context-owning artifact first and point to it.
 
 A captured item is a defect, design, or research item, or an OKR gap with
 `Kind: intent`, that is not an intent, brief, or spec artifact. It is its own file
@@ -183,9 +182,8 @@ it; a repo-origin spec that still holds one goes to the `spec-entry-drop`
 repair.
 
 For a separated follow-on from an amended spec, materialize the follow-on's
-owning artifact before registration. The follow-on's current state changes in
-that artifact; the workspace entry only indexes it. Do not leave an open AC
-behind as the workspace anchor.
+owning artifact. The follow-on's current state changes in that artifact. Do not
+leave an open AC behind as the follow-on's anchor.
 
 ## Procedure
 

@@ -1,14 +1,14 @@
 # Skill & pack format
 
-> The format, in three layers: the open **skill** standard we conform to, the
-> **pack** envelope that wraps a skill for distribution, and the **projection**
-> that fans one pack source out to every agent. This page is the map; each
-> layer's detail lives in its own page, linked below.
+> The format has three layers: the open **skill** standard this catalogue
+> conforms to, the **pack** envelope that wraps a skill for distribution, and
+> the **projection** that fans one pack source out to every agent. This page is
+> the map. Each layer's detail lives in its own page.
 
-If you're authoring, the practical how-to is
-[Author a skill](../../guides/_shared/how-to/author-a-skill.md). This page exists
-so the format is *called out in one place* — what conforms to an external
-standard, what we add, and where each part is specified.
+The practical how-to for authors is
+[Author a skill](../../guides/_shared/how-to/author-a-skill.md). This page names
+what conforms to an external standard, what the catalogue adds, and where each
+part is specified.
 
 ## The three layers
 
@@ -18,10 +18,11 @@ standard, what we add, and where each part is specified.
 | 2. Pack | The envelope that ships a skill (and other primitives): `pack.toml`, `.apm/<primitive>/`, `seeds/`, `.claude-plugin/plugin.json`. | [`pack-layout.md`](pack-layout.md), [`pack-manifest.md`](pack-manifest.md) |
 | 3. Projection | One pack source → many agent outputs, routed by the adapter contract. | [`agentbundle.md`](agentbundle.md), [`contracts/adapter.toml`](../../contracts/adapter.toml) |
 
-Above all three sits the [catalogue](catalogue/README.md). A source catalogue is
-identified by a root `catalogue.toml` and a literal root `packs/` directory;
-adapter projections such as `.claude-plugin/marketplace.json` are generated
-only when their adapter is enabled.
+Above all three sits the [catalogue](catalogue/README.md), identified by a root
+`catalogue.toml` and a literal root `packs/` directory. Adapter projections such
+as `.claude-plugin/marketplace.json` are generated only when their adapter is
+enabled. The contracts that define layers 2 and 3 are published as the
+[catalogue specification](catalogue/specification.md).
 
 ## Layer 1 — the skill (an open standard)
 
@@ -29,80 +30,76 @@ A skill is a directory with a `SKILL.md` at its root and optional
 `scripts/`, `references/`, and `assets/` beside it. The file's shape — YAML
 frontmatter (`name`, `description`, and optional `license`, `compatibility`,
 `metadata`, `allowed-tools`) followed by Markdown instructions — is the
-**[agentskills.io specification](https://agentskills.io/specification)**, an
-open format Anthropic released and many agents adopted. We conform to it
-rather than inventing our own; the field table, character limits, and naming
-rules are canonical there and we do not restate them (restating would drift).
+**[agentskills.io specification](https://agentskills.io/specification)**. The
+field table, character limits, and naming rules are canonical there and are not
+restated here.
 
-What this repo adds on top of the standard is one constraint, enforced by the
-linters (`agentbundle catalogue verify`'s agent-artifact step on
-projections, `agentbundle lint packs` on sources), not a schema change:
+The catalogue adds two constraints on top of the standard, enforced by the
+linters (`agentbundle catalogue verify`'s agent-artifact step on projections,
+`agentbundle lint packs` on sources) and not by a schema change:[^1]
 
 - **Frontmatter uses only the agentskills.io keys.** Project-specific data
   goes under the `metadata:` escape hatch the spec provides — never as a
-  bespoke top-level key. This is our authoring standard for packs in this
-  catalogue; it is *not* an admission rule for third-party content, which
-  routinely carries its own top-level keys and is read rather than refused.
-- **`description` may be a YAML block scalar.** Folded (`>`) and literal (`|`)
-  forms are read, with every chomping indicator. The earlier rule against them
-  was written for a loose-parsing harness, and that concern turns out to be
-  real only for **agents**: every adapter copies a skill directory
-  byte-for-byte, but rewrites agent frontmatter key by key with a line-based
-  parser that would read `description: >` as the literal `">"` and drop the
-  text. Agents therefore still refuse block scalars, under `CAT-L027`.
+  bespoke top-level key. Catalogue packs follow this rule. Third-party content
+  is read, not refused, and routinely carries its own top-level keys.
+- **A skill `description` may be a YAML block scalar; an agent's may not.**
+  Folded (`>`) and literal (`|`) forms are read for skills, with every chomping
+  indicator. Every adapter copies a skill directory byte-for-byte, but rewrites
+  agent frontmatter key by key with a line-based parser that would read
+  `description: >` as the literal `">"` and drop the text. Agents therefore
+  refuse block scalars under `CAT-L027`.[^2]
 
-The other four primitives a pack can carry — `agent`, `hook-body`,
-`hook-wiring`, `command` — are our own shapes, tabulated in
+The other primitives a pack carries (`agent`, `hook-body`, `hook-wiring`,
+`command`, `kiro-ide-hook`, and the three runtime-root rails `shared-libs`,
+`adapter-root-bins`, `user-libs`) are catalogue-defined shapes, tabulated in
 [`pack-layout.md`](pack-layout.md) and specified in the adapter contract.
 
-### One shape worth naming: method in the skill, rules as data
+### Method in the skill, rules as data
 
-The format says nothing about how a skill is organised inside. One arrangement
-recurs and is worth stating, because reading it wrong is easy.
-
-A **standard-driven** skill keeps the *method* in `SKILL.md` and the *rules the
+The format does not constrain how a skill is organised inside. One arrangement
+recurs. A **standard-driven** skill keeps the *method* in `SKILL.md` and the *rules the
 method enforces* in `references/`, as a bundle: a manifest, the per-phase rule
 files it points at, and a quality-gate checklist — plus, for events, a named
-envelope component. An organisation swaps the rules by writing a
+envelope component.
+
+An organisation swaps the rules by writing a
 base-plus-delta bundle that `extends` the bundled default, rather than forking
-the skill, which is the model Spectral popularised with `extends: spectral:oas`.
-The `contracts` pack ships two skills in this shape, `api-contract` for REST and
+the skill. The `contracts` pack ships two skills in this shape, `api-contract` for REST and
 `event-contract` for events, and `event-contract` splits its data along two
 independently swappable axes: the design ruleset, and the message envelope
-format its manifest names under a reserved key.
+format its manifest names under a reserved key.[^3]
 
-The part to get right: **no program parses a manifest or resolves an `extends`
-chain.** The skill reads its base and its delta the way it reads any other
-reference file. The build walks and copies these files like any others, but
-nothing interprets them, so there is no runtime resolver — and failing to find
-one is not evidence that the mechanism is absent.
+**No program parses a manifest or resolves an `extends` chain.** The skill reads
+its base and its delta the way it reads any other reference file. The build
+walks and copies these files like any others, but nothing interprets them, so
+there is no runtime resolver.
 
 Which skill authors a given contract type is likewise resolved by **runtime
-roster name**, not through a pack manifest. That is what lets `core`'s
-contract-type map name `api-contract` and `event-contract` without `core`
-depending on the `contracts` pack at all.
+roster name**, not through a pack manifest. `core`'s contract-type map names
+`api-contract` and `event-contract` without depending on the `contracts`
+pack.[^4]
 
 ## Layer 2 — the pack (the distribution envelope)
 
 In this catalogue a skill ships inside a pack. The pack adds the metadata
-(`pack.toml`), the install-scope rules, the governance `seeds/`, and the
-Claude Code `plugin.json` that make a set of primitives installable as one
-cohesive kit.
+(`pack.toml`), the install-scope rules, the governance `seeds/`, and the Claude
+Code `plugin.json` that make a set of primitives installable as one kit.
 
-A skill *can* be installed without one. Direct installation accepts a bare
-skill folder or a `skills/` collection from a repository that never declared a
-pack; such an install is called **manifestless**, takes its identity from the
-skill's own directory name, and records provenance in install state instead of
-a manifest. The layers below still describe how a pack works, which is how
-everything in this catalogue is published. The on-disk shape and every file's role are in
-[`pack-layout.md`](pack-layout.md); how `pack.toml` metadata projects into the
+A skill can also be installed without a pack through direct installation, which
+is **manifestless** and described in
+[`catalogue/README.md`](catalogue/README.md#identity). Everything this catalogue
+publishes ships as a pack. The on-disk shape and every file's role are
+in [`pack-layout.md`](pack-layout.md).
+
+How `pack.toml` metadata projects into the
 catalogue listing is in [`pack-manifest.md`](pack-manifest.md).
 
 ## Layer 3 — projection (one source, many agents)
 
-The same pack source projects into Claude Code, Codex, Cursor, Copilot,
-Gemini, and Kiro, each with its own layout for skills and agents. Which
-projection mode applies to each primitive per adapter is declared in
+The same pack source projects into Claude Code, Codex, Cursor, Copilot, Gemini,
+and Kiro (the `kiro-ide` and `kiro-cli` adapters, plus a deprecated `kiro`
+alias), each with its own layout for skills and agents. Which projection mode
+applies to each primitive per adapter is declared in
 [`contracts/adapter.toml`](../../contracts/adapter.toml) and executed by the
 build pipeline described in [`agentbundle.md`](agentbundle.md). The
 authoritative format spec for the projection modes is
@@ -115,3 +112,11 @@ authoritative format spec for the projection modes is
 - [Author a skill](../../guides/_shared/how-to/author-a-skill.md) — the hands-on
   how-to, including the `evals/` convention.
 - [`pack-layout.md`](pack-layout.md) — the pack's on-disk shape.
+
+[^1]: `packages/agentbundle/agentbundle/catalogue_tooling/verify.py` (`_step_agent_artifacts`); `cli.py` (`lint packs`).
+
+[^2]: `catalogue_tooling/diagnostics.py` (`CAT_L027`); `catalogue_tooling/lint.py` (agent block-scalar check); the adapters under `build/adapters/`.
+
+[^3]: `packs/contracts/.apm/skills/api-contract/SKILL.md` (manifest `extends` is applied by reading); `packs/contracts/.apm/skills/event-contract/`.
+
+[^4]: `packs/core/.apm/skills/new-spec/references/contract-types.md`.

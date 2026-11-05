@@ -56,7 +56,7 @@ which is Claude Code and therefore already covered by the
 
 | Slice | Owns | Status |
 | --- | --- | --- |
-| [`claude-apps-first-value-entry`](claude-apps-first-value-entry.md) | A no-terminal public route into installing at least one discipline pack in the Claude apps, plus one first-value walkthrough — as a *consumer* of each pack's `[pack.first-value]` contract | Draft, blocked on the surfaces decision above |
+| [`claude-apps-first-value-entry`](claude-apps-first-value-entry.md) | A no-terminal public route into installing at least one discipline pack in the Claude apps, plus one first-value walkthrough — as a *consumer* of each pack's `[pack.first-value]` contract | Draft; unblocked by the 2026-09-10 narrowing above |
 
 Two further constraints every Claude-apps slice inherits:
 

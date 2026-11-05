@@ -466,6 +466,10 @@ ADJUDICATION_HEADINGS = (
     "## Indeterminate audit",
 )
 NUMBERED_FINDING_MARKER_RE = re.compile(r"\*\*\d+\.")
+# A line that opens a numbered finding. A report holding one while no finding
+# parses failed the anchor rule, so its refusal names that rule rather than
+# the missing clean sentence.
+FINDING_MARKER_LINE_RE = re.compile(r"^\s*\*\*\d+\.", re.MULTILINE)
 NOT_CHECKED_HEADING = "## Not checked"
 # Shape only, deliberately. Two earlier revisions tried to make footer bullets
 # safe to skip adjudication — first by rejecting finding-shaped markers, then by
@@ -736,7 +740,12 @@ def _classify_raw_report(
             footer_started = False
             clean_shape = sentinel_count == 1
             if not clean_shape:
-                reason = "sentinel-absent" if sentinel_count == 0 else "sentinel-repeated"
+                if sentinel_count:
+                    reason = "sentinel-repeated"
+                elif FINDING_MARKER_LINE_RE.search(report_text):
+                    reason = "finding-unanchored"
+                else:
+                    reason = "sentinel-absent"
             for index, line in enumerate(lines):
                 if not clean_shape:
                     break
@@ -784,6 +793,7 @@ RAW_REFUSAL_REASONS = frozenset(
         "unreadable",
         "sentinel-absent",
         "sentinel-repeated",
+        "finding-unanchored",
         "content-before-sentinel",
         "footer-heading-repeated",
         "footer-bullet-malformed",
@@ -868,6 +878,8 @@ def _classify_report(
         # No fingerprints and no clean sentinel. Reachable on the flagless
         # legacy path; name it like every other refusal so a consumer reading
         # `reason` never sees a missing key.
+        if FINDING_MARKER_LINE_RE.search(actionable_text):
+            return _invalid("finding-unanchored")
         return _invalid("no-actionable-result")
 
     canonical_fps = sorted(set(fps))

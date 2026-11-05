@@ -955,6 +955,173 @@ def test_remaining_refusal_codes_are_pinned(
     assert expected_reason in result.stderr
 
 
+UNANCHORED_LINE = (
+    "**1. Missing guard.** The loader skips validation. Fix: validate the input."
+)
+ANCHORED_LINE = (
+    "**1. Missing guard.** `src/loader.py:42`. The loader skips validation. "
+    "Fix: validate the input."
+)
+UNANCHORED_REPORT = f"## Concerns\n\n  {UNANCHORED_LINE}\n"
+
+
+def _classify_cli(
+    git_repo: Path, tmp_path: Path, verb: str, body: str
+) -> subprocess.CompletedProcess[str]:
+    """Run `raw-classify`, or flagless `inspect` over a fresh run, on one body."""
+    report = tmp_path / "report.md"
+    report.write_text(body, encoding="utf-8")
+    if verb == "raw-classify":
+        args = ["raw-classify", "--report", str(report), "--json"]
+    else:
+        spec_dir = git_repo / "spec"
+        spec_dir.mkdir(exist_ok=True)
+        args = [
+            "inspect",
+            "--run-id",
+            RUN_FIXTURE,
+            "--root",
+            str(spec_dir),
+            "--report",
+            str(report),
+            "--json",
+        ]
+    return subprocess.run(
+        [sys.executable, str(VALIDATOR), *args],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+def test_raw_classify_names_an_unanchored_report(
+    tmp_path: Path, git_repo: Path
+) -> None:
+    """A report whose numbered findings carry no anchor names that rule.
+
+    The marker is matched on the stripped line, so the indented line in the
+    fixture counts.
+    """
+    result = _classify_cli(git_repo, tmp_path, "raw-classify", UNANCHORED_REPORT)
+
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {
+        "classification": "invalid",
+        "finding_count": 0,
+        "not_checked_present": False,
+    }
+    assert "review-artifact: raw report refused (finding-unanchored)" in result.stderr
+
+
+def test_flagless_inspect_names_an_unanchored_report(
+    tmp_path: Path, git_repo: Path
+) -> None:
+    """Flagless `inspect` reports the same rule in its `reason` field."""
+    result = _classify_cli(git_repo, tmp_path, "inspect", UNANCHORED_REPORT)
+
+    assert result.returncode == 0, result.stderr
+    parsed = json.loads(result.stdout)
+    assert parsed["classification"] == "invalid"
+    assert parsed["reason"] == "finding-unanchored"
+    assert "finding-unanchored" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("verb", "body", "field", "expected"),
+    [
+        ("raw-classify", "Some prose.\n", "stderr", "sentinel-absent"),
+        ("inspect", "Some prose.\n", "reason", "no-actionable-result"),
+        (
+            "raw-classify",
+            f"{UNANCHORED_LINE}\n\nClean — ready to commit.\n",
+            "stderr",
+            "content-before-sentinel",
+        ),
+        (
+            "inspect",
+            f"## Verdict\nSHIP IT\n\n{UNANCHORED_LINE}\n",
+            "classification",
+            "clean",
+        ),
+        (
+            "inspect",
+            "## Main-loop result\n"
+            f"{UNANCHORED_LINE}\n"
+            "## Refuted audit\nNone.\n## Indeterminate audit\nNone.\n",
+            "reason",
+            "sustained-line-shape",
+        ),
+    ],
+)
+def test_unanchored_reason_leaves_neighbouring_reports_unchanged(
+    tmp_path: Path,
+    git_repo: Path,
+    verb: str,
+    body: str,
+    field: str,
+    expected: str,
+) -> None:
+    """Only the reports that reached the unnamed fallback change their reason."""
+    result = _classify_cli(git_repo, tmp_path, verb, body)
+
+    assert result.returncode == 0, result.stderr
+    if field == "stderr":
+        assert f"raw report refused ({expected})" in result.stderr
+    else:
+        assert json.loads(result.stdout)[field] == expected
+    assert "finding-unanchored" not in result.stderr
+
+
+def test_a_mixed_report_keeps_its_one_anchored_finding(
+    tmp_path: Path, git_repo: Path
+) -> None:
+    """An anchored finding beside an unanchored one still classifies as findings."""
+    body = f"{ANCHORED_LINE}\n**2. Other.** No anchor here. Fix: add one.\n"
+
+    raw = _classify_cli(git_repo, tmp_path, "raw-classify", body)
+    assert json.loads(raw.stdout)["classification"] == "findings"
+    assert json.loads(raw.stdout)["finding_count"] == 1
+
+    inspected = json.loads(_classify_cli(git_repo, tmp_path, "inspect", body).stdout)
+    assert inspected["classification"] == "findings"
+    assert inspected["fingerprints"] == [
+        hashlib.sha256(b"src/loader.py|42|**1. Missing guard.**").hexdigest()
+    ]
+
+
+def _agent_section(text: str, heading: str) -> str:
+    """Return one `## ` section of an agent file, up to the next `## ` heading."""
+    start = text.index(f"\n{heading}\n")
+    end = text.find("\n## ", start + len(heading) + 2)
+    return text[start : end if end != -1 else len(text)]
+
+
+def test_adversarial_reviewer_states_the_anchor_rule() -> None:
+    """The reviewer is told the anchor shape and what an unanchored report costs."""
+    text = (PACK_ROOT / ".apm/agents/adversarial-reviewer.md").read_text(
+        encoding="utf-8"
+    )
+    report = flat(_agent_section(text, "## Report numbered findings"))
+    typed = flat(_agent_section(text, "## Typed report"))
+
+    assert (
+        "The first element after a finding's bold title is a backticked "
+        "repository-relative `path:line` or `path:start-end`"
+    ) in report
+    assert "A finding about something absent cites the line where it belongs" in report
+    assert "refused as `finding-unanchored`" in report
+    assert "`evidence_refs` — the `file:line` citations, starting with the finding's anchor." in typed
+
+
+def test_unanchored_report_eval_names_the_rule() -> None:
+    """The eval case for a refused report names the reason and the anchor fix."""
+    cases = json.loads(EVALS.read_text(encoding="utf-8"))["evals"]
+    case = next(c for c in cases if c["id"] == "unanchored-report-names-rule")
+
+    assert "finding-unanchored" in case["expected_output"]
+    assert "`path:line`" in case["expected_output"]
+
+
 def _records(root: Path) -> list[str]:
     """Names of the `record` artifacts the gateway wrote for the fixture run."""
     directory = root / ".context" / "reviews" / RUN_FIXTURE

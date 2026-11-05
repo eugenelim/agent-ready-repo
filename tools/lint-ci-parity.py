@@ -724,6 +724,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest repair-only workspace-status text (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest registry upgrade notes (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest header-readiness source-authority parity (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest installed-skill supervisor run (roster-owned)":
@@ -832,6 +834,9 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     # Proof-by-run contract fit: the bulk `pytest tests/ -q` run discovers it.
     "pytest proof-by-run contract fit (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # Reviewer output contract: the bulk `pytest tests/ -q` run discovers it.
+    "pytest reviewer output contract (roster-owned)":
         LOCAL("test-after-build-check"),
     # T9a conformance roll-up: verifies byte-identity of both adapter projections
     # to the pack source and imports key modules from the projected paths.
@@ -1156,6 +1161,7 @@ _GATE_MAIN_CHECKS = (
     "pytest navigate-decisions file_safety mirror (roster-owned)",
     "pytest work-loop cooling mirror (roster-owned)",
     "pytest repair-only workspace-status text (roster-owned)",
+    "pytest registry upgrade notes (roster-owned)",
     "pytest header-readiness source-authority parity (roster-owned)",
     "pytest installed-skill supervisor run (roster-owned)",
     "pytest promotion drain decide (roster-owned)",
@@ -1193,6 +1199,7 @@ _GATE_MAIN_CHECKS = (
     "pytest evidence-store schema parity (roster-owned)",
     "pytest verify-entry receipts (roster-owned)",
     "pytest proof-by-run contract fit (roster-owned)",
+    "pytest reviewer output contract (roster-owned)",
     "pytest T9a conformance roll-up (roster-owned)",
     "pytest T9a clean-environment fence (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",

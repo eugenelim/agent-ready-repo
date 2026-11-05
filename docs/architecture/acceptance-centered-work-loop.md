@@ -1,8 +1,8 @@
 # Architecture Change — Acceptance-centered work loop
 
-**Decision sought:** Refactor `work-loop` in place: keep its public skill,
-center policy on acceptance criteria, make the skill-shipped supervisor the
-only full-mode procedure owner, and retire phase and cohort state as authority.
+**Decision:** `work-loop` is refactored in place: its public skill stays,
+policy centers on acceptance criteria, the skill-shipped supervisor is the
+only full-mode procedure owner, and phase and cohort state are retired as authority.
 Core 4.0.0 removed the phase engine and cohort writer; the
 [brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices) owns each slice's status.
 **Author:** Platform Core
@@ -49,10 +49,12 @@ that Slice 6 gate those later cuts.
 | 5. Canonical result integration | Results advance the protected product ref, and the delivery subject reads it | Both providers yield the same manifest; sequential crash recovery passes | [Product result integration](work-loop-result-integration.md) |
 | 6. Pi compatibility conformance | The neutral supervisor protocol and conformance kit can be consumed by a separately installed Pi extension without importing, bundling, selecting, or depending on Pi in Core | An external Pi-hosted run passes sequential, recovery, interruption, containment, and control-plane-forgery conformance; removing Pi changes no Core artifact or default behavior | [Runtime adapter crosswalk](runtime-adapter-crosswalk.md), [execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
 | 7. Parallel read coverage and concurrency | After explicit ADR supersession, enforced read allowlisting or complete tracing enables provider-neutral concurrency; Pi compatibility is not a prerequisite | Missing governance or read coverage serializes; undeclared reads deny/trace; permutations equal sequential results | [Authority migration](work-loop-authority-migration.md), [execution supervisor](work-loop-execution-supervisor.md), [security primitives](runtime-security-primitives.md) |
-| 8. Cutover and removal (`legacy-engine-cutover`) | The reusable `spec-approved` and `plan-locked` capture gates are removed now that every full-mode run writes delivery facts, and any remaining compatibility path retires; the engine and cohort scripts already left in Slice 4, and no reverse reader exists to retire | Cache deletion and removal rehearsals pass | This parent design and all child quality suites |
+| 8. Cutover and removal (`legacy-engine-cutover`) | The reusable `spec-approved` and `plan-locked` capture gates are removed because every full-mode run writes delivery facts, and any remaining compatibility path retires; the engine and cohort scripts already left in Slice 4, and no reverse reader exists to retire | Cache deletion and removal rehearsals pass | This parent design and all child quality suites |
 
 Slices 1–3 add services without moving orchestration. Slice 4 inverts control,
-makes replanning mechanical, and removes the old engine. Slice 6 proves optional compatibility off the
+makes replanning mechanical, and removes the old engine.
+
+Slice 6 proves optional compatibility off the
 cutover and parallelism critical path. Review alone persists
 acceptance-critical records; delivery owns no knowledge state, and knowledge
 owns every capture, admission, and storage concern.
@@ -172,6 +174,7 @@ The complete transition matrix lives in
 No compatibility adapter, reverse reader, or dual-write path exists
 (ADR-0144 D7). A run whose state predates the supervisor is re-derived from the
 spec, plan, Git history, evidence, and review facts, not resumed in place.
+
 Reversal is reinstalling the prior Core major, which discards supervisor
 records that release cannot read. For the product ref and `result_authority`, see [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal).
 

@@ -14,34 +14,20 @@ are grouped into ordered paths that name their prerequisites.
 
 ## Opportunity
 
-The catalogue publishes 22 packs and 135 skills behind 203 guide files, and a
-newcomer cannot act from them. Measured over the whole guide tree by
-`tools/audit-guide-affordances.py`: 21% show a literal chat input, 4%
-demonstrate what the user supplies into a workflow, and 10% state what the
-reader ends up with. Forty-eight guides name a skill in prose without ever
-showing what to type, and 66 of 203 files carry none of the five affordances.
-Exactly one file carries all five.
+The catalogue publishes 23 packs and 133 skills behind 235 guide files. Measured over the guide tree by `tools/audit-guide-affordances.py` on 2026-11-04: 45% show a literal chat input, 7% demonstrate what the user supplies into a workflow, 31% show sample output, 23% state what the reader ends up with, and 33% state the job to be done. Twenty guides name a skill in prose without showing what to type, 77 of 235 carry none of the five affordances, and one carries all five. The 2026-09-04 audit recorded 21%, 4% and 10% for the first, second and fourth affordances over 203 files, so coverage has risen but the second and fourth remain low.
 
-The corpus is also missing the route this repository's own owner uses.
-Shaping runs on `desk-research`, `product-engineering`, and `architect`;
-handover to build runs on `intake-intent`. That skill is named in zero guides
-under those three packs. The upstream packs write durable artifacts and the
-guide set never closes the loop into repository scope.
+The route this repository's owner uses is now documented in part: `guides/product-engineering/how-to/hand-an-intent-to-build.md` names `intake-intent` as the handover into build. The shaping-to-build path in the other guides under `desk-research`, `product-engineering` and `architect` is not re-measured here.
 
 Two facts make this cheap rather than large. Three of the five affordances are
-already authored and validated one level up: all 14 packs that ship a
+already authored and validated one level up: all 15 packs that ship a
 `JOURNEY.md` carry a complete `contract:` block — `useItWhen`, `youProvide`,
 `youReceive`, `yourDecisions` — and the contract has no slot at all for the
-literal chat input. And the chat inputs already exist in a third place: 56 of
-135 skills carry a quoted example utterance in their SKILL.md description, with
-coverage highest exactly where the guides are weakest (`product-strategy` 9/9
-skills against 0/7 guides; `product-engineering` 13/15 against 1/18).
-Thirty-three guides can gain a correct chat input by lifting a phrase that
-already exists in the skill they document.
+literal chat input. And the chat inputs already exist in a third place: 81 of
+131 published skills carry a quoted example utterance in their SKILL.md description. Eleven guides can still gain a correct chat input by lifting a phrase that already exists in the skill they document (the audit's harvest list).
 
 ## Assumptions
 
-- The 56 existing SKILL.md phrases are correct invocations, so lifting them
+- The 81 existing SKILL.md phrases are correct invocations, so lifting them
   into guides projects fact rather than inventing phrasing. This is the
   load-bearing assumption: if the phrases are wrong, the bulk passes become
   authoring work and the appetite does not hold.
@@ -105,6 +91,6 @@ already exists in the skill they document.
 ## Supporting artifacts
 
 - [New-team SDLC adoption — journey map and guide uplift audit](../findings/new-team-sdlc-guide-uplift-audit.md)
-  — the measured audit behind every count above: the six-phase journey, the
+  — the 2026-09-04 audit behind the original counts: the six-phase journey, the
   five-affordance measurement over 203 guides, the 15-row uplift table, the
   proposed path structure, and the seven verified defects.

@@ -98,8 +98,8 @@ confirms, overrides, or fills in. Mark genuinely unknown fields as
 containing the Lean Canvas fields from the chosen mode. Write to
 `docs/product/initiatives/<ini-slug>.md` — one file only.
 
-After writing, suggest adding the initiative to `workspace.toml ["<ini-slug>"]`
-verbally. Do not write to `workspace.toml`.
+The initiative file carries its own `Status:`; add no initiative section to
+`workspace.toml`. Do not write to `workspace.toml`.
 
 ## Anti-patterns to refuse
 

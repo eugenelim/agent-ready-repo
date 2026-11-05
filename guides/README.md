@@ -62,7 +62,7 @@ This route is an ordered set of guides from installation to a governed, reported
 3. [Adapt an existing repo](core/how-to/adapt-to-project.md), or [start a new project](core/how-to/start-a-project.md)
 4. [Orient at session start](core/how-to/orient-at-session-start.md)
 
-**First value:** `workspace status` answers what to work on next.
+**First value:** `dispatch.py` answers what to work on next.
 **Ends at:** a repository whose queues you can read.
 
 Next: [P2 · Shape what to build](#p2--shape-what-to-build--3-hours).

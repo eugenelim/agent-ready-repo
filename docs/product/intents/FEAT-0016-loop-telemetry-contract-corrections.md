@@ -2,23 +2,37 @@
 
 - **Slug:** `loop-telemetry-contract-corrections`
 - **Level:** feature
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:loop-telemetry-governance
 
 
+
+## Disposition — withdrawn 2026-11-04, decided: the verification ledger is the durable account
+
+**Do not shape this intent.** The question it asked is answered by the owner as
+lifecycle owner: AC-0031 is not amended, and
+[the verification ledger](../../specs/loop-telemetry-export/notes/verification-ledger.md)
+stays the durable account of which enumeration sites the criterion's purpose
+requires. `loop-telemetry-export` is Shipped. `tools/test_gate_enumeration.py`
+reads each enumeration site and asserts it names the package, so a missing site
+fails a test rather than waiting on prose. The refusal this intent excluded moved
+to the sender and is AC-0075 in
+[`jsonl-otlp-exporter`](../../specs/jsonl-otlp-exporter/spec.md). Reopen only if
+a gate enumeration site stops naming the package and that test cannot catch it.
+
 ## Outcome
 
-The owner decides whether to amend AC-0031's four-of-six gate enumeration or
+The owner decides whether to amend AC-0031's four-of-six gate enumeration sites or
 accept the verification-ledger correction as the durable account, with no
 production work implied by either choice.
 
 ## Boundary
 
 - Admits: correcting AC-0031's enumeration or recording an owner decision that the ledger correction is sufficient.
-- Excludes: production code, a new telemetry event, or reopening shipped behavior. The six gate outcomes already emit and are tested.
+- Excludes: production code, a new telemetry event, or reopening shipped behavior. The six literal gate enumeration sites (`pyproject.toml` `pythonpath` and mypy `files`, the `Makefile` `PYTHONPATH`, its test-suite invocations and its pip-audit leg, and `tools/lint-mypy.py` `TYPED_PACKAGES`) already name the package and are tested by `tools/test_gate_enumeration.py`.
 - Excludes: the undeliverable-setting refusal. It moved to the sender and is covered by AC-0075 in `docs/specs/jsonl-otlp-exporter/spec.md`.
 - Excludes: a general completed-task amendment mechanism. That is a wider work-loop lifecycle question and is not needed to dispose this one correction.
 
@@ -36,8 +50,8 @@ production work implied by either choice.
 
 ## Opportunity
 
-The six gate outcomes ship and are tested, but the frozen criterion enumerates
-only four. The remaining job is to decide what the durable contract should say,
+The six gate enumeration sites name the package and are tested, but the frozen
+criterion enumerates only four. The remaining job is to decide what the durable contract should say,
 not to build another telemetry mechanism.
 
 ## Assumptions

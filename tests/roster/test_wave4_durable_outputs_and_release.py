@@ -35,7 +35,6 @@ def test_every_planned_durable_output_exists_at_its_owner() -> None:
         "guides/core/reference/work-intake-routing-and-lifecycle.md",
         "guides/core/reference/spec-shape-and-lld.md",
         "docs/README.md",
-        "guides/core/reference/workspace-toml-schema.md",
         "packs/core/README.md",
         "packs/core/JOURNEY.md",
         "docs/product/changelog.md",
@@ -53,18 +52,18 @@ def test_current_docs_form_one_closeout_story() -> None:
     """Architecture, reference, how-to, and navigation agree on ownership."""
     architecture = _read("docs/architecture/work-intake-and-artifact-routing.md")
     lifecycle = _read("guides/core/reference/work-intake-routing-and-lifecycle.md")
-    workspace = _read("guides/core/reference/workspace-toml-schema.md")
     how_to = _read("guides/core/how-to/close-and-disposition-work.md")
     readme = _read("packs/core/README.md")
     journey = _read("packs/core/JOURNEY.md")
 
     for text in (architecture, lifecycle, how_to):
         assert "disposition is intent" in text.lower()
-        assert "workspace-status" in text
         assert "cool-30-days" in text
+    assert "workspace-status" in architecture
+    for text in (lifecycle, how_to):
+        assert "dispatch.py" in text
     assert "close_work.py" in architecture
     assert "behavior tests" in architecture
-    assert "live coordination, not the artifact-retention unit" in workspace
     assert "status: draft" not in how_to
     assert "close-work" in readme
     assert "close-work" in journey
@@ -141,7 +140,7 @@ def test_core_release_metadata_rejects_manifest_version_drift() -> None:
 
 
 def test_wave4_docs_keep_the_remaining_wave_boundary() -> None:
-    """Waves 5 and 6 have shipped; Wave 7 retains its stated boundary."""
+    """The architecture page states the repair verbs and the retention boundary."""
     # Asserted against the architecture document alone. The earlier form joined
     # three files, so the mutation clause held only because these strings
     # happened to appear nowhere else; scoping it to the owning document makes
@@ -152,9 +151,9 @@ def test_wave4_docs_keep_the_remaining_wave_boundary() -> None:
     # test whose meaning is unchanged.
     normalized = " ".join(architecture.split())
     for statement in (
-        "Wave 5 has shipped the lifecycle record, review-date, due-state, and retirement engine",
-        "Wave 6 has shipped ordinary-context exclusion",
-        "Wave 7 owns historical migration and pruning behavior",
+        "`workspace-status` has two verbs, `repair-plan` and `repair-apply`",
+        "The retired prune, candidate-listing, and rollback tooling has no replacement",
+        "Terminal status and artifact retention are independent",
     ):
         assert statement in normalized, statement
     assert "Wave 6 and 7 own ordinary-context exclusion" not in normalized

@@ -75,7 +75,7 @@ rather than a paragraph in the dispatch-surface spec.
   because provisioning degraded, passes it today.
 - **Making that workflow callable is not free**: it declares no `workflow_call`,
   carries two dependency-cache steps whose behaviour must differ per trigger
-  path, and its three checkouts do not disable credential persistence. Its
+  path, and its checkouts do not disable credential persistence. Its
   posture test drives a position-sensitive mutation matrix, so an edit can leave
   a mutation pointed at the wrong job while still passing.
 - **The lint that enforces suite-addressing rules reads a hand-listed set of

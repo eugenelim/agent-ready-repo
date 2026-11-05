@@ -1067,7 +1067,7 @@ def test_spec_contract_reference_carries_all_four_subsections() -> None:
 def test_seeded_specs_readme_states_the_distinction_and_vocabulary() -> None:
     """The adopter half. A seed cannot link to an adapter-specific skill path."""
     body = visible_prose(SEED_SPECS_README.read_text(encoding="utf-8"))
-    for needle in ("Implementing", "Shipped", "Executing", "lifecycle index"):
+    for needle in ("Implementing", "Shipped", "Executing", "carries its own state"):
         assert needle in body, f"the seeded specs README omits {needle!r}"
 
 

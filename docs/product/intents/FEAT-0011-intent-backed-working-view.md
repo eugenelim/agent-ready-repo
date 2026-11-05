@@ -3,6 +3,7 @@
 - **Slug:** `intent-backed-working-view`
 - **Status:** Accepted
 - **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `ce13cf8603d54841`; de-risked over two probes, killed on this repository's corpus and surviving on the enterprise population the owner set as governing; reframed to the projected range ADR-0127 then decided; and decomposed into a delivery brief. The reframe carries a `to-validate` hook — no adopter has run it.
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** Cross-references to the sibling tracker-projection intents named them by their pre-renumbering ordinals (FEAT-0010, FEAT-0011, FEAT-0012) and linked files that no longer exist; they now name the current files and ordinals. Identity binds to each intent's `Slug:`, so no reference changed meaning. The text decides nothing new. The `tracker-projection.md` citation now names the `intent` skill's reference, which replaced `decompose-intent` (ADR-0140); forward-looking mentions of `de-risk-intent` and `decompose-intent` name `intent de-risk` and `intent decompose`. Dated run records keep the names in force on the day.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -75,9 +76,9 @@ a delivery shape, not a second feature. The outcome has to be real on at least
 one delivery system before it ships.
 
 Does not own delivery-state or flow observation
-([FEAT-0011](FEAT-0012-delivery-state-and-flow-visibility.md)), forecast or
+([FEAT-0012](FEAT-0012-delivery-state-and-flow-visibility.md)), forecast or
 outcome review
-([FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)), or intent
+([FEAT-0013](FEAT-0013-timeline-and-strategic-progress-review.md)), or intent
 identity and placement
 ([FEAT-0001](FEAT-0001-intent-identity-and-registration.md)).
 
@@ -137,11 +138,11 @@ the reviewed revision is the current one and no nonmaterial-correction caveat
 applies.
 
 A review result sets no status and makes no decision. This intent stays
-`Draft`; `de-risk-intent` runs next.
+`Draft`; `intent de-risk` runs next.
 
 ## Assumptions
 
-What must be true for this bet to pay off. Not tested here; `de-risk-intent`
+What must be true for this bet to pay off. Not tested here; `intent de-risk`
 picks the riskiest and predeclares a kill condition for it.
 
 - **A team will work a board it did not build by hand, provided the items are
@@ -268,7 +269,7 @@ treating the **spec** as the projected item. The **feature intent** is durable,
 human-meaningful, lives for weeks, is above the agent-internal floor by
 construction, and carries a real lifecycle vocabulary. Specs would become
 evidence attached to an item rather than items themselves. This is a candidate,
-not a decision — it belongs to a fresh `frame-intent`, not to this record.
+not a decision — it belongs to a fresh `intent frame`, not to this record.
 
 ### Scope of the kill — what it does and does not establish
 
@@ -280,7 +281,7 @@ have one. That possibility is untested and is not offered as consolation.
 
 ### This kill bubbles up
 
-Per `de-risk-intent`, a killed child bubbles to its parent rather than being
+Per `intent de-risk`, a killed child bubbles to its parent rather than being
 absorbed here. Three consequences, none actioned in this record:
 
 - **[CAP-0004](CAP-0004-external-tracker-projection.md) is Accepted**, and
@@ -289,9 +290,9 @@ absorbed here. Three consequences, none actioned in this record:
   probe answers it. Recording that answer on an Accepted intent is the
   lifecycle owner's decision, because a change to an intent's unresolved
   questions is material and returns it to `Draft`.
-- **[FEAT-0011](FEAT-0012-delivery-state-and-flow-visibility.md)** reads flow
+- **[FEAT-0012](FEAT-0012-delivery-state-and-flow-visibility.md)** reads flow
   over these items. If nothing dwells, there is little flow to observe.
-- **[FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)** counts
+- **[FEAT-0013](FEAT-0013-timeline-and-strategic-progress-review.md)** counts
   units for a forecast. Monte Carlo assumes a stable item-size distribution.
 
 ```
@@ -477,7 +478,7 @@ Deliberately undecided. Each belongs to shaping, spec or architecture.
 
 - The normalized projection schema, and whether one exists at all.
 - The exact per-provider hierarchy mapping, including Jira Software's, which the
-  existing `decompose-intent` tracker-projection reference does not cover.
+  existing `intent decompose` tracker-projection reference does not cover.
 - Whether new GitHub or Linear packs are required, or the existing thin ones
   extend.
 - Write-versus-read mechanics, and how far the accepted one-way rule reaches.
@@ -502,7 +503,7 @@ Deliberately undecided. Each belongs to shaping, spec or architecture.
 
 Locations, not contents — open them when shaping.
 
-- `packs/product-engineering/.apm/skills/decompose-intent/references/tracker-projection.md`
+- `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md`
   — the existing level-to-object profile table for `none`, Linear and Jira
   Align, and its statement of what v1 does and does not ship.
 - `packs/atlassian/.apm/skills/jira-story-triage/` — the only shipped outbound
@@ -549,7 +550,7 @@ materialized beneath it: no slice is confirmed and no spec exists. Read the
 brief; this record does not carry a second copy.
 
 ```
-FEAT-0010  Intent-backed working view
+FEAT-0011  Intent-backed working view
 └─ brief: intent-backed-working-view
    └─ candidate cut, nothing confirmed — see the brief
 ```
@@ -562,14 +563,14 @@ them decides membership.
 - **2026-09-23 — the managed-unit floor belongs in a decision record, not in a
   slice.** It is architecturally significant, expensive to reverse once a team's
   board is built on it, and it constrains work beyond this feature:
-  [FEAT-0011](FEAT-0012-delivery-state-and-flow-visibility.md)'s flow readings
-  and [FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)'s
+  [FEAT-0012](FEAT-0012-delivery-state-and-flow-visibility.md)'s flow readings
+  and [FEAT-0013](FEAT-0013-timeline-and-strategic-progress-review.md)'s
   forecast both count whatever the floor admits. Burying a decision that three
   artifacts depend on inside one spec's body is how it becomes unfindable. It
   is now [ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md).
 - **2026-09-23 — a decomposition that ships no code can still be a slice.** With
   a hierarchy mapping stated, a team can project by hand, which is exactly the
-  `none` rendering the shipped `decompose-intent` reference treats as
+  `none` rendering the shipped `intent decompose` reference treats as
   first-class. That is a deliverable outcome, not documentation attached to
   another one.
 - **2026-09-23 — decomposing against a reframe that no adopter has run is a

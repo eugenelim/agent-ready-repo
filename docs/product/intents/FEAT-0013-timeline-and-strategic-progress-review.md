@@ -3,6 +3,7 @@
 - **Slug:** `timeline-and-strategic-progress-review`
 - **Status:** Accepted
 - **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `260890bd565a58fa`, including a check that every threshold it borrows from its sibling matches that record; de-risked with a surviving verdict that reframed the deliverable to making an unchecked outcome visible; and decomposed into a delivery brief. **The shaping review predates the later addition of the ADR-0127 range**, so it is evidence for the bet rather than for the current text.
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** Cross-references to the sibling tracker-projection intents named them by their pre-renumbering ordinals (FEAT-0010, FEAT-0011, FEAT-0012) and linked files that no longer exist; they now name the current files and ordinals. Identity binds to each intent's `Slug:`, so no reference changed meaning. The text decides nothing new. The `intent-model.md` citation now names the `intent` skill's reference, which replaced `frame-intent` (ADR-0140).
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -61,9 +62,9 @@ evidence of outcome movement look like placed side by side, and the two
 separations that placement must preserve.
 
 Does not own the observations it reads
-([FEAT-0011](FEAT-0011-delivery-state-and-flow-visibility.md)), the projection
+([FEAT-0012](FEAT-0012-delivery-state-and-flow-visibility.md)), the projection
 that made work visible in the first place
-([FEAT-0010](FEAT-0010-intent-backed-working-view.md)), or how an outcome and
+([FEAT-0011](FEAT-0011-intent-backed-working-view.md)), or how an outcome and
 its guardrail are *stated* — that belongs to the intent model, which this
 feature consumes rather than defines.
 
@@ -99,18 +100,18 @@ constraint, not an oversight to route around.
 
 Both are settled and both bind here harder than they bound anywhere else.
 
-**The unit is the feature intent.** FEAT-0010's de-risk killed the spec tier and
+**The unit is the feature intent.** FEAT-0011's de-risk killed the spec tier and
 reframed to it. A forecast counts units, so this feature counts those.
 
 **The projected range is decided, and it bounds what this feature counts.**
 [ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md) settled the
-question FEAT-0010's kill opened: the projection is a range, floored at the
+question FEAT-0011's kill opened: the projection is a range, floored at the
 feature intent for same-repository work and at the delivery brief where work
 crosses a repository boundary. D4 bounds the denominator — a trace below the
 floor is readable and must not be counted — so a forecast may count only what
 the range admits as managed.
 
-**The sample thresholds are arithmetic, not preference.** FEAT-0011's de-risk
+**The sample thresholds are arithmetic, not preference.** FEAT-0012's de-risk
 established what an honest statistic needs at this tier: five completions for a
 median, **eleven for p75** at 95% confidence and twenty-nine for p90 — the
 percentile set `flow-metrics` emits. The clearest published minimum for a Monte
@@ -130,7 +131,7 @@ to retrieve beyond it.
 
 Two accuracy checks were asked for beyond the field rules, because the same
 author wrote both sides of each: that findings F10, F12, F13 and F17 say what
-this intent claims, and that **every threshold attributed to FEAT-0011 — five,
+this intent claims, and that **every threshold attributed to FEAT-0012 — five,
 eleven, twenty-nine, and 20–46 features per Program Increment —
 matches that record exactly, confidence levels included.** A transcribed
 threshold is where a quiet error survives: a 90%-confidence figure cited as 95%
@@ -150,7 +151,7 @@ What must be true for this bet to pay off. Not tested here.
 
 - **The outcome half has a data source at all.** The likeliest candidate for the
   riskiest assumption, and it is specific to this feature. Delivery data exists —
-  the tracker holds it and FEAT-0011 reads it. Evidence that an *outcome* moved
+  the tracker holds it and FEAT-0012 reads it. Evidence that an *outcome* moved
   lives somewhere else entirely: analytics, revenue, support volume, adoption.
   The intent model declares a lagging outcome and a guardrail and **measures
   neither**. If nothing supplies that side, this feature produces an excellent
@@ -346,7 +347,7 @@ Deliberately undecided.
   outcome may span several capabilities and this feature reads only one.
 - ~~What a review does when the sample is below threshold — refuse the range,
   widen the window, or state the median only.~~ **Closed by
-  [FEAT-0011](FEAT-0011-delivery-state-and-flow-visibility.md)'s spike,
+  [FEAT-0012](FEAT-0012-delivery-state-and-flow-visibility.md)'s spike,
   2026-09-23.** None of the three candidates was chosen, because the question
   assumed a design choice where the ladder is arithmetic: report the strongest
   distributional claim the sample supports and name the sample size beside it,
@@ -357,14 +358,14 @@ Deliberately undecided.
 
 Locations, not contents.
 
-- `packs/product-engineering/.apm/skills/frame-intent/references/intent-model.md`
+- `packs/product-engineering/.apm/skills/intent/references/intent-model.md`
   — where a lagging outcome and guardrail are defined. The source of the
   distinction this feature must not blur, and the place to check whether
   anything measures them.
 - `packs/atlassian/.apm/skills/flow-metrics/` — the only existing quantitative
   delivery surface, and a worked example of metrics defined with no
   outcome-side counterpart.
-- [`FEAT-0011`](FEAT-0011-delivery-state-and-flow-visibility.md)'s § De-risk —
+- [`FEAT-0012`](FEAT-0012-delivery-state-and-flow-visibility.md)'s § De-risk —
   the sample-size table this feature's third guardrail clause points at.
 
 ## Evidence now available

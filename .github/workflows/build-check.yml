@@ -681,6 +681,10 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_repair_only_workspace_status.py
 
+      - name: pytest registry upgrade notes (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_registry_upgrade_notes.py
+
       - name: pytest header-readiness source-authority parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_header_readiness_source_authority_parity.py
@@ -931,6 +935,10 @@ jobs:
       - name: pytest proof-by-run contract fit (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_proof_by_run_contract_fit.py
+
+      - name: pytest reviewer output contract (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_reviewer_output_contract.py
 
       # T9a conformance roll-up: verifies that both adapter projections
       # (.claude/skills/work-loop/scripts/ and .agents/skills/work-loop/scripts/)

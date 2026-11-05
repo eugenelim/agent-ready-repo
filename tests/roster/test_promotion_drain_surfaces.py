@@ -83,7 +83,7 @@ def test_changelog_entry_leads_the_release() -> None:
     ]
     assert len(matching) == 1
     text = matching[0].read_text(encoding="utf-8")
-    assert "version = \"4.0.13\"" in text
+    assert "version = \"4.0.15\"" in text
     assert "## Highlights" in text
 
 

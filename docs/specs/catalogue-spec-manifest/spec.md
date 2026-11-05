@@ -9,6 +9,7 @@ status: Shipped
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
+- **Brief:** brief:catalogue-specification-publication-delivery
 - **Constrained by:** [RFC-0109](../../rfc/0109-catalogue-specification-publication.md) D1, D7 check 1 and S1; [RFC-0076](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md) D1 (authority model, no catalogue-local override)
 - **Contract:** `contracts/catalogue-spec.toml`
 - **Shape:** mixed

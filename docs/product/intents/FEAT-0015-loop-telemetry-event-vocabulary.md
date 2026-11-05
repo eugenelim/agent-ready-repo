@@ -18,7 +18,7 @@ INI-005's eight telemetry event names and what the work-loop can actually emit a
 - Admits: renaming, narrowing, or dropping any of the eight names; deciding where a token budget and an agent identity are sourced from, if anywhere.
 - Excludes: adding an event, field, or key to `.loop-run/events.jsonl`. Measurement showed no new event closes any of the three gaps below.
 - Excludes: the sender and its mapping profile, owned by `docs/specs/jsonl-otlp-exporter` and `docs/specs/loop-telemetry-export`.
-- Excludes: effective retry-cap telemetry, which shipped later and improves the envelope without resolving the vocabulary decisions below.
+- Excludes: effective retry-cap telemetry. The supervisor line carries no retry fields (`work-supervisor.py status --json` reports them), and none would resolve the vocabulary decisions below.
 
 ## Owner
 
@@ -27,8 +27,8 @@ INI-005's eight telemetry event names and what the work-loop can actually emit a
 
 ## Unresolved questions
 
-- `gate-waived` names a waived gate *verdict*, which this FSM cannot perform — a verdict cannot be overridden, only a retry cap can. Drop the event, or redefine it as "an override flag was supplied" and accept that `waived` does not prove a cap fired (the engine's own test asserts `waived: true` at 0 of 5)?
-- `budget-exceeded` is defined as "(time or token)". Time is derivable exactly from `phase_s`. Tokens are not available to any pack, which `telemetry.md` § 4 records as settled rather than postponed. Narrow the event to time, or source tokens from the harness (INI-003 / INI-004)?
+- `gate-waived` names a waived gate *verdict*, which the supervisor cannot perform — it has no waiver operation, and a retry cap is the only override. Drop the event, or redefine it as "an override flag was supplied" and accept that `waived` does not prove a cap fired (the retired phase engine's own test asserted `waived: true` at 0 of 5)?
+- `budget-exceeded` is defined as "(time or token)". Time is derivable from the gap between consecutive `at` values; the retired engine's `phase_s` is not on the supervisor line. Tokens are not available to any pack, which `telemetry.md` § 4 records as settled rather than postponed. Narrow the event to time, or source tokens from the harness (INI-003 / INI-004)?
 - Each event is required to carry "spec slug, milestone, agent identity, timestamp, gate name, outcome metadata". `milestone` and agent identity are not on the line. Join them (via `spec` into `workspace.toml`, and via the harness), or narrow the metadata clause?
 
 ## Projection
@@ -37,12 +37,12 @@ INI-005's eight telemetry event names and what the work-loop can actually emit a
 
 ## Opportunity
 
-The eight names were authored before the envelope existed and have never been checked against it. Measurement against `core` 2.25.26 found six of the eight derivable from the thirteen emitted fields; the remaining two fail for reasons no new event fixes. Full evidence and re-runnable commands live in the source document.
+The eight names were authored before the envelope existed and have never been checked against it. Measurement against `core` 2.25.26 found six of the eight derivable from the thirteen fields the retired phase engine emitted; the remaining two fail for reasons no new event fixes. The supervisor line carries ten fields, so the six verdicts need a re-check before use. Full evidence and re-runnable commands live in the source document.
 
 ## Assumptions
 
 - **Riskiest assumption:** `docs/product/shaping/ecosystem-overview.md` is the defining source for the eight names; `docs/product/roadmap.md` only lists them. Resolving the names from the roadmap alone resolves them against the wrong document.
-- The effective retry-cap repair does not supply token usage, agent identity, or milestone and therefore does not close this intent.
+- Effective retry-cap reporting does not supply token usage, agent identity, or milestone and therefore does not close this intent.
 - **Knowledge surface:** In-repository telemetry research, roadmap, shipped loop contract, and delivery history.
 
 

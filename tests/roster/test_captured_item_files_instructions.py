@@ -58,7 +58,6 @@ _CLOSED_LIST = (
     "packs/product-engineering/.apm/skills/diverge-solutions/SKILL.md",
     "packs/product-engineering/.apm/skills/diverge-solutions/examples/opportunity-to-options.md",
     "guides/architect/how-to/establish-reference-architecture.md",
-    "guides/core/reference/workspace-toml-schema.md",
 )
 _ALLOWED_PATH = re.compile(
     r"docs/product/captured/[^/]+|docs/specs/[^/]+/spec\.md"

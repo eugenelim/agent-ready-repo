@@ -1,4 +1,4 @@
-# Agentbundle installation supports importable markers and mergeable YAML policies
+# Agentbundle installation merges shared YAML policy files when a pack first needs one
 
 - **Slug:** `agentbundle-install-artifact-layout`
 - **Status:** Draft
@@ -8,26 +8,38 @@
 
 ## Outcome
 
-`agentbundle install` preserves compatible installation artifacts without pack conflicts.
+`agentbundle install` lets two packs ship the same YAML policy file, such as a shared `.snyk`, without one clobbering the other.
+
+## Trigger
+
+Unscheduled. The work starts when the first pack needs to ship a mergeable YAML policy file. Until then this intent records the need and its cost, and no slice, spec or brief is planned.
 
 ## Opportunity
 
-The install marker's historical importability concern requires an explicit packaging decision, and `agentbundle install` has no YAML-merge mode for policy files.
+`agentbundle install` has no YAML-merge mode, so two packs that each ship a YAML policy file such as `.snyk` would overwrite each other. The need is hypothetical: no adopter has hit it, and no pack ships or plans such a file.
+
+## Context
+
+- **Origin.** The [`pack-script-root-boundary-validation`](../../specs/pack-script-root-boundary-validation/spec.md) spec, in its section on why suppression is unavailable, names three suppression routes for a CWE-23 finding. `# nosec` reaches Bandit only. A Semgrep rule exclusion reaches this repository's gate only. A `.snyk` policy file would reach an adopter's Snyk, but no pack ships one and none can without a YAML-merge mode. The spec parked the merge mode as the backlog slug `agentbundle-install-yaml-merge` and chose source fixes as the remediation that reaches every adopter.
+- **Why suppression does not reach adopters.** Each adopter organisation runs its own scanner with its own ignore store, so a suppression file in a pack helps only an adopter whose scanner reads that file.
+- **Merge modes today.** The adapter contract defines `merge-json` and `user-merge-json` for hook wiring and similar files, and no YAML mode (`contracts/adapter.toml`).
+- **No consumer.** The only YAML a pack seeds is a single-owner example, `packs/repo-governance/seeds/governance/manifest.example.yaml`. `.snyk` appears only in guidance text under `packs/catalogue-curation/`. No RFC, spec or roadmap item plans a YAML policy file that install must merge.
+- **Cost.** The change touches protected `packages/agentbundle/**`, so its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC, and it needs a design for YAML conflict semantics. That trailer applies when the protected-tree change lands, not while this intent is a Draft.
 
 ## What this absorbs
 
-### agentbundle-install-marker-importable-path
+### agentbundle-install-marker-importable-path (closed; no remaining work)
 
-The stated wheel concern was that `agentbundle/_data/install-marker.py` was non-importable and `check-wheel-contents` reported W004. Current code instead documents at `packages/agentbundle/agentbundle/build/main.py:236` that ``<package>/_data/install-marker.py`` works through `importlib.resources`, and `packages/agentbundle/pyproject.toml:40` includes `"_data/*"`, so the marker is shipped as package data and read through `importlib.resources`. Move it to an importable path or package it explicitly as data, if the remaining packaging contract requires it. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
+The original wheel concern was that `agentbundle/_data/install-marker.py` is not importable and `check-wheel-contents` reports W004. Neither half holds: the `package-data` table of `packages/agentbundle/pyproject.toml` includes `"_data/*"`, so the marker ships as package data, and no workflow, Makefile target or tool runs `check-wheel-contents`, so nothing reports W004. Reopen this only if a wheel check is added that fails on the marker.
 
 ### agentbundle-install-yaml-merge
 
-Add a YAML-merge conflict mode to `agentbundle install` so packs can ship mergeable `.snyk` and other YAML policy files without clobbering each other. `docs/specs/pack-script-root-boundary-validation/spec.md:50` records that `agentbundle install` has no YAML-merge mode. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC.
+The remaining work: add a YAML-merge conflict mode to `agentbundle install`. It starts at the trigger above.
 
 ## Assumptions
 
-- The marker is currently shipped as package data and read with `importlib.resources`; the stated non-importable path and W004 condition need current wheel-check evidence to establish whether any gap remains.
-- The `Engine-Change-RFC:` trailer applies when the protected-tree change lands, not when this Draft intent is authored.
+- No pack ships a YAML policy file today, so the YAML-merge need is a stated future conflict, not a present one.
+- A source fix stays the preferred remediation for scanner findings, as the origin spec decided. A shared policy file would add to it and never replace it.
 
 ## Source
 

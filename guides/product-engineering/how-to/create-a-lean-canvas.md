@@ -9,7 +9,7 @@ kind: how-to
 
 **Use this when:** You have a committed bet (and optionally a capability map) and need to produce a shareable, version-controlled initiative brief through structured elicitation.
 **Prerequisites:** `product-engineering` pack installed; a committed bet from `place-bet` and capability map from `map-capabilities` are recommended for pre-population, though the skill runs standalone without them.
-**Result:** A `docs/product/initiatives/<ini-slug>.md` initiative brief with a `## Value Proposition` section and a `workspace.toml` entry suggestion, ready to commit and share with stakeholders.
+**Result:** A `docs/product/initiatives/<ini-slug>.md` initiative brief with a `## Value Proposition` section ready to commit and share with stakeholders.
 
 Use the `lean-canvas` skill when you need to produce a shareable, version-
 controlled initiative brief through a structured elicitation. The skill
@@ -104,18 +104,17 @@ first scroll. Review it as you would review a hypothesis:
 If any field is marked TBD, treat it as an open assumption — schedule time to
 fill it before the initiative brief is shared with stakeholders.
 
-## Linking workspace.toml and sharing
+## Sharing the brief
 
-After writing the file, the skill suggests a `workspace.toml` entry for the
-initiative. Add it to the `["ini-NNN"]` section in `workspace.toml`; this
-makes the initiative visible to `workspace-status` and the work queue.
+The skill writes one file. The initiative carries its own `Status:` line, so
+nothing else records it.
 
 To share the initiative brief with your team, commit the file to version
-control and link it from the initiative's `workspace.toml` section. The
+control and link it where they will look. The
 produced file is plain Markdown — it renders in GitHub, GitLab, and most
 document tools without conversion.
 
 ## What you have now
 
-- A shareable initiative brief at `docs/product/initiatives/<ini-slug>.md` with a Value Proposition and workspace entry suggestion.
+- A shareable initiative brief at `docs/product/initiatives/<ini-slug>.md` with a Value Proposition.
 - Review any TBD fields before sharing the brief or moving into the delivery route it supports.

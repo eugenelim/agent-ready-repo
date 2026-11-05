@@ -16,7 +16,6 @@ deferred to strategy review.
 - **Status:** Active
 - **Appetite:** 2–3 quarters
 - **Owner:** engineering-lead
-- **workspace.toml section:** `["ini-003"]` in `workspace.toml`
 
 ## Outcome
 
@@ -97,6 +96,5 @@ mechanical checks.
 
 ## Links
 
-- `workspace.toml` initiative section: `["ini-003"]`
 - Parent: Developer Experience OKR, FY26 H2
 - Shaping artifacts: `docs/product/shaping/ini-003/`

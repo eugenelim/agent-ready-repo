@@ -1,35 +1,46 @@
-# Subsystem Design — Workspace execution supervisor
+# Work-loop execution supervisor
 
-**Decision:** `work-loop` stays the public skill, and the supervisor shipped
-inside it — `work-supervisor.py` and its `_supervisor_*.py` siblings — is the
-only owner of full-mode procedure. It derives every step from committed facts
-and needs only the Python standard library
-([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md)).
-[Authority migration](work-loop-authority-migration.md) maps where each former
-authority went.
-**Author:** Platform Core
-**Status:** Current
-**Last updated:** 2026-11-02
-**Reviewers:** Core pack maintainers
+`work-loop` runs full mode through one supervisor: `work-supervisor.py` and its
+`_supervisor_*.py` siblings, which need only the Python standard library.[^1]
+The supervisor issues one typed request at a time. The controller carries it
+out, and `report` commits exactly one step.
 
-This page is the home for the supervisor's procedure: requests, steps,
-stages, replanning, the TDD guard, effects, readiness, and state.
-[runtime security primitives § 11](runtime-security-primitives.md#11-execution-supervisor-controls) owns the attempt-security controls.
-[Loop infrastructure](loop-infrastructure.md) covers how its scripts are
-invoked, the linters, the run lock, and the light-mode review flow.
+Completion, red proof, the retry count, and readiness all re-derive from `HEAD`,
+the product ref, and the committed `delivery/` records. A refusal writes no
+commit, ref, or journal line.
+
+Worker attempts are untrusted, and each is checked against a manifest.
+
+**Status:** Current. Governing record:
+[ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md).
+
+Neighbouring pages own the rest:
+
+- [Authority migration](work-loop-authority-migration.md) maps where each former
+  authority went.
+- [Product ref](work-loop-product-ref.md) owns the ref transaction and history
+  adoption.
+- [Plan changes](work-loop-plan-changes.md) owns replanning and the TDD guard.
+- [Stages](work-loop-supervisor-stages.md) owns the request-kind, stage, and
+  event-line tables.
+- [Runtime security primitives § 7](runtime-security-primitives.md#7-the-execution-supervisor-assumes-a-worker-may-write-files-directly)
+  owns the attempt-security controls.
+- [Loop infrastructure](loop-infrastructure.md) covers script invocation, the
+  linters, the run lock, and the light-mode review flow.
 
 ## 1. Scope and Context
 
-A *slice* is one independently shippable step of the
-[acceptance-centered work-loop brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices),
-which owns each slice's status.
+The supervisor owns procedure for full-mode runs and nothing about what counts as accepted.
+
+The [acceptance-centered work-loop brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
+owns each delivery slice's status.
 
 | In scope | Out of scope | Why |
 | --- | --- | --- |
 | Admission, task projection, replanning, the TDD guard, sequential dispatch, recovery, the retry count, external effects, review selection, readiness | Acceptance meaning | Criteria, evidence, and review facts own completion, not procedure |
 | Full-mode `code` and `spec-plan` runs | Light mode | Light mode runs no supervisor ([ADR-0014](../adr/0014-rigor-scales-with-risk-work-loop-modes.md)) |
-| Worker-attempt checks and Windows process control | Parallel writes | Parallel-write gating ([ADR-0005](../adr/0005-supervisor-topological-default-and-write-gate.md)) is unchanged; parallel admission is a later slice |
-| The product ref the supervisor moves with `HEAD`, and the refusals and decision it raises (§ 3, *Product ref*) | Parallel result integration | [Product result integration](work-loop-result-integration.md) § 1a: the sequential ref ships, and three-tree apply and parallel results are Slice 7 |
+| Worker-attempt checks and Windows process control | Parallel writes | Parallel-write gating ([ADR-0005](../adr/0005-supervisor-topological-default-and-write-gate.md)) is unchanged; parallel admission is `STATUS: PLANNED` |
+| The product ref the supervisor moves with `HEAD`, and the refusals and decision it raises (§ 3, *Product ref*) | Parallel result integration | [Product result integration](work-loop-result-integration.md) § 1a: the sequential ref ships, and three-tree apply and parallel results are `STATUS: PLANNED` |
 
 The supervisor dispatches one request at a time. It does not run agents
 itself: it issues a typed request, the controller carries it out, and the
@@ -38,7 +49,7 @@ controller reports the result. The controller is the agent following
 
 ## 2. Structural Model
 
-All modules live in `packs/core/.apm/skills/work-loop/scripts/`.
+Thirteen modules own the procedure, and sibling modules supply acceptance, evidence, and review records. All live in `packs/core/.apm/skills/work-loop/scripts/`.
 
 | Element | Module | Responsibility | State |
 | --- | --- | --- | --- |
@@ -57,21 +68,21 @@ All modules live in `packs/core/.apm/skills/work-loop/scripts/`.
 | Journal | `_supervisor_journal.py` | Local, deletable state: `run.json`, the advisory journal, the security log, the run lock, and `.loop-run/events.jsonl` lines | `<spec>/.supervisor/` |
 
 Two data files shape behaviour without code changes, and this page does not
-restate their values. `work-loop/supervisor-policy.json` holds the
-implementation retry cap, the effect dispatch cap, lock timings, and the
-authority role each decision accepts, and `result_authority`, which says whether
-acceptance reads the product ref or `HEAD` and is pinned with the file at
-`start`. `work-loop/review-rules.json` says which
-reviewer roles run.
+restate their values.[^2] `supervisor-policy.json` holds the implementation
+retry cap, the effect dispatch cap, the stub timeout, the red-proof budget, lock
+timings, the authority role each decision accepts, and `result_authority`.
+`result_authority` says whether acceptance reads the product ref or `HEAD`, and
+is pinned with the file at `start`. `review-rules.json` says which reviewer
+roles run.
 
-The supervisor also loads siblings that earlier slices shipped and it does not
-own:
+The supervisor also loads these siblings and does not own them:
 
 - `_acceptance.py` for the envelope and verdict;
 - `_evidence_store.py` for evidence, and `_policy_import.py` for the approval
   pair it imports;
 - `_review_selection.py`, `_review_persistence.py`, `_review_disposition.py`,
-  and `_review_bridge.py` for structured review records;
+  `_review_bridge.py`, and `_review_assessment.py` for structured review records
+  and the proof-by-run check;
 - `_subject_projection.py` for the review subject;
 - `_loop_guards.py` for the plan grammar and contract canonicalisation;
 - `_statelock.py` for the run lock;
@@ -79,40 +90,9 @@ own:
 - `_security_capability.py`, `_security_events.py`, and `_containment.py` for
   capability grants, the security log, and host containment.
 
-```mermaid
-flowchart TB
-    Controller[Controller following SKILL.md]
-    subgraph Supervisor[work-supervisor.py and its siblings]
-        Admission[Admission]
-        Loop[Loop]
-        Projector[Projector]
-        Attempt[Attempt check]
-        TDD[TDD guard]
-        Effects[Effects]
-        Review[Review]
-        Readiness[Readiness]
-        Commit[Commit builder]
-        Journal[Journal]
-    end
-    Delivery[Committed delivery records]
-    ProductRef[Product ref and HEAD]
-    Local[Local .supervisor and events.jsonl]
-    Controller --> Admission
-    Controller --> Loop
-    Loop --> Attempt
-    Loop --> Projector
-    Loop --> TDD
-    Loop --> Effects
-    Loop --> Review
-    Loop --> Readiness
-    Loop --> Commit
-    Commit --> Delivery
-    Commit --> ProductRef
-    Loop --> Journal
-    Journal --> Local
-```
-
 ## 3. Runtime Model
+
+Each `next` derives one request from committed facts, and each `report` commits one step.
 
 ```mermaid
 sequenceDiagram
@@ -141,22 +121,23 @@ sequenceDiagram
 `start` refuses unless the spec is `Approved` or `Implementing`, the plan is
 `Approved` or `Executing`, and `--intent` matches the spec's
 `## Terminal Intent`. It commits one line to `delivery/approvals.jsonl` holding
-an `approval-record.v1` and an `initial-plan-review.v1`. Both are bound to the
-reviewed-execution-envelope fingerprint (a digest of the spec's protected
-sections, listed in § 3, *Replanning*), the terminal intent, the code-trust
-classification, the run id, and the `owner` and `plan-reviewer` authority
-references. A `spec-plan` run then commits `terminal` and ends, with no task
-projected and no request issued (ADR-0144 D4).
+an `approval-record.v1` and an `initial-plan-review.v1`.
+
+Both are bound to the reviewed-execution-envelope fingerprint (a digest of the
+spec's protected sections, listed in [plan changes](work-loop-plan-changes.md#1-replanning)),
+the terminal intent, the code-trust classification, the run id, and the `owner`
+and `plan-reviewer` authority references. A `spec-plan` run then commits
+`terminal` and ends, with no task projected and no request issued ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D4).
 
 ### Normal sequence
 
 1. `next` derives the current request from `HEAD`. It first commits any
    pending controller edit to the spec, plan, or cited records as one `replan`
-   step, unless a not-red confirmation is owed (§ 3, *TDD guard*). It then
-   commits any step it takes itself — a supervisor-run `red`
-   proof, an `effect-intent`, or `terminal` — projects the matching event
-   lines, records the attempt's issuance in the run store, writes `run.json`,
-   and appends an advisory journal line. A refusal derived here writes only
+   step, unless a not-red confirmation is owed (§ 3, *TDD guard*).
+   It then commits any step it takes itself: a supervisor-run `red` proof, an
+   `effect-intent`, or `terminal`. It projects the matching event lines,
+   records the attempt's issuance in the run store, writes `run.json`, and
+   appends an advisory journal line. A refusal derived here writes only
    `run.json`.
 2. The request's id is deterministic, so a repeated `next` re-issues it
    unchanged until it is reported or superseded.
@@ -169,15 +150,17 @@ projected and no request issued (ADR-0144 D4).
 
 ### Request order
 
-Before any of these, every verb classifies how `HEAD` and the product
-ref relate (§ 3, *Product ref*); `status` does so read-only. `next` issues the `history-adoption`
-`human-decision` there when foreign history needs the owner, and the order below
-runs only when it does not. Then `next` commits any pending `replan`, and then any pending
-`regenerate` step, before it takes the first of these that applies. When the run's code trust is
-`untrusted` and the host supplies no verified containment, every request that
-would run repository code — `write-stub`, `implement-task`, a supervisor-run red
-proof, `run-gates`, and `regenerate` — becomes an `untrusted-code`
-`human-decision` instead.
+Every verb first classifies how `HEAD` and the product ref relate; `status`
+does so read-only ([product ref](work-loop-product-ref.md#2-classification-decides-what-a-verb-may-do)).
+`next` issues the `history-adoption` `human-decision` there when foreign history
+needs the owner, and the order below runs only when it does not.
+
+Then `next` commits any pending `replan`, and then any admitted `regenerate`
+step, before it takes the first of these that applies. When the run's code trust
+is `untrusted` and the host supplies no verified containment, every request that
+would run repository code becomes an `untrusted-code` `human-decision`. Those
+requests are `write-stub`, `implement-task`, a supervisor-run red proof,
+`run-gates`, and `regenerate`.
 
 1. `terminal`, when a terminal step exists for the current product tree, or the
    intent is `spec-plan`.
@@ -192,237 +175,52 @@ proof, `run-gates`, and `regenerate` — becomes an `untrusted-code`
 8. Readiness work: `run-gates`, reviewer selection and `review-role`,
    `assess-finding`, or a `human-decision` when gates failed, criteria stay
    unsupported, or review is not acceptance-eligible.
-9. A pending `regenerate` of the installed skill.
+9. A `regenerate` request for the installed skill, when one is pending.
 10. Finish effects.
 11. `terminal`.
 
 ### Request kinds and stages
 
-`run.json`'s `stage` comes from the current request kind. A refusal that `next`
-writes — such as `dependency-cycle` or a protected boundary — maps to
-`awaiting-human` from any stage, whoever owns it. Every other refusal reaches
-the controller only through the verb's output and leaves `run.json` unchanged.
-Examples are `attempt-residue` from the open-attempt guard,
-`supervisor-changed` from the pin check, every `report` refusal, `run-locked`,
-and refusals from `start` and `resolve-effect`.
+`run.json`'s `stage` comes from the current request kind: `implementing` for
+`implement-task`, `write-stub`, `external-effect`, and `effect-query`; `gating`
+for `run-gates` and `regenerate`; `reviewing` for `review-role` and
+`assess-finding`; and `awaiting-human` for `human-decision`.
 
-`status` re-derives the run without committing, so `status --check` exits 1
-only for a refusal that derivation and request selection produce. Two refusals
-that `next` writes to `run.json` do not reach it: a `foreign-delivery-edit` from
-the delivery-record sync, and a `stub-not-red` from the supervisor's own red
-run of committed stubs. For either, `run.json` shows the refusal while
-`status --check` exits 0.
-
-| Request kind | `run.json` stage | Opens an attempt |
-| --- | --- | --- |
-| `implement-task` | `implementing` | Yes, worker |
-| `write-stub` | `implementing` | Yes, worker |
-| `external-effect` | `implementing` | No |
-| `effect-query` | `implementing` | No |
-| `run-gates` | `gating` | Yes |
-| `regenerate` | `gating` | Yes, without the installed skill |
-| `review-role` | `reviewing` | Yes, worker |
-| `assess-finding` | `reviewing` | Yes, worker |
-| `human-decision` | `awaiting-human` | No |
-
-```mermaid
-stateDiagram-v2
-  direction LR
-  [*] --> admitted : start
-  admitted --> terminal : spec-plan
-  admitted --> implementing : first task request
-  implementing --> gating : every task complete
-  gating --> reviewing : criteria supported
-  reviewing --> gating : regenerate pending
-  reviewing --> implementing : a finish effect
-  gating --> implementing : a finish effect
-  reviewing --> terminal : ready, nothing pending
-  gating --> terminal : regenerate admitted, install untracked, nothing pending
-  gating --> gating : tracked regenerate step changes the subject
-  implementing --> terminal : last finish effect done
-  implementing --> awaiting_human : derived refusal or human-decision
-  gating --> awaiting_human : gates failed, or derived refusal
-  reviewing --> awaiting_human : review not eligible, or derived refusal
-  awaiting_human --> implementing : replan adds or revises a task
-  terminal --> [*]
-```
-
-`awaiting_human` in the diagram is the `awaiting-human` stage. After a decision
-or a cleared refusal, the run returns to whichever stage its next request
-has; the diagram draws only the repair path.
-
-### Step kinds and event stages
-
-Each supervisor commit carries one operation, and each emits one
-`.loop-run/events.jsonl` line whose `event` is the operation.
-[Telemetry](telemetry.md#51-what-a-line-holds) owns the line's fields. The
-stage a line records comes from the commit's operation, not from the request,
-so it can differ from `run.json`'s stage:
-
-| Operation | Event-line stage |
-| --- | --- |
-| `approval` | `admitted` |
-| `replan`, `reanchor`, `regenerate` | unchanged |
-| `stub`, `red`, `implement`, `gate-fail` | `implementing` |
-| `effect-intent`, `effect-dispatch`, `effect-receipt`, `claim` | `implementing` |
-| `evidence` | `gating` |
-| `review` | `reviewing` |
-| `resolution` | `awaiting-human` |
-| `terminal` | `terminal` |
-
-Issuing a `human-decision` commits nothing, so no line is written while a human
-is pending. A replan confirmation commits as `replan`, and an owner review
-decision as `review`. A `gate-fail` step comes from a failing `implement-task`
-result and counts toward the retry cap. A `run-gates` result commits an
-`evidence` step, pass or fail.
+A refusal that `next` writes maps to `awaiting-human` from any stage. Every
+other refusal reaches the controller only through the verb's output and leaves
+`run.json` unchanged. The [stages page](work-loop-supervisor-stages.md) owns the full
+table, the state diagram, and the event-line stage for each commit operation.
 
 ### Product ref
 
-The run's result is a protected Git ref,
-`refs/agentbundle/delivery/<run-id>/<token>/product`, which only the supervisor moves.
-Every step builds its commit in a private index, then one `git update-ref --stdin`
-transaction moves `HEAD` (through the branch it names) and the ref together from
-their expected values, so `HEAD` stays attached. The kill points are `commit-built`,
-`refs-moved`, `made-recorded`, and `synced`, and repair adds `projection-updated` and
-`repaired`.
+The run's result is a protected Git ref that only the supervisor moves. Each
+step moves `HEAD` and the ref in one transaction.[^3] Before the request order,
+every verb classifies the ref against `HEAD` and the run store.
 
-A result integrates only while the ref still names the commit its request was issued from.
-Otherwise `report` refuses `integration-conflict` and keeps the worker's files.
-
-The run store records the ref's name and the commit it last recorded for it, and trusts the
-ref at that value only. A commit counts as made only after the invocation that moved the refs
-records it, so a step cut off after its refs moved but before it was recorded is never completed or trusted.
-
-Before the request order, every verb classifies the refs (`status` read-only, never
-repairing or refusing). The first row that
-matches applies:
-
-| State | Result |
-| --- | --- |
-| Ref storage is not Git's files backend | Refuse `unsupported-ref-storage` |
-| An attempt is open | The attempt guard answers `attempt-residue` or `attempt-refused` until both refs are restored; no classification runs |
-| The ref is not at the recorded value, and it names one commit the run never recorded whose parent is the recorded value, while `HEAD` is on the recorded value or on that same commit | `next` asks the `history-adoption` decision; every other verb refuses `history-adoption-required` |
-| The ref is not at the recorded value in any other way (missing, symbolic, rolled back, planted, or `HEAD` elsewhere) | Refuse `product-ref-diverged` and name the restore command |
-| The ref is at the recorded value and `HEAD` lags it through made commits | Project `HEAD` and the working tree forward, or refuse `projection-blocked` when a file matches neither version |
-| The ref is at the recorded value and `HEAD` differs otherwise (a rebase, an amend, a commit on top) | `next` asks `history-adoption`; every other verb refuses `history-adoption-required` |
-
-A `history-adoption` answer is `adopt-history` from the `adopt_history` role (`owner`), naming the
-`HEAD` commit. It commits one `reanchor` step that moves both refs, and refuses `adoption-refused`
-if it would change a `delivery/` file. After a `reanchor` that changes the product or the spec
-directory, gates and reviews run again. A cut-off `regenerate` step changes no `delivery/` file, so
-it can be adopted; the `reanchor` then holds the install and no second `regenerate` step is made.
-
-After adopting a cut-off step, the real index is reset to `HEAD` for each of that step's paths
-still indexed as at the recorded value; a path staged otherwise is left alone.
-
-A `regenerate` step is the supervisor's commit of a rebuilt install in a repository that tracks
-its running install at an adapter's skill home (`.claude/skills/`, `.agents/skills/`,
-`.kiro/skills/`, `.github/skills/`, taken from the adapter contract). An install tracked anywhere
-else is never committed by the supervisor, and `next` answers `uncommitted-changes`.
-
-A copy counts only at such a home where `HEAD` already holds the same files as the running
-install's copy; the running copy always counts and must be the one rebuilt. A new home, or a
-directory at a home whose committed files differ from the running copy's (for example, the
-product's own skill of that name), is not a copy.
-
-The next `next` after the admission stages the pack source's own entries (object and mode) at each
-rebuilt copy, checks the built tree before any ref moves, and uses the same two-ref transaction and
-kill points as any step. It acts only when every copy that counts ends equal to the pack source,
-nothing else changed, and the index stages no version of a copy's file that is neither `HEAD`'s nor
-the pack source's; otherwise `next` answers `uncommitted-changes`. The install is product, so the
-step makes earlier gate evidence and reviews stale, and readiness runs again.
-
-`status` shows the pending step as `pending_step` (operation, up to 20 paths, `path_count`) with
-stage `gating` and no terminal state, gate, request, or readiness, unless a `history-adoption`
-decision is pending, which it shows instead. A controller commit of the install is still foreign
-history. Once a regeneration is admitted, nothing commits on top of `HEAD` and no other attempt is
-issued until `HEAD`'s install equals the admitted one, whether the supervisor's step or an adopted
-controller commit put it there; otherwise the verb refuses `supervisor-changed`. A new `regenerate`
-request replaces an admission that never landed.
-
-A run that predates the ref gains one at its latest made commit when that is safe, and otherwise
-asks the same decision. Until it has a recorded ref, a run whose steps were committed with an
-attempt open reads `HEAD` for its subject whichever authority it is pinned to. `result_authority`
-selects only what acceptance reads (the ref's commit, or `HEAD`), and both settings write the ref
-the same way. `status` classifies read-only: it never repairs or refuses, and it shows the subject
-beside any refusal or pending decision it found, so its subject can be computed while foreign
-history sits on `HEAD`; that view is display only.
+History the supervisor did not make, such as a rebase or a step cut off after
+its refs moved, waits for the owner's `adopt-history` answer or a restore of both
+refs. The [product ref page](work-loop-product-ref.md) owns the transaction, the
+classification table, history adoption, and the `regenerate` step.
 
 ### Replanning
 
-There is no whole-plan lock. The envelope covers six protected references:
+A plan edit that leaves the six protected references and the terminal intent
+unchanged commits as one `replan` step with no approval. A change to a protected
+reference or the terminal intent refuses and names its owner.
 
-- `spec_policy`: acceptance criteria, testing strategy, and agent rules;
-- `scope_and_non_goals`;
-- `authority_and_security`: the `Constrained by:` value and each cited
-  record's decision section;
-- `public_contracts`: the `Contract:` value;
-- `durable_outputs`;
-- `accepted_risk`.
-
-Any edit that leaves all six and the terminal intent unchanged commits as one
-`replan` step with no approval. That covers reordering, splitting, merging, or
-replacing tasks, editing tests, stubs, effects, or the plan's
-`## Design (LLD)`, and bookkeeping. Unintegrated attempts of superseded tasks
-cancel, and completed work stays complete. A changed task revision makes that
-task due again.
-
-A change to a protected reference or the terminal intent refuses. The refusal
-names the spec-amendment, decision, contract, risk, or plan-review owner.
-
-A controller plan edit is in-envelope only while no attempt is open. During an
-attempt, any plan change refuses it with `attempt-residue`. So the controller
-edits after reporting the open request and before the next `next`. The
-grounding of an `implementation-discovered` seam or design means, and each
-correction, is such an edit to the plan's `## Design (LLD)`
-([ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
-D2). The verification ledger keeps execution observations only.
+A completed task becomes due again only when a pinned field of its current
+revision changes. The [plan changes page](work-loop-plan-changes.md#1-replanning) owns the
+envelope and the edit rules.
 
 ### TDD guard
 
-The red test is written at EXECUTE
-([ADR-0150](../adr/0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md)).
-For a task with a stub fence (ADR-0151 D1, ADR-0144 D5):
+A task with a stub fence runs `write-stub`, then a supervisor-run red proof,
+and only then `implement-task`. A stub that is not red refuses `stub-not-red`.
 
-1. The controller writes the fence into the task's `Tests:` as a task-start
-   revision, after the previous result is reported and before the `next` that
-   issues the task's first request.
-2. `next` commits that edit as a `replan` step.
-3. `next` issues `write-stub`. The worker writes the stub files, and its result
-   may change exactly the fenced stub paths; anything else refuses
-   `not-exactly-stub`.
-4. The supervisor runs the stubs and checks they match the fence byte for byte
-   and exit with a code the fence declares as red.
-5. It commits the `stub` step with its red proof. When the stub bytes are
-   already in `HEAD`, because the task was revised after its stub commit, the
-   supervisor runs them on a scratch copy and commits only a `red` step.
-6. Only then is `implement-task` issued. A worker attempt that writes or
-   changes a fence is refused.
-
-When the supervisor's own red run of committed stubs finds them not red, `next`
-refuses `stub-not-red`. That run uses a scratch copy, so nothing is discarded
-and no confirmation is owed; the controller's fence edit commits as an ordinary
-`replan`.
-
-When a `write-stub` result's stub already passes, `report` refuses
-`stub-not-red`. Once the attempt
-checks find no difference, that refusal closes the attempt and discards the
-files it and its launch changed; nothing from the result commits. The run store
-records that a confirmation is owed (ADR-0151 D3). The next trusted-file change
-then opens a `human-decision` carrying its diff and a digest of its exact bytes.
-
-- **Confirm.** A `confirm-replan` answer with an `owner` authority reference
-  commits the change as a `replan` step only when the change set is exactly the
-  bound files and the bytes still match the digest. The commit carries the
-  authority reference in a `Supervisor-Authority-Ref` trailer.
-- **Decline.** A `decline-replan` answer commits nothing. `next` refuses
-  `replan-declined` until the trusted files match `HEAD` again. Restoring them
-  brings back the fence that was not red, so `write-stub` runs again, and the
-  next trusted-file change still needs a confirmation.
-
-Both answers are recorded with their authority reference and digest in
-`recovery.json` in the run store. A file the discard could not remove blocks
-every step until the controller removes it or restores it to `HEAD`.
+A `write-stub` result whose stub already passes also owes an owner confirmation
+before the next trusted-file change commits. The
+[plan changes page](work-loop-plan-changes.md#2-tdd-guard) owns the steps and
+both answers.
 
 ### Effects
 
@@ -430,6 +228,7 @@ A task declares an external effect on its `**Effects:**` line; a plan-level
 `**Effects:**` line declares finish effects. The supervisor records the intent
 before the first dispatch and the receipt after it. An effect the source shows
 never happened may be dispatched again, up to the policy's effect dispatch cap.
+
 An outcome the source cannot establish waits for a named human's
 `effect-resolution.v1` through `resolve-effect`: `effect-confirmed`,
 `do-not-retry`, or one `retry-authorized` claim taken under lock (ADR-0144 D6).
@@ -442,12 +241,17 @@ and the supervisor commits that answer to `delivery/review-selections.jsonl`.
 Owner decisions such as `reselect-review` and `accept-risk` commit as `review`
 steps in `delivery/review-decisions.jsonl`.
 
-Review closes only from structured readiness (ADR-0144 D8). Every selected
+Review closes only from structured readiness ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D8). Every selected
 obligation needs a current `review-report.v1`. Every finding needs a current
 `finding-assessment.v1`, and every supported finding needs a
-`finding-disposition.v1`. Readiness also needs the current approval pair and
-every criterion supported by fresh admissible evidence. The supervisor reads no
-stored verdict as input.
+`finding-disposition.v1`.
+
+Readiness also needs the current approval pair and every criterion supported by
+fresh admissible evidence. The supervisor reads no stored verdict as input.
+
+An `assess-finding` result is refused `review-record-refused` when its
+proof-by-run assessment does not name exactly one proof run of the subject
+commit, or pairs the wrong outcome with it.[^4]
 
 ### Failure and recovery
 
@@ -474,9 +278,11 @@ stored verdict as input.
 
 Every verb prints one JSON object; a refusal prints
 `{"refusal": {"code", "owner", "detail"}}`. Every verb exits 0 on success, 1 on
-a refusal, and 2 on a usage error. `status --check` also exits 3 on a
-non-terminal run whose implementation retry count has reached the policy cap,
-and 3 takes precedence over 1. A terminal run exits 0.
+a refusal, and 2 on a usage error.
+
+`status --check` also exits 3 on a non-terminal run whose implementation retry
+count has reached the policy cap, and 3 takes precedence over 1. A terminal run
+exits 0.
 
 ## 4. Contracts and Invariants
 
@@ -503,14 +309,14 @@ The event file keeps the existing
 
 An attempt opens when `next` issues `implement-task`, `write-stub`,
 `review-role`, `assess-finding`, `run-gates`, or `regenerate`, and when the
-supervisor itself launches repository code for a red proof. Its manifest
-records the size and digest of every trusted file — the spec, its plan, the
-records it cites, and the installed skill — and of the Git control state. A
+supervisor itself launches repository code for a red proof.
+
+Its manifest records the size and digest of every trusted file (the spec, its plan, the
+records it cites, and the installed skill) and of the Git control state. A
 `config` or `config.worktree` entry records the config fingerprint instead: the
 file's size and digest with its canonical tracking blocks removed, prefixed
-`config-view:`. A
-`regenerate` manifest leaves out the installed skill, because regenerating it
-is the request.
+`config-view:`. A `regenerate` manifest leaves out the installed skill, because
+regenerating it is the request.
 
 While an attempt is open, `next`, `report`, and `start` first compare the
 working tree with the manifest and with `HEAD`. A difference refuses the
@@ -520,19 +326,22 @@ restored. An attempt closes when it is reported, superseded, or refused; a
 
 ### Trust
 
-Worker attempts — implementer and reviewer subagents — are untrusted. A change
+Worker attempts (implementer and reviewer subagents) are untrusted. A change
 during an attempt to a trusted file, to Git control state, or to committed
-`delivery/` records refuses its result. `HEAD` may advance only by commits the
-supervisor made, and the supervisor's own move of this run's product ref is accepted only
-at the run store's recorded value; any other change to that ref during an attempt refuses the
-result. The controller is trusted. A named-human decision is recorded
-with its authority reference (ADR-0144 D11).
+`delivery/` records refuses its result.
+
+`HEAD` may advance only by commits the supervisor made. The supervisor's own
+move of this run's product ref is accepted only at the run store's recorded
+value, and any other change to that ref during an attempt refuses the result.
+
+The controller is trusted. A named-human decision is recorded with its authority
+reference (ADR-0144 D11).
 
 `start --code-trust trusted|untrusted` records whether the run's repository
 code is trusted, and an `untrusted` run runs no repository code without verified
 host containment (§ 3, *Request order*). Git hardening, launch grants, the
 run-store layout, supervisor pinning and regeneration admission, and result
-acceptance per request kind are in [runtime security primitives § 11](runtime-security-primitives.md#11-execution-supervisor-controls).
+acceptance per request kind are in [runtime security primitives § 7](runtime-security-primitives.md#7-the-execution-supervisor-assumes-a-worker-may-write-files-directly).
 
 ## 5. Data and State
 
@@ -550,10 +359,14 @@ acceptance per request kind are in [runtime security primitives § 11](runtime-s
 `run.json` holds `run_id`, `active`, `stage`, `gate_pending`, `gate_question`,
 and `refusal`. `active` is true from the first admitted `start` until terminal.
 `gate_pending` is true exactly while a `human-decision` is open, with its
-question in `gate_question`. `refusal` names the refusal `next` last derived,
-with its owner, or is empty. The workspace bridge reads `run.json` through a confined
-regular-file read with a 64 KiB bound and only displays it. A human answer
-reaches the supervisor only through its own `human-decision` request.
+question in `gate_question`.
+
+`refusal` names the refusal `next` last derived,
+with its owner, or is empty.
+
+The workspace bridge reads `run.json` through a confined regular-file read with
+a 64 KiB bound and only displays it. A human answer reaches the supervisor only
+through its own `human-decision` request.
 
 Deleting the journal, `run.json`, or `security-events.jsonl` neither reopens a
 closed attempt nor clears an owed confirmation, because both live in the run
@@ -568,22 +381,20 @@ store.
 | Workspace bridge | `agentbundle` MCP server | Run id, `run_active`, stage, and pending gate from `run.json` |
 
 The supervisor never imports or executes anything from `tools/`, `packages/`,
-or another installed package at runtime. Same-process code is not a sandbox;
-attempt security checks what an attempt changed rather than claiming to
-contain it.
+or another installed package at runtime.[^5] Same-process code is not a sandbox.
+Attempt security checks what an attempt changed rather than claiming to contain
+it.
 
 ## 7. Quality Scenarios and Verification
 
 | Stimulus | Response | Verification |
 | --- | --- | --- |
-| Killed at any kill point, journal deleted, or branch reset back to an earlier supervisor commit | Converges to the uninterrupted run's tasks, tree, and records, once the owner has answered where a step was cut off after its refs moved but before it was recorded, or a rebase left foreign history; the working tree, `HEAD`, and product-ref manifests are equal after every resumption. The full corpus runs under the shipped `result_authority`, and a named sample runs under the other, backed by a test that fails on any second read of the setting | Crash corpus |
+| Killed at any kill point, journal deleted, or branch reset back to an earlier supervisor commit | Converges to the uninterrupted run's tasks, tree, and records once the owner has answered where a step was cut off or foreign history sits on `HEAD`. The full corpus runs under the shipped `result_authority`, and a named sample runs under the other | Crash corpus |
 | Effect source is unknowable after a crash | Dispatches nothing until a named human decides | Effect corpus and two-process claim race |
-| In-envelope task change | New projection, no approval request | Replan corpus |
-| Protected change | Refuses with no commit, ref, journal line, or event | Replan corpus |
+| A plan edit | Inside the envelope it projects with no approval request; a protected change refuses with no commit, ref, journal line, or event | Replan corpus |
 | TDD task reaches implementation | Red observed first, byte-identical to the fence | TDD corpus |
 | Worker changes a trusted file | Result refused; `attempt-residue` until restored | Attempt-security suites |
 | Installed skill runs with only the standard library | Synthetic run reaches readiness | Clean-environment import fence, POSIX and Windows |
-| A new reviewer role | Joins through one `review-rules.json` entry and a typed report | Synthetic-reviewer fixture |
 
 The suites live under `packs/core/tests/skills/work-loop/`.
 
@@ -591,50 +402,57 @@ The suites live under `packs/core/tests/skills/work-loop/`.
 
 | Element | Source | Verification |
 | --- | --- | --- |
-| Supervisor modules | `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py` and `_supervisor_*.py` | Work-loop supervisor suites |
-| Policy data | `work-loop/supervisor-policy.json`, `work-loop/review-rules.json` | Policy and review-selection tests |
+| Supervisor modules and policy data | `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `_supervisor_*.py`, `supervisor-policy.json`, `review-rules.json` | Work-loop supervisor suites |
 | Light-mode and pre-approval review verbs | `work-loop/scripts/review-artifact.py` (`validate`, `classify`, `raw-classify`, `inspect`, `record`) | Review-artifact tests |
 | Portable records | `contracts/delivery/` | Schema validation and registry rows |
-| Skill procedure | `work-loop/SKILL.md` and its references | Skill evals |
-| Generated copy | `.claude/skills/work-loop/` | `make build-self` drift check |
+| Skill procedure and generated copy | `work-loop/SKILL.md`, `.claude/skills/work-loop/` | Skill evals, `make build-self` drift check |
 
-There is no build step: the skill ships the modules as path-loaded siblings.
+The skill ships the modules as path-loaded siblings, with no build step.
 
 ## 9. Decisions, Alternatives, and Risks
 
-- **Decision:** One skill-shipped supervisor owns full-mode procedure
-  (ADR-0144 D1, D2).
-- **Decision:** The stub fence is a task-start revision and an
-  `implementation-discovered` means is a working-plan edit (ADR-0151).
-- **Rejected:** a single-file supervisor built from a manifest by a repository
-  tool, and a journal or effect store in `packages/agentbundle/`. Neither
-  reaches adopters (ADR-0144, alternatives).
-- **Not built yet:** leases and parallel scheduling. ADR-0144 D1 assigns
-  leases to the supervisor; they arrive with parallel scheduling in a later
-  slice (see the [brief's delivery slices](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)).
-- **Not in this subsystem:** provider selection and external runtime adapters.
-  The
-  [runtime adapter crosswalk](runtime-adapter-crosswalk.md) is a draft mapping
-  for later slices.
+[ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) and
+[ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
+hold the decisions and the rejected alternatives.
+
+- **`STATUS: PLANNED`:** leases and parallel scheduling. ADR-0144 D1 assigns
+  leases to the supervisor, and the
+  [brief's delivery slices](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
+  schedule them.
+- **Not in this subsystem:** provider selection and external runtime adapters
+  ([crosswalk](runtime-adapter-crosswalk.md)).
 - **Risk:** a controller needs a plan edit while an attempt is open.
-  **Mitigation:** `attempt-residue` names the paths to restore, and the edit
-  waits for the next `next`.
-- **Risk:** a writer that can edit the run store under the Git directory could
-  clear an owed confirmation. **Mitigation:** none in this subsystem; that
-  store is the attempt-security trust root.
+  **Mitigation:** `attempt-residue` names the paths to restore.
+- **Risk:** a writer that can edit the run store could clear an owed
+  confirmation. **Mitigation:** none here. That store is the attempt-security
+  trust root.
 
-## 10. Rollout, Migration, and Reversal
+## 10. Ownership and Reversal
 
-The `work-loop` invocation is unchanged, and Core 4.0.0 ships the supervisor as
-the only full-mode procedure owner with no compatibility adapter, reverse
-reader, or dual-write path. A run started before 4.0.0 is re-derived from
-durable facts. Reversal is reinstalling the prior Core major, which discards
-supervisor records that release cannot read (ADR-0144 D7). The product ref and
-the `result_authority` setting have their own reversal, stated once in
+[Authority migration](work-loop-authority-migration.md) owns the migration and
+reversal of the supervisor. The product ref and `result_authority` setting have
+their own reversal in
 [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal).
 
 | Responsibility | Owner |
 | --- | --- |
 | Supervisor, policy data, and skill procedure | Core pack maintainers |
 | Delivery contracts | `agentbundle` contract maintainers |
-| Rollback | Core pack release maintainers; the authority setting's rollback owners are in the [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal) table |
+| Rollback | Core pack release maintainers |
+
+[^1]: `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`: the
+    `add_parser` calls give the verbs `start`, `next`, `report`, `status`, and
+    `resolve-effect`. The `_supervisor_*.py` files beside it are the modules in
+    § 2.
+
+[^2]: `packs/core/.apm/skills/work-loop/supervisor-policy.json` and
+    `review-rules.json`.
+
+[^3]: `_supervisor_commit.py`: `PRODUCT_REF_RE` and the two-ref transaction.
+
+[^4]: `_supervisor_readiness.py`: the `assess-finding` branch calls
+    `_review_assessment.py` `check_proof_by_run` and raises
+    `review-record-refused`.
+
+[^5]: `packs/core/tests/skills/work-loop/test_supervisor_dark_launch.py`: runs
+    `work-supervisor.py` under `-I -S` and fails if any other module loads.

@@ -6,6 +6,16 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.60.1] — 2026-11-03
+
+### Changed
+
+- `catalogue self-host` no longer lists `workspace.toml` among its seeded-once
+  paths, and the catalogue lint's seed-placeholder table no longer checks a
+  `workspace.toml` seed: the `core` pack no longer ships one.
+- The packaged readiness module and the workspace MCP server name `dispatch.py`
+  in finding next actions that said "rerun reconciliation".
+
 ## [0.60.0] — 2026-11-02
 
 ### Changed
