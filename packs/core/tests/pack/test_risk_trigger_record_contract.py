@@ -8,7 +8,10 @@ would leave the record unable to say which triggers fired.
 
 from __future__ import annotations
 
+import importlib.util
 import re
+import sys
+import types
 from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[2]
@@ -52,3 +55,22 @@ def test_contract_tokens_are_distinct() -> None:
 def test_template_carries_exactly_one_risk_triggers_line() -> None:
     lines = TEMPLATE.read_text(encoding="utf-8").splitlines()
     assert sum(line.startswith(_HEADER_LINE) for line in lines) == 1
+
+
+def _load_lint() -> types.ModuleType:
+    """Load the spec-status lint under a pack-and-skill-qualified name."""
+    path = SKILLS / "work-loop" / "scripts" / "lint-spec-status.py"
+    spec = importlib.util.spec_from_file_location("core_work_loop_lint_spec_status_rtr", path)
+    assert spec is not None and spec.loader is not None
+    module = importlib.util.module_from_spec(spec)
+    stdout, stderr = sys.stdout, sys.stderr
+    try:
+        spec.loader.exec_module(module)
+    finally:
+        sys.stdout, sys.stderr = stdout, stderr
+    return module
+
+
+def test_lint_token_set_equals_the_contract_table() -> None:
+    tokens = {token for token, _trigger in _contract_table()}
+    assert set(_load_lint().RISK_TRIGGER_TOKENS) == tokens
