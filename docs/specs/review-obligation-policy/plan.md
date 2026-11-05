@@ -221,21 +221,23 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 **Depends on:** T5
 
-**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor.md, packs/core/.apm/skills/work-loop/evals/evals.json, docs/specs/structured-review-boundary/spec.md, docs/specs/execution-supervisor-review-gate/spec.md, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.d/*.md, .claude/skills/**, .agents/skills/**
+**Touches:** packs/core/.apm/skills/work-loop/SKILL.md, packs/core/.apm/skills/work-loop/references/supervisor.md, packs/core/.apm/skills/work-loop/evals/evals.json, docs/specs/structured-review-boundary/spec.md, docs/specs/execution-supervisor-review-gate/spec.md, packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.d/*.md, tests/roster/test_registry_upgrade_notes.py
 
 **Tests:**
 - AC-0034: goal-based version parity check after `git fetch origin`.
 - The supervisor reference content pins and the skill evals pass.
-- `agentbundle catalogue lint --root . --deep` and `catalogue verify` pass after `self-host --write`.
+- `agentbundle catalogue lint --root . --deep` passes on the pack source. The installed projections under `.claude/` and `.agents/` are rebuilt by the supervisor's own `regenerate` step, or by a controller commit after `terminal`, never inside an attempt.
+- `tests/roster/test_registry_upgrade_notes.py`'s `_RELEASED["core"]` names the new version and fragment.
 - The two Shipped specs change only in the rows and rules the spec's Durable Outputs name.
 
-**Done when:** `make lint-ruff lint-mypy`, the touched suites, and the catalogue checks pass, and `make build-self && make bootstrap-sites` leave a clean tree after commit.
+**Done when:** `make lint-ruff lint-mypy`, the touched suites, and the catalogue lint pass.
 
 ## Rollout
 
 - **Delivery:** one Core patch. A run started before the upgrade stops with `supervisor-changed` (existing behaviour) or keeps today's review through its protection-unknown selection lines.
 - **Infrastructure:** none.
-- **Deployment sequencing:** rebase on `origin/main` before the merge, then rebuild the projections and re-check AC-0034's version.
+- **Deployment sequencing:** start the run only after any upstream dependency merges, because a mid-run merge from `main` voids the pinned run. After `terminal`, rebase on `origin/main`, rebuild the projections with `make build-self && make bootstrap-sites`, commit them, and re-check AC-0034's version.
+- **Closeout (controller, after `terminal`):** write `notes/verification-ledger.md` with every criterion's evidence, set the spec Shipped and the plan Done, and capture the `review-not-eligible` follow-on as a work-intake item. The spec directory is worker-protected, so none of this runs inside an attempt.
 
 ## Risks
 
@@ -246,4 +248,6 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 ## Changelog
 
-- 2026-11-05: plan drafted.
+<!-- Approvals only. -->
+
+- 2026-11-05: spec approved by eugenelim (scope)
