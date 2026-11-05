@@ -1,7 +1,7 @@
 # Plan: Hand a captured item to its owner or close it, and record which
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Drafting
 - **Repository anchors:** `docs/specs/work-item-capture/spec.md` § D6 and § D10 — the stored-command rules, the stored-path set, and the merge-path disclosure this plan consumes; `packs/core/.apm/skills/work-intake/SKILL.md` § 4–5 — the classify table and the intake transaction the drain calls; `packs/core/.apm/skills/project-knowledge/scripts/knowledge_store.py` — the store API: partitions, event validation, the terminal-disposition writer and its identical-disposition no-op; `tests/roster/test_project_knowledge_capture_contract.py` — the repository-level test anchor pattern. Deviation: none.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -482,6 +482,93 @@ the captured-item grammar, and the run report.
 
 **Done when:** the module's two read paths agree on a store holding a
   misnamed or non-regular partition file, and the roster suite drives it.
+
+### T19: A route with no dispatch wired holds the item
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- The drain run with defaults — no `transact` override, no
+  `dispatch_processor` — over a routable question and a ready defect: each
+  is held with the missing dispatch named in the reason, and
+  `store_terminal_dispositions` returns no terminal event for either
+  (`AC-0025`).
+- `transact_route` called directly with `dispatch_processor=None` on both
+  route branches returns the hold shape and attempts no disposition.
+- A drain with a real dispatch wired still routes and records `routed`
+  (the existing suites, unchanged).
+
+**Done when:** `drain()` with defaults can no longer record `routed`, and
+  work-intake `SKILL.md` § 8 records how the operator wires the dispatch at
+  invocation.
+
+### T20: A classification is one of the six classify-table members
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A question classified with an output that is not one of `direct-light`,
+  `spec`, `brief`, `remember`, `defect`, `incomplete` is held as unroutable
+  (`AC-0026`).
+- A question classified with `remember` or `incomplete` — the
+  non-dispatchable members — is held the same way (`AC-0026`).
+- A question classified with each dispatchable member still routes, with
+  the classification riding the report item unchanged (`AC-0001`).
+- The member set is a module constant the spec's § D3 names, not a literal
+  repeated at each call site.
+
+**Done when:** no non-empty string can route a question, and the roster
+  suite drives each member and one non-member.
+
+### T21: The superseded closure ground's test runs in the drain
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A superseded closure whose cited capture id resolves in the seeded store
+  closes and records the disposition (`AC-0002`).
+- A superseded closure whose cited capture id resolves nowhere and whose
+  cited artifact path does not exist is refused by the drain itself, the
+  item stays open, and the refusal names the failed citation (`AC-0027`).
+- Overtaken and falsified closures are unchanged: the operator's verdict
+  still decides them, with the evidence riding the report (`AC-0003`).
+
+**Done when:** a superseded closure cannot commit on a citation that
+  resolves nowhere, and the other two grounds are byte-for-byte their
+  current behavior.
+
+### T22: A stale workspace lock is recovered
+
+**Depends on:** none
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A workspace lock holding a pid that no longer exists: the transaction
+  recovers it — liveness probe, removal, one retry — and completes, where
+  the same state previously returned `LOCK_BUSY` forever (`AC-0028`).
+- A workspace lock holding the running process's pid is still refused
+  (`AC-0028`).
+- A lock whose pid is owned by another live process (probe raises
+  `PermissionError`) is treated as live and refused.
+
+**Done when:** the drain's re-run recovery path survives a hard-killed
+  predecessor, and the intake-transaction suite drives both lock states.
+
+### T23: Release mechanics for the hardening
+
+**Depends on:** T19, T20, T21, T22
+
+**Tests:** goal-based check.
+- `packs/core/pack.toml` and the plugin manifest carry the next patch
+  version, with a changelog fragment naming the four hardening fixes.
+- `make build-self FORCE=1` projects every changed `.apm` file into both
+  adapter trees, and the self-host check is clean.
+- Every new or changed roster suite has its named CI step above the bulk
+  step in `.github/workflows/build-check.yml` and its
+  `LOCAL("test-after-build-check")` disposition in
+  `tools/lint-ci-parity.py`.
+
+**Done when:** the local gate chain — ruff, mypy, changelog,
+  lint-ci-parity, self-host check, the touched suites — is green.
 
 ## Rollout
 
