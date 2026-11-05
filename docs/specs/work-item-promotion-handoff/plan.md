@@ -618,8 +618,9 @@ shared transaction helper and T23 in the release surfaces.
 - Work-intake `SKILL.md` § 5's lock paragraph — "If another writer holds
   the lock, the transaction returns `lock_busy` without mutating either
   side" — is updated to state the stale-owner recovery and its limits
-  (dead owner removed after identity re-verification; live and pid-less
-  owners never taken), asserted by a T7-style source-text check.
+  (dead owner removed after identity re-verification; live, pid-less, and
+  alien non-regular files at the lock path never taken, probed, or
+  removed), asserted by a T7-style source-text check.
 
 **Done when:** the drain's re-run recovery path survives a hard-killed
   predecessor without ever removing a live writer's lock, and the

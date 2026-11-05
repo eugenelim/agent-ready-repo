@@ -575,7 +575,9 @@ requires. The scenarios below state how each is driven.
 - Write a workspace lock holding a pid that no longer exists; assert the
   transaction recovers it and completes; that a fresh lock taken between the
   probe and the removal is refused, not removed; that a lock holding a
-  live pid, or no parseable pid, is never taken; and that fault-injecting
+  live pid, or no parseable pid, is never taken; that a non-regular file
+  at the lock path is never probed and never removed; and that
+  fault-injecting
   the acquisition's link step leaves no lock at the path and no temporary
   behind (`AC-0028`).
 - Add a row to `docs/specs/work-item-capture/spec.md` § D6 cases and assert
@@ -614,8 +616,8 @@ and the original work behind it and judges:
    prose re-run refusal (§ D4), a non-dispatchable classify member (§ D3),
    a missing processor dispatch (§ D1), a refused closure citation
    (§ D5), a failed processor dispatch, a lock-busy acquisition, or a
-   store-refused disposition write — each a failure § D1 requires to hold
-   the item with its reason named in the run report.
+   store-refused disposition write — the last three being failures § D1
+   requires to hold the item with its reason named in the run report.
 3. A **closed** item by whether the stated ground holds under § D5's test,
    with the recorded evidence.
 
@@ -726,7 +728,9 @@ verifies the criteria below mechanically.
       identity — same inode, same pid payload — immediately before the
       unlink and refuses when the lock changed underneath; a lock whose
       owner is alive, or whose payload carries no parseable pid, is never
-      taken; and the transaction's own acquisition publishes the lock
+      taken, and a non-regular file at the lock path — a symlink, a FIFO,
+      a device — is never probed and never removed; and the transaction's
+      own acquisition publishes the lock
       atomically — a pid-complete temporary file, unique to its holder,
       linked into place — so a
       lock it leaves always carries its owner's pid; the temporary is
