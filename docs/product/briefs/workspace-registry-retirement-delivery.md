@@ -3,8 +3,8 @@
 - **Slug:** `workspace-registry-retirement-delivery`
 - **Received:** 2026-10-25
 - **Owner:** eugenelim, Platform Core maintainer
-- **Status:** Executing
-- **Cut-closed:** <!-- Required before Status: Shipped, refused while Status: Draft. -->
+- **Status:** Shipped
+- **Cut-closed:** 2026-11-05 All 17 slices confirmed Shipped; see § Spec map.
 - **Ready confirmed:** 2026-10-25 by the repository owner, after a clean independent delivery-brief shaping review of git blob `1af95a54bf2decb6ece31d7c3a4acb866e1f1e69`. Amended 2026-10-27 at the repository owner's request: the list-order risk rewritten to match FEAT-0034's settled answer, after an independent delivery-brief shaping review of git blob `9083db6589a9fa6d858408a2ea7125d5f6a62633` left no sustained finding.
 - **Slices confirmed:** 2026-10-25 by the repository owner: candidate slices 1 to 9, in the order listed. Slice 1 is materialized first, because its inventory settles questions the later slices depend on; each later slice is materialized as a spec when it is picked up. Amended 2026-10-26 by the repository owner: the two-week trial cut, slice 5 shrunk to a script run once before each registration stop, and the appetite cut from about five weeks to about three, after a clean independent delivery-brief shaping review of git blob `1fb9d8d2c234e74aabd608c77e590581e18c8744`. Amended 2026-10-27 by the repository owner: slice 7 stops repo-origin intent and brief registration only, because refresh checks a tracker-origin item's tracker profile through its entry, and slice 9 gains ending tracker-origin registration. Amended 2026-10-30 by the repository owner: slice 9 lands in parts around the execution-supervisor cutover.
 - **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/FEAT-0034-workspace-registry-retirement.md`](../intents/FEAT-0034-workspace-registry-retirement.md), decomposed to this brief by the owner on 2026-10-25.

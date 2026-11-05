@@ -204,7 +204,7 @@ Slice 9 of the delivery brief completes the closure checklist here.
 | Gate | Item | State | Evidence |
 | --- | --- | --- | --- |
 | consumer inventory | every tracked file with a registry token has a governing row | met | `docs/specs/workspace-retirement/inventory.toml`; `tests/roster/test_workspace_retirement_inventory.py` |
-| consumer inventory | no row is owned by a slice number | open | — |
+| consumer inventory | no row is owned by a slice number | met | `docs/specs/workspace-retirement/inventory.toml` |
 | state disposition | every registry fact has a home and an owner | met | `docs/specs/workspace-retirement/retirement-record.md` |
 | state disposition | every deliberate removal cites accepted authority | met | `docs/specs/workspace-retirement/retirement-record.md`; `docs/rfc/0106-stop-registering-derivable-work.md` |
 | behavioral equivalence | every equivalence case is reproduced, an accepted removal or an intended change | met | `docs/specs/workspace-retirement/retirement-record.md` |
@@ -214,11 +214,13 @@ Slice 9 of the delivery brief completes the closure checklist here.
 | compatibility closure | upgrade notes published | met | `guides/core/how-to/upgrade-from-a-workspace-registry.md` |
 | compatibility closure | prune-protection list retired | met | `tests/AGENTS.md` |
 | compatibility closure | old skill deferred to the RFC-0067 release | met | `docs/rfc/0105-artifact-derived-navigation-and-workspace-retirement.md` |
-| compatibility closure | registry contract retired in RFC-0064 | open | — |
-| compatibility closure | activation gate passed | open | — |
-| compatibility closure | corpus gate passed | open | — |
-| compatibility closure | workspace.toml deleted | open | — |
+| compatibility closure | registry contract retired in RFC-0064 | met | `docs/rfc/0064-ini-001-ai-native-ecosystem.md` |
+| compatibility closure | activation gate passed | met | `docs/specs/workspace-toml-deletion/notes/verification-ledger.md` |
+| compatibility closure | corpus gate passed | met | https://github.com/eugenelim/agent-ready-repo/actions/runs/41930296968 and https://github.com/eugenelim/agent-ready-repo/actions/runs/41930300476 |
+| compatibility closure | workspace.toml deleted | met | https://github.com/eugenelim/agent-ready-repo/actions/runs/41930300476 |
 
 ## Certification
 
-Slice 9 of the delivery brief records the certification here.
+- **Certified:** 2026-11-05 by eugenelim, Platform Core maintainer
+
+I certify that RFC-0105 D3's four retirement gates (consumer inventory, state disposition, behavioral equivalence and compatibility closure) pass, on the evidence in § Compatibility closure's checklist.

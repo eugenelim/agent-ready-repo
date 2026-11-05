@@ -1,7 +1,7 @@
 # Plan: Workspace retirement record
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0105 D3.
   - RFC-0106 D1's responsibility table and § Errata.

@@ -1,7 +1,7 @@
 # Plan: Closing the workspace retirement and deleting workspace.toml
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - RFC-0105 D3 (line 112), gate 4 at line 121, and the certification sentence after the gate list; RFC-0064 § Errata (line 626), whose current-state table ends at row 13; RFC-0055.
   - `tests/roster/test_workspace_retirement_inventory.py`: `_LITERAL_FACTS` (line 435), `_REGISTRY_PATH` (line 447), `_registry_facts` (line 500), `_fact_set` (line 523, which parses the registry at line 536), `check_inventory` (line 274, the owner rule at lines 303 to 320), `check_record` (line 687), the fixture builder that writes a registry (line 1353).
@@ -70,7 +70,7 @@ Owned by: T2, T4, T5, C3.
 - **Dormant closing rules.** criterion 0032 and criterion 0033 apply only while `docs/specs/workspace-retirement/spec.md`'s `Status:` is `Shipped`. criterion 0030 and criterion 0031 apply at all times, so the drafted checklist is checked from T2 on.
 - **Reader suites after deletion.** A suite that asserts the registry holds no entry of some kind treats an absent file as holding none. `test_workspace_status_projection.py`'s class over the real registry is removed, because its subject is gone. Synthetic-fixture tests stay. `tools/test_workspace_status_cli.py` finds the root by `AGENTS.md` and `packs/`. `test_agent_skill_engineering_consumer_integrations.py` drops `workspace.toml` from `BOUND_SURFACES`, because the file it binds is gone. A probe at `3b1d0279d` with the file removed found exactly these eight suites and the inventory check red, out of every test module that names `workspace.toml`. Two others, `view_browser_checks.py` and `atlassian_jira_epic_outcome_view_guarantees.py`, already collect no passing test at the base, and `tools/test_local_ci_shared_test_deduplication.py` reds only through the CLI suite's root finder.
 - **Rows that settle only at closeout.** Three rows have live targets until the closeout closes them: the brief (`docs/product/briefs/workspace-registry-retirement-delivery.md`), this spec's directory, and FEAT-0034. T5 leaves them owned by 9. C3 makes them `historical` with owner `none` once each target is terminal under criterion 0008. If `close-work` leaves FEAT-0034 non-terminal, its row takes `rfc-0067`.
-- **Measurement tool.** `tools/measure-changelog-conflicts.py` keeps `workspace.toml` in `WATCHED_PATHS`, because it measures history and the path stays meaningful in `git log`. Its row becomes `historical` if criterion 0008 admits that, or `rfc-0067` if not.
+- **Measurement tool.** `tools/measure-changelog-conflicts.py` keeps `workspace.toml` in `WATCHED_PATHS`, because it measures history and the path stays meaningful in `git log`. Its row is `reader` with owner `rfc-0067`.
 
 ### Behavior & rules
 
@@ -150,7 +150,7 @@ Owned by: T2, C2.
 - **Depends on:** T5, T6
 - **Verification mode:** TDD
 - **Touches:** `docs/specs/workspace-retirement/inventory.toml`, `tests/roster/test_workspace_retirement_inventory.py`
-- **Tests:** for AC-0016 and the `historical` class definition (IA-1): the RFC-0105, RFC-0106 and RFC-0078 rows are `contract` with owner `rfc-0067`, because each still states a rule that holds while the repair ships. For AC-0003 (IA-2): a `met` row's Evidence passes only when every backticked or bare path it names is tracked, and a run URL counts only as `https://github.com/<owner>/<repo>/actions/runs/<digits>`; one fixture each for an untracked path beside a URL, an id-less URL, and a bare untracked path beside a tracked one. For AC-0005 (QE-1): the AC-0032 rejection fixture reports the planted row's own subject. For AC-0002 (QE-2): a fixture that plants an unparseable `workspace.toml` and one that plants an extra key, and `_fact_set` reports no problem and no extra fact for either. IA-4 and IA-5: re-owned rows' `consumer` text names the RFC-0067 release instead of slice 9, and the AC-0003 message and the inventory header name `rfc-0067`.
+- **Tests:** for AC-0016 and the `historical` class definition (IA-1): the RFC-0105, RFC-0106 and RFC-0078 rows are `contract` with owner `rfc-0067`, because each still states a rule that holds while the repair ships. For AC-0003 (IA-2): a `met` row's Evidence passes only when every backticked or bare path it names is tracked, and a run URL counts only as `https://github.com/<owner>/<repo>/actions/runs/<digits>`; one fixture each for an untracked path beside a URL, an id-less URL, and a bare untracked path beside a tracked one. For AC-0005 (QE-1): the criterion 0032 rejection fixture reports the planted row's own subject. For AC-0002 (QE-2): a fixture that plants an unparseable `workspace.toml` and one that plants an extra key, and `_fact_set` reports no problem and no extra fact for either. IA-4 and IA-5: re-owned rows' `consumer` text names the RFC-0067 release instead of slice 9, and the AC-0003 message and the inventory header name `rfc-0067`.
 - **Done when:** each new fixture reds before its fix, and the inventory check passes over this repository.
 
 ### T8: Evidence-check repairs
