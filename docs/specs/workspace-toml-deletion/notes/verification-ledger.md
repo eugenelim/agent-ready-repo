@@ -50,4 +50,11 @@ Second tested commit: `43dec1e6a57976fc78e7c0ce01c764d415df960b`, the pull reque
 - `test-roster.yml`: https://github.com/eugenelim/agent-ready-repo/actions/runs/42043167866, success.
 - `test-corpus.yml`: https://github.com/eugenelim/agent-ready-repo/actions/runs/42043162818, success.
 
-The pull request carries two commits, by the owner's decision of 2026-11-05: the change, and this ledger entry. Each commit's message holds the certification text, and the squash merge joins them, so the commit on `main` carries it.
+Third tested commit: `4a4cb936e7aac983f3c408e15dcf3f4afd9a2a2e`, after the base moved with #1688 and its new `tests/roster/test_promotion_drain_procedure.py` row took the `rfc-0067` owner. The pull request's head differs from it only in this ledger.
+
+- `test-roster.yml`: https://github.com/eugenelim/agent-ready-repo/actions/runs/42062071740, success.
+- `test-corpus.yml`: https://github.com/eugenelim/agent-ready-repo/actions/runs/42062067936, success.
+- #1688 changed the bodies of `packs/core/.apm/skills/work-intake/SKILL.md` and `packs/release-engineering/.apm/skills/release-loop/SKILL.md`, and no skill's `name:` or `description:`, so the activation run on `bbad114db43c` stands.
+- The `make build-check (windows)` aggregator, which is not a required check, failed because its `pinning 1/2` supervisor shard reached its 45-minute timeout twice on this pull request; the same shard reached it on `main` on 2026-11-05 (15:14 to 15:59), and passes in 31 to 35 minutes on other runs.
+
+The pull request carries several commits, by the owner's decision of 2026-11-05. Each commit's message holds the certification text, and the squash merge joins them, so the commit on `main` carries it.
