@@ -1,0 +1,53 @@
+{
+  "audience": "project",
+  "competency_facets": [
+    "CQ-VERIFY"
+  ],
+  "freshness": {
+    "checked_at": "2026-11-04T12:53:51Z",
+    "state": "fresh"
+  },
+  "lifecycle": "active",
+  "occurrences": [
+    {
+      "capture_id": "kco-202611-123de45c68f6c6b88f9671310de478a38ca27d80d92a9bacb334c8de8151c004",
+      "mutation_id": "2039060cc5b7aff44375dc7eb88b2f5ed8dda2eef83d4369d0167b7c874fbeb9",
+      "observed_at": "2026-11-04T12:53:51Z",
+      "producer": "work-loop",
+      "reviewed_disposition": "promoted",
+      "scope": "docs/specs",
+      "semantic_gate": "plan-locked",
+      "source": {
+        "path": "docs/specs/work-item-promotion-handoff/plan.md"
+      }
+    }
+  ],
+  "owning_source": {
+    "digest": {
+      "byte_length": 16249,
+      "kind": "sha256-bytes-v1",
+      "sha256": "41aed6144dee4427e1a408251d47e6148ed75551c36a4ddb68eeca5c2965d4e6"
+    },
+    "path": "docs/specs/work-item-promotion-handoff/plan.md"
+  },
+  "schema_version": "knowledge-topic.v1",
+  "scopes": [
+    "docs/specs"
+  ],
+  "supporting_sources": [
+    {
+      "digest": {
+        "byte_length": 38009,
+        "kind": "sha256-bytes-v1",
+        "sha256": "8f9d867c8d3a0d6e9eb20572db97f733fe7a5e3371248fa66101766b84c29828"
+      },
+      "path": "docs/specs/work-item-promotion-handoff/spec.md"
+    }
+  ],
+  "synthesis": {
+    "body": "A criterion whose spec Testing Strategy declares a specific verification mode needs a plan artifact that performs exactly that check: a unit test over the same behavior does not satisfy a goal-based store-replay criterion, and the completion gate cannot close the criterion in its declared mode. When authoring a plan, walk the spec's Testing Strategy entries and give each declared mode a plan artifact in that mode — for store-replay criteria, a replay check over the fixture store beside the drain that produces it.",
+    "kind": "gotcha"
+  },
+  "title": "A criterion's declared verification mode needs a matching plan artifact",
+  "topic_key": "a-criterions-declared-verification-mode-needs-a-matching-plan-artifact"
+}

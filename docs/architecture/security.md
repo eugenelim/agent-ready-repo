@@ -325,37 +325,57 @@ control does not close.
   and are admitted: `grep`'s pattern at index 1, which only the character class
   reaches, so `["grep", "/etc/passwd", "docs"]` passes; and a backslash in
   `verification_route.path`, which `_expect_repo_path` folds to `/` before
-  testing. Nothing decides whether an in-repository file is sensitive:
-  `credentials.json`, `keys/id_rsa`, `config/prod.env`, and `.env` all clear
-  every write-time check, including the privacy scan. A committed secret under
-  any name is an unowned residual. It is not the promotion-handoff spec's
-  post-resolution confinement obligation, which refuses a path resolving outside
-  the repository.
-- **D10's prose residual.** Three controls screen a record's own prose only at
-  the write path: `assert_persistable_text`'s eight patterns, the
-  instruction-shape refusal, and the reasoning dispatch's data-framing. None
-  re-runs on a record that arrived by the unchecked merge path, so a merged
-  record's prose can carry an email address, a bearer token, a `/Users/<name>`
-  path, a tenant identifier, or instruction-shaped text into a later reasoning
-  context and into a durable artifact.
-- **The late-ordering residual (`AC-0069`).** D6's argv rules run at write time,
-  after the per-item cold reasoning dispatch in the close's ordering. An
-  attacker-influenced `verification_route.command` element reaches that
-  reasoning context screened only by the dispatch's data-delimiting framing.
-- **The mechanical tier is absent, and that is a consequence, not a separate
-  gap.** Validation is one tier deep: the cold reasoning check. When it is
-  unavailable, validation is unavailable. The write path's refusal on any
-  unrecognized verdict (`AC-0068`) stands in for the structural floor a two-tier
-  design would supply. [`work-item-mechanical-tier`](../specs/work-item-mechanical-tier/spec.md)
-  owns the second tier, is Draft, and amends this list when it lands.
-- **Six runner obligations belong to the promotion-handoff spec.** Bounding what
-  happens when a stored command runs is
-  [`work-item-promotion-handoff`](../specs/work-item-promotion-handoff/spec.md)'s:
-  post-resolution repository confinement; environment neutralisation; a resource
-  cap; a pre-execution re-check against the same argv rules; which matcher
-  `grep` runs under, since the character class alone does not decide it; and the
-  treatment of the command's output (its sinks, no instruction authority at a
-  reasoning step, and a privacy scan before any durable write).[^s10]
+  testing. Within the set, nothing decides whether an in-repository file
+  is *sensitive* — `credentials.json`, `keys/id_rsa`, `config/prod.env`
+  and `.env` alike clear every write-time check, including the privacy
+  scan. An untracked secret committed under any name is a disclosed,
+  **unowned** residual: it is not the promotion-handoff spec's
+  post-resolution confinement obligation, which refuses a path resolving
+  *outside* the repository, and an in-repository file never does. An
+  earlier draft carried a dot-leading-component rule here; amendment 008
+  removed it, because a filename-convention denylist is the documented
+  antipattern for path security, it added nothing to confinement, and it
+  caught `.env` while missing the three names above.
+- **§ D10's prose residual — settled by the promotion drain's read-path
+  re-run.** Three controls run on a record's own prose at the write path:
+  `assert_persistable_text`'s eight patterns, the instruction-shape
+  refusal, and the reasoning dispatch's data-framing. A record that
+  reached the store by the unchecked merge path above skipped all three,
+  which is why the residual was disclosed here as unowned.
+  `docs/specs/work-item-promotion-handoff/spec.md` § D4 now settles it:
+  the drain's offer assembly re-runs the same three controls over the
+  same schema-derived scanned field set before the record influences any
+  classification, reasoning, or durable write, and a failing record is
+  refused as a routing input and held with the refusing control named.
+- **The late-ordering residual (`AC-0069`).** § D6's argv rules run at
+  write time, but *after* the per-item cold reasoning dispatch in the
+  close's own ordering. So an attacker-influenced
+  `verification_route.command` element reaches that reasoning context
+  screened only by the dispatch's data-delimiting framing — not by the argv
+  rules, which have not run yet at that point.
+- **The absent mechanical tier — stated as a consequence, not as a
+  separate gap.** This delivery ships one validation tier: the cold
+  reasoning check. `docs/specs/work-item-mechanical-tier/spec.md` owns the
+  second, deterministic tier and has not landed. Because validation is one
+  tier deep, an unavailable reasoning tier is the whole of validation being
+  unavailable — there is no second tier to fall back to — and the write
+  path's refusal on any unrecognized verdict (`AC-0068`) is what stands in
+  for the structural floor a two-tier design would otherwise supply. When
+  that spec lands, its own settlement — its catalog-code and residual-bit
+  points — amends this list; its admission check (its own `AC-0004`) is
+  conditioned on an item both checks admit and never covers the
+  unavailability case `AC-0068` already refuses.
+- **Six residual runner obligations, handed over, not owed here.** Bounding
+  what happens when a stored command actually **runs** is
+  `docs/specs/work-item-promotion-handoff/spec.md`'s, not this delivery's:
+  post-resolution repository confinement; environment neutralisation; a
+  resource cap; a pre-execution re-check of the stored command against
+  these same argv rules immediately before it runs; which matcher `grep`
+  runs under, since the character class alone does not decide it; and the
+  treatment of the command's output — its sinks, that it carries no
+  instruction authority at a reasoning step, and that it is privacy-scanned
+  before any durable write. These six are listed here as handed to that
+  spec by name, not as gaps this delivery leaves open.
 
 ## 10. Related decisions
 
@@ -381,4 +401,3 @@ control does not close.
 
 [^s9]: `Makefile` targets `sast`, `sast-unleased`, variables `SAST_DIRS` and `SEMGREP_EXCLUDE`; `tools/requirements-sast.txt`; `.github/workflows/codeql.yml`, `ci-security.yml`; `docs/specs/pack-script-root-boundary-validation/spec.md`.
 
-[^s10]: `packs/core/.apm/skills/project-knowledge/scripts/knowledge_store.py` (`assert_persistable_text`, `_expect_repo_path`); `docs/specs/work-item-capture/spec.md`.
