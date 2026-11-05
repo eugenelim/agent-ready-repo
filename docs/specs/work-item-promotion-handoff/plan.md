@@ -58,6 +58,13 @@ Cross-cutting, beyond the per-task tests below:
   transaction never deletes a prior committed artifact, a materialized
   captured-item file parses under the destination owner's grammar, and a
   closure's evidence rides the run report beside it.
+- Hardening round (the four sustained post-merge findings): the
+  end-to-end fixture drain above runs with a dispatch wired — `drain()`
+  with defaults holds every routable item — a question routes only on a
+  classify-table member, a superseded closure's citation resolves within
+  the repository root or the closure is refused, and a stale workspace
+  lock never wedges the re-run while a live, pid-less, or alien lock is
+  never taken (`AC-0025`, `AC-0026`, `AC-0027`, `AC-0028`).
 - Manual verification: the spec's § D12 adjudicated sample, gated on capture
   traffic per the spec's Follow-ons.
 
@@ -618,9 +625,9 @@ shared transaction helper and T23 in the release surfaces.
 - Work-intake `SKILL.md` § 5's lock paragraph — "If another writer holds
   the lock, the transaction returns `lock_busy` without mutating either
   side" — is updated to state the stale-owner recovery and its limits
-  (dead owner removed after identity re-verification; live, pid-less, and
-  alien non-regular files at the lock path never taken, probed, or
-  removed), asserted by a T7-style source-text check.
+  (dead owner removed after identity re-verification; live and pid-less
+  locks never taken or removed; alien non-regular files at the lock path
+  never probed or removed), asserted by a T7-style source-text check.
 
 **Done when:** the drain's re-run recovery path survives a hard-killed
   predecessor without ever removing a live writer's lock, and the
