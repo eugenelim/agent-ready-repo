@@ -1,7 +1,9 @@
 # Emitted guide-link fallback detector
 
 - **Slug:** `emitted-guide-link-fallback-detector`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -73,3 +75,11 @@ in `docs/knowledge/observations/gotcha/2026-09.jsonl`.
   decisive? The convention route is cheapest and needs no build change; the
   resolve-back route is the most precise and duplicates work the rewrite already
   did.
+
+**Riskiest assumption:** an anchor to the GitHub blob locator whose target is absent from the tree is always an unresolved rewrite, never an authored link. Agent-only test: fixtures for an unresolved rewrite (fails), an existing target (passes) and an authored link to an existing guide (passes).
+
+## Readiness
+
+Route: new-spec, one session.
+
+Checked 2026-11-05: `tools/build-site.py` still defines `GITHUB_BASE` and rewrites an unresolved relative link to it, and `tools/check-rendered-site-links.py` has no handling of that locator. Recommended answer to the disambiguation question: the resolve-back route inside the checker. An anchor that points at `GITHUB_BASE` plus a `guides/` or `packs/` path fails when that path is absent from the tree; an existing target passes. It needs no build change and no convention ban, and it covers `guides/` and pack README material together. Proof: `make site-link-check` passes on the real tree, and a seeded unresolvable guide link fails it.

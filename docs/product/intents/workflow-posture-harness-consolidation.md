@@ -1,13 +1,16 @@
 # Consolidate workflow-posture harnesses without weakening their contracts
 
 - **Slug:** `workflow-posture-harness-consolidation`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 
 ## Outcome
 
-Workflow-posture checks use a maintainable shared harness and structural workflow parsing where appropriate, while each workflow's distinct security assertions and mutation contract remain intact.
+The pages workflow checks run on the shared posture harness with each check's mutation count and family coverage unchanged, and a missing `persist-credentials: false` in any workflow is caught by one dedicated guard. The build-check workflow check stays outside the harness and keeps its own regex model, as an excluded part with its own contract.
 
 ## Opportunity
 
@@ -49,3 +52,15 @@ The remaining posture checks duplicate driver mechanics, and the required build-
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+**Riskiest assumption:** moving the pages tests onto the shared harness keeps each caller's mutation count and family coverage unchanged. Agent-only test: record both numbers before the move and require them equal after.
+
+## Non-goals
+
+- The regex model in `tools/test-build-check-workflow.py` is not replaced by a YAML parser, and that file is not moved onto the shared harness.
+- Callers keep their own `audit`, mutation lists and predicates; only driver mechanics are shared.
+- `tools/test_marketplace_envelope_parity.py` stays outside the harness set.
+
+## Readiness
+
+Route: brief, [`workflow-posture-pinning-delivery`](../briefs/workflow-posture-pinning-delivery.md). Decided: keep the stdlib regex model in `tools/test-build-check-workflow.py`; the job that wears the required check does not gain a parser, so the PyYAML equivalence question is closed unless a modelling bypass recurs. The `artipacked` gap gets a sibling guard (slice P2). Moving `test-pages-workflow.py` and `test-pages-concurrency.py` onto the shared harness is slice P3, proved by unchanged mutation counts and family coverage.

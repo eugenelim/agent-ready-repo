@@ -1,7 +1,8 @@
 # Digital product integrative guides
 
 - **Slug:** `digital-product-guides-update` <!-- canonical identity; independent of any filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -10,9 +11,8 @@
 - **Milestone:** M6 in RFC-0071's implementation sequence
 - **Governed by:** [RFC-0071 § Implementation sequence — M6](../../rfc/0071-digital-experience-doctrine.md)
 - **De-risked:** no
-- **Shaping-reviewed:** no
-- **Decomposed:** no
-- **Depends on:** intent:cross-pack-experience-eval
+- **Shaping-reviewed:** 2026-11-05
+- **Decomposed:** 2026-11-05 brief
 
 ## Outcome
 
@@ -100,17 +100,16 @@ intent indexes and end-to-end digital-product tutorial after M5 evaluation.
 
 ## Decomposition
 
-One same-repository spec and plan at
-`docs/specs/digital-product-guides-update/` own M6 after the M5 evaluation
-validates the journey. They add the three missing doctrine-pack indexes, keep
-the current Experience Design index aligned, and publish one host-neutral
-tutorial with bounded host overlays and versioned compatibility evidence. This
-remains one feature because the indexes and tutorial form one adoption surface.
-Re-decompose if a docs-generation platform becomes required rather than a
-bounded verification helper.
+Three slices under the delivery brief [`digital-product-guides-delivery`](../briefs/digital-product-guides-delivery.md) own M6: G1 (pack indexes) and G2 (adapter matrix and host overlays), under an owner waiver of the M6 ordering, and G3 (the tutorial, after the cross-pack fixture and the wayfinding edge model).
 
 ## Source
 
 - Mode: repo-origin
 - Locator: docs/rfc/0071-digital-experience-doctrine.md
 - Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f
+
+## Readiness
+
+Route: brief, [`digital-product-guides-delivery`](../briefs/digital-product-guides-delivery.md). First slices G1 (three pack indexes plus a route-resolution test) and G2 (adapter matrix from the adapter contract) need no evaluation work and can run in parallel now. Only the tutorial (G3) waits for the cross-pack fixture. The `Depends on` header is removed for that reason.
+
+Decomposition amended 2026-11-05 by eugenelim: this intent is delivered through [`digital-product-guides-delivery`](../briefs/digital-product-guides-delivery.md) in three slices, G1 (pack indexes), G2 (adapter matrix) and G3 (tutorial). Ordering waiver 2026-11-05: RFC-0071's M6 ordering is waived for G1 and G2 only; G3 keeps the strict order and waits for the cross-pack fixture and wayfinding slice W1.

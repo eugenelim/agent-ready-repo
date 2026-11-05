@@ -63,7 +63,7 @@ rebuilding it by hand.
 | Interface compatibility | Applicable — the confirmed create path lands in the skill that already owns GitHub writes | `packs/github/.apm/skills/github-refresh/SKILL.md` | this spec | the create action handled there, and `github-brief-intake` still refusing every write verb | no write verb runs without the bounded action set's confirmation |
 | Reusable learning | Applicable — the vendor limits are scalars that change at source | `docs/specs/tracker-working-view-github/notes/` | this spec | a dated extract of GitHub's own sub-issue documentation carrying the nesting and per-level maxima | the implementation reads the extract rather than literals |
 | Maintainer procedure | Applicable — the GitHub column is authored by the pattern slice and exercised here | `packs/product-engineering/.apm/skills/intent/references/tracker-projection.md` | pattern slice | the column resolves against a real GitHub render | the render matches every row |
-| Release history | Applicable — `github` changes | `packs/github/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
+| Release history | Applicable — `github` changes | `docs/product/changelog.d/<fragment>.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — the pattern document is the Jira Software slice's output and this slice conforms to it | — | — | — | — |
 
 ## Agent Rules

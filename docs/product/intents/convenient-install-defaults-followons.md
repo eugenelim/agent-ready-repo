@@ -8,7 +8,7 @@
 
 ## Outcome
 
-The layer-4 git+https default catalogue route resolves mutable main to an immutable commit SHA and verifies that the fetched archive bytes correspond to the recorded source identity before installing executable agent content.
+The packaged default catalogue route (layer 5 of the source chain in `source_defaults.py`) resolves mutable main to an immutable commit SHA and verifies that the fetched archive bytes correspond to the recorded source identity before installing executable agent content.
 
 ## Boundary
 
@@ -22,8 +22,9 @@ The layer-4 git+https default catalogue route resolves mutable main to an immuta
 
 ## Unresolved questions
 
-- Do RFC-0046 and the frozen specification finish line provide sufficient Engine-Change-RFC authority, or must an approver accept a narrow integrity-pinning follow-on RFC?
-- Which existing source-identity primitive should bind the commit SHA to the acquired catalogue archive without a force-push race?
+- **Authority, answered:** RFC-0046 governs the default chain. The `Engine-Change-RFC:` gate only checks that a trailer is present, and earlier `source_defaults.py` commits cite RFC-0085. No follow-on RFC is needed.
+- **Primitive, answered:** `direct_source_acquisition.acquire_git_https_archive` already acquires a credential-free GitHub archive with bounds and a redirect allow-list, and `_read_revision` reads the 40-hex commit SHA GitHub writes into the archive's pax header. The default route should reuse it instead of the plain `catalogue.py` fetch.
+- **Design choice for the spec review:** resolve `main` once at install time, record that SHA, and refuse an archive whose pax SHA differs. The alternative, pinning a SHA in `install-defaults.toml` at release time, is stricter but leaves adopters on stale packs until they upgrade the CLI. The spec states the choice and its trade-off.
 
 ## Projection
 
@@ -37,6 +38,13 @@ The packaged layer-4 default currently acquires executable catalogue content fro
 
 - The exact finish line in the frozen specification remains authoritative: resolve main to a full commit SHA and verify the fetched archive digest.
 
+
+## Readiness
+
+- **Route:** `new-spec`, full mode, security review. The change is on the acquisition path of executable agent content.
+- **Verified 2026-11-05:** `read_packaged_default()` returns `git+https://github.com/eugenelim/agent-ready-repo` from `_data/install-defaults.toml`, and `catalogue.resolve_git_ref` maps a bare `git+https` source to `main` with no SHA check.
+- **First slice and agent-only proof:** route the default through the direct-source acquirer, with tests against the local fixture server in `packages/agentbundle/tests/_direct_acquisition.py` for a moved ref, an archive SHA mismatch, a redirect off the allow-list, and rollback on failure. No live network.
+- **Size:** one to two sessions.
 
 ## Source
 

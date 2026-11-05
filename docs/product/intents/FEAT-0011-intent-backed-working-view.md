@@ -579,3 +579,11 @@ them decides membership.
   tier — carrying a `to-validate` hook. Whatever slices the brief carries
   inherit that, and the brief states it rather than letting a spec read as
   though the tier were settled.
+
+## Readiness
+
+- **Route:** the Ready brief `intent-backed-working-view` and its six Draft specs. None is approved. First wave, in order: `tracker-projection-profile-table`, `bounded-remote-create-action`, `tracker-working-view-jira-software`, then `tracker-working-view-github`.
+- **Deferred by owner:** `tracker-working-view-linear` and `tracker-working-view-jira-align` become named later work. They add no new rule, and no adopter has asked.
+- **Verified 2026-11-05:** every spec checks against recorded fixtures or handler doubles ("no test reaches a live tracker"). The write-path "manual QA" transcript in each is evidence of a run no test makes. Accept a fixture-derived confirmation transcript as the criterion's evidence and keep the live run as a non-blocking follow-up.
+- **Fixed 2026-11-05:** six specs named `packs/<pack>/CHANGELOG.md`, which no longer exists. The release-history row now names a fragment in `docs/product/changelog.d/`.
+- **Open check before approval:** `jira-epic-outcome-view` already ships a Jira view at the Epic rung. The Jira spec must say what it adds beyond it.

@@ -1,7 +1,9 @@
 # Self-test untracked plant window
 
 - **Slug:** `selftest-untracked-plant-window`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -39,3 +41,16 @@ an untracked leftover. Those bounds narrow the window; they do not remove it.
 - Mode: repo-origin
 - Locator: docs/specs/lint-performance-p0/spec.md
 - Revision: sha256-bytes-v1:9bf95e7308260b96ba5456eb61aab8d5ab45b9fe32091c3092571ef02c724a0e
+
+## Non-goals
+
+- The tracked-file mutation hazard is already closed and stays out of scope.
+- The clean real-tree run that proves production wiring is not weakened.
+
+**Riskiest assumption:** a plant made in a temporary copy of the minimal tree still proves the production CLI is wired to the live catalogue, because the clean real-tree run keeps asserting exit 0 and all eight success lines. Agent-only test: seeded violations planted in the copy must fail the lint, and `git status --porcelain` must stay empty during the run.
+
+## Readiness
+
+Route: direct-light.
+
+Checked 2026-11-05: layer 3 of `tools/test-lint-pack-test-boundary.py` still plants `packs/figma/.apm/skills/figma/scripts/test_planted_boundary_violation.py` and the symlinked `packs/figma/tests/test_planted_link.py` in the live tree. First slice: keep the clean real-tree run (exit 0, eight success lines, no plants) as the production-wiring proof, and move only the two plants into a temporary copy of the minimal tree the lint needs. Proof: the self-test passes, and no file appears in `git status` at any point during the run.

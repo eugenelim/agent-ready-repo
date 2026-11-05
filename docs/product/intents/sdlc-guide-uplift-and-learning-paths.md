@@ -1,7 +1,9 @@
 # A new team can walk the whole SDLC from the guides
 
 - **Slug:** `sdlc-guide-uplift-and-learning-paths`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -94,3 +96,15 @@ literal chat input. And the chat inputs already exist in a third place: 81 of
   — the 2026-09-04 audit behind the original counts: the six-phase journey, the
   five-affordance measurement over 203 guides, the 15-row uplift table, the
   proposed path structure, and the seven verified defects.
+
+## Readiness
+
+Route: the delivery brief `sdlc-guide-uplift-and-learning-paths` owns this; its S1, S2 and S7 have shipped. Re-measured 2026-11-05 with `tools/audit-guide-affordances.py` over 234 guide files: chat input 46%, demonstrated input 7%, sample output 31%, stated outcome 23%, job to be done 33%; 75 files carry none of the five, 18 name a skill without showing the input, and 9 guides are harvestable from an existing skill phrase. Next: three work-loop sessions, S3 `guide-invocation-outcome-coverage` first, then S4 `tutorial-worked-examples` and S5 `how-to-sample-output-coverage` in parallel. Each has a Draft spec marked review-clean. Agent-only proof: the audit script counts rise and the ledger check passes. Close this intent with the brief.
+
+## Non-goals
+
+- Moving guides on disk or changing published URLs.
+- Making the new journey-contract field required; it stays optional.
+- Guides for the ten guide areas without a tutorial, and the digital-product tutorial, which `digital-product-guides-update` owns.
+
+**Riskiest assumption:** the existing skill description phrases are correct invocations to lift into guides. Tested agent-only by the guide affordance audit plus a check that each lifted phrase appears verbatim in its skill's description.

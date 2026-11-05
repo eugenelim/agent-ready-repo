@@ -58,7 +58,7 @@ visible as one that moved.
 | --- | --- | --- | --- | --- | --- |
 | Maintainer procedure | Applicable — the review is a skill an adopter runs and extends | `packs/product-engineering/` | this spec | the skill, stating both answers and both degradations | the skill names what it renders when each input is absent |
 | User promise | Applicable — the review is read by people outside the team, and the two separations are the promise | the established user-documentation surface | this spec | the separations stated where a reader meets a review | drafted before implementation approval |
-| Release history | Applicable — `product-engineering` changes | `packs/product-engineering/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
+| Release history | Applicable — `product-engineering` changes | `docs/product/changelog.d/<fragment>.md` | this spec | one entry | the pack leads its own entry |
 | Current architecture | Not applicable — the review composes existing surfaces and introduces no new structure | — | — | — | — |
 
 ## Agent Rules

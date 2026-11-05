@@ -1,7 +1,10 @@
 # An enterprise catalogue configures the telemetry endpoint once, for all its users
 
 - **Slug:** `catalogue-level-telemetry-endpoint-default`
-- **Status:** Draft
+- **Status:** Accepted
+- **De-risked:** 2026-11-05
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -24,7 +27,7 @@ An enterprise operator sets a telemetry endpoint once in its catalogue, and ever
 
 ## Owner
 
-- AgentBundle distribution maintainers, jointly with the owner of [`credential-pack-defaults-projection`](credential-pack-defaults-projection.md), which names the same missing projection for a different consumer.
+- eugenelim.
 
 ## Future state
 
@@ -79,16 +82,18 @@ Three consequences have to be accepted or solved, and none is solved here.
 result, not the baked layer alone, or a user override set through
 `agentbundle pack-config set` is silently discarded on the path that sends.
 
-## Unresolved questions
+## Resolved questions — recommended answers, checked 2026-11-05
 
-- The baked layer is reachable only through `agentbundle.config.load_pack_config()`. Both consumers that would read a telemetry endpoint are deliberately standard-library-only — the sender, whose contract forbids any runtime dependency beyond the standard library, and the hook that invokes it. `credential-pack-defaults-projection` already records that no safe installer projection exists. Is telemetry a second consumer of that one projection, or does it need its own?
-- If the installer projects the merged cascade to a file, what is that file and how does a consumer that must not import `agentbundle` locate it without being told a path? `pack_dir()` resolves `user_root` from `state.toml` and falls back to `~/.agentbundle`, but resolving it is itself an `agentbundle` call.
-- Consent and visibility. In this model the enterprise is the consenting party and the end user is expected to use what it configured, so installing does begin sending — the opposite of the adopter-authored case. What tells a user that telemetry is on and where it goes, and may they decline? The sender's Objective currently states installing is the first consent and configuring is the second; an enterprise default needs that sentence to admit an operator acting for its users, or it is simply contradicted.
-- Whether a catalogue-supplied default belongs in a per-pack config file at all rather than in `[telemetry]`, given a user-authored `agentbundle-layout.toml` already has a defined precedence the sender honours.
+Checked: `telemetry-sender-owns-its-configuration` is Shipped, RFC-0101 is Accepted, `_append_layout_section` exists in `commands/install.py`, and `catalogue.toml` bakes no `[pack-defaults]` today. `credential-pack-defaults-projection` is still Draft.
+
+- **One projection or two:** one. Telemetry is a second consumer of the projection that `credential-pack-defaults-projection` needs, so the two share one installer step and one RFC (RFC-0112).
+- **Where the file lives:** the user-scope `[telemetry]` section the sender already reads through `--user-config`. The sender needs no new lookup, because it already receives that path.
+- **Catalogue default or `[telemetry]`:** the catalogue default is the source, and the installer writes the merged result into the user-scope `[telemetry]` section.
+- **Consent and visibility:** the enterprise is the consenting party. The installer prints one line naming the endpoint it configured, and the user declines by removing the section; the sender honours no disable variable today (`OTEL_SDK_DISABLED` appears nowhere in the sender), so the spec decides whether to add a documented decline setting. The sender's Objective sentence on consent must be amended to admit an operator acting for its users.
 
 ## Projection
 
-- Most likely an RFC-0101 addendum shared with `credential-pack-defaults-projection`, covering one installer projection both consumers read, then a focused spec for the telemetry precedence and its disclosure. No queue entry is implied and nothing is blocked on this.
+- RFC-0112, shared with `credential-pack-defaults-projection`, covering one installer projection both consumers read, then a focused spec for the telemetry precedence and its disclosure. No queue entry is implied and nothing is blocked on this.
 
 ## Opportunity
 
@@ -102,6 +107,21 @@ The enterprise half already ships. `catalogue.toml`'s `[pack-defaults.<pack>]` i
 - **Knowledge surface:** In-repository RFC-0101, telemetry sender contracts, credential projection intent, and installer configuration evidence.
 - This catalogue bakes no `[pack-defaults]` today, so nothing depends on current values and the first use sets the pattern.
 - This would be the catalogue's first enterprise-baked telemetry default. It is not the first pack-defaults consumer: credentials got there first, which is why the projection is shared rather than invented here.
+
+## De-risk result
+
+- **Date:** 2026-11-05.
+- **Ran:** `pytest packages/jsonl-otlp-exporter/tests/unit/test_two_scope_config.py`, which covers the sender's two-scope `[telemetry]` merge, and `-k user` over the sender tests.
+- **Observed:** 48 passed in 0.56 seconds in the two-scope file, and the `-k user` run passed 25. The tests include that each scope contributes the setting the other omits, that the repository scope wins a setting both declare, and that an absent file contributes nothing.
+- **Verdict:** supported for the technical half: an enterprise default projected into the user scope reaches the sender with no sender change, and a repository file can override it. The decision that the default binds the user and not a team repository is the owner's (2026-09-16). The update gap, local scope and consent wording stay open.
+
+## Readiness
+
+- **Route:** brief, shared with `credential-pack-defaults-projection`. Neither can ship alone, and the second consumer should not invent a second projection.
+- **Deferred:** nothing is blocked on it, and no catalogue sets a default yet. Start it after the credential projection is shaped.
+- **First slice, when started:** the shared RFC-0112, then the installer step that writes the merged cascade to the user-scope `[telemetry]` section.
+- **Agent-only proof:** installer tests with fixture `catalogue.toml` and an existing user section (never overwritten), local scope (no write), and a user override set through `pack-config set` (kept).
+- **Still open for the owner:** whether the update gap (a section the user already has is never refreshed) is accepted for the first version.
 
 ## Source
 

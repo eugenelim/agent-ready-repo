@@ -290,6 +290,13 @@ The transition contract, the closure check in `close-work`, and the brief cut-cl
 - **2026-09-23 — no ranking step.** Ranking applies to children competing for one appetite. The candidates are ordered by dependency: the closure check needs the transition contract for the meaning of terminal, and the cut-closed field is independent of both.
 - **2026-09-23 — no tracker projection.** `CAP-0004` owns that surface and it is not yet shaped.
 
+## Readiness
+
+- **Route:** the delivery brief `intent-lifecycle-and-closure` already carries it. Slices 1 to 3 are Shipped (`lifecycle-transition-contract`, `brief-lifecycle-contract`, `closure-eligibility-check`, with `close-work-intent-graph-convergence` on top).
+- **What remains:** brief slice 4, the `close-work` Disposition-contract row for work that closed without delivering. Verified 2026-11-05: the table in `packs/core/.apm/skills/close-work/SKILL.md` has six rows and none reaches a Withdrawn or Cancelled intent. The corpus now holds 12 such intents (the brief measured 6).
+- **First slice:** one eligibility row plus its refusal fall-through, as a direct-light session or a small spec. **Agent-only proof:** a fixture tree with a Withdrawn and a Cancelled intent classified by `close_work.py`, and the unchanged refusal for an unknown state.
+- **After that:** set the brief's cut-closed field and close this intent through `close-work`. Closing `CAP-0001` waits on this and on `FEAT-0004`, which waits on PR 1689.
+
 ## Source
 
 - **Mode:** repo-origin

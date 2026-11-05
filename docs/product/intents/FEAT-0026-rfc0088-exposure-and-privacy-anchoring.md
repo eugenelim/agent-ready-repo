@@ -1,13 +1,17 @@
 # RFC-0088 exposure and cross-round term identity are evidenced at their stated boundaries
 
 - **Slug:** `rfc0088-exposure-and-privacy-anchoring`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:rfc0088-browser-follow-on-specs
 - **Governed by:** [RFC-0088](../../rfc/0088-web-pilot-foundation.md)
+
+## Disposition — withdrawn 2026-11-05, parked with CAP-0010
+
+**Do not shape this on its own.** The second-user experiment needs administrator rights this environment lacks. If the pilot proceeds, disclose the exposure as a carried limit in RFC-0088 first. A container with a separate user is an agent-runnable substitute if Docker is available. See the parent's disposition for the reopen order.
 
 ## Outcome
 

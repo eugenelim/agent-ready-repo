@@ -420,3 +420,9 @@ exists. The brief owns slice membership.
 - **Considered and rejected: folding the slot into the review.** It would make
   the outcome column structurally empty on day one, which is indistinguishable
   from the status quo and defeats the reframe the de-risk produced.
+
+## Readiness
+
+- **Route:** the Ready brief `timeline-and-strategic-progress-review`. Run `delivery-forecast-with-uncertainty` then `progress-review-two-answers`, both Draft, neither approved. Both wait on `FEAT-0012`'s distribution slice.
+- **Verified 2026-11-05:** both use recorded fixtures only. The release-history row in `progress-review-two-answers` named a missing changelog file and now names a fragment.
+- **Agent-only proof:** a rendered forecast always shows its range and sample size, and an outcome with no reading renders as its declaration above an explicit "nothing recorded".

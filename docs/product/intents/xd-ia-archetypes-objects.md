@@ -138,3 +138,7 @@ policy enforcement or a standalone authorization engine enters scope.
 - Mode: repo-origin
 - Locator: docs/rfc/0071-digital-experience-doctrine.md
 - Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f
+
+## Readiness
+
+Route: `new-spec`, one session. First slice: a `page-archetypes` reference under the information-architecture skill plus the object/action/attention/navigation template, bound to the shipped seven-genre router. Agent-only proof: an eval where an unknown authority row stays literally `unknown`, and a link check from the router. Checked 2026-11-05: no `page-archetypes` file and no spec exist. This spec gates `xd-state-reviewer-doctrine`.

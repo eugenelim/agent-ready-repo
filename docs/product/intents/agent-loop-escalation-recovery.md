@@ -3,8 +3,19 @@
 - **Slug:** `agent-loop-escalation-recovery`
 - **Level:** feature
 - **Parent intent:** capability:work-loop-delivery-efficiency
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
+- **Decomposed:** 2026-11-05 brief
 - **Owner:** eugenelim, Platform Core maintainer
+
+## Outcome
+
+A review-and-repair loop that has stopped converging is shown to its controller early, and the controller returns to the artifact level the discovery invalidated instead of repairing in place. An 11-round loop that ended only when a human intervened does not recur.
+
+## Riskiest assumption
+
+**Riskiest assumption:** the share of a round's findings caused by the previous round's repair separates a non-converging loop from a slow converging one. It rose across the second recorded loop and has not been tested on a converging loop. Tested agent-only by the N1 spike in [`loop-non-convergence-response`](../briefs/loop-non-convergence-response.md), on committed review-round histories, with thresholds written before the replay.
 
 ## Why this exists, and what it is not
 
@@ -118,9 +129,8 @@ something only a reader knows, and each failed at that seam:
 15, 15, 11 — and rose while the artifact shrank, because the reviewer's
 instrument was sharpened at round 6 from reading the diff to sweeping every
 assertion by mutation. Raw counts are not comparable across an instrument
-change, which is a second reason not to build a detector on them. What did move
-monotonically is the share of findings caused by the previous round's repair:
-0/10, 3/4, 4/5, 2/5. That ratio is mechanizable without classifying findings —
+change, which is a second reason not to build a detector on them. What moved for three rounds is the share of findings caused by the previous round's repair:
+0/10, 3/4, 4/5, 2/5, up for three rounds then down. That ratio is mechanizable without classifying findings —
 it needs only "did the previous round's diff touch the line this finding cites"
 — so H2's "might be unmechanizable" is too pessimistic for at least one signal.
 
@@ -207,3 +217,17 @@ repeating" is useful even while the response is still a human's judgement.
   and the signal that would have caught it was already on disk.
 - The `next` action projection, which is a delivery brief:
   `docs/product/briefs/work-loop-next-action.md`.
+
+## De-risk result
+
+2026-11-05, availability check on committed history. Counted committed review-round files with the case-insensitive glob `docs/specs/*/notes/*round*`: 56 files in 13 specs (excluding two non-round notes), 9 specs with three or more (50 files), and the longest has 16 (`work-loop-review-verdicts`). In one sampled round file, 2 lines carry a `file:line` citation, finding rows are not in a fixed severity format, and the file has one commit. So "did the previous round's diff touch the line this finding cites" is computable for specs whose findings cite lines, and not for most.
+
+**Verdict:** partly holds, not stamped. The N1 spike has a usable set of histories, but it must define overlap by cited file and section when no line is cited, restrict to specs whose round files carry citations, and report how many of the 9 specs with three or more files qualify. The brief's risk section carries the same limit.
+
+## Readiness
+
+**Route:** delivery brief, [`loop-non-convergence-response`](../briefs/loop-non-convergence-response.md). It keeps the two signals that need no live loop and drops H5 and H6 as research questions.
+
+**First slice (N1):** a git-history spike that measures repair size and the share of a round's findings caused by the previous round's repair, with thresholds written before the replay. It needs no credentials and no live service.
+
+**Current truth.** Full-mode work-loop now runs through the execution supervisor, so detection belongs in `work-supervisor.py status`, which already reports run, stage and retry count. The round artifacts the intent cites are gitignored, so only git history and committed review records count as evidence.

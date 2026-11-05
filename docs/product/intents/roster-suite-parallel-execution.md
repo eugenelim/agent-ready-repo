@@ -2,7 +2,9 @@
 
 - **Slug:** `roster-suite-parallel-execution`
 - **Level:** feature
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Owner:** eugenelim
 
 ## Outcome
@@ -25,7 +27,7 @@ repeated parallel runs on a hosted runner that agree with the serial verdict.
 
 ## Owner
 
-Repository maintainers.
+eugenelim, as repository maintainer.
 
 ## Delivered context
 
@@ -72,3 +74,17 @@ Discovered while shaping `remote-gate-dispatch`, the first slice of
 owner asked whether the roster suite could be offloaded and parallelised. The
 offload half needs no work here, because a dispatched `make test` already covers
 the roster. This item is the isolation proof for the parallel half.
+
+## Non-goals
+
+- The serial invocation stays authoritative; `make test` reaches the roster through its `tests/` sweep unchanged.
+- No order pinning is used to make a case pass.
+- No case or subtest is dropped to gain parallelism.
+
+**Riskiest assumption:** the three roster files that write under the repository root are the only live-tree writers. Agent-only test: run the suite in parallel several times locally, compare the verdict to the serial run, and compare `git status --porcelain` before and after each run.
+
+## Readiness
+
+Route: new-spec, one session, and it is low priority because `make test` already runs in four shards through `test-corpus.yml`.
+
+Checked 2026-11-05: `tests/roster/` holds 190 files, and three name a write to the repository root: `test_agent_skill_engineering_consumer_integrations.py`, `test_visual_handoff_golden_path.py` and `test_workspace_status_projection.py`. First slice: give those three a temporary tree or snapshot, then run the suite with `-n 8` several times locally and compare to the serial verdict. The hosted-runner repeat is a named, non-blocking follow-up. The captured order-dependence defect `pre-existing-captured-item-link-refusal-order-dependence` is a one-fixture fix that blocks xdist runs and belongs in the same session.

@@ -27,6 +27,16 @@ The planned binder-publishing design has an implementation build specification b
 
 - None.
 
+## Current state — checked 2026-11-05
+
+`docs/architecture/binder-publishing/` is marked `STATUS: PLANNED`, no `packs/binder-publishing` exists, and the only spec, `binder-publishing-gate-propagation`, is Shipped with `Contract: none`. The design spans sixteen pages, and ADR-0073 fixes Zensical as the v1 renderer.
+
+## Readiness
+
+- **Route:** brief, but parked. Nothing here names a consumer or demand evidence, so do not decompose it until the owner names one.
+- **Proposed slices when started, in dependency order:** (1) the `binder.toml` schema and the resolver that writes `binder-index.json`, standard library only; (2) the resolved-index contract and its validator; (3) the Zensical adapter, tested against recorded renderer output and never the live tool in a gate; (4) the security profile: fence neutralisation, path confinement, resource ceilings; (5) the skill, activation evals and pack wiring.
+- **Agent-only proof for slice 1:** the unit coverage that `docs/architecture/binder-publishing/rollout.md` lists for configuration precedence, ordering, cycles and ambiguity.
+
 ## Source
 
 - Mode: repo-origin

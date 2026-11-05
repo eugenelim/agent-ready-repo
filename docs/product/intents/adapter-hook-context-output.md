@@ -1,9 +1,12 @@
 # Hook adapter delivery repairs
 
 - **Slug:** `adapter-hook-context-output`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 
 ## Outcome
 
@@ -38,6 +41,8 @@ Excludes:
 
 ## Assumptions
 
+- **Riskiest assumption:** each client's documented hook-output format, last read 2026-08-22, still matches the current client. Slice H2 re-reads the documentation first and builds one parsing fixture per adapter from it; a real client run is manual and non-blocking, so claims stay `documentation-verified`.
+
 - Plain stdout remains valid for Claude Code and Codex, so their context behavior does not regress.
 - Kiro IDE 1.x and CLI 3.x remain the target contract when this item is shaped.
 - The Claude Code and Codex fixes may need different root tokens or dispatch wrappers.
@@ -48,6 +53,12 @@ Excludes:
 - Whether context output is rendered by the projected hook wrapper per adapter or by a mode of the portable hook, and which owner carries the per-runtime protocol.
 - Which root-stable form is safe on Windows, given the command-safety guardrail.
 - Whether the three defects ship as one spec or as three, since the Kiro migration has the largest blast radius and the root fix the smallest.
+
+## Readiness
+
+- **Route:** delivery brief [`adapter-hook-context-output-delivery`](../briefs/adapter-hook-context-output-delivery.md), three slices. They answer the first three open questions as follows.
+- **Verified 2026-11-05:** `.codex/hooks.json` still runs `python tools/hooks/session-start.py` and `python tools/hooks/work-loop-check.py`, both relative to the working directory; from a subdirectory that command fails with "can't open file". `tools/hooks/session-start.py` prints plain text and contains no `additionalContext`. `packs/core/.apm/kiro-ide-hooks/` still ships only the legacy `work-loop-check.kiro.hook`.
+- **Unresolved questions, answered:** the nudge on Kiro stays "unverified" after the schema migration unless Kiro documents a context channel; the installer's `Next:` handoff covers it. Context output is rendered per adapter by the projected wrapper, not by a mode of the portable hook, so the hook body keeps its intent. Three specs, not one, because the Kiro migration has the widest blast radius. The Windows-safe root form is decided inside slice H1.
 
 ## Source
 
