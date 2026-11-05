@@ -5,6 +5,7 @@ that names what it supersedes. Core 4.0.0 moved phase, cohort, plan-lock, and
 review-gate authority to the [execution supervisor](work-loop-execution-supervisor.md)
 in one switch, with no compatibility adapter, reverse reader, or dual-write
 path ([ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md) D7).
+
 Parallel admission and the knowledge capture gates have not moved yet.
 **Author:** Platform Core
 **Status:** Current

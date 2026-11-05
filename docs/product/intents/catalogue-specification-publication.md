@@ -1,13 +1,16 @@
 # Publish a versioned agentbundle catalogue specification
 
 - **Slug:** `catalogue-specification-publication`
-- **Status:** Accepted
+- **Status:** Fulfilled
 - **Accepted:** 2026-10-21 by eugenelim, lifecycle owner. Basis: explicit owner direction to accept; RFC-0109 governs the intent, and intent-mode review of this revision produced no malformed findings.
+- **Fulfilled:** 2026-11-04 eugenelim, lifecycle owner: the one delivery brief, [`catalogue-specification-publication-delivery`](../briefs/catalogue-specification-publication-delivery.md), is Shipped and maps the four slice specs, all Shipped, per close-work's closure check (`all-descendants-terminal`, terminus `brief`). Evidence reviewed: `contracts/catalogue-spec.toml` holds 10 member, 9 bundled and 2 vendored rows and one `[[release]]` `0.1` dated 2026-10-23 with adapter contract `0.18`; `contracts/catalogue-manifest.schema.json` and the frozen `contracts/releases/catalogue/0.1/` snapshot exist; `check_contract_parity.py`, `check_spec_version.py` and `check_release_gate.py` pass, the last confirming the deployed index serves release `0.1`; [`docs/architecture/catalogue/specification.md`](../../architecture/catalogue/specification.md) records the delivered shape. The capability-placement question stays open and does not gate closure.
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The Decomposition section names the four shipped slice specs and the Sidebar placement question links its recorded settlement. Both are evidence-link corrections: no opportunity, outcome, boundary, owner, assumption, or projection changed, so the prior review evidence stands.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Shaping-reviewed:** 2026-10-21
+- **Decomposed:** 2026-11-04 brief
 - **Governed by:** [RFC-0109](../../rfc/0109-catalogue-specification-publication.md)
 
 ## Outcome
@@ -76,11 +79,16 @@ Work-loop, delivery, and workspace contracts stay unpublished here. [`catalogue-
 ## Open questions
 
 - **Capability placement:** this intent serves both the *judge* and *learn* clauses of [CAP-0006](CAP-0006-catalogue-trust-and-adoption.md), which already have owners. Following CAP-0006's own rule, it stays unparented until the owner places it. Decider: the owner.
-- **Sidebar placement:** RFC-0109 OQ1 owns whether the spec section gets its own docs sidebar tab or sits inside Build a Catalogue.
+- **Sidebar placement:** RFC-0109 OQ1 owns whether the spec section gets its own docs sidebar tab or sits inside Build a Catalogue. Evidence: [`catalogue-spec-site`](../../specs/catalogue-spec-site/spec.md) records the placement under the RFC-0109 Errata.
 
 ## Decomposition
 
-None yet. RFC-0109 D8 names four slices, each one spec under `work-loop`: S1 the membership manifest, S2 the archive-manifest schema, S3 the `draft/` site section, and S4 the one-way 0.1 release. `decompose-intent` maps them after acceptance.
+Four specs, one per slice RFC-0109 D8 names, mapped by the retrospective delivery brief [`catalogue-specification-publication-delivery`](../briefs/catalogue-specification-publication-delivery.md). The brief exists because the delivery resolver maps a single-spec intent to exactly one spec and reports four as a projection mismatch:
+
+- **S1** — [`catalogue-spec-manifest`](../../specs/catalogue-spec-manifest/spec.md): the membership manifest and bundled-only contract loading.
+- **S2** — [`catalogue-manifest-schema`](../../specs/catalogue-manifest-schema/spec.md): the schema for the release archive manifest.
+- **S3** — [`catalogue-spec-site`](../../specs/catalogue-spec-site/spec.md): the `draft/` site section.
+- **S4** — [`catalogue-spec-release`](../../specs/catalogue-spec-release/spec.md): the one-way release 0.1.
 
 ## Source
 

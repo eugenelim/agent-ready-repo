@@ -2,6 +2,7 @@
 
 - **Slug:** `lifecycle-and-closure` <!-- canonical identity; independent of the filename ordinal -->
 - **Status:** Accepted
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The "Where closure stands today" opening is dated to the framing run, because `close-work` now sets closure records. Forward-looking mentions of the shaping skills now name `intent frame`, `intent de-risk` and `intent decompose`, the verbs of the single `intent` skill that replaced `frame-intent`, `de-risk-intent` and `decompose-intent` (ADR-0140). Dated run records keep the names in force on the day. The text decides nothing new.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -74,7 +75,7 @@ Projects to its delivery brief, [an intent and a brief can be closed through a w
 
 ## Where closure stands today
 
-**No workflow can close an intent.** The word `Fulfilled` appears exactly once anywhere under `packs/` — in the `frame-intent` template's list of allowed values. Nothing sets it.
+**As framed on 2026-09-23, no workflow could close an intent.** The word `Fulfilled` appeared exactly once anywhere under `packs/` — in the `frame-intent` template's list of allowed values. Nothing set it. `close-work` has since gained the closure eligibility check and the closure record (`closure_index.py`); the delivery brief owns the remaining slices.
 
 **Closures that did happen left no trace.** Fourteen intents carry `Fulfilled`. One, `STRAT-0002-platform-core`, records who closed it, when, and on what evidence. The other thirteen record none of those. A terminal status with no reason behind it cannot be audited, questioned or reversed.
 
@@ -274,7 +275,7 @@ validation_hook:
 
 ## Decomposition
 
-This intent is a `feature`, so it is the leaf: `decompose-intent` produces its delivery unit rather than child intents.
+This intent is a `feature`, so it is the leaf: `intent decompose` produces its delivery unit rather than child intents.
 
 - [Brief: an intent and a brief can be closed through a workflow, on recorded evidence](../briefs/intent-lifecycle-and-closure.md) — the delivery unit this feature projects to.
 

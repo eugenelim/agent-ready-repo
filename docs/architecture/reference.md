@@ -12,8 +12,8 @@
   dependency is `credbroker`. Its scripts are
   projected into arbitrary adopter repositories and installed agent runtimes,
   where no third-party dependency can be assumed.
-- `packages/credbroker/` is also Python standard-library-only and is the only
-  credential path. Credentialed primitives use its public API and never read
+- `packages/credbroker/` has no required dependency (an optional `crypto` extra
+  adds `cryptography` and `argon2-cffi`) and is the only credential path. Credentialed primitives use its public API and never read
   credential stores directly.
 - `web/` uses Astro 7.3.8; `docs-site/` uses Astro 7.3.8 with Starlight
   0.42.6.
@@ -31,8 +31,8 @@
   runtime adapters, and targets.
 - Keep reusable, portable contracts in `contracts/`, with TOML declarations
   validated by their JSON Schemas.
-- Use the Python standard library for `agentbundle` and `credbroker` so their
-  projected and installed uses remain portable.
+- Keep `agentbundle` and `credbroker` free of third-party runtime dependencies
+  beyond `credbroker` itself, so projected and installed uses remain portable.
 - Keep documentation and site content authored in `docs/`, `guides/`, `web/`,
   and `docs-site/`; site builders consume authored content and contracts.
 
@@ -41,8 +41,9 @@
 - **Pack.** A portable authoring unit that owns primitives, seeds, metadata,
   tests, and its declared dependencies.
 - **Profile.** A composition of packs that adds no primitives.
-- **Primitive.** A portable unit of one of five kinds: skill, agent,
-  hook-body, hook-wiring, or command.
+- **Primitive.** A portable unit of one of nine kinds declared in
+  `contracts/adapter.toml`: skill, agent, hook-body, hook-wiring, command,
+  kiro-ide-hook, shared-libs, adapter-root-bins, or user-libs.
 - **Adapter.** A target-runtime implementation of the portable adapter
   contract that selects direct-install projection modes.
 - **Distribution route.** A package-format declaration with exactly six
@@ -64,8 +65,9 @@ Component stereotypes:
   `agentbundle/build/adapters/`, and selects projection modes implemented under
   `agentbundle/build/projections/`.
 - **New distribution route:** declared in `contracts/distribution-routes.toml`
-  and mapped to a named package projector. Generic registration remains
-  unavailable until the accepted route-registry phase.
+  and mapped to a named package projector. The schema closes the route set, so a
+  fourth route needs a schema and a projector change. See
+  [`distribution-routes.md`](distribution-routes.md).
 - **Credentialed primitive:** resolves through `credbroker`, using its public
   API and declared broker configuration; it exposes no secret material to
   repository source or agent context.
@@ -94,3 +96,8 @@ depend on build internals.
   append-only, scoped to its own spec directory; a verification item's
   identifier is never derived from what it verifies.
   [Loop contract](loop-contract.md) § 3 owns the rule and its evidence.
+
+Evidence: `packages/agentbundle/pyproject.toml` and `packages/credbroker/pyproject.toml`
+(`dependencies`, `crypto` extra); `web/package.json` and `docs-site/package.json`
+(Astro and Starlight pins); `contracts/adapter.toml` (`[primitive.*]` tables);
+`contracts/distribution-routes.schema.json` (`route.required`, `additionalProperties`).

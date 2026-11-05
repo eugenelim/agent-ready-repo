@@ -1,6 +1,6 @@
 # Subsystem Design — Delivery-to-knowledge projection
 
-**Decision sought:** Let delivery project attributed knowledge candidates from
+**Decision:** Delivery projects attributed knowledge candidates from
 facts it already owns, while project-knowledge owns every capture, admission,
 storage, and enquiry concern and delivery owns no knowledge state.
 **Author:** Platform Core
@@ -112,7 +112,9 @@ nothing under that directory at runtime.
 
 Only a Slice 2 `review-failure` receipt is eligible. Adding a source kind, an
 observation kind, or a projection-policy version needs owner approval and new
-fixtures. Reviewed-envelope, initial-plan-review, plan, task-projection,
+fixtures.
+
+Reviewed-envelope, initial-plan-review, plan, task-projection,
 mutation-classification, and supervisor step records are never candidates.
 A candidate is a past lesson, so a later change to the acceptance subject or
 review policy does not hide it; the two fingerprints it carries show which
@@ -221,9 +223,11 @@ notification port, or collector is built.
 
 Slice 3 ships the feed, projector, candidate mode, and read quarantine beside
 the capture gates. The Core 4.0.0 cutover points the feed at committed
-`delivery/evidence.jsonl`, so every full-mode run now writes delivery facts by
+`delivery/evidence.jsonl`, so every full-mode run writes delivery facts by
 default. The `spec-approved` capture gate before the supervisor's `start` and
-the `plan-locked` gate at `start` remain under those names. Slice 8 of the
+the `plan-locked` gate at `start` remain under those names.
+
+Slice 8 of the
 [acceptance-centered work-loop brief](../product/briefs/acceptance-centered-work-loop.md)
 removes them. Explicit close-time `work-item` capture stays for specific
 blocked residue.

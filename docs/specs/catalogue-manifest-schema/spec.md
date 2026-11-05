@@ -9,6 +9,7 @@ status: Shipped
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
+- **Brief:** brief:catalogue-specification-publication-delivery
 - **Constrained by:** [RFC-0109](../../rfc/0109-catalogue-specification-publication.md) D1 (membership) and D5 (the archive manifest schema), with its [2026-10-21 errata entry](../../rfc/0109-catalogue-specification-publication.md#errata) on the boolean `schema` check
 - **Contract:** `contracts/catalogue-manifest.schema.json`
 - **Shape:** data

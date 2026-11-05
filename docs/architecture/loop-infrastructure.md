@@ -1,5 +1,14 @@
 # Loop infrastructure
 
+Full-mode `work-loop` delivery runs through one program, `work-supervisor.py`,
+which issues one typed request at a time, commits what the controller reports,
+and holds one run lock per spec. Light mode runs no supervisor.
+
+This page
+covers what surrounds that program: the sibling loops, script invocation, the
+linters, the run lock, and the review flows. The supervisor's own mechanism has
+one home, the [execution supervisor](work-loop-execution-supervisor.md).
+
 ## 1. Purpose and boundary
 
 The execution supervisor runs a full-mode `work-loop` delivery for one spec
@@ -26,7 +35,9 @@ The boundary splits by **policy versus mechanism** rather than by topic.
 `work-loop` decides when light or full mode applies, whether a simplify pass
 runs, and how a session manages its context. Which reviewer roles a change
 warrants is data in `work-loop/review-rules.json`, and caps and authority roles
-are data in `work-loop/supervisor-policy.json`. The supervisor owns the
+are data in `work-loop/supervisor-policy.json`.
+
+The supervisor owns the
 machinery that reads them. This page does not restate either file, because a
 second copy would be falsified by the next edit with nothing comparing the two.
 
@@ -36,7 +47,9 @@ second copy would be falsified by the next edit with nothing comparing the two.
 `discovery-loop` sits upstream in `product-engineering` and `release-loop`
 downstream in `release-engineering`, each run by its own supervisor agent —
 `discovery-lead` and `release-lead` — that is a **peer** of `work-loop`'s
-controller rather than a mode of it. They meet at numbered gates: discovery
+controller rather than a mode of it.
+
+They meet at numbered gates: discovery
 hands off at **G3**, and the build hands off to release at **G4**, the point
 where the build is locally done and deploy-ready.
 [The three loops](../../guides/_shared/explanation/the-operating-model.md) is the
@@ -45,7 +58,9 @@ guide that reconciles the numbering across all three.
 Neither sibling has a procedure script. `discovery-loop`'s transitions are file
 edits on a typed sidecar; `release-loop` ships no executable engine. Both still
 have an orchestrating agent and both keep state on disk; what neither has is a
-program that advances it. Everything on this page — the supervisor, its
+program that advances it.
+
+Everything on this page — the supervisor, its
 records, its run lock — is `work-loop`'s alone. They also differ in install
 scope: discovery ships at user scope, while build and release are repo-scoped.
 
@@ -99,23 +114,19 @@ step.
 
 ### Three linters ship here, reached three different ways
 
-A skill's `scripts/` directory is a first-class projecting surface, so
-everything here reaches an adopter's tree. Three of these files are
-linters — `lint-knowledge.py`, `lint-spec-status.py` and
-`lint-traceability.py` — and the directory listing makes them look like peers.
-They are not: each is reached by a different route, no route is discoverable
-from the tree, and the routes disagree with the files' own headers in at least
-one case.
+A skill's `scripts/` directory projects into an adopter's tree, so
+`lint-knowledge.py`, `lint-spec-status.py` and `lint-traceability.py` all
+install. Each has its own route.
 
-Resolve the question per linter against the routes themselves — the shipped
-`pre-pr.py` hook, the `work-loop` skill's finish-time checklist, other packs'
-skills, and `tools/repo/build_gate_chain.py` for what this catalogue's CI
-runs. Do not infer a linter's route from a sibling's, and do not infer it from
-the linter's own module docstring.
+| Linter | Reached by |
+| --- | --- |
+| `lint-knowledge.py` | The `pre-pr.py` hook and the `session-start.py` hook[^1] |
+| `lint-spec-status.py` | The `work-loop` skill's finish-time checklist and light-mode reference; this catalogue's CI; and `lint-traceability.py`, which calls it[^2] |
+| `lint-traceability.py` | This catalogue's CI; the discovery-loop sidecar schema names it[^2] |
 
-Two facts do hold across all three. CI runs the **projected** copy rather than
-the pack source. And none of it is a literal Makefile line, so grepping the
-Makefile and finding nothing is not evidence that a linter is ungated.
+CI runs the **projected** copy under `.claude/skills/work-loop/scripts/`, not the
+pack source. None of it is a literal Makefile line, so an empty Makefile grep is
+not evidence that a linter is ungated.
 
 ## 3. State and concurrency
 
@@ -129,7 +140,9 @@ deleting `<spec>/.supervisor/` loses no fact.
 One exclusive run lock under `<spec>/.supervisor/` serialises `start`, `next`,
 `report`, and `resolve-effect` for a spec. `status` reads without it. The lock
 is taken through `_statelock.py`
-([ADR-0074](../adr/0074-the-work-loop-owns-its-state-lock.md)). Its timing is
+([ADR-0074](../adr/0074-the-work-loop-owns-its-state-lock.md)).
+
+Its timing is
 policy data in `supervisor-policy.json`: a contender waits
 `run_lock_timeout_seconds`, the longest hold is bounded by the red-proof
 budget, and a lock older than `run_lock_stale_seconds` is stale. Admission
@@ -191,16 +204,15 @@ budget read from artifacts alone.
 The adjudicator may **lower** a reviewer's severity and may not raise it. Its
 fifth predicate is what lowers a consequence to advisory: a defect nothing
 external establishes, or a citation whose every surface the target marks as
-working material rather than contract. A disposition-changing severity conflict
+working material rather than contract.
+
+A disposition-changing severity conflict
 returns `indeterminate` for owner direction. That test reads the defect, not
 the remedy: a finding several defensible repairs could fix is still
 established, and stays eligible for blocking severity.
 
-That ceiling is honoured in practice. Across 2,062 adjudicator entries declaring
-a consequence advisory, 98% sustained at Concern or Nit; per run, 13 of 15 runs
-with at least 20 such entries were perfectly compliant.
-[`review-loop-nonconvergence-survey.md`](../product/research/review-loop-nonconvergence-survey.md)
-holds the re-labelling runs and what each established.
+The [review-loop survey](../product/research/review-loop-nonconvergence-survey.md)
+holds the measured compliance with that ceiling.
 
 ## 5. TDD and replanning
 
@@ -230,11 +242,9 @@ invokes no `work-supervisor.py` command and creates no `<spec>/.supervisor/`.
 
 ## 7. Relevant ADRs
 
-Measured behaviour of the review loop — round depth, cap firings, repair-origin
-rate, and what does and does not bound a loop — is recorded in
-[the review-loop non-convergence survey](../product/research/review-loop-nonconvergence-survey.md).
-Consult it before proposing a new bound; it records eleven mechanisms tested and
-not shipped.
+[The review-loop non-convergence survey](../product/research/review-loop-nonconvergence-survey.md)
+records measured round depth, cap firings, repair-origin rate, and the
+mechanisms tested and not shipped. Consult it before proposing a new bound.
 
 - [ADR-0144 — Work-loop supervisor owns procedure](../adr/0144-work-loop-supervisor-owns-procedure.md)
 - [ADR-0151 — Post-lock routes for the stub fence and implementation-discovered means](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
@@ -246,6 +256,8 @@ not shipped.
 
 ## 8. Last verified against commit
 
-This page describes the shipped execution supervisor (Core 4.0.x), with
-full-mode `work-loop` running only through it. It was verified against commit
-`ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`.
+`ef6fe19c5bfdea935612f7d8a6ead11db5718b0a`. The page describes the execution
+supervisor shipped in Core 4.0.x, the only route for full-mode `work-loop`.
+
+[^1]: `packs/core/.apm/hooks/pre-pr.py` (`_find_work_loop_script("lint-knowledge.py")`) and `packs/core/.apm/hooks/session-start.py`.
+[^2]: `tools/repo/build_gate_chain.py` runs both from `.claude/skills/work-loop/scripts/`; `work-loop/SKILL.md` and `references/light-mode.md` name `lint-spec-status`; `packs/product-engineering/.apm/skills/discovery-loop/references/sidecar-schema.md` names `lint-traceability`.

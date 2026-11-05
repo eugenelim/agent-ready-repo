@@ -23,7 +23,7 @@ The agent-skill-engineering pack has a dedicated guide that its site record link
 - Link it from `guides/README.md`.
 - Drop the `GUIDE_OPTIONAL_PACKS` exemption.
 - Repoint the site `docsUrl` from the guides index to the dedicated guide.
-- `tools/check-guide-index.py:29` records that the M1 slice shipped the portable pack and left the guide to a later planned documentation slice.
+- The `GUIDE_OPTIONAL_PACKS` comment in `tools/check-guide-index.py` records that the M1 slice shipped the portable pack and left the guide to a later planned documentation slice.
 
 ## Assumptions
 

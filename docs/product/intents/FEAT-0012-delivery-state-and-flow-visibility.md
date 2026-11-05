@@ -3,6 +3,7 @@
 - **Slug:** `delivery-state-and-flow-visibility`
 - **Status:** Accepted
 - **Accepted:** 2026-09-24 by eugenelim, lifecycle owner. The basis: framed and reviewed clean in intent mode at revision `7341e0ff7c3a3d7b`; de-risked with a surviving verdict on published minimums and a computed tolerance ladder; the thin-sample question closed by spike rather than deferred; and decomposed into a delivery brief. **The shaping review predates later material edits** — the ADR-0127 range, the D4 counting bound and the spike disposition — so it is evidence for the bet rather than for the current text.
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** Cross-references to the sibling tracker-projection intents named them by their pre-renumbering ordinals (FEAT-0010, FEAT-0011, FEAT-0012) and linked files that no longer exist; they now name the current files and ordinals. Identity binds to each intent's `Slug:`, so no reference changed meaning. The text decides nothing new.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -66,8 +67,8 @@ statement about the outcome, not about slicing: this feature has not been
 decomposed, and how its work is cut is a later decision.
 
 Does not own the working view that made the work intent-backed
-([FEAT-0010](FEAT-0010-intent-backed-working-view.md)), forecast or strategic
-progress ([FEAT-0012](FEAT-0013-timeline-and-strategic-progress-review.md)), or
+([FEAT-0011](FEAT-0011-intent-backed-working-view.md)), forecast or strategic
+progress ([FEAT-0013](FEAT-0013-timeline-and-strategic-progress-review.md)), or
 operational coordination state inside the repository
 ([CAP-0003](CAP-0003-workspace-coordination-reorganization.md)).
 
@@ -99,7 +100,7 @@ reproducing it three times is the failure mode, not the goal.
 
 ### The tier moved, and it moves this feature's ground
 
-[FEAT-0010](FEAT-0010-intent-backed-working-view.md) was reframed on
+[FEAT-0011](FEAT-0011-intent-backed-working-view.md) was reframed on
 2026-09-23 and
 [ADR-0127](../../adr/0127-managed-unit-floor-and-projected-range.md) then
 decided the result: the projection is a **range**, floored at the feature intent
@@ -114,7 +115,7 @@ floor is readable and must not be counted.
 *dwell*. Ageing charts, time-in-state and blocked-duration all require an item
 to sit somewhere long enough to be seen sitting. An item that appears and
 completes inside four days never occupies a column, which is exactly why the
-spec tier failed FEAT-0010's probe. The enterprise measurement behind the
+spec tier failed FEAT-0011's probe. The enterprise measurement behind the
 reframe describes items that do dwell: feature paths spanning four to five
 states, 7.56 recorded state visits per issue on a six-state dominant path, and
 epic changes recorded at a median 81 days after creation. Slow is not a problem
@@ -136,8 +137,8 @@ its Accepted parent, both siblings, the survey it cites by finding number, and
 the four installed-skill contracts. The packet was supplied as data and the
 reviewer was told not to retrieve beyond it. Two checks were asked for beyond
 the field rules — that findings F12, F13, F15 and F16 say what this intent
-claims, and that its characterisation of FEAT-0010's reframe matches what
-FEAT-0010 actually records.
+claims, and that its characterisation of FEAT-0011's reframe matches what
+FEAT-0011 actually records.
 
 **Result: no `MALFORMED` tokens.** Empty token output is this mode's pass
 state; completion was read from this caller's host rather than inferred from
@@ -155,7 +156,7 @@ picks the riskiest and predeclares a kill condition for it.
 
 - **There are enough items at the projected tier for a flow statistic to mean
   anything.** The likeliest candidate for the riskiest assumption, and it is
-  created by FEAT-0010's reframe rather than inherited from the seed.
+  created by FEAT-0011's reframe rather than inherited from the seed.
 - **A provider-neutral meaning exists for the observations that matter** —
   state, assignment, blocked, elapsed — that is not a lowest common denominator
   so thin that no team uses it.
@@ -194,7 +195,7 @@ implicit.
 ### The riskiest assumption
 
 *There are enough items at the feature-intent tier for a flow statistic to mean
-anything.* Created by [FEAT-0010](FEAT-0010-intent-backed-working-view.md)'s
+anything.* Created by [FEAT-0011](FEAT-0011-intent-backed-working-view.md)'s
 reframe, which bought dwell and spent item count.
 
 ### Kill condition, predeclared 2026-09-23T01:14:55Z
@@ -447,7 +448,7 @@ exists. The brief owns slice membership.
   exposed that this feature has two halves with different sample requirements:
   reads of current state need none, and distributional claims need a determined
   minimum. That is a shippability boundary, so the cut follows it.
-- **Not one spec per delivery system, unlike the sibling.** FEAT-0010 can cut
+- **Not one spec per delivery system, unlike the sibling.** FEAT-0011 can cut
   that way safely because each of its slices renders the same canonical tree.
   This feature's outcome is that an observation *means* the same thing
   everywhere, so a per-system cut would invite each spec to define its own

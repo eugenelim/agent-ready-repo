@@ -1,66 +1,80 @@
 # Upstream sync for a derived catalogue
 
-> **STATUS: ROLLOUT CLOSED.** `agentbundle catalogue sync` resolves, replays,
-> classifies, plans, takes consent, writes, removes stale paths under a guard,
-> pins, and rolls back — across packs, profiles, guides and both `--package`
-> destinations. The one earlier prerequisite that changed `init` instead also
-> shipped — see § Shipped: credbroker source follows its pack. No phase
-> remains. What follows records the architecture as built.
->
-> Current-state context: [`derived-catalogue.md`](derived-catalogue.md) and
-> [`state.md`](state.md).
+> `agentbundle catalogue sync` brings later upstream changes into a derived
+> catalogue without overwriting adopter edits. It resolves the source, replays the
+> recorded derivation in memory, classifies every planned path against the
+> ownership state, takes consent, writes, removes stale paths under a hash guard,
+> pins the new upstream, and restores a snapshot when a write fails. It covers
+> packs, profiles, guides, and both `--package` destinations.
 
-## The problem
+`sync` composes components that already exist: `resolve_catalogue`, the
+derivation replay in `initialise_self_hosted`, `safety.classify`, and the shared
+consent helper. It adds no file-safety mechanism and no fetch path.[^1] The
+acceptance criteria are in [`docs/specs/catalogue-sync-dry-run/`](../../specs/catalogue-sync-dry-run/spec.md)
+and [`docs/specs/self-host-state-schema-3/`](../../specs/self-host-state-schema-3/spec.md).
+What `init` copies is in [`derived-catalogue.md`](derived-catalogue.md); the state
+file fields are in [`state.md`](state.md).
 
-A derived catalogue is a living tree — copied from upstream, then edited by the
-adopter. Upstream moves. Nothing brings the two together.
+## Invocation
 
-Re-running `catalogue init` is the only path that exists, and it destroys
-adopter edits or refuses outright. `derived-catalogue.md` § What a re-run does
-today names all five failures. This document designs one verb that replaces
-them.
+`--source` is required on every run, and `target` defaults to the current
+directory. `--format table|json` selects the output.[^2] Three modes are mutually
+exclusive:
+
+- `--dry-run` prints the plan and writes nothing.
+- `--check` answers whether the tree is current and writes nothing.
+- With neither flag, the run applies the plan. `--yes` skips the consent prompt.
+
+| Exit | Meaning |
+| --- | --- |
+| 0 | Success, or `--check` found the tree current |
+| 1 | `--check` found a difference |
+| 2 | Malformed invocation |
+| 3 | `--check` cannot answer |
+| 4 | Apply failed |
+
+`--attribution`, `--tooling`, and `--guides-mode` set the identity, tooling, and
+guides modes for the run. A recorded mode never reaches a replay silently.
 
 ## Shape
 
-`agentbundle catalogue sync` is four stages over existing components. It
-introduces no new file-safety mechanism, no new fetch path, and no new plan
-format.
+`sync` runs four stages.
 
 ```mermaid
 flowchart TD
-    A["--source: clone path<br/>or git+https:// URI"] --> B["resolve_catalogue()<br/>local Path + provenance"]
-    S[".agentbundle/self-host-state.json<br/>recipe + managed paths + shas"] --> C
-    B --> C["Replay derivation:<br/>selection → copy → identity transform<br/>→ leak check, all in memory"]
-    C --> D{"safety.classify<br/>per planned path"}
-    D -->|"Tier-1<br/>sha matches state"| E["update in place"]
-    D -->|"Tier-2<br/>adopter edited"| F["write .upstream.&lt;ext&gt;,<br/>keep adopter file"]
-    D -->|"Tier-3<br/>not in state"| G["leave alone, report"]
-    E --> H["plan table + consent"]
+    A["source: path, git+https, archive+https or catalogue+https"] --> B["resolve_catalogue: local path plus provenance"]
+    S["self-host-state.json: recipe, managed paths, shas"] --> C
+    B --> C["replay derivation in memory: select, copy, transform identity, leak check"]
+    C --> D{"safety.classify per planned path"}
+    D -->|"Tier-1: sha matches state"| E["update in place"]
+    D -->|"Tier-2: adopter edited"| F["write .upstream companion, keep adopter file"]
+    D -->|"Tier-3: not in state"| G["leave alone, report"]
+    E --> H["plan table and consent"]
     F --> H
     G --> H
-    H --> I["apply, then<br/>SHA-guarded stale removal"]
-    I --> J["write state:<br/>fresh shas + upstream pin"]
-    J --> K["agentbundle adapt --ci<br/>closes the loop"]
+    H --> I["apply, then SHA-guarded stale removal"]
+    I --> J["write state: fresh shas and upstream pin"]
+    J --> K["agentbundle adapt --ci closes the loop"]
 ```
 
-### Stage 1 — resolve the source
+### Stage 1: resolve the source
 
-Delegate to `resolve_catalogue()` verbatim. It already dispatches three forms,
-and sync gains all three by delegating rather than by adding cases:
+`resolve_catalogue()` dispatches four source forms.[^3] The plan names the
+fidelity of the form that resolved.
 
 | Form | Integrity available | Pin recorded |
 | --- | --- | --- |
-| Local clone path | none beyond the filesystem | path only |
+| Local clone path | none beyond the filesystem | none |
 | `git+https://github.com/<owner>/<repo>[@<ref>]` | TLS only | resolved ref |
-| `catalogue+https://…` descriptor | verified `sha256` | `archive_sha256` + `source_revision` |
+| `archive+https://…#sha256=<64hex>` | verified `sha256` | `archive_sha256` |
+| `catalogue+https://…` descriptor | verified `sha256` | `archive_sha256` and `source_revision` |
 
-The fidelity difference is real and the plan prints which one applies. A
-force-pushed tag changes what a `git+https://` sync delivers with no digest to
-compare against.
+A force-pushed tag changes what a `git+https://` sync delivers, and no digest
+exists to compare against.
 
-### Stage 2 — replay the derivation
+### Stage 2: replay the derivation
 
-State moves to schema 3, adding two groups to the fields in
+Derivation state at schema 3 carries two groups beside the fields in
 [`state.md`](state.md):
 
 ```
@@ -68,263 +82,180 @@ recipe   packs, profiles, guides, attribution, tooling, identity fields
 pin      source_uri, source_revision, archive_sha256, synced_at
 ```
 
-The pin field names match `PackState`'s existing provenance trio deliberately —
-one vocabulary for "which upstream is this", not two. Under
-`--attribution white-label` the pin is recorded in opaque form — see
-§ White-label pins carry no upstream identity.
+The recipe is a filter, not a floor. A bare `sync` refreshes the recorded
+selection and never adds a pack that appeared upstream later. `--pack <new-name>`
+syncs that pack and amends the recipe.[^4]
 
-The recipe is a **filter, not a floor**. A bare `sync` refreshes exactly the
-selection the adopter made; it never adds a pack that appeared upstream later.
-`--pack <new-name>` both syncs that pack and amends the recipe.
+The identity transform and the in-memory leak check run unchanged over the
+replayed byte map, so white-label safety is the code `init` uses. Under
+`--attribution white-label` the pin omits `source_uri` (see [Pin](#pin)).
 
-Stages 8 and 9 of `init_self_hosted` — identity transform, then in-memory leak
-check — run unchanged over the replayed byte map. White-label safety is
-therefore preserved by reuse, not by a parallel implementation.
+### Stage 3: classify, never overwrite
 
-### Stage 3 — classify, never overwrite
-
-`init`'s unconditional write at `initialise_self_hosted.py:1623` writes every
-owned path regardless of adopter edits. `sync` classifies where `init`
-overwrites: every planned path goes through
-`safety.classify(relpath, root, state)` before the run decides whether to
-write it:
+Every planned path passes through `safety.classify(relpath, root, state)` before
+any write:
 
 | Tier | Condition | Action |
 | --- | --- | --- |
 | Tier-1 | on-disk `sha256` matches state, or file absent | update in place |
-| Tier-2 | on-disk `sha256` differs — adopter edited it | `safety.write_companion` → `<name>.upstream.<ext>` |
+| Tier-2 | on-disk `sha256` differs because the adopter edited it | `safety.write_companion` writes `<name>.upstream.<ext>` |
 | Tier-3 | path absent from state | leave untouched, report |
 
-Tier-3's leave-untouched default has one exception: a path is written despite
-being absent from the recorded state when it belongs to a pack or profile this
-run introduces — the admission AC-0033 clause 3 fixes, and what
-§ Granularity's "`--pack <new-name>` both syncs that pack and amends the
-recipe" requires.
+A path absent from state is written when it belongs to a pack or profile the run
+introduces. A pre-existing unmanaged file is a Tier-3 row in the plan. Every
+write goes through `safety.write_jailed`, and source reads use the confined
+helpers in `catalogue_tooling.file_safety`.[^5]
 
-The `CONFLICT` abort at `:1611` becomes a Tier-3 row in the plan. Every write
-goes through `safety.write_jailed`, so the path jail is not optional; source
-reads keep using the confined helpers in `catalogue_tooling.file_safety`.
+### Stage 4: plan, consent, apply, pin
 
-### Stage 4 — plan, consent, apply, pin
+Consent goes through `_common.confirm_or_refuse`. The prompt names the source
+fidelity and names the source URI only under `attributed`. With no terminal and
+no `--yes`, the run refuses.[^6]
 
-Reuse `upgrade`'s `_print_plan_table`, `_confirm_or_abort`, `--dry-run`, and
-`--format json`. Apply order is fixed: packs, profiles, guides, then **packages
-last**. Stale removal runs after writes land, keeping its `sha256` guard. State
-is written last, with fresh hashes and the pin.
+A snapshot of the write set, bounded at 256 MiB, is taken before the prompt.
+Writes apply in five groups: packs, profiles, guides, derivation-wide paths, then
+packages. Stale removal runs after the writes land and keeps its `sha256` guard.
 
-`--check` resolves the source, compares the pin, writes nothing, and exits
-non-zero on a difference. `agentbundle adapt --ci` already exits non-zero while
-any `.upstream.*` companion is unresolved, so the loop closes with no new
-mechanism.
+State is written last, with fresh hashes and the pin. A failed write restores the
+snapshot.[^7]
+
+`agentbundle adapt --ci` exits non-zero while any `.upstream.*` companion is
+unresolved.
+
+### `--check`
+
+`--check` writes nothing and answers one of three ways: current, differs, or
+cannot-answer.
+
+- **Default.** Compares the recorded pin's `archive_sha256` against the resolved
+  source's verified digest. A local path or `git+https://` source affords no
+  digest, so the answer is cannot-answer before the pin is read. A recorded
+  digest that is absent or not 64 lowercase hex characters is also cannot-answer.
+- **`--compare-tree`.** Compares every recorded path against the tree and never
+  reads the resolved source.[^8]
 
 ### Granularity
 
 `--pack <name>` (repeatable), `--profile <name>`, `--guides`, and
-`--package <name>` each restrict the run to that subtree. Absent all four, the
-run covers the recorded recipe. `catalogue.toml`, `tests/conformance/`, and the
-identity fields are derivation-wide and move only with a full sync.
+`--package <name>` each restrict the run to that subtree. With none of the four,
+the run covers the recorded recipe. `catalogue.toml`, `tests/conformance/`, and
+the identity fields are derivation-wide and move only with a full sync.
 
-Phase 2 deliberately does not claim `--guides` for its own guides replay mode:
-`catalogue sync --guides-mode none|selected` is the flag that ships now, so
-`--guides` above stays free for this restrictor rather than being taken early
-by an unrelated meaning.
+`--guides` restricts scope to `guides/_shared/`. `--guides-mode none|selected` is
+a separate flag that sets the replayed guides mode.
 
-`--package` has two valid names, not one: `agentbundle`, whose destination is
-`.agentbundle/tooling/` — the whole vendored tooling root, present in vendored
-mode — and `credbroker`, whose destination is `packages/credbroker/` (present
-whenever the `credential-brokers` pack is selected, in either tooling mode).
-Both are real subtrees of a derived tree today — see § Shipped: credbroker
-source follows its pack.
+`--package` accepts two names:
 
-The `agentbundle` destination is the whole root rather than the
-`agentbundle/` subdirectory inside it because `init` writes both that
-subdirectory and the vendored `packs/catalogue-curation/` copy from one mode
-decision. Scoping the destination narrower would leave that copy written by no
-verb. Its **engine subtree**, `.agentbundle/tooling/agentbundle/`, is still
-named where it matters: it is the install source an adopter `pip install -e`s,
-and the only part that can supply a running interpreter, so it is what
-§ Known risks' self-replacement refusal tests.
+| Name | Destination | Present when |
+| --- | --- | --- |
+| `agentbundle` | `.agentbundle/tooling/` | tooling mode is `vendored` |
+| `credbroker` | `packages/credbroker/` | the `credential-brokers` pack is selected, in either tooling mode |
+
+The `agentbundle` destination is the whole vendored tooling root because `init`
+writes the engine subtree and the vendored `packs/catalogue-curation/` copy from
+one mode decision. The engine subtree, `.agentbundle/tooling/agentbundle/`, is
+the part an adopter `pip install -e`s and the part the self-replacement refusal
+tests.
+
+## Pin
+
+The pin is written to `.agentbundle/self-host-state.json`, which the leak check
+never scans. Each pin field must therefore be safe on its own. The rule and its
+reason are in [`derived-catalogue.md`](derived-catalogue.md) § Identity and the
+leak boundary.
+
+| Field | `attributed` | `white-label` |
+| --- | --- | --- |
+| `source_pack_identity` | upstream name | the derived catalogue's name |
+| `source_uri` | recorded | omitted |
+| `source_revision` | recorded | recorded |
+| `archive_sha256` | recorded | recorded |
+
+`--check` compares digests, not URIs, so omitting `source_uri` does not affect
+it.[^9] The sync pin names `source_uri` where `PackState` names `artifact_uri`;
+the two vocabularies differ.
 
 ## Compatibility is warn-only
 
-Sync **never refuses on a version signal it introduces**. It reports three
-advisory rows from metadata the repository already maintains:
+`sync` reports three advisory rows and never refuses on a signal it introduces.[^10]
 
 | Signal | Source | Declared by |
 | --- | --- | --- |
-| Pack version moved | `[pack] version` | all 22 default-selected packs |
-| Adapter-contract version moved | `[pack.adapter-contract] version` vs `SPEC_VERSION` | all 25 packs |
-| Declared dependency violated | `[pack.dependencies] required` / `conflicts` | 7 of 25 packs |
+| Pack version moved | `[pack] version` | every default-selected pack |
+| Adapter-contract version moved | `[pack.adapter-contract] version` against `SPEC_VERSION` | every pack |
+| Declared dependency violated | `[pack.dependencies] required` or `conflicts` | the packs that declare an edge |
 
-This is a deliberate decision against a maintained compatibility matrix.
-Creating a signal strong enough to refuse safely means carrying versioned packs
-in this repository, which is a cost the project has declined.
+`check_spec_version_gate` in `commands/_common.py` compares major components
+only. The CLI ships `SPEC_VERSION = 0.18` and the declaring packs spread across
+`0.7` to `0.13`, so every comparison has major `0` and the gate passes. `sync`
+still invokes it, so the first pack to declare major `1` is refused.
 
-Two consequences are accepted openly:
-
-- **The existing gate that looks like a backstop is inert.**
-  `check_spec_version_gate` compares major components only
-  (`commands/_common.py:225`). The CLI ships `SPEC_VERSION = 0.18`; the
-  declaring packs spread across `0.7`–`0.13`. Every one has major `0`, so the
-  gate has passed for all of them since it was written. Sync still invokes it,
-  because the gate's uniform-refusal contract is repository-wide and warn-only
-  governs only the signals sync adds. The first pack to declare major `1` will
-  therefore be refused by sync, by design.
-- **credbroker compatibility has no machine-readable signal at all.** The
-  detection hook is the adopter's own `tests/conformance/`, which init already
-  copies into the derived tree.
+credbroker compatibility has no machine-readable signal. The detection hook is
+the adopter's own `tests/conformance/`, which `init` copies into the derived
+tree.
 
 ## Trust boundaries
 
-Four, which makes this security-boundary work:
-
-1. **Remote fetch into a local tree.** Handled by `https_catalogue` —
-   origin-locked redirects, size caps, member caps, safe extraction, digest
-   verification where the source form offers one.
-2. **Writes into an adopter-owned tree.** Path jail via `safety.write_jailed`;
-   confined reads raise `UnsafeContentError`.
-3. **The white-label identity boundary.** In-memory transform plus leak check
-   before any write. The state file sits outside that check, which is why the
-   pin it carries must be opaque — see § White-label pins carry no upstream
-   identity.
-4. **Self-replacement.** In vendored mode, sync rewrites the `agentbundle`
+1. **Remote fetch into a local tree.** `https_catalogue` enforces origin-locked
+   redirects, size caps, member caps, safe extraction, and digest verification
+   where the source form offers one.
+2. **Writes into an adopter-owned tree.** `safety.write_jailed` jails every path.
+   Confined reads raise `UnsafeContentError`.
+3. **The white-label identity boundary.** The in-memory transform and leak check
+   run before any write. The state file sits outside that check, which is why the
+   pin is opaque.
+4. **Self-replacement.** In vendored mode, `sync` can rewrite the `agentbundle`
    source that is executing it.
 
 ## Known risks
 
-- **Companion flood.** A broadly-edited tree produces many `.upstream.*` files
-  in one run, and `adapt --ci` blocks until each is resolved. The plan table
-  shows the count before consent, and `--pack` lets an adopter take one pack at
-  a time. Not eliminated.
-- **A real break ships silently.** Accepted, per the warn-only decision above.
-- **Self-replacement mid-run.** Packages apply last, after every other write
-  has landed; a failed package write triggers `rollback`; and sync refuses a
-  vendored package sync when the target supplies the running `agentbundle`.
-
-  **The refusal takes two inputs, not one.** The editable-install check
-  `source_defaults` already performs is bounded by an enclosing git
-  repository: `_detect_editable_source` returns nothing for a derived
-  catalogue that is not one, before it reads the catalogue markers at all. A
-  derived catalogue need not be a git repository, so on that input alone the
-  refusal fails open for the adopter who `pip install -e`'d the vendored
-  engine in a plain directory — the sharpest case it exists for. The second
-  input reads the running package's own resolved location, which needs
-  neither a PEP 610 record nor a git root.
-
-  **What it covers and what it does not.** It covers the `agentbundle`
-  destination's engine subtree, `.agentbundle/tooling/agentbundle/`, which is
-  the only part of a derived tree that can supply a running interpreter. It
-  does **not** cover `packages/credbroker/`: that is a build input resolved by
-  relative path rather than an install source, so writing it cannot replace
-  executing code. An adopter who installed credbroker editable from the target
-  falls outside the refusal, and the existing detector would not see that case
-  either.
-- **`git+https://` carries no content integrity.** Record whatever pin the
-  source form affords and print which fidelity was obtained.
+- **Companion flood.** A broadly edited tree produces many `.upstream.*` files in
+  one run, and `adapt --ci` blocks until each is resolved. The plan table shows
+  the count before consent, and `--pack` takes one pack at a time.
+- **A real break ships silently.** Compatibility is warn-only.
+- **`git+https://` carries no content integrity.** The plan prints the fidelity
+  obtained.
 - **Schema-1 states cannot self-heal.** Their `sha256: None` entries support
-  neither Tier classification nor the removal guard. Sync reports them as a
-  named count with a recovery instruction rather than skipping silently.
+  neither Tier classification nor the removal guard. `sync` reports them as a
+  named count with a recovery instruction.
 
-## Rollout
+### Self-replacement
 
-Additive. `catalogue init`, `install`, `upgrade`, and `adapt` keep their
-contracts unchanged; removing the new verb restores the status quo exactly.
+Packages apply last, a failed package write restores the snapshot, and `sync`
+refuses a vendored package sync when the target supplies the running
+`agentbundle`.[^11]
 
-0. ~~**credbroker source follows its pack**~~ — **done**, shipped in
-   agentbundle 0.44.2. It changed `init`, not `sync`, and stood alone: it
-   restored the drift gate in derived catalogues whether or not `sync` ever
-   ships. See § Shipped: credbroker source follows its pack.
+The refusal reads two inputs:
 
-Every phase is complete:
+- The editable-install check in `source_defaults` is bounded by an enclosing git
+  repository. A derived catalogue that is not one returns nothing from it.
+- The running package's own resolved location needs neither a PEP 610 record nor
+  a git root, so it covers an adopter who ran `pip install -e` on the vendored
+  engine in a plain directory.
 
-1. ~~**State schema 3**~~ — **done**. `init` writes the recipe and pin fields.
-   `init --source` takes a local path only: it resolves the argument as a
-   filesystem path (`commands/catalogue_init.py:202`) and never dispatches a
-   URI through `resolve_catalogue()`. So every pin `init` writes today is
-   § Stage 1's local-clone row, and its `source_revision` and `archive_sha256`
-   are null. A source form that affords a resolved ref or a digest reaches the
-   pin only once `sync` writes one, which the write path phase 3 delivers.
-2. ~~**`sync` with `--dry-run` and `--check` only**~~ — **done**. Resolve,
-   replay, classify, and plan, with no write path.
-3. ~~**The apply path**, plus the scoping flags.~~ — **done**. `sync` writes,
-   guarded by consent, the five scoping flags, and rollback on a partial write.
-4. ~~**Package sync** — the two `--package` destinations,
-   `.agentbundle/tooling/` (vendored mode only) and `packages/credbroker/`.~~ —
-   **done**. `--package` became a fourth scoping flag, the extent joined the
-   write set, and packages apply last. The `agentbundle` destination is the
-   whole vendored tooling root, including the `packs/catalogue-curation/` copy:
-   the engine and the curation pack are installed as a pair, so they move as a
-   pair. Last, because the agentbundle half carries the self-replacement
-   risk.
+The refusal covers `.agentbundle/tooling/agentbundle/`, the only part of a
+derived tree that can supply a running interpreter. It does not cover
+`packages/credbroker/`, a build input resolved by relative path. An adopter who
+installed credbroker editable from the target falls outside the refusal.
 
-## Shipped: credbroker source follows its pack
+[^1]: `packages/agentbundle/agentbundle/commands/catalogue_sync.py` (`replay_derivation` call, `plan_write_set`); `catalogue_tooling/initialise_self_hosted.py`; `safety.py` (`classify`, `write_companion`, `write_jailed`).
 
-Sync cannot manage what the derivation never copied. That dependency is now
-satisfied rather than pending: agentbundle 0.44.2 made `init` copy
-`packages/credbroker/` into the target whenever the `credential-brokers` pack
-is selected, in both tooling modes.
+[^2]: `cli.py` (`catalogue sync` subparser); exit constants `_SUCCESS`, `_DIFFERENCE`, `_MALFORMED`, `_CANNOT_ANSWER`, `_APPLY_FAILED` in `commands/catalogue_sync.py`.
 
-The reasoning still holds and is worth keeping. `packages/credbroker/` used to
-be absent from a derived catalogue in both tooling modes, which silently
-disabled the `user-libs` build primitive — the pack copy was a generated,
-drift-gated projection upstream and frozen, unverifiable content downstream.
-Copying it to `packages/credbroker/` is the path
-`user_libs._package_source_dir` already resolves, so projection and drift gate
-came back live with no change to `user_libs.py` itself, and an external-tooling
-adopter gets the same guarantee as a vendored one. This differs from
-agentbundle's vendored target (`.agentbundle/tooling/agentbundle/`) on purpose:
-agentbundle is vendored as an *install source* the adopter `pip install -e`s,
-while credbroker is a *build input resolved by relative path*. Same principle,
-different mechanics. [`derived-catalogue.md`](derived-catalogue.md) § Why
-credbroker source follows its pack has the current mechanism.
+[^3]: `catalogue.resolve_catalogue`, `resolve_git_ref`; `https_catalogue.fetch_catalogue_archive`; `catalogue_sync.build_pin`.
 
-The consequence for sync: `packages/` is already a sync-scopable subtree, so
-`--package credbroker` names something real from the first phase that ships a
-scoping flag. § Granularity's `--package <name>` therefore covers two packages
-in phase 4 — `agentbundle` and `credbroker` — not one.
+[^4]: `catalogue_sync.select_write_set`, `_scope_subtrees`.
 
-## White-label pins carry no upstream identity
+[^5]: `catalogue_sync._classify_planned_paths`; `safety.py`; `catalogue_tooling/file_safety.py`.
 
-The leak check scans only the planned byte map, and the state file is written
-after it, so `.agentbundle/self-host-state.json` is never scanned. That scope
-is deliberate and stays. The consequence is a standing rule rather than a
-defect: **every field written to this file must be safe on its own.**
+[^6]: `commands/_common.confirm_or_refuse`; the apply path's consent wrapper in `catalogue_sync.py`.
 
-`source_pack_identity` already follows that rule. Since agentbundle 0.44.2 it
-records the derived catalogue's name under white-label and the upstream name
-only under `attributed`, where attribution makes no promise of anonymity.
+[^7]: `catalogue_sync.snapshot_write_set`, `restore_from_snapshot`, `_SNAPSHOT_BOUND_BYTES`, `write_order`, `select_removal_set`, `write_merged_state`.
 
-`source_uri` is the field phase 1 must hold to the same rule, and it is the
-harder case. A bare upstream name is a string someone might dismiss as
-coincidence; `git+https://github.com/<owner>/<repo>@<ref>` is a working pointer
-that names owner, repository, and ref.
+[^8]: `catalogue_sync._check_digest_only`, `_check_compare_tree`, `_report_check_result`.
 
-**Decision — under `--attribution white-label`, the pin is opaque:**
+[^9]: `catalogue_tooling/initialise_self_hosted.py` (`SelfHostPin.to_dict`, `_source_pack_identity`); `config.PackState`.
 
-| Field | `attributed` | `white-label` | Status |
-| --- | --- | --- | --- |
-| `source_pack_identity` | upstream name | the **derived** catalogue's name | shipped, 0.44.2 |
-| `source_uri` | recorded | omitted | phase 1 |
-| `source_revision` | recorded | recorded — a ref such as `v1.2.3` identifies nothing | phase 1 |
-| `archive_sha256` | recorded | recorded — a digest identifies nothing | phase 1 |
+[^10]: `catalogue_sync.compatibility_warnings`, `check_adapter_contract_gate`; `commands/_common.check_spec_version_gate`; `contracts/adapter.toml` and `packs/*/pack.toml` for the declared versions.
 
-`--check` is unaffected: it compares digests, not URIs. The only loss is that a
-bare `sync` cannot re-resolve its source under white-label, so the adopter
-passes `--source` each run — which the command takes anyway.
-
-## Alternatives rejected
-
-- **Make `init` re-run safe, with no new verb.** A two-function change that
-  removes the destructive behaviour immediately. Rejected because without a
-  persisted recipe a bare re-run still rewrites the adopter's `catalogue.toml`,
-  and without scoping flags there is no pack-by-pack sync.
-- **Git-native: fork upstream and merge.** Rejected because the derived tree is
-  not a fork. White-label rewrites identity anchors throughout, so upstream
-  bytes never match derived bytes and every touched file conflicts — noise
-  proportional to the transform, not to the change. The tree is also a filtered
-  subset, and which filter produced it lives in the recipe, which git cannot
-  see.
-- **Upstream as a submodule, regenerate on update.** Rejected because
-  regeneration is the current overwrite problem with extra ceremony: it assumes
-  the derived tree is a pure function of upstream plus recipe, which stops being
-  true the moment the adopter edits a skill.
+[^11]: `catalogue_sync._self_replacement_reason`, `_running_package_root`; `source_defaults._detect_editable_source`.

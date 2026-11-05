@@ -1,7 +1,8 @@
 # Work-loop delivery efficiency
 
 - **Slug:** `work-loop-delivery-efficiency`
-- **Status:** Accepted
+- **Status:** Draft
+- **Reset to Draft:** 2026-11-04 by eugenelim, lifecycle owner. Core 4.0.0 replaced the procedure engine this intent measured (`loop-engine.py`, `loop-cohort.py`) with the execution supervisor ([ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)), and the registry that held child queue membership is retired. The decomposition below omitted two live children and listed a delivered one as open. The prior acceptance and its review evidence no longer describe the artifact, so it returns to `Draft` for a fresh shaping review. Outcome, guardrail and boundary are unchanged.
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
@@ -45,12 +46,14 @@
   rather than self-assessed. That is what a queue presence would now be for. This
   intent is Accepted and therefore cannot itself join an active or backlog
   collection, so any registration has to attach to that follow-on or to a child.
-- Should `loop-contract-item-identity-mechanism` be registered? It is the only
-  child with no workspace presence at all.
-- Does `spec-review-validation-guidance` belong in this tree? It carries no
-  `Parent intent:` pointer, so it is currently unparented.
 
 ## Projection
+
+Candidates and measurements below that name `loop-engine.py`, `loop-cohort.py` or
+the procedure engine describe what was measured before Core 4.0.0 removed it.
+Read them as the evidence behind a ranking, not as mechanisms that exist. The
+supervisor's current shape is in
+[work-loop execution supervisor](../../architecture/work-loop-execution-supervisor.md).
 
 These are candidate child intents ranked by expected impact, not approved
 solutions or dependency order. Shape and test one child before activating the
@@ -331,10 +334,10 @@ published savings do not cover this loop's protected software judgments.
 
 ## Decomposition
 
-Seven intents carry a `Parent intent:` pointer to this one. Three are the killed
-original cut. An eighth sits one level further down,
+Nine intents carry a `Parent intent:` pointer to this one. Three are the killed
+original cut. A tenth sits one level further down,
 under the first killed child. Each child's lifecycle status lives in that child,
-and its queue membership lives in `workspace.toml`; this tree records structure
+and the registry that once held queue membership is retired; this tree records structure
 and the decomposition decisions, which are what the parent owns.
 
 ```text
@@ -346,7 +349,9 @@ work-loop-delivery-efficiency (capability)
 ├─ spec-authoring-protocol-measured-before-shipping (feature)
 ├─ grounding-probe-extensions (feature)
 ├─ agent-loop-escalation-recovery (feature)
-└─ loop-contract-item-identity-mechanism (feature)
+├─ loop-contract-item-identity-mechanism (feature)
+├─ red-proof-discriminates-a-stub-that-ran (feature)
+└─ supervisor-launch-routing-for-plan-authored-commands (feature)
 ```
 
 All three kills stay killed. Their candidate mechanisms remain in § Projection
@@ -358,10 +363,9 @@ surviving descendant of a killed branch, which is a real position in this tree
 and not a drafting slip — the kill removed the bundled candidate, not every
 mechanism the branch had isolated.
 
-[`spec-review-validation-guidance`](spec-review-validation-guidance.md) is
-thematically part of this effort and carries **no** `Parent intent:` pointer at
-all, so nothing links it here. Whether it belongs in this tree is an open owner
-decision (§ Unresolved questions); this refresh does not create the link.
+[`spec-review-validation-guidance`](spec-review-validation-guidance.md) carried no
+`Parent intent:` pointer and is withdrawn as delivered in `new-spec`, so it sits
+outside this tree.
 
 Why the cut went this way — including why three of these children came from a
 sibling's delivery rather than from ranking this intent's projection — is

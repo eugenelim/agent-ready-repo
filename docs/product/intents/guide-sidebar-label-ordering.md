@@ -18,7 +18,7 @@ Maintainers can adopt a curated guide title without unintentionally reordering t
 
 ### guide-sidebar-label-order-coupling
 
-`tools/build-site.py:881` sorts with `bucket.sort(key=lambda r: (_guide_label(r, baseline).casefold(), r["slug"]))`. Kind-bucket ordering therefore still depends on the resolved reader-visible label, so adopting a curated title necessarily reorders its bucket.
+`project_guide_sidebar` in `tools/build-site.py` sorts with `bucket.sort(key=lambda r: (_guide_label(r, baseline).casefold(), r["slug"]))`. Kind-bucket ordering therefore still depends on the resolved reader-visible label, so adopting a curated title necessarily reorders its bucket.
 
 ## Source
 

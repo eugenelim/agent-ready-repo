@@ -316,7 +316,7 @@ All cited anchors were resolved with bounded `git blame -L` reads. No tests, net
 
 ## 2. Runtime path
 
-- **[Cited] Generic path:** authored `pack.toml` + `okf/**` → `compile_okf.py` → generated `.apm/skills/**` → AgentBundle build/install → host-specific skill directory. Raw `okf/**` is not the runtime surface: the installer reads `.apm/` and `seeds/`; `.apm/` is expressly the runtime export boundary ([pack layout](docs/architecture/pack-layout.md:44)).
+- **[Cited] Generic path:** authored `pack.toml` + `okf/**` → `compile_okf.py` → generated `.apm/skills/**` → AgentBundle build/install → host-specific skill directory. Raw `okf/**` is not the runtime surface: the installer reads `.apm/` and `seeds/`; `.apm/` is expressly the runtime export boundary ([pack layout](../../architecture/pack-layout.md#the-shape)).
 
 - **[Inferred from the host/file contract] Context path:** the host exposes or invokes the installed skill; its `SKILL.md` enters agent context. The router then tells the agent to read indexes and concepts. Those file-read results enter context through ordinary agent tool use. The compiler and installer do not retrieve relevant concepts during a task.
 

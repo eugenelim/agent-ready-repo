@@ -9,6 +9,7 @@ status: Shipped
 - **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
+- **Brief:** brief:catalogue-specification-publication-delivery
 - **Constrained by:** [RFC-0109](../../rfc/0109-catalogue-specification-publication.md) D2, D3 (`draft/` path and `$id` rule), D6, D8 slice S3, OQ1, and its [errata](../../rfc/0109-catalogue-specification-publication.md#errata)
 - **Contract:** none
 - **Shape:** ui

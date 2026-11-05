@@ -18,7 +18,7 @@ The active SAST manifest is range-based, suppression policy is partly undocument
 
 ### sast-requirements-hash-locked
 
-Generate and install `tools/requirements-sast-locked.txt` with `--require-hashes`, mirroring the CI-security locked file. `tools/requirements-sast.txt:10` still specifies `bandit>=1.9,<2`, and no hash-locked counterpart exists. Unblocks when the platform-targeting decision is made first.
+Generate and install `tools/requirements-sast-locked.txt` with `--require-hashes`, mirroring the CI-security locked file. `tools/requirements-sast.txt` still specifies `bandit>=1.9,<2` and `semgrep>=1.174,<2`, and no hash-locked counterpart exists. Unblocks when the platform-targeting decision is made first.
 
 ### lint-nosec-form-require-id-registry
 
@@ -26,15 +26,15 @@ Add `--require-id-registry` to `lint-nosec-form.py` so an unreachable Bandit reg
 
 ### sast-nosemgrep-has-no-form-lint
 
-Record the repository-wide canonical `nosemgrep` suppression form. `tools/lint-nosemgrep-form.py` already gates form from `build-check`, using Semgrep 1.175.0 core-binary patterns for inline and previous-line forms across `#`, `//`, `<!-- -->`, and `/* */`. Decide whether the statement belongs in an ADR-0084 addendum or a new ADR; that decision also owns Semgrep pinning because `tools/requirements-sast.txt` permits `>=1.174,<2` and the self-test only catches edits to the local pinned patterns, not upstream drift. `tools/lint-nosemgrep-form.py:45` records this unresolved decision. Unblocks when the ADR-shape decision named by `docs/specs/semgrep-ratchet-integrity/plan.md` is made.
+Record the repository-wide canonical `nosemgrep` suppression form. `tools/lint-nosemgrep-form.py` already gates form from `build-check`, using Semgrep 1.175.0 core-binary patterns for inline and previous-line forms across `#`, `//`, `<!-- -->`, and `/* */`. Decide whether the statement belongs in an ADR-0084 addendum or a new ADR; that decision also owns Semgrep pinning because `tools/requirements-sast.txt` permits `>=1.174,<2` and the self-test only catches edits to the local pinned patterns, not upstream drift. `tools/lint-nosemgrep-form.py` records this unresolved decision. Unblocks when the ADR-shape decision named by `docs/specs/semgrep-ratchet-integrity/plan.md` is made.
 
 ### npm-allowlist-expiry-enforcement
 
-Give `tools/npm-audit-allowlist.toml` a machine-checked expiry like `.snyk` so a suppression cannot outlive its justification. `tools/npm-audit-allowlist.toml:37` is currently `allow = []`; no active suppression exists. Unblocks when the allowlist gains its first entry.
+Give `tools/npm-audit-allowlist.toml` a machine-checked expiry like `.snyk` so a suppression cannot outlive its justification. `tools/npm-audit-allowlist.toml` now carries three active `[[allow]]` entries, each with a `reason` and an `unblocked_when` condition that the tool requires but does not check for expiry. Unblocks when the expiry rule is chosen.
 
 ### pack-evals-npm-lockfile-integrity
 
-Protect the long-lived API-key workflow introduced by `spec/pack-activation-evals`: `.github/workflows/pack-evals.yml` exposes `ANTHROPIC_API_KEY` and at line 52 runs `npm install -g @anthropic-ai/claude-code@2.1.185`. The version pin has neither an npm lockfile nor a per-package integrity hash, so a compromised npm CDN or re-tagged release could deliver JavaScript that exfiltrates the key. Research whether global npm install supports `--integrity` or a lockfile; otherwise vendor the tarball or use another install path. No secret scanner is wired today beyond CodeQL and Bandit/Semgrep; adjacent gaps are actionlint and zizmor Security. Unblocks when a concrete path to npm global-install integrity verification is found.
+Protect the long-lived API-key workflow introduced by `spec/pack-activation-evals`: `.github/workflows/pack-evals.yml` exposes `ANTHROPIC_API_KEY` and runs `npm install -g @anthropic-ai/claude-code@2.1.185`. The version pin has neither an npm lockfile nor a per-package integrity hash, so a compromised npm CDN or re-tagged release could deliver JavaScript that exfiltrates the key. Research whether global npm install supports `--integrity` or a lockfile; otherwise vendor the tarball or use another install path. `ci-security.yml` already runs gitleaks, actionlint, and zizmor, and none of them verifies the npm artifact. Unblocks when a concrete path to npm global-install integrity verification is found.
 
 ## Assumptions
 

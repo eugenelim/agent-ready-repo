@@ -4,7 +4,7 @@
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** [RFC-0035](../../rfc/0035-sso-cookie-auth-for-atlassian-pack.md) — owns the `sso-cookie` broker and its per-verb exit-code contract; [RFC-0013](../../rfc/0013-credential-broker-contract.md) — carries the exit-code errata RFC-0035 wrote against; [ADR-0026](../../adr/0026-sso-consumer-resolution-in-credbroker.md) — places consumer resolution in `credbroker`, fixing the engine→library dependency direction this spec must not invert.
-- **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#the-sso-cookie-broker) — the engine/library split, the exit-code table, and the primary-store / materialisation-surface distinction live there. This spec does not restate them; it serialises the transition between them.
+- **Architecture:** [`docs/architecture/credentials.md § The `sso-cookie` broker`](../../architecture/credentials.md#4-sso-sessions-recover-once-headlessly-and-never-by-showing-a-login-page) — the engine/library split, the exit-code table, and the primary-store / materialisation-surface distinction live there. This spec does not restate them; it serialises the transition between them.
 - **Brief:** none
 - **Discovery:** none
 - **Contract:** none

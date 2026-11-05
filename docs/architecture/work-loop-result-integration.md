@@ -1,8 +1,9 @@
 # Subsystem Design — Product result integration
 
-**Decision sought:** Make every execution result pass through one crash-safe,
+**Decision:** Every execution result passes through one crash-safe,
 runtime-neutral integration boundary before it can change the canonical product
-tree or support acceptance.
+tree or support acceptance. The sequential boundary, a protected product ref,
+ships; the parallel three-tree apply is Slice 7.
 **Author(s):** Platform Core and `agentbundle` maintainers
 **Status:** Partly implemented: § 1a ships; §§ 2–8 are the planned Slice 7 design
 **Last updated:** 2026-11-02
@@ -72,7 +73,7 @@ the stable integration operation key. The approval lineage retains the
 starting commit or equivalent immutable tree manifest.
 
 Task capabilities deny
-direct `.git` and protected-ref writes; only the integration port holds them. Today the
+direct `.git` and protected-ref writes; only the integration port holds them. The
 shipped boundary detects a worker's change to the ref and refuses the result instead of
 denying the write (§ 1a).
 
@@ -186,7 +187,9 @@ unless its observation is explicitly pre-execution evidence.
 ## 10. Rollout, Migration, and Reversal
 
 **Current state.** `result_authority` is `protected-product-ref`: acceptance reads the product
-ref, and both refs are written under either setting. The full crash corpus runs under the
+ref, and both refs are written under either setting.
+
+The full crash corpus runs under the
 shipped authority and a named sample under the other, and a test fails on any second read of
 the setting. Parallel-permutation and conflict-parity conditions belong to Slice 7's design above.
 

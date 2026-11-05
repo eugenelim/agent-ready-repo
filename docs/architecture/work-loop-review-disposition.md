@@ -1,7 +1,9 @@
 # Subsystem Design — Review and disposition
 
-**Decision sought:** Reduce review to reviewer obligations, portable YAML
-reports, actual-failure findings, and explicit dispositions.
+**Decision:** Review reduces to reviewer obligations, portable YAML reports,
+actual-failure findings, and explicit dispositions. The supervisor closes
+full-mode review from structured readiness alone; `review-rules.json` selects
+the roles.
 **Author(s):** Platform Core maintainers
 **Status:** Implemented
 **Last updated:** 2026-11-02
@@ -295,7 +297,9 @@ Core 4.0.0 moved full-mode review authority to structured readiness in one
 step for every reviewer role (ADR-0144 D8). The supervisor's
 `_supervisor_review.py` decides closure, and which roles run is
 `review-rules.json` data. No compatibility adapter or reverse reader ships
-(ADR-0144 D7). Reversal is reinstalling the prior Core major. For the product ref and `result_authority`, see [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal).
+(ADR-0144 D7).
+
+Reversal is reinstalling the prior Core major. For the product ref and `result_authority`, see [product result integration § 10](work-loop-result-integration.md#10-rollout-migration-and-reversal).
 
 Ambiguous, unsafe, invalid, or unpaired input yields `unable` or `indeterminate`
 and cannot close an obligation.

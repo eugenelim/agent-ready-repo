@@ -19,7 +19,7 @@
 - **Functional job:** Describe a piece of repository work once, in one vocabulary, and have every consumer agree on what it is.
 - **Emotional job:** Stop having to know which of two ladders a thing is on before you can reason about it.
 - **Social job:** Present one coherent ontology to a maintainer or an adopter rather than an apparent choice between two.
-- **Struggling moment:** The same body of work is described twice and the descriptions disagree. INI-001 is a product vision living under `shaping/`; `ini-002-initiative-brief.md` is a `Level: product-strategy` intent living under `intents/`; INI-009 is an initiative document with no intent level at all; and INI-003 names two different things in two namespaces. The initiative template points at `docs/CONVENTIONS.md §5b` for its altitude hierarchy, and that file was retired by a Shipped spec, so the definition of "altitude-1" has no surviving home.
+- **Struggling moment:** The initiative vocabulary survives in four places. `docs/product/initiatives/` still holds `_template.md` and `ini-009-agent-skill-engineering.md`, an initiative document with no intent level. `docs/product/shaping/` still holds `product-vision-INI-001.md` and `ecosystem-overview.md`. `docs/product/initiatives/_template.md` still points at `CONVENTIONS.md §5b` for its altitude hierarchy, and a Shipped spec retired that file, so the definition of "altitude-1" has no surviving home. `workspace.toml` still holds five initiative tables (`ini-002`, `ini-003`, `ini-007`, `ini-009`, `ini-010`) beside the `backlog` table. The strategy intents the initiatives once carried are extracted: `STRAT-0002-platform-core.md` is the former `ini-002` strategy.
 
 ## Boundary
 
@@ -51,7 +51,7 @@ Not yet selected. Outbound tracker projection is [CAP-0004](CAP-0004-external-tr
 - The ladder can move to canonical intent parentage and lifecycle before the workspace registry retires, using a bounded compatibility registration that does not regain authority over either fact. **Untested here and dependent on `FEAT-0034`** — `backlog.open` is currently the only initiative-free collection and admits a non-defect entry at `Status: Draft` only, so a Ready or Accepted artifact has no initiative-free compatibility home today. Under RFC-0106, the end state needs no such home, because an intent's lifecycle comes from its own `Status:` and intents stop being registered; until its replacements ship, the constraint stands.
 - Retiring the folders breaks no consumer. **Untested** — an inventory of what reads `docs/product/initiatives/` and `docs/product/shaping/` has not been taken.
 
-**Not de-risked.** No assumption above carries a kill condition. Re-enter `frame-intent` → `de-risk-intent` → `decompose-intent` before decomposing this intent. The riskiest is likely the second, because it is the one that is already producing failures rather than merely predicted to.
+**Not de-risked.** No assumption above carries a kill condition. Re-enter `intent frame` → `intent de-risk` → `intent decompose` before decomposing this intent. The riskiest is likely the second, because it is the one that is already producing failures rather than merely predicted to.
 
 ## Source
 

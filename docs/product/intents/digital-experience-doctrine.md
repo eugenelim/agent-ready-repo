@@ -3,6 +3,8 @@
 - **Slug:** `digital-experience-doctrine` <!-- canonical identity; independent of any filename ordinal -->
 - **Status:** Accepted
 - **Accepted:** 2026-10-01 by eugenelim, lifecycle owner. Revision `11e788ad445790c7` returned zero `MALFORMED` tokens in an independent intent-mode shaping review; a fresh adversarial intent read returned no open question or replacement validation hook after the Claude Code and Codex pair was named. The capability-level assumption survived its predeclared kill condition, and `decompose-intent` reconfirmed the seven-child cut without a re-slice.
+
+- **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** `decompose-intent` is now the `decompose` mode of the `intent` skill, and the delivery table marks which spec paths exist: only `design-system-values` does. The seven children and their states are as the graph reports. Wording and citation only; the opportunity, outcome, boundary, assumptions, unresolved questions, source and projection are unchanged, so the prior review evidence stands.
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
@@ -195,7 +197,7 @@ plan under the [current-standards pressure test](../research/digital-experience-
 If shaping crosses a split condition, the child must be re-decomposed before
 spec authoring rather than wrapped in a capability-level brief.
 
-| Feature intent | One-feature boundary | Spec and plan |
+| Feature intent | One-feature boundary | Spec and plan (a path without a link is not yet authored) |
 | --- | --- | --- |
 | [`product-strategy-adoption-doctrine`](product-strategy-adoption-doctrine.md) | One portable strategy-to-adoption contract; split if growth operations or runtime telemetry implementation enters scope | `docs/specs/product-strategy-adoption-doctrine/` |
 | [`product-engineering-shaping-doctrine`](product-engineering-shaping-doctrine.md) | One observable, learning-oriented shaping contract; split if adapter or protocol implementation enters scope | `docs/specs/product-engineering-shaping-doctrine/` |
@@ -226,7 +228,7 @@ bounded repair and do not delay the seven-child family.
 
 ### Why this family, and why now
 
-- **The children came first; the parent is retroactive.** `decompose-intent`'s
+- **The children came first; the parent is retroactive.** `intent decompose`'s
   retroactive-parent rule names this case — siblings that are architectural
   slices of one buildable thing take a `capability` parent — and seven slices of
   one doctrine across four packs is that shape.
@@ -243,7 +245,7 @@ are this capability's decomposition. Each child owns one spec-and-plan boundary
 as sized above. No delivery brief sits between the capability and those
 children.
 
-**Confirmed 2026-10-01 with `decompose-intent`: no re-cut is needed.** The
+**Confirmed 2026-10-01 with `intent decompose`: no re-cut is needed.** The
 children are the next lower `feature` level, collectively cover every remaining
 RFC-0071 milestone, and each passes the shippability test as one same-repository
 delivery contract. Their dependency edges already supply the order, so no

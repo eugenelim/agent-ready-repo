@@ -1,139 +1,201 @@
 # The catalogue
 
-> What a catalogue *is* on disk, how `agentbundle` finds one, and how you
-> point it at your own. `packs/` in this repo is one catalogue; the same
-> shape lets any org stand up theirs.
+> A catalogue is a directory that holds `catalogue.toml` and a `packs/` tree.
+> `agentbundle` reads packs from it, validates it, builds it, packages it, and
+> derives new catalogues from it. `packs/` in this repository is one catalogue;
+> nothing in the tool binds to it.
 
-A catalogue is the thing `agentbundle install` reads packs *from*. This repo
-ships one — the `packs/` tree — but nothing about the tool is bound to it.
-Fork it, build a fresh one, or host one privately, and point the CLI at yours.
+The catalogue subsystem answers five questions. Each has one owner in the
+`agentbundle` package, and no registry service sits behind any of them.[^1]
 
-A catalogue is no longer the *only* thing install reads from. `install` also
-accepts a **direct source**: a skill folder, a `skills/` collection, or a
-single pack, taken straight from a repository with no catalogue around it.
-Direct sources have their own admission rules and their own state provenance;
-a repository carrying catalogue markers takes the catalogue route instead, and
-the direct route refuses it and says so. Everything below describes the
-catalogue route, which is unchanged.
+| Question | Answer in one line | Section |
+| --- | --- | --- |
+| What makes a directory a catalogue? | `catalogue.toml` plus a literal root `packs/` | [Identity](#identity) |
+| Which catalogue does a verb read? | A five-layer, first-match-wins resolver | [Resolution](#resolution) |
+| How is a catalogue checked, built and released? | Ten `agentbundle catalogue` verbs | [Engine verbs](#engine-verbs) |
+| What may an adopter rely on? | A versioned, published specification | [Specification](specification.md) |
+| How does an adopter get their own? | Derive one, then sync upstream changes | [Derivation](#derivation) |
 
-## What a catalogue is
+## Identity
 
-A catalogue source is a directory holding two adapter-neutral markers:
+A catalogue is the pair `catalogue.toml` and a root `packs/` directory. A
+directory missing either is refused.[^2]
 
 ```
 <catalogue-root>/
-├── catalogue.toml                    # catalogue metadata and distribution config
-├── packs/
-│   └── <pack>/…                     # one directory per shippable pack (see pack-layout.md)
-└── .claude-plugin/                  # present when Claude projection is enabled
-    └── marketplace.json             # generated Claude marketplace listing
+├── catalogue.toml                  # name, paths, build and distribution config
+├── packs/<pack>/…                  # one directory per shippable pack
+├── profiles/<profile>.toml         # named pack sets
+└── .claude-plugin/marketplace.json # generated, only when claude-code is enabled
 ```
 
-The source-identity contract is the root `catalogue.toml` plus the literal
-root `packs/` directory. Anything missing either is refused. The check is one
-function,
-[`source_defaults._has_catalogue_markers`](../../../packages/agentbundle/agentbundle/source_defaults.py),
-while lint validates the configuration and configured operational paths.
-There is no registry service or catalogue network protocol.
+`marketplace.json` lists every pack whose `allowed-scopes` admits `user` and
+that declares `[pack.adapter-contract] version`. The resolver gates on the
+contract version first, so a pack without one resolves to `repo` whatever its
+`allowed-scopes` says.
 
-`marketplace.json` is the catalogue-level listing consumed by
-`/plugin marketplace add`; the build aggregates version and metadata into it
-from the `.claude-plugin/plugin.json` of every pack whose `allowed-scopes`
-admits `user` *and* that declares `[pack.adapter-contract] version` — the
-resolver gates on the contract version first, so a pack without one resolves
-`repo` whatever its `allowed-scopes` says. The route installs at user scope, so repo-scoped packs are
-excluded — see `docs/specs/claude-plugin-route-scope`. How a pack's
-`pack.toml` projects into that entry is covered in
+Repo-scoped packs are absent from the listing because the Claude-plugin route
+installs at user scope.[^3] How `pack.toml` projects into an entry is in
 [`pack-manifest.md`](../pack-manifest.md).
 
-## How agentbundle finds a catalogue
+`install` also accepts a **direct source**: a skill folder, a `skills/`
+collection, or one pack taken from a repository with no catalogue around it.
+Such an install is **manifestless**: it takes its identity from the skill's
+directory name and records provenance in install state. Direct sources have their
+own admission rules.
 
-Every source verb — `install`, `upgrade`, `list-packs`, `list-profiles`,
-`list-installed` — takes an optional trailing catalogue argument. When you
-omit it, the CLI resolves one through a five-layer, first-match-wins chain in
-[`source_defaults.resolve_default_source`](../../../packages/agentbundle/agentbundle/source_defaults.py):
+A repository that carries catalogue markers takes the
+catalogue route, and the direct route refuses it with a message saying so.[^4]
+
+## Resolution
+
+Every source verb takes an optional trailing catalogue argument. When it is
+omitted, `resolve_default_source` walks five layers and returns the first
+match.[^5]
 
 | Layer | Source | Set by |
 | --- | --- | --- |
-| 1 | The explicit trailing argument | `agentbundle install core <catalogue>` — passed through verbatim |
-| 2 | User config `[settings].source` | `agentbundle config set source <catalogue>` |
+| 1 | The explicit trailing argument, passed through verbatim | `agentbundle install core <catalogue>` |
+| 2 | User config `[settings].source`, validated | `agentbundle config set source <catalogue>` |
 | 3 | Org Artifactory bootstrap | `[distribution.agentbundle.artifactory]` in `catalogue.toml`, baked into `_data/install-defaults.toml` |
-| 4 | Editable-install detection | `pip install -e <clone>` — auto-detected |
-| 5 | Packaged default | `_data/install-defaults.toml` — baked into the wheel |
+| 4 | Editable-install detection | `pip install -e <clone>` |
+| 5 | Packaged default, validated | `default-source` in `catalogue.toml`, baked into `_data/install-defaults.toml` |
 
-Layer 4 is the one that makes a local clone "just work": when `agentbundle`
-is installed editable, it reads its own PEP 610 `direct_url.json`, and walks
-up from the package directory — bounded by the enclosing `.git` root — to the
-first ancestor carrying `catalogue.toml` and literal root `packs/`. So a developer working inside
-a clone gets that clone as their catalogue with no configuration.
+- **Layer 4** reads the package's PEP 610 `direct_url.json` and walks up from
+  the package directory, bounded by the enclosing `.git` root, to the first
+  ancestor holding both markers. A developer inside a clone gets that clone with
+  no configuration.
+- **`AGENTBUNDLE_NO_REMOTE=1`** skips layers 3 and 4.
+- **Layer 3 fails closed.** An enabled bootstrap with a malformed field raises
+  instead of falling through to layer 4.
+- **No layer yields a source:** the CLI refuses with a message naming the
+  recovery paths. It never falls back to the current directory.
+- **Layer 5 tracks a mutable tip.** The packaged `git+https://` default names no
+  ref, so it resolves the default branch at install time.
+  STATUS: PLANNED — [`convenient-install-defaults-followons`](../../product/intents/convenient-install-defaults-followons.md)
+  owns a post-acquisition integrity check.
 
-Setting `AGENTBUNDLE_NO_REMOTE=1` skips Layers 3 and 4, falling through directly to Layer 5. See the [adopter reference](../../../guides/_shared/reference/agentbundle.md) for the full env var list.
+A source is a local path holding both markers or a `git+https://` URL. A
+`git+https://` value is accepted as written. A local path is validated at
+resolution time, so a stale path fails with a diagnostic.
 
-When no layer yields a source, the CLI refuses with a message naming the
-recovery paths rather than silently falling back to the current directory:
+Remote
+`catalogue+https://` and `archive+https://` sources authenticate through
+[`portable-catalogue-authentication.md`](../portable-catalogue-authentication.md).
 
-```
-no catalogue source: pass a catalogue argument, run 'agentbundle config set
-source …', or pip install -e the catalogue
-```
+`~/.agentbundle/` is an install destination, never a source.
 
-## Point agentbundle at your own catalogue
+## Engine verbs
 
-A catalogue source is either a **local path** (containing both markers) or a
-**`git+https://` URL**. Two durable ways to switch, plus the one-off:
+The engine is the public `agentbundle catalogue` command group. Verbs that read a
+catalogue take its directory and use the confined-file helpers in `catalogue_tooling/file_safety.py`. `lint`, `verify`,
+`build`, `self-host`, `package`, and `sync-defaults` take `--root`.
 
-```bash
-# Persist a default (layer 2) — survives across every verb, every repo.
-agentbundle config set source git+https://github.com/acme/agent-kit
-agentbundle config set source /abs/path/to/your/catalogue
-agentbundle config unset source          # clear it; fall back to layers 3–5
+`init`,
+`sync`, and `index` take a positional directory. `contracts` reads only bundled
+files.[^6]
 
-# One-off (layer 1) — a trailing argument beats the configured default.
-agentbundle install core git+https://github.com/acme/agent-kit
+| Verb | Output | Notes |
+| --- | --- | --- |
+| `lint` | Diagnostics | Source-identity and pack-structure checks |
+| `verify` | Diagnostics | Nineteen ordered steps over a source tree, or a packaged archive with `--archive` |
+| `build` | `dist/` tree | Runs the declared distribution-route recipes |
+| `self-host` | The repository's own projections | `--check` is read-only, `--write` projects |
+| `package` | Release archive and `catalogue-manifest.json` | `--flavor runtime` or `source`, `--force`, `--compare <prior archive>` |
+| `sync-defaults` | `_data/install-defaults.toml` | Derived from `catalogue.toml` |
+| `index` | `catalogue-index.json` | Deterministic, adapter-neutral index of packs, profiles, effects, journeys and integrations |
+| `contracts` | Bundled contract files | `list`, `show`, `export` |
+| `init` | A scaffold catalogue, or a derived one with `--preset self-hosted` | See [Derivation](#derivation) |
+| `sync` | Upstream changes in a derived catalogue | See [Derivation](#derivation) |
 
-# Bind to a working clone (layer 4) — no config needed.
-python -m pip install -e /abs/path/to/your/catalogue
-```
+**Release integrity.** `package` records per-pack and per-profile SHA-256
+digests in `catalogue-manifest.json`, refuses to overwrite an existing release
+archive without `--force` (exit 2), and `--compare` reports differences against
+a prior runtime archive. A unit digest proves that an archive agrees with its own
+manifest.
 
-The config value is stored in your OS config directory
-(`~/Library/Application Support/agentbundle/config.toml` on macOS,
-`$XDG_CONFIG_HOME/agentbundle/config.toml` on Linux). A `git+https://` value
-is accepted as-is; a local path is validated for both markers at resolution
-time, so a stale or wrong path fails loudly with a diagnostic rather than
-installing nothing.
+It does not prove who published it.[^7]
 
-Note that `~/.agentbundle/` is a *destination* — the user-scope install root
-packs are projected **into** — not a source. You never point `source` at it.
+**Index.** `index` reads `pack.toml` and `JOURNEY.md` files and writes one JSON
+document validated against `catalogue-index.schema.json`. Optional descriptive
+fields may be absent from a conforming index.[^8]
 
-## Stand up your own catalogue
+### Verify steps
 
-The minimum is a directory with a valid `catalogue.toml` and
-`packs/<your-pack>/`, then any of the switches above. A Claude marketplace is
-generated only when the effective adapter set includes `claude-code`. The full,
-opinionated recipe — fork this catalogue, add an org pack carrying your house
-conventions, blank the packaged upstream default so stray installs can't reach
-it, and ship a one-command profile every engineer installs — lives in the
-adopter how-to:
+`verify` runs these steps in order and returns one diagnostic list:
+configuration, lint, pack schema, plugin validation, version parity, profiles,
+dependencies, adapter compatibility, primitive layout, build output, agent
+artifacts, marketplace, generated plugin manifests, output drift, self-host
+drift, sync-defaults check, package preflight, deterministic fixture checks, pack
+integration validation.[^9]
+
+Two steps return clean when their input cannot be examined:
+
+- the pack-schema step returns no diagnostics when the build validator cannot be
+  imported;
+- the version-parity step skips a pack whose `pack.toml` or `plugin.json` is
+  absent or lacks a name or version.
+
+STATUS: PLANNED — [`agentbundle-verify-fail-open-closure`](../../product/intents/agentbundle-verify-fail-open-closure.md)
+closes both with bounded diagnostics.
+
+## Specification
+
+The contracts an adopter needs to build a catalogue are published as a versioned
+specification on the docs site. [`specification.md`](specification.md) owns its
+membership, release, and drift checks.
+
+## Derivation
+
+A derived catalogue is a copy of an upstream one under a new name, edited by its
+adopter. Two commands own its life cycle:
+
+- `catalogue init --preset self-hosted` copies a filtered subset and records the
+  recipe. [`derived-catalogue.md`](derived-catalogue.md) owns what it copies and
+  how white-label identity is kept out.
+- `catalogue sync` takes later upstream changes without overwriting adopter
+  edits. [`upstream-sync.md`](upstream-sync.md) owns it.
+- [`state.md`](state.md) owns the two state files a catalogue tree can carry.
+
+The adopter recipe for standing up an organisation catalogue is
 [Build an org stack pack](../../../guides/_shared/how-to/build-an-org-stack-pack.md).
 
-## In this directory
+## Planned
 
-- [`derived-catalogue.md`](derived-catalogue.md) — what
-  `catalogue init --preset self-hosted` copies into an adopter's own catalogue,
-  and what it leaves behind.
-- [`state.md`](state.md) — the two state files a catalogue tree can carry, and
-  who writes each.
-- [`upstream-sync.md`](upstream-sync.md) — how `agentbundle catalogue sync` takes
-  later upstream changes into a derived catalogue.
+| Capability | Boundary | Governing record |
+| --- | --- | --- |
+| `catalogue search` | A read-only query over `catalogue-index.json` facts only. It adds no index field and reads no source manifest. | [`catalogue-search-verb`](../../product/intents/catalogue-search-verb.md); no decision record exists yet |
+| Rules primitive | One authored rule projected to each adapter's native rule surface, authored under a proposed `.apm/rules/` area. | [`catalogue-rules-primitive`](../../product/intents/catalogue-rules-primitive.md) |
+| Adopter test command | One command that runs a catalogue's pack and conformance suites, one process per skill. No `test` verb exists. | [`adopter-catalogue-test-command`](../../product/intents/adopter-catalogue-test-command.md), [ADR-0071](../../adr/0071-pack-runtime-export-boundary-and-test-placement.md) |
+| macOS Never Trust filtering | The corporate trust-store fallback skips certificates an administrator marked Never Trust. | [`catalogue-trust-store-trust-settings`](../../product/intents/catalogue-trust-store-trust-settings.md), [RFC-0086](../../rfc/0086-corporate-network-trust.md) |
+
+Each row is STATUS: PLANNED. The adopter test command and the Never Trust filter
+change `packages/agentbundle/**`, so each landing commit carries an
+`Engine-Change-RFC:` trailer.
 
 ## Where to read next
 
-- [`pack-layout.md`](../pack-layout.md) — the on-disk shape of a single pack
-  inside `packs/`.
-- [`pack-manifest.md`](../pack-manifest.md) — how `pack.toml` projects into the
-  `marketplace.json` listing.
-- [`skill-and-pack-format.md`](../skill-and-pack-format.md) — the format map:
-  the agentskills.io skill standard we conform to, wrapped by our pack
-  envelope and projection.
-- [Build an org stack pack](../../../guides/_shared/how-to/build-an-org-stack-pack.md) —
-  the full stand-up-your-own recipe.
+- [`pack-layout.md`](../pack-layout.md) — the on-disk shape of one pack.
+- [`pack-manifest.md`](../pack-manifest.md) — how `pack.toml` projects into
+  manifests.
+- [`skill-and-pack-format.md`](../skill-and-pack-format.md) — the format map from
+  skill to pack to projection.
+- [`../agentbundle.md`](../agentbundle.md) — build, install and upgrade.
+
+[^1]: `packages/agentbundle/agentbundle/source_defaults.py` (`resolve_default_source`); `catalogue_tooling/` (engine verbs).
+
+[^2]: `source_defaults._has_catalogue_markers`; lint validates configuration and configured paths.
+
+[^3]: `contracts/distribution-routes.toml` (`claude-plugins` route); `docs/specs/claude-plugin-route-scope`.
+
+[^4]: `direct_source.py`, `direct_install.py`; install-state schema `0.5` in `config.DIRECT_STATE_SCHEMA_VERSION`.
+
+[^5]: `source_defaults.resolve_default_source`, `_detect_editable_source`, `read_org_bootstrap`, `read_packaged_default`; `catalogue.toml` `[distribution.agentbundle]`.
+
+[^6]: `packages/agentbundle/agentbundle/cli.py` (`catalogue` subparsers); `catalogue_tooling/file_safety.py`.
+
+[^7]: `commands/catalogue_package.py`, `catalogue_tooling/package.py`, `catalogue_tooling/archive.py`; `docs/guides/reference/catalogue-archive.md`.
+
+[^8]: `catalogue_tooling/index_generator.py`, `contracts/catalogue-index.schema.json`.
+
+[^9]: `catalogue_tooling/verify.py` (`_step_*` functions, in step order); `_step_pack_schema` and `_step_version_parity` carry the two clean-on-skip paths.

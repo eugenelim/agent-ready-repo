@@ -22,7 +22,7 @@ Extend the runner/no-runner discipline to `tools/test*.py`. Re-inventory the cur
 
 ### e2e-spec-runner-boundary
 
-`docs-wayfinding.spec.ts` was reported as invoked by no Makefile line, workflow, or package script. Decide whether orphaned `web/src/test/e2e` specs receive a runner or an explicit on-demand contract. Evidence is indeterminate because the required rule lookup was blocked before repository inspection. Unblocks when the current Makefile, workflow, and package-script inventory establishes the runner or on-demand contract for every orphaned end-to-end spec.
+`docs-wayfinding.spec.ts` was reported as invoked by no Makefile line, workflow, or package script. `tools/test_browser_gate_subset.py` records it in `EXCLUDED_BY_SCOPE` with a stated reason, so it is a deliberate exclusion from the deploy gate rather than an unrecorded orphan; whether it has any other runner is open. Decide whether orphaned `web/src/test/e2e` specs receive a runner or an explicit on-demand contract. Evidence is indeterminate because the required rule lookup was blocked before repository inspection. Unblocks when the current Makefile, workflow, and package-script inventory establishes the runner or on-demand contract for every orphaned end-to-end spec.
 
 ## Assumptions
 

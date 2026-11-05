@@ -20,6 +20,10 @@ tiebreak decides which are seen. Measured across the candidate query set,
 sixty-nine of seventy-six topics are returned by some query and seven never
 are.
 
+Re-counted on 2026-11-04, the store holds 94 active topics: 17 apply
+repository-wide and 24 share the `tools` base. The 69-of-76 and 7-never-returned
+figures come from the earlier query-set measurement and have not been re-run.
+
 No ranking rule resolves this: twenty topics tied at one specificity cannot fit
 twelve slots. It is a property of how the corpus is scoped, not of the matcher.
 

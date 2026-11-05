@@ -20,9 +20,9 @@ Recapture logging currently goes to stderr, a recoverable contended-store exit i
 
 This section also absorbs the legacy `sso-recapture-audit-sink` record.
 
-AC16 logs recapture through `log.info`, but `jira.py:780-783` configures logging with no filename. The record therefore goes to stderr, which an agent may discard, leaving an unattended re-auth repudiable. The recorded fix is an append-only `0600` log under `~/.agentbundle/logs/`.
+AC16 logs recapture through `log.info`, but `jira.py`'s `main` calls `logging.basicConfig` with no filename. The record therefore goes to stderr, which an agent may discard, leaving an unattended re-auth repudiable. The recorded fix is an append-only `0600` log under `~/.agentbundle/logs/`.
 
-`sso-broker.py`'s new contended exit code `6` is documented as recoverable, but no consumer backs off on it. `jira.py:709` has a bare `except credbroker.SsoError` that routes it to `EXIT_USER_ACTION`, telling the operator to re-register over a condition that clears in under a second. The recorded fix is to catch `SsoStoreContendedError` in `jira.py`'s check path and retry once with backoff before falling through to the user-action exit.
+`sso-broker.py`'s new contended exit code `6` is documented as recoverable, but no consumer backs off on it. `jira.py`'s check path has a bare `except credbroker.SsoError` handler that routes it to `EXIT_USER_ACTION`, telling the operator to re-register over a condition that clears in under a second. The recorded fix is to catch `SsoStoreContendedError` in `jira.py`'s check path and retry once with backoff before falling through to the user-action exit.
 
 Unblocks when: `spec/sso-store-transition-serialization` ships.
 

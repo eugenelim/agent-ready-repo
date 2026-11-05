@@ -19,14 +19,17 @@ remember which skills hold a copy.
   `references/` subfolders and seed files.
 - Admits: one source fanning out to several destinations, since the case that
   raises this is a helper shared by more than one skill.
-- Admits: deciding what happens to the two copies that exist today —
-  `packs/core/.apm/skills/work-loop/scripts/file_safety.py`, which is
-  undeclared and hand-maintained, and the architect gate copy that
-  `docs/specs/architect-design-document-gates/spec.md` AC-0079 records as
-  hand-maintained under the same practice.
+- Admits: deciding what happens to the copies that exist today — eight
+  byte-identical `file_safety.py` files under `packs/**` (in `work-loop`,
+  `work-intake`, `close-work`, `repository-grounding`, `architect-design`,
+  `architect-assess`, `navigate-decisions` and `new-rfc`). Only the
+  `close-work` copy is a declared pair, mirrored into `catalogue_tooling` by
+  `_library_mirrors`; the other seven are hand-maintained, as
+  `docs/specs/architect-design-document-gates/spec.md` AC-0079 records for the
+  architect gate copy.
 - Excludes: the existing `packs/… → packages/…` pairs. Those work, and
-  `packages/agentbundle/agentbundle/build/self_host.py:118-150` already
-  declares them.
+  `_runtime_projections` and `_library_mirrors` in
+  `packages/agentbundle/agentbundle/build/self_host.py` already declare them.
 - Excludes: changing what any shared helper does. This is about where copies
   come from, not about their behaviour.
 
@@ -34,7 +37,7 @@ remember which skills hold a copy.
 
 AgentBundle distribution maintainers. The mechanism lives in
 `packages/agentbundle/agentbundle/build/self_host.py`, so a change to it is an
-agentbundle engine change: `packs/AGENTS.local.md:20-22` requires an
+agentbundle engine change: `packs/AGENTS.local.md` requires an
 `Engine-Change-RFC:` trailer naming a real RFC and matching version bumps in
 `pyproject.toml` and `agentbundle/version.py`.
 
@@ -63,7 +66,7 @@ None yet. This intent is recorded for shaping and is not queued work.
 
 ## Prior position this intent must beat
 
-`tools/lint-catalogue-curation-guard.py:100-107` records the repository's
+the `DUP_GROUPS` comment in `tools/lint-catalogue-curation-guard.py` records the repository's
 existing answer, attributed to RFC-0059's D-scripts decision, option (a) "with
 pack lint": "the pack model has no cross-skill shared-code location, so
 security-critical helpers are duplicated per skill and MUST stay
@@ -90,7 +93,7 @@ treating the RFC as its home.
 
 ## Opportunity
 
-`test_packaged_runtime_closure.py:99-106` states the rule this is about: a copy
+`test_packaged_runtime_closure.py` states the rule this is about: a copy
 that "sat outside the declared pairs and so was maintained by hand: two tests
 compared it after the fact, but nothing wrote it" was a defect worth removing,
 and "asserting the pair is declared — not merely that the bytes match today —
@@ -99,8 +102,8 @@ is what keeps it on the `make build-self` path."
 The mechanism that rule depends on cannot express a `packs/**` destination, so
 a pack script that needs a shared helper has only two options today: import
 `agentbundle`, which an adopter install cannot resolve, or hand-copy and pin
-the bytes with an after-the-fact comparison. Both existing `packs/**` copies
-of `file_safety.py` took the second, and both therefore carry the shape the
+the bytes with an after-the-fact comparison. The seven undeclared `packs/**` copies
+of `file_safety.py` took the second, and each therefore carries the shape the
 rule calls a defect.
 
 The cost is a security one. `file_safety.py` is the blessed filesystem-confinement

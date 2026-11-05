@@ -19,7 +19,7 @@ Mutable `claude-plugins-dist` references have no per-pack content hash, so insta
 
 ### plugin-marketplace-content-hash
 
-Extend the marketplace contract with a per-pack digest after resolving upstream-schema compatibility. `docs/specs/claude-plugin-route-scope/spec.md:126` names “a per-pack content hash”; generated marketplace entries still use `ref: "claude-plugins-dist"`, and no per-pack marketplace digest was found. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC at commit time.
+Extend the marketplace contract with a per-pack digest after resolving upstream-schema compatibility. `docs/specs/claude-plugin-route-scope/spec.md` names “a per-pack content hash”; generated marketplace entries still use `ref: "claude-plugins-dist"`, and no per-pack marketplace digest was found. The fix touches protected `packages/agentbundle/**`; its landing commit needs an `Engine-Change-RFC:` trailer naming a real RFC at commit time.
 
 ## Assumptions
 

@@ -54,6 +54,12 @@ consumer = "the retirement record: names every registry fact and its home"
 owner = "none"
 
 [[row]]
+pattern = "docs/specs/workspace-retirement/notes/closure-checklist.md"
+class = "record"
+consumer = "the compatibility closure checklist: which retirement gates and slice 9 items are done and which stay open"
+owner = "none"
+
+[[row]]
 pattern = ".github/workflows/build-check.yml"
 class = "fixture"
 consumer = "CI wiring that runs or names the workspace-status test suites"
