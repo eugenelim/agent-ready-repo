@@ -1,8 +1,8 @@
 """Approval-gate digest for the work-loop supervisor.
 
 `gate_digest` hashes a spec.md or plan.md the way an approval pins it: the
-text is checked for hidden or control characters, approval-entry lines after
-the last `## Changelog` line are dropped, and the rest goes through the single
+text is checked for hidden or control characters, approval-entry lines in the
+region after the last `## Changelog` line are dropped, and the rest goes through the single
 canonicaliser in `_loop_guards.canonical_contract`.
 
 `park` records one local, controller-free-text-free approval gate waiting for a
@@ -135,12 +135,14 @@ _APPROVAL_ENTRY_RE = re.compile(
 
 
 def _drop_approval_entries(text: str) -> str:
-    """Drop approval-entry lines after the last `## Changelog` line of LF-normalised *text*.
+    """Drop approval-entry lines in the region after the last `## Changelog` line of *text*.
 
-    The boundary is the last line whose `str.rstrip()` form is exactly `## Changelog`.
-    Only the text after it is rewritten: runs of blank lines fold into one and blank
-    lines at the end are dropped. With no such line nothing is dropped or folded.
-    No Markdown structure is parsed.
+    The heading is the last line whose `str.rstrip()` form is exactly `## Changelog`.
+    The region runs from the line after it up to, not including, the first later line
+    whose `str.lstrip()` form starts with `#`, "```" or "~~~". Only inside the region
+    are entry lines dropped, blank-line runs folded and trailing blank lines removed.
+    From the region's end on every line is kept byte for byte, set off from the region
+    by one blank line when the region is not empty. With no heading the text is unchanged.
     """
     lines = text.split("\n")
     heading = max(
@@ -148,8 +150,16 @@ def _drop_approval_entries(text: str) -> str:
     )
     if heading is None:
         return text
+    end = next(
+        (
+            i
+            for i in range(heading + 1, len(lines))
+            if lines[i].lstrip().startswith(("#", "```", "~~~"))
+        ),
+        len(lines),
+    )
     kept = lines[: heading + 1]
-    for line in lines[heading + 1 :]:
+    for line in lines[heading + 1 : end]:
         if _APPROVAL_ENTRY_RE.match(line.rstrip()):
             continue
         if line.strip() == "" and kept[-1].strip() == "":
@@ -157,7 +167,9 @@ def _drop_approval_entries(text: str) -> str:
         kept.append(line)
     while len(kept) > heading + 1 and kept[-1].strip() == "":
         kept.pop()
-    return "\n".join(kept)
+    if end < len(lines):
+        kept.append("")
+    return "\n".join(kept + lines[end:])
 
 
 def gate_digest(text_or_bytes: str | bytes, *, name: str) -> str:

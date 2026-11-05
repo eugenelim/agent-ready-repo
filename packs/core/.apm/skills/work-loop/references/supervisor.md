@@ -61,7 +61,9 @@ answers. `park` is the only writer; `gates` and every other verb only read.
 - **Approval entry.** One line, placed under the file's last `## Changelog`
   heading: `- YYYY-MM-DD: spec|plan|amendment approved by <handle>`, optionally
   followed by ` (scope)`, ` (build strategy)` or ` (scope and build strategy)`;
-  the final period is optional. The kind is `spec`, `plan`, or `amendment`. A wrapped or differently worded entry is ordinary text and
+  the final period is optional. The entry region ends at the first later heading
+  or fence line (a line starting, after any indentation, with `#`, three backticks
+  or three tildes); lines from there on count toward the digest as written. The kind is `spec`, `plan`, or `amendment`. A wrapped or differently worded entry is ordinary text and
   changes the gate digest. This is the one statement of the form; other files
   point here.
 - **Entry fields.** `gates` prints the parked digests, the commit, the exact

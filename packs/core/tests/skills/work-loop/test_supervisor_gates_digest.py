@@ -282,6 +282,15 @@ def test_t12_ac0039_budget_overrun_detail_names_the_first_selector_line() -> Non
     assert caught.value.detail == "spec.md line 13 holds a hidden or control character"
 
 
+def test_t13_ac0039_budget_overrun_across_lines_names_the_first_selector_line() -> None:
+    # SPEC is 12 lines; each filler line holds 2000/4 plain characters, selectors follow.
+    filler = ("x" * 500 + "\n") * 4
+    body = "".join("a\ufe0f" * 10 + "\n" for _ in range(5))
+    with pytest.raises(G.GateDigestRefused) as caught:
+        G.gate_digest(SPEC + filler + "plain\n" + body, name="spec.md")
+    assert caught.value.detail == "spec.md line 18 holds a hidden or control character"
+
+
 _ENTRY_LINE = "- 2026-11-04: spec approved by example-owner\n"
 _CL_BARE = "\n## Changelog\n\n"
 _FENCE = "\n```\n## Changelog\n```\n"
@@ -328,3 +337,47 @@ def test_t12_ac0025_entry_between_two_headings_changes_the_digest() -> None:
 def test_t12_ac0025_boundary_handles_keep_the_digest(handle: str) -> None:
     line = f"- 2026-11-04: spec approved by {handle}\n"
     assert _d(SPEC + _CL + line) == _d(SPEC + _CL)
+
+
+_T13_TASK = "\n### T9: task\n\n"
+_T13_STUB = "```\nstub a\n\nstub b\n```\n"
+_T13_ENTRY = "- 2026-11-04: spec approved by example-owner\n"
+
+
+def _t13_plan(stub: str) -> str:
+    return SPEC + _T13_TASK + "\n## Changelog\n" + stub
+
+
+def test_t13_ac0025_ac0008_blank_line_inside_stub_after_changelog_changes_digest() -> None:
+    base = _t13_plan(_T13_STUB)
+    assert _d(base, "plan.md") != _d(base.replace("stub a\n\n", "stub a\n\n\n"), "plan.md")
+    assert _d(base, "plan.md") != _d(base.replace("stub a\n\n", "stub a\n"), "plan.md")
+
+
+def test_t13_ac0025_ac0008_approval_shaped_line_inside_stub_changes_digest() -> None:
+    base = _t13_plan(_T13_STUB)
+    edited = base.replace("stub a\n", "stub a\n" + _T13_ENTRY)
+    assert _d(base, "plan.md") != _d(edited, "plan.md")
+
+
+@pytest.mark.parametrize("opener", ["```", "~~~", "   ```", "\t~~~", "          ~~~"])
+def test_t13_ac0025_fence_opener_ends_the_region(opener: str) -> None:
+    base = SPEC + "\n## Changelog\n" + opener + "\nstub\n"
+    edited = base.replace(opener + "\n", opener + "\n" + _T13_ENTRY, 1)
+    assert _d(base) != _d(edited)  # the entry sits past the region end, so it counts
+    plain = base.replace(opener, "```", 1)
+    assert _d(plain) != _d(plain.replace("stub", "stub\n\n\nx"))
+
+
+def test_t13_ac0025_heading_ends_the_region_and_later_bytes_are_kept() -> None:
+    base = SPEC + "\n## Changelog\n\n## Later\n\n\nbody\n"
+    assert _d(base) != _d(base.replace("\n\n\nbody", "\n\nbody"))
+    assert _d(base) != _d(base.replace("## Later\n", "## Later\n" + _T13_ENTRY))
+    assert _d(base) == _d(base.replace("## Changelog\n", "## Changelog\n" + _T13_ENTRY))
+
+
+def test_t13_ac0007_ac0025_amendment_entry_after_history_keeps_digest() -> None:
+    base = SPEC + _CL + "- 2026-11-01: earlier history note\n"
+    amendment = "- 2026-11-04: amendment approved by example-owner (scope)\n"
+    assert _d(base + amendment) == _d(base)
+    assert _d(base + "- 2026-11-04: another history note\n") != _d(base)
