@@ -1,7 +1,9 @@
 # Workspace coordination reorganization
 
 - **Slug:** `workspace-coordination-reorganization` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Draft
+- **Status:** Fulfilled
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. Revision `23db7dbf1a445b9fe5c4b68f9d19d4b2b38716dc` (file blob) returned a clean independent intent-mode shaping review with zero `MALFORMED` tokens; the owner confirmed the transition.
+- **Fulfilled:** 2026-11-05 eugenelim: all 19 descendants, the feature intent workspace-registry-retirement, its delivery brief and 17 specs, are terminal per close-work's closure check; `workspace.toml` is deleted and RFC-0105 D3's four gates are certified in docs/specs/workspace-retirement/retirement-record.md § Certification.
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
@@ -39,9 +41,11 @@ It does not own the intent corpus's identity or placement (`intent-identity-and-
 
 ## Unresolved questions
 
-- Which canonical owner receives each workspace-only fact when more than one destination is lawful, especially priority and dependency choices.
-- Whether the repository inventory is complete for external adopter behavior that cannot be observed from tracked files.
-- Whether array order is load-bearing beyond index-based duplicate identity.
+None open. The child's [retirement record](../../specs/workspace-retirement/retirement-record.md) and [inventory](../../specs/workspace-retirement/inventory.toml) answered all three questions this intent carried.
+
+- **Owner of each workspace-only fact.** The record's [Disposition](../../specs/workspace-retirement/retirement-record.md#disposition) gives every registry fact one home and owner. Priority is an optional header on the item, and a dependency is `Depends on:` on the waiting item, under [RFC-0106](../../rfc/0106-stop-registering-derivable-work.md) D3.
+- **External adopter behavior.** It is covered by the published upgrade notes at `guides/core/how-to/upgrade-from-a-workspace-registry.md` and by the `workspace-status` repair, which still ships for adopters. The record's [Compatibility closure](../../specs/workspace-retirement/retirement-record.md#compatibility-closure) checklist lists both.
+- **Whether array order is load-bearing.** Six consumers read it, each marked `reads_order = true` in the inventory. The `entry position` disposition row removes that use under RFC-0106's errata of 2026-10-25.
 
 ## Projection
 
@@ -58,8 +62,8 @@ Both were found while testing the parent's assumption and are recorded here so t
 
 - The non-derivable operational state is small enough that relocating it is cheaper than living with the contention. **Disproved as stated.** The fresh inventory below found a broad operative surface. The surviving target is a staged, gated retirement whose specification assigns each fact and consumer before removal; it is not a small or direct relocation.
 - Every repository reader, writer, projection, fixture, seed, and guide can be inventoried, and an equivalence corpus can be built before a replacement shape is chosen. **Supported for tracked repository consumers by the closed inventory below.** External adopter behavior remains `to-validate` through the compatibility review and equivalence replay.
-- Whether array order is a priority anywhere beyond index-based duplicate identity and the `next_queue` projection is an open question the survey recorded and did not close. **Untested**, and it needs permutation or metamorphic tests over every parser and writer.
-- Removing the contention does not merely relocate it to an assembly or regeneration step that needs a single owner. The survey found this relocation in four independent prior-art families. **Untested here.**
+- Whether array order is a priority anywhere beyond index-based duplicate identity and the `next_queue` projection is an open question the survey recorded and did not close. **Settled by the child's inventory:** the first-in-list suggestions were the only use, and they were removed rather than migrated.
+- Removing the contention does not merely relocate it to an assembly or regeneration step that needs a single owner. The survey found this relocation in four independent prior-art families. **Supported:** the child moved each fact onto its own artifact's headers and deleted `workspace.toml` with no generated replacement file.
 - **Knowledge surface:** in-repo skill implementations, package projections, manifests, tests, fixtures, seeds, guides, and governance records that read or name `workspace.toml` or `workspace-status`.
 
 ## De-risk record
