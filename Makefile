@@ -25,7 +25,7 @@ RECIPE ?=
 
 export PYTHONPATH
 
-.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs external-catalogue-smoke pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight lint-ruff lint-mypy test test-unleased test-after-build-check test-after-build-check-unleased ci
+.PHONY: lint-editable-install build build-self build-self-dry-run build-check build-check-unleased build-scaffold lint-packs external-catalogue-smoke pre-pr package sast sast-unleased print-sast-dirs print-sast-config validate clean zipapp release-preflight precheck lint-ruff lint-mypy test test-unleased test-after-build-check test-after-build-check-unleased ci
 
 # Portable catalogue engine — lint packs against the adapter contract.
 lint-packs:
@@ -517,6 +517,9 @@ release-preflight: lint-packs
 lint-editable-install:
 	$(PYTHON) tools/repo/editable_install_guard.py
 
+precheck:
+	$(PYTHON) tools/precheck.py
+
 lint-ruff:
 	@command -v ruff >/dev/null 2>&1 || { echo "make lint-ruff: ruff not found — run: pip install ruff" >&2; exit 1; }
 	$(PYTHON) tools/lint-ruff.py
@@ -702,6 +705,8 @@ $(PYTHON) -m pytest \
 	tools/test_lint_agents_md_legacy_block.py \
 	tools/test_lint_agents_md_risk_block.py \
 	tools/test_lint_agents_md_frontmatter_scope.py \
+	tools/test_precheck.py \
+	tools/test_lint_agents_md_local_gate.py \
 	tools/test_catalogue_curation_guard.py \
 	tools/test_contract_parity.py \
 	tools/test_marketplace_envelope_parity.py \

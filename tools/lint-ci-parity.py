@@ -1900,6 +1900,16 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
             "(RFC-0082)"
         ),
+    'tools/test_precheck.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
+    'tools/test_lint_agents_md_local_gate.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
+            "(RFC-0082)"
+        ),
     'tools/test_catalogue_curation_guard.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest catalogue-test carve-out destinations "
