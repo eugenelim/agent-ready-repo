@@ -337,9 +337,9 @@ owner = "rfc-0067"
 
 [[row]]
 pattern = "docs/product/briefs/workspace-registry-retirement-delivery.md"
-class = "contract"
+class = "historical"
 consumer = "live delivery brief for retiring workspace.toml"
-owner = 9
+owner = "none"
 
 [[row]]
 pattern = "docs/product/changelog.d/fddd49ef-5bc1-4110-8652-21a38557e3a1.md"
@@ -505,9 +505,9 @@ owner = "rfc-0067"
 
 [[row]]
 pattern = "docs/product/intents/FEAT-0034-workspace-registry-retirement.md"
-class = "contract"
+class = "historical"
 consumer = "FEAT-0034: the retirement intent for workspace.toml and workspace-status"
-owner = 9
+owner = "none"
 
 [[row]]
 pattern = "docs/product/intents/STRAT-0002-platform-core.md"
@@ -2430,9 +2430,9 @@ owner = "none"
 
 [[row]]
 pattern = "docs/specs/workspace-toml-deletion/*"
-class = "contract"
+class = "historical"
 consumer = "workspace retirement closure: the closure checklist, the owner's certification, the prune-protection list retired, and workspace.toml deleted while the repair keeps shipping"
-owner = 9
+owner = "none"
 
 [[row]]
 pattern = "docs/specs/readiness-bridge-dispatch-input/*"
