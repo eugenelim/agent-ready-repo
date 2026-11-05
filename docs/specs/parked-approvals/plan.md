@@ -1,7 +1,7 @@
 # Plan: parked approvals
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `_supervisor_admission.start` and `_policy_import.import_policy` as the approval seam; `_loop_guards.canonical_contract` as the only canonicalizer; `_confined_mutation.confined_create` / `confined_atomic_replace` as the store-write path; `_file_safety.read_confined_regular_file` as the store-read path; `_supervisor_git.HardenedGit` as the only Git launcher and `_supervisor_commit.GitPort.show` as the commit read; `supervisor_harness.py` and `test_supervisor_admission.py` as the analogous integration tests.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -303,3 +303,4 @@ Ships in the next core patch. Every controller that records an approval with `st
 - 2026-11-04: amendment approved by eugenelim (scope and build strategy).
 - 2026-11-04: amendment approved by eugenelim (scope and build strategy).
 - 2026-11-04: amendment approved by eugenelim (scope and build strategy).
+- 2026-11-05: done. Tasks T1 to T14 were admitted on supervisor run run-d820148282bf3eda and merged in #1690 (core 4.0.16); evidence in [`notes/verification-ledger.md`](notes/verification-ledger.md).
