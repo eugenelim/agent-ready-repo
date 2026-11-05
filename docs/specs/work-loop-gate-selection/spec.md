@@ -1,6 +1,6 @@
 # Spec: Work-loop gate selection for repository changes
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -61,12 +61,12 @@ An agent planning a task in the core `work-loop` skill is told at PLAN time to n
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** `SKILL.md` PLAN step 7 states that a task whose paths a repository-declared precheck or projection check covers names that check in its `Done when:`.
-- [ ] **AC-0002.** `references/verification-modes.md` has a `## Gate selection for a repository change` section placed after `## Measurement`, and `SKILL.md` links to it.
-- [ ] **AC-0003.** Neither new text contains `packs/`, `.apm`, `make precheck` or `self-host`.
-- [ ] **AC-0004.** `evals/evals.json` holds a case whose prompt is a plan task covering a path with a declared precheck and no check in its `Done when:`, and whose `assertions` include one naming that omission.
-- [ ] **AC-0005.** `python3 tools/check-core-release.py --base origin/main` exits 0.
-- [ ] **AC-0006.** `agentbundle catalogue self-host --root . --check` exits 0.
+- [x] **AC-0001.** `SKILL.md` PLAN step 7 states that a task whose paths a repository-declared precheck or projection check covers names that check in its `Done when:`.
+- [x] **AC-0002.** `references/verification-modes.md` has a `## Gate selection for a repository change` section placed after `## Measurement`, and `SKILL.md` links to it.
+- [x] **AC-0003.** Neither new text contains `packs/`, `.apm`, `make precheck` or `self-host`.
+- [x] **AC-0004.** `evals/evals.json` holds a case whose prompt is a plan task covering a path with a declared precheck and no check in its `Done when:`, and whose `assertions` include one naming that omission.
+- [x] **AC-0005.** `python3 tools/check-core-release.py --base origin/main` exits 0.
+- [x] **AC-0006.** `agentbundle catalogue self-host --root . --check` exits 0.
 
 ## Follow-ons
 

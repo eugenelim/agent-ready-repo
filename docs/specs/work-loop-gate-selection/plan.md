@@ -1,7 +1,7 @@
 # Plan: Work-loop gate selection for repository changes
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** `packs/core/.apm/skills/work-loop/SKILL.md` PLAN step 7 and its "Confirm the mechanism exists" paragraph; `references/verification-modes.md` (§ Verify entries, § Measurement); `packs/core/tests/skills/work-loop/test_evidence_modes_contract.py`, which pins PLAN step 7 and the Measurement split; `test_verify_entries_contract.py`, which pins the `###` list under `## Verify entries` and its two `##` neighbours; `packs/AGENTS.md` (version bump, portable content, eval harness). Named uncertainty: where the core changelog fragment lives; T2 reads `tools/check-core-release.py` to find it.
 
 ## Approach
@@ -87,3 +87,4 @@ Reversible by revert. No sequencing with the precheck spec.
 
 - 2026-11-05: spec approved by eugenelim.
 - 2026-11-05: plan approved by eugenelim.
+- 2026-11-05: run `run-0cb3f2d23fc3ae50` terminal; finish evidence recorded in the ledger.
