@@ -116,11 +116,8 @@ token); until T5 lands, this section is their only home.
   asymmetric signatures (new dependency). Rests on: the launcher digest comes
   from the owner's own answer, and a contained attempt cannot reach the run
   store copy. Residual: an uncontained floor worker acting deliberately as the
-  same user can replace the copy between the post-hash and the exec; the second
-  hash after the containment line narrows this, and runtime-security-primitives
-  § 7 already accepts a deliberate same-user worker. The pin covers only the
-  launcher file: an interpreter its `#!` line resolves through the
-  supervisor-set `PATH`, and anything that interpreter loads, are outside it.
+  same user can replace the copy; the spec's Accepted Risk records this and
+  the interpreter limit. The second hash catches a naive replacement only.
 - **`run-concurrent` is a request kind run by a blocking supervisor verb.**
   `next` emits it naming the admitted tasks; the controller runs
   `work-supervisor.py run-concurrent --request <id>`, which spawns, verifies,
@@ -139,11 +136,15 @@ token); until T5 lands, this section is their only home.
   carrying the ingested tree id and the access line's sha256; that record is
   the result D3 binds the attestation to, and `result-integration.v1` cites
   both.
-- **Ingestion** walks the attempt directory with `list_confined_regular_files`
-  and `read_confined_regular_file` semantics extended to record links by
-  `readlink`, writes blobs with `hash-object -w --stdin`, and builds the tree
-  in a temporary index with `update-index --index-info`; it then applies the
-  floor's change-set filter (`check_change_set`, ignore rules).
+- **Ingestion** uses a new link-recording walk in `file_safety.py`
+  (`list_confined_entries`, no-follow, descriptor-relative) that returns
+  regular files with sizes and links with target text. It checks AC-0031's
+  caps and AC-0070's lexical link targets from that listing before any
+  object exists, then writes each blob with `hash-object -w --no-filters --
+  <path>` (Git streams the file, so memory stays bounded) and builds the tree
+  with `update-index --index-info` under `-c core.protectHFS=true -c
+  core.protectNTFS=true`. It then applies the floor's ignore rules to the
+  attempt directory itself, not the live work tree.
 - **Held results** are a run-store record (tree id, access-line sha256,
   attested sets, source commit) plus a ref
   `refs/agentbundle/delivery/<run>/<token>/held/<attempt>` naming the tree.
@@ -167,11 +168,11 @@ Owned by: T2, T3
 - `containment-attestation.v1` gains optional `binding` (`run_id`,
   `attempt_id`, `grant_id`, `nonce`, `launcher_sha256`), `read_allowlist`,
   `write_roots`, and `denied` (array of `git-common-dir`, `shared-refs`,
-  `run-store`, `delivery`, `sibling-trees`, `sibling-ipc`). Optional in the
+  `run-store`, `work-trees`, `sibling-trees`, `sibling-ipc`). Optional in the
   schema, because the version has readers and no producers; required by
   admission.
 - `access-attestation.v1`: `schema_version`, `binding`, `release_token`,
-  `mode`, `complete`, `reads` (`{path, kind: file | missing | listing |
+  `mode`, `complete`, `processes_ended`, `reads` (`{path, kind: file | missing | listing |
   walk}`), `writes` (`{path, kind: write | delete | rename-from | rename-to |
   mode}`), `denied_reads`; at most 20,000 entries per list, which fits the
   4 MiB line cap.
@@ -205,6 +206,9 @@ Owned by: T1, T2, T3
 3. Supervisor → launcher: `release` with the token, or `abort`.
 4. Launcher → supervisor: one `access` with the attestation once the worker
    has exited, then end of stream and exit 0.
+
+A launcher whose standard input closes before a `release` arrives starts no
+worker and exits; `launcher-message.v1`'s description states this rule.
 
 stderr is drained and discarded. Test seams: the launcher path, the clock,
 the module global that admits the fixture marker, and the module global that
@@ -288,9 +292,10 @@ Core is one patch above the merge base.
   checks the floor issue; the shipped-policy run asserts no
   `run-concurrent` request now that the kind exists.
 - AC-0013, AC-0014, AC-0015, AC-0016, AC-0022, AC-0024, AC-0025, AC-0065,
-  AC-0066: `test_supervisor_launcher.py` over approval, copy,
+  AC-0066, AC-0069: `test_supervisor_launcher.py` over approval, copy,
   swap-before-spawn, planted-environment, fixture-marker (with each candidate
-  variable set), second-invocation, and killed-verb fixtures, including a
+  variable set), second-invocation, and killed-verb fixtures (a kill before
+  the process-group record is durable sends no release), including a
   recorded process-group id reused by an unrelated process and an end that
   never confirms on the injected clock.
 - AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0026, AC-0067, AC-0068:
@@ -300,9 +305,13 @@ Core is one patch above the merge base.
   base64, with a planted leak in one channel as the positive control.
 - AC-0023: `tests/roster/` scans the Core install and `make build-self`
   output for the marker.
-- AC-0029, AC-0030, AC-0031, AC-0032: `test_supervisor_ingestion.py` over
-  link, FIFO, socket, `.git`, hard link, path-cap, byte-cap, late-write, and
-  floor-equivalence fixtures.
+- AC-0029, AC-0030, AC-0031, AC-0032, AC-0070, AC-0071:
+  `test_supervisor_ingestion.py` over link, FIFO, socket, `.git` and its
+  `.GIT`, HFS-ignorable, `git~1`, and trailing-dot aliases, hard link,
+  absolute, relative, chained, and directory links into `.git` and trusted
+  files, path-cap and byte-cap (asserting no new loose objects), a 1 GiB
+  sparse file under a memory probe, late-write, and floor-equivalence
+  fixtures.
 - AC-0040, AC-0049: `test_supervisor_git.py` refuses a merge driver at
   `start`; the attempt directory is fresh, outside every denied location.
 - Admission's meet relation is unit-tested over every Meets row, including
@@ -329,6 +338,8 @@ merge base.
 - AC-0033, AC-0050: a floor attempt rewrites a held record and a held tree; a
   trusted-file change while a sibling is open; a held result integrates through
   the floor result's `report` in floor order.
+- AC-0072: with each candidate variable set and no seam, results land in
+  floor order.
 - AC-0042, AC-0043, AC-0044, AC-0045, AC-0046: the crash corpus gains the five
   integration kill points, a racing ref move, and a move between check and
   compare-and-swap.
