@@ -25,7 +25,7 @@ the anchors a frozen body still owes.
 A spec or plan rejected at a human gate has no run to reset: `start` has not run,
 and the supervisor holds no pre-approval state. Revise the pair, set the spec and
 plan back to `Draft` and `Drafting`, run the pre-EXECUTE reviewers again, and
-take both approvals again before `start`. A run that was already admitted is not
+park each gate again and take both approvals again before `start`. A run that was already admitted is not
 rejected; it is amended, below.
 
 ## Controlled full-mode contract amendment
@@ -48,8 +48,8 @@ Then amend the protected sections: set the spec and
 plan back to `Draft` and `Drafting`, amend the bounded outcome, final AC set,
 `Follow-ons`, and any unfinished tasks, and follow the ordinary pre-EXECUTE
 reviews and both human approvals. Write `Implementing` and `Executing` again and
-run `python '<skill-dir>/scripts/work-supervisor.py' start <spec-dir> ...` with
-the approvers' authority references: it appends a new approval pair under the
+run `python '<skill-dir>/scripts/work-supervisor.py' start <spec-dir> ... --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>` with
+the approvers' authority references and their own digests, after parking each gate again: it appends a new approval pair under the
 same run. Until it does, `next` refuses a protected edit with its owner named
 (`criteria-changed`, `scope-changed`, `terminal-intent-changed`, and the like).
 

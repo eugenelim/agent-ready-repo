@@ -20,6 +20,7 @@ mode and direct-light keep none of them.
 | `<spec-dir>/delivery/review-selections.jsonl` | `report` | yes | One line per delivery subject and changed-path digest: the conditional reviewer roles selected and each omission with its reason. |
 | `<spec-dir>/delivery/review-decisions.jsonl` | `report` | yes | Reviewer reselections and accepted risks, each under the named human's authority reference. |
 | `<spec-dir>/delivery/effect-resolutions.jsonl` | `resolve-effect` | yes | A named human's decision about an external effect whose outcome could not be established. |
+| `<git-dir>/agentbundle-supervisor/gates/` | `park` | no | One record per spec for a gate waiting on a human: the gate, intent, code trust, both gate digests, and the commit parked. `gates` reads it. A record approves nothing. |
 | `<spec-dir>/.supervisor/run.json` | `start`, `next` | no | The status view below. Deleting it loses nothing. |
 | `<spec-dir>/.supervisor/journal.jsonl`, `security-events.jsonl` | `next`, refusals | no | The local request journal, and a line for each check that could not be verified. Deleting either neither reopens a closed attempt nor clears an owed confirmation. |
 | `<git-dir>/agentbundle-supervisor/<run-id>/` | `start`, `next`, `report` | no | The pinned digests of the installed supervisor files, the open attempt's manifest, issuance marks, and the not-red recovery record. |

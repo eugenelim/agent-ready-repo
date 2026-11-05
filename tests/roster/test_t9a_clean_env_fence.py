@@ -346,6 +346,7 @@ class TestSubprocessCleanEnvFence:
             "start", harness.SPEC_DIR, "--intent", "code", "--code-trust", "trusted",
             "--authority-ref", "owner:0123456789ab",
             "--review-authority-ref", "plan-reviewer:0123456789ab",
+            *harness.digest_args(repo),
         )
         assert started["status"] == "admitted", started
         issued = run("next", harness.SPEC_DIR)

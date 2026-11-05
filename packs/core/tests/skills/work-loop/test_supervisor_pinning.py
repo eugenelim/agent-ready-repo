@@ -114,7 +114,11 @@ def _via(cli: ModuleType) -> Generator[None]:
         yield
 
 
-def _start_args(trust: str = "trusted") -> list[str]:
+def _start_args(
+    trust: str = "trusted", repo: Path | None = None, spec: str = SPEC
+) -> list[str]:
+    """A ``start`` argv; with *repo*, it carries that repository's approved digests."""
+    digests = h.digest_args(repo, spec) if repo is not None else []
     return [
         "start",
         SPEC,
@@ -126,6 +130,7 @@ def _start_args(trust: str = "trusted") -> list[str]:
         "owner:0123456789ab",
         "--review-authority-ref",
         "plan-reviewer:0123456789ab",
+        *digests,
     ]
 
 
@@ -193,7 +198,7 @@ def test_a_second_start_neither_overwrites_nor_accepts_a_differing_record(
 ) -> None:
     repo = _copy_repo(pinned_template, tmp_path)
     before = _pins(repo).read_bytes()
-    code, out = h.run_cli(repo, *_start_args())
+    code, out = h.run_cli(repo, *_start_args(repo=repo))
     assert code == 0 and out["status"] == "current", out
     assert _pins(repo).read_bytes() == before
     record = json.loads(before)
@@ -201,7 +206,7 @@ def test_a_second_start_neither_overwrites_nor_accepts_a_differing_record(
     _pins(repo).write_text(json.dumps(record), "utf-8", newline="\n")
     tampered = _pins(repo).read_bytes()
     head = _head(repo)
-    code, out = h.run_cli(repo, *_start_args())
+    code, out = h.run_cli(repo, *_start_args(repo=repo))
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
     assert _pins(repo).read_bytes() == tampered, "a later start rewrote the pin record"
     assert _head(repo) == head
@@ -1211,7 +1216,7 @@ def test_untrusted_trust_with_stubs_asks_a_human_instead_of_a_red_proof(
     monkeypatch.setattr(tdd, "observe", _no_launch)
     race_free_host(monkeypatch)
     repo = h.make_repo(tmp_path)
-    assert h.run_cli(repo, *_start_args("untrusted"))[0] == 0
+    assert h.run_cli(repo, *_start_args("untrusted", repo))[0] == 0
     code, out = h.run_cli(repo, "next", SPEC)
     request = out["request"]
     assert code == 0 and request["kind"] == "human-decision", out
@@ -1226,17 +1231,17 @@ def test_untrusted_trust_never_issues_run_gates_and_re_approval_clears_it(
     monkeypatch.setattr(tdd, "observe", _no_launch)
     race_free_host(monkeypatch)
     repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
-    assert h.run_cli(repo, *_start_args("trusted"))[0] == 0
+    assert h.run_cli(repo, *_start_args("trusted", repo))[0] == 0
     controller = h.Controller(repo, tmp_path / "effects.log")
     request = h.run_cli(repo, "next", SPEC)[1]["request"]
     assert request["kind"] == "implement-task"
     assert controller.report(controller.work(request))[0] == 0
-    assert h.run_cli(repo, *_start_args("untrusted"))[0] == 0
+    assert h.run_cli(repo, *_start_args("untrusted", repo))[0] == 0
     code, out = h.run_cli(repo, "next", SPEC)
     request = out["request"]
     assert code == 0 and request["kind"] == "human-decision", out
     assert request["reason"] == "untrusted-code"
-    code, out = h.run_cli(repo, *_start_args("trusted"))
+    code, out = h.run_cli(repo, *_start_args("trusted", repo))
     assert code == 0 and out["status"] == "admitted" and out["sequence"] == 3, out
     request = h.run_cli(repo, "next", SPEC)[1]["request"]
     assert request["kind"] == "run-gates"
@@ -1494,19 +1499,19 @@ def test_a_run_admitted_before_pinning_is_refused_and_blocks_no_other_spec(
     approvals = (repo / SPEC / "delivery" / "approvals.jsonl").read_text("utf-8").splitlines()
     assert approvals and h.git(repo, "ls-files", f"{SPEC}/delivery/approvals.jsonl").strip()
     head = _head(repo)
-    for argv in (("next", SPEC), tuple(_start_args())):
+    for argv in (("next", SPEC), tuple(_start_args(repo=repo))):
         code, out = _run(cli, repo, *argv)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
     assert not (repo / ".git" / "agentbundle-supervisor").exists()
     assert _head(repo) == head
     # The flag that once recovered such a run no longer exists.
-    assert _run(cli, repo, *_start_args(), "--repin-legacy-run")[0] == 2
+    assert _run(cli, repo, *_start_args(repo=repo), "--repin-legacy-run")[0] == 2
     # An unrelated spec in the same worktree is not blocked by it.
     other = "docs/specs/other"
     shutil.copytree(repo / SPEC, repo / other, ignore=shutil.ignore_patterns(".supervisor", "delivery"))
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "an unrelated spec")
-    code, out = _run(cli, repo, "start", other, *_start_args()[2:])
+    code, out = _run(cli, repo, "start", other, *_start_args(repo=repo, spec=other)[2:])
     assert code == 0 and out["status"] == "admitted", out
     assert _run(cli, repo, "next", other)[0] == 0
     assert _run(cli, repo, "next", SPEC)[1]["refusal"]["code"] == "supervisor-changed"
@@ -1517,7 +1522,9 @@ def test_an_unpinned_run_directory_blocks_only_its_own_spec_until_its_start_pins
 ) -> None:
     repo = _copy_repo(pinned_template, tmp_path)
     _add_other_spec_early(repo)
-    code, out = h.run_cli(repo, "start", "docs/specs/other", *_start_args()[2:])
+    code, out = h.run_cli(
+        repo, "start", "docs/specs/other", *_start_args(repo=repo, spec="docs/specs/other")[2:]
+    )
     assert code == 0 and out["status"] == "admitted", out
     pins = sorted((repo / ".git" / "agentbundle-supervisor").glob("run-*/pins.json"))
     first = next(p for p in pins if json.loads(p.read_text("utf-8"))["spec"] == SPEC)
@@ -1527,7 +1534,7 @@ def test_an_unpinned_run_directory_blocks_only_its_own_spec_until_its_start_pins
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
     assert h.run_cli(repo, "next", "docs/specs/other")[0] == 0, "another spec was blocked"
     assert not first.exists()
-    code, out = h.run_cli(repo, *_start_args())  # that run's own start pins it
+    code, out = h.run_cli(repo, *_start_args(repo=repo))  # that run's own start pins it
     assert code == 0, out
     assert first.exists()
     assert h.run_cli(repo, "next", SPEC)[0] == 0
@@ -1629,7 +1636,7 @@ def test_an_installed_file_edit_during_an_open_attempt_is_refused_on_every_spec(
     _append(skill / "scripts" / "_supervisor_commit.py", "\n# edited during the attempt\n")
     cli = _load_cli(skill)
     runs, head = _run_dirs(repo), _head(repo)
-    for argv in (("next", _OTHER), ("start", _OTHER, *_start_args()[2:])):
+    for argv in (("next", _OTHER), ("start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])):
         code, out = _run(cli, repo, *argv)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
     assert _run_dirs(repo) == runs, "spec B recorded a run or pins under the edited install"
@@ -1645,7 +1652,7 @@ def test_a_closed_attempt_does_not_guard_other_specs(
     (attempts / f"{latest:06d}.superseded").write_bytes(b"")
     skill = _copy_skill(tmp_path / "skill")
     _append(skill / "scripts" / "_supervisor_commit.py", "\n# edited with no attempt open\n")
-    code, out = _run(_load_cli(skill), repo, "start", _OTHER, *_start_args()[2:])
+    code, out = _run(_load_cli(skill), repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])
     assert code == 0 and out["status"] == "admitted", out
 
 
@@ -1654,14 +1661,14 @@ def test_untrusted_trust_never_issues_regenerate(
 ) -> None:
     repo, _skill, cli = _regen_copy(regenerating, tmp_path)
     race_free_host(monkeypatch, cli)
-    code, out = _run(cli, repo, *_start_args("untrusted"))
+    code, out = _run(cli, repo, *_start_args("untrusted", repo))
     assert code == 0 and out["status"] == "admitted", out
     code, out = _run(cli, repo, "next", SPEC)
     request = out["request"]
     assert code == 0 and request["kind"] == "human-decision", out
     assert request["reason"] == "untrusted-code"
     assert "trusted" in request["question"] and "containment" in request["question"]
-    code, out = _run(cli, repo, *_start_args("trusted"))
+    code, out = _run(cli, repo, *_start_args("trusted", repo))
     assert code == 0, out
     assert _run(cli, repo, "next", SPEC)[1]["request"]["kind"] == "regenerate"
 
@@ -1672,7 +1679,7 @@ def test_a_first_pin_needs_the_made_commit_record(pinned_template: Path, tmp_pat
     shutil.rmtree(repo / ".git" / "agentbundle-supervisor")
     assert len((repo / SPEC / "delivery" / "approvals.jsonl").read_text("utf-8").splitlines()) == 1
     head = _head(repo)
-    code, out = h.run_cli(repo, *_start_args())
+    code, out = h.run_cli(repo, *_start_args(repo=repo))
     assert code == 1 and out["refusal"]["code"] == "supervisor-changed", out
     assert not (repo / ".git" / "agentbundle-supervisor").exists(), "a refused start wrote pins"
     assert _head(repo) == head
@@ -1702,7 +1709,7 @@ def test_an_orphan_run_directory_is_ignored_not_deleted(tmp_path: Path) -> None:
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "an unrelated commit")
     # The directory blocks no other spec at all.
-    code, out = h.run_cli(repo, "start", _OTHER, *_start_args()[2:])
+    code, out = h.run_cli(repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])
     assert code == 0 and out["status"] == "admitted", out
     code, out = h.run_cli(repo, "next", _OTHER)
     assert code == 0, out
@@ -1797,7 +1804,7 @@ def test_a_launch_refused_for_an_installed_file_edit_guards_other_specs_until_it
         assert code == 1 and out["refusal"]["code"] == "attempt-refused", out
         assert edited.read_bytes() != original, "the launched code did not edit the install"
         runs, head = _run_dirs(repo), _head(repo)
-        for argv in (("next", _OTHER), ("start", _OTHER, *_start_args()[2:])):
+        for argv in (("next", _OTHER), ("start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])):
             code, out = h.run_cli(repo, *argv)
             assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
         assert _run_dirs(repo) == runs, "spec B recorded a run or pins under the edited install"
@@ -1808,7 +1815,7 @@ def test_a_launch_refused_for_an_installed_file_edit_guards_other_specs_until_it
         h.git(repo, "commit", "-q", "-m", "the conftest no longer edits the install")
         # Restored paths alone do not lift the refusal; A's own next clears it.
         assert h.run_cli(repo, "next", SPEC)[0] in (0, 1)
-        code, out = h.run_cli(repo, "start", _OTHER, *_start_args()[2:])
+        code, out = h.run_cli(repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])
         assert code == 0 and out["status"] == "admitted", out
 
 
@@ -1826,7 +1833,7 @@ def test_a_worker_attempt_refused_at_report_guards_other_specs(
     _append(skill / "scripts" / "_supervisor_commit.py", "\n# edited while the refusal stands\n")
     cli = _load_cli(skill)
     runs, head = _run_dirs(repo), _head(repo)
-    for argv in (("next", _OTHER), ("start", _OTHER, *_start_args()[2:])):
+    for argv in (("next", _OTHER), ("start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])):
         code, out = _run(cli, repo, *argv)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
     assert _run_dirs(repo) == runs and _head(repo) == head
@@ -1858,7 +1865,7 @@ def test_a_kill_before_the_store_rename_leaves_no_run_directory_and_blocks_nothi
     # The approval's refs moved before anything recorded it: nothing counts it.
     code, out = h.start(repo)
     assert code == 1 and "git reset --soft" in out["refusal"]["detail"], out
-    assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
+    assert h.run_cli(repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])[0] == 0
     assert h.run_cli(repo, "next", _OTHER)[0] == 0
     # The other spec's admission now sits on the approval, which is no longer HEAD's
     # commit, so its base is not HEAD's parent and no command is named.
@@ -1885,12 +1892,13 @@ def test_a_run_directory_without_a_spec_record_refuses_every_spec_until_removed(
     _add_other_spec_early(repo)
     tampered = repo / ".git" / "agentbundle-supervisor" / "run-0123456789abcdef"
     tampered.mkdir()
-    for argv in (("next", SPEC), ("next", _OTHER), ("start", _OTHER, *_start_args()[2:])):
+    start = ("start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])
+    for argv in (("next", SPEC), ("next", _OTHER), start):
         code, out = h.run_cli(repo, *argv)
         assert code == 1 and out["refusal"]["code"] == "supervisor-changed", (argv, out)
     tampered.rmdir()
     assert h.run_cli(repo, "next", SPEC)[0] == 0
-    assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
+    assert h.run_cli(repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])[0] == 0
 
 
 # ── status in a checkout without the run's store ────────────────────────────
@@ -2031,7 +2039,7 @@ def test_status_refuses_an_edited_install_while_another_spec_has_an_open_attempt
     (repo / _OTHER / "plan.md").write_text(RELEASE_PLAN, "utf-8", newline="\n")
     h.git(repo, "add", "-A")
     h.git(repo, "commit", "-q", "-m", "a goal-based plan for the second spec")
-    assert h.run_cli(repo, "start", _OTHER, *_start_args()[2:])[0] == 0
+    assert h.run_cli(repo, "start", _OTHER, *_start_args(repo=repo, spec=_OTHER)[2:])[0] == 0
     code, out = h.run_cli(repo, "next", _OTHER)
     assert code == 0 and out["request"]["kind"] in WORKER_KINDS, out
     skill = _copy_skill(tmp_path / "skill")

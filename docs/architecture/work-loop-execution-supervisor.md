@@ -53,7 +53,7 @@ Thirteen modules own the procedure, and sibling modules supply acceptance, evide
 
 | Element | Module | Responsibility | State |
 | --- | --- | --- | --- |
-| Command surface | `work-supervisor.py` | Verbs `start`, `next`, `report`, `status`, and `resolve-effect`; pins the installed supervisor files | None of its own |
+| Command surface | `work-supervisor.py` | Verbs `park`, `gates`, `start`, `next`, `report`, `status`, and `resolve-effect`; pins the installed supervisor files | Park records under `<git-dir>/agentbundle-supervisor/gates/` |
 | Admission | `_supervisor_admission.py` | The run's workspace, the approval pair, and `start` | Commits `delivery/approvals.jsonl` |
 | Projector | `_supervisor_projector.py` | Plan grammar, task projection, and the six envelope references | Stateless |
 | Loop | `_supervisor_loop.py` | Derive the current request, commit steps, recover | Stateless; reads `HEAD` and the product ref |

@@ -17,9 +17,14 @@ follows.
    approvals. If both are `Approved` and no `approvals.jsonl` exists, the humans
    approved and `start` did not run: check that the plan's Changelog carries both
    approval entries, then request the missing `spec-approved` capture if it was
-   not made, write `Implementing` and `Executing`, and run `start`. An `Approved`
+   not made, write `Implementing` and `Executing`, and run `start` with both digests from the approvers' own answers. An `Approved`
    status with no Changelog entry is **Surface and stop**: the approver's handle
    cannot be inferred. `Archived` is terminal, so **Surface and stop**.
+   When a gate was parked and no answer is recorded, run
+   `python '<skill-dir>/scripts/work-supervisor.py' gates` and show the human the
+   entry for this spec. A `pending` entry still waits: it is not an approval. A
+   `stale` entry is re-reviewed and parked again, and an `invalid` one is parked
+   again too. Never run `start` from a listing.
 3. **Route by what `status` shows.**
 
    | `status` shows | Action |
