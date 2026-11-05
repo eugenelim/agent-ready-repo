@@ -545,3 +545,33 @@ def test_failing_question_dispatch_holds_the_item(git_repo: Path) -> None:
          "failed_stage": "processor_dispatch"}
     ], held
     assert dispatched == [ids[1]]
+
+
+# --- T18: partition enumeration rides the same quarantine collector ----------
+
+
+def test_store_terminal_dispositions_tolerates_misnamed_partition(
+    git_repo: Path,
+) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t18")
+    ids = _seed_store(
+        repo,
+        [_request("defect", "A dispositioned capture beside a misnamed partition",
+                  observed="A misnamed partition must not block the count.",
+                  intended="The dispositions helper reads through it.")],
+    )
+    KS.write_terminal_disposition(
+        repo, ids[0], "routed", reason_code="route-handoff-accepted",
+        recorded_at="2026-11-04T12:00:00Z",
+    )
+    (repo / "docs" / "knowledge" / "observations" / "work-item" / "2026-1x.jsonl").write_bytes(b"")
+
+    # The reader quarantines the misnamed partition; the dispositions helper
+    # reads through it and still derives the clean capture's disposition.
+    read = DRAIN.read_open_captures(repo)
+    assert [q["reason_code"] for q in read["quarantined"]] == ["unsafe"], read
+    dispositions = DRAIN.store_terminal_dispositions(repo)
+    assert dispositions == [
+        {"capture_id": ids[0], "disposition": "routed",
+         "reason_code": "route-handoff-accepted"}
+    ], dispositions

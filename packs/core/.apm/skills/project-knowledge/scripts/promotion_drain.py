@@ -578,7 +578,7 @@ def store_terminal_dispositions(repo_root: Path | str) -> list[dict[str, Any]]:
     root = KS.resolve_worktree_root(repo_root)
     dispositions: list[dict[str, Any]] = []
     quarantine = KS._Quarantine()
-    for partition in KS._observation_partitions(root):
+    for partition in KS._observation_partitions(root, quarantine=quarantine):
         raw = KS._read_regular_file_bounded(
             KS._journal_path(root, partition),
             KS.budget_contract()["journal_partition_bytes"],
