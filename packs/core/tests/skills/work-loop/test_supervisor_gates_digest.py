@@ -366,7 +366,8 @@ def test_t13_ac0025_fence_opener_ends_the_region(opener: str) -> None:
     edited = base.replace(opener + "\n", opener + "\n" + _T13_ENTRY, 1)
     assert _d(base) != _d(edited)  # the entry sits past the region end, so it counts
     plain = base.replace(opener, "```", 1)
-    assert _d(plain) != _d(plain.replace("stub", "stub\n\n\nx"))
+    # Only blank lines after the fence change: folding past the region end would hide it.
+    assert _d(plain.replace("```\nstub", "```\n\nstub")) != _d(plain.replace("```\nstub", "```\n\n\nstub"))
 
 
 def test_t13_ac0025_heading_ends_the_region_and_later_bytes_are_kept() -> None:
@@ -381,3 +382,9 @@ def test_t13_ac0007_ac0025_amendment_entry_after_history_keeps_digest() -> None:
     amendment = "- 2026-11-04: amendment approved by example-owner (scope)\n"
     assert _d(base + amendment) == _d(base)
     assert _d(base + "- 2026-11-04: another history note\n") != _d(base)
+
+
+@pytest.mark.parametrize("stop", ["## Later\nbody\n", "```\nstub\n```\n"])
+def test_t14_qe7_1_entry_and_blank_before_a_bounded_region_end_keep_the_digest(stop: str) -> None:
+    head = SPEC + "\n## Changelog\n"
+    assert _d(head + _T13_ENTRY + "\n" + stop) == _d(head + stop)

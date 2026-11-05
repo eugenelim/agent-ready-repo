@@ -142,7 +142,8 @@ def _drop_approval_entries(text: str) -> str:
     whose `str.lstrip()` form starts with `#`, "```" or "~~~". Only inside the region
     are entry lines dropped, blank-line runs folded and trailing blank lines removed.
     From the region's end on every line is kept byte for byte, set off from the region
-    by one blank line when the region is not empty. With no heading the text is unchanged.
+    by one separating blank line, added whenever the region ends before end of file
+    (an empty region included). With no heading the text is unchanged.
     """
     lines = text.split("\n")
     heading = max(
