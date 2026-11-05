@@ -1,6 +1,6 @@
 # Spec: Work-loop gate selection for repository changes
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
