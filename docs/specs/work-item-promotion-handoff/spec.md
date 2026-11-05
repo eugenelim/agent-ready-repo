@@ -167,8 +167,9 @@ carries no
 parseable pid is never removed — its owner is treated as live — and the
 transaction's own acquisition closes the create-then-write window — the
 lock is published by an atomic link of a pid-complete temporary file, the
-sibling `_acquire_claim` pattern, whose temporary is unique to its holder
-— pid and a random token, created fresh on every acquisition — so
+sibling `_acquire_claim` link-publication step; the temporary's
+holder-unique name — pid and a random token, created fresh on every
+acquisition — is this spec's own mechanism, so
 concurrent acquirers never collide on it and a killed creator's orphan
 never blocks a later acquisition; every
 lock it leaves carries its pid; a foreign pid-less lock left by a writer
@@ -595,8 +596,10 @@ and the original work behind it and judges:
 1. A **routed** item by whether the destination is the one the record's
    fields select under § D2 and work-intake's classify table.
 2. A **held** item by whether no shape fits, or a named check refuses it —
-   readiness (§ D10), the pre-execution re-check, an envelope refusal, or a
-   prose re-run refusal (§ D4).
+   readiness (§ D10), the pre-execution re-check, an envelope refusal, a
+   prose re-run refusal (§ D4), a non-dispatchable classify member (§ D3),
+   a missing processor dispatch (§ D1), or a refused closure citation
+   (§ D5).
 3. A **closed** item by whether the stated ground holds under § D5's test,
    with the recorded evidence.
 
@@ -710,7 +713,7 @@ verifies the criteria below mechanically.
       atomically — a pid-complete temporary file, unique to its holder,
       linked into place — so a
       lock it leaves always carries its owner's pid; the temporary is
-      unlinked after publication, on link failure, and on release, and an
+      unlinked immediately after publication and on link failure, and an
       orphaned temporary never blocks a later acquisition.
 
 ## Follow-ons

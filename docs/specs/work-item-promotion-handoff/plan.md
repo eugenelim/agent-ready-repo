@@ -590,10 +590,9 @@ shared transaction helper and T23 in the release surfaces.
   temporary's identity and lifecycle are asserted with it: its name is
   unique to its holder — pid and a random token — created fresh on every
   acquisition so concurrent acquirers never collide and a killed creator's
-  orphan never blocks a later acquisition; it is unlinked after
-  publication, on link failure, and on release, and an orphaned temporary
-  is inert garbage matched by the gitignore pattern, never a lock
-  (`AC-0028`).
+  orphan never blocks a later acquisition; it is unlinked immediately
+  after publication and on link failure, and an orphaned temporary is
+  inert garbage, never a lock (`AC-0028`).
 - Work-intake `SKILL.md` § 5's lock paragraph — "If another writer holds
   the lock, the transaction returns `lock_busy` without mutating either
   side" — is updated to state the stale-owner recovery and its limits
@@ -619,14 +618,19 @@ shared transaction helper and T23 in the release surfaces.
   step in `.github/workflows/build-check.yml` and its
   `LOCAL("test-after-build-check")` disposition in
   `tools/lint-ci-parity.py`.
-- The acquisition temporary's root pattern
-  (`.workspace-repair.lock.<pid>.<token>.tmp`) is added to `.gitignore`
-  beside `.workspace-repair.lock`.
+- The acquisition temporary's root glob
+  (`.workspace-repair.lock.*.tmp`, the repository's own convention for
+  such temporaries) is added to `.gitignore` beside
+  `.workspace-repair.lock`, asserted by a source-text check over the
+  ignore file.
 - The two durable surfaces the hardening falsifies are updated and pinned:
   `docs/architecture/knowledge-capture.md`'s confirmed-route sentence gains
   the no-dispatch hold, and `docs/guides/reference/work-item-capture.md`'s
   question-routing sentence gains the hold on non-dispatchable members;
-  `tests/roster/test_promotion_drain_surfaces.py` extends to pin both.
+  `tests/roster/test_promotion_drain_surfaces.py` extends to pin both, and
+  its changelog-fragment assertion — one fragment matching "promotion
+  drain", pinned to the released version — moves to the hardening's
+  fragment and version.
 
 **Done when:** the local gate chain — ruff, mypy, changelog,
   lint-ci-parity, self-host check, the touched suites — is green.
