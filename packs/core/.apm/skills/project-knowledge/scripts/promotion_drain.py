@@ -669,7 +669,20 @@ def transact_route(
     """
     root = Path(repo_root).resolve()
     if decision.get("route") != "defect-processor":
-        (dispatch_processor or (lambda: None))()
+        # The work-intake family dispatches outside the transaction helper,
+        # but its failure shape is the transaction's own: a failing
+        # processor dispatch holds the item — the intake transaction's
+        # error contract — instead of aborting the drain with the
+        # processor's exception text.
+        try:
+            (dispatch_processor or (lambda: None))()
+        except Exception:
+            return {
+                "committed": False,
+                "failed_stage": "processor_dispatch",
+                "status": "DISPATCH_FAILED",
+                "route": decision.get("route"),
+            }
         return {
             "committed": True,
             "failed_stage": None,

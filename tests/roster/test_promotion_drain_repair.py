@@ -495,3 +495,53 @@ def test_ascii_statement_filename_unchanged(git_repo: Path) -> None:
     captured = repo / "docs" / "product" / "captured"
     (artifact,) = captured.iterdir()
     assert artifact.name == f"router-drops-held-items-on-re-run-{tail}.md"
+
+
+# --- T16: the work-intake dispatch rides the transaction's failure shape ------
+
+
+def test_failing_question_dispatch_holds_the_item(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t16")
+    ids = _seed_store(
+        repo,
+        [
+            _request("question", "Where does the question route dispatch?",
+                     observed="A failing dispatch must not abort the drain.",
+                     intended="The item is held; later items are still offered."),
+            _request("question", "A second question still routed",
+                     observed="The drain continues past a held item.",
+                     intended="Both items are processed."),
+        ],
+    )
+    dispatched: list[str] = []
+
+    def transact(offer, decision):
+        if offer["capture_id"] == ids[0]:
+            return DRAIN.transact_route(
+                repo, offer, decision,
+                dispatch_processor=lambda: (_ for _ in ()).throw(
+                    RuntimeError("processor exploded")
+                ),
+            )
+        return DRAIN.transact_route(
+            repo, offer, decision, dispatch_processor=lambda: dispatched.append(
+                offer["capture_id"]
+            )
+        )
+
+    report = DRAIN.drain(
+        repo,
+        classify=lambda message: "spec",
+        confirmer=lambda offer, proposal: {"confirm": True},
+        transact=transact,
+    )
+
+    # The failing item is held with the failed stage named — no exception
+    # text escapes — and the second item is still routed.
+    assert report["counts"] == {"routed": 1, "held": 1, "closed": 0}, report
+    held = [item for item in report["items"] if item["action"] == "held"]
+    assert held == [
+        {"capture_id": ids[0], "action": "held", "reason": "transaction-failed",
+         "failed_stage": "processor_dispatch"}
+    ], held
+    assert dispatched == [ids[1]]
