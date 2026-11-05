@@ -569,13 +569,24 @@ def store_terminal_dispositions(repo_root: Path | str) -> list[dict[str, Any]]:
 
     The counts a drain reports are derivable from these events alone, with
     no run log: promoted side `routed`, pruned side `rejected` and
-    `superseded`, held being the captures still open.
+    `superseded`, held being the captures still open. The read goes
+    through the store's own per-record exclusion reader — the same one
+    `read_open_captures` reads through — so one quarantined record
+    excludes itself instead of aborting the count; capacity and
+    confinement refusals stay whole.
     """
     root = KS.resolve_worktree_root(repo_root)
     dispositions: list[dict[str, Any]] = []
+    quarantine = KS._Quarantine()
     for partition in KS._observation_partitions(root):
-        events = KS._read_events(KS._journal_path(root, partition), partition)
-        for event in events:
+        raw = KS._read_regular_file_bounded(
+            KS._journal_path(root, partition),
+            KS.budget_contract()["journal_partition_bytes"],
+            missing_ok=True,
+        )
+        for event in KS._events_excluding_invalid(
+            partition, raw or b"", quarantine
+        ):
             if event["event_type"] == KS._DISPOSITIONED:
                 dispositions.append(
                     {

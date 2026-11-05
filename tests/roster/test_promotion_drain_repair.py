@@ -400,3 +400,53 @@ def test_clean_store_dispositions_are_unchanged(git_repo: Path) -> None:
     report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
     assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
     assert [d["capture_id"] for d in DRAIN.store_terminal_dispositions(repo)] == ids
+
+
+# --- T14: one read path — dispositions through the exclusion reader ----------
+
+
+def test_store_terminal_dispositions_tolerates_quarantined_records(
+    git_repo: Path,
+) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t14")
+    ids = _seed_store(
+        repo,
+        [_request("defect", "A dispositioned capture beside a dirty record",
+                  observed="The dirty record must not block the count.",
+                  intended="The dispositions helper reads through it.")],
+    )
+    KS.write_terminal_disposition(
+        repo, ids[0], "routed", reason_code="route-handoff-accepted",
+        recorded_at="2026-11-04T12:00:00Z"
+    )
+    _mixed_store(repo)
+
+    dispositions = DRAIN.store_terminal_dispositions(repo)
+
+    # The clean capture's disposition is derivable; the quarantined record
+    # is excluded by the store's own reader rather than aborting the read.
+    assert dispositions == [
+        {"capture_id": ids[0], "disposition": "routed",
+         "reason_code": "route-handoff-accepted"}
+    ], dispositions
+
+
+def test_store_terminal_dispositions_clean_store_unchanged(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t14-clean")
+    ids = _seed_store(
+        repo,
+        [_request("defect", "A clean dispositioned capture",
+                  observed="No quarantined records exist.",
+                  intended="The dispositions list is unchanged.")],
+    )
+    KS.write_terminal_disposition(
+        repo, ids[0], "rejected", reason_code="not-a-defect",
+        recorded_at="2026-11-04T12:00:00Z"
+    )
+
+    dispositions = DRAIN.store_terminal_dispositions(repo)
+
+    assert dispositions == [
+        {"capture_id": ids[0], "disposition": "rejected",
+         "reason_code": "not-a-defect"}
+    ], dispositions
