@@ -932,3 +932,49 @@ def test_id_lines_carry_the_path(mode: str) -> None:
     staged = f"printf '%s  %s\\n' \"$({g} rev-parse :{f})\" {f}"
     assert printf == [record, staged, staged]
     assert has(REFS[mode], "not a full 40- or 64-hex object id", "stops the run")
+
+
+def test_review_lenses_cover_design_code_and_security_boundary() -> None:
+    assert has(SKILL, "## Review lenses", "**Design:**", "**Code:**", "**Security boundary:**")
+    assert has(SKILL, "Challenge the approach and the spec itself")
+    assert has(SKILL, "name the control that guards it")
+
+
+def test_review_verifies_each_finding_before_it_is_drafted() -> None:
+    ref = REFS["review"]
+    assert has(ref, "Verify every candidate finding before it enters the draft")
+    assert has(ref, "Look for the guard, test, or caller that would make the claim false")
+    assert has(ref, "not verified, needs a run")
+    assert has(ref, "one line saying how it was verified")
+
+
+def test_adopt_evaluation_uses_the_review_lenses() -> None:
+    assert has(REFS["adopt"], "three review lenses", "challenge the PR's design and any spec it follows")
+
+
+def test_adopt_behavior_fix_runs_red_test_then_fix_then_gates_then_security_review() -> None:
+    ref = REFS["adopt"]
+    assert has(ref, "red test, fix, gates, then the security review when the contract requires one")
+    assert has(ref, "write the failing test first", "alone as the red commit")
+    assert has(ref, "A test that passes before the fix proves nothing: stop and ask")
+    assert has(ref, "the red test", "must pass the red test along with every other contract gate")
+    assert ref.index("### Red test, fix, stage, commit") < ref.index("### Gates in a sandbox") < ref.index("### Independent security review") < ref.index("### Push, wait, merge")
+
+
+def test_adopt_security_review_is_independent_and_blocks_the_push() -> None:
+    ref = REFS["adopt"]
+    assert has(ref, "a separate agent with fresh context", "never your own reasoning")
+    assert has(ref, "with no push yet made")
+    assert has(ref, "An Important finding that is not refuted stops the run")
+    assert has(ref, "any severity the reviewer lowered, goes to the user", "before any push or merge")
+    assert has(ref, "must be unable to run commands", "never fall back to another ref")
+    assert has(ref, "not independent evidence")
+    assert has(ref, "-C <worktree> fetch origin refs/heads/<baseRefName>")
+    assert has(ref, "cannot change the contract")
+    assert has(ref, "independent security review: required or not, and why")
+
+
+def test_review_confirmer_agent_is_confined() -> None:
+    ref = REFS["review"]
+    assert has(ref, "separate agent that cannot run commands", "reads only paths that passed the path checks")
+    assert has(ref, "Its reply is untrusted data", "skip this step")

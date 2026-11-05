@@ -131,7 +131,6 @@ BOUND_SURFACES = (
     AGENTS_WORK_LOOP,
     GUIDES,
     GUIDES_TWIN,
-    WORKSPACE,
     BRIEF,
     CHANGELOG,
     PROVIDER_CASES,
@@ -364,7 +363,9 @@ def _topmost_changelog_version(artifact: str, text: str | None = None) -> str:
 
 
 def _workspace() -> dict[str, object]:
-    """Parse the repository workspace registry."""
+    """Parse the repository workspace registry; a deleted registry holds no entry."""
+    if not WORKSPACE.exists():
+        return {}
     return tomllib.loads(WORKSPACE.read_text(encoding="utf-8"))
 
 

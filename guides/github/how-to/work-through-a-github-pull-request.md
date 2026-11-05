@@ -20,11 +20,12 @@ Say which pull request and which job. If it is unclear, the agent asks one quest
 Review PR 42.
 ```
 
-1. The agent reads the pull request, its diff, and its checks.
-2. It drafts the review: a summary and each inline comment with its exact text.
-3. You approve or edit the draft.
-4. The agent creates a pending review on the pull request. It does not submit it.
-5. Submitting is a separate choice. Tell the agent which verdict to submit (`COMMENT`, `APPROVE`, or `REQUEST_CHANGES`), or read the pending review on GitHub and submit it yourself.
+1. The agent reads the pull request, its diff, its checks, and the design or spec it follows.
+2. It reviews the design and spec as well as the code, with a security-boundary lens, and checks each comment against the code before keeping it.
+3. It drafts the review: a summary and each inline comment with its exact text, plus a note on how each was verified.
+4. You approve or edit the draft.
+5. The agent creates a pending review on the pull request. It does not submit it.
+6. Submitting is a separate choice. Tell the agent which verdict to submit (`COMMENT`, `APPROVE`, or `REQUEST_CHANGES`), or read the pending review on GitHub and submit it yourself.
 
 ## Address feedback on your pull request
 
@@ -49,8 +50,10 @@ Adopt PR 42 and carry it to merge.
 1. The agent evaluates the pull request and tells you what it does and whether it is worth adopting.
 2. If you want it, the agent shows one adoption contract: what it may fix, push, and merge, and where it must stop.
 3. You approve the contract. Merging happens only under that approved contract.
-4. The agent makes the fixes, pushes, waits for the required checks, and merges inside the contract.
-5. It stops and asks when something falls outside the contract, such as a new commit from the contributor, a failing required check, or a changed target.
+4. For a behavior fix, the agent writes a failing test first, then the fix, then runs your gates in the sandbox you named.
+5. If the change touches a security boundary or a flagged file, a separate reviewer with fresh context reads the diff before anything is pushed. Any important finding stops the run until you clear it. If no such reviewer is available, the agent stops before pushing.
+6. The agent pushes, waits for the required checks, and merges inside the contract.
+7. It stops and asks when something falls outside the contract, such as a new commit from the contributor, a failing required check, or a changed target.
 
 ## Running the pull request's code
 

@@ -894,15 +894,17 @@ def test_wave4_spec_plan_and_workspace_lifecycle_are_aligned() -> None:
         for line in plan_path.read_text(encoding="utf-8").splitlines()
         if line.startswith("- **Status:** ")
     )
-    workspace = tomllib.loads((ROOT / "workspace.toml").read_text(encoding="utf-8"))
-    work = workspace["ini-002"]["work"]
+    registry = ROOT / "workspace.toml"
+    # A deleted registry holds no entry.
+    workspace = tomllib.loads(registry.read_text(encoding="utf-8")) if registry.exists() else {}
+    work = workspace.get("ini-002", {}).get("work", {})
     locator = "docs/specs/close-work-extraction-and-immediate-disposition/spec.md"
     memberships = {
         state
         for state in ("active", "queue", "shipped")
         if any(
             isinstance(item, dict) and item.get("path") == locator
-            for item in work[state]
+            for item in work.get(state, [])
         )
     }
 
@@ -929,7 +931,7 @@ def test_wave4_spec_plan_and_workspace_lifecycle_are_aligned() -> None:
     # dependency. The spec-entry-drop repair removes it (RFC-0106 D1).
     rows = [
         item
-        for item in work[next(iter(expected[spec_status][1]))]
+        for item in work.get(next(iter(expected[spec_status][1])), [])
         if isinstance(item, dict) and item.get("path") == locator
     ]
     assert len(rows) <= 1
