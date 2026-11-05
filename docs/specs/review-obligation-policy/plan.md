@@ -17,7 +17,7 @@
 
 ## Approach
 
-The work runs inside out. Rules data and validation (T1) and selection protection (T2) come first, because every later task reads them. The tier classifier (T3) is a pure function over the recorded anchor facts, the current result, and the rules, tested against throwaway Git repositories. T4 records anchor facts, adds the closed carry schema, and teaches readiness to accept carries and to read open findings across the unit. T5 wires tiers, carries, delta passes, round counting, and `review-cap` into `readiness_action` and decision admission; it is the riskiest task, because it changes which requests a live run sees. T6 updates the procedure documents, evals, the two amended specs' pointers, and the release. Everything ships in one pull request with one Core patch.
+The work runs inside out. Rules data and validation (T1) and selection protection (T2) come first, because every later task reads them. The tier classifier (T3) is a pure function over the recorded anchor facts, the current result, and the rules, tested against throwaway Git repositories. T4 records anchor facts, adds the closed carry schema, and teaches readiness to accept carries. T5 wires tiers, carries, delta passes, round counting, and `review-cap` into `readiness_action` and decision admission; it is the riskiest task, because it changes which requests a live run sees. T6 updates the procedure documents, evals, the two amended specs' pointers, and the release. Everything ships in one pull request with one Core patch.
 
 ## Constraints
 
@@ -52,7 +52,8 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 - **Anchor facts are recorded, never re-derived.** `state.commits` is read from `HEAD`'s history, which an adopted rebase rewrites. So the facts a later classification compares against are written once, when the anchor round closes, to `delivery/review-anchors.jsonl`. That file is worker-protected under ADR-0144 D11, like the selections file. A missing line, or an anchor commit missing from the object store, classifies `full`.
 - **`patch-id --verbatim`, not `--stable`.** A probe on 2026-11-05 (Git 2.56) confirmed that `--stable` gives one id for a re-indented line, while `--verbatim` gives two. Another probe showed that an upstream edit inside a hunk's three context lines changes the id, which fails safe. `--verbatim` needs Git 2.39 or later, and the supervisor's minimum is 2.32, so older Git classifies a rebase `full`.
 - **Binary and mode checks ignore Git attributes.** A probe on 2026-11-05 showed that a work-tree `.gitattributes` `diff` entry makes `--numstat` count a NUL-bearing blob as text, and that a retargeted symlink reports `M` with mode `120000`. The classifier therefore reads both blobs itself, through `cat-file`, and accepts only modes `100644` and `100755`.
-- **Cap findings are shown by supervisor references.** Finding and report ids are reviewer-supplied free strings, so `review-cap` shows `cap-finding:<16 hex>` references. `accept-risk` answers name those references, and the supervisor maps them back.
+- **Cap findings are shown by supervisor references.** Finding and report ids are reviewer-supplied free strings, so `review-cap` shows `cap-finding:<sha256 hex>` references over the canonical JSON `[report_id, finding_id]`, which is injective. Each reference comes with its report's evidence-log sequence number, so the owner can read the report through the supervisor's own store before answering. `accept-risk` answers name the references, and the supervisor maps them back.
+- **Open findings stay on the latest subject.** A role with an open finding is never carried or left unrequested: `rebase` and `wording-only` require no open finding, and `minor-fix` requests every raising role. So readiness keeps its current-subject `open_findings` and `disposition_closes` checks unchanged, and today's `accept-risk` writer serves `review-cap`.
 - **Legacy selection lines.** A stored line without `protected_classes` parses, and it marks the unit protection-unknown. A controller answer without the field is refused. This keeps a run started before the release on today's behaviour (owner decision, 2026-11-05).
 - **One new module.** The classifier and the Markdown line scan live in a new `scripts/_review_tiers.py`. It holds no state and does no writes.
 
@@ -75,13 +76,14 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
   - `review_policy_fingerprint`
   - `tier`
   - `anchor_round`
+  - `classifier_digest`, the sha256 of the anchor facts line, the current result, and the rules version
   `carry_id` is the discriminating key for `_SEMANTIC_RECORDS`. Its writer boundary is `structured-control`, written through the supervisor's review grant.
 
 ### Interfaces & contracts
 
 - **`execution-request.v1`:**
   - `review-role` gains optional `delta_base` and `repair_finding_ids`.
-  - A `review-cap` request carries `round_count`, `selection_key`, and `open_findings` (`[{cap_ref, role, round}]`, closed items).
+  - A `review-cap` request carries `round_count`, `selection_key`, and `open_findings` (`[{cap_ref, role, evidence_sequence}]`, closed items).
 - **`execution-result.v1`:**
   - `$defs.selection` gains `protected_classes` (an enum of the five tokens) and `review_tier` (`const: "full"`).
   - The decision enum gains `extend-review`, paired with `authority_ref`.
@@ -89,7 +91,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 - **Python:**
   - `DECISIONS` gains `extend-review`.
   - `admit_decision` accepts the reason `review-cap`, and admits `extend-review` only for it.
-  - The `review-cap` request id comes from `run_id`, `round_count`, and the sorted cap references, with no `state.head` salt. It is built by a sibling of `human_decision` in `_supervisor_loop.py`.
+  - The `review-cap` request id comes from `run_id`, `round_count`, `selection_key`, the count of admitted `review-cap` answers, and the sorted cap references, with no `state.head` salt. It is built by a sibling of `human_decision` in `_supervisor_loop.py`.
 
 ### Component / module decomposition
 
@@ -100,19 +102,19 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
   - `numstat(older, newer, paths)`.
   - `blob(rev, path)`, a bounded `cat-file`.
   - `patch_id(base, result, path)` pipes `diff` into `patch-id --verbatim`.
-  - Each read stops at 1 MiB and reports overflow.
-- `unit_open_findings(store, unit_subjects)` reads every subject of the unit. It returns supported material findings with no `fixed-by` or `accept-risk` disposition on their own subject. Readiness, the classifier, and the carry check all use it in place of the current-subject-only `open_findings`.
+  - Each read goes through a new bounded launch in `_supervisor_git.py`. It streams the process output, stops at 1 MiB, kills the process, and reports overflow, instead of `_launch`'s unbounded `capture_output`.
+- `_review_tiers.instruction_reached(git, result, rules)` collects `@` references from instruction-named files and follows them up to five hops. It resolves each reference relative to the referring file, and refuses an absolute, `~`, or escaping reference.
 - `review_readiness` and `decide_review_obligation` take the carries for the current subject. A valid carry stands in for the role's report, and the carried report's assessments and dispositions join the filters.
 
 ### State & control flow
 
-1. `readiness` resolves the selection, then reads the unit's subjects, the anchor facts, the open findings, the round count, and the tier.
+1. `readiness` resolves the selection, then reads the anchor facts, the latest reviewed subject's open findings, the round count, and the tier.
 2. `readiness_action` issues `review-role` requests only for the roles the tier names, plus every protected role.
 3. For each excused role, the supervisor writes one carry inside the same `review` step kind that records selections.
 4. When an anchor round's last report is admitted, the supervisor appends the anchor-facts line in that same `review` step.
-5. **Round count:** the number of distinct review subjects on which a `review-role` request was issued, among the first full-set subject and the subjects first reached after a `repair-request`. `extend-review` raises the cap by one per admitted decision.
+5. **Round count:** computed from the spec's Round definition over the review subjects recorded in the evidence store. `extend-review` raises the cap by one per admitted decision.
 6. At the cap, with an open non-protected finding in an unprotected unit, the next action is `review-cap`, and no repair request is issued.
-7. `accept-risk` on `review-cap` writes each disposition on the finding's own subject and assessment, so `unit_open_findings` counts it closed. This is the cross-subject `accept-risk` row that T6 adds to `structured-review-boundary`'s Disposition table.
+7. `accept-risk` on `review-cap` uses today's writer on the current subject, after the references are mapped back and checked against the request.
 
 ### Failure, edge cases & resilience
 
@@ -131,6 +133,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 **Tests:**
 - AC-0030: TDD over `validate_rules`, with one refusal case per missing or malformed new key.
 - AC-0031: the shipped file loads with 2 and 40, and `test_review_relocation.py`'s parity tests stay green unchanged.
+- AC-0035: no shipped allowlist glob matches a probe path under `docs/specs/`, `docs/adr/`, or `docs/rfc/`.
 
 **Done when:** the T1 tests and the existing review suites pass.
 
@@ -154,13 +157,14 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 **Depends on:** T1
 
-**Touches:** packs/core/.apm/skills/work-loop/scripts/_review_tiers.py, packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py, packs/core/tests/skills/work-loop/test_review_tiers.py
+**Touches:** packs/core/.apm/skills/work-loop/scripts/_review_tiers.py, packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py, packs/core/.apm/skills/work-loop/scripts/_supervisor_git.py, packs/core/tests/skills/work-loop/test_review_tiers.py
 
 **Tests:**
 - AC-0002, AC-0003, AC-0004, AC-0006, AC-0008, AC-0011, and AC-0012 (forcing half): TDD over `classify`, using real Git repositories built in `tmp_path`:
   - one fixture per tier
-  - one per `full` predicate, including a symlink retarget, a submodule bump, a `.gitattributes` `diff` override on a NUL-bearing blob, a path reverted to base, a deleted run-added file, and a 1 MiB overflow
-  - one per wording-only exclusion, including a fence opened outside the hunk, an indented code block, a reference link definition, a lower-case `agents.md`, `AGENTS.local.md`, and an `@`-imported file
+  - one per `full` predicate, including a symlink retarget, a submodule bump, a `.gitattributes` `diff` override on a NUL-bearing blob, a deleted run-added file, and a 1 MiB overflow
+  - a path reverted to base after the anchor: it is a delta path, and its reverted lines count toward `minor_fix_max_lines`
+  - one per wording-only exclusion, including a fence opened outside the hunk, an indented code block, a reference link definition, a lower-case `agents.md`, `AGENTS.local.md`, an inline `@` reference, a two-hop `@` reference, and an escaping `@` reference
   - a 40-line and a 41-line minor fix, the 41 lines reached over two repairs
   - a rebase with an equal patch id, one with a re-indented line, and one on Git older than 2.39 (by injected version)
   - `review_tier: "full"` over a diff that earns `minor-fix`
@@ -177,7 +181,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 **Tests:**
 - AC-0013: TDD in which an anchor line is written once, and the classifier reads the recorded facts after a fixture rebase rewrites the run's commits with an upstream edit to a run path.
 - AC-0014: a carried clean report, and a carried report with a disposed finding, each satisfy the obligation on a new subject.
-- AC-0015: one non-counting case per refusal clause, including an open finding raised on an earlier subject, using `unit_open_findings`.
+- AC-0015: one non-counting case per refusal clause, including a mismatched classifier-input digest.
 - AC-0016: the delivery bundle lists the new schema, and its closed-properties test covers it.
 
 **Done when:** the T4 tests and `tests/roster/test_delivery_contract_bundle.py` pass.
@@ -199,12 +203,14 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 - AC-0020: a `security-boundary` unit driven through every tier and one subject past round 2. Every subject issues a whole-change `security-reviewer` request, and no carry names it. The run repeats for `migration` with `quality-engineer`.
 - AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029:
   - A two-task repair counts one round.
-  - The cap fires on round 2 with cap references only. A finding id holding prose and control characters never appears in the request.
-  - The request id is stable across an unrelated commit.
-  - `accept-risk` disposes a finding raised on round 1.
+  - The cap fires on round 2 with cap references only. A finding id holding prose, control characters, or a NUL never appears in the request.
+  - Two findings whose ids differ only by where a NUL falls get different references.
+  - The request id is stable across an unrelated commit, and a `reselect-review` followed by a second cap yields a new id.
+  - `accept-risk` disposes the named findings, and an answer naming an unknown reference is refused whole.
   - `extend-review` permits one round.
   - `reselect-review`, another answer, and no answer each behave as specified.
-  - A protected unit and a protection-unknown unit (AC-0022, flow half) never issue `review-cap`.
+  - AC-0029: a protected unit and a protection-unknown unit never issue `review-cap`.
+  - AC-0022 (flow half): a protection-unknown unit classifies every subject `full`.
 - AC-0032 and AC-0033: TDD over schema validation for both amended schemas.
 
 **Done when:** `test_review_obligation_policy.py`, the existing supervisor suites, and the roster contract tests pass.
@@ -233,6 +239,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 - **Lost resampling:** a non-protected reviewer no longer resamples unchanged code after a repair, so a defect the first full pass missed can survive into the cap decision. Protected roles keep resampling, and the spike's misses were all in a protected class.
 - **Markdown scan scope:** a construct the scan does not recognise classifies `full`, so an unusual document saves nothing. It is never under-reviewed.
+- **Dropped role (existing behaviour):** a reselection that drops a role also drops that role's open findings from readiness, as it does today. The tier is `full` for that subject (AC-0011), but nothing here forces the dropped role back.
 - **Anchor recovery:** a pruned anchor commit classifies `full`, so the savings shrink while the cap still applies.
 
 ## Changelog
