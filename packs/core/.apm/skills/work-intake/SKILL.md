@@ -541,8 +541,8 @@ surface only.
 
 An operator invokes the drain to hand a captured work item to its owner or to
 close it, and to record which happened. The drain reads the open `work-item`
-captures in the knowledge store through
-`packs/core/.apm/skills/project-knowledge/scripts/promotion_drain.py`: per item
+captures in the knowledge store through the `project-knowledge` skill's
+`scripts/promotion_drain.py`: per item
 it assembles an offer — the record, the write-path prose controls re-run over
 its scanned fields, the stored command's pre-execution re-check, and the
 command's run under the execution envelope — then classifies a question-shaped

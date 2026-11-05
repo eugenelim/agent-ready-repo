@@ -68,7 +68,9 @@ def test_symlink_resolving_outside_the_repository_refuses_the_command(
     (git_repo / "real.txt").write_text("inside\n", encoding="utf-8")
     (git_repo / "alias.txt").symlink_to(git_repo / "real.txt")
     (git_repo / "final.txt").symlink_to("/etc/passwd")
-    (git_repo / "outside").symlink_to("/tmp")
+    # The symlink target is any directory outside the repository — the pytest
+    # scratch root — so the fixture needs no hardcoded system temp path.
+    (git_repo / "outside").symlink_to(git_repo.parent)
 
     cases = [
         ({"command": ["cat", "final.txt"], "path": "real.txt"}, "final.txt"),
