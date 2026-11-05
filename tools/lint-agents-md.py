@@ -147,6 +147,38 @@ def _repo_root() -> Path:
     return Path.cwd()
 
 
+_MAKE_INVOCATION = re.compile(r"(?:^|`|\$\s)\s*make\s+([^`\n]*)", re.MULTILINE)
+
+
+def _units(text: str) -> list[str]:
+    """Split text into paragraphs, keeping a fenced block whole."""
+    units: list[list[str]] = [[]]
+    fenced = False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+        if not fenced and not line.strip():
+            units.append([])
+        else:
+            units[-1].append(line)
+    return ["\n".join(u) for u in units if u]
+
+
+def _local_gate_targets(text: str) -> list[str]:
+    """Make targets named in any paragraph or fenced block that says `local gate`."""
+    targets: list[str] = []
+    for unit in _units(text):
+        if "local gate" not in unit.lower():
+            continue
+        for match in _MAKE_INVOCATION.finditer(unit):
+            words = re.split(r"\s*(?:#|&&|\|\||[;|])", match.group(1), maxsplit=1)[0].split()
+            targets += [
+                w for w in words
+                if re.fullmatch(r"[A-Za-z0-9_][A-Za-z0-9_.-]*", w) and "=" not in w
+            ]
+    return targets
+
+
 def main() -> int:
     repo_root = _repo_root()
     os.chdir(repo_root)
@@ -682,6 +714,20 @@ def main() -> int:
                 f"seed vendor path: {name}; name the skill instead of its adapter path; "
                 "contracts/adapter.toml projects this primitive into seven different roots."
             )
+
+    # 11. Every make target named beside `local gate` exists in the Makefile.
+    makefile = Path("Makefile")
+    make_text = ""
+    if makefile.is_file():
+        make_text = makefile.read_text(encoding="utf-8", errors="replace")
+    defined = set(re.findall(r"^([A-Za-z0-9_.-]+)\s*:", make_text, re.MULTILINE))
+    for f in active_agents:
+        if _is_vendored(f) or _is_fixture(f) or _is_seed(f):
+            continue
+        gate_text = f.read_text(encoding="utf-8", errors="replace")
+        for target in dict.fromkeys(_local_gate_targets(gate_text)):
+            if target not in defined:
+                note(f"local-gate target not defined: {target}")
 
     if fail:
         print()
