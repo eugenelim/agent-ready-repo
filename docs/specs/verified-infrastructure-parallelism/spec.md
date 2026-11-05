@@ -1,6 +1,6 @@
 # Spec: Verified infrastructure parallelism
 
-- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0156, ADR-0160, ADR-0154, ADR-0151, ADR-0144, ADR-0005, ADR-0061
@@ -215,7 +215,7 @@ Contracts
 
 ## Accepted Risk
 
-Each entry below is proposed for the owner's acceptance at spec approval.
+The owner, eugenelim, accepted each entry below on 2026-11-05 at spec approval.
 
 - The launcher pin covers the launcher file's bytes only. An interpreter its
   `#!` line names, and anything that interpreter loads, are outside the pin;

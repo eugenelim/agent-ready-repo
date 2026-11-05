@@ -1,7 +1,7 @@
 # Plan: Verified infrastructure parallelism
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-loop-result-integration.md` and `runtime-security-primitives.md` § 7; ADR-0156; analogous implementations `_supervisor_commit.py` (`build_commit`, `update_refs`, `_diagnose`) and `_containment.py` (`validate_attestation_dict`, `check_attestation_within_grant`, `launch_untrusted`); tests `test_supervisor_product_ref.py`, `test_supervisor_crash_corpus.py`, `test_containment_broker.py` (`_FixtureHost`), `tests/roster/test_execution_supervisor_records.py`; deviations: no code launches a worker from the supervisor today, so the launcher boundary has no precedent beyond `launch_untrusted`; concurrent attempts use plain directories rather than ADR-0005 D7's worktree (ADR-0160 D1)
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -431,3 +431,6 @@ Core is one patch above the merge base.
   Windows hosts always run on the floor (AC-0002's POSIX member).
 
 ## Changelog
+
+- 2026-11-05: spec approved by eugenelim
+- 2026-11-05: plan approved by eugenelim

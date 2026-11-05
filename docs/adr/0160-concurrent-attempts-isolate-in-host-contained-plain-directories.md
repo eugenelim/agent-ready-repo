@@ -1,6 +1,6 @@
 # ADR-0160: Concurrent attempts isolate in host-contained plain directories on Git 2.41 or later
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-11-05
 - **Areas:** work-loop, concurrency, security
 - **Reversibility:** high
