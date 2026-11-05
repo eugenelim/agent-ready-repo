@@ -1,9 +1,13 @@
 # Bind checked paths to the objects later read
 
 - **Slug:** `checked-then-reopened-path-confinement`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+## Disposition — withdrawn 2026-11-05, decided: accepted residual risk
+
+**Do not shape this intent.** Both races need concurrent write access to the working tree, which already lets an attacker edit the source under review, so closing them buys no boundary. The adjudicator half cannot be fixed in agent prose, because the agent's read capability cannot hold a checked file object, and no tool-layer checked read exists. The supervisor half is a directory-descriptor redesign: `_spec_rel` in `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py` still returns a repository-relative string, and the redesign would touch every downstream state read and write for no boundary gain. The residual risk is recorded here. Reopen if a tool-layer checked-then-bound read ships, or if the supervisor ever runs against a working tree that another principal can write.
 
 ## Outcome
 

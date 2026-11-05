@@ -553,6 +553,11 @@ later reader does not infer the gate was met when it was not.
   dependencies already order the three, which is `intent decompose`'s own reason
   to skip the optional ranking step.
 
+## Readiness
+
+- Open children on 2026-11-05: `FEAT-0011`, `FEAT-0012`, `FEAT-0013` (each Ready brief, specs Draft). `FEAT-0014` is Fulfilled.
+- Two parentless Draft intents, `tracker-refresh-trusted-authority-inputs` and `tracker-writeback-result-contracts`, are about tracker write-back. Moving them under this capability is listed for the cluster that owns them.
+
 ## Source
 
 - **Mode:** repo-origin

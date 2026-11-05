@@ -1,7 +1,9 @@
 # Workspace coordination reorganization
 
 - **Slug:** `workspace-coordination-reorganization` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
@@ -130,6 +132,10 @@ validation_hook:
 - **The child is staged, not small.** The de-risk inventory disproved a cheap-relocation assumption and found a broad surface. One feature keeps the evidence and final retirement decision coherent while allowing its specification and delivery plan to sequence many slices.
 - **Intent navigation is a sibling feature under another capability.** It can replace read-only orientation only after its own intent lifecycle passes; this child owns removal of the old compatibility surfaces, not the new navigator's implementation.
 - **No replacement registry is implied.** Each fact moves to a canonical artifact, an owning lifecycle workflow, an external projection, temporary migration state, or accepted removal. A central mutable replacement would fail the capability guardrail.
+
+## Readiness
+
+- Its one child, `FEAT-0034`, finishes in PR 1689. After that merges, this capability needs an independent Accept review and can then be Fulfilled through `close-work`. A Draft capability cannot go straight to Fulfilled.
 
 ## Source
 

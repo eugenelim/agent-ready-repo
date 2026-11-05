@@ -1,10 +1,14 @@
 # Give catalogue adopters a canonical test command
 
 - **Slug:** `adopter-catalogue-test-command`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [ADR-0071](../../adr/0071-pack-runtime-export-boundary-and-test-placement.md)
+
+## Disposition — withdrawn 2026-11-05, decided: not worth doing now
+
+ADR-0071 keeps pack tests out of what an adopter receives, so there are no received tests to run; `agentbundle catalogue` offers `lint`, `verify`, `build` and `self-host` and no demand for a `test` verb is recorded. The change would also touch the protected `packages/agentbundle/**` tree and need an `Engine-Change-RFC:` trailer. Reopen on a named adopter need.
 
 ## Outcome
 

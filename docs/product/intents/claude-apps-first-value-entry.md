@@ -1,12 +1,15 @@
 # A non-technical adopter reaches first value from the site home, without a terminal
 
 - **Slug:** `claude-apps-first-value-entry`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
 - **Parent intent:** capability:nontechnical-pack-first-value-rollout
 - **Depends on:** spec:portfolio-pack-first-value-contract
+- **Decomposed:** 2026-11-05 spec
 
 ## Outcome
 
@@ -134,7 +137,7 @@ route whose skills work.
 
 ## Owner
 
-- Platform Core (`ini-002`). No individual owner is recorded.
+- eugenelim, for Platform Core (`ini-002`).
 
 ## Unresolved questions
 
@@ -210,6 +213,7 @@ skills in the chat tab and find nothing.
 
 ## Assumptions
 
+- **Riskiest assumption:** the Claude apps install this marketplace and a skill completes there. It cannot be tested by an agent: the probe needs a person on a real Claude app. The agent-only guard is that the docs spec's copy claims install only, checked by a parity test against each pack's `[pack.first-value]` record, so a wrong assumption cannot become a public claim.
 - ADR-0107 is Accepted, so the route and audience are settled and this slice
   does not reopen them.
 - **Marketplace presence is not installability.** All four packs appear in
@@ -233,7 +237,16 @@ skills in the chat tab and find nothing.
 
 ## Decomposition
 
-*(empty — `decompose-intent` owns this)*
+- [`claude-apps-route-docs`](../../specs/claude-apps-route-docs/spec.md) (Draft spec): the two start-zone links, the install how-to, and the first-value walkthrough copy, with `product-strategy` as the pack. It claims install only and never completed first value.
+- **Named child, not yet created:** the method-to-artifact walkthrough that delivers the Outcome's "complete one method end to end". It follows a successful probe, so the Outcome's end-to-end half is unowned until then.
+- **Follow-up, non-blocking:** the human probe in `claude-apps-route-docs/notes/install-to-first-value-probe.md`. It gates only the method-to-artifact tutorial and the lagging outcome.
+
+## Readiness
+
+- **Route:** `new-spec`. The spec `claude-apps-route-docs` already exists as a Draft and needs its approval review, not a new brief.
+- **Verified 2026-11-05:** the contract spec `portfolio-pack-first-value-contract` is Shipped; `claude-apps-route-docs` is Draft; the probe note exists and has not been run. No agent can run it.
+- **Agent-only reduction:** ship the links and install how-to with copy that says install is documented and first value is not yet observed. The Boundary already allows this. The probe stays a named manual follow-up and blocks nothing in the spec.
+- **Unresolved questions, answered:** the walkthrough pack is `product-strategy` (it ships no sub-agents). One home-page link is enough for the outcome; the spec may add more. The route is a section of the existing install-routes explanation, to avoid a second copy. Evaluation evidence for a docs slice is a link check plus a parity check against each pack's `[pack.first-value]` record.
 
 ## Source
 

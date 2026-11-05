@@ -1,7 +1,9 @@
 # Loop-contract item identity mechanism
 
 - **Slug:** `loop-contract-item-identity-mechanism`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Kind:** outcome
 - **Level:** feature
 - **Owner:** eugenelim
@@ -11,16 +13,7 @@
 
 ## Outcome
 
-- **Steerable input:** Build the change-detection half that stable identity makes
-  possible and that no accepted record yet decides: derive the single-homing
-  pinned set from rule identifiers rather than a hand-declared tuple, fingerprint
-  each identified item, and route a changed item's dependants into the next
-  re-review's scope.
-  [ADR-0108](../../adr/0108-opaque-append-only-loop-contract-identifiers.md)
-  decides item identity only — it says nothing about fingerprints or a suspect
-  flag — and [the loop contract](../../architecture/loop-contract.md) § 4 records
-  the pairing as `STATUS: PLANNED`. So this intent carries a decision that still
-  has to be taken, not one already recorded.
+- **Steerable input:** A rule duplicated into a second authoring surface, or a criterion changed without its verifications following, is flagged by a check, and the set of single-homed rules follows from the rules themselves rather than from a hand-kept list.
 - **Lagging outcome:** A rule duplicated into a second authoring surface, or a criterion edited without its verifications following, is caught by a check rather than by whoever happens to read carefully.
 - **Guardrail:** The suspect flag scopes what a review looks at and never decides whether a change may proceed. Blocking on a derived signal rebuilds the consequence-bound blocking already measured and killed in [work-loop review economics](work-loop-review-economics.md).
 
@@ -46,6 +39,27 @@ Separately, four of the five findings in one review cycle were a criterion chang
 - Does an identifier marker on shipped, adopter-facing rule prose cost more in readability than it returns in checkability?
 - Is the fingerprint baseline committed beside the artifact, or derived from git history?
 - Does the suspect flag surface in the review brief, in a lint, or both?
+
+## Riskiest assumption
+
+**Riskiest assumption:** the pinned set derived from rule identifiers equals the hand-declared set of 30 rules with no loss of coverage. Tested agent-only: the existing 57 tests pass on the derived set, and deleting any one identifier marker fails a named test.
+
+## Non-goals
+
+- Detecting a paraphrase: a fingerprint compares identity, not similarity.
+- Any blocking behaviour.
+- Authoring guidance, which `acceptance-criteria-set-construction` owns.
+- Fingerprints and the suspect flag until a measured miss shows the derived set is not enough.
+
+## Readiness
+
+**Route:** new-spec, one slice, the cheap half only.
+
+**First slice:** derive the single-homing pinned set from rule identifiers. Today `packs/core/tests/skills/new-spec/test_acceptance_criteria_discipline.py` holds a hand-declared `RULES` tuple of 30 (name, surface, phrase) rows, and its 57 tests pass. The slice moves those names into identifier markers on the shipped sentences and builds the tuple from them.
+
+**Agent-only proof:** the same 57 tests pass on the derived set, and a mutation that deletes one marker fails a named test. A rendered-page diff shows markers cost no visible text.
+
+**Answers.** Markers go in HTML comments, which costs no readability. A fingerprint baseline and the suspect flag are not built: the evidence is one review cycle, and `docs/architecture/loop-contract.md` § 4 keeps them `STATUS: PLANNED`. Revisit them only after a measured miss that the derived set did not catch, and then commit the baseline beside the artifact and surface the flag in the review brief only.
 
 ## Source
 

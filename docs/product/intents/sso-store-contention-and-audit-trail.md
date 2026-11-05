@@ -1,14 +1,16 @@
 # Make SSO contention recoverable and auditable
 
 - **Slug:** `sso-store-contention-and-audit-trail`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/sso-store-transition-serialization AC24](../../specs/sso-store-transition-serialization/spec.md); [spec/sso-store-transition-serialization AC10](../../specs/sso-store-transition-serialization/spec.md)
 
 ## Outcome
 
-An unattended SSO re-authentication can retain its recapture record, recover correctly from short store contention, and have its macOS keychain timing evidenced.
+An unattended SSO re-authentication can retain its recapture record, recover correctly from short store contention, and have its macOS keychain timing bounded by a tested lock budget.
 
 ## Opportunity
 
@@ -41,3 +43,23 @@ Unblocks when: the twenty consented macOS projected-broker timings are recorded.
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+## Current truth
+
+Verified 2026-11-05: `jira.py` handles `credbroker.SsoError` at two sites and maps it to `EXIT_USER_ACTION`; nothing in `packs/atlassian` references `SsoStoreContendedError`. The comment at `jira.py:680` still says the recapture notice goes to stderr and the durable sink is deferred. `sso-store-transition-serialization` is Shipped, so both fixes are unblocked.
+
+## Readiness
+
+- **Route:** new-spec, for the backoff and the audit sink together (one session). Neither depends on `sso-browser-state-protection`.
+- **First slice:** catch `SsoStoreContendedError` in the check path, retry once with backoff, then fall through to the user-action exit; write the recapture record to an append-only 0600 file under `~/.agentbundle/logs/`.
+- **Agent-only proof:** tests with a stub broker that raises the contended error once, then succeeds; a permissions assertion on the log file.
+- **The AC10 timing item is reduced.** The 20 consented macOS timings stay a manual, non-blocking follow-up. The agent-only substitute is the fake-`security` budget test in slice 2 of `sso-browser-state-delivery`; if that lands, drop the manual item.
+
+## Non-goals
+
+- The 20 consented real-keychain timings; they stay a manual non-blocking follow-up and are replaced by a fake-`security` budget test.
+- Browser-state lifetime, cooldown and launch locking, owned by `sso-browser-state-protection`.
+
+## Riskiest assumption
+
+**Riskiest assumption:** a single backoff retry clears real store contention. Tested agent-only with a stub broker that raises `SsoStoreContendedError` once and then succeeds, and another that raises it twice, which must fall through to the user-action exit.

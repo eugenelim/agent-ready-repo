@@ -10,7 +10,7 @@
 - **Maturity:** brownfield
 - **De-risked:** 2026-10-21
 - **Shaping-reviewed:** 2026-10-21
-- **Decomposed:** no
+- **Decomposed:** 2026-11-05 brief
 - **Parent intent:** capability:catalogue-trust-and-adoption
 - **Governed by:** [RFC-0076 D10](../../rfc/0076-catalogue-contracts-composition-semantics-discovery.md), as amended by [RFC-0109](../../rfc/0109-catalogue-specification-publication.md)
 
@@ -121,16 +121,48 @@ validation_hook:
 - Building the Build a Catalogue documentation route, release-integrity behaviour, or the search verb.
 - Publishing the catalogue specification or changing contract `$id` URLs, which [`catalogue-specification-publication`](catalogue-specification-publication.md) owns.
 
-## Open questions
+## Resolved questions — recommended answers, checked 2026-11-05
 
-- **Lifecycle:** D10 asks for a lifecycle fact that no contract carries. A separate contract change would add it to `pack.schema.json` and the index together, as the Wave 4 spec suggests. Decider: the owner.
-- **Journey reconciliation:** `/evaluate/` adds a platform-lead reader beside the journey map's adoption champion. Either the map gains an amendment through `approve-journey`, or `/evaluate/` gets its own journey. Decider: the owner, before the spec freezes the page's reader.
-- **Documentation links:** The index has documentation links for 15 of 23 packs, while the site's own page data has one for every pack. The spec decides whether to close the gap with `JOURNEY.md` `docsUrl` entries or to keep the site value as a declared fallback.
-- **Catalogue version:** The index carries pack versions but no catalogue version. The spec decides whether D10's "version" means pack version only.
+- **Lifecycle:** stays deferred, as the owner decided on 2026-10-21. No contract carries it.
+- **Journey reconciliation:** give `/evaluate/` its own platform-lead journey instead of amending the adoption-champion journey map. `docs/design/journeys/` holds four journeys and none names a platform lead. The new journey must exist before the spec freezes the page's reader.
+- **Documentation links:** the neutral index has documentation links for 15 of 23 packs (checked by generating the index for this repository). Keep the site's own link as a declared fallback and mark which source each link came from.
+- **Catalogue version:** "version" means pack version only. The index carries no catalogue version, and adding one is a contract change this intent does not make.
+
+## Current state
+
+The published-specification dependency is met: `catalogue-spec-manifest`, `catalogue-manifest-schema`, `catalogue-spec-site` and `catalogue-spec-release` are Shipped, and `tools/catalogue/check_contract_parity.py` and `check_spec_version.py` pass. `web/src/pages` has no `/evaluate/` page. The claim re-probe is done (see Re-probe result).
 
 ## Decomposition
 
-None yet. After acceptance, this feature intent projects to one marketing-site specification. The specification owns the page content model, the index build input, and the relationship view.
+Delivery brief [`catalogue-evaluator-delivery`](../briefs/catalogue-evaluator-delivery.md), Draft, cuts this into four slices. Before the brief, the plan was one marketing-site specification. The specification owns the page content model, the index build input, and the relationship view.
+
+## Re-probe result
+
+- **Date:** 2026-11-05.
+- **Ran:** mapped each RFC-0076 D10 claim to a destination the public sites build from this repository. Guides under `guides/**` are copied into the docs site (`tools/build-site.py` copies `guides/**` to `docs-site/src/content/docs/guides/**`, published at `/docs/guides/...`). The published specification is `contracts/catalogue-spec.toml` release `0.1`, whose files carry `$id` values under `https://eugenelim.github.io/agent-ready-repo/docs/spec/catalogue/0.1/`, with the overview source in `docs-site/spec-src/catalogue/overview.md`. The PyPI destination is the `pypi` link in `site.toml`. Every cited file exists; `tools/catalogue/check_contract_parity.py` and `check_spec_version.py` pass.
+- **Not checked:** the deployed site, which needs the network. The page's offline link check and the signed-out pass before release cover that.
+
+| # | Claim | Public destination (evidence) | Result |
+| --- | --- | --- | --- |
+| 1 | Open file-based formats | Specification `0.1` pages for `pack`, `catalogue`, `profile`, `skill`, `skill-manifest`, `target-vocab` and `adapter` (`contracts/catalogue-spec.toml` member rows); guides `catalogue-format` and `skill-authoring-standards` | supported |
+| 2 | Versioned contracts | `/docs/spec/catalogue/0.1/` and its `index.json` of digests (frozen copy at `contracts/releases/catalogue/0.1/`); replaces the earlier `contracts/README.md` and `REGISTRY.md` evidence | supported |
+| 3 | Deterministic verification and packaging | Guide `guides/_shared/reference/catalogue-ci-contract.md`; the `catalogue-manifest` schema member | supported |
+| 4 | Human gates | Guides `repo-governance/how-to/new-rfc.md`, `new-adr.md` and `core/explanation/core-pack.md` | supported |
+| 5 | Source ownership | Guide `guides/_shared/how-to/create-a-catalogue.md` | supported |
+| 6 | Adapter projection | Guide `guides/_shared/reference/adapter-support.md`; `adapter.toml` and `adapter.schema.json` members | supported |
+| 7 | Release integrity | `catalogue-ci-contract.md` (11 mentions of `--compare` and `--force`); `catalogue-manifest` schema with unit digests | supported |
+| 8 | Optional composition | `catalogue-authoring-standards.md` section 11, "Optional pack integrations"; `pack-catalogue.md` | supported |
+| 9 | Technical evidence | The docs site, the specification section, and the `pypi` link in `site.toml` | supported |
+
+All nine claims have a public destination, and none rests on an RFC, spec or `docs/guides/` page. The re-probe is complete.
+
+## Readiness
+
+- **Route:** brief, [`catalogue-evaluator-delivery`](../briefs/catalogue-evaluator-delivery.md).
+- **Re-probe:** done 2026-11-05 (see Re-probe result); all nine claims supported.
+- **First slice:** the platform-lead journey stub (owner decided 2026-11-05), then the `/evaluate/` spec.
+- **Agent-only proof:** every claim maps to a destination that is a docs-site page built from `guides/**` or `packs/**`, a page of the published specification, or the PyPI package page, and none maps to an RFC, spec or `docs/guides/` page.
+- **Manual follow-up, not blocking:** the five-minute sessions with platform leads. Replace them as a release gate with a build-time link check; run the sessions after release.
 
 ## Source
 

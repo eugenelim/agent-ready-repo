@@ -459,3 +459,10 @@ exists. The brief owns slice membership.
 - **One question deliberately left open:** whether the cross-system vocabulary
   binds beyond this feature and therefore belongs in a decision record. It has
   the shape of the floor question that became ADR-0127. The brief records it.
+
+## Readiness
+
+- **Route:** the Ready brief `delivery-state-and-flow-visibility`. Run `delivery-state-observation` then `flow-distribution-sample-honest`, both Draft, neither approved. It does not depend on the working-view specs, so the two chains can run in parallel.
+- **Verified 2026-11-05:** both specs use recorded provider fixtures only. No path they cite is missing.
+- **Open check before approval:** the atlassian skills `flow-metrics` and `jira-team-status` already compute part of this. The specs must name what they reuse.
+- **Decision to take after slice 1:** whether the cross-system vocabulary becomes an ADR. Default: yes, because `FEAT-0013` reads it.

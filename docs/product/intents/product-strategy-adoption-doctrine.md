@@ -139,3 +139,7 @@ operations or runtime-specific telemetry implementation enters scope.
 - Mode: repo-origin
 - Locator: docs/rfc/0071-digital-experience-doctrine.md
 - Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f
+
+## Readiness
+
+Route: `new-spec`, one session. First slice: add the adoption hypothesis, first-success event, causal metric tree and named experience handoff to the strategy artifact templates, with one golden-fixture strategy artifact. Agent-only proof: a deterministic field-presence check passes on the fixture and fails on a seeded artifact missing each field. Checked 2026-11-05: the strategy pack carries only a copy of the contract reference and no skill asks for these fields. No other work blocks it.

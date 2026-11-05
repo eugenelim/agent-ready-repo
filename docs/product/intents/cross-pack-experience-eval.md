@@ -1,7 +1,8 @@
 # Cross-pack experience evaluation
 
 - **Slug:** `cross-pack-experience-eval` <!-- canonical identity; independent of any filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -10,9 +11,8 @@
 - **Milestone:** M5 in RFC-0071's implementation sequence
 - **Governed by:** [RFC-0071 D7](../../rfc/0071-digital-experience-doctrine.md)
 - **De-risked:** no
-- **Shaping-reviewed:** no
-- **Decomposed:** no
-- **Depends on:** intent:product-strategy-adoption-doctrine, intent:product-engineering-shaping-doctrine, spec:xd-skill-boundaries, intent:xd-design-system-foundations, intent:xd-ia-archetypes-objects, intent:xd-state-reviewer-doctrine, spec:frontend-engineering-doctrine-update
+- **Shaping-reviewed:** 2026-11-05
+- **Decomposed:** 2026-11-05 brief
 
 ## Outcome
 
@@ -108,9 +108,7 @@ contracts are approved.
 
 ## Decomposition
 
-One same-repository spec and plan at
-`docs/specs/cross-pack-experience-eval/` own M5 once its predecessor intents
-are terminal. They correct the stale destination, then deliver the layered
+Two slices under the delivery brief [`cross-pack-experience-eval-delivery`](../briefs/cross-pack-experience-eval-delivery.md) own M5: E1 (seam checks and adapter-projection validation, under an owner waiver of the M5 ordering) and E2 (fixtures and report-only harness, after the delivered artifacts of M2a, M2b, M3c and M3d). They correct the stale destination, then deliver the layered
 source, projection, activation, handoff, journey, and calibration checks as one
 evaluation product. This remains one feature because every layer proves the
 same cross-pack journey. Re-decompose if a general-purpose eval platform or a
@@ -121,3 +119,9 @@ remote-agent protocol implementation enters scope.
 - Mode: repo-origin
 - Locator: docs/rfc/0071-digital-experience-doctrine.md
 - Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f
+
+## Readiness
+
+Route: brief, [`cross-pack-experience-eval-delivery`](../briefs/cross-pack-experience-eval-delivery.md). First slice E1: deterministic seam checks in `tools/` over the shipped contract; proof is pytest with one seeded violation per class. It needs no upstream work. The golden-path fixtures (E2) wait for the delivered artifacts of the four open doctrine intents; live per-host runs are a named non-blocking follow-up. The intent's `Depends on` header is removed because only E2 waits, and the brief carries that gate.
+
+Decomposition amended 2026-11-05 by eugenelim: this intent is delivered through [`cross-pack-experience-eval-delivery`](../briefs/cross-pack-experience-eval-delivery.md) in two slices, E1 (seam checks, plus adapter-projection validation) and E2 (fixtures and report-only harness). Ordering waiver 2026-11-05: RFC-0071's M5 ordering is waived for E1 only; E2 keeps the strict order.

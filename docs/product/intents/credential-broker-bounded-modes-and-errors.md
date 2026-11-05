@@ -1,10 +1,15 @@
 # Credential broker capture and refresh have bounded modes and errors
 
 - **Slug:** `credential-broker-bounded-modes-and-errors`
-- **Status:** Draft
+- **Status:** Superseded
+- **Superseded by:** sso-browser-state-protection
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/jira-check-sso-auto-login AC35](../../specs/jira-check-sso-auto-login/spec.md); spec `skill-script-exit-2-collision` (retired; its shipped claims live in the [credentials architecture](../../architecture/credentials.md))
+
+## Disposition — superseded 2026-11-05 by sso-browser-state-protection
+
+**Do not shape this intent.** Both slices edit `sso-broker.py` and `_sso.py` under the same protected-tree RFC trailer as the SSO browser-state work. They now ship as slice 1 of [sso-browser-state-delivery](../briefs/sso-browser-state-delivery.md): the capture mode enum (`operator-register`, `ephemeral-register`, `automatic-refresh`) and refresh stderr bounding. The code still shows `persist: bool` and `headless: bool` in `_capture` and inherited engine stderr, so the work is unshipped; only its owner changed.
 
 ## Outcome
 

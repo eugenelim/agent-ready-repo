@@ -274,3 +274,7 @@ that child before spec authoring, not adding a capability-level brief.
 
 - Mode: repo-origin
 - Locator: docs/rfc/0071-digital-experience-doctrine.md
+
+## Readiness
+
+Umbrella only; no session of its own. Of its seven children, `xd-design-system-foundations` is Fulfilled. Open: `product-strategy-adoption-doctrine` (M2a), `product-engineering-shaping-doctrine` (M2b), `xd-ia-archetypes-objects` (M3c), `xd-state-reviewer-doctrine` (M3d), `cross-pack-experience-eval` (M5), `digital-product-guides-update` (M6). M2a, M2b and M3c have no dependency on each other and can run in parallel. Route: close the capability when the six are terminal; the walked end-to-end case is the M5 golden path.

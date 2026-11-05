@@ -1,9 +1,12 @@
 # Close tracker write-back receipt and result contracts
 
 - **Slug:** `tracker-writeback-result-contracts`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **Parent intent:** capability:external-tracker-projection
 
 ## Outcome
 
@@ -38,3 +41,24 @@ The guarded-write boundary accepts a structurally matching receipt without a sha
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+## Current truth
+
+Verified 2026-11-05: `RemoteReceiptWriteResult` and `GuardedWriteResult` in `refresh.py` each carry an unconstrained `code: str`; `RefreshResult` validates against `RESULT_CODES` at construction.
+
+## Readiness
+
+- **Route:** new-spec. Two independent parts, one session each if the owner prefers.
+- **First slice:** a closed code set per result type, validated at construction like `RefreshResult`, covering the core types and each Jira processor's `WriteBackResult`.
+- **Second slice:** receipt runtime identity, tested with a receipt-shaped impostor.
+- **Agent-only proof:** unit tests; a typo code raises.
+- **Manual dependency:** none.
+
+## Non-goals
+
+- A single shared result-code set across result types; it would authorize codes an adapter cannot return.
+- Tracker transport changes and the `RefreshResult` vocabulary, which is already closed.
+
+## Riskiest assumption
+
+**Riskiest assumption:** a per-type closed set covers every code each adapter actually returns today. Tested agent-only by collecting the codes each result type emits across the existing test suites and the source, and asserting each is in its set before the set is enforced.

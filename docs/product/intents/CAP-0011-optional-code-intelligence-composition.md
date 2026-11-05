@@ -3,7 +3,9 @@
 - **Slug:** `optional-code-intelligence-composition`
 - **Level:** capability
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** none
@@ -233,6 +235,12 @@ CAP-0011 Optional code intelligence composition
 - RFC acceptance settles the governing architecture; it does not automatically
   accept this product intent. CAP-0011 remains Draft until its owner makes that
   separate lifecycle decision.
+
+## Readiness
+
+**Route:** none for the capability. Three children are fulfilled, and the fourth, `native-provider-selection-validation`, is the only open one.
+
+**Current truth.** The golden example, grounding composition and exploration composition each have a spec and a fulfilment record. The validation child's spec and plan are in Draft. This intent stays Draft until its owner takes the lifecycle decision, and the human trial in the validation child does not gate that decision.
 
 ## Source
 

@@ -1,9 +1,13 @@
 # One shared source projects a file into every skill location that needs it
 
 - **Slug:** `shared-pack-file-projection`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+## Disposition — withdrawn 2026-11-05, drift is already pinned and a past projection was retired
+
+Checked on 2026-11-05: all eight `file_safety.py` copies under `packs/**` hash identically (one md5), and roster tests pin byte identity for several copies against the `close-work` source (for example `tests/roster/test_navigate_decisions_file_safety_mirror.py` and `test_architect_assess_file_safety_mirror.py`). The repository also built and then retired this exact mechanism: `packages/agentbundle/agentbundle/build/shared_libs.py` records that a byte-copy projection of shared helpers into every skill was removed in favour of an in-process import. Extending `DUP_GROUPS` is not a cheap alternative either, because `check_dup_sync` in `tools/lint-catalogue-curation-guard.py` is fixed to `packs/catalogue-curation/.apm/skills`. Reopen only if a shared helper spreads to many more skills with no byte pin.
 
 ## Outcome
 

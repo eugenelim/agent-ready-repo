@@ -1,9 +1,14 @@
 # A practitioner can account for every deliverable the experience-design pack owes
 
+**Refreshed 2026-11-05.** The pack now registers twelve skills after the consolidation; the counts below were measured before it.
+
 - **Slug:** `experience-design-delivery-packet`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** capability
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 
 ## Outcome
 
@@ -177,3 +182,11 @@ session, not a repository artifact.
 - Mode: repo-origin
 - Locator: packs/experience-design/JOURNEY.md
 - Revision: sha256-bytes-v1:11d854051dc997144fa857a627119debf94967e4376efcc61b15a1acac2579af
+
+## Readiness
+
+Decision 2026-11-05 by the owner: the audience is the design consultancy baseline. Enterprise operating additions stay out of scope and are declared so in the pack documentation. This answers the open question above and removes the product-strategy detour.
+
+Route: brief, [`experience-design-deliverable-accounting`](../briefs/experience-design-deliverable-accounting.md). First slice D1: a cited deliverable inventory; proof is a script that resolves every citation. Checked 2026-11-05: the pack registers twelve skills (the 20 above predates the consolidation). Human walkthrough is a non-blocking confirmation.
+
+**Riskiest assumption:** a stable agency-baseline deliverable set exists that sources agree on. Tested agent-only by D1 in the delivery brief: every baseline line must carry an external citation, and the check fails on a line with none.

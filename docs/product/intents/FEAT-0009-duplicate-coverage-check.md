@@ -215,3 +215,9 @@ validation_hook:
 - **Portability.** Repositories differ in artifact kinds, paths and prose
   conventions, so any mechanism that works here needs a stated reason to work
   elsewhere.
+
+## Readiness
+
+- **Route:** new-spec path, after `FEAT-0007` ships. The spec `duplicate-coverage-offer` is Draft (106 lines).
+- **Riskiest assumption:** offers are not noise. **Agent-only proof:** run the offer over the 83 files in `docs/product/captured/` and the intent corpus, and check the offers against a hand-labelled sample of pairs before the spec is approved.
+- Size: S to M. It can run in parallel with `FEAT-0008`.

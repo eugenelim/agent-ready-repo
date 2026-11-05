@@ -2,8 +2,11 @@
 
 - **Slug:** `dispatch-workflow-posture-assertions`
 - **Level:** feature
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 
 ## Outcome
 
@@ -26,7 +29,7 @@ of shipping.
 
 ## Owner
 
-Repository maintainers.
+eugenelim, as repository maintainer.
 
 ## Unresolved questions
 
@@ -106,3 +109,16 @@ only. Its spec carried an acceptance criterion for exactly this check; the
 criterion was not met, and registering it was preferred over building it in
 haste, because the reviewers' grammar requirement is the part most likely to
 produce a check that cannot fail.
+
+## Non-goals
+
+- `actionlint` and `zizmor` coverage of these files is not weakened.
+- The check asserts properties, not a line-by-line copy of the file.
+- It does not close the accepted residual that a dispatched run executes the selected ref's copy of the workflow.
+- New files under `tools/` stay pure-stdlib.
+
+**Riskiest assumption:** a key grammar that fails closed on every unmodelled form (duplicate keys, flow forms, aliases, escaped keys) can be written for these flat workflows. Agent-only test: one mutation per assertion family, including those forms, must fail the check rather than be skipped.
+
+## Readiness
+
+Route: brief, [`workflow-posture-pinning-delivery`](../briefs/workflow-posture-pinning-delivery.md). Checked 2026-11-05: no posture test exists for `test-corpus.yml` or `test-roster.yml`, and neither file is in the tuple of `tools/check-zizmor-excessive-permissions.py`. Answer to the driver question: an own check built on `tools/posture_harness.py` with one mutation per assertion family; the matrix agreement stays with `test-corpus-sharding`. Answer to the key-grammar question: a declared canonical subset that refuses duplicate keys, flow forms, aliases and escaped keys. First slice P1, proved by the family mutations all failing the check.
