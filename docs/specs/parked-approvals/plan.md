@@ -262,6 +262,19 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 
 **Done when:** `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py` exits 0; and `make lint-ruff lint-mypy` exits 0.
 
+### T14: Region-end test gaps
+
+**Depends on:** T13
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`
+
+**Tests:** TDD — unit; every new test named `test_t14_…`
+- AC-0007 (qe7-1): an approval entry plus a trailing blank line placed directly before a later heading, and the same before a fence, keep the digest; the test reds when blank lines at the region end are no longer dropped.
+- AC-0025 (qe7-2): the fence-opener test's second assertion changes only blank lines after the fence, so it reds when folding reaches past the region end.
+- adv7-2: the region-join docstring states the condition the code applies.
+
+**Done when:** `test_supervisor_gates_digest.py` exits 0 and `make lint-ruff lint-mypy` exits 0.
+
 ### T7: Core release
 
 **Depends on:** T1, T2, T3, T4, T5, T6
