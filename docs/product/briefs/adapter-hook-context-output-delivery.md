@@ -3,7 +3,8 @@
 - **Slug:** `adapter-hook-context-output-delivery`
 - **Received:** 2026-11-05
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Ready
+- **Ready confirmed:** 2026-11-05 by eugenelim, lifecycle owner. Bound to the file as reviewed `Clean` by an independent delivery-brief review at commit `97221f5bb`; the later edits were wording corrections, recorded as nonmaterial by the lifecycle owner. Slice membership and status are the Spec map's; this line does not restate them.
 - **Source / provenance:** [`adapter-hook-context-output`](../intents/adapter-hook-context-output.md) and the [hook adapter audit](../../specs/codex-hook-adaptation-handoff/hook-adapter-audit.md)
 - **Parent intent:** intent:adapter-hook-context-output
 

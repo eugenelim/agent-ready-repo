@@ -46,7 +46,7 @@ All four are independent. Gating is `agent-only`; the workflow slice needs a CI 
 | Slice | Gating | Proof |
 | --- | --- | --- |
 | 1. npm allowlist expiry | agent-only | `tools/test-audit-npm.py` gains an expired-entry and a missing-expiry case |
-| 2. `--require-id-registry` and the Bandit prerequisite | agent-only | Unreachable registry exits 2 in a test; `make build-check` run without Bandit fails with an install message, and the contributor-cost note is in the spec |
+| 2. `--require-id-registry` and the Bandit prerequisite | agent-only | The build-check chain's `lint-nosec-form` step passes `--require-id-registry`. With Bandit absent and `SKIP_SAST=1`, that step exits 2 where today it sets a caveat and exits 0; with Bandit present it exits 0. A test pins both. (A plain `make build-check` already fails without Bandit at `make sast`, so it cannot prove the change.) The contributor-cost note is in the spec |
 | 3. `pack-evals.yml` lockfile install | agent-only; network access to the npm registry is allowed for the proof | `actionlint` clean; the workflow installs only via `npm ci` against the committed lockfile, and a posture assertion fails on a restored `npm install -g`; a local install from the lockfile in a clean directory puts a working `claude --version` on the path; the spec states whether `tools/audit-npm.py` covers the new lockfile and extends it if not |
 | 4. Hash-locked SAST manifest | agent-only | `--require-hashes` install in a fresh venv succeeds; the `build-check.yml` SAST install step and the `pip install -r tools/requirements-sast.txt` hint printed by `make sast` both name the locked file; the Bandit pin check at `build-check.yml:213` reads `tools/requirements-sast-locked.txt` and agrees with the version the lock installs |
 
@@ -56,7 +56,7 @@ None open.
 
 ## Decisions
 
-- Bandit is a hard prerequisite of `make build-check`, matching CI. Decided 2026-11-05 by eugenelim.
+- Bandit is a hard prerequisite of `make build-check`, matching CI. Decided 2026-11-05 by eugenelim. In effect: the `lint-nosec-form` step of the build-check chain fails when Bandit's id registry cannot be resolved, instead of degrading to a caveat, so the prerequisite holds even under `SKIP_SAST=1`.
 
 ## Manual follow-ups (non-blocking)
 

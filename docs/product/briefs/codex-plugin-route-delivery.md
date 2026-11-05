@@ -3,7 +3,8 @@
 - **Slug:** `codex-plugin-route-delivery`
 - **Received:** 2026-11-05
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Ready
+- **Ready confirmed:** 2026-11-05 by eugenelim, lifecycle owner. Bound to the file as reviewed `Clean` by an independent delivery-brief review at commit `97221f5bb`; the later edits were wording corrections, recorded as nonmaterial by the lifecycle owner. Slice membership and status are the Spec map's; this line does not restate them.
 - **Source / provenance:** [`FEAT-0022-codex-plugin-route.md`](../intents/FEAT-0022-codex-plugin-route.md), under [RFC-0092](../../rfc/0092-first-class-distribution-routes.md) and the [distribution-routes programme](distribution-routes-programme.md), Phase 3
 - **Parent intent:** intent:codex-plugin-route
 
