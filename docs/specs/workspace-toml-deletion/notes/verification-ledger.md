@@ -44,3 +44,10 @@ First tested commit: `bbad114db43c5a416de6e22123ac8a9e910ad83c`, the supervisor 
 - `pack-evals.yml` (run 41938172478) measured nothing: `ANTHROPIC_API_KEY` is unset in the repository, so every eval call errored, and the report-only step exits green. The scheduled run on `main` of 2026-11-02 (41470582963) shows the same.
 - Activation, measured locally on `bbad114db43c` through the signed-in Claude CLI with the harness's own `ClaudeCodeDetector`, `run_eval` and `grade()`, 1 run per query, 8 at a time; the 102 runs that errored under that load (the 180-second timeout) were rerun with a 600-second timeout, 4 at a time, all clean. 276 of 362 queries passed; all 166 should-not-trigger queries stayed quiet; all 86 failures are should-trigger misses. Per skill: `workspace-status` 28/30, `navigate-intents` 49/59, `author-brief` 16/16, `receive-brief` 16/16, `author-delivery-brief` 20/25, `project-knowledge` 20/24, `adapt-to-project` 19/23, `new-spec` 17/21, `init-project` 15/19, `close-work` 15/19, `bug-fix` 15/27, `work-intake` 14/31, `intake-intent` 12/18, `explain-diff` 10/16, `repository-exploration` 10/18. The harness defines no pass threshold; the owner recorded the gate as passed.
 - `git diff --name-only bbad114db43c <merged head>` lists no file under a `.apm/`, `skills/` or `evals/` directory.
+
+Second tested commit: `43dec1e6a57976fc78e7c0ce01c764d415df960b`, the pull request's squashed tree before this entry, after the base moved with #1687. The pull request's head differs from it only in this ledger.
+
+- `test-roster.yml`: https://github.com/eugenelim/agent-ready-repo/actions/runs/42043167866, success.
+- `test-corpus.yml`: https://github.com/eugenelim/agent-ready-repo/actions/runs/42043162818, success.
+
+The pull request carries two commits, by the owner's decision of 2026-11-05: the change, and this ledger entry. Each commit's message holds the certification text, and the squash merge joins them, so the commit on `main` carries it.
