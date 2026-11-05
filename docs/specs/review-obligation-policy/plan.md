@@ -114,7 +114,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 4. When an anchor round's last report is admitted, the supervisor appends the anchor-facts line in that same `review` step.
 5. **Round count:** computed from the spec's Round definition over the review subjects recorded in the evidence store. `extend-review` raises the cap by one per admitted decision.
 6. At the cap, with an open non-protected finding in an unprotected unit, the next action is `review-cap`, and no repair request is issued.
-7. `accept-risk` on `review-cap` uses today's writer on the current subject, after the references are mapped back and checked against the request.
+7. `accept-risk` on `review-cap` maps each reference back to its `(report_id, finding_id)` pair, checks it against the request, and disposes that pair on the current subject. Today's writer matches by `finding_id` alone (`_supervisor_review.py` `accept_risk_writer`), so T5 changes it to match the pair, keeping the bare-id path for `review-not-eligible` answers.
 
 ### Failure, edge cases & resilience
 
@@ -164,7 +164,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
   - one fixture per tier
   - one per `full` predicate, including a symlink retarget, a submodule bump, a `.gitattributes` `diff` override on a NUL-bearing blob, a deleted run-added file, and a 1 MiB overflow
   - a path reverted to base after the anchor: it is a delta path, and its reverted lines count toward `minor_fix_max_lines`
-  - one per wording-only exclusion, including a fence opened outside the hunk, an indented code block, a reference link definition, a lower-case `agents.md`, `AGENTS.local.md`, an inline `@` reference, a two-hop `@` reference, and an escaping `@` reference
+  - one per wording-only exclusion, including a fence opened outside the hunk, an indented code block, a reference link definition, a lower-case `agents.md`, `AGENTS.local.md`, an inline `@` reference, a two-hop `@` reference, an escaping `@` reference, a reference through a symlinked directory, a six-hop chain, and an instruction-named symlink
   - a 40-line and a 41-line minor fix, the 41 lines reached over two repairs
   - a rebase with an equal patch id, one with a re-indented line, and one on Git older than 2.39 (by injected version)
   - `review_tier: "full"` over a diff that earns `minor-fix`
@@ -205,8 +205,10 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
   - A two-task repair counts one round.
   - The cap fires on round 2 with cap references only. A finding id holding prose, control characters, or a NUL never appears in the request.
   - Two findings whose ids differ only by where a NUL falls get different references.
+  - Two open findings with the same report id and finding id issue `review-not-eligible`, not `review-cap`.
   - The request id is stable across an unrelated commit, and a `reselect-review` followed by a second cap yields a new id.
   - `accept-risk` disposes the named findings, and an answer naming an unknown reference is refused whole.
+  - Two roles' open findings on the cap subject share a finding id; accepting one reference disposes only that finding.
   - `extend-review` permits one round.
   - `reselect-review`, another answer, and no answer each behave as specified.
   - AC-0029: a protected unit and a protection-unknown unit never issue `review-cap`.
