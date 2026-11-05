@@ -262,8 +262,9 @@ carried as data and has already passed the re-run scan.
   `{"path": <repository-relative path>}` — and an absent citation resolves
   nowhere and is refused. The path is resolved within the repository root,
   symlinks followed — this spec's own confinement standard (§ D7): a path
-  escaping it — any `..` traversal, absolute form, or symlink whose target
-  resolves outside the root — resolves
+  escaping it — a `..` traversal that resolves outside the root, an
+  absolute form, or a symlink whose target resolves outside the root —
+  resolves
   nowhere and is refused the same way. That an existing artifact is live —
   not withdrawn,
   tombstoned, or itself superseded — is the operator's attestation, riding

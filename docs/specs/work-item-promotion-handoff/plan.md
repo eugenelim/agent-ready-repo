@@ -76,7 +76,7 @@ Cross-cutting, beyond the per-task tests below:
 | Current architecture (knowledge-capture entry) | T8, T23 | entry names the drain, the disposition, the envelope, and the no-dispatch hold | close-work reads the entry |
 | Interface compatibility (store event shapes) | T1, T5, T6 | roster suites green over the fixture store | every drain-written disposition parses under the store's validators |
 | Maintainer procedure (work-intake drain section and § 5 lock paragraph) | T7, T19, T22 | source-text assertions | an operator reads the attended rule, the dispatch wiring, and the stale-lock recovery without the spec |
-| Current product truth (work-item guide entry) | T8, T23 | guide names the routes, what closure means, and the non-dispatchable-member hold | cold-adopter check |
+| Current product truth (work-item guide entry) | T8, T21, T23 | guide names the routes, what closure means — including the superseded citation's required field and drain-run test — and the non-dispatchable-member hold | cold-adopter check |
 | Security (`docs/architecture/security.md`) | T8 | the § D10 prose residual recorded as settled by the read-path re-run | the gap list no longer carries it as unowned |
 | Release history (core pack changelog) | T8, T23 | changelog entry | the entry leads the release |
 
@@ -586,6 +586,11 @@ shared transaction helper and T23 in the release surfaces.
   is false is refused — the verdict is a veto on every ground (`AC-0027`).
 - Overtaken and falsified closures are unchanged: the operator's verdict
   still decides them, with the evidence riding the report (`AC-0003`).
+- Source-text assertions, the T7 pattern, over the two closure sentences
+  the citation gate falsifies: `docs/guides/reference/work-item-capture.md`'s
+  closure sentence and work-intake `SKILL.md` § 8's closure sentence each
+  name the required `citation` field and the drain-run resolution test
+  (`AC-0027`).
 
 **Done when:** a superseded closure cannot commit on a citation that
   resolves nowhere, is a path that does not exist, or is absent, and the
@@ -655,11 +660,13 @@ shared transaction helper and T23 in the release surfaces.
   `packs/core/seeds/.gitignore` beside its own lock entry — the shipped
   `intake_transaction.py` creates the temporary in adopter trees too —
   each asserted by a source-text check over its file.
-- The two durable surfaces the hardening falsifies are updated and pinned:
+- The durable surfaces the hardening falsifies are updated and pinned:
   `docs/architecture/knowledge-capture.md`'s confirmed-route sentence gains
   the no-dispatch hold, and `docs/guides/reference/work-item-capture.md`'s
-  question-routing sentence gains the hold on non-dispatchable members;
-  `tests/roster/test_promotion_drain_surfaces.py` extends to pin both, and
+  question-routing and closure sentences gain the non-dispatchable-member
+  hold and the required-citation rule (T21's source-text assertions carry
+  the closure sentence); `tests/roster/test_promotion_drain_surfaces.py`
+  extends to pin both, and
   its changelog-fragment assertion — one fragment matching "promotion
   drain", pinned to the released version — moves to the hardening's
   fragment and version.
