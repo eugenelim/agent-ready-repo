@@ -85,7 +85,8 @@ keeps T2 shippable without it.
   pattern of `tests/roster/test_execution_supervisor_records.py`, and fails
   when any of the eight kinds is missing. It is registered on the Gate
   A-supervisor run line, because the harness skips without
-  `WORK_SUPERVISOR_INTEGRATION=1`. Owned by T5.
+  `WORK_SUPERVISOR_INTEGRATION=1`, and T5 adds `jsonschema` and `referencing`
+  to that job's install step. Owned by T5.
 
 **Manual verification:** none.
 
@@ -191,9 +192,8 @@ Owned by: T2, T3
 - `task-contract.v1` gains `reads` and `writes`; `execution-request.v1` gains
   the `run-concurrent` kind with a `tasks` array; the approval line gains
   `launcher_sha256`.
-- Policy: `concurrency`, `reprojection_bound` (0–8, shipped 2),
-  `max_concurrent_attempts` (2–8, shipped 4), `attempt_timeout_seconds`
-  (60–86,400, shipped 3600). Protocol constants: containment line 60 s,
+- Policy: the four keys, ranges, and shipped values the spec's Policy keys
+  definition states. Protocol constants: containment line 60 s,
   cancellation confirmation 10 s, line cap 4 MiB; each is a module constant a
   test overrides through the clock seam.
 - Run store: `launcher/` (the pinned copy, alone in an 0700 directory),
@@ -233,7 +233,7 @@ Owned by: T2
   in floor order: read the tip once; check attested sets against
   the rename-aware `diff --name-status -M` from source to tip, with both rename
   ends and each path's ancestors; `merge.*` and `check-attr`; merge-tree;
-  changed-path check on the merged tree; commit with the trailer;
+  changed-path check and link re-check (AC-0074) on the merged tree; commit with the trailer;
   compare-and-swap `HEAD` and the product ref from the observed tip; record
   `result-integration.v1`; materialize the working tree and index; release.
 - A floor task issues only while no attempt is open; a held result is not open
@@ -345,6 +345,8 @@ merge base.
 - AC-0036, AC-0037, AC-0038, AC-0039, AC-0041: the apply step directly, over
   same-line, worktree `merge=union`, `info/attributes`, `merge.default=union`,
   and outside-changed-path fixtures.
+- AC-0074: a floor-integrated `p/q -> ..` followed by a concurrent
+  `p/x -> q/delivery/approvals.jsonl` refuses at the merged-tree link check.
 - AC-0033, AC-0050: a floor attempt rewrites a held record and a held tree; a
   trusted-file change while a sibling is open; a held result integrates through
   the floor result's `report` in floor order; and AC-0025's held branch,

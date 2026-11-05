@@ -83,7 +83,7 @@ Maintainers running full-mode `work-loop` get `implement-task` attempts that may
 - **Launcher and attestation (AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025, AC-0065, AC-0066, AC-0067, AC-0069):** TDD at the launcher boundary with the fixture launcher scripted to emit each defect, because each defect is one refusal with one oracle; the build-output check is a roster test, because pack tests may not read outside the pack.
 - **Reads, writes, and paths (AC-0026, AC-0027, AC-0028):** TDD through `run-concurrent`, asserting the supervisor's response to scripted attestations, never the fixture's own output.
 - **Ingestion and held results (AC-0029, AC-0030, AC-0031, AC-0032, AC-0033, AC-0070, AC-0071, AC-0073):** TDD at the ingestion boundary over link, special-file, oversized, late-write, and tamper fixtures.
-- **Integration (AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0072):** TDD at the integration boundary over real trees and refs; the apply-level conflict and attribute cases drive the apply step directly as defence in depth, because admission keeps meeting tasks apart; kill points and ref races are integration tests.
+- **Integration (AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048, AC-0072, AC-0074):** TDD at the integration boundary over real trees and refs; the apply-level conflict and attribute cases drive the apply step directly as defence in depth, because admission keeps meeting tasks apart; kill points and ref races are integration tests.
 - **Isolation, blast radius, and plan changes (AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054, AC-0055, AC-0056, AC-0057, AC-0058, AC-0068):** integration tests over two- and three-attempt batches with injected refusal, failure, tamper, and cancellation.
 - **Determinism (AC-0059, AC-0060, AC-0061, AC-0062):** goal-based permutation corpus, exercised end to end through the supervisor harness, with completion order forced by fixture coordination and observed in the journal.
 - **Contracts (AC-0063, AC-0064):** goal-based schema validation in one roster suite that runs the corpus and collects its records, plus the existing parity suites.
@@ -132,7 +132,7 @@ Admission and the floor
 
 Launcher and attestation
 
-- [ ] **AC-0013.** `start` pins a launcher only when `launcher_sha256` in the run's approval line, taken from the owner's own approval answer, equals the sha256 of a launcher file outside the work tree; an approval line that names a `launcher_sha256` with no such file refuses `launcher-unapproved`, and one that names none pins nothing.
+- [ ] **AC-0013.** `start` pins a launcher only when `launcher_sha256` in the run's approval line, taken from the owner's own approval answer, equals the sha256 of a launcher file outside the work tree; an approval line that names a `launcher_sha256` with no such file pins nothing and records a `security-event.v1`, and one that names none pins nothing; neither refuses `start`.
 - [ ] **AC-0014.** A run's launcher pin does not change for the life of the run.
 - [ ] **AC-0015.** The supervisor hashes the run's private launcher copy immediately before each spawn and again after reading the containment line, and a mismatch at either point sends the task to the floor without a release and records a `security-event.v1`.
 - [ ] **AC-0016.** The launcher starts in an empty private working directory, with no inherited file descriptor other than its standard input, output, and error, and with an environment of exactly `PATH=/usr/bin:/bin`, `LANG=C.UTF-8`, and `HOME` and `TMPDIR` set to supervisor-created private directories, whatever the invoking environment holds.
@@ -149,7 +149,7 @@ Launcher and attestation
 - [ ] **AC-0069.** No release is sent before the launcher's process-group id and its leader's start time are durable in the run store.
 - [ ] **AC-0068.** An attempt with no `access` line within `attempt_timeout_seconds` (Policy keys) is cancelled, with the outcome AC-0052, AC-0053, and AC-0054 state for a confirmed and an unconfirmed end.
 - [ ] **AC-0025.** After a `run-concurrent` invocation dies, the next supervisor verb records as integrated each attempt of that invocation whose commit the product ref carries, keeps each attempt with a held-result record held, and for every other attempt ends its launcher process group, confirms the end within 10 seconds, closes it as cancelled, and issues its task on the floor.
-- [ ] **AC-0065.** Recovery never signals a process group when a process other than the recorded leader (by process id and start time) holds the leader's process id; when no process holds that id but the group still has members, recovery signals the group and confirms its end; when neither exists, the end is confirmed.
+- [ ] **AC-0065.** Recovery never signals a process group when a process other than the recorded leader (by process id and start time) holds the leader's process id, and treats that attempt's end as confirmed; when no process holds that id but the group still has members, recovery signals the group and confirms its end; when neither exists, the end is confirmed.
 - [ ] **AC-0066.** An end recovery cannot confirm within 10 seconds leaves that attempt's directory as residue and issues its task on the floor.
 
 Reads, writes, and paths
@@ -178,6 +178,7 @@ Integration
 - [ ] **AC-0038.** A non-default `merge` attribute from `info/attributes` on any changed path gives the refusal outcome.
 - [ ] **AC-0039.** A `merge.*` key present in repository configuration at the apply, including `merge.default=union` over a same-line change, gives the refusal outcome.
 - [ ] **AC-0040.** `start` refuses `unsupported-git-config` for a repository whose configuration defines any `merge.<name>.driver`.
+- [ ] **AC-0074.** A symbolic link in the merged tree whose target, resolved through every link that tree holds, meets AC-0070's conditions gives the refusal outcome before the product ref moves.
 - [ ] **AC-0041.** An apply whose tree differs from the observed tip at a path outside the result's changed paths gives the refusal outcome.
 - [ ] **AC-0042.** A compare-and-swap lost to a ref move gives the refusal outcome.
 - [ ] **AC-0043.** A ref move injected between the intervening-change check and the compare-and-swap gives the refusal outcome.
