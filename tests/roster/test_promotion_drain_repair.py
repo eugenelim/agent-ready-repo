@@ -37,6 +37,8 @@ WL = _load_module(
     "_roster_header_readiness_repair",
     REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "work-loop" / "scripts" / "_header_readiness.py",
 )
+H = WL
+_CAPTURED_FILE_RE = WL._CAPTURED_FILE_RE
 
 
 def _request(shape: str, statement: str, **extra: str) -> dict[str, Any]:
@@ -450,3 +452,46 @@ def test_store_terminal_dispositions_clean_store_unchanged(git_repo: Path) -> No
         {"capture_id": ids[0], "disposition": "rejected",
          "reason_code": "not-a-defect"}
     ], dispositions
+
+
+# --- T15: the captured-item filename stays inside the owner's grammar --------
+
+
+def _routed_defect_with_statement(repo: Path, statement: str) -> dict[str, Any]:
+    ids = _seed_store(
+        repo, [_request("defect", statement,
+                        observed="The filename must match the owner grammar.",
+                        intended="The owner listing sees the item.")]
+    )
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
+    return {"capture_id": ids[0], "report": report}
+
+
+def test_nonascii_statement_lands_inside_owner_grammar(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t15")
+    _routed_defect_with_statement(
+        repo, "Le café du matin n'est pas prêt"
+    )
+
+    captured = repo / "docs" / "product" / "captured"
+    (artifact,) = captured.iterdir()
+    assert _CAPTURED_FILE_RE.match(artifact.name), artifact.name
+
+    listing = H.list_captured_items(repo, frozenset())
+    assert not listing.findings
+    assert [item["path"] for item in listing.items] == [
+        artifact.relative_to(repo).as_posix()
+    ]
+
+
+def test_ascii_statement_filename_unchanged(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t15-ascii")
+    seeded = _routed_defect_with_statement(
+        repo, "Router drops held items on re-run"
+    )
+    tail = seeded["capture_id"][-12:]
+
+    captured = repo / "docs" / "product" / "captured"
+    (artifact,) = captured.iterdir()
+    assert artifact.name == f"router-drops-held-items-on-re-run-{tail}.md"

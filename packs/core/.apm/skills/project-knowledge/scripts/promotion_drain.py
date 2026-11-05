@@ -605,7 +605,8 @@ def _captured_item_target(offer: dict[str, Any]) -> str:
     a closed capture cannot re-materialize its handoff (§ D1)."""
     statement = offer["request"]["work_item"]["statement"]
     translated = "".join(
-        character if character.isalnum() else "-" for character in statement.lower()
+        character if "a" <= character <= "z" or "0" <= character <= "9" else "-"
+        for character in statement.lower()
     )
     slug = "-".join(part for part in translated.split("-") if part)[:60]
     tail = offer["capture_id"][-12:]
