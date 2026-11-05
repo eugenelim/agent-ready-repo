@@ -1010,7 +1010,8 @@ def _rows() -> list[dict[str, object]]:
 def test_ac0013_inventory_rows() -> None:
     rows = {row["pattern"]: row for row in _rows()}
     own = rows["docs/specs/registry-upgrade-notes/*"]
-    assert (own["class"], own["owner"]) == ("contract", 9)
+    # Once the spec shipped, workspace-toml-deletion moved its row to the history set.
+    assert (own["class"], own["owner"]) == ("historical", "none")
     assert UPGRADE_PAGE in rows
     draft = rows[DRAFT_NOTES]
     assert (draft["class"], draft["owner"]) == ("historical", "none")
@@ -1052,10 +1053,27 @@ def test_ac0017_versions_and_fragment() -> None:
 _LEDGER = "docs/specs/registry-upgrade-notes/notes/verification-ledger.md"
 
 
+# AC-0016 is a delivery-time pin. The upgrade page is still bound at head; the record
+# and the brief are bound to this spec's merge commit, because the closing slice
+# (workspace-toml-deletion) edits both after this spec shipped.
+_DELIVERY_COMMIT = "88c952f49"
+
+
+def _approved_bytes(path: str) -> bytes:
+    if path == UPGRADE_PAGE:
+        return (REPO_ROOT / path).read_bytes()
+    return subprocess.run(
+        ["git", "show", f"{_DELIVERY_COMMIT}:{path}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        check=True,
+    ).stdout
+
+
 def test_ac0016_ledger_binds_each_approved_file_at_head() -> None:
     ledger = read_text(REPO_ROOT / _LEDGER)
     for path in (UPGRADE_PAGE, _RECORD, _BRIEF):
-        digest = hashlib.sha256((REPO_ROOT / path).read_bytes()).hexdigest()
+        digest = hashlib.sha256(_approved_bytes(path)).hexdigest()
         rows = [
             line
             for line in ledger.splitlines()

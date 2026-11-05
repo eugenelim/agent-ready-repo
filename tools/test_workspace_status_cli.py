@@ -25,7 +25,7 @@ from pathlib import Path
 
 def _repo_root() -> Path:
     for p in Path(__file__).resolve().parents:
-        if (p / "workspace.toml").exists() and (p / "packs").is_dir():
+        if (p / "AGENTS.md").is_file() and (p / "packs").is_dir():
             return p
     raise RuntimeError("cannot locate repo root")
 

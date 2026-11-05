@@ -1327,7 +1327,7 @@ jobs:
 
       # agent-skill-engineering-consumer-integrations: the consumer half binds
       # packs/core, packs/architect and packs/agent-skill-engineering plus
-      # docs/, guides/, packages/agentbundle/_data/ and workspace.toml, so
+      # docs/, guides/ and packages/agentbundle/_data/, so
       # lint-pack-test-boundary forbids it from any one pack's test tree. CI
       # does not auto-discover roster tests one by one, and this job's bulk
       # `pytest tests/ -q` step above also collects the module, so the
