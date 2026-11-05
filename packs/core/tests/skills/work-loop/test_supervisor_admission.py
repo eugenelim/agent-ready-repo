@@ -45,7 +45,8 @@ REVIEWER = "plan-reviewer:0123456789ab"
 def _start(repo: Path, *, intent: str = "code", authority: str = OWNER,
            reviewer: str = REVIEWER, trust: str = "untrusted") -> tuple[int, dict]:
     return h.run_cli(repo, "start", h.SPEC_DIR, "--intent", intent, "--code-trust", trust,
-                     "--authority-ref", authority, "--review-authority-ref", reviewer)
+                     "--authority-ref", authority, "--review-authority-ref", reviewer,
+                     *h.digest_args(repo))
 
 
 def _commits(repo: Path) -> list[str]:

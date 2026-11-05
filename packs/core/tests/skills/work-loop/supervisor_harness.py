@@ -337,6 +337,19 @@ class Controller:
         self.between(self, request, "reported")
 
 
+def digest_args(repo: Path, spec_dir: str = SPEC_DIR) -> list[str]:
+    """The two ``start`` digest arguments for the spec and plan now in *repo*."""
+    gates = cli._supervisor("_supervisor_gates.py")
+    spec = (repo / spec_dir / "spec.md").read_bytes()
+    plan = (repo / spec_dir / "plan.md").read_bytes()
+    return [
+        "--approved-spec-digest",
+        gates.gate_digest(spec, name="spec.md"),
+        "--approved-plan-digest",
+        gates.gate_digest(plan, name="plan.md"),
+    ]
+
+
 def start(repo: Path, intent: str = "code") -> tuple[int, dict[str, Any]]:
     return run_cli(
         repo,
@@ -350,4 +363,5 @@ def start(repo: Path, intent: str = "code") -> tuple[int, dict[str, Any]]:
         "owner:0123456789ab",
         "--review-authority-ref",
         "plan-reviewer:0123456789ab",
+        *digest_args(repo),
     )
