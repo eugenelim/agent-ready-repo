@@ -75,7 +75,7 @@ Owned by: T2, T3. Traces to AC-0001, AC-0006, AC-0013.
 
 Owned by: T1, T10. Traces to AC-0007, AC-0008, AC-0025.
 
-- Gate digest: decode the bytes as strict UTF-8 and refuse `GateDigestRefused("gate-unsafe-content")` on failure or when a character fails AC-0039 (the hidden-character half calls `is_hidden_char` from `lint-knowledge.py`, loaded by path as a sibling; the Cc, U+2028/U+2029, and U+FFF9 to U+FFFB checks and the invisible budget, length basis 2,000, live in `_supervisor_gates.py`); normalize CRLF/CR to LF; after the last line that is exactly `## Changelog`, drop every line whose `str.rstrip()` form fully matches the approval-entry pattern `^- [0-9]{4}-[0-9]{2}-[0-9]{2}: (spec|plan|amendment) approved by [A-Za-z0-9][A-Za-z0-9-]{0,38}( \((scope|build strategy|scope and build strategy)\))?\.?$` (compiled with `re.ASCII`); fold each run of blank lines into one and drop blank lines at the end; then SHA-256 of `_loop_guards.canonical_contract(text, ac_section_only=(name != "plan.md"))`. No Markdown structure is parsed. AC-0025 is the one statement of the grammar; this pattern implements it.
+- Gate digest: decode the bytes as strict UTF-8 and refuse `GateDigestRefused("gate-unsafe-content")` on failure or when a character fails AC-0039 (the hidden-character half calls `is_hidden_char` from `lint-knowledge.py`, loaded by path as a sibling; the Cc, U+2028/U+2029, and U+FFF9 to U+FFFB checks and the invisible budget, length basis 2,000, live in `_supervisor_gates.py`); normalize CRLF/CR to LF; after the last line whose `str.rstrip()` form is exactly `## Changelog`, drop every line whose `str.rstrip()` form fully matches the approval-entry pattern `^- [0-9]{4}-[0-9]{2}-[0-9]{2}: (spec|plan|amendment) approved by [A-Za-z0-9][A-Za-z0-9-]{0,38}( \((scope|build strategy|scope and build strategy)\))?\.?$` (compiled with `re.ASCII`); after that line only, fold each run of blank lines into one and drop blank lines at the end; then SHA-256 of `_loop_guards.canonical_contract(text, ac_section_only=(name != "plan.md"))`. No Markdown structure is parsed. AC-0025 is the one statement of the grammar; this pattern implements it.
 - Statuses for AC-0004 come from the existing status parser `_loop_guards` already loads.
 - "Clean" for AC-0003, without writing the index: `ls-files -s -- <path>` must print exactly one stage-0 entry; its blob must equal `rev-parse HEAD:<path>`; and `hash-object --no-filters --stdin`, fed the bytes `park` already read, must equal that blob either for the raw bytes or for the bytes with CRLF turned into LF. All three run through `HardenedGit` unchanged; none of them takes Git's optional index lock, so no extra environment is passed. No `diff` or `status` runs, because they refresh the index's stat cache.
 - "Admitted" for AC-0005 and AC-0012: the latest line of `Workspace.approvals("HEAD")` carries `envelope.envelope_fingerprint` equal to `_acceptance.derive_envelope` of the spec's current references, `terminal_intent` equal to the given intent, and `code_trust` equal to the given trust: the same three values `start` compares.
@@ -230,6 +230,24 @@ Owned by: T3. `gates` launches two `git show` reads per valid record and none pe
 
 **Done when:** `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py`, `test_supervisor_untrusted_unsafe_host.py`, `test_supervisor_admission.py`, and `test_supervisor_cutover_source_checks.py` exit 0; and `make lint-ruff lint-mypy` exits 0.
 
+### T12: Third code-review repairs
+
+**Depends on:** T11
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_gates.py`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/pre-execute-review.md`, `packs/core/.apm/skills/new-spec/assets/plan.md`, `packs/core/tests/skills/work-loop/test_supervisor_gates_digest.py`, `packs/core/tests/skills/work-loop/test_parked_gates_guidance.py`, `packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py`
+
+**Tests:** TDD — unit and goal-based; every new test named `test_t12_…`
+- AC-0007, AC-0025 (adv5-2, sec5-1): a trailing space on the real `## Changelog` line keeps the digest with an entry present; an earlier exact `## Changelog` inside a fenced example does not become the boundary when the real heading gains a trailing space.
+- AC-0007, AC-0008 (sec5-2): extra blank lines after the last `## Changelog` line keep the digest; a changed blank-line count before it, including inside a fenced stub, changes the digest.
+- AC-0025 (qe5-1): with two `## Changelog` lines, an entry after the first but before the last changes the digest, and each placement case compares texts that differ only by the entry.
+- AC-0007 (qe5-2): a file with no final newline and the same file with trailing blank lines after the heading have the same digest.
+- AC-0025 (qe5-4): a 39-character handle and handles starting with an uppercase letter or a digit keep the digest.
+- AC-0039 (qe5-3, qe5-5): refusal details assert literal line numbers, including a budget-overrun refusal.
+- AC-0021 (adv5-1, adv5-3, adv5-5, qe5-8): `pre-execute-review.md` and the new-spec plan template state AC-0021's rules or point to the supervisor reference for them; every surface that paraphrases the entry form quotes the reason set (`scope`, `build strategy`, `scope and build strategy`), the optional final period, and the `amendment` kind exactly; the `gates` answer text is asserted through `ANSWERS`, and the docstring cites AC-0021.
+- qe5-6, qe5-7: `park` picks the first refusal as `start` does; the lone-CR comment describes only the CRLF case.
+
+**Done when:** `test_supervisor_gates_digest.py` and `test_parked_gates_guidance.py` exit 0; under `WORK_SUPERVISOR_INTEGRATION=1`, `test_supervisor_parked_gates.py` exits 0; the new-spec tests exit 0; and `make lint-ruff lint-mypy` exits 0.
+
 ### T7: Core release
 
 **Depends on:** T1, T2, T3, T4, T5, T6
@@ -255,4 +273,5 @@ Ships in the next core patch. Every controller that records an approval with `st
 
 - 2026-11-04: spec approved by eugenelim (scope).
 - 2026-11-04: plan approved by eugenelim (build strategy).
+- 2026-11-04: amendment approved by eugenelim (scope and build strategy).
 - 2026-11-04: amendment approved by eugenelim (scope and build strategy).
