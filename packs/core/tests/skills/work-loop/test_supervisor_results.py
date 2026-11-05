@@ -106,7 +106,8 @@ def test_report_refuses_before_any_write(tmp_path: Path) -> None:
     repo = h.make_repo(tmp_path)
     code, _ = h.run_cli(repo, "start", h.SPEC_DIR, "--intent", "code", "--code-trust", "trusted",
                         "--authority-ref", "owner:0123456789ab",
-                        "--review-authority-ref", "plan-reviewer:0123456789ab")
+                        "--review-authority-ref", "plan-reviewer:0123456789ab",
+                        *h.digest_args(repo))
     assert code == 0
     _, issued = h.run_cli(repo, "next", h.SPEC_DIR)
     request = issued["request"]
@@ -143,7 +144,8 @@ def test_untrusted_trust_issues_no_implement_task_for_a_task_without_stubs(
     repo = h.make_repo(tmp_path, plan=RELEASE_PLAN)
     code, _ = h.run_cli(repo, "start", h.SPEC_DIR, "--intent", "code", "--code-trust",
                         "untrusted", "--authority-ref", "owner:0123456789ab",
-                        "--review-authority-ref", "plan-reviewer:0123456789ab")
+                        "--review-authority-ref", "plan-reviewer:0123456789ab",
+                        *h.digest_args(repo))
     assert code == 0
     code, out = h.run_cli(repo, "next", h.SPEC_DIR)
     request = out["request"]
@@ -151,10 +153,10 @@ def test_untrusted_trust_issues_no_implement_task_for_a_task_without_stubs(
     assert request["reason"] == "untrusted-code"
 
 
-def _start_args(trust: str) -> list[str]:
+def _start_args(repo: Path, trust: str) -> list[str]:
     return ["start", h.SPEC_DIR, "--intent", "code", "--code-trust", trust,
             "--authority-ref", "owner:0123456789ab",
-            "--review-authority-ref", "plan-reviewer:0123456789ab"]
+            "--review-authority-ref", "plan-reviewer:0123456789ab", *h.digest_args(repo)]
 
 
 @sup.INTEGRATION
@@ -162,7 +164,7 @@ def test_a_red_task_re_approved_as_untrusted_gets_no_implement_task_and_no_repor
     tmp_path: Path,
 ) -> None:
     repo = h.make_repo(tmp_path)
-    assert h.run_cli(repo, *_start_args("trusted"))[0] == 0
+    assert h.run_cli(repo, *_start_args(repo, "trusted"))[0] == 0
     controller = h.Controller(repo, tmp_path / "effects.log")
     stub = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
     assert stub["kind"] == "write-stub"
@@ -170,7 +172,7 @@ def test_a_red_task_re_approved_as_untrusted_gets_no_implement_task_and_no_repor
     issued = h.run_cli(repo, "next", h.SPEC_DIR)[1]["request"]
     assert issued["kind"] == "implement-task"
     result = controller.work(issued)
-    code, out = h.run_cli(repo, *_start_args("untrusted"))
+    code, out = h.run_cli(repo, *_start_args(repo, "untrusted"))
     assert code == 0, out
     code, out = h.run_cli(repo, "next", h.SPEC_DIR)
     request = out["request"]

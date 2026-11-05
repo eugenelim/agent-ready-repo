@@ -457,7 +457,7 @@ def test_another_decision_kind_over_uncommitted_plan_edits_is_refused(tmp_path: 
     repo = h.make_repo(tmp_path, plan=_stub_plan())
     code, _ = h.run_cli(repo, "start", SPEC, "--intent", "code", "--code-trust", "untrusted",
                         "--authority-ref", OWNER, "--review-authority-ref",
-                        "plan-reviewer:0123456789ab")
+                        "plan-reviewer:0123456789ab", *h.digest_args(repo))
     assert code == 0
     _, payload = h.run_cli(repo, "next", SPEC)
     request = payload["request"]

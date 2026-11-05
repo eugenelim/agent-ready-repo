@@ -326,11 +326,22 @@ hard failure. Never require whole-repository ingestion or a new durable file.
 12. **Full mode:** the **G-plan sequence** — two human approvals, run in
     order, then `start`. `spec-approved` is the scope decision and
     `plan-approved` the build-strategy decision. Each approver writes
-    `Status: Approved` and its Changelog entry. Then the supervisor takes over:
+    `Status: Approved` and its Changelog entry, one line in the form the Parked
+    gates section of [`references/supervisor.md`](references/supervisor.md) gives. Then the supervisor takes over:
+    0. Park each gate once the pre-EXECUTE reviewers are clean: `python '<skill-dir>/scripts/work-supervisor.py' park <spec-dir> --gate spec-approved|plan-approved --intent code|spec-plan --code-trust trusted|untrusted`.
+       Show the human the `gates` entry for the spec. Dispatch no
+       implementation work for a parked spec, and edit its spec or plan only
+       through the rejected-gate route below. While a gate waits, work another
+       spec that does not depend on it, or end the turn with the `gates`
+       listing. Never treat a parked gate as approved: no answer, a timeout, a
+       stale entry, or a listing is never an approval.
     1. Request the `spec-approved` capture (below), after the spec approver
        writes `Status: Approved` and before `start`.
     2. Write `Implementing` in `spec.md` and `Executing` in `plan.md`, commit
-       both, and run `python '<skill-dir>/scripts/work-supervisor.py' start <spec-dir> --intent code|spec-plan --code-trust trusted|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>]`.
+       both, and run `python '<skill-dir>/scripts/work-supervisor.py' start <spec-dir> --intent code|spec-plan --code-trust trusted|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>] --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>`.
+       Pass the spec digest from the spec approver's own answer and the plan
+       digest from the plan approver's own answer; a digest copied from `park`
+       or `gates` output without that answer is not an approval.
        `start` records the approval pair, with the two humans' authority
        references, and answers `admitted`, `current` (already running), or
        `terminal` (a `spec-plan` intent, which ends here). No whole-plan hash
@@ -339,8 +350,10 @@ hard failure. Never require whole-repository ingestion or a new durable file.
     3. Request the `plan-locked` capture at `start`, once it answers
        `admitted`, or `terminal` for a `spec-plan` intent.
 
-    Arguments, authority references, and the Git settings `start` refuses: load
-    [`references/supervisor.md`](references/supervisor.md) § *Before `start`*.
+    Arguments, authority references, digests, parked-gate states, and the Git
+    settings `start` refuses: load
+    [`references/supervisor.md`](references/supervisor.md) § *Parked gates* and
+    § *Before `start`*.
 
     ### Project-knowledge integration
 

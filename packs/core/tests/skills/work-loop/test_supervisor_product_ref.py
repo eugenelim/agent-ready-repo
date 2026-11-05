@@ -464,7 +464,8 @@ def test_foreign_history_blocks_every_committing_verb(
     elif verb == "start":
         code, out = h.run_cli(
             repo, "start", h.SPEC_DIR, "--intent", "code", "--code-trust", "untrusted",
-            "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab")
+            "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab",
+            *h.digest_args(repo))
         assert code == 1 and out["refusal"]["code"] == "history-adoption-required", out
     else:
         code, out = calls[verb]()
@@ -855,7 +856,8 @@ def test_an_interrupted_transaction_is_never_counted_or_moved_to(
             assert "Adoption would be refused" in question and "adopt-history" not in question
         code, out = h.run_cli(
             repo, "start", h.SPEC_DIR, "--intent", "code", "--code-trust", "untrusted",
-            "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab")
+            "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab",
+            *h.digest_args(repo))
         assert code == 1 and out["refusal"]["code"] == "history-adoption-required", out
         assert f"git reset --soft {recorded}" in out["refusal"]["detail"]
         # Every verb that finds the ref on an unrecorded commit logs a denial; status does not.
@@ -1364,7 +1366,7 @@ def test_an_approval_base_that_is_not_the_approvals_parent_is_never_used(
         for verb, argv in (
             ("start", ("start", h.SPEC_DIR, "--intent", "code", "--code-trust", "trusted",
                        "--authority-ref", OWNER, "--review-authority-ref",
-                       "plan-reviewer:0123456789ab")),
+                       "plan-reviewer:0123456789ab", *h.digest_args(repo))),
             ("next", ("next", h.SPEC_DIR)),
             ("status", ("status", h.SPEC_DIR, "--json")),
         )
@@ -1451,7 +1453,8 @@ def test_a_finished_run_squashed_into_its_terminal_commit_is_not_a_first_admissi
     for verb in ("status", "start"):
         argv = ("status", h.SPEC_DIR, "--json") if verb == "status" else (
             "start", h.SPEC_DIR, "--intent", "code", "--code-trust", "trusted",
-            "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab")
+            "--authority-ref", OWNER, "--review-authority-ref", "plan-reviewer:0123456789ab",
+            *h.digest_args(repo))
         code, out = h.run_cli(repo, *argv)
         text = json.dumps(out)
         assert "git reset --soft" not in text and "first admission" not in text, (verb, out)
