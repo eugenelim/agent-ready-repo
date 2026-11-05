@@ -107,6 +107,16 @@ Traces to: AC-0015. Owned by: T2.
 
 **Done when:** `python3 -m pytest tools/test_precheck.py tools/test_lint_agents_md_local_gate.py -q` passes, `python3 tools/lint-agents-md.py` exits 0, and `python3 -m pytest tests/roster/test_verify_entry_receipts.py tests/roster/test_cognitive_load_repository_contract.py tools/test_agents_md_readability_floor.py -q` passes.
 
+### T7: repair the round-3 review finding on the precheck entry
+
+**Depends on:** T6
+
+**Tests:**
+- Goal-based: the precheck entry's Isolation names the commit the throwaway worktree starts from (a branch cut from `origin/main`, so the committed diff against the base is empty) and Drive passes `--base origin/main`, so the stated "only self-host triggers" and "exit 0" results hold from that start point, and the entry says so (AC-0017).
+- TDD, at `tools/test_precheck.py`: the scratch-repo executor neutralises both the system and the global git config the way the existing `_git` helper does, and the worktree-rename test asserts git reported a ` R` entry before it asserts the source path, so it cannot pass without the either-column fix on a machine whose config turns status renames off (AC-0002, AC-0006).
+
+**Done when:** `python3 -m pytest tools/test_precheck.py tools/test_lint_agents_md_local_gate.py -q` passes, `python3 tools/lint-agents-md.py` exits 0, and `python3 -m pytest tests/roster/test_verify_entry_receipts.py tests/roster/test_cognitive_load_repository_contract.py tools/test_agents_md_readability_floor.py -q` passes.
+
 ## Rollout
 
 Local tooling and guidance only; reversible by revert. No sequencing.
