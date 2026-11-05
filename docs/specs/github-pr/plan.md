@@ -153,6 +153,15 @@ The controller handles F9 (eval record wording and read targets) and the eval re
 - B9: rename tests that reuse spec criterion IDs for repair items.
 **Done when:** every item above is visible in the shipped text, the T4 commands exit 0, and no file under `docs/specs/github-pr/` changed.
 
+### T8: review depth and adopt order are in the skill text, tests, and cases
+
+**Depends on:** T7
+**Touches:** packs/github/.apm/skills/github-pr/**, packs/github/tests/skills/github-pr/**, packs/github/{pack.toml,README.md,.claude-plugin/plugin.json}, .claude-plugin/marketplace.json, guides/github/how-to/**, docs/product/changelog.d/**
+**Tests:**
+- TDD with the construction tests for R1-R3 and A14-A16, plus two eval cases tagged with them; the T4 commands stay green. A graded run of the new cases is not part of this task.
+**Approach:** SKILL.md gains the shared review lenses; review.md verifies each finding before drafting; adopt.md orders red test, fix, gates, and an independent security review before the push.
+**Done when:** the construction tests pass, `catalogue verify` is ok, and the pack version is 0.3.2 in all three files.
+
 ## Changelog
 
 - 2026-10-30: drafted.
@@ -160,3 +169,4 @@ The controller handles F9 (eval record wording and read targets) and the eval re
 - 2026-10-30: spec amended after round-2 review: the closed read-only set admits `git remote get-url origin`, U5 also stops on an origin URL with userinfo, and global git options are skipped with their argument; tasks T6 and T7 added for review repairs. Cold shaping review of the amendment found no blocker.
 - 2026-10-30: the final review stage ran outside the work-supervisor: another session on the machine edited the shared `.git/config` while the T7 attempt was open, the supervisor refused to continue (`attempt-refused`, `common:config`), and the original bytes could not be rebuilt. The owner chose to finish by hand. The T7 repairs and three further review rounds (adversarial and security) were committed and recorded here instead of under `delivery/`; the eval record names the final digest.
 - 2026-10-31: owner approved a one-line amendment to G9a naming `find`, `grep`, `sort`, `cut`, `awk`, `printf`, `cmp`, and `test -d|-e` as allowed for the sandbox config comparison (never a git command), after round-5 review showed a correct record needs them.
+- 2026-11-05: owner requested review depth and adopt order: spec gains R1-R3 and A14-A16, and the skill, tests, evals, and pack version (0.3.2) follow. The two new eval cases have construction tests only; no graded run has covered them.

@@ -15,6 +15,7 @@ B_IDS = [
     "U2", "U3", "U5", "U5a", "U6", "U7", "C7a",
     "G1", "G5", "G6", "G8", "G9", "G9a", "G9b", "G9c", "G10", "G11", "G11a", "G12",
     "A2", "A3", "A5", "A5a", "A6", "A7", "A8", "A9", "A9a", "A9b", "A10", "A10a", "A11", "A12", "A13",
+    "R1", "R2", "R3", "A14", "A15", "A16",
 ]  # fmt: skip
 
 # Each case carries a `scenario` tag; E4 and E5 name the scenarios that must exist.
@@ -153,5 +154,5 @@ def test_adopt_sandbox_case_approval_can_be_accepted_as_displayed() -> None:
     assert "as displayed" in case["turns"][1]["user"] and "merge method" in case["turns"][1]["user"]
 
 
-def test_case_count_is_unchanged_by_the_repairs() -> None:
-    assert len(_cases()) == 38
+def test_case_count() -> None:
+    assert len(_cases()) == 41

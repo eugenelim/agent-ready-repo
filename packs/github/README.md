@@ -24,9 +24,9 @@ You also need the [`gh` CLI](https://cli.github.com), signed in for any reposito
 - Turn it into the right local artifact. Content decides: an Issue is not always a spec, and a Milestone is not always a brief.
 - Refresh a tracked artifact and show you the field-by-field delta before anything local changes.
 - Write coordination back to GitHub, such as a trace link, pull-request link, status label, comment, or closure, after you confirm that exact change.
-- **Review** someone else's pull request: read it, draft your review, and after you approve it, leave it as a pending review for you to submit.
+- **Review** someone else's pull request: read its design and spec as well as its code, with a security-boundary lens, check each comment against the code, draft your review, and after you approve it, leave it as a pending review for you to submit.
 - **Iterate** on your own pull request: read its review comments and failing checks, judge which comments are right, and show a per-item plan. After you approve it, push the fixes, reply, and resolve only the threads the approved plan names.
-- **Adopt** a contributor's pull request: evaluate it, then show one adoption contract. After you approve that contract, fix, push, and merge inside it and stop at anything outside it.
+- **Adopt** a contributor's pull request: evaluate it, then show one adoption contract. After you approve that contract, the agent writes a failing test, fixes, runs your gates, and gets an independent security review by a separate agent when the change touches a security boundary or a flagged file. With no such agent available, it stops before pushing. Then it pushes and merges inside the contract and stops at anything outside it.
 
 Everything runs on github.com only. Nothing is pushed, posted, or merged without your approval, and adopt merges only under the one contract you approved. Code from a pull request runs only through a sandbox command you name. Without one, the agent runs no local gates and relies on the repository's required checks.
 

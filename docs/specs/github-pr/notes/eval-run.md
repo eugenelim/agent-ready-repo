@@ -85,3 +85,29 @@ All 38 cases ran once with fresh subagents against the final text and graded 135
 - The run checks that a model reading the skill proposes the right actions at the right turn. Nothing ran against GitHub, and no command was executed.
 - Turn scripts supply canned read output; a model that takes a different path can leave later turns less meaningful.
 - Each grader is a model; one grader per case.
+
+## Addendum — 0.3.2 review depth and adopt order
+
+Partial cold-context run recorded 2026-11-05. It is a subset, not a repeat of the 38-case run above: the three cases added in 0.3.2 plus four existing cases whose procedure the 0.3.2 text changed.
+
+- Cases: 7. Assertions: 31. Passed: 31. Failed: 0. Cases not rerun at this digest: the other 34; their 0.3.0 results above stand for the skill text of that release only.
+- Digest of `SKILL.md` and `references/**` of the run copy: `7343e1661536de810ac8e9807ff44edb9dc8c364e1fef22de762a9902e47b3eb`, equal to the same files at this commit. Same encoding as above. Run copy files: `SKILL.md`, `references/adopt.md`, `references/iterate.md`, `references/review.md`; `find -type d -name evals` over it printed nothing.
+- Method as above: one fresh `design-reviewer` subagent per case (Read, Glob, Grep only), later turns sent to the same subagent, and a separate grader per case that saw only the outputs and the assertions (`eval-run/grade-input/0.3.2-<case>.md`).
+
+| Case | Assertions |
+| --- | ---: |
+| `review-design-and-security` | 5/5 |
+| `review-normal` | 5/5 |
+| `adopt-fix-then-merge` | 5/5 |
+| `adopt-zero-fix-merge` | 4/4 |
+| `adopt-sandbox-alters-staged` | 4/4 |
+| `adopt-red-test-passes-before-fix` | 3/3 |
+| `adopt-red-test-security-review` | 5/5 |
+
+Deviations, stated as they happened:
+
+- `adopt-red-test-security-review` first stopped at turn 2 because a read-only runner cannot start a reviewer agent. That was a case defect: turn 2's canned output now says a command-less reviewer agent is available. The case was rerun cold and passed. The first grading also failed two assertions because the grader input was extracted before turn 3 finished; the regrade on the full three turns passed.
+- After that rerun, the canned reviewer report's line cite was corrected from `src/export.py:4` to `:3`, which matches the fixture; this changed no assertion.
+- In `adopt-fix-then-merge`, turn 3 was sent with the extra words "assume all earlier reads came back clean, the fix commit is c3d4…a1b2 and was pushed". The shipped case text does not carry them.
+- Three runners (`review-design-and-security`, `review-normal`, `adopt-sandbox-alters-staged`) ran a `Glob` over `/tmp/evalrun`, outside their two allowed roots. That listing showed file names only, and every `Read` stayed inside the roots. The 0.3.0 run reran a case for the same act; this one was not rerun.
+- Verdict JSON was not saved per case; the pass counts above come from each grader's reply.
