@@ -1,0 +1,70 @@
+# Brief: close the project-knowledge programme on repository evidence
+
+- **Slug:** `project-knowledge-adoption-closeout-delivery`
+- **Received:** 2026-11-05
+- **Owner:** eugenelim
+- **Status:** Draft
+- **Source / provenance:** Mode `repo-origin`; locator [`docs/product/intents/project-knowledge-adoption-closeout.md`](../intents/project-knowledge-adoption-closeout.md), cut into slices on 2026-11-05 from a read of the code and specs.
+- **Parent intent:** capability:project-knowledge-adoption-closeout
+
+## Outcome
+
+The programme closes on measured repository evidence of adoption, repository growth, enquiry latency and capture loss, with privacy checked by the existing project-knowledge confinement and privacy tests and operator support recorded as advisory, and each of the four conditional follow-ons is retained, activated or closed on that evidence.
+
+## Success metrics
+
+- One read-only measurement tool reports adoption, growth, enquiry latency and capture loss for this repository. The thresholds for retention and derived indexing are the published v1 budgets in `docs/specs/project-knowledge-foundation/spec.md` AC19. External capture and multi-project sharing have no numeric threshold in the repository; their threshold is a stated requirement from the owner, so K2 closes them unless one is supplied.
+- K2 records the result of the existing project-knowledge confinement and privacy tests as the privacy check; operator support is advisory and gates nothing.
+- A closeout spec records gaps against the existing contracts and a disposition for observation retention, derived indexing, external capture durability and multi-project sharing, with the closed-without-implementation default.
+
+## Scope / Non-goals
+
+**In scope:**
+
+- A measurement tool over `docs/knowledge/`: counts and sizes are deterministic; enquiry latency is recorded wall-clock time and is report-only, never asserted.
+- The closeout evaluation and dispositions.
+
+**Non-goals:**
+
+- Any follow-on implementation; each needs its own measured trigger and, for storage and sharing, its own RFC.
+- Physical-device or external-system evidence.
+
+## Proposed slices
+
+Every slice is checked by an agent with no live service, credential, or human reviewer.
+
+| # | Slice | Agent-only verification | Depends on | Gating |
+| --- | --- | --- | --- | --- |
+| K1 | Measurement tool: topic counts by scope tier, body-envelope reachability per scope, observation journal growth under `docs/knowledge/observations`, capture loss as pending observations with no terminal disposition, counted from the observation journals, and enquiry latency recorded as report-only wall-clock time over a fixed enquiry set. | The tool computes the topic count at run time from `docs/knowledge/topics.index.json` and matches a count from the topic files; seeded fixtures test each measure; it fails if the retention or derived-index threshold (AC19 budgets) cannot be read from the repository | none | none |
+| K2 | Closeout spec: lifecycle evaluation against existing contracts and the four follow-on dispositions. | Dispositions cite K1 output; a test checks each follow-on has a disposition record | K1 | none |
+
+### Manual or live residue, split off as non-blocking follow-ups
+
+- Adoption evidence from other repositories; none is available, so closeout is for this repository only.
+
+## Decisions
+
+- 2026-11-05, eugenelim: K2 may run before the engineering and operational integration survey, because measurement does not need it.
+
+## Constraints / Appetite
+
+Two small sessions.
+
+## Assumptions / Risks
+
+- Riskiest assumption: repository-contained evidence is enough to close. The parent intent already says so.
+- Risk: measured pressure is absent for all four follow-ons, which closes them without work.
+
+## Ready gaps (Draft only)
+
+None open.
+
+## Spec map
+
+| Spec | Status |
+| --- | --- |
+|  |  |
+
+## Provenance
+
+- Parent intent: [`project-knowledge-adoption-closeout.md`](../intents/project-knowledge-adoption-closeout.md).

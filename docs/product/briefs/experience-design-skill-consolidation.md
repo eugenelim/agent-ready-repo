@@ -3,7 +3,8 @@
 - **Slug:** `experience-design-skill-consolidation`
 - **Received:** 2026-09-24
 - **Owner:** Repository maintainers (`ini-003`)
-- **Status:** Executing
+- **Status:** Shipped
+- **Cut-closed:** 2026-11-05 Both slices confirmed Shipped; see § Spec map. The Tier-A success metric was amended to the bounded proxy by the repository owner on 2026-11-05; see § Completion check.
 - **Source / provenance:** Direct maintainer request, 2026-09-24, after an investigation into `creative-direction` measured the pack and found the larger lever outside that skill. The measurements and their methods are recorded in [`experience-design-consolidation-analysis.md`](../research/experience-design-consolidation-analysis.md), which is this brief's durable evidence. That note also records a prior-art study whose source is unnamed; it informed the shape of the standalone `creative-direction` slice, is unverifiable by a later reader, and is **not** part of this brief's evidence.
 - **Parent intent:** none <!-- raised directly, not projected from an intent -->
 
@@ -19,8 +20,13 @@ design method is removed; what disappears is the registration, not the document.
 - Registered skills fall from 20 to 12.
 - All seven `surface-genre` values are reachable from `frontend-engineering`'s
   pre-flight; two are unreachable today.
-- Each fold's Tier-A activation pass rate is no worse after than before, on both
-  the positive and the negative query sets. A fold failing this does not ship.
+- Each fold's activation classification is no worse after than before, on both
+  the positive and the negative query sets, measured by the single-sample Codex
+  classification proxy each mapped spec records. The proxy is not a Claude
+  `Skill` activation event and does not establish activation rates, repeated-sampling
+  stability, recall, or false-positive rates. A fold failing it does not ship.
+  Amended 2026-11-05 by the repository owner from a Tier-A pass-rate metric;
+  cross-host activation evidence belongs to the cross-pack experience evaluation.
 - No genre's structural logic and no copy-layer rule is deleted; each survives in
   a first-class reference.
 - Five same-named duplicate references in the copy layer become one copy each,
@@ -390,3 +396,10 @@ activation evidence or an explicit metric amendment for the folds it delivered.
   and routes it to fresh intake.
 - The design corpus under `docs/design/`, read as field evidence for the
   composition problem.
+
+## Closure — 2026-11-05
+
+The repository owner chose the second resolution in the completion check: the
+success metric now names the bounded proxy the delivery used. Both mapped specs
+are Shipped, so the brief is closed. Tier-A evidence across hosts is not owed
+here.
