@@ -82,6 +82,18 @@ Traces to: AC-0015. Owned by: T2.
 
 **Done when:** `python3 tools/lint-agents-md.py` exits 0, and `python3 -m pytest tests/roster/test_cognitive_load_repository_contract.py tests/roster/test_verify_entry_receipts.py tools/test_agents_md_readability_floor.py -q` passes.
 
+### T5: repair the review findings on T1 to T4
+
+**Depends on:** T1, T2, T3, T4
+
+**Tests:**
+- TDD, at `tools/test_precheck.py` with the injected executor: a non-zero exit from either git call that collects changed paths ends the run with status 2 and a message naming the base, and runs no check (AC-0008); a committed path with non-ASCII characters still reaches bandit, because the committed list is read in the same unquoted form as the status list (AC-0006, AC-0002, AC-0003); any non-zero check status, negative ones included, gives a non-zero overall exit (AC-0010); a touched pack with no `tests/` directory prints a named skip and neither runs nor prints a pytest command (AC-0009, AC-0010); each skip line names the skipped check as well as the missing tool and still contains `skipped: <tool> not installed` (AC-0007).
+- TDD, at `tools/test_lint_agents_md_local_gate.py`: every `make` invocation on a gate line is checked, so `make a; make b` yields both targets; a prose line starting with `make` and an option argument such as `-C web` are not read as targets; this repository's lint reads `precheck` among the gate targets (AC-0015).
+- Goal-based: `python3 tools/precheck.py` run from a checkout without the Makefile's `PYTHONPATH` runs the self-host check instead of skipping it, `make precheck` can pass `--with-tests` and `--base`, and `docs/VERIFICATION.md` and `AGENTS.md` name that route (AC-0017, AC-0013). The `~8s` note on the root command line is kept true for the pair it covers.
+- Goal-based: the two re-pinned plan digests carry a dated comment naming the two added suite paths as the sole cause and stating the prior pins were current (AC-0012).
+
+**Done when:** `python3 -m pytest tools/test_precheck.py tools/test_lint_agents_md_local_gate.py -q` passes, `python3 tools/lint-agents-md.py` exits 0, `python3 tools/lint-ci-parity.py` exits 0, and `python3 -m pytest tools/test_local_ci_shared_test_deduplication.py tests/roster/test_cognitive_load_repository_contract.py tests/roster/test_verify_entry_receipts.py tools/test_agents_md_readability_floor.py -q` passes.
+
 ## Rollout
 
 Local tooling and guidance only; reversible by revert. No sequencing.
