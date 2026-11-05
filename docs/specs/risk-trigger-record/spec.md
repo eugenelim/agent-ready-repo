@@ -99,11 +99,11 @@ carry a run.
   `SKILL.md`, with no extra entry on either side.
 - [ ] **AC-0002.** The lint's token set equals the table's token set, plus `none`.
 - [ ] **AC-0003.** Invariant (vii) reports a hard violation for a spec in scope
-  whose `Risk triggers:` line's value contains an unknown token (tokens match
-  exactly and case-sensitively, so a backticked or differently cased token is
-  unknown), a repeated
+  whose `Risk triggers:` line's value contains an unknown token, a repeated
   token, an empty item (leading, trailing, or between commas), or `none` beside
-  another token.
+  another token. Tokens match exactly and case-sensitively after the spaces
+  AC-0006 allows are trimmed, so a backticked or differently cased token is
+  unknown.
 - [ ] **AC-0004.** Invariant (vii) reports a hard violation for a spec in scope
   with more than one `Risk triggers:` line in its preamble.
 - [ ] **AC-0005.** Invariant (vii) reports a warn-only finding, and no hard
@@ -111,8 +111,9 @@ carry a run.
   `Risk triggers:` line.
 - [ ] **AC-0006.** Invariant (vii) reports nothing for a spec whose value is
   `none` or one or more distinct tokens separated by commas, with any spaces
-  around each comma, and nothing for a spec with no line that is present at
-  the base ref or is not `Draft`.
+  around each comma and at the start or end of the value. It also reports
+  nothing for a spec without a line when that spec is present at the base ref,
+  is not `Draft`, or no base ref resolves.
 - [ ] **AC-0007.** A `Risk triggers:` line is a line that starts
   `- **Risk triggers:**`, sits in the preamble outside any HTML comment or code
   fence, and has a value that is not empty once HTML comments are hidden. Any
