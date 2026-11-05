@@ -40,6 +40,7 @@ def _run(
     with_tests: bool = False,
     installed: bool = True,
     exists: bool = True,
+    has_tests_dir: bool = True,
 ) -> int:
     return precheck.run_checks(
         paths,
@@ -49,6 +50,7 @@ def _run(
         executor=rec,
         is_installed=lambda _tool: installed,
         file_exists=lambda _p: exists,
+        dir_exists=lambda _p: has_tests_dir,
     )
 
 
@@ -87,7 +89,7 @@ def test_ac0003_skill_md_runs_deep_lint() -> None:
 def test_ac0004_core_content_runs_release_check(path: str) -> None:
     rec = Recorder({"check-core-release": (5, "")})
     assert _run([path], rec) == 5
-    assert f"{PY} tools/check-core-release.py --base origin/main" in _flat(rec)
+    assert f"{PY} tools/check-core-release.py --base=origin/main" in _flat(rec)
 
 
 def test_ac0005_core_tests_skip_release_check() -> None:
@@ -163,12 +165,13 @@ def test_ac0008_git_missing() -> None:
 
 def test_ac0008_paths_union_and_default_base() -> None:
     rec = Recorder({
-        "diff --name-only": (0, "a.md\nb.md\n"),
+        "diff --name-only": (0, "a.md\0b.md\0"),
         "status": (0, " M b.md\0?? c.md\0R  new.md\0old.md\0"),
     })
     paths = precheck.changed_paths("origin/main", rec)
     assert paths == ["a.md", "b.md", "c.md", "new.md", "old.md"]
-    assert ["git", "diff", "--name-only", "origin/main...HEAD"] in rec.calls
+    diff_argv = next(c for c in rec.calls if "diff" in c)
+    assert "-z" in diff_argv and "origin/main...HEAD" in diff_argv
     assert precheck.parse_args([]).base == "origin/main"
 
 
@@ -190,3 +193,71 @@ def test_ac0010_with_tests_runs_per_pack_and_propagates() -> None:
     flat = _flat(rec)
     assert f"{PY} -m pytest packs/foo/tests -q" in flat
     assert f"{PY} -m pytest packs/bar/tests -q" in flat
+
+
+def test_ac0008_failed_diff_ends_run_with_status_two(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    rec = Recorder({"diff --name-only": (128, "")})
+    assert precheck.main(["--base", "origin/main"], executor=rec, python=PY) == 2
+    captured = capsys.readouterr()
+    assert "origin/main" in captured.err and "diff" in captured.err
+    assert "no trigger matched" not in captured.out
+    assert all(c[0] == "git" for c in rec.calls)
+
+
+def test_ac0008_failed_status_ends_run_with_status_two(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    rec = Recorder({"status": (128, "")})
+    assert precheck.main(["--base", "origin/main"], executor=rec, python=PY) == 2
+    assert "status" in capsys.readouterr().err
+    assert all(c[0] == "git" for c in rec.calls)
+
+
+def test_committed_non_ascii_path_reaches_bandit() -> None:
+    rec = Recorder({"diff --name-only": (0, "packages/agentbundle/\u00e9.py\0")})
+    paths = precheck.changed_paths("origin/main", rec)
+    assert paths == ["packages/agentbundle/\u00e9.py"]
+    diff_argv = next(c for c in rec.calls if "diff" in c)
+    assert "core.quotePath=false" in diff_argv
+    assert _run(paths, Recorder()) == 0
+
+
+def test_ac0010_signal_killed_check_is_nonzero() -> None:
+    rec = Recorder({"self-host": (-9, ""), "bandit": (0, "")})
+    assert _run(["packs/foo/.apm/x.md", "tools/a.py"], rec) != 0
+
+
+def test_ac0009_pack_without_tests_dir_is_named_skip(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    rec = Recorder()
+    assert _run(["packs/contracts/.apm/x.md"], rec, with_tests=True, has_tests_dir=False) == 0
+    out = capsys.readouterr().out
+    assert "packs/contracts" in out and "skipped" in out
+    assert not any("pytest" in c for c in _flat(rec))
+    assert "pytest" not in out
+    _run(["packs/contracts/.apm/x.md"], rec, with_tests=False, has_tests_dir=False)
+    assert "pytest" not in capsys.readouterr().out
+
+
+def test_ac0007_skip_line_names_check_and_tool(capsys: pytest.CaptureFixture[str]) -> None:
+    _run(["packs/foo/.apm/x.md", "packs/foo/skills/x/SKILL.md", "tools/a.py"], Recorder(),
+         installed=False)
+    lines = capsys.readouterr().out.splitlines()
+    for check, text in [
+        ("self-host", "skipped: agentbundle not installed"),
+        ("deep lint", "skipped: PyYAML not installed"),
+        ("bandit", "skipped: bandit not installed"),
+    ]:
+        assert any(check in line and text in line for line in lines)
+
+
+def test_checkout_paths_reach_child_env_and_installed_check() -> None:
+    env = precheck.child_env({"PYTHONPATH": "keep"})
+    parts = env["PYTHONPATH"].split(":")
+    assert str(precheck.REPO_ROOT / "packages" / "agentbundle") in parts
+    assert parts[-1] == "keep"
+    assert precheck._installed("agentbundle")
+    assert not precheck._installed("no_such_module_xyz")

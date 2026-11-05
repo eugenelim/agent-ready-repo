@@ -61,11 +61,11 @@ Codex is the one adapter driven. The other adapters stay uncovered.
 
 ### Surface
 
-`tools/precheck.py` (`make precheck`), run from this checkout. It maps changed paths to the checks they trigger.
+`make precheck` (runs `tools/precheck.py`), run from this checkout. It maps changed paths to the checks they trigger.
 
 ### Launch
 
-`python3 tools/precheck.py` (or `make precheck`).
+`make precheck`. Pass flags with `make precheck PRECHECK_ARGS="--with-tests --base origin/main"`. The Makefile puts the checkout's `packages/` on `PYTHONPATH`; the runner adds the same paths itself, so `python3 tools/precheck.py` runs the same checks.
 
 ### Ready
 
@@ -73,7 +73,7 @@ It prints each triggered check, or `no trigger matched`, and exits.
 
 ### Doctor
 
-`python3 tools/precheck.py --help` exits 0.
+`make precheck PRECHECK_ARGS=--help` exits 0.
 
 ### Isolation
 
@@ -84,9 +84,9 @@ Create a separate throwaway git worktree on a throwaway branch, and record its p
 Run in the throwaway worktree, in order:
 
 1. Touch one file under `packs/core/.apm/`.
-2. Run `python3 tools/precheck.py`. Expect a non-zero exit with a self-host drift result.
-3. Run `agentbundle catalogue self-host --root . --write`.
-4. Run `python3 tools/precheck.py` again. Expect exit 0.
+2. Run `make precheck`. Expect a non-zero exit with a self-host drift result.
+3. Run `PYTHONPATH=packages/agentbundle python3 -m agentbundle catalogue self-host --root . --write`.
+4. Run `make precheck` again. Expect exit 0.
 
 ### Features
 
@@ -106,7 +106,7 @@ Remove only the worktree and branch this run created. Check the recorded handle 
 
 ### Helpers
 
-None. The entry uses `git`, `python3`, and `mktemp`.
+None. The entry uses `git`, `make`, and `python3`.
 
 ### Stand-in gap
 

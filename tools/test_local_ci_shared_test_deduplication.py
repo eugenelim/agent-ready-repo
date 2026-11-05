@@ -1132,6 +1132,12 @@ CONSTRUCTION_TEST_PATH = "tools/test_local_ci_shared_test_deduplication.py"
 # tools batch with their deleted tools; no line was added, removed or reordered.
 # Prior pins were current: this Makefile with only those two paths restored
 # matches `eca2ef48…` and `cb2b7c58…`.
+# Re-pinned for precheck-path-gates. Sole cause: the paths
+# `tools/test_precheck.py` and `tools/test_lint_agents_md_local_gate.py` added
+# after `tools/test_lint_agents_md_frontmatter_scope.py`; no line was removed or
+# reordered. The `precheck` recipe's `$(PRECHECK_ARGS)` is outside the composed
+# suite plan and moved neither digest. Prior pins were current: this Makefile
+# with only those two paths deleted matches `f3ae1ea3…` and `fb54a049…`.
 APPROVED_STANDALONE_PLAN_DIGEST = (
     "72d2f04a4e15e45759a250e5f62c2d7b21bac15049485e8d637efe7595c7cb86"
 )

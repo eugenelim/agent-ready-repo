@@ -518,7 +518,7 @@ lint-editable-install:
 	$(PYTHON) tools/repo/editable_install_guard.py
 
 precheck:
-	$(PYTHON) tools/precheck.py
+	$(PYTHON) tools/precheck.py $(PRECHECK_ARGS)
 
 lint-ruff:
 	@command -v ruff >/dev/null 2>&1 || { echo "make lint-ruff: ruff not found — run: pip install ruff" >&2; exit 1; }

@@ -86,7 +86,7 @@ required artifacts, planning, verification, review, recovery, and completion.
 ## Build and test commands
 
 ```bash
-make lint-ruff lint-mypy; make precheck  # ~8s. The first pair is the local gate. Under packs/ or tools/ also run precheck: self-host drift, deep skill lint, core release bump, bandit on changed files; `--with-tests` is opt-in. Heavier checks belong on CI, below
+make lint-ruff lint-mypy; make precheck  # lint pair ~8s, the local gate. Under packs/ or tools/ also run precheck (cost varies): self-host drift, deep skill lint, core release bump, bandit; opt in to pack tests with `make precheck PRECHECK_ARGS="--with-tests --base origin/main"`. Heavier checks belong on CI, below
 python3 -m pytest <only the suite you touched> -q  # targeted; `make test` is ~80 suites, minutes
 git push -u origin HEAD && B="$(git branch --show-current)"  # then open the PR: of 10 PR workflows only build-check + ci-security always run; 8 are path-filtered
 gh workflow run test-corpus.yml --ref "$B"  # `make test` — no PR trigger; also runs weekly on main. Never required
