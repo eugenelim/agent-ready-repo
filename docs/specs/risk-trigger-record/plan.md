@@ -146,3 +146,5 @@ preamble carries a bare `**Risk triggers:**` prose line, draws none either.
 ## Changelog
 
 <!-- approvals only -->
+
+- 2026-11-05: spec approved by eugenelim (scope)
