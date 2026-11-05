@@ -735,6 +735,25 @@ def drain(
         )
 
     do_write = write_disposition or default_write
+
+    def write_or_refusal(
+        capture_id: str, disposition: str, reason_code: str
+    ) -> str | None:
+        """Write one terminal disposition, returning the store's refusing
+        reason code when the write is refused.
+
+        The store's writer reads the whole store strictly, so a quarantined
+        record anywhere refuses the write. Holding the item — not aborting
+        the run — is the drain's recovery: the capture stays open (no
+        terminal event was written) and the report names the refusing
+        control (§ D1, AC-0005).
+        """
+        try:
+            do_write(capture_id, disposition, reason_code)
+        except KS.KnowledgeStoreError as error:
+            return str(error.diagnostic.get("reason_code", "store-refused"))
+        return None
+
     items: list[dict[str, Any]] = []
     read = read_open_captures(root)
     for record in read["quarantined"]:
@@ -762,7 +781,18 @@ def drain(
             closure = decide_closure(**closure_input)
             if closure["verdict"] == "closed":
                 terminal = closure["terminal_disposition"]
-                do_write(capture["capture_id"], terminal["disposition"], terminal["reason_code"])
+                refusal = write_or_refusal(
+                    capture["capture_id"], terminal["disposition"], terminal["reason_code"]
+                )
+                if refusal is not None:
+                    items.append(
+                        {
+                            "capture_id": capture["capture_id"],
+                            "action": "held",
+                            "reason": f"disposition-refused:{refusal}",
+                        }
+                    )
+                    continue
                 items.append(
                     {
                         "capture_id": capture["capture_id"],
@@ -790,11 +820,20 @@ def drain(
         ):
             result = do_transact(offer, proposal)
             if result.get("committed"):
-                do_write(
+                refusal = write_or_refusal(
                     capture["capture_id"],
                     proposal["terminal_disposition"]["disposition"],
                     proposal["terminal_disposition"]["reason_code"],
                 )
+                if refusal is not None:
+                    items.append(
+                        {
+                            "capture_id": capture["capture_id"],
+                            "action": "held",
+                            "reason": f"disposition-refused:{refusal}",
+                        }
+                    )
+                    continue
                 items.append(
                     {
                         "capture_id": capture["capture_id"],

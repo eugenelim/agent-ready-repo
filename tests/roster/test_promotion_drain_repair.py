@@ -324,3 +324,79 @@ def test_closure_evidence_rides_the_report(git_repo: Path) -> None:
     assert closed["capture_id"] == ids[0]
     assert closed["ground"] == "overtaken"
     assert closed["evidence"] == evidence
+
+
+# --- T13: a refused disposition write holds the item, not the run --------------
+
+
+def _mixed_store(repo: Path) -> None:
+    """One clean capture plus one privacy-dirty merged line (T10's fixture)."""
+    KS.seed_previously_admitted_capture(
+        repo, _request("defect", "A clean capture beside a dirty merged record",
+                       observed="The dirty record must not block the clean one.",
+                       intended="The drain holds the bad record alone."))
+    journal = repo / "docs" / "knowledge" / "observations" / "work-item" / "2026-11.jsonl"
+    dirty = _request(
+        "defect", "Check /Users/leaker/credentials.txt before routing",
+        observed="The merge path can land unvalidated prose.",
+        intended="The read path quarantines the record.",
+    )
+    with journal.open("ab") as handle:
+        handle.write(_dirty_merged_line(dirty))
+
+
+def test_refused_route_disposition_holds_the_item(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t13-route")
+    _seed_store(repo, [])
+    _mixed_store(repo)
+
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+
+    # The quarantined record is held by the read; the clean capture's route
+    # transaction commits, its disposition write is refused by the store's
+    # strict read, and the item is held with the refusing reason — no
+    # exception escapes the run.
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    reasons = {item.get("reason") for item in report["items"]}
+    assert "quarantined:policy_invalid" in reasons
+    assert any(
+        str(reason).startswith("disposition-refused:") for reason in reasons
+    ), reasons
+    (artifact,) = (repo / "docs" / "product" / "captured").iterdir()
+    assert artifact.suffix == ".md"
+
+
+def test_refused_closure_disposition_holds_the_item(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t13-closure")
+    _seed_store(repo, [])
+    _mixed_store(repo)
+
+    def close(_offer: dict[str, Any], _proposal: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "close": {
+                "ground": "overtaken",
+                "test_passes": True,
+                "evidence": {"what_was_run": "the closing check", "what_it_showed": "it passed"},
+            }
+        }
+
+    report = DRAIN.drain(repo, confirmer=close)
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    reasons = {item.get("reason") for item in report["items"]}
+    assert any(
+        str(reason).startswith("disposition-refused:") for reason in reasons
+    ), reasons
+
+
+def test_clean_store_dispositions_are_unchanged(git_repo: Path) -> None:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-t13-clean")
+    ids = _seed_store(
+        repo,
+        [_request("defect", "A clean routed defect",
+                  observed="The store holds no quarantined record.",
+                  intended="The disposition write succeeds.")],
+    )
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
+    assert [d["capture_id"] for d in DRAIN.store_terminal_dispositions(repo)] == ids
