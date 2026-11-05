@@ -66,10 +66,10 @@ Cross-cutting, beyond the per-task tests below:
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
 | Decision rationale (spec § Decisions this spec makes) | — the spec itself | gate approval | the owner's approval record |
-| Current architecture (knowledge-capture entry) | T8 | entry names the drain, the disposition, and the envelope | close-work reads the entry |
+| Current architecture (knowledge-capture entry) | T8, T23 | entry names the drain, the disposition, the envelope, and the no-dispatch hold | close-work reads the entry |
 | Interface compatibility (store event shapes) | T1, T5, T6 | roster suites green over the fixture store | every drain-written disposition parses under the store's validators |
 | Maintainer procedure (work-intake drain section) | T7, T19, T22 | source-text assertions | an operator reads the attended rule, the dispatch wiring, and the stale-lock recovery without the spec |
-| Current product truth (work-item guide entry) | T8 | guide names the routes and what closure means | cold-adopter check |
+| Current product truth (work-item guide entry) | T8, T23 | guide names the routes, what closure means, and the non-dispatchable-member hold | cold-adopter check |
 | Security (`docs/architecture/security.md`) | T8 | the § D10 prose residual recorded as settled by the read-path re-run | the gap list no longer carries it as unowned |
 | Release history (core pack changelog) | T8, T23 | changelog entry | the entry leads the release |
 
@@ -553,6 +553,9 @@ shared transaction helper and T23 in the release surfaces.
   closure input carries no `citation` field — is refused by the drain
   itself, the item stays open, and the refusal names the failed citation
   (`AC-0027`).
+- The citation rides the closed item's run-report entry beside the
+  evidence, and a superseded closure that closes carries its citation in
+  that entry (`AC-0002`, `AC-0027`).
 - A superseded closure whose citation resolves but whose operator verdict
   is false is refused — the verdict is a veto on every ground (`AC-0027`).
 - Overtaken and falsified closures are unchanged: the operator's verdict
@@ -584,8 +587,12 @@ shared transaction helper and T23 in the release surfaces.
   `os.link` it into place, so the lock never exists without its pid. The
   test drives the seam: fault-inject the link step (a raising `os.link`)
   and assert no lock file exists at the lock path (`AC-0028`). The
-  temporary's lifecycle is asserted with it: unlinked after publication,
-  on link failure, and on release, leaving no root temporary behind
+  temporary's identity and lifecycle are asserted with it: its name is
+  unique to its holder — pid and a random token — created fresh on every
+  acquisition so concurrent acquirers never collide and a killed creator's
+  orphan never blocks a later acquisition; it is unlinked after
+  publication, on link failure, and on release, and an orphaned temporary
+  is inert garbage matched by the gitignore pattern, never a lock
   (`AC-0028`).
 - Work-intake `SKILL.md` § 5's lock paragraph — "If another writer holds
   the lock, the transaction returns `lock_busy` without mutating either
@@ -612,18 +619,31 @@ shared transaction helper and T23 in the release surfaces.
   step in `.github/workflows/build-check.yml` and its
   `LOCAL("test-after-build-check")` disposition in
   `tools/lint-ci-parity.py`.
-- The acquisition temporary's root name is added to `.gitignore` beside
-  `.workspace-repair.lock`.
+- The acquisition temporary's root pattern
+  (`.workspace-repair.lock.<pid>.<token>.tmp`) is added to `.gitignore`
+  beside `.workspace-repair.lock`.
+- The two durable surfaces the hardening falsifies are updated and pinned:
+  `docs/architecture/knowledge-capture.md`'s confirmed-route sentence gains
+  the no-dispatch hold, and `docs/guides/reference/work-item-capture.md`'s
+  question-routing sentence gains the hold on non-dispatchable members;
+  `tests/roster/test_promotion_drain_surfaces.py` extends to pin both.
 
 **Done when:** the local gate chain — ruff, mypy, changelog,
   lint-ci-parity, self-host check, the touched suites — is green.
 
 ## Rollout
 
-Pure addition: one new module, one skill-procedure section, documentation
-surfaces. No migration, no vocabulary change, no contract version bump.
-Rollback is deletion of the module and the procedure section; the store is
-untouched by a rollback.
+The original delivery was a pure addition — one new module, one
+skill-procedure section, documentation surfaces. The follow-up hardening is
+a behavior change in a shared concurrency primitive: `drain()`'s default
+outcome flips from `routed` to held, the shared transaction's lock
+acquisition gains atomic publication and stale-owner recovery reaching
+every `run_intake_transaction` caller, two routed-outcome suites rewire to
+a real dispatch, and the release surfaces (pack version, changelog,
+`.gitignore`, CI steps, lint-ci-parity) update alongside. No migration, no
+vocabulary change, no contract version bump. Rollback of the hardening is
+a revert of those edits — the module and procedure section remain; the
+store's event shapes are untouched by either direction.
 
 ## Risks
 

@@ -167,7 +167,10 @@ carries no
 parseable pid is never removed — its owner is treated as live — and the
 transaction's own acquisition closes the create-then-write window — the
 lock is published by an atomic link of a pid-complete temporary file, the
-sibling `_acquire_claim` pattern, so every
+sibling `_acquire_claim` pattern, whose temporary is unique to its holder
+— pid and a random token, created fresh on every acquisition — so
+concurrent acquirers never collide on it and a killed creator's orphan
+never blocks a later acquisition; every
 lock it leaves carries its pid; a foreign pid-less lock left by a writer
 killed mid-acquisition is a disclosed residual requiring manual removal,
 strictly narrower than the permanent wedge this rule removes.
@@ -704,10 +707,11 @@ verifies the criteria below mechanically.
       unlink and refuses when the lock changed underneath; a lock whose
       owner is alive, or whose payload carries no parseable pid, is never
       taken; and the transaction's own acquisition publishes the lock
-      atomically — a pid-complete temporary file linked into place — so a
+      atomically — a pid-complete temporary file, unique to its holder,
+      linked into place — so a
       lock it leaves always carries its owner's pid; the temporary is
-      unlinked after publication, on link failure, and on release, leaving
-      no root temporary behind.
+      unlinked after publication, on link failure, and on release, and an
+      orphaned temporary never blocks a later acquisition.
 
 ## Follow-ons
 
