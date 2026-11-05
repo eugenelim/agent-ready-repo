@@ -30,7 +30,7 @@ A human approving a full-mode work-loop spec or plan sees every waiting `spec-ap
 
 - New supervisor verb `park <spec-dir> --gate spec-approved|plan-approved` — `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py` and one new `_supervisor_gates.py` module beside it.
 - New read-only supervisor verb `gates` — the same two files.
-- The gate digest: the canonical contract digest over the artifact without its approval-entry lines — `_supervisor_gates.py`, calling the existing canonicalizer in `_loop_guards.py`.
+- The gate digest: the canonical contract digest over the artifact with its approval-entry lines dropped and its blank lines folded, only inside the approval-entry region (AC-0025) — `_supervisor_gates.py`, calling the existing canonicalizer in `_loop_guards.py`.
 - `start` takes `--approved-spec-digest` and `--approved-plan-digest`, needs both whenever it records an approval pair, and refuses a mismatch before any write — `work-supervisor.py` and `_supervisor_admission.py`.
 - Park records live in the checkout's local supervisor store, `<git-dir>/agentbundle-supervisor/gates/`, one per spec.
 - Controller procedure for parking, listing, answering, and working other specs while a gate waits — work-loop `SKILL.md` step 12, `references/supervisor.md`, `references/session-resumption.md`, `references/state-schema.md`.
@@ -162,3 +162,7 @@ none
 - Operations: the `read` commands need Git 2.44 or later for `--no-lazy-fetch`; an older Git fails the command rather than fetching — whether CI runners and adopters meet that floor is checked at code stage.
 - Testing: `test_supervisor_parked_gates.py`, including its pseudo-terminal test, does not run on Windows CI — Windows behaviour of `park` and `gates` is untested.
 - Review: the final narrow-check edit (AC-0003, AC-0006, AC-0009, AC-0038, AC-0039 wording and the matching plan lines) had no spec-stage reviewer pass — the code-stage security, adversarial, and quality passes cover it.
+- Security: a plan-level `**Effects:**` field inside the approval-entry region still feeds the finish effects, so adding an approval entry or a blank line at the region's end can change those effects while the gate digest stays the same (settled by: the owner accepted this risk on 2026-11-05; closing it needs a new refusal or a contract change).
+- Security: the gate digest ignores trailing whitespace (AC-0007), but stub text keeps its exact bytes, so trailing whitespace on a stub line can change after `park` while the digest stays the same (settled by: the owner accepted this risk on 2026-11-05; closing it needs a change to AC-0007).
+- Operations: an attempt record pins the shared `info/refs` file, so a `git fetch` from a sibling worktree during a run makes the next report refuse with `denied-git-control-state` until the owner re-baselines the record (settled by: a later supervisor delivery that stops pinning that file).
+- Operations: `report` stages with a fixed 60-second timeout, so under heavy machine load it refuses with `denied-git-unavailable` and must be retried (settled by: a later supervisor delivery that makes the timeout configurable).

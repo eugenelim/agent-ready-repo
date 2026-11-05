@@ -342,14 +342,11 @@ class TestSubprocessCleanEnvFence:
             )
             return json.loads(result.stdout)
 
-        # The projected copy takes the digests once self-host has rebuilt it from source.
-        takes_digests = "--approved-spec-digest" in _SUPERVISOR.read_text(encoding="utf-8")
-        digests = harness.digest_args(repo) if takes_digests else []
         started = run(
             "start", harness.SPEC_DIR, "--intent", "code", "--code-trust", "trusted",
             "--authority-ref", "owner:0123456789ab",
             "--review-authority-ref", "plan-reviewer:0123456789ab",
-            *digests,
+            *harness.digest_args(repo),
         )
         assert started["status"] == "admitted", started
         issued = run("next", harness.SPEC_DIR)
