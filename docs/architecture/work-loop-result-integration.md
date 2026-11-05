@@ -102,10 +102,10 @@ denying the write (§ 1a).
    then may the three-tree apply create objects.
 4. A clean application writes an immutable tree and integration commit, then
    compare-and-swaps the protected ref from the observed target commit.
-5. The coordinator emits `result-integration.v1`, idempotently notifies the
-   scheduler to cancel intersecting siblings, and materializes the worktree.
-   Replay re-emits notification after a crash. Only the receipt admits
-   observations; incomplete read sets run under workspace-wide serialization.
+5. The coordinator emits `result-integration.v1` and materializes the
+   worktree. Replay finds the landed operation by its commit trailer after a
+   crash. Only the receipt admits observations. A result without a complete
+   access attestation integrates only on exact source equality.
 
 **Conflict and recovery sequence**
 
@@ -125,8 +125,8 @@ denying the write (§ 1a).
 
 | Contract | Producer → consumer | Identity | Compatibility and change authority | Failure semantics | Invariant |
 | --- | --- | --- | --- | --- | --- |
-| `execution-result.v1` | Runtime adapter → result validator | Subject, task-projection revision, task, attempt, operation, source/result trees, change digest, access-attestation fingerprint | Canonical schema owns fields; readers deploy first; unknown majors refuse | Partial, superseded, unauthorized, or unverifiable results remain isolated | Unproven completeness requires serialization and exact source |
-| `result-integration.v1` | Integration coordinator → scheduler, subject projector, and evidence port | Operation key, attempt-authority fingerprint, source and observed target commits, result commit and tree, algorithm version | Core and `agentbundle` owners approve merge semantics; algorithm changes require a new major; unknown majors refuse | Canceled authority, stale reads/writes, conflict, CAS loss, or limits change no ref | In-lock intervening-change validation precedes object creation and CAS |
+| `execution-result.v1` | Runtime adapter → result validator | Subject, task-projection revision, task, attempt, operation, source/result trees, change digest | Canonical schema owns fields; readers deploy first; unknown majors refuse | Partial, superseded, unauthorized, or unverifiable results remain isolated | Unproven completeness requires serialization and exact source |
+| `result-integration.v1` | Integration coordinator → scheduler, subject projector, and evidence port | Operation key, attempt-authority fingerprint, access-attestation line digest, source and observed target commits, result commit and tree, algorithm version | Core and `agentbundle` owners approve merge semantics; algorithm changes require a new major; unknown majors refuse | Canceled authority, stale reads/writes, conflict, CAS loss, or limits change no ref | In-lock intervening-change validation precedes object creation and CAS |
 | `integration-conflict.v1` | Coordinator → scheduler and operator | Operation, attempt, target commit, bounded conflicting paths | Additive diagnostics are allowed; path disclosure follows repository classification | Conflict returns the task to projection and invalidates isolated observations | No partial application or silent overwrite |
 
 The three-tree algorithm is a declared Git merge implementation and version,

@@ -7,7 +7,7 @@
 - **Brief:** brief:acceptance-centered-work-loop
 - **Discovery:** none
 - **Depends on:** spec:canonical-result-integration
-- **Contract:** `contracts/delivery/containment-attestation.v1.schema.json` (extended additively: an attempt binding, write roots, and a denial set); `contracts/delivery/access-attestation.v1.schema.json`, `result-integration.v1.schema.json`, and `integration-conflict.v1.schema.json` (new); `contracts/delivery/execution-request.v1.schema.json` (a `run-concurrent` request kind); `contracts/delivery/task-contract.v1.schema.json` (`reads` and `writes`); `work-loop/supervisor-policy.json` (gains `concurrency` and `reprojection_bound`)
+- **Contract:** `contracts/delivery/containment-attestation.v1.schema.json` (extended additively: an attempt binding, a read allowlist, write roots, and a denial set); `contracts/delivery/access-attestation.v1.schema.json`, `launcher-message.v1.schema.json`, `result-integration.v1.schema.json`, and `integration-conflict.v1.schema.json` (new); `contracts/delivery/execution-request.v1.schema.json` (a `run-concurrent` request kind); `contracts/delivery/task-contract.v1.schema.json` (`reads` and `writes`); the `delivery/approvals.jsonl` approval line (gains `launcher_sha256`); `work-loop/supervisor-policy.json` (gains `concurrency`, `reprojection_bound`, `max_concurrent_attempts`, and `attempt_timeout_seconds`)
 - **Shape:** service
 
 > **Spec contract:** this document defines what "done" means. The implementing
@@ -24,29 +24,31 @@
 
 ## Outcome
 
-Maintainers running full-mode `work-loop` get `implement-task` attempts that run at the same time only when an attestation the supervisor checks itself proves each attempt's isolation and every product read, and that otherwise run one after another exactly as they do today. Success is a corpus in which every missing condition serializes, every undeclared read is denied or joins the attested set, and every permutation of an admitted schedule ends with the sequential run's product tree and acceptance verdict, with Pi absent.
+Maintainers running full-mode `work-loop` get `implement-task` attempts that may run at the same time only when an attestation the supervisor checks itself proves each attempt's isolation and every product read, and that otherwise run one after another exactly as they do today; no adopter reaches the concurrent path until a host can attest. Success is a corpus in which every missing condition serializes, every undeclared read is denied or joins the attested set, and every forced permutation of an admitted schedule ends with the sequential run's product tree and acceptance outcomes, with Pi absent.
 
 ## What Changes
 
 - Plan tasks may declare `Reads:` and `Writes:` sets; the projector records them in the task contract and its revision — `_supervisor_projector.py`, `task-contract.v1`.
-- `supervisor-policy.json` gains `concurrency` (shipped `sequential`) and `reprojection_bound` — `work-loop/supervisor-policy.json`, `_supervisor_admission.py`.
-- `start` pins an owner-approved launcher by sha256 and refuses a repository that configures a merge driver — `_supervisor_admission.py`, `_supervisor_git.py`.
-- A new `run-concurrent` request kind: the supervisor spawns the pinned launcher once per admitted attempt, verifies its containment attestation before the worker starts, and collects its access attestation at the end over the launcher's own pipe — new `_supervisor_concurrency.py`, `_containment.py`.
-- Admitted results integrate one at a time, in the sequential floor's order, through a pinned `git merge-tree --write-tree` onto the protected product ref; a meeting, conflict, or lost compare-and-swap records `integration-conflict.v1` and reprojects the task — new `_supervisor_integration.py`, `_supervisor_commit.py`.
-- Each concurrent attempt has its own fresh tree, manifest, and residue record — `_supervisor_attempt.py`.
-- `containment-attestation.v1` gains an attempt binding, write roots, and a denial set; `access-attestation.v1`, `result-integration.v1`, and `integration-conflict.v1` join `contracts/delivery/`.
+- `supervisor-policy.json` gains `concurrency` (shipped `sequential`), `reprojection_bound`, `max_concurrent_attempts`, and `attempt_timeout_seconds` — `work-loop/supervisor-policy.json`, `_supervisor_admission.py`.
+- `start` pins a launcher whose sha256 the owner's own approval answer supplies, and refuses a repository that configures a merge driver — `_supervisor_admission.py`, `_supervisor_git.py`.
+- A new `run-concurrent` request kind and blocking verb: the supervisor spawns the pinned launcher once per admitted attempt, verifies its containment attestation before releasing the worker, and reads its access attestation at the end over the launcher's own pipe — new `_supervisor_concurrency.py`, `_containment.py`.
+- Each concurrent attempt runs in a fresh directory outside the Git directory, the run store, and the work tree, with its own manifest; the supervisor ingests the directory into Git objects itself once the launcher has ended — `_supervisor_attempt.py`, `_supervisor_concurrency.py`.
+- Admitted results integrate one at a time, in the sequential floor's order, through a pinned `git merge-tree --write-tree` onto the protected product ref; a meeting, conflict, merge-configuration hazard, or lost compare-and-swap records `integration-conflict.v1` and reprojects the task — new `_supervisor_integration.py`, `_supervisor_commit.py`.
+- `containment-attestation.v1` gains an attempt binding, a read allowlist, write roots, and a denial set; `access-attestation.v1`, `launcher-message.v1`, `result-integration.v1`, and `integration-conflict.v1` join `contracts/delivery/`.
 - A test-only fixture launcher and the permutation and conflict corpus live in `packs/core/tests/skills/work-loop/`.
 - The result-integration, execution-supervisor, runtime-security-primitives, and loop-parallelism architecture pages describe the concurrent path as built.
+- Not in this spec: the Product addition profile for added paths stays planned on the result-integration page; ingestion admits exactly what the floor's change-set computation admits.
 - **Known limit.** No shipped host can attest isolation or reads, and Core ships no attesting launcher. Every adopter therefore runs on the sequential floor. The concurrent path is proven only against the test-only fixture launcher until a verified containment adapter exists.
 
 ## Durable Outputs
 
 | Semantic role | Applicability | Destination | Owner | Expected evidence | Closeout condition |
 | --- | --- | --- | --- | --- | --- |
-| Interface compatibility | New and extended delivery records | `contracts/delivery/` four schemas plus `execution-request.v1` and `task-contract.v1` | Core pack maintainers | Schema-parity and record-validation suites | Every record the corpus writes validates; every pre-existing record still validates |
-| Current architecture | The result-integration design becomes as-built | `docs/architecture/work-loop-result-integration.md` §§ 1a–8, `work-loop-execution-supervisor.md`, `runtime-security-primitives.md` § 7, `loop-parallelism.md` | Core pack and `agentbundle` maintainers | Page diffs in the integration and corpus PRs | No `STATUS: PLANNED` remains for a built element; the known limit is stated on the result-integration page |
-| Maintainer procedure | Plan authors declare read and write sets; operators read admission outcomes | `packs/core/.apm/skills/work-loop/references/supervisor.md`; the new-spec plan template's task grammar | Core pack maintainers | Reference and template diffs | The `Reads:` and `Writes:` grammar and the `status` admission fields are documented once |
-| Product truth | The brief's slice moves | `docs/product/briefs/acceptance-centered-work-loop.md` spec map | Brief owner | Spec-map row | The row names this spec |
+| Interface compatibility | New and extended delivery records and the launcher protocol | `contracts/delivery/` five new or extended schemas plus `execution-request.v1` and `task-contract.v1` | Core pack maintainers | Schema-parity and record-validation suites | AC-0063 and AC-0064 hold |
+| Current architecture | The result-integration design becomes as-built | `docs/architecture/work-loop-result-integration.md` §§ 1a–8, `work-loop-execution-supervisor.md`, `runtime-security-primitives.md` § 7 (launcher trust root, binding, release token, and the `run-concurrent` result-acceptance row), `loop-parallelism.md` | Core pack and `agentbundle` maintainers | Page diffs in the corpus task | No `STATUS: PLANNED` remains on an element this spec builds; the Product addition profile stays planned; the known limit is stated on the result-integration page |
+| Result acceptance | `report` admits completion only for `run-concurrent` | `docs/specs/execution-supervisor-attempt-security/spec.md` Result acceptance table and its mirror in `runtime-security-primitives.md` § 7 | Core pack maintainers | Table rows | Both tables carry the `run-concurrent` row |
+| Maintainer procedure | Plan authors declare read and write sets; operators read admission reasons | `packs/core/.apm/skills/work-loop/references/supervisor.md`; the new-spec plan template's task grammar | Core pack maintainers | Reference and template diffs | The `Reads:` and `Writes:` grammar and the `status` reason codes are documented once |
+| Product truth | The brief's slice moves | `docs/product/briefs/acceptance-centered-work-loop.md` spec map | Brief owner | Spec-map row reporting status | The row reports `Shipped` at closeout |
 | Release history | Core changes ship as patch releases | `packs/core/pack.toml`, `plugin.json`, changelog fragment per Core PR | Core release maintainers | Version bump per Core PR | Each Core PR's version is one patch above `packs/core/pack.toml` at its merge base with freshly fetched `origin/main` |
 | Verification record | Closeout evidence | `docs/specs/verified-infrastructure-parallelism/notes/verification-ledger.md` | Spec owner | Ledger rows per criterion | Every criterion is checked against a named test or run |
 
@@ -56,32 +58,35 @@ Maintainers running full-mode `work-loop` get `implement-task` attempts that run
 
 - Verify every attestation from the launcher's own pipe, inside the supervisor process that spawned it.
 - Run every `git` call, including the three-way apply and `check-attr`, through the hardened Git helper.
-- Prove each refusal and each fall to the floor with a test that runs.
+- Read a worker-written attempt directory only through the blessed confinement helpers in `file_safety.py`.
+- Prove each refusal and each fall to the floor with a test that runs, and drive every timeout through an injectable clock or value, never a sleep.
 - Get security-reviewer, adversarial-reviewer, and quality-engineer passes on every code task before merge.
 
 ### Ask first
 
 - Shipping any `concurrency` value other than `sequential` in `supervisor-policy.json`.
 - Raising the Git floor of the sequential path above 2.32.
-- Changing the launcher protocol, a binding field, or a schema after its contract PR merges.
+- Changing the launcher protocol, a binding field, or a schema after its contract task merges.
 
 ### Never do
 
 - Ship, install, or document an attesting launcher, or make the fixture launcher reachable outside the test corpus.
 - Admit concurrency from `Depends on:`, `Touches:`, a declared write set alone, a task category, or a model's judgment.
-- Trust an attestation, read set, or binding carried by `report`, the journal, the run store's worker-writable files, or an attempt tree.
+- Trust an attestation, read set, or binding carried by `report`, the journal, an attempt directory, or any run-store file other than a held-result record the supervisor wrote and an attempt manifest covers.
+- Persist, log, or pass to the launcher's children a release token.
 - Add a dependency outside the standard library, a module outside `work-loop/scripts/`, or any import of a Pi or other runtime package.
 - Run any request kind other than `implement-task` concurrently.
 
 ## Testing Strategy
 
-- **Admission and the floor (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006):** TDD at `start`, `next`, and `status` over a real Git repository, one fixture per missing condition, because admission is a compressible predicate over a closed condition list.
-- **Attestation verification (AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012):** TDD at the launcher boundary with the fixture launcher scripted to emit each defect, because each defect is one refusal with one oracle.
-- **Read and write semantics (AC-0013, AC-0014, AC-0015):** TDD over the meet relation's table, then integration tests through `run-concurrent` with a scripted undeclared read in each mode.
-- **Integration (AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025):** TDD at the integration boundary over real trees and refs, plus goal-based kill-point and race fixtures exercised as integration tests, because ordering and compare-and-swap are facts of whole runs.
-- **Attempt isolation and blast radius (AC-0026, AC-0027, AC-0028, AC-0029, AC-0030):** integration tests over two- and three-attempt batches with injected refusal, failure, and cancellation.
-- **Determinism (AC-0031, AC-0032):** goal-based permutation corpus that runs every completion order of each fixture schedule and compares with the sequential run, exercised end to end through the supervisor harness.
-- **Contracts (AC-0033, AC-0034):** goal-based schema validation of every record the corpus writes, plus the existing parity suites.
+- **Admission and the floor (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008, AC-0009, AC-0010, AC-0011, AC-0012):** TDD at `start`, `next`, and `status` over a real Git repository, one fixture per missing condition plus a non-meeting pair as the positive control, because admission is a compressible predicate over a closed condition list.
+- **Launcher and attestation (AC-0013, AC-0014, AC-0015, AC-0016, AC-0017, AC-0018, AC-0019, AC-0020, AC-0021, AC-0022, AC-0023, AC-0024, AC-0025):** TDD at the launcher boundary with the fixture launcher scripted to emit each defect, because each defect is one refusal with one oracle; the build-output check is a roster test, because pack tests may not read outside the pack.
+- **Reads, writes, and paths (AC-0026, AC-0027, AC-0028):** TDD through `run-concurrent`, asserting the supervisor's response to scripted attestations, never the fixture's own output.
+- **Ingestion and held results (AC-0029, AC-0030, AC-0031, AC-0032, AC-0033):** TDD at the ingestion boundary over link, special-file, oversized, late-write, and tamper fixtures.
+- **Integration (AC-0034, AC-0035, AC-0036, AC-0037, AC-0038, AC-0039, AC-0040, AC-0041, AC-0042, AC-0043, AC-0044, AC-0045, AC-0046, AC-0047, AC-0048):** TDD at the integration boundary over real trees and refs; the apply-level conflict and attribute cases drive the apply step directly as defence in depth, because admission keeps meeting tasks apart; kill points and ref races are integration tests.
+- **Isolation, blast radius, and plan changes (AC-0049, AC-0050, AC-0051, AC-0052, AC-0053, AC-0054, AC-0055, AC-0056, AC-0057, AC-0058):** integration tests over two- and three-attempt batches with injected refusal, failure, tamper, and cancellation.
+- **Determinism (AC-0059, AC-0060, AC-0061, AC-0062):** goal-based permutation corpus, exercised end to end through the supervisor harness, with completion order forced by fixture coordination and observed in the journal.
+- **Contracts (AC-0063, AC-0064):** goal-based schema validation inside the suites that produce the records, plus the existing parity suites.
 
 ## Acceptance Criteria
 
@@ -89,74 +94,113 @@ Maintainers running full-mode `work-loop` get `implement-task` attempts that run
 
 - **Floor.** The sequential execution mode every host supports: one attempt open at a time.
 - **Concurrent mode.** `enforced-allowlist` or `complete-trace`, the value of the run's pinned `concurrency` policy.
+- **Integrated.** A task's result is integrated once the product ref names a commit the supervisor made for it. A task is complete only once its result is integrated; a held result's task is not complete.
 - **Floor order.** The order in which the floor would issue the plan's tasks: repeatedly, the first task in plan order whose dependencies are complete.
-- **Launcher.** The executable whose sha256 the run's approval record names and `start` pins. The supervisor spawns it once per concurrent attempt.
+- **Launcher.** The executable whose sha256 the run's approval line names in `launcher_sha256` and `start` pins. The supervisor spawns it once per concurrent attempt.
 - **Fixture launcher.** The test-only launcher in `packs/core/tests/skills/work-loop/` that simulates an attesting host. It is a fixture, not a host.
 - **Binding.** The run id, attempt id, grant id, a fresh 32-byte nonce, and the launcher's sha256 that the supervisor issues for one attempt.
+- **Release token.** 32 bytes from the operating system's secure random source that the supervisor sends one attempt's launcher after verifying its containment attestation.
+- **Attempt directory.** A directory the supervisor creates empty for one attempt, outside the Git directory, the Git common directory, the run store, and the work tree, and never reuses.
+- **Repository path.** A relative path with `/` separators and no empty, `.`, or `..` component, no NUL, control character, or backslash. Paths compare case-insensitively when the repository's `core.ignoreCase` is true and byte-wise otherwise.
 - **Read.** A file read, a lookup of a path that does not exist, a directory listing, or a recursive walk.
-- **Write.** A creation, modification, deletion, either end of a rename, or a mode or type change.
-- **Meets.** A read or write meets a write exactly when one row holds: a missing-path lookup and a write creating that path; a listing of a directory and a write adding, removing, or renaming an entry directly in it; a walk of a root and any write under it; any other read or write and a write to the same path.
-- **Declared sets.** The `Reads:` and `Writes:` entries of a task. An entry is a repository-relative path (a file), a path ending in `/` (a listing of that directory), or a path ending in `/**` (a walk of that root).
-- **Verified containment attestation.** A `containment-attestation.v1` read from the launcher's stdout before the worker starts that validates against its schema; carries the issued binding exactly; has `read_enforcement` `allowlist` under `enforced-allowlist` or `trace` under `complete-trace`; has `network.allowed` false; has write roots equal to the attempt's tree; has roots no broader than the grant; and denies all six of `git-common-dir`, `shared-refs`, `run-store`, `delivery`, `sibling-trees`, and `sibling-ipc`.
-- **Complete access attestation.** An `access-attestation.v1` read from the launcher's stdout after the worker ends that carries the issued binding, the sha256 of the `execution-result.v1` the supervisor computed for the attempt, and `complete` true.
-- **Held result.** A finished concurrent result waiting for its turn in floor order. It is not an open attempt.
+- **Write.** A creation, modification, deletion, either end of a rename, or a mode or type change of a path; a write also creates or removes each ancestor directory it brings into or out of existence.
+- **Meets.** A read or write meets a write exactly when one row holds: a missing-path lookup and a write creating that path; a listing of a directory and a write adding, removing, or renaming an entry directly in it; a walk of a root and any write at or under it; any other read or write and a write to the same path. A declared write entry `root/**` writes every path at or under `root`.
+- **Declared sets.** The `Reads:` and `Writes:` entries of a task, each a repository path. A `Reads:` entry is a file path, a path ending in `/` (a listing), or a path ending in `/**` (a walk). A `Writes:` entry is a file path or a path ending in `/**`.
+- **Verified containment attestation.** A `containment-attestation.v1` that passes every check AC-0017 lists.
+- **Complete access attestation.** An `access-attestation.v1` that passes every check AC-0020 lists.
+- **Result identity.** The tree id the supervisor computes by ingesting the attempt directory, and the sha256 of the exact `access` line bytes, both recorded when the supervisor reads that line.
+- **Held result.** A finished concurrent result, recorded by its result identity, waiting for its turn in floor order. It is not an open attempt.
+- **Refusal outcome.** The product ref, `HEAD`, the index, and every `delivery/` file are unchanged; one `integration-conflict.v1` is recorded; and the task is reprojected from the new tip.
 
 ### Criteria
 
 Admission and the floor
 
 - [ ] **AC-0001.** Under the shipped `supervisor-policy.json`, `concurrency` is `sequential`, and a synthetic run issues no `run-concurrent` request and never has two attempts open.
-- [ ] **AC-0002.** With `concurrency` set to a concurrent mode and a launcher pinned, a task whose conditions all hold is issued in a `run-concurrent` request; removing any one member of this closed condition set — the policy opt-in, a `Reads:` field, a `Writes:` field, the absence of a stub fence, completed dependencies, an unspent reprojection bound, Git 2.41 or later, a pinned launcher, or a verified containment attestation — issues that task only on the floor, and `start`, `next`, and `report` refuse nothing because of it.
-- [ ] **AC-0003.** A floor attempt is issued only while no attempt is open, no attempt opens while it runs, and a held result does not prevent a floor attempt from being issued.
-- [ ] **AC-0004.** Two tasks are never in the same `run-concurrent` request when a declared read or write of either meets a declared write of the other.
-- [ ] **AC-0005.** A `Reads:` or `Writes:` entry that is absolute, contains `..`, contains a glob character other than a trailing `/**`, or names a path under `delivery/` or the spec directory leaves its task on the floor, and a change to either field changes the task's revision.
-- [ ] **AC-0006.** `status` reports, for every task that ran or is open, whether it ran concurrently or on the floor and, for a floor task in a concurrent-mode run, the first missing condition from AC-0002's list.
+- [ ] **AC-0002.** A task missing any one member of this closed set is never named in a `run-concurrent` request, is issued on the floor at its turn, and causes no refusal of `start`, `next`, or `report`: the policy opt-in, a `Reads:` field, a `Writes:` field, the absence of a stub fence, an unspent reprojection bound, a POSIX host, Git 2.41 or later, the absence of any `merge.*` key in repository configuration, and a launcher pin.
+- [ ] **AC-0003.** Two tasks that hold every member of AC-0002's set, have complete dependencies, and whose declared sets do not meet are named in the same `run-concurrent` request.
+- [ ] **AC-0004.** No two attempts are open at the same time when a declared read or write of either meets a declared write of the other.
+- [ ] **AC-0005.** At most one `run-concurrent` request is open at a time.
+- [ ] **AC-0006.** No `run-concurrent` request names more tasks than `max_concurrent_attempts` (shipped 4, accepted range 2 to 8).
+- [ ] **AC-0007.** A floor attempt is issued only while no attempt is open, and no attempt opens while it runs.
+- [ ] **AC-0008.** A held result does not prevent a floor attempt from being issued.
+- [ ] **AC-0009.** A task whose dependency has only a held result is not issued.
+- [ ] **AC-0010.** A `Reads:` or `Writes:` entry that is not a repository path, that uses a glob character other than a trailing `/**`, that is a `Writes:` entry ending in `/`, or that names a path under `delivery/` or the spec directory leaves its task on the floor.
+- [ ] **AC-0011.** A change to a task's `Reads:` or `Writes:` field changes its revision.
+- [ ] **AC-0012.** `status` and the journal report, for every task that ran or is open, whether it ran concurrently or on the floor, and for a floor task in a concurrent-mode run one reason code from a closed set that names each AC-0002 member, each AC-0017 check, each AC-0020 check, and each refusal reason; no launcher-supplied text appears in either.
 
-Attestation verification
+Launcher and attestation
 
-- [ ] **AC-0007.** `start` pins a launcher only when the run's approval record names its sha256; it copies the launcher into the run store, and a launcher whose bytes differ from the pinned sha256 at spawn sends that attempt to the floor and records a security event.
-- [ ] **AC-0008.** The supervisor sends an attempt's release token only after verifying its containment attestation, and a result whose access attestation does not carry that release token is treated as having no complete access attestation (AC-0012).
-- [ ] **AC-0009.** A containment attestation with any one of these defects sends its task to the floor without releasing the worker: a schema violation, a nonce issued to another attempt, a nonce from an earlier attempt of the same task, a run id of another run, a grant id not issued for the attempt, a launcher sha256 other than the pinned one, a mismatched `read_enforcement`, network allowed, write roots other than the attempt's tree, roots broader than the grant, or any of the six denials missing.
-- [ ] **AC-0010.** A `report` for a `run-concurrent` request admits completion only; a report asserting an attestation, read set, write set, or binding refuses `result-fact-refused`.
-- [ ] **AC-0011.** `start` refuses `launcher-fixture-refused` for a launcher whose bytes carry the fixture marker unless the in-process test seam enables it, and no file the Core pack installs or builds contains the fixture launcher.
-- [ ] **AC-0012.** A result whose access attestation is missing, unbound, bound to a different `execution-result.v1` sha256, or not `complete` integrates only while the product ref names its source commit, and otherwise refuses `integration-conflict`.
+- [ ] **AC-0013.** `start` pins a launcher only when `launcher_sha256` in the run's approval line, taken from the owner's own approval answer, equals the sha256 of a launcher file outside the work tree, and otherwise refuses `launcher-unapproved`.
+- [ ] **AC-0014.** A run's launcher pin does not change for the life of the run.
+- [ ] **AC-0015.** The supervisor hashes the run's private launcher copy immediately before each spawn and again after reading the containment line, and a mismatch at either point sends the task to the floor without a release and records a `security-event.v1`.
+- [ ] **AC-0016.** The launcher starts in an empty private working directory, with an environment holding only `PATH`, `LANG`, `TMPDIR`, and `HOME` set by the supervisor, and with no inherited file descriptor other than its standard input, output, and error.
+- [ ] **AC-0017.** A containment attestation with any one of these defects sends its task to the floor without a release: no `containment` line within 60 seconds of spawn; a line over 4 MiB; a schema violation; a binding that differs in run id, attempt id, grant id, nonce, or launcher sha256 from the one issued; a `read_enforcement` other than `allowlist` under `enforced-allowlist` or `trace` under `complete-trace`; under `enforced-allowlist`, a read allowlist that differs from the declared `Reads:`; `network.allowed` true; write roots other than exactly the attempt directory; roots broader than the grant; or a missing denial of any of the Git common directory, the shared refs, the run store, `delivery/`, every sibling attempt directory, or inter-process channels to sibling attempts.
+- [ ] **AC-0018.** A containment defect in the binding records a `security-event.v1` naming the defect code.
+- [ ] **AC-0019.** The release token appears in no request, argument, environment variable, run-store file, journal line, `status` output, security event, or diagnostic record.
+- [ ] **AC-0020.** A result integrates only while the product ref names its source commit, and otherwise meets the refusal outcome, when its access attestation has any one of these defects: no `access` line before `attempt_timeout_seconds` (shipped 3600) elapse; a second `access` line or any line after it; a line over 4 MiB; a schema violation; a binding other than the one issued; a release token other than the one sent; a `mode` that differs from the containment attestation's `read_enforcement`; under `allowlist`, an attested read outside the declared `Reads:`; a path that is not a repository path; more than 20,000 entries in any list; a change the supervisor computes from the attempt directory that is absent from the attested writes; or `complete` false.
+- [ ] **AC-0021.** A `report` for a `run-concurrent` request that asserts an attestation, read set, write set, or binding refuses `result-fact-refused`.
+- [ ] **AC-0022.** `start` refuses `launcher-fixture-refused` for a launcher whose bytes carry the fixture marker, whatever environment variable, command-line flag, policy key, or file is set, unless the test corpus enables its in-process seam.
+- [ ] **AC-0023.** No file the Core pack installs or `make build-self` writes contains the fixture launcher's marker.
+- [ ] **AC-0024.** A second `run-concurrent` invocation for a request already run refuses `request-consumed` and spawns nothing.
+- [ ] **AC-0025.** After a `run-concurrent` invocation dies, the next supervisor verb ends each launcher process group that invocation recorded, confirms the end, closes those attempts as cancelled, and issues their tasks on the floor.
 
-Reads and writes
+Reads, writes, and paths
 
-- [ ] **AC-0013.** The meet relation returns true exactly for the pairs in the Meets definition, over a table that covers every row and a non-meeting pair for each.
-- [ ] **AC-0014.** Under `enforced-allowlist`, a worker's read outside its declared reads appears in the access attestation as denied and not in the attested read set.
-- [ ] **AC-0015.** Under `complete-trace`, a worker's read outside its declared reads joins the attested read set, and the integration check of AC-0017 uses it.
+- [ ] **AC-0026.** Under `enforced-allowlist`, a read the access attestation lists as denied does not enter the attested read set, and the result integrates when nothing else meets.
+- [ ] **AC-0027.** Under `complete-trace`, an undeclared traced read that meets a path changed on the product ref since the result's source commit gives the refusal outcome, and an undeclared traced read that meets nothing integrates.
+- [ ] **AC-0028.** In a repository whose `core.ignoreCase` is true, an attested read and a changed path that differ only in letter case meet.
+
+Ingestion and held results
+
+- [ ] **AC-0029.** The supervisor ingests an attempt directory only after confirming that the launcher's whole process group has ended.
+- [ ] **AC-0030.** Ingestion records a symbolic link as a link with its target text and never reads through it.
+- [ ] **AC-0031.** An attempt directory holding any one of a FIFO, a socket, a device node, a `.git` entry at any depth, a hard-linked file, more than 100,000 paths, or more than 10 GiB of file bytes fails its attempt, and the task is reprojected.
+- [ ] **AC-0032.** Ingestion admits exactly the paths the floor's change-set computation admits for the same files, under the same ignore rules.
+- [ ] **AC-0033.** Integration reads a held result only through its result identity, so a change to its attempt directory after the access line is read leaves the integrated tree unchanged, and a change to its held-result record during a floor attempt refuses that floor attempt with `attempt-residue`.
 
 Integration
 
-- [ ] **AC-0016.** Admitted results integrate in floor order: the product ref's commits for a batch appear in floor order whatever order the attempts finish in, and a held result integrates only after every earlier task has integrated.
-- [ ] **AC-0017.** A result whose attested read or write set meets a path changed on the product ref between its source commit and the observed tip refuses: the product ref, `HEAD`, the index, and every `delivery/` file are unchanged, an `integration-conflict.v1` is recorded, and the task is reprojected from the new tip.
-- [ ] **AC-0018.** Two results changing the same line of one file produce a content conflict on the later one in floor order, with the outcome of AC-0017.
-- [ ] **AC-0019.** The three-way apply uses the result's source commit as its merge base and reads attributes only from the empty tree, so a `merge=union` in the checked-out `.gitattributes` does not resolve a conflict.
-- [ ] **AC-0020.** A non-default `merge` attribute on any changed path, from `info/attributes` or a configured `core.attributesFile`, refuses the result with the outcome of AC-0017.
-- [ ] **AC-0021.** `start` refuses `unsupported-git-config` for a repository whose configuration defines any `merge.<name>.driver`.
-- [ ] **AC-0022.** An apply whose tree changes a path outside the result's attested write set refuses with the outcome of AC-0017.
-- [ ] **AC-0023.** A compare-and-swap lost to a concurrent ref move refuses with the outcome of AC-0017, and a kill at each integration write point leaves the product ref at its old or new commit and a rerun converges to the uninterrupted run's tree.
-- [ ] **AC-0024.** Every `integration-conflict.v1` holds product paths only, at most 1,000 of them, and no file contents, and passes the `integration-diagnostic` content profile.
-- [ ] **AC-0025.** Every successful concurrent integration records one `result-integration.v1` naming the source commit, observed tip, result commit, result tree, and the apply algorithm with the Git version that ran it.
+- [ ] **AC-0034.** Admitted results integrate in floor order whatever order their attempts finish in.
+- [ ] **AC-0035.** A result whose attested read or write set meets a path changed on the product ref between its source commit and the observed tip meets the refusal outcome.
+- [ ] **AC-0036.** At the apply step, two results changing the same line of one file give the later one the refusal outcome.
+- [ ] **AC-0037.** At the apply step, a `merge=union` in the checked-out `.gitattributes` does not resolve a conflict.
+- [ ] **AC-0038.** A non-default `merge` attribute from `info/attributes` on any changed path gives the refusal outcome.
+- [ ] **AC-0039.** A `merge.*` key present in repository configuration at the apply, including `merge.default=union` over a same-line change, gives the refusal outcome.
+- [ ] **AC-0040.** `start` refuses `unsupported-git-config` for a repository whose configuration defines any `merge.<name>.driver`.
+- [ ] **AC-0041.** An apply whose tree differs from the observed tip at a path outside the result's changed paths gives the refusal outcome.
+- [ ] **AC-0042.** A compare-and-swap lost to a ref move gives the refusal outcome.
+- [ ] **AC-0043.** A ref move injected between the intervening-change check and the compare-and-swap gives the refusal outcome.
+- [ ] **AC-0044.** A kill at each integration write point, from object creation through working-tree materialization, leaves the product ref at its old or new commit, and a rerun converges to the uninterrupted run's tree.
+- [ ] **AC-0045.** A rerun after a kill between the compare-and-swap and the integration record recognises the landed operation from its commit and creates no commit, no conflict record, and no reprojection.
+- [ ] **AC-0046.** After each integration and before any floor issue, the working tree and index match the product ref.
+- [ ] **AC-0047.** Every `integration-conflict.v1` holds repository paths and no file contents, passes the `integration-diagnostic` content profile, and, when more paths conflict than that profile's path cap, lists the first cap-many in byte order with the total count and a truncation flag while the refusal outcome still holds.
+- [ ] **AC-0048.** Every successful concurrent integration records one `result-integration.v1` naming the source commit, observed tip, result commit, result tree, access-line sha256, and the apply algorithm with the Git version that ran it.
 
-Attempt isolation and blast radius
+Isolation, blast radius, and plan changes
 
-- [ ] **AC-0026.** Each concurrent attempt runs in a fresh directory that holds no `.git` entry and is never reused, and has its own manifest; a change to a trusted file, Git control state, or `delivery/` during the attempt refuses that attempt with `attempt-residue` whether or not siblings are open.
-- [ ] **AC-0027.** A refused, conflicting, or failed attempt reprojects only itself and each running sibling whose declared sets meet its own; every other sibling's result integrates.
-- [ ] **AC-0028.** A cancelled attempt's launcher process tree is ended and its end confirmed before the task is reprojected onto a fresh directory; an unconfirmed end sends the task to the floor; a cancelled attempt's result never integrates.
-- [ ] **AC-0029.** A task reprojected `reprojection_bound` times (shipped value 2) runs its next attempt on the floor, and every reprojection appears in the journal and in `status`.
-- [ ] **AC-0030.** A controller replan or stub-fence revision is admitted only while no attempt is open and no result is held.
+- [ ] **AC-0049.** Each concurrent attempt runs in its own attempt directory.
+- [ ] **AC-0050.** A change to a trusted file, Git control state, or `delivery/` during a concurrent attempt refuses that attempt with `attempt-residue` while a sibling attempt is open.
+- [ ] **AC-0051.** A refused, conflicting, or failed attempt reprojects only itself and each running sibling whose declared sets meet its own, and every other sibling's result integrates.
+- [ ] **AC-0052.** A cancelled attempt's launcher process group is ended and its end confirmed within 10 seconds before the task is reprojected onto a fresh attempt directory.
+- [ ] **AC-0053.** A cancelled attempt whose end is not confirmed sends its task to the floor.
+- [ ] **AC-0054.** A cancelled attempt's result never integrates.
+- [ ] **AC-0055.** A task reprojected `reprojection_bound` times (shipped 2) runs its next attempt on the floor.
+- [ ] **AC-0056.** Every reprojection appears in the journal and in `status`.
+- [ ] **AC-0057.** A controller replan or stub-fence revision is admitted only while no attempt is open; it discards every held result, reprojects those tasks without counting toward the bound, and is admitted once the open attempts end.
+- [ ] **AC-0058.** No `run-gates`, `review-role`, or evidence receipt is issued while an attempt is open or a result is held, and each names only a commit the product ref has held.
 
 Determinism and portability
 
-- [ ] **AC-0031.** For each fixture schedule in the corpus, every permutation of attempt completion order ends with a product tree and an `acceptance-verdict.v1` byte-equal to the sequential run's over the same scripted attempt outputs.
-- [ ] **AC-0032.** The corpus runs with no Pi executable resolvable on `PATH` and no Pi module importable, and it fails if either resolves.
+- [ ] **AC-0059.** Under each concurrent mode, every completion-order permutation of each corpus schedule — three independent attempts; a read-after-write that reprojects; a floor task between held results; and a conflict that reprojects — is forced by fixture coordination, observed in the journal, and ends with the same product tree id and per-criterion acceptance outcomes as the sequential run over the same scripted attempt outputs and run id.
+- [ ] **AC-0060.** With the test-only seam that integrates in completion order enabled, the read-after-write schedule's comparison fails.
+- [ ] **AC-0061.** The corpus holds at most six schedules of at most three concurrent attempts each.
+- [ ] **AC-0062.** Every corpus subprocess runs in an environment the corpus builds, with an isolated interpreter and a `PATH` on which no `pi` executable resolves, and the corpus asserts both before the first run.
 
 Contracts
 
-- [ ] **AC-0033.** Every `containment-attestation.v1`, `access-attestation.v1`, `result-integration.v1`, `integration-conflict.v1`, `execution-request.v1`, and `task-contract.v1` record the corpus writes validates against its schema in `contracts/delivery/`.
-- [ ] **AC-0034.** Every `containment-attestation.v1` and `task-contract.v1` fixture that validated before this spec still validates.
+- [ ] **AC-0063.** Every `containment-attestation.v1`, `access-attestation.v1`, `launcher-message.v1`, `result-integration.v1`, `integration-conflict.v1`, `execution-request.v1`, and `task-contract.v1` record the corpus writes validates against its schema, and the corpus writes at least one of each.
+- [ ] **AC-0064.** Every `containment-attestation.v1` and `task-contract.v1` fixture under `tests/roster/` at T1's merge base still validates.
 
 ## Follow-ons
 
