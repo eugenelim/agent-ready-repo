@@ -346,6 +346,189 @@ def test_vi6020_a_synthetic_run_repairs_and_passes_when_readiness_turns_eligible
     assert code == 0 and payload.get("terminal") is True
 
 
+# ── review-obligation-policy T4: a carry satisfies a role on a new subject ──
+
+DIGEST = "d" * 64
+contracts = h.cli._supervisor("_review_contracts.py")
+
+
+def _carry(
+    lab: Lab, subject: dict[str, Any], *, source: str, **over: Any
+) -> dict[str, Any]:
+    """Append one valid carry naming *source* (a report id, or a carry id when it starts so)."""
+    record: dict[str, Any] = {
+        "schema_version": 1,
+        "role": "adversarial-reviewer",
+        "review_subject_fingerprint": subject["review_subject_fingerprint"],
+        "review_policy_fingerprint": subject["review_policy_fingerprint"],
+        "tier": "wording-only",
+        "anchor_round": 1,
+        "classifier_digest": DIGEST,
+    }
+    record["from_carry_id" if source.startswith("review-carry-") else "from_report_id"] = source
+    record.update(over)
+    record["carry_id"] = contracts.carry_id_of(record)
+    lab.store.append_semantic_records(
+        [record],
+        transaction_id=f"tx:{record['carry_id']}",
+        acceptance_fingerprint=subject["delivery_subject_ref"]["acceptance_fingerprint"],
+        issuer=lab.issuer,
+        grant=lab.grant,
+        audit_sink=_sink,
+    )
+    return record
+
+
+def _carried(lab: Lab, subject: dict[str, Any], **over: Any) -> dict[str, Any]:
+    """Readiness for *subject* with the values a caller would derive for a wording-only carry."""
+    policy = {
+        "policy_id": "policy-t3",
+        "review_policy_fingerprint": subject["review_policy_fingerprint"],
+        "policy_version": "1",
+        "selector": "synthetic",
+        "roles": [{"role": "adversarial-reviewer", "kind": "mandatory"}],
+        "waivers": [],
+    }
+    args: dict[str, Any] = {"carry_tier": "wording-only", "classifier_digest": DIGEST}
+    args.update(over)
+    return disposition.review_readiness(  # type: ignore[no-any-return]
+        lab.store, review_subject=subject, review_policy=policy, **args
+    )
+
+
+def _decision(ready: dict[str, Any]) -> tuple[bool, str]:
+    (item,) = ready["obligations"]
+    return ready["acceptance_eligible"], str(item["decision"])
+
+
+def _two_subjects(
+    tmp_path: Path, findings: list[dict[str, Any]] | None = None
+) -> tuple[Lab, dict[str, Any], dict[str, Any], dict[str, Any]]:
+    lab = Lab(tmp_path)
+    first, second = lab.subject("a"), lab.subject("b")
+    report = lab.report(first, "report-1", findings or [])
+    return lab, first, second, report
+
+
+def test_ac0014_a_carried_clean_report_satisfies_the_obligation(tmp_path: Path) -> None:
+    """AC-0014: one carry stands in for the role's clean report on the new subject."""
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    assert _decision(lab.readiness(second))[0] is False
+    _carry(lab, second, source="report-1")
+    assert _decision(_carried(lab, second)) == (True, "satisfied-carry")
+
+
+def test_ac0014_a_carried_report_with_a_disposed_finding_satisfies_it(tmp_path: Path) -> None:
+    """AC-0014: the carried report's finding counts as closed by its accept-risk disposition."""
+    lab, first, second, report = _two_subjects(tmp_path, [_finding("f-1")])
+    lab.assess(report, "f-1", "supported", "a-1")
+    _carry(lab, second, source="report-1")
+    assert _decision(_carried(lab, second))[0] is False
+    _accept(lab, first, ["f-1"])
+    assert _decision(_carried(lab, second)) == (True, "satisfied-carry")
+
+
+def test_ac0014_a_carry_of_a_carry_follows_the_latest_carry(tmp_path: Path) -> None:
+    """AC-0014: a later subject carries the role's latest carry, which names the report."""
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    middle = _carry(lab, second, source="report-1")
+    third = lab.subject("c")
+    _carry(lab, third, source=middle["carry_id"])
+    assert _decision(_carried(lab, third)) == (True, "satisfied-carry")
+
+
+def test_ac0015_no_expected_values_counts_no_carry(tmp_path: Path) -> None:
+    """AC-0015: the defaults fail closed, so existing callers see no carry."""
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    _carry(lab, second, source="report-1")
+    assert _decision(lab.readiness(second))[0] is False
+    assert _decision(_carried(lab, second, carry_tier=None))[0] is False
+    assert _decision(_carried(lab, second, classifier_digest=None))[0] is False
+
+
+def test_ac0015_a_protected_role_is_never_carried(tmp_path: Path) -> None:
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    _carry(lab, second, source="report-1")
+    ready = _carried(lab, second, protected_roles=frozenset({"adversarial-reviewer"}))
+    assert _decision(ready)[0] is False
+
+
+def test_ac0015_a_role_with_an_open_finding_is_not_carried(tmp_path: Path) -> None:
+    lab, _first, second, report = _two_subjects(tmp_path, [_finding("f-1")])
+    lab.assess(report, "f-1", "supported", "a-1")
+    _carry(lab, second, source="report-1")
+    assert _decision(_carried(lab, second))[0] is False
+
+
+def test_ac0015_a_report_that_is_not_the_latest_is_not_carried(tmp_path: Path) -> None:
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    lab.report(lab.subject("m"), "report-2", [])
+    _carry(lab, second, source="report-1")
+    assert _decision(_carried(lab, second))[0] is False
+
+
+def test_ac0015_a_carry_of_an_outdated_carry_is_not_counted(tmp_path: Path) -> None:
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    old = _carry(lab, second, source="report-1")
+    _carry(lab, lab.subject("c"), source=old["carry_id"])
+    fourth = lab.subject("d")
+    _carry(lab, fourth, source=old["carry_id"])
+    assert _decision(_carried(lab, fourth))[0] is False
+
+
+def test_ac0015_a_carry_for_another_subject_is_not_counted(tmp_path: Path) -> None:
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    _carry(lab, lab.subject("other"), source="report-1")
+    assert _decision(_carried(lab, second))[0] is False
+
+
+@pytest.mark.parametrize(
+    "over",
+    [
+        {"carry_tier": "rebase"},
+        {"classifier_digest": "e" * 64},
+        {"review_policy_fingerprint": "review-policy-other"},
+    ],
+    ids=["tier", "classifier-digest", "policy-fingerprint"],
+)
+def test_ac0015_a_carry_with_other_derived_values_is_not_counted(
+    tmp_path: Path, over: dict[str, Any]
+) -> None:
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    if "review_policy_fingerprint" in over:
+        _carry(lab, second, source="report-1", **over)
+        assert _decision(_carried(lab, second))[0] is False
+    else:
+        _carry(lab, second, source="report-1")
+        assert _decision(_carried(lab, second, **over))[0] is False
+
+
+def test_ac0015_two_carries_for_one_role_and_subject_are_not_counted(tmp_path: Path) -> None:
+    lab, _first, second, _report = _two_subjects(tmp_path)
+    _carry(lab, second, source="report-1")
+    _carry(lab, second, source="report-1", anchor_round=2)
+    assert _decision(_carried(lab, second))[0] is False
+
+
+def test_ac0016_a_carry_with_a_wrong_id_or_shape_is_invalid() -> None:
+    record: dict[str, Any] = {
+        "schema_version": 1, "role": "r", "from_report_id": "report-1",
+        "review_subject_fingerprint": "s", "review_policy_fingerprint": "p",
+        "tier": "rebase", "anchor_round": 1, "classifier_digest": DIGEST,
+    }
+    record["carry_id"] = contracts.carry_id_of(record)
+    assert contracts.validate_review_carry_dict(record) == (True, "ok")
+    for bad in (
+        {**record, "carry_id": "review-carry-sha256:" + "0" * 64},
+        {**record, "tier": "full"},
+        {**record, "anchor_round": 0},
+        {**record, "from_carry_id": record["carry_id"]},
+        {**record, "extra": 1},
+        {k: v for k, v in record.items() if k != "from_report_id"},
+    ):
+        assert contracts.validate_review_carry_dict(bad)[0] is False
+
+
 # ── VI-6021: accept-risk ────────────────────────────────────────────────────
 
 

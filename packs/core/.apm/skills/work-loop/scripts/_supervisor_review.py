@@ -80,6 +80,10 @@ __all__ = [
     "RULES_PATH",
     "SELECTIONS_FILE",
     "DECISIONS_FILE",
+    "ANCHORS_FILE",
+    "anchor_record",
+    "latest_anchor",
+    "parse_anchors",
     "SUPERVISOR_ROLE",
     "Selection",
     "accept_risk_evidence",
@@ -104,6 +108,7 @@ __all__ = [
 RULES_PATH = _SCRIPTS_DIR.parent / "review-rules.json"
 SELECTIONS_FILE = "review-selections.jsonl"
 DECISIONS_FILE = "review-decisions.jsonl"
+ANCHORS_FILE = "review-anchors.jsonl"
 SUPERVISOR_ROLE = "work-supervisor"
 _MAX_BYTES = 4 * 1024 * 1024
 _ROLE_RE = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
@@ -128,6 +133,12 @@ _SELECTION_FIELDS = frozenset({
     "run_id", "sequence", "selection_key", "selected", "omitted", "authority_ref", "authorized_by",
     "protected_classes", "review_tier",
 })
+_ANCHOR_FIELDS = frozenset({
+    "run_id", "round", "review_subject_fingerprint", "review_policy_fingerprint",
+    "anchor_result", "run_base", "changed_paths", "patch_ids",
+})
+# `git patch-id --verbatim` first shipped in Git 2.39.
+_VERBATIM_GIT = (2, 39)
 _DECISION_FIELDS = frozenset({
     "run_id", "request_id", "decision", "authority_ref", "selection_key", "finding_ids"
 })
@@ -489,6 +500,91 @@ def parse_decisions(raw: bytes) -> list[dict[str, Any]]:
                 f"{DECISIONS_FILE} line {number} is malformed",
             )
     return records
+
+
+def _invalid_anchor(detail: str) -> Refusal:
+    return Refusal("review-anchor-invalid", "controller", detail)
+
+
+def parse_anchors(raw: bytes) -> list[dict[str, Any]]:
+    """The records in ``delivery/review-anchors.jsonl``; a bad line refuses."""
+    records = _lines(
+        raw, ANCHORS_FILE, _ANCHOR_FIELDS, _ANCHOR_FIELDS, "review-anchor-invalid"
+    )
+    for number, line in enumerate(records, 1):
+        paths, ids, base = line["changed_paths"], line["patch_ids"], line["run_base"]
+        ok = (
+            _text(line["run_id"])
+            and type(line["round"]) is int
+            and line["round"] >= 1
+            and _text(line["review_subject_fingerprint"])
+            and _text(line["review_policy_fingerprint"])
+            and _text(line["anchor_result"])
+            and (base is None or _text(base))
+            and isinstance(paths, list)
+            and all(_text(p) for p in paths)
+            and paths == sorted(set(paths))
+            and (
+                ids is None
+                or (
+                    isinstance(ids, dict)
+                    and set(ids) == set(paths)
+                    and all(_text(v) for v in ids.values())
+                )
+            )
+        )
+        if not ok:
+            raise _invalid_anchor(f"{ANCHORS_FILE} line {number} is malformed")
+    return records
+
+
+def anchor_record(
+    git: Any,
+    *,
+    run_id: str,
+    round_number: int,
+    review_subject_fingerprint: str,
+    review_policy_fingerprint: str,
+    anchor_result: str,
+    run_base: str | None,
+    changed_paths: list[str],
+) -> dict[str, Any]:
+    """The anchor-facts line for one anchor round.
+
+    ``patch_ids`` is ``None`` when *run_base* is unknown or Git predates
+    ``patch-id --verbatim``, so a later classifier cannot call a rebase from it.
+    """
+    paths = sorted(set(changed_paths))
+    patch_ids: dict[str, str] | None = None
+    if run_base is not None and tuple(git.git_version()) >= _VERBATIM_GIT:
+        patch_ids = {path: git.patch_id(run_base, anchor_result, path) for path in paths}
+    return {
+        "run_id": run_id,
+        "round": round_number,
+        "review_subject_fingerprint": review_subject_fingerprint,
+        "review_policy_fingerprint": review_policy_fingerprint,
+        "anchor_result": anchor_result,
+        "run_base": run_base,
+        "changed_paths": paths,
+        "patch_ids": patch_ids,
+    }
+
+
+def latest_anchor(ws: Any) -> Any:
+    """The classifier's anchor facts from the last recorded line, or ``None``.
+
+    The classifier reads only this line, never the run's rewritten history.
+    """
+    records = parse_anchors(_delivery_bytes(ws, ANCHORS_FILE))
+    if not records:
+        return None
+    last = records[-1]
+    return _supervisor("_review_tiers.py").AnchorFacts(
+        last["anchor_result"],
+        last["run_base"],
+        frozenset(last["changed_paths"]),
+        last["patch_ids"],
+    )
 
 
 @dataclass

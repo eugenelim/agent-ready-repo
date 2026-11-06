@@ -18,6 +18,7 @@ import importlib.util
 import os
 import stat
 import sys
+from collections.abc import Collection
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Final
@@ -223,8 +224,16 @@ def review_readiness(
     *,
     review_subject: dict[str, Any],
     review_policy: dict[str, Any],
+    carry_tier: str | None = None,
+    classifier_digest: str | None = None,
+    protected_roles: Collection[str] = frozenset(),
 ) -> dict[str, Any]:
     """Return the current review readiness for a subject.
+
+    ``carry_tier``, ``classifier_digest``, and ``protected_roles`` are the values
+    the caller derived for the current subject. A ``review-carry.v1`` record
+    counts for a role only when it matches them; with the defaults no carry
+    counts and the result is the one readiness gave before carries existed.
 
     Pure computation from the durable log.  Deleting derived state (fresh store
     reopen) yields the identical result dict.  No write operations are performed.
@@ -260,6 +269,28 @@ def review_readiness(
         if d.get("review_subject_fingerprint") == review_subject_fingerprint
     ]
 
+    # Carries stand in only when the caller supplied the expected tier and digest.
+    carries: list[dict[str, Any]] = []
+    carried_dispositions: list[dict[str, Any]] = []
+    if carry_tier is not None and classifier_digest is not None:
+        carries = store.get_semantic_records("review-carry.v1")
+        # The carried report's assessments count with it, and so do the dispositions
+        # the store still verifies as closing a finding on the subject it was raised on.
+        assessments = all_assessments
+        subjects = {
+            r["subject"]["review_subject_fingerprint"]: r["subject"]
+            for r in all_reports
+            if isinstance(r.get("subject"), dict) and "review_subject_fingerprint" in r["subject"]
+        }
+        carried_dispositions = [
+            d for d in all_dispositions
+            if d.get("review_subject_fingerprint") in subjects
+            and d.get("review_subject_fingerprint") != review_subject_fingerprint
+            and store.disposition_closes(
+                d.get("disposition_id", ""), subjects[d["review_subject_fingerprint"]]
+            )
+        ]
+
     # Get selected obligations from subject + policy.
     selected_obligations = rs.select_review_obligations(review_subject, review_policy)
 
@@ -277,7 +308,11 @@ def review_readiness(
                 # Pass no dispositions: all closure is re-verified live via
                 # store.disposition_closes, which re-evaluates the full authority
                 # rule set including approval supersession and assessment currency.
-                dispositions=[],
+                dispositions=carried_dispositions,
+                carries=carries,
+                expected_tier=carry_tier,
+                expected_classifier_digest=classifier_digest,
+                protected_roles=protected_roles,
             )
         except Exception:  # noqa: BLE001
             decision = {
