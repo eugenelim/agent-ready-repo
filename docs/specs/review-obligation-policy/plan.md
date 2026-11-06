@@ -232,6 +232,26 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 **Done when:** `make lint-ruff lint-mypy`, the touched suites, and the catalogue lint pass.
 
+### T7: Code-review repairs pass
+
+**Depends on:** T6
+
+**Touches:** packs/core/.apm/skills/work-loop/scripts/_review_tiers.py, packs/core/.apm/skills/work-loop/scripts/_supervisor_readiness.py, packs/core/.apm/skills/work-loop/scripts/_supervisor_review.py, packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py, packs/core/.apm/skills/work-loop/scripts/_supervisor_git.py, packs/core/tests/skills/work-loop/test_review_tiers.py, packs/core/tests/skills/work-loop/test_review_carry.py, packs/core/tests/skills/work-loop/test_review_obligation_policy.py, packs/core/tests/skills/work-loop/test_supervisor_git.py
+
+**Tests:**
+- AC-0006, AC-0007: a subject reached by an adopted reanchor that fails any rebase condition (Git older than 2.39, no patch ids, undefined run base, changed spec directory) classifies `full`, never `wording-only` or `minor-fix`; one fixture per condition.
+- AC-0004: a pipe table without a leading pipe, a setext heading and its underline, and code after a shorter inner fence inside a longer fence are never plain prose; one fixture each.
+- AC-0023: a subject whose product changed only through an adopted reanchor is not a round.
+- AC-0002: every Git read the classifier makes is bounded. The tree is read only for the delta paths and, through case-insensitive pathspecs, for instruction-named files, so no single read passes 1 MiB in this repository; an oversized tree or rev-list read classifies `full`.
+- AC-0002: the bounded launch keeps a wall-clock limit over the whole process, drains stdout and stderr together with both capped, writes stdin without blocking the drain, and surfaces every launch failure as a Git refusal (test_supervisor_git.py).
+- AC-0002, AC-0008: the line comparison refuses files over a fixed line count and stops counting past `minor_fix_max_lines`, classifying `full` instead of running unbounded.
+- AC-0013: an anchor line is validated with the parser before it is written; a touched-then-restored path is recorded in a form the parser accepts, so the run never locks on its own anchor file.
+- AC-0003: an `@` reference that names a tree entry only under case folding, Unicode normalisation, a `#fragment`, or trailing markup counts as reaching that entry; a reference to a symlink classifies `full`.
+- AC-0026: the accept-risk flow test fails unless the disposed finding is the one the named cap reference derives from.
+- The tier reason in `status` names the refusing predicate or Git code; production reads anchor facts through `latest_anchor`; one read limit constant; one decisions-ledger read per readiness call.
+
+**Done when:** `test_review_tiers.py`, `test_review_carry.py`, `test_supervisor_git.py`, `test_review_obligation_policy.py` (integration), the review suites, and `make lint-ruff lint-mypy` pass.
+
 ## Rollout
 
 - **Delivery:** one Core patch. A run started before the upgrade stops with `supervisor-changed` (existing behaviour) or keeps today's review through its protection-unknown selection lines.
