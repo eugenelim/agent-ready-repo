@@ -1,3 +1,8 @@
+.github/ISSUE_TEMPLATE/proposal-idea.md
+docs/GOVERNANCE.md
 docs/adr/README.md
 docs/rfc/README.md
+docs/rfc/file_safety.py
+docs/rfc/rfc.py
+docs/rfc/template.md.tmpl
 governance/manifest.example.yaml
