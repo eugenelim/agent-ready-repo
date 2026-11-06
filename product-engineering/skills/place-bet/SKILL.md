@@ -42,8 +42,8 @@ Run after any validation work (intent de-risk, validation-notes.md) and before
 **1. Intake.** Resolve `output_dir` via the three-tier config procedure: check
 repo-scope `agentbundle-layout.toml [product]` → user-scope → two-branch
 elicitation (`docs/product/` is the designed default, not a constant).
-Reuse the active `[shaping_queue]` item slug; when invoked standalone, ask which
-slug to write to. Never mint a new slug. When multiple candidate slug paths exist
+Resolve the slug from the `<output_dir>/shaping/<slug>/` directory the PE is
+working in; when none is clear, ask which slug to write to. Never mint a new slug. When multiple candidate slug paths exist
 under `<output_dir>/shaping/`, surface them and ask before proceeding.
 Look for `<output_dir>/shaping/<slug>/`. Check for any `*solution*` or `*options*`
 file. Check for `validation-notes.md`. The solutions file lookup uses a glob
@@ -84,10 +84,12 @@ file — this is the intended revision flow.
 Frontmatter: `type: bet`, `slug`, `date`, `option`, `option-source`,
 `confidence`, `appetite`. Body sections: Option chosen, Rationale, Risks
 accepted, Assumptions, Kill condition (optional), Next step (pointer to
-`map-capabilities`), Suggested workspace.toml transition.
+`map-capabilities`), Suggested next captured item.
 
-**5. Suggest workspace.toml transition.** Print the TOML snippet including the
-slug; direct the PE to `work-intake` or manual edit. Do not write to `workspace.toml`.
+**5. Suggest the next captured item.** Print a captured-item record for the
+slug's next step (`Status: Open`, a `Kind:`, and a Detail line naming `bet.md`);
+direct the PE to capture it through `work-intake`, which writes the file. Do not
+write `docs/product/captured/` yourself.
 
 ## Anti-patterns to refuse
 

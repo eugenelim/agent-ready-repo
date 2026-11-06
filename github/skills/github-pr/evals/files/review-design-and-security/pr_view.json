@@ -1,0 +1,17 @@
+{
+  "number": 42,
+  "title": "Add export endpoint",
+  "body": "Adds /export?path=... so users can download a report. Spec: docs/specs/export/spec.md says exports are limited to the reports directory.\n",
+  "state": "OPEN",
+  "baseRefName": "main",
+  "headRefName": "feat/export",
+  "headRefOid": "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
+  "headRepository": {"name": "example-repo"},
+  "headRepositoryOwner": {"login": "bob"},
+  "isCrossRepository": true,
+  "maintainerCanModify": true,
+  "reviews": [],
+  "comments": [],
+  "labels": [],
+  "files": [{"path": "src/export.py"}]
+}

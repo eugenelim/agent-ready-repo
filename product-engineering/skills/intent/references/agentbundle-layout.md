@@ -102,8 +102,9 @@ Eight skill bodies, not two: `intent frame` (intents), `align-value-stream`
 `place-bet`, `map-capabilities` (all under `shaping/`), and `lean-canvas`, which
 reads the section to scan but writes a pinned path.
 
-Core's `workspace-status` ships a second `[product]` schema doc describing the
-same table differently. Reconciling the two, and the section-naming question
-underneath them, is tracked in `workspace.toml`'s backlog against
+Core's `workspace-status` repair skill ships a second `[product]` schema doc
+describing the same table differently. Reconciling the two, and the section-naming
+question underneath them, is tracked as a captured-item file under
+`docs/product/captured/` against
 `docs/architecture/agentbundle.md`; this page states its own readers correctly in
 the meantime.

@@ -43,7 +43,7 @@ If altitude is genuinely ambiguous, ask.
 **1. Intake.** Resolve `output_dir` via the three-tier config procedure (repo-scope
 `agentbundle-layout.toml [product]` → user-scope → two-branch elicitation).
 Realpath-expand; reject `..` escapes and symlink chains that exit the intended root.
-Resolve slug from the active shaping queue entry; surface multiple candidates if they
+Resolve the slug from the `<output_dir>/shaping/<slug>/` directory in use; surface multiple candidates if they
 exist; ask when none; never mint.
 
 Check `<output_dir>/shaping/<slug>/bet.md`. If found: surface option, appetite,
@@ -99,8 +99,9 @@ own behaviour and say nothing about it: no mention, no note, and no error.
 writing; confirm before overwriting an existing file. The map always ends with a
 `## Next step` section that names `intent decompose`.
 
-**6. Suggest workspace.toml transition.** Print the TOML snippet to transition the
-slug. Direct PE to `work-intake` or manual edit. Do not write to `workspace.toml`.
+**6. Suggest the next captured item.** Print a captured-item record for the slug's
+next step. Direct PE to capture it through `work-intake`, which writes the file. Do
+not write `docs/product/captured/` yourself.
 
 ## Anti-patterns to refuse
 

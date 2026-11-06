@@ -1,0 +1,11 @@
+diff --git a/src/export.py b/src/export.py
+new file mode 100644
+--- /dev/null
++++ b/src/export.py
+@@ -0,0 +1,6 @@
++import os
++
++def export_report(request):
++    path = request.args["path"]
++    with open(os.path.join(REPORTS_DIR, path), "rb") as handle:
++        return handle.read()
