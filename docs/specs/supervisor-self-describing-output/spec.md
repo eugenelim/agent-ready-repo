@@ -1,6 +1,6 @@
 # Spec: Supervisor self-describing output
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -74,27 +74,27 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** Each `work-supervisor.py` verb (`park`, `gates`, `start`, `next`, `report`, `status`, `resolve-effect`) given `--json` after the verb prints the same stdout and exits with the same code as the same call without it.
-- [ ] **AC-0002.** Every `status` answer that is a run view or carries a top-level refusal has a `route` equal to the string the routing table in `references/session-resumption.md` gives for its shape, including the refusal from the pin check, the unsupported-ref-storage refusal, and, when forced by a test fault, the lock refusal and the internal-error refusal.
-- [ ] **AC-0003.** On a `status` answer where `retry_count` and the retry cap can be read, a non-terminal run at or above the cap has the cap row's `route` even when a refusal stands, as `status --check` exits 3 for it; a `next` answer whose request is the `retry-cap` human decision has the same `route`.
-- [ ] **AC-0004.** Every `next` answer from the request, terminal and refusal shapes, and the pin-check refusal, has a `route` equal to the string the routing table gives for its shape: a refusal, a terminal answer, a `human-decision` request, or any other request.
-- [ ] **AC-0005.** A usage error (exit 2) from `status` or `next` carries no `route`.
-- [ ] **AC-0006.** A `route` contains no `detail` text from a refusal.
-- [ ] **AC-0007.** A `route` is 160 characters or fewer.
-- [ ] **AC-0008.** `status --check` exits with the same codes as before `route` existed.
-- [ ] **AC-0009.** `report` refuses a malformed result envelope with `invalid-result` and a detail that names the failing field and states its required form; the malformed envelopes are a result that is not a JSON object, a `schema_version` not equal to 1, and a `request_id`, `run_id` or `kind` that is not a non-empty string.
-- [ ] **AC-0010.** The `invalid-result` detail that `report` gives for a malformed result envelope contains no non-empty value the controller sent, except where that value falls inside the detail's fixed field name and required-form text.
-- [ ] **AC-0011.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`.
-- [ ] **AC-0012.** `references/supervisor-mode.md` § Single-agent fallback restates no part of the reviewer rule that `SKILL.md` and `review-rules.json` hold.
-- [ ] **AC-0013.** `references/session-resumption.md` holds a routing table for the `status` and `next` shapes with a first-match order and one row per shape.
-- [ ] **AC-0014.** Step 1 of `references/session-resumption.md` points to that table instead of ranking shapes.
-- [ ] **AC-0015.** `references/supervisor.md` states that `--json` goes after the verb on every verb.
-- [ ] **AC-0016.** `references/supervisor.md` states that `status` and `next` carry `route`.
-- [ ] **AC-0017.** `references/state-schema.md` lists `route` among the `status` keys.
-- [ ] **AC-0018.** `evals/evals.json` carries a case with id `undispatchable-reviewer-follows-roster-rule`, a prompt that has an undispatchable reviewer role, a non-empty `expected_output` and non-empty `assertions`.
-- [ ] **AC-0019.** The `core` version in `pack.toml` and `.claude-plugin/plugin.json` is one patch above the version `packs/core/pack.toml` carries on `origin/main` as fetched when this criterion is checked.
-- [ ] **AC-0020.** `tools/check-core-release.py --base origin/main` passes.
-- [ ] **AC-0021.** The changelog fragment and the `_RELEASED["core"]` pin in `tests/roster/test_registry_upgrade_notes.py` name the version of AC-0019.
+- [x] **AC-0001.** Each `work-supervisor.py` verb (`park`, `gates`, `start`, `next`, `report`, `status`, `resolve-effect`) given `--json` after the verb prints the same stdout and exits with the same code as the same call without it.
+- [x] **AC-0002.** Every `status` answer that is a run view or carries a top-level refusal has a `route` equal to the string the routing table in `references/session-resumption.md` gives for its shape, including the refusal from the pin check, the unsupported-ref-storage refusal, and, when forced by a test fault, the lock refusal and the internal-error refusal.
+- [x] **AC-0003.** On a `status` answer where `retry_count` and the retry cap can be read, a non-terminal run at or above the cap has the cap row's `route` even when a refusal stands, as `status --check` exits 3 for it; a `next` answer whose request is the `retry-cap` human decision has the same `route`.
+- [x] **AC-0004.** Every `next` answer from the request, terminal and refusal shapes, and the pin-check refusal, has a `route` equal to the string the routing table gives for its shape: a refusal, a terminal answer, a `human-decision` request, or any other request.
+- [x] **AC-0005.** A usage error (exit 2) from `status` or `next` carries no `route`.
+- [x] **AC-0006.** A `route` contains no `detail` text from a refusal.
+- [x] **AC-0007.** A `route` is 160 characters or fewer.
+- [x] **AC-0008.** `status --check` exits with the same codes as before `route` existed.
+- [x] **AC-0009.** `report` refuses a malformed result envelope with `invalid-result` and a detail that names the failing field and states its required form; the malformed envelopes are a result that is not a JSON object, a `schema_version` not equal to 1, and a `request_id`, `run_id` or `kind` that is not a non-empty string.
+- [x] **AC-0010.** The `invalid-result` detail that `report` gives for a malformed result envelope contains no non-empty value the controller sent, except where that value falls inside the detail's fixed field name and required-form text.
+- [x] **AC-0011.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`.
+- [x] **AC-0012.** `references/supervisor-mode.md` § Single-agent fallback restates no part of the reviewer rule that `SKILL.md` and `review-rules.json` hold.
+- [x] **AC-0013.** `references/session-resumption.md` holds a routing table for the `status` and `next` shapes with a first-match order and one row per shape.
+- [x] **AC-0014.** Step 1 of `references/session-resumption.md` points to that table instead of ranking shapes.
+- [x] **AC-0015.** `references/supervisor.md` states that `--json` goes after the verb on every verb.
+- [x] **AC-0016.** `references/supervisor.md` states that `status` and `next` carry `route`.
+- [x] **AC-0017.** `references/state-schema.md` lists `route` among the `status` keys.
+- [x] **AC-0018.** `evals/evals.json` carries a case with id `undispatchable-reviewer-follows-roster-rule`, a prompt that has an undispatchable reviewer role, a non-empty `expected_output` and non-empty `assertions`.
+- [x] **AC-0019.** The `core` version in `pack.toml` and `.claude-plugin/plugin.json` is one patch above the version `packs/core/pack.toml` carries on `origin/main` as fetched when this criterion is checked.
+- [x] **AC-0020.** `tools/check-core-release.py --base origin/main` passes.
+- [x] **AC-0021.** The changelog fragment and the `_RELEASED["core"]` pin in `tests/roster/test_registry_upgrade_notes.py` name the version of AC-0019.
 
 ## Terminal Intent
 

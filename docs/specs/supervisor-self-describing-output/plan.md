@@ -1,7 +1,7 @@
 # Plan: Supervisor self-describing output
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing
+- **Status:** Done
 - **Repository anchors:** the analog is `status`, the one verb that already takes `--json` (`work-supervisor.py` `_parser`) and builds its answer in `_supervisor_loop.status`; every verb prints through the one `_emit` function in `work-supervisor.py`; refusal text is built in `_validate_result`; tests drive `main(argv)` through `tests/skills/work-loop/supervisor_harness.py`. Named uncertainty: none; the suite that reads § Single-agent fallback is `tests/roster/test_sequential_implementer_dispatch_contract.py`.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
