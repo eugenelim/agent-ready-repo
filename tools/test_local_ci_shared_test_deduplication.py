@@ -117,9 +117,13 @@ CORE_COLLECTIONS = {
     # `test_captured_symlink_outside_root_does_not_resolve_deferral`, because a
     # deferral anchor now resolves through a captured-item file, not
     # `[backlog].open`.
+    # Re-pinned 2026-11-06: 91 -> 120 for invariant (vii), the `Risk triggers:`
+    # header line. Dispositioned against `origin/main`: 29 additions, all
+    # `test_vii_*` nodes, and 0 removals or renames; the surviving 91 nodes keep
+    # their order and still reproduce the previous digest `876e441ca7`.
     SHARED_TESTS[0]: (
-        91,
-        "876e441ca7c931cd9aaf23c91e9302d67309d87857e852657c0ba1b971654dec",
+        120,
+        "7c55a822817820bf23588cfe5924375b5c0b61efb43b3ff43a5be6c094e82b8e",
     ),
     # Re-pinned 2026-09-01: 16 -> 27. `885176fad` ("separate brief withdrawal
     # from cancellation") added the six-state lifecycle coverage without

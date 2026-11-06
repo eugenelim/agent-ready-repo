@@ -1629,6 +1629,17 @@
         "Does not accept the unit test alone as the task's Done when:",
         "Says a check that rewrites files is run and its output read before the task is done"
       ]
+    },
+    {
+      "id": "risk-triggers-line-records-the-mode-decision",
+      "prompt": "A new feature changes a published record grammar, and you cannot yet predict its design. You select full mode and invoke new-spec. What does the spec's header record about this decision, and may you add the line later to an Approved spec that lacks it?",
+      "expected_output": "The spec's Risk triggers: header line records the decision as the tokens of the triggers that fired — here the Structural or public-interface change trigger and the Unfamiliar trigger, spelled as the spec metadata contract's table spells them — written while the spec is Draft. An Approved spec is past Draft and is not edited to add or change the line.",
+      "files": [],
+      "assertions": [
+        "Response records the fired triggers on the spec's Risk triggers: header line",
+        "Response names both fired triggers as tokens",
+        "Response refuses to add or change the Risk triggers: line on a spec past Draft"
+      ]
     }
   ]
 }

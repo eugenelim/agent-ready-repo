@@ -8,7 +8,7 @@
 - **Supersedes:** none
 - **Supersedes in part:** ADR-0005 D3,D4; ADR-0061 D5; ADR-0144 D9; ADR-0154 D2
 - **Superseded by:** none
-- **Superseded in part:** none
+- **Superseded in part:** ADR-0160 D2
 - **Related:** RFC-0015; ADR-0005 D2,D5,D6,D7; ADR-0151; brief `acceptance-centered-work-loop` Slice 7; `docs/architecture/work-loop-result-integration.md`; `docs/architecture/runtime-security-primitives.md`
 
 ## Decision summary
