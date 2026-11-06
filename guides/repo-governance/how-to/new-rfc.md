@@ -15,7 +15,7 @@ see [Prerequisites](#prerequisites) below.
 research-backed draft at `docs/rfc/NNNN-<title>.md`, ready to circulate as
 `Open`.
 
-You have a change in mind whose *direction* is not settled, and more than one person has to agree before it can be built — the kind of change where "open a PR and see what happens" is the wrong shape. Note what does *not* put you here: a change being large, spanning packages, visible to users, or touching a governed document. Those affect how carefully it is reviewed, not which artifact it needs. This guide starts by selecting the artifact. When the result is an RFC, it then walks the `new-rfc` path: scaffold the file, run the per-subpoint research-and-de-risk phase before any body sentence gets written, draft answer-first, and circulate the proposal after a self-review gate.
+You have a change in mind whose *direction* is not settled, and more than one person has to agree before it can be built — the kind of change where "open a PR and see what happens" is the wrong shape. Note what does *not* put you here: a change being large, spanning packages, visible to users, or touching a governed document. Those affect how carefully it is reviewed, not which artifact it needs. This guide starts by selecting the artifact. When the result is an RFC, it then walks the `new-rfc` path: scaffold the file, run the per-subpoint research-and-de-risk phase before any body sentence gets written, draft the six-section template, and circulate the proposal after a self-review gate.
 
 For the surrounding system — where RFCs sit relative to ADRs, specs, and the loop that builds features once an RFC is accepted — read [the core pack as a system](../../core/explanation/core-pack.md). This guide is task-oriented; it tells you what to type and what to expect back.
 
@@ -141,7 +141,7 @@ Before any research, the skill gets the frame straight — and how hard it leans
 - **A sharp ask** (a clear change, a named surface, an evident motivation) — the skill infers the frame and moves straight to research. You won't be made to fill in a questionnaire you've already answered.
 - **A vague ask** ("we should probably do something about X") — the skill asks a *small* set of framing questions (what outcome, what's in and out of scope, what's the bet) and reflects back a short proposal frame for you to confirm, so research effort doesn't get spent on the wrong target.
 
-The skill also **picks the RFC's `Decision weight`** here — `light`, `standard`, or `heavy` — by reading `work-loop`'s risk triggers when `core` is installed (without `core`, it uses the weight definitions in the RFC template itself): a reversal of a frozen ADR/RFC, a governance/charter/security boundary, or a one-way door makes it `heavy`; a reversible, narrow change makes it `light`; everything else is `standard` (the default). The weight now changes what the RFC is actually *obliged* to do, not just how long it is (see Step 6). It's an offer, not a gate: a half-formed ask is normal input, not something to be rejected.
+The skill also **picks the RFC's `Decision weight`** here — `light`, `standard`, or `heavy` — by reading `work-loop`'s risk triggers when `core` is installed (without `core`, it uses the weight definitions in the RFC template itself): a reversal of a frozen ADR/RFC, a governance/charter/security boundary, or a one-way door makes it `heavy`; a reversible, narrow change makes it `light`; everything else is `standard` (the default). The weight now changes what the RFC is actually *obliged* to do, not just how long it is (see the pre-handoff gate). It's an offer, not a gate: a half-formed ask is normal input, not something to be rejected.
 
 ## Watch the research + de-risk phase
 
@@ -155,7 +155,7 @@ un-researched questions to rescue.
 
 You'll see a `RESEARCH FINDINGS:` block in chat (not in the RFC file — the body is gated) with these sections:
 
-1. **Decisions / subpoints.** The proposal broken into the decisions it asks for, **each self-contained enough to decide from the block alone — you shouldn't have to open a file.** Each states the question in plain language and lists its options — *collectively exhaustive (MECE) along a stated axis and grounded in prior art, not a round number someone invented* — with, per option, its real trade-off (what it buys vs. costs) and the concrete consequence of accepting it, then a recommendation, an owner, and a decide-by. This is where to push: if a subpoint shows "3 options" with no axis or sources, the space wasn't modelled; if the options are bare names with no trade-offs, the handoff is too terse to decide from — send it back.
+1. **Decisions / subpoints.** The proposal broken into the decisions it asks for, **each self-contained enough to decide from the block alone — you shouldn't have to open a file.** Each states the question in plain language and lists its options — *collectively exhaustive (MECE) along a stated axis and grounded in prior art, not a round number someone invented* — with, per option, its real trade-off (what it buys vs. costs) and the concrete consequence of accepting it, then a recommendation and an owner. This is where to push: if a subpoint shows "3 options" with no axis or sources, the space wasn't modelled; if the options are bare names with no trade-offs, the handoff is too terse to decide from — send it back.
 2. **Prior art (in repo).** Grep hits across `AGENTS.md`, `docs/CHARTER.md`, `docs/adr/`, `docs/rfc/`, `docs/specs/`, and `docs/architecture/`, each with a file path. They often reveal the proposal touches something you didn't know was decided.
 3. **Prior art (external).** Web-search results on how comparable projects or processes handled this shape of problem (Rust RFCs, PEPs, IETF BCPs). Each a markdown link. Empty here is a finding — say so — not an omission.
 4. **De-risk.** The one assumption that, if false, sinks the proposal, and the result of a small spike against it (or why none was needed).
@@ -163,30 +163,40 @@ You'll see a `RESEARCH FINDINGS:` block in chat (not in the RFC file — the bod
 Read the recommendations carefully. For each:
 
 - **Accept** — the recommendation folds into the body when drafting resumes.
-- **Reject without an alternative** — the question stays in the body's `Open questions` section, with a recommended default + owner + decide-by.
+- **Reject without an alternative** — the question stays in the body's `Open questions` section, with a recommended default + owner.
 - **Revise** — give the skill the alternative; it will re-thread that one finding into the body.
 
 :::caution
 **Do not approve the block in bulk.** A vague "looks good" doesn't count as sign-off on the highest-stakes recommendation. Name the recommendation you're accepting, especially when the skill flagged one as load-bearing.
 :::
 
-## Drafting resumes, answer-first
+## Drafting resumes with the six-section template
 
-Once you sign off, the skill previews the target — the identifier (`RFC-NNNN`), the status (`Draft`), the target path, and the index path — then, on your go-ahead, creates the file and drafts the body, leading with the decision, then cascading detail:
+Once you sign off, the skill finds the next number, previews the target (the identifier `RFC-NNNN`, the status `Draft`, the path and the index path), then on your go-ahead creates the file and drafts the body. The numbering comes from the bundled script, run with `python3 -I`; a repository with its own copy at `docs/rfc/rfc.py` offers the same commands:
 
-- **Reviewer brief.** A fixed first-screen orientation grid above "The ask" (Decision · Recommended outcome · Change if accepted · Affected surface · Stakes · Review focus · Not in scope). It *orients* the reviewer; "The ask" *argues* the decision — the skill keeps them de-duplicated rather than restating the BLUF twice. (This in-body brief is distinct from the chat-only `REVIEW READINESS` summary in Step 5.)
-- **The ask.** Answer-first: the recommendation (BLUF) + an SCQA framing (Situation → Complication → Question) + the decisions you're being asked to make rendered as a **table** — one row per decision, each with a recommended option, a decide-by, and a *reviewer action* column naming what you must do (confirm X, rule on Y). A reviewer should know what they're approving from the first screen.
-- **Problem & goals.** Diagnosis before solution, plus **Non-goals** — the could-have-been-goals deliberately dropped (not "won't crash").
-- **Proposal.** The concrete shape of the change, detailed under each decision.
-- **Options considered.** Mandatory and MECE along a stated axis, each option grounded in prior art and including "do nothing." The skill pushes back if the enumeration is a round number with no exhaustiveness argument.
-- **Risks & what would make this wrong.** A pre-mortem (assume it shipped and failed), falsifiable key assumptions, and drawbacks. The skill pushes back on "no drawbacks."
-- **Evidence & prior art.** The spike result and the prior-art citations from the research phase. Empty-with-explanation is valid; empty-with-no- explanation is not, and every citation is fetched and confirmed.
-- **Open questions.** Each carries a recommended default + owner + decide-by.
-- **Experiment / validation** (optional). Present only if the proposal needs an experiment — hypothesis, what's measured, success/failure criteria — with the *results* linked out to a spike note, not pasted into the RFC. Once circulating, while the trial runs the RFC sits in `Experimental` (see Step 6).
+```bash
+python3 -I docs/rfc/rfc.py next
+python3 -I docs/rfc/rfc.py new "Short title"
+```
 
-The file lands at `docs/rfc/NNNN-<kebab-title>.md` with status `Draft`, the `Decision weight` set, and an `Approver` named in the frontmatter.
+`next` prints the next free number and `new` creates a numbered `Draft` from the template. The number is a snapshot, so re-derive it just before you open the pull request; `check` reports a clash and `renumber` fixes it.
 
-Once the file and the RFC index are written, the skill hands back a short **completion receipt**: the identifier (`RFC-NNNN`), the file path, the index path, the current status (`Draft`, or `Open` once you circulate), the files changed, the owner (the named Approver), and the next step — circulate for review (→ `Open`), then Approver sign-off (→ `Accepted`).
+The template has six required sections, each leading with its conclusion:
+
+- **Summary.** The proposal in two or three sentences, then one bullet per decision reviewers must make, each with your recommendation. It names who decides when the repository's rules do not make that obvious.
+- **Motivation.** The problem first, then the evidence, cited as `[n]`. Optional **Goals** and **Non-goals** sit beneath it.
+- **Proposal.** The concrete change, with follow-on work at its end. **Design details** follow when the detail needs room.
+- **Costs and what could go wrong.** Drawbacks, falsifiable assumptions and what would make the proposal wrong.
+- **Alternatives.** The options considered, including doing nothing.
+- **Evidence.** One entry per `[n]` citation: fact, source and method. Every citation is fetched and confirmed.
+
+Optional sections cover **How we will know it works**, **Migration** and **Open questions**; delete any you do not use. Research too long for the body goes in a `NNNN-notes/` folder. An `Experiment / validation` section is for a proposal that needs a trial, with results linked out to a spike note.
+
+The header carries `Status`, `Author`, `Date opened`, `Date closed`, `Decision weight` and `Related`. No field names an approver: the repository's rules decide, and the merge by a maintainer they name accepts the RFC. A decider named in the Summary is a suggestion.
+
+Once the file and the RFC index are written, the skill hands back a short **completion receipt**: the identifier (`RFC-NNNN`), the file path, the index path, the current status (`Draft`, or `Open` once you circulate), the files changed, who decides, and the next step: circulate for review (`Open`), then the decision by the people the repository's rules name (`Accepted`).
+
+Not sure yet whether an RFC is the right route? An optional first stage lets you open an issue or discussion, where a maintainer says which route fits. It is optional, and a reply there is not an acceptance.
 
 ## The pre-handoff gate
 
@@ -194,7 +204,7 @@ Before the RFC moves to `Open`, the skill runs a self-review gate so you aren't 
 
 - **Citation-integrity.** Every reference is fetched and confirmed to actually contain the claim it's cited for — a link that merely loads isn't enough. Citations are challenged the same way (by fetching), never by eyeballing whether an identifier "looks real."
 - **Verify-before-you-assert.** Self-claims the RFC makes about itself (counts, "lighter", "readable") are checked against the artifact.
-- **Per-subpoint backing + completeness.** Each decision is backed; the `Approver` is named; every decision has a recommendation; do-nothing is present; open questions are ≤3 and owned.
+- **Per-subpoint backing + completeness.** Each decision is backed; who decides is clear; every decision has a recommendation; do-nothing is present; open questions are ≤3 and owned.
 - **A different-lens review.** When `core` is installed, a fresh-context `adversarial-reviewer` pass (and `security-reviewer` if the RFC touches a security boundary), re-run until clean. Without `core`, a fresh-context reviewer given only the RFC text and the same brief does the job, or, if the host has no subagents, an inline adversarial and security pass recorded in the receipt as self-review. It matters because a same-session self-check rationalises its own draft.
 - **A fresh-reader readability review** — *conditional, not automatic.* It runs only when the proposal coins vocabulary of its own, leans on cross-references to sibling proposals a reader may not have read, or is written for adopters or contributors who did not take part in drafting it. When it runs, a *generic* subagent gets **only the RFC text** — denied the project docs, `CLAUDE.md`/`AGENTS.md`, and sibling RFCs — and lists every term, acronym, or back-reference it can't resolve; the skill glosses each before handoff. It is a separate instrument from the adversarial pass, which loads project conventions by design, and it degrades to a noted skip if the harness offers no subagent.
 
@@ -239,11 +249,11 @@ A published RFC can still need a correction later — a spec finds a gap, a late
 :::
 
 :::caution
-**Empty `Evidence & prior art` when web search was available.** "We didn't look" isn't an answer — the external sweep is exactly what distinguishes an RFC from a wishlist. If the sweep genuinely returned nothing, say so explicitly under the heading and link the queries you ran.
+**An empty `Evidence` section when web search was available.** "We didn't look" isn't an answer — the external sweep is exactly what distinguishes an RFC from a wishlist. If the sweep genuinely returned nothing, say so explicitly under the heading and link the queries you ran.
 :::
 
 :::caution
-**An invented, round-number option list.** "Three categories" with no stated axis and no sources means the space wasn't modelled — exactly the failure the per-subpoint research phase exists to prevent. Push the skill to make each `Options considered` enumeration MECE along a stated axis and grounded in prior art.
+**An invented, round-number option list.** "Three categories" with no stated axis and no sources means the space wasn't modelled — exactly the failure the per-subpoint research phase exists to prevent. Push the skill to make each `Alternatives` enumeration MECE along a stated axis and grounded in prior art.
 :::
 
 :::caution
@@ -251,11 +261,11 @@ A published RFC can still need a correction later — a spec finds a gap, a late
 :::
 
 :::caution
-**Bare open questions with no recommended default.** Every entry in `Open questions` should carry a recommended default + owner + decide-by, even if the default is "punt to reviewers." Reviewers reading bare questions waste a round asking for context the author already had.
+**Bare open questions with no recommended default.** Every entry in `Open questions` should carry a recommended default + owner, even if the default is "punt to reviewers." Reviewers reading bare questions waste a round asking for context the author already had.
 :::
 
 :::caution
-**Treating an RFC as a venue to relitigate an accepted ADR without naming it.** If you're proposing a reversal, cite the ADR in `Related:` and address its reasoning directly in `Problem & goals`. The skill's repo-sweep will surface the ADR anyway; engaging with it up-front saves a review round.
+**Treating an RFC as a venue to relitigate an accepted ADR without naming it.** If you're proposing a reversal, cite the ADR in `Related:` and address its reasoning directly in `Motivation`. The skill's repo-sweep will surface the ADR anyway; engaging with it up-front saves a review round.
 :::
 
 :::caution

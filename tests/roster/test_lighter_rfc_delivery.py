@@ -31,3 +31,28 @@ def test_pack_layout_lists_governance_as_repository_owned() -> None:
     """AC-0057: the architecture page lists the seeded governance path."""
     text = (ROOT / "docs/architecture/pack-layout.md").read_text(encoding="utf-8")
     assert "`docs/GOVERNANCE.md`" in text
+
+
+GUIDE = ROOT / "guides/repo-governance/how-to/new-rfc.md"
+SIX_SECTIONS = ["Summary", "Motivation", "Proposal", "Costs and what could go wrong", "Alternatives", "Evidence"]
+
+
+def test_guide_names_six_sections_and_no_retired_terms() -> None:
+    """AC-0072: the how-to names the six required sections and drops the retired ones."""
+    text = GUIDE.read_text(encoding="utf-8")
+    for term in ("Approver", "Reviewer brief", "The ask"):
+        assert term not in text, term
+    for name in SIX_SECTIONS:
+        assert f"**{name}.**" in text, name
+    assert "python3 -I docs/rfc/rfc.py next" in text
+
+
+def test_guide_runs_rfc_py_only_in_isolated_mode() -> None:
+    """AC-0015: every `rfc.py` command line in the how-to uses `python3 -I`."""
+    lines = [
+        line
+        for line in GUIDE.read_text(encoding="utf-8").splitlines()
+        if line.lstrip().startswith(("python", "$ python")) and "rfc.py" in line
+    ]
+    assert lines
+    assert all("python3 -I " in line for line in lines), lines
