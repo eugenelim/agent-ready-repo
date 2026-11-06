@@ -76,6 +76,7 @@
   ],
   "code_review_round_cap": 2,
   "minor_fix_max_lines": 40,
+  "wording_only_enabled": false,
   "prose_allowlist": {
     "globs": [
       "docs/*.md",

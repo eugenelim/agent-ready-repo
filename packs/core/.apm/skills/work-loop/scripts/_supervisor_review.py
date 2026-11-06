@@ -252,6 +252,8 @@ def _validate_tier_rules(data: dict[str, Any], roles: set[str]) -> None:
     for key in ("code_review_round_cap", "minor_fix_max_lines"):
         if not _positive_int(data.get(key)):
             raise _invalid_rules(f"{key} is not a positive integer")
+    if not isinstance(data.get("wording_only_enabled"), bool):
+        raise _invalid_rules("wording_only_enabled is not a boolean")
     allowlist = data.get("prose_allowlist")
     if (
         not isinstance(allowlist, dict)

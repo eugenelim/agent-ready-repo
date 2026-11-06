@@ -1632,8 +1632,8 @@
     },
     {
       "id": "wording-only-repair-skips-unprotected-reviewers",
-      "prompt": "A unit with protected_classes [] finished its first full review round. One reviewer raised no open finding, and the repair after that only rewords a paragraph in docs/guides/setup.md. Which reviewers does the supervisor ask again?",
-      "expected_output": "The supervisor classifies the repair `wording-only`, because no finding is open and the changed lines are plain prose in an allowlisted file. It issues no review-role request to any non-protected role. Each excused role stands on its latest report through a supervisor-written review-carry record, which the controller never writes. The repair is not a round and does not count toward the two-round cap.",
+      "prompt": "In a repository whose review-rules.json sets wording_only_enabled to true, a unit with protected_classes [] finished its first full review round. One reviewer raised no open finding, and the repair after that only rewords a paragraph in docs/guides/setup.md. Which reviewers does the supervisor ask again?",
+      "expected_output": "With wording_only_enabled true, the supervisor classifies the repair `wording-only`, because no finding is open and the changed lines are plain prose in an allowlisted file. It issues no review-role request to any non-protected role. Each excused role stands on its latest report through a supervisor-written review-carry record, which the controller never writes. The repair is not a round and does not count toward the two-round cap.",
       "assertions": [
         "Response classifies the repair as wording-only",
         "Response issues no review-role request to a non-protected role",
@@ -1644,7 +1644,7 @@
     },
     {
       "id": "protected-reviewer-asked-on-wording-only-repair",
-      "prompt": "A unit declared protected_classes [\"security-boundary\"] and selected security-reviewer. The repair after the first round only rewords a docs paragraph and classifies wording-only. Is security-reviewer asked again?",
+      "prompt": "With wording_only_enabled true in review-rules.json, a unit declared protected_classes [\"security-boundary\"] and selected security-reviewer. The repair after the first round only rewords a docs paragraph and classifies wording-only. Is security-reviewer asked again?",
       "expected_output": "Yes. A protected reviewer reports on every revision under every tier, so the supervisor issues a whole-change review-role request to security-reviewer with no delta_base, and no review-carry record names it. Only the roles that are not protected are excused by the wording-only tier.",
       "assertions": [
         "Response asks security-reviewer again",

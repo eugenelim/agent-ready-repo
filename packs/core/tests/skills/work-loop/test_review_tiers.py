@@ -37,7 +37,9 @@ def _harness() -> ModuleType:
 h = _harness()
 tiers = h.cli._supervisor("_review_tiers.py")
 commit_mod = h.cli._supervisor("_supervisor_commit.py")
-RULES: dict[str, Any] = h.cli._supervisor("_supervisor_review.py").load_rules()
+SHIPPED_RULES: dict[str, Any] = h.cli._supervisor("_supervisor_review.py").load_rules()
+# The wording-only tier ships off; its tests run against a copy with it enabled.
+RULES: dict[str, Any] = {**SHIPPED_RULES, "wording_only_enabled": True}
 PROSE = "docs/guide.md"
 CODE = "src/app.py"
 
@@ -231,6 +233,21 @@ def test_a_path_reverted_to_base_is_a_delta_path(repo: Repo) -> None:
 
 
 # ── AC-0003, AC-0004: wording-only ──────────────────────────────────────────
+
+
+def test_ac0003_the_shipped_rules_classify_a_plain_prose_edit_full(repo: Repo) -> None:
+    """The tier ships disabled, so the edit that is wording-only when enabled is exactly full."""
+    anchor, current = _prose_change(
+        repo, "# Guide\n\nThe tool reads the file once.\n", "# Guide\n\nThe tool reads each file once.\n"
+    )
+    assert SHIPPED_RULES["wording_only_enabled"] is False
+    assert _classify(repo, anchor, current, {PROSE}).name == "wording-only"
+    args = {
+        "current": current, "changed": {PROSE}, "run_base": repo.base, "open_findings": False,
+        "adopted_reanchor": False, "spec_dir_changed": False, "selection_changed": False,
+        "review_tier": None,
+    }
+    assert tiers.classify(repo.port, SHIPPED_RULES, anchor, **args).name == "full"
 
 
 def test_ac0003_a_plain_prose_edit_is_wording_only(repo: Repo) -> None:

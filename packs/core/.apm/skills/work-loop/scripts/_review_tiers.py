@@ -610,7 +610,11 @@ def _classify(
     )
     texts = _delta_texts(git, delta)
     allowlist = rules["prose_allowlist"]
-    if not open_findings and _wording_only(git, current, allowlist, texts):
+    if (
+        rules.get("wording_only_enabled") is True
+        and not open_findings
+        and _wording_only(git, current, allowlist, texts)
+    ):
         return Tier(WORDING_ONLY, "every changed line is plain prose")
     if open_findings and set(delta) <= anchor.changed_paths:
         ceiling = int(rules["minor_fix_max_lines"])

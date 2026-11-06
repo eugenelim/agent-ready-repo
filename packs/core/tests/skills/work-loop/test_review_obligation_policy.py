@@ -329,6 +329,21 @@ def rebase_onto_upstream(repo: Path) -> None:
     h.git(repo, "rebase", "-q", "upstream")
 
 
+@pytest.fixture
+def wording_only_on(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Run against a copy of the shipped rules whose wording-only tier is enabled.
+
+    The shipped value is ``false``. The supervisor reads its rules through
+    ``RULES_PATH`` on every call, so pointing that at a copy is the whole seam.
+    """
+    rules = json.loads(review.RULES_PATH.read_text(encoding="utf-8"))
+    rules["wording_only_enabled"] = True
+    copied = tmp_path / "rules-enabled" / "review-rules.json"
+    copied.parent.mkdir()
+    copied.write_text(json.dumps(rules), encoding="utf-8")
+    monkeypatch.setattr(review, "RULES_PATH", copied)
+
+
 # ── prepared runs ───────────────────────────────────────────────────────────
 
 
@@ -454,7 +469,7 @@ def test_a_rebase_asks_one_adversarial_delta_pass_and_its_finding_survives(
 )
 @integration
 def test_a_protected_role_is_asked_for_the_whole_change_on_every_subject(
-    tmp_path: Path, declared: str, protected: str
+    tmp_path: Path, declared: str, protected: str, wording_only_on: None
 ) -> None:
     """AC-0020, AC-0029, AC-0005, AC-0007 (flow halves) through every tier and past round 2."""
     repo, lab = started(tmp_path, selected=(protected,), classes=[declared])
@@ -484,6 +499,20 @@ def test_a_protected_role_is_asked_for_the_whole_change_on_every_subject(
     # The rebase asked the adversarial reviewer for a delta pass with no finding ids.
     rebase_pass = [r for r in asked_on(lab, 3) if r["role"] == ADV]
     assert [r["repair_finding_ids"] for r in rebase_pass] == [[]]
+
+
+@integration
+def test_a_would_be_wording_only_repair_asks_the_full_set_with_shipped_rules(
+    tmp_path: Path,
+) -> None:
+    """AC-0003: the tier ships off, so a prose-only repair asks every selected role."""
+    repo, lab = started(tmp_path)
+    lab.review_until_asked(2)  # subject one, clean from both roles
+    lab.add_task("Reword the readme", {"README.md": "base text reworded\n"})
+    assert lab.drive().get("terminal")
+    assert lab.tiers == ["full", "full"]
+    assert sorted(roles_of(asked_on(lab, 1))) == sorted(roles_of(asked_on(lab, 0)))
+    assert not carries(repo)
 
 
 # ── AC-0022, AC-0029: a unit whose protection is unknown ────────────────────

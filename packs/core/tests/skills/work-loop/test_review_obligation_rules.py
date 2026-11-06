@@ -53,6 +53,11 @@ def _rules_file(tmp_path: Path, mutate: Any) -> Path:
         lambda d: d.update(code_review_round_cap=0),
         lambda d: d.update(code_review_round_cap=True),
         lambda d: d.update(code_review_round_cap="2"),
+        lambda d: d.pop("wording_only_enabled"),
+        lambda d: d.update(wording_only_enabled=0),
+        lambda d: d.update(wording_only_enabled=1),
+        lambda d: d.update(wording_only_enabled="false"),
+        lambda d: d.update(wording_only_enabled=None),
         lambda d: d.pop("minor_fix_max_lines"),
         lambda d: d.update(minor_fix_max_lines=-1),
         lambda d: d.update(minor_fix_max_lines=1.5),
@@ -73,6 +78,11 @@ def test_ac0030_a_missing_or_malformed_tier_key_refuses(tmp_path: Path, mutate: 
     with pytest.raises(Refusal) as refused:
         review.load_rules(_rules_file(tmp_path, mutate))
     assert refused.value.code == "review-rules-invalid"
+
+
+def test_ac0036_the_shipped_wording_only_tier_is_disabled() -> None:
+    """AC-0036: the shipped rules carry the literal false."""
+    assert RULES["wording_only_enabled"] is False
 
 
 def test_ac0031_the_shipped_rules_hold_the_tier_defaults() -> None:

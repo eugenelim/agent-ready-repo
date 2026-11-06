@@ -233,9 +233,14 @@ the supervisor reads the diff from the last full round (the *anchor*) and picks
 a tier. It picks from its own Git reads and the anchor facts, and any doubt
 means `full`.
 
+The `wording-only` tier ships off: `wording_only_enabled` in `review-rules.json`
+is `false`, and only the literal `true` turns it on. While it is off, a prose-only
+repair is `full` (or `minor-fix` when a finding is open and the diff is small).
+Turning it on is a maintainer decision, made after the prose scan is hardened.
+
 | Tier | What the diff is | Who is asked again |
 | --- | --- | --- |
-| `wording-only` | Plain prose in allowlisted files only, with no open finding | No unprotected role. |
+| `wording-only` | Plain prose in allowlisted files only, with no open finding. Ships off. | No unprotected role. |
 | `rebase` | The same change on a new base, with no open finding | One delta pass from `adversarial-reviewer`. |
 | `minor-fix` | A small repair, at most `minor_fix_max_lines` lines, to paths the anchor already changed, with a finding open | One delta pass from each unprotected role that holds an open finding. |
 | `full` | Anything else | Every selected role. |
@@ -263,7 +268,7 @@ The supervisor writes the facts of each fully reported round to
 so a rebase of the run's commits does not lose the anchor.
 
 An unprotected unit gets `code_review_round_cap` rounds (two). A repair that is
-a rebase or wording-only does not count as a round. When the cap leaves a
+a rebase or wording-only (when that tier is on) does not count as a round. When the cap leaves a
 supported finding open, the supervisor issues a `review-cap` human decision
 instead of `review-not-eligible`, listing each open finding in `open_findings`
 by `cap_ref`, `role`, and `evidence_sequence`. A protected unit never reaches
