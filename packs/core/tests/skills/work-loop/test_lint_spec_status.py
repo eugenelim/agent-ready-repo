@@ -215,7 +215,10 @@ def test_base_spec_show_timeout_skips_diff_invariants_for_unchanged_specs(
 
     assert hard == []
     assert calls == [module.GIT_TIMEOUT_S, module.GIT_TIMEOUT_S], warn
-    assert sum("diff-triggered invariants (ii), (vi) and (vii) skipped" in item for item in warn) == 2
+    assert sum(
+        "diff-triggered invariants (ii), (vi) and the (vii) missing-line check skipped"
+        in item for item in warn
+    ) == 2
 
 
 def test_repo_root_probe_timeout_degrades_to_script_relative_root(
@@ -1728,6 +1731,8 @@ def _vii(new: dict[str, str], base: dict[str, str] | None = None,
     "none, unfamiliar",
     "`none`",
     "Unfamiliar",
+    "unfamiliar\t",
+    "none\u00a0",
 ])
 def test_vii_refuses_a_malformed_value(value: str) -> None:
     hard, _warn = _vii({"s": _risk_spec("Draft", f"- **Risk triggers:** {value}")})

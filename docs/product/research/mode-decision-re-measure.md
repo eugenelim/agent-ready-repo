@@ -16,13 +16,19 @@ and how to count.
   `Mode:` lines in specs, and no spec added after 2026-10-24 carries one, so
   nothing covers Unfamiliar's current wording ("you cannot predict the
   design") or the one-spike allowance.
-- **Re-measure when:** 20 specs on `main` carry a `- **Risk triggers:**` line
-  whose value is not `none`.
-- **Method:** on freshly fetched `origin/main`, run
-  `git grep -h -E '^- \*\*Risk triggers:\*\*' origin/main -- 'docs/specs/*/spec.md'`.
-  Count the lines whose value is not `none` (the trigger), and the lines whose
-  value is exactly `unfamiliar` (the answer). Each line records the decision
-  its spec was approved under.
+- **Re-measure when:** 20 specs on `main` carry a live `Risk triggers:` line
+  whose value is not `none`. A live line is one the spec-status lint reads:
+  it starts `- **Risk triggers:**` at column 0 in the preamble, outside any HTML
+  comment or code fence, and its value is not empty once comments are hidden.
+- **Method:** on freshly fetched `origin/main`, read each
+  `docs/specs/*/spec.md` and keep only live lines. Hide HTML comments first,
+  drop a line whose value is then empty (an unfilled template line is one),
+  and trim spaces around each comma-separated token, as the lint does. Count
+  the specs whose value is not `none` (the trigger), and the specs whose only
+  token is `unfamiliar` (the answer). The work-loop lint's
+  `risk_trigger_lines` function returns exactly the live lines, so a script
+  can call it rather than re-implement the rule. Each line records the
+  decision its spec was approved under.
 
 ## RFC-0111's effect on full-mode runs
 
@@ -39,8 +45,8 @@ and how to count.
   code with no spec or plan; otherwise docs-only. Report full mode's share of
   code changes on each side. Also count PRs whose own text records the RFC-0111
   routing (a bundle shown independent and split, or a guidance edit run
-  light), and specs added after #1642 whose `Risk triggers:` value is exactly
-  `multi-feature` or exactly `structural-interface`, the two triggers RFC-0111
+  light), and specs added after #1642 whose live `Risk triggers:` line holds only
+  `multi-feature` or only `structural-interface`, the two triggers RFC-0111
   narrows.
 
 ## Code-stage findings that carry a run

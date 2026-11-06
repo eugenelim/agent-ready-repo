@@ -460,7 +460,7 @@ def risk_trigger_lines(spec_text: str) -> list[tuple[int, str]]:
         if _SECTION_HEADING_RE.match(line):
             break
         if line.startswith(_RISK_TRIGGERS_PREFIX):
-            value = line[len(_RISK_TRIGGERS_PREFIX):].strip()
+            value = line[len(_RISK_TRIGGERS_PREFIX):].strip(" ")
             if value:
                 out.append((lineno, value))
     return out
@@ -468,7 +468,9 @@ def risk_trigger_lines(spec_text: str) -> list[tuple[int, str]]:
 
 def risk_trigger_problem(value: str) -> str | None:
     """Return why a non-empty `Risk triggers:` value is malformed, or None."""
-    items = [item.strip() for item in value.split(",")]
+    # Only spaces are trimmed: a tab or no-break space stays part of the token,
+    # so it reads as unknown rather than silently matching.
+    items = [item.strip(" ") for item in value.split(",")]
     if "" in items:
         return "has an empty item"
     unknown = [item for item in items if item != "none" and item not in RISK_TRIGGER_TOKENS]
@@ -1230,7 +1232,7 @@ def check(
         # missing ref rather than reporting every spec as new.
         warn.append(
             f"base ref {base_ref!r} does not resolve to a commit — "
-            f"diff-triggered invariants (ii), (vi) and (vii) skipped"
+            f"diff-triggered invariants (ii), (vi) and the (vii) missing-line check skipped"
         )
         base_resolvable = False
     if not base_resolvable:
@@ -1298,7 +1300,7 @@ def check(
         if base_text_undetermined:
             warn.append(
                 f"{rel}: git show at base ref {base_ref!r} timed out — "
-                "diff-triggered invariants (ii), (vi) and (vii) skipped"
+                "diff-triggered invariants (ii), (vi) and the (vii) missing-line check skipped"
             )
 
         # (i) status vocabulary
