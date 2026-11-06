@@ -276,6 +276,17 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 **Done when:** `test_review_tiers.py`, `test_review_carry.py`, and lint pass.
 
+### T10: A file with any fence-looking line is never wording-only
+
+**Depends on:** T9
+
+**Touches:** packs/core/.apm/skills/work-loop/scripts/_review_tiers.py, packs/core/tests/skills/work-loop/test_review_tiers.py
+
+**Tests:**
+- AC-0004: a file holding, at either revision, any line whose whitespace-stripped form starts with three backticks or three tildes is never wording-only; one regression fixture for each of the six reproduced inputs (no-break space, form feed, vertical tab, and em space before a closing fence; a four-space and a no-break-space indented opener before a real fence).
+
+**Done when:** `test_review_tiers.py` and lint pass.
+
 ## Rollout
 
 - **Delivery:** one Core patch. A run started before the upgrade stops with `supervisor-changed` (existing behaviour) or keeps today's review through its protection-unknown selection lines.
