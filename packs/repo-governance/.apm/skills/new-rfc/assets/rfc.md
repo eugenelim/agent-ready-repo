@@ -1,73 +1,75 @@
-# RFC-NNNN: <short proposal title>
-<!-- Write for a reader who has not read related RFCs: gloss coined terms, acronyms,
-and sibling-RFC references inline on first use. -->
+# RFC-NNNN: <short title>
 
-- **Status:** Draft <!-- Draft | Open | Final Comment Period | Accepted | Rejected | Withdrawn | Experimental -->
+<!-- Write for a reader who has not read related RFCs. Lead each section with its conclusion,
+then the support. Define a term or cite an RFC or ADR in a phrase on first use.
+Most RFCs fit in two pages. Required sections are marked. Delete optional ones you do not use.
+If this RFC replaces part or all of another, add a `- **Supersedes:**` or `- **Supersedes in part:**` header
+line with ids and decision numbers, for example `RFC-NNNN D1,D3; RFC-NNNN D2`. The replaced RFC gets the
+matching `Superseded by` or `Superseded in part` line.
+Check a draft with `python3 -I docs/rfc/rfc.py`. -->
+
+- **Status:** Draft <!-- Maintainers update it. -->
 - **Author:** <account-handle>
-- **Approver:** <approver who signs off>
 - **Date opened:** YYYY-MM-DD
-- **Date closed:** <!-- filled at a terminal status -->
+- **Date closed:** <!-- Maintainers fill it in. -->
 - **Decision weight:** standard <!-- light | standard | heavy only. Use core's work-loop risk triggers when core is installed, otherwise these definitions; default standard. light: focused rationale, checklist, one adversarial pass. standard: full argument, research, backing, iterative review. heavy: standard plus applicable reversal/compatibility/trust analysis, security review, validation planning. -->
-- **Related:** <!-- ADRs, specs, prior RFCs -->
+- **Related:** none <!-- Issues, discussions, ADRs, earlier RFCs. -->
 
-## Reviewer brief
+## Summary
 
-<!-- Required. Orient; do not repeat The ask.
-- **Decision:** <one sentence>
-- **Recommended outcome:** <accept / reject / amend>
-- **Change if accepted:** <≤3 bullets>
-- **Affected surface:** <what changes>
-- **Stakes:** <reversible / costly / one-way>
-- **Review focus:** <key scrutiny>
-- **Not in scope:** <deliberately excluded work> -->
+<!-- Required. The proposal in two or three sentences: what changes and why. Then one bullet per
+decision reviewers must make, each a single claim with your recommendation. Name the decider
+if the repository's rules do not make it obvious; a decider named inside an RFC is a suggestion, and
+only the repository's rules and a listed maintainer's merge accept an RFC. -->
 
-## The ask
+## Motivation
 
-<!-- Required. Lead with Recommendation (BLUF), then Why now (SCQA), then:
-| ID | Question | Recommendation | Why | Decide by | Reviewer action |
-| --- | --- | --- | --- | --- | --- |
-| D1 | <question> | <recommendation> | <why> | <date> | <action> | -->
+<!-- Required. State the problem first, then the evidence for it. Cite evidence as [1] and list
+it under Evidence. Say who is affected. -->
 
-## Problem & goals
+### Goals
 
-<!-- Required. Diagnose before proposing. State goals and real non-goals: plausible
-goals deliberately excluded, not merely negative outcomes. -->
+<!-- Optional for a small change. -->
+
+### Non-goals
+
+<!-- Optional. What a reader might expect this to cover and it does not. -->
 
 ## Proposal
 
-<!-- Required. Give the concrete design and migration, organized by requested decision.
-Make it specific enough that a reviewer can disagree with substance, not framing. -->
+<!-- Required. The change, in the order a reader needs it. Add a Mermaid diagram where structure,
+flow or state is clearer as a picture. End with any follow-on work acceptance calls for:
+ADRs, specs, guides. -->
 
-## Options considered
+## Design details
 
-<!-- OPTIONAL — delete if unused. When one choice is clearly dominant, record why in one
-line instead of a taxonomy. Otherwise state the MECE axis, trade-offs, prior art, and
-do-nothing option. -->
+<!-- Optional. Architecture, interfaces, data and behaviour concrete enough to review. Use diagrams
+and examples. Move anything long to a spec and link it. -->
 
-## Risks & what would make this wrong
+## Costs and what could go wrong
 
-<!-- Required. State pre-mortem failure modes, falsifiable assumptions, mitigations, and
-honest drawbacks. -->
+<!-- Required. The downsides, what would show the proposal is wrong, and how each is limited. -->
 
-## Evidence & prior art
+## Alternatives
 
-<!-- OPTIONAL — delete if unused. Include only evidence the proposal relies on; every
-citation must be checked to contain its claim. Summarize proof, not raw research. -->
+<!-- Required. Other approaches, including doing nothing, and why not. -->
 
-## Experiment / validation
+## How we will know it works
 
-<!-- OPTIONAL — delete if unused. State hypothesis, measure, and success/failure criteria. -->
+<!-- Required. The test or measure, and the result that would mean failure. -->
+
+## Migration
+
+<!-- Optional. Breaking changes and the upgrade path. -->
 
 ## Open questions
 
-<!-- OPTIONAL — delete if unused. Each genuinely unresolved question has a recommended
-default, owner, and decide-by; do not repeat decided defaults. -->
+<!-- Optional. Each question with an owner and a default. -->
 
-## Follow-on artifacts
+## Evidence
 
-<!-- Required. Name warranted ADRs, specs, convention edits, migrations, or guides; an
-accepted RFC does not require every kind. Keep this list proportionate to the decision.
-Only list work acceptance actually calls for. -->
+<!-- Optional. Numbered footnotes for the [n] citations: the fact, its source and the method.
+No narrative. -->
 
 <!-- Corrections only: use `## Errata` for Frozen RFCs or `## Amendments` while in flight.
-Rules live in the `new-rfc` skill. Delete this block on a fresh RFC. -->
+Delete this block on a fresh RFC. -->
