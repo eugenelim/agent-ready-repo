@@ -912,6 +912,7 @@ def status(ws: Workspace) -> dict[str, Any]:
                     "position": t["position"],
                     "title": t["title"],
                     "complete": state.is_complete(t),
+                    "failed_attempts": state.attempt(t) - 1,
                 }
                 for t in state.tasks
             ],
@@ -933,6 +934,7 @@ def status(ws: Workspace) -> dict[str, Any]:
                 "position": t["position"],
                 "title": t["title"],
                 "complete": state.is_complete(t),
+                "failed_attempts": state.attempt(t) - 1,
             }
             for t in state.tasks
         ],

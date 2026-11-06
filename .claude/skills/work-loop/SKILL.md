@@ -395,6 +395,8 @@ For durable work, write the plan to disk — don't keep it in memory across turn
 
 The controller changes the plan only while no attempt is open ([`references/supervisor.md`](references/supervisor.md) § *The open-attempt rule — when the plan may change*).
 
+To chain the slices of one delivery brief, follow [`references/brief-runner.md`](references/brief-runner.md).
+
 Match discipline to verification mode:
 - **TDD** — red-green-refactor; commit each step if non-trivial. Write the red test at the real test location and run it; it fails for the intended reason before production code changes. In a supervisor run, the controller — never an implementer attempt — writes the task's `stub` fence into its `Tests:` as a task-start revision, after the previous request's result is reported and before the `next` that issues the task's first request. The supervisor writes the fence unchanged through `write-stub` and proves it red before `implement-task`; the plan does not need to carry the fence when it is approved. Then fill deferred assertions; don't rewrite from scratch.
 - **Goal-based check** — write code, run the `Done when:` one-liner.
@@ -857,6 +859,7 @@ Load when the predicate fires; don't load speculatively.
 | TDD mode, need red stub mechanics | [`references/tdd-stubs.md`](references/tdd-stubs.md) |
 | Pre-existing gate failure suspected | [`references/pre-flight-failures.md`](references/pre-flight-failures.md) |
 | Pre-EXECUTE review full conditions or the approvals before `start` | [`references/pre-execute-review.md`](references/pre-execute-review.md) |
+| A delivery brief with several slices to chain | [`references/brief-runner.md`](references/brief-runner.md) |
 | Scale-with-a-tool needed | [`references/scale-with-a-tool.md`](references/scale-with-a-tool.md) |
 | HTML/CSS/JS primary output | Inline `frontend-engineering` craft into the implementer dispatch brief when that pack is installed; when it is absent, record the named skip and continue without that craft. |
 | Reviewer fan-out, or briefing an implementer | [`references/supervisor-mode.md`](references/supervisor-mode.md) |
