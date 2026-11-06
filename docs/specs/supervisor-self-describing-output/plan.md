@@ -67,22 +67,22 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- TDD, at `main(argv)`: for each of `park`, `gates`, `start`, `next`, `report`, `status`, `resolve-effect`, a call with `--json` and a call without it print equal stdout and return equal exit codes (AC-0001). Read-only verbs compare directly; verbs that refuse on the harness repo compare their refusals. The usage lines in the module docstring of `work-supervisor.py` show `[--json]` on every verb.
+- TDD, at `main(argv)`: for each of `park`, `gates`, `start`, `next`, `report`, `status`, `resolve-effect`, a call with `--json` and a call without it print equal stdout and return equal exit codes (AC-0001). Read-only verbs compare directly; verbs that refuse on the harness repo compare their refusals. The usage lines in the module docstring of `work-supervisor.py` show `[--json]` on every verb. These git-backed cases are added to `test_supervisor_step_loop.py`, which is integration-gated and which the Gate A-supervisor CI lane already runs by name with the variable set, so no workflow edit is needed.
 
-**Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_json_flag.py`
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
 
-**Done when:** `test_supervisor_json_flag.py` is green and `test_supervisor_step_loop.py` is still green.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py -q -rs` is green and none of the new cases is skipped; a result in which every case is skipped is not a pass.
 
 ### T2: `invalid-result` names the failing field
 
 **Depends on:** none
 
 **Tests:**
-- TDD, at `loop.report` and `_validate_result`: a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains the sent value (AC-0009). A well-formed result still passes `_validate_result` unchanged. The check is unchanged, so the tests assert no behavior for `true` or `1.0`.
+- TDD, at `loop.report` and `_validate_result`, in `test_supervisor_results.py` (the cases that need no git repository are ungated): a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains the sent value (AC-0009). A well-formed result still passes `_validate_result` unchanged. The check is unchanged, so the tests assert no behavior for `true` or `1.0`.
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_loop.py`, `packs/core/tests/skills/work-loop/test_supervisor_results.py`
 
-**Done when:** the new cases in `test_supervisor_results.py` are green and the rest of that file is unchanged and green.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_results.py -q -rs` is green, the new cases are not skipped, and the rest of that file is unchanged and green; a result in which every case is skipped is not a pass.
 
 ### T3: The routing table is the one home of the routing decision
 
@@ -100,11 +100,12 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T1, T3
 
 **Tests:**
-- TDD, at `main(argv)` for `status` and `next`: one case per table row and verb, asserting the answer's `route` equals the table's string for its shape, with the row 2 case built from a run that has live leftovers and no divergence (AC-0002, AC-0004); one case each for the pin-check `supervisor-changed` refusal and the unsupported-ref-storage refusal on `status` (AC-0002), and for the lock and internal-error refusals on `status`, each produced by a forced fault because `status` takes no lock (AC-0002) and the pin-check refusal on `next` (AC-0004); a usage error on `status` and on `next` carries no `route`, and a second in-process call after a `status` call does not inherit its routing context (AC-0005); a capped run with no refusal and no earlier gate gives the cap string on `status` and on `next`, and a capped run with a standing refusal gives the cap string on `status` and the refusal row on `next` (AC-0003); no `route` contains a refusal's `detail` (AC-0006) and every one is 160 characters or fewer (AC-0007); `status --check` exit codes equal the values the existing tests assert (AC-0008).
+- TDD, ungated (no git repository, in the new `test_supervisor_route.py`): each route string equals its row in the routing table (AC-0002, AC-0004); every string is 160 characters or fewer (AC-0007); no string contains a refusal's `detail` (AC-0006); a usage error on `status` and on `next` carries no `route` (AC-0005); `park`, `gates`, `start`, `report` and `resolve-effect` answers carry no `route`, and a second in-process call after a `status` call does not inherit its routing context (Never-do: `route` only on `status` and `next`).
+- TDD, integration-gated (git-backed, added to `test_supervisor_step_loop.py`): one case per table row and verb, with the row 2 case built from a run that has live leftovers and no divergence (AC-0002, AC-0004); one case each for the pin-check `supervisor-changed` refusal and the unsupported-ref-storage refusal on `status` (AC-0002), the pin-check refusal on `next` (AC-0004), and the lock and internal-error refusals on `status`, each produced by a forced fault because `status` takes no lock (AC-0002); a capped run with no refusal and no earlier gate gives the cap string on `status` and on `next`, and a capped run with a standing refusal gives the cap string on `status` and the refusal row on `next` (AC-0003); `status --check` exit codes equal the values the existing tests assert (AC-0008).
 
-**Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_route.py`
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_route.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
 
-**Done when:** `test_supervisor_route.py` is green and the status assertions in `test_supervisor_step_loop.py` and `test_supervisor_readiness.py` are unchanged and green.
+**Done when:** `python -m pytest packs/core/tests/skills/work-loop/test_supervisor_route.py -q` is green, and `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py packs/core/tests/skills/work-loop/test_supervisor_readiness.py -q -rs` is green with the new cases not skipped and the existing status assertions unchanged; a result in which every case is skipped is not a pass.
 
 ### T5: Remaining reference sentences
 

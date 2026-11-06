@@ -61,11 +61,12 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 
 - Add `result_template`, `explain`, a per-code `remedy` field, a section index for `supervisor.md`, or an `ingest` command.
 - Add a `## Not checked` footer to `adversarial-reviewer`; it would disqualify its reports from the clean fast path.
+- Add `route` to the answer of any verb other than `status` and `next`.
 - Edit `dispatch.py`, its packaged mirror under `packages/agentbundle/`, or anything under `docs/specs/supervisor-self-describing-output/.supervisor/` or `delivery/`.
 
 ## Testing Strategy
 
-- `--json`, `route` and `invalid-result` detail: TDD, exercised through `main(argv)` on the supervisor test harness.
+- `--json` and `route`: TDD, exercised through `main(argv)` on the supervisor test harness, with the git-backed cases integration-gated and run by the Gate A-supervisor lane. `invalid-result` detail: TDD, exercised at `loop.report` and `_validate_result`.
 - The routing table and reference sentences: goal-based; a pin test asserts the table rows and that each script `route` string equals its row.
 - Evals and release files: goal-based; a JSON load and the release checker.
 
