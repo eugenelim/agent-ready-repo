@@ -216,3 +216,29 @@ def test_admission_record_defect_note_carries_the_correction() -> None:
     assert "automation script" in note
     assert "adv-hardening-002" in note
     assert "correction" in note
+
+
+def test_repair_round_record_is_accurate() -> None:
+    # T28 (findings adv-hardening-101..103): the note names the sole
+    # implementation carrier and distinguishes the receipt-only commits;
+    # the plan's repair tasks declare their dependencies; the captured
+    # item the CI pin cites records the pin.
+    note = _normalized(
+        REPO_ROOT / "docs" / "product" / "captured" / "admission-record-defect-t19-t20-gate-receipts.md"
+    )
+    assert "all of it in the single commit labeled" in note
+    assert "receipt-only commits recorded after their implementations" in note
+    plan_text = (REPO_ROOT / "docs" / "specs" / "work-item-promotion-handoff" / "plan.md").read_text(
+        encoding="utf-8"
+    )
+    import re as _re
+
+    for task in ("T24:", "T25:", "T26:", "T27:", "T28:"):
+        block = _re.search(rf"### {task}.*?(?=^### |^## )", plan_text, _re.DOTALL | _re.MULTILINE)
+        assert block is not None, task
+        assert "Depends on:" in block.group(0), task
+    captured = _normalized(
+        REPO_ROOT / "docs" / "product" / "captured" / "pre-existing-closure-index-collapsible-if.md"
+    )
+    assert "pinned to `ruff==0.14.0`" in captured
+    assert "At discovery time CI installed ruff unpinned" in captured

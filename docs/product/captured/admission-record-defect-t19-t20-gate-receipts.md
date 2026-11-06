@@ -16,9 +16,12 @@ claims were false at admission time:
   committed as `a51b1aee8`
 
 Both commits contain only the ledger line — no code, no tests. The
-hardening implementation for every task T19–T23 landed later, in the
-commits labeled "implement T21" through "implement T23" (`207eaa08d`,
-`f5dd7ff77`, `98d8b5ada`).
+hardening implementation for every task T19–T23 landed later, all of it in
+the single commit labeled "implement T21" (`207eaa08d`, 24 files); the
+commits labeled "implement T22" and "implement T23" (`f5dd7ff77`,
+`98d8b5ada`) are receipt-only commits recorded after their implementations
+had already landed — their trees contained the code, so their receipts are
+legitimate where T19/T20's, recorded before any code existed, were not.
 
 ## Cause
 
