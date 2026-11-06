@@ -31,6 +31,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
+from typing import BinaryIO
 
 __all__ = [
     "Commit",
@@ -184,6 +185,10 @@ def append_note(error: BaseException, note: str) -> None:
         error.detail = f"{error.detail}; {note}"
     elif error.args:
         error.args = (f"{error.args[0]}; {note}", *error.args[1:])
+
+
+# A work tree index larger than this is not copied; its scan starts cold instead.
+_MAX_INDEX_BYTES = 256 * 1024 * 1024
 
 
 class GitPort:
@@ -666,14 +671,16 @@ class GitPort:
                 found[path.decode("utf-8", "surrogateescape")] = (mode, oid)
         return found
 
-    def working_changes(self) -> dict[str, tuple[str, str] | None]:
+    def working_changes(
+        self, rehash: Iterable[str] = ()
+    ) -> dict[str, tuple[str, str] | None]:
         """What ``change_set`` names, each with the ``(mode, object id)`` Git would stage.
 
         ``None`` marks a removal. Read from one private index, so the paths and their entries
         come from the same read of the working tree.
         """
         excluded = (f"{self.spec_rel}/.supervisor/", ".loop-run/", f"{self.delivery_rel}/")
-        with self._private_index() as env:
+        with self._private_index(warm=True, rehash=rehash) as env:
             self.run("add", "-A", env=env)
             out = self.run(
                 "diff", "--cached", "--raw", "--no-abbrev", "-z", "--no-renames", "HEAD",
@@ -750,14 +757,17 @@ class GitPort:
 
     # ── the change set ──────────────────────────────────────────────────────
 
-    def change_set(self) -> list[str]:
+    def change_set(self, rehash: Iterable[str] = ()) -> list[str]:
         """What ``git add -A`` would stage against the current HEAD.
+
+        The spec directory and every path in *rehash* are read from their bytes, never from the
+        index's stat data, so a forged index entry cannot hide a change there.
 
         Ignored files stay out, and so do the supervisor's own local and
         durable directories, whatever the ignore rules say.
         """
         excluded = (f"{self.spec_rel}/.supervisor/", ".loop-run/", f"{self.delivery_rel}/")
-        with self._private_index() as env:
+        with self._private_index(warm=True, rehash=rehash) as env:
             self.run("add", "-A", env=env)
             out = self.run(
                 "diff", "--cached", "--name-only", "-z", "--no-renames", "HEAD", env=env
@@ -768,24 +778,122 @@ class GitPort:
     # ── the commit builder ──────────────────────────────────────────────────
 
     class _PrivateIndex:
-        def __init__(self, port: GitPort) -> None:
+        """A throwaway index; *warm* seeds it from the work tree's own index.
+
+        A fresh ``read-tree HEAD`` index has no stat data, so ``add -A`` opens and hashes every
+        tracked file, and a scanner that taxes each open makes that minutes. The work tree's
+        index already holds the stat data, so a copy lets ``add -A`` only stat unchanged files.
+        Entries that differ from ``HEAD`` are reset to it, so the copy names the same changes
+        ``read-tree HEAD`` would. Outside the *rehash* paths it trusts the stat data in that
+        index: the hardened flags pin the stat comparison, but an index written by hand can hide
+        a change there, which is an accepted residual risk. A shape this cannot reset exactly, or
+        a copy over ``_MAX_INDEX_BYTES``, falls back to ``read-tree HEAD``.
+        """
+
+        def __init__(
+            self, port: GitPort, *, warm: bool = False, rehash: Iterable[str] = ()
+        ) -> None:
             self.port = port
+            self.warm = warm
+            # Paths whose stat data the copy must not keep: the spec directory and the caller's.
+            self.rehash = [f"{port.spec_rel}/", *rehash]
             self.path = ""
 
         def __enter__(self) -> dict[str, str]:
+            try:
+                return self._open()
+            except BaseException:
+                self._remove()
+                raise
+
+        def _open(self) -> dict[str, str]:
             fd, self.path = tempfile.mkstemp(prefix="work-supervisor-index-")
-            os.close(fd)
-            Path(self.path).unlink()
             env = {"GIT_INDEX_FILE": self.path}
+            if self.warm:
+                if self._seed(fd, env):  # closes *fd*, whatever it answers
+                    return env
+            else:
+                os.close(fd)
+            Path(self.path).unlink()
             self.port.run("read-tree", "HEAD", env=env)
             return env
 
-        def __exit__(self, *exc: object) -> None:
+        def _seed(self, fd: int, env: dict[str, str]) -> bool:
+            """Copy the work tree's index into *fd* (closed here) and reset it to ``HEAD``.
+
+            False when it cannot. Writing through the exclusive ``mkstemp`` descriptor keeps the
+            copy off any path another user could have swapped for a link.
+            """
+            target = os.fdopen(fd, "wb")
+            source = self.port.hardened.pins.git_dir / "index"
+            try:
+                with target:
+                    if not self._copy_index(source, target):
+                        return False
+                flags = self.port.run("ls-files", "-v", "-z", env=env)
+                # Assume-unchanged (lowercase) and skip-worktree (S) entries ignore the work
+                # tree, which a ``read-tree HEAD`` index would not.
+                if any(e[:1].islower() or e[:1] == b"S" for e in flags.split(b"\0") if e):
+                    return False
+                fields = self.port.run(
+                    "diff-index", "--cached", "--raw", "--no-abbrev", "-z", "--no-renames",
+                    "HEAD", env=env,
+                ).split(b"\0")
+                lines: list[bytes] = []
+                for meta, path in zip(fields[0::2], fields[1::2], strict=False):
+                    old_mode, _mode, old_oid, _oid, status = meta.decode().lstrip(":").split()
+                    if status.startswith("U"):
+                        return False
+                    absent = old_mode == "000000"
+                    entry = f"0 {old_oid}" if absent else f"{old_mode} {old_oid}"
+                    lines.append(entry.encode() + b"\t" + path + b"\0")
+                if lines:
+                    self.port.run(
+                        "update-index", "-z", "--index-info", env=env, stdin=b"".join(lines)
+                    )
+                # Re-enter the protected paths without stat data, so ``add -A`` hashes them; the
+                # update also drops the cached tree for their directories.
+                held = self.port.run(
+                    "ls-files", "-s", "-z", "--", *self.rehash, env=env, literal_pathspecs=True
+                )
+                if held:
+                    self.port.run("update-index", "-z", "--index-info", env=env, stdin=held)
+            except (OSError, SupervisorGitError) as exc:
+                if isinstance(exc, SupervisorGitError) and exc.code != "denied-git-failed":
+                    raise
+                return False
+            return True
+
+        @staticmethod
+        def _copy_index(source: Path, target: BinaryIO) -> bool:
+            """Copy a regular, bounded index through one non-blocking, link-refusing open."""
+            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+            try:
+                fd = os.open(source, flags)
+            except OSError:
+                return False
+            with os.fdopen(fd, "rb") as original:
+                if not stat.S_ISREG(os.fstat(original.fileno()).st_mode):
+                    return False
+                if os.fstat(original.fileno()).st_size > _MAX_INDEX_BYTES:
+                    return False
+                data = original.read(_MAX_INDEX_BYTES + 1)
+            if len(data) > _MAX_INDEX_BYTES:
+                return False
+            target.write(data)
+            return True
+
+        def _remove(self) -> None:
             for suffix in ("", ".lock"):
                 Path(self.path + suffix).unlink(missing_ok=True)
 
-    def _private_index(self) -> GitPort._PrivateIndex:
-        return GitPort._PrivateIndex(self)
+        def __exit__(self, *exc: object) -> None:
+            self._remove()
+
+    def _private_index(
+        self, *, warm: bool = False, rehash: Iterable[str] = ()
+    ) -> GitPort._PrivateIndex:
+        return GitPort._PrivateIndex(self, warm=warm, rehash=rehash)
 
     @staticmethod
     def _stamp(when: str) -> str:
