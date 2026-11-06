@@ -257,6 +257,7 @@ also ships.
 | `execution-supervisor-review-gate` | <auto> |
 | `execution-supervisor-cutover` | <auto> |
 | `canonical-result-integration` | <auto> |
+| `verified-infrastructure-parallelism` | <auto> |
 
 ## Design artifacts
 

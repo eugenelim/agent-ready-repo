@@ -222,7 +222,7 @@ jobs:
     # The product ref's two-ref transaction, ref lock files, and direct ref reads on a
     # Windows file system, with the attempt check and the pin check that share its
     # control state. Windows runs these suites several times slower than Linux, so each
-    # part is its own matrix leg: the product ref suite in three, pinning in two, and
+    # part is its own matrix leg: the product ref suite in three, pinning in four, and
     # attempt in one. A leg keeps every `i`-th collected test (WORK_SUPERVISOR_SHARD
     # is `i/n`, see the work-loop tests' conftest), so the parts are disjoint and cover
     # the suite. Every pytest path is a literal in a step; a step runs for its own suite.
@@ -241,9 +241,13 @@ jobs:
           - suite: attempt
             shard: "0/1"
           - suite: pinning
-            shard: "0/2"
+            shard: "0/4"
           - suite: pinning
-            shard: "1/2"
+            shard: "1/4"
+          - suite: pinning
+            shard: "2/4"
+          - suite: pinning
+            shard: "3/4"
     env:
       PYTHONUTF8: "1"
       PYTHONIOENCODING: "utf-8"
