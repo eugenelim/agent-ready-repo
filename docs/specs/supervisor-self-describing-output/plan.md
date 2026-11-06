@@ -145,6 +145,20 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Done when:** the release checker and the roster file named above both pass, and `make precheck` is run and its output read; only its self-host drift check may still be red, until the run's `regenerate` step.
 
+### T8: An unreadable retry cap loses only the cap route
+
+**Depends on:** T4
+
+**Tests:**
+- TDD, integration-gated, in `test_supervisor_step_loop.py`: with the policy's `implementation_retry_cap` removed (and, in a second case, set to a non-integer), `park`, `next`, `report` and `status` still print one JSON object with their pre-change exit codes and no traceback, `status` carries a `route` that is not the cap row, and no other verb carries one (repair of review finding QE-01; AC-0008 and the Agent Rule to keep exit codes as they are).
+
+**Approach:**
+- In `_dispatch`, read the cap into the routing context inside a guarded read that leaves it `None` when the key is missing or not an integer (`KeyError`, `TypeError`, `ValueError`), so only the cap row is lost; do not change `loop.status`, `decide` or the `--check` branch.
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
+
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py -q -rs` is green with the new cases not skipped; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step, and every other precheck result must pass.
+
 ## Rollout
 
 Ships as one patch release of `core`. Reversible by revert. Closeout, after `terminal`: fetch main and re-check the version, rebuild projections, then run `tests/roster/test_sequential_implementer_dispatch_contract.py`, `tools/test_workspace_status.py`, `tools/test_workspace_status_cli.py`, `tools/test_local_ci_shared_test_deduplication.py`, `tests/roster/test_registry_upgrade_notes.py` and `tests/roster/test_workspace_retirement_inventory.py`; a ledger or note in this spec directory that names retired workspace files needs an inventory row.
