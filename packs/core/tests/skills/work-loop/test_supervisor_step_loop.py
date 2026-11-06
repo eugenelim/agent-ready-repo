@@ -379,3 +379,59 @@ def test_a_dependency_cycle_is_refused_and_commits_nothing(tmp_path: Path) -> No
     assert code == 1 and payload["refusal"]["code"] == "dependency-cycle", payload
     assert payload["refusal"]["owner"] == "plan author"
     assert h.git(repo, "rev-parse", "HEAD") == head
+
+
+# ── --json after any verb is accepted and changes nothing ────────────────────
+
+
+def _run_main(repo: Path, argv: list[str]) -> int:
+    """``main`` in-process with the harness's fixed clock; stdout and stderr stay on the real streams."""
+    original = h.admission.CLOCK[0]
+    h.admission.CLOCK[0] = lambda: h.FIXED_TIME
+    try:
+        return int(h.cli.main(argv, cwd=repo))
+    finally:
+        h.admission.CLOCK[0] = original
+
+
+def _verb_calls(repo: Path, tmp_path: Path) -> dict[str, tuple[str, ...]]:
+    """One argv per verb, without ``--json``, valid for a fresh harness repository."""
+    result = tmp_path / "result.json"
+    result.write_text("{}", encoding="utf-8")
+    return {
+        "park": ("park", SPEC, "--gate", "spec-approved", "--intent", "code",
+                 "--code-trust", "trusted"),
+        "gates": ("gates",),
+        "start": ("start", SPEC, "--intent", "code", "--code-trust", "trusted",
+                  "--authority-ref", "owner:0123456789ab",
+                  "--review-authority-ref", "plan-reviewer:0123456789ab",
+                  *h.digest_args(repo)),
+        "next": ("next", SPEC),
+        "report": ("report", SPEC, str(result)),
+        "status": ("status", SPEC),
+        "resolve-effect": ("resolve-effect", SPEC, "--operation", "op-1",
+                           "--decision", "do-not-retry",
+                           "--authority-ref", "effect-authority:0123456789ab"),
+    }
+
+
+@pytest.mark.parametrize(
+    "verb", ["park", "gates", "start", "next", "report", "status", "resolve-effect"]
+)
+def test_json_after_the_verb_changes_neither_output_nor_exit_code(
+    tmp_path: Path, verb: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    seen: list[tuple[int, str, str]] = []
+    for name, extra in (("plain", ()), ("json", ("--json",))):
+        root = tmp_path / name
+        root.mkdir()
+        repo = h.make_repo(root)
+        argv = _verb_calls(repo, root)[verb]
+        capsys.readouterr()
+        with h.git_identity():
+            code = _run_main(repo, [*argv, *extra])
+        captured = capsys.readouterr()
+        seen.append((code, captured.out.replace(str(root), "<root>"),
+                     captured.err.replace(str(root), "<root>")))
+    assert seen[0] == seen[1], seen
+    assert "unrecognized arguments" not in seen[1][2]

@@ -5,16 +5,16 @@ Usage, from the repository root:
 
     work-supervisor.py start <spec-dir> --intent code|spec-plan \\
         --code-trust trusted|untrusted --authority-ref owner[:<hex>] \\
-        --review-authority-ref plan-reviewer[:<hex>]
+        --review-authority-ref plan-reviewer[:<hex>] [--json]
     work-supervisor.py park <spec-dir> --gate spec-approved|plan-approved \\
-        --intent code|spec-plan --code-trust trusted|untrusted
-    work-supervisor.py gates
-    work-supervisor.py next <spec-dir>
-    work-supervisor.py report <spec-dir> <result.json>
+        --intent code|spec-plan --code-trust trusted|untrusted [--json]
+    work-supervisor.py gates [--json]
+    work-supervisor.py next <spec-dir> [--json]
+    work-supervisor.py report <spec-dir> <result.json> [--json]
     work-supervisor.py status <spec-dir> [--json] [--check]
     work-supervisor.py resolve-effect <spec-dir> --operation <key> \\
         --decision effect-confirmed|do-not-retry|retry-authorized \\
-        --authority-ref effect-authority[:<hex>]
+        --authority-ref effect-authority[:<hex>] [--json]
 
 Every verb prints one JSON object. A refusal, including a Git or run-lock
 failure, prints ``{"refusal": {"code", "owner", "detail"}}``. Exit codes: 0
@@ -577,8 +577,9 @@ def _parser() -> argparse.ArgumentParser:
     park.add_argument("--gate", required=True, choices=("spec-approved", "plan-approved"))
     park.add_argument("--intent", required=True, choices=("code", "spec-plan"))
     park.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
-    verbs.add_parser("gates")
-    verbs.add_parser("next").add_argument("spec_dir")
+    gates = verbs.add_parser("gates")
+    nxt = verbs.add_parser("next")
+    nxt.add_argument("spec_dir")
     report = verbs.add_parser("report")
     report.add_argument("spec_dir")
     report.add_argument("result")
@@ -591,6 +592,9 @@ def _parser() -> argparse.ArgumentParser:
     resolve.add_argument("--operation", required=True)
     resolve.add_argument("--decision", required=True)
     resolve.add_argument("--authority-ref", required=True)
+    # Every verb already prints one JSON object, so the flag is read by nothing.
+    for verb in (start, park, gates, nxt, report, resolve):
+        verb.add_argument("--json", action="store_true")
     return parser
 
 
