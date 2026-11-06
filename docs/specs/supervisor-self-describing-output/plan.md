@@ -157,3 +157,4 @@ Ships as one patch release of `core`. Reversible by revert. Closeout, after `ter
 - The installed copy is stale until the run's `regenerate` request, which rebuilds the whole skill tree, references and evals included, before `terminal`: the roster projection tests that compare the installed copy with the pack source fail until then and are excused.
 
 ## Changelog
+- 2026-11-05: spec approved by eugenelim

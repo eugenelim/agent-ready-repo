@@ -1,6 +1,6 @@
 # Spec: Supervisor self-describing output
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
