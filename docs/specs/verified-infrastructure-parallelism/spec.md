@@ -1,6 +1,6 @@
 # Spec: Verified infrastructure parallelism
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0156, ADR-0160, ADR-0154, ADR-0151, ADR-0144, ADR-0005, ADR-0061
@@ -128,7 +128,7 @@ Admission and the floor
 - [ ] **AC-0009.** A task whose dependency has only a held result is not issued.
 - [ ] **AC-0010.** A `Reads:` or `Writes:` entry that is not a repository path, that uses a glob character other than a trailing `/**`, that is a `Writes:` entry ending in `/`, or that names a path under `delivery/` or the spec directory leaves its task on the floor.
 - [ ] **AC-0011.** A change to a task's `Reads:` or `Writes:` field changes its revision.
-- [ ] **AC-0012.** `status` and the journal report, for every task that ran or is open, whether it ran concurrently or on the floor and, for each fall to the floor, failed attempt, exact-source-only integration, and refusal, one reason code from a closed set that names each AC-0002 member, each AC-0017 check, each AC-0020 check, each AC-0067 check, and each refusal reason; no launcher-supplied text appears in either.
+- [ ] **AC-0012.** `status` and the journal report, for every task that ran or is open, whether it ran concurrently or on the floor and, for each fall to the floor, failed attempt, exact-source-only integration, and refusal, one reason code from a closed set that names each AC-0002 member other than the policy opt-in, each AC-0017 check, each AC-0020 check, each AC-0067 check, and each refusal reason; no launcher-supplied text appears in either.
 
 Launcher and attestation
 
@@ -203,7 +203,7 @@ Isolation, blast radius, and plan changes
 
 Determinism and portability
 
-- [ ] **AC-0059.** Under each concurrent mode, every completion-order permutation of each corpus schedule — three independent attempts; a read-after-write that reprojects; a floor task between held results; and a conflict that reprojects — is forced by fixture coordination, observed in the journal, and ends with the same product tree id and per-criterion acceptance outcomes as the sequential run over the same scripted attempt outputs and run id.
+- [ ] **AC-0059.** Under each concurrent mode, every completion-order permutation of each corpus schedule — three independent attempts; a read-after-write that reprojects under `complete-trace` and, under `enforced-allowlist`, whose declared read keeps the two tasks in separate batches; a floor task between held results; and a conflict that reprojects — is forced by fixture coordination, observed in the journal, and ends with the same product tree id and per-criterion acceptance outcomes as the sequential run over the same scripted attempt outputs and run id.
 - [ ] **AC-0060.** With the test-only seam that integrates in completion order enabled, the read-after-write schedule's comparison fails.
 - [ ] **AC-0061.** The corpus holds at most six schedules of at most three concurrent attempts each.
 - [ ] **AC-0062.** Every corpus subprocess runs in an environment the corpus builds, with an isolated interpreter and a `PATH` on which no `pi` executable resolves, and the corpus asserts both before the first run.

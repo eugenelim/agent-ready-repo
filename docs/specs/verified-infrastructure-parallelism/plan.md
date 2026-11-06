@@ -1,7 +1,7 @@
 # Plan: Verified infrastructure parallelism
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-loop-result-integration.md` and `runtime-security-primitives.md` § 7; ADR-0156; analogous implementations `_supervisor_commit.py` (`build_commit`, `update_refs`, `_diagnose`) and `_containment.py` (`validate_attestation_dict`, `check_attestation_within_grant`, `launch_untrusted`); tests `test_supervisor_product_ref.py`, `test_supervisor_crash_corpus.py`, `test_containment_broker.py` (`_FixtureHost`), `tests/roster/test_execution_supervisor_records.py`; deviations: no code launches a worker from the supervisor today, so the launcher boundary has no precedent beyond `launch_untrusted`; concurrent attempts use plain directories rather than ADR-0005 D7's worktree (ADR-0160 D1)
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -398,6 +398,39 @@ and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips and thi
 locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips; the pages the spec's
 Durable Outputs name describe the concurrent path and the known limit; and
 Core is one patch above T3's release.
+
+### T6: Close the gate gaps
+
+**Depends on:** T5
+
+**Tests:**
+- AC-0019: the release-token search skips the fixture launcher's own
+  `sent.log` as it skips `recv.log`, and its planted-leak control still reds.
+- AC-0031: an attempt refused at ingestion reprojects its task (not the
+  floor), proven end to end through `run-concurrent` and `next`.
+- AC-0033: a floor attempt that rewrites a held record or held ref is answered
+  `attempt-residue` by the next verb; the test accepts no other code.
+- AC-0044: each integration kill point asserts the product ref equals the
+  recorded old commit or the new commit, by value.
+- AC-0045: replay after a kill between the compare-and-swap and the record
+  creates no commit, no conflict record, and no reprojection (`next` payload
+  and the record's reproject flag both checked).
+- AC-0050: a Git control-state change and a `delivery/` change during a
+  concurrent attempt each refuse that attempt with `attempt-residue` while a
+  sibling is open.
+- AC-0057: a stub-fence revision is refused while an attempt is open and
+  admitted after, with held results discarded.
+- AC-0065: recovery confirms the end without signalling when no process holds
+  the leader id and the group has no members.
+- AC-0072: with a command-line flag, a policy key, and a file each set and no
+  seam, results land in floor order.
+- AC-0059: each attempt's finish is journaled when it settles, and the corpus
+  asserts completion order from the journal.
+
+**Done when:** each changed git-backed suite is on the Gate A-supervisor run
+line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
+`make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
+in T5's release).
 
 ## Rollout
 
