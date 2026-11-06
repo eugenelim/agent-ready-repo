@@ -9,6 +9,7 @@ would leave the record unable to say which triggers fired.
 from __future__ import annotations
 
 import importlib.util
+import json
 import re
 import sys
 import types
@@ -74,3 +75,20 @@ def _load_lint() -> types.ModuleType:
 def test_lint_token_set_equals_the_contract_table() -> None:
     tokens = {token for token, _trigger in _contract_table()}
     assert set(_load_lint().RISK_TRIGGER_TOKENS) == tokens
+
+
+def test_plan_step_two_records_the_decision_on_the_line() -> None:
+    text = WORK_LOOP.read_text(encoding="utf-8")
+    step = text[text.index("2. **Select light or full mode**"):text.index("\n3. ")]
+    assert "Record the decision on the spec's `Risk triggers:` header line" in step
+    assert "the line is written or rewritten only while the spec is `Draft`" in step
+    assert "A spec past `Draft` is not edited to add or change it." in step
+
+
+def test_each_skill_has_an_eval_case_naming_the_line() -> None:
+    for skill in ("new-spec", "work-loop"):
+        cases = json.loads((SKILLS / skill / "evals" / "evals.json").read_text(encoding="utf-8"))
+        assert any(
+            any("Risk triggers:" in assertion for assertion in case["assertions"])
+            for case in cases["evals"]
+        ), skill
