@@ -171,7 +171,7 @@ never asserts them.
 | `write-stub` | Write each stub file named in `stubs` with exactly the bytes the plan carries. Do not run the stub, do not write anything else. | none |
 | `implement-task` | Dispatch the `implementer` for the `task` (or implement it yourself when none is installed), then run the project's gates in the primary tree. | `{"gate": {"passed": true\|false}}` |
 | `run-gates` | Run the project's gates, and check each acceptance criterion in `criteria` against the real artifact. | `{"gate": {"passed": ...}, "criteria": [{"criterion_ref": "AC-0001", "outcome": "pass"\|"fail"}]}` |
-| `review-role` with `candidates` | Choose which conditional reviewer roles this change reaches, from `review-rules.json`. | `{"selection": {"selected": [...], "omitted": [{"role", "reason"}], "authority_ref": "controller:<hex>"}}` |
+| `review-role` with `candidates` | Choose which conditional reviewer roles this change reaches, from `review-rules.json`. | `{"selection": {"selected": [...], "omitted": [{"role", "reason"}], "protected_classes": [...], "authority_ref": "controller:<hex>"}}`; `protected_classes` is required, and `"review_tier": "full"` is optional |
 | `review-role` with `role` | Dispatch that reviewer for the `review_subject`, persist its return, and shape it as a typed report bound to that subject. | `{"report": {...}}`, a typed review report |
 | `assess-finding` | Judge whether the named finding's actual failure is real, from the repository, as a typed assessment. | `{"assessment": {...}}` |
 | `external-effect` | Perform the named effect once (a push, a publish) and record its receipt. | `{"effect": {"outcome": "completed"\|"not-executed", "receipt_ref": "..."}}` |
@@ -225,6 +225,49 @@ the predicate.
 A supported finding becomes a `repair-request`: the supervisor returns to
 `implement-task` for it, then asks for a fresh report on the replacement subject.
 `review-not-eligible` opens a `human-decision` when the review cannot close.
+
+#### Tiers, carries, and the cap
+
+The first review subject of a unit goes to every selected role. After a repair,
+the supervisor reads the diff from the last full round (the *anchor*) and picks
+a tier. It picks from its own Git reads and the anchor facts, and any doubt
+means `full`.
+
+| Tier | What the diff is | Who is asked again |
+| --- | --- | --- |
+| `wording-only` | Plain prose in allowlisted files only, with no open finding | No unprotected role. |
+| `rebase` | The same change on a new base, with no open finding | One delta pass from `adversarial-reviewer`. |
+| `minor-fix` | A small repair, at most `minor_fix_max_lines` lines, to paths the anchor already changed, with a finding open | One delta pass from each unprotected role that holds an open finding. |
+| `full` | Anything else | Every selected role. |
+
+A role a tier excuses stands on its latest report through a supervisor-written
+`review-carry.v1` record. You never write one. A delta pass is a `review-role`
+request with `delta_base` (the anchor result) and `repair_finding_ids` (the
+role's open findings, empty for a rebase). Review that commit range, and report
+on whether those findings are fixed and on anything the range adds.
+
+Every selection answer declares `protected_classes`: any of `security-boundary`,
+`data-durability`, `migration`, `public-interface`, and
+`irreversible-operation`, or `[]`. Each class protects one reviewer, from the
+map in `review-rules.json`: `security-boundary` is `security-reviewer`,
+`data-durability` and `migration` are `quality-engineer`, and `public-interface`
+and `irreversible-operation` are `adversarial-reviewer`. Selecting
+`security-reviewer` requires declaring `security-boundary`. A later selection in
+the same unit may not drop a class unless the owner answered `reselect-review`.
+A protected reviewer is asked for a whole-change report (no `delta_base`) on
+every revision, under every tier. `"review_tier": "full"` on a selection forces
+the full set for that subject.
+
+The supervisor writes the facts of each fully reported round to
+`delivery/review-anchors.jsonl`. It compares later repairs against those facts,
+so a rebase of the run's commits does not lose the anchor.
+
+An unprotected unit gets `code_review_round_cap` rounds (two). A repair that is
+a rebase or wording-only does not count as a round. When the cap leaves a
+supported finding open, the supervisor issues a `review-cap` human decision
+instead of `review-not-eligible`, listing each open finding in `open_findings`
+by `cap_ref`, `role`, and `evidence_sequence`. A protected unit never reaches
+the cap. See [Human decisions](#human-decisions) for the answers.
 
 ### The product ref
 
@@ -286,6 +329,7 @@ human's authority reference; never invent one.
 | `reason` | Who answers | How it resolves |
 | --- | --- | --- |
 | `review-not-eligible` | `owner` for `reselect-review`, a `risk-owner` for `accept-risk` | Report `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`, or `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": [...]}}`. |
+| `review-cap` | `risk-owner` for `accept-risk`, `owner` for `extend-review` and `reselect-review` | Replaces `review-not-eligible` at the round cap. Report `{"decision": {"decision": "accept-risk", "authority_ref": "risk-owner:<hex>", "finding_ids": ["cap-finding:<hex>", ...]}}` naming `cap_ref` values from the request's `open_findings`, and only those, or `{"decision": {"decision": "extend-review", "authority_ref": "owner:<hex>"}}` to allow exactly one more round, or `{"decision": {"decision": "reselect-review", "authority_ref": "owner:<hex>", "selection_key": "<from the request>"}}`. Any other answer leaves the findings open and the same request outstanding. |
 | `replan-confirmation` | `owner` | See [Recovering from a stub that is not red](#recovering-from-a-stub-that-is-not-red). |
 | `history-adoption` | `owner` | `HEAD` or the product ref holds a commit the run never recorded: a rebase, an amend, a reset past a step, a commit of yours, or a commit on the run's last recorded value. That last case may be a step the supervisor was committing when it was cut off after its refs moved, or a commit made outside the supervisor; the supervisor cannot tell which and says so. The request names the `HEAD` commit (`head_commit`), how many product paths it would change (`changed_path_count`, with at most 20 in `changed_paths`), and whether it would change a file in the spec directory (`spec_dir_changed`). Nothing is committed until the owner answers. The question always gives the restore exit: put the product ref (when the run has one) and `HEAD` back on the recorded value with the command it prints, after which the run carries on and a step the supervisor was committing is rebuilt. It offers `adopt-history` (`{"decision": {"decision": "adopt-history", "authority_ref": "owner:<hex>", "commit": "<head_commit>"}}`) only when that answer would be admitted, never when the history changes `delivery/`, which most steps the supervisor committed do. A `regenerate` step changes only installed-skill files, so a cut-off one is offered adoption too; adopting it records a `reanchor` on `HEAD` that holds the install, after which the run carries on and no second `regenerate` step is made. With an attempt open the answer is `attempt-residue`, and the same restore ends it. Adopting records one `reanchor` step: with `HEAD` past the recorded value, the product ref moves to it; with `HEAD` still on the recorded value, `HEAD` stays and the product ref's unrecorded step is replaced by the `reanchor` on `HEAD`, dropping that step's changes. If it changes the product or the spec directory, gates and reviews run again. |
 | `retry-cap` | no one | The count never resets. Surface; the run stops. |
@@ -358,7 +402,8 @@ who acts next, and the rows group codes that share one answer.
 | `approval-digest-mismatch` | A digest argument does not equal the gate digest of the artifact on disk, or an artifact changed after the check. Nothing was written. Show the approvers the current bytes, take their answers again, and retry. |
 | `criteria-changed`, `scope-changed`, `authority-changed`, `contract-changed`, `durable-outputs-changed`, `accepted-risk-changed`, `terminal-intent-changed` | A controller edit reached a protected section of the spec or the terminal intent. It takes an amendment by the owner the refusal names, not a plan edit. |
 | `ambiguous-reference`, `unreadable-reference`, `untitled-task`, `dependency-cycle`, `duplicate-effect-name`, `invalid-effect-name`, `invalid-stub-fence`, `invalid-stub-path` | The spec or plan cannot be projected: a repeated heading (`park` raises `ambiguous-reference` too), an unreadable cited record, a task without a title, tasks that wait on each other, or a malformed effect or stub line. Fix the plan or spec, then `next`. |
-| `review-selection-invalid`, `review-selection-missing`, `review-selection-exists`, `review-decision-invalid`, `review-record-refused`, `review-rules-invalid` | A review selection, decision record, or review record is malformed, absent, or already recorded for this subject, or `review-rules.json` is invalid. Answer the issued request again, or have the named owner decide. |
+| `review-selection-invalid`, `review-selection-missing`, `review-selection-exists`, `review-decision-invalid`, `review-anchor-invalid`, `review-record-refused`, `review-rules-invalid` | A review selection, decision record, anchor record, or review record is malformed, absent, or already recorded for this subject, or `review-rules.json` is invalid. Answer the issued request again, or have the named owner decide. |
+| `denied-git-output-too-large` | A Git read or a committed file passed the size the supervisor allows. Nothing was written. Reduce the oversized change and retry; a review tier reads that size limit as `full`. |
 | `foreign-delivery-edit`, `malformed-record`, `evidence-rewritten`, `invalid-approval-record` | Something other than the supervisor edited `delivery/`, or a record there is malformed or was rewritten. Restore it from `HEAD`. |
 | `supervisor-changed` | The installed skill differs from the pins taken at `start`, or a run has no pin record. Restore the installed skill; if the difference is intended, surface it to the owner. When `HEAD` holds the approval of a first admission that nothing recorded (it was cut off after its refs moved, or committed outside the supervisor), the detail names the exit: `git reset --soft <base>`, which keeps every uncommitted tracked change, then run `start` again. The product ref the cut-off transaction left is inert and is not deleted: refs are shared across worktrees and two runs can share a run id. `start` refuses `supervisor-changed` and names the exit. Where the run's store directory exists, every other verb refuses `supervisor-changed` and points at `start`; `status` refuses the same way (exit code 1). Where it does not, every other verb but `status` refuses with the plain "the supervisor's pin record is missing", and `status` answers from the committed records: a history-adoption request naming the exit when the base is valid, otherwise a `supervisor-changed` report naming no command. A store-less checkout of a run that holds only its approval reads the same way, and the exit starts the run afresh there. A run is read as a cut-off first admission only when the approval is its only supervisor commit on `HEAD`'s history (a checkout of a finished run, or one squashed into a later step's commit, is not). `status` writes nothing to run state; its pin refusal still records a security event. The approval's base comes from a file a worker can write, so the command is named only when the base is the parent of the approval commit at `HEAD`; otherwise the detail names no command and you return `HEAD` to the commit before the approval yourself. In a checkout that ran the supervisor, once a later release changes the installed supervisor, a finished run's `status` refuses on its pins until its store directory (`<git-dir>/agentbundle-supervisor/<run-id>/`) is removed. |
 | `unsupported-git-config` | A setting runs code, or a filter is defined; `park` also refuses a partial clone, a promisor remote, or an alternates file, and `gates` lists every entry there as `stale`. See [Git settings the supervisor does not support](#git-settings-the-supervisor-does-not-support). |

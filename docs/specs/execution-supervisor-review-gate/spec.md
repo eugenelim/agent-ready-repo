@@ -73,7 +73,10 @@ stays with the trusted controller (ADR-0144 D11).
 
 ### Never do
 
-- Encode a reviewer trigger as a path glob or other mechanical predicate.
+- Encode a reviewer trigger as a path glob or other mechanical predicate. A
+  diff-derived review tier may decide whether an already-selected role reports
+  again, never which roles are selected (ADR-0158;
+  `docs/specs/review-obligation-policy/spec.md`).
 - Add reviewer prompts, tools, models, session mechanics, or reviewer-session
   retries to the supervisor or `review-rules.json`.
 - Change the output of an existing `loop-cohort.py review` verb while that
