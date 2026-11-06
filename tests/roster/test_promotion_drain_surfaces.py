@@ -258,3 +258,26 @@ def test_ruff_parity_record_has_one_declared_source() -> None:
     requirements = (REPO_ROOT / "tools" / "requirements.txt").read_text(encoding="utf-8")
     assert "ruff==0.16.10" in requirements
     assert "Declared here rather than pinned inline" in requirements
+
+
+def test_parity_record_citations_resolve_and_no_stale_sections() -> None:
+    # T30: every citation in the parity record resolves to a step that
+    # exists, and the captured note carries no section describing the
+    # removed inline pin.
+    for rel in (
+        ".github/workflows/build-check.yml",
+        "tools/requirements.txt",
+        "docs/product/captured/pre-existing-closure-index-collapsible-if.md",
+    ):
+        text = (REPO_ROOT / rel).read_text(encoding="utf-8")
+        assert "Install tools requirements" not in text, rel
+    workflow = (REPO_ROOT / ".github" / "workflows" / "build-check.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "Install tools dependencies" in workflow
+    captured = _normalized(
+        REPO_ROOT / "docs" / "product" / "captured" / "pre-existing-closure-index-collapsible-if.md"
+    )
+    assert "Known-skip treatment" not in captured
+    assert "pin ruff 0.14.0" not in captured
+    assert "No skip treatment is in force" in captured

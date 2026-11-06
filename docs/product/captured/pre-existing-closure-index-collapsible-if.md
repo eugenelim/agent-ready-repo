@@ -19,7 +19,7 @@ contradicted it, which this correction records.)
 
 CI runs the ruff version pinned in `tools/requirements.txt` (`0.16.10`,
 green on this tree): the workflow's bare `pip install ruff mypy` runs
-after the "Install tools requirements" step and leaves that pin in place.
+after the "Install tools dependencies" step and leaves that pin in place.
 The promotion-drain-hardening delivery's own gate evidence ran under
 ruff 0.14.0 — also green on this tree. Un-pin or re-pin
 `tools/requirements.txt` only with a run verifying the new version on a
@@ -34,9 +34,12 @@ discovery time the delivery's local gates ran ruff 0.14.0 while an
 unpinned resolution fetched 0.17.4, which re-flagged code that was green
 when it merged; the parity record above is the correction.
 
-## Known-skip treatment
+## Gate treatment
 
-Gate runs on this branch treat the violation as a known skip and pin ruff
-0.14.0 — the version the file was green under — for the local gate
-evidence. Fixing the nested-`if` is a one-line `and` merge owned by the
-`close-work` skill, out of this delivery's scope.
+No skip treatment is in force: CI lints this file under the
+`tools/requirements.txt` pin (`0.16.10`, green on this tree), which
+holds below the flagging boundary. The delivery branch's recorded local
+gate evidence ran under ruff 0.14.0 — also green on this tree; that run
+is this delivery's history, not the pin CI uses. Fixing the nested-`if`
+is a one-line `and` merge owned by the `close-work` skill, out of this
+delivery's scope.

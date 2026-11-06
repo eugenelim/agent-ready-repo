@@ -130,7 +130,7 @@ jobs:
         id: ruff_mypy
         if: '!cancelled()'
         # The ruff version is pinned once, in tools/requirements.txt —
-        # installed by the earlier "Install tools requirements" step, which
+        # installed by the earlier "Install tools dependencies" step, which
         # this bare install leaves in place (the parity mechanism that file
         # documents). See
         # docs/product/captured/pre-existing-closure-index-collapsible-if.md
