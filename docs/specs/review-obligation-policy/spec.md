@@ -1,6 +1,6 @@
 # Spec: Review obligation policy
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0158, ADR-0144
@@ -24,7 +24,7 @@
 
 ## Outcome
 
-A maintainer running a full-mode `code` run gets one full reviewer pass per unit, after which each repair costs only the reports its diff earns: none for a wording-only repair, one delta pass for a rebase or a minor fix, and the full set otherwise. Every protected reviewer reports on every revision, and an unprotected review that has not converged after two rounds stops with a `review-cap` decision naming each open finding by its cap finding reference and role.
+A maintainer running a full-mode `code` run gets one full reviewer pass per unit, after which each repair costs only the reports its diff earns: none for a wording-only repair once that tier is enabled (it ships disabled), one delta pass for a rebase or a minor fix, and the full set otherwise. Every protected reviewer reports on every revision, and an unprotected review that has not converged after two rounds stops with a `review-cap` decision naming each open finding by its cap finding reference and role.
 
 ## What Changes
 
@@ -58,7 +58,7 @@ A maintainer running a full-mode `code` run gets one full reviewer pass per unit
 
 ### Ask first
 
-- Changing the class-to-reviewer map, `code_review_round_cap`, `minor_fix_max_lines`, or the prose allowlist defaults.
+- Changing the class-to-reviewer map, `code_review_round_cap`, `minor_fix_max_lines`, `wording_only_enabled`, or the prose allowlist defaults.
 - Adding, removing, or redefining a tier or a protected class.
 - Amending any criterion, table row, or rule of `structured-review-boundary` or `execution-supervisor-review-gate` other than these three edits, which the owner's approval of ADR-0158 and of this spec authorizes: a carried-report row in `structured-review-boundary`'s Obligation truth table; the carry carve-out in its Never-do and current-subject binding rules; and the tier-predicate exception in `execution-supervisor-review-gate`'s Never-do rules.
 
@@ -76,9 +76,9 @@ A maintainer running a full-mode `code` run gets one full reviewer pass per unit
 - **Anchor facts (AC-0013):** TDD over the anchor writer and reader, with a fixture whose history an adopted rebase rewrote.
 - **Carry and readiness (AC-0014, AC-0015, AC-0016):** TDD over evidence-store fixtures, because the carry rules are a decision table over typed records.
 - **Selection and protection (AC-0017, AC-0018, AC-0019, AC-0021, AC-0022):** TDD over selection records and the resolver.
-- **Requests across subjects (AC-0001, AC-0005, AC-0007, AC-0009, AC-0010, AC-0012, AC-0020):** goal-based, exercised by integration runs in the supervisor harness that drive one unit through every tier and past the cap round, because these properties only show across several subjects.
+- **Requests across subjects (AC-0001, AC-0005, AC-0007, AC-0009, AC-0010, AC-0012, AC-0020):** goal-based, exercised by integration runs in the supervisor harness that drive one unit through every tier and past the cap round, because these properties only show across several subjects. The `wording-only` evidence for AC-0003, AC-0004, AC-0005, and AC-0020 runs against a fixture copy of the skill whose rules set `wording_only_enabled` true; AC-0003's disabled case runs against the shipped rules.
 - **Cap and decisions (AC-0023, AC-0024, AC-0025, AC-0026, AC-0027, AC-0028, AC-0029):** goal-based integration runs in the supervisor harness, with TDD for decision admission.
-- **Rules (AC-0030, AC-0031, AC-0035):** TDD over rules validation.
+- **Rules (AC-0030, AC-0031, AC-0035, AC-0036):** TDD over rules validation.
 - **Contracts and release (AC-0032, AC-0033, AC-0034):** goal-based schema-bundle and version-parity checks.
 
 ## Acceptance Criteria
@@ -105,7 +105,7 @@ Tiers
 
 - [ ] **AC-0001.** A unit's first review subject is requested from every selected role.
 - [ ] **AC-0002.** A repaired subject classifies `full` when, over the union of the anchor's and the current changed-path sets, the diff from the anchor result holds any of: a status other than modified; a mode other than `100644` or `100755` on either side; a blob that contains a NUL byte or is not valid UTF-8 on either side, read by the supervisor without Git attributes; an unreadable blob; more than 1 MiB read from any single Git process or blob, whichever check makes the read; no anchor facts; an anchor result commit that is not in the object store; or a classifier error.
-- [ ] **AC-0003.** A repaired subject classifies `wording-only` only when no finding is open, every changed path matches the prose allowlist, no changed path's basename matches an instruction name without regard to case, and no changed path is an instruction-reached file. An `@` reference that is absolute, starts with `~`, resolves outside the repository, resolves to or through any entry other than a regular file, or is found beyond the fifth hop makes the subject `full`, and so does an instruction-named symlink whose target cannot be scanned.
+- [ ] **AC-0003.** A repaired subject classifies `wording-only` only when `review-rules.json` sets `wording_only_enabled` true, no finding is open, every changed path matches the prose allowlist, no changed path's basename matches an instruction name without regard to case, and no changed path is an instruction-reached file. An `@` reference that is absolute, starts with `~`, resolves outside the repository, resolves to or through any entry other than a regular file, or is found beyond the fifth hop makes the subject `full`, and so does an instruction-named symlink whose target cannot be scanned.
 - [ ] **AC-0004.** A repaired subject also classifies `wording-only` only when a whole-file scan at both the anchor and current results places every changed line in plain prose, gives every unchanged line the same block kind at both results, and finds no inline code, link, link target, reference link definition, autolink, heading, or table on any changed line. Plain prose excludes fenced code, indented code, front matter, HTML comments, and raw HTML.
 - [ ] **AC-0005.** A `wording-only` subject issues no `review-role` request to a role that is not protected.
 - [ ] **AC-0006.** A subject classifies `rebase` only when all of these hold:
@@ -153,10 +153,11 @@ Cap and decisions
 
 Rules
 
-- [ ] **AC-0030.** The resolver refuses with a named error, and the review stage stays unsatisfied, when `code_review_round_cap` or `minor_fix_max_lines` is missing or not a positive integer, or the prose allowlist or the class-to-reviewer map is missing or malformed.
+- [ ] **AC-0030.** The resolver refuses with a named error, and the review stage stays unsatisfied, when `code_review_round_cap` or `minor_fix_max_lines` is missing or not a positive integer, `wording_only_enabled` is missing or not a boolean, or the prose allowlist or the class-to-reviewer map is missing or malformed.
 - [ ] **AC-0031.** The shipped `review-rules.json` holds `code_review_round_cap` 2 and `minor_fix_max_lines` 40, and its `max_review_retries` equals the value at `git merge-base origin/main HEAD`.
 
 - [ ] **AC-0035.** The shipped prose allowlist matches no path under `docs/specs/`, `docs/adr/`, or `docs/rfc/`.
+- [ ] **AC-0036.** The shipped `review-rules.json` sets `wording_only_enabled` false.
 
 Contracts and release
 
@@ -166,6 +167,8 @@ Contracts and release
 
 ## Follow-ons
 
+- eugenelim: work-intake item to be captured at closeout — harden the wording-only scan, then enable the tier. Open gaps found in review: a code fence or raw HTML after a list marker; indented code reached through mixed tab-space indentation or five or more spaces after a list marker; a code span or inline HTML that opens on an unchanged line and encloses a changed one; continuation lines of a reference link definition; and whether GFM inline math counts as non-prose.
+- eugenelim: work-intake item to be captured at closeout — instruction-file discovery folds case in ASCII only while the name check folds Unicode; the bounded Git launch returns partial output when a stream read fails; one anchor test asserts source text; the launcher tests would hang rather than fail on a drain regression.
 - eugenelim: work-intake item to be captured at closeout — `review-not-eligible` still interpolates reviewer-supplied finding ids in its question; bring it under the supervisor-reference rule.
 - eugenelim: ADR-0158 D8 — a round cap on the pre-approval review loops (shaping, spec-mode adversarial, and security review of the spec and plan).
 

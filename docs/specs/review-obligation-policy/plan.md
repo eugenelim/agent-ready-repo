@@ -1,7 +1,7 @@
 # Plan: Review obligation policy
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - **Readiness:** `scripts/_supervisor_readiness.py` (`readiness`, `readiness_action`, `_current_report`) and `scripts/_review_disposition.py` (`review_readiness`), which match reports, assessments, and dispositions by the current subject fingerprint.
   - **Selection:** `scripts/_supervisor_review.py` (`validate_rules`, `check_selection`, `resolve_policy`, `parse_selections`, `admit_selection`, `admit_decision`, `DECISIONS`).
@@ -298,17 +298,31 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 **Done when:** `test_review_tiers.py` and lint pass.
 
+### T12: The wording-only tier ships disabled
+
+**Depends on:** T11
+
+**Touches:** packs/core/.apm/skills/work-loop/review-rules.json, packs/core/.apm/skills/work-loop/scripts/_supervisor_review.py, packs/core/.apm/skills/work-loop/scripts/_review_tiers.py, packs/core/.apm/skills/work-loop/references/supervisor.md, packs/core/.apm/skills/work-loop/evals/evals.json, docs/product/changelog.d/5c12600f-3dfc-48e8-85cf-cabd83f06106.md, packs/core/tests/skills/work-loop/test_review_obligation_rules.py, packs/core/tests/skills/work-loop/test_review_tiers.py, packs/core/tests/skills/work-loop/test_review_obligation_policy.py
+
+**Tests:**
+- AC-0030: a missing or non-boolean `wording_only_enabled` refuses `review-rules-invalid`.
+- AC-0036: the shipped rules set it false.
+- AC-0003: a diff that earns `wording-only` with the tier enabled classifies `full` against the shipped rules.
+- AC-0003, AC-0004, AC-0005, AC-0020: the existing wording-only tests, including the AC-0020 flow leg that asserts a `wording-only` subject, run against a fixture copy of the skill whose rules set the tier enabled; the flow harness starts the supervisor from that copy, so its rules load reads the enabled value.
+
+**Done when:** the T12 tests, the review suites, the flow suite, and lint pass, and the procedure, evals, and changelog fragment say the tier ships disabled.
+
 ## Rollout
 
 - **Delivery:** one Core patch. A run started before the upgrade stops with `supervisor-changed` (existing behaviour) or keeps today's review through its protection-unknown selection lines.
 - **Infrastructure:** none.
 - **Deployment sequencing:** start the run only after any upstream dependency merges, because a mid-run merge from `main` voids the pinned run. After `terminal`, rebase on `origin/main`, rebuild the projections with `make build-self && make bootstrap-sites`, commit them, and re-check AC-0034's version.
-- **Closeout (controller, after `terminal`):** write `notes/verification-ledger.md` with every criterion's evidence, set the spec Shipped and the plan Done, and capture the `review-not-eligible` follow-on as a work-intake item. The spec directory is worker-protected, so none of this runs inside an attempt.
+- **Closeout (controller, after `terminal`):** write `notes/verification-ledger.md` with every criterion's evidence, set the spec Shipped and the plan Done, and capture every Follow-on the spec marks for closeout as a work-intake item. The spec directory is worker-protected, so none of this runs inside an attempt.
 
 ## Risks
 
 - **Lost resampling:** a non-protected reviewer no longer resamples unchanged code after a repair, so a defect the first full pass missed can survive into the cap decision. Protected roles keep resampling, and the spike's misses were all in a protected class.
-- **Markdown scan scope:** a construct the scan does not recognise classifies `full`, so an unusual document saves nothing. It is never under-reviewed.
+- **Markdown scan scope:** the wording-only scan has known gaps (the spec's Follow-ons list them), so the tier ships disabled and turning it on waits for the hardening item and the owner's approval.
 - **Dropped role (existing behaviour):** a reselection that drops a role also drops that role's open findings from readiness, as it does today. The tier is `full` for that subject (AC-0011), but nothing here forces the dropped role back.
 - **Anchor recovery:** a pruned anchor commit classifies `full`, so the savings shrink while the cap still applies.
 

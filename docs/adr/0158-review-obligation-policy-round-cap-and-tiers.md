@@ -91,3 +91,7 @@ We will add review obligation policy to the supervisor's structured review readi
 - **Force the full set on every revision of a protected unit:** rejected against the cost driver. Security-boundary work is common, and it would then save nothing, while the class-to-reviewer map already keeps each class's reviewer on every revision.
 - **Exempt protected classes from the cap only:** rejected against "protected classes keep today's coverage". A migration's `wording-only` or `minor-fix` repair would then skip its quality review.
 - **Exempt protected roles only from the cap:** rejected against "protected classes keep today's coverage". A `wording-only` edit to a security guide would then skip security review.
+
+## Errata
+
+- 2026-11-06: The `wording-only` tier ships disabled behind `wording_only_enabled` in `review-rules.json`, because final code review kept finding Markdown constructs the wording-only scan misreads. D3 and D4 describe the tier as it works when enabled. Turning it on needs the owner's approval after the scan is hardened (spec:review-obligation-policy Follow-ons). Decided by eugenelim.
