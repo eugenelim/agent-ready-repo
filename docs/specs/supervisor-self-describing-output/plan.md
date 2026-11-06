@@ -159,6 +159,20 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py -q -rs` is green with the new cases not skipped; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step, and every other precheck result must pass.
 
+### T9: The retry cap guard covers every way a policy value can fail to become an integer
+
+**Depends on:** T8
+
+**Tests:**
+- TDD, integration-gated, in `test_supervisor_step_loop.py`: extend the T8 unreadable-cap cases with a non-finite cap (`float("inf")`, which JSON accepts as `Infinity`) and `float("nan")`; `park`, `next`, `report` and `status` still print one JSON object with their pre-change exit codes and no traceback, and `status` carries a `route` that is not the cap row (repair of review finding ADV2-01; AC-0001 and the Agent Rule to keep exit codes as they are). The new cases are red against the T8 guard before the script changes.
+
+**Approach:**
+- Widen the guarded read in `_dispatch` to `except (LookupError, TypeError, ValueError, ArithmeticError)`, the closed set of ways `int()` of a policy value can fail (missing key, wrong type, non-numeric string or NaN, overflow on infinity); do not change anything else.
+
+**Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
+
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py -q -rs` is green with the new cases not skipped; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step, and every other precheck result must pass.
+
 ## Rollout
 
 Ships as one patch release of `core`. Reversible by revert. Closeout, after `terminal`: fetch main and re-check the version, rebuild projections, then run `tests/roster/test_sequential_implementer_dispatch_contract.py`, `tools/test_workspace_status.py`, `tools/test_workspace_status_cli.py`, `tools/test_local_ci_shared_test_deduplication.py`, `tests/roster/test_registry_upgrade_notes.py` and `tests/roster/test_workspace_retirement_inventory.py`; a ledger or note in this spec directory that names retired workspace files needs an inventory row.
