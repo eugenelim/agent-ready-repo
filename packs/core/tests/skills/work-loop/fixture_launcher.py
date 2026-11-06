@@ -25,6 +25,10 @@ A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (s
   ``processes_ended``;
 * ``binding_override`` / ``access_binding_override``: fields replaced in the attested binding;
   ``tamper_glob``: files it rewrites before attesting (a worker acting as the same user);
+* ``per_task``: ``{task id prefix: overrides}``, merged over the script for the attempt whose
+  task id starts with the prefix; ``wait_for``: a path the attempt waits for before its access
+  line; ``touch``: a path it creates after sending the access line (together they finish
+  attempts in a chosen order);
 * ``on_abort``: ``"exit"`` (default) or ``"ignore"``; ``hold``: wait on the gate file before
   the access line; ``never_access``: never send it; ``child``: leave a sleeping child in the
   process group; ``release_wait``: ``"never"`` sends access without waiting for release.
@@ -71,6 +75,7 @@ def wait_gate():
 
 
 def main():
+    global SCRIPT
     if SCRIPT.get("log"):
         fds = []
         for fd in range(3, 256):
@@ -95,6 +100,10 @@ def main():
     message = read()
     if message is None:
         return 0
+    own = message.get("request", {}).get("task", {}).get("task_id")
+    for prefix, overrides in SCRIPT.get("per_task", {}).items():
+        if own and own.startswith(prefix):
+            SCRIPT = {**SCRIPT, **overrides}
     binding, attempt_dir = message["binding"], message["attempt_dir"]
     grant = message["grant"]
     allowlist = grant["product_read_proof_mode"] == "allowlist"
@@ -161,6 +170,10 @@ def main():
         path.symlink_to(target)
     if SCRIPT.get("hold"):
         wait_gate()
+    waiting = SCRIPT.get("wait_for")
+    deadline = time.time() + 60
+    while waiting and not Path(waiting).exists() and time.time() < deadline:
+        time.sleep(0.02)
     if SCRIPT.get("never_access"):
         while True:
             time.sleep(0.05)
@@ -194,6 +207,8 @@ def main():
         emit(json.dumps(envelope))
     if SCRIPT.get("access_extra"):
         emit(SCRIPT["access_extra"])
+    if SCRIPT.get("touch"):
+        Path(SCRIPT["touch"]).write_text("done", encoding="utf-8")
     return 0
 
 

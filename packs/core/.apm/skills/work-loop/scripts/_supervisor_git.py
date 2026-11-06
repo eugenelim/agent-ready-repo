@@ -510,6 +510,11 @@ class HardenedGit:
             self._config = _read_config(self.pins, "--get-regexp", ".")
         return self._config
 
+    def fresh_config_entries(self) -> list[ConfigEntry]:
+        """The effective config read again now, never the copy this helper cached."""
+        self.verify_control_state()
+        return _read_config(self.pins, "--get-regexp", ".")
+
     def commit_identity(self) -> tuple[str, str]:
         """``user.name`` and ``user.email``, read once, or the supervisor's own identity."""
         if self._identity is None:
@@ -605,6 +610,23 @@ class HardenedGit:
         pinned one and the call runs from *work_tree*. *ok_codes* are the exit codes that
         are not a failure when *check* is set.
         """
+        return self.run_with_status(
+            *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs,
+            config=config, work_tree=work_tree, ok_codes=ok_codes,
+        )[1]
+
+    def run_with_status(
+        self,
+        *args: str,
+        env: Mapping[str, str] | None = None,
+        stdin: bytes | None = None,
+        check: bool = True,
+        literal_pathspecs: bool = False,
+        config: tuple[str, ...] = (),
+        work_tree: Path | None = None,
+        ok_codes: tuple[int, ...] = (0,),
+    ) -> tuple[int, bytes]:
+        """``run``, returning ``(exit code, stdout bytes)``; for a call whose code is an answer."""
         environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
         self.verify_control_state()
         if args[0] == "update-ref" and _UPDATE_HOOK is not None:
@@ -621,7 +643,7 @@ class HardenedGit:
             raise SupervisorGitError(
                 "denied-git-failed", f"git {args[0]} failed: {detail[-1] if detail else ''}"
             )
-        return result.stdout
+        return result.returncode, result.stdout
 
     def run_streaming(
         self,

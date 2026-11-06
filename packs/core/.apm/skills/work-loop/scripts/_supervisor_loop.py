@@ -609,6 +609,7 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             return {"refusal": exc.as_dict(), "run": _write_status(ws, state, None)}
         if diverged is not None:
             return _adoption_request(ws)
+        _supervisor("_supervisor_integration.py").integrate_ready(ws)
         state, refusal = _prepare(ws)
         if refusal is not None:
             state.refusal = refusal
@@ -826,6 +827,9 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                     f"a {kind} result is not admitted through report",
                 )
         ws.attempts.close(checked)
+        if checked["kind"] in ("implement-task", "run-concurrent"):
+            # A floor result has landed: every held result now next in floor order follows it.
+            _supervisor("_supervisor_integration.py").integrate_ready(ws)
         after = derive(ws)
         ws.local.reconcile_events(after.run_id, after.commits)
         return {"admitted": outcome}

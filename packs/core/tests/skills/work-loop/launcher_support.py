@@ -78,7 +78,13 @@ def tasks(*specs: tuple[str, str, str, str]) -> str:
 
 
 ONE_TASK = tasks(("T1", "Calculator answers", "`README.md`", "`calc.py`"))
+# Two tasks whose declared writes meet (both write calc.py): never in one request.
 TWO_TASKS = tasks(
+    ("T1", "Calculator answers", "`README.md`", "`calc.py`"),
+    ("T2", "Plain note is written", "`README.md`", "`plain.txt`, `calc.py`"),
+)
+# Two tasks whose declared sets do not meet: one request names both.
+DISJOINT_TASKS = tasks(
     ("T1", "Calculator answers", "`README.md`", "`calc.py`"),
     ("T2", "Plain note is written", "`README.md`", "`plain.txt`"),
 )

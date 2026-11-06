@@ -53,6 +53,9 @@ _MAX_MADE_BYTES = 16 * 1024 * 1024
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _COMMIT_ID_RE = re.compile(r"[0-9a-f]{40,64}")
 PRODUCT_REF_RE = re.compile(r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/product")
+HELD_REF_RE = re.compile(
+    r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/held/att-[0-9a-f]{16}"
+)
 _PRODUCT_FILE = "product-ref"
 _SYMREF_RE = re.compile(r"ref: (\S+)\s*")
 
@@ -360,7 +363,7 @@ class GitPort:
         ``missing``. A loose ref wins over ``packed-refs``, as in Git. No Git
         process runs.
         """
-        if not PRODUCT_REF_RE.fullmatch(name):
+        if not (PRODUCT_REF_RE.fullmatch(name) or HELD_REF_RE.fullmatch(name)):
             raise SupervisorGitError("denied-product-record", "not a product ref name")
         fs = sibling("_file_safety.py")
         common = self.hardened.pins.common_dir
@@ -614,6 +617,11 @@ class GitPort:
             self._head = self.text("rev-parse", "--verify", "HEAD^{commit}").strip()
         return self._head
 
+    def fresh_head(self) -> str:
+        """``HEAD`` read again now, whatever this port cached: the one read of the tip."""
+        self._head = None
+        return self.head()
+
     def resolve(self, rev: str) -> str:
         """The commit id *rev* names: ``HEAD``, a commit id, or ``<commit>^``."""
         if rev == "HEAD":
@@ -768,24 +776,25 @@ class GitPort:
     # ── the commit builder ──────────────────────────────────────────────────
 
     class _PrivateIndex:
-        def __init__(self, port: GitPort) -> None:
+        def __init__(self, port: GitPort, tree: str | None = None) -> None:
             self.port = port
             self.path = ""
+            self.tree = tree
 
         def __enter__(self) -> dict[str, str]:
             fd, self.path = tempfile.mkstemp(prefix="work-supervisor-index-")
             os.close(fd)
             Path(self.path).unlink()
             env = {"GIT_INDEX_FILE": self.path}
-            self.port.run("read-tree", "HEAD", env=env)
+            self.port.run("read-tree", self.tree or "HEAD", env=env)
             return env
 
         def __exit__(self, *exc: object) -> None:
             for suffix in ("", ".lock"):
                 Path(self.path + suffix).unlink(missing_ok=True)
 
-    def _private_index(self) -> GitPort._PrivateIndex:
-        return GitPort._PrivateIndex(self)
+    def _private_index(self, tree: str | None = None) -> GitPort._PrivateIndex:
+        return GitPort._PrivateIndex(self, tree)
 
     @staticmethod
     def _stamp(when: str) -> str:
@@ -816,8 +825,14 @@ class GitPort:
         create_ref: str | None = None,
         adopting: bool = False,
         product_old: str | None = None,
+        base_tree: str | None = None,
+        parent: str | None = None,
     ) -> str | None:
         """Commit one supervisor step, or return None when it is already reachable.
+
+        *base_tree* starts the commit's tree from that tree rather than from ``HEAD``'s, and
+        *parent* names the commit it is built on and the expected value of ``HEAD``: an
+        integration reads the tip once and builds, moves, and records from that one read.
 
         *paths* are working-tree paths taken into the commit; *contents* maps a path
         to the exact bytes to commit there (``None`` removes it), staged without
@@ -850,10 +865,10 @@ class GitPort:
                 raise SupervisorGitError(
                     "denied-invalid-trailer", f"{key} value is not one safe line"
                 )
-        old = self.head()
+        old = parent or self.head()
         appended: dict[str, bytes] = {}
         exact = contents or {}
-        with self._private_index() as env:
+        with self._private_index(base_tree) as env:
             path_list = sorted(set(paths))
             if path_list:
                 self.run(

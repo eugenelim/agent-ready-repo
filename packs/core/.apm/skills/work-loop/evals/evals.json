@@ -1651,6 +1651,17 @@
         "Says a run-concurrent report asserts completion only and an attestation or read set in it refuses result-fact-refused",
         "Does not suggest editing the run store or retrying the same request id"
       ]
+    },
+    {
+      "id": "supervisor-held-result-and-conflict",
+      "prompt": "A `run-concurrent` request named two tasks. The second finished first, and `status` shows its result held. Another run's conflict record names `meets` for a task. What do these mean, and what do I do?",
+      "expected_output": "A held result is a finished attempt recorded by its tree and the digest of its access line, waiting for the tasks before it in the order the sequential loop would issue them; it is not an open attempt and its task is not complete. The next `next` or `report` lands it once it is next, under the integration lock, so the controller does nothing to it and never edits the held record or its ref, which would refuse a later attempt as residue. A `meets` conflict record means the result's attested reads or writes met a path changed on the product ref since its source commit: nothing was committed, and the task is projected again from the new tip, running on the floor once its reprojection bound is spent.",
+      "assertions": [
+        "Says a held result waits for earlier tasks in floor order and is not an open attempt or a complete task",
+        "Says next or report integrates the held result when it is next, with no action needed from the controller",
+        "Says not to edit the held record or its ref because that refuses a later attempt as residue",
+        "Says a meets conflict leaves the product ref unchanged and projects the task again from the new tip"
+      ]
     }
   ]
 }

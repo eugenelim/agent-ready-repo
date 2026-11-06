@@ -150,7 +150,11 @@ ordinary request:
 - the run pinned a launcher at `start`; and
 - the task's dependencies are integrated.
 
-A batch holds one attempt. Each task kept on the floor carries one reason code in
+A batch is the first tasks, in the order the sequential loop would issue them,
+that are admissible and whose declared reads and writes do not meet one another's
+writes, up to `max_concurrent_attempts`. The `run-concurrent` request names them in
+that order; at most one such request is open, and no floor request issues while it
+is. Each task kept on the floor carries one reason code in
 the journal line `next` appends (`floor_reason`) and in `status`
 (`concurrency.floor_reason`): `reads-missing`, `writes-missing`, `invalid-path`,
 `invalid-glob`, `writes-listing`, `protected-path`, `stub-fence`,
@@ -165,8 +169,59 @@ process group could not be confirmed.
 
 A `run-concurrent` request is checked like any other attempt, and every verb
 first settles an attempt whose `run-concurrent` run died: it records the attempt
-as landed when its commit is already in history, and otherwise ends the
-launcher's process group and issues the task on the floor.
+as landed when its commit is already in history, keeps it held when its result was
+already recorded, and otherwise ends the launcher's process group and issues the
+task on the floor.
+
+#### Held results and ordered integration
+
+The verb runs the attempts side by side and settles each as it finishes. A finished
+result is first recorded by its identity: a record in the run store's `held/`
+directory (the tree the supervisor ingested, the digest of the access line, the
+attested reads and writes, and the source commit) and a ref
+`refs/agentbundle/delivery/<run>/<token>/held/<attempt>` that names the tree. A held
+result is not an open attempt and its task is not complete, so a floor attempt for
+an earlier task can still be issued, and a task that depends on the held one is not.
+Every later attempt's manifest includes the held record and ref; a worker that
+changes either gets `attempt-residue`.
+
+Integration takes one cross-process lock, `integration.lock` in the run store, and
+lands results in the sequential order whatever order they finished in. These verbs
+integrate: `run-concurrent` as each attempt finishes, `report` for a floor result
+(after landing it, every held result now next follows), and `next` before it
+derives. Under the lock the supervisor reads the tip once and uses that one read
+for each of these steps:
+
+1. A result whose source commit is the tip lands as it is. Any other result needs a
+   complete access attestation; without one it is refused as `incomplete-attestation`.
+2. Every attested read and write is checked against each path changed from the source
+   commit to the tip, both ends of a rename and each parent directory included; a
+   meeting is refused as `meets`. The same closed rows decide a meeting as at
+   admission, and paths compare in Unicode NFC, folded for case on a repository
+   whose `core.ignoreCase` is true.
+3. A `merge.*` key in repository or worktree configuration is refused as
+   `merge-config`, and a `merge` attribute from any source other than a committed
+   attributes file is refused as `merge-attribute`.
+4. The merge is `git merge-tree --write-tree` with its merge base pinned to the
+   source commit, attributes read from the empty tree, and no strategy option. A
+   conflict is `content`.
+5. The merged tree may differ from the tip only at paths the result changed
+   (`outside-changed-paths`), and every symbolic link in it must still point inside
+   the work tree and away from trusted and protected paths (`link-target`).
+6. The commit carries the attempt's trailer, and `HEAD` and the product ref move
+   together from the tip that was read; a ref that moved first is `cas-lost`. The
+   supervisor then records the integration (source commit, tip, result commit and
+   tree, access-line digest, and the merge algorithm with the Git version that ran
+   it) and brings the working tree and index to the product ref before any floor
+   request issues.
+
+Any refusal leaves the product ref, `HEAD`, the index, and `delivery/` as they were,
+writes one conflict record under `conflicts/` (repository paths only, capped, with
+the total count and a truncation flag), and projects the task again from the new tip
+under a new request. Each such projection counts toward the reprojection bound; a
+task that spent it runs on the floor. A killed run converges on the next verb: a
+commit carrying the attempt's trailer on the tip's first-parent chain since the
+source commit is the landed result, and the verb records it without a second commit.
 
 ### Git settings the supervisor does not support
 
