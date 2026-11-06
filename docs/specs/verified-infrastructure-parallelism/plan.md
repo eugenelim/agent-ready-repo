@@ -434,7 +434,7 @@ in T5's release).
 
 ## Rollout
 
-- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5).
+- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6).
   `concurrency` ships `sequential` in every one, so adopters see no behaviour
   change beyond AC-0040's merge-driver refusal, which arrives with T2.
 - **Reversal:** reinstall the prior Core release; a run in flight finishes on
