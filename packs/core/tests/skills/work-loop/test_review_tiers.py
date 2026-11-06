@@ -717,3 +717,38 @@ def test_ac0004_a_prose_edit_without_fences_stays_wording_only(repo: Repo) -> No
     """AC-0004: the fence rule leaves an ordinary prose edit wording-only."""
     anchor, current = _prose_change(repo, "Intro text here.\n\nMore words.\n", "Intro text there.\n\nMore words.\n")
     assert _classify(repo, anchor, current, {PROSE}).name == "wording-only"
+
+
+# ── T11: wording-only accepts plain text only ───────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "before",
+    [
+        "Intro\r~~~\rrun the old command\r",
+        "Intro\r~~~\nrun the old command\n",
+        "Intro.\n\n<pre>\nrun the old command\n</pre>\n",
+        "Intro.\n\n<div>\nrun the old command\n</div>\n",
+        "﻿```\nrun the old command\n",
+        "﻿~~~\nrun the old command\n",
+        "Intro.\n\n```\nExample:\n ```\nrun the old command\n```\n",
+        "Intro\n    ```\nmore intro\n```\nrun the old command\n```\n",
+        "Plain words and the old command​ here.\n",
+        "Plain words, the old command\r\nand a windows line ending.\r\n",
+    ],
+    ids=["cr-only", "cr-embedded", "html-pre", "html-div", "bom-backtick", "bom-tilde",
+         "nbsp-close", "4sp-open", "zero-width", "crlf"],
+)
+def test_ac0004_only_plain_text_can_be_wording_only(repo: Repo, before: str) -> None:
+    """AC-0004: anything outside printable text, newline, and tab, or a markup-led line, is full."""
+    after = before.replace("old command", "new command")
+    assert not tiers._wording_only_file(before, after)
+    anchor, current = _prose_change(repo, before, after)
+    assert _classify(repo, anchor, current, {PROSE}).name == "full"
+
+
+def test_ac0004_an_ordinary_prose_edit_still_qualifies() -> None:
+    """AC-0004: the allowlist keeps plain prose, punctuation, and tabs wording-only."""
+    before = "# Guide\n\nThe tool reads the file once, then stops.\n\tIt is quick.\n"
+    after = before.replace("once", "a single time")
+    assert tiers._plain_text(before) and tiers._plain_text(after)

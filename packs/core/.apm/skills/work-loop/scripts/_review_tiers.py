@@ -241,6 +241,23 @@ def _line_matcher(old: str, new: str) -> difflib.SequenceMatcher[str]:
     return difflib.SequenceMatcher(a=old.split("\n"), b=new.split("\n"))
 
 
+# A line whose first non-blank character opens markup, a code fence, or raw HTML.
+_MARKUP_LEADS = ("<", "`", "~")
+
+
+def _plain_text(text: str) -> bool:
+    """True when *text* holds only printable characters, newline, and tab, and no line
+    starts (after spaces and tabs) with ``<``, a backtick, or ``~``.
+
+    An allowlist rather than a model of Markdown: a carriage return, a byte-order mark,
+    a format character, unusual whitespace, raw HTML, or anything fence-like keeps the
+    file out of the wording-only tier, whatever a renderer would make of it.
+    """
+    if any(not (ch.isprintable() or ch in "\n\t") for ch in text):
+        return False
+    return not any(line.lstrip(" \t").startswith(_MARKUP_LEADS) for line in text.split("\n"))
+
+
 def _has_fence_like_line(text: str) -> bool:
     """True when any line, stripped of every kind of whitespace, starts a code fence.
 
@@ -255,6 +272,8 @@ def _wording_only_file(old: str, new: str) -> bool:
 
     A file holding any fence-like line at either revision is never wording-only.
     """
+    if not (_plain_text(old) and _plain_text(new)):
+        return False
     if _has_fence_like_line(old) or _has_fence_like_line(new):
         return False
     old_lines, new_lines = old.split("\n"), new.split("\n")
