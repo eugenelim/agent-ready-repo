@@ -25,6 +25,7 @@ standard library alone (Python 3.11 or later):
 | `start <spec-dir> --intent code\|spec-plan --code-trust trusted\|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>] --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>` | Reads the approved spec and plan, checks them against the two digests, appends the approval pair in one commit, and answers `{"status": "admitted" \| "current" \| "terminal", "run_id", "sequence"}`. A `spec-plan` intent ends terminal with no tasks. Running it again on an admitted run answers `current`. Both digest arguments are required whenever `start` records an approval pair, and are ignored when it answers `current`. |
 | `next <spec-dir>` | Derives the one current action and answers `{"request": {...}}`, `{"terminal": true}`, or `{"refusal": {...}}`. It also commits a pending controller plan edit and the supervisor's own red proofs and effect intents. |
 | `report <spec-dir> <result.json>` | Admits one result for the current request and answers `{"admitted": "<step>"}`, or refuses and commits nothing from it. |
+| `run-concurrent <spec-dir> --request <id>` | Blocks while it runs the one `run-concurrent` request `next` issued: spawns the run's pinned launcher, checks its containment attestation before releasing the worker, reads the one access line the launcher sends at the end, ingests the attempt directory itself, and integrates the result by exact source. A request runs once: a second invocation refuses `request-consumed` and spawns nothing. Answers `{"run_concurrent": {"outcome": "landed" \| "held" \| "conflict" \| "floor" \| "cancelled" \| "residue", ...}}`, or `"batch"` with one such entry per attempt. |
 | `status <spec-dir> [--json] [--check]` | Read-only view: run, stage, retry count and cap, readiness, task list with completion, the current request, and any refusal. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
 | `resolve-effect <spec-dir> --operation <key> --decision effect-confirmed\|do-not-retry\|retry-authorized --authority-ref effect-authority[:<hex>]` | Records a named human's decision about an external effect whose outcome could not be established. |
 
@@ -106,6 +107,15 @@ repository. It also commits to Git, so run it from a clean branch.
   identify the person: `owner`, `owner:0123456789ab`. The supervisor records the
   reference; it does not authenticate it, so take it from the human, never from
   a worker's output.
+- **`--launcher-sha256`** and **`--launcher`** are optional. They name the
+  executable the supervisor may spawn for a concurrent attempt: 64 lowercase
+  hexadecimal characters taken from the owner's own approval answer, and the
+  path of a file outside the work tree. `start` records the digest in the
+  approval line and copies the file into the run store only when its bytes hash
+  to that digest; the copy is the launcher for the life of the run. A digest with
+  no matching file pins nothing and records a security event, and neither case
+  refuses `start`. A launcher file that is a test fixture refuses
+  `launcher-fixture-refused`.
 - **`--approved-spec-digest`** and **`--approved-plan-digest`** are 64 lowercase
   hexadecimal characters: the gate digests each approver answered with. `start`
   reads `spec.md` and `plan.md` once, before it writes anything, and refuses
@@ -121,11 +131,164 @@ for the run, which answers from the committed records. Do not edit the installed
 skill during a run; regenerate
 it only when a `regenerate` request asks for it.
 
+### Concurrent attempts
+
+`supervisor-policy.json` ships `concurrency: sequential`: one attempt at a time,
+and nothing below applies. When the policy names `enforced-allowlist` or
+`complete-trace`, `next` names the first ready task in a `run-concurrent`
+request only when every one of these holds, and otherwise issues it as an
+ordinary request:
+
+- the task declares `Reads:` and `Writes:` (repository paths; a `Reads:` entry
+  may end in `/` for a listing or `/**` for a walk, a `Writes:` entry in `/**`
+  for a subtree), none of them a malformed path, a glob other than a trailing
+  `/**`, a `Writes:` entry ending in `/`, or a path under `delivery/` or the spec
+  directory;
+- the task has no `stub` fence, and its reprojection bound is unspent;
+- the host is POSIX, Git is 2.41 or later, and the repository configuration has
+  no `merge.*` key;
+- the run pinned a launcher at `start`; and
+- the task's dependencies are integrated.
+
+A batch is the first tasks, in the order the sequential loop would issue them,
+that are admissible and whose declared reads and writes do not meet one another's
+writes, up to `max_concurrent_attempts`. The `run-concurrent` request names them in
+that order; at most one such request is open, and no floor request issues while it
+is. Each task kept on the floor carries one reason code in
+the journal line `next` appends (`floor_reason`) and in `status`
+(`concurrency.floor_reason`): `reads-missing`, `writes-missing`, `invalid-path`,
+`invalid-glob`, `writes-listing`, `protected-path`, `stub-fence`,
+`reprojection-bound`, `non-posix-host`, `git-version`, `merge-config`, or
+`launcher-pin`. After an attempt that did not land, the same field carries the
+reason it ended: for example a `binding-*` or `denial-missing` check of the
+containment attestation, an `access-*` check of the access attestation,
+`processes-not-ended`, `launcher-changed`, `attempt-lost`, or `end-unconfirmed`.
+No launcher-supplied text appears in either place. An attempt that ended in
+`end-unconfirmed` leaves its directory behind, because the end of its launcher's
+process group could not be confirmed.
+
+A `run-concurrent` request is checked like any other attempt, and every verb
+first settles an attempt whose `run-concurrent` run died: it records the attempt
+as landed when its commit is already in history, keeps it held when its result was
+already recorded, and otherwise ends the launcher's process group and issues the
+task on the floor.
+
+#### Held results and ordered integration
+
+The verb runs the attempts side by side and settles each as it finishes. A finished
+result is first recorded by its identity: a record in the run store's `held/`
+directory (the tree the supervisor ingested, the digest of the access line, the
+attested reads and writes, and the source commit) and a ref
+`refs/agentbundle/delivery/<run>/<token>/held/<attempt>` that names the tree. A held
+result is not an open attempt and its task is not complete, so a floor attempt for
+an earlier task can still be issued, and a task that depends on the held one is not.
+Every later attempt's manifest includes the held record and ref; a worker that
+changes either gets `attempt-residue`.
+
+Integration takes one cross-process lock, `integration.lock` in the run store, and
+lands results in the sequential order whatever order they finished in. These verbs
+integrate: `run-concurrent` as each attempt finishes, `report` for a floor result
+(after landing it, every held result now next follows), and `next` before it
+derives. Under the lock the supervisor reads the tip once and uses that one read
+for each of these steps:
+
+1. A result whose source commit is the tip lands as it is. Any other result needs a
+   complete access attestation; without one it is refused as `incomplete-attestation`.
+2. Every attested read and write is checked against each path changed from the source
+   commit to the tip, both ends of a rename and each parent directory included; a
+   meeting is refused as `meets`. The same closed rows decide a meeting as at
+   admission, and paths compare in Unicode NFC, folded for case on a repository
+   whose `core.ignoreCase` is true.
+3. A `merge.*` key in repository or worktree configuration is refused as
+   `merge-config`, and a `merge` attribute from any source other than a committed
+   attributes file is refused as `merge-attribute`.
+4. The merge is `git merge-tree --write-tree` with its merge base pinned to the
+   source commit, attributes read from the empty tree, and no strategy option. A
+   conflict is `content`.
+5. The merged tree may differ from the tip only at paths the result changed
+   (`outside-changed-paths`), and every symbolic link in it must still point inside
+   the work tree and away from trusted and protected paths (`link-target`).
+6. The commit carries the attempt's trailer, and `HEAD` and the product ref move
+   together from the tip that was read; a ref that moved first is `cas-lost`. The
+   supervisor then records the integration (source commit, tip, result commit and
+   tree, access-line digest, and the merge algorithm with the Git version that ran
+   it) and brings the working tree and index to the product ref before any floor
+   request issues.
+
+Any refusal leaves the product ref, `HEAD`, the index, and `delivery/` as they were,
+writes one conflict record under `conflicts/` (repository paths only, capped, with
+the total count and a truncation flag), and projects the task again from the new tip
+under a new request. Each such projection counts toward the reprojection bound; a
+task that spent it runs on the floor. A killed run converges on the next verb: a
+commit carrying the attempt's trailer on the tip's first-parent chain since the
+source commit is the landed result, and the verb records it without a second commit.
+
+#### Failures, cancellation, and plan changes
+
+A failure has task blast radius. An attempt that fails, is refused, or conflicts is
+dealt with alone, and so is each running sibling whose declared reads and writes meet
+its own; every other sibling's result integrates as it would have. Each such sibling
+is cancelled: the verb sends its launcher `abort`, ends the launcher's process group,
+and confirms the end within 10 seconds before the task is projected again onto a
+fresh attempt directory (`cancelled`, reason `sibling-failed`). An end that cannot
+be confirmed sends the task to the floor and leaves the attempt directory behind
+(`residue`). A cancelled attempt's result is never admitted, even one that arrives
+after the cancellation. An attempt that sends no access line within
+`attempt_timeout_seconds` is cancelled the same way (reason `access-timeout`).
+
+A task projected again, whether after an integration conflict or after a cancellation
+whose end was confirmed, counts toward `reprojection_bound`; at the bound its next
+attempt runs on the floor (`reprojection-bound`). An attempt directory refused at
+ingestion (any ingestion code except `protected-path-changed`) is cancelled the same
+way: its task is projected again and the attempt counts toward the bound. Each
+projection again is a journal line (`outcome` `conflict` or `cancelled`,
+`reprojected: true`) and an entry in `status` (`concurrency.attempts`,
+`reprojected: true`). Each attempt whose result is held also journals one
+`outcome: settled` line as it settles, so the journal's order is completion order.
+
+A controller replan or a stub-fence revision is admitted only while no attempt is
+open; an edit beside one is `attempt-residue`. Once the open attempts end, it is
+admitted as one `replan` step, which discards every held result: the held record and
+ref are removed, the attempt closes as `discarded` (reason `plan-changed`), and the
+task is projected again under a new request. A discard does not count toward the
+bound. No `run-gates`, `review-role`, or evidence receipt issues while an attempt is
+open or a result is held, and each names a commit the product ref has held.
+
+#### Reason codes
+
+Every reason in the journal (`reason`, `floor_reason`) and in `status`
+(`concurrency.attempts[].reason`, `concurrency.floor_reason`) is one code from a
+closed set, and no launcher-supplied text appears in either place. Besides the
+admission codes above, the set names:
+
+- each check of the containment attestation: `containment-timeout`,
+  `containment-oversized`, `containment-schema`, `containment-missing`,
+  `binding-run-id`, `binding-attempt-id`, `binding-grant-id`, `binding-nonce`,
+  `binding-launcher`, `read-enforcement`, `allowlist-mismatch`, `network-allowed`,
+  `write-roots`, `broader-than-grant`, `denial-missing`;
+- each defect that fails an attempt: `access-oversized`, `access-schema`,
+  `access-binding`, `access-token`, `access-extra-line`, `access-timeout`,
+  `access-missing`, `processes-not-ended`, `launcher-changed`, `launcher-closed`,
+  `launcher-spawn-failed`, and the ingestion codes `attempt-location`,
+  `attempt-too-large`, `attempt-special-file`, `attempt-hard-link`,
+  `attempt-bad-path`, `attempt-git-name`, `attempt-unsafe-link`, `attempt-changed`,
+  `attempt-unreadable`, `protected-path-changed`;
+- each defect that leaves an integration by exact source only (the result lands, and
+  the code is its reason): `access-mode`, `access-read-outside`, `access-bad-path`,
+  `access-too-many`, `access-write-missing`, `access-incomplete`;
+- each refusal reason of an integration that did not land: `meets`, `content`,
+  `merge-attribute`, `merge-config`, `outside-changed-paths`, `stale-authority`,
+  `cas-lost`, `incomplete-attestation`, `link-target`; and
+- `sibling-failed`, `plan-changed`, `attempt-lost`, `end-unconfirmed`,
+  and `attempt-error`.
+
+The run's mode (`concurrency.mode`) says whether the policy opted in.
+
 ### Git settings the supervisor does not support
 
 The supervisor runs every Git call with hooks, fsmonitor, filters, external diff,
 text conversion, signing, replace refs, and system and global configuration
-switched off. Two kinds of configuration make a run impossible, so fix them
+switched off. These kinds of configuration make a run impossible, so fix them
 before `start`:
 
 - **A code-running setting in repository or worktree configuration.** `start`
@@ -136,6 +299,8 @@ before `start`:
   `gpg.program` and `gpg.<name>.program`; `gpg.ssh.defaultKeyCommand`;
   `include.path` and `includeIf.<condition>.path`; and any other key whose name
   ends in `command` or `program`.
+- **A merge driver in repository or worktree configuration**
+  (`merge.<name>.driver`). `start` refuses `unsupported-git-config`.
 - **A filter defined in global or system configuration that an attributes file
   Git reads for the worktree uses.** `start` refuses `unsupported-git-config`
   the same way. Git LFS is the common case: remove the filter from the
@@ -177,6 +342,7 @@ never asserts them.
 | `external-effect` | Perform the named effect once (a push, a publish) and record its receipt. | `{"effect": {"outcome": "completed"\|"not-executed", "receipt_ref": "..."}}` |
 | `effect-query` | Ask the effect's source whether it already happened. | `{"effect": {"outcome": "running"\|"present"\|"absent"\|"unknowable", "receipt_ref": "..."}}` |
 | `regenerate` | Rebuild the installed skill from its pack source with the repository's documented self-host command, then run the gates. Leave the rebuilt files uncommitted: where the repository tracks its installed skill, the next `next` commits them as one `regenerate` step, and a commit of your own would be foreign history the owner must adopt. | `{"gate": {"passed": ...}}` |
+| `run-concurrent` | Run `run-concurrent <spec-dir> --request <request_id>` and wait for it; do not edit the repository meanwhile. When it answers `landed` or `held`, report completion. When it answers `floor`, `cancelled`, `conflict`, or `residue`, run `next`: it issues the task as an ordinary `implement-task`, or as a new `run-concurrent` request when a conflict or a confirmed cancellation projected the task again. | completion only: the supervisor reads every attestation, read, write, and binding from the launcher itself, so a result that asserts one refuses `result-fact-refused` |
 | `human-decision` | Put the `question` to the named human. See [Human decisions](#human-decisions). | `{"decision": {...}}`, only for the reasons below |
 
 A request for a worker (`write-stub`, `implement-task`, `review-role` with a
@@ -388,6 +554,8 @@ who acts next, and the rows group codes that share one answer.
 | `unsafe-link` | A path in a result is a link into a trusted file or Git control state. Remove the link. |
 | `not-current-attempt`, `not-current-run`, `invalid-result` | The result is not for the current request, run, or schema. Run `next` and answer what it issues. |
 | `result-kind-refused`, `result-fact-refused`, `unsupported-result` | The result's kind is not a request kind, asserts a fact its kind may not, or is not admitted through `report`. Send only what the request asks for. |
+| `launcher-fixture-refused` | `start` was given a launcher that is a test fixture, not a host. Name a real launcher or none. |
+| `request-consumed` | `run-concurrent` was run for a request that already ran. Run `next` for the current request. |
 | `no-progress` | The step loop did not settle. A skill maintainer fixes it; do not retry in a loop. |
 | `stub-not-red`, `stub-bytes-differ`, `not-exactly-stub` | A stub did not fail, differs from the plan's bytes, or the attempt changed files other than the stubs. See [Recovering from a stub that is not red](#recovering-from-a-stub-that-is-not-red). |
 | `red-proof-unsafe-extraction`, `red-proof-extraction-refused`, `red-proof-link-refused`, `untrusted-code-refused` | The red proof could not run safely: Python older than 3.11.4, a tree that cannot be materialized, a link in it, or an untrusted run with no verified containment. Fix the named cause, or have the owner change the run's code trust. |

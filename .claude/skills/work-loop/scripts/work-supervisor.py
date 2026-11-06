@@ -6,6 +6,8 @@ Usage, from the repository root:
     work-supervisor.py start <spec-dir> --intent code|spec-plan \\
         --code-trust trusted|untrusted --authority-ref owner[:<hex>] \\
         --review-authority-ref plan-reviewer[:<hex>]
+    work-supervisor.py start ... [--launcher-sha256 <hex> --launcher <path>]
+    work-supervisor.py run-concurrent <spec-dir> --request <id>
     work-supervisor.py park <spec-dir> --gate spec-approved|plan-approved \\
         --intent code|spec-plan --code-trust trusted|untrusted
     work-supervisor.py gates
@@ -572,12 +574,17 @@ def _parser() -> argparse.ArgumentParser:
     start.add_argument("--review-authority-ref", required=True)
     start.add_argument("--approved-spec-digest", type=_hex_digest)
     start.add_argument("--approved-plan-digest", type=_hex_digest)
+    start.add_argument("--launcher-sha256", type=_hex_digest)
+    start.add_argument("--launcher")
     park = verbs.add_parser("park")
     park.add_argument("spec_dir")
     park.add_argument("--gate", required=True, choices=("spec-approved", "plan-approved"))
     park.add_argument("--intent", required=True, choices=("code", "spec-plan"))
     park.add_argument("--code-trust", required=True, choices=("trusted", "untrusted"))
     verbs.add_parser("gates")
+    concurrent = verbs.add_parser("run-concurrent")
+    concurrent.add_argument("spec_dir")
+    concurrent.add_argument("--request", required=True)
     verbs.add_parser("next").add_argument("spec_dir")
     report = verbs.add_parser("report")
     report.add_argument("spec_dir")
@@ -898,6 +905,8 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
                     authority_ref=args.authority_ref,
                     review_authority_ref=args.review_authority_ref,
                     prechecked=prechecked,
+                    launcher_sha256=args.launcher_sha256,
+                    launcher_path=args.launcher,
                 )
                 state = loop.derive(workspace)
                 if state.refusal is None:
@@ -912,6 +921,9 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
             return EXIT_REFUSED if "refusal" in payload else EXIT_OK
         if args.verb == "report":
             _emit(loop.report(workspace, result_data))
+            return EXIT_OK
+        if args.verb == "run-concurrent":
+            _emit(_supervisor("_supervisor_concurrent.py").run_concurrent(workspace, args.request))
             return EXIT_OK
         if args.verb == "resolve-effect":
             effects = _supervisor("_supervisor_effects.py")

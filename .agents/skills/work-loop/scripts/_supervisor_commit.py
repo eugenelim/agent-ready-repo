@@ -54,6 +54,9 @@ _MAX_MADE_BYTES = 16 * 1024 * 1024
 _RUN_ID_RE = re.compile(r"run-[0-9a-f]{16}")
 _COMMIT_ID_RE = re.compile(r"[0-9a-f]{40,64}")
 PRODUCT_REF_RE = re.compile(r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/product")
+HELD_REF_RE = re.compile(
+    r"refs/agentbundle/delivery/run-[0-9a-f]{16}/[0-9a-f]{16}/held/att-[0-9a-f]{16}"
+)
 _PRODUCT_FILE = "product-ref"
 _SYMREF_RE = re.compile(r"ref: (\S+)\s*")
 
@@ -457,7 +460,7 @@ class GitPort:
         ``missing``. A loose ref wins over ``packed-refs``, as in Git. No Git
         process runs.
         """
-        if not PRODUCT_REF_RE.fullmatch(name):
+        if not (PRODUCT_REF_RE.fullmatch(name) or HELD_REF_RE.fullmatch(name)):
             raise SupervisorGitError("denied-product-record", "not a product ref name")
         fs = sibling("_file_safety.py")
         common = self.hardened.pins.common_dir
@@ -715,6 +718,11 @@ class GitPort:
             self._head = self.text("rev-parse", "--verify", "HEAD^{commit}").strip()
         return self._head
 
+    def fresh_head(self) -> str:
+        """``HEAD`` read again now, whatever this port cached: the one read of the tip."""
+        self._head = None
+        return self.head()
+
     def resolve(self, rev: str) -> str:
         """The commit id *rev* names: ``HEAD``, a commit id, or ``<commit>^``."""
         if rev == "HEAD":
@@ -869,6 +877,8 @@ class GitPort:
     class _PrivateIndex:
         """A throwaway index; *warm* seeds it from the work tree's own index.
 
+        With *tree*, the index starts from that tree instead of ``HEAD`` and is never warm.
+
         A fresh ``read-tree HEAD`` index has no stat data, so ``add -A`` opens and hashes every
         tracked file, and a scanner that taxes each open makes that minutes. The work tree's
         index already holds the stat data, so a copy lets ``add -A`` only stat unchanged files.
@@ -880,13 +890,19 @@ class GitPort:
         """
 
         def __init__(
-            self, port: GitPort, *, warm: bool = False, rehash: Iterable[str] = ()
+            self,
+            port: GitPort,
+            tree: str | None = None,
+            *,
+            warm: bool = False,
+            rehash: Iterable[str] = (),
         ) -> None:
             self.port = port
             self.warm = warm
             # Paths whose stat data the copy must not keep: the spec directory and the caller's.
             self.rehash = [f"{port.spec_rel}/", *rehash]
             self.path = ""
+            self.tree = tree
 
         def __enter__(self) -> dict[str, str]:
             try:
@@ -898,6 +914,11 @@ class GitPort:
         def _open(self) -> dict[str, str]:
             fd, self.path = tempfile.mkstemp(prefix="work-supervisor-index-")
             env = {"GIT_INDEX_FILE": self.path}
+            if tree_start := self.tree:
+                os.close(fd)
+                Path(self.path).unlink()
+                self.port.run("read-tree", tree_start, env=env)
+                return env
             if self.warm:
                 if self._seed(fd, env):  # closes *fd*, whatever it answers
                     return env
@@ -980,9 +1001,13 @@ class GitPort:
             self._remove()
 
     def _private_index(
-        self, *, warm: bool = False, rehash: Iterable[str] = ()
+        self,
+        tree: str | None = None,
+        *,
+        warm: bool = False,
+        rehash: Iterable[str] = (),
     ) -> GitPort._PrivateIndex:
-        return GitPort._PrivateIndex(self, warm=warm, rehash=rehash)
+        return GitPort._PrivateIndex(self, tree, warm=warm, rehash=rehash)
 
     @staticmethod
     def _stamp(when: str) -> str:
@@ -1013,8 +1038,14 @@ class GitPort:
         create_ref: str | None = None,
         adopting: bool = False,
         product_old: str | None = None,
+        base_tree: str | None = None,
+        parent: str | None = None,
     ) -> str | None:
         """Commit one supervisor step, or return None when it is already reachable.
+
+        *base_tree* starts the commit's tree from that tree rather than from ``HEAD``'s, and
+        *parent* names the commit it is built on and the expected value of ``HEAD``: an
+        integration reads the tip once and builds, moves, and records from that one read.
 
         *paths* are working-tree paths taken into the commit; *contents* maps a path
         to the exact bytes to commit there (``None`` removes it), staged without
@@ -1047,10 +1078,10 @@ class GitPort:
                 raise SupervisorGitError(
                     "denied-invalid-trailer", f"{key} value is not one safe line"
                 )
-        old = self.head()
+        old = parent or self.head()
         appended: dict[str, bytes] = {}
         exact = contents or {}
-        with self._private_index() as env:
+        with self._private_index(base_tree) as env:
             path_list = sorted(set(paths))
             if path_list:
                 self.run(

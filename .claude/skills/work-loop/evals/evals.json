@@ -1677,6 +1677,51 @@
       ]
     },
     {
+      "id": "supervisor-policy-concurrency-key-out-of-range",
+      "prompt": "I edited `supervisor-policy.json` so `max_concurrent_attempts` is 9 and `attempt_timeout_seconds` is 30, hoping to run more tasks at once. Will `work-supervisor.py start` accept the file?",
+      "expected_output": "No. `start` refuses with `invalid-policy`, owned by the skill maintainer, because each concurrency key has a closed range: `max_concurrent_attempts` 2 to 8, `reprojection_bound` 0 to 8, `attempt_timeout_seconds` 60 to 86,400, and `concurrency` one of `sequential`, `enforced-allowlist`, `complete-trace`. The shipped `concurrency` is `sequential`, so tasks run one at a time until the policy is changed within range.",
+      "assertions": [
+        "Says start refuses the policy file with invalid-policy",
+        "Names the allowed range for max_concurrent_attempts as 2 to 8 and for attempt_timeout_seconds as 60 to 86,400",
+        "Says the shipped concurrency value is sequential, so tasks run one at a time",
+        "Does not accept either out-of-range value"
+      ]
+    },
+    {
+      "id": "supervisor-run-concurrent-request-consumed",
+      "prompt": "`next` issued a `run-concurrent` request and I ran `work-supervisor.py run-concurrent <spec-dir> --request <id>`. It finished with a task on the floor, so I ran the same command again to retry it. What happens, and what should I do instead?",
+      "expected_output": "The second invocation refuses `request-consumed` and spawns nothing: a `run-concurrent` request runs once, whatever its outcome. The task that fell to the floor is issued as an ordinary `implement-task` by the next `next`, so the controller runs `next` and answers that request. It never reports an attestation, read set, or binding: a `run-concurrent` report carries completion only, and any such fact refuses `result-fact-refused`.",
+      "assertions": [
+        "Says the second run-concurrent invocation refuses request-consumed and spawns no launcher",
+        "Says to run next, which issues the task as an ordinary implement-task",
+        "Says a run-concurrent report asserts completion only and an attestation or read set in it refuses result-fact-refused",
+        "Does not suggest editing the run store or retrying the same request id"
+      ]
+    },
+    {
+      "id": "supervisor-held-result-and-conflict",
+      "prompt": "A `run-concurrent` request named two tasks. The second finished first, and `status` shows its result held. Another run's conflict record names `meets` for a task. What do these mean, and what do I do?",
+      "expected_output": "A held result is a finished attempt recorded by its tree and the digest of its access line, waiting for the tasks before it in the order the sequential loop would issue them; it is not an open attempt and its task is not complete. The next `next` or `report` lands it once it is next, under the integration lock, so the controller does nothing to it and never edits the held record or its ref, which would refuse a later attempt as residue. A `meets` conflict record means the result's attested reads or writes met a path changed on the product ref since its source commit: nothing was committed, and the task is projected again from the new tip, running on the floor once its reprojection bound is spent.",
+      "assertions": [
+        "Says a held result waits for earlier tasks in floor order and is not an open attempt or a complete task",
+        "Says next or report integrates the held result when it is next, with no action needed from the controller",
+        "Says not to edit the held record or its ref because that refuses a later attempt as residue",
+        "Says a meets conflict leaves the product ref unchanged and projects the task again from the new tip"
+      ]
+    },
+    {
+      "id": "supervisor-cancelled-attempt-and-plan-edit",
+      "prompt": "`run-concurrent` answered `cancelled` with reason `sibling-failed` for one task, and `status` shows another task's attempt as `residue`. I also want to edit the plan's design section while a request is open. What do these mean, and what do I do?",
+      "expected_output": "A failed, refused, or conflicting attempt cancels only the running siblings whose declared reads and writes meet its own. A `cancelled` attempt had its launcher ended and the end confirmed within 10 seconds, so its task is projected again onto a fresh attempt directory under a new request, and that projection counts toward the reprojection bound; its late result is never admitted. A `residue` attempt's end could not be confirmed, so its task runs on the floor and its attempt directory is left behind. Run `next` for either. The plan edit waits: an edit beside an open attempt is refused as `attempt-residue`, so restore it, let the open attempts end, then make the edit and run `next`. It is committed as one `replan`, any held result is discarded and its task projected again without counting toward the bound, and no gate, review, or evidence request issues while an attempt is open or a result is held.",
+      "assertions": [
+        "Says a cancelled attempt is projected again onto a fresh directory and counts toward the reprojection bound",
+        "Says a residue attempt, whose end was not confirmed, runs on the floor and leaves its directory behind",
+        "Says to run next for the cancelled or residue task rather than retry the same request id",
+        "Says a plan edit beside an open attempt is refused as attempt-residue and waits until no attempt is open",
+        "Says an admitted replan discards held results and projects their tasks again without counting toward the bound"
+      ]
+    },
+    {
       "id": "risk-triggers-line-records-the-mode-decision",
       "prompt": "A new feature changes a published record grammar, and you cannot yet predict its design. You select full mode and invoke new-spec. What does the spec's header record about this decision, and may you add the line later to an Approved spec that lacks it?",
       "expected_output": "The spec's Risk triggers: header line records the decision as the tokens of the triggers that fired — here the Structural or public-interface change trigger and the Unfamiliar trigger, spelled as the spec metadata contract's table spells them — written while the spec is Draft. An Approved spec is past Draft and is not edited to add or change the line.",

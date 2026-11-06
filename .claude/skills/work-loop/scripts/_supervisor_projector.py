@@ -12,7 +12,8 @@ line, so the two can differ on a bulleted plan.
 Task projection turns `### Tn: Title` sections into task-contract records. A
 task's identity is its title without the number, and its revision digests the
 title and the pinned fields (`Tests:` with its stub fences, `Touches:`,
-`Done when:`, and `Effects:`), so renumbering, reordering, and edits to working
+`Done when:`, `Effects:`, and the optional `Reads:` and `Writes:` declared
+sets), so renumbering, reordering, and edits to working
 fields such as `Approach:` or `Depends on:` leave it unchanged.
 
 Envelope references are the six reviewed-envelope reference values. Each is the
@@ -33,6 +34,7 @@ import os
 import re
 import stat
 import sys
+import unicodedata
 from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
@@ -502,6 +504,42 @@ def _effect_names(value: str) -> list[str]:
     return names
 
 
+_GLOB_CHARS = frozenset("*?[]{}")
+# The directory a declared set may never name, besides the plan's own spec directory.
+_PROTECTED_ROOT = "delivery"
+
+
+def _split_entries(value: str) -> list[str]:
+    """Comma-separated, backtick-wrapped entries; text after a `(` is a note."""
+    return [g.strip().strip("`") for g in value.split("(")[0].split(",") if g.strip()]
+
+
+def _floor_reason(entries: list[str], *, writes: bool, spec_dir: str | None) -> str | None:
+    """The first closed reason a declared-set entry keeps its task on the floor, if any."""
+    protected = [_PROTECTED_ROOT] + ([spec_dir.strip("/")] if spec_dir else [])
+    protected = [unicodedata.normalize("NFC", p).casefold() for p in protected]
+    for entry in entries:
+        parts = entry.split("/")
+        if (
+            entry.startswith("/")
+            or any(ord(c) < 32 or ord(c) == 127 or c == "\\" for c in entry)
+            # A trailing slash leaves one empty last component; any other empty one is malformed.
+            or any(part in (".", "..") for part in parts)
+            or "" in parts[:-1]
+        ):
+            return "invalid-path"
+        walk = entry.endswith("/**")
+        body = entry[:-3] if walk else entry
+        if body == "" or any(c in _GLOB_CHARS for c in body):
+            return "invalid-glob"
+        if writes and entry.endswith("/"):
+            return "writes-listing"
+        base = unicodedata.normalize("NFC", body.rstrip("/")).casefold()
+        if any(base == root or base.startswith(root + "/") for root in protected):
+            return "protected-path"
+    return None
+
+
 class PlanProjection(NamedTuple):
     """Projected tasks in plan order, and the plan-level finish effects."""
 
@@ -509,8 +547,11 @@ class PlanProjection(NamedTuple):
     finish_effects: list[str]
 
 
-def project_plan(plan_text: str) -> PlanProjection:
+def project_plan(plan_text: str, spec_dir: str | None = None) -> PlanProjection:
     """Project task-contract records and finish effects from plan text.
+
+    A malformed `Reads:` or `Writes:` entry, or one naming `delivery/` or
+    *spec_dir*, records a `floor_reason` on the task instead of refusing.
 
     Refuses an untitled task, an effect name repeated across `**Effects:**`
     lines, a malformed stub fence, and an unsafe stub path.
@@ -573,13 +614,23 @@ def project_plan(plan_text: str) -> PlanProjection:
         effects = _effect_names(field("Effects"))
         local, _cross = grammar.parse_depends_on(field("Depends on"), local_ids)
         depends = [identity_of[p] for p in positions if p in local and p != section.task_id]
-        pinned = {
+        pinned: dict[str, Any] = {
             "title": title,
             "tests": field("Tests"),
             "touches": field("Touches"),
             "done_when": field("Done when"),
             "effects": field("Effects"),
         }
+        reads = _split_entries(field("Reads"))
+        writes = _split_entries(field("Writes"))
+        # Added only when declared, so a plan without declared sets keeps its revisions.
+        if reads:
+            pinned["reads"] = reads
+        if writes:
+            pinned["writes"] = writes
+        floor_reason = _floor_reason(reads, writes=False, spec_dir=spec_dir) or _floor_reason(
+            writes, writes=True, spec_dir=spec_dir
+        )
         stub_digest = (
             _sha256(
                 json.dumps(
@@ -598,17 +649,16 @@ def project_plan(plan_text: str) -> PlanProjection:
             "position": section.task_id,
             "revision": _sha256(json.dumps(pinned, sort_keys=True, separators=(",", ":"))),
             "depends_on": depends,
-            "touches": [
-                g.strip().strip("`")
-                for g in field("Touches").split("(")[0].split(",")
-                if g.strip()
-            ],
+            "touches": _split_entries(field("Touches")),
+            "reads": reads,
+            "writes": writes,
             "done_when": field("Done when"),
             "effects": effects,
             "verification_mode": field("Verification mode").split("\n")[0] or "unspecified",
             "stubs": stubs,
             "stub_digest": stub_digest,
             "no_stub": bool(re.search(r"\bno stub\b", field("Tests"), re.IGNORECASE)),
+            **({"floor_reason": floor_reason} if floor_reason else {}),
         })
     names = [n for t in tasks for n in t["effects"]] + finish
     duplicates = sorted({n for n in names if names.count(n) > 1})
