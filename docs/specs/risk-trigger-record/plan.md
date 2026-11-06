@@ -143,6 +143,20 @@ preamble carries a bare `**Risk triggers:**` prose line, draws none either.
 
 **Done when:** `python3 tools/check-core-release.py --base origin/main`, `agentbundle catalogue self-host --root . --check` and `make precheck` exit 0.
 
+### T6: Review repairs keep tokens in two homes and the note counts only real lines
+
+**Depends on:** T1, T2, T3, T4
+
+**Touches:** packs/core/.apm/skills/work-loop/evals/evals.json, packs/core/.apm/skills/work-loop/scripts/lint-spec-status.py, packs/core/tests/skills/work-loop/test_lint_spec_status.py, docs/product/research/mode-decision-re-measure.md
+
+**Tests:**
+- AC-0009 — goal-based: the work-loop eval case names the fired triggers by trigger name, not token; `git grep -n -E 'structural-interface|unfamiliar' -- 'packs/core/.apm/**/evals.json'` prints nothing.
+- AC-0003, AC-0006 — TDD: a tab or no-break space beside a token is an unknown token; spaces stay allowed.
+- AC-0006 — goal-based: the base-ref skip warnings name only the (vii) missing-line check as skipped; the timeout test pins the wording.
+- AC-0011 — goal-based: the note's Method hides comments, drops empty values, and trims like the lint before counting.
+
+**Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_lint_spec_status.py packs/core/tests/pack/test_risk_trigger_record_contract.py -q` passes, the grep above prints nothing, and `make precheck` reports only installed-copy drift.
+
 ## Changelog
 
 <!-- approvals only -->
