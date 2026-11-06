@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 the package targets pre-1.0 semver — a minor bump on a 0.x release MAY be
 breaking.
 
+## [0.60.2] — 2026-11-06
+
+### Changed
+
+- Release bump carrying the RFC-0114 delivery-route change (`Engine-Change-RFC: RFC-0114`).
+
 ## [0.60.1] — 2026-11-03
 
 ### Changed

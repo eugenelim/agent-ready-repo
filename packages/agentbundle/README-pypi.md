@@ -14,6 +14,11 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.2
+
+A release bump that carries the RFC-0114 lighter delivery route. The CLI
+behavior is unchanged.
+
 ## What's new in 0.60.1
 
 The `catalogue self-host` excluded-pattern list and the catalogue lint's seed
