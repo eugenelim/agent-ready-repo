@@ -188,6 +188,31 @@ mechanical rule.
   selects which `## Design (LLD)` sub-sections the plan scaffolds, so a narrower
   shape keeps the plan thin. Stack-neutral: it names the kind, never a framework.
   Additive and optional — a spec omits it (or sets `mixed`) and stays valid.
+- **Risk triggers.** A spec records the `work-loop` mode decision on one
+  `- **Risk triggers:** <value>` header line in the preamble. The value is
+  `none` when no trigger fired, or the tokens of the triggers that fired,
+  separated by commas. Each token names one `work-loop` risk trigger, in the
+  order that skill lists them:
+
+  | Token | Trigger |
+  | --- | --- |
+  | `security-boundary` | Compliance, governance, or security boundary |
+  | `structural-interface` | Structural or public-interface change |
+  | `persistent-representation` | Persistent representation or mixed-version deployment |
+  | `destructive-operation` | Destructive or irreversible operation |
+  | `data-transformation` | Backfill, replay, import, export, or destructive transformation |
+  | `new-dependency` | New dependency |
+  | `unfamiliar` | Unfamiliar |
+  | `multi-person` | Multi-person |
+  | `multi-feature` | Multi-feature or dependent tasks |
+
+  The line is written, or rewritten, only while the spec is `Draft`, so it
+  records the decision the spec was approved under. A spec past `Draft` is not
+  edited to add or change it. Tokens match exactly and case-sensitively. The
+  work-loop spec-status lint refuses an unknown or repeated token, an empty
+  item, `none` beside another token, or a second line, and warns when a new
+  `Draft` spec has no line. A line that is bare, commented out, in the body, or
+  empty counts as no line.
 
 ### Low-level design lives in the plan
 

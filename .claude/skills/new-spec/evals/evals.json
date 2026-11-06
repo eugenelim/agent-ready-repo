@@ -355,6 +355,17 @@
         "Stops and waits for the owner before writing into the spec body",
         "Does not move the backfill item to `## Defaulted`"
       ]
+    },
+    {
+      "id": "spec-template-risk-triggers-line",
+      "prompt": "You are authoring a Draft spec for work where work-loop's mode decision found no risk trigger, yet the work still needs a durable spec. How do you fill the template's Risk triggers: header line?",
+      "expected_output": "Write `- **Risk triggers:** none` in the preamble, replacing the template comment, while the spec is Draft. The value is `none` or distinct tokens from the spec metadata contract's table, separated by commas.",
+      "files": [],
+      "assertions": [
+        "Response fills the Risk triggers: header line with none",
+        "Response writes the line while the spec is Draft",
+        "Response does not invent a token outside the spec metadata contract's table"
+      ]
     }
   ]
 }
