@@ -39,17 +39,17 @@ Traces to: AC-0002 to AC-0009. Owned by: T2, T3, T4, T5.
 
 | Order | Verb | Shape | `route` string |
 | --- | --- | --- | --- |
-| 1 | status | non-terminal, `retry_count` at or above the cap | `Retry cap reached: stop and surface it; no replan or approval resets it.` |
-| 2 | status, next | standing refusal | `Refused (<code>, owner: <owner>): see supervisor.md, Refusals and their owners.` |
-| 3 | status | non-empty `recovery_leftovers` | `Remove or restore each path in recovery_leftovers, then run next.` |
+| 1 | status, next | cap: `status` on a non-terminal run with `retry_count` at or above the cap; `next` with the `retry-cap` human decision | `Retry cap reached: stop and surface it; no replan or approval resets it.` |
+| 2 | status, next | refusal with code `recovery-leftovers` | `Remove or restore each path in recovery_leftovers, then run next.` |
+| 3 | status, next | any other top-level refusal | `Refused (<code>, owner: <owner>): see supervisor.md, Refusals and their owners.` |
 | 4 | status | pending regenerate step | `Run next: it commits the pending regenerate step.` |
 | 5 | status, next | terminal | `Run status --check, then the Finish checklist and PR.` |
-| 6 | status, next | open `human-decision` request | `Wait for the named human; report only the answers supervisor.md lists for this reason.` |
+| 6 | status, next | any other open `human-decision` request | `Read this request's reason under Human decisions in supervisor.md: a named human answers some; for the rest fix the cause, then run next.` |
 | 7 | status | any other open request | `Run next and answer the request it issues.` |
 | 7 | next | any other request | `Answer the request, write the result outside the spec directory, then run report <spec-dir> <result.json>.` |
 | 8 | status | none of the above | `Run next.` |
 
-`<code>` and `<owner>` are the refusal's own `code` and `owner`; `detail` is never included. Rows are decided by value, never by key presence, because a non-refused `status` answer always carries `refusal` (`{}`), `recovery_leftovers` (`[]`) and `request` (`None`): row 2 is a non-empty top-level `refusal` from any source (`derive`, `recovery.inspect`, a `decide` refusal, or a handler in `_main`); row 3 a non-empty `recovery_leftovers`; rows 6 and 7 a non-null `request` of kind `human-decision` or another kind. Row 1 matches `status --check`, where the cap exit wins over the refusal exit. The cap is read from the workspace policy once the workspace exists. The pin refusal fires before the workspace exists, and the ref-storage `status` payload carries no `retry_count`, so only row 2 applies to those two. A usage error prints `{"error": "usage", ...}` and exits 2; it is not a run view or a refusal and carries no `route`.
+`<code>` and `<owner>` are the refusal's own `code` and `owner`; `detail` is never included. Rows are decided by value, never by key presence, because a non-refused `status` answer always carries `refusal` (`{}`), `recovery_leftovers` (`[]`) and `request` (`None`): rows 2 and 3 are a non-empty top-level `refusal` from any source (`derive`, `recovery.inspect`, a `decide` refusal, or a handler in `_main`), split by its `code`; row 6 is a non-null `request` of kind `human-decision` whose `reason` is not `retry-cap`, and row 7 any other non-null `request`. A live-leftovers run reaches row 2 because the recovery gate refuses `recovery-leftovers`. Row 1 matches `status --check`, where the cap exit wins over the refusal exit, and gives `next` the same direction as `status` for the same capped run. The cap is read from the workspace policy once the workspace exists. The pin refusal fires before the workspace exists, and the ref-storage `status` payload carries no `retry_count`, so only row 2 applies to those two. A usage error prints `{"error": "usage", ...}` and exits 2; it is not a run view or a refusal and carries no `route`.
 
 **Where `route` is added.** One `_emit` function prints every answer. `_main` resets a module-level routing context at the start of every call, records the verb in it (and, once the workspace exists, the cap), and clears it on exit, so a later in-process call never inherits it. `_emit` adds `route` to a payload that is a run view or carries a top-level `refusal` when the verb is `status` or `next`, and skips an `{"error": "usage"}` payload. The tested paths are listed in T4; any other path that prints through `_emit` carries `route` by the same construction.
 
@@ -91,18 +91,18 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that every string is 160 characters or fewer (AC-0005), and that step 1 no longer holds the sentence "the first thing to deal with" or any other sentence ranking refusals against other shapes (AC-0011).
+- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0005), and that step 1 no longer holds the sentence "the first thing to deal with" or any other sentence ranking refusals against other shapes (AC-0011).
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is green and `packs/core/tests/skills/work-loop/test_parked_gates_guidance.py` and `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py` are still green.
+**Done when:** the pin test is green and every suite listed by `grep -rl 'session-resumption' packs/core/tests tests tools` is green.
 
 ### T4: `status` and `next` carry `route`
 
 **Depends on:** T1, T3
 
 **Tests:**
-- TDD, at `main(argv)` for `status` and `next`: one case per table row, asserting the answer's `route` equals the table's string for its shape (AC-0002, AC-0004); one case each for the pin-check `supervisor-changed` refusal, the unsupported-ref-storage refusal, the lock refusal and the internal-error refusal, on `status` (AC-0002) and the pin-check refusal on `next` (AC-0004); a usage error on `status` and on `next` carries no `route`, and a second in-process call after a `status` call does not inherit its routing context (AC-0002, AC-0004); a run that is both capped and refused names the cap (AC-0003); no `route` contains a refusal's `detail` and every one is 160 characters or fewer (AC-0005); `status --check` exit codes equal the values the existing tests assert (AC-0006).
+- TDD, at `main(argv)` for `status` and `next`: one case per table row and verb, asserting the answer's `route` equals the table's string for its shape, with the row 2 case built from a run that has live leftovers and no divergence (AC-0002, AC-0004); one case each for the pin-check `supervisor-changed` refusal, the unsupported-ref-storage refusal, the lock refusal and the internal-error refusal, on `status` (AC-0002) and the pin-check refusal on `next` (AC-0004); a usage error on `status` and on `next` carries no `route`, and a second in-process call after a `status` call does not inherit its routing context (AC-0002, AC-0004); a run that is both capped and refused names the cap on `status`, and `next` on that run gives the same string for the `retry-cap` request (AC-0003); no `route` contains a refusal's `detail` and every one is 160 characters or fewer (AC-0005); `status --check` exit codes equal the values the existing tests assert (AC-0006).
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_route.py`
 
@@ -128,7 +128,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test, `tests/roster/test_sequential_implementer_dispatch_contract.py`, and the suites that read the edited files (`packs/core/tests/skills/work-loop/test_parked_gates_guidance.py`, `test_reference_routing.py`, `test_supervisor_cutover_source_checks.py`, `test_supervisor_config_fingerprint.py`) are green.
+**Done when:** the pin test is green and every suite listed by `grep -rlE 'supervisor(-mode)?\.md|state-schema\.md' packs/core/tests tests tools` is green, which includes `tests/roster/test_sequential_implementer_dispatch_contract.py`.
 
 ### T7: Eval cases
 

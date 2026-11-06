@@ -66,7 +66,7 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 
 ## Testing Strategy
 
-- `--json`, `route`, `invalid-result` detail and the `Shipped` refusal text: TDD, exercised through `main(argv)` and `dispatch.py` on the supervisor test harness repository.
+- `--json`, `route` and `invalid-result` detail: TDD, exercised through `main(argv)` on the supervisor test harness. The frozen-spec refusal text: TDD, exercised through `dispatch.py` on the repository `test_dispatch.py` plants.
 - The routing table and reference sentences: goal-based; a pin test asserts the table rows and that each script `route` string equals its row.
 - Evals and release files: goal-based; a JSON load and the release checker.
 
@@ -74,7 +74,7 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 
 - [ ] **AC-0001.** Each `work-supervisor.py` verb (`park`, `gates`, `start`, `next`, `report`, `status`, `resolve-effect`) given `--json` after the verb prints the same stdout and exits with the same code as the same call without it.
 - [ ] **AC-0002.** Every `status` answer that is a run view or carries a top-level refusal has a `route` equal to the string the routing table in `references/session-resumption.md` gives for its shape, including the refusal from the pin check, the unsupported-ref-storage refusal, the lock refusal and the internal-error refusal; a usage error (exit 2) carries no `route`.
-- [ ] **AC-0003.** On a `status` answer where `retry_count` and the retry cap can be read, a non-terminal run at or above the cap has the cap row's `route` even when a refusal stands, as `status --check` exits 3 for it.
+- [ ] **AC-0003.** On a `status` answer where `retry_count` and the retry cap can be read, a non-terminal run at or above the cap has the cap row's `route` even when a refusal stands, as `status --check` exits 3 for it; a `next` answer whose request is the `retry-cap` human decision has the same `route`.
 - [ ] **AC-0004.** Every `next` answer from the request, terminal and refusal shapes, and the pin-check refusal, has a `route` equal to the string the routing table gives for its shape: a refusal, a terminal answer, a `human-decision` request, or any other request; a usage error (exit 2) carries no `route`.
 - [ ] **AC-0005.** A `route` contains no `detail` text from a refusal and is 160 characters or fewer.
 - [ ] **AC-0006.** `status --check` exits with the same codes as before `route` existed.
@@ -84,7 +84,7 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 - [ ] **AC-0010.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`, and restates no part of that rule.
 - [ ] **AC-0011.** `references/session-resumption.md` holds the routing table as the one statement of the routing decision, with a first-match order and one row per `status` and `next` shape, and no other sentence in that file states a routing order; `references/supervisor.md` states that `--json` goes after the verb on every verb and that `status` and `next` carry `route`; `references/state-schema.md` lists `route` among the `status` keys.
 - [ ] **AC-0012.** `evals/evals.json` carries one case whose prompt asks to start follow-up work on a `Shipped` spec and one whose prompt has an undispatchable reviewer role, each with a unique `id`, a non-empty `prompt`, a non-empty `expected_output` and non-empty `assertions`.
-- [ ] **AC-0013.** The `core` version in `pack.toml` and `.claude-plugin/plugin.json` is one patch above the version `packs/core/pack.toml` carries on `origin/main` as fetched when the release task runs, and `tools/check-core-release.py --base origin/main` passes with the changelog fragment and `_RELEASED["core"]` pin naming it.
+- [ ] **AC-0013.** The `core` version in `pack.toml` and `.claude-plugin/plugin.json` is one patch above the version `packs/core/pack.toml` carries on `origin/main` as fetched when this criterion is checked, `tools/check-core-release.py --base origin/main` passes, and the changelog fragment and `_RELEASED["core"]` pin name that version.
 
 ## Terminal Intent
 
