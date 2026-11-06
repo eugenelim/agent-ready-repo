@@ -1,6 +1,6 @@
 # Spec: Lighter RFC delivery
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0114, RFC-0091, ADR-0089
@@ -196,3 +196,5 @@ Each group names its criteria once.
 - Defaulted: Product: guide — default: update its template, numbering and approval text in place; if wrong: a job-page rewrite becomes its own spec (settled by: eugenelim).
 
 ## Changelog
+
+- 2026-11-06: spec approved by eugenelim (scope)
