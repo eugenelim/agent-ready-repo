@@ -419,3 +419,4 @@ Core is one patch above T3's release.
 
 ## Changelog
 
+- 2026-11-06: spec approved by eugenelim
