@@ -788,6 +788,36 @@ captured item the CI pin cites still states CI installs ruff unpinned).
   the note's commits, the plan's task list, the workflow's pin comment —
   finds the record it points to accurate.
 
+### T29: The ruff parity record is reconciled through its declared single source
+
+**Repairs:** review findings from round 3 — the workflow's inline
+`ruff==0.14.0` pin falsified the parity record in
+`tools/requirements.txt` (whose documented mechanism — the requirements
+step's pin left in place by the later bare install — the inline pin
+broke, and whose `0.16.10` choice carries the UP052 rule the repository
+deliberately adopted), and the captured note's `0.15+` version-range
+claim is contradicted by reproducible runs.
+
+**Depends on:** T28
+
+**Tests:** goal-based check.
+- `.github/workflows/build-check.yml`'s ruff install is the bare
+  `pip install ruff mypy` again: the pin lives once, in
+  `tools/requirements.txt` (`ruff==0.16.10`), whose documented mechanism
+  — the requirements step runs before the bare install and leaves the
+  pin in place — holds again, so local and CI lint at one version.
+- `docs/product/captured/pre-existing-closure-index-collapsible-if.md`
+  records the verified version facts instead of a range claim: ruff
+  0.17.4 flags the pre-existing SIM102; ruff 0.14.0, 0.16.10, and 0.17.2
+  pass it (each verified by a reproducible run on this tree); the
+  flagging change landed between 0.17.2 and 0.17.4. The note records
+  that CI runs the requirements pin and that this delivery's gate
+  evidence ran under 0.14.0, both green on this tree.
+
+**Done when:** the parity record has one declared source that the
+  workflow honors, and every version claim in the note names a version
+  verified by a recorded run.
+
 ## Rollout
 
 The original delivery was a pure addition — one new module, one
