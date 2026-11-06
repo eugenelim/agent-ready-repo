@@ -252,7 +252,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install agentbundle (editable) + pytest
-        run: python -m pip install -e packages/credbroker -e packages/agentbundle pytest
+        run: python -m pip install -e packages/credbroker -e packages/agentbundle pytest 'jsonschema>=4.0' referencing
       - name: Run the execution supervisor integration suites
         env:
           WORK_SUPERVISOR_INTEGRATION: "1"
@@ -262,6 +262,7 @@ jobs:
           packs/core/tests/skills/work-loop/test_supervisor_admission.py
           packs/core/tests/skills/work-loop/test_supervisor_attempt.py
           packs/core/tests/skills/work-loop/test_supervisor_concurrency_admission.py
+          packs/core/tests/skills/work-loop/test_supervisor_concurrency_permutations.py
           packs/core/tests/skills/work-loop/test_supervisor_git.py
           packs/core/tests/skills/work-loop/test_supervisor_ingestion.py
           packs/core/tests/skills/work-loop/test_supervisor_integration.py
@@ -282,6 +283,7 @@ jobs:
           packs/core/tests/skills/work-loop/test_supervisor_ignore_rules.py
           packs/core/tests/skills/work-loop/test_supervisor_consumer_map.py
           packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py
+          tests/roster/test_concurrency_records.py
           -q -rs --durations=10
 
   supervisor-integration-corpus:

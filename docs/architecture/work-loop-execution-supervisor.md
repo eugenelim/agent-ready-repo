@@ -39,21 +39,23 @@ owns each delivery slice's status.
 | --- | --- | --- |
 | Admission, task projection, replanning, the TDD guard, sequential dispatch, recovery, the retry count, external effects, review selection, readiness | Acceptance meaning | Criteria, evidence, and review facts own completion, not procedure |
 | Full-mode `code` and `spec-plan` runs | Light mode | Light mode runs no supervisor ([ADR-0014](../adr/0014-rigor-scales-with-risk-work-loop-modes.md)) |
-| Worker-attempt checks and Windows process control | Parallel writes | Parallel-write gating ([ADR-0005](../adr/0005-supervisor-topological-default-and-write-gate.md)) is unchanged; parallel admission is `STATUS: PLANNED` |
-| The product ref the supervisor moves with `HEAD`, and the refusals and decision it raises (§ 3, *Product ref*) | Parallel result integration | [Product result integration](work-loop-result-integration.md) § 1a: the sequential ref ships, and three-tree apply and parallel results are `STATUS: PLANNED` |
+| Worker-attempt checks and Windows process control | Parallel writes by hosts without an attested launcher | Parallel-write gating ([ADR-0005](../adr/0005-supervisor-topological-default-and-write-gate.md)) is unchanged on the floor; concurrent admission needs a pinned launcher (§ 3, *Concurrent attempts*) |
+| The product ref the supervisor moves with `HEAD`, and the refusals and decision it raises (§ 3, *Product ref*) | The apply and ordering of concurrent results | [Product result integration](work-loop-result-integration.md) § 1a owns both |
+| Admission of a `run-concurrent` request, the verb that runs it, and its recovery (§ 3, *Concurrent attempts*) | The launcher trust root | [Runtime security primitives](runtime-security-primitives.md) § 7 |
 
-The supervisor dispatches one request at a time. It does not run agents
+The supervisor dispatches one request at a time unless the policy opts in to concurrent
+attempts. It does not run agents
 itself: it issues a typed request, the controller carries it out, and the
 controller reports the result. The controller is the agent following
 `SKILL.md`.
 
 ## 2. Structural Model
 
-Thirteen modules own the procedure, and sibling modules supply acceptance, evidence, and review records. All live in `packs/core/.apm/skills/work-loop/scripts/`.
+Seventeen modules own the procedure, and sibling modules supply acceptance, evidence, and review records. All live in `packs/core/.apm/skills/work-loop/scripts/`.
 
 | Element | Module | Responsibility | State |
 | --- | --- | --- | --- |
-| Command surface | `work-supervisor.py` | Verbs `park`, `gates`, `start`, `next`, `report`, `status`, and `resolve-effect`; pins the installed supervisor files | Park records under `<git-dir>/agentbundle-supervisor/gates/` |
+| Command surface | `work-supervisor.py` | Verbs `park`, `gates`, `start`, `next`, `report`, `run-concurrent`, `status`, and `resolve-effect`; pins the installed supervisor files | Park records under `<git-dir>/agentbundle-supervisor/gates/` |
 | Admission | `_supervisor_admission.py` | The run's workspace, the approval pair, and `start` | Commits `delivery/approvals.jsonl` |
 | Projector | `_supervisor_projector.py` | Plan grammar, task projection, and the six envelope references | Stateless |
 | Loop | `_supervisor_loop.py` | Derive the current request, commit steps, recover | Stateless; reads `HEAD` and the product ref |
@@ -65,12 +67,19 @@ Thirteen modules own the procedure, and sibling modules supply acceptance, evide
 | Readiness | `_supervisor_readiness.py` | Readiness derived from durable facts | Stateless |
 | Commit builder | `_supervisor_commit.py` | The Git port, the one-step-per-commit builder, and the product ref transaction | Supervisor commits, the run's product ref |
 | Git helper | `_supervisor_git.py` | The one hardened helper every supervisor `git` call uses | None |
+| Concurrency | `_supervisor_concurrency.py`, `_confined_entries.py` | Declared read and write sets and when they meet, attempt directories, and ingestion of an attempt directory into a tree | Attempt directories outside the work tree |
+| Launcher | `_supervisor_launcher.py` | Spawn the pinned launcher, speak the launcher protocol, verify its attestations | The pinned copy in the run store |
+| Concurrent verb | `_supervisor_concurrent.py` | Batch admission, the `run-concurrent` verb, cancellation, and recovery of attempts that died with their verb | Request and attempt records (`consumed/`, `results/`) in the run store |
+| Integration | `_supervisor_integration.py` | Held results and their ordered integration | `held/`, `integrations/`, `conflicts/`, `integration.lock` |
 | Journal | `_supervisor_journal.py` | Local, deletable state: `run.json`, the advisory journal, the security log, the run lock, and `.loop-run/events.jsonl` lines | `<spec>/.supervisor/` |
 
 Two data files shape behaviour without code changes, and this page does not
 restate their values.[^2] `supervisor-policy.json` holds the implementation
 retry cap, the effect dispatch cap, the stub timeout, the red-proof budget, lock
-timings, the authority role each decision accepts, and `result_authority`.
+timings, the authority role each decision accepts, `result_authority`, and four concurrency
+keys: `concurrency` (`sequential`, `enforced-allowlist`, or `complete-trace`; shipped `sequential`),
+`max_concurrent_attempts` (2 to 8), `reprojection_bound` (0 to 8), and `attempt_timeout_seconds`
+(60 to 86,400).
 `result_authority` says whether acceptance reads the product ref or `HEAD`, and
 is pinned with the file at `start`. `review-rules.json` says which reviewer
 roles run.
@@ -182,7 +191,7 @@ requests are `write-stub`, `implement-task`, a supervisor-run red proof,
 ### Request kinds and stages
 
 `run.json`'s `stage` comes from the current request kind: `implementing` for
-`implement-task`, `write-stub`, `external-effect`, and `effect-query`; `gating`
+`implement-task`, `run-concurrent`, `write-stub`, `external-effect`, and `effect-query`; `gating`
 for `run-gates` and `regenerate`; `reviewing` for `review-role` and
 `assess-finding`; and `awaiting-human` for `human-decision`.
 
@@ -190,6 +199,32 @@ A refusal that `next` writes maps to `awaiting-human` from any stage. Every
 other refusal reaches the controller only through the verb's output and leaves
 `run.json` unchanged. The [stages page](work-loop-supervisor-stages.md) owns the full
 table, the state diagram, and the event-line stage for each commit operation.
+
+### Concurrent attempts
+
+With `concurrency` at `sequential`, nothing in this section applies. Under a concurrent
+mode, `next` issues a `run-concurrent` request in place of `implement-task` when the first
+ready task is admissible, and an ordinary request otherwise. A task is admissible when it
+declares `Reads:` and `Writes:` with well-formed entries outside `delivery/` and the spec
+directory, has no stub fence and an unspent reprojection bound, runs on a POSIX host with Git 2.41
+or later and no `merge.*` configuration, the run pinned a launcher at `start`, and its
+dependencies have landed. Each task that stays on the floor carries one closed reason code
+(`floor_reason`) in the journal and in `status`; the Core pack's
+`work-loop/references/supervisor.md` lists the codes.
+
+The request names a batch: the first admissible tasks, in the order the sequential loop would
+issue them, whose declared sets do not meet one another's writes, up to
+`max_concurrent_attempts`. The controller runs `work-supervisor.py run-concurrent --request <id>`.
+That verb is blocking, because only a running process can hold the launcher pipes. It marks
+the request consumed before its first spawn, records each launcher's process-group id, runs
+the attempts side by side, and settles each as it finishes. `report` for the request asserts
+completion only. At most one such request is open, and no floor request issues while it is.
+
+Recovery runs first in every verb. For each attempt a dead verb left, a commit carrying the
+attempt's trailer means landed, a held-result record means held, and anything else has its
+process group ended and confirmed and its task issued on the floor. A controller replan is
+admitted only while no attempt is open, and it discards held results. The result-integration page
+owns the ordering, apply, conflict, and cancellation rules.
 
 ### Product ref
 
@@ -415,8 +450,8 @@ The skill ships the modules as path-loaded siblings, with no build step.
 [ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
 hold the decisions and the rejected alternatives.
 
-- **`STATUS: PLANNED`:** leases and parallel scheduling. ADR-0144 D1 assigns
-  leases to the supervisor, and the
+- **`STATUS: PLANNED`:** leases. Concurrent attempts ship behind the `concurrency`
+  policy (§ 3, *Concurrent attempts*). ADR-0144 D1 assigns leases to the supervisor, and the
   [brief's delivery slices](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
   schedule them.
 - **Not in this subsystem:** provider selection and external runtime adapters

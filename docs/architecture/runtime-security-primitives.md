@@ -106,10 +106,10 @@ acknowledged effect receipts. The caller must create a new operation rather than
 weaken the denied one, and cannot downgrade a refusal by retrying through
 another helper.
 
-**STATUS: PLANNED** — Parallel task execution needs an enforced read allowlist or
-a complete trace, recorded in an `access-attestation.v1` that the adapter
-returns; hosts that cannot supply one mark access incomplete and the attempt
-serializes. The supervisor dispatches one request at a time. See
+Parallel task execution needs an enforced read allowlist or a complete trace, recorded in
+an `access-attestation.v1` that a launcher returns. The supervisor verifies it (§ 7,
+*The launcher trust root*); a host that cannot supply one leaves its tasks on the sequential
+floor. No shipped host can, so every adopter runs sequentially. See
 [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md),
 [`loop-parallelism.md`](loop-parallelism.md), and
 [`work-loop-result-integration.md`](work-loop-result-integration.md).
@@ -316,7 +316,42 @@ unknown kind refuses `result-kind-refused`. The table mirrors the
 | `run-gates` | The gate outcome (commands, exit codes, output digests) and the criteria outcomes the readiness reader requires |
 | `external-effect`, `effect-query` | Presence, absence, or unknowability, whether the attempt has ended, and the effect receipt |
 | `regenerate` | Completion only; the supervisor computes the new digests |
+| `run-concurrent` | Completion only; the verb has already run the attempts and computed every result from the launcher's own attestations ([verified-infrastructure-parallelism spec](../specs/verified-infrastructure-parallelism/spec.md)) |
 | `human-decision` | The decision and its authority reference |
+
+### The launcher trust root
+
+A concurrent attempt runs only through a launcher the owner approved. The owner's own approval
+answer supplies the launcher's sha256, and `start` pins it. The supervisor copies the launcher
+into its own `launcher/` directory in the run store (mode 0700, the copy alone in it) and hashes
+the copy before each spawn and again after the containment line arrives. A mismatch is
+`launcher-changed`.
+
+- **Channel.** An attestation counts only when it arrives on the stdout of a process the
+  supervisor itself started from the pinned bytes. Nothing a worker can reach carries one.
+- **Binding.** The supervisor sends each launcher a binding: the run id, a new attempt id, a grant id,
+  a random nonce, and the launcher digest. The containment and access lines must echo it exactly.
+- **Release token.** The supervisor answers a verified containment line with a random release token.
+  The access line must carry it, so an access line cannot be produced before the release.
+- **Fixed spawn environment.** The launcher starts in an empty private directory, with a `PATH` of
+  `/usr/bin:/bin`, a fixed `LANG`, and private `HOME` and `TMPDIR`. Only standard input, output, and
+  error pass to it. Its standard error is discarded.
+- **Ingestion confinement.** The supervisor builds the result tree itself after the launcher's process group
+  has ended. It walks the attempt directory without following links, under path-count and
+  byte caps, and refuses a special file, a hard link, a Git control name, a link target outside the work tree,
+  and any change to a trusted or protected path.
+- **A fixture is never a host.** A launcher that carries the test-fixture marker is refused unless
+  test code sets an in-process switch. No environment variable, flag, policy key, or file sets it.
+
+Three risks are accepted, each on the owner's 2026-11-05 approval of the spec:
+
+1. The pin covers the launcher file's bytes only. An interpreter its `#!` line names, and anything
+   that interpreter loads, are outside it. The fixed `PATH` limits which interpreter an `env` line can reach.
+2. A deliberate worker running as the same operating-system user, on the floor between the two
+   hashes, can replace the run store's launcher copy and restore it before the second hash. This is
+   the same-user premise this section already accepts for the run store.
+3. A process an attempt starts outside the launcher's process group is covered only by the launcher's
+   `processes_ended` assertion. The supervisor cannot observe it.
 
 ### Launch grants
 
@@ -347,8 +382,6 @@ descendant that outlives an exempt launch can write after it.
 **STATUS: PLANNED** — Route `red-proof`, `scratch`, and `git` through the
 process primitive under a recorded grant:
 [`supervisor-launch-routing-for-plan-authored-commands`](../product/intents/supervisor-launch-routing-for-plan-authored-commands.md).
-Moving product-ref creation to a result-integration port is Slice 7 of
-[`work-loop-result-integration.md`](work-loop-result-integration.md).
 
 [^r1]: `contracts/delivery/security-capability.v1.schema.json`, `confined-file.v1`, `safe-process.v1`, `containment-attestation.v1`, `security-event.v1`; scripts under `packs/core/.apm/skills/work-loop/scripts/`. `file_safety.py` is the work-loop's local copy of the blessed confinement helpers in `agentbundle.catalogue_tooling.file_safety`.
 

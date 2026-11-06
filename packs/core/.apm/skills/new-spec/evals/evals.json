@@ -355,6 +355,16 @@
         "Stops and waits for the owner before writing into the spec body",
         "Does not move the backfill item to `## Defaulted`"
       ]
+    },
+    {
+      "id": "plan-reads-writes-grammar",
+      "prompt": "I want two plan tasks to be able to run side by side later. How do I declare what each task reads and writes in the plan?",
+      "expected_output": "The agent says a task may add optional `Reads:` and `Writes:` lines, each a comma-separated list of repository paths. Entries are a file path, a `dir/` listing (`Reads:` only), or `root/**` for a walk or subtree. A task that omits either line, or has a malformed entry, runs one at a time on the sequential floor, which is not an error.",
+      "assertions": [
+        "Says `Reads:` and `Writes:` are optional lines on a task",
+        "Names the entry forms: a file path, a `dir/` listing for `Reads:` only, and `root/**`",
+        "Says a task without both lines, or with a malformed entry, runs on the sequential floor and that this is not an error"
+      ]
     }
   ]
 }

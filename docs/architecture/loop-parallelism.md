@@ -1,11 +1,12 @@
 # Loop concurrency and plan width
 
-**STATUS: § 1 implemented; §§ 2 and 3 planned for Slice 7.**
+**STATUS: §§ 1 and 2 implemented; § 3 proposes plan-width levers, none built.**
 
 Full-mode `work-loop` runs one request at a time. The
-[execution supervisor](work-loop-execution-supervisor.md) owns that procedure,
-and nothing in Core dispatches two tasks at once. This page states what keeps
-one run consistent, what parallel work still waits on, and the plan-shape
+[execution supervisor](work-loop-execution-supervisor.md) owns that procedure.
+A policy opt-in lets it run several tasks at once, but no shipped host can
+support it, so every adopter runs one at a time. This page states what keeps
+one run consistent, when a task may run beside another, and the plan-shape
 facts that bound how much parallelism a plan could offer.
 
 ## 1. Concurrency inside one run
@@ -26,26 +27,33 @@ screen are retired. Their replacements are recorded once, in
 [authority migration](work-loop-authority-migration.md) and
 [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md).
 
-## 2. Parallel scheduling is Slice 7's
+## 2. Parallel scheduling ships off
 
-Plans declare dependencies and isolation, not waves. Turning that into
-concurrent dispatch belongs to Slice 7 of the
-[acceptance-centred work loop](acceptance-centered-work-loop.md).
-
+Plans declare dependencies, isolation, and read and write sets, not waves.
 [ADR-0156](../adr/0156-work-loop-concurrency-needs-attested-read-coverage.md)
 is the governing record. It admits two concurrent modes beside the
 `sequential` floor, `enforced-allowlist` and `complete-trace`. Each needs a
 host attestation, verified by the supervisor, of the attempt's isolation and
-every read it makes.
+every read it makes. The record supersedes ADR-0061 D5's parallel clause and
+ADR-0005 D3 and D4.
 
-Results land one at a time, in sequential order, through a
-pinned three-way apply. Any missing condition runs the task sequentially. The
-record supersedes ADR-0061 D5's parallel clause and ADR-0005 D3 and D4.
+**The admission rule.** `supervisor-policy.json` ships `concurrency: sequential`. Under
+a concurrent mode, one `run-concurrent` request names the first tasks, in the order the
+sequential loop would issue them, that are all of these:
 
-Dispatch stays sequential until two things exist:
+- ready, with every dependency landed;
+- declaring `Reads:` and `Writes:` with well-formed entries, and no `stub` fence;
+- on a run that pinned a launcher, on a POSIX host with Git 2.41 or later and no `merge.*` setting;
+- not yet at the reprojection bound; and
+- not meeting one another: no task's reads or writes meet another's writes.
 
-- the scheduler, admission, and integration code the record admits;
-- a host that can supply the attestation. None ships.
+The batch holds at most `max_concurrent_attempts` tasks (2 to 8). Any task that fails a
+condition runs on the floor, with one reason code in the journal and in `status`. Results land
+one at a time, in sequential order, through a pinned three-way apply
+([result integration](work-loop-result-integration.md)).
+
+**Known limit.** No shipped host can attest isolation or reads, so every adopter runs on the
+sequential floor. The concurrent path is proven only against a test-only fixture launcher.
 
 RFC-0015's 2026-09-25 erratum *"a measurement on nested worktrees"* records the
 nested-worktree destruction path and binds no layout constraint, because doing
@@ -55,7 +63,7 @@ needs a record superseding ADR-0005 in part.
 ## 3. Plan width
 
 How much a plan could run in parallel is a property of its `**Depends on:**`
-graph. These levers are proposals for Slice 7's inputs; none is built.
+graph. These levers are proposals; none is built.
 
 **Two effects are easy to confuse.** `Depends on:` decides **scheduled width**:
 which tasks could be ready together.
@@ -68,7 +76,8 @@ which of those could safely run together. A lever acts on one, never both.
 forms such as `spec:<slug>/T<n>` are recorded but never scheduled against.
 
 `Touches:` is a pinned field: it is part of a task's revision, so editing it
-re-requests that task. Nothing reads `Touches:` to decide order.
+re-requests that task. Nothing reads `Touches:` to decide order. `Reads:` and `Writes:`
+are pinned the same way, and they are what concurrent admission reads (§ 2).
 
 ### Scheduled width
 

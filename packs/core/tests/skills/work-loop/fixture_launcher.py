@@ -10,10 +10,13 @@ seam, and it must never be installed, built, or reachable outside the test corpu
 A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (see
 ``launcher_support.make_launcher``). Keys, all optional:
 
-* ``log``: a directory the fixture writes ``recv.log`` (raw lines received), ``env.json``
+* ``log``: a directory the fixture writes ``recv.log`` (raw lines received), ``sent.log`` (raw
+  lines sent), ``env.json``
   (argv, environment, working directory, open descriptors) and ``events.log`` into;
 * ``reads``: the declared reads it echoes as its allowlist and attests as read;
-* ``write``: ``{path: text | null}``, files it creates (null deletes) in the attempt directory;
+* ``write``: ``{path: text | null | {"derive": path, "prefix": text}}``, files it creates (null
+  deletes; a ``derive`` entry writes the prefix and the current text of another file in the
+  attempt directory, or ``missing``, so an output can depend on what the attempt could see);
 * ``fifo`` / ``links``: a FIFO path and ``{path: target}`` links it creates there;
 * ``containment``: overrides merged into the containment attestation; ``containment_drop``:
   keys removed from it; ``denied_drop``: denial names removed; ``containment_raw``: text sent
@@ -59,6 +62,7 @@ def note(name, text):
 
 
 def emit(text):
+    note("sent.log", text)
     sys.stdout.write(text + "\n")
     sys.stdout.flush()
 
@@ -92,7 +96,8 @@ def main():
             json.dump(
                 {"argv": sys.argv, "env": dict(os.environ), "cwd": os.path.realpath("."),
                  "cwd_listing": [p.name for p in Path().iterdir()], "extra_fds": fds,
-                 "pgid": os.getpgrp(), "pid": os.getpid()},
+                 "pgid": os.getpgrp(), "pid": os.getpid(),
+                 "isolated": sys.flags.isolated},
                 handle,
             )
         target.with_suffix(".tmp").replace(target)
@@ -164,6 +169,10 @@ def main():
         if text is None:
             path.unlink()
             continue
+        if isinstance(text, dict):
+            source = Path(attempt_dir) / text["derive"]
+            seen = source.read_text(encoding="utf-8").strip() if source.exists() else "missing"
+            text = text["prefix"] + seen + "\n"
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
