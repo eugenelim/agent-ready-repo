@@ -1,6 +1,6 @@
 # Spec: Lighter RFC delivery
 
-- **Status:** Draft
+- **Status:** Approved
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0114, RFC-0091, ADR-0089
@@ -194,3 +194,7 @@ Each group names its criteria once.
 - Defaulted: Technical: the two ordinal roster tests — default: unchanged, because they bind the ADR allocator and the ADR numbering path, which this change does not touch; if wrong: repoint them in the skill task (settled by: eugenelim).
 - Defaulted: Product: skill edits — default: only the sections the skill-updates note names; if wrong: widen the skill task (settled by: eugenelim).
 - Defaulted: Product: guide — default: update its template, numbering and approval text in place; if wrong: a job-page rewrite becomes its own spec (settled by: eugenelim).
+
+## Changelog
+
+- 2026-11-06: spec approved by eugenelim (scope)
