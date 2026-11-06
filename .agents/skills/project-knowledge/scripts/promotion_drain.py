@@ -219,11 +219,14 @@ def _confine_member(root: Path, member: str) -> str | None:
     """Resolve one stored-path member against the repository root.
 
     Returns the member when it resolves outside the root (refused), None
-    when it stays inside. Symlinks are followed on every component.
+    when it stays inside. Symlinks are followed on every component. A
+    path that cannot be resolved at all — `Path.resolve()` raises
+    `RuntimeError` for a symlink loop on Python 3.11–3.12 — is one that
+    resolves nowhere: refused the same way (T25, finding sec-hardening-001).
     """
     try:
         (root / member).resolve().relative_to(root)
-    except (OSError, ValueError):
+    except (OSError, ValueError, RuntimeError):
         return member
     return None
 

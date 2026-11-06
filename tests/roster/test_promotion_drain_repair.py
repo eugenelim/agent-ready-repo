@@ -757,3 +757,51 @@ def test_operator_veto_still_refuses_a_resolving_superseded_closure(
         item for item in report["items"] if item["action"] == "held" and item["capture_id"] == ids[0]
     ]
     assert held["reason"] == "closure-refused:ground-test-failed"
+
+
+def test_citation_path_that_cannot_be_resolved_holds_the_item(
+    git_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # AC-0027 (T25, finding sec-hardening-001): a citation path whose
+    # resolution raises — Path.resolve() raises RuntimeError for a symlink
+    # loop on Python 3.11, CI's version — is one that resolves nowhere:
+    # the closure is refused and the item held, never an abort. The seam
+    # is driven directly, so the hold holds regardless of the
+    # interpreter's own loop behavior.
+    repo, ids = _two_capture_repo(git_repo, "t25-unresolvable")
+    original_resolve = Path.resolve
+
+    def looping_resolve(self: Path, strict: bool = True) -> Path:
+        if self.name == "loop.md":
+            raise RuntimeError(f"Symlink loop from {self}")
+        return original_resolve(self, strict=strict)
+
+    monkeypatch.setattr(Path, "resolve", looping_resolve)
+
+    report = DRAIN.drain(repo, confirmer=_superseded_close(ids[0], {"path": "docs/product/captured/loop.md"}))
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    (held,) = [
+        item for item in report["items"] if item["action"] == "held" and item["capture_id"] == ids[0]
+    ]
+    assert held["reason"] == "closure-refused:citation-path-escapes-root"
+
+
+def test_citation_path_through_a_real_symlink_loop_holds_the_item(
+    git_repo: Path,
+) -> None:
+    # The same hold over a real circular symlink: on Python 3.13+ the loop
+    # resolves inside the root and the path does not exist; on 3.11–3.12
+    # resolution raises. Either way the closure is refused, never an abort.
+    repo, ids = _two_capture_repo(git_repo, "t25-real-loop")
+    captured = repo / "docs" / "product" / "captured"
+    (captured / "loop-a.md").symlink_to(captured / "loop-b.md")
+    (captured / "loop-b.md").symlink_to(captured / "loop-a.md")
+
+    report = DRAIN.drain(repo, confirmer=_superseded_close(ids[0], {"path": "docs/product/captured/loop-a.md"}))
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    (held,) = [
+        item for item in report["items"] if item["action"] == "held" and item["capture_id"] == ids[0]
+    ]
+    assert held["reason"].startswith("closure-refused:citation-path-")
