@@ -1,7 +1,7 @@
 # Plan: Lighter RFC delivery
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting
+- **Status:** Approved
 - **Repository anchors:** `packs/AGENTS.md` (pack bump, shipped-text rules, pack tests), `tests/AGENTS.md` (roster steps), `packages/agentbundle/AGENTS.md`, `docs/guides/how-to/cut-a-package-release.md`. Analogous production code: `packs/repo-governance/.apm/skills/new-rfc/scripts/governance.py` with its tests under `packs/repo-governance/tests/skills/new-rfc/`. Index behavior: `packs/repo-governance/.apm/skills/new-rfc/scripts/index-records.py` and `tests/roster/test_index_records.py`. Named uncertainty: none beyond the helper's missing rename and remove, which `renumber` covers itself.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -217,3 +217,5 @@ Reversible: the template and skill revert by reverting the change; seeded files 
 ## Changelog
 
 <!-- Approvals only; written at the approval gates. -->
+
+- 2026-11-06: plan approved by eugenelim (build strategy)
