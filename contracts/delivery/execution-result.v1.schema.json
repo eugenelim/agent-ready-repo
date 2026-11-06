@@ -39,6 +39,7 @@
       "type": "string",
       "enum": [
         "implement-task",
+        "run-concurrent",
         "write-stub",
         "run-gates",
         "review-role",

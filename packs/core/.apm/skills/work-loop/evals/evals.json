@@ -1640,6 +1640,17 @@
         "Says the shipped concurrency value is sequential, so tasks run one at a time",
         "Does not accept either out-of-range value"
       ]
+    },
+    {
+      "id": "supervisor-run-concurrent-request-consumed",
+      "prompt": "`next` issued a `run-concurrent` request and I ran `work-supervisor.py run-concurrent <spec-dir> --request <id>`. It finished with a task on the floor, so I ran the same command again to retry it. What happens, and what should I do instead?",
+      "expected_output": "The second invocation refuses `request-consumed` and spawns nothing: a `run-concurrent` request runs once, whatever its outcome. The task that fell to the floor is issued as an ordinary `implement-task` by the next `next`, so the controller runs `next` and answers that request. It never reports an attestation, read set, or binding: a `run-concurrent` report carries completion only, and any such fact refuses `result-fact-refused`.",
+      "assertions": [
+        "Says the second run-concurrent invocation refuses request-consumed and spawns no launcher",
+        "Says to run next, which issues the task as an ordinary implement-task",
+        "Says a run-concurrent report asserts completion only and an attestation or read set in it refuses result-fact-refused",
+        "Does not suggest editing the run store or retrying the same request id"
+      ]
     }
   ]
 }

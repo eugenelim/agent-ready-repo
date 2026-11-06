@@ -86,6 +86,8 @@ _CODE_RUNNING = [
     "includeIf.gitdir:/never/.path",
     "tool.unlisted.command",
     "tool.unlisted.program",
+    "merge.custom.driver",
+    "merge.dotted.name.driver",
 ]
 
 
@@ -123,6 +125,30 @@ def test_every_listed_code_running_key_is_refused_by_name_never_by_value(tmp_pat
         assert SECRET not in refusal.detail, key
         h.git(repo, "config", "--local", "--unset-all", key)
     h.admission.check_git_config(h.workspace(repo))
+
+
+def test_start_refuses_a_merge_driver_in_repository_config(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    _config(repo, "merge.custom.driver", SECRET)
+    _start_refuses(repo, "merge.custom.driver")
+
+
+def test_start_refuses_a_merge_driver_in_worktree_config(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    h.git(repo, "config", "--local", "extensions.worktreeConfig", "true")
+    h.git(repo, "config", "--worktree", "merge.custom.driver", SECRET)
+    _start_refuses(repo, "merge.custom.driver")
+
+
+def test_a_merge_key_that_is_not_a_driver_does_not_refuse_start_and_names_a_floor_reason(
+    tmp_path: Path,
+) -> None:
+    repo = h.make_repo(tmp_path)
+    _config(repo, "merge.conflictStyle", "diff3", "merge.custom.name", "label")
+    ws = h.workspace(repo)
+    h.admission.check_git_config(ws)  # a floor reason, not a refusal
+    concurrency = h.admission._supervisor("_supervisor_concurrency.py")
+    assert concurrency.merge_config_floor_reason(ws.git.hardened.config_entries()) == "merge-config"
 
 
 def test_start_refuses_a_code_running_key_in_worktree_config(tmp_path: Path) -> None:

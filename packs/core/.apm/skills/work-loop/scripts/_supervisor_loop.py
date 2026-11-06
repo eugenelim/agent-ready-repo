@@ -105,6 +105,7 @@ PRODUCER_CLASS = "work-supervisor"
 SCHEMA_VERSION = 1
 _STAGE_OF_KIND = {
     "implement-task": "implementing",
+    "run-concurrent": "implementing",
     "write-stub": "implementing",
     "external-effect": "implementing",
     "effect-query": "implementing",
@@ -380,7 +381,15 @@ def decide(ws: Workspace, state: State) -> Action:
         )
     task, any_pending = _first_incomplete(state)
     if task is not None:
-        return tdd.task_action(ws, state, task)
+        if ws.policy["concurrency"] == "sequential" or untrusted_blocked(state):
+            return tdd.task_action(ws, state, task)
+        concurrent = _supervisor("_supervisor_concurrent.py")
+        admitted, reason = concurrent.admit(ws, state, task)
+        if admitted is not None:
+            return admitted
+        floor = tdd.task_action(ws, state, task)
+        floor.detail = {**floor.detail, "floor_reason": reason}
+        return floor
     if any_pending:
         return Action(
             "refusal",
@@ -590,6 +599,7 @@ def next_request(ws: Workspace) -> dict[str, Any]:
     with ws.run_lock():
         ws.attempts.guard("next")
         recovery = _supervisor("_supervisor_recovery.py")
+        _supervisor("_supervisor_concurrent.py").recover(ws)
         try:
             diverged = recovery.reconcile(ws)
         except Refusal as exc:
@@ -619,6 +629,7 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             })
             return {"terminal": True, "run": status}
         request = action.request or {}
+        reason = action.detail.get("floor_reason")
         ws.local.append_journal({
             "run_id": state.run_id,
             "at": ws.clock(),
@@ -626,6 +637,7 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             "stage": request["stage"],
             "kind": request["kind"],
             "request_id": request["request_id"],
+            **({"floor_reason": reason} if reason else {}),
         })
         return {"request": request, "run": status}
 
@@ -678,6 +690,7 @@ def _validate_result(result: object) -> dict[str, Any]:
 # The facts each request kind's result may assert (the Result acceptance table).
 _RESULT_FACTS: dict[str, frozenset[str]] = {
     "implement-task": frozenset({"gate"}),
+    "run-concurrent": frozenset(),
     "write-stub": frozenset(),
     "review-role": frozenset({"report", "selection"}),
     "assess-finding": frozenset({"assessment"}),
@@ -743,6 +756,7 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
     with ws.run_lock():
         ws.attempts.guard("report")
         recovery = _supervisor("_supervisor_recovery.py")
+        _supervisor("_supervisor_concurrent.py").recover(ws)
         if recovery.reconcile(ws) is not None and checked["kind"] != "human-decision":
             raise recovery.unadopted(ws)
         state = derive(ws) if ws.divergence is None else _adoption_state(ws)
@@ -761,6 +775,10 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
         elif checked["kind"] == "regenerate":
             ws.attempts.admit_regeneration(checked)
             outcome = "regenerate"
+        elif checked["kind"] == "run-concurrent":
+            outcome = _supervisor("_supervisor_concurrent.py").report_completion(
+                ws, state, checked
+            )
         else:
             action = decide(ws, state)
             current = action.request if action.kind == "request" else None
@@ -882,7 +900,7 @@ def status(ws: Workspace) -> dict[str, Any]:
             "refusal": {},
         }
     action = decide(ws, state)
-    return {
+    view: dict[str, Any] = {
         "run": run_status(ws, state, action),
         "terminal": action.kind == "terminal",
         "retry_count": state.retry_count,
@@ -902,6 +920,10 @@ def status(ws: Workspace) -> dict[str, Any]:
         "request": action.request,
         "refusal": action.refusal.as_dict() if action.refusal else {},
     }
+    concurrency = _supervisor("_supervisor_concurrent.py").status_view(ws, state, action)
+    if concurrency is not None:
+        view["concurrency"] = concurrency
+    return view
 
 
 def _status_readiness(ws: Workspace, state: State, readiness: ModuleType) -> dict[str, Any]:
