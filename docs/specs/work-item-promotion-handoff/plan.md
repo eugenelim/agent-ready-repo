@@ -677,6 +677,8 @@ shared transaction helper and T23 in the release surfaces.
 
 ### T24: An unprobeable lock pid holds as live, and the dead dispatch fallbacks go
 
+**Depends on:** T23
+
 **Repairs:** review finding `adv-hardening-001` (OverflowError escapes the
 liveness probe and aborts the run) and `adv-hardening-004` (unreachable
 `(dispatch_processor or (lambda: None))` fallbacks read as bypassing the
@@ -698,6 +700,8 @@ no-dispatch hold).
 
 ### T25: A citation path that cannot be resolved holds the item
 
+**Depends on:** none
+
 **Repairs:** review finding `sec-hardening-001` (`Path.resolve()` raises
 `RuntimeError` for a symlink loop on Python 3.11 — CI's version — and
 escapes the citation resolver, aborting the run).
@@ -715,6 +719,8 @@ escapes the citation resolver, aborting the run).
   stored-path confinement gains the same guard.
 
 ### T26: The admission record for the false gate receipts carries its correction
+
+**Depends on:** none
 
 **Repairs:** review finding `adv-hardening-002` (the T19/T20 task receipts
 were admitted before their implementations existed; the disclosure lived
@@ -738,6 +744,8 @@ only in the review packet).
 
 ### T27: The ruff gate is pinned to the version its evidence ran under
 
+**Depends on:** none
+
 **Repairs:** review finding `adv-hardening-003` (CI installs ruff
 unpinned; the version it resolves today flags the pre-existing
 `closure_index.py` finding, so the merge-time gate is not covered by the
@@ -752,6 +760,33 @@ delivery's 0.14.0 evidence).
 **Done when:** the CI ruff step's version is deterministic and matches
   the delivery's gate evidence; the SIM102 fix itself stays owned by
   close-work per the captured item.
+
+### T28: The repair round's own record is accurate
+
+**Repairs:** review findings `adv-hardening-101` (the correction note
+misattributes the implementation commits), `adv-hardening-102` (the
+repair tasks lack the `Depends on:` field), and `adv-hardening-103` (the
+captured item the CI pin cites still states CI installs ruff unpinned).
+
+**Depends on:** T24, T25, T26, T27
+
+**Tests:** goal-based check.
+- `docs/product/captured/admission-record-defect-t19-t20-gate-receipts.md`
+  names `207eaa08d` as the sole implementation carrier and states that
+  `f5dd7ff77` and `98d8b5ada` are receipt-only commits recorded after
+  their implementations had landed — their trees already contained the
+  code — so the distinction between the false T19/T20 receipts and the
+  legitimate T22/T23 receipts is verifiable from the note itself.
+- The plan's tasks T24–T27 each declare an explicit `**Depends on:**`
+  line, matching the format of every other task.
+- `docs/product/captured/pre-existing-closure-index-collapsible-if.md`
+  records that CI's ruff install is now pinned to `ruff==0.14.0` by this
+  delivery, keeping the discovery-time unpinned state only as
+  clearly-marked history.
+
+**Done when:** a reader following any citation in the repair record —
+  the note's commits, the plan's task list, the workflow's pin comment —
+  finds the record it points to accurate.
 
 ## Rollout
 
