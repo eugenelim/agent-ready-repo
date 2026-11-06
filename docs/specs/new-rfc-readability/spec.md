@@ -1,6 +1,6 @@
 # Spec: new-rfc human-readability polish (B-narrow)
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0161](../../adr/0161-rfc-0114-supersedes-the-pinned-rfc-template-and-governance-criteria.md) and RFC-0114 — only the clause of AC3 that puts the fuller explanation in "The ask"; every other acceptance criterion stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0014

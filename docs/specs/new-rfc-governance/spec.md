@@ -1,6 +1,6 @@
 # Spec: new-rfc governance mode
 
-- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0161](../../adr/0161-rfc-0114-supersedes-the-pinned-rfc-template-and-governance-criteria.md) and RFC-0114 — AC-0065 and its pinning test, and the "governance draft" definition; every other acceptance criterion stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0110 (with its 2026-10-25 errata), RFC-0091

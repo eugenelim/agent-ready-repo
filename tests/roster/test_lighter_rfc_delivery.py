@@ -56,3 +56,44 @@ def test_guide_runs_rfc_py_only_in_isolated_mode() -> None:
     ]
     assert lines
     assert all("python3 -I " in line for line in lines), lines
+
+
+ADR_0161 = next((ROOT / "docs/adr").glob("0161-*.md"))
+SUPERSEDED_SPECS = ("new-rfc-two-humans", "new-rfc-readability", "new-rfc-governance")
+
+
+def _superseded_rows() -> list[tuple[str, str]]:
+    """Return (spec, criterion) pairs from the 'Superseded by the ADR' table."""
+    notes = (ROOT / "docs/rfc/0114-notes/superseded-criteria.md").read_text(encoding="utf-8")
+    section = notes.split("## Superseded by the ADR", 1)[1].split("\n## ", 1)[0]
+    rows = []
+    for line in section.splitlines():
+        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        if line.startswith("|") and len(cells) == 3 and cells[0].startswith("`"):
+            rows.append((cells[0].strip("`"), cells[1]))
+    return rows
+
+
+def test_adr_lists_each_superseded_criterion() -> None:
+    """AC-0074: the ADR names each criterion the notes list as superseded."""
+    adr = ADR_0161.read_text(encoding="utf-8")
+    rows = _superseded_rows()
+    assert len(rows) == 8
+    assert "RFC-0114" in adr
+    for spec, criterion in rows:
+        assert spec in adr
+        token = criterion.split(",")[0].split(" and ")[0].strip()
+        if token.startswith("AC"):
+            assert token in adr, (spec, token)
+    assert "AC-0065" in adr and "governance draft" in adr
+
+
+@pytest.mark.parametrize("spec", SUPERSEDED_SPECS)
+def test_spec_status_points_to_the_adr(spec: str) -> None:
+    """AC-0075: each affected spec's Status line carries a scoped pointer to the ADR."""
+    lines = (ROOT / f"docs/specs/{spec}/spec.md").read_text(encoding="utf-8").splitlines()
+    status = next(line for line in lines if line.startswith("- **Status:**"))
+    assert f"../../adr/{ADR_0161.name}" in status
+    assert "superseded in part" in status
+    wanted = {"new-rfc-governance": "AC-0065"}.get(spec, "AC3" if spec == "new-rfc-readability" else "AC2")
+    assert wanted in status

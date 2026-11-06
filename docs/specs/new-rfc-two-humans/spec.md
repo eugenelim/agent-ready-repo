@@ -1,6 +1,6 @@
 # Spec: new-rfc, sized to its two humans (RFC-0054 implementation)
 
-- **Status:** Shipped (superseded in part by [ADR-0089](../../adr/0089-decision-weight-trims-the-rfc-gate.md) — AC5 and AC6's rule that no tier drops or weakens a gate check; every other acceptance criterion stands) <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped (superseded in part by [ADR-0089](../../adr/0089-decision-weight-trims-the-rfc-gate.md) — AC5 and AC6's rule that no tier drops or weakens a gate check; every other acceptance criterion stands; superseded in part by [ADR-0161](../../adr/0161-rfc-0114-supersedes-the-pinned-rfc-template-and-governance-criteria.md) and RFC-0114 — AC2, AC3, AC7, the "survive verbatim" clause of AC6, and the old-template assertions of AC9) <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0054, RFC-0014
