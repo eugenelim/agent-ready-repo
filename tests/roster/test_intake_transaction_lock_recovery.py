@@ -270,3 +270,18 @@ def test_skill_section_5_records_the_lock_recovery_and_its_limits() -> None:
     assert "never taken or removed" in section
     assert "never probed and never removed" in section
     assert "publishes the lock atomically" in section
+
+
+def test_unprobeable_numeric_pid_holds_as_live(tmp_path: Path) -> None:
+    # AC-0028 (T24, finding adv-hardening-001): a lock payload that is an
+    # all-digit pid above INT32_MAX — one os.kill cannot address — is
+    # unprobeable, and unprobeable means live: the transaction returns
+    # lock-busy, the lock is never removed, and no exception escapes
+    # run_intake_transaction to abort the drain run.
+    repo = _git_repo(tmp_path, "unprobeable-pid")
+    _write_lock(repo, str(2**31).encode("ascii"))
+
+    result = _committed(repo)
+
+    assert result.status.name == "LOCK_BUSY", result
+    assert (repo / LOCK_NAME).read_bytes() == str(2**31).encode("ascii")

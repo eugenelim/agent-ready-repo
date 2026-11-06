@@ -794,7 +794,11 @@ def transact_route(
         # error contract — instead of aborting the drain with the
         # processor's exception text.
         try:
-            (dispatch_processor or (lambda: None))()
+            # The no-dispatch gate at the top of this function is the only
+            # path to a missing dispatch: the call sites below enforce it
+            # by calling the wired processor directly, never a silent
+            # no-op.
+            dispatch_processor()
         except Exception:
             return {
                 "committed": False,
@@ -839,7 +843,7 @@ def transact_route(
         materialize_artifact=materialize or default_materialize,
         rollback_partial_state=rollback_partial_state,
         record_reconciliation=lambda message: None,
-        dispatch_processor=dispatch_processor or (lambda: None),
+        dispatch_processor=dispatch_processor,
     )
     return {
         "committed": result.status.name == "COMMITTED",

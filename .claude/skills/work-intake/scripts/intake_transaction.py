@@ -278,12 +278,14 @@ def _lock_identity(repository_root: Path) -> tuple[tuple[int, int], bytes] | Non
 def _pid_is_live(pid: int) -> bool:
     """Liveness by probe: a pid that no longer exists is dead; a pid owned
     by another live process (the probe's PermissionError) is live, and so
-    is anything the probe cannot rule out (§ D1, AC-0028)."""
+    is anything the probe cannot rule out (§ D1, AC-0028) — including a
+    numeric payload above `INT32_MAX`, which `os.kill` refuses with
+    `OverflowError` rather than a process lookup."""
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
         return False
-    except OSError:
+    except (OSError, OverflowError):
         return True
     return True
 
