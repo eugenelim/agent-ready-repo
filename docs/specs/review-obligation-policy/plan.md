@@ -308,7 +308,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 - AC-0030: a missing or non-boolean `wording_only_enabled` refuses `review-rules-invalid`.
 - AC-0036: the shipped rules set it false.
 - AC-0003: a diff that earns `wording-only` with the tier enabled classifies `full` against the shipped rules.
-- AC-0003, AC-0004, AC-0005, AC-0020: the existing wording-only tests, including the AC-0020 flow leg that asserts a `wording-only` subject, run against a fixture copy of the skill whose rules set the tier enabled; the flow harness starts the supervisor from that copy, so its rules load reads the enabled value.
+- AC-0003, AC-0004, AC-0005, AC-0020: the existing wording-only tests, including the AC-0020 flow leg that asserts a `wording-only` subject, run against a fixture copy of the skill's rules file with the tier enabled; the flow harness points the in-process supervisor's rules path at that copy, the only file the tier reads.
 
 **Done when:** the T12 tests, the review suites, the flow suite, and lint pass, and the procedure, evals, and changelog fragment say the tier ships disabled.
 
