@@ -169,7 +169,7 @@ def _config_read_env() -> dict[str, str]:
     }
 
 
-def _fixed_flags(*, literal_pathspecs: bool = False) -> list[str]:
+def _fixed_flags(*, literal_pathspecs: bool = False, private_index: bool = False) -> list[str]:
     flags = ["--no-replace-objects"]
     if literal_pathspecs:
         flags.append("--literal-pathspecs")
@@ -180,7 +180,16 @@ def _fixed_flags(*, literal_pathspecs: bool = False) -> list[str]:
         "commit.gpgSign": "false",
         "tag.gpgSign": "false",
         "core.attributesFile": os.devnull,
+        # A scan that starts from a stat-cached index must not let repository config weaken
+        # the stat comparison.
+        "core.checkStat": "default",
+        "core.trustctime": "true",
     }
+    if private_index:
+        # Only a throwaway index drops its untracked cache or refuses a shared index; the work
+        # tree's own keeps both, and a copy that inherited split mode must not write one.
+        settings["core.untrackedCache"] = "false"
+        settings["core.splitIndex"] = "false"
     for key, value in settings.items():
         flags += ["-c", f"{key}={value}"]
     return flags
@@ -660,7 +669,10 @@ class HardenedGit:
             "git",
             f"--git-dir={pins.git_dir}",
             f"--work-tree={pins.root}",
-            *_fixed_flags(literal_pathspecs=literal_pathspecs),
+            *_fixed_flags(
+                literal_pathspecs=literal_pathspecs,
+                private_index=bool(env and env.get("GIT_INDEX_FILE")),
+            ),
             *self._carried_flags(),
             args[0],
             *diffing,

@@ -733,3 +733,286 @@ def test_an_oversized_stdout_kills_the_child_and_refuses_by_code(
     with pytest.raises(_git_module.SupervisorGitError) as refused:
         _bounded("import sys\nsys.stdout.write('o' * 1000000)\n", limit=1000)
     assert refused.value.code == "denied-git-output-too-large"
+# ── the whole-tree scans seed their private index from the work tree's own ──
+
+
+def _cold_scan(ws: Any) -> tuple[list[str], dict[str, Any]]:
+    """The same two scans, each from a ``read-tree HEAD`` index, as the reference answer."""
+    port = type(ws.git)
+    real = port._private_index
+    port._private_index = lambda self, *, warm=False, rehash=(): real(self, warm=False)  # type: ignore[method-assign]
+    try:
+        return ws.git.change_set(), ws.git.working_changes()
+    finally:
+        port._private_index = real  # type: ignore[method-assign]
+
+
+@posix_only
+def test_a_warm_scan_reads_no_tree_and_names_what_a_cold_scan_names(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    (repo / "kept.txt").write_text("kept\n", encoding="utf-8")
+    h.git(repo, "add", "kept.txt")
+    h.git(repo, "commit", "-q", "-m", "kept")
+    # A mix the work tree's index and ``HEAD`` disagree on: staged edit, staged new file,
+    # staged removal, a force-staged ignored file, then unstaged edits on top.
+    (repo / "README.md").write_text("staged edit\n", encoding="utf-8")
+    h.git(repo, "add", "README.md")
+    (repo / "README.md").write_text("then edited again\n", encoding="utf-8")
+    (repo / "added.txt").write_text("added\n", encoding="utf-8")
+    h.git(repo, "add", "added.txt")
+    h.git(repo, "rm", "-q", "--cached", "kept.txt")
+    (repo / "forced.log").write_text("forced\n", encoding="utf-8")
+    h.git(repo, "add", "-f", "forced.log")
+    (repo / "untracked.txt").write_text("untracked\n", encoding="utf-8")
+    ws = h.workspace(repo)
+    seen = _record_children(monkeypatch)
+    with h.git_identity():
+        names, entries = ws.git.change_set(), ws.git.working_changes()
+        warm_calls = [argv for argv, _env in seen]
+        assert (names, entries) == _cold_scan(ws)
+    assert not any("read-tree" in argv for argv in warm_calls)
+    # The ignored file stays out and the unstaged removal of kept.txt is undone by the scan.
+    assert names == ["README.md", "added.txt", "untracked.txt"]
+
+
+@posix_only
+def test_a_skip_worktree_entry_sends_the_scan_back_to_a_cold_index(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    h.git(repo, "update-index", "--skip-worktree", "README.md")
+    (repo / "README.md").write_text("edited\n", encoding="utf-8")
+    ws = h.workspace(repo)
+    seen = _record_children(monkeypatch)
+    with h.git_identity():
+        names = ws.git.change_set()
+    assert "README.md" in names
+    assert any("read-tree" in argv for argv, _env in seen)
+
+
+@posix_only
+def test_a_missing_work_tree_index_falls_back_to_a_cold_index(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    (repo / "new.txt").write_text("new\n", encoding="utf-8")
+    (repo / ".git" / "index").unlink()
+    ws = h.workspace(repo)
+    with h.git_identity():
+        assert ws.git.change_set() == ["new.txt"]
+
+
+def _index_leftovers(directory: Path) -> list[str]:
+    return sorted(p.name for p in directory.glob("work-supervisor-index-*"))
+
+
+@posix_only
+def test_a_same_size_same_mtime_edit_is_seen_even_under_a_weakened_stat_check(
+        tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    cited = repo / "cited.md"
+    cited.write_text("cited v1\n", encoding="utf-8")
+    old = (cited.stat().st_atime_ns - 3600 * 10**9, cited.stat().st_mtime_ns - 3600 * 10**9)
+    os.utime(cited, ns=old)  # older than the index, so Git does not treat the entry as racy
+    h.git(repo, "add", "cited.md")
+    h.git(repo, "commit", "-q", "-m", "cited")
+    h.git(repo, "config", "core.checkStat", "minimal")
+    h.git(repo, "config", "core.trustctime", "false")
+    time.sleep(1.1)  # some Git builds compare ctime to the second only
+    cited.write_text("cited v2\n", encoding="utf-8")
+    os.utime(cited, ns=old)
+    # The weakened settings really do hide the edit from plain Git...
+    assert h.git(repo, "status", "--short").strip() == ""
+    ws = h.workspace(repo)
+    # ...and the pinned scan still sees it.
+    with h.git_identity():
+        assert ws.git.change_set() == ["cited.md"]
+        assert "cited.md" in ws.git.working_changes()
+
+
+@posix_only
+def test_a_failed_seeding_leaves_no_index_copy_behind(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    scratch = tmp_path / "scratch"
+    scratch.mkdir()
+    monkeypatch.setattr("tempfile.tempdir", str(scratch))
+    ws = h.workspace(repo)
+    real = _git_module._launch
+
+    def _fail_on_diff_index(argv: list[str], **kwargs: Any) -> Any:
+        if "diff-index" in argv:
+            raise _git_module.SupervisorGitError("denied-git-unavailable", "timed out")
+        return real(argv, **kwargs)
+
+    monkeypatch.setattr(_git_module, "_launch", _fail_on_diff_index)
+    with h.git_identity(), pytest.raises(_git_module.SupervisorGitError):
+        ws.git.change_set()
+    assert _index_leftovers(scratch) == []
+
+
+def _scan_pair(ws: Any) -> tuple[list[str], dict[str, Any]]:
+    return ws.git.change_set(), ws.git.working_changes()
+
+
+@posix_only
+def test_an_assume_unchanged_entry_sends_the_scan_back_to_a_cold_index(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    h.git(repo, "update-index", "--assume-unchanged", "README.md")
+    (repo / "README.md").write_text("edited\n", encoding="utf-8")
+    ws = h.workspace(repo)
+    seen = _record_children(monkeypatch)
+    with h.git_identity():
+        names = ws.git.change_set()
+        assert (names, ws.git.working_changes()) == _cold_scan(ws)
+    assert "README.md" in names
+    assert any("read-tree" in argv for argv, _env in seen)
+
+
+@posix_only
+def test_an_unmerged_index_sends_the_scan_back_to_a_cold_index(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    h.git(repo, "checkout", "-q", "-b", "side")
+    (repo / "README.md").write_text("side\n", encoding="utf-8")
+    h.git(repo, "commit", "-qam", "side")
+    h.git(repo, "checkout", "-q", "main")
+    (repo / "README.md").write_text("main\n", encoding="utf-8")
+    h.git(repo, "commit", "-qam", "main")
+    with h.git_identity():
+        subprocess.run(["git", "merge", "side"], cwd=repo, capture_output=True, check=False)
+    ws = h.workspace(repo)
+    seen = _record_children(monkeypatch)
+    with h.git_identity():
+        assert _scan_pair(ws) == _cold_scan(ws)
+    assert any("read-tree" in argv for argv, _env in seen)
+
+
+@posix_only
+def test_typechange_exec_bit_and_intent_to_add_read_as_a_cold_scan_reads(
+        tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    (repo / "tool.sh").write_text("#!/bin/sh\n", encoding="utf-8")
+    (repo / "link-me").write_text("x\n", encoding="utf-8")
+    h.git(repo, "add", "tool.sh", "link-me")
+    h.git(repo, "commit", "-q", "-m", "files")
+    (repo / "tool.sh").chmod(0o755)
+    (repo / "link-me").unlink()
+    (repo / "link-me").symlink_to("README.md")
+    (repo / "later.txt").write_text("later\n", encoding="utf-8")
+    h.git(repo, "add", "-N", "later.txt")
+    ws = h.workspace(repo)
+    with h.git_identity():
+        names, entries = _scan_pair(ws)
+        assert (names, entries) == _cold_scan(ws)
+    assert {"tool.sh", "link-me", "later.txt"} <= set(names)
+
+
+@posix_only
+def test_a_write_to_the_real_index_keeps_its_untracked_cache(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    (repo / "extra.txt").write_text("x\n", encoding="utf-8")
+    h.git(repo, "update-index", "--untracked-cache")
+    h.git(repo, "status", "--short")
+    assert b"UNTR" in (repo / ".git" / "index").read_bytes()
+    ws = h.workspace(repo)
+    with h.git_identity():
+        ws.git.refresh_index(["README.md"])
+    assert b"UNTR" in (repo / ".git" / "index").read_bytes()
+
+
+def _forge_entry_oid(repo: Path, path: str, oid: str) -> None:
+    """Rewrite one version-2 index entry's object id, keeping the stat data it holds."""
+    import hashlib
+
+    index = repo / ".git" / "index"
+    data = bytearray(index.read_bytes())
+    at = bytes(data).index(path.encode() + b"\0")
+    start = at - 2 - 20  # the 20-byte id and 2 flag bytes sit before the path
+    data[start:start + 20] = bytes.fromhex(oid)
+    data[-20:] = hashlib.sha1(bytes(data[:-20])).digest()
+    index.write_bytes(bytes(data))
+
+
+def _forged_edit(tmp_path: Path, rel: str) -> Path:
+    """A repo whose index claims *rel* is unchanged while its bytes are edited."""
+    repo = h.make_repo(tmp_path)
+    target = repo / rel
+    target.parent.mkdir(parents=True, exist_ok=True)
+    if not target.exists():
+        target.write_text("aaaa\n", encoding="utf-8")
+        h.git(repo, "add", rel)
+        h.git(repo, "commit", "-q", "-m", "seed")
+    head_oid = h.git(repo, "rev-parse", f"HEAD:{rel}").strip()
+    target.write_text("zzzz\n" if target.read_text(encoding="utf-8") == "aaaa\n" else "zzzz\n",
+                      encoding="utf-8")
+    old = target.stat().st_mtime_ns - 3600 * 10**9
+    os.utime(target, ns=(old, old))
+    h.git(repo, "add", rel)
+    _forge_entry_oid(repo, rel, head_oid)
+    return repo
+
+
+@posix_only
+def test_a_forged_index_entry_cannot_hide_an_edit_to_the_spec_directory(tmp_path: Path) -> None:
+    rel = f"{h.SPEC_DIR}/spec.md"
+    repo = _forged_edit(tmp_path, rel)
+    assert h.git(repo, "status", "--short").strip() == "", "the forgery hides the edit from Git"
+    ws = h.workspace(repo)
+    with h.git_identity():
+        assert rel in ws.git.change_set()
+        assert rel in ws.git.working_changes()
+
+
+@posix_only
+def test_a_forged_index_entry_cannot_hide_an_edit_to_a_named_cited_path(tmp_path: Path) -> None:
+    repo = _forged_edit(tmp_path, "docs/adr/cited.md")
+    assert h.git(repo, "status", "--short").strip() == ""
+    ws = h.workspace(repo)
+    with h.git_identity():
+        assert "docs/adr/cited.md" in ws.git.change_set(rehash=["docs/adr/cited.md"])
+
+
+@posix_only
+def test_an_index_that_is_not_a_regular_file_or_is_too_large_scans_cold(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    repo = h.make_repo(tmp_path)
+    (repo / "new.txt").write_text("new\n", encoding="utf-8")
+    ws = h.workspace(repo)
+    commit_module = sys.modules[type(ws.git).__module__]
+    seen = _record_children(monkeypatch)
+    with h.git_identity():
+        monkeypatch.setattr(commit_module, "_MAX_INDEX_BYTES", 16)
+        assert ws.git.change_set() == ["new.txt"]
+    assert any("read-tree" in argv for argv, _env in seen)
+
+
+@posix_only
+def test_a_split_index_copy_writes_no_shared_index_into_the_git_directory(
+        tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    h.git(repo, "update-index", "--split-index")
+    (repo / "new.txt").write_text("new\n", encoding="utf-8")
+    before = sorted(p.name for p in (repo / ".git").glob("sharedindex.*"))
+    ws = h.workspace(repo)
+    with h.git_identity():
+        assert ws.git.change_set() == ["new.txt"]
+    assert sorted(p.name for p in (repo / ".git").glob("sharedindex.*")) == before
+
+
+@posix_only
+def test_a_private_index_scan_leaves_no_file_descriptor_open(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path)
+    (repo / "new.txt").write_text("new\n", encoding="utf-8")
+    ws = h.workspace(repo)
+
+    def open_fds() -> int:
+        return len(list(Path("/dev/fd").iterdir()))
+
+    with h.git_identity():
+        ws.git.change_set()  # a first call settles any lazy handles
+        before = open_fds()
+        for _ in range(5):
+            ws.git.change_set()  # warm
+            with ws.git._private_index():  # cold, as build_commit opens it
+                pass
+    assert open_fds() == before
