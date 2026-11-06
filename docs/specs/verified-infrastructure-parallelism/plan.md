@@ -457,3 +457,4 @@ in T5's release).
 - 2026-11-06: plan approved by eugenelim
 - 2026-11-06: amendment approved by eugenelim (scope)
 - 2026-11-06: amendment approved by eugenelim (build strategy)
+- 2026-11-06: amendment approved by eugenelim (scope)
