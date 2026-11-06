@@ -375,8 +375,8 @@ and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips and Cor
   results discarded and reprojected.
 - AC-0058: `next` issues no gate, review, or evidence while a result is held.
 - AC-0012: the expected reason set is written in the test from the spec's
-  list (each AC-0002 member, AC-0017 check, AC-0020 check, AC-0067 check, and
-  refusal reason); the test fails when a code is missing from the production
+  list (each AC-0002 member other than the policy opt-in, AC-0017 check,
+  AC-0020 check, AC-0067 check, and refusal reason) for a concurrent-mode run; the test fails when a code is missing from the production
   table, when a table code has no exercised emission in `status` and the
   journal, and on any launcher-supplied byte in either output.
 - AC-0068: an attempt silent past `attempt_timeout_seconds` on the injected
