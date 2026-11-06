@@ -1,10 +1,19 @@
 # Live adapter and client smoke evidence
 
 - **Slug:** `live-adapter-and-client-smoke-evidence`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/claude-plugin-route-scope AC15](../../specs/claude-plugin-route-scope/spec.md)
+
+## Disposition — withdrawn 2026-11-05, every item needs a live client or a live model
+
+Each absorbed item needs a real client (Cursor, the graphical Claude app, a published marketplace, real adopter sessions) or a live model calling a stub MCP tool. None can be verified by an agent alone, and no support claim depends on them: claims stay `documentation-verified` until a dated record exists. The manual residue is named here and is non-blocking:
+
+- `cursor-live-smoke` and `claude-clean-room-plugin-smoke`: a person runs the dated matrix in the item text below and records it in the route's runtime-verification record when FEAT-0024 delivers that record.
+- `plugin-postmerge-marketplace-check`: a person records `claude plugin details` against the published marketplace after a publish.
+- `live-mock-mcp-detection-qa`: needs a live model, so it belongs to the on-demand pack-evals runner (`workflow_dispatch`), not to a hermetic test.
+- `adapt-to-project-ac4b-transcripts`: update the rows 19-28 trigger first, because `converters` is user-scope-default.
 
 ## Outcome
 

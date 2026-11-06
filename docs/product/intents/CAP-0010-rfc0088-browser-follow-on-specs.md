@@ -1,7 +1,7 @@
 # RFC-0088 browser pilot readiness
 
 - **Slug:** `rfc0088-browser-follow-on-specs`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
@@ -9,6 +9,10 @@
 - **Parent intent:** none
 - **Decomposed:** 2026-10-02 children
 - **Governed by:** [RFC-0088 follow-on release gates](../../rfc/0088-web-pilot-foundation.md)
+
+## Disposition — withdrawn 2026-11-05, parked until the owner wants the browser pilot
+
+**Do not shape this on its own.** No browser-pilot specification or implementation exists, the RFC-0088 round 10 to 15 specs are Shipped (latest 2026-09-08), and nothing else in `docs/product` plans the pilot. Both evidence children need what an agent cannot supply, a second operating-system user with administrator rights and a real vendor browser update. Reopen when the owner prioritises the pilot, then in this order: record the exposure and signing items in RFC-0088 as disclosed, carried limits; author the two ADRs and the `auth: browser-session` lint convention; author the three delivery specifications, none gated on the observation children.
 
 ## Outcome
 

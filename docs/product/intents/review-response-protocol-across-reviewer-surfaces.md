@@ -1,7 +1,7 @@
 # Review-response protocol across reviewer surfaces
 
 - **Slug:** `review-response-protocol-across-reviewer-surfaces`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Kind:** outcome
 - **Level:** feature
 - **Owner:** eugenelim
@@ -9,6 +9,10 @@
 - **Maturity:** brownfield
 - **Parent intent:** outcome:work-loop-review-economics
 - **Decomposed:** 2026-09-13 spec
+
+## Disposition — withdrawn 2026-11-05, delivered where the response happens
+
+**Do not shape this on its own.** The ladder lives in work-loop's DECIDE step (`finding-response-receptacle`, Shipped), and `shaping-reviewer` carries the settled-decision rule (`## A settled decision is not a finding`). The adversarial, quality and security reviewers only produce findings, and each points to DECIDE, so no other reviewer needs its own copy. Two ideas remain and neither is worth building now. Handing `finding-adjudicator` earlier rounds' refutations conflicts with `references/finding-adjudication.md`, where the controller never copies prior verdicts, and it weakens the adjudicator's independence. Grounding probes at intent and brief authoring would need a topic-seeded mechanism, not a path-seeded one, and no miss has been measured. Reopen if a refuted finding is measured recurring across rounds.
 
 ## Outcome
 

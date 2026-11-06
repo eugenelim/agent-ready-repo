@@ -312,6 +312,12 @@ consumer = "knowledge record that only cites the registry"
 owner = "none"
 
 [[row]]
+pattern = "docs/product/briefs/argv-path-boundary-sweep-delivery.md"
+class = "contract"
+consumer = "live brief naming the workspace-status skill among the sites it classifies"
+owner = "rfc-0067"
+
+[[row]]
 pattern = "docs/product/briefs/guidance-activation-measurement.md"
 class = "contract"
 consumer = "live brief that names workspace-status as a measured representative"
@@ -333,6 +339,12 @@ owner = "rfc-0067"
 pattern = "docs/product/briefs/verb-mode-skills-and-slice-handover.md"
 class = "contract"
 consumer = "live brief: verb-mode skills depend on no workspace.toml state"
+owner = "rfc-0067"
+
+[[row]]
+pattern = "docs/product/briefs/workspace-mcp-production-readiness-delivery.md"
+class = "contract"
+consumer = "live brief whose slice 5 tests the workspace_status tool and its dispatch.py read"
 owner = "rfc-0067"
 
 [[row]]
@@ -3179,12 +3191,6 @@ consumer = "shipped spec that cites the registry as history, a one-time edit, or
 owner = "none"
 
 [[row]]
-pattern = "docs/specs/plan-evolution-experiments/*"
-class = "contract"
-consumer = "Implementing spec whose plan names workspace.toml anchors"
-owner = "rfc-0067"
-
-[[row]]
 pattern = "docs/specs/portable-pull-request-template/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
@@ -3627,12 +3633,6 @@ pattern = "docs/specs/work-item-capture/*"
 class = "historical"
 consumer = "shipped spec that cites the registry as history, a one-time edit, or a Touches entry"
 owner = "none"
-
-[[row]]
-pattern = "docs/specs/work-item-mechanical-tier/*"
-class = "contract"
-consumer = "Draft spec naming the workspace.toml freshness item"
-owner = "rfc-0067"
 
 [[row]]
 pattern = "docs/specs/work-loop-in-process-guards/*"

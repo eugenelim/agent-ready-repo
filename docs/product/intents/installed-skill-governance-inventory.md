@@ -1,7 +1,9 @@
 # Record installed-skill governance evidence
 
 - **Slug:** `installed-skill-governance-inventory`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -23,9 +25,26 @@ The recorded fix options are to extend the install-marker schema with content ha
 
 Unblocks when: a governance RFC or install-marker schema extension closes the gap.
 
+## Decision
+
+Close the gap by documentation, not by a state-schema field. A scan-status field has no producer in this repository, and an execution trail that ties an agent action to a skill version is a host feature that `agentbundle` cannot write. The per-file SHA-256 in direct-install state already covers content identity. The closure is a short statement in the security checklist's AST09 entry (`packs/core/.apm/skills/security-checklists/references/agentic-skills.md`, line 100) that names the install marker plus state file as the inventory surface and names scan status and the execution trail as host-owned.
+
+## Non-goals
+
+- No scan-status field, scanner, or install-marker schema change: scan status has no producer in this repository.
+- No execution trail written by `agentbundle`: tying an agent action to a skill version is a host feature.
+- No change to the per-file SHA-256 that direct install already records.
+
 ## Assumptions
 
+- **Riskiest assumption:** the install marker plus the per-file SHA-256 in state is an adequate AST09 inventory without a scan-status field, because scan status and the execution trail are host-owned. Agent-only test: a fixture install shows the recorded hash, and the closure text in the checklist reference is read against the AST09 wording to confirm it names both host-owned parts.
 - The premise changed: direct-install state has per-file SHA-256 hashes; scan-status and execution-trail fields still need authoritative confirmation or closure.
+
+## Readiness
+
+- **Route:** direct-light, one session. It is a documentation edit to that reference plus, if cheap, a `list-installed` view that shows each skill's recorded content hash.
+- **Verified 2026-11-05:** `_record_direct_rows` in `packages/agentbundle/agentbundle/direct_install.py` records a SHA-256 per installed file; the AST09 entry in `agentic-skills.md` still asks for scan status and an execution trail.
+- **Agent-only proof:** the reference text names the surface and the host-owned parts; if the `list-installed` view is added, a fixture install shows the hash.
 
 ## Source
 

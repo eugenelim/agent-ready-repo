@@ -237,6 +237,13 @@ the second adapter local-only.
 - Rejected: a hard per-criterion word budget because semantic atomicity and
   testability, not length, determine an acceptance criterion.
 
+## Shaping note, 2026-11-05
+
+- **Route:** `new-spec`, one slice, about one to two sessions. Nothing here needs a brief beyond this one.
+- **Verified:** `pack_evals.py` still pins `adapter = "claude-code"` (line 159) and writes the literal in three summary dictionaries; a `codex exec` command entry exists in the detector table.
+- **Agent-only proof:** recorded Codex stream fixtures through the detector, the existing runner self-test, and the workflow-posture test that pins the scheduled workflow to Claude Code only. A parse failure is a harness error, not a clean non-activation.
+- **Manual residue, non-blocking:** one local `--adapter codex` run against the real CLI.
+
 ## Spec map
 
 | Spec | Status |

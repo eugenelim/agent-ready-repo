@@ -1,10 +1,14 @@
 # Agentbundle installation merges shared YAML policy files when a pack first needs one
 
 - **Slug:** `agentbundle-install-artifact-layout`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/engine-export-boundary Product boundary](../../specs/engine-export-boundary/spec.md); [spec/pack-script-root-boundary-validation deferred YAML merge](../../specs/pack-script-root-boundary-validation/spec.md)
+
+## Disposition — withdrawn 2026-11-05, no consumer exists
+
+No pack ships a mergeable YAML policy file, and none is planned: the only seeded YAML is single-owner (`packs/repo-governance/seeds/governance/manifest.example.yaml`), and `contracts/adapter.toml` still defines only `merge-json` and `user-merge-json`. Reopen with a new intent when a pack needs two owners for one YAML file. The marker half is already closed: `package-data` includes `_data/*`, so the wheel ships `install-marker.py`.
 
 ## Outcome
 

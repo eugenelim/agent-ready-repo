@@ -1,9 +1,13 @@
 # A practitioner always knows what to run next, where they are in the sequence, and what the step leaves them holding
 
 - **Slug:** `skill-sequence-wayfinding`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** capability
 - **Owner:** eugenelim
+- **De-risked:** 2026-11-05
+- **Decomposed:** 2026-11-05 brief
 
 ## Outcome
 
@@ -351,3 +355,21 @@ independently shippable, which is why this is not a feature.
   and its own slice. The boundary with `pack-guidebook-walkability` is restated
   in both documents.
 - Authority: transferred-to-repository
+
+## Readiness
+
+Route: brief, [`skill-sequence-wayfinding-delivery`](../briefs/skill-sequence-wayfinding-delivery.md). Re-checked 2026-11-05: fifteen packs ship a `JOURNEY.md` (the earlier count was fourteen). First slices W1 (edge model and derivation script) and W2 (drift lint) are agent-only; projection is one pack per spec starting with `experience-design`. Check the shipped `docs-wayfinding-cluster` and `pack-guidebook-walkability` specs for overlap during W1.
+
+Amended 2026-11-05: the first brief covers the edge model, the drift lint, per-pack projection and cross-pack edges. Deliverable orientation (path and shape) is deferred to a later brief that starts after the pilot pack, and the successor-location question is left to the W1 spec.
+
+**Riskiest assumption:** the journey contract or skill metadata can carry per-skill successor edges without breaking the fifteen existing `JOURNEY.md` files. Tested agent-only by schema validation of all fifteen files and a derivation script that prints a stable edge list.
+
+## Non-goals
+
+- Rewriting skill methods or building a navigation product.
+- Autonomous chaining of skills; the surface names the next step and the practitioner runs it.
+- Packs without a `JOURNEY.md`, and deliverable orientation in the first brief (it follows the pilot pack).
+
+## De-risk result
+
+2026-11-05. `tools/lint-pack-journeys.py` reports all 15 `JOURNEY.md` files valid. Validated a fixture skill against `contracts/skill.schema.json`: a successor and reason nested under `metadata` is valid, and a top-level `successor` key is rejected. Edges placed in the `metadata` table therefore leave every `JOURNEY.md` untouched and need no schema change; 71 of 133 skills already carry a `metadata` table. Verdict: supported for the carrier. The derivation script that prints a stable edge list is not built; it is the first slice.

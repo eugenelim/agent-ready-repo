@@ -1,7 +1,9 @@
 # Decision context checks
 
 - **Slug:** `decision-context-checks` <!-- canonical identity; independent of the filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** Platform Core maintainer
 - **Scale:** app
@@ -60,6 +62,21 @@ validation_hook:
   kill_condition: Representative runs do not find relevant context more reliably than repository search, treat results as complete policy, or create ADR/RFC work for unchanged contracts.
   activity: to-validate — compare planning and review tasks at candidate check points, measuring relevant citations, misses, false authority, and unnecessary governance work.
 ```
+
+## Readiness
+
+- **Route:** not ready. It needs a replay spike first, then probably a new-spec.
+- **Verified current truth (2026-11-05):** `navigate_decisions.py` already has an operation `context` (scoped guidance by identity) and a `search` operation with a `text` selector. What does not exist is a check that takes a work anchor and returns a bounded result with a receipt.
+- **Replay protocol (run once, offline, repeatable):** take 20 shipped specs that name two or more ADR or RFC records in `Constrained by:`. The cited records are the answer key. The anchor is the spec title words. Compare recall at 10 for `navigate_decisions.py query --operation search` against a plain count of the same words across `docs/adr` and `docs/rfc`. Count false authority and ceremony by hand on a smaller sample.
+- **First result, 2026-11-05 (title-word anchors, 20 random specs, 70 cited records):** navigation found 26 and plain search found 29. That is no lift, which is the kill condition in the validation hook. It does not test explicit anchors (record ids, areas, changed paths), which this intent proposes.
+- **Next step:** rerun the protocol with explicit anchors taken from each spec's changed paths and the repository areas it names. If that still shows no lift over search, drop this intent and close `CAP-0002`. If it shows lift, write a spec for one `check` operation and a receipt.
+- **Unresolved question answered:** expect a check at spec authoring and at decision authoring only. A review-time check adds ceremony before any lift is shown.
+
+## De-risk result
+
+- **Date:** 2026-11-05. **Ran:** a replay over 20 random shipped specs that name two or more ADR or RFC records in `Constrained by:` (70 cited records, the answer key). The anchor was the spec title words. I compared recall at 10 for `navigate_decisions.py query --operation search` against a plain word count over `docs/adr` and `docs/rfc`. Script: `.context/graph-replay.py` (not committed).
+- **Observed:** navigation found 26 of 70 and plain search found 29 of 70. No lift.
+- **Verdict:** the assumption is not supported on title-word anchors, and that is the kill condition's first half, so `De-risked` is not set. Explicit anchors (changed paths, areas) are untested. Rerun with them before any spec. If they also show no lift, withdraw this intent and close `CAP-0002`.
 
 ## Source
 

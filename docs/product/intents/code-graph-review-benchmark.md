@@ -1,9 +1,13 @@
 # Code-graph review benchmark
 
 - **Slug:** `code-graph-review-benchmark`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
+
+## Disposition — withdrawn 2026-11-05, decided: not worth doing now
+
+the owner decision of 2026-09-10 recorded in this file defers graphs for single-repository use, and the controlled A/B needs live-model runs and human adjudication that an agent-only session cannot supply. Reopen only if a graph provider is proposed for single-repository use.
 
 ## Outcome
 

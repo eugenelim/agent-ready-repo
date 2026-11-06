@@ -1,7 +1,10 @@
 # Marketplace ingress accepts valid repository references
 
 - **Slug:** `marketplace-ingress-validation`
-- **Status:** Draft
+- **Status:** Accepted
+- **De-risked:** 2026-11-05
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Parent intent:** capability:catalogue-publication
@@ -33,6 +36,31 @@ Marketplace ingress rejects invalid Git references and empty configured branch v
 ## Assumptions
 
 - None.
+- **Riskiest assumption:** a Git-reference pattern in the schema rejects invalid references without rejecting a valid one a real catalogue uses. Test it agent-only with fixtures of valid and invalid references, including slashes, tags and 40-character hashes, and by validating this repository's own marketplace entries against the stricter schema.
+
+## Current state — checked 2026-11-05
+
+Both gaps reproduce. A marketplace entry with `ref` set to `bad ref ~^:` and one with an empty `ref` both pass `contracts/marketplace-entry.schema.json`, where `ref` and `sha` are bare strings. A `catalogue.toml` with `claude-plugin-branch = ""` loads with the empty value, and `build.py` line 106 skips the override because an empty string is false, so the upstream `claude-plugins-dist` constant stays. The entry schema also forbids extra keys at the entry and source levels.
+
+## Non-goals
+
+- Pinning `sha` to a published commit, or adding a per-pack digest, which belong to `claude-marketplace-pack-identity`.
+- Changing the publish workflow or who may publish, which belongs to `plugin-publish-trust-boundary`.
+- Validating anything beyond Git references and the configured branch.
+
+## De-risk result
+
+- **Date:** 2026-11-05.
+- **Ran:** (1) read the 16 entries of this repository's `.claude-plugin/marketplace.json`; (2) used `git check-ref-format --branch` as the oracle on 6 valid and 11 invalid references; (3) compared a candidate pattern (no control or space characters, none of `~ ^ : ? * [ \`, no `..`, `@{` or `//`, no leading `/` or `-`, no trailing `/` or `.`, no component starting with `.` or ending `.lock`) with the oracle on 3,012 strings; (4) checked that a 40-character lowercase hex pattern accepts a full hash and rejects uppercase and short values.
+- **Observed:** all 16 real entries use the single ref `claude-plugins-dist` and none carries a `sha`. The oracle accepts all 6 valid references and rejects 10 of the 11 invalid ones (it also rejects the eleventh, a leading `-`, under `--branch`). The candidate pattern disagreed with the oracle on 20 of 3,012 strings, all of them the single string `@`, which git accepts and the pattern refuses; refusing it is the safe direction.
+- **Verdict:** supported. A pattern rejects the invalid references without rejecting any reference a real catalogue uses. The slice's own test should keep the oracle comparison as a fixture.
+
+## Readiness
+
+- **Route:** brief. It is slice P1 of [`catalogue-publication-delivery`](../briefs/catalogue-publication-delivery.md), merged with `marketplace-config-single-authority` because both edit `catalogue_tooling/build.py` and `config.py`. The protected-tree gate (`tools/lint-catalogue-curation-guard.py`) checks only that an `Engine-Change-RFC:` trailer is present, and recent commits cite an accepted record or write `n/a` with the reason, so none of these changes needs a new RFC.
+- **First slice:** a Git reference pattern for `ref` (the rules `git check-ref-format` applies), a 40-character lowercase hex pattern for `sha`, and a loader error for an empty `claude-plugin-branch`.
+- **Agent-only proof:** schema fixtures for valid and invalid references; a config test that an empty branch is refused; `tools/test_marketplace_envelope_parity.py` still passes (61 tests pass today).
+- **Answered:** a private-only publisher still needs this, because the empty-branch fallback runs for every builder.
 
 ## Source
 

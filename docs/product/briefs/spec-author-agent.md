@@ -3,10 +3,14 @@
 - **Slug:** `spec-author-agent`
 - **Received:** 2026-09-03
 - **Owner:** Repository maintainers
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Source / provenance:** [`cross-adapter-behavior-enforcement.md`](../intents/cross-adapter-behavior-enforcement.md)
 - **Parent intent:** intent:cross-adapter-behavior-enforcement
 - **Depends on:** brief:universal-implementer-dispatch
+
+## Disposition — withdrawn 2026-11-05, its phase model was removed
+
+The brief keys spec drafting to the `SPEC-PLAN-*` phases (it names them ten times). Core 4.0.0 removed that phase engine ([ADR-0144](../../adr/0144-work-loop-supervisor-owns-procedure.md)). Spec authoring now runs before any supervisor run exists, so the supervisor `stage` the parent intent keys policy delivery on has no value for it. No child spec exists and the Spec map is empty. Reopen with a new brief that names a stage-free selection key and shows, through the parent's activation measurement, that a dispatched spec author changes behaviour. The parent intent's capability 2 is not being pursued until then.
 
 ## Outcome
 

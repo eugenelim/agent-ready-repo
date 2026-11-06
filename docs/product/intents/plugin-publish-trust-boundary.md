@@ -1,7 +1,9 @@
 # Plugin publication has a reviewable trust boundary
 
 - **Slug:** `plugin-publish-trust-boundary`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Parent intent:** capability:catalogue-publication
@@ -32,6 +34,25 @@ Freshness is now bounded at 30 and 90 days, but `docs/specs/claude-plugin-hook-p
 ## Assumptions
 
 - `plugin-publish-required-reviewer` changed because the workflow now uses a repository-scoped App token while `main` review and ruleset state remain unverified locally.
+- **Riskiest assumption:** a `workflow_run` publish job still builds the commit that passed the build job, because a `workflow_run` job starts on the default branch. Test it agent-only by extending `tools/lint-claude-plugin-publish-control.py` to assert the checked-out ref, with a passing and a failing fixture workflow.
+
+## Current state — checked 2026-11-05
+
+`.github/workflows/publish-claude-plugins.yml` still triggers on `push` to `main` with no `needs:` or `workflow_run`. `docs/specs/claude-plugin-hook-parity/publish-control-evidence.json` still has `live_branch_negative_tested: false` and was observed on 2026-08-12. `tools/lint-claude-plugin-publish-control.py` warns past 30 days and fails past 90 days, which is 85 days today. **The lint starts failing after 2026-11-10 17:24 UTC unless the evidence is recaptured.** Recapturing needs the publisher App private key, so a maintainer must do it.
+
+## Non-goals
+
+- Detecting removal of a live settings-side ruleset, recorded as a documented residual.
+- Recapturing the evidence or running the canary, which is an owner action outside the slices.
+- Changing who holds repository settings or the publisher App.
+
+## Readiness
+
+- **Route:** brief. It is slices P2 and P3 of [`catalogue-publication-delivery`](../briefs/catalogue-publication-delivery.md). The workflow-gate slice extends the existing lint and its tests, and the preview is a separate non-gated workflow.
+- **First slice:** gate publishing on a successful build run with `workflow_run` and `conclusion == success`, and make `lint-claude-plugin-publish-control.py` assert it. Check that the publish job still checks out the commit that was built, because a `workflow_run` job starts from the default branch.
+- **Agent-only proof:** the lint's own test suite with fixture workflows, one that passes and one that publishes without the gate.
+- **Answered:** detecting the removal of a live settings-side ruleset is out of scope. Record it as a documented residual in the AC35 spec note.
+- **Blocking prerequisite, owner action:** the owner will recapture the publish-control evidence and run the ordinary-actor rejection canary (`tools/capture-publish-control-evidence.py`, then set `live_branch_negative_tested` true) before 2026-11-10. The first slice waits for it after that date.
 
 ## Source
 

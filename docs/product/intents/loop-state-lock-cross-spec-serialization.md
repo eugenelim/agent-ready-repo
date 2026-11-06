@@ -1,9 +1,12 @@
 # Serialize supervisor state across specs
 
 - **Slug:** `loop-state-lock-cross-spec-serialization`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **De-risked:** 2026-11-05
 - **Governed by:** [the state-lock spec, AC11](../../specs/loop-cohort-state-lock/spec.md), the contract of the lock the supervisor's run lock reuses
 
 ## Outcome
@@ -51,3 +54,21 @@ Unblocks when: those runs provide a measured probability and trace.
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+## Non-goals
+
+- No second repo-scoped lock; the shared event log stays advisory.
+- No production seam is added to the lock module; the token-write test patches `os.write` inside the test.
+- The reclaim flake is not quarantined before its probability and trace are measured.
+
+**Riskiest assumption:** a single `O_APPEND` write per event line is atomic enough that concurrent specs cannot interleave or truncate a line. Agent-only test: a multi-process append test with many writers must find every line whole and complete, and a seeded torn write must fail it.
+
+## Readiness
+
+Route: new-spec, one session, three parts.
+
+Checked 2026-11-05: `_append` in `_supervisor_journal.py` appends through `confined_append`, which opens with `O_APPEND`, writes the whole line once and fsyncs, and the log is advisory. A second lock scope is therefore not needed; the recorded answer is "single atomic append, advisory log". Parts: (1) a multi-process append test that proves no torn line; (2) the token-write failure test by patching `os.write` inside the test, so the lock module keeps its no-seam design (the write is at `_statelock.py` line 371); (3) the two reclaim-flake entries are one observation, so run `test_concurrent_reclaimers_yield_one_holder` in a loaded local loop, and close the entry as unverified if it does not reproduce. Proof is the new tests passing and failing under seeded faults.
+
+## De-risk result
+
+2026-11-05. Wrote a throwaway harness under `.context/` that starts 8 processes, each calling `confined_append` from `_confined_mutation.py` 500 times with lines from about 200 B to 2.3 KB, all into one file. Result: 4,000 lines written, 4,000 whole and parseable, 0 torn, 4,000 unique (writer, index) pairs. Verdict: the assumption holds on this macOS filesystem. Limits: Linux and Windows were not run, and the real log lines are shorter than the largest test lines, so the permanent test should repeat this shape on the CI runner.

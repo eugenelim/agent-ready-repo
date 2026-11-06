@@ -1,7 +1,8 @@
 # Experience state and reviewer doctrine
 
 - **Slug:** `xd-state-reviewer-doctrine` <!-- canonical identity; independent of any filename ordinal -->
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -10,9 +11,9 @@
 - **Milestone:** M3d in RFC-0071's implementation sequence
 - **Governed by:** [RFC-0071 § Implementation sequence — M3d](../../rfc/0071-digital-experience-doctrine.md)
 - **De-risked:** no
-- **Shaping-reviewed:** no
+- **Shaping-reviewed:** 2026-11-05
 - **Decomposed:** no
-- **Depends on:** spec:xd-skill-boundaries, intent:xd-ia-archetypes-objects
+- **Depends on:** intent:xd-ia-archetypes-objects
 
 ## Outcome
 
@@ -105,3 +106,7 @@ product of the work rather than a proving fixture.
 - Mode: repo-origin
 - Locator: docs/rfc/0071-digital-experience-doctrine.md
 - Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f
+
+## Readiness
+
+Route: de-risk and shape after the `xd-ia-archetypes-objects` spec exists, then `new-spec`, one session. Order the reviewer edits: `experience-reviewer-content-brief-scope` first, then this intent, because both change `experience-reviewer.md`. First slice: extend the quality floor from seven to the shared 18-state set and give the reviewer the cold-read, task-completion and contract passes with blocker/concern/suggestion tiers. Agent-only proof: reviewer fixtures where the applicable-state table is checked deterministically; no browser run. Checked 2026-11-05: the floor lists seven states and the reviewer still uses blocker/major/minor/nit. `spec:xd-skill-boundaries` is Shipped, so only the M3c dependency remains.

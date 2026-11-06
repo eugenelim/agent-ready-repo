@@ -2,12 +2,21 @@
 
 - **Slug:** `loop-telemetry-event-vocabulary`
 - **Level:** feature
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:loop-telemetry-governance
 
+## Disposition — withdrawn 2026-11-05, decided: the answers are recorded here and the work waits for INI-005
+
+**Do not shape this intent.** Its only consumer, the ecosystem's INI-005 (Infra & Observability), has not started: `docs/product/roadmap.md` lists it with the trigger "INI-004 M1 ships", and no spec, brief or queue entry was ever implied. The three questions below are answered so the research is not lost:
+
+- **`gate-waived`:** drop it. The supervisor has no waiver operation, and a retry cap is the only override.
+- **`budget-exceeded`:** narrow it to time. Time is derivable from the gap between consecutive `at` values, and no pack can see token counts.
+- **Per-event metadata:** narrow the clause to the fields the loop line carries. `milestone` and agent identity are not on it, and joining them would need a harness change.
+
+Checked 2026-11-05: the derivability research and `docs/product/shaping/ecosystem-overview.md` (the defining source of the eight names) both exist and still list them, and the roadmap still gates INI-005 on INI-004 M1. Reopen when INI-004 M1 ships.
 
 ## Outcome
 

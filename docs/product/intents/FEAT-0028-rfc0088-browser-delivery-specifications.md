@@ -1,7 +1,7 @@
 # RFC-0088 browser delivery specifications
 
 - **Slug:** `rfc0088-browser-delivery-specifications`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -9,6 +9,10 @@
 - **Parent intent:** capability:rfc0088-browser-follow-on-specs
 - **Governed by:** [RFC-0088 follow-on release gates](../../rfc/0088-web-pilot-foundation.md)
 - **Depends on:** intent:rfc0088-exposure-and-privacy-anchoring, intent:rfc0088-signing-and-cost-observations
+
+## Disposition — withdrawn 2026-11-05, parked with CAP-0010
+
+**Do not shape this on its own.** Authoring the ADRs, the lint convention and three specifications is agent-only work, and it is the first step if the pilot is prioritised. Drop the dependency on the two observation children when reopening. See the parent's disposition for the reopen order.
 
 ## Outcome
 

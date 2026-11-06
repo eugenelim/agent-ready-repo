@@ -1,7 +1,9 @@
 # Brief backlink lints report canonical and legacy forms
 
 - **Slug:** `brief-backlink-provenance-lints`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/traceability-lint](../../specs/traceability-lint/spec.md)
@@ -42,3 +44,17 @@ Canonical path-form `Brief:` backlinks are classified as unresolvable cross-repo
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+## Non-goals
+
+- The new slug-form note is non-fatal; no lint gains a new failure.
+- Dispatch reconciliation in `dispatch.py` is unchanged.
+- No producer-pointer change beyond the owner-approved amendment to the traceability-lint spec.
+
+**Riskiest assumption:** resolving a repository-relative brief path to its node does not break the spec's rules against identifying a node by file path or hardcoding an artifact path. Agent-only test: fixtures for a real path, a mistyped path and a `[traceability].briefs` override must all behave as the amended spec states.
+
+## Readiness
+
+Route: new-spec, one session. The owner has approved amending `docs/specs/traceability-lint/spec.md` for the Ask-first producer-pointer rule.
+
+Checked 2026-11-05: `_CROSSREPO_RE` is still `.+/.+|.+@.+|.+·.+` at `lint-traceability.py` line 977, and `lint-brief-coverage.py` line 279 still accepts the slug, path and `brief:<slug>` forms. First slice: amend the spec, resolve a repository-relative path that exists locally to its brief node before the cross-repo classification, and add a non-fatal note to the coverage lint for slug-form back-links. Proof: fixture cases for a real path (resolves), a mistyped path (reported as dangling) and a slug-form back-link (note, exit 0).
