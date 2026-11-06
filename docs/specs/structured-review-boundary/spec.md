@@ -81,7 +81,10 @@ not make `agentbundle` or another repository package a runtime dependency.
   execution envelope, protected-mutation classification, evidence, verdict,
   and shared content safety; do not restate them here.
 - Bind obligations, reports, assessments, and dispositions to the current
-  review subject and applicable policy identity.
+  review subject and applicable policy identity. A current `review-carry.v1` record
+  the supervisor wrote for a tier that excuses the role binds the role's latest
+  report to the current subject and policy, and counts as that role's report
+  there (ADR-0158; `docs/specs/review-obligation-policy/spec.md`).
 - Keep plan and task-projection provenance outside review-subject identity;
   only a changed acceptance subject or review policy can stale review facts.
 - Treat all reviewer-authored fields as untrusted input until the shared
@@ -109,7 +112,9 @@ not make `agentbundle` or another repository package a runtime dependency.
   runtime load a delivery schema instead of validating contract behavior in
   its self-contained code.
 - Treat a stale, malformed, forked, missing, or `unable` report as satisfying a
-  mandatory obligation.
+  mandatory obligation, except through a current `review-carry.v1` record the
+  supervisor wrote for a tier that excuses the role (ADR-0158;
+  `docs/specs/review-obligation-policy/spec.md`).
 - Turn opinion, duplication, stale evidence, or a failure already controlled on
   every reachable path into a supported finding.
 - Recreate the current adjudicator or review workflow state machine under new
@@ -155,6 +160,7 @@ not make `agentbundle` or another repository package a runtime dependency.
 | Obligation | Current report | Finding state | Review decision |
 | --- | --- | --- | --- |
 | Mandatory | Valid terminal `clean` report | No findings | Obligation satisfied; no review block |
+| Mandatory | Current `review-carry.v1` naming the role's latest report or carry, written by the supervisor for a tier that excuses the role | No open supported material finding on the carried report | Obligation satisfied; no review block |
 | Mandatory | Valid terminal `findings` report | Every finding has a current assessment and every supported material finding has a current closing disposition | Obligation satisfied; no review block |
 | Mandatory | Valid terminal `findings` report | Any assessment is missing or indeterminate | Obligation unsatisfied; stop for assessment or owner direction |
 | Mandatory | Valid terminal `findings` report | A supported material finding is unresolved or has only a repair request | Obligation satisfied; acceptance blocked by the open actual failure |

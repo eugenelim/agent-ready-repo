@@ -175,6 +175,26 @@
           "minLength": 1,
           "maxLength": 512,
           "description": "Request id of the human decision that authorizes a repeated selection."
+        },
+        "protected_classes": {
+          "type": "array",
+          "maxItems": 5,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "security-boundary",
+              "data-durability",
+              "migration",
+              "public-interface",
+              "irreversible-operation"
+            ]
+          },
+          "description": "The protected risk classes the unit declares; each maps to one reviewer."
+        },
+        "review_tier": {
+          "const": "full",
+          "description": "Asks for the full reviewer set on every subject, even when the diff earns a lower tier."
         }
       },
       "description": "The controller's reviewer selection: selected conditional roles and each omitted role with its reason."
@@ -192,6 +212,7 @@
           "enum": [
             "reselect-review",
             "accept-risk",
+            "extend-review",
             "confirm-replan",
             "decline-replan",
             "adopt-history"
@@ -300,6 +321,35 @@
               }
             ]
           }
+        },
+        {
+          "properties": {
+            "decision": {
+              "const": "extend-review"
+            }
+          },
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "selection_key"
+                ]
+              },
+              {
+                "required": [
+                  "finding_ids"
+                ]
+              },
+              {
+                "required": [
+                  "commit"
+                ]
+              }
+            ]
+          },
+          "required": [
+            "authority_ref"
+          ]
         }
       ],
       "description": "A named human's answer to a human-decision request."

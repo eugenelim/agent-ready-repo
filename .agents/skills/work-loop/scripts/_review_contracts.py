@@ -7,9 +7,11 @@ canonical schemas under contracts/delivery are test-time contracts.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import os
+import re
 import stat
 import sys
 from pathlib import Path
@@ -31,6 +33,9 @@ __all__ = [
     "validate_review_report_dict",
     "validate_finding_assessment_dict",
     "validate_finding_disposition_dict",
+    "validate_review_carry_dict",
+    "carry_id_of",
+    "CARRY_TIERS",
     "validate_review_record_dict",
     "select_current_report",
 ]
@@ -46,7 +51,13 @@ REVIEW_WRITER_BOUNDARIES: Final[dict[str, str]] = {
     "finding.v1": "review-report",
     "finding-assessment.v1": "structured-control",
     "finding-disposition.v1": "structured-control",
+    "review-carry.v1": "structured-control",
 }
+
+# The tiers a carry may record; ``full`` never carries a role forward.
+CARRY_TIERS: Final[tuple[str, ...]] = ("wording-only", "rebase", "minor-fix")
+_CARRY_ID_PREFIX: Final[str] = "review-carry-sha256:"
+_HEX64: Final[re.Pattern[str]] = re.compile(r"[0-9a-f]{64}")
 
 _REVIEW_STATUS_VALUES: Final[frozenset[str]] = frozenset({
     "added",
@@ -584,6 +595,60 @@ def validate_finding_disposition_dict(record: object) -> tuple[bool, str]:
     )
 
 
+def carry_id_of(record: dict[str, Any]) -> str:
+    """Return the canonical ``carry_id`` for a carry: the digest of every other field."""
+    body = {key: value for key, value in record.items() if key != "carry_id"}
+    return _CARRY_ID_PREFIX + hashlib.sha256(_canonical_bytes(body)).hexdigest()
+
+
+def _carry_ref(value: object) -> bool:
+    """Return true for a ``review-carry-sha256:`` identity."""
+    return (
+        isinstance(value, str)
+        and value.startswith(_CARRY_ID_PREFIX)
+        and _HEX64.fullmatch(value[len(_CARRY_ID_PREFIX):]) is not None
+    )
+
+
+def validate_review_carry_dict(record: object) -> tuple[bool, str]:
+    """Validate a review-carry.v1 dictionary, including its self-digest."""
+    if not isinstance(record, dict):
+        return False, "denied-not-a-dict"
+    allowed = {
+        "schema_version", "carry_id", "role", "from_report_id", "from_carry_id",
+        "review_subject_fingerprint", "review_policy_fingerprint", "tier",
+        "anchor_round", "classifier_digest",
+    }
+    required = allowed - {"from_report_id", "from_carry_id"}
+    if not _is_exact_schema_version(record.get("schema_version")):
+        return False, "denied-unknown-schema-version"
+    if not required <= set(record):
+        return False, "denied-missing-required-field"
+    if _unknown_fields(record, allowed):
+        return False, "denied-unknown-authority-field"
+    if ("from_report_id" in record) == ("from_carry_id" in record):
+        return False, "denied-invalid-field"
+    for field in ("role", "review_subject_fingerprint", "review_policy_fingerprint"):
+        if not _nonempty_string(record.get(field)):
+            return False, "denied-invalid-field"
+    if "from_report_id" in record and not _nonempty_string(record["from_report_id"]):
+        return False, "denied-invalid-field"
+    if "from_carry_id" in record and not _carry_ref(record["from_carry_id"]):
+        return False, "denied-invalid-field"
+    if not _carry_ref(record.get("carry_id")):
+        return False, "denied-invalid-field"
+    if not _enum_value(record.get("tier"), frozenset(CARRY_TIERS)):
+        return False, "denied-invalid-enum"
+    if not _positive_int(record.get("anchor_round")):
+        return False, "denied-invalid-field"
+    digest = record.get("classifier_digest")
+    if not isinstance(digest, str) or _HEX64.fullmatch(digest) is None:
+        return False, "denied-invalid-field"
+    if record["carry_id"] != carry_id_of(record):
+        return False, "denied-carry-id-mismatch"
+    return _check_structured_record_content_safety("review-carry.v1", record)
+
+
 _REVIEW_RECORD_VALIDATORS: Final[dict[str, Any]] = {
     "review-subject.v1": validate_review_subject_dict,
     "review-obligation.v1": validate_review_obligation_dict,
@@ -591,6 +656,7 @@ _REVIEW_RECORD_VALIDATORS: Final[dict[str, Any]] = {
     "finding.v1": validate_finding_dict,
     "finding-assessment.v1": validate_finding_assessment_dict,
     "finding-disposition.v1": validate_finding_disposition_dict,
+    "review-carry.v1": validate_review_carry_dict,
 }
 
 

@@ -67,4 +67,5 @@ the spec corpus disagree.
 | `contracts/delivery` | `docs/specs/execution-supervisor-attempt-security/` |
 | `contracts/delivery` | `docs/specs/execution-supervisor-core/` |
 | `contracts/delivery` | `docs/specs/execution-supervisor-review-gate/` |
+| `contracts/delivery` | `docs/specs/review-obligation-policy/` |
 | `contracts/delivery` | `docs/specs/structured-review-boundary/` |
