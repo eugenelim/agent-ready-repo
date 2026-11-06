@@ -100,7 +100,7 @@ def test_governance_section_pins_ac_0064() -> None:
 
 
 def test_governance_section_pins_ac_0065() -> None:
-    assert 'Put `GOVERNANCE.md` next to the charter when one exists, and at the repository root otherwise.' in GOVERNANCE
+    assert 'An existing governance file at any allowed location is the target. With none, put `GOVERNANCE.md` next to the charter when one exists, and at the repository root otherwise.' in GOVERNANCE
 
 
 def test_governance_section_pins_ac_0066() -> None:
@@ -148,9 +148,9 @@ def test_assets_are_governance_drafts_once_filled_ac_0068() -> None:
         assert GOV.is_governance_draft(filled)
 
 
-def test_default_asset_uses_the_default_model_ac_0069() -> None:
+def test_default_asset_needs_no_model_approval_ac_0069() -> None:
     _, filled = _asset(DEFAULT_ASSET)
-    assert GOV.decision_model(filled) == DEFAULT_MODEL
+    assert GOV.decision_model(filled) in (None, DEFAULT_MODEL)
 
 
 def test_lazy_asset_names_its_model_terms_ac_0108() -> None:
@@ -193,3 +193,96 @@ def test_governance_checks_for_a_folder_with_a_glob_of_its_files() -> None:
         "A folder exists when `Glob` with the pattern `<folder>/**/*`, such as `.github/**/*`, matches a "
         "file." in GOVERNANCE
     )
+
+
+RFC_MODE = TEXT.split(" ## Governance mode ", 1)[0] + " " + TEXT.split(" ## Procedure ", 1)[1]
+PROCEDURE = TEXT.split(" ## Procedure ", 1)[1]
+
+
+def _step(number: int) -> str:
+    start = PROCEDURE.index(f" {number}. ") if number else 0
+    later = PROCEDURE.find(f" {number + 1}. ", start + 1)
+    return PROCEDURE[start:later if later != -1 else None]
+
+
+def test_numbering_uses_the_bundled_rfc_script_ac_0058() -> None:
+    step = _step(1)
+    assert "python3 -I <absolute skill dir>/scripts/rfc.py --dir <RFC folder> next" in step
+    assert "python3 -I <absolute skill dir>/scripts/rfc.py --dir <RFC folder> check" in step
+    assert "next-ordinal.py" not in TEXT
+
+
+def test_every_rfc_script_command_line_is_isolated() -> None:
+    for line in SKILL.read_text(encoding="utf-8").splitlines():
+        if "rfc.py" in line and "python" in line:
+            assert "python3 -I " in line, line
+
+
+def test_who_decides_replaces_the_approver_ac_0059_ac_0060() -> None:
+    assert "who decides is clear" in PROCEDURE
+    assert "Approver" not in TEXT
+    assert "changed files, who decides, and next step" in PROCEDURE
+
+
+def test_rfc_mode_never_names_the_governance_file_ac_0061() -> None:
+    rfc_mode = " ".join(
+        TEXT.split(" ## Governance mode ", 1)[1].split(" ## Procedure ", 1)[1:]
+    ) + " " + PROCEDURE
+    assert "GOVERNANCE" not in rfc_mode
+    when = TEXT.split("## When to invoke", 1)[1].split(" ## Governance mode ", 1)[0]
+    assert "GOVERNANCE.md" in when and "uses the Governance mode" in when
+
+
+def test_drafting_guidance_ac_0063() -> None:
+    step = _step(5)
+    assert "preview of the Summary" in step and "Reviewer brief" not in TEXT
+    assert "one bullet per decision" in step
+    assert "Cite evidence as `[n]`" in step and "under `## Evidence`" in step
+    assert "Mermaid diagram" in step
+    assert "Put long research in `NNNN-notes/`" in step
+    assert "single claim that can be accepted alone" in step
+    assert "Each Summary bullet is one claim that can be accepted alone" in _step(6)
+
+
+def test_supersession_while_drafting_ac_0064() -> None:
+    step = _step(5)
+    assert "`- **Supersedes:**` or `- **Supersedes in part:**`" in step
+    assert "`RFC-0014 D1,D3`" in step
+    assert "The draft does not touch the replaced RFC." in step
+
+
+def test_mirrors_only_after_acceptance_ac_0065() -> None:
+    section = TEXT.split("## Supersession after acceptance", 1)[1].split(" ## ", 1)[0]
+    assert "only after the superseding RFC is Accepted, and never for a draft" in section
+    assert "Edit nothing else: a frozen RFC's body stays as it is." in section
+    assert "Append an `## Errata` entry that names the superseding RFC." in section
+    assert "`Superseded by` for a whole RFC, or `Superseded in part`" in section
+    assert "`navigate-decisions` lineage in both directions" in section
+    assert "checked with equal scopes" in section
+
+
+def test_pre_handoff_checks_ac_0067() -> None:
+    step = _step(6)
+    assert "Every `[n]` citation resolves to an Evidence item, and every Evidence item is cited." in step
+    assert "Every date in the RFC comes from the system clock or a cited source." in step
+
+
+def test_no_decide_by_dates_ac_0068() -> None:
+    step4 = _step(4)
+    assert "decide-by" not in step4 and "<date>" not in step4
+    assert "each with an owner and a default and no deadline" in step4
+
+
+def test_anti_patterns_ac_0069() -> None:
+    section = TEXT.split("## Anti-patterns to refuse", 1)[1]
+    assert "Narrative history in the body" in section
+    assert "A mirror line on a frozen RFC before the superseding RFC is Accepted." in section
+    assert "An invented date or deadline" in section
+    assert "Filler and hedging." in section
+
+
+def test_whole_rfc_supersession_and_errata_signature_ac_0070() -> None:
+    assert (
+        "Whole-RFC supersession is header lines on both records plus the Errata entry." in TEXT
+    )
+    assert "The merge by a maintainer the repository's rules name signs an entry." in TEXT

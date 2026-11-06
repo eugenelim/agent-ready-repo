@@ -277,32 +277,31 @@ def _section(lines: list[str], heading: str) -> list[str] | None:
     return None
 
 
-def decision_model(text: str) -> str | None:
-    """The decision model value of a draft, or None without exactly one marker."""
-    found = [
+def _model_markers(text: str) -> list[str]:
+    """Every decision model value a draft states."""
+    return [
         match.group(1).strip()
         for line in text.split("\n")
         if (match := _MODEL_LINE.fullmatch(line.rstrip("\r")))
     ]
+
+
+def decision_model(text: str) -> str | None:
+    """The decision model value of a draft, or None without exactly one marker."""
+    found = _model_markers(text)
     return found[0] if len(found) == 1 else None
 
 
 def is_governance_draft(text: str) -> bool:
-    """Whether *text* is a governance draft."""
-    if decision_model(text) is None:
+    """Whether *text* is a governance draft: at most one model marker, handle-only maintainers."""
+    if len(_model_markers(text)) > 1:
         return False
     lines = [line.rstrip("\r") for line in text.split("\n")]
     maintainers = _section(lines, "## Maintainers")
     if maintainers is None:
         return False
     items = [line for line in maintainers if line.startswith("- ")]
-    if not items or not all(is_handle(item[2:].strip(" \t")) for item in items):
-        return False
-    owned = _section(lines, "## Owned paths")
-    if owned is None:
-        return False
-    body = "\n".join(owned)
-    return all(f"`{name}`" in body for name in ("GOVERNANCE.md", "CODEOWNERS", "AGENT_RULES.md"))
+    return bool(items) and all(is_handle(item[2:].strip(" \t")) for item in items)
 
 
 # -- Charter -----------------------------------------------------------------
@@ -625,7 +624,7 @@ def _run(args: argparse.Namespace, stdin: Any, cwd: Path) -> str:
         reason = _REASONS[0]
     elif kind == "governance" and any(states[p] is not None for p in GOVERNANCE_TARGETS):
         reason = _REASONS[1]
-    elif kind == "governance" and decision_model(text) != DEFAULT_MODEL:
+    elif kind == "governance" and decision_model(text) not in (None, DEFAULT_MODEL):
         reason = _REASONS[2]
 
     if command == "preview":

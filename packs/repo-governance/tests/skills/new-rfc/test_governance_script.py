@@ -740,16 +740,11 @@ def test_ac_0020_comment_only_change_is_not_ownership(
     "text",
     [
         "",
-        DRAFT.replace("- **Decision model:**", "- Decision model:"),
         DRAFT + f"- **Decision model:** {DEFAULT_MODEL}\n",
         DRAFT.replace("- @alice", "- alice"),
         DRAFT.replace("- @alice", "prose only"),
         DRAFT.replace("- @alice", "- @alice @bob"),
-        DRAFT.replace("`CODEOWNERS`", "CODEOWNERS"),
-        DRAFT.replace("`AGENT_RULES.md`", ""),
-        DRAFT.replace("`GOVERNANCE.md`", ""),
         DRAFT.replace("## Maintainers", "## People"),
-        DRAFT.replace("## Owned paths", "## Paths"),
         DRAFT.replace("## Maintainers\n\n- @alice\n\n", "## Maintainers\n\n## Other\n\n- @alice\n\n"),
     ],
 )
@@ -767,6 +762,9 @@ def test_ac_0021_complete_drafts_pass() -> None:
     assert GOV.is_governance_draft(LAZY_DRAFT)
     assert GOV.is_governance_draft(DRAFT.replace("- @alice", "- @alice\n- @acme/core"))
     assert GOV.decision_model(LAZY_DRAFT) == "lazy consensus"
+    # The owned-paths section and the model marker are optional.
+    assert GOV.is_governance_draft(DRAFT.split("## Owned paths")[0])
+    assert GOV.is_governance_draft(DRAFT.replace("- **Decision model:**", "- Decision model:"))
     assert not GOV.is_governance_draft("- @<maintainer-handle>")
 
 
@@ -1277,3 +1275,40 @@ def test_ac_0031_arguments_decoded_by_a_non_utf8_locale_are_recovered() -> None:
     escaped = b"ok \xc3\xa9".decode("ascii", "surrogateescape")
     assert GOV._utf8_argv(["--approved-by", escaped]) == ["--approved-by", "ok é"]
     assert GOV._utf8_argv(["plain"]) == ["plain"]
+
+
+# --- one governance text and the target rule ---------------------------------
+
+ASSET = SCRIPTS.parent / "assets/governance-default.md"
+STARTER = pathlib.Path(__file__).resolve().parents[3] / "seeds/docs/GOVERNANCE.md"
+
+
+def test_ac_0048_default_asset_is_the_seeded_starter() -> None:
+    assert ASSET.read_bytes() == STARTER.read_bytes()
+
+
+def test_ac_0049_draft_check_accepts_the_starter_with_a_handle() -> None:
+    raw = ASSET.read_text(encoding="utf-8")
+    assert "<maintainer-handle>" in raw
+    assert not GOV.is_governance_draft(raw)
+    assert GOV.is_governance_draft(raw.replace("<maintainer-handle>", "@alice"))
+
+
+def test_ac_0049_starter_previews_without_approval_on_a_fresh_repository(
+    repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    text = ASSET.read_text(encoding="utf-8").replace("<maintainer-handle>", "@alice")
+    out = call(capsys, repo, "preview", "GOVERNANCE.md", stdin=text.encode())
+    assert out.code == 0
+    assert approval(out.out) == "no"
+
+
+@pytest.mark.parametrize("location", GOVERNANCE_TARGETS)
+def test_ac_0062_an_existing_governance_file_is_the_target(
+    location: str, repo: pathlib.Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    put(repo, location, DRAFT)
+    out = call(capsys, repo, "preview", location, stdin=DRAFT.encode())
+    assert out.code == 0
+    assert field(out.out, "Target") == location
+    assert approval(out.out) == "yes \u2014 a GOVERNANCE.md is present"

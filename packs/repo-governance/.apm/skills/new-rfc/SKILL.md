@@ -7,9 +7,10 @@ metadata:
 
 # Skill: new-rfc
 
-Draft an answer-first RFC in `docs/rfc/`: research and resolve the proposal before
-writing it, then give a reviewer a concise, decidable argument rather than an audit
-trail. Use the template for section-level drafting guidance. The `governance` mode drafts a `GOVERNANCE.md`, and on request a `CODEOWNERS` file, only after the user confirms a preview.
+Draft a conclusion-first RFC in `docs/rfc/`: research and resolve the proposal before
+writing it, then give a reviewer a terse, decidable argument rather than an audit
+trail. Every section opens with its conclusion, then the support. Use the template for
+section-level drafting guidance. The `governance` mode drafts a `GOVERNANCE.md`, and on request a `CODEOWNERS` file, only after the user confirms a preview.
 
 ## Output rendering
 
@@ -65,7 +66,7 @@ Run this mode only when the user asks for governance, decision rights, maintaine
 
 **Choose the draft.** Start from `assets/governance-default.md`, or from `assets/governance-lazy-consensus.md` when the user wants lazy consensus. Replace each `<maintainer-handle>` with a supplied handle, adding one `- <handle>` item per maintainer. The default model is `single maintainer or small group by consensus`. A larger project can choose lazy consensus, with a vote on disagreement and a two-thirds majority to change the governance model.
 
-**Choose the target.** Put `GOVERNANCE.md` next to the charter when one exists, and at the repository root otherwise. Put `CODEOWNERS` in the file GitHub reads when one exists, else in `.github/` when that directory exists, else at the repository root.
+**Choose the target.** An existing governance file at any allowed location is the target. With none, put `GOVERNANCE.md` next to the charter when one exists, and at the repository root otherwise. Put `CODEOWNERS` in the file GitHub reads when one exists, else in `.github/` when that directory exists, else at the repository root.
 
 **Run the script.** Run the script by its full path from the repository root, without `cd`. The command line is:
 
@@ -112,10 +113,15 @@ A written file is a draft that the maintainers adopt through their normal review
    Every return above has no RFC effect. Do not resolve an ordinal, create a directory
    or index, choose a target, or draft body text.
 
-1. Find the next ordinal with `python3 scripts/next-ordinal.py docs/rfc`, and check the
-   directory for an ordinal already held by two records with
-   `python3 scripts/next-ordinal.py --check docs/rfc`. The number is free across the
-   working tree and the remote default branch it can see — a snapshot, not a
+1. Find the next ordinal with the bundled script, using `--dir` for the RFC folder:
+
+   ```text
+   python3 -I <absolute skill dir>/scripts/rfc.py --dir <RFC folder> next
+   python3 -I <absolute skill dir>/scripts/rfc.py --dir <RFC folder> check
+   ```
+
+   `check` reports an ordinal held by two records. The number is free across the
+   working tree and the remote default branch the script can see — a snapshot, not a
    reservation — so **re-derive it immediately before opening the pull request, not
    when the branch starts**; a branch that sits in review finds its number taken by
    whoever merged first, and that collision is invisible inside the branch. A
@@ -132,7 +138,7 @@ A written file is a draft that the maintainers adopt through their normal review
 2. **Resolve the target — don't create the file yet.** Choose a short
    `NNNN-kebab-title.md`; do not copy `assets/rfc.md` until the checkpoint and preview
    below clear. A `NNNN-notes/` companion is optional only for sustained investigation;
-   summarize conclusions in the body instead of pasting research.
+   put long research there and summarize its conclusions in the body.
 
 3. **Guided shape/intake — offer, don't force.** Infer a clear request; otherwise ask
    only outcome, scope, and risk. Pick `light`, `standard`, or `heavy` by consulting
@@ -156,13 +162,13 @@ A written file is a draft that the maintainers adopt through their normal review
    when a provider is absent; absence is never a failure and never justifies a stand-in
    file. A direct RFC request needs no synthetic intent; an accepted intent or design
    result may supply provenance when present. Evidence too large for the body may go
-   in a sibling `docs/rfc/NNNN-notes/` folder, summarized and linked from
-   `Evidence & prior art`; it is optional.
+   in a sibling `docs/rfc/NNNN-notes/` folder, summarized in the body and listed
+   under `Evidence`; it is optional.
 
    Emit a self-contained block for each decision: options and trade-offs, a recommendation
-   with owner and decide-by, repository/external backing, and de-risk result. A `light`
-   proposal fills only the rows it has — the question, the recommendation with owner and
-   decide-by, and whatever backing it actually relied on; omit the option table, the
+   with owner, repository/external backing, and de-risk result. A `light`
+   proposal fills only the rows it has — the question, the recommendation with owner,
+   and whatever backing it actually relied on; omit the option table, the
    external row, and the de-risk row rather than padding them. Use exactly:
 
    ```text
@@ -171,7 +177,7 @@ A written file is a draft that the maintainers adopt through their normal review
    ## Decisions / subpoints
    1. **<question>**
       - Options (MECE along <axis>, including do-nothing): <trade-offs>
-      - Recommendation: **<option>** — <why> · owner: <owner> · decide-by: <date>
+      - Recommendation: **<option>** — <why> · owner: <owner>
 
    ## Prior art (in repo)
    - <path and finding>
@@ -184,17 +190,30 @@ A written file is a draft that the maintainers adopt through their normal review
    ```
 
    Fetch every cited source and confirm it contains the borrowed claim. Wait for the
-   author's confirmation; only genuinely deferred matters become owned open questions.
+   author's confirmation; only genuinely deferred matters become open questions, each
+   with an owner and a default and no deadline.
 
 5. **Preview the target, create the file, then draft the body.** Show identifier, status,
-   absolute and repository-relative target, index path, and a preview of Reviewer brief
-   plus The ask before writing. Then copy the template, set metadata, and lead with
-   Reviewer brief then The ask. The body is the argument; summarize proof-of-work rather
-   than copying it. Delete claims the decision does not need. Before stating a necessary
-   cross-document assertion as fact, perform one bounded check of its named target or
-   mark the claim as an assumption or discovery predicate. Gloss each coined term,
-   acronym, and sibling-RFC reference inline on first use so a reader arriving from
-   the index can understand it.
+   absolute and repository-relative target, index path, and a preview of the Summary
+   before writing. Then copy the template, set metadata, and draft in pyramid order:
+   the Summary states the proposal and its reason, then one bullet per decision, each a
+   single claim that can be accepted alone, with links between decisions stated. Open
+   every section with its conclusion, then the support. Write terse, professional
+   prose with no hedging or filler. Cite evidence as `[n]` and list each item under
+   `## Evidence` as fact, source and method; the body carries no first-person account
+   of the work and no history of how a fact was found. Put long research in
+   `NNNN-notes/`. Add a Mermaid diagram to Proposal or Design details where structure,
+   flow or state is clearer as a picture: no raw HTML and no `;` in labels.
+   Delete claims the decision does not need.
+   Before stating a necessary cross-document assertion as fact, perform one bounded check of its named target or
+   mark the claim as an assumption or discovery predicate.
+   Define each coined term, acronym, and sibling-RFC reference in a phrase on first use so a reader arriving from the index
+   can understand it. Set `Date opened` from the system clock; maintainers set
+   `Date closed`. Every other date comes from a cited source.
+
+   An RFC that replaces another carries `- **Supersedes:**` or
+   `- **Supersedes in part:**` header lines while drafting, naming each RFC and its
+   decisions, such as `RFC-0014 D1,D3`. The draft does not touch the replaced RFC.
 
 6. **Pre-handoff gate — mandatory, before status → Open.** At every tier,
    citation-integrity checks that references contain their cited claims and
@@ -208,10 +227,14 @@ A written file is a draft that the maintainers adopt through their normal review
 
    - Fetch and check every citation; downgrade or remove any unsupported claim.
    - Verify every checkable self-claim against the artifact.
+   - Every `[n]` citation resolves to an Evidence item, and every Evidence item is cited.
+   - Every date in the RFC comes from the system clock or a cited source.
+   - Each Summary bullet is one claim that can be accepted alone, and links between
+     decisions are stated.
    - `standard` and `heavy`: back each decision independently, and keep any enumeration
      MECE and prior-art-grounded. A `light` proposal's single decision needs a rationale,
      not a taxonomy.
-   - Complete YES/NO: Approver named; every decision recommended; do-nothing present
+   - Complete YES/NO: who decides is clear; every decision recommended; do-nothing present
      *where options are enumerated*; at most three owned open questions; no item both
      decided and open; references resolve.
    - Dispatch `adversarial-reviewer` when core is installed; light gets one pass,
@@ -308,7 +331,8 @@ A written file is a draft that the maintainers adopt through their normal review
    abstain without adding a claim.
 
 9. **Return a completion receipt** with identifier, written path, updated index, status,
-   changed files, named Approver, and next step: circulate, then Approver sign-off.
+   changed files, who decides, and next step: circulate, then the decision by the
+   people the repository's rules name.
 
 ## After acceptance
 
@@ -321,17 +345,31 @@ does not make every artifact mandatory.
 When an RFC covers multiple journey phases, each phase ships its guide with the capability,
 not in a terminal documentation wave.
 
+## Supersession after acceptance
+
+Touch a frozen RFC (Accepted or Rejected) only after the superseding RFC is Accepted,
+and never for a draft. Then, for each RFC it replaces:
+
+1. Change that RFC's one header line to the mirror: `Superseded by` for a whole RFC, or
+   `Superseded in part` with the same decisions the superseding RFC names.
+2. Append an `## Errata` entry that names the superseding RFC.
+3. Edit nothing else: a frozen RFC's body stays as it is.
+
+Then run `navigate-decisions` lineage in both directions, `older` from the superseding
+RFC and `newer` from the replaced one, and confirm the edge is checked with equal
+scopes. Whole-RFC supersession is header lines on both records plus the Errata entry.
+
 ## Recording corrections (Errata / Amendments)
 
 This skill is the sole home of this convention for RFCs. Use `## Errata` for a Frozen RFC
 (Accepted/Rejected) and `## Amendments` for an in-flight Open RFC; they never coexist,
 and Amendments renames to Errata on acceptance. Entries are append-only: a later entry
-supersedes an earlier one by being later, and entries are never deleted.
+supersedes an earlier one by being later, and entries are never deleted. The merge by a
+maintainer the repository's rules name signs an entry.
 
 Use authoritative current state over a dated audit trail only after more than one entry
 exists or any entry supersedes another; current state wins on disagreement and heading
-names are the author's choice. Whole-RFC supersession is out of scope: record it as an
-Errata entry naming the superseding RFC.
+names are the author's choice.
 
 ## Anti-patterns to refuse
 
@@ -345,3 +383,7 @@ Errata entry naming the superseding RFC.
 - Recreating queue state here instead of handing it to the queue workflow when core is
   installed, or instead of listing follow-ons in the receipt when it is not.
 - Moving Errata/Amendments rules out of this skill into a seeded document.
+- Narrative history in the body: an account of how the work or a fact was found.
+- A mirror line on a frozen RFC before the superseding RFC is Accepted.
+- An invented date or deadline, including a decide-by date.
+- Filler and hedging.
