@@ -91,7 +91,7 @@ jobs:
     name: AGENTS.md hygiene
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run AGENTS.md linter
         run: python tools/lint-agents-md.py
 
@@ -99,7 +99,7 @@ jobs:
     name: Shipped guides contain no repo-only governance references
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run shipped-guide governance-reference linter
         run: python3 tools/lint-guides-no-repo-only-refs.py
 
@@ -107,7 +107,7 @@ jobs:
     name: Intents satisfy the metadata shape and ordinal-uniqueness contracts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # Runs the CLI against the REAL tree, so a non-conforming intent fails
       # this job rather than only a fixture suite. The lint exits 1 for a
       # non-conforming file and 2 for a corpus it could not fully read; both
@@ -133,7 +133,7 @@ jobs:
     name: Guide frontmatter title matches body H1
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # The linter parses frontmatter with yaml.safe_load — the same parser
       # build-site.py uses, so the gate and the generator agree on what a title
       # is. Without this install the job dies on ImportError, not a lint result.
@@ -148,7 +148,7 @@ jobs:
     name: Published guides carry complete metadata
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # jsonschema + pyyaml: without them the validator silently degrades to a
       # field-by-field fallback, so the install is part of the assertion.
       - name: Install tooling requirements
@@ -186,7 +186,7 @@ jobs:
     name: agentskills.io spec
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Install agentbundle with lint extra
         run: python -m pip install -e ./packages/credbroker -e 'packages/agentbundle/[lint]' pytest
       - name: Run skill-spec linter (projection + seeds)
@@ -198,8 +198,8 @@ jobs:
     name: Knowledge base
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install pytest
@@ -215,12 +215,12 @@ jobs:
     name: Work-loop script self-tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # The golden baseline reads its capture subject from a pinned
           # commit; the default depth of 1 cannot resolve `git show <sha>:…`.
           fetch-depth: 0
-      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install pytest
@@ -269,7 +269,7 @@ jobs:
     name: Lifecycle hooks
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # The pack-journey sync step validates changelog fragments against
           # their merge base with origin/main; the default depth of 1 has no such ref.
@@ -288,7 +288,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           fetch-depth: 0
       - name: Detect edits to existing accepted ADRs
