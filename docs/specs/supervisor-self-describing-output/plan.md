@@ -33,7 +33,7 @@ Five output changes and one release. T3 writes the routing table first, in `sess
 ## Design (LLD)
 
 ### Behavior & rules
-Traces to: AC-0002 to AC-0007. Owned by: T2, T3, T4.
+Traces to: AC-0002 to AC-0009. Owned by: T2, T3, T4.
 
 **The routing table** lives in `session-resumption.md`, step 3, which T3 retitles "Route by what `status` or `next` shows". It replaces the current table, states "first match wins, top to bottom", and gives one row per shape, each with the exact string `route` carries. This is the one statement of the routing decision: T3 also rewrites step 1 of that file, which says a refusal is "the first thing to deal with", so that it points to the table instead of ranking anything. The script strings are pinned equal to the table by a test, so they cannot drift.
 
@@ -78,7 +78,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- TDD, at `loop.report` and `_validate_result`: a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains the sent value (AC-0007). A well-formed result still passes `_validate_result` unchanged. The check is unchanged, so the tests assert no behavior for `true` or `1.0`.
+- TDD, at `loop.report` and `_validate_result`: a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains the sent value (AC-0009). A well-formed result still passes `_validate_result` unchanged. The check is unchanged, so the tests assert no behavior for `true` or `1.0`.
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_loop.py`, `packs/core/tests/skills/work-loop/test_supervisor_results.py`
 
@@ -89,7 +89,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0005), and that step 1 no longer holds the sentence "the first thing to deal with" and points to the table (AC-0009).
+- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0007), and that step 1 no longer holds the sentence "the first thing to deal with" and points to the table (AC-0011).
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
@@ -100,7 +100,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T1, T3
 
 **Tests:**
-- TDD, at `main(argv)` for `status` and `next`: one case per table row and verb, asserting the answer's `route` equals the table's string for its shape, with the row 2 case built from a run that has live leftovers and no divergence (AC-0002, AC-0004); one case each for the pin-check `supervisor-changed` refusal and the unsupported-ref-storage refusal on `status` (AC-0002), and for the lock and internal-error refusals on `status`, each produced by a forced fault because `status` takes no lock (AC-0002) and the pin-check refusal on `next` (AC-0004); a usage error on `status` and on `next` carries no `route`, and a second in-process call after a `status` call does not inherit its routing context (AC-0002, AC-0004); a capped run with no refusal and no earlier gate gives the cap string on `status` and on `next`, and a capped run with a standing refusal gives the cap string on `status` and the refusal row on `next` (AC-0003); no `route` contains a refusal's `detail` and every one is 160 characters or fewer (AC-0005); `status --check` exit codes equal the values the existing tests assert (AC-0006).
+- TDD, at `main(argv)` for `status` and `next`: one case per table row and verb, asserting the answer's `route` equals the table's string for its shape, with the row 2 case built from a run that has live leftovers and no divergence (AC-0002, AC-0004); one case each for the pin-check `supervisor-changed` refusal and the unsupported-ref-storage refusal on `status` (AC-0002), and for the lock and internal-error refusals on `status`, each produced by a forced fault because `status` takes no lock (AC-0002) and the pin-check refusal on `next` (AC-0004); a usage error on `status` and on `next` carries no `route`, and a second in-process call after a `status` call does not inherit its routing context (AC-0005); a capped run with no refusal and no earlier gate gives the cap string on `status` and on `next`, and a capped run with a standing refusal gives the cap string on `status` and the refusal row on `next` (AC-0003); no `route` contains a refusal's `detail` (AC-0006) and every one is 160 characters or fewer (AC-0007); `status --check` exit codes equal the values the existing tests assert (AC-0008).
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_route.py`
 
@@ -111,7 +111,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T1, T4
 
 **Tests:**
-- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json`, and holds no `BLOCKED` text (AC-0008), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0009), that `state-schema.md` lists `route` among the `status` keys (AC-0009), and that each string in `work-supervisor.py` equals its row in the routing table.
+- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json`, and holds no `BLOCKED` text (AC-0010), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0012), that `state-schema.md` lists `route` among the `status` keys (AC-0013), and that each string in `work-supervisor.py` equals its row in the routing table.
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
@@ -122,18 +122,18 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T5
 
 **Tests:**
-- Goal-based: `evals.json` loads, ids are unique, and one new case carries the `prompt`, `expected_output` and `assertions` of AC-0010.
+- Goal-based: the pin test loads `evals.json` and asserts that the id `undispatchable-reviewer-follows-roster-rule` is present, that its prompt names a reviewer role that cannot be dispatched, and that its `expected_output` and `assertions` are non-empty (AC-0014); ids stay unique.
 
-**Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`
+**Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** `python3 -c "import json;json.load(open('packs/core/.apm/skills/work-loop/evals/evals.json'))"` exits 0, all `id` values are unique, the new id is present, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green.
+**Done when:** the pin test is red before the case is added and green after, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green.
 
 ### T7: Release the `core` patch
 
 **Depends on:** T1, T2, T3, T4, T5, T6
 
 **Tests:**
-- Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0011); `tests/roster/test_registry_upgrade_notes.py` passes.
+- Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0016); `tests/roster/test_registry_upgrade_notes.py` passes and its `_RELEASED["core"]` entry and the fragment name the version (AC-0015, AC-0017).
 
 **Approach:**
 - Run `git fetch origin` and take the next patch above the `core` version fetched `origin/main` carries when the task runs; set it in `pack.toml`, `.claude-plugin/plugin.json`, a new fragment under `docs/product/changelog.d/`, and `_RELEASED["core"]` in `tests/roster/test_registry_upgrade_notes.py`.
@@ -151,6 +151,6 @@ Ships as one patch release of `core`. Reversible by revert. Closeout, after `ter
 - A caller compares a whole `status` or `next` object: mitigated by the additive key and unchanged tests.
 - Models pipe `status` and `next` output, so `route` may go unseen: accepted; the spec records it as unmeasured.
 - Main ships `core` while the run is open: T7 takes the next patch above fetched main and Closeout re-checks before push.
-- The installed copy is stale for pinned-script edits until the run's `regenerate` request, and for reference-only edits until Closeout: roster projection tests fail until then and are excused.
+- The installed copy is stale until the run's `regenerate` request, which rebuilds the whole skill tree, references and evals included, before `terminal`: the roster projection tests that compare the installed copy with the pack source fail until then and are excused.
 
 ## Changelog
