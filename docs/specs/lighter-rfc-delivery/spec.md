@@ -1,6 +1,6 @@
 # Spec: Lighter RFC delivery
 
-- **Status:** Approved
+- **Status:** Implementing
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0114, RFC-0091, ADR-0089
