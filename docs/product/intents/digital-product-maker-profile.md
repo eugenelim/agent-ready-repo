@@ -1,13 +1,16 @@
 # Add a digital-product-maker profile
 
 - **Slug:** `digital-product-maker-profile`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **De-risked:** 2026-11-05
 
 ## Outcome
 
-Digital product makers have a portable profile for the complete four-discipline toolkit.
+A digital product maker can install the practitioner toolkit for product strategy, product engineering and experience design in one step, and finds a journey page and first-session guide that position it against the existing profiles.
 
 ## Opportunity
 
@@ -50,3 +53,21 @@ first-session workflow, and its `ini-003` unblock is unchanged.
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 768c0a90b87e635220c3c784d7cdae67644d7e1d
+
+## Readiness
+
+Decision 2026-11-05 by the owner: ship now, option B. `inception` stays as is and a new `digital-product` profile serves the product-maker persona. The earlier wait for every `ini-003` spec is dropped: the four packs, the shared contract, the skill boundaries and the experience-design index all exist.
+
+Route: `new-spec`, one session. First slice: `profiles/digital-product.toml` (`product-strategy`, `product-engineering`, `experience-design`, `desk-research`, deps-first), the pack-profiles spec AC wording fix, a web journey page and a guide entry point. Agent-only proof: the profile-resolution tests load the profile and resolve every pack, and the guide and journey link checks pass. Checked 2026-11-05: `profiles/` holds only `full-ceremony`, `inception` and `solution-architect`. The profile is CLI-only by ADR-0107.
+
+## Non-goals
+
+- Changing `inception`, `solution-architect` or `full-ceremony`.
+- Bundling `frontend-engineering` or `core` into the profile; they install separately.
+- An aggregate Claude plugin, which ADR-0107 rules out.
+
+**Riskiest assumption:** the profile's pack set resolves deps-first with the existing profile machinery and fits the pack-profiles contract. Tested agent-only by the profile-resolution tests loading the new profile and resolving every pack.
+
+## De-risk result
+
+2026-11-05. Built a scratch catalogue copy with a draft `digital-product` profile (`desk-research`, `product-strategy`, `product-engineering`, `experience-design`, user scope). `agentbundle list-profiles` lists it with scope `user`, and `agentbundle install --profile digital-product --dry-run` plans all four packs in order (two to install, two already present) with no error. The three new-pack allowed scopes include `user`. Verdict: supported. The journey page, guide entry and pack-profiles spec AC wording were not tested; they stay in the work-loop session.

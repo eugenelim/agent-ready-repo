@@ -1,10 +1,14 @@
 # Live credential transcripts
 
 - **Slug:** `live-credential-transcripts`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/atlassian-sso-cookie AC19](../../specs/atlassian-sso-cookie/spec.md)
+
+## Disposition — withdrawn 2026-11-05, decided: no tightening; the manual transcripts stay with their captured item
+
+**Do not shape this intent.** The `success_url_pattern` question is decided: do not tighten host validation in the broker capture layer. Cookie sending is already confined by AC4, AC5, AC6 and AC20 of `atlassian-sso-cookie`, `login_url` may legitimately use an off-domain identity provider, and under RFC-0084 a capture-layer check is defense in depth that cannot become a same-principal boundary. The six platform transcripts need real platform stores and an approved corporate-SSO endpoint, so no agent session can record them. They stay tracked by the open captured item `credential-broker-contract-manual-qa`, which is the oracle for AC42 of `credential-broker-contract`. Two follow-ups are left for the owner, neither blocking: amend AC42 to accept a CI operating-system matrix for the `creds` rows, and mark deferred AC19 of `atlassian-sso-cookie` as won't-do. Both edit frozen spec text and the roster test `tests/roster/test_credential_broker_contract_docs.py` together. Reopen if a live-DC transcript shows the broker captured a cookie for a host outside `cookie_domains`.
 
 ## Outcome
 

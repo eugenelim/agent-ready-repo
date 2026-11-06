@@ -160,3 +160,4 @@
 | 0156 | [Work-loop concurrency is admitted only on attested read coverage, and otherwise runs sequentially](0156-work-loop-concurrency-needs-attested-read-coverage.md) | Accepted | 2026-11-04 |
 | 0157 | [Work-loop approval gates park instead of halting, bound to exact digests](0157-work-loop-approval-gates-park-instead-of-halting.md) | Accepted | 2026-11-04 |
 | 0158 | [Review obligation policy: a two-round cap and diff-derived review tiers on the supervisor's review gate](0158-review-obligation-policy-round-cap-and-tiers.md) | Accepted | 2026-11-05 |
+| 0160 | [Concurrent attempts isolate in host-contained plain directories on Git 2.41 or later](0160-concurrent-attempts-isolate-in-host-contained-plain-directories.md) | Accepted | 2026-11-05 |

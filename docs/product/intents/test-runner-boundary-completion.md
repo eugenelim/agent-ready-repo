@@ -1,9 +1,12 @@
 # Test runner boundary completion
 
 - **Slug:** `test-runner-boundary-completion`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
+- **De-risked:** 2026-11-05
 - **Governed by:** [spec/build-check-coverage-gaps runner-boundary follow-on](../../specs/build-check-coverage-gaps/spec.md); [spec/site-browser-quality-gate review](../../specs/site-browser-quality-gate/spec.md)
 
 ## Outcome
@@ -33,3 +36,23 @@ Extend the runner/no-runner discipline to `tools/test*.py`. Re-inventory the cur
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+**Riskiest assumption:** the 14 files found by basename search are true orphans, with no sweep that runs them. Agent-only test: list the files collected by the `make test` pytest lines and runners with `make -n test` and `pytest --collect-only`, and confirm none of the 14 appears.
+
+## Non-goals
+
+- No test is deleted to clear the inventory; each of the 14 gets a runner or a recorded no-runner reason.
+- Sanctioned archival no-runner cases such as `tools/test_guide_typed_asides.py` stay as they are.
+- The `docs-wayfinding.spec.ts` exclusion from the deploy gate stays; only unrecorded specs need a disposition.
+
+## Readiness
+
+Route: new-spec, one session.
+
+Inventory taken 2026-11-05 by searching `Makefile`, `.github/`, `tools/repo/`, `tools/*.py`, `tests/` and the catalogue tooling for each basename: 14 `tools/test*.py` files have no named runner. Eleven `test_*.py` files pass when run directly (166 passed, 6 subtests, 22 s): `test_add_rendering_directives`, `test_agents_md_readability_floor`, `test_brief_slug_matches_filename`, `test_build_site_dry_run`, `test_check_output_readability`, `test_enterprise_rollout_playbook`, `test_lint_agents_md_progressive_disclosure`, `test_lint_harness`, `test_live_demo_guide`, `test_score_cognition` and `test_score_finding_responses`. Three hyphenated scripts are also unreferenced: `test-check-atlassian-phase3-readiness.py` (2 of 15 tests fail), `test-check-contract-drift.py` (exits 1) and `test-release-jsonl-otlp-exporter-workflow.py` (passes under pytest, 6 tests). The e2e side is settled for `docs-wayfinding.spec.ts` (recorded in `EXCLUDED_BY_SCOPE`); `docs-asides.spec.ts` and `screenshots.spec.ts` still need a recorded disposition.
+
+First slice: a stdlib lint, modelled on `_NO_RUNNER` in `tools/lint-pack-test-boundary.py`, that fails when a `tools/test*.py` has neither a runner nor a recorded no-runner reason; wire the 12 passing files into runner lines, and give the two failing ones a fix or a recorded reason. Proof: the lint passes on the real tree and fails on a seeded unlisted test file.
+
+## De-risk result
+
+2026-11-05. Ran `make -n test` and `make -n build-check` and counted each of the 14 file names in the printed commands; earlier searches of `.github/`, `tools/repo/` and `tests/` found none either. Result: 0 of 14 appear in any command, so none is collected by a sweep or a runner. Verdict: the assumption holds, the 14 are true orphans. Two of them also fail when run directly (`test-check-atlassian-phase3-readiness.py` 2 of 15 tests, `test-check-contract-drift.py` exit 1), so wiring them in needs a fix or a recorded no-runner reason first.

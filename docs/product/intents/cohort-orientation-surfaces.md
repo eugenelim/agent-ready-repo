@@ -2,8 +2,11 @@
 
 - **Slug:** `cohort-orientation-surfaces`
 - **Level:** feature
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 - **Parent intent:** none
 
 **Refreshed 2026-11-04 by eugenelim.** Commit `e49f8f8aa` (2026-10-15) removed the guide hub's "flagship" and "most rigorous" language, so that residue item is delivered and no longer carried.
@@ -170,9 +173,7 @@ owner).
 
 **Tracker:** none. The repository remains the source of truth.
 
-**Artifact:** one delivery brief with two independently shippable slices — the
-portable operating-model artifact with its README, marketing and link-preview
-renderings; and the documentation navigation and search bridge. The `job` field,
+**Artifact:** one delivery brief, [`cohort-orientation-surfaces-delivery`](../briefs/cohort-orientation-surfaces-delivery.md), with four slices (C1 to C4): the operating-model canvas with its marketing and README renderings, the job-grouped hub navigation, the cross-surface routes, and documentation search. The link-preview raster export is deferred. The `job` field,
 if it remains the chosen model, lands as an amendment to
 `guides-sidebar-generation` rather than a new spec. No RFC unless delivery
 changes a durable cross-cutting decision that the amendment cannot own.
@@ -195,3 +196,9 @@ changes a durable cross-cutting decision that the amendment cannot own.
   Rationale and every decision's basis are in
   `docs/design/discovery/team-orientation-decision-log.md`; the six screens and
   their transitions are in `docs/design/screens/team-orientation-flow.md`.
+
+## Readiness
+
+Route: brief, [`cohort-orientation-surfaces-delivery`](../briefs/cohort-orientation-surfaces-delivery.md). First slice C1: the carrier decision (one paper-first SVG, no dark variant) and a token-backed generator; proof is a reproducible generator test and a contrast script. The canvas carrier decision above is made by the agent in that slice; visual review and the raster export are named non-blocking follow-ups. Search needs a recorded mechanism decision (default a build-time static index) and sits in its own gated slice.
+
+**Riskiest assumption:** the README sanitiser keeps the chosen canvas markup. Tested agent-only by an exact-markup regression test on the rendered README and the web rendered-output test.

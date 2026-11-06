@@ -50,12 +50,15 @@ the spec corpus disagree.
 | `contracts/adapter.toml` | `docs/specs/claude-plugin-hook-parity/` |
 | `contracts/adapter.toml` | `docs/specs/distribution-route-contract/` |
 | `contracts/adapter.toml` | `docs/specs/enriched-pack-manifest/` |
+| `contracts/adapter.toml` | `docs/specs/mcp-canonical-primitive-model/` |
 | `contracts/agent-plugin-extension-namespaces.toml` | `docs/specs/portable-agent-plugin-projection/` |
 | `contracts/catalogue-spec.toml` | `docs/specs/catalogue-spec-manifest/` |
 | `contracts/catalogue-spec.toml` | `docs/specs/catalogue-spec-release/` |
 | `contracts/distribution-routes.toml` | `docs/specs/distribution-route-contract/` |
 | `contracts/distribution-routes.toml` | `docs/specs/distribution-route-registry/` |
+| `contracts/distribution-routes.toml` | `docs/specs/mcp-canonical-primitive-model/` |
 | `contracts/distribution-routes.toml` | `docs/specs/portable-agent-plugin-projection/` |
+| `contracts/route-verification.toml` | `docs/specs/route-support-verification-record/` |
 | `contracts/vendor/agent-plugins/1.0.0/LICENSE.md` | `docs/specs/portable-agent-plugin-projection/` |
 | `contracts/vendor/agent-plugins/1.0.0/PROVENANCE.md` | `docs/specs/portable-agent-plugin-projection/` |
 | `contracts/renames/pack-renames.toml` | `docs/specs/repo-governance-rename/` |

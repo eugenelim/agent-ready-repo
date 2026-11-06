@@ -1,7 +1,9 @@
 # Code-intelligence real-world usage validation
 
 - **Slug:** `native-provider-selection-validation` <!-- canonical identity; the slug and filename keep the original name so no reference changes -->
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Reset:** 2026-11-04 by eugenelim, lifecycle owner. Returned from `Accepted` to `Draft`. The accepted outcome, boundary, assumption and validation hook described a blind three-participant six-question exercise. The parent's 2026-10-08 owner scope decision replaced that exercise with guided real-world use of the `code-intelligence` pack, and the delivery spec was reopened to match. The outcome, boundary, assumptions and hook below now describe that guided validation, so the 2026-10-08 shaping review and the de-risk record no longer apply and are removed. A fresh independent shaping review is required before `Accepted`.
 - **Level:** feature
 - **Owner:** eugenelim
@@ -58,6 +60,16 @@ One slice, `native-provider-selection-validation`, projected to `new-spec`. The 
 ## Projection
 
 The [delivery spec](../../specs/native-provider-selection-validation/spec.md) owns its own review and approval. This intent's acceptance does not authorize invitations, data collection or access to any participant environment.
+
+## Readiness
+
+**Route:** new-spec, already authored in Draft (`docs/specs/native-provider-selection-validation/`), plan in Drafting.
+
+**First slice (agent-only):** plan task T1, the guided protocol, the self-serve worksheet (`docs/product/research/native-provider-selection-validation/instrument.md`), the first-session guide, the minimized result schema, and a second-reader reproducibility check run on a synthetic sample. These files exist in part already and need review, not authorship from nothing.
+
+**Manual residue, split off:** plan tasks T2 and T3 (participants return worksheets from their own legacy repositories, then an independent reading gives the owner a recommendation) need recruited people and private repositories. They become a named follow-up with no date that blocks neither the spec's shipment nor CAP-0011's lifecycle decision.
+
+**Answers.** Who takes part is declared in the protocol before any invitation, and that declaration is part of T1. The second-reader check is a T1 deliverable run offline on synthetic records.
 
 ## Source
 

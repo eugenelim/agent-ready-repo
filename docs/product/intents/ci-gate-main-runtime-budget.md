@@ -1,7 +1,9 @@
 # CI gate-main meets its runtime budget
 
 - **Slug:** `ci-gate-main-runtime-budget`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -16,7 +18,7 @@ The gate-main job completes within the shipped 200-second runtime budget on docs
 
 ## Owner
 
-- CI workflow and test-owning maintainers; no individual owner is recorded.
+- eugenelim, with the CI workflow and test-owning maintainers.
 
 ## Unresolved questions
 
@@ -49,3 +51,21 @@ Method: `gh api` run and job records for `build-check.yml`, job duration from `s
 - Locator: docs/specs/ci-gate-parallelization/notes/ci-gate-parallelization-critical-path-measurement.md
 - Revision: 79b23d2944ef2e4e534ae26331c4393aacd7360a
 - Authority: repo-origin
+
+## Non-goals
+
+- SAST configuration, export-boundary behavior, the required-check aggregator and branch protection stay as they are.
+- No test is removed or weakened to save time.
+- The first slice does not split the `make build-check` chain; earlier attempts to split it failed on implicit ordering.
+
+**Riskiest assumption:** moving the carve-out and dedup guard into a sibling job that the aggregator waits on keeps every check running and fail-closed. Agent-only test: the posture test mutation that drops the sibling from the aggregator's `needs` must fail, and a before-and-after listing of commands must show none lost.
+
+## Readiness
+
+Route: new-spec, one focused performance spec, then a second spec only if the first leaves the chain above the target below.
+
+Re-profiled 2026-11-05 from 19 completed `build-check.yml` pull-request runs: `gate-main` median 874 s (minimum 592 s, maximum 1,058 s). Steps by median: `Run make build-check` 326 s, the RFC-0082 catalogue-test carve-out 258 s, the shared-test dedup guard 29 s, everything else 17 s or less. The August and November figures above stand as the baseline; this run agrees with them within 4 percent.
+
+Answer to the budget question: the 200 s figure cannot be met by moving the carve-out alone. With the carve-out (258 s) and dedup guard (29 s) out of the job, about 587 s remain, and `make build-check` is 326 s of that. The budget is restated per slice, not dropped: the first slice targets a `gate-main` median of at most 600 s by moving those two steps into a sharded sibling job that the required aggregator waits on, copying the shard pattern in `test-corpus.yml`. Whether any further target such as 300 s is worth pursuing then depends on profiling `make build-check` step by step, which the first spec also records. The earlier attempts to split that chain failed on implicit ordering, so a second slice needs its own evidence.
+
+First slice and proof: add the sibling sharded job and make the aggregator's `needs` include it, so branch protection needs no change. An agent can verify it with `tools/test-build-check-workflow.py` (the mutation that drops the sibling from `needs` must fail) and with a `gh api` re-measurement after merge; the re-measurement is a non-blocking follow-up.

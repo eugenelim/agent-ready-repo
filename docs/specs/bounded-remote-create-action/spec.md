@@ -61,7 +61,7 @@ until that provider declares the capability.
 | --- | --- | --- | --- | --- | --- |
 | Interface compatibility | Applicable — this changes a contract four provider packs route writes through, in a repo-scope pack that ships to every adopter | `packs/core/.apm/skills/work-intake/scripts/refresh.py` and its tests | this spec | the action enumerated, validated, capability-gated and confirmation-bound at all three enforcement sites | no provider accepts the action without a declared capability and a session-fresh single-use confirmation |
 | Operations | Applicable — a new trust boundary in a shared write contract | `docs/architecture/security.md` | this spec | the create action's boundary recorded: what authorizes it, what it may write, what an unknown outcome means | the record names the capability derivation and the reconciliation obligation |
-| Release history | Applicable — `core` changes | `packs/core/CHANGELOG.md` | this spec | one entry | the pack leads its own entry |
+| Release history | Applicable — `core` changes | `docs/product/changelog.d/<fragment>.md` | this spec | one entry | the pack leads its own entry |
 | Decision rationale | Not applicable — the decision to widen the set is the lifecycle owner's, recorded in the parent brief | — | — | — | — |
 
 ## Agent Rules

@@ -1,7 +1,9 @@
 # Credential-pack defaults are safely projected
 
 - **Slug:** `credential-pack-defaults-projection`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 
@@ -16,16 +18,16 @@ Credential-pack catalogue defaults reach standard-library-only skill scripts thr
 
 ## Owner
 
-- AgentBundle distribution and credential-pack maintainers; no individual owner is recorded.
+- eugenelim, with AgentBundle distribution and credential-pack maintainers.
 
 ## Unresolved questions
 
-- Accept an RFC-0101 addendum authorizing the projection and its trust boundary.
+- Accept RFC-0112, which authorizes the projection and its trust boundary.
 - Record an ADR extending ADR-0059 with the projected file location, precedence, provenance, and update behavior.
 
 ## Projection
 
-- An RFC-0101 addendum and ADR-0059 extension followed by one focused implementation specification for installer projection and credential-pack consumption.
+- RFC-0112 and an ADR-0059 extension, followed by one focused implementation specification for installer projection and credential-pack consumption.
 
 ## Opportunity
 
@@ -45,3 +47,19 @@ A second consumer now needs the same projection: [`catalogue-level-telemetry-end
 - Locator: docs/specs/jira-check-sso-auto-login/spec.md
 - Revision: 79b23d2944ef2e4e534ae26331c4393aacd7360a
 - Authority: repo-origin
+
+## Current truth
+
+Verified 2026-11-05: no installer projection exists. Decided by the owner on 2026-11-05: project generically, for an allowlist of non-sensitive keys only. The telemetry endpoint of FEAT-0017 is the driving consumer. Sign-in destinations and authentication defaults stay refused.
+
+## Readiness
+
+- **Route:** governance first, then one new-spec. This is one implementation slice, so no brief.
+- **First step:** RFC-0112 is drafted (Draft). The owner accepting it is the only human gate; the ADR-0059 extension follows acceptance.
+- **Then:** one spec for installer projection and consumption.
+- **Agent-only proof:** a fixture catalogue that tries to supply `login_url` is refused; an allowlisted telemetry endpoint reaches a stdlib-only reader.
+- **Manual dependency:** none.
+
+## Riskiest assumption
+
+**Riskiest assumption:** a stdlib-only reader can consume an installer-written defaults file without that file becoming trusted authority. Tested agent-only with a fixture catalogue that supplies `login_url` and an authentication default (both must be refused) and an allowlisted telemetry endpoint (must reach the reader).

@@ -183,3 +183,9 @@ validation_hook:
   re-argue the kind definition. An item admitted at write time and refused here
   is a state the parent capability requires a disposition for, and no other
   artifact supplies one.
+
+## Readiness
+
+- **Route:** new-spec path, after `FEAT-0007` ships. The spec `governance-item-record-routing` is Draft (80 lines).
+- **First slice:** route a governance-shaped captured item to a record that names a decider. **Agent-only proof:** fixture items resolved to `new-adr` or `new-rfc` hand-offs, with the named decider present in every result.
+- Size: S. It can run in parallel with `FEAT-0009`.

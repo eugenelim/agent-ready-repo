@@ -248,6 +248,14 @@ capability returns to shaping.
   path.
 - Do not claim that brief arrival proves policy obedience.
 
+## Current truth (2026-11-05)
+
+**Route:** hold. V1 needs an assembly step that does not exist in the supervisor's dispatch: `select-policy-families.py` and `references/policy-families.md` exist, but no dispatch surface inlines the selected families, and the Spec map of `phase-scoped-policy-delivery` shows which assembly slices have a spec.
+
+**Cut when the blocker clears:** V1 first, as one `new-spec` over `review-artifact.py`, then V2 only if the owner approves at least one precise family with a closed predicate. With no such family, defer V2 by decision rather than carrying it as a Ready gap.
+
+**Not a dependency of anything else.** `guidance-activation-measurement` no longer waits on this brief.
+
 ## Spec map
 
 | Spec | Status |

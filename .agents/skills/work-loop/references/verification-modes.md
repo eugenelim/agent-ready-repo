@@ -272,3 +272,18 @@ the number trustworthy.
   often is not faster.
 - Report one vetted number per claim, with the command that produced it.
 - The measurement writes no red test: there is no red to earn.
+
+## Gate selection for a repository change
+
+Before writing a task's `Done when:`, find the check the repository declares
+for the paths the task touches. A repository declares its checks in its
+agent-guidance files, build files, and pipeline definitions; a kind of file the repository does not
+have is skipped, not reported as a gap. Those places are not verify entries
+(see Verify entries), which are saved recipes for driving one surface.
+
+- When a check covers those paths, the task's `Done when:` names it.
+- When none exists, say so in the plan. A check the repository has not
+  declared is not named as if declared. As elsewhere, confirm the mechanism
+  exists before claiming the mode, task zero if it doesn't.
+- A check that rewrites files is run, and its output read, before the task is
+  called done.

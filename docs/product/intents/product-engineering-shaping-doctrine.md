@@ -192,3 +192,7 @@ Re-decompose if protocol transport or adapter implementation enters scope.
 - Mode: repo-origin
 - Locator: docs/rfc/0071-digital-experience-doctrine.md
 - Revision: a03b9d3f8df15a9b88cdabda5c10f21c662bfd0f
+
+## Readiness
+
+Route: `new-spec`, one session. First slice: add the thin-slice, evidence-class and learning-contract fields to the `place-bet` artifact and retire the `G0`/`G1.5`/`G2` codes from `DESIGN.md`, `JOURNEY.md` and the discovery-loop skill. Agent-only proof: a repository search finds no remaining code citation, and a fixture bet with the new fields validates. Checked 2026-11-05: `place-bet` has none of the three fields. Run the search for every citation of the old codes (guides, evals) before the spec is approved, so the rename does not strand a reference.

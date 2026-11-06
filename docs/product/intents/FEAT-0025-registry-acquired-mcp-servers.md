@@ -30,6 +30,12 @@ identity, provenance trust policy, and lifecycle-script policy are approved.
 - **Riskiest assumption:** an acquisition descriptor can make registry-sourced MCP server execution reviewable enough to consider, rather than refusing the route outright.
 - **Knowledge surface:** In-repository RFC-0092 D7, distribution-route trust boundaries, and the registered follow-on source.
 
+## Readiness
+
+- **Route:** none yet. Parked, not shapeable. The work is an RFC (typed immutable acquisition descriptor, provenance policy, lifecycle-script policy), not a work-loop session, and it builds on FEAT-0021.
+- **Trigger to resume:** FEAT-0021 has shipped and an adopter asks for registry-acquired servers. Until then registry acquisition stays refused at the build boundary.
+- **Status stays `Draft`:** the closed status set has no parked state, and `Draft` means open.
+
 ## Source
 
 - Mode: repo-origin

@@ -1,10 +1,14 @@
 # Attribute pytest temporary trees to their worktrees
 
 - **Slug:** `pytest-tmpdir-worktree-attribution`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [RFC-0097 worktree attribution](../../rfc/0097-agent-skill-engineering.md)
+
+## Disposition — withdrawn 2026-11-05, decided: not worth doing now
+
+no incident is recorded for dead-worktree pytest temporary trees, no `TMPDIR` or `basetemp` setting exists in `pyproject.toml`, `Makefile` or any `conftest.py`, and the only trace is an RFC-0097 backlog row that says "keep open". Reopen with a measured case of temporary trees that could not be reclaimed.
 
 ## Outcome
 

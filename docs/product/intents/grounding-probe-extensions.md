@@ -1,21 +1,19 @@
 # Grounding probe extensions: authority closure and document contracts
 
 - **Slug:** `grounding-probe-extensions`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Kind:** outcome
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** capability:work-loop-delivery-efficiency
-- **Depends on:** spec:acceptance-criteria-set-construction
 
 ## Outcome
 
-- **Steerable input:** Add the two probes ranked in
-  [the grounding-probes survey](../research/repository-grounding-probes-survey.md)
-  that were not cheap enough to ship with the first set — authority and
-  projection closure, and the executable document-contract check.
+- **Steerable input:** An author about to change a file sees the generated mirrors, manifest and release surfaces around it, and any parser that governs a document they are about to write, before the build finds either.
 - **Lagging outcome:** An author learns that a file they are about to change has
   generated mirrors, a manifest, and a release surface around it, and that a
   document they are about to write is parsed by something with an opinion about
@@ -145,6 +143,29 @@ Deciding where the parseable boundary sits is prior to building anything.
 - Does the closure probe overlap `lint-generated-path-ownership.py`, which
   already exists? Settle before building; an existing owner is a reason to cite
   rather than duplicate.
+
+## Riskiest assumption
+
+**Riskiest assumption:** a file's role in the closure graph can be asserted from two mechanical signals (a generator edge plus a matching relative path, or a manifest declaration plus content parity) with no judgement. Tested agent-only: fixture pairs per signal, then the probe on three real seeds with each reported surface adjudicated by hand against the tree; a precision below the shipped probes' calibration stops the slice.
+
+## Non-goals
+
+- Re-deriving the explorer, its staging or its calibration, which `new-spec` owns.
+- Any blocking behaviour, any new configuration file (ADR-0037 D2), and any repository-wide index, graph or parse.
+- Executing arbitrary repository code to check a document contract.
+- The surface-to-verifier probe, which measurement refused, and a claim-seeded probe.
+
+## Readiness
+
+**Route:** new-spec, one slice.
+
+**First slice:** the closure probe, narrowed to what is still missing. Run on `packs/core/.apm/skills/work-loop/references/mutation-proof.md`, `explore-grounding.py --phase discovery` already reports the two generated mirrors under `copies of seed`. It does not report the manifest and version surfaces a pack change spans, and it does not say which guards read the compiled projection. `tools/lint-generated-path-ownership.py` passes on this tree and answers a different question, one declared producer per destination, so the spec cites it and does not duplicate it.
+
+**Agent-only proof:** a fixture pair per signal (a seed with a version surface and a seed without), the probe run on this tree for three real seeds with the basis printed, and the existing probes' output unchanged.
+
+**Answers.** The role in the closure graph is assertable from a generator edge plus a matching relative path, and from a manifest entry plus content parity, so no judgement is needed. The document-contract probe waits: it needs a decision about executing a consumer's parse mode, so it is a separate follow-up and not in this slice. The surface-to-verifier and claim-seeded probes stay refused. The module-no-test-names-it idea is a coverage lint, not an authoring probe, and is not built here.
+
+**Dependency:** none. The earlier dependency on `acceptance-criteria-set-construction` is satisfied and removed.
 
 ## Source
 

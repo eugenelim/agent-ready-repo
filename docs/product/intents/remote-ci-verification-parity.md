@@ -4,6 +4,7 @@
 - **Status:** Accepted
 - **Level:** feature
 - **Owner:** eugenelim
+- **Decomposed:** 2026-11-05 brief
 - **Outcome co-owner:** intent:native-platform-verification-coverage
 - **Nonmaterial correction 2026-11-04 by eugenelim, lifecycle owner.** The Decomposition and the "Slice 1 is smaller than its description implies" paragraph describe dispatch reach as future work. In the tree today `build-check.yml` and `pages.yml` declare `workflow_dispatch`, and `test-corpus.yml`, `test-roster.yml` and `pack-javascript.yml` are dispatch-reachable lanes. The Python corpus has a lane, so "no job runs it" no longer holds. No completion claim, native macOS lane, dispatchable native Windows contract or full composition exists, so Outcome, Boundary and Projection are unchanged and the intent stays `Accepted` and unfulfilled. The spec `docs/specs/remote-gate-dispatch/`, which `tools/lint-ci-parity.py` and `test-corpus.yml` cite, is absent from `docs/specs/`, so the delivered map cannot be read from it.
 
@@ -197,3 +198,9 @@ Recent evidence supports a single feature with ordered construction rather than 
 - Locator: chat/remote-ci-uplift
 - Revision: 2026-09-03
 - Authority: transferred-to-repository
+
+## Readiness
+
+Route: brief, [`remote-ci-verification-parity-delivery`](../briefs/remote-ci-verification-parity-delivery.md). Checked 2026-11-05: dispatch reach exists for build, SAST, the Python corpus and the site gate; `gate-sast` has no `actions/setup-node`, so the npm SCA leg runs under the runner default Node; no `make ci` composition workflow exists; native macOS and Windows dispatch belong to `native-platform-verification-coverage`. First slice R1 adds Node parity and is proved by the build-check posture test with a mutation. The single recorded dispatch of each new workflow after merge is a non-blocking follow-up.
+
+Decided 2026-11-05 by eugenelim: the brief's verdict is `ci-complete` (everything `make ci` runs plus the extra `build-check.yml` jobs), narrower than this Outcome's "complete". Native Windows and macOS remain with `native-platform-verification-coverage`, and a full `complete` verdict is added when those lanes land. The brief's R3 and R4 keep all completion-claim obligations.

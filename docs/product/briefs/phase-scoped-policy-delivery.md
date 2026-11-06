@@ -354,6 +354,14 @@ semantic fields, and the Spec map may be empty.
   selected and assembled; the validator owns arrival and verdict checks.
 - Do not use a host hook to compensate for a missing dispatch envelope.
 
+## Current truth (2026-11-05)
+
+**What has a spec:** see the Spec map. The selector and its registry exist as `select-policy-families.py`, and `references/policy-families.md` holds the registry data.
+
+**What has no spec:** D2 and D3, the assembly and digest steps. D2 inlines selected teaching into the dispatch brief of an agent that `spec-author-agent` has not yet defined, so D2 waits on that brief's own cut. D3 targets the supervisor's sequential implementer dispatch (`sequential-implementer-dispatch` is in the `universal-implementer-dispatch` Spec map) and can be cut now: it needs the supervisor's current dispatch envelope, not the removed engine's. Re-read the "Current delivery contract" section against `references/supervisor.md` before cutting.
+
+**Route for D3:** one `new-spec`. Agent-only proof: a construction test that the bytes handed to the implementer contain every family the selector returns for the task's phase.
+
 ## Spec map
 
 | Spec | Status |

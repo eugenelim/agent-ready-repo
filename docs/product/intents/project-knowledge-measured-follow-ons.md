@@ -1,10 +1,14 @@
 # Project-knowledge measured follow-ons
 
 - **Slug:** `project-knowledge-measured-follow-ons`
-- **Status:** Draft
+- **Status:** Superseded
+- **Superseded by:** project-knowledge-adoption-closeout
 - **Level:** capability
 - **Owner:** eugenelim
-- **Depends on:** capability:project-knowledge-adoption-closeout
+
+## Disposition — superseded 2026-11-05 by `project-knowledge-adoption-closeout`
+
+The four follow-ons below activate only on closeout evidence, so a separate capability adds nothing until that evidence exists. [project-knowledge-adoption-closeout](project-knowledge-adoption-closeout.md) now owns the measurement and the keep, activate or close decision for each. The Decomposition below stays as the record of each follow-on's trigger and constraints.
 
 ## Outcome
 

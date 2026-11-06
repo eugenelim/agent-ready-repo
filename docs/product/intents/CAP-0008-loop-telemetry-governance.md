@@ -1,13 +1,17 @@
 # Loop telemetry governance
 
 - **Slug:** `loop-telemetry-governance`
-- **Status:** Draft
+- **Status:** Withdrawn
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
 - **Maturity:** brownfield
 - **Parent intent:** none
 - **Decomposed:** 2026-10-02 children
+
+## Disposition — withdrawn 2026-11-05, decided: both children are terminal and no repository work remains
+
+**Do not shape this capability.** [FEAT-0016](FEAT-0016-loop-telemetry-contract-corrections.md) was withdrawn on 2026-11-04 with the verification ledger as the durable account. [FEAT-0015](FEAT-0015-loop-telemetry-event-vocabulary.md) is withdrawn with its answers recorded and waits for the ecosystem's INI-005. The shipped sender, its configuration, and the enterprise endpoint default are owned by other records ([FEAT-0017](FEAT-0017-catalogue-level-telemetry-endpoint-default.md) for the endpoint), so this capability has nothing left to hold.
 
 ## Outcome
 

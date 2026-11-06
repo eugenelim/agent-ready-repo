@@ -4,7 +4,11 @@
 - **Level:** capability
 - **Scale:** app
 - **Owner:** eugenelim
-- **Status:** Draft
+- **Status:** Withdrawn
+
+## Disposition — withdrawn 2026-11-05, the bounded checker is the permanent shape
+
+**Do not shape this on its own.** `tools/check_distribution_route_decisions.py --check` reports 0 decisions over 145 files. A comparison of a contract-derived route identity planted in a scratch copy of `build/self_host.py` also reports 0 findings, so the module-local bound is real and stays in the checker's recorded `limits`. No route identity (`apm-package`, `claude-plugin`, `agent-plugin-root-manifest`) is compared anywhere in `packages/agentbundle/agentbundle` outside the route modules, so the number of route decisions the bound could hide today is zero. Reopen only if a route decision appears in shared code. The cross-module analysis from the registry slice's review stays recoverable from that branch's history.
 
 ## Outcome
 

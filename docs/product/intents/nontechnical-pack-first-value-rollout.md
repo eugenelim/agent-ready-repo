@@ -1,7 +1,10 @@
 # Nontechnical-pack first-value rollout
 
 - **Slug:** `nontechnical-pack-first-value-rollout`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
+- **De-risked:** 2026-11-05
 - **Level:** capability
 - **Owner:** eugenelim
 - **Decomposed:** 2026-09-10 children
@@ -18,8 +21,16 @@ RFC-0064 Amendment #4 established the cross-pack adoption contract and the
 architect, Figma, and governance pilots now supply evidence for shaping the
 remaining rollout without imposing one generic onboarding flow.
 
+## Non-goals
+
+- One generic onboarding flow for every pack.
+- Public outcome-to-pack routing (a separate design follow-on).
+- P5 role guides and the enterprise rollout playbook, which keep their own phasing.
+- **Unowned until the audit:** tutorial and evidence gaps for the other Level B packs have no child; the audit in Readiness names them and each gap then gets one.
+
 ## Assumptions
 
+- **Riskiest assumption:** the remaining Level B packs lack tutorial and evidence coverage beyond the first-value contracts they already carry (nine of ten, measured 2026-11-05). Agent-only test: the audit in Readiness lists each pack's contract, tutorial, and eval evidence, and finds zero or more gaps without any live service.
 - Each pack slice includes its guide, first-value surface, safety boundary,
   recovery path, and evaluation evidence.
 - Existing P2/P3/P4 guides and tutorials are audited before new work is
@@ -58,6 +69,8 @@ which is Claude Code and therefore already covered by the
 | --- | --- | --- |
 | [`claude-apps-first-value-entry`](claude-apps-first-value-entry.md) | A no-terminal public route into installing at least one discipline pack in the Claude apps, plus one first-value walkthrough — as a *consumer* of each pack's `[pack.first-value]` contract | Draft; unblocked by the 2026-09-10 narrowing above |
 
+**Named child, not yet created:** one slice per tutorial or evidence gap that the audit in Readiness finds for the other Level B packs. Until the audit runs, those gaps have no child.
+
 Two further constraints every Claude-apps slice inherits:
 
 - **Registration is per surface.** Claude Code and the Claude apps keep separate
@@ -76,6 +89,20 @@ Two further constraints every Claude-apps slice inherits:
 owns walkable static guidebooks and makes no first-value claim. This capability
 keeps pack-specific first-value adoption slices, including their surface,
 safety, recovery, and evaluation evidence.
+
+## Readiness
+
+- **Route:** not ready for a brief. First step is an agent-only audit (direct-light, one session) that lists, for each of the ten Level B packs named in RFC-0064 Amendment 4, whether it has a `[pack.first-value]` record, a tutorial, and eval evidence.
+- **Measured 2026-11-05:** nine of the ten Level B packs carry `[pack.first-value]` with a starter task and a next action in `pack.toml`; `user-guide-diataxis` does not. The architect and figma pilot specs and the contract spec are Shipped; no governance pilot spec exists under `docs/specs/`, though the intent's `Depends on` names only the first two. The remaining work is therefore per-pack tutorial and evidence gaps, not contracts.
+- **Next step after the audit:** one slice per gap, authored as a brief only if more than two gaps exist; otherwise one spec each. The only recorded child, `claude-apps-first-value-entry`, proceeds on its own.
+- **Close or narrow:** if the audit finds no gaps beyond the Claude-apps slice, close this capability when that slice ships.
+
+## De-risk result
+
+- **Date:** 2026-11-05.
+- **Ran:** a read-only count for the ten Level B packs of `[pack.first-value]` in `pack.toml`, files under `guides/<pack>/tutorials/`, and `evals.json` files under `packs/<pack>`.
+- **Observed:** nine of ten have a first-value record (only `user-guide-diataxis` lacks it). Six of ten have tutorial files; `atlassian`, `converters`, `experience-design` and `user-guide-diataxis` have none under `tutorials/`. Every pack has at least one `evals.json` (1 to 12 files).
+- **Verdict:** supports the assumption. Four candidate gaps exist, so the audit has real work. The count is a directory check only: a pack may carry tutorial content under another name (`atlassian` has top-level how-to files), so the audit still reads each guide before a slice is cut.
 
 ## Source
 

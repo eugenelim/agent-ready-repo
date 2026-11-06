@@ -1,7 +1,9 @@
 # First-class distribution routes
 
 - **Slug:** `first-class-distribution-routes`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** capability
 - **Owner:** eugenelim
 - **Scale:** app
@@ -60,3 +62,11 @@ than silently widening the delivered MCP boundary.
 6. **Kiro profile** — [FEAT-0023: Kiro Power route profile](FEAT-0023-kiro-power-route-profile.md)
 7. **Migration and claims** — [FEAT-0024: Claude manifest migration and support claims](FEAT-0024-claude-manifest-migration-support-claims.md)
 8. **Deferred acquisition trust** — [FEAT-0025: Registry-acquired MCP servers](FEAT-0025-registry-acquired-mcp-servers.md)
+
+## Readiness
+
+- **Route:** the parent needs no session of its own. Delivery is the children below, sequenced by the [programme brief](../briefs/distribution-routes-programme.md).
+- **Verified 2026-11-05:** the contract, portable projection, and registry specs are Shipped; `contracts/distribution-routes.toml` has three routes and the schema refuses a fourth; no MCP primitive, Codex route, or Kiro route exists in `packages/agentbundle` or `contracts/`.
+- **Order, corrected:** FEAT-0020 and FEAT-0021 are independent and run in parallel (the programme's hard edge for MCP is the registry, which is shipped). FEAT-0022 needs both. FEAT-0023 needs only the portable projection (shipped) and is simpler after FEAT-0020. FEAT-0024 needs only the route contract for its first slice. The numbered list above is a preference, not a gate.
+- **Briefs:** [FEAT-0021](../briefs/canonical-mcp-install-parity-delivery.md), [FEAT-0022](../briefs/codex-plugin-route-delivery.md), and [FEAT-0024](../briefs/claude-manifest-migration-support-claims-delivery.md) each have a Draft brief. FEAT-0020 and FEAT-0023 each take one spec. FEAT-0025 waits for its trigger.
+- **Close when:** FEAT-0024 ships and the programme brief's Spec map is fully Shipped.

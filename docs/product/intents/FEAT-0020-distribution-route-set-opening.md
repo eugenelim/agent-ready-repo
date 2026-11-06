@@ -1,7 +1,9 @@
 # Distribution route set opening
 
 - **Slug:** `distribution-route-set-opening`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Scale:** app
@@ -67,6 +69,16 @@ or add a real fourth route.
 - The dispatch extraction and surface completion ship first, in
   `docs/specs/distribution-route-registry/`. This intent is what remains after that
   slice deliberately excluded schema genericization.
+
+## Readiness
+
+- **Route:** `new-spec`, full mode, with a security review. It changes a trust boundary: handler discovery and path-shaped values.
+- **Verified 2026-11-05:** a fourth route copied from `apm` into `contracts/distribution-routes.toml` is refused by the schema with `Additional properties are not allowed ('fourth' was unexpected)`. The base contract validates with zero errors. The set is still closed.
+- **Design answer to the riskiest assumption:** keep the compatibility pins in the contract layer, not in handlers. One reusable route schema shape holds the structure. A separate compatibility table in the contract, owned by the route-contract spec and not by any handler, holds the per-projector value pins. A handler can then name which table row it uses but cannot add values.
+- **First slice and its agent-only proof:** write the two failing proofs first. (1) A synthetic fourth route resolves and builds through the production loader. (2) A synthetic tenth capability projects on every declared route. Then add confinement fixtures for `target-path`, `output-subdir`, and an `identity` that differs from its table key. All run offline in `pytest`.
+- **Authority:** RFC-0092 governs. Recent engine commits on `route_claude_plugins.py` cite RFC-0092 in their `Engine-Change-RFC:` trailer.
+- **Size:** two sessions (schema and loader, then confinement and discovery trust boundary).
+- **Order in the programme:** parallel with FEAT-0021. It is required by FEAT-0022 and makes FEAT-0023 simpler.
 
 ## Source
 

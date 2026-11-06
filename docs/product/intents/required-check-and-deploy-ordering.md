@@ -1,7 +1,9 @@
 # Required checks and Pages deployments preserve their intended ordering
 
 - **Slug:** `required-check-and-deploy-ordering`
-- **Status:** Draft
+- **Status:** Accepted
+- **Accepted:** 2026-11-05 by eugenelim, lifecycle owner. A fresh independent intent-mode shaping review on 2026-11-05 returned zero MALFORMED tokens.
+- **Shaping-reviewed:** 2026-11-05
 - **Level:** feature
 - **Owner:** eugenelim
 - **Governed by:** [spec/ci-gate-parallelization AC3](../../specs/ci-gate-parallelization/spec.md); [spec/pages-concurrency-isolation AC3](../../specs/pages-concurrency-isolation/spec.md)
@@ -38,3 +40,16 @@ The Pages deploy lane serializes but does not order deployments, so an older com
 - Mode: repo-origin
 - Locator: workspace.toml
 - Revision: 581dd8b7aefba04f566e4ea9a3213da8c6afb55d
+
+## Non-goals
+
+- No repository ruleset requiring a pinned-ref workflow and no `CODEOWNERS` entry; the owning spec accepts that residual and a second-reviewer rule would block the sole maintainer.
+- No branch-protection or ruleset change is made by an agent; reading the sanitized ruleset stays a manual follow-up.
+
+**Riskiest assumption:** comparing `github.sha` with the tip of `main` inside the `deploy` job is enough to stop an older commit publishing last. Agent-only test: `tools/test-pages-concurrency.py` with a mutation that removes the guard must fail, and a case where the SHA differs from the tip must skip the deploy.
+
+## Readiness
+
+Route: direct-light for the agent part, with the ruleset questions split off as a named manual follow-up.
+
+Checked 2026-11-05: the `deploy` job in `.github/workflows/pages.yml` still has `group: pages` and no commit-order guard. First slice: the deploy job runs only when `github.sha` still equals the tip of `main`, proved by `tools/test-pages-concurrency.py` with a mutation that removes the guard. Recommended answer on the pinned-ref ruleset: do not pursue it. The owning spec accepts the residual, and a second-reviewer rule would block the sole maintainer. Whether the Pages `build:` job is a required context is a read of the sanitized ruleset through `gh api`; that read and any decision from it is a manual, non-blocking follow-up and does not gate the guard.

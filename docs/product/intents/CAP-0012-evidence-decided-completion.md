@@ -53,10 +53,9 @@ Non-goals:
 
 ## Unresolved questions
 
-- The parent strategy's boundary places the loops that execute its doctrine
-  under [Platform Core](STRAT-0002-platform-core.md). Whether this capability
-  belongs under the operating-model strategy, or under Platform Core or its
-  successor, is the owner's decision.
+- **Answered 2026-11-05:** the loops that execute the parent's doctrine sit under
+  [Platform Core](STRAT-0002-platform-core.md), and that is where this
+  capability's accountability stays. The `Parent intent:` pointer is unchanged.
 
 ## Projection
 
@@ -81,6 +80,14 @@ The cut does not overlap: the first brief decides against whatever criteria are
 accepted, and the second adds one class of criteria without deciding
 completion. Together they cover both parts of § Boundary. New work enters this
 tree only as a further child with its own part of the outcome.
+
+## Readiness
+
+**Route:** none for the capability. Both delivery briefs carry it: `repository-grounding-preservation` has closed its cut, and `acceptance-centered-work-loop` owns the rest.
+
+**What remains, by the brief's own slice table:** slice 6 (Pi runtime compatibility, optional), slice 7 (verified-infrastructure parallelism, unblocked by ADR-0156) and slice 8 (legacy-engine cutover). None has a spec yet. Each is one `new-spec` slice, and slice 7 is the next to cut.
+
+**Riskiest assumption, updated.** The brief's slices 1 to 5 now exist as shipped acceptance, review-boundary, supervisor and protected-ref code, so admissible evidence for completion is named in running code. What stays untested is evidence for the remaining slices.
 
 ## Source
 
