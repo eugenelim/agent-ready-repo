@@ -748,6 +748,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest promotion drain surfaces (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest intake transaction lock recovery (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest retired-name pinned sites (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest brief lifecycle single home (roster-owned)":
@@ -1173,6 +1175,7 @@ _GATE_MAIN_CHECKS = (
     "pytest promotion drain repair (roster-owned)",
     "pytest promotion drain run (roster-owned)",
     "pytest promotion drain surfaces (roster-owned)",
+    "pytest intake transaction lock recovery (roster-owned)",
     "pytest retired-name pinned sites (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest workspace retirement inventory (roster-owned)",

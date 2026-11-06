@@ -129,6 +129,12 @@ jobs:
       - name: Install ruff + mypy
         id: ruff_mypy
         if: '!cancelled()'
+        # The ruff version is pinned once, in tools/requirements.txt —
+        # installed by the earlier "Install tools dependencies" step, which
+        # this bare install leaves in place (the parity mechanism that file
+        # documents). See
+        # docs/product/captured/pre-existing-closure-index-collapsible-if.md
+        # for the recorded version facts.
         run: pip install ruff mypy
       - name: Install credbroker (editable, with crypto extra)
         id: credbroker
@@ -1071,6 +1077,10 @@ jobs:
       - name: pytest promotion drain surfaces (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_promotion_drain_surfaces.py
+
+      - name: pytest intake transaction lock recovery (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_intake_transaction_lock_recovery.py
 
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"

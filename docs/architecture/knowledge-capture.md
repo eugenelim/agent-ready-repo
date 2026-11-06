@@ -223,7 +223,9 @@ scan at that seam.
 The terminal disposition is the sole commit point. A confirmed route runs
 the work-intake transaction — the captured-item file under
 `docs/product/captured/`, then the processor handoff — and only then writes
-`routed`; a closure records `rejected` or `superseded` with its ground in
+`routed`, and a route with no dispatch wired holds the item before any
+transaction effect, so a route is never recorded as routed without its
+handoff; a closure records `rejected` or `superseded` with its ground in
 the reason code; a held item writes nothing and stays open. A crash ahead
 of the disposition leaves the capture open, and re-running the drain
 completes the sequence idempotently: the transaction's existing-artifact
