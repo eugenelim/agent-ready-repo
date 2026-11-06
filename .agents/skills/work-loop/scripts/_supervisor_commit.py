@@ -205,6 +205,8 @@ def _ls_tree_entries(out: bytes) -> dict[str, tuple[str, str]]:
             mode, _kind, oid = meta.decode().split()
             found[path.decode("utf-8", "surrogateescape")] = (mode, oid)
     return found
+
+
 # A work tree index larger than this is not copied; its scan starts cold instead.
 _MAX_INDEX_BYTES = 256 * 1024 * 1024
 
