@@ -693,7 +693,69 @@ def _untrusted_unsafe_host_refusal(
     return None
 
 
+# The routing table is in references/session-resumption.md, step 3; a test pins these strings.
+_ROUTE_CAP = "Retry cap reached: stop and surface it; no replan or approval resets it."
+_ROUTE_LEFTOVERS = "Remove or restore the paths the refusal detail names, then run next."
+_ROUTE_REFUSED = "Refused ({code}, owner: {owner}): see supervisor.md, Refusals and their owners."
+_ROUTE_PENDING_STEP = "Run next: it commits the pending regenerate step."
+_ROUTE_TERMINAL = "Run status --check, then the Finish checklist and PR."
+_ROUTE_HUMAN = (
+    "Read this request's reason under Human decisions in supervisor.md: a named human "
+    "answers some; for the rest fix the cause, then run next."
+)
+_ROUTE_STATUS_REQUEST = "Run next and answer the request it issues."
+_ROUTE_NEXT_REQUEST = (
+    "Answer the request, write the result outside the spec directory, then run "
+    "report <spec-dir> <result.json>."
+)
+_ROUTE_IDLE = "Run next."
+
+# What the running call is: its verb and, once the workspace exists, the retry cap.
+_ROUTING: dict[str, Any] = {}
+
+
+def _route_for(verb: str, payload: dict[str, Any], cap: int | None) -> str:
+    """The one-line next action for a ``status`` or ``next`` answer; rows are decided by value."""
+    refusal = payload.get("refusal")
+    request = payload.get("request")
+    request = request if isinstance(request, dict) else None
+    human = request is not None and request.get("kind") == "human-decision"
+    count = payload.get("retry_count")
+    if verb == "status":
+        capped = (
+            cap is not None
+            and isinstance(count, int)
+            and count >= cap
+            and not payload.get("terminal")
+        )
+    else:
+        capped = human and request is not None and request.get("reason") == "retry-cap"
+    if capped:
+        return _ROUTE_CAP
+    if isinstance(refusal, dict) and refusal:
+        if refusal.get("code") == "recovery-leftovers":
+            return _ROUTE_LEFTOVERS
+        return _ROUTE_REFUSED.format(code=refusal.get("code"), owner=refusal.get("owner"))
+    if verb == "status" and payload.get("pending_step"):
+        return _ROUTE_PENDING_STEP
+    if payload.get("terminal"):
+        return _ROUTE_TERMINAL
+    if human:
+        return _ROUTE_HUMAN
+    if request is not None:
+        return _ROUTE_STATUS_REQUEST if verb == "status" else _ROUTE_NEXT_REQUEST
+    return _ROUTE_IDLE if verb == "status" else ""
+
+
 def _emit(payload: dict[str, Any]) -> None:
+    """Print one answer; a ``status`` or ``next`` run view or refusal also carries ``route``."""
+    verb = _ROUTING.get("verb")
+    if verb in ("status", "next") and payload.get("error") != "usage":
+        has_refusal = isinstance(payload.get("refusal"), dict) and bool(payload["refusal"])
+        if has_refusal or "run" in payload:
+            route = _route_for(verb, payload, _ROUTING.get("cap"))
+            if route:
+                payload = {**payload, "route": route}
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
@@ -828,9 +890,18 @@ def _gates(cwd: Path | None) -> int:
 
 
 def _main(argv: list[str] | None, cwd: Path | None) -> int:
+    _ROUTING.clear()  # a later in-process call never inherits this one's verb or cap
+    try:
+        return _dispatch(argv, cwd)
+    finally:
+        _ROUTING.clear()
+
+
+def _dispatch(argv: list[str] | None, cwd: Path | None) -> int:
     spec_dir = ""
     try:
         args = _parser().parse_args(argv)
+        _ROUTING["verb"] = args.verb
         if args.verb == "gates":
             return _gates(cwd)
         spec_dir = args.spec_dir
@@ -857,6 +928,7 @@ def _main(argv: list[str] | None, cwd: Path | None) -> int:
     except admission.Refusal as exc:  # an invalid installed policy
         _emit({"refusal": exc.as_dict()})
         return EXIT_REFUSED
+    _ROUTING["cap"] = int(workspace.policy["implementation_retry_cap"])
     workspace.attempts.installed = installed
     workspace.attempts.pre_import_matched = matched
     try:
