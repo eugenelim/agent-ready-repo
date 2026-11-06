@@ -263,6 +263,19 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 **Done when:** `check-core-release` passes and `tests/roster/test_registry_upgrade_notes.py` passes.
 
+### T9: Round-2 review repairs pass
+
+**Depends on:** T8
+
+**Touches:** packs/core/.apm/skills/work-loop/scripts/_review_tiers.py, packs/core/tests/skills/work-loop/test_review_tiers.py, packs/core/tests/skills/work-loop/test_review_carry.py, packs/core/tests/skills/work-loop/test_review_obligation_policy.py
+
+**Tests:**
+- AC-0004: a line indented four or more columns never closes an open fence, so a changed code line after it is not plain prose.
+- AC-0008: the line-diff bound is pinned by a test that turns red when the bound is removed.
+- AC-0002, AC-0013: the readiness flow's reason names a skipped anchor and an undefined run base.
+
+**Done when:** `test_review_tiers.py`, `test_review_carry.py`, and lint pass.
+
 ## Rollout
 
 - **Delivery:** one Core patch. A run started before the upgrade stops with `supervisor-changed` (existing behaviour) or keeps today's review through its protection-unknown selection lines.
