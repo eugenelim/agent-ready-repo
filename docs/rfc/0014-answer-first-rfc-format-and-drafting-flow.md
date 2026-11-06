@@ -6,6 +6,7 @@
 - **Date opened:** 2026-05-28
 - **Date closed:** 2026-05-28
 - **Related:** `new-rfc` skill (`packs/governance-extras/.apm/skills/new-rfc/`), `docs/CONVENTIONS.md` §3, `new-spec` (assumption checkpoint it borrows from), `adversarial-reviewer` agent.
+- **Superseded in part:** RFC-0114 D1,D2,D3
 
 ## The ask
 
@@ -159,3 +160,10 @@ On acceptance:
 - Rewrite `guides/governance-extras/how-to/new-rfc.md` against the new spine — its Step 2/Step 3 walk-through is written against the *old* section names (Motivation / Alternatives / Prior art / Unresolved questions) and needs substantive rewriting, not a section-name swap. It is a Living doc, so this drift must close in the same change.
 - No ADR (decided at acceptance — see *Open questions*).
 - Working research notes were kept in the workspace scratch dir (`.context/rfc-format-research/`: `research.md`, `research-better-proposals.md`, `pressure-test-and-proposal.md`) during drafting; that dir is gitignored and **not** durable. The durable evidence is the inline citations in *Evidence & prior art* above, which stand alone.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, signed by the merge of a maintainer the repository's rules name.
+
+- **2026-11-06 — Superseded in part by RFC-0114.** Decision 1 (the answer-first spine) no longer holds: "The ask", the `Approver` field, and the Evidence & prior art and Follow-on artifacts sections are replaced by the six-section template in RFC-0114. Decision 2's completeness-checklist item "Approver named" becomes "who decides is clear". Decision 3's optional Experiment / validation section becomes the required "How we will know it works". The research-then-draft flow, spike-note routing and the `Experimental` status stand.

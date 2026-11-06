@@ -7,6 +7,7 @@
 - **Date closed:** 2026-06-27
 - **Decision weight:** heavy <!-- light | standard | heavy — proposed by Decision 1 of this RFC; set heavy here because it reverses a frozen-decision in RFC-0014 and changes a shipped, adopter-facing interface (see Reviewer brief → Stakes). Dogfooding the field this RFC proposes. -->
 - **Related:** RFC-0014 (the frozen template + flow this revises), RFC-0025 (`work-loop` light/full router — the borrowed model), the `new-rfc` skill (`packs/governance-extras/.apm/skills/new-rfc/`), the shipped B-narrow spec (`docs/specs/new-rfc-readability/spec.md`).
+- **Superseded in part:** RFC-0114 D2,D3
 
 ## Reviewer brief
 
@@ -152,3 +153,10 @@ On acceptance:
 - **Spec:** `docs/specs/new-rfc-two-humans/` — the skill + template implementation: edit `packs/governance-extras/.apm/skills/new-rfc/{SKILL.md,assets/rfc.md}`, `make build-self`, run both lint surfaces (`lint-packs` + `tools/lint-agent-artifacts.py`), sync `guides/governance-extras/how-to/new-rfc.md`, update the Tier-4 eval (`evals/evals.json`) with the new human-usability criteria, add a `docs/product/changelog.md` `[Unreleased]` entry, and bump `governance-extras` (`0.3.2 → 0.4.0` — new template/skill surface).
 - **ADR:** only if a future RFC contests the direction; this RFC + the skill diff are the durable record otherwise (mirroring RFC-0014's choice).
 - No CONVENTIONS §3 edit — see Non-goals.
+
+## Errata
+
+This RFC is Accepted: the body above is preserved as the original decision
+record. Corrections are appended here, signed by the merge of a maintainer the repository's rules name.
+
+- **2026-11-06 — Superseded in part by RFC-0114.** D2 (the Reviewer brief) and D3 (the decisions table) no longer hold. D1 (Decision weight) and D4 (guided intake) stand.

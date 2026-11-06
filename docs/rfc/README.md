@@ -113,3 +113,4 @@
 | 0110 | [Widen governance-extras into repository governance and rename it repo-governance](0110-repo-governance-pack.md) | Accepted | 2026-10-23 | 2026-10-24 |
 | 0111 | [Narrow full mode for independent bundles and plain guidance edits](0111-narrow-full-mode-for-split-bundles-and-guidance-edits.md) | Accepted | 2026-10-28 | 2026-10-28 |
 | 0112 | [Project pack defaults to a file that standard-library-only scripts can read](0112-pack-defaults-projection-for-stdlib-readers.md) | Accepted | 2026-11-05 | 2026-11-05 |
+| 0114 | [Lighter RFCs for proposers and maintainers](0114-lighter-rfcs.md) | Accepted | 2026-11-06 | 2026-11-06 |
