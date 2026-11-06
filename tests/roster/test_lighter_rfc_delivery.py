@@ -97,3 +97,18 @@ def test_spec_status_points_to_the_adr(spec: str) -> None:
     assert "superseded in part" in status
     wanted = {"new-rfc-governance": "AC-0065"}.get(spec, "AC3" if spec == "new-rfc-readability" else "AC2")
     assert wanted in status
+
+
+CAPTURED = ROOT / "docs/product/captured"
+
+
+def test_seed_upgrade_follow_on_is_captured_with_an_owner() -> None:
+    """AC-0081: the seed-upgrade item exists, is owned by the maintainer and states the gap."""
+    text = (CAPTURED / "fix-seed-upgrades.md").read_text(encoding="utf-8")
+    assert text.startswith("# ")
+    assert "- **Status:** Open" in text
+    assert MAINTAINER in text
+    assert "neither refreshes nor adds seeded files" in text
+    assert "guides say it does" in text
+    for slug in ("re-sync-approver-wording-is-stale", "desk-research-guide-rfc-mapping-is-stale"):
+        assert (CAPTURED / f"{slug}.md").is_file(), slug
