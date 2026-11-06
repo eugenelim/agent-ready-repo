@@ -1,7 +1,7 @@
 # Plan: Verified infrastructure parallelism
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-loop-result-integration.md` and `runtime-security-primitives.md` § 7; ADR-0156; analogous implementations `_supervisor_commit.py` (`build_commit`, `update_refs`, `_diagnose`) and `_containment.py` (`validate_attestation_dict`, `check_attestation_within_grant`, `launch_untrusted`); tests `test_supervisor_product_ref.py`, `test_supervisor_crash_corpus.py`, `test_containment_broker.py` (`_FixtureHost`), `tests/roster/test_execution_supervisor_records.py`; deviations: no code launches a worker from the supervisor today, so the launcher boundary has no precedent beyond `launch_untrusted`; concurrent attempts use plain directories rather than ADR-0005 D7's worktree (ADR-0160 D1)
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -140,8 +140,9 @@ token); until T5 lands, this section is their only home.
   carrying the ingested tree id and the access line's sha256; that record is
   the result D3 binds the attestation to, and `result-integration.v1` cites
   both.
-- **Ingestion** uses a new link-recording walk in `file_safety.py`
-  (`list_confined_entries`, no-follow, descriptor-relative) that returns
+- **Ingestion** uses a link-recording walk in `_confined_entries.py`
+  (`list_confined_entries`, no-follow, descriptor-relative, built on the
+  blessed helpers' error types) that returns
   regular files with sizes and links with target text. It checks AC-0031's
   caps and AC-0070's link targets from that listing before any object
   exists, resolving each target through the listing's own links with a

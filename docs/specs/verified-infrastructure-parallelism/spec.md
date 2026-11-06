@@ -1,6 +1,6 @@
 # Spec: Verified infrastructure parallelism
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0156, ADR-0160, ADR-0154, ADR-0151, ADR-0144, ADR-0005, ADR-0061
@@ -58,7 +58,7 @@ Maintainers running full-mode `work-loop` get `implement-task` attempts that may
 
 - Verify every attestation from the launcher's own pipe, inside the supervisor process that spawned it.
 - Run every `git` call, including the three-way apply and `check-attr`, through the hardened Git helper.
-- Read a worker-written attempt directory only through the blessed confinement helpers in `file_safety.py`, extending that module when ingestion needs a walk it lacks.
+- Read a worker-written attempt directory only through the blessed confinement helpers, or a work-loop walk built on their error types with the same no-follow, descriptor-relative discipline.
 - Prove each refusal and each fall to the floor with a test that runs, and drive every timeout through an injectable clock or value, never a sleep.
 - Get security-reviewer, adversarial-reviewer, and quality-engineer passes on every code task before merge.
 
