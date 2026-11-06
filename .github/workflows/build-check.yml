@@ -129,7 +129,11 @@ jobs:
       - name: Install ruff + mypy
         id: ruff_mypy
         if: '!cancelled()'
-        run: pip install ruff mypy
+        # Pinned to the version the gate evidence runs under: ruff 0.15+
+        # re-flags a pre-existing SIM102 in close-work's closure_index.py
+        # (see docs/product/captured/pre-existing-closure-index-collapsible-if.md,
+        # fix owned by close-work). Unpin only after that fix lands.
+        run: pip install ruff==0.14.0 mypy
       - name: Install credbroker (editable, with crypto extra)
         id: credbroker
         if: '!cancelled()'
