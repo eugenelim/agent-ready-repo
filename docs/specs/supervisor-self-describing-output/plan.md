@@ -15,6 +15,7 @@ Five output changes and one release. T3 writes the routing table first, in `sess
 
 ## Constraints
 
+- Where a Done-when lists suites by `grep`, run them with one `pytest` call per test directory (`packs/core/tests/skills/work-loop`, `packs/core/tests/pack`, `packs/core/tests/skills/new-spec`, `tests/roster`), because a single call over `packs/core/tests` fails at collection on duplicate file names.
 - The declared check for paths under `packs/core/.apm/` is `make precheck` (root `AGENTS.md`): self-host drift, the core release check, bandit on changed `.py` files, and, with `--with-tests`, the pack tests. Each task's Done-when names it and says which results are expected red before `regenerate` or T7.
 - Pack rules in `packs/AGENTS.md`: `.apm/` is the source; no test under `.apm/`; bump `pack.toml` and `plugin.json` together; load skill modules in tests by pack- and skill-qualified name; shipped pack text cites no internal records.
 - The supervisor pins the installed skill's scripts at `start`. Edits land in `packs/core/.apm/`. Once a task commits a change under `scripts/`, the installed copy differs from the pack source, so the run issues a `regenerate` request before `terminal`; the controller answers it with the repository's self-host command and reports only the envelope, and the supervisor commits the rebuilt skill copies. No task touches `dispatch.py`, so the packaged `_data/` mirror stays untouched.
@@ -94,7 +95,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is green and every suite listed by `grep -rl 'session-resumption' packs/core/tests tests --include='test_*.py'` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
+**Done when:** the pin test is green, `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green, and every suite listed by `grep -rl 'session-resumption' packs/core/tests tests --include='test_*.py'` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
 
 ### T4: `status` and `next` carry `route`
 
@@ -128,7 +129,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is red before the case is added and green after, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
+**Done when:** the pin test is red before the case is added and green after, and every suite listed by `grep -rlE 'evals\.json|EVALS_JSON|evals/evals' packs/core/tests tests --include='test_*.py'` is green, which includes `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` and `packs/core/tests/skills/work-loop/test_parked_gates_guidance.py`. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
 
 ### T7: Release the `core` patch
 
