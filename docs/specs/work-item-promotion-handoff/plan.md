@@ -862,3 +862,25 @@ date and the approver's own handle. -->
   pass.
 - 2026-11-05: amendment plan approved by eugenelim — T19..T23 with their
   test lists, dependencies, and release mechanics; tasks remain mutable.
+
+### T30: Every citation in the parity record resolves, and the note has no stale dependent section
+
+**Repairs:** review findings from round 4 — the parity record cites a
+workflow step named "Install tools requirements" that does not exist
+(the step is named "Install tools dependencies") in the workflow
+comment, the captured note, and `tools/requirements.txt` itself; and the
+note's Known-skip treatment section still describes the `ruff==0.14.0`
+pin T29 removed, contradicting the note's own corrected facts.
+
+**Depends on:** T29
+
+**Tests:** goal-based check.
+- The phantom step name is corrected (or dropped) in all three places —
+  the workflow comment, the note's parity paragraph, and
+  `tools/requirements.txt`'s mechanism sentence — so every citation a
+  reader follows resolves to a step that exists.
+- The note's Known-skip treatment section is rewritten to the reconciled
+  state: CI runs the requirements pin (0.16.10), the 0.14.0 runs are
+  this delivery's recorded local gate evidence, and no skip treatment is
+  in force while the pin holds below the flagging boundary.
+- A surfaces pin asserts both corrections.
