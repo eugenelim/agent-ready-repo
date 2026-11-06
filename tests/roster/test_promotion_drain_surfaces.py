@@ -200,3 +200,19 @@ def test_gitignores_cover_the_acquisition_temporary() -> None:
         lines = path.read_text(encoding="utf-8").splitlines()
         lock = lines.index(".workspace-repair.lock")
         assert lines[lock + 1] == ".workspace-repair.lock.*.tmp", path
+
+
+def test_admission_record_defect_note_carries_the_correction() -> None:
+    # T26 (finding adv-hardening-002): the admission-record defect for the
+    # T19/T20 gate receipts is recorded durably in the repository — the
+    # note names both receipts, their cause, and the correction.
+    note = _normalized(
+        REPO_ROOT / "docs" / "product" / "captured" / "admission-record-defect-t19-t20-gate-receipts.md"
+    )
+    assert "a-route-with-no-dispatch-wired-holds-the-item-1646c3a2" in note
+    assert "a-classification-is-one-of-the-six-classify-tabl-9aef571e" in note
+    assert "0b8454304" in note and "a51b1aee8" in note
+    assert "false at admission time" in note
+    assert "automation script" in note
+    assert "adv-hardening-002" in note
+    assert "correction" in note
