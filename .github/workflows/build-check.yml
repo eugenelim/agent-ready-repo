@@ -573,6 +573,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_capture_rename_guide.py
 
+      # The lighter-RFC starter's repository copies (docs/rfc/, docs/GOVERNANCE.md)
+      # are compared with the seeds above any one pack, so this is roster-owned
+      # and sits ABOVE the bulk step for named attribution.
+      - name: pytest lighter-RFC delivery adoption (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_lighter_rfc_delivery.py
+
       # The supervisor's emitted records are validated against `contracts/`,
       # which sits above every pack's tests, so this check is roster-owned and
       # sits ABOVE the carve-out step for named attribution.
