@@ -28,6 +28,11 @@ standard library alone (Python 3.11 or later):
 | `status <spec-dir> [--json] [--check]` | Read-only view: run, stage, retry count and cap, readiness, task list with completion, the current request, and any refusal. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
 | `resolve-effect <spec-dir> --operation <key> --decision effect-confirmed\|do-not-retry\|retry-authorized --authority-ref effect-authority[:<hex>]` | Records a named human's decision about an external effect whose outcome could not be established. |
 
+`--json` goes after the verb on every verb. It is accepted and changes nothing,
+since every verb already prints one JSON object. Separately, `status` and `next`
+carry a `route` field naming the next action; its strings are the routing table in
+session-resumption.md ([link](session-resumption.md)).
+
 Each action a procedure engine would own has one home among these verbs:
 
 | Action | Verb |

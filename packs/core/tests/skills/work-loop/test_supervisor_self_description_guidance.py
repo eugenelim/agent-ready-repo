@@ -98,3 +98,62 @@ def test_step_one_points_to_the_table_and_ranks_nothing() -> None:
     assert "the first thing to deal with" not in " ".join(text.split())
     step_one = text.split("1. **Find the run.**", 1)[1].split("2. **", 1)[0]
     assert "routing table in step 3" in " ".join(step_one.split())
+
+
+REFERENCES = PACK_ROOT / ".apm" / "skills" / "work-loop" / "references"
+MODE_MD = REFERENCES / "supervisor-mode.md"
+SUPERVISOR_MD = REFERENCES / "supervisor.md"
+SCHEMA_MD = REFERENCES / "state-schema.md"
+REVIEWER_RULE_PHRASES = (
+    "BLOCKED", "stop readiness", "loud blocker", "named skip",
+    "record the mandatory reviewer outcome",
+)
+
+
+def _flat(path: Path) -> str:
+    """Return a file's text with whitespace collapsed."""
+    return " ".join(path.read_text(encoding="utf-8").split())
+
+
+def _fallback_section() -> str:
+    """Return the Single-agent fallback section of supervisor-mode.md, whitespace collapsed."""
+    text = MODE_MD.read_text(encoding="utf-8")
+    body = text.split("## Single-agent fallback", 1)[1].split("\n## ", 1)[0]
+    return " ".join(body.split())
+
+
+def test_fallback_section_points_to_the_reviewer_rule() -> None:
+    """The fallback section names SKILL.md Step 4 and the two review-rules.json fields."""
+    section = _fallback_section()
+    assert "Step 4. REVIEW" in section
+    assert "SKILL.md" in section
+    assert "`fallback`" in section and "`mandatory_when`" in section
+    assert "review-rules.json" in section
+
+
+def test_fallback_section_restates_no_reviewer_rule() -> None:
+    """The section keeps its subagent sentence and holds none of the rule's phrases."""
+    section = _fallback_section()
+    assert "The missing capability is the subagent" in section
+    for phrase in REVIEWER_RULE_PHRASES:
+        assert phrase not in section
+
+
+def test_supervisor_md_states_json_goes_after_the_verb() -> None:
+    """supervisor.md says --json goes after the verb on every verb."""
+    text = _flat(SUPERVISOR_MD)
+    assert "`--json` goes after the verb" in text
+
+
+def test_supervisor_md_states_status_and_next_carry_route() -> None:
+    """supervisor.md says status and next carry a route field and where its strings live."""
+    text = _flat(SUPERVISOR_MD)
+    assert "`status` and `next` carry a `route` field" in text
+    assert "the routing table in session-resumption.md" in text
+
+
+def test_state_schema_lists_route_among_status_keys() -> None:
+    """The status --json key sentence includes route."""
+    text = _flat(SCHEMA_MD)
+    sentence = text.split("`status --json` adds", 1)[1].split(". ", 1)[0]
+    assert "`route`" in sentence
