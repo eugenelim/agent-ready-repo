@@ -1,7 +1,7 @@
 # Plan: Review obligation policy
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:**
   - **Readiness:** `scripts/_supervisor_readiness.py` (`readiness`, `readiness_action`, `_current_report`) and `scripts/_review_disposition.py` (`review_readiness`), which match reports, assessments, and dispositions by the current subject fingerprint.
   - **Selection:** `scripts/_supervisor_review.py` (`validate_rules`, `check_selection`, `resolve_policy`, `parse_selections`, `admit_selection`, `admit_decision`, `DECISIONS`).
@@ -332,3 +332,4 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 - 2026-11-05: spec approved by eugenelim (scope)
 - 2026-11-05: plan approved by eugenelim (build strategy)
+- 2026-11-06: amendment approved by eugenelim (scope and build strategy)
