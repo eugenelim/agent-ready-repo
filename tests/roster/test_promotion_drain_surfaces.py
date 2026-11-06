@@ -80,13 +80,14 @@ def test_changelog_entry_leads_the_release() -> None:
         path
         for path in fragments
         if "promotion drain" in path.read_text(encoding="utf-8")
-        and "version = \"4.0.18\"" in path.read_text(encoding="utf-8")
+        and "version = \"4.0.20\"" in path.read_text(encoding="utf-8")
     ]
     # The hardening's fragment — pinned to its released version — is the
-    # one that now leads the release (T23); the 4.0.15 fragment stays.
+    # one that now leads the release (T23, re-versioned 4.0.20 after main
+    # shipped 4.0.18 and 4.0.19); the 4.0.15 fragment stays.
     assert len(matching) == 1
     text = matching[0].read_text(encoding="utf-8")
-    assert "version = \"4.0.18\"" in text
+    assert "version = \"4.0.20\"" in text
     assert "## Highlights" in text
     assert "no dispatch wired holds the item" in text
     assert "classify table's six members" in text
