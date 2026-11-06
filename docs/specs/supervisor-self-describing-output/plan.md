@@ -35,7 +35,7 @@ Six output changes and one release. T3 writes the routing table first, in `sessi
 ### Behavior & rules
 Traces to: AC-0002 to AC-0009. Owned by: T2, T3, T4, T5.
 
-**The routing table** lives in `session-resumption.md` § Route by what `status` shows. It replaces the current table, states "first match wins, top to bottom", and gives one row per shape, each with the exact string `route` carries. This is the one statement of the routing decision; the script strings are pinned equal to it by a test, so they cannot drift.
+**The routing table** lives in `session-resumption.md` § Route by what `status` shows. It replaces the current table, states "first match wins, top to bottom", and gives one row per shape, each with the exact string `route` carries. This is the one statement of the routing decision: T3 also rewrites step 1 of that file, which says a refusal is "the first thing to deal with", so that it points to the table instead of ranking anything. The script strings are pinned equal to the table by a test, so they cannot drift.
 
 | Order | Verb | Shape | `route` string |
 | --- | --- | --- | --- |
@@ -49,13 +49,13 @@ Traces to: AC-0002 to AC-0009. Owned by: T2, T3, T4, T5.
 | 7 | next | any other request | `Answer the request, write the result outside the spec directory, then run report <spec-dir> <result.json>.` |
 | 8 | status | none of the above | `Run next.` |
 
-`<code>` and `<owner>` are the refusal's own `code` and `owner`; `detail` is never included. Row 1 matches `status --check`, where the cap exit wins over the refusal exit. The cap is read from the workspace policy once the workspace exists; the pin and ref-storage refusals fire before it, so only row 2 applies to them.
+`<code>` and `<owner>` are the refusal's own `code` and `owner`; `detail` is never included. Rows are decided by value, never by key presence, because a non-refused `status` answer always carries `refusal` (`{}`), `recovery_leftovers` (`[]`) and `request` (`None`): row 2 is a non-empty top-level `refusal` from any source (`derive`, `recovery.inspect`, a `decide` refusal, or a handler in `_main`); row 3 a non-empty `recovery_leftovers`; rows 6 and 7 a non-null `request` of kind `human-decision` or another kind. Row 1 matches `status --check`, where the cap exit wins over the refusal exit. The cap is read from the workspace policy once the workspace exists. The pin refusal fires before the workspace exists, and the ref-storage `status` payload carries no `retry_count`, so only row 2 applies to those two. A usage error prints `{"error": "usage", ...}` and exits 2; it is not a run view or a refusal and carries no `route`.
 
-**Where `route` is added.** One `_emit` function prints every answer. `_main` records the verb (and, once the workspace exists, the cap) in a module-level routing context; `_emit` adds `route` to the payload when the verb is `status` or `next`. Every output path, including each handler in `_main` and the early refusals, therefore carries it by construction. A `status` answer from `loop.status` and any other payload is classified by its keys (`refusal`, `terminal`, `request`, `recovery_leftovers`, `pending_step`).
+**Where `route` is added.** One `_emit` function prints every answer. `_main` resets a module-level routing context at the start of every call, records the verb in it (and, once the workspace exists, the cap), and clears it on exit, so a later in-process call never inherits it. `_emit` adds `route` to a payload that is a run view or carries a top-level `refusal` when the verb is `status` or `next`, and skips an `{"error": "usage"}` payload. The tested paths are listed in T4; any other path that prints through `_emit` carries `route` by the same construction.
 
 **`invalid-result` messages** from `_validate_result`: `result must be a JSON object`; `result schema_version must be 1`; `result <field> must be a non-empty string` for `request_id`, `run_id`, `kind`. None repeats a received value. The check itself is unchanged: it still compares `schema_version` with `SCHEMA_VERSION`.
 
-**The frozen-spec finding** keeps code `impossible_transition`. Its `next_action` reads: `This spec is Shipped or closed, so it is frozen. Start follow-up work as a new spec. If the new work reverses part of this one, record the decision in an ADR, then annotate the Status line of this spec as "Shipped (superseded in part by ADR-NNNN — <what changed>; everything else stands)" and of its plan as "Done (superseded in part by ADR-NNNN — <what changed>; everything else stands)"; see new-spec, Superseding a frozen document.` In `_refusal` it applies to a named `--start` or `--resume` target that is in `cooled_paths` (a cooled record names a closed spec; its body is never opened) or whose status is `Shipped`, by replacing `next_action` on the dict `make` returns. No existing dispatch test dispatches a Shipped or cooled target through the table-pair test, so no exception is added there.
+**The frozen-spec finding** keeps code `impossible_transition`. Its `next_action` reads: `This spec is Shipped or closed, so it is frozen. Start follow-up work as a new spec. If the new work reverses part of this one, write a decision record, then append "(superseded in part by ADR-NNNN — <what changed>; everything else stands)" to the existing Status word of this spec and of its plan; see new-spec, Superseding a frozen document.` In `_refusal` it applies to a named `--start` or `--resume` target that is in `cooled_paths` (a cooled record names a closed spec; its body is never opened) or whose status is `Shipped`, by replacing `next_action` on the dict `make` returns. No existing dispatch test dispatches a Shipped or cooled target through the table-pair test, so no exception is added there.
 
 ### Interfaces & contracts
 Traces to: AC-0001. Owned by: T1.
@@ -91,18 +91,18 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), and that every string is 160 characters or fewer (AC-0005, AC-0011).
+- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that every string is 160 characters or fewer (AC-0005), and that step 1 no longer holds the sentence "the first thing to deal with" or any other sentence ranking refusals against other shapes (AC-0011).
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is green and `tests/roster/test_ase_composition_fixture_evidence.py`, `packs/core/tests/skills/work-loop/test_parked_gates_guidance.py` and `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py` are still green.
+**Done when:** the pin test is green and `packs/core/tests/skills/work-loop/test_parked_gates_guidance.py` and `packs/core/tests/skills/work-loop/test_work_intake_dispatch.py` are still green.
 
 ### T4: `status` and `next` carry `route`
 
 **Depends on:** T1, T3
 
 **Tests:**
-- TDD, at `main(argv)` for `status` and `next`: one case per table row, asserting the answer's `route` equals the table's string for its shape (AC-0002, AC-0004); one case each for the pin-check `supervisor-changed` refusal, the generic-handler `supervisor-changed` refusal, the unsupported-ref-storage refusal, the lock refusal and the internal-error refusal (AC-0002); a run that is both capped and refused names the cap (AC-0003); no `route` contains a refusal's `detail` and every one is 160 characters or fewer (AC-0005); `status --check` exit codes equal the values the existing tests assert (AC-0006).
+- TDD, at `main(argv)` for `status` and `next`: one case per table row, asserting the answer's `route` equals the table's string for its shape (AC-0002, AC-0004); one case each for the pin-check `supervisor-changed` refusal, the unsupported-ref-storage refusal, the lock refusal and the internal-error refusal, on `status` (AC-0002) and the pin-check refusal on `next` (AC-0004); a usage error on `status` and on `next` carries no `route`, and a second in-process call after a `status` call does not inherit its routing context (AC-0002, AC-0004); a run that is both capped and refused names the cap (AC-0003); no `route` contains a refusal's `detail` and every one is 160 characters or fewer (AC-0005); `status --check` exit codes equal the values the existing tests assert (AC-0006).
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_route.py`
 
@@ -113,7 +113,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- TDD, at `dispatch.py` with `--start` and `--resume` on a `Shipped` spec and on a cooled spec (the existing fixture cools an `Approved` spec): code is `impossible_transition`; `next_action` says the spec is frozen, names a new spec, a decision record and both Status forms, and does not say the spec is `Shipped` outright (AC-0008). A `--start` on an `Implementing` spec and a `--resume` on an `Approved` spec keep the table `next_action` (AC-0009).
+- TDD, at `dispatch.py` with `--start` and `--resume` on a `Shipped` spec and on a cooled spec (the existing fixture cools an `Approved` spec): code is `impossible_transition`; `next_action` contains the phrase "Shipped or closed, so it is frozen", names a new spec and a decision record, and tells the controller to annotate the existing Status word of the spec and of its plan; on the cooled `Approved` spec it never contains "is Shipped." (AC-0008). A `--start` on an `Implementing` spec and a `--resume` on an `Approved` spec keep the table `next_action` (AC-0009).
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/dispatch.py`, `packs/core/tests/skills/work-loop/test_dispatch.py`
 
@@ -124,22 +124,22 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T1, T4
 
 **Tests:**
-- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback points an undispatchable reviewer role at `SKILL.md` and holds no `BLOCKED` text (AC-0010), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0011), that `state-schema.md` lists `route` among the `status` keys (AC-0011), and that each string in `work-supervisor.py` equals its row in the routing table.
+- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json`, and holds no `BLOCKED` text (AC-0010), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0011), that `state-schema.md` lists `route` among the `status` keys (AC-0011), and that each string in `work-supervisor.py` equals its row in the routing table.
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test and `tests/roster/test_sequential_implementer_dispatch_contract.py` are green.
+**Done when:** the pin test, `tests/roster/test_sequential_implementer_dispatch_contract.py`, and the suites that read the edited files (`packs/core/tests/skills/work-loop/test_parked_gates_guidance.py`, `test_reference_routing.py`, `test_supervisor_cutover_source_checks.py`, `test_supervisor_config_fingerprint.py`) are green.
 
 ### T7: Eval cases
 
 **Depends on:** T5, T6
 
 **Tests:**
-- Goal-based: `evals.json` loads, ids are unique, and two new cases carry the prompts and assertions of AC-0012.
+- Goal-based: `evals.json` loads, ids are unique, and two new cases carry the `prompt`, `expected_output` and `assertions` of AC-0012.
 
 **Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`
 
-**Done when:** `python3 -c "import json;json.load(open('packs/core/.apm/skills/work-loop/evals/evals.json'))"` exits 0, all `id` values are unique, and the two new ids are present.
+**Done when:** `python3 -c "import json;json.load(open('packs/core/.apm/skills/work-loop/evals/evals.json'))"` exits 0, all `id` values are unique, the two new ids are present, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green.
 
 ### T8: Release the `core` patch
 
@@ -149,7 +149,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 - Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0013); `tests/roster/test_registry_upgrade_notes.py` passes.
 
 **Approach:**
-- Take the next patch above the `core` version `origin/main` carries when the task runs; set it in `pack.toml`, `.claude-plugin/plugin.json`, a new fragment under `docs/product/changelog.d/`, and `_RELEASED["core"]` in `tests/roster/test_registry_upgrade_notes.py`.
+- Run `git fetch origin` and take the next patch above the `core` version fetched `origin/main` carries when the task runs; set it in `pack.toml`, `.claude-plugin/plugin.json`, a new fragment under `docs/product/changelog.d/`, and `_RELEASED["core"]` in `tests/roster/test_registry_upgrade_notes.py`.
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/`, `tests/roster/test_registry_upgrade_notes.py`
 
