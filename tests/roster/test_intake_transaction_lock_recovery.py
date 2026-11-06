@@ -285,3 +285,81 @@ def test_unprobeable_numeric_pid_holds_as_live(tmp_path: Path) -> None:
 
     assert result.status.name == "LOCK_BUSY", result
     assert (repo / LOCK_NAME).read_bytes() == str(2**31).encode("ascii")
+
+
+def test_lock_identity_opens_without_the_posix_follow_flags(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # PR #1705 review: `O_NOFOLLOW` and `O_NONBLOCK` do not exist on
+    # Windows; the identity read must still open the lock when the flags
+    # are absent, refusing aliens through the regular-file and identity
+    # comparisons alone.
+    repo = _git_repo(tmp_path, "no-posix-flags")
+    _write_lock(repo, str(os.getpid()).encode("ascii"))
+    monkeypatch.delattr(os, "O_NOFOLLOW")
+    monkeypatch.delattr(os, "O_NONBLOCK")
+
+    identity = IT._lock_identity(repo)
+
+    assert identity is not None
+    assert identity[1] == str(os.getpid()).encode("ascii")
+
+
+def test_pid_is_live_on_windows_treats_every_pid_as_live(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # PR #1705 review: Windows has no signal-0 probe — `os.kill` there
+    # terminates the target — so on Windows every pid is live and the
+    # probe is never reached.
+    def poisoning_probe(pid: int, signal: int) -> None:
+        raise AssertionError("os.kill must not be called on win32")
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(os, "kill", poisoning_probe)
+
+    assert IT._pid_is_live(1_234_567) is True
+
+
+def test_windows_busy_lock_returns_lock_busy(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # PR #1705 review: end to end on the win32 platform path — a busy lock
+    # must return LOCK_BUSY, not crash on the missing flags or probe the
+    # owner.
+    repo = _git_repo(tmp_path, "win32-busy")
+    _write_lock(repo, str(os.getpid()).encode("ascii"))
+
+    def poisoning_probe(pid: int, signal: int) -> None:
+        raise AssertionError("os.kill must not be called on win32")
+
+    monkeypatch.setattr(sys, "platform", "win32")
+    monkeypatch.setattr(os, "kill", poisoning_probe)
+
+    result = _committed(repo)
+
+    assert result.status.name == "LOCK_BUSY", result
+    assert (repo / LOCK_NAME).read_bytes() == str(os.getpid()).encode("ascii")
+
+
+def test_publication_survives_a_failed_temporary_sweep(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # PR #1705 review: a failure to sweep the inert temporary after the
+    # lock is published — antivirus or file-sharing interference — never
+    # fails an acquisition that already succeeded.
+    repo = _git_repo(tmp_path, "sweep-failure")
+    real_unlink = os.unlink
+
+    def refusing_sweep(path: Any, **kwargs: Any) -> Any:
+        if str(path).endswith(".tmp"):
+            raise OSError("simulated antivirus interference")
+        return real_unlink(path, **kwargs)
+
+    monkeypatch.setattr(os, "unlink", refusing_sweep)
+
+    result = _committed(repo)
+
+    assert result.status.name == "COMMITTED", result
+    assert (repo / "docs" / "artifact.md").read_text(encoding="utf-8") == "artifact"
+    # The lock itself was still released on completion.
+    assert not (repo / LOCK_NAME).exists()

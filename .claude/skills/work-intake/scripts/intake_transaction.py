@@ -258,7 +258,13 @@ def _lock_identity(repository_root: Path) -> tuple[tuple[int, int], bytes] | Non
     if not stat.S_ISREG(info.st_mode):
         return None
     try:
-        descriptor = os.open(lock_path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        # The follow and blocking flags are POSIX-only; a platform without
+        # them — Windows — still refuses an alien lock file through the
+        # regular-file test above and the identity comparison below.
+        descriptor = os.open(
+            lock_path,
+            os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0),
+        )
     except OSError:
         return None
     try:
@@ -280,7 +286,11 @@ def _pid_is_live(pid: int) -> bool:
     by another live process (the probe's PermissionError) is live, and so
     is anything the probe cannot rule out (§ D1, AC-0028) — including a
     numeric payload above `INT32_MAX`, which `os.kill` refuses with
-    `OverflowError` rather than a process lookup."""
+    `OverflowError` rather than a process lookup. Windows has no safe
+    probe — `os.kill` there terminates the target for any non-CTRL-event
+    signal value — so on Windows every pid is treated as live."""
+    if sys.platform == "win32":
+        return True
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -369,7 +379,12 @@ def _acquire_workspace_lock(repository_root: Path) -> Path:
         except OSError:
             temporary.unlink(missing_ok=True)
             raise
-        temporary.unlink()
+        # The lock is published under its owner's pid; the temporary is
+        # inert garbage (§ D1), so a sweep failure — antivirus or
+        # file-sharing interference, typically — never fails an
+        # acquisition that already succeeded.
+        with contextlib.suppress(OSError):
+            temporary.unlink(missing_ok=True)
         return lock_path
     raise FileExistsError(str(lock_path))
 

@@ -612,33 +612,48 @@ def decide_closure(
 # --- § D1, § D3: the drain run, its transaction and its recovery ------------
 
 
-def _citation_refusal(root: Path, citation: dict[str, Any]) -> str | None:
+def _captured_ids(root: Path) -> frozenset[str]:
+    """Every capture id the store holds, quarantined records excluded (§ D5).
+
+    One pass over the observation partitions; a drain resolves all its
+    superseded closures' citations against the set this returns, so a
+    drain closing many items scans the store once rather than once per
+    closure.
+    """
+    quarantine = KS._Quarantine()
+    captured: set[str] = set()
+    for partition in KS._observation_partitions(root, quarantine=quarantine):
+        raw = KS._read_regular_file_bounded(
+            KS._journal_path(root, partition),
+            KS.budget_contract()["journal_partition_bytes"],
+            missing_ok=True,
+        )
+        for event in KS._events_excluding_invalid(partition, raw or b"", quarantine):
+            if event["event_type"] == KS._CAPTURED:
+                captured.add(event["capture_id"])
+    return frozenset(captured)
+
+
+def _citation_refusal(
+    root: Path, citation: dict[str, Any], captured_ids: frozenset[str] | None = None
+) -> str | None:
     """§ D5's mechanical citation test (AC-0027): the drain's own resolution
     of a superseded closure's citation, run before the disposition commits.
 
     Returns ``None`` when the citation resolves — the capture id names a
     capture the store holds, or the path exists inside the repository root
     with symlinks followed per § D7 — and a refusal reason naming the
-    failed citation otherwise. A capture id is resolved through the
-    store's own per-record exclusion reader, so a quarantined record never
-    aborts the lookup. Liveness of a cited artifact is never tested here:
-    that stays the operator's attestation.
+    failed citation otherwise. A capture id resolves against the store's
+    captured-id set, read through the store's own per-record exclusion
+    reader so a quarantined record never aborts the lookup; a drain passes
+    the set it built once (``_captured_ids``), and a standalone call builds
+    its own. Liveness of a cited artifact is never tested here: that stays
+    the operator's attestation.
     """
     if "capture_id" in citation:
-        capture_id = citation["capture_id"]
-        quarantine = KS._Quarantine()
-        for partition in KS._observation_partitions(root, quarantine=quarantine):
-            raw = KS._read_regular_file_bounded(
-                KS._journal_path(root, partition),
-                KS.budget_contract()["journal_partition_bytes"],
-                missing_ok=True,
-            )
-            for event in KS._events_excluding_invalid(partition, raw or b"", quarantine):
-                if (
-                    event["event_type"] == KS._CAPTURED
-                    and event["capture_id"] == capture_id
-                ):
-                    return None
+        ids = captured_ids if captured_ids is not None else _captured_ids(root)
+        if citation["capture_id"] in ids:
+            return None
         return "citation-capture-unresolved"
     path = citation["path"]
     if _confine_member(root, path) is not None:
@@ -920,6 +935,10 @@ def drain(
 
     items: list[dict[str, Any]] = []
     read = read_open_captures(root)
+    # § D5 (AC-0027): the drain's citation resolutions share one store
+    # scan — built lazily, since a drain with no superseded closure never
+    # needs it.
+    captured_ids: frozenset[str] | None = None
     for record in read["quarantined"]:
         # A record the store's read rules excluded is held by the read
         # itself: it is never a routing input, and the refusing control —
@@ -944,8 +963,10 @@ def drain(
         if closure_input is not None:
             closure = decide_closure(**closure_input)
             if closure["verdict"] == "closed":
+                if closure["ground"] == "superseded" and captured_ids is None:
+                    captured_ids = _captured_ids(root)
                 citation_refusal = (
-                    _citation_refusal(root, closure["citation"])
+                    _citation_refusal(root, closure["citation"], captured_ids)
                     if closure["ground"] == "superseded"
                     else None
                 )
