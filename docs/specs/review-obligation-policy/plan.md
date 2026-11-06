@@ -76,7 +76,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
   - `review_policy_fingerprint`
   - `tier`
   - `anchor_round`
-  - `classifier_digest`, the sha256 of the anchor facts line, the current result, and the rules version
+  - `classifier_digest`, the sha256 of the anchor facts line, the current subject's acceptance fingerprint, and the rules version. The fingerprint stands in for the result commit, which moves with every supervisor step, including the carry's own
   `carry_id` is the discriminating key for `_SEMANTIC_RECORDS`. Its writer boundary is `structured-control`, written through the supervisor's review grant.
 
 ### Interfaces & contracts
@@ -120,7 +120,7 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 - Every classifier exception, Git refusal, output overflow, and unrecognised Markdown construct returns `full`, and `status` shows the reason.
 - Invalid rules keys refuse in `validate_rules`, through the existing `_invalid_rules` named error.
-- A carry or anchor write that fails leaves the role's obligation unsatisfied, so the run asks for that report instead.
+- A carry that cannot be built leaves the role's obligation unsatisfied, so the run asks for that report instead. Anchor facts that cannot be read are not written, and the next subject classifies `full`.
 
 ## Tasks
 
