@@ -1,0 +1,796 @@
+# Input for tools/skills_catalogue.py. One table per user-invocable skill.
+# Tables run in page order within each job. `want` is the goal, `ask` a request to
+# paste, `gets` the result. Pack and link come from the skill's directory.
+# `sequence` names a lifecycle sequence. Its rows stay together in lifecycle order
+# ahead of the rest of the job, which runs A to Z by skill name.
+
+[skills.adapt-to-project]
+job = "Set up a repository"
+want = "Fit the packs to my repository"
+ask = "Check how well my repository's agent guidance fits, and improve it."
+gets = "A diagnosis of your agent guidance and the changes to make it fit."
+
+[skills.align-value-stream]
+job = "Set up a repository"
+want = "Coordinate several repositories"
+ask = "Set up a value-stream repository that holds the cross-team artifacts."
+gets = "A coordinating repository with no app code that keeps shared artifacts current."
+
+[skills.credential-setup]
+job = "Set up a repository"
+want = "Store a service credential safely"
+ask = "Set up credentials for the Jira skill."
+gets = "Each required key entered once and stored in your OS keychain or a private file."
+
+[skills.init-project]
+job = "Set up a repository"
+want = "Start a new project"
+ask = "Turn my idea into a structured new repository."
+gets = "A repository foundation: a decision record, a golden-path reference, and a first spec."
+
+[skills.new-package]
+job = "Set up a repository"
+want = "Add a package to a monorepo"
+ask = "Create a new package called billing-core in this monorepo."
+gets = "A scaffolded package under packages/ with its build wiring."
+
+[skills.frame-situation]
+job = "Decide what to build"
+sequence = "product discovery"
+want = "Sort out a signal before shaping work"
+ask = "A competitor just launched a similar feature. Help me frame this."
+gets = "A classified signal with a rating and the next step to take."
+
+[skills.frame-domain]
+job = "Decide what to build"
+sequence = "product discovery"
+want = "Learn how the activity really works"
+ask = "Frame the domain for a restaurant booking app."
+gets = "How the activity is done, how naive versions fail, and the first-release boundary."
+
+[skills.identify-opportunities]
+job = "Decide what to build"
+sequence = "product discovery"
+want = "Find unmet user needs"
+ask = "Find and rank the unmet jobs behind this problem area."
+gets = "Ranked jobs, scored by importance and satisfaction."
+
+[skills.explore-options]
+job = "Decide what to build"
+sequence = "product discovery"
+want = "Sketch different product shapes"
+ask = "Give me candidate product shapes for this idea."
+gets = "Several distinct shapes, each with its riskiest assumption."
+
+[skills.diverge-solutions]
+job = "Decide what to build"
+sequence = "product discovery"
+want = "Compare solution options"
+ask = "Lay out solution options for this opportunity."
+gets = "Options with trade-offs and a recommendation."
+
+[skills.place-bet]
+job = "Decide what to build"
+sequence = "product discovery"
+want = "Choose between options"
+ask = "Make the call between these solution options and record the bet."
+gets = "A bet record: the choice, why, confidence, time budget, and risks accepted."
+
+[skills.map-capabilities]
+job = "Decide what to build"
+sequence = "product discovery"
+want = "List what a committed bet needs"
+ask = "Map the capabilities this bet needs."
+gets = "A capability map with build, buy, partner or adopt for each, and a build order."
+
+[skills.build-outline]
+job = "Decide what to build"
+sequence = "research"
+want = "Break a question into parts"
+ask = "Break this research question into sub-questions."
+gets = "An outline of the sub-questions a full answer must cover."
+
+[skills.source-map]
+job = "Decide what to build"
+sequence = "research"
+want = "Find the right sources first"
+ask = "Map the authoritative sources on this topic before we research it."
+gets = "A list of the voices and sources worth reading."
+
+[skills.desk-research]
+job = "Decide what to build"
+sequence = "research"
+want = "Look something up with sources"
+ask = "Research how other teams handle feature flags, with citations."
+gets = "An answer with citations you can check, from a quick lookup to a full survey."
+
+[skills.desk-research-project-start]
+job = "Decide what to build"
+sequence = "research project"
+want = "Begin a multi-week investigation"
+ask = "Start a research project on developer onboarding."
+gets = "A research project folder with an overview to work from."
+
+[skills.desk-research-project-digest]
+job = "Decide what to build"
+sequence = "research project"
+want = "Condense a research project"
+ask = "Digest the research project so far."
+gets = "A synthesis matrix and analytic memos."
+
+[skills.desk-research-project-check]
+job = "Decide what to build"
+sequence = "research project"
+want = "Check if more research will help"
+ask = "Has the research corpus stopped changing the picture?"
+gets = "A verdict on whether the evidence has settled, with a recommendation."
+
+[skills.desk-research-project-synthesize]
+job = "Decide what to build"
+sequence = "research project"
+want = "Close a research project"
+ask = "Synthesize the research project into a verdict."
+gets = "A typed verdict and a self-contained brief for decision makers."
+
+[skills.compare-hypotheses]
+job = "Decide what to build"
+want = "Weigh competing explanations"
+ask = "Compare these three explanations against the evidence."
+gets = "An evidence table of each hypothesis for and against."
+
+[skills.decision-archaeology]
+job = "Decide what to build"
+want = "Find out why we decided that"
+ask = "Work out why we chose this database, from commits and design docs."
+gets = "The reconstructed reasoning behind a past decision."
+
+[skills.define-content-strategy]
+job = "Decide what to build"
+want = "Set the content direction"
+ask = "Define our content strategy before we design content."
+gets = "A content strategy covering governance and structure."
+
+[skills.define-ux-strategy]
+job = "Decide what to build"
+want = "Set the experience direction"
+ask = "Define the UX strategy before design starts."
+gets = "A UX strategy linking business goals to what the design must achieve."
+
+[skills.desk-research-project-status]
+job = "Decide what to build"
+want = "See where a research project stands"
+ask = "Where does the research project stand?"
+gets = "Phase, working hypothesis, stop signal, and what to do next."
+
+[skills.devils-advocate]
+job = "Decide what to build"
+want = "Challenge a finding"
+ask = "Argue against this research survey."
+gets = "The strongest objections, with confidence ratings adjusted."
+
+[skills.discovery-loop]
+job = "Decide what to build"
+want = "Turn a raw idea into a build-ready brief"
+ask = "Scaffold the product discovery for my idea."
+gets = "A ratified decision brief that is ready to build."
+
+[skills.identify-perspectives]
+job = "Decide what to build"
+want = "Name the camps on a debate"
+ask = "List the main camps in the debate over monorepos."
+gets = "A list of the named viewpoints before research starts."
+
+[skills.lean-canvas]
+job = "Decide what to build"
+want = "Summarize a business idea on one page"
+ask = "Fill in a lean canvas for this initiative."
+gets = "A lean canvas written up as a one-page brief."
+
+[skills.plan-validation]
+job = "Decide what to build"
+want = "Plan how to test assumptions"
+ask = "Plan how we validate the assumptions behind this idea."
+gets = "A test plan for each assumption, plus an interview guide or usability plan."
+
+[skills.run-bcg-matrix]
+job = "Decide what to build"
+want = "Compare products for investment"
+ask = "Run a BCG matrix across our product portfolio."
+gets = "A portfolio matrix with investment priorities."
+
+[skills.run-okr-cascade]
+job = "Decide what to build"
+want = "Turn company goals into team goals"
+ask = "Cascade our company OKRs to the teams."
+gets = "Team-level OKRs and the strategic gaps left for shaping."
+
+[skills.run-pestle-analysis]
+job = "Decide what to build"
+want = "Scan the outside environment"
+ask = "Run a PESTLE before we enter this market."
+gets = "A PESTLE scan of political, economic, social, technical, legal and environmental factors."
+
+[skills.run-porters-five-forces]
+job = "Decide what to build"
+want = "Understand competitive pressure"
+ask = "Run Porter's Five Forces for our industry."
+gets = "A five-forces analysis with positioning implications."
+
+[skills.run-swot]
+job = "Decide what to build"
+want = "Take stock of where we stand"
+ask = "Run a SWOT for our product."
+gets = "A SWOT that ends in a strategic synthesis."
+
+[skills.synthesize-stakeholder-research]
+job = "Decide what to build"
+want = "Make sense of stakeholder interviews"
+ask = "Synthesize our stakeholder research by theme."
+gets = "A strategic narrative organized by theme."
+
+[skills.write-prfaq]
+job = "Decide what to build"
+want = "Write the press release first"
+ask = "Write a PRFAQ for the product we are considering."
+gets = "A press release and FAQ that show what the product must be."
+
+[skills.intake-intent]
+job = "Shape it"
+sequence = "request to spec"
+want = "Record a request as an intent"
+ask = "Record this request as a minimum intent."
+gets = "One minimum intent with its desired outcome and boundary."
+
+[skills.intent]
+job = "Shape it"
+sequence = "request to spec"
+want = "Shape work before it becomes a spec"
+ask = "Frame this idea as an intent."
+gets = "A tagged intent: the problem, who has it, and how we will know it worked."
+
+[skills.new-spec]
+job = "Shape it"
+sequence = "request to spec"
+want = "Write a spec for a feature"
+ask = "Write a spec for password reset."
+gets = "A spec in docs/specs/ that drives the build."
+
+[skills.journey-mapping]
+job = "Shape it"
+sequence = "journey to screens"
+want = "Map the customer journey"
+ask = "Map the customer journey for first-time setup."
+gets = "A journey map of stages, actions, and pain points."
+
+[skills.user-flow]
+job = "Shape it"
+sequence = "journey to screens"
+want = "Turn a journey into screens"
+ask = "Turn this approved journey into screens."
+gets = "A screen sequence with transitions, failure paths, and routes."
+
+[skills.creative-direction]
+job = "Shape it"
+sequence = "look and feel"
+want = "Name the visual direction"
+ask = "This should feel calm and premium. Set the creative direction."
+gets = "A named visual direction the team can share."
+
+[skills.design-system]
+job = "Shape it"
+sequence = "look and feel"
+want = "Define the design system"
+ask = "Define the design system for this product."
+gets = "Typography, color, spacing and component rules."
+
+[skills.content-design]
+job = "Shape it"
+sequence = "words"
+want = "Decide what a surface should say"
+ask = "Decide what this screen should communicate."
+gets = "A content design for the surface, or a brand register across surfaces."
+
+[skills.ux-writing]
+job = "Shape it"
+sequence = "words"
+want = "Write the words in the product"
+ask = "Write the error and empty-state copy for this screen."
+gets = "UI copy with a voice and recurring-state patterns."
+
+[skills.api-contract]
+job = "Shape it"
+want = "Write an API contract first"
+ask = "Write an OpenAPI contract for these user stories."
+gets = "An OpenAPI 3.1 contract that follows an API standard."
+
+[skills.architect-assess]
+job = "Shape it"
+want = "Assess the architecture we have"
+ask = "Assess our architecture and give me an action plan."
+gets = "A current-state model, hotspots, findings, and ordered action waves."
+
+[skills.architect-design]
+job = "Shape it"
+want = "Design a system or integration"
+ask = "How should we design the integration with the payments provider?"
+gets = "A model-first design with rationale and Mermaid diagrams."
+
+[skills.architect-diagram]
+job = "Shape it"
+want = "Draw a diagram"
+ask = "Draw a sequence diagram of the login flow."
+gets = "A checked Mermaid diagram."
+
+[skills.architect-review]
+job = "Shape it"
+want = "Critique an architecture document"
+ask = "Review this design doc."
+gets = "A verdict with severity-tagged findings."
+
+[skills.author-brief]
+job = "Shape it"
+want = "Write a delivery brief (older name)"
+ask = "Create a delivery brief. (Use author-delivery-brief.)"
+gets = "Deprecated alias. It runs author-delivery-brief in create mode."
+
+[skills.author-delivery-brief]
+job = "Shape it"
+want = "Plan a multi-slice outcome"
+ask = "Write a delivery brief for this multi-team outcome."
+gets = "A draft delivery brief, or a readiness review of an existing one."
+
+[skills.design-principles]
+job = "Shape it"
+want = "Agree design rules"
+ask = "Write design principles from our research."
+gets = "Three to five named design principles."
+
+[skills.event-contract]
+job = "Shape it"
+want = "Write an event contract first"
+ask = "Write an AsyncAPI contract for the order events."
+gets = "An AsyncAPI contract that follows an event-design standard."
+
+[skills.experience-status]
+job = "Shape it"
+want = "See where the design work stands"
+ask = "Where does the experience design stand, and what comes next?"
+gets = "The design artifacts that exist, what is missing, and the next skill to use."
+
+[skills.github-brief-intake]
+job = "Shape it"
+want = "Start from a GitHub Issue"
+ask = "Take GitHub Issue 42 into our work intake."
+gets = "GitHub work passed into the intake route."
+
+[skills.information-architecture]
+job = "Shape it"
+want = "Decide what goes where"
+ask = "Decide what goes where on the dashboard."
+gets = "A hierarchy and order for the screen or flow."
+
+[skills.interaction-design]
+job = "Shape it"
+want = "Specify how a screen responds"
+ask = "Specify how this form validates and recovers."
+gets = "Behavior and state specs for a screen or component."
+
+[skills.jira-align-brief-intake]
+job = "Shape it"
+want = "Start from Jira Align work"
+ask = "Take this Jira Align Feature into our work intake."
+gets = "Jira Align work passed read-only into the intake route."
+
+[skills.jira-brief-intake]
+job = "Shape it"
+want = "Start from Jira work"
+ask = "Take Jira epic PROJ-12 into our work intake."
+gets = "Jira work passed read-only into the intake route."
+
+[skills.jira-story-triage]
+job = "Shape it"
+want = "Check stories are ready"
+ask = "Triage the stories in this sprint for readiness."
+gets = "Why each weak item is not ready, and improved stories."
+
+[skills.linear-brief-intake]
+job = "Shape it"
+want = "Start from Linear work"
+ask = "Take this Linear project into our work intake."
+gets = "Linear work passed into the intake route."
+
+[skills.navigate-decisions]
+job = "Shape it"
+want = "Look up past decisions"
+ask = "Which ADRs are accepted, and what supersedes ADR 12?"
+gets = "A summary or trace of decision records and RFCs."
+
+[skills.navigate-intents]
+job = "Shape it"
+want = "Find work under a goal"
+ask = "Show me the outstanding work under this intent."
+gets = "The intent graph, outstanding items, and an optional offline HTML view."
+
+[skills.new-adr]
+job = "Shape it"
+want = "Record a decision"
+ask = "Write an ADR for choosing PostgreSQL."
+gets = "An architecture decision record."
+
+[skills.new-rfc]
+job = "Shape it"
+want = "Propose a change"
+ask = "Draft an RFC to change our branching rules."
+gets = "A request for comments ready to circulate."
+
+[skills.process-mapping]
+job = "Shape it"
+want = "Map an internal process"
+ask = "Map how our invoice approval works today."
+gets = "A scope, swimlane map, and as-is versus to-be view."
+
+[skills.receive-brief]
+job = "Shape it"
+want = "Continue a delivery brief (older name)"
+ask = "Continue this delivery brief. (Use author-delivery-brief.)"
+gets = "Deprecated alias. It runs author-delivery-brief in continue mode."
+
+[skills.service-blueprint]
+job = "Shape it"
+want = "Show what supports each step"
+ask = "Draw a service blueprint for this journey."
+gets = "A blueprint of the people, services, and systems behind each step."
+
+[skills.work-intake]
+job = "Shape it"
+want = "Hand over a raw request"
+ask = "Here is a vague request. Where does it go?"
+gets = "The request routed to the right place in the repository."
+
+[skills.a11y-engineering]
+job = "Build it"
+want = "Make a surface accessible"
+ask = "Fix focus and screen-reader behavior in this menu."
+gets = "Accessibility fixes for focus, ARIA, and live regions."
+
+[skills.author-or-update-agent-skill]
+job = "Build it"
+want = "Write or change an agent skill"
+ask = "Create a skill that triages support tickets."
+gets = "A new or updated SKILL.md."
+
+[skills.bug-fix]
+job = "Build it"
+want = "Fix a bug at its cause"
+ask = "Find the root cause of this failing test and fix it."
+gets = "A diagnosed cause and a fix backed by a regression test."
+
+[skills.code-intelligence]
+job = "Build it"
+want = "Ask what is true in the code"
+ask = "What calls this function?"
+gets = "Answers from an indexed code graph."
+
+[skills.component-contract]
+job = "Build it"
+want = "Design a component interface"
+ask = "Design the interface of this Dropdown component."
+gets = "A component contract with usage docs."
+
+[skills.contract-acquisition]
+job = "Build it"
+want = "Learn an unfamiliar tool before using it"
+ask = "Read the real contract of this CLI before writing against it."
+gets = "The platform or library contract taken from its own tools."
+
+[skills.css-architecture]
+job = "Build it"
+want = "Organize CSS"
+ask = "Restructure this stylesheet with cascade layers."
+gets = "A CSS layering and specificity plan."
+
+[skills.design-review]
+job = "Build it"
+want = "Critique a screen"
+ask = "Review this mockup for usability problems."
+gets = "A severity-rated findings list."
+
+[skills.explain-diff]
+job = "Build it"
+want = "Understand a change"
+ask = "Explain how this branch works."
+gets = "A self-contained HTML lesson on how the diff works."
+
+[skills.fe-performance]
+job = "Build it"
+want = "Speed up a page"
+ask = "Our page fails Core Web Vitals. Fix it."
+gets = "A diagnosis and fixes against Core Web Vitals and budgets."
+
+[skills.fe-status]
+job = "Build it"
+want = "See where a web surface stands"
+ask = "What is the quality state of this surface?"
+gets = "A summary against the frontend quality floor."
+
+[skills.frontend-engineering]
+job = "Build it"
+want = "Build a web surface"
+ask = "Build this dashboard in HTML, CSS, and JavaScript."
+gets = "A web surface with an evidence manifest."
+
+[skills.generate-iac]
+job = "Build it"
+want = "Write infrastructure code"
+ask = "Create Terraform for a queue and its consumer."
+gets = "Governed Terraform or OpenTofu for your intent."
+
+[skills.github-pr]
+job = "Build it"
+want = "Review or finish a pull request"
+ask = "Review PR 42."
+gets = "A review, feedback fixes, or an adopted contributor PR."
+
+[skills.jira-defect-flow]
+job = "Build it"
+want = "Fix a Jira defect"
+ask = "Fix PROJ-123."
+gets = "A diagnosis and fix for the Jira defect."
+
+[skills.operational-safety]
+job = "Build it"
+want = "Apply safety checks to risky work"
+ask = "Check this migration for operational risk."
+gets = "Failure-mode checklists for reviewers on infrastructure or data changes."
+
+[skills.reconcile-iac]
+job = "Build it"
+want = "Check infrastructure for drift"
+ask = "Check my Terraform for drift."
+gets = "A drift audit, preflight, or decision-compliance check."
+
+[skills.rendering-strategy]
+job = "Build it"
+want = "Pick how pages render"
+ask = "Choose SSR or static for each route."
+gets = "A rendering model per route."
+
+[skills.repository-exploration]
+job = "Build it"
+want = "Find evidence in the code"
+ask = "Which files must this rename touch?"
+gets = "Attributed evidence from the repository."
+
+[skills.repository-grounding]
+job = "Build it"
+want = "See what governs a path"
+ask = "What already governs these paths?"
+gets = "Governing files, checks, and related files for the paths."
+
+[skills.responsive-layout]
+job = "Build it"
+want = "Make a layout adapt"
+ask = "Make this page layout work from phone to desktop."
+gets = "An adaptive layout with fluid type and spacing."
+
+[skills.review-or-optimize-agent-skill]
+job = "Build it"
+want = "Improve an agent skill"
+ask = "Review this skill for trigger precision."
+gets = "Findings and fixes on a skill."
+
+[skills.security-checklists]
+job = "Build it"
+want = "Apply security checks"
+ask = "Review this change at the security boundary."
+gets = "Boundary-matched security checklists for the reviewer."
+
+[skills.token-architecture]
+job = "Build it"
+want = "Set up design tokens"
+ask = "Set up a design token system with dark mode."
+gets = "A three-tier token system."
+
+[skills.work-loop]
+job = "Build it"
+want = "Build a change with checks"
+ask = "Implement this spec using the work loop."
+gets = "A reviewed change: plan, code, checks, and review."
+
+[skills.ai-adoption-report]
+job = "Ship it"
+want = "Compare delivery before and after AI"
+ask = "How do our flow metrics compare to before AI?"
+gets = "A Markdown comparison of flow-metrics runs."
+
+[skills.author-product-docs]
+job = "Ship it"
+want = "Write product documentation"
+ask = "Write a quickstart for this CLI."
+gets = "User-facing docs that match what shipped."
+
+[skills.close-work]
+job = "Ship it"
+want = "Close out finished work"
+ask = "Close out the work we just shipped."
+gets = "A closeout record and a safe preview of cleanup."
+
+[skills.define-slo]
+job = "Ship it"
+want = "Set a service level objective"
+ask = "Define an SLO for the checkout service."
+gets = "An OpenSLO file at slos/checkout.yaml."
+
+[skills.flow-metrics]
+job = "Ship it"
+want = "Measure delivery speed"
+ask = "What is our cycle time this quarter for PROJ?"
+gets = "DORA and Flow metrics from Jira."
+
+[skills.jira-epic-outcome-view]
+job = "Ship it"
+want = "See what epics delivered"
+ask = "Show our epics next to their outcomes."
+gets = "A view of each epic beside the change it was meant to make."
+
+[skills.new-guide]
+job = "Ship it"
+want = "Write or tidy a guide"
+ask = "Write a how-to guide for this feature."
+gets = "A guide through the product-documentation workflow."
+
+[skills.release-loop]
+job = "Ship it"
+want = "Test the whole thing deployed"
+ask = "Deploy this to a throwaway environment and run the end-to-end tests."
+gets = "Deployed test results and telemetry findings."
+
+[skills.assimilate-primitive]
+job = "Any stage"
+want = "Bring in one outside skill"
+ask = "Assimilate this skill from a URL."
+gets = "A migrated primitive, or a rejection."
+
+[skills.assimilate-repo]
+job = "Any stage"
+want = "Survey an outside repository"
+ask = "Survey this repository for what we could ingest."
+gets = "An RFC of verdicts per candidate."
+
+[skills.compile-okf]
+job = "Any stage"
+want = "Compile pack knowledge"
+ask = "Compile the OKF bundles for this pack."
+gets = "Generated router and procedure skills, or a check they are current."
+
+[skills.confluence-crawler]
+job = "Any stage"
+want = "Pull a Confluence space"
+ask = "Crawl the ENG Confluence space."
+gets = "One Markdown file per page."
+
+[skills.confluence-publisher]
+job = "Any stage"
+want = "Publish to Confluence"
+ask = "Publish this Markdown to Confluence."
+gets = "A new or updated Confluence page."
+
+[skills.figma]
+job = "Any stage"
+want = "Read a Figma file"
+ask = "Read this Figma link."
+gets = "File nodes, versions, comments, or rendered frames."
+
+[skills.file-to-markdown]
+job = "Any stage"
+want = "Convert a document to Markdown"
+ask = "Convert this PDF to Markdown."
+gets = "A Markdown file."
+
+[skills.github-refresh]
+job = "Any stage"
+want = "Refresh from GitHub"
+ask = "Refresh our artifacts from GitHub."
+gets = "A reviewed refresh with confirmed write-back."
+
+[skills.jira]
+job = "Any stage"
+want = "Work with Jira"
+ask = "Search Jira for open bugs in PROJ."
+gets = "Jira issues found, created, or updated."
+
+[skills.jira-align]
+job = "Any stage"
+want = "Work with Jira Align"
+ask = "Fetch this Jira Align epic."
+gets = "Jira Align records read or changed."
+
+[skills.jira-align-refresh]
+job = "Any stage"
+want = "Refresh from Jira Align"
+ask = "Refresh our artifacts from Jira Align."
+gets = "A reviewed refresh. Write-back is not supported."
+
+[skills.jira-refresh]
+job = "Any stage"
+want = "Refresh from Jira"
+ask = "Refresh our artifacts from Jira."
+gets = "A reviewed refresh with confirmed write-back."
+
+[skills.jira-team-status]
+job = "Any stage"
+want = "See the team's backlog"
+ask = "What can the team pick up next?"
+gets = "A backlog by ready, blocked, in progress, and stale."
+
+[skills.linear]
+job = "Any stage"
+want = "Work with Linear"
+ask = "Fetch the issues in this Linear project."
+gets = "Linear issues and projects read."
+
+[skills.linear-brief-sync]
+job = "Any stage"
+want = "Update a brief from Linear"
+ask = "Sync the brief with LIN-123."
+gets = "A brief caught up with its Linear issue."
+
+[skills.markdown-to-docx]
+job = "Any stage"
+want = "Make a Word document"
+ask = "Turn this Markdown into our branded Word template."
+gets = "A branded .docx."
+
+[skills.markdown-to-html]
+job = "Any stage"
+want = "Make a web page"
+ask = "Convert this Markdown to a styled HTML page."
+gets = "A self-contained HTML page."
+
+[skills.markdown-to-pptx]
+job = "Any stage"
+want = "Make a slide deck"
+ask = "Turn this Markdown into slides."
+gets = "A branded .pptx."
+
+[skills.markdown-to-xlsx]
+job = "Any stage"
+want = "Make a spreadsheet"
+ask = "Export this table to Excel."
+gets = "A filled .xlsx."
+
+[skills.mermaid-renderer]
+job = "Any stage"
+want = "Turn diagrams into images"
+ask = "Render the Mermaid diagrams in this file as PNG."
+gets = "Images and a rewritten Markdown file."
+
+[skills.msg-to-markdown]
+job = "Any stage"
+want = "Convert an email"
+ask = "Convert this Outlook email to Markdown."
+gets = "A Markdown file with the headers and body."
+
+[skills.project-knowledge]
+job = "Any stage"
+want = "Keep lessons from the work"
+ask = "Capture what we learned from this review."
+gets = "Admitted project knowledge, or answers from it."
+
+[skills.propose-catalogue-pack]
+job = "Any stage"
+want = "Propose a new pack"
+ask = "Propose a new pack for cost engineering."
+gets = "A justified, scaffolded pack proposal."
+
+[skills.render-proof]
+job = "Any stage"
+want = "Proof a draft"
+ask = "Render this draft for review."
+gets = "An offline HTML proof for reading."
+
+[skills.workspace-status]
+job = "Any stage"
+want = "Repair the workspace file"
+ask = "Run repair-plan on workspace.toml."
+gets = "A repair plan, then the applied repair."

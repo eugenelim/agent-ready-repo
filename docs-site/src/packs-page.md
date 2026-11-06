@@ -1,3 +1,5 @@
+Choose a pack by the work you want done, in [Find a pack by goal](#find-a-pack-by-goal). To start from a request you can paste, use [Skills by job](/agent-ready-repo/docs/packs/skills/).
+
 A pack is a set of agent workflows you install together. Each pack does one kind of work, such as research, architecture design, or building and reviewing a change.
 
 ## What a pack installs
@@ -53,6 +55,46 @@ agentbundle install --profile inception
 
 `agentbundle list-profiles` shows the sets and what each one installs.
 
-## Find a pack
+## Find a pack by goal
 
-Every pack has its own page under Pack listing in the sidebar. [Install packs for your agent](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/) covers agents, previews, and upgrades.
+### Decide what to build
+
+- [`desk-research`](/agent-ready-repo/docs/packs/desk-research/) — Answer a question with sources you can check.
+- [`product-strategy`](/agent-ready-repo/docs/packs/product-strategy/) — Run SWOT, Five Forces, PESTLE, BCG, OKRs and a PRFAQ before funding work.
+- [`product-engineering`](/agent-ready-repo/docs/packs/product-engineering/) — Turn a raw idea into a tested bet and a shaped intent.
+- [`architect`](/agent-ready-repo/docs/packs/architect/) — Assess, design, diagram and review architecture.
+- [`code-intelligence`](/agent-ready-repo/docs/packs/code-intelligence/) — Find out what is true in a codebase before you change it.
+
+### Design
+
+- [`experience-design`](/agent-ready-repo/docs/packs/experience-design/) — Go from a customer journey to screens someone can build.
+- [`frontend-engineering`](/agent-ready-repo/docs/packs/frontend-engineering/) — Build web surfaces that meet accessibility and performance targets.
+- [`figma`](/agent-ready-repo/docs/packs/figma/) — Read a Figma file from its share link.
+- [`contracts`](/agent-ready-repo/docs/packs/contracts/) — Write the API or event contract before the code.
+
+### Build and review
+
+- [`core`](/agent-ready-repo/docs/packs/core/) — Build a change under a spec, with checks and independent review.
+- [`github`](/agent-ready-repo/docs/packs/github/) — Start work from a GitHub Issue and work through pull requests.
+- [`iac-terraform`](/agent-ready-repo/docs/packs/iac-terraform/) — Write and check Terraform from a plain-language request.
+- [`monorepo-extras`](/agent-ready-repo/docs/packs/monorepo-extras/) — Add a package to a monorepo.
+- [`agent-skill-engineering`](/agent-ready-repo/docs/packs/agent-skill-engineering/) — Write, review and improve agent skills.
+
+### Ship and record
+
+- [`release-engineering`](/agent-ready-repo/docs/packs/release-engineering/) — Test a deployed build and set service level objectives.
+- [`product-documentation`](/agent-ready-repo/docs/packs/product-documentation/) — Write documentation that matches what shipped.
+- [`repo-governance`](/agent-ready-repo/docs/packs/repo-governance/) — Write RFCs and ADRs and find past decisions.
+
+### Connect your tools
+
+- [`atlassian`](/agent-ready-repo/docs/packs/atlassian/) — Work with Jira, Jira Align and Confluence.
+- [`linear`](/agent-ready-repo/docs/packs/linear/) — Bring Linear work into your repository.
+- [`converters`](/agent-ready-repo/docs/packs/converters/) — Convert documents, emails and Markdown between formats.
+- [`credential-brokers`](/agent-ready-repo/docs/packs/credential-brokers/) — Keep credentials out of the repository and the agent's context.
+
+### Maintain a catalogue
+
+- [`catalogue-curation`](/agent-ready-repo/docs/packs/catalogue-curation/) — Bring in outside skills, propose packs and compile pack knowledge.
+
+Next: [Install packs for your agent](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/) covers agents, previews, and upgrades.

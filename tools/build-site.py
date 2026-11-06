@@ -11,6 +11,7 @@ Copies:
 
 Generates:
   docs-site/src/content/docs/packs/index.md  (pack catalogue summary page)
+  docs-site/src/content/docs/packs/skills.md (Skills by job; tools/skills_catalogue.py)
 
 Usage:
   python tools/build-site.py
@@ -1421,6 +1422,16 @@ _field_reference = importlib.util.module_from_spec(_field_reference_spec)
 sys.modules[_field_reference_spec.name] = _field_reference
 _field_reference_spec.loader.exec_module(_field_reference)
 
+_SKILLS_CATALOGUE_MODULE = Path(__file__).with_name("skills_catalogue.py")
+_skills_catalogue_spec = importlib.util.spec_from_file_location(
+    "skills_catalogue", _SKILLS_CATALOGUE_MODULE
+)
+if _skills_catalogue_spec is None or _skills_catalogue_spec.loader is None:
+    raise ImportError(f"cannot load {_SKILLS_CATALOGUE_MODULE}")
+_skills_catalogue = importlib.util.module_from_spec(_skills_catalogue_spec)
+sys.modules[_skills_catalogue_spec.name] = _skills_catalogue
+_skills_catalogue_spec.loader.exec_module(_skills_catalogue)
+
 _SPEC_SITE_MODULE = Path(__file__).with_name("catalogue_spec_site.py")
 _spec_site_spec = importlib.util.spec_from_file_location(
     "catalogue_spec_site", _SPEC_SITE_MODULE
@@ -2140,6 +2151,16 @@ def main() -> None:
 
     print("build-site: generating packs/index.md …")
     build_pack_index(packs, packs_out, dry_run=args.dry_run)
+
+    print("build-site: generating packs/skills.md …")
+    try:
+        skills_page = _skills_catalogue.build(REPO_ROOT)
+    except ValueError as exc:
+        sys.exit(f"build-site: {exc}")
+    if args.dry_run:
+        print(f"  gen   docs-site/src/content/docs/packs/skills.md ({len(skills_page)} bytes)")
+    else:
+        (packs_out / "skills.md").write_text(skills_page, encoding="utf-8")
 
     print("build-site: syncing pack journeys …")
     _n_journeys = sync_pack_journeys(
