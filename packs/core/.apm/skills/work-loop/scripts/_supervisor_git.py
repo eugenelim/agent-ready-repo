@@ -24,12 +24,15 @@ Standard library only. Python 3.11+.
 from __future__ import annotations
 
 import atexit
+import contextlib
 import os
 import re
 import shutil
 import stat
 import subprocess
 import tempfile
+import threading
+import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -47,6 +50,8 @@ __all__ = [
 ]
 
 GIT_TIMEOUT_S = 60.0
+# The most stderr bytes one bounded read may produce before it is killed.
+_MAX_STDERR_BYTES = 256 * 1024
 _MAX_SMALL_FILE_BYTES = 4096
 _MAX_ATTRIBUTES_BYTES = 8 * 1024 * 1024
 _FILTER_NAME_RE = re.compile(r"[A-Za-z0-9_.-]+")
@@ -201,6 +206,12 @@ def _launch(
         ) from exc
 
 
+def _unavailable(detail: str) -> SupervisorGitError:
+    return SupervisorGitError(
+        "denied-git-unavailable", f"git could not run: {detail}", unverifiable=True
+    )
+
+
 def _launch_bounded(
     argv: list[str],
     *,
@@ -211,8 +222,12 @@ def _launch_bounded(
 ) -> subprocess.CompletedProcess[bytes]:
     """``_launch`` for a read whose stdout may not exceed *limit* bytes.
 
-    The process is killed as soon as its output passes the limit, so an
-    oversized blob or diff is never buffered whole.
+    The process is killed as soon as its stdout passes *limit* or its stderr
+    passes ``_MAX_STDERR_BYTES``, so an oversized blob or diff is never buffered
+    whole. Both streams drain at once and stdin is fed from its own thread, so no
+    pipe fills while another is waited on. ``GIT_TIMEOUT_S`` bounds the whole
+    process lifetime. Every failure to run, feed, or finish surfaces as a
+    ``SupervisorGitError``.
     """
     try:
         process = subprocess.Popen(
@@ -224,39 +239,69 @@ def _launch_bounded(
             stderr=subprocess.PIPE,
         )
     except OSError as exc:
-        raise SupervisorGitError(
-            "denied-git-unavailable", f"git could not run: {exc}", unverifiable=True
-        ) from exc
-    with process:
-        if stdin is not None:
-            assert process.stdin is not None
+        raise _unavailable(str(exc)) from exc
+    deadline = time.monotonic() + GIT_TIMEOUT_S
+    chunks: dict[str, list[bytes]] = {"stdout": [], "stderr": []}
+    oversize: list[str] = []
+
+    def drain(name: str, cap: int) -> None:
+        stream = getattr(process, name)
+        size = 0
+        try:
+            while True:
+                chunk = stream.read(65536)
+                if not chunk:
+                    return
+                size += len(chunk)
+                if size > cap:
+                    oversize.append(f"git {name} passed {cap} bytes")
+                    process.kill()
+                    return
+                chunks[name].append(chunk)
+        except (OSError, ValueError):
+            return
+
+    def feed() -> None:
+        assert process.stdin is not None and stdin is not None
+        # A child that closes its input early is not an error; its exit status says what happened.
+        with contextlib.suppress(OSError, ValueError):
             try:
                 process.stdin.write(stdin)
             finally:
                 process.stdin.close()
-        assert process.stdout is not None and process.stderr is not None
-        chunks: list[bytes] = []
-        size = 0
-        while True:
-            chunk = process.stdout.read(65536)
-            if not chunk:
-                break
-            size += len(chunk)
-            if size > limit:
-                process.kill()
-                raise SupervisorGitError(
-                    "denied-git-output-too-large", f"git output passed {limit} bytes"
-                )
-            chunks.append(chunk)
-        try:
-            process.wait(timeout=GIT_TIMEOUT_S)
-        except subprocess.TimeoutExpired as exc:
+
+    workers = [
+        threading.Thread(target=drain, args=("stdout", limit), daemon=True),
+        threading.Thread(target=drain, args=("stderr", _MAX_STDERR_BYTES), daemon=True),
+    ]
+    if stdin is not None:
+        workers.append(threading.Thread(target=feed, daemon=True))
+    try:
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(max(0.0, deadline - time.monotonic()))
+        if any(worker.is_alive() for worker in workers):
             process.kill()
-            raise SupervisorGitError(
-                "denied-git-unavailable", f"git could not run: {exc}", unverifiable=True
-            ) from exc
-        stderr = process.stderr.read()
-    return subprocess.CompletedProcess(argv, process.returncode, b"".join(chunks), stderr)
+            raise _unavailable(f"it ran past {GIT_TIMEOUT_S} seconds")
+        try:
+            process.wait(timeout=max(0.0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired as exc:
+            raise _unavailable(f"it ran past {GIT_TIMEOUT_S} seconds") from exc
+    except BaseException:
+        process.kill()
+        raise
+    finally:
+        for stream in (process.stdin, process.stdout, process.stderr):
+            if stream is not None:
+                with contextlib.suppress(OSError, ValueError):
+                    stream.close()
+        process.wait()
+    if oversize:
+        raise SupervisorGitError("denied-git-output-too-large", oversize[0])
+    return subprocess.CompletedProcess(
+        argv, process.returncode, b"".join(chunks["stdout"]), b"".join(chunks["stderr"])
+    )
 
 
 # ── discovery ───────────────────────────────────────────────────────────────

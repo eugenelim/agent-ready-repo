@@ -17,7 +17,7 @@ import difflib
 import fnmatch
 import posixpath
 import re
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol
 
@@ -52,8 +52,17 @@ _VERBATIM_GIT = (2, 39)
 _MAX_HOPS = 5
 _REGULAR_MODES = frozenset({"100644", "100755"})
 _SYMLINK_MODE = "120000"
-# An ``@`` reference that is not part of a word or an email address.
-_REFERENCE = re.compile(r"(?<![\w.@])@([^\s`'\"()<>\[\]{}]+)")
+_TREE_MODE = "040000"
+# The most changed paths one classification looks up, so a lookup stays one short command line.
+_MAX_DELTA_PATHS = 512
+# The most files, beyond the instruction files themselves, the walk follows before it gives up.
+_MAX_REACHED = 256
+# The most lines either side of a compared file may hold; past it the file is not compared.
+MAX_DIFF_LINES = 4000
+# Characters that trail a reference in Markdown without belonging to its path.
+_TRAILING_MARKUP = "*_`'\")]}>.,;:!?"
+# An ``@`` reference that is not part of a word or an email address (``_`` may precede one).
+_REFERENCE = re.compile(r"(?<![^\W_])(?<![.@])@([^\s`'\"()<>\[\]{}]+)")
 # Characters a changed prose line may not carry: code, links, autolinks, markup, imports.
 _FORBIDDEN_IN_PROSE = ("`", "[", "]", "<", ">", "@", "http://", "https://", "www.")
 _BLOCK_STARTS = ("#", "|", ">", "<", "```", "~~~", ":::", "{", "$$", "[", "<!--")
@@ -68,8 +77,22 @@ class TierGit(Protocol):
 
     def git_version(self) -> tuple[int, int]: ...
 
-    def entries(self, rev: str) -> Mapping[str, tuple[str, str]]:
-        """``path -> (mode, object id)`` for every entry at *rev*."""
+    def entries(self, rev: str, paths: Sequence[str]) -> Mapping[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for each of *paths* present at *rev*.
+
+        The paths are literal and read one level deep; a path that names a
+        directory lists its children instead of itself. Raises ``Uncertain``
+        or a Git refusal past ``READ_LIMIT``.
+        """
+        ...
+
+    def matching_entries(
+        self, rev: str, pathspecs: Sequence[str]
+    ) -> Mapping[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for every non-directory entry at *rev* a pathspec matches.
+
+        Pathspecs may carry ``icase`` and ``glob`` magic. The read is bounded.
+        """
         ...
 
     def blob(self, oid: str) -> bytes:
@@ -123,12 +146,28 @@ def _segments_match(pattern: list[str], parts: list[str]) -> bool:
 # ── the Markdown line scan ──────────────────────────────────────────────────
 
 
+_FENCE_OPEN = re.compile(r"(`{3,}|~{3,})")
+# A setext underline, or a thematic break written with dashes, equals signs, stars, or underscores.
+_UNDERLINE = re.compile(r"\s*(=+|-+)\s*")
+_THEMATIC_BREAK = re.compile(r"\s*([-*_])(\s*\1){2,}\s*")
+# A table cell separator: a pipe that a backslash does not escape.
+_TABLE_PIPE = re.compile(r"(?<!\\)\|")
+
+
+def _closes_fence(stripped: str, opener: str) -> bool:
+    """CommonMark: a closing fence repeats the opener's character at least as long, then ends."""
+    body = stripped.rstrip()
+    return len(body) >= len(opener) and body == opener[0] * len(body)
+
+
 def scan_markdown(text: str) -> list[str]:
     """One block kind per line: ``prose``, ``blank``, or a kind no wording edit may touch.
 
     The kinds are ``frontmatter``, ``fence``, ``comment``, ``indented``, and
     ``markup``. A line that starts a construct the scan does not model is
-    ``markup``, so it can never pass as prose.
+    ``markup``, so it can never pass as prose. Any line holding an unescaped
+    pipe is ``markup`` (a table row may omit its leading pipe), and a setext
+    underline marks the lines of the heading it underlines as ``markup`` too.
     """
     lines = text.split("\n")
     kinds: list[str] = []
@@ -144,7 +183,7 @@ def scan_markdown(text: str) -> list[str]:
             continue
         if fence is not None:
             kinds.append("fence")
-            if stripped.startswith(fence):
+            if _closes_fence(stripped, fence):
                 fence = None
             continue
         if in_comment:
@@ -152,8 +191,9 @@ def scan_markdown(text: str) -> list[str]:
             if "-->" in line:
                 in_comment = False
             continue
-        if stripped.startswith(("```", "~~~")):
-            fence = stripped[:3]
+        opener = _FENCE_OPEN.match(stripped)
+        if opener is not None:
+            fence = opener.group(1)
             kinds.append("fence")
             continue
         if stripped.startswith("<!--"):
@@ -164,10 +204,22 @@ def scan_markdown(text: str) -> list[str]:
             kinds.append("blank")
         elif line.startswith(("    ", "\t")):
             kinds.append("indented")
-        elif stripped.startswith(_BLOCK_STARTS) or "<!--" in line:
+        elif (
+            stripped.startswith(_BLOCK_STARTS)
+            or "<!--" in line
+            or _TABLE_PIPE.search(line)
+            or _UNDERLINE.fullmatch(line)
+            or _THEMATIC_BREAK.fullmatch(line)
+        ):
             kinds.append("markup")
         else:
             kinds.append("prose")
+    for number, line in enumerate(lines):
+        if kinds[number] == "markup" and _UNDERLINE.fullmatch(line):
+            back = number - 1
+            while back >= 0 and kinds[back] == "prose":
+                kinds[back] = "markup"
+                back -= 1
     return kinds
 
 
@@ -175,12 +227,20 @@ def _plain_prose(line: str) -> bool:
     return not any(token in line for token in _FORBIDDEN_IN_PROSE)
 
 
+def _line_matcher(old: str, new: str) -> difflib.SequenceMatcher[str]:
+    """A line matcher whose cost is bounded: ``autojunk`` drops lines that repeat too often.
+
+    A junked line only makes the match coarser, so more lines read as changed and
+    the tier can only rise; it never reads a changed line as unchanged.
+    """
+    return difflib.SequenceMatcher(a=old.split("\n"), b=new.split("\n"))
+
+
 def _wording_only_file(old: str, new: str) -> bool:
     """True when every changed line is plain prose and every unchanged line keeps its kind."""
     old_lines, new_lines = old.split("\n"), new.split("\n")
     old_kinds, new_kinds = scan_markdown(old), scan_markdown(new)
-    matcher = difflib.SequenceMatcher(a=old_lines, b=new_lines, autojunk=False)
-    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+    for tag, i1, i2, j1, j2 in _line_matcher(old, new).get_opcodes():
         if tag == "equal":
             if old_kinds[i1:i2] != new_kinds[j1:j2]:
                 return False
@@ -195,13 +255,14 @@ def _wording_only_file(old: str, new: str) -> bool:
     return True
 
 
-def _changed_line_count(old: str, new: str) -> int:
-    """Added plus removed lines between two texts."""
+def _changed_line_count(old: str, new: str, ceiling: int) -> int:
+    """Added plus removed lines between two texts; counting stops once it passes *ceiling*."""
     count = 0
-    matcher = difflib.SequenceMatcher(a=old.split("\n"), b=new.split("\n"), autojunk=False)
-    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+    for tag, i1, i2, j1, j2 in _line_matcher(old, new).get_opcodes():
         if tag != "equal":
             count += (i2 - i1) + (j2 - j1)
+            if count > ceiling:
+                break
     return count
 
 
@@ -232,32 +293,95 @@ def _resolve_reference(referrer: str, reference: str) -> str:
     return joined
 
 
-def _regular_target(
-    entries: Mapping[str, tuple[str, str]], git: TierGit, path: str
-) -> str | None:
-    """The regular file *path* names, following one symlink; None when absent.
+def _glob_escape(text: str) -> str:
+    """*text* as a ``glob`` pathspec that matches only itself."""
+    return re.sub(r"([*?\[\\])", r"\\\1", text)
 
-    A reference through a symlinked directory, to a submodule, or to a symlink
-    whose target is not a regular file is uncertain.
+
+def _reference_variants(reference: str) -> set[str]:
+    """Every path a Markdown reference could name once fragment and trailing markup are dropped."""
+    found = {reference}
+    for _ in range(2):
+        for text in tuple(found):
+            found.add(text.rstrip(_TRAILING_MARKUP))
+            found.add(text.split("#", 1)[0])
+    return {text for text in found if text}
+
+
+def _lookup(
+    git: TierGit, rev: str, paths: Iterable[str]
+) -> dict[str, tuple[str, str] | None]:
+    """The entry at each path, ``None`` for an absent path or a directory.
+
+    A path that passes through a non-directory entry, such as a symlinked
+    directory, raises ``Uncertain``.
     """
-    parts = path.split("/")
-    for depth in range(1, len(parts)):
-        prefix = "/".join(parts[:depth])
-        if prefix in entries:
-            raise Uncertain(f"{path} passes through a non-directory entry")
-    entry = entries.get(path)
-    if entry is None:
-        return None
-    mode, oid = entry
-    if mode in _REGULAR_MODES:
-        return path
-    if mode == _SYMLINK_MODE:
-        target = _resolve_reference(path, _text(git, oid))
-        found = entries.get(target)
-        if found is None or found[0] not in _REGULAR_MODES:
-            raise Uncertain(f"the symlink {path} does not name a regular file")
-        return target
+    wanted: set[str] = set()
+    for path in paths:
+        parts = path.split("/")
+        wanted.update("/".join(parts[: depth + 1]) for depth in range(len(parts)))
+    found = git.entries(rev, sorted(wanted)) if wanted else {}
+    result: dict[str, tuple[str, str] | None] = {}
+    for path in paths:
+        parts = path.split("/")
+        for depth in range(1, len(parts)):
+            held = found.get("/".join(parts[:depth]))
+            if held is not None and held[0] != _TREE_MODE:
+                raise Uncertain(f"{path} passes through a non-directory entry")
+        entry = found.get(path)
+        result[path] = None if entry is None or entry[0] == _TREE_MODE else entry
+    return result
+
+
+def _regular(path: str, entry: tuple[str, str]) -> str:
+    """The object id of a regular-file *entry*; a symlink or anything else is uncertain."""
+    if entry[0] in _REGULAR_MODES:
+        return entry[1]
+    if entry[0] == _SYMLINK_MODE:
+        raise Uncertain(f"an @ reference reaches the symlink {path}")
     raise Uncertain(f"{path} is neither a regular file nor a symlink")
+
+
+def _instruction_files(
+    git: TierGit, result: str, names: tuple[str, ...]
+) -> dict[str, str]:
+    """``path -> object id`` of every instruction-named file, a symlink read at its target."""
+    specs = [":(icase,glob)**/" + _glob_escape(name) for name in names]
+    found = git.matching_entries(result, specs)
+    files: dict[str, str] = {}
+    for path, (mode, oid) in sorted(found.items()):
+        if not _instruction_named(path, names):
+            continue
+        if mode in _REGULAR_MODES:
+            files[path] = oid
+        elif mode == _SYMLINK_MODE:
+            target = _resolve_reference(path, _text(git, oid))
+            entry = _lookup(git, result, [target])[target]
+            if entry is None or entry[0] not in _REGULAR_MODES:
+                raise Uncertain(f"the symlink {path} does not name a regular file")
+            files[target] = entry[1]
+        else:
+            raise Uncertain(f"{path} is neither a regular file nor a symlink")
+    return files
+
+
+def _named_by(git: TierGit, result: str, wanted: set[str]) -> dict[str, str]:
+    """``path -> object id`` of every regular file the candidate paths could name.
+
+    A candidate names an entry exactly or under ASCII case folding. A reference
+    that holds non-ASCII text could name an entry under Unicode normalisation, which
+    Git cannot match, so it is uncertain. A candidate that names a symlink, a
+    submodule, or passes through a non-directory entry is uncertain.
+    """
+    if not wanted:
+        return {}
+    exact = _lookup(git, result, sorted(wanted))
+    specs = [":(icase,glob)" + _glob_escape(path) for path in sorted(wanted)]
+    folded = git.matching_entries(result, specs)
+    named = {path.lower() for path in wanted}
+    entries = {path: entry for path, entry in exact.items() if entry is not None}
+    entries.update({p: e for p, e in folded.items() if p.lower() in named})
+    return {path: _regular(path, entry) for path, entry in sorted(entries.items())}
 
 
 def instruction_reached(
@@ -266,32 +390,37 @@ def instruction_reached(
     """Every file an instruction-named file reaches by ``@`` references, within five hops.
 
     The instruction-named files themselves are included, each at its symlink
-    target when it is a symlink. A reference found past the fifth hop, or one
-    that cannot be resolved safely, raises ``Uncertain``.
+    target when it is a symlink. A reference counts as reaching every entry it
+    could name: under case folding, with a ``#fragment`` or trailing Markdown
+    dropped. A reference found past the fifth hop, to a symlink, to a non-ASCII
+    name, or one that cannot be resolved safely, raises ``Uncertain``.
     """
     names = tuple(names)
-    entries = git.entries(result)
-    frontier: set[str] = set()
-    for path in entries:
-        if _instruction_named(path, names):
-            target = _regular_target(entries, git, path)
-            if target is not None:
-                frontier.add(target)
-    reached: set[str] = set(frontier)
+    oids = _instruction_files(git, result, names)
+    reached = set(oids)
+    frontier = set(oids)
+    roots = len(reached)
     for hop in range(_MAX_HOPS + 1):
-        following: set[str] = set()
+        wanted: set[str] = set()
         for path in sorted(frontier):
-            for match in _REFERENCE.finditer(_text(git, entries[path][1])):
-                reference = match.group(1).rstrip(".,;:!?")
-                if "/" not in reference and "." not in reference:
+            for match in _REFERENCE.finditer(_text(git, oids[path])):
+                reference = match.group(1)
+                trimmed = reference.rstrip(".,;:!?")
+                if "/" not in trimmed and "." not in trimmed:
                     continue  # a handle or mention, not a path
                 if hop == _MAX_HOPS:
                     raise Uncertain("an @ reference lies beyond the fifth hop")
-                target = _regular_target(entries, git, _resolve_reference(path, reference))
-                if target is not None and target not in reached:
-                    following.add(target)
-        reached |= following
-        frontier = following
+                for variant in _reference_variants(reference):
+                    if not variant.isascii():
+                        raise Uncertain(f"an @ reference in {path} holds non-ASCII text")
+                    wanted.add(_resolve_reference(path, variant))
+        named = _named_by(git, result, wanted)
+        following = {path: oid for path, oid in named.items() if path not in reached}
+        oids.update(following)
+        reached |= set(following)
+        if len(reached) - roots > _MAX_REACHED:
+            raise Uncertain("instruction files reach too many files to check")
+        frontier = set(following)
         if not frontier:
             break
     return frozenset(reached)
@@ -322,21 +451,33 @@ def _delta_paths(
     return delta
 
 
-def _rebase(
+def _rebase_refusal(
     git: TierGit,
     anchor: AnchorFacts,
     current: str,
     run_base: str | None,
     changed: frozenset[str],
-) -> bool:
-    if git.git_version() < _VERBATIM_GIT or anchor.patch_ids is None or run_base is None:
-        return False
+    *,
+    open_findings: bool,
+    spec_dir_changed: bool,
+) -> str | None:
+    """Why the run's own patch cannot be called unchanged, or ``None`` when it is."""
+    if spec_dir_changed:
+        return "the adopted change touched the spec directory"
+    if open_findings:
+        return "a finding is open"
+    if git.git_version() < _VERBATIM_GIT:
+        return "Git is older than 2.39, which has no verbatim patch ids"
+    if anchor.patch_ids is None:
+        return "the anchor line records no patch ids"
+    if run_base is None:
+        return "the run base is undefined"
     if changed != anchor.changed_paths:
-        return False
-    return all(
-        git.patch_id(run_base, current, path) == anchor.patch_ids.get(path)
-        for path in sorted(changed)
-    )
+        return "the changed paths differ from the anchor's"
+    for path in sorted(changed):
+        if git.patch_id(run_base, current, path) != anchor.patch_ids.get(path):
+            return f"the patch for {path} changed"
+    return None
 
 
 def classify(
@@ -353,7 +494,11 @@ def classify(
     selection_changed: bool,
     review_tier: str | None,
 ) -> Tier:
-    """The tier the current subject earns; any doubt is ``full``."""
+    """The tier the current subject earns; any doubt is ``full``.
+
+    The reason of a ``full`` tier names the predicate that refused, or the Git
+    refusal code that stopped a read.
+    """
     try:
         return _classify(
             git,
@@ -371,7 +516,22 @@ def classify(
     except Uncertain as exc:
         return Tier(FULL, str(exc))
     except Exception as exc:  # noqa: BLE001 - a classifier error must never lower the tier
-        return Tier(FULL, f"classifier error: {type(exc).__name__}")
+        code = getattr(exc, "code", None)
+        note = f" ({code})" if code else ""
+        return Tier(FULL, f"classifier error: {type(exc).__name__}{note}")
+
+
+def _delta_texts(
+    git: TierGit, delta: Mapping[str, tuple[str, str]]
+) -> dict[str, tuple[str, str]]:
+    """The two texts of each delta path; one past ``MAX_DIFF_LINES`` lines is not compared."""
+    texts: dict[str, tuple[str, str]] = {}
+    for path, (old, new) in delta.items():
+        pair = (_text(git, old), _text(git, new))
+        if any(text.count("\n") >= MAX_DIFF_LINES for text in pair):
+            raise Uncertain(f"{path} is too long to compare line by line")
+        texts[path] = pair
+    return texts
 
 
 def _classify(
@@ -394,25 +554,34 @@ def _classify(
         return Tier(FULL, "no anchor facts")
     if selection_changed:
         return Tier(FULL, "the resolved roles, kinds, or classes changed since the anchor")
-    if (
-        adopted_reanchor
-        and not spec_dir_changed
-        and not open_findings
-        and _rebase(git, anchor, current, run_base, changed)
-    ):
+    if adopted_reanchor:
+        # An adopted reanchor changed the product under the anchor's paths, so a
+        # path comparison proves nothing: only an unchanged patch earns a tier.
+        why = _rebase_refusal(
+            git, anchor, current, run_base, changed,
+            open_findings=open_findings, spec_dir_changed=spec_dir_changed,
+        )
+        if why is not None:
+            return Tier(FULL, f"an adopted reanchor is not a rebase: {why}")
         return Tier(REBASE, "the run's own patch is unchanged after an adopted reanchor")
-    anchor_entries = git.entries(anchor.anchor_result)
-    current_entries = git.entries(current)
-    delta = _delta_paths(anchor_entries, current_entries, anchor.changed_paths | changed)
-    texts: dict[str, tuple[str, str]] = {
-        path: (_text(git, old), _text(git, new)) for path, (old, new) in delta.items()
-    }
+    paths = sorted(anchor.changed_paths | changed)
+    if len(paths) > _MAX_DELTA_PATHS:
+        raise Uncertain(f"{len(paths)} paths changed, more than {_MAX_DELTA_PATHS} to compare")
+    delta = _delta_paths(
+        git.entries(anchor.anchor_result, paths), git.entries(current, paths), paths
+    )
+    texts = _delta_texts(git, delta)
     allowlist = rules["prose_allowlist"]
     if not open_findings and _wording_only(git, current, allowlist, texts):
         return Tier(WORDING_ONLY, "every changed line is plain prose")
     if open_findings and set(delta) <= anchor.changed_paths:
-        lines = sum(_changed_line_count(old, new) for old, new in texts.values())
-        if lines <= int(rules["minor_fix_max_lines"]):
+        ceiling = int(rules["minor_fix_max_lines"])
+        lines = 0
+        for old, new in texts.values():
+            lines += _changed_line_count(old, new, ceiling - lines)
+            if lines > ceiling:
+                break
+        if lines <= ceiling:
             return Tier(MINOR_FIX, f"{lines} changed lines from the anchor result")
     return Tier(FULL, "the change earns no lower tier")
 

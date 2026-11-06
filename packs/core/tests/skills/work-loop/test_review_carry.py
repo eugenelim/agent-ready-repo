@@ -36,6 +36,7 @@ h = _harness()
 tiers = h.cli._supervisor("_review_tiers.py")
 commit_mod = h.cli._supervisor("_supervisor_commit.py")
 review = h.cli._supervisor("_supervisor_review.py")
+readiness = h.cli._supervisor("_supervisor_readiness.py")
 RULES: dict[str, Any] = review.load_rules()
 CODE = "src/app.py"
 RUN = "run-0123456789abcdef"
@@ -202,3 +203,172 @@ def test_ac0013_a_line_with_an_unsorted_path_list_an_extra_field_or_bad_ids_refu
         with pytest.raises(review.Refusal) as refused:
             review.parse_anchors(json.dumps(bad).encode() + b"\n")
         assert refused.value.code == "review-anchor-invalid"
+
+
+# ── AC-0013: an anchor line the parser would refuse is never written ────────
+
+
+def test_ac0013_a_touched_then_restored_path_is_recorded_in_a_form_the_parser_accepts(
+    repo: Repo,
+) -> None:
+    repo.write({CODE: _edit(2, "LINE2")})
+    result = repo.write({CODE: "".join(f"line{i}\n" for i in range(30))})  # restored to the base
+    record = _record(repo, result)
+    assert record["patch_ids"] == {CODE: ""}
+    parsed = review.parse_anchors(json.dumps(record).encode() + b"\n")
+    assert parsed == [record]
+    ledger = Ledger()
+    ledger.append(record)
+    facts = review.latest_anchor(ledger.ws)
+    assert facts.patch_ids == {CODE: ""}
+    # The classifier reads the empty patch as "no change", so an unchanged restore is a rebase.
+    why = tiers._rebase_refusal(
+        repo.port, facts, result, repo.base, frozenset({CODE}),
+        open_findings=False, spec_dir_changed=False,
+    )
+    assert why is None
+
+
+def test_ac0013_a_line_the_parser_refuses_is_not_returned_for_the_commit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    bad = {"run_id": RUN, "round": 1, "review_subject_fingerprint": "s",
+           "review_policy_fingerprint": "p", "anchor_result": "a" * 40, "run_base": None,
+           "changed_paths": ["b", "a"], "patch_ids": None}  # unsorted: the parser refuses it
+    monkeypatch.setattr(readiness._review, "anchor_record", lambda git, **kw: bad)
+    monkeypatch.setattr(readiness._review, "anchor_records", lambda ws: [])
+    monkeypatch.setattr(readiness, "result_lineage", lambda ws, state: ("p", "a" * 40, "1"))
+    monkeypatch.setattr(readiness, "run_base", lambda ws, state, result: None)
+    reports = SimpleNamespace(get_semantic_records=lambda kind: [])
+    ws = SimpleNamespace(git=SimpleNamespace(), open_evidence=lambda: reports)
+    state = SimpleNamespace(run_id=RUN)
+    view = {
+        "flow": {"current_is_round": True, "roles": ["a"], "rounds_with_current": 1},
+        "review_subject": {"review_subject_fingerprint": "s", "review_policy_fingerprint": "p"},
+        "selection": {"changed_files": [{"path": "a"}, {"path": "b"}]},
+    }
+    line, why = readiness._anchor_line(ws, state, view, "a", {"terminal_status": "complete"})
+    assert line is None
+    assert "review-anchor-invalid" in why and why == why.strip() and "\n" not in why
+    good = {**bad, "changed_paths": ["a", "b"]}
+    monkeypatch.setattr(readiness._review, "anchor_record", lambda git, **kw: good)
+    assert readiness._anchor_line(ws, state, view, "a", {"terminal_status": "complete"}) == (
+        good, "",
+    )
+
+
+def test_one_builder_makes_the_anchor_facts_production_and_the_reader_use() -> None:
+    line = {"run_id": RUN, "round": 1, "review_subject_fingerprint": "s",
+            "review_policy_fingerprint": "p", "anchor_result": "a" * 40, "run_base": None,
+            "changed_paths": ["a.py"], "patch_ids": None}
+    ledger = Ledger()
+    ledger.append(line)
+    assert review.latest_anchor(ledger.ws) == review.anchor_facts(line)
+    source = Path(readiness.__file__).read_text(encoding="utf-8")
+    assert "AnchorFacts(" not in source and "_review.anchor_facts(line)" in source
+
+
+# ── AC-0023: only the run's own repair is a round ───────────────────────────
+
+
+def _fp(letter: str) -> str:
+    return letter * 24
+
+
+def _step(operation: str, name: str) -> SimpleNamespace:
+    return SimpleNamespace(operation=operation, step=name)
+
+
+def _subjects(*letters: str) -> list[dict[str, str]]:
+    return [{"fp": _fp(letter), "acceptance": f"acceptance-{letter}"} for letter in letters]
+
+
+def _rounds(
+    monkeypatch: pytest.MonkeyPatch,
+    commits: list[SimpleNamespace],
+    *letters: str,
+    current_reviewed: bool = True,
+) -> tuple[int, bool]:
+    monkeypatch.setattr(readiness, "_raised", lambda store, reports, fp: [{"role": "r"}])
+    subjects = _subjects(*letters)
+    reviewed = subjects if current_reviewed else subjects[:-1]
+    return readiness._rounds(None, [], reviewed, subjects[-1], commits)
+
+
+def test_ac0023_a_subject_changed_only_by_an_adopted_reanchor_is_not_a_round(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commits = [
+        _step("implement", "implement:T1"),
+        _step("review", f"review:adversarial-reviewer:{_fp('a')}:1"),
+        _step("reanchor", "reanchor:upstream"),
+        _step("review", f"review:adversarial-reviewer:{_fp('b')}:1"),
+    ]
+    assert _rounds(monkeypatch, commits, "a", "b") == (1, False)
+
+
+def test_ac0023_a_subject_first_reached_after_the_runs_own_repair_is_a_round(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commits = [
+        _step("implement", "implement:T1"),
+        _step("review", f"review:adversarial-reviewer:{_fp('a')}:1"),
+        _step("implement", "implement:T1-repair"),
+        _step("reanchor", "reanchor:upstream"),
+        _step("review", f"review:adversarial-reviewer:{_fp('b')}:1"),
+    ]
+    assert _rounds(monkeypatch, commits, "a", "b") == (2, True)
+
+
+def test_ac0023_a_current_subject_with_no_review_yet_counts_its_pending_repair(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    reanchor_only = [
+        _step("review", f"review:adversarial-reviewer:{_fp('a')}:1"),
+        _step("reanchor", "reanchor:upstream"),
+    ]
+    assert _rounds(monkeypatch, reanchor_only, "a", "b", current_reviewed=False) == (1, False)
+    repaired = [*reanchor_only[:1], _step("implement", "implement:T1-repair")]
+    assert _rounds(monkeypatch, repaired, "a", "b", current_reviewed=False) == (1, True)
+
+
+def test_ac0023_a_subject_whose_commits_cannot_be_found_still_counts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    assert _rounds(monkeypatch, [], "a", "b") == (2, True)
+
+
+# ── QE-3: the run base names why it is undefined; one cache per workspace ──
+
+
+def test_the_run_base_names_the_condition_that_left_it_undefined(repo: Repo) -> None:
+    first = repo.write({CODE: _edit(2, "LINE2")})
+    head = repo.write({CODE: _edit(3, "LINE3")})
+    mine = SimpleNamespace(sha=first, operation="implement")
+    ws = SimpleNamespace(git=repo.port)
+    assert readiness.run_base_checked(ws, SimpleNamespace(commits=[]), head)[1].startswith(
+        "the run has no stub or implement commit"
+    )
+    foreign = readiness.run_base_checked(ws, SimpleNamespace(commits=[mine]), head)
+    assert foreign[0] is None and "is not the run's" in foreign[1]
+    both = SimpleNamespace(sha=head, operation="implement")
+    assert readiness.run_base_checked(ws, SimpleNamespace(commits=[mine, both]), head) == (
+        repo.base, "",
+    )
+    capped = SimpleNamespace(
+        resolve=repo.port.resolve,
+        rev_list=lambda base, result, limit=None: repo.port.rev_list(base, result, limit=5),
+    )
+    limited = readiness.run_base_checked(
+        SimpleNamespace(git=capped), SimpleNamespace(commits=[mine, both]), head
+    )
+    assert limited[0] is None and "denied-git-output-too-large" in limited[1]
+
+
+def test_a_memoized_answer_is_computed_once_per_workspace_object() -> None:
+    ws = SimpleNamespace()
+    calls: list[int] = []
+    for _ in range(3):
+        readiness._memoized(ws, ("k", 1), lambda: calls.append(1) or "v")
+    readiness._memoized(ws, ("k", 2), lambda: calls.append(2) or "w")
+    assert calls == [1, 2]

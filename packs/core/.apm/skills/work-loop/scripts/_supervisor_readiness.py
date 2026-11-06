@@ -19,10 +19,12 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import os
 import re
 import stat
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -234,42 +236,62 @@ def _properties(state: Any, ids: list[str]) -> list[dict[str, Any]]:
 # ── the review flow: tier, protection, rounds, and carries ──────────────────
 
 
-def run_base(ws: Any, state: Any, result: str) -> str | None:
-    """The parent of the run's earliest ``stub`` or ``implement`` commit, or ``None``.
+def run_base_checked(ws: Any, state: Any, result: str) -> tuple[str | None, str]:
+    """``(run base, why)``: the parent of the run's earliest ``stub`` or ``implement`` commit.
 
     Defined only when every commit between that parent and *result* is a commit of this
-    run, so a foreign commit in the middle of the history leaves it undefined.
+    run, so a foreign commit in the middle of the history leaves it undefined. *why* is
+    empty for a defined base and names the failed condition otherwise. The rev-list read is
+    bounded by the classifier's read limit.
     """
     first = next((c for c in state.commits if c.operation in ("stub", "implement")), None)
     if first is None:
-        return None
+        return None, "the run has no stub or implement commit"
     try:
         base = ws.git.resolve(f"{first.sha}^")
         if not base:
-            return None
-        between = ws.git.rev_list(base, result)
-    except Exception:  # noqa: BLE001 - an undefined run base only lowers what a tier can save
-        return None
+            return None, "the run's first commit has no parent"
+        between = ws.git.rev_list(base, result, limit=_tiers.READ_LIMIT)
+    except Exception as exc:  # noqa: BLE001 - an undefined run base only lowers what a tier can save
+        code = getattr(exc, "code", None)
+        return None, f"the run base could not be read: {type(exc).__name__}" + (
+            f" ({code})" if code else ""
+        )
     mine = {c.sha for c in state.commits}
-    return base if all(sha in mine for sha in between) else None
+    if all(sha in mine for sha in between):
+        return base, ""
+    return None, "a commit that is not the run's lies between the run base and the result"
 
 
-def _reanchors_since(state: Any, anchor_fingerprint: str) -> tuple[bool, bool]:
-    """Whether a reanchor changed the product, and the spec directory, since the anchor.
+def run_base(ws: Any, state: Any, result: str) -> str | None:
+    """The run base, or ``None`` when it is undefined (see ``run_base_checked``)."""
+    return run_base_checked(ws, state, result)[0]
 
-    The anchor round's last report is the last ``review`` step whose id names the anchor
-    subject; with no such step the answer is ``(False, False)``, so no rebase is called.
+
+def _memoized(ws: Any, key: tuple[Any, ...], make: Callable[[], Any]) -> Any:
+    """One classifier input or answer per key for the life of the workspace object.
+
+    Every key names commits by id, so a cached answer never goes stale.
     """
-    tag = f":{anchor_fingerprint[-24:]}:"
-    position = None
-    for number, commit in enumerate(state.commits):
-        named = commit.step.startswith("review:") and tag in commit.step
-        if commit.operation == "review" and named:
-            position = number
-    if position is None:
+    memo = ws.__dict__.setdefault("_review_memo", {})
+    if key not in memo:
+        memo[key] = make()
+    return memo[key]
+
+
+def _reanchors_since(state: Any, subject_fingerprint: str) -> tuple[bool, bool]:
+    """Whether a reanchor changed the product, and the spec directory, since a reviewed subject.
+
+    The subject's last review or carry step is the last commit whose step id names it; with
+    no such step the answer is ``(False, False)``, so no rebase is called. The flow asks about
+    the subject reviewed just before the current one: a reanchor that an earlier subject
+    already carried through review does not make a later repair a reanchor subject.
+    """
+    span = _subject_span(state.commits, subject_fingerprint)
+    if span is None:
         return False, False
     product = spec = False
-    for commit in state.commits[position + 1 :]:
+    for commit in state.commits[span[1] + 1 :]:
         if commit.operation == "reanchor":
             changed = commit.trailers.get("Supervisor-Reanchor-Changed", "none")
             product = product or "product" in changed
@@ -328,18 +350,48 @@ def _raised(store: Any, reports: list[dict[str, Any]], fp: str) -> list[dict[str
     return raised
 
 
+def _subject_span(commits: list[Any], fp: str) -> tuple[int, int] | None:
+    """The first and last position of a commit that records review work on subject *fp*."""
+    tag = f":{fp[-24:]}:"
+    marks = [
+        number
+        for number, commit in enumerate(commits)
+        if commit.operation == "review"
+        and commit.step.startswith(("review:", "carry:"))
+        and tag in commit.step
+    ]
+    return (marks[0], marks[-1]) if marks else None
+
+
+def _implemented_between(commits: list[Any], earlier: str, later: str | None) -> bool:
+    """Whether the run's own implement or stub commits changed the product between two subjects.
+
+    A reanchor adopts upstream history and is not the run's own change. A subject whose commits
+    cannot be located counts as changed, so the cap errs towards asking.
+    """
+    before = _subject_span(commits, earlier)
+    after = _subject_span(commits, later) if later is not None else (len(commits), len(commits))
+    if before is None or after is None:
+        return True
+    return any(
+        commit.operation in ("stub", "implement") for commit in commits[before[1] + 1 : after[0]]
+    )
+
+
 def _rounds(
     store: Any,
     reports: list[dict[str, Any]],
     subjects: list[dict[str, str]],
     current: dict[str, str],
+    commits: list[Any],
 ) -> tuple[int, bool]:
     """``(rounds among the reviewed subjects, whether the current subject is a round)``.
 
-    A subject is a round when it is the unit's first, or the product changed after a
-    subject whose supported findings were not accepted. A selection alone changes the
-    review subject and not the product, a rebase or a wording-only subject follows no
-    such findings, so none of them is a round.
+    A subject is a round when it is the unit's first, or the run's own implement step changed
+    the product after a subject whose supported findings were not accepted. A selection alone
+    changes the review subject and not the product, a rebase or a wording-only subject follows
+    no such findings, and a product change that only a reanchor adopted is not the run's own
+    repair, so none of them is a round.
     """
     reviewed = {s["fp"] for s in subjects}
     ordered = subjects if current["fp"] in reviewed else [*subjects, current]
@@ -350,6 +402,9 @@ def _rounds(
         counts = previous is None or (
             subject["acceptance"] != previous["acceptance"]
             and bool(_raised(store, reports, previous["fp"]))
+            and _implemented_between(
+                commits, previous["fp"], subject["fp"] if subject["fp"] in reviewed else None
+            )
         )
         if subject["fp"] == current["fp"]:
             is_round = counts
@@ -400,6 +455,7 @@ def review_flow(
     previous = next((s for s in reversed(subjects) if s["fp"] != fp), None)
     raised = _raised(store, reports, previous["fp"]) if previous else []
     anchors = _review.anchor_records(ws)
+    answers = _review.cap_answers(ws)
     line = anchors[-1] if anchors else None
     result = result_lineage(ws, state)[1]
     changed = [c["path"] for c in changes]
@@ -409,28 +465,60 @@ def review_flow(
     elif line is not None and line["review_subject_fingerprint"] == fp:
         reason = "the subject is the anchor round"
     elif line is not None:
-        product, spec = _reanchors_since(state, line["review_subject_fingerprint"])
-        facts = _tiers.AnchorFacts(
-            line["anchor_result"],
-            line["run_base"],
-            frozenset(line["changed_paths"]),
-            line["patch_ids"],
+        product, spec = _reanchors_since(
+            state, previous["fp"] if previous else line["review_subject_fingerprint"]
         )
-        found = _tiers.classify(
-            ws.git,
-            rules,
-            facts,
-            current=result,
-            changed=changed,
-            run_base=run_base(ws, state, result) if product else None,
-            open_findings=bool(raised),
-            adopted_reanchor=product,
-            spec_dir_changed=spec,
-            selection_changed=line["review_policy_fingerprint"]
+        facts = _review.anchor_facts(line)
+        base, base_why = (
+            _memoized(
+                ws,
+                ("run-base", result, len(state.commits)),
+                lambda: run_base_checked(ws, state, result),
+            )
+            if product
+            else (None, "")
+        )
+        inputs = {
+            "current": result,
+            "changed": changed,
+            "run_base": base,
+            "open_findings": bool(raised),
+            "adopted_reanchor": product,
+            "spec_dir_changed": spec,
+            "selection_changed": line["review_policy_fingerprint"]
             != review["review_policy_fingerprint"],
-            review_tier=selection.latest.get("review_tier"),
+            "review_tier": selection.latest.get("review_tier"),
+        }
+        key = (
+            "tier",
+            rules["rules_version"],
+            json.dumps(line, sort_keys=True),
+            result,
+            base,
+            tuple(sorted(changed)),
+            bool(raised),
+            product,
+            spec,
+            inputs["selection_changed"],
+            inputs["review_tier"],
+        )
+        found = _memoized(
+            ws, key, lambda: _tiers.classify(ws.git, rules, facts, **inputs)
         )
         tier_name, reason = found.name, found.reason
+        if base_why and tier_name == _tiers.FULL:
+            reason = f"{reason} ({base_why})"
+    if line is None and reason == "no anchor facts":
+        skipped = next(
+            (
+                c.trailers["Supervisor-Anchor-Skipped"]
+                for c in reversed(state.commits)
+                if "Supervisor-Anchor-Skipped" in c.trailers
+            ),
+            None,
+        )
+        if skipped:
+            reason = f"no anchor facts: {skipped}"
     plain = [r for r in roles if r not in protected]
     delta: dict[str, list[str]] = {}
     if tier_name == _tiers.WORDING_ONLY:
@@ -451,9 +539,9 @@ def review_flow(
             + rules["rules_version"].encode()
         ).hexdigest()
     current = {"fp": fp, "acceptance": subject["acceptance_fingerprint"]}
-    count, is_round = _rounds(store, reports, subjects, current)
+    count, is_round = _rounds(store, reports, subjects, current, state.commits)
     reported = fp in {s["fp"] for s in subjects}
-    extensions = sum(1 for d in _review.cap_answers(ws) if d["decision"] == "extend-review")
+    extensions = sum(1 for d in answers if d["decision"] == "extend-review")
     return {
         "tier": tier_name,
         "reason": reason,
@@ -471,7 +559,7 @@ def review_flow(
         "rounds_with_current": count + (0 if reported or not is_round else 1),
         "current_is_round": is_round,
         "round_cap": int(rules["code_review_round_cap"]) + extensions,
-        "answered_caps": len(_review.cap_answers(ws)),
+        "answered_caps": len(answers),
     }
 
 
@@ -872,21 +960,30 @@ def _cap_action(ws: Any, state: Any, view: dict[str, Any]) -> Any:
     )
 
 
+def _trailer_text(text: str) -> str:
+    """*text* as one safe trailer value: printable ASCII, no leading space, bounded."""
+    return re.sub(r"[^\x20-\x7e]", "?", text).strip()[:200]
+
+
 def _anchor_line(
     ws: Any, state: Any, view: dict[str, Any], role: str, report: dict[str, Any]
-) -> dict[str, Any] | None:
-    """The anchor-facts line this report completes, or ``None``.
+) -> tuple[dict[str, Any] | None, str]:
+    """``(anchor-facts line, why none)`` for the line this report completes.
 
     An anchor round is a round on whose subject every selected role has returned a report.
-    A failure to read the facts records no line, so the next subject classifies ``full``.
+    A line is returned only when ``parse_anchors`` accepts it, so a line the parser would
+    refuse never reaches the ledger. A failure to build or validate the facts records no
+    line, so the next subject classifies ``full``, and *why* names the failure; the caller
+    carries it as a trailer for ``status`` to show. A round that is not an anchor round
+    returns an empty *why*.
     """
     flow, review = view["flow"], view["review_subject"]
     fp = review["review_subject_fingerprint"]
     unusable = ("unable", "indeterminate")
     if flow is None or not flow["current_is_round"] or report.get("terminal_status") in unusable:
-        return None
+        return None, ""
     if any(a["review_subject_fingerprint"] == fp for a in _review.anchor_records(ws)):
-        return None
+        return None, ""
     reported = {
         r["role"]
         for r in ws.open_evidence().get_semantic_records("review-report.v1")
@@ -894,10 +991,10 @@ def _anchor_line(
         and r.get("terminal_status") not in unusable
     } | {role}
     if not set(flow["roles"]) <= reported:
-        return None
+        return None, ""
     result = result_lineage(ws, state)[1]
     try:
-        return _review.anchor_record(  # type: ignore[no-any-return]
+        line = _review.anchor_record(
             ws.git,
             run_id=state.run_id,
             round_number=flow["rounds_with_current"],
@@ -907,8 +1004,12 @@ def _anchor_line(
             run_base=run_base(ws, state, result),
             changed_paths=[c["path"] for c in view["selection"]["changed_files"]],
         )
-    except Exception:  # noqa: BLE001 - no anchor line only lowers what a later tier can save
-        return None
+        _review.parse_anchors(_admission.canonical_line(line))
+    except Exception as exc:  # noqa: BLE001 - no anchor line only lowers what a later tier can save
+        code = getattr(exc, "code", None) or getattr(exc, "detail", None)
+        note = f" ({code})" if code else ""
+        return None, _trailer_text(f"the anchor line was not recorded: {type(exc).__name__}{note}")
+    return line, ""
 
 
 def _selection_request(ws: Any, state: Any, view: dict[str, Any]) -> dict[str, Any]:
@@ -1082,14 +1183,18 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
         code = getattr(exc, "denial_code", None) or type(exc).__name__
         raise Refusal("review-record-refused", "controller", str(code)) from exc
     appends = {"evidence.jsonl": evidence}
+    trailers: dict[str, str] = {}
     if request["kind"] == "review-role":
-        line = _anchor_line(ws, state, view, request["role"], report)
+        line, skipped = _anchor_line(ws, state, view, request["role"], report)
         if line is not None:
             appends[_review.ANCHORS_FILE] = _admission.canonical_line(line)
+        elif skipped:
+            trailers["Supervisor-Anchor-Skipped"] = skipped
     ws.git.build_commit(
         run_id=state.run_id,
         step=step,
         operation="review",
+        trailers=trailers or None,
         appends=appends,
         summary=f"record {request['kind']}",
         known_steps=state.steps,

@@ -81,6 +81,7 @@ __all__ = [
     "SELECTIONS_FILE",
     "DECISIONS_FILE",
     "ANCHORS_FILE",
+    "anchor_facts",
     "anchor_record",
     "anchor_records",
     "latest_anchor",
@@ -539,7 +540,7 @@ def parse_anchors(raw: bytes) -> list[dict[str, Any]]:
                 or (
                     isinstance(ids, dict)
                     and set(ids) == set(paths)
-                    and all(_text(v) for v in ids.values())
+                    and all(v == "" or _text(v) for v in ids.values())
                 )
             )
         )
@@ -563,6 +564,8 @@ def anchor_record(
 
     ``patch_ids`` is ``None`` when *run_base* is unknown or Git predates
     ``patch-id --verbatim``, so a later classifier cannot call a rebase from it.
+    A path whose diff from *run_base* is empty (touched, then restored) is recorded
+    with the empty string, which ``parse_anchors`` accepts as "no change".
     """
     paths = sorted(set(changed_paths))
     patch_ids: dict[str, str] | None = None
@@ -585,21 +588,23 @@ def anchor_records(ws: Any) -> list[dict[str, Any]]:
     return parse_anchors(_delivery_bytes(ws, ANCHORS_FILE))
 
 
+def anchor_facts(line: dict[str, Any]) -> Any:
+    """The classifier's anchor facts for one parsed anchor line."""
+    return _supervisor("_review_tiers.py").AnchorFacts(
+        line["anchor_result"],
+        line["run_base"],
+        frozenset(line["changed_paths"]),
+        line["patch_ids"],
+    )
+
+
 def latest_anchor(ws: Any) -> Any:
     """The classifier's anchor facts from the last recorded line, or ``None``.
 
     The classifier reads only this line, never the run's rewritten history.
     """
     records = parse_anchors(_delivery_bytes(ws, ANCHORS_FILE))
-    if not records:
-        return None
-    last = records[-1]
-    return _supervisor("_review_tiers.py").AnchorFacts(
-        last["anchor_result"],
-        last["run_base"],
-        frozenset(last["changed_paths"]),
-        last["patch_ids"],
-    )
+    return anchor_facts(records[-1]) if records else None
 
 
 @dataclass

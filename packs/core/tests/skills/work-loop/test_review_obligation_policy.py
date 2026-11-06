@@ -585,13 +585,24 @@ def test_accept_risk_disposes_exactly_the_named_finding(
     assert code == 0 and admitted["admitted"] == "review", admitted
     accepted = dispositions(repo, "accept-risk")
     assert len(accepted) == 1 and accepted[0]["finding_id"] == PROSE_ID
+    # The disposed finding is the one the named reference derives from: the report its
+    # assessment names is the report that reference was made from.
+    store = h.workspace(repo).open_evidence()
+    reference_report = {
+        review.cap_ref(r["report_id"], PROSE_ID): r["report_id"]
+        for r in store.get_semantic_records("review-report.v1")
+        if any(f["finding_id"] == PROSE_ID for f in r["findings"])
+    }
+    assessed = {
+        a["assessment_id"]: a["report_id"]
+        for a in store.get_semantic_records("finding-assessment.v1")
+    }
+    assert assessed[accepted[0]["assessment_id"]] == reference_report[refs[0]]
     # The other role's finding, which shares that id, is still open and is asked about again.
     again = _asked_decision(repo)
     assert again["reason"] == "review-cap" and again["request_id"] != request["request_id"]
-    assert [f["cap_ref"] for f in again["open_findings"]] == refs[1:] or (
-        [f["cap_ref"] for f in again["open_findings"]] == [refs[0]]
-    )
-    assert len(again["open_findings"]) == 1
+    assert [f["cap_ref"] for f in again["open_findings"]] == refs[1:]
+    assert refs[0] not in [f["cap_ref"] for f in again["open_findings"]]
     rest = {"decision": "accept-risk", "authority_ref": RISK_OWNER,
             "finding_ids": [again["open_findings"][0]["cap_ref"]]}
     assert lab.answer(again, rest)[0] == 0
