@@ -122,7 +122,7 @@ Each group names its criteria once.
 - [ ] **AC-0024.** A `argparse.py` planted beside the script is not imported by the documented `python3 -I` call.
 - [ ] **AC-0025.** `rfc.py` executes `file_safety.py` only from its own source bytes, read as a confined regular file, and consults and writes no bytecode cache, so a planted unchecked-hash `__pycache__/file_safety.*.pyc` never runs.
 - [ ] **AC-0026.** At the top level of the folder it inspects, `rfc.py check` exempts exactly `rfc.py` and `file_safety.py` as regular non-link files and warns about any other code file, any bytecode file, `__pycache__/`, a symlinked `file_safety.py`, and any subdirectory other than a `NNNN-notes/` folder; it does not look inside `NNNN-notes/` folders, and the folder it inspects is the `--dir` folder or, without `--dir`, the script's own folder.
-- [ ] **AC-0027.** Every read, listing and exclusive create in the RFC folder, the template included, goes through `file_safety.py`; `renumber`'s rename, remove and rollback are the exception.
+- [ ] **AC-0027.** Every read and exclusive create in the RFC folder, the template included, goes through `file_safety.py`; a listing validates the folder with the helper and then reads one directory level without following links; `renumber`'s rename, remove and rollback are the exception.
 - [ ] **AC-0028.** `rfc.py` reads and writes only regular non-link files whose parent is the RFC folder.
 - [ ] **AC-0029.** `rfc.py` reads at most 1 MiB from any file.
 - [ ] **AC-0030.** A name `new` or `renumber` creates uses only `[a-z0-9-]` in its slug, at most 60 characters of slug, and a number from 1 to 9999.
@@ -198,3 +198,4 @@ Each group names its criteria once.
 ## Changelog
 
 - 2026-11-06: spec approved by eugenelim (scope)
+- 2026-11-06: amendment approved by eugenelim (scope)
