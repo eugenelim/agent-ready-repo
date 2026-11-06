@@ -1,6 +1,6 @@
 # Spec: Verified infrastructure parallelism
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0156, ADR-0160, ADR-0154, ADR-0151, ADR-0144, ADR-0005, ADR-0061
