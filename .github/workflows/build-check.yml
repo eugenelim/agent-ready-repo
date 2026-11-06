@@ -961,6 +961,23 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_t9a_clean_env_fence.py
 
+      # Pi-absent check (pi-runtime-compatibility AC-0010..AC-0013): scans
+      # packs/core/ source and manifests and runs the projected supervisor with
+      # Pi unreachable and with a sentinel `pi` reachable. It reads the pack tree
+      # and the projected skill together, so it is roster-owned. Sits ABOVE the
+      # carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Core Pi-absent check (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_core_pi_absent.py -q
+
+      # Pi-hosted conformance harness (pi-runtime-compatibility AC-0001..AC-0009):
+      # the opt-in real run skips in CI (no AGENT_READY_PI_CONFORMANCE, no Pi);
+      # the stub-`pi` pins run. Roster-owned: it reads the pack tree. Sits ABOVE
+      # the carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Pi-hosted conformance harness pins (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_pi_hosted_conformance.py -q -rs
+
       # visual-handoff-golden-path: installs experience-design and
       # frontend-engineering together and reads both, so lint-pack-test-boundary
       # forbids a pack home. Sits ABOVE the carve-out step below, whose

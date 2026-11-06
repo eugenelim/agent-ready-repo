@@ -850,6 +850,15 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # includes pytest tests/ -q, which discovers this roster file.
     "pytest T9a clean-environment fence (roster-owned)":
         LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0010..AC-0013: Pi-absent check.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest Core Pi-absent check (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0001..AC-0009: Pi-hosted harness pins (the
+    # real run is opt-in and skips). Discovered by the bulk pytest tests/ -q.
+    "pytest Pi-hosted conformance harness pins (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest visual handoff golden path (roster-owned)":
         LOCAL("test-after-build-check"),
     # checkable-adr-metadata AC-0011: T1 enumerates test_index_records.py here
@@ -1202,6 +1211,8 @@ _GATE_MAIN_CHECKS = (
     "pytest reviewer output contract (roster-owned)",
     "pytest T9a conformance roll-up (roster-owned)",
     "pytest T9a clean-environment fence (roster-owned)",
+    "pytest Core Pi-absent check (roster-owned)",
+    "pytest Pi-hosted conformance harness pins (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",
     "pytest skill HTML view token file agreement (roster-owned)",
     "pytest agentbundle shipped governance markers (roster-owned)",

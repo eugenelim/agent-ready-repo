@@ -1,10 +1,11 @@
 # Runtime mechanism crosswalk
 
-**STATUS: PLANNED** — runtime adapters, the capability selector, and Pi
-conformance are later slices of the
-[acceptance-centered work loop brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
-(slices 6 and 7), under [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md).
-Only the supervisor-realization column below is current.
+**STATUS: PLANNED** — runtime adapters and the capability selector are later
+slices of the
+[acceptance-centered work loop brief](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices),
+under [ADR-0144](../adr/0144-work-loop-supervisor-owns-procedure.md). The
+supervisor-realization column below and the optional Pi proof in § 4 are
+current.
 
 The work-loop supervisor reaches an agent runtime only through typed request
 and result contracts, so a runtime changes how a step is hosted and never what
@@ -38,8 +39,9 @@ import, bundle, install, select by default, or depend on Pi.[^1]
 
 ## 3. Adapter invariants
 
-**STATUS: PLANNED.** No runtime adapter, selector, shared adapter suite, or Pi
-conformance environment exists in the tree.[^5] The supervisor's
+**STATUS: PLANNED.** No runtime adapter, selector, or shared adapter suite
+exists in the tree.[^5] The optional Pi proof in § 4 runs Core's own suites,
+not an adapter suite. The supervisor's
 [§ 9](work-loop-execution-supervisor.md) hands runtime adapters to this
 mapping as later slices. Each row is a target for those slices.
 
@@ -50,13 +52,30 @@ mapping as later slices. Each row is a target for those slices.
 | Session loss cannot erase acceptance facts | Sessions and journals contain only repairable mechanical state (current for the supervisor journal; see recovery above) |
 | Missing runtime capabilities degrade safely | The selector chooses the sequential floor or refuses before dispatch |
 | Provider-specific APIs do not enter skill policy | Typed requests and results terminate at the adapter boundary |
-| Optional compatibility cannot become a critical-path dependency | Pi conformance runs from a separately installed environment; supervisor cutover, result integration, parallelism, and legacy removal pass with Pi absent |
+| Optional compatibility cannot become a critical-path dependency | An opt-in Pi proof runs Core's suites under Pi, and CI fences literal Pi references; supervisor cutover, result integration, parallelism, and legacy removal pass with Pi absent |
 
 ## 4. Verification authority
 
 No runtime support matrix exists. Support status, capability declarations, and
-required conformance are defined with the adapter slices; until then this page
-adds no runtime-specific proof obligation.
+required adapter conformance are defined with the adapter slices.
+
+Pi has one optional proof. [`agent-ready-pi`](https://github.com/eugenelim/agent-ready-pi)
+is a separately installed Pi package; Core does not depend on it, and the proof
+does not load it.
+
+- [`tests/roster/test_pi_hosted_conformance.py`](../../tests/roster/test_pi_hosted_conformance.py)
+  runs Core's named supervisor suites through Pi's RPC shell tool, offline and
+  with no model call, on a machine where Pi is installed and
+  `AGENT_READY_PI_CONFORMANCE=1` is set. It skips everywhere else, including CI.
+- [`tests/roster/test_core_pi_absent.py`](../../tests/roster/test_core_pi_absent.py)
+  runs in CI as a regression fence over literal Pi references in Core's files
+  and declared Pi dependencies in its manifests. It does not catch names built
+  at run time, non-UTF-8 files, transitive dependencies, or launches by
+  absolute path.
+
+The Pi proof runs Core's suites under Pi's process and tool environment; it is
+not a model-driven work-loop run. Its bounds are the
+[spec's Accepted Risk](../specs/pi-runtime-compatibility/spec.md#accepted-risk).
 
 ## Evidence
 
