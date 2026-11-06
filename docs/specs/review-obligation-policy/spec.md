@@ -1,6 +1,6 @@
 # Spec: Review obligation policy
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0158, ADR-0144
@@ -103,67 +103,67 @@ A maintainer running a full-mode `code` run gets one full reviewer pass per unit
 
 Tiers
 
-- [ ] **AC-0001.** A unit's first review subject is requested from every selected role.
-- [ ] **AC-0002.** A repaired subject classifies `full` when, over the union of the anchor's and the current changed-path sets, the diff from the anchor result holds any of: a status other than modified; a mode other than `100644` or `100755` on either side; a blob that contains a NUL byte or is not valid UTF-8 on either side, read by the supervisor without Git attributes; an unreadable blob; more than 1 MiB read from any single Git process or blob, whichever check makes the read; no anchor facts; an anchor result commit that is not in the object store; or a classifier error.
-- [ ] **AC-0003.** A repaired subject classifies `wording-only` only when `review-rules.json` sets `wording_only_enabled` true, no finding is open, every changed path matches the prose allowlist, no changed path's basename matches an instruction name without regard to case, and no changed path is an instruction-reached file. An `@` reference that is absolute, starts with `~`, resolves outside the repository, resolves to or through any entry other than a regular file, or is found beyond the fifth hop makes the subject `full`, and so does an instruction-named symlink whose target cannot be scanned.
-- [ ] **AC-0004.** A repaired subject also classifies `wording-only` only when a whole-file scan at both the anchor and current results places every changed line in plain prose, gives every unchanged line the same block kind at both results, and finds no inline code, link, link target, reference link definition, autolink, heading, or table on any changed line. Plain prose excludes fenced code, indented code, front matter, HTML comments, and raw HTML.
-- [ ] **AC-0005.** A `wording-only` subject issues no `review-role` request to a role that is not protected.
-- [ ] **AC-0006.** A subject classifies `rebase` only when all of these hold:
+- [x] **AC-0001.** A unit's first review subject is requested from every selected role.
+- [x] **AC-0002.** A repaired subject classifies `full` when, over the union of the anchor's and the current changed-path sets, the diff from the anchor result holds any of: a status other than modified; a mode other than `100644` or `100755` on either side; a blob that contains a NUL byte or is not valid UTF-8 on either side, read by the supervisor without Git attributes; an unreadable blob; more than 1 MiB read from any single Git process or blob, whichever check makes the read; no anchor facts; an anchor result commit that is not in the object store; or a classifier error.
+- [x] **AC-0003.** A repaired subject classifies `wording-only` only when `review-rules.json` sets `wording_only_enabled` true, no finding is open, every changed path matches the prose allowlist, no changed path's basename matches an instruction name without regard to case, and no changed path is an instruction-reached file. An `@` reference that is absolute, starts with `~`, resolves outside the repository, resolves to or through any entry other than a regular file, or is found beyond the fifth hop makes the subject `full`, and so does an instruction-named symlink whose target cannot be scanned.
+- [x] **AC-0004.** A repaired subject also classifies `wording-only` only when a whole-file scan at both the anchor and current results places every changed line in plain prose, gives every unchanged line the same block kind at both results, and finds no inline code, link, link target, reference link definition, autolink, heading, or table on any changed line. Plain prose excludes fenced code, indented code, front matter, HTML comments, and raw HTML.
+- [x] **AC-0005.** A `wording-only` subject issues no `review-role` request to a role that is not protected.
+- [x] **AC-0006.** A subject classifies `rebase` only when all of these hold:
   - no finding is open;
   - an adopted reanchor changed the product but not the spec directory;
   - the run base is defined;
   - the changed-path set equals the anchor's;
   - each path's `git patch-id --verbatim` from the run base to the current result equals its anchor fact.
   With Git older than 2.39 it classifies `full`.
-- [ ] **AC-0007.** A `rebase` subject's only non-protected request is one delta pass from `adversarial-reviewer`, naming the anchor result as `delta_base` and an empty `repair_finding_ids`.
-- [ ] **AC-0008.** A subject classifies `minor-fix` only when a finding is open, every changed path is in the anchor's changed-path set, and the added plus removed lines from the anchor result over the union of the two changed-path sets number at most `minor_fix_max_lines`. A delta of `minor_fix_max_lines + 1` lines from the anchor result classifies `full`, however many repairs it took to accumulate.
-- [ ] **AC-0009.** A `minor-fix` subject requests one delta pass from each non-protected role that raised an open finding, and from no other non-protected role. Each request names the anchor result as `delta_base` and that role's open findings as `repair_finding_ids`.
-- [ ] **AC-0010.** A supported material finding raised on a rebase delta pass stays open through each later `minor-fix` subject until a fresh report closes it with `fixed-by` or a risk owner accepts it.
-- [ ] **AC-0011.** A subject whose resolved roles, kinds, or declared classes differ from the anchor round's classifies `full`.
-- [ ] **AC-0012.** A selection answer with `review_tier: "full"` makes a subject `full` and requests every selected role, even when its diff earns a lower tier. Any other `review_tier` value is refused with `review-selection-invalid`.
+- [x] **AC-0007.** A `rebase` subject's only non-protected request is one delta pass from `adversarial-reviewer`, naming the anchor result as `delta_base` and an empty `repair_finding_ids`.
+- [x] **AC-0008.** A subject classifies `minor-fix` only when a finding is open, every changed path is in the anchor's changed-path set, and the added plus removed lines from the anchor result over the union of the two changed-path sets number at most `minor_fix_max_lines`. A delta of `minor_fix_max_lines + 1` lines from the anchor result classifies `full`, however many repairs it took to accumulate.
+- [x] **AC-0009.** A `minor-fix` subject requests one delta pass from each non-protected role that raised an open finding, and from no other non-protected role. Each request names the anchor result as `delta_base` and that role's open findings as `repair_finding_ids`.
+- [x] **AC-0010.** A supported material finding raised on a rebase delta pass stays open through each later `minor-fix` subject until a fresh report closes it with `fixed-by` or a risk owner accepts it.
+- [x] **AC-0011.** A subject whose resolved roles, kinds, or declared classes differ from the anchor round's classifies `full`.
+- [x] **AC-0012.** A selection answer with `review_tier: "full"` makes a subject `full` and requests every selected role, even when its diff earns a lower tier. Any other `review_tier` value is refused with `review-selection-invalid`.
 
 Anchor facts
 
-- [ ] **AC-0013.** Each anchor round appends exactly one anchor-facts line, and the classifier reads the anchor result, run base, changed-path set, and patch ids only from that line. After an adopted rebase rewrites the run's commits, the classifier compares against the recorded facts, not against the rewritten history.
+- [x] **AC-0013.** Each anchor round appends exactly one anchor-facts line, and the classifier reads the anchor result, run base, changed-path set, and patch ids only from that line. After an adopted rebase rewrites the run's commits, the classifier compares against the recorded facts, not against the rewritten history.
 
 Carry
 
-- [ ] **AC-0014.** For each selected role that a tier excuses, readiness counts that role's obligation on the current subject as satisfied by exactly one `review-carry.v1` record. The carried report's assessments and dispositions count with it.
-- [ ] **AC-0015.** Readiness does not count a `review-carry.v1` record that names a protected role, a role with an open finding, a report that is not that role's latest report or carry, a subject other than the current one, or a tier, policy fingerprint, or classifier-input digest other than the ones readiness derives for the current subject.
-- [ ] **AC-0016.** `contracts/delivery/review-carry.v1.schema.json` is closed and listed in the delivery contract bundle.
+- [x] **AC-0014.** For each selected role that a tier excuses, readiness counts that role's obligation on the current subject as satisfied by exactly one `review-carry.v1` record. The carried report's assessments and dispositions count with it.
+- [x] **AC-0015.** Readiness does not count a `review-carry.v1` record that names a protected role, a role with an open finding, a report that is not that role's latest report or carry, a subject other than the current one, or a tier, policy fingerprint, or classifier-input digest other than the ones readiness derives for the current subject.
+- [x] **AC-0016.** `contracts/delivery/review-carry.v1.schema.json` is closed and listed in the delivery contract bundle.
 
 Selection and protection
 
-- [ ] **AC-0017.** A selection answer is refused with `review-selection-invalid` when it has no `protected_classes`, names a token outside the five, declares a class whose mapped reviewer is not in the resolved policy, or selects `security-reviewer` without declaring `security-boundary`.
-- [ ] **AC-0018.** These selection answers are admitted: `protected_classes: []` without `security-reviewer`; `["security-boundary"]` with `security-reviewer` selected; and `["public-interface"]` with no conditional role selected.
-- [ ] **AC-0019.** Two selections that differ only in declared classes resolve to different `review_policy_fingerprint` values.
-- [ ] **AC-0020.** In a unit that selects `security-reviewer`, every new subject under every tier (`full`, `minor-fix`, `rebase`, `wording-only`), and every subject after the cap round, issues a whole-change `security-reviewer` `review-role` request with no `delta_base`, and no `review-carry.v1` record names `security-reviewer`. The same holds for each other protected role of its unit.
-- [ ] **AC-0021.** A selection whose declared classes or protected roles are not a superset of the unit's earlier selections is refused, unless an admitted owner `reselect-review` decision for that selection key authorizes it.
-- [ ] **AC-0022.** A unit that reads a selection line with no `protected_classes` field classifies every subject `full`.
+- [x] **AC-0017.** A selection answer is refused with `review-selection-invalid` when it has no `protected_classes`, names a token outside the five, declares a class whose mapped reviewer is not in the resolved policy, or selects `security-reviewer` without declaring `security-boundary`.
+- [x] **AC-0018.** These selection answers are admitted: `protected_classes: []` without `security-reviewer`; `["security-boundary"]` with `security-reviewer` selected; and `["public-interface"]` with no conditional role selected.
+- [x] **AC-0019.** Two selections that differ only in declared classes resolve to different `review_policy_fingerprint` values.
+- [x] **AC-0020.** In a unit that selects `security-reviewer`, every new subject under every tier (`full`, `minor-fix`, `rebase`, `wording-only`), and every subject after the cap round, issues a whole-change `security-reviewer` `review-role` request with no `delta_base`, and no `review-carry.v1` record names `security-reviewer`. The same holds for each other protected role of its unit.
+- [x] **AC-0021.** A selection whose declared classes or protected roles are not a superset of the unit's earlier selections is refused, unless an admitted owner `reselect-review` decision for that selection key authorizes it.
+- [x] **AC-0022.** A unit that reads a selection line with no `protected_classes` field classifies every subject `full`.
 
 Cap and decisions
 
-- [ ] **AC-0023.** The round count covers the whole unit, counts exactly the subjects the Round definition names, counts a repair spanning two `implement` steps once, and does not change when a selection is recorded.
-- [ ] **AC-0024.** In an unprotected unit, when round `code_review_round_cap` leaves a supported material finding open, the next request is a `review-cap` human decision, not `review-not-eligible` and not a repair. It carries the round count, the unit's current selection key, and each open finding as its cap finding reference, its role, and the evidence-log sequence number of its report. It holds no reviewer-supplied identifier or string, and it is not issued while two open findings share a cap finding reference: the next request is then `review-not-eligible`, and every finding stays open.
-- [ ] **AC-0025.** The `review-cap` request id is derived from the run id, the round count, the selection key, the number of `review-cap` answers the unit has admitted, and the sorted cap finding references. It stays the same across commits that change none of them, and differs from the id of every request already answered.
-- [ ] **AC-0026.** A `review-cap` answer of `accept-risk` with a `risk-owner` authority reference and a set of cap finding references disposes exactly those findings, and readiness then counts them closed. An answer naming any reference outside the request's open findings is refused as a whole.
-- [ ] **AC-0027.** A `review-cap` answer of `extend-review` with an `owner` authority reference permits exactly one more round before the next `review-cap`.
-- [ ] **AC-0028.** A `review-cap` answer of `reselect-review` with an `owner` authority reference and the request's selection key authorizes one new selection. Any other answer, a malformed answer, or no answer leaves the findings open and the same request outstanding.
-- [ ] **AC-0029.** A protected unit never issues `review-cap`.
+- [x] **AC-0023.** The round count covers the whole unit, counts exactly the subjects the Round definition names, counts a repair spanning two `implement` steps once, and does not change when a selection is recorded.
+- [x] **AC-0024.** In an unprotected unit, when round `code_review_round_cap` leaves a supported material finding open, the next request is a `review-cap` human decision, not `review-not-eligible` and not a repair. It carries the round count, the unit's current selection key, and each open finding as its cap finding reference, its role, and the evidence-log sequence number of its report. It holds no reviewer-supplied identifier or string, and it is not issued while two open findings share a cap finding reference: the next request is then `review-not-eligible`, and every finding stays open.
+- [x] **AC-0025.** The `review-cap` request id is derived from the run id, the round count, the selection key, the number of `review-cap` answers the unit has admitted, and the sorted cap finding references. It stays the same across commits that change none of them, and differs from the id of every request already answered.
+- [x] **AC-0026.** A `review-cap` answer of `accept-risk` with a `risk-owner` authority reference and a set of cap finding references disposes exactly those findings, and readiness then counts them closed. An answer naming any reference outside the request's open findings is refused as a whole.
+- [x] **AC-0027.** A `review-cap` answer of `extend-review` with an `owner` authority reference permits exactly one more round before the next `review-cap`.
+- [x] **AC-0028.** A `review-cap` answer of `reselect-review` with an `owner` authority reference and the request's selection key authorizes one new selection. Any other answer, a malformed answer, or no answer leaves the findings open and the same request outstanding.
+- [x] **AC-0029.** A protected unit never issues `review-cap`.
 
 Rules
 
-- [ ] **AC-0030.** The resolver refuses with a named error, and the review stage stays unsatisfied, when `code_review_round_cap` or `minor_fix_max_lines` is missing or not a positive integer, `wording_only_enabled` is missing or not a boolean, or the prose allowlist or the class-to-reviewer map is missing or malformed.
-- [ ] **AC-0031.** The shipped `review-rules.json` holds `code_review_round_cap` 2 and `minor_fix_max_lines` 40, and its `max_review_retries` equals the value at `git merge-base origin/main HEAD`.
+- [x] **AC-0030.** The resolver refuses with a named error, and the review stage stays unsatisfied, when `code_review_round_cap` or `minor_fix_max_lines` is missing or not a positive integer, `wording_only_enabled` is missing or not a boolean, or the prose allowlist or the class-to-reviewer map is missing or malformed.
+- [x] **AC-0031.** The shipped `review-rules.json` holds `code_review_round_cap` 2 and `minor_fix_max_lines` 40, and its `max_review_retries` equals the value at `git merge-base origin/main HEAD`.
 
-- [ ] **AC-0035.** The shipped prose allowlist matches no path under `docs/specs/`, `docs/adr/`, or `docs/rfc/`.
-- [ ] **AC-0036.** The shipped `review-rules.json` sets `wording_only_enabled` false.
+- [x] **AC-0035.** The shipped prose allowlist matches no path under `docs/specs/`, `docs/adr/`, or `docs/rfc/`.
+- [x] **AC-0036.** The shipped `review-rules.json` sets `wording_only_enabled` false.
 
 Contracts and release
 
-- [ ] **AC-0032.** `execution-request.v1` admits `delta_base` and `repair_finding_ids` on a `review-role` request, and a `review-cap` request whose `open_findings` entries hold exactly a cap finding reference, a role, and an evidence-log sequence number. It refuses an entry with any other field.
-- [ ] **AC-0033.** `execution-result.v1` admits a selection with `protected_classes` drawn from the five tokens and an optional `review_tier` of `full`, and admits an `extend-review` decision with an `owner` authority reference.
-- [ ] **AC-0034.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry one patch above the version `packs/core/pack.toml` carries at `git merge-base origin/main HEAD`, checked right after `git fetch origin` with the merge base equal to `origin/main`, and one `docs/product/changelog.d/` fragment names that version.
+- [x] **AC-0032.** `execution-request.v1` admits `delta_base` and `repair_finding_ids` on a `review-role` request, and a `review-cap` request whose `open_findings` entries hold exactly a cap finding reference, a role, and an evidence-log sequence number. It refuses an entry with any other field.
+- [x] **AC-0033.** `execution-result.v1` admits a selection with `protected_classes` drawn from the five tokens and an optional `review_tier` of `full`, and admits an `extend-review` decision with an `owner` authority reference.
+- [x] **AC-0034.** `packs/core/pack.toml` and `packs/core/.claude-plugin/plugin.json` carry one patch above the version `packs/core/pack.toml` carries at `git merge-base origin/main HEAD`, checked right after `git fetch origin` with the merge base equal to `origin/main`, and one `docs/product/changelog.d/` fragment names that version.
 
 ## Follow-ons
 
