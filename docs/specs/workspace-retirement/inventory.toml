@@ -2441,6 +2441,12 @@ consumer = "work-loop gate selection: the PLAN rule naming a repository-declared
 owner = "none"
 
 [[row]]
+pattern = "docs/specs/risk-trigger-record/*"
+class = "historical"
+consumer = "risk-trigger record: the spec header line recording fired risk triggers; its ledger names the workspace-status suites it ran"
+owner = "none"
+
+[[row]]
 pattern = "guides/core/how-to/upgrade-from-a-workspace-registry.md"
 class = "guide"
 consumer = "published adopter upgrade notes: the repair steps that move each workspace.toml entry onto its artifact, the refresh policy file, the retired workspace-status subcommands and migration tooling, and the MCP field changes"
