@@ -265,6 +265,8 @@ jobs:
           packs/core/tests/skills/work-loop/test_supervisor_git.py
           packs/core/tests/skills/work-loop/test_supervisor_ingestion.py
           packs/core/tests/skills/work-loop/test_supervisor_integration.py
+          packs/core/tests/skills/work-loop/test_supervisor_failure_handling.py
+          packs/core/tests/skills/work-loop/test_supervisor_reason_codes.py
           packs/core/tests/skills/work-loop/test_supervisor_launcher.py
           packs/core/tests/skills/work-loop/test_supervisor_pinning.py
           packs/core/tests/skills/work-loop/test_supervisor_product_ref.py

@@ -23,6 +23,9 @@ A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (s
   ``access_pad``; ``access_extra``: a second line; ``token``: a token to send instead;
   ``envelope_binding``: overrides for the envelope's binding; ``denied_reads``; ``complete``;
   ``processes_ended``;
+* ``exit_before_containment`` / ``exit_after_release``: exit without sending the containment line,
+  or without sending the access line once released; ``hardlinks``: ``{path: existing path}``
+  hard links it creates in the attempt directory; ``unreadable``: files it makes unreadable;
 * ``binding_override`` / ``access_binding_override``: fields replaced in the attested binding;
   ``tamper_glob``: files it rewrites before attesting (a worker acting as the same user);
 * ``per_task``: ``{task id prefix: overrides}``, merged over the script for the attempt whose
@@ -104,6 +107,8 @@ def main():
     for prefix, overrides in SCRIPT.get("per_task", {}).items():
         if own and own.startswith(prefix):
             SCRIPT = {**SCRIPT, **overrides}
+    if SCRIPT.get("exit_before_containment"):
+        return 0
     binding, attempt_dir = message["binding"], message["attempt_dir"]
     grant = message["grant"]
     allowlist = grant["product_read_proof_mode"] == "allowlist"
@@ -162,6 +167,12 @@ def main():
         path.parent.mkdir(parents=True, exist_ok=True)
         with path.open("w", encoding="utf-8", newline="\n") as handle:
             handle.write(text)
+    for rel, existing in SCRIPT.get("hardlinks", {}).items():
+        os.link(Path(attempt_dir) / existing, Path(attempt_dir) / rel)
+    for rel in SCRIPT.get("unreadable", []):
+        (Path(attempt_dir) / rel).chmod(0)
+    if SCRIPT.get("exit_after_release"):
+        return 0
     if SCRIPT.get("fifo"):
         os.mkfifo(Path(attempt_dir) / SCRIPT["fifo"])
     for rel, target in SCRIPT.get("links", {}).items():

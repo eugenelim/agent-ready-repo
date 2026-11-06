@@ -25,7 +25,7 @@ standard library alone (Python 3.11 or later):
 | `start <spec-dir> --intent code\|spec-plan --code-trust trusted\|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>] --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>` | Reads the approved spec and plan, checks them against the two digests, appends the approval pair in one commit, and answers `{"status": "admitted" \| "current" \| "terminal", "run_id", "sequence"}`. A `spec-plan` intent ends terminal with no tasks. Running it again on an admitted run answers `current`. Both digest arguments are required whenever `start` records an approval pair, and are ignored when it answers `current`. |
 | `next <spec-dir>` | Derives the one current action and answers `{"request": {...}}`, `{"terminal": true}`, or `{"refusal": {...}}`. It also commits a pending controller plan edit and the supervisor's own red proofs and effect intents. |
 | `report <spec-dir> <result.json>` | Admits one result for the current request and answers `{"admitted": "<step>"}`, or refuses and commits nothing from it. |
-| `run-concurrent <spec-dir> --request <id>` | Blocks while it runs the one `run-concurrent` request `next` issued: spawns the run's pinned launcher, checks its containment attestation before releasing the worker, reads the one access line the launcher sends at the end, ingests the attempt directory itself, and integrates the result by exact source. A request runs once: a second invocation refuses `request-consumed` and spawns nothing. Answers `{"run_concurrent": {"outcome": "landed" \| "floor" \| "cancelled" \| "residue", ...}}`. |
+| `run-concurrent <spec-dir> --request <id>` | Blocks while it runs the one `run-concurrent` request `next` issued: spawns the run's pinned launcher, checks its containment attestation before releasing the worker, reads the one access line the launcher sends at the end, ingests the attempt directory itself, and integrates the result by exact source. A request runs once: a second invocation refuses `request-consumed` and spawns nothing. Answers `{"run_concurrent": {"outcome": "landed" \| "held" \| "conflict" \| "floor" \| "cancelled" \| "residue", ...}}`, or `"batch"` with one such entry per attempt. |
 | `status <spec-dir> [--json] [--check]` | Read-only view: run, stage, retry count and cap, readiness, task list with completion, the current request, and any refusal. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
 | `resolve-effect <spec-dir> --operation <key> --decision effect-confirmed\|do-not-retry\|retry-authorized --authority-ref effect-authority[:<hex>]` | Records a named human's decision about an external effect whose outcome could not be established. |
 
@@ -223,6 +223,63 @@ task that spent it runs on the floor. A killed run converges on the next verb: a
 commit carrying the attempt's trailer on the tip's first-parent chain since the
 source commit is the landed result, and the verb records it without a second commit.
 
+#### Failures, cancellation, and plan changes
+
+A failure has task blast radius. An attempt that fails, is refused, or conflicts is
+dealt with alone, and so is each running sibling whose declared reads and writes meet
+its own; every other sibling's result integrates as it would have. Each such sibling
+is cancelled: the verb sends its launcher `abort`, ends the launcher's process group,
+and confirms the end within 10 seconds before the task is projected again onto a
+fresh attempt directory (`cancelled`, reason `sibling-failed`). An end that cannot
+be confirmed sends the task to the floor and leaves the attempt directory behind
+(`residue`). A cancelled attempt's result is never admitted, even one that arrives
+after the cancellation. An attempt that sends no access line within
+`attempt_timeout_seconds` is cancelled the same way (reason `access-timeout`).
+
+A task projected again, whether after an integration conflict or after a cancellation
+whose end was confirmed, counts toward `reprojection_bound`; at the bound its next
+attempt runs on the floor (`reprojection-bound`). Each projection again is a journal
+line (`outcome` `conflict` or `cancelled`, `reprojected: true`) and an entry in
+`status` (`concurrency.attempts`, `reprojected: true`).
+
+A controller replan or a stub-fence revision is admitted only while no attempt is
+open; an edit beside one is `attempt-residue`. Once the open attempts end, it is
+admitted as one `replan` step, which discards every held result: the held record and
+ref are removed, the attempt closes as `discarded` (reason `plan-changed`), and the
+task is projected again under a new request. A discard does not count toward the
+bound. No `run-gates`, `review-role`, or evidence receipt issues while an attempt is
+open or a result is held, and each names a commit the product ref has held.
+
+#### Reason codes
+
+Every reason in the journal (`reason`, `floor_reason`) and in `status`
+(`concurrency.attempts[].reason`, `concurrency.floor_reason`) is one code from a
+closed set, and no launcher-supplied text appears in either place. Besides the
+admission codes above, the set names:
+
+- each check of the containment attestation: `containment-timeout`,
+  `containment-oversized`, `containment-schema`, `containment-missing`,
+  `binding-run-id`, `binding-attempt-id`, `binding-grant-id`, `binding-nonce`,
+  `binding-launcher`, `read-enforcement`, `allowlist-mismatch`, `network-allowed`,
+  `write-roots`, `broader-than-grant`, `denial-missing`;
+- each defect that fails an attempt: `access-oversized`, `access-schema`,
+  `access-binding`, `access-token`, `access-extra-line`, `access-timeout`,
+  `access-missing`, `processes-not-ended`, `launcher-changed`, `launcher-closed`,
+  `launcher-spawn-failed`, and the ingestion codes `attempt-location`,
+  `attempt-too-large`, `attempt-special-file`, `attempt-hard-link`,
+  `attempt-bad-path`, `attempt-git-name`, `attempt-unsafe-link`, `attempt-changed`,
+  `attempt-unreadable`, `protected-path-changed`;
+- each defect that leaves an integration by exact source only (the result lands, and
+  the code is its reason): `access-mode`, `access-read-outside`, `access-bad-path`,
+  `access-too-many`, `access-write-missing`, `access-incomplete`;
+- each refusal reason of an integration that did not land: `meets`, `content`,
+  `merge-attribute`, `merge-config`, `outside-changed-paths`, `stale-authority`,
+  `cas-lost`, `incomplete-attestation`, `link-target`; and
+- `sibling-failed`, `plan-changed`, `attempt-lost`, `end-unconfirmed`,
+  and `attempt-error`.
+
+The run's mode (`concurrency.mode`) says whether the policy opted in.
+
 ### Git settings the supervisor does not support
 
 The supervisor runs every Git call with hooks, fsmonitor, filters, external diff,
@@ -281,7 +338,7 @@ never asserts them.
 | `external-effect` | Perform the named effect once (a push, a publish) and record its receipt. | `{"effect": {"outcome": "completed"\|"not-executed", "receipt_ref": "..."}}` |
 | `effect-query` | Ask the effect's source whether it already happened. | `{"effect": {"outcome": "running"\|"present"\|"absent"\|"unknowable", "receipt_ref": "..."}}` |
 | `regenerate` | Rebuild the installed skill from its pack source with the repository's documented self-host command, then run the gates. Leave the rebuilt files uncommitted: where the repository tracks its installed skill, the next `next` commits them as one `regenerate` step, and a commit of your own would be foreign history the owner must adopt. | `{"gate": {"passed": ...}}` |
-| `run-concurrent` | Run `run-concurrent <spec-dir> --request <request_id>` and wait for it; do not edit the repository meanwhile. When it answers `landed`, report completion. When it answers `floor`, `cancelled`, or `residue`, run `next`, which issues the task as an ordinary `implement-task`. | completion only: the supervisor reads every attestation, read, write, and binding from the launcher itself, so a result that asserts one refuses `result-fact-refused` |
+| `run-concurrent` | Run `run-concurrent <spec-dir> --request <request_id>` and wait for it; do not edit the repository meanwhile. When it answers `landed` or `held`, report completion. When it answers `floor`, `cancelled`, `conflict`, or `residue`, run `next`: it issues the task as an ordinary `implement-task`, or as a new `run-concurrent` request when a conflict or a confirmed cancellation projected the task again. | completion only: the supervisor reads every attestation, read, write, and binding from the launcher itself, so a result that asserts one refuses `result-fact-refused` |
 | `human-decision` | Put the `question` to the named human. See [Human decisions](#human-decisions). | `{"decision": {...}}`, only for the reasons below |
 
 A request for a worker (`write-stub`, `implement-task`, `review-role` with a

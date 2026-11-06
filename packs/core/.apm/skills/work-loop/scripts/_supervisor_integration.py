@@ -561,7 +561,11 @@ def finalize_landing(ws: Any, held: dict[str, Any], sha: str) -> None:
     record = conc.read_record(ws, run_id, held["request_id"])
     if record is not None:
         record.update(state="landed", commit=sha, result_tree=held["result_tree"])
-        record.pop("reason", None)
+        # An integration by exact source keeps the access check it rested on as its reason.
+        if held.get("access_defect"):
+            record["reason"] = held["access_defect"]
+        else:
+            record.pop("reason", None)
         conc._write(ws, run_id, record)
         if record.get("attempt_dir"):
             _conc.remove_attempt_directory(Path(record["attempt_dir"]))

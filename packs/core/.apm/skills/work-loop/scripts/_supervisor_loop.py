@@ -399,6 +399,18 @@ def decide(ws: Workspace, state: State) -> Action:
                 "no incomplete task has its dependencies complete",
             ),
         )
+    if _supervisor("_supervisor_concurrent.py").results_pending(ws, state):
+        # No gate, review, or evidence beside an open attempt or a held result; a held result
+        # whose task is complete cannot be integrated, so nothing may go on past it.
+        return Action(
+            "refusal",
+            refusal=Refusal(
+                "no-progress",
+                "skill maintainer",
+                "a held result or an open attempt remains with every task complete, so no "
+                "gate, review, or evidence is issued",
+            ),
+        )
     dirty = ws.git.change_set()
     if dirty:
         return Action(
@@ -544,6 +556,7 @@ def _prepare(ws: Workspace) -> tuple[State, Refusal | None]:
         )
         state = derive(ws)
         ws.local.reconcile_events(state.run_id, state.commits)
+        _supervisor("_supervisor_concurrent.py").discard_stale(ws, state.run_id)
     plan = ws.attempts.regenerate_plan(state.run_id)
     if plan is not None:
         # A tracked install the regeneration rebuilt is the pack source the repository

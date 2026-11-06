@@ -1662,6 +1662,18 @@
         "Says not to edit the held record or its ref because that refuses a later attempt as residue",
         "Says a meets conflict leaves the product ref unchanged and projects the task again from the new tip"
       ]
+    },
+    {
+      "id": "supervisor-cancelled-attempt-and-plan-edit",
+      "prompt": "`run-concurrent` answered `cancelled` with reason `sibling-failed` for one task, and `status` shows another task's attempt as `residue`. I also want to edit the plan's design section while a request is open. What do these mean, and what do I do?",
+      "expected_output": "A failed, refused, or conflicting attempt cancels only the running siblings whose declared reads and writes meet its own. A `cancelled` attempt had its launcher ended and the end confirmed within 10 seconds, so its task is projected again onto a fresh attempt directory under a new request, and that projection counts toward the reprojection bound; its late result is never admitted. A `residue` attempt's end could not be confirmed, so its task runs on the floor and its attempt directory is left behind. Run `next` for either. The plan edit waits: an edit beside an open attempt is refused as `attempt-residue`, so restore it, let the open attempts end, then make the edit and run `next`. It is committed as one `replan`, any held result is discarded and its task projected again without counting toward the bound, and no gate, review, or evidence request issues while an attempt is open or a result is held.",
+      "assertions": [
+        "Says a cancelled attempt is projected again onto a fresh directory and counts toward the reprojection bound",
+        "Says a residue attempt, whose end was not confirmed, runs on the floor and leaves its directory behind",
+        "Says to run next for the cancelled or residue task rather than retry the same request id",
+        "Says a plan edit beside an open attempt is refused as attempt-residue and waits until no attempt is open",
+        "Says an admitted replan discards held results and projects their tasks again without counting toward the bound"
+      ]
     }
   ]
 }

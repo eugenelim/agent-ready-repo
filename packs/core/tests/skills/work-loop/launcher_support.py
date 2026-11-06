@@ -235,6 +235,39 @@ class StepClock:
         time.sleep(seconds)
 
 
+class ScriptedClock:
+    """A clock the test drives: it stands still until it is told to move.
+
+    ``arm(jump, after)`` makes the reading after the next *after* readings jump forward by *jump*
+    seconds, once. ``sleep_step`` is how far each ``sleep`` moves it, so a wait that polls on the
+    clock reaches its deadline without the test waiting in real time. Nothing here really sleeps.
+    """
+
+    def __init__(self, sleep_step: float = 0.0) -> None:
+        self.t = 0.0
+        self.sleep_step = sleep_step
+        self._jump = 0.0
+        self._after = 0
+
+    def arm(self, jump: float, after: int = 1) -> None:
+        self._jump, self._after = jump, after
+
+    def now(self) -> float:
+        if self._jump:
+            if self._after <= 0:
+                self.t += self._jump
+                self._jump = 0.0
+            else:
+                self._after -= 1
+        return self.t
+
+    def sleep(self, seconds: float) -> None:
+        self.t += self.sleep_step
+        import time
+
+        time.sleep(0)  # yield only: every timeout is driven by this clock
+
+
 def journal(repo: Path) -> list[dict[str, Any]]:
     path = repo / SPEC_DIR / ".supervisor" / "journal.jsonl"
     return [json.loads(line) for line in path.read_text("utf-8").splitlines() if line]
