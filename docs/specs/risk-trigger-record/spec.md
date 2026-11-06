@@ -1,6 +1,6 @@
 # Spec: Risk-trigger record on the spec header
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -92,52 +92,52 @@ carry a run.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The spec metadata contract has a `Risk triggers` bullet with
+- [x] **AC-0001.** The spec metadata contract has a `Risk triggers` bullet with
   a token-to-trigger table whose trigger column, read top to bottom, is the same
   ordered sequence as the bold labels of the bullets between the
   `risk-triggers:start` and `risk-triggers:end` markers of `work-loop`
   `SKILL.md`, with no extra entry on either side.
-- [ ] **AC-0002.** The lint's token set equals the table's token set, plus `none`.
-- [ ] **AC-0003.** Invariant (vii) reports a hard violation for a spec in scope
+- [x] **AC-0002.** The lint's token set equals the table's token set, plus `none`.
+- [x] **AC-0003.** Invariant (vii) reports a hard violation for a spec in scope
   whose `Risk triggers:` line's value contains an unknown token, a repeated
   token, an empty item (leading, trailing, or between commas), or `none` beside
   another token. Tokens match exactly and case-sensitively after the spaces
   AC-0006 allows are trimmed, so a backticked or differently cased token is
   unknown.
-- [ ] **AC-0004.** Invariant (vii) reports a hard violation for a spec in scope
+- [x] **AC-0004.** Invariant (vii) reports a hard violation for a spec in scope
   with more than one `Risk triggers:` line in its preamble.
-- [ ] **AC-0005.** Invariant (vii) reports a warn-only finding, and no hard
+- [x] **AC-0005.** Invariant (vii) reports a warn-only finding, and no hard
   violation, for a `Draft` spec added since the base ref that has no
   `Risk triggers:` line.
-- [ ] **AC-0006.** Invariant (vii) reports nothing for a spec whose value is
+- [x] **AC-0006.** Invariant (vii) reports nothing for a spec whose value is
   `none` or one or more distinct tokens separated by commas, with any spaces
   around each comma and at the start or end of the value. It also reports
   nothing for a spec without a line when that spec is present at the base ref,
   is not `Draft`, or no base ref resolves.
-- [ ] **AC-0007.** A `Risk triggers:` line is a line that starts
+- [x] **AC-0007.** A `Risk triggers:` line is a line that starts
   `- **Risk triggers:**`, sits in the preamble outside any HTML comment or code
   fence, and has a value that is not empty once HTML comments are hidden. Any
   other line naming the field — bare, commented out, in the body, or empty — is
   no line, so invariant (vii) gives it no hard violation in any of AC-0003 to
   AC-0006.
-- [ ] **AC-0008.** `work-loop` `SKILL.md` PLAN step 2 states that the
+- [x] **AC-0008.** `work-loop` `SKILL.md` PLAN step 2 states that the
   `Risk triggers:` line holds the tokens that fired, or `none`; that it is
   written or rewritten only while the spec is `Draft`, so it records the mode
   decision the spec was approved under; and that a spec past `Draft` is not
   edited to add or change it.
-- [ ] **AC-0009.** `assets/spec.md` carries exactly one `- **Risk triggers:**`
+- [x] **AC-0009.** `assets/spec.md` carries exactly one `- **Risk triggers:**`
   header line, and each of `new-spec` and `work-loop` `evals/evals.json` holds a
   case whose assertions name the line.
-- [ ] **AC-0010.** `guides/core/how-to/plan-and-execute-non-trivial-work.md`
+- [x] **AC-0010.** `guides/core/how-to/plan-and-execute-non-trivial-work.md`
   names the `Risk triggers:` header as where a spec records the triggers that
   fired.
-- [ ] **AC-0011.** `docs/product/research/mode-decision-re-measure.md` names, for each of the Unfamiliar-alone
+- [x] **AC-0011.** `docs/product/research/mode-decision-re-measure.md` names, for each of the Unfamiliar-alone
   share, RFC-0111's effect on full-mode runs, and the share of code-stage
   findings that carry a run, its baseline, a trigger condition stated as a count
   or a UTC date, and the rule or command that measures it.
-- [ ] **AC-0012.** `python3 tools/check-core-release.py --base origin/main`
+- [x] **AC-0012.** `python3 tools/check-core-release.py --base origin/main`
   exits 0.
-- [ ] **AC-0013.** `agentbundle catalogue self-host --root . --check` exits 0.
+- [x] **AC-0013.** `agentbundle catalogue self-host --root . --check` exits 0.
 
 ## Follow-ons
 
