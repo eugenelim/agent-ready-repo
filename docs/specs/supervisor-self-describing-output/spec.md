@@ -20,7 +20,7 @@
 
 ## Outcome
 
-A controller driving a full-mode run, on any model, gets the answer to its next question from the supervisor and the dispatcher themselves instead of from reading reference files. Five common stalls resolve in the output or in one pointer: a rejected `--json` flag, an `invalid-result` that names no field, a `status` or `next` answer that does not say what to do next, a refusal to start follow-up work on a `Shipped` spec, and a reviewer-fallback question that the section people search never answers.
+A controller driving a full-mode run, on any model, gets the answer to its next question from the supervisor and the dispatcher themselves instead of from reading reference files. Four common stalls resolve in the output or in one pointer: a rejected `--json` flag, an `invalid-result` that names no field, a `status` or `next` answer that does not say what to do next, and a reviewer-fallback question that the section people search never answers.
 
 ## What Changes
 
@@ -28,10 +28,9 @@ A controller driving a full-mode run, on any model, gets the answer to its next 
 - Every `status` and `next` answer carries a one-line `route` naming the next action — `scripts/work-supervisor.py`
 - The routing decision has one written home, a first-match table — `references/session-resumption.md`
 - `invalid-result` from `report` names the field that failed — `scripts/_supervisor_loop.py`
-- `dispatch.py` names the supported route when a named spec is `Shipped` or cooled — `scripts/dispatch.py`
 - The single-agent fallback section points an undispatchable reviewer role at the existing reviewer rule — `references/supervisor-mode.md`
 - The reference documents describe `--json` and `route` — `references/supervisor.md`, `references/state-schema.md`
-- Two eval cases cover the `Shipped` route and the reviewer fallback — `evals/evals.json`
+- One eval case covers the reviewer fallback — `evals/evals.json`
 - The `core` pack ships these as one patch release — `pack.toml`, `.claude-plugin/plugin.json`, one changelog fragment
 
 All paths above are under `packs/core/.apm/skills/work-loop/` except the three release files.
@@ -49,7 +48,7 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 
 ### Always do
 
-- Keep every refusal `code`, every exit code, and what each check accepts as it is today; only detail, hint text and one added key change.
+- Keep every refusal `code`, every exit code, and what each check accepts as it is today; the only changes are refusal detail text, hint text, the added `route` key, and `--json` accepted after every verb.
 - Write the failing test before the code for each behavior change.
 - Say what a field must be, never what the controller sent.
 
@@ -62,11 +61,11 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 
 - Add `result_template`, `explain`, a per-code `remedy` field, a section index for `supervisor.md`, or an `ingest` command.
 - Add a `## Not checked` footer to `adversarial-reviewer`; it would disqualify its reports from the clean fast path.
-- Edit anything under `docs/specs/supervisor-self-describing-output/.supervisor/` or `delivery/`.
+- Edit `dispatch.py`, its packaged mirror under `packages/agentbundle/`, or anything under `docs/specs/supervisor-self-describing-output/.supervisor/` or `delivery/`.
 
 ## Testing Strategy
 
-- `--json`, `route` and `invalid-result` detail: TDD, exercised through `main(argv)` on the supervisor test harness. The frozen-spec refusal text: TDD, exercised through `dispatch.py` on the repository `test_dispatch.py` plants.
+- `--json`, `route` and `invalid-result` detail: TDD, exercised through `main(argv)` on the supervisor test harness.
 - The routing table and reference sentences: goal-based; a pin test asserts the table rows and that each script `route` string equals its row.
 - Evals and release files: goal-based; a JSON load and the release checker.
 
@@ -79,16 +78,14 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 - [ ] **AC-0005.** A `route` contains no `detail` text from a refusal and is 160 characters or fewer.
 - [ ] **AC-0006.** `status --check` exits with the same codes as before `route` existed.
 - [ ] **AC-0007.** `report` refuses with `invalid-result` and a detail naming the failing field when the result is not a JSON object, when `schema_version` is not equal to 1, or when `request_id`, `run_id` or `kind` is not a non-empty string; the detail states the required form and never repeats what was sent.
-- [ ] **AC-0008.** `dispatch.py --start` or `--resume` on a `Shipped` spec, or on a spec whose lifecycle record has cooled, refuses with code `impossible_transition` and a `next_action` that says the spec is "Shipped or closed, so it is frozen", names starting a new spec, and tells the controller to annotate the existing Status word of the spec and of its plan with `(superseded in part by ADR-NNNN — <what changed>; everything else stands)` after writing a decision record.
-- [ ] **AC-0009.** Every `impossible_transition` finding that is not a `--start` or `--resume` refusal on a `Shipped` or cooled spec keeps its current `next_action`.
-- [ ] **AC-0010.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`, and restates no part of that rule.
-- [ ] **AC-0011.** `references/session-resumption.md` holds the routing table as the one statement of the routing decision, with a first-match order and one row per `status` and `next` shape, and no other sentence in that file states a routing order; `references/supervisor.md` states that `--json` goes after the verb on every verb and that `status` and `next` carry `route`; `references/state-schema.md` lists `route` among the `status` keys.
-- [ ] **AC-0012.** `evals/evals.json` carries one case whose prompt asks to start follow-up work on a `Shipped` spec and one whose prompt has an undispatchable reviewer role, each with a unique `id`, a non-empty `prompt`, a non-empty `expected_output` and non-empty `assertions`.
-- [ ] **AC-0013.** The `core` version in `pack.toml` and `.claude-plugin/plugin.json` is one patch above the version `packs/core/pack.toml` carries on `origin/main` as fetched when this criterion is checked, `tools/check-core-release.py --base origin/main` passes, and the changelog fragment and `_RELEASED["core"]` pin name that version.
+- [ ] **AC-0008.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`, and restates no part of that rule.
+- [ ] **AC-0009.** `references/session-resumption.md` holds the routing table as the one statement of the `status` and `next` routing order, with a first-match order and one row per shape, and its step 1 points to that table instead of ranking shapes; `references/supervisor.md` states that `--json` goes after the verb on every verb and that `status` and `next` carry `route`; `references/state-schema.md` lists `route` among the `status` keys.
+- [ ] **AC-0010.** `evals/evals.json` carries one case whose prompt has an undispatchable reviewer role, with a unique `id`, a non-empty `prompt`, a non-empty `expected_output` and non-empty `assertions`.
+- [ ] **AC-0011.** The `core` version in `pack.toml` and `.claude-plugin/plugin.json` is one patch above the version `packs/core/pack.toml` carries on `origin/main` as fetched when this criterion is checked, `tools/check-core-release.py --base origin/main` passes, and the changelog fragment and `_RELEASED["core"]` pin name that version.
 
 ## Terminal Intent
 
-`code` — ship the flag, the `route` key and its table, the refusal wording, the reference sentences, the two eval cases, and the `core` patch release.
+`code` — ship the flag, the `route` key and its table, the `invalid-result` wording, the reference sentences, the eval case, and the `core` patch release.
 
 ## Follow-ons
 

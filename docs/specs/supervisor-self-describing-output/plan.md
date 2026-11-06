@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting
-- **Repository anchors:** the analog is `status`, the one verb that already takes `--json` (`work-supervisor.py` `_parser`) and builds its answer in `_supervisor_loop.status`; every verb prints through the one `_emit` function in `work-supervisor.py`; refusal text is built in `_validate_result`; dispatch findings take their `next_action` from `_FINDING_NEXT_ACTIONS` (`_header_readiness.py`) through `make` in `dispatch.py`; tests drive `main(argv)` through `tests/skills/work-loop/supervisor_harness.py` and `test_dispatch.py`. Named uncertainty: none; the suite that reads § Single-agent fallback is `tests/roster/test_sequential_implementer_dispatch_contract.py`.
+- **Repository anchors:** the analog is `status`, the one verb that already takes `--json` (`work-supervisor.py` `_parser`) and builds its answer in `_supervisor_loop.status`; every verb prints through the one `_emit` function in `work-supervisor.py`; refusal text is built in `_validate_result`; tests drive `main(argv)` through `tests/skills/work-loop/supervisor_harness.py`. Named uncertainty: none; the suite that reads § Single-agent fallback is `tests/roster/test_sequential_implementer_dispatch_contract.py`.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
 > change needs an **amendment** only when it touches the spec's protected
@@ -11,29 +11,29 @@
 
 ## Approach
 
-Six output changes and one release. T3 writes the routing table first, in `session-resumption.md`, because it is the one home of the routing decision and the script strings are pinned to it. T1, T2 and T5 are independent. T4 adds `route` to `work-supervisor.py` after T1 and T3, because T1 and T4 share the parser and `main`. T6 writes the remaining reference sentences once the behavior exists. T7 adds the two eval cases, T8 the release. No refusal code, exit code, verb or accepted value changes. The riskiest part is T4: `route` must reach every output path, which is why it rides on the one `_emit` function instead of on each call site.
+Five output changes and one release. T3 writes the routing table first, in `session-resumption.md`, because it is the one home of the routing decision and the script strings are pinned to it. T1, T2 and T3 are independent. T4 adds `route` to `work-supervisor.py` after T1 and T3, because T1 and T4 share the parser and `main`. T5 writes the remaining reference sentences once the behavior exists. T6 adds the eval case, T7 the release. No refusal code, exit code or verb changes, and no accepted value changes except `--json` after every verb. The riskiest part is T4: `route` must reach every output path, which is why it rides on the one `_emit` function instead of on each call site.
 
 ## Constraints
 
 - Pack rules in `packs/AGENTS.md`: `.apm/` is the source; no test under `.apm/`; bump `pack.toml` and `plugin.json` together; load skill modules in tests by pack- and skill-qualified name; shipped pack text cites no internal records.
-- The supervisor pins the installed skill's scripts at `start`. Edits land in `packs/core/.apm/`; the installed copy changes only at Closeout.
+- The supervisor pins the installed skill's scripts at `start`. Edits land in `packs/core/.apm/`. Once a task commits a change under `scripts/`, the installed copy differs from the pack source, so the run issues a `regenerate` request before `terminal`; the controller answers it with the repository's self-host command and reports only the envelope, and the supervisor commits the rebuilt skill copies. No task touches `dispatch.py`, so the packaged `_data/` mirror stays untouched.
 
 ## Construction tests
 
 **Integration tests:** none beyond per-task tests.
-**Manual verification:** run `work-supervisor.py status <spec-dir> --json`, `next <spec-dir>` and `dispatch.py --start <a Shipped spec>` from the rebuilt install at Closeout and read the output.
+**Manual verification:** run `work-supervisor.py status <spec-dir> --json` and `next <spec-dir>` from the rebuilt install at Closeout and read the output.
 
 ## Durable-output map
 
 | Durable output | Tasks | Implementation evidence | Closeout evidence |
 | --- | --- | --- | --- |
-| Interface reference | T3, T6 | pin test on the three reference files and on the script strings | close-work reads the three files |
-| Release history | T8 | release checker output, fragment | close-work reads the fragment |
+| Interface reference | T3, T5 | pin test on the three reference files and on the script strings | close-work reads the three files |
+| Release history | T7 | release checker output, fragment | close-work reads the fragment |
 
 ## Design (LLD)
 
 ### Behavior & rules
-Traces to: AC-0002 to AC-0009. Owned by: T2, T3, T4, T5.
+Traces to: AC-0002 to AC-0007. Owned by: T2, T3, T4.
 
 **The routing table** lives in `session-resumption.md`, step 3, which T3 retitles "Route by what `status` or `next` shows". It replaces the current table, states "first match wins, top to bottom", and gives one row per shape, each with the exact string `route` carries. This is the one statement of the routing decision: T3 also rewrites step 1 of that file, which says a refusal is "the first thing to deal with", so that it points to the table instead of ranking anything. The script strings are pinned equal to the table by a test, so they cannot drift.
 
@@ -54,8 +54,6 @@ Traces to: AC-0002 to AC-0009. Owned by: T2, T3, T4, T5.
 **Where `route` is added.** One `_emit` function prints every answer. `_main` resets a module-level routing context at the start of every call, records the verb in it (and, once the workspace exists, the cap), and clears it on exit, so a later in-process call never inherits it. `_emit` adds `route` to a payload that is a run view or carries a top-level `refusal` when the verb is `status` or `next`, and skips an `{"error": "usage"}` payload. The tested paths are listed in T4; any other path that prints through `_emit` carries `route` by the same construction.
 
 **`invalid-result` messages** from `_validate_result`: `result must be a JSON object`; `result schema_version must be 1`; `result <field> must be a non-empty string` for `request_id`, `run_id`, `kind`. None repeats a received value. The check itself is unchanged: it still compares `schema_version` with `SCHEMA_VERSION`.
-
-**The frozen-spec finding** keeps code `impossible_transition`. Its `next_action` reads: `This spec is Shipped or closed, so it is frozen. Start follow-up work as a new spec. If the new work reverses part of this one, write a decision record, then append "(superseded in part by ADR-NNNN — <what changed>; everything else stands)" to the existing Status word of this spec and of its plan; see new-spec, Superseding a frozen document.` In `_refusal` it applies to a named `--start` or `--resume` target that is in `cooled_paths` (a cooled record names a closed spec; its body is never opened) or whose status is `Shipped`, by replacing `next_action` on the dict `make` returns. No existing dispatch test dispatches a Shipped or cooled target through the table-pair test, so no exception is added there.
 
 ### Interfaces & contracts
 Traces to: AC-0001. Owned by: T1.
@@ -91,7 +89,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0005), and that step 1 no longer holds the sentence "the first thing to deal with" or any other sentence ranking refusals against other shapes (AC-0011).
+- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0005), and that step 1 no longer holds the sentence "the first thing to deal with" and points to the table (AC-0009).
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
@@ -108,45 +106,34 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Done when:** `test_supervisor_route.py` is green and the status assertions in `test_supervisor_step_loop.py` and `test_supervisor_readiness.py` are unchanged and green.
 
-### T5: The frozen-spec refusal names its route
-
-**Depends on:** none
-
-**Tests:**
-- TDD, at `dispatch.py` with `--start` and `--resume` on a `Shipped` spec and on a cooled spec (the existing fixture cools an `Approved` spec): code is `impossible_transition`; `next_action` contains the phrase "Shipped or closed, so it is frozen", names a new spec and a decision record, and tells the controller to annotate the existing Status word of the spec and of its plan; on the cooled `Approved` spec it never contains "is Shipped." (AC-0008). A `--start` on an `Implementing` spec and a `--resume` on an `Approved` spec keep the table `next_action` (AC-0009).
-
-**Touches:** `packs/core/.apm/skills/work-loop/scripts/dispatch.py`, `packs/core/tests/skills/work-loop/test_dispatch.py`
-
-**Done when:** the new cases in `test_dispatch.py` are green and the rest of `test_dispatch.py` is unchanged and green.
-
-### T6: Remaining reference sentences
+### T5: Remaining reference sentences
 
 **Depends on:** T1, T4
 
 **Tests:**
-- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json`, and holds no `BLOCKED` text (AC-0010), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0011), that `state-schema.md` lists `route` among the `status` keys (AC-0011), and that each string in `work-supervisor.py` equals its row in the routing table.
+- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json`, and holds no `BLOCKED` text (AC-0008), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0009), that `state-schema.md` lists `route` among the `status` keys (AC-0009), and that each string in `work-supervisor.py` equals its row in the routing table.
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
 **Done when:** the pin test is green and every suite listed by `grep -rlE 'supervisor(-mode)?\.md|state-schema\.md' packs/core/tests tests --include='test_*.py'` is green, which includes `tests/roster/test_sequential_implementer_dispatch_contract.py`.
 
-### T7: Eval cases
+### T6: Eval case
 
-**Depends on:** T5, T6
+**Depends on:** T5
 
 **Tests:**
-- Goal-based: `evals.json` loads, ids are unique, and two new cases carry the `prompt`, `expected_output` and `assertions` of AC-0012.
+- Goal-based: `evals.json` loads, ids are unique, and one new case carries the `prompt`, `expected_output` and `assertions` of AC-0010.
 
 **Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`
 
-**Done when:** `python3 -c "import json;json.load(open('packs/core/.apm/skills/work-loop/evals/evals.json'))"` exits 0, all `id` values are unique, the two new ids are present, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green.
+**Done when:** `python3 -c "import json;json.load(open('packs/core/.apm/skills/work-loop/evals/evals.json'))"` exits 0, all `id` values are unique, the new id is present, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green.
 
-### T8: Release the `core` patch
+### T7: Release the `core` patch
 
-**Depends on:** T1, T2, T3, T4, T5, T6, T7
+**Depends on:** T1, T2, T3, T4, T5, T6
 
 **Tests:**
-- Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0013); `tests/roster/test_registry_upgrade_notes.py` passes.
+- Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0011); `tests/roster/test_registry_upgrade_notes.py` passes.
 
 **Approach:**
 - Run `git fetch origin` and take the next patch above the `core` version fetched `origin/main` carries when the task runs; set it in `pack.toml`, `.claude-plugin/plugin.json`, a new fragment under `docs/product/changelog.d/`, and `_RELEASED["core"]` in `tests/roster/test_registry_upgrade_notes.py`.
@@ -163,7 +150,7 @@ Ships as one patch release of `core`. Reversible by revert. Closeout, after `ter
 
 - A caller compares a whole `status` or `next` object: mitigated by the additive key and unchanged tests.
 - Models pipe `status` and `next` output, so `route` may go unseen: accepted; the spec records it as unmeasured.
-- Main ships `core` while the run is open: T8 takes the next patch above fetched main and Closeout re-checks before push.
-- The installed copy is stale for pinned-script edits until Closeout: roster projection tests fail until then and are excused.
+- Main ships `core` while the run is open: T7 takes the next patch above fetched main and Closeout re-checks before push.
+- The installed copy is stale for pinned-script edits until the run's `regenerate` request, and for reference-only edits until Closeout: roster projection tests fail until then and are excused.
 
 ## Changelog
