@@ -201,6 +201,64 @@ def _launch(
         ) from exc
 
 
+def _launch_bounded(
+    argv: list[str],
+    *,
+    cwd: Path | None,
+    env: dict[str, str],
+    stdin: bytes | None,
+    limit: int,
+) -> subprocess.CompletedProcess[bytes]:
+    """``_launch`` for a read whose stdout may not exceed *limit* bytes.
+
+    The process is killed as soon as its output passes the limit, so an
+    oversized blob or diff is never buffered whole.
+    """
+    try:
+        process = subprocess.Popen(
+            argv,
+            cwd=str(cwd) if cwd is not None else None,
+            env=env,
+            stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise SupervisorGitError(
+            "denied-git-unavailable", f"git could not run: {exc}", unverifiable=True
+        ) from exc
+    with process:
+        if stdin is not None:
+            assert process.stdin is not None
+            try:
+                process.stdin.write(stdin)
+            finally:
+                process.stdin.close()
+        assert process.stdout is not None and process.stderr is not None
+        chunks: list[bytes] = []
+        size = 0
+        while True:
+            chunk = process.stdout.read(65536)
+            if not chunk:
+                break
+            size += len(chunk)
+            if size > limit:
+                process.kill()
+                raise SupervisorGitError(
+                    "denied-git-output-too-large", f"git output passed {limit} bytes"
+                )
+            chunks.append(chunk)
+        try:
+            process.wait(timeout=GIT_TIMEOUT_S)
+        except subprocess.TimeoutExpired as exc:
+            process.kill()
+            raise SupervisorGitError(
+                "denied-git-unavailable", f"git could not run: {exc}", unverifiable=True
+            ) from exc
+        stderr = process.stderr.read()
+    return subprocess.CompletedProcess(argv, process.returncode, b"".join(chunks), stderr)
+
+
 # ── discovery ───────────────────────────────────────────────────────────────
 
 # Git honours an empty ``GIT_CONFIG_GLOBAL`` only from 2.32; an older Git reads
@@ -540,8 +598,13 @@ class HardenedGit:
         stdin: bytes | None = None,
         check: bool = True,
         literal_pathspecs: bool = False,
+        limit: int | None = None,
     ) -> bytes:
-        """Run ``git <args>`` against the pinned directories and return stdout bytes."""
+        """Run ``git <args>`` against the pinned directories and return stdout bytes.
+
+        With *limit*, the read is bounded and an oversized output refuses
+        ``denied-git-output-too-large``.
+        """
         environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
         self.verify_control_state()
         if args[0] == "update-ref" and _UPDATE_HOOK is not None:
@@ -558,7 +621,12 @@ class HardenedGit:
             *diffing,
             *args[1:],
         ]
-        result = _launch(argv, cwd=pins.root, env=environment, stdin=stdin)
+        if limit is None:
+            result = _launch(argv, cwd=pins.root, env=environment, stdin=stdin)
+        else:
+            result = _launch_bounded(
+                argv, cwd=pins.root, env=environment, stdin=stdin, limit=limit
+            )
         if check and result.returncode != 0:
             detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
             raise SupervisorGitError(

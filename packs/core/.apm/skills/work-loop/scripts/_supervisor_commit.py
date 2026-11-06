@@ -212,11 +212,47 @@ class GitPort:
         stdin: bytes | None = None,
         check: bool = True,
         literal_pathspecs: bool = False,
+        limit: int | None = None,
     ) -> bytes:
         """Run ``git <args>`` through the hardened helper and return stdout bytes."""
         return self.hardened.run(
-            *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs
+            *args,
+            env=env,
+            stdin=stdin,
+            check=check,
+            literal_pathspecs=literal_pathspecs,
+            limit=limit,
         )
+
+    # ── the bounded reads the review-tier classifier makes ──────────────────
+
+    def git_version(self) -> tuple[int, int]:
+        """The ``(major, minor)`` Git version the helper pinned."""
+        return self.hardened.git_version
+
+    def entries(self, rev: str) -> dict[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for every entry at *rev*."""
+        return self.tree_modes(rev)
+
+    def blob(self, oid: str, limit: int = 1024 * 1024) -> bytes:
+        """The bytes of blob *oid*, refused past *limit* bytes before it is read."""
+        size = int(self.run("cat-file", "-s", oid).strip() or b"0")
+        if size > limit:
+            raise _git.SupervisorGitError(
+                "denied-git-output-too-large", f"blob {oid[:12]} holds {size} bytes"
+            )
+        return self.run("cat-file", "blob", oid, limit=limit)
+
+    def patch_id(self, base: str, result: str, path: str, limit: int = 1024 * 1024) -> str:
+        """``git patch-id --verbatim`` of the diff of *path* from *base* to *result*."""
+        diff = self.run(
+            "diff", "--no-renames", base, result, "--", path,
+            literal_pathspecs=True, limit=limit,
+        )
+        if not diff:
+            return ""
+        out = self.run("patch-id", "--verbatim", stdin=diff, limit=limit)
+        return out.split(b" ", 1)[0].decode("ascii", "replace")
 
     # ── the commits the supervisor made ─────────────────────────────────────
 

@@ -26,7 +26,6 @@ Standard library only. Python 3.11+.
 
 from __future__ import annotations
 
-import fnmatch
 import hashlib
 import importlib.util
 import json
@@ -223,19 +222,7 @@ def glob_match(pattern: str, path: str) -> bool:
     A ``**`` segment matches zero or more whole segments; every other segment
     matches one path segment with ``fnmatch`` rules, case-sensitively.
     """
-    return _segments_match(pattern.split("/"), path.split("/"))
-
-
-def _segments_match(pattern: list[str], parts: list[str]) -> bool:
-    if not pattern:
-        return not parts
-    if pattern[0] == "**":
-        return any(_segments_match(pattern[1:], parts[i:]) for i in range(len(parts) + 1))
-    return (
-        bool(parts)
-        and fnmatch.fnmatchcase(parts[0], pattern[0])
-        and _segments_match(pattern[1:], parts[1:])
-    )
+    return bool(_supervisor("_review_tiers.py").glob_match(pattern, path))
 
 
 def _validate_tier_rules(data: dict[str, Any], roles: set[str]) -> None:
