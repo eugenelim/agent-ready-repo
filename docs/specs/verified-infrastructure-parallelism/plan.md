@@ -422,3 +422,4 @@ Core is one patch above T3's release.
 
 - 2026-11-06: spec approved by eugenelim
 - 2026-11-06: plan approved by eugenelim
+- 2026-11-06: amendment approved by eugenelim (scope)
