@@ -82,6 +82,7 @@ __all__ = [
     "DECISIONS_FILE",
     "ANCHORS_FILE",
     "anchor_record",
+    "anchor_records",
     "latest_anchor",
     "parse_anchors",
     "SUPERVISOR_ROLE",
@@ -90,6 +91,9 @@ __all__ = [
     "accept_risk_writer",
     "admit_decision",
     "admit_selection",
+    "CAP_REASON",
+    "cap_answers",
+    "cap_ref",
     "Protection",
     "check_protection",
     "protection",
@@ -116,7 +120,13 @@ _KEY_RE = re.compile(r"[0-9a-f]{64}")
 MODES = ("light", "full")
 ROLE_KINDS = ("always", "conditional")
 MANDATORY_WHEN = ("always", "selected", "never")
-DECISIONS = ("reselect-review", "accept-risk")
+DECISIONS = ("reselect-review", "accept-risk", "extend-review")
+# The decisions each human-decision reason takes; extend-review belongs to review-cap alone.
+_REASON_DECISIONS = {
+    "review-not-eligible": ("reselect-review", "accept-risk"),
+    "review-cap": ("reselect-review", "accept-risk", "extend-review"),
+}
+CAP_REASON = "review-cap"
 # The protected risk classes a selection may declare; each maps to one reviewer.
 PROTECTED_CLASSES = (
     "security-boundary",
@@ -570,6 +580,11 @@ def anchor_record(
     }
 
 
+def anchor_records(ws: Any) -> list[dict[str, Any]]:
+    """Every anchor-facts line recorded for the run, oldest first."""
+    return parse_anchors(_delivery_bytes(ws, ANCHORS_FILE))
+
+
 def latest_anchor(ws: Any) -> Any:
     """The classifier's anchor facts from the last recorded line, or ``None``.
 
@@ -741,28 +756,51 @@ def _check_protection_grows(
             )
 
 
+def cap_ref(report_id: str, finding_id: str) -> str:
+    """The supervisor's reference to one finding: ``cap-finding:`` and a sha256 hex.
+
+    The digest covers the canonical JSON array ``[report id, finding id]``, so two ids
+    that differ in any character, a NUL included, never share a reference, and the
+    reviewer-supplied strings never appear in a request.
+    """
+    body = json.dumps([report_id, finding_id], ensure_ascii=True, separators=(",", ":"))
+    return "cap-finding:" + hashlib.sha256(body.encode("ascii")).hexdigest()
+
+
+def cap_answers(ws: Any) -> list[dict[str, Any]]:
+    """The admitted decisions that answered a ``review-cap`` request, oldest first."""
+    prefix = f"decide:{CAP_REASON}:"
+    records = parse_decisions(_delivery_bytes(ws, DECISIONS_FILE))
+    return [d for d in records if str(d["request_id"]).startswith(prefix)]
+
+
 def admit_decision(
     ws: Any, state: Any, request: dict[str, Any], result: dict[str, Any]
 ) -> dict[str, Any]:
     """The ``review-decisions.jsonl`` record for a ``human-decision`` result, or a refusal.
 
-    Only the ``review-not-eligible`` request takes a decision. ``reselect-review``
-    needs an owner authority reference naming the request's selection key;
-    ``accept-risk`` needs a ``risk-owner`` reference and the finding ids it
-    accepts (``accept_risk_evidence`` then checks those findings against the
-    evidence log before anything commits). Every other decision, role, or reason
-    refuses ``authority-refused``.
+    The ``review-not-eligible`` and ``review-cap`` requests take a decision.
+    ``reselect-review`` needs an owner authority reference naming the request's
+    selection key; ``accept-risk`` needs a ``risk-owner`` reference and the finding
+    ids it accepts (the cap finding references, for ``review-cap``, every one of which
+    must name a finding the request lists), and ``accept_risk_evidence`` then checks
+    those findings against the evidence log before anything commits. ``extend-review``
+    needs an owner reference and takes ``review-cap`` alone. Every other decision, role,
+    or reason refuses ``authority-refused``.
     """
-    if request.get("reason") != "review-not-eligible":
+    reason = request.get("reason")
+    if reason not in _REASON_DECISIONS:
         raise Refusal(
-            "authority-refused", "controller", "only a review-not-eligible request takes one"
+            "authority-refused",
+            "controller",
+            "only a review-not-eligible or review-cap request takes one",
         )
     decision = result.get("decision")
     if not isinstance(decision, dict):
         raise Refusal("invalid-result", "controller", "a human-decision result needs decision")
     kind, ref = decision.get("decision"), decision.get("authority_ref")
     roles = ws.policy["authority_roles"]
-    if kind not in DECISIONS:
+    if kind not in _REASON_DECISIONS[reason]:
         raise Refusal("authority-refused", "controller", f"decision {kind!r} is not admitted here")
     if kind == "accept-risk":
         if not _admission.check_authority_ref(ref, roles["risk_decision"]):
@@ -782,12 +820,35 @@ def admit_decision(
             raise Refusal(
                 "invalid-result", "controller", "accept-risk names its finding_ids and no key"
             )
+        if reason == CAP_REASON:
+            listed = {f["cap_ref"] for f in request.get("open_findings", [])}
+            if not set(ids) <= listed:
+                raise Refusal(
+                    "invalid-result",
+                    "controller",
+                    "the answer names a finding reference the request does not list",
+                )
         return {
             "run_id": state.run_id,
             "request_id": request["request_id"],
             "decision": kind,
             "authority_ref": ref,
             "finding_ids": ids,
+        }
+    if kind == "extend-review":
+        if not _admission.check_authority_ref(ref, roles["reselect_review"]):
+            raise Refusal(
+                "authority-refused",
+                "owner",
+                f"extend-review needs a {roles['reselect_review']} authority reference",
+            )
+        if set(decision) != {"decision", "authority_ref"}:
+            raise Refusal("invalid-result", "controller", "extend-review names no other field")
+        return {
+            "run_id": state.run_id,
+            "request_id": request["request_id"],
+            "decision": kind,
+            "authority_ref": ref,
         }
     if not _admission.check_authority_ref(ref, roles["reselect_review"]):
         raise Refusal(
@@ -1016,6 +1077,7 @@ def accept_risk_writer(
     open_findings: list[dict[str, Any]],
     record: dict[str, Any],
     role: str,
+    pairs: dict[str, tuple[str, str]] | None = None,
 ) -> Callable[[Any, Any, Any, Any], None]:
     """The evidence write that records ``accept-risk`` for the decision's findings.
 
@@ -1023,26 +1085,45 @@ def accept_risk_writer(
     and without a closing disposition on *subject*); any other id refuses before
     that finding or a later one is written, and a refusal discards the whole
     write. The decision's authority reference is the decision maker.
+
+    With *pairs* (a ``review-cap`` answer), each named id is a cap finding reference
+    that maps to one ``(report id, finding id)`` pair; the finding is matched by that
+    pair, so two roles that share a finding id are accepted one at a time. Without it
+    the id alone names the finding, as a ``review-not-eligible`` answer does.
     """
     open_keys = {(f["role"], f["finding_id"]) for f in open_findings}
 
     def write(store: Any, issuer: Any, _grant: Any, sink: Any) -> None:
         reports = {r["report_id"]: r for r in store.get_semantic_records("review-report.v1")}
         current = store.current_finding_assessments(subject["review_subject_fingerprint"])
-        for finding_id in record["finding_ids"]:
-            matches = [
-                (report_id, entry["assessment"])
-                for (report_id, found_id), entry in sorted(current.items())
-                if found_id == finding_id
-                and entry["assessment"]["assessment"] == "supported"
-                and report_id in reports
-                and (reports[report_id]["role"], finding_id) in open_keys
-            ]
+        for named in record["finding_ids"]:
+            if pairs is None:
+                finding_id = named
+                matches = [
+                    (report_id, entry["assessment"])
+                    for (report_id, found_id), entry in sorted(current.items())
+                    if found_id == finding_id
+                    and entry["assessment"]["assessment"] == "supported"
+                    and report_id in reports
+                    and (reports[report_id]["role"], finding_id) in open_keys
+                ]
+            else:
+                pair = pairs.get(named)
+                entry = current.get(pair) if pair is not None else None
+                matches = []
+                if pair is not None and entry is not None:
+                    report_id, finding_id = pair
+                    if (
+                        entry["assessment"]["assessment"] == "supported"
+                        and report_id in reports
+                        and (reports[report_id]["role"], finding_id) in open_keys
+                    ):
+                        matches = [(report_id, entry["assessment"])]
             if len(matches) != 1:
                 raise Refusal(
                     "invalid-result",
                     "controller",
-                    f"{finding_id} is not exactly one open supported material finding",
+                    "a named finding is not exactly one open supported material finding",
                 )
             report_id, assessment = matches[0]
             _write_disposition(
@@ -1064,17 +1145,30 @@ def accept_risk_writer(
 
 
 def accept_risk_evidence(ws: Any, state: Any, record: dict[str, Any]) -> bytes:
-    """The evidence-log bytes that record ``accept-risk`` for an admitted decision."""
-    view = _supervisor("_supervisor_readiness.py").readiness(ws, state)
+    """The evidence-log bytes that record ``accept-risk`` for an admitted decision.
+
+    A ``review-cap`` answer names cap finding references; each is mapped back to its
+    ``(report id, finding id)`` pair from the evidence log, so a reference the log
+    cannot map refuses.
+    """
+    readiness = _supervisor("_supervisor_readiness.py")
+    view = readiness.readiness(ws, state)
     subject = view["review_subject"]
     if subject is None:
         raise Refusal("invalid-result", "controller", "no current review subject exists")
+    pairs: dict[str, tuple[str, str]] | None = None
+    if str(record["request_id"]).startswith(f"decide:{CAP_REASON}:"):
+        pairs = {
+            cap_ref(f["report_id"], f["finding_id"]): (f["report_id"], f["finding_id"])
+            for f in readiness.open_finding_pairs(ws, view)
+        }
     write = accept_risk_writer(
         ws,
         subject=subject,
         open_findings=view["review"]["open_findings"],
         record=record,
         role=ws.policy["authority_roles"]["risk_decision"],
+        pairs=pairs,
     )
     try:
         return bytes(ws.evidence_append(writer=write))

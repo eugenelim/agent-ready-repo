@@ -358,6 +358,7 @@ def review_readiness(
                         store.disposition_closes(d.get("disposition_id", ""), review_subject)
                         for d in dispositions
                         if d.get("finding_id") == finding_id_loop
+                        and d.get("assessment_id") == finding_assessment.get("assessment_id")
                     ):
                         continue
                     all_closed = False
@@ -405,6 +406,7 @@ def review_readiness(
             store.disposition_closes(d.get("disposition_id", ""), review_subject)
             for d in dispositions
             if d.get("finding_id") == finding_id
+            and d.get("assessment_id") == assessment.get("assessment_id")
         ):
             continue
         # Annotate the finding with the reviewing role so callers can identify
