@@ -242,7 +242,7 @@ jobs:
   # non-empty, and together cover every corpus test.
   supervisor-integration:
     name: "Gate A-supervisor — execution supervisor integration suites"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -280,7 +280,7 @@ jobs:
 
   supervisor-integration-corpus:
     name: "Gate A-supervisor — execution supervisor crash corpus (${{ matrix.shard }})"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 40
     strategy:
       fail-fast: false
@@ -322,7 +322,7 @@ jobs:
   # ── Gate B: external catalogue portability ────────────────────────────────
   external-catalogue-smoke:
     name: "Gate B — external catalogue portability"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -393,7 +393,7 @@ jobs:
   # ── Gate C: enterprise distribution + credential scan ────────────────────
   enterprise-agentbundle-distribution:
     name: "Gate C — enterprise distribution"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -487,7 +487,7 @@ jobs:
   # ── Gate D: real catalogue artifact round-trip ────────────────────────────
   catalogue-artifact-smoke:
     name: "Gate D — catalogue artifact smoke"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -567,7 +567,7 @@ jobs:
   catalogue-disconnected-smoke:
     name: "Gate E — disconnected smoke"
     needs: [catalogue-artifact-smoke]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -626,7 +626,7 @@ jobs:
   # ── Gate F: repository rewiring correctness ───────────────────────────────
   catalogue-repo-rewire:
     name: "Gate F — catalogue repo rewire"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -645,7 +645,7 @@ jobs:
   # ── Gate G: release impact path-sensitivity ───────────────────────────────
   agentbundle-release-impact:
     name: "Gate G — agentbundle release impact"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1

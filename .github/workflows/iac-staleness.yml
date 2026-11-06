@@ -20,7 +20,7 @@ permissions:
 jobs:
   validate:
     name: validate ${{ matrix.example }} (${{ matrix.engine }})
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     strategy:
       fail-fast: false

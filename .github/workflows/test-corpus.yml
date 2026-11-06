@@ -63,7 +63,7 @@ jobs:
     # not an expression, not a larger-runner name: a dispatched run executes the
     # selected ref's code, and the intent excludes self-hosted capacity, so
     # persistent runner state is out of bounds.
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # MEASURED on this workflow. Three all-green runs of this same four-shard
     # configuration, newest first, slowest shard then the per-shard spread:
     #   34797328268  4.70 min  (2.88 / 3.68 / 3.77 / 4.70)

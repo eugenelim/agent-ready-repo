@@ -60,7 +60,7 @@ jobs:
   # Always runs. No secrets required. This is the CI contract: every invocation
   # must produce a verifiable archive regardless of whether upload is requested.
   package-and-validate:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 15
     env:
       BUNDLE: ${{ inputs.bundle }}
@@ -161,7 +161,7 @@ jobs:
   upload-to-artifactory:
     needs: [package-and-validate]
     if: ${{ !inputs.dry_run }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     env:
       BUNDLE: ${{ inputs.bundle }}

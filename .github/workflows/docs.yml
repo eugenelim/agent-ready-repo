@@ -89,7 +89,7 @@ on:
 jobs:
   lint-agents-md:
     name: AGENTS.md hygiene
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run AGENTS.md linter
@@ -97,7 +97,7 @@ jobs:
 
   lint-guides-no-repo-only-refs:
     name: Shipped guides contain no repo-only governance references
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Run shipped-guide governance-reference linter
@@ -105,7 +105,7 @@ jobs:
 
   lint-intent-corpus:
     name: Intents satisfy the metadata shape and ordinal-uniqueness contracts
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # Runs the CLI against the REAL tree, so a non-conforming intent fails
@@ -131,7 +131,7 @@ jobs:
 
   lint-guide-titles:
     name: Guide frontmatter title matches body H1
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # The linter parses frontmatter with yaml.safe_load — the same parser
@@ -146,7 +146,7 @@ jobs:
 
   validate-guides:
     name: Published guides carry complete metadata
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       # jsonschema + pyyaml: without them the validator silently degrades to a
@@ -184,7 +184,7 @@ jobs:
 
   lint-skill-spec:
     name: agentskills.io spec
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - name: Install agentbundle with lint extra
@@ -196,7 +196,7 @@ jobs:
 
   lint-knowledge:
     name: Knowledge base
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
@@ -213,7 +213,7 @@ jobs:
 
   work-loop-scripts:
     name: Work-loop script self-tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -267,7 +267,7 @@ jobs:
   # verify (portable) then the repo-specific catalogue checks + shipped pre-pr.py.
   hooks:
     name: Lifecycle hooks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
@@ -285,7 +285,7 @@ jobs:
 
   check-adr-immutability:
     name: ADRs are immutable
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1

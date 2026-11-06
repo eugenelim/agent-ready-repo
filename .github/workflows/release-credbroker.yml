@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build-and-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -106,7 +106,7 @@ jobs:
   publish-pypi:
     needs: [build-and-smoke]
     if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     environment: pypi
     permissions:
       id-token: write
@@ -126,7 +126,7 @@ jobs:
   publish-artifactory:
     needs: [build-and-smoke]
     if: github.ref_type == 'tag'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - id: guard
         name: Check Artifactory secret presence

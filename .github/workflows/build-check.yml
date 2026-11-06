@@ -71,7 +71,7 @@ concurrency:
 jobs:
   gate-main:
     name: gate-main
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # gate-main has two ordered phases: provisioning first, then checks.
     # A check runs only when every provisioning dependency it declares succeeded,
     # so a broken install skips its dependents rather than reddening them.
@@ -1651,7 +1651,7 @@ jobs:
 
   gate-sast:
     name: gate-sast
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -1726,7 +1726,7 @@ jobs:
 
   gate-export-boundary:
     name: gate-export-boundary
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # RFC-0082: the real sdist gate permits 120 seconds for collection plus 900
     # for execution, and must report its own fail-closed timeout before Actions
     # terminates the surrounding job. This comment travels with the gate.
@@ -1783,7 +1783,7 @@ jobs:
 
   gate-css-tokens:
     name: gate-css-tokens
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # The CSS token gate: semantic `var(--ds-*)` required for colour,
     # background-color, border-color and font-size across every `web/src`
     # stylesheet and every `.astro` <style> block. `web/stylelint.config.mjs`
@@ -1831,7 +1831,7 @@ jobs:
 
   gate-credbroker:
     name: gate-credbroker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     # 10 minutes: one checkout, one interpreter, one editable install, and a 27s
     # suite. Generous by a wide margin and deliberately not tuned to the timing
     # measurement — if a cold runner ever exceeds it the job fails closed, which
@@ -1909,7 +1909,7 @@ jobs:
       - gate-export-boundary
       - gate-credbroker
       - gate-css-tokens
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     if: ${{ always() }}
     steps:
