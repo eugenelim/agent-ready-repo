@@ -1,6 +1,6 @@
 # Spec: Verified infrastructure parallelism
 
-- **Status:** Approved <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0156, ADR-0160, ADR-0154, ADR-0151, ADR-0144, ADR-0005, ADR-0061
@@ -212,6 +212,18 @@ Contracts
 
 - [ ] **AC-0063.** Every `containment-attestation.v1`, `access-attestation.v1`, `launcher-message.v1`, `execution-result.v1`, `result-integration.v1`, `integration-conflict.v1`, `execution-request.v1`, and `task-contract.v1` record the corpus writes validates against its schema, and the corpus writes at least one of each.
 - [ ] **AC-0064.** Every `containment-attestation.v1` and `task-contract.v1` fixture under `tests/roster/` at the revision this spec is approved at still validates.
+
+## Closeout
+
+Post-run duties, run by the controller after the supervisor's run is terminal and again after each rebase of the PR stack; they are not acceptance criteria.
+
+- `notes/verification-ledger.md` records, for every criterion, the test and run that check it.
+- The spec moves to `Shipped`, the plan to `Done`, and the brief's spec map reports it.
+- `make build-self && make bootstrap-sites` leave no tracked change after the delivery commit, and each PR's Core version is one patch above `packs/core/pack.toml` at its merge base with freshly fetched `origin/main`.
+
+## Terminal Intent
+
+`code` — ship T1 to T5 as Core patch releases with `concurrency` shipped `sequential`, then close the spec.
 
 ## Accepted Risk
 

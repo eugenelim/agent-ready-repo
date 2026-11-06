@@ -1,7 +1,7 @@
 # Plan: Verified infrastructure parallelism
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-loop-result-integration.md` and `runtime-security-primitives.md` § 7; ADR-0156; analogous implementations `_supervisor_commit.py` (`build_commit`, `update_refs`, `_diagnose`) and `_containment.py` (`validate_attestation_dict`, `check_attestation_within_grant`, `launch_untrusted`); tests `test_supervisor_product_ref.py`, `test_supervisor_crash_corpus.py`, `test_containment_broker.py` (`_FixtureHost`), `tests/roster/test_execution_supervisor_records.py`; deviations: no code launches a worker from the supervisor today, so the launcher boundary has no precedent beyond `launch_untrusted`; concurrent attempts use plain directories rather than ADR-0005 D7's worktree (ADR-0160 D1)
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -22,8 +22,9 @@
 
 ## Approach
 
-T1, T2, and T5 are one pull request each; T3 and T4 share one; every pull
-request except T6's ships one Core patch release, four in all. T1 ships the
+One supervisor run carries T1 to T5 on one branch; after it is terminal the
+controller cuts the commits into a stack of four pull requests (T1, T2, T3 with
+T4, T5), each one Core patch release. T1 ships the
 contracts, the plan fields, and the policy keys with `concurrency` shipped
 `sequential`, so nothing changes at runtime. T2 ships admission, the pinned
 launcher, attestation verification, and ingestion, but caps every
@@ -33,7 +34,7 @@ result can land out of order before T3 exists. T3 lifts the cap and ships
 ordered integration through the three-way apply. T4 ships blast radius,
 cancellation, the reprojection bound, and plan-change and evidence ordering. T5
 ships the permutation and conflict corpus and turns the architecture pages to
-as-built. T6 closes the spec.
+as-built. The spec's Closeout section closes it.
 
 The riskiest part is T3: one lock, one tip read, and a compare-and-swap that
 must stay correct under every completion order. T2's batch cap is the seam that
@@ -98,9 +99,9 @@ keeps T2 shippable without it.
 | Current architecture | T5 | Page diffs | No `STATUS: PLANNED` on a built element |
 | Result acceptance | T5 | § 7 table row | `run-concurrent` row citing this spec |
 | Maintainer procedure | T1, T5 | `references/supervisor.md` and plan-template diffs | Grammar and reason codes documented once |
-| Product truth | T6 | Brief spec-map row | Row reports `Shipped` |
+| Product truth | Closeout | Brief spec-map row | Row reports `Shipped` |
 | Release history | T1–T5 | Version bumps | One changelog fragment per Core PR |
-| Verification record | T6 | Ledger | Every AC row checked |
+| Verification record | Closeout | Ledger | Every AC row checked |
 
 Design facts below are owned by `work-loop-result-integration.md` (ordering,
 apply, conflict, ingestion, and record semantics) and, from T5,
@@ -401,16 +402,6 @@ log shows they ran with zero skips; the pages the spec's
 Durable Outputs name describe the concurrent path and the known limit; and
 Core is one patch above the merge base.
 
-### T6: The spec closes
-
-**Depends on:** T5
-
-**Tests:**
-- Every AC has a ledger row naming its test and run.
-
-**Done when:** `notes/verification-ledger.md` checks every AC, the spec is
-`Shipped`, this plan is `Done`, and the brief's spec map reports it.
-
 ## Rollout
 
 - **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5).
@@ -432,5 +423,3 @@ Core is one patch above the merge base.
 
 ## Changelog
 
-- 2026-11-05: spec approved by eugenelim
-- 2026-11-05: plan approved by eugenelim
