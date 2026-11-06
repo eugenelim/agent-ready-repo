@@ -721,9 +721,13 @@ def _drive(
         return _session(ws, state, task, record, sha, attempt_dir, scratch, control)
     except _Defect as defect:
         return defect
-    except Exception:
+    except Exception as exc:
         record.update(state="floor", reason="attempt-error")
         _write(ws, state.run_id, record)
+        if getattr(exc, "code", None) == "denied-git-control-state":
+            # Git control state moved under the open attempt: the attempt check names it residue.
+            with ws.run_lock():
+                ws.attempts.guard("run-concurrent")
         raise
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
@@ -919,7 +923,7 @@ def _ingest(
             product_root=str(ws.root), ignore_case=ignore_case,
         )
     except _conc.AttemptRefused as exc:
-        raise _Defect(exc.code) from exc
+        raise _Defect(exc.code, "cancelled") from exc
     changed = _changed(ws, record["source"], ingested.tree)
     protected = [
         p for p in changed
@@ -987,6 +991,8 @@ def _settle(
             held = True
             record.update(state="held")
             _write(ws, state.run_id, record)
+            # One line per attempt as it settles, so the journal's order is completion order.
+            _journal_outcome(ws, state.run_id, record, "settled")
             kill_point("result-held")
             outcomes = _integration.integrate_ready(ws)
             for each in outcomes:

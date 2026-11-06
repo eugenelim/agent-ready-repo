@@ -574,7 +574,7 @@ def test_the_release_token_appears_in_no_output_channel(
     printed.append(env.next())
     printed.append(env.run("status", SPEC_DIR)[1])
     token = next(m["release_token"] for m in env.received() if m["type"] == "release")
-    channels = {k: v for k, v in env.output_channels().items() if not k.endswith("recv.log")}
+    channels = {k: v for k, v in env.output_channels().items() if not k.endswith(("recv.log", "sent.log"))}
     channels["printed"] = json.dumps(printed).encode()
     channels["git-log"] = env.git("log", "--all", "-p", "--format=%B").encode()
     assert (env.log / "recv.log").read_text().count(token) == 1  # the one place it travels
@@ -584,7 +584,7 @@ def test_the_release_token_appears_in_no_output_channel(
     for planted in (token, token.upper(), base64.b64encode(bytes.fromhex(token)).decode()):
         journal.write_text(journal.read_text("utf-8") + planted + "\n", "utf-8")
         found = _leaks({k: v for k, v in env.output_channels().items()
-                        if not k.endswith("recv.log")}, token)
+                        if not k.endswith(("recv.log", "sent.log"))}, token)
         assert found == [str(journal)]
         journal.write_text(journal.read_text("utf-8").replace(planted + "\n", ""), "utf-8")
 
@@ -819,6 +819,36 @@ def test_a_recorded_group_whose_leader_id_another_process_holds_is_never_signall
     finally:
         bystander.kill()
         bystander.wait()
+
+
+def test_a_recorded_group_with_no_holder_and_no_members_is_confirmed_without_a_signal(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = ls.Env(tmp_path, monkeypatch)
+    request = env.issued()
+    leftover = tmp_path / "agentbundle-attempt-leftover"
+    leftover.mkdir()
+    assert L.process_start(99_999_998) is None and not L.group_alive(99_999_999)
+    _craft_record(
+        env, request, leader_pid=99_999_998, pgid=99_999_999, leader_start="x",
+        attempt_dir=str(leftover),
+    )
+    signals: list[tuple[int, int]] = []
+    real_killpg = os.killpg
+
+    def spy(pgid: int, sig: int) -> None:
+        if sig != 0:  # signal 0 only asks whether the group exists
+            signals.append((pgid, sig))
+        real_killpg(pgid, sig)
+
+    monkeypatch.setattr(os, "killpg", spy)
+    floor = env.next()["request"]
+    assert floor["kind"] == "implement-task"
+    assert signals == []
+    record = env.records()[0]
+    assert record["state"] == "cancelled" and record["reason"] == "attempt-lost"
+    assert not leftover.exists()  # the end was confirmed, so the directory went
+    assert ls.journal(env.repo)[-1]["floor_reason"] == "attempt-lost"
 
 
 def test_an_end_recovery_cannot_confirm_is_residue_and_the_task_goes_to_the_floor(

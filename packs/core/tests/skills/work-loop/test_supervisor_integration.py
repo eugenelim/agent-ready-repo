@@ -12,6 +12,7 @@ import json
 import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
 from types import ModuleType, SimpleNamespace
 from typing import Any
@@ -242,8 +243,27 @@ def test_the_environment_cannot_choose_completion_order(
         "WORK_SUPERVISOR_INTEGRATE_IN_COMPLETION_ORDER", "COMPLETION_ORDER",
     ):
         monkeypatch.setenv(name, "1")
-    env = make_env(tmp_path, monkeypatch, script=reverse_script())
-    request, _outcome = run_batch(env)
+    env = make_env(
+        tmp_path, monkeypatch, script=reverse_script(),
+        policy={"integrate_in_completion_order": True},  # a policy key
+    )
+    request = env.issued()
+    # A file, in the run store and in the supervisor's own directory of the work tree.
+    spec_store = env.repo / harness.SPEC_DIR / ".supervisor"
+    for marker in (
+        env.store() / "integrate_in_completion_order", spec_store / "integrate_in_completion_order",
+    ):
+        marker.write_text("1\n", encoding="utf-8")
+    # A command-line flag is not a switch: the CLI refuses it as a usage error.
+    code, refused = env.run(
+        "run-concurrent", harness.SPEC_DIR, "--request", request["request_id"],
+        "--completion-order",
+    )
+    assert code != 0 and "request" not in refused.get("run_concurrent", {}), refused
+    assert not env.records()  # nothing ran
+    code, payload = env.verb(request["request_id"])
+    assert code == 0, payload
+    assert [a["outcome"] for a in payload["run_concurrent"]["attempts"]] == ["landed", "landed"]
     assert landed_order(env) == request["tasks"]
 
 
@@ -304,6 +324,14 @@ def test_a_held_result_leaves_a_floor_attempt_free_and_lands_with_its_report(
     assert after["task"]["title"].startswith("Third")
 
 
+def assert_residue_after_report(env: Any, floor: dict[str, Any]) -> None:
+    """The report is refused, and the next verb answers ``attempt-residue`` and no other code."""
+    code, refused = env.report(floor, gate={"passed": True})
+    assert code == 1 and refused["refusal"]["code"] in ("attempt-residue", "attempt-refused")
+    code, again = env.run("next", harness.SPEC_DIR)
+    assert code == 1 and again["refusal"]["code"] == "attempt-residue", again
+
+
 def test_a_floor_attempt_that_rewrites_a_held_record_is_residue(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -314,8 +342,7 @@ def test_a_floor_attempt_that_rewrites_a_held_record_is_residue(
     (record,) = (env.store() / "held").iterdir()
     original = record.read_bytes()
     record.write_bytes(original + b" ")
-    code, refused = env.report(floor, gate={"passed": True})
-    assert code == 1 and refused["refusal"]["code"] in ("attempt-residue", "attempt-refused")
+    assert_residue_after_report(env, floor)
     record.write_bytes(original)
 
 
@@ -337,8 +364,7 @@ def test_a_floor_attempt_that_rewrites_a_held_tree_ref_is_residue(
     other = env.git("rev-parse", "HEAD^{tree}").strip()
     assert other != held["result_tree"]
     env.git("update-ref", ref, other)
-    code, refused = env.report(floor, gate={"passed": True})
-    assert code == 1 and refused["refusal"]["code"] in ("attempt-residue", "attempt-refused")
+    assert_residue_after_report(env, floor)
     env.git("update-ref", ref, original)
 
 
@@ -360,8 +386,34 @@ def test_integration_reads_the_held_identity_not_the_attempt_directory(
     assert env.git("show", "HEAD:calc.py") == CALC and env.git("show", "HEAD:plain.txt") == NOTE
 
 
-def test_a_trusted_file_changed_while_a_sibling_is_open_refuses_the_attempt(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+def _edit_trusted_file(env: Any) -> Any:
+    spec = env.repo / harness.SPEC_DIR / "spec.md"
+    original = spec.read_bytes()
+    spec.write_bytes(original + b"\nedited\n")
+    return lambda: spec.write_bytes(original)
+
+
+def _edit_git_control_state(env: Any) -> Any:
+    attributes = env.repo / ".git" / "info" / "attributes"
+    attributes.parent.mkdir(exist_ok=True)
+    assert not attributes.exists()
+    attributes.write_text("*.py merge=union\n", encoding="utf-8")
+    return attributes.unlink
+
+
+def _edit_delivery(env: Any) -> Any:
+    note = env.repo / harness.SPEC_DIR / "delivery" / "x.md"
+    note.parent.mkdir(parents=True, exist_ok=True)
+    note.write_text("changed\n", encoding="utf-8")
+    return note.unlink
+
+
+@pytest.mark.parametrize(
+    "change", [_edit_trusted_file, _edit_git_control_state, _edit_delivery],
+    ids=["trusted-file", "git-control-state", "delivery"],
+)
+def test_a_protected_change_while_a_sibling_is_open_refuses_the_attempt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, change: Any
 ) -> None:
     script = {
         "per_task": {
@@ -374,19 +426,19 @@ def test_a_trusted_file_changed_while_a_sibling_is_open_refuses_the_attempt(
     env = make_env(tmp_path, monkeypatch, script=script)
     request = env.issued()
     before = head(env)
-    spec = env.repo / harness.SPEC_DIR / "spec.md"
-    original = spec.read_bytes()
-    edited: list[bool] = []
+    edited: list[Any] = []
+    once = threading.Lock()  # both attempts reach the point at once; only one changes anything
 
     def edit(name: str) -> None:
-        if name == "released" and not edited:
-            edited.append(True)
-            spec.write_bytes(original + b"\nedited\n")
+        if name == "released" and once.acquire(blocking=False):
+            edited.append(change(env))
 
     harness.commit_module.set_kill_hook(edit)
     code, refused = env.verb(request["request_id"])
-    spec.write_bytes(original)
-    assert code == 1 and refused["refusal"]["code"] == "attempt-residue"
+    ls.clear_kill_hook()
+    (undo,) = edited
+    undo()
+    assert code == 1 and refused["refusal"]["code"] == "attempt-residue", refused
     assert head(env) == before and not (env.repo / "calc.py").exists()
 
 
@@ -691,21 +743,48 @@ def test_a_kill_at_each_integration_write_converges_through_the_next_verb(
     env = make_env(tmp_path / "run", monkeypatch, plan=ls.ONE_TASK)
     request = env.issued()
     old = head(env)
-    ls.crash_at(point)
+    product = json.loads((env.store() / "product-ref").read_text("utf-8"))["name"]
+    at_the_kill: list[str] = []
+
+    def capture() -> None:
+        at_the_kill.append(env.git("rev-parse", product).strip())
+
+    ls.crash_at(point, before=capture)
     with pytest.raises(harness.Crash):
         env.verb(request["request_id"])
     ls.clear_kill_hook()
-    assert head(env) in (old, head(env))  # the product ref is at its old or its new commit
+    (new,) = at_the_kill
+    swapped = point not in ("integration-start", "commit-built")
+    # The product ref is exactly the recorded old commit or the new commit, by value.
+    assert env.git("rev-parse", product).strip() == new == head(env)
+    if swapped:
+        assert new != old
+        assert env.git("rev-parse", f"{new}^").strip() == old
+        assert "Supervisor-Attempt: att-" in env.git("show", "-s", "--format=%B", new)
+    else:
+        assert new == old
     settle(env, request)
     commits_before = env.git("rev-list", "--count", "HEAD").strip()
     nxt = env.next()
     assert "refusal" not in nxt, nxt
     after = converged(env)
     assert after == expected
-    if point not in ("integration-start", "commit-built"):
-        # The landed operation was recognised from its commit: nothing new was made.
+    assert env.git("rev-parse", product).strip() == head(env)
+    if swapped:
+        # The landed operation was recognised from its commit: nothing new was made, no
+        # conflict was recorded, and the task was not projected again.
+        assert head(env) == new
         assert env.git("rev-list", "--count", "HEAD").strip() == commits_before
         assert after["conflicts"] == [] and after["attempts"] == 1
+        assert not list((env.store() / "conflicts").iterdir())
+        request_again = nxt.get("request") or {}
+        assert not (
+            request_again.get("kind") == "run-concurrent"
+            and str(request_again.get("request_id", "")).endswith(":r1")
+        ), nxt
+        records = env.records()
+        assert [r["state"] for r in records] == ["landed"]
+        assert not any(r.get("reproject") for r in records)
 
 
 def move_head_with_a_foreign_commit(env: Any) -> None:

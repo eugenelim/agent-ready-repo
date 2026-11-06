@@ -6,9 +6,9 @@ concurrent mode, once per forced completion order of the attempts one batch hold
 concurrent run must reach the sequential run's product tree and the same verdict for each
 criterion in ``acceptance-verdict.v1``. Raw files that embed run and step ids are never compared.
 
-Completion order is forced by fixture coordination and observed as the order the supervisor
-held the results (see ``permutation_corpus``); the journal lists outcomes in integration order,
-which is the property under test, so it cannot show completion order.
+Completion order is forced by fixture coordination and observed in the journal, which carries
+one ``settled`` line per attempt in the order the attempts finished (see ``permutation_corpus``);
+each run's order is asserted before the run is compared with the sequential reference.
 """
 
 from __future__ import annotations
@@ -139,9 +139,7 @@ def test_every_corpus_subprocess_ran_isolated_with_no_pi_on_its_path(corpus: Any
 # ── completion order and the comparison (AC-0059) ───────────────────────────
 
 
-def test_each_forced_completion_order_is_the_order_the_supervisor_held_results(
-    corpus: Any,
-) -> None:
+def test_each_forced_completion_order_is_the_order_the_journal_records(corpus: Any) -> None:
     seen = set()
     for schedule, mode, _pm, order, run in concurrent(corpus):
         assert run.completed[: len(order)] == list(order), (schedule.name, mode)
@@ -154,8 +152,24 @@ def test_each_forced_completion_order_is_the_order_the_supervisor_held_results(
                 assert (schedule.name, mode, order) in seen
 
 
+def test_the_allowlisted_read_after_write_keeps_its_two_tasks_in_separate_batches(
+    corpus: Any,
+) -> None:
+    """Under ``enforced-allowlist`` the declared read meets at admission: two batches, one order."""
+    schedule, mode = pc.READ_AFTER_WRITE, "enforced-allowlist"
+    assert pc.orders(schedule, mode) == [("calculator-answers",)]
+    runs = [r for s, m, _pm, _o, r in concurrent(corpus) if s is schedule and m == mode]
+    assert len(runs) == 1
+    (run,) = runs
+    assert run.controller.batches[:2] == [["calculator-answers"], ["derived-file-is-written"]]
+    assert run.completed == ["calculator-answers", "derived-file-is-written"]
+    assert not any(line.get("reprojected") for line in run.journal())
+
+
 def test_every_concurrent_run_matches_the_sequential_run(corpus: Any) -> None:
     for schedule, mode, _pm, order, run in concurrent(corpus):
+        # The forced order is asserted from the journal before the run is compared.
+        assert run.completed[: len(order)] == list(order), (schedule.name, mode, order)
         reference = corpus.reference(schedule, mode)
         assert compare(run, reference) == [], (schedule.name, mode, order)
         assert run.outcomes() and set(run.outcomes().values()) == {"supported"}

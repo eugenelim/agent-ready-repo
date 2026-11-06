@@ -5,8 +5,9 @@ terminal run under a policy (``sequential`` or one concurrent mode) and, for a c
 a forced completion order. Completion order is forced by fixture coordination: each attempt of
 the fixture launcher waits for a gate file before it sends its access line, and the corpus
 creates the gate of the next attempt in the chosen order only when the supervisor has held the
-previous attempt's result (the ``result-held`` kill point, seen from that attempt's thread). That
-sequence of held results is the observed completion order; no timing decides anything.
+previous attempt's result (the ``result-held`` kill point, seen from that attempt's thread). The
+observed completion order is read from the journal, which carries one ``settled`` line per
+attempt in the order the attempts finished; no timing decides anything.
 
 Every subprocess the corpus starts runs in an environment ``Isolation`` builds: the fixture
 launcher under an isolated interpreter (``-I`` in its interpreter line) with a ``PATH`` holding
@@ -267,10 +268,7 @@ def script_for(
 class Run:
     """A finished corpus run: what the product holds, what each criterion said, what happened."""
 
-    def __init__(
-        self, env: Any, controller: Any, terminal: dict[str, Any], completed: list[str]
-    ) -> None:
-        self.completed = completed
+    def __init__(self, env: Any, controller: Any, terminal: dict[str, Any]) -> None:
         self.env = env
         self.controller = controller
         self.terminal = terminal
@@ -278,6 +276,15 @@ class Run:
 
     def journal(self) -> list[dict[str, Any]]:
         return ls.journal(self.repo)  # type: ignore[no-any-return]
+
+    @property
+    def completed(self) -> list[str]:
+        """The task slugs in the order the journal says their attempts settled."""
+        return [
+            str(line["request_id"]).split(":")[1].rsplit("-", 1)[0]
+            for line in self.journal()
+            if line.get("kind") == "run-concurrent" and line.get("outcome") == "settled"
+        ]
 
     def run_id(self) -> str:
         return str(self.env.store().name)
@@ -401,7 +408,6 @@ def run_schedule(
     code, started = env.start()
     assert code == 0, started
     controller = CorpusController(env, schedule, plan_mode, tmp_path / "effects.log")
-    completed: list[str] = []
     gates = {slug: i for i, slug in enumerate(order or ())}
 
     def release_next(point: str) -> None:
@@ -412,7 +418,6 @@ def run_schedule(
             slug = name.removeprefix("attempt-").rsplit("-", 1)[0]
         else:  # a batch of one runs on the calling thread
             (slug,) = [t.rsplit("-", 1)[0] for t in controller.open_batch]
-        completed.append(slug)
         if slug in gates:
             (tmp_path / "log" / f"{gates[slug]}.done").write_text("done", encoding="utf-8")
 
@@ -422,7 +427,7 @@ def run_schedule(
     finally:
         ls.clear_kill_hook()
     assert terminal.get("terminal"), terminal
-    return Run(env, controller, terminal, completed)
+    return Run(env, controller, terminal)
 
 
 def plan_modes(schedule: Schedule) -> list[str]:

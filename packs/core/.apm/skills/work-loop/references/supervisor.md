@@ -238,9 +238,13 @@ after the cancellation. An attempt that sends no access line within
 
 A task projected again, whether after an integration conflict or after a cancellation
 whose end was confirmed, counts toward `reprojection_bound`; at the bound its next
-attempt runs on the floor (`reprojection-bound`). Each projection again is a journal
-line (`outcome` `conflict` or `cancelled`, `reprojected: true`) and an entry in
-`status` (`concurrency.attempts`, `reprojected: true`).
+attempt runs on the floor (`reprojection-bound`). An attempt directory refused at
+ingestion (any ingestion code except `protected-path-changed`) is cancelled the same
+way: its task is projected again and the attempt counts toward the bound. Each
+projection again is a journal line (`outcome` `conflict` or `cancelled`,
+`reprojected: true`) and an entry in `status` (`concurrency.attempts`,
+`reprojected: true`). Each attempt whose result is held also journals one
+`outcome: settled` line as it settles, so the journal's order is completion order.
 
 A controller replan or a stub-fence revision is admitted only while no attempt is
 open; an edit beside one is `attempt-residue`. Once the open attempts end, it is
