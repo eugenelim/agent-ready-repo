@@ -688,3 +688,32 @@ def test_ac0008_the_line_matcher_bounds_its_cost_with_autojunk() -> None:
     matcher = tiers._line_matcher(text, text + "tail\n")
     assert matcher.autojunk is True
     assert "same line" in matcher.bpopular
+
+
+# ── T10: any fence-looking line keeps a file out of wording-only ────────────
+
+
+@pytest.mark.parametrize(
+    "before",
+    [
+        "Intro.\n\n```\nExample:\n ```\nrun the old command\n```\n\nEnd.\n",
+        "Intro.\n\n```\nExample:\n\x0c```\nrun the old command\n```\n\nEnd.\n",
+        "Intro.\n\n```\nExample:\n\x0b```\nrun the old command\n```\n\nEnd.\n",
+        "Intro.\n\n```\nExample:\n ```\nrun the old command\n```\n\nEnd.\n",
+        "Intro\n    ```\nmore intro\n```\nrun the old command\n```\n",
+        "Intro\n    ```\nmore intro\n```\nrun the old command\n```\n",
+    ],
+    ids=["nbsp-close", "formfeed-close", "vtab-close", "emspace-close", "4sp-open", "nbsp-open"],
+)
+def test_ac0004_a_file_with_a_fence_like_line_is_never_wording_only(repo: Repo, before: str) -> None:
+    """AC-0004: the six reproduced inputs classify full, whatever the fence whitespace."""
+    after = before.replace("old command", "new command")
+    assert not tiers._wording_only_file(before, after)
+    anchor, current = _prose_change(repo, before, after)
+    assert _classify(repo, anchor, current, {PROSE}).name == "full"
+
+
+def test_ac0004_a_prose_edit_without_fences_stays_wording_only(repo: Repo) -> None:
+    """AC-0004: the fence rule leaves an ordinary prose edit wording-only."""
+    anchor, current = _prose_change(repo, "Intro text here.\n\nMore words.\n", "Intro text there.\n\nMore words.\n")
+    assert _classify(repo, anchor, current, {PROSE}).name == "wording-only"

@@ -241,8 +241,22 @@ def _line_matcher(old: str, new: str) -> difflib.SequenceMatcher[str]:
     return difflib.SequenceMatcher(a=old.split("\n"), b=new.split("\n"))
 
 
+def _has_fence_like_line(text: str) -> bool:
+    """True when any line, stripped of every kind of whitespace, starts a code fence.
+
+    Fence boundaries depend on indentation and whitespace rules a line scan can get
+    wrong, so a file that holds anything fence-like is never compared line by line.
+    """
+    return any(line.strip().startswith(("```", "~~~")) for line in text.split("\n"))
+
+
 def _wording_only_file(old: str, new: str) -> bool:
-    """True when every changed line is plain prose and every unchanged line keeps its kind."""
+    """True when every changed line is plain prose and every unchanged line keeps its kind.
+
+    A file holding any fence-like line at either revision is never wording-only.
+    """
+    if _has_fence_like_line(old) or _has_fence_like_line(new):
+        return False
     old_lines, new_lines = old.split("\n"), new.split("\n")
     old_kinds, new_kinds = scan_markdown(old), scan_markdown(new)
     for tag, i1, i2, j1, j2 in _line_matcher(old, new).get_opcodes():
