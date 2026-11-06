@@ -66,9 +66,11 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 
 ## Testing Strategy
 
-- `--json` and `route`: TDD, exercised through `main(argv)` on the supervisor test harness, with the git-backed cases integration-gated and run by the Gate A-supervisor lane. `invalid-result` detail: TDD, exercised at `loop.report` and `_validate_result`.
-- The routing table and reference sentences: goal-based; a pin test asserts the table rows and that each script `route` string equals its row.
-- Evals and release files: goal-based; a JSON load and the release checker.
+- **Supervisor answers: `--json`, `route` and the routing table's strings (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008)** use TDD through `main(argv)` on the supervisor test harness, because each is a deterministic answer over a run state. The git-backed cases are integration-gated and run by the Gate A-supervisor lane; the string, length and detail checks are ungated unit tests.
+- **The `invalid-result` refusal text (AC-0009, AC-0010)** uses TDD at `loop.report` and `_validate_result`, because the detail is a pure function of the result sent.
+- **Reference sentences and the routing table's rows (AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017)** use goal-based pin tests that read the reference files, because each criterion is the presence or absence of a stated sentence or row.
+- **The eval case (AC-0018)** uses a goal-based pin test that loads `evals/evals.json`, because the criterion is the presence of one case.
+- **Release (AC-0019, AC-0020, AC-0021)** uses goal-based checks: the release checker and the roster file that reads `_RELEASED["core"]`.
 
 ## Acceptance Criteria
 
