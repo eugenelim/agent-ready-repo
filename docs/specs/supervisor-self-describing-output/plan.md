@@ -89,7 +89,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0007), and that step 1 no longer holds the sentence "the first thing to deal with" and points to the table (AC-0011).
+- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0007), and that step 1 no longer holds the sentence "the first thing to deal with" and points to the table (AC-0013); the table has the first-match statement and one row per shape (AC-0012).
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
@@ -105,14 +105,14 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_route.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
 
-**Done when:** `python -m pytest packs/core/tests/skills/work-loop/test_supervisor_route.py -q` is green, and `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py packs/core/tests/skills/work-loop/test_supervisor_readiness.py -q -rs` is green with the new cases not skipped and the existing status assertions unchanged; a result in which every case is skipped is not a pass.
+**Done when:** `python -m pytest packs/core/tests/skills/work-loop/test_supervisor_route.py -q` is green, and `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py packs/core/tests/skills/work-loop/test_supervisor_readiness.py packs/core/tests/skills/work-loop/test_supervisor_pinning.py packs/core/tests/skills/work-loop/test_supervisor_commit.py -q -rs` is green with the new cases not skipped and the existing `status` and `status --check` assertions unchanged (the pinning suite is slow, so run each file in its own call); a result in which every case is skipped is not a pass.
 
 ### T5: Remaining reference sentences
 
 **Depends on:** T1, T4
 
 **Tests:**
-- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json`, and holds no `BLOCKED` text (AC-0010), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0012), that `state-schema.md` lists `route` among the `status` keys (AC-0013), and that each string in `work-supervisor.py` equals its row in the routing table.
+- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json`, and holds no `BLOCKED` text (AC-0010, AC-0011), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0014), that `state-schema.md` lists `route` among the `status` keys (AC-0015), and that each string in `work-supervisor.py` equals its row in the routing table.
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
@@ -123,7 +123,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T5
 
 **Tests:**
-- Goal-based: the pin test loads `evals.json` and asserts that the id `undispatchable-reviewer-follows-roster-rule` is present, that its prompt names a reviewer role that cannot be dispatched, and that its `expected_output` and `assertions` are non-empty (AC-0014); ids stay unique.
+- Goal-based: the pin test loads `evals.json` and asserts that the id `undispatchable-reviewer-follows-roster-rule` is present, that its prompt names a reviewer role that cannot be dispatched, and that its `expected_output` and `assertions` are non-empty (AC-0016); ids stay unique.
 
 **Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
@@ -134,7 +134,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T1, T2, T3, T4, T5, T6
 
 **Tests:**
-- Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0016); `tests/roster/test_registry_upgrade_notes.py` passes and its `_RELEASED["core"]` entry and the fragment name the version (AC-0015, AC-0017).
+- Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0018); `tests/roster/test_registry_upgrade_notes.py` passes and its `_RELEASED["core"]` entry and the fragment name the version (AC-0017, AC-0019).
 
 **Approach:**
 - Run `git fetch origin` and take the next patch above the `core` version fetched `origin/main` carries when the task runs; set it in `pack.toml`, `.claude-plugin/plugin.json`, a new fragment under `docs/product/changelog.d/`, and `_RELEASED["core"]` in `tests/roster/test_registry_upgrade_notes.py`.
