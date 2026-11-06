@@ -15,6 +15,7 @@ Five output changes and one release. T3 writes the routing table first, in `sess
 
 ## Constraints
 
+- The declared check for paths under `packs/core/.apm/` is `make precheck` (root `AGENTS.md`): self-host drift, the core release check, bandit on changed `.py` files, and, with `--with-tests`, the pack tests. Each task's Done-when names it and says which results are expected red before `regenerate` or T7.
 - Pack rules in `packs/AGENTS.md`: `.apm/` is the source; no test under `.apm/`; bump `pack.toml` and `plugin.json` together; load skill modules in tests by pack- and skill-qualified name; shipped pack text cites no internal records.
 - The supervisor pins the installed skill's scripts at `start`. Edits land in `packs/core/.apm/`. Once a task commits a change under `scripts/`, the installed copy differs from the pack source, so the run issues a `regenerate` request before `terminal`; the controller answers it with the repository's self-host command and reports only the envelope, and the supervisor commits the rebuilt skill copies. No task touches `dispatch.py`, so the packaged `_data/` mirror stays untouched.
 
@@ -71,29 +72,29 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
 
-**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py -q -rs` is green and none of the new cases is skipped; a result in which every case is skipped is not a pass.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py -q -rs` is green and none of the new cases is skipped; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
 
 ### T2: `invalid-result` names the failing field
 
 **Depends on:** none
 
 **Tests:**
-- TDD, at `loop.report` and `_validate_result`, in `test_supervisor_results.py` (the cases that need no git repository are ungated): a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains a sent value that is non-empty, and the empty-string case is checked by the field name and the required form alone (AC-0009). A well-formed result still passes `_validate_result` unchanged. The check is unchanged, so the tests assert no behavior for `true` or `1.0`.
+- TDD, at `loop.report` and `_validate_result`, in `test_supervisor_results.py` (the cases that need no git repository are ungated): a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains a sent value that is non-empty, and the empty-string case is checked by the field name and the required form alone (AC-0009, AC-0010). A well-formed result still passes `_validate_result` unchanged. The check is unchanged, so the tests assert no behavior for `true` or `1.0`.
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_loop.py`, `packs/core/tests/skills/work-loop/test_supervisor_results.py`
 
-**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_results.py -q -rs` is green, the new cases are not skipped, and the rest of that file is unchanged and green; a result in which every case is skipped is not a pass.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_results.py -q -rs` is green, the new cases are not skipped, and the rest of that file is unchanged and green; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
 
 ### T3: The routing table is the one home of the routing decision
 
 **Depends on:** none
 
 **Tests:**
-- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0007), and that step 1 no longer holds the sentence "the first thing to deal with" and points to the table (AC-0013); the table has the first-match statement and one row per shape (AC-0012).
+- Goal-based: a pin test parses the table in `session-resumption.md` and asserts the first-match statement, one row per shape in the design (nine rows), that the step is titled "Route by what `status` or `next` shows", that every string is 160 characters or fewer (AC-0007), and that step 1 no longer holds the sentence "the first thing to deal with" and points to the table (AC-0014); the table has the first-match statement and one row per shape (AC-0013).
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is green and every suite listed by `grep -rl 'session-resumption' packs/core/tests tests --include='test_*.py'` is green.
+**Done when:** the pin test is green and every suite listed by `grep -rl 'session-resumption' packs/core/tests tests --include='test_*.py'` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
 
 ### T4: `status` and `next` carry `route`
 
@@ -105,43 +106,43 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_route.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
 
-**Done when:** `python -m pytest packs/core/tests/skills/work-loop/test_supervisor_route.py -q` is green, and `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py packs/core/tests/skills/work-loop/test_supervisor_readiness.py packs/core/tests/skills/work-loop/test_supervisor_pinning.py packs/core/tests/skills/work-loop/test_supervisor_commit.py -q -rs` is green with the new cases not skipped and the existing `status` and `status --check` assertions unchanged (the pinning suite is slow, so run each file in its own call); a result in which every case is skipped is not a pass.
+**Done when:** `python -m pytest packs/core/tests/skills/work-loop/test_supervisor_route.py -q` is green, and `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py packs/core/tests/skills/work-loop/test_supervisor_readiness.py packs/core/tests/skills/work-loop/test_supervisor_pinning.py packs/core/tests/skills/work-loop/test_supervisor_commit.py -q -rs` is green in one call with the new cases not skipped and the existing `status` and `status --check` assertions unchanged; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
 
 ### T5: Remaining reference sentences
 
 **Depends on:** T1, T4
 
 **Tests:**
-- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json`, and holds no `BLOCKED` text (AC-0010, AC-0011), that `supervisor.md` states `--json` goes after the verb and that `status` and `next` carry `route` (AC-0014), that `state-schema.md` lists `route` among the `status` keys (AC-0015), and that each string in `work-supervisor.py` equals its row in the routing table.
+- Goal-based: the pin test asserts that `supervisor-mode.md` § Single-agent fallback names `SKILL.md` § Step 4. REVIEW and the `fallback` and `mandatory_when` fields of `review-rules.json` (AC-0011), and that the section contains none of `BLOCKED`, `missing`, `stop readiness`, `loud blocker` or `named skip`, the distinctive elements of the reviewer rule (AC-0012); that `supervisor.md` states `--json` goes after the verb (AC-0015) and that `status` and `next` carry `route` (AC-0016); that `state-schema.md` lists `route` among the `status` keys (AC-0017); and that each string in `work-supervisor.py` equals its row in the routing table.
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is green and every suite listed by `grep -rlE 'supervisor(-mode)?\.md|state-schema\.md' packs/core/tests tests --include='test_*.py'` is green, which includes `tests/roster/test_sequential_implementer_dispatch_contract.py`.
+**Done when:** the pin test is green and every suite listed by `grep -rlE 'supervisor(-mode)?\.md|state-schema\.md' packs/core/tests tests --include='test_*.py'` is green, which includes `tests/roster/test_sequential_implementer_dispatch_contract.py`. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
 
 ### T6: Eval case
 
 **Depends on:** T5
 
 **Tests:**
-- Goal-based: the pin test loads `evals.json` and asserts that the id `undispatchable-reviewer-follows-roster-rule` is present, that its prompt names a reviewer role that cannot be dispatched, and that its `expected_output` and `assertions` are non-empty (AC-0016); ids stay unique.
+- Goal-based: the pin test loads `evals.json` and asserts that the id `undispatchable-reviewer-follows-roster-rule` is present, that its prompt names a reviewer role that cannot be dispatched, and that its `expected_output` and `assertions` are non-empty (AC-0018); ids stay unique.
 
 **Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is red before the case is added and green after, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green.
+**Done when:** the pin test is red before the case is added and green after, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
 
 ### T7: Release the `core` patch
 
 **Depends on:** T1, T2, T3, T4, T5, T6
 
 **Tests:**
-- Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0018); `tests/roster/test_registry_upgrade_notes.py` passes and its `_RELEASED["core"]` entry and the fragment name the version (AC-0017, AC-0019).
+- Goal-based: `python3 tools/check-core-release.py --base origin/main` passes (AC-0020); `tests/roster/test_registry_upgrade_notes.py` passes and its `_RELEASED["core"]` entry and the fragment name the version (AC-0019, AC-0021).
 
 **Approach:**
 - Run `git fetch origin` and take the next patch above the `core` version fetched `origin/main` carries when the task runs; set it in `pack.toml`, `.claude-plugin/plugin.json`, a new fragment under `docs/product/changelog.d/`, and `_RELEASED["core"]` in `tests/roster/test_registry_upgrade_notes.py`.
 
 **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/`, `tests/roster/test_registry_upgrade_notes.py`
 
-**Done when:** the release checker and the roster file named above both pass.
+**Done when:** the release checker and the roster file named above both pass, and `make precheck` is run and its output read; only its self-host drift check may still be red, until the run's `regenerate` step.
 
 ## Rollout
 

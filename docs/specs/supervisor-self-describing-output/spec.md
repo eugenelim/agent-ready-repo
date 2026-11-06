@@ -80,17 +80,19 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 - [ ] **AC-0006.** A `route` contains no `detail` text from a refusal.
 - [ ] **AC-0007.** A `route` is 160 characters or fewer.
 - [ ] **AC-0008.** `status --check` exits with the same codes as before `route` existed.
-- [ ] **AC-0009.** `report` refuses with `invalid-result` and a detail naming the failing field when the result is not a JSON object, when `schema_version` is not equal to 1, or when `request_id`, `run_id` or `kind` is not a non-empty string; the detail states the required form and never repeats what was sent.
-- [ ] **AC-0010.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`.
-- [ ] **AC-0011.** `references/supervisor-mode.md` § Single-agent fallback restates no part of the reviewer rule that `SKILL.md` and `review-rules.json` hold.
-- [ ] **AC-0012.** `references/session-resumption.md` holds a routing table for the `status` and `next` shapes with a first-match order and one row per shape.
-- [ ] **AC-0013.** Step 1 of `references/session-resumption.md` points to that table instead of ranking shapes.
-- [ ] **AC-0014.** `references/supervisor.md` states that `--json` goes after the verb on every verb and that `status` and `next` carry `route`.
-- [ ] **AC-0015.** `references/state-schema.md` lists `route` among the `status` keys.
-- [ ] **AC-0016.** `evals/evals.json` carries a case with id `undispatchable-reviewer-follows-roster-rule`, a prompt that has an undispatchable reviewer role, a non-empty `expected_output` and non-empty `assertions`.
-- [ ] **AC-0017.** The `core` version in `pack.toml` and `.claude-plugin/plugin.json` is one patch above the version `packs/core/pack.toml` carries on `origin/main` as fetched when this criterion is checked.
-- [ ] **AC-0018.** `tools/check-core-release.py --base origin/main` passes.
-- [ ] **AC-0019.** The changelog fragment and the `_RELEASED["core"]` pin in `tests/roster/test_registry_upgrade_notes.py` name the version of AC-0017.
+- [ ] **AC-0009.** `report` refuses with `invalid-result` and a detail that names the failing field and states its required form when the result is not a JSON object, when `schema_version` is not equal to 1, or when `request_id`, `run_id` or `kind` is not a non-empty string.
+- [ ] **AC-0010.** An `invalid-result` detail from `report` never repeats a non-empty value the controller sent.
+- [ ] **AC-0011.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`.
+- [ ] **AC-0012.** `references/supervisor-mode.md` § Single-agent fallback restates no part of the reviewer rule that `SKILL.md` and `review-rules.json` hold.
+- [ ] **AC-0013.** `references/session-resumption.md` holds a routing table for the `status` and `next` shapes with a first-match order and one row per shape.
+- [ ] **AC-0014.** Step 1 of `references/session-resumption.md` points to that table instead of ranking shapes.
+- [ ] **AC-0015.** `references/supervisor.md` states that `--json` goes after the verb on every verb.
+- [ ] **AC-0016.** `references/supervisor.md` states that `status` and `next` carry `route`.
+- [ ] **AC-0017.** `references/state-schema.md` lists `route` among the `status` keys.
+- [ ] **AC-0018.** `evals/evals.json` carries a case with id `undispatchable-reviewer-follows-roster-rule`, a prompt that has an undispatchable reviewer role, a non-empty `expected_output` and non-empty `assertions`.
+- [ ] **AC-0019.** The `core` version in `pack.toml` and `.claude-plugin/plugin.json` is one patch above the version `packs/core/pack.toml` carries on `origin/main` as fetched when this criterion is checked.
+- [ ] **AC-0020.** `tools/check-core-release.py --base origin/main` passes.
+- [ ] **AC-0021.** The changelog fragment and the `_RELEASED["core"]` pin in `tests/roster/test_registry_upgrade_notes.py` name the version of AC-0019.
 
 ## Terminal Intent
 
