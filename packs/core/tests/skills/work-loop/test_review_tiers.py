@@ -657,3 +657,34 @@ def test_glob_match_keeps_star_within_a_segment() -> None:
     assert tiers.glob_match("docs/*.md", "docs/a.md")
     assert not tiers.glob_match("docs/*.md", "docs/specs/a.md")
     assert tiers.glob_match("docs/guides/**/*.md", "docs/guides/x/a.md")
+
+
+# ── round-2 review repairs (T9) ─────────────────────────────────────────────
+
+
+@pytest.mark.parametrize("indent", ["    ", "     ", "\t"])
+def test_ac0004_an_indented_line_never_closes_a_fence(repo: Repo, indent: str) -> None:
+    """AC-0004: a fence line indented four or more columns stays inside the code block."""
+    before = f"Intro.\n\n```markdown\nExample:\n{indent}```\nrun the old command\n```\n\nEnd.\n"
+    after = before.replace("old command", "new command")
+    kinds = tiers.scan_markdown(before)
+    assert kinds[5] == "fence", kinds
+    anchor, current = _prose_change(repo, before, after)
+    assert _classify(repo, anchor, current, {PROSE}).name == "full"
+
+
+def test_ac0004_a_closing_fence_indented_up_to_three_spaces_still_closes() -> None:
+    """AC-0004: CommonMark lets a closing fence carry up to three spaces of indent."""
+    kinds = tiers.scan_markdown("```\ncode\n   ```\nAfter the block.\n")
+    assert kinds == ["fence", "fence", "fence", "prose", "blank"]
+
+
+def test_ac0008_the_line_matcher_bounds_its_cost_with_autojunk() -> None:
+    """AC-0008: the matcher drops over-repeated lines, so a hostile file cannot go quadratic.
+
+    Reverting to ``autojunk=False`` turns this red: the popular-line set stays empty.
+    """
+    text = "same line\n" * 400
+    matcher = tiers._line_matcher(text, text + "tail\n")
+    assert matcher.autojunk is True
+    assert "same line" in matcher.bpopular

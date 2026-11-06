@@ -154,9 +154,14 @@ _THEMATIC_BREAK = re.compile(r"\s*([-*_])(\s*\1){2,}\s*")
 _TABLE_PIPE = re.compile(r"(?<!\\)\|")
 
 
-def _closes_fence(stripped: str, opener: str) -> bool:
-    """CommonMark: a closing fence repeats the opener's character at least as long, then ends."""
-    body = stripped.rstrip()
+def _closes_fence(line: str, opener: str) -> bool:
+    """CommonMark: a closing fence is indented at most three spaces, then repeats the
+    opener's character at least as long, then ends. A tab or a fourth space of indent
+    keeps the line inside the code block."""
+    indent = len(line) - len(line.lstrip(" "))
+    if indent > 3 or line[indent:indent + 1] == "\t":
+        return False
+    body = line.strip()
     return len(body) >= len(opener) and body == opener[0] * len(body)
 
 
@@ -183,7 +188,7 @@ def scan_markdown(text: str) -> list[str]:
             continue
         if fence is not None:
             kinds.append("fence")
-            if _closes_fence(stripped, fence):
+            if _closes_fence(line, fence):
                 fence = None
             continue
         if in_comment:

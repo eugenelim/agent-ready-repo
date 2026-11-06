@@ -372,3 +372,55 @@ def test_a_memoized_answer_is_computed_once_per_workspace_object() -> None:
         readiness._memoized(ws, ("k", 1), lambda: calls.append(1) or "v")
     readiness._memoized(ws, ("k", 2), lambda: calls.append(2) or "w")
     assert calls == [1, 2]
+
+
+# ── the reasons review_flow shows in status (T9) ────────────────────────────
+
+
+def _flow_with(monkeypatch: pytest.MonkeyPatch, *, anchors: list[dict[str, Any]], commits: list[Any],
+               reanchor: tuple[bool, bool] = (False, False),
+               base: tuple[str | None, str] = (None, "")) -> dict[str, Any]:
+    """Call ``review_flow`` with every collaborator stubbed except the reason assembly."""
+    readiness = h.cli._supervisor("_supervisor_readiness.py")
+    review_mod = h.cli._supervisor("_supervisor_review.py")
+    tiers_mod = h.cli._supervisor("_review_tiers.py")
+    monkeypatch.setattr(readiness, "_unit_protection", lambda rules, sel, roles: (False, [], set()))
+    monkeypatch.setattr(readiness, "_report_subjects", lambda reports, run_id: [])
+    monkeypatch.setattr(readiness, "_rounds", lambda *args: (0, True))
+    monkeypatch.setattr(readiness, "result_lineage", lambda ws, state: ("p", "c" * 40, "1"))
+    monkeypatch.setattr(readiness, "_reanchors_since", lambda state, fp: reanchor)
+    monkeypatch.setattr(readiness, "run_base_checked", lambda ws, state, result: base)
+    monkeypatch.setattr(review_mod, "anchor_records", lambda ws: anchors)
+    monkeypatch.setattr(review_mod, "cap_answers", lambda ws: [])
+    monkeypatch.setattr(
+        tiers_mod, "classify", lambda git, rules, facts, **kw: tiers_mod.Tier("full", "the change earns no lower tier")
+    )
+    store = SimpleNamespace(get_semantic_records=lambda kind: [])
+    state = SimpleNamespace(run_id="run-1", commits=commits)
+    ws = SimpleNamespace(git=None)
+    selection = SimpleNamespace(latest={})
+    policy = {"roles": [{"role": "adversarial-reviewer", "kind": "mandatory"}]}
+    review = {"review_subject_fingerprint": "review-subject-sha256:" + "b" * 64,
+              "review_policy_fingerprint": "review-policy-sha256:" + "c" * 64}
+    subject = {"acceptance_fingerprint": "d" * 64}
+    return readiness.review_flow(ws, state, store, RULES, selection, policy, review, subject, [])
+
+
+def test_ac0013_a_skipped_anchor_names_its_reason_in_the_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+    """AC-0013: a Supervisor-Anchor-Skipped trailer surfaces as the flow's reason."""
+    commits = [SimpleNamespace(trailers={"Supervisor-Anchor-Skipped": "the anchor line did not parse"})]
+    flow = _flow_with(monkeypatch, anchors=[], commits=commits)
+    assert flow["tier"] == "full"
+    assert flow["reason"] == "no anchor facts: the anchor line did not parse"
+
+
+def test_ac0002_an_undefined_run_base_names_its_reason_in_the_flow(monkeypatch: pytest.MonkeyPatch) -> None:
+    """AC-0002: under an adopted reanchor, a full tier carries why the run base is undefined."""
+    line = {"review_subject_fingerprint": "review-subject-sha256:" + "a" * 64,
+            "review_policy_fingerprint": "review-policy-sha256:" + "c" * 64,
+            "anchor_result": "e" * 40, "run_base": None, "changed_paths": ["src/app.py"],
+            "patch_ids": None, "round": 1, "run_id": "run-1"}
+    flow = _flow_with(monkeypatch, anchors=[line], commits=[], reanchor=(True, False),
+                      base=(None, "a foreign commit sits between the run base and the result"))
+    assert flow["tier"] == "full"
+    assert flow["reason"].endswith("(a foreign commit sits between the run base and the result)")
