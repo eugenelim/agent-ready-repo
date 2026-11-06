@@ -3,6 +3,7 @@
 Goal-based: reads the shipped file by literal path; no supervisor process runs.
 """
 
+import json
 from pathlib import Path
 
 PACK_ROOT = Path(__file__).resolve().parents[3]
@@ -157,3 +158,18 @@ def test_state_schema_lists_route_among_status_keys() -> None:
     text = _flat(SCHEMA_MD)
     sentence = text.split("`status --json` adds", 1)[1].split(". ", 1)[0]
     assert "`route`" in sentence
+
+
+def test_eval_case_for_undispatchable_reviewer_is_present() -> None:
+    """evals.json carries the undispatchable-reviewer case with a prompt, output, and assertions."""
+    evals_path = PACK_ROOT / ".apm" / "skills" / "work-loop" / "evals" / "evals.json"
+    cases = json.loads(evals_path.read_text(encoding="utf-8"))["evals"]
+    ids = [case["id"] for case in cases]
+    assert len(ids) == len(set(ids))
+    matches = [c for c in cases if c["id"] == "undispatchable-reviewer-follows-roster-rule"]
+    assert len(matches) == 1
+    case = matches[0]
+    assert "adversarial-reviewer" in case["prompt"]
+    assert case["expected_output"].strip()
+    assert isinstance(case["assertions"], list) and case["assertions"]
+    assert all(isinstance(a, str) and a.strip() for a in case["assertions"])
