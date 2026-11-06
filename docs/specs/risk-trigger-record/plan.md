@@ -157,6 +157,17 @@ preamble carries a bare `**Risk triggers:**` prose line, draws none either.
 
 **Done when:** `python3 -m pytest packs/core/tests/skills/work-loop/test_lint_spec_status.py packs/core/tests/pack/test_risk_trigger_record_contract.py -q` passes, the grep above prints nothing, and `make precheck` reports only installed-copy drift.
 
+### T7: The installed new-spec copies match their pack source
+
+**Depends on:** T3, T6
+
+**Touches:** .claude/skills/new-spec/evals/evals.json, .agents/skills/new-spec/evals/evals.json
+
+**Tests:**
+- AC-0013 — goal-based: rebuild the projections with the repository's self-host command; `agentbundle catalogue self-host --root . --check` exits 0.
+
+**Done when:** `agentbundle catalogue self-host --root . --check` exits 0 and `make precheck` exits 0.
+
 ## Changelog
 
 <!-- approvals only -->
