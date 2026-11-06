@@ -63,8 +63,8 @@ keeps T2 shippable without it.
   A-supervisor run line in `catalogue-tooling-ci-gates.yml` names them (with
   `WORK_SUPERVISOR_INTEGRATION=1`); elsewhere they skip. Every task that adds
   such a suite registers it there, and its evidence is the CI log showing the
-  suite ran with zero skips. `tests/roster/` runs through a recorded
-  `test-roster.yml` dispatch on the branch.
+  suite ran with zero skips (a Closeout duty per PR). `tests/roster/` runs
+  through a recorded `test-roster.yml` dispatch on each PR's branch.
 - Do not edit `work-loop/scripts/` while a `WORK_SUPERVISOR_INTEGRATION=1` run
   is live in the same worktree.
 
@@ -285,9 +285,8 @@ Owned by: T3, T4
   either field.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
-and its CI log shows it ran with zero skips, the roster suites pass in a
-recorded `test-roster.yml` dispatch, `make lint-ruff lint-mypy` is green, and
-Core is one patch above the merge base.
+and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, the roster suites pass locally, `make lint-ruff lint-mypy` is green, and
+Core is one patch above the previous task's release (T1: above `packs/core/pack.toml` at the run's base).
 
 ### T2: Admission, the pinned launcher, attestation verification, and ingestion run with batches of one
 
@@ -328,9 +327,8 @@ Core is one patch above the merge base.
   ancestors and `root/**` writes.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
-and its CI log shows it ran with zero skips, the existing
-product-ref and crash suites pass unchanged, and Core is one patch above the
-merge base.
+and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, the existing
+product-ref and crash suites pass unchanged, and Core is one patch above T1's release.
 
 ### T3: Ordered integration through the pinned three-way apply
 
@@ -361,8 +359,7 @@ merge base.
   cap is written truncated.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
-and its CI log shows it ran with zero skips and Core is one patch
-above the merge base.
+and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips and Core is one patch above the previous task's release.
 
 ### T4: Blast radius, cancellation, the reprojection bound, and plan-change ordering
 
@@ -386,8 +383,7 @@ above the merge base.
   and with an end that never confirms its task goes to the floor.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
-and its CI log shows it ran with zero skips and Core is one patch
-above the merge base (shared with T3's release).
+and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips and this task adds no Core bump (it ships in T3's release).
 
 ### T5: The permutation and conflict corpus, and the as-built pages
 
@@ -397,10 +393,10 @@ above the merge base (shared with T3's release).
 - AC-0059, AC-0060, AC-0061, AC-0062: VIP-X01.
 - AC-0063: VIP-X02 over the corpus records.
 
-**Done when:** both suites are on the Gate A-supervisor run line and their CI
-log shows they ran with zero skips; the pages the spec's
+**Done when:** both suites are on the Gate A-supervisor run line and pass
+locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips; the pages the spec's
 Durable Outputs name describe the concurrent path and the known limit; and
-Core is one patch above the merge base.
+Core is one patch above T3's release.
 
 ## Rollout
 

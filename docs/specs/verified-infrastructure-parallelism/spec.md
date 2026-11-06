@@ -215,11 +215,17 @@ Contracts
 
 ## Closeout
 
-Post-run duties, run by the controller after the supervisor's run is terminal and again after each rebase of the PR stack; they are not acceptance criteria.
+Post-run duties, run by the controller after the supervisor's run is terminal; they are not acceptance criteria.
 
-- `notes/verification-ledger.md` records, for every criterion, the test and run that check it.
+On every PR of the stack, after each rebase onto freshly fetched `origin/main`:
+
+- Core is one patch above `packs/core/pack.toml` at the PR's merge base, and `make build-self && make bootstrap-sites` leave no tracked change after the delivery commit.
+- The PR's CI log shows each git-backed suite it adds ran on the Gate A-supervisor lane with zero skips, and a `test-roster.yml` dispatch on its branch succeeds.
+
+In the final PR of the stack (T5) only:
+
+- `notes/verification-ledger.md` records, for every criterion, the test and the CI run or dispatch that check it.
 - The spec moves to `Shipped`, the plan to `Done`, and the brief's spec map reports it.
-- `make build-self && make bootstrap-sites` leave no tracked change after the delivery commit, and each PR's Core version is one patch above `packs/core/pack.toml` at its merge base with freshly fetched `origin/main`.
 
 ## Terminal Intent
 
