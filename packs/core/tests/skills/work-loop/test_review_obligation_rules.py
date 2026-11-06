@@ -1,7 +1,7 @@
 """The review-tier rules keys and selection protection (review-obligation-policy T1, T2).
 
 AC-0030: each missing or malformed tier key refuses ``review-rules-invalid``.
-AC-0031: the shipped values, and ``max_review_retries`` unchanged from the merge base.
+AC-0031: the shipped values (the merge-base check of ``max_review_retries`` is a roster test).
 AC-0035: the shipped prose allowlist reaches no specification or decision record.
 T2 — AC-0012 (value half), AC-0017, AC-0018, AC-0019, AC-0021, AC-0022 (parse half): selection protection.
 """
@@ -11,7 +11,6 @@ from __future__ import annotations
 import copy
 import importlib.util
 import json
-import subprocess
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -89,25 +88,6 @@ def test_ac0031_the_shipped_rules_hold_the_tier_defaults() -> None:
     """AC-0031: the shipped cap is 2 rounds and the minor-fix limit 40 lines."""
     assert RULES["code_review_round_cap"] == 2
     assert RULES["minor_fix_max_lines"] == 40
-
-
-def _git(*args: str) -> str:
-    root = Path(__file__).resolve().parents[5]
-    done = subprocess.run(
-        ["git", "-C", str(root), *args], capture_output=True, text=True, check=False
-    )
-    return done.stdout.strip() if done.returncode == 0 else ""
-
-
-def test_ac0031_max_review_retries_equals_its_merge_base_value() -> None:
-    """AC-0031: ``max_review_retries`` keeps the value it has at the merge base."""
-    base = _git("merge-base", "origin/main", "HEAD")
-    if not base:
-        pytest.skip("no origin/main merge base in this checkout")
-    blob = _git("show", f"{base}:packs/core/.apm/skills/work-loop/review-rules.json")
-    if not blob:
-        pytest.skip("review-rules.json is absent at the merge base")
-    assert RULES["max_review_retries"] == json.loads(blob)["max_review_retries"]
 
 
 @pytest.mark.parametrize(
