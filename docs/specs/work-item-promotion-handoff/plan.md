@@ -675,6 +675,84 @@ shared transaction helper and T23 in the release surfaces.
 **Done when:** the local gate chain — ruff, mypy, changelog,
   lint-ci-parity, self-host check, the touched suites — is green.
 
+### T24: An unprobeable lock pid holds as live, and the dead dispatch fallbacks go
+
+**Repairs:** review finding `adv-hardening-001` (OverflowError escapes the
+liveness probe and aborts the run) and `adv-hardening-004` (unreachable
+`(dispatch_processor or (lambda: None))` fallbacks read as bypassing the
+no-dispatch hold).
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A workspace lock whose payload is an all-digit pid above `INT32_MAX` —
+  a payload `os.kill` cannot probe — is treated as a live owner: the
+  transaction returns lock-busy, the lock is never removed, and no
+  exception escapes `run_intake_transaction` (AC-0028, § D1's
+  hold-not-abort rule).
+- `transact_route`'s dispatch call sites carry no `or (lambda: None)`
+  fallback: the no-dispatch gate at the top of the function is the only
+  path to a missing dispatch, and the call sites read as enforcing it
+  (AC-0025).
+
+**Done when:** no numeric lock payload can abort a drain run, and the
+  unreachable fallbacks are gone with the suites still green.
+
+### T25: A citation path that cannot be resolved holds the item
+
+**Repairs:** review finding `sec-hardening-001` (`Path.resolve()` raises
+`RuntimeError` for a symlink loop on Python 3.11 — CI's version — and
+escapes the citation resolver, aborting the run).
+
+**Tests:** unit, per the spec's Testing Strategy.
+- A superseded closure whose cited path reaches a circular symlink is
+  held — never an abort — on every supported Python: the resolver treats
+  a path it cannot resolve as one that resolves nowhere (AC-0027, § D1's
+  hold-not-abort rule). The test drives the seam directly with a
+  resolve step that raises `RuntimeError`, so it holds regardless of the
+  interpreter's own loop behavior.
+
+**Done when:** no `Path.resolve()` exception can escape the citation
+  resolver, and the catch lives in `_confine_member`, where the envelope's
+  stored-path confinement gains the same guard.
+
+### T26: The admission record for the false gate receipts carries its correction
+
+**Repairs:** review finding `adv-hardening-002` (the T19/T20 task receipts
+were admitted before their implementations existed; the disclosure lived
+only in the review packet).
+
+**Tests:** goal-based check.
+- A durable note under `docs/product/captured/` — the repository's own
+  convention for recorded operational findings — names the two receipts
+  (`a-route-with-no-dispatch-wired-holds-the-item-1646c3a2`,
+  `a-classification-is-one-of-the-six-classify-tabl-9aef571e`), their
+  cause (an automation script reported them as green with no code
+  present), and the correction (the implementations and gates that
+  landed after, verified by this run's review), asserted by a
+  source-text check over the note.
+- This task's own admission receipt in the run's evidence ledger names
+  the finding it repairs, so the ledger carries the correction beside
+  the corrected entries.
+
+**Done when:** a reader of the delivery's evidence record can find the
+  admission defect and its correction from the repository alone.
+
+### T27: The ruff gate is pinned to the version its evidence ran under
+
+**Repairs:** review finding `adv-hardening-003` (CI installs ruff
+unpinned; the version it resolves today flags the pre-existing
+`closure_index.py` finding, so the merge-time gate is not covered by the
+delivery's 0.14.0 evidence).
+
+**Tests:** goal-based check.
+- `.github/workflows/build-check.yml`'s ruff install step pins
+  `ruff==0.14.0`, with a comment citing the captured item that records
+  the version drift and its owner, so the merge-time gate matches the
+  shipped evidence exactly; `tools/lint-ci-parity.py` still passes.
+
+**Done when:** the CI ruff step's version is deterministic and matches
+  the delivery's gate evidence; the SIM102 fix itself stays owned by
+  close-work per the captured item.
+
 ## Rollout
 
 The original delivery was a pure addition — one new module, one
