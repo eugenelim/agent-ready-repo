@@ -930,7 +930,8 @@ def _dispatch(argv: list[str] | None, cwd: Path | None) -> int:
         return EXIT_REFUSED
     try:
         _ROUTING["cap"] = int(workspace.policy["implementation_retry_cap"])
-    except (KeyError, TypeError, ValueError):  # an unreadable cap loses only the cap route
+    except (LookupError, TypeError, ValueError, ArithmeticError):
+        # An unreadable cap loses only the cap route; every verb keeps its output.
         _ROUTING["cap"] = None
     workspace.attempts.installed = installed
     workspace.attempts.pre_import_matched = matched

@@ -716,12 +716,16 @@ def _policy_without_cap(fault: str, load: Callable[[], dict[str, Any]]) -> dict[
     policy = dict(load())
     if fault == "missing":
         del policy["implementation_retry_cap"]
+    elif fault == "inf":
+        policy["implementation_retry_cap"] = float("inf")
+    elif fault == "nan":
+        policy["implementation_retry_cap"] = float("nan")
     else:
         policy["implementation_retry_cap"] = "abc"
     return policy
 
 
-@pytest.mark.parametrize("fault", ["missing", "abc"])
+@pytest.mark.parametrize("fault", ["missing", "abc", "inf", "nan"])
 @pytest.mark.parametrize("verb", ["park", "next", "report", "status"])
 def test_an_unreadable_retry_cap_keeps_every_verb_output_and_exit_code(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
