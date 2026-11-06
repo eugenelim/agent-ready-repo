@@ -1733,7 +1733,8 @@ def _vii(new: dict[str, str], base: dict[str, str] | None = None,
     "Unfamiliar",
     "unfamiliar\t",
     "none\u00a0",
-])
+], ids=["unknown", "repeated", "empty-middle", "empty-trailing", "empty-leading",
+        "none-beside-token", "backticked", "wrong-case", "tab", "no-break-space"])
 def test_vii_refuses_a_malformed_value(value: str) -> None:
     hard, _warn = _vii({"s": _risk_spec("Draft", f"- **Risk triggers:** {value}")})
     assert len(hard) == 1, hard
@@ -1751,7 +1752,7 @@ def test_vii_refuses_a_second_line() -> None:
     "- **Risk triggers:** <!-- fill in -->",
     "**Risk triggers:** none",
     "<!--\n- **Risk triggers:** none\n-->",
-])
+], ids=["absent", "empty", "comment-only", "bare", "commented-out"])
 def test_vii_warns_for_a_new_draft_spec_with_no_line(header: str) -> None:
     hard, warn = _vii({"s": _risk_spec("Draft", header)})
     assert hard == [] and len(warn) == 1, (hard, warn)
@@ -1765,7 +1766,7 @@ def test_vii_warns_for_a_new_draft_spec_with_no_line(header: str) -> None:
     "security-boundary, structural-interface, persistent-representation, "
     "destructive-operation, data-transformation, new-dependency, unfamiliar, "
     "multi-person, multi-feature",
-])
+], ids=["none", "one-token", "spaced", "trailing-comment", "all-tokens"])
 def test_vii_accepts_a_valid_value(value: str) -> None:
     assert _vii({"s": _risk_spec("Draft", f"- **Risk triggers:** {value}")}) == ([], [])
 
@@ -1782,7 +1783,8 @@ def test_vii_ignores_a_line_in_the_body_or_a_fence() -> None:
     assert hard == [] and len(warn) == 1, (hard, warn)
 
 
-@pytest.mark.parametrize("status", ["Approved", "Implementing", "Shipped"])
+@pytest.mark.parametrize("status", ["Approved", "Implementing", "Shipped"],
+                         ids=["approved", "implementing", "shipped"])
 def test_vii_is_silent_for_a_new_spec_past_draft_with_no_line(status: str) -> None:
     assert _vii({"s": _risk_spec(status)}) == ([], [])
 

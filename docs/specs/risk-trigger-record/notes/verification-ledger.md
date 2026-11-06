@@ -76,3 +76,14 @@ covered only the rebuilt installed copies, each byte-identical to its source.
 
 Core is 4.0.18 here. Re-run `tools/check-core-release.py --base origin/main`
 right before merging, since `main` can ship another core patch meanwhile.
+
+## CI-only pins run before push
+
+- `tools/test_workspace_status.py` and `tools/test_workspace_status_cli.py`:
+  136 passed. `tests/roster/test_registry_upgrade_notes.py`: 32 passed.
+  `tests/roster/test_workspace_retirement_inventory.py`: 192 passed.
+- `tools/test_local_ci_shared_test_deduplication.py` first failed: the new
+  (vii) parametrized tests had no explicit IDs, and the core node pin was
+  stale. With IDs added and the pin moved 91 -> 120 (29 additions, all
+  `test_vii_*`; the 91 existing nodes reproduce the old digest), it passes
+  51 of 51, and the lint suite passes 120.
