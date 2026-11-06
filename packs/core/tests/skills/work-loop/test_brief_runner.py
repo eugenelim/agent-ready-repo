@@ -912,8 +912,20 @@ def test_git_calls_are_read_only_and_hardened(world: World, monkeypatch: pytest.
     monkeypatch.setattr(world.runner.subprocess, "run", record)
     world.rows("b-stops")
     allowed = {"worktree", "symbolic-ref", "rev-parse", "status", "ls-tree", "cat-file", "config"}
+    # The supervisor's Git helper, which reads the repository's filter names, runs in its
+    # own forms: one plain config listing, and version and discovery reads under its fixed
+    # settings.
+    config_listing = ["config", "-z", "--show-scope", "--get-regexp", "."]
     for argv, env in seen:
-        if argv[0] == "git":
+        if argv[0] == "git" and argv[1].startswith("--git-dir="):
+            assert argv[2:] == config_listing, argv
+        elif argv[0] == "git" and argv[1] == "--no-replace-objects":
+            assert "core.fsmonitor=false" in argv and any(
+                a.startswith("core.hooksPath=") for a in argv
+            ), argv
+            subcommand = next(a for a in argv[2:] if not a.startswith("-") and "=" not in a)
+            assert subcommand in {"version", "rev-parse"}, argv
+        elif argv[0] == "git":
             assert argv[1:4] == ["--no-pager", "--no-replace-objects", "--no-optional-locks"]
             if argv[-1] != "version":
                 assert argv[argv.index("-C") + 2] in allowed
