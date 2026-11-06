@@ -1,8 +1,9 @@
-"""The review-tier rules keys (review-obligation-policy T1).
+"""The review-tier rules keys and selection protection (review-obligation-policy T1, T2).
 
 AC-0030: each missing or malformed tier key refuses ``review-rules-invalid``.
 AC-0031: the shipped values, and ``max_review_retries`` unchanged from the merge base.
 AC-0035: the shipped prose allowlist reaches no specification or decision record.
+T2 — AC-0012 (value half), AC-0017, AC-0018, AC-0019, AC-0021, AC-0022 (parse half): selection protection.
 """
 
 from __future__ import annotations
@@ -124,3 +125,123 @@ def test_glob_star_does_not_cross_a_segment() -> None:
     assert review.glob_match("docs/guides/**/*.md", "docs/guides/a.md")
     assert review.glob_match("docs/guides/**/*.md", "docs/guides/x/y/a.md")
     assert not review.glob_match("docs/guides/**/*.md", "docs/guides/a.png")
+
+
+# ── selection protection (T2) ───────────────────────────────────────────────
+
+KEY = "a" * 64
+
+
+def _answer(selected: tuple[str, ...] = (), **extra: Any) -> dict[str, Any]:
+    candidates = review.candidates(RULES)
+    answer: dict[str, Any] = {
+        "selected": [r for r in candidates if r in selected],
+        "omitted": [{"role": r, "reason": "not reached"} for r in candidates if r not in selected],
+        "authority_ref": "controller:0123456789ab",
+    }
+    answer.update(extra)
+    return answer
+
+
+def _status(unit: list[dict[str, Any]] | None = None, authorizing: list[str] | None = None) -> Any:
+    return review.Selection(KEY, [], authorizing or [], unit or [])
+
+
+def _record(selected: tuple[str, ...] = (), **extra: Any) -> dict[str, Any]:
+    return {"selection_key": "b" * 64, "sequence": 1, **_answer(selected, **extra)}
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        _answer(),
+        _answer(protected_classes=["privacy"]),
+        _answer(protected_classes="security-boundary"),
+        _answer(protected_classes=["migration", "migration"]),
+        _answer(protected_classes=["migration"]),
+        _answer(protected_classes=["security-boundary"]),
+        _answer(("security-reviewer",), protected_classes=[]),
+    ],
+)
+def test_ac0017_a_selection_answer_is_refused(answer: dict[str, Any]) -> None:
+    """AC-0017: no classes, an unknown token, an unmapped class, or security without its class."""
+    with pytest.raises(Refusal) as refused:
+        review.admit_selection(RULES, _status(), answer)
+    assert refused.value.code == "review-selection-invalid"
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        _answer(protected_classes=[]),
+        _answer(("security-reviewer",), protected_classes=["security-boundary"]),
+        _answer(protected_classes=["public-interface"]),
+    ],
+)
+def test_ac0018_these_selection_answers_are_admitted(answer: dict[str, Any]) -> None:
+    """AC-0018: an empty declaration, security with its class, and an always-role class."""
+    record = review.admit_selection(RULES, _status(), answer)
+    assert record["protected_classes"] == sorted(answer["protected_classes"])
+
+
+def test_ac0019_declared_classes_change_the_fingerprint() -> None:
+    """AC-0019: selections that differ only in declared classes fingerprint differently."""
+    plain = review.resolve_policy(RULES, _record(protected_classes=[]))
+    declared = review.resolve_policy(RULES, _record(protected_classes=["public-interface"]))
+    assert plain["review_policy_fingerprint"] != declared["review_policy_fingerprint"]
+    assert plain["roles"] == declared["roles"]
+
+
+def test_ac0021_dropping_a_declared_class_is_refused() -> None:
+    """AC-0021: a selection that is not a superset of the unit's earlier one is refused."""
+    earlier = [_record(("security-reviewer",), protected_classes=["security-boundary"])]
+    with pytest.raises(Refusal) as refused:
+        review.admit_selection(RULES, _status(earlier), _answer(protected_classes=[]))
+    assert refused.value.code == "review-selection-invalid"
+
+
+def test_ac0021_dropping_a_protected_role_is_refused() -> None:
+    """AC-0021: keeping the class count but losing a protected role is refused too."""
+    earlier = [_record(("quality-engineer",), protected_classes=["migration"])]
+    answer = _answer(protected_classes=["public-interface"])
+    with pytest.raises(Refusal):
+        review.admit_selection(RULES, _status(earlier), answer)
+
+
+def test_ac0021_an_owner_reselection_authorizes_the_drop() -> None:
+    """AC-0021: an admitted owner reselect-review for the key lets the protection shrink."""
+    earlier = [_record(("security-reviewer",), protected_classes=["security-boundary"])]
+    status = review.Selection(KEY, [_record()], ["decide:review-not-eligible:x"], earlier)
+    record = review.admit_selection(RULES, status, _answer(protected_classes=[]))
+    assert record["protected_classes"] == []
+
+
+def test_ac0021_a_superset_is_admitted() -> None:
+    """AC-0021: growing the declaration needs no owner decision."""
+    earlier = [_record(protected_classes=["public-interface"])]
+    answer = _answer(("quality-engineer",), protected_classes=["migration", "public-interface"])
+    assert review.admit_selection(RULES, _status(earlier), answer)
+
+
+@pytest.mark.parametrize("tier", ["minor-fix", "wording-only", "", None, True])
+def test_ac0012_review_tier_accepts_only_full(tier: Any) -> None:
+    """AC-0012 (value half): any review_tier other than full is refused."""
+    answer = _answer(protected_classes=[], review_tier=tier)
+    with pytest.raises(Refusal) as refused:
+        review.admit_selection(RULES, _status(), answer)
+    assert refused.value.code == "review-selection-invalid"
+
+
+def test_ac0012_review_tier_full_is_recorded() -> None:
+    """AC-0012 (value half): review_tier full is kept on the record."""
+    record = review.admit_selection(RULES, _status(), _answer(protected_classes=[], review_tier="full"))
+    assert record["review_tier"] == "full"
+
+
+def test_ac0022_a_stored_line_without_classes_is_protection_unknown() -> None:
+    """AC-0022 (parse half): a pre-release line parses and marks the unit protection-unknown."""
+    legacy = {"selection_key": "c" * 64, **_answer()}
+    lines = review.parse_selections(h.admission.canonical_line(legacy))
+    found = review.protection(RULES, lines[0])
+    assert found.unknown and found.protected
+    assert review.resolve_policy(RULES, lines[0])["review_policy_fingerprint"]

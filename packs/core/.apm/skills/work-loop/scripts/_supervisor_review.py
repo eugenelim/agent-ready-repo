@@ -87,6 +87,12 @@ __all__ = [
     "accept_risk_writer",
     "admit_decision",
     "admit_selection",
+    "Protection",
+    "check_protection",
+    "protection",
+    "resolved_roles",
+    "glob_match",
+    "PROTECTED_CLASSES",
     "candidates",
     "current_policy",
     "load_rules",
@@ -120,7 +126,8 @@ _ROLE_FIELDS = frozenset({
     "role", "kind", "condition", "mode_limit", "boundary", "fallback", "mandatory_when"
 })
 _SELECTION_FIELDS = frozenset({
-    "run_id", "sequence", "selection_key", "selected", "omitted", "authority_ref", "authorized_by"
+    "run_id", "sequence", "selection_key", "selected", "omitted", "authority_ref", "authorized_by",
+    "protected_classes", "review_tier",
 })
 _DECISION_FIELDS = frozenset({
     "run_id", "request_id", "decision", "authority_ref", "selection_key", "finding_ids"
@@ -324,6 +331,83 @@ def check_selection(
     )
 
 
+@dataclass(frozen=True)
+class Protection:
+    """What one selection declares about protected risk.
+
+    ``classes`` is ``None`` for a record written before the field existed:
+    protection unknown, which classifies every subject ``full`` and is never capped.
+    """
+
+    classes: tuple[str, ...] | None
+    roles: frozenset[str]
+
+    @property
+    def unknown(self) -> bool:
+        """True for a pre-release record that declares nothing."""
+        return self.classes is None
+
+    @property
+    def protected(self) -> bool:
+        """True when the unit is protected: a declared class, or protection unknown."""
+        return self.classes is None or bool(self.classes)
+
+
+def resolved_roles(rules: dict[str, Any], selected: list[str]) -> set[str]:
+    """The always-selected full-mode roles plus the selected ones."""
+    chosen = set(selected)
+    return {
+        e["role"]
+        for e in rules["roles"]
+        if _in_full_mode(e) and (e["kind"] == "always" or e["role"] in chosen)
+    }
+
+
+def check_protection(
+    rules: dict[str, Any], selection: dict[str, Any], selected: list[str], *, required: bool
+) -> tuple[str, ...] | None:
+    """Validate ``protected_classes`` and ``review_tier``; return the sorted classes.
+
+    A controller's answer must declare ``protected_classes`` (``required``); a
+    stored line may omit it, which returns ``None``. Every declared class must map
+    to a reviewer in the resolved policy, and selecting ``security-reviewer``
+    requires ``security-boundary``.
+    """
+    tier = selection.get("review_tier", "full")
+    if tier != "full":
+        raise _invalid_selection("review_tier accepts only full")
+    if "protected_classes" not in selection:
+        if required:
+            raise _invalid_selection("the selection declares no protected_classes")
+        return None
+    classes = selection["protected_classes"]
+    if (
+        not isinstance(classes, list)
+        or len(set(classes)) != len(classes)
+        or any(c not in PROTECTED_CLASSES for c in classes)
+    ):
+        raise _invalid_selection("protected_classes holds a token outside the five classes")
+    roles = resolved_roles(rules, selected)
+    mapping = rules["protected_class_reviewers"]
+    for name in classes:
+        if mapping[name] not in roles:
+            raise _invalid_selection(
+                f"protected class {name} needs {mapping[name]}, "
+                "which the selection does not resolve"
+            )
+    if "security-reviewer" in selected and "security-boundary" not in classes:
+        raise _invalid_selection("security-reviewer is selected without security-boundary")
+    return tuple(sorted(classes))
+
+
+def protection(rules: dict[str, Any], record: dict[str, Any]) -> Protection:
+    """The protection a stored selection record declares."""
+    selected, _omitted = check_selection(rules, record)
+    classes = check_protection(rules, record, selected, required=False)
+    mapping = rules["protected_class_reviewers"]
+    return Protection(classes, frozenset(mapping[c] for c in classes or ()))
+
+
 def resolve_policy(rules: dict[str, Any], record: dict[str, Any]) -> dict[str, Any]:
     """The ``review-policy`` for the rules and one selection record.
 
@@ -342,11 +426,13 @@ def resolve_policy(rules: dict[str, Any], record: dict[str, Any]) -> dict[str, A
         if _in_full_mode(e) and (e["kind"] == "always" or e["role"] in chosen)
     ]
     ordered = [[r["role"], r["kind"]] for r in roles]
-    identity = json.dumps(
-        {"rules_version": rules["rules_version"], "roles": ordered},
-        sort_keys=True,
-        separators=(",", ":"),
-    )
+    body: dict[str, Any] = {"rules_version": rules["rules_version"], "roles": ordered}
+    # A record written before protected classes existed keeps its fingerprint.
+    if "protected_classes" in record:
+        found = protection(rules, record)
+        body["protected_classes"] = sorted(found.classes or ())
+        body["protected_roles"] = sorted(found.roles)
+    identity = json.dumps(body, sort_keys=True, separators=(",", ":"))
     return {
         "policy_id": "work-supervisor-review-rules",
         "policy_version": rules["rules_version"],
@@ -425,6 +511,7 @@ class Selection:
     key: str
     records: list[dict[str, Any]] = field(default_factory=list)
     authorizing: list[str] = field(default_factory=list)
+    unit: list[dict[str, Any]] = field(default_factory=list)
 
     @property
     def authorized(self) -> int:
@@ -474,8 +561,9 @@ def selection_status(ws: Any, rules: dict[str, Any], key: str) -> Selection:
             )
     mine = [r for r in records if r["selection_key"] == key]
     for record in mine:
-        check_selection(rules, record)
-    return Selection(key, mine, _authorizing(decisions, key, owner))
+        selected, _omitted = check_selection(rules, record)
+        check_protection(rules, record, selected, required=False)
+    return Selection(key, mine, _authorizing(decisions, key, owner), records)
 
 
 def _authorizing(decisions: list[dict[str, Any]], key: str, owner: str) -> list[str]:
@@ -527,6 +615,10 @@ def admit_selection(
         )
     selected, omitted = check_selection(rules, selection)
     assert isinstance(selection, dict)
+    classes = check_protection(rules, selection, selected, required=True)
+    assert classes is not None
+    if not status.authorizing:
+        _check_protection_grows(rules, status.unit, classes)
     authority = selection.get("authority_ref")
     if not isinstance(authority, str) or not _admission._AUTHORITY_RE.fullmatch(authority):
         raise _invalid_selection("authority_ref is not an authority reference")
@@ -536,7 +628,10 @@ def admit_selection(
         "selected": selected,
         "omitted": omitted,
         "authority_ref": authority,
+        "protected_classes": list(classes),
     }
+    if "review_tier" in selection:
+        record["review_tier"] = "full"
     # The first record for a key stands alone; each later one cites the owner
     # decision that allowed it.
     if status.records:
@@ -544,6 +639,23 @@ def admit_selection(
     if selection.get("authorized_by", record.get("authorized_by")) != record.get("authorized_by"):
         raise _invalid_selection("authorized_by does not name the authorizing decision")
     return record
+
+
+def _check_protection_grows(
+    rules: dict[str, Any], earlier: list[dict[str, Any]], classes: tuple[str, ...]
+) -> None:
+    """Refuse a selection that declares less protection than the unit already did."""
+    mapping = rules["protected_class_reviewers"]
+    roles = {mapping[c] for c in classes}
+    for record in earlier:
+        before = protection(rules, record)
+        if before.unknown:
+            continue
+        if not set(before.classes or ()) <= set(classes) or not before.roles <= roles:
+            raise _invalid_selection(
+                "the selection drops a protected class or role the unit declared; "
+                "only an owner reselect-review decision allows that"
+            )
 
 
 def admit_decision(
