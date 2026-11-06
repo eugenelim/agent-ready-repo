@@ -483,10 +483,10 @@ _NO_CWD_STEPS = (
 # auditor. The refs are SHA-pinned, so a version bump is a deliberate edit here — the
 # same coupling the PINNED_* statements carry, for the same reason.
 PINNED_USES = (
-    "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
-    "actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065",
+    "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
     # gate-css-tokens is the only Node job here.
-    "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+    "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
 )
 # An action's INPUTS decide what the pinned statements run against, and were the next
 # free dimension after its ref. Each of these is one line, audits clean with every pinned
@@ -1739,14 +1739,14 @@ def _baseline() -> str:
         )
         setup_uses = (
             "      - uses: actions/setup-python@"
-            "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+            "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0\n"
         )
         setup_step = (
             "      - name: Set up Python\n"
             "        id: python\n"
             "        if: '!cancelled()'\n"
             "        uses: actions/setup-python@"
-            "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+            "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0\n"
         )
         if setup_uses not in text:
             raise SystemExit("baseline fixture lost gate-main setup-python")
@@ -2147,7 +2147,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("python-free-job-gains-python", "python-free-job-is-python-free[gate-css-tokens]",
      lambda t: t.replace(
          "      - name: Set up Node (gate-css-tokens)\n",
-         "      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065\n"
+         "      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0\n"
          "        with:\n"
          "          python-version: \"3.11\"\n"
          "      - name: Set up Node (gate-css-tokens)\n", 1)),
@@ -2168,7 +2168,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     # step of the same name comes first in the file.
     ("second-unhardened-checkout", "checkout-with[gate-main]",
      lambda t: _sub_in_job(t, "gate-main", "      - name: Run make build-check",
-                           "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262\n      - name: Run make build-check")),
+                           "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1\n      - name: Run make build-check")),
     ("drop-fetch-depth", "checkout-with[gate-main]",
      lambda t: t.replace("          fetch-depth: 0\n", "", 1)),
     ("drop-timeout", "timeout[gate-sast]",
@@ -2180,7 +2180,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace('          python-version: "3.11"\n', "", 2)),
     ("drop-checkout", "checkout-present[gate-sast]",
      lambda t: t.replace("      - uses: actions/checkout@"
-                         "11d5960a326750d5838078e36cf38b85af677262\n        with:\n"
+                         "3d3c42e5aac5ba805825da76410c181273ba90b1\n        with:\n"
                          "          fetch-depth: 0\n          persist-credentials: false\n", "", 2)),
     ("head-ref-concurrency", "concurrency-block",
      lambda t: t.replace(EXPECTED_CONCURRENCY_GROUP, "build-check-${{ github.head_ref }}")),
@@ -2453,7 +2453,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("unpinned-checkout-ref-in-aggregator", "aggregator-action-steps-known",
      lambda t: _sub_in_job(
          t, "build-check",
-         "      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+         "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
          "      - uses: actions/checkout@main")),
     ("quoted-job-id-is-invisible", "job-ids-modelled",
      lambda t: t.replace("  gate-sast:\n",
@@ -2529,10 +2529,10 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "  gate-extra:\n    runs-on: ubuntu-latest\n"
                          "    timeout-minutes: 5\n    steps:\n"
                          "      - uses: actions/checkout@"
-                         "11d5960a326750d5838078e36cf38b85af677262\n"
+                         "3d3c42e5aac5ba805825da76410c181273ba90b1\n"
                          "        with:\n          persist-credentials: false\n"
                          "      - uses: actions/setup-python@"
-                         "a26af69be951a213d495a4c3e4e4022e16d87065\n"
+                         "6d4fd22b20465ccc0f7354476588e8df7c9ca0e0\n"
                          "        with:\n          python-version: \"3.11\"\n"
                          "      - name: Run the extra gate\n        run: echo hi\n"
                          "  build-check:\n", 1)),
