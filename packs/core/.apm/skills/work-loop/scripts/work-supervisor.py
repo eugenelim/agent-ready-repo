@@ -928,7 +928,10 @@ def _dispatch(argv: list[str] | None, cwd: Path | None) -> int:
     except admission.Refusal as exc:  # an invalid installed policy
         _emit({"refusal": exc.as_dict()})
         return EXIT_REFUSED
-    _ROUTING["cap"] = int(workspace.policy["implementation_retry_cap"])
+    try:
+        _ROUTING["cap"] = int(workspace.policy["implementation_retry_cap"])
+    except (KeyError, TypeError, ValueError):  # an unreadable cap loses only the cap route
+        _ROUTING["cap"] = None
     workspace.attempts.installed = installed
     workspace.attempts.pre_import_matched = matched
     try:

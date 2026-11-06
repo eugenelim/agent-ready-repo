@@ -6,6 +6,7 @@ VI-4035 (AC-0030, AC-0031), VI-4036 (AC-0032).
 
 from __future__ import annotations
 
+import functools
 import importlib.util
 import json
 import os
@@ -705,3 +706,47 @@ def test_other_verbs_carry_no_route_even_right_after_a_status_call(tmp_path: Pat
                           "--authority-ref", "owner:0123456789ab",
                           "--review-authority-ref", "plan-reviewer:0123456789ab", *digests)
     assert code == 1 and "refusal" in out and "route" not in out
+
+
+# ── an unreadable retry cap loses only the cap route ─────────────────────────
+
+
+def _policy_without_cap(fault: str, load: Callable[[], dict[str, Any]]) -> dict[str, Any]:
+    """The installed policy with its retry cap removed (``missing``) or not an integer."""
+    policy = dict(load())
+    if fault == "missing":
+        del policy["implementation_retry_cap"]
+    else:
+        policy["implementation_retry_cap"] = "abc"
+    return policy
+
+
+@pytest.mark.parametrize("fault", ["missing", "abc"])
+@pytest.mark.parametrize("verb", ["park", "next", "report", "status"])
+def test_an_unreadable_retry_cap_keeps_every_verb_output_and_exit_code(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str], verb: str, fault: str) -> None:
+    seen: list[tuple[int, dict[str, Any]]] = []
+    for name in ("sound", "faulty"):
+        root = tmp_path / name
+        root.mkdir()
+        repo = h.make_repo(root)
+        argv = _verb_calls(repo, root)[verb]
+        capsys.readouterr()
+        with monkeypatch.context() as patch, h.git_identity():
+            if name == "faulty":
+                patch.setattr(h.admission, "load_policy",
+                              functools.partial(_policy_without_cap, fault,
+                                                h.admission.load_policy))
+            code = _run_main(repo, list(argv))
+        captured = capsys.readouterr()
+        assert "Traceback" not in captured.err
+        seen.append((code, json.loads(captured.out)))
+    assert seen[1][0] == seen[0][0]
+    out = seen[1][1]
+    if verb == "status":
+        assert out["route"] != _table_route(*_CAP_KEY)
+    elif verb == "next":
+        assert "route" in out
+    else:
+        assert "route" not in out
