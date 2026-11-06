@@ -638,6 +638,101 @@ def test_every_verb_reports_an_old_git_by_its_own_code(
     assert "2.32" in out["detail"], out
 
 
+# ── AC-0002: the bounded launch keeps its limits over the whole process ─────
+
+
+def _bounded(script: str, *, stdin: bytes | None = None, limit: int = 1024 * 1024) -> Any:
+    """Run a Python child through the bounded launcher; no package manager, no git."""
+    return _git_module._launch_bounded(
+        [sys.executable, "-c", script], cwd=None, env=dict(os.environ), stdin=stdin, limit=limit
+    )
+
+
+def test_a_slow_drip_under_the_size_limit_still_hits_the_wall_clock_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 1.5)
+    script = (
+        "import sys, time\n"
+        "while True:\n"
+        "    sys.stdout.write('x'); sys.stdout.flush(); time.sleep(0.05)\n"
+    )
+    started = time.monotonic()
+    with pytest.raises(_git_module.SupervisorGitError) as refused:
+        _bounded(script)
+    assert refused.value.code == "denied-git-unavailable" and refused.value.unverifiable
+    assert time.monotonic() - started < 30
+
+
+def test_a_silent_child_that_never_exits_hits_the_wall_clock_limit(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 1.5)
+    with pytest.raises(_git_module.SupervisorGitError) as refused:
+        _bounded("import time\ntime.sleep(120)\n")
+    assert refused.value.code == "denied-git-unavailable"
+
+
+def test_a_stderr_flood_is_drained_and_capped_without_a_deadlock(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 30.0)
+    script = "import sys\nsys.stderr.write('e' * (8 * 1024 * 1024))\nsys.stdout.write('done')\n"
+    with pytest.raises(_git_module.SupervisorGitError) as refused:
+        _bounded(script)
+    assert refused.value.code == "denied-git-output-too-large"
+    assert "stderr" in str(refused.value)
+
+
+def test_stdout_and_stderr_are_drained_together(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Each stream stays under its cap, yet one waited on alone would fill the other's pipe."""
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 30.0)
+    script = (
+        "import sys\n"
+        "for _ in range(8):\n"
+        "    sys.stderr.write('e' * 20000); sys.stderr.flush()\n"
+        "    sys.stdout.write('o' * 20000); sys.stdout.flush()\n"
+    )
+    done = _bounded(script)
+    assert done.returncode == 0 and len(done.stdout) == 160000 and len(done.stderr) == 160000
+
+
+def test_stdin_is_written_without_blocking_the_drain(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The child echoes while it reads, so an unthreaded 4 MiB write would deadlock."""
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 30.0)
+    script = (
+        "import sys\n"
+        "while chunk := sys.stdin.buffer.read(65536):\n"
+        "    sys.stdout.buffer.write(chunk); sys.stdout.buffer.flush()\n"
+    )
+    payload = b"p" * (4 * 1024 * 1024 - 1)
+    done = _bounded(script, stdin=payload, limit=8 * 1024 * 1024)
+    assert done.stdout == payload
+
+
+def test_a_child_that_closes_stdin_early_is_not_a_broken_pipe_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 30.0)
+    done = _bounded("import sys\nsys.stdout.write('quick')\n", stdin=b"q" * (4 * 1024 * 1024))
+    assert done.returncode == 0 and done.stdout == b"quick"
+
+
+def test_a_missing_executable_is_a_git_refusal() -> None:
+    with pytest.raises(_git_module.SupervisorGitError) as refused:
+        _git_module._launch_bounded(
+            ["/nonexistent/git-binary"], cwd=None, env={}, stdin=None, limit=1024
+        )
+    assert refused.value.code == "denied-git-unavailable" and refused.value.unverifiable
+
+
+def test_an_oversized_stdout_kills_the_child_and_refuses_by_code(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 30.0)
+    with pytest.raises(_git_module.SupervisorGitError) as refused:
+        _bounded("import sys\nsys.stdout.write('o' * 1000000)\n", limit=1000)
+    assert refused.value.code == "denied-git-output-too-large"
 # ── the whole-tree scans seed their private index from the work tree's own ──
 
 

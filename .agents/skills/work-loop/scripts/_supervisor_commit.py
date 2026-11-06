@@ -26,7 +26,7 @@ import shutil
 import stat
 import sys
 import tempfile
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Generator, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -136,6 +136,11 @@ SupervisorGitError = _git.SupervisorGitError
 set_update_hook = _git.set_update_hook
 
 _SIBLINGS: dict[str, ModuleType] = {}
+# The tree object a diff against "nothing" names, by object-id length (SHA-1, SHA-256).
+_EMPTY_TREES = {
+    40: "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+    64: "6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321",
+}
 
 
 def sibling(filename: str) -> ModuleType:
@@ -187,6 +192,21 @@ def append_note(error: BaseException, note: str) -> None:
         error.args = (f"{error.args[0]}; {note}", *error.args[1:])
 
 
+# The most bytes any single classifier Git read may return: the classifier's own limit.
+_READ_LIMIT: int = supervisor_module("_review_tiers.py").READ_LIMIT
+
+
+def _ls_tree_entries(out: bytes) -> dict[str, tuple[str, str]]:
+    """Parse ``ls-tree -z`` output into ``path -> (mode, object id)``."""
+    found: dict[str, tuple[str, str]] = {}
+    for record in out.split(b"\0"):
+        if record:
+            meta, _, path = record.partition(b"\t")
+            mode, _kind, oid = meta.decode().split()
+            found[path.decode("utf-8", "surrogateescape")] = (mode, oid)
+    return found
+
+
 # A work tree index larger than this is not copied; its scan starts cold instead.
 _MAX_INDEX_BYTES = 256 * 1024 * 1024
 
@@ -217,11 +237,83 @@ class GitPort:
         stdin: bytes | None = None,
         check: bool = True,
         literal_pathspecs: bool = False,
+        limit: int | None = None,
     ) -> bytes:
         """Run ``git <args>`` through the hardened helper and return stdout bytes."""
         return self.hardened.run(
-            *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs
+            *args,
+            env=env,
+            stdin=stdin,
+            check=check,
+            literal_pathspecs=literal_pathspecs,
+            limit=limit,
         )
+
+    # ── the bounded reads the review-tier classifier makes ──────────────────
+
+    def git_version(self) -> tuple[int, int]:
+        """The ``(major, minor)`` Git version the helper pinned."""
+        return self.hardened.git_version
+
+    def entries(self, rev: str, paths: Sequence[str]) -> dict[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for each of *paths* present at *rev*.
+
+        The paths are literal and read one level deep, in one read bounded by
+        the classifier's read limit.
+        """
+        sha = self.resolve(rev)
+        if not sha or not paths:
+            return {}
+        out = self.run(
+            "ls-tree", "-z", "--full-tree", sha, "--", *paths,
+            literal_pathspecs=True, limit=_READ_LIMIT,
+        )
+        return _ls_tree_entries(out)
+
+    def matching_entries(
+        self, rev: str, pathspecs: Sequence[str]
+    ) -> dict[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for every non-directory entry at *rev* a pathspec matches.
+
+        A diff of the tree against the empty tree, because ``ls-tree`` takes no
+        pathspec magic. One read, bounded by the classifier's read limit.
+        """
+        sha = self.resolve(rev)
+        if not sha or not pathspecs:
+            return {}
+        empty = _EMPTY_TREES.get(len(sha))
+        if empty is None:
+            raise SupervisorGitError("denied-git-failed", "the object id length is unknown")
+        out = self.run(
+            "diff-tree", "-r", "-z", "--raw", "--no-abbrev", "--no-renames", empty, sha, "--",
+            *pathspecs, limit=_READ_LIMIT,
+        )
+        tokens = out.split(b"\0")
+        found: dict[str, tuple[str, str]] = {}
+        for meta, path in zip(tokens[0::2], tokens[1::2], strict=False):
+            fields = meta.decode().split()
+            found[path.decode("utf-8", "surrogateescape")] = (fields[1], fields[3])
+        return found
+
+    def blob(self, oid: str, limit: int = _READ_LIMIT) -> bytes:
+        """The bytes of blob *oid*, refused past *limit* bytes before it is read."""
+        size = int(self.run("cat-file", "-s", oid).strip() or b"0")
+        if size > limit:
+            raise _git.SupervisorGitError(
+                "denied-git-output-too-large", f"blob {oid[:12]} holds {size} bytes"
+            )
+        return self.run("cat-file", "blob", oid, limit=limit)
+
+    def patch_id(self, base: str, result: str, path: str, limit: int = _READ_LIMIT) -> str:
+        """``git patch-id --verbatim`` of the diff of *path* from *base* to *result*."""
+        diff = self.run(
+            "diff", "--no-renames", base, result, "--", path,
+            literal_pathspecs=True, limit=limit,
+        )
+        if not diff:
+            return ""
+        out = self.run("patch-id", "--verbatim", stdin=diff, limit=limit)
+        return out.split(b" ", 1)[0].decode("ascii", "replace")
 
     # ── the commits the supervisor made ─────────────────────────────────────
 
@@ -523,11 +615,15 @@ class GitPort:
         )
         return out.decode().strip() == older
 
-    def rev_list(self, older: str, newer: str) -> list[str]:
-        """The commits reachable from *newer* and not from *older*, newest first."""
+    def rev_list(self, older: str, newer: str, limit: int | None = None) -> list[str]:
+        """The commits reachable from *newer* and not from *older*, newest first.
+
+        With *limit*, a list longer than that many bytes refuses
+        ``denied-git-output-too-large``.
+        """
         low = self.revision(older, "the older commit")
         high = self.revision(newer, "the newer commit")
-        return self.text("rev-list", f"{low}..{high}", "--").split()
+        return self.text("rev-list", f"{low}..{high}", "--", limit=limit).split()
 
     def made_only(self, run_id: str, older: str, newer: str) -> bool:
         """Whether *newer* descends from *older* through commits this run made only."""
@@ -662,14 +758,7 @@ class GitPort:
         sha = self.resolve(rev)
         if not sha:
             return {}
-        out = self.run("ls-tree", "-r", "-z", "--full-tree", sha)
-        found: dict[str, tuple[str, str]] = {}
-        for record in out.split(b"\0"):
-            if record:
-                meta, _, path = record.partition(b"\t")
-                mode, _kind, oid = meta.decode().split()
-                found[path.decode("utf-8", "surrogateescape")] = (mode, oid)
-        return found
+        return _ls_tree_entries(self.run("ls-tree", "-r", "-z", "--full-tree", sha))
 
     def working_changes(
         self, rehash: Iterable[str] = ()

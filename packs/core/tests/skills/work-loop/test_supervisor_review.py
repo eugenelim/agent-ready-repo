@@ -85,6 +85,7 @@ def selection(selected: tuple[str, ...] = (), reason: str = "not reached") -> di
         "selected": [r for r in candidates if r in selected],
         "omitted": [{"role": r, "reason": reason} for r in candidates if r not in selected],
         "authority_ref": "controller:0123456789ab",
+        "protected_classes": ["security-boundary"] if "security-reviewer" in selected else [],
     }
 
 
