@@ -240,5 +240,21 @@ def test_repair_round_record_is_accurate() -> None:
     captured = _normalized(
         REPO_ROOT / "docs" / "product" / "captured" / "pre-existing-closure-index-collapsible-if.md"
     )
-    assert "pinned to `ruff==0.14.0`" in captured
-    assert "At discovery time CI installed ruff unpinned" in captured
+    assert "0.17.4 reports one" in captured
+    assert "passes every check under ruff 0.14.0, 0.16.10, and 0.17.2" in captured
+    assert "between 0.17.2 and 0.17.4" in captured
+
+
+def test_ruff_parity_record_has_one_declared_source() -> None:
+    # T29: the parity record is reconciled through its declared single
+    # source — the workflow's ruff install is bare, the pin lives once in
+    # tools/requirements.txt, and the workflow comment points at the
+    # recorded version facts rather than restating a range claim.
+    workflow = (REPO_ROOT / ".github" / "workflows" / "build-check.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "pip install ruff mypy" in workflow
+    assert "ruff==0.14.0 mypy" not in workflow
+    requirements = (REPO_ROOT / "tools" / "requirements.txt").read_text(encoding="utf-8")
+    assert "ruff==0.16.10" in requirements
+    assert "Declared here rather than pinned inline" in requirements
