@@ -41,3 +41,8 @@ Each criterion maps to the suite that proves it. Unit-level-only coverage is nam
 
 - The run reported a criterion failure once (AC-0034, after `main` shipped Core 4.0.18 mid-run); T8 moved the release to 4.0.19.
 - T12's flow harness uses a rules-file copy, not a whole-skill copy; the plan's T12 text records this.
+
+## Post-run merge and release check
+
+- 2026-11-06: merged freshly fetched `origin/main` (`a947d086d`, Core 4.0.18 from #1699) into the branch at `b284ef2fc`; conflicts in the evals, the ADR index, and the version pins resolved by keeping both eval sets and both index rows and Core 4.0.19; installed projections rebuilt with `agentbundle catalogue self-host --write --force` and `make bootstrap-sites`.
+- AC-0034 literal check: `git merge-base origin/main HEAD` equals `origin/main` (`a947d086d`), and `tools/check-core-release.py --base origin/main` reports the release consistent at 4.0.19.
