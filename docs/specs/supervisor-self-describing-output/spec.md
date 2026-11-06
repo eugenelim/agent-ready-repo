@@ -50,7 +50,7 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 
 - Keep every refusal `code`, every exit code, and what each check accepts as it is today; the only changes are refusal detail text, the added `route` key, and `--json` accepted after every verb.
 - Write the failing test before the code for each behavior change.
-- Say what a field must be, never what the controller sent.
+- Say what a field must be; do not quote what the controller sent.
 
 ### Ask first
 
@@ -81,7 +81,7 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 - [ ] **AC-0007.** A `route` is 160 characters or fewer.
 - [ ] **AC-0008.** `status --check` exits with the same codes as before `route` existed.
 - [ ] **AC-0009.** `report` refuses with `invalid-result` and a detail that names the failing field and states its required form when the result is not a JSON object, when `schema_version` is not equal to 1, or when `request_id`, `run_id` or `kind` is not a non-empty string.
-- [ ] **AC-0010.** An `invalid-result` detail from `report` never repeats a non-empty value the controller sent.
+- [ ] **AC-0010.** An `invalid-result` detail from `report` contains no non-empty value the controller sent, except where that value falls inside the detail's fixed field name and required-form text.
 - [ ] **AC-0011.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`.
 - [ ] **AC-0012.** `references/supervisor-mode.md` § Single-agent fallback restates no part of the reviewer rule that `SKILL.md` and `review-rules.json` hold.
 - [ ] **AC-0013.** `references/session-resumption.md` holds a routing table for the `status` and `next` shapes with a first-match order and one row per shape.

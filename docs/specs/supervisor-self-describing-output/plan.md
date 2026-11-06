@@ -72,18 +72,18 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
 
-**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py -q -rs` is green and none of the new cases is skipped; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py -q -rs` is green and none of the new cases is skipped; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
 
 ### T2: `invalid-result` names the failing field
 
 **Depends on:** none
 
 **Tests:**
-- TDD, at `loop.report` and `_validate_result`, in `test_supervisor_results.py` (the cases that need no git repository are ungated): a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains a sent value that is non-empty, and the empty-string case is checked by the field name and the required form alone (AC-0009, AC-0010). A well-formed result still passes `_validate_result` unchanged. The check is unchanged, so the tests assert no behavior for `true` or `1.0`.
+- TDD, at `loop.report` and `_validate_result`, in `test_supervisor_results.py` (the cases that need no git repository are ungated): a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains a sent non-empty value except where it falls inside the fixed field name and required-form text, and the empty-string case is checked by the field name and the required form alone (AC-0009, AC-0010). The cases include the string `"1"` for `schema_version` and the word `result` for another field. A well-formed result still passes `_validate_result` unchanged. The check is unchanged, so the tests assert no behavior for `true` or `1.0`.
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_loop.py`, `packs/core/tests/skills/work-loop/test_supervisor_results.py`
 
-**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_results.py -q -rs` is green, the new cases are not skipped, and the rest of that file is unchanged and green; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
+**Done when:** `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_results.py -q -rs` is green, the new cases are not skipped, and the rest of that file is unchanged and green; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
 
 ### T3: The routing table is the one home of the routing decision
 
@@ -94,7 +94,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is green and every suite listed by `grep -rl 'session-resumption' packs/core/tests tests --include='test_*.py'` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
+**Done when:** the pin test is green and every suite listed by `grep -rl 'session-resumption' packs/core/tests tests --include='test_*.py'` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
 
 ### T4: `status` and `next` carry `route`
 
@@ -106,7 +106,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_route.py`, `packs/core/tests/skills/work-loop/test_supervisor_step_loop.py`
 
-**Done when:** `python -m pytest packs/core/tests/skills/work-loop/test_supervisor_route.py -q` is green, and `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py packs/core/tests/skills/work-loop/test_supervisor_readiness.py packs/core/tests/skills/work-loop/test_supervisor_pinning.py packs/core/tests/skills/work-loop/test_supervisor_commit.py -q -rs` is green in one call with the new cases not skipped and the existing `status` and `status --check` assertions unchanged; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
+**Done when:** `python -m pytest packs/core/tests/skills/work-loop/test_supervisor_route.py -q` is green, and `WORK_SUPERVISOR_INTEGRATION=1 python -m pytest packs/core/tests/skills/work-loop/test_supervisor_step_loop.py packs/core/tests/skills/work-loop/test_supervisor_readiness.py packs/core/tests/skills/work-loop/test_supervisor_pinning.py packs/core/tests/skills/work-loop/test_supervisor_commit.py -q -rs` is green in one call with the new cases not skipped and the existing `status` and `status --check` assertions unchanged; a result in which every case is skipped is not a pass. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
 
 ### T5: Remaining reference sentences
 
@@ -117,7 +117,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is green and every suite listed by `grep -rlE 'supervisor(-mode)?\.md|state-schema\.md' packs/core/tests tests --include='test_*.py'` is green, which includes `tests/roster/test_sequential_implementer_dispatch_contract.py`. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
+**Done when:** the pin test is green and every suite listed by `grep -rlE 'supervisor(-mode)?\.md|state-schema\.md' packs/core/tests tests --include='test_*.py'` is green, which includes `tests/roster/test_sequential_implementer_dispatch_contract.py`. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
 
 ### T6: Eval case
 
@@ -128,7 +128,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is red before the case is added and green after, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7.
+**Done when:** the pin test is red before the case is added and green after, and `packs/core/tests/skills/work-loop/test_supervisor_cutover_source_checks.py` is green. `make precheck` is run and its output read; its self-host drift check is expected red until the run's `regenerate` step and its core release check until T7, and every other precheck result must pass.
 
 ### T7: Release the `core` patch
 
