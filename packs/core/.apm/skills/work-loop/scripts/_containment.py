@@ -30,6 +30,7 @@ from __future__ import annotations
 import importlib.util
 import os
 import posixpath
+import re
 import stat
 import sys
 from dataclasses import dataclass
@@ -266,6 +267,18 @@ _ALLOWED_ATTESTATION_KEYS: Final[frozenset[str]] = frozenset({
     "trace_coverage",
     "network",
     "children",
+    "binding",
+    "read_allowlist",
+    "write_roots",
+    "denied",
+})
+
+_BINDING_KEYS: Final[frozenset[str]] = frozenset({
+    "run_id", "attempt_id", "grant_id", "nonce", "launcher_sha256",
+})
+_HEX64: Final = re.compile(r"[0-9a-f]{64}")
+_DENIED_VALUES: Final[frozenset[str]] = frozenset({
+    "git-common-dir", "shared-refs", "run-store", "work-trees", "sibling-trees", "sibling-ipc",
 })
 
 _VALID_READ_ENFORCEMENT: Final[frozenset[str]] = frozenset({"allowlist", "trace"})
@@ -383,7 +396,38 @@ def _validate_attestation_dict_checked(d: object) -> tuple[bool, str]:
         if not _is_plain_int(value) or value < minimum:
             return False, "denied-invalid-attestation-field"
 
+    if not _additive_fields_valid(d):
+        return False, "denied-invalid-attestation-field"
     return True, "ok"
+
+
+def _additive_fields_valid(d: dict) -> bool:
+    """Check the optional attempt fields: binding, read_allowlist, write_roots, denied."""
+    if "binding" in d:
+        binding = d["binding"]
+        if not isinstance(binding, dict) or set(binding) != _BINDING_KEYS:
+            return False
+        for key in _BINDING_KEYS:
+            value = binding[key]
+            if not isinstance(value, str) or not value:
+                return False
+            if key in ("nonce", "launcher_sha256") and not _HEX64.fullmatch(value):
+                return False
+    for key in ("read_allowlist", "write_roots"):
+        if key in d and (
+            not isinstance(d[key], list)
+            or not all(isinstance(item, str) and item for item in d[key])
+        ):
+            return False
+    if "denied" in d:
+        denied = d["denied"]
+        if (
+            not isinstance(denied, list)
+            or not all(isinstance(item, str) and item in _DENIED_VALUES for item in denied)
+            or len(set(denied)) != len(denied)
+        ):
+            return False
+    return True
 
 
 # ---------------------------------------------------------------------------

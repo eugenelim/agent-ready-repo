@@ -107,6 +107,13 @@ _RECORD_FIELDS = {
     "effect-resolutions.jsonl": frozenset({"entry", "operation_key", "run_id", "effect", "scope"}),
 }
 RESULT_AUTHORITIES = ("legacy-worktree", "protected-product-ref")
+CONCURRENCY_MODES = ("sequential", "enforced-allowlist", "complete-trace")
+# Each integer policy key and its inclusive range.
+_POLICY_RANGES = {
+    "max_concurrent_attempts": (2, 8),
+    "reprojection_bound": (0, 8),
+    "attempt_timeout_seconds": (60, 86400),
+}
 INTENTS = ("code", "spec-plan")
 CODE_TRUST = ("trusted", "untrusted")
 
@@ -155,6 +162,18 @@ def load_policy() -> dict[str, Any]:
             "skill maintainer",
             "result_authority must be legacy-worktree or protected-product-ref",
         )
+    if data.get("concurrency") not in CONCURRENCY_MODES:
+        raise Refusal(
+            "invalid-policy",
+            "skill maintainer",
+            "concurrency must be sequential, enforced-allowlist, or complete-trace",
+        )
+    for key, (low, high) in _POLICY_RANGES.items():
+        value = data.get(key)
+        if type(value) is not int or not low <= value <= high:
+            raise Refusal(
+                "invalid-policy", "skill maintainer", f"{key} must be an integer {low} to {high}"
+            )
     wait = float(data["run_lock_timeout_seconds"])
     hold = float(data["red_proof_budget_seconds"]) + _LOCK_MARGIN_SECONDS
     if not wait < hold < float(data["run_lock_stale_seconds"]):

@@ -391,3 +391,103 @@ class TestDeliveryControlPathsPin:
         assert cn.SUPPORTED_ATTESTATION_SCHEMA_VERSION == 1, (
             f"expected schema version 1; got {cn.SUPPORTED_ATTESTATION_SCHEMA_VERSION!r}"
         )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# 4. Additive attempt fields: binding, read_allowlist, write_roots, denied
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_HEX64 = "a" * 64
+
+
+def _bound_record() -> dict:
+    """A containment record carrying every additive attempt field."""
+    return {
+        "schema_version": 1,
+        "host_mechanism": "os-sandbox",
+        "principal_or_sandbox": "sandbox-001",
+        "roots": ["/work"],
+        "limits": {},
+        "read_enforcement": "allowlist",
+        "binding": {
+            "run_id": "run-1",
+            "attempt_id": "attempt-1",
+            "grant_id": "grant-1",
+            "nonce": _HEX64,
+            "launcher_sha256": _HEX64,
+        },
+        "read_allowlist": ["src/a.py", "docs/b.md"],
+        "write_roots": ["/attempt"],
+        "denied": ["git-common-dir", "shared-refs", "run-store"],
+    }
+
+
+def _bad_binding_nonce(d: dict) -> None:
+    d["binding"]["nonce"] = "A" * 64
+
+
+def _bad_binding_short_hash(d: dict) -> None:
+    d["binding"]["launcher_sha256"] = "a" * 63
+
+
+def _bad_binding_missing(d: dict) -> None:
+    del d["binding"]["grant_id"]
+
+
+def _bad_binding_extra(d: dict) -> None:
+    d["binding"]["extra"] = "x"
+
+
+def _bad_denied_value(d: dict) -> None:
+    d["denied"] = ["everything"]
+
+
+def _bad_denied_duplicate(d: dict) -> None:
+    d["denied"] = ["run-store", "run-store"]
+
+
+def _bad_allowlist_item(d: dict) -> None:
+    d["read_allowlist"] = [1]
+
+
+def _bad_write_roots(d: dict) -> None:
+    d["write_roots"] = "/attempt"
+
+
+_ADDITIVE_BREAKS = {
+    "nonce-not-lowercase-hex": _bad_binding_nonce,
+    "launcher-hash-short": _bad_binding_short_hash,
+    "binding-field-missing": _bad_binding_missing,
+    "binding-unknown-field": _bad_binding_extra,
+    "denied-unknown-value": _bad_denied_value,
+    "denied-duplicate": _bad_denied_duplicate,
+    "allowlist-item-not-string": _bad_allowlist_item,
+    "write-roots-not-array": _bad_write_roots,
+}
+
+
+class TestAdditiveAttemptFields:
+    """The schema and the hand-written validator accept and refuse the same records."""
+
+    def test_record_with_every_additive_field_passes_both(
+        self, containment: ModuleType, attestation_schema: dict
+    ) -> None:
+        record = _bound_record()
+        assert _validate_against_schema(record, attestation_schema) == []
+        assert containment.validate_attestation_dict(record) == (True, "ok")
+
+    @pytest.mark.parametrize("name", sorted(_ADDITIVE_BREAKS))
+    def test_a_malformed_additive_field_fails_both(
+        self, containment: ModuleType, attestation_schema: dict, name: str
+    ) -> None:
+        record = _bound_record()
+        _ADDITIVE_BREAKS[name](record)
+        assert _validate_against_schema(record, attestation_schema), name
+        ok, code = containment.validate_attestation_dict(record)
+        assert not ok and code == "denied-invalid-attestation-field", (name, code)
+
+    def test_the_validator_and_schema_name_the_same_properties(
+        self, containment: ModuleType, attestation_schema: dict
+    ) -> None:
+        assert set(attestation_schema["properties"]) == set(containment._ALLOWED_ATTESTATION_KEYS)
+        assert set(attestation_schema["required"]) == set(containment._REQUIRED_ATTESTATION_KEYS)

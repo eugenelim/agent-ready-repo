@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://agent-ready-repo.invalid/contracts/delivery/task-contract.v1.schema.json",
   "title": "task-contract.v1",
-  "description": "One task projected from the approved plan's task grammar. Identity is the task title without its number; the revision digests the title and the pinned fields (Tests: with stub fences, Touches:, Done when:, Effects:), so renumbering, reordering, and working-field edits leave it unchanged. Grants no authority: the reviewed envelope and terminal intent admit execution.",
+  "description": "One task projected from the approved plan's task grammar. Identity is the task title without its number; the revision digests the title and the pinned fields (Tests: with stub fences, Touches:, Done when:, Effects:, and the optional Reads: and Writes:), so renumbering, reordering, and working-field edits leave it unchanged. Grants no authority: the reviewed envelope and terminal intent admit execution.",
   "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
   "x-spec": [
     "docs/specs/execution-supervisor-core/"
@@ -74,6 +74,26 @@
         "minLength": 1,
         "maxLength": 1024
       }
+    },
+    "reads": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "description": "Declared reads set: repository paths, each a file, a trailing-slash listing (reads only), or a trailing /** walk."
+    },
+    "writes": {
+      "type": "array",
+      "maxItems": 256,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024
+      },
+      "description": "Declared writes set: repository paths, each a file or a trailing /** walk."
     },
     "done_when": {
       "type": "string",
@@ -159,6 +179,16 @@
     "no_stub": {
       "type": "boolean",
       "description": "True when the task records a no-stub disposition, so no red proof is required."
+    },
+    "floor_reason": {
+      "type": "string",
+      "enum": [
+        "invalid-path",
+        "invalid-glob",
+        "writes-listing",
+        "protected-path"
+      ],
+      "description": "Present when a declared Reads: or Writes: entry is malformed or names a protected path; the task runs on the floor."
     }
   }
 }

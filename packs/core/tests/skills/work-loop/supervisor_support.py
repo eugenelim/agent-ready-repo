@@ -148,6 +148,8 @@ def task(
     done: str = "the test passes",
     effects: str | None = None,
     approach: str = "write it",
+    reads: str | None = None,
+    writes: str | None = None,
 ) -> str:
     lines = [
         f"### {number}: {title}",
@@ -158,6 +160,10 @@ def task(
     ]
     if effects is not None:
         lines.append(f"- **Effects:** {effects}")
+    if reads is not None:
+        lines.append(f"- **Reads:** {reads}")
+    if writes is not None:
+        lines.append(f"- **Writes:** {writes}")
     lines += ["- **Tests:**", "  " + tests.replace("\n", "\n  ")]
     lines += [f"- **Done when:** {done}", f"- **Approach:** {approach}", ""]
     return "\n".join(lines)

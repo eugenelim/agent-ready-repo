@@ -1629,6 +1629,17 @@
         "Does not accept the unit test alone as the task's Done when:",
         "Says a check that rewrites files is run and its output read before the task is done"
       ]
+    },
+    {
+      "id": "supervisor-policy-concurrency-key-out-of-range",
+      "prompt": "I edited `supervisor-policy.json` so `max_concurrent_attempts` is 9 and `attempt_timeout_seconds` is 30, hoping to run more tasks at once. Will `work-supervisor.py start` accept the file?",
+      "expected_output": "No. `start` refuses with `invalid-policy`, owned by the skill maintainer, because each concurrency key has a closed range: `max_concurrent_attempts` 2 to 8, `reprojection_bound` 0 to 8, `attempt_timeout_seconds` 60 to 86,400, and `concurrency` one of `sequential`, `enforced-allowlist`, `complete-trace`. The shipped `concurrency` is `sequential`, so tasks run one at a time until the policy is changed within range.",
+      "assertions": [
+        "Says start refuses the policy file with invalid-policy",
+        "Names the allowed range for max_concurrent_attempts as 2 to 8 and for attempt_timeout_seconds as 60 to 86,400",
+        "Says the shipped concurrency value is sequential, so tasks run one at a time",
+        "Does not accept either out-of-range value"
+      ]
     }
   ]
 }

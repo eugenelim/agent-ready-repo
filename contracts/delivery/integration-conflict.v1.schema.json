@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/integration-conflict.v1.schema.json",
+  "title": "integration-conflict.v1",
+  "description": "Record the supervisor writes when integration refuses: both refs stay unchanged and the task is reprojected. Paths are capped; `path_count` and `truncated` state what was cut.",
+  "$comment": "Owned by: docs/specs/verified-infrastructure-parallelism/. Architecture: docs/architecture/work-loop-result-integration.md",
+  "x-spec": [
+    "docs/specs/verified-infrastructure-parallelism/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "operation_key",
+    "run_id",
+    "attempt_id",
+    "task_id",
+    "source_commit",
+    "observed_tip",
+    "reason",
+    "paths",
+    "path_count",
+    "truncated"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "operation_key": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "attempt_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "source_commit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
+    },
+    "observed_tip": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])"
+    },
+    "reason": {
+      "type": "string",
+      "enum": [
+        "meets",
+        "content",
+        "merge-attribute",
+        "merge-config",
+        "outside-changed-paths",
+        "stale-authority",
+        "cas-lost",
+        "incomplete-attestation",
+        "link-target"
+      ]
+    },
+    "paths": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024,
+        "description": "Repository path: relative, `/` separators, no empty, `.` or `..` component, no NUL, control character, or backslash."
+      }
+    },
+    "path_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "truncated": {
+      "type": "boolean"
+    }
+  }
+}

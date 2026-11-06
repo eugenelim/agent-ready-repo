@@ -7,6 +7,10 @@
   "run_lock_stale_seconds": 2400,
   "run_lock_timeout_seconds": 30,
   "result_authority": "protected-product-ref",
+  "concurrency": "sequential",
+  "max_concurrent_attempts": 4,
+  "reprojection_bound": 2,
+  "attempt_timeout_seconds": 3600,
   "authority_roles": {
     "start_authority_ref": "owner",
     "start_review_authority_ref": "plan-reviewer",

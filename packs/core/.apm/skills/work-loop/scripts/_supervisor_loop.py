@@ -205,7 +205,7 @@ def derive(ws: Workspace) -> State:
         if change is not None:
             raise Refusal(change[0], change[1], "a protected reference changed after review")
         projection = (
-            _projector.project_plan(plan_text)
+            _projector.project_plan(plan_text, spec_dir=ws.spec_rel)
             if state.intent == "code"
             else _projector.PlanProjection([], [])
         )

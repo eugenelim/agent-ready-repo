@@ -66,6 +66,10 @@ _EXPECTED_SCHEMA_NAMES: frozenset[str] = frozenset({
     "execution-result.v1.schema.json",
     "mechanical-journal.v1.schema.json",
     "effect-resolution.v1.schema.json",
+    "access-attestation.v1.schema.json",
+    "launcher-message.v1.schema.json",
+    "result-integration.v1.schema.json",
+    "integration-conflict.v1.schema.json",
 })
 
 
@@ -1230,7 +1234,7 @@ _SUPERVISOR_SPEC = "docs/specs/execution-supervisor-core/"
 _HEX = "0" * 64
 _REQUEST_KINDS = (
     "implement-task", "write-stub", "run-gates", "review-role", "assess-finding",
-    "external-effect", "effect-query", "regenerate", "human-decision",
+    "external-effect", "effect-query", "regenerate", "human-decision", "run-concurrent",
 )
 
 
@@ -1273,6 +1277,7 @@ def _request(kind: str) -> dict:
         "regenerate": {"stage": "gating"},
         "human-decision": {"stage": "awaiting-human", "reason": "retry-cap",
                            "question": "The retry cap is reached. How should the run continue?"},
+        "run-concurrent": {"tasks": ["calculator-answers", "release-is-pushed"]},
     }[kind]
     return {**base, **extra}
 
@@ -1295,7 +1300,43 @@ def _effect_resolution() -> dict:
             "authority_ref": "effect-authority:0123456789ab", "at": "2026-10-13T00:00:00Z"}
 
 
+_OID = "b" * 40
+_BINDING = {"run_id": "run-1", "attempt_id": "attempt-1", "grant_id": "grant-1",
+            "nonce": _HEX, "launcher_sha256": _HEX}
+
+
+def _access_attestation() -> dict:
+    return {"schema_version": 1, "binding": dict(_BINDING), "release_token": _HEX,
+            "mode": "allowlist", "complete": True, "processes_ended": True,
+            "reads": [{"path": "calc.py", "kind": "file"}, {"path": "src/", "kind": "listing"}],
+            "writes": [{"path": "calc.py", "kind": "write"}], "denied_reads": ["secret.txt"]}
+
+
+def _launcher_message() -> dict:
+    return {"schema_version": 1, "type": "release", "binding": dict(_BINDING),
+            "release_token": _HEX}
+
+
+def _result_integration() -> dict:
+    return {"schema_version": 1, "operation_key": "run-1:integrate:1", "run_id": "run-1",
+            "attempt_id": "attempt-1", "task_id": "calculator-answers",
+            "source_commit": _OID, "observed_tip": _OID, "result_commit": _OID,
+            "result_tree": _OID, "access_attestation_sha256": _HEX,
+            "algorithm": {"name": "git-merge-tree-write-tree", "git_version": "2.45.0"}}
+
+
+def _integration_conflict() -> dict:
+    return {"schema_version": 1, "operation_key": "run-1:integrate:1", "run_id": "run-1",
+            "attempt_id": "attempt-1", "task_id": "calculator-answers",
+            "source_commit": _OID, "observed_tip": _OID, "reason": "meets",
+            "paths": ["calc.py"], "path_count": 1, "truncated": False}
+
+
 _SUPERVISOR_VALID = {
+    "access-attestation.v1.schema.json": _access_attestation,
+    "launcher-message.v1.schema.json": _launcher_message,
+    "result-integration.v1.schema.json": _result_integration,
+    "integration-conflict.v1.schema.json": _integration_conflict,
     "task-contract.v1.schema.json": _task_contract,
     "execution-request.v1.schema.json": lambda: _request("implement-task"),
     "execution-result.v1.schema.json": _result,
@@ -1322,6 +1363,10 @@ def _set(path: tuple[str, ...], value: object):  # noqa: ANN202 - fixture mutato
 
 
 _SUPERVISOR_INVALID = {
+    "access-attestation.v1.schema.json": _set(("writes",), [{"path": "a", "kind": "read"}]),
+    "launcher-message.v1.schema.json": _drop("release_token"),
+    "result-integration.v1.schema.json": _set(("algorithm", "name"), "git-merge"),
+    "integration-conflict.v1.schema.json": _set(("reason",), "unknown"),
     "task-contract.v1.schema.json": _set(("position",), "Task one"),
     "execution-request.v1.schema.json": _drop("attempt"),
     "execution-result.v1.schema.json": _drop("gate"),
@@ -1330,9 +1375,101 @@ _SUPERVISOR_INVALID = {
 }
 
 
+_PARALLELISM_SPEC = "docs/specs/verified-infrastructure-parallelism/"
+_NEW_SCHEMAS = (
+    "access-attestation.v1.schema.json", "launcher-message.v1.schema.json",
+    "result-integration.v1.schema.json", "integration-conflict.v1.schema.json",
+)
+
+
 def test_supervisor_schemas_point_at_the_core_spec() -> None:
     for name in _SUPERVISOR_VALID:
-        assert _SUPERVISOR_SPEC in _load_schema(name)["x-spec"], name
+        if name in _NEW_SCHEMAS:
+            assert _PARALLELISM_SPEC in _load_schema(name)["x-spec"], name
+        else:
+            assert _SUPERVISOR_SPEC in _load_schema(name)["x-spec"], name
+
+
+@pytest.mark.parametrize("name", _NEW_SCHEMAS)
+def test_new_schema_is_closed_and_pins_the_house_style(name: str) -> None:
+    schema = _load_schema(name)
+    assert schema["$id"] == f"https://agent-ready-repo.invalid/contracts/delivery/{name}"
+    assert schema["additionalProperties"] is False
+    assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"
+    assert schema["$comment"].startswith(f"Owned by: {_PARALLELISM_SPEC}.")
+
+
+def _errors(name: str, record: dict) -> list:
+    return list(_validator(name).iter_errors(record))
+
+
+@pytest.mark.parametrize("kind", ["attempt", "containment", "release", "abort", "access"])
+def test_each_launcher_message_type_requires_its_body(kind: str) -> None:
+    body = {
+        "attempt": {"binding": dict(_BINDING), "grant": {}, "attempt_dir": "/tmp/a",
+                    "request": {}},
+        "containment": {"binding": dict(_BINDING), "attestation": {}},
+        "release": {"binding": dict(_BINDING), "release_token": _HEX},
+        "abort": {"binding": dict(_BINDING), "reason": "cancelled"},
+        "access": {"binding": dict(_BINDING), "attestation": {}},
+    }[kind]
+    message = {"schema_version": 1, "type": kind, **body}
+    assert _errors("launcher-message.v1.schema.json", message) == []
+    for field in body:
+        broken = {k: v for k, v in message.items() if k != field}
+        assert _errors("launcher-message.v1.schema.json", broken), (kind, field)
+
+
+def test_launcher_message_description_states_the_stdin_and_access_rules() -> None:
+    text = _load_schema("launcher-message.v1.schema.json")["description"]
+    assert "stdin closes before `release`" in text and "no worker" in text
+    assert "At most one `access` line" in text and "end of stream" in text
+
+
+@pytest.mark.parametrize("field", ["nonce", "launcher_sha256"])
+def test_a_binding_hash_must_be_64_lowercase_hex(field: str) -> None:
+    for bad in ("A" * 64, "a" * 63, "a" * 65):
+        record = _access_attestation()
+        record["binding"][field] = bad
+        assert _errors("access-attestation.v1.schema.json", record), (field, bad)
+
+
+def test_access_attestation_list_caps() -> None:
+    record = _access_attestation()
+    record["reads"] = [{"path": f"f{i}", "kind": "file"} for i in range(20001)]
+    assert _errors("access-attestation.v1.schema.json", record)
+    record = _access_attestation()
+    record["denied_reads"] = [f"f{i}" for i in range(20001)]
+    assert _errors("access-attestation.v1.schema.json", record)
+
+
+def test_integration_conflict_paths_are_capped() -> None:
+    record = _integration_conflict()
+    record["paths"] = [f"f{i}" for i in range(1001)]
+    assert _errors("integration-conflict.v1.schema.json", record)
+
+
+def test_execution_result_accepts_the_supervisor_written_identity() -> None:
+    record = {**_result(), "result_tree": _OID, "access_attestation_sha256": _HEX}
+    assert _errors("execution-result.v1.schema.json", record) == []
+    assert _errors("execution-result.v1.schema.json", {**record, "result_tree": "xyz"})
+    assert _errors("execution-result.v1.schema.json", {**record, "access_attestation_sha256": "a"})
+
+
+def test_task_contract_carries_declared_sets_and_a_closed_floor_reason() -> None:
+    record = {**_task_contract(), "reads": ["src/", "lib/**"], "writes": ["calc.py"],
+              "floor_reason": "invalid-glob"}
+    assert _errors("task-contract.v1.schema.json", record) == []
+    assert _errors("task-contract.v1.schema.json", {**record, "floor_reason": "other"})
+    assert _errors("task-contract.v1.schema.json", {**record, "reads": [1]})
+
+
+def test_a_run_concurrent_request_names_tasks() -> None:
+    request = _request("run-concurrent")
+    assert _errors("execution-request.v1.schema.json", request) == []
+    assert _errors("execution-request.v1.schema.json", _drop("tasks")(request))
+    assert _errors("execution-request.v1.schema.json", {**request, "tasks": []})
+    assert _errors("execution-request.v1.schema.json", {**request, "tasks": ["a"] * 2})
 
 
 @pytest.mark.parametrize("name", sorted(_SUPERVISOR_VALID))

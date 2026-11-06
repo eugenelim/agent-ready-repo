@@ -6,7 +6,8 @@
   "$comment": "Owned by: docs/specs/execution-supervisor-core/. Architecture: docs/architecture/work-loop-execution-supervisor.md.",
   "x-spec": [
     "docs/specs/execution-supervisor-core/",
-    "docs/specs/execution-supervisor-review-gate/"
+    "docs/specs/execution-supervisor-review-gate/",
+    "docs/specs/verified-infrastructure-parallelism/"
   ],
   "type": "object",
   "additionalProperties": false,
@@ -303,6 +304,16 @@
         }
       ],
       "description": "A named human's answer to a human-decision request."
+    },
+    "result_tree": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}(?![\\s\\S])",
+      "description": "Tree id the supervisor computed when it ingested a concurrent attempt's directory."
+    },
+    "access_attestation_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+      "description": "sha256 of the exact access line bytes the supervisor received."
     }
   },
   "allOf": [

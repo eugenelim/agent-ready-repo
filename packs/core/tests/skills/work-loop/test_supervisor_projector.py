@@ -390,3 +390,71 @@ def test_a_crlf_plan_with_stub_fences_is_refused() -> None:
     with pytest.raises(proj.ProjectionRefused) as info:
         proj.project_plan(sup.PLAN.replace("\n", "\r\n"))
     assert info.value.code == "invalid-stub-fence"
+
+
+# ── Declared sets: Reads and Writes ─────────────────────────────────────────
+
+SPEC_DIR = "docs/specs/example"
+
+
+def _one(**fields: str) -> dict:
+    return proj.project_plan(
+        sup.plan(sup.task("T1", "Calculator answers", **fields)), spec_dir=SPEC_DIR
+    ).tasks[0]
+
+
+def test_reads_and_writes_are_parsed_and_leave_the_task_off_the_floor() -> None:
+    task = _one(reads="`src/a.py`, `src/` , `lib/**`", writes="`src/b.py`, `out/**`")
+    assert task["reads"] == ["src/a.py", "src/", "lib/**"]
+    assert task["writes"] == ["src/b.py", "out/**"]
+    assert "floor_reason" not in task
+
+
+def test_a_task_without_declared_sets_records_empty_lists() -> None:
+    task = proj.project_plan(sup.PLAN).tasks[0]
+    assert task["reads"] == [] and task["writes"] == []
+    assert "floor_reason" not in task
+
+
+MALFORMED = {
+    "absolute": ("reads", "`/etc/passwd`", "invalid-path"),
+    "empty-component": ("reads", "`a//b`", "invalid-path"),
+    "dot-component": ("writes", "`a/./b`", "invalid-path"),
+    "dotdot-component": ("reads", "`../x`", "invalid-path"),
+    "backslash": ("writes", "`a\\b`", "invalid-path"),
+    "control-char": ("reads", "`a\tb`", "invalid-path"),
+    "star": ("reads", "`src/*.py`", "invalid-glob"),
+    "question": ("writes", "`a?.py`", "invalid-glob"),
+    "bracket": ("reads", "`a[1].py`", "invalid-glob"),
+    "brace": ("reads", "`a{b,c}.py`", "invalid-glob"),
+    "mid-doublestar": ("reads", "`a/**/b`", "invalid-glob"),
+    "bare-doublestar": ("writes", "`**`", "invalid-glob"),
+    "writes-listing": ("writes", "`src/`", "writes-listing"),
+    "delivery": ("writes", "`delivery/approvals.jsonl`", "protected-path"),
+    "delivery-walk": ("reads", "`delivery/**`", "protected-path"),
+    "spec-dir": ("reads", f"`{SPEC_DIR}/spec.md`", "protected-path"),
+    "spec-dir-walk": ("writes", f"`{SPEC_DIR}/**`", "protected-path"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(MALFORMED))
+def test_each_malformed_declared_entry_marks_the_task_floor_only(name: str) -> None:
+    field, value, reason = MALFORMED[name]
+    task = _one(**{field: value})
+    assert task["floor_reason"] == reason
+
+
+def test_a_listing_is_a_valid_reads_entry() -> None:
+    assert "floor_reason" not in _one(reads="`src/`")
+
+
+def test_a_similarly_named_path_is_not_protected() -> None:
+    assert "floor_reason" not in _one(reads="`delivery-notes.md`, `docs/specs/example2/x.md`")
+
+
+@pytest.mark.parametrize("field", ["reads", "writes"])
+def test_a_change_to_reads_or_writes_changes_the_revision(field: str) -> None:
+    base = _one()["revision"]
+    one = _one(**{field: "`a.py`"})["revision"]
+    two = _one(**{field: "`b.py`"})["revision"]
+    assert len({base, one, two}) == 3
