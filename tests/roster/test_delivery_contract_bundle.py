@@ -56,6 +56,7 @@ _EXPECTED_SCHEMA_NAMES: frozenset[str] = frozenset({
     "review-subject.v1.schema.json",
     "review-obligation.v1.schema.json",
     "review-report.v1.schema.json",
+    "review-carry.v1.schema.json",
     "finding.v1.schema.json",
     "finding-assessment.v1.schema.json",
     "finding-disposition.v1.schema.json",
@@ -182,6 +183,21 @@ def _finding_disposition() -> dict:
     }
 
 
+def _review_carry() -> dict:
+    """Build a valid review-carry.v1 record."""
+    return {
+        "schema_version": 1,
+        "carry_id": "review-carry-sha256:" + "a" * 64,
+        "role": "adversarial-reviewer",
+        "from_report_id": "report-1",
+        "review_subject_fingerprint": "review-subject-current",
+        "review_policy_fingerprint": "review-policy-current",
+        "tier": "wording-only",
+        "anchor_round": 1,
+        "classifier_digest": "b" * 64,
+    }
+
+
 # ── Schema set completeness ───────────────────────────────────────────────────
 
 def test_delivery_bundle_has_all_17_expected_schemas() -> None:
@@ -252,6 +268,7 @@ def test_review_schemas_accept_valid_examples() -> None:
         "finding.v1.schema.json": _finding(),
         "finding-assessment.v1.schema.json": _finding_assessment(),
         "finding-disposition.v1.schema.json": _finding_disposition(),
+        "review-carry.v1.schema.json": _review_carry(),
     }
     for schema_name, example in examples.items():
         errors = list(_validator(schema_name).iter_errors(example))
@@ -311,6 +328,7 @@ def test_report_schema_rejects_missing_required_fields(field: str) -> None:
         ("finding.v1.schema.json", _finding, "actual_failure"),
         ("finding-assessment.v1.schema.json", _finding_assessment, "assessment"),
         ("finding-disposition.v1.schema.json", _finding_disposition, "decision_maker"),
+        ("review-carry.v1.schema.json", _review_carry, "classifier_digest"),
     ],
 )
 def test_each_review_schema_rejects_missing_required_field(
@@ -331,6 +349,7 @@ def test_each_review_schema_rejects_missing_required_field(
         ("finding.v1.schema.json", _finding),
         ("finding-assessment.v1.schema.json", _finding_assessment),
         ("finding-disposition.v1.schema.json", _finding_disposition),
+        ("review-carry.v1.schema.json", _review_carry),
     ],
 )
 def test_each_review_schema_rejects_unknown_field(
@@ -340,6 +359,24 @@ def test_each_review_schema_rejects_unknown_field(
     record["_unknown_capability_grant"] = "admin"
     errors = list(_validator(schema_name).iter_errors(record))
     assert errors, f"{schema_name} accepted an unknown authority field"
+
+
+def test_review_carry_schema_names_exactly_one_source() -> None:
+    """A carry names its source by from_report_id or from_carry_id, never both or neither."""
+    carry = _review_carry()
+    both = {**carry, "from_carry_id": "review-carry-sha256:" + "c" * 64}
+    neither = {k: v for k, v in carry.items() if k != "from_report_id"}
+    via_carry = {**neither, "from_carry_id": "review-carry-sha256:" + "c" * 64}
+    validator = _validator("review-carry.v1.schema.json")
+    assert not list(validator.iter_errors(via_carry))
+    assert list(validator.iter_errors(both))
+    assert list(validator.iter_errors(neither))
+
+
+def test_review_carry_schema_rejects_full_tier_and_round_zero() -> None:
+    validator = _validator("review-carry.v1.schema.json")
+    assert list(validator.iter_errors({**_review_carry(), "tier": "full"}))
+    assert list(validator.iter_errors({**_review_carry(), "anchor_round": 0}))
 
 
 # ── Rejection of unknown or incomplete authority-shaped records ───────────────

@@ -293,6 +293,57 @@
     "spec_dir_changed": {
       "type": "boolean",
       "description": "A history-adoption decision: whether adoption would change any file in the spec directory."
+    },
+    "delta_base": {
+      "type": "string",
+      "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})(?![\\s\\S])",
+      "description": "A review-role delta pass: the anchor result commit the role reviews the change from. A request without it asks for a whole-change report."
+    },
+    "repair_finding_ids": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "description": "A review-role delta pass: the role's open findings the repair answers; empty for a rebase pass."
+    },
+    "round_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "A review-cap decision: how many review rounds the unit has run."
+    },
+    "open_findings": {
+      "type": "array",
+      "maxItems": 512,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "cap_ref",
+          "role",
+          "evidence_sequence"
+        ],
+        "properties": {
+          "cap_ref": {
+            "type": "string",
+            "pattern": "^cap-finding:[0-9a-f]{64}(?![\\s\\S])",
+            "description": "Supervisor-derived reference: cap-finding: and the sha256 of the canonical JSON array of the report id and finding id."
+          },
+          "role": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "evidence_sequence": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "The position of the finding's report in the evidence log."
+          }
+        }
+      },
+      "description": "A review-cap decision: each open finding by its supervisor-derived reference, role, and evidence-log position."
     }
   },
   "allOf": [
@@ -498,6 +549,31 @@
         "required": [
           "tasks"
         ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "reason": {
+            "const": "review-cap"
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "then": {
+        "required": [
+          "round_count",
+          "selection_key",
+          "open_findings"
+        ],
+        "properties": {
+          "selection_key": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}(?![\\s\\S])"
+          }
+        }
       }
     }
   ]

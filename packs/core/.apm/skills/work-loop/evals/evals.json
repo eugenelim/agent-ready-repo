@@ -1620,6 +1620,52 @@
       ]
     },
     {
+      "id": "review-selection-declares-protected-classes",
+      "prompt": "The supervisor issues a review-role request with candidates. Your change touches an auth token check, so you select security-reviewer. What must the selection answer hold besides selected and omitted?",
+      "expected_output": "The selection must declare `protected_classes`, and because it selects `security-reviewer` it must declare `security-boundary`: `\"protected_classes\": [\"security-boundary\"]`. An answer with no `protected_classes`, a token outside the five classes, or `security-reviewer` selected without `security-boundary` is refused with `review-selection-invalid`. `[]` is valid only when no protected reviewer is selected.",
+      "assertions": [
+        "Response declares protected_classes on the selection answer",
+        "Response pairs security-reviewer with the security-boundary class",
+        "Response says a missing protected_classes field or a security-reviewer selection without security-boundary is refused as review-selection-invalid",
+        "Response does not let a tier or the diff change which roles were selected"
+      ]
+    },
+    {
+      "id": "wording-only-repair-skips-unprotected-reviewers",
+      "prompt": "In a repository whose review-rules.json sets wording_only_enabled to true, a unit with protected_classes [] finished its first full review round. One reviewer raised no open finding, and the repair after that only rewords a paragraph in docs/guides/setup.md. Which reviewers does the supervisor ask again?",
+      "expected_output": "With wording_only_enabled true, the supervisor classifies the repair `wording-only`, because no finding is open and the changed lines are plain prose in an allowlisted file. It issues no review-role request to any non-protected role. Each excused role stands on its latest report through a supervisor-written review-carry record, which the controller never writes. The repair is not a round and does not count toward the two-round cap.",
+      "assertions": [
+        "Response classifies the repair as wording-only",
+        "Response issues no review-role request to a non-protected role",
+        "Response says the excused roles stand on a supervisor-written review-carry record",
+        "Response says the controller does not write the carry",
+        "Response says a wording-only subject is not a round"
+      ]
+    },
+    {
+      "id": "protected-reviewer-asked-on-wording-only-repair",
+      "prompt": "With wording_only_enabled true in review-rules.json, a unit declared protected_classes [\"security-boundary\"] and selected security-reviewer. The repair after the first round only rewords a docs paragraph and classifies wording-only. Is security-reviewer asked again?",
+      "expected_output": "Yes. A protected reviewer reports on every revision under every tier, so the supervisor issues a whole-change review-role request to security-reviewer with no delta_base, and no review-carry record names it. Only the roles that are not protected are excused by the wording-only tier.",
+      "assertions": [
+        "Response asks security-reviewer again",
+        "Response says the request is whole-change with no delta_base",
+        "Response says no carry record may name a protected role",
+        "Response says the tier excuses only roles that are not protected"
+      ]
+    },
+    {
+      "id": "review-cap-decision-answers",
+      "prompt": "After two review rounds the supervisor issues a human-decision with reason review-cap and an open_findings list of cap_ref, role, and evidence_sequence entries. The risk owner accepts one finding, and the owner wants another round for the rest. How do you report each answer?",
+      "expected_output": "Report accept-risk as `{\"decision\": {\"decision\": \"accept-risk\", \"authority_ref\": \"risk-owner:<hex>\", \"finding_ids\": [\"cap-finding:<hex>\"]}}`, naming only `cap_ref` values the request lists; a reference outside the list refuses the whole answer. Report `{\"decision\": {\"decision\": \"extend-review\", \"authority_ref\": \"owner:<hex>\"}}` to allow exactly one more round before the next review-cap. The controller never invents an authority reference, and a malformed answer leaves the findings open and the same request outstanding.",
+      "assertions": [
+        "Response reports accept-risk with a risk-owner authority reference and cap-finding references from the request",
+        "Response says a reference the request does not list refuses the whole answer",
+        "Response reports extend-review with an owner authority reference and no other field",
+        "Response says extend-review allows exactly one more round",
+        "Response does not invent an authority reference"
+      ]
+    },
+    {
       "id": "plan-task-omits-declared-precheck",
       "prompt": "A plan task edits a file under a path for which the repository's guidance declares a path-triggered precheck that regenerates a derived copy. The task's `Done when:` reads only: `the unit test for the changed module passes`. Review the task before it is dispatched.",
       "expected_output": "The task is not ready. Its paths are covered by a repository-declared precheck, so the plan must name that precheck in the task's `Done when:`. The review flags the omission and has the plan add the declared check, to be run with its output read, rather than leaving it to be discovered later in CI.",
@@ -1673,6 +1719,17 @@
         "Says to run next for the cancelled or residue task rather than retry the same request id",
         "Says a plan edit beside an open attempt is refused as attempt-residue and waits until no attempt is open",
         "Says an admitted replan discards held results and projects their tasks again without counting toward the bound"
+      ]
+    },
+    {
+      "id": "risk-triggers-line-records-the-mode-decision",
+      "prompt": "A new feature changes a published record grammar, and you cannot yet predict its design. You select full mode and invoke new-spec. What does the spec's header record about this decision, and may you add the line later to an Approved spec that lacks it?",
+      "expected_output": "The spec's Risk triggers: header line records the decision as the tokens of the triggers that fired — here the Structural or public-interface change trigger and the Unfamiliar trigger, spelled as the spec metadata contract's table spells them — written while the spec is Draft. An Approved spec is past Draft and is not edited to add or change the line.",
+      "files": [],
+      "assertions": [
+        "Response records the fired triggers on the spec's Risk triggers: header line",
+        "Response names both fired triggers as tokens",
+        "Response refuses to add or change the Risk triggers: line on a spec past Draft"
       ]
     }
   ]

@@ -24,12 +24,14 @@ Standard library only. Python 3.11+.
 from __future__ import annotations
 
 import atexit
+import contextlib
 import os
 import re
 import shutil
 import stat
 import subprocess
 import tempfile
+import threading
 import time
 from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
@@ -51,6 +53,8 @@ __all__ = [
 
 GIT_TIMEOUT_S = 60.0
 STREAM_TIMEOUT_S = 1800.0
+# The most stderr bytes one bounded read may produce before it is killed.
+_MAX_STDERR_BYTES = 256 * 1024
 _MAX_SMALL_FILE_BYTES = 4096
 _MAX_ATTRIBUTES_BYTES = 8 * 1024 * 1024
 _FILTER_NAME_RE = re.compile(r"[A-Za-z0-9_.-]+")
@@ -168,7 +172,7 @@ def _config_read_env() -> dict[str, str]:
     }
 
 
-def _fixed_flags(*, literal_pathspecs: bool = False) -> list[str]:
+def _fixed_flags(*, literal_pathspecs: bool = False, private_index: bool = False) -> list[str]:
     flags = ["--no-replace-objects"]
     if literal_pathspecs:
         flags.append("--literal-pathspecs")
@@ -179,7 +183,16 @@ def _fixed_flags(*, literal_pathspecs: bool = False) -> list[str]:
         "commit.gpgSign": "false",
         "tag.gpgSign": "false",
         "core.attributesFile": os.devnull,
+        # A scan that starts from a stat-cached index must not let repository config weaken
+        # the stat comparison.
+        "core.checkStat": "default",
+        "core.trustctime": "true",
     }
+    if private_index:
+        # Only a throwaway index drops its untracked cache or refuses a shared index; the work
+        # tree's own keeps both, and a copy that inherited split mode must not write one.
+        settings["core.untrackedCache"] = "false"
+        settings["core.splitIndex"] = "false"
     for key, value in settings.items():
         flags += ["-c", f"{key}={value}"]
     return flags
@@ -203,6 +216,104 @@ def _launch(
         raise SupervisorGitError(
             "denied-git-unavailable", f"git could not run: {exc}", unverifiable=True
         ) from exc
+
+
+def _unavailable(detail: str) -> SupervisorGitError:
+    return SupervisorGitError(
+        "denied-git-unavailable", f"git could not run: {detail}", unverifiable=True
+    )
+
+
+def _launch_bounded(
+    argv: list[str],
+    *,
+    cwd: Path | None,
+    env: dict[str, str],
+    stdin: bytes | None,
+    limit: int,
+) -> subprocess.CompletedProcess[bytes]:
+    """``_launch`` for a read whose stdout may not exceed *limit* bytes.
+
+    The process is killed as soon as its stdout passes *limit* or its stderr
+    passes ``_MAX_STDERR_BYTES``, so an oversized blob or diff is never buffered
+    whole. Both streams drain at once and stdin is fed from its own thread, so no
+    pipe fills while another is waited on. ``GIT_TIMEOUT_S`` bounds the whole
+    process lifetime. Every failure to run, feed, or finish surfaces as a
+    ``SupervisorGitError``.
+    """
+    try:
+        process = subprocess.Popen(
+            argv,
+            cwd=str(cwd) if cwd is not None else None,
+            env=env,
+            stdin=subprocess.PIPE if stdin is not None else subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+    except OSError as exc:
+        raise _unavailable(str(exc)) from exc
+    deadline = time.monotonic() + GIT_TIMEOUT_S
+    chunks: dict[str, list[bytes]] = {"stdout": [], "stderr": []}
+    oversize: list[str] = []
+
+    def drain(name: str, cap: int) -> None:
+        stream = getattr(process, name)
+        size = 0
+        try:
+            while True:
+                chunk = stream.read(65536)
+                if not chunk:
+                    return
+                size += len(chunk)
+                if size > cap:
+                    oversize.append(f"git {name} passed {cap} bytes")
+                    process.kill()
+                    return
+                chunks[name].append(chunk)
+        except (OSError, ValueError):
+            return
+
+    def feed() -> None:
+        assert process.stdin is not None and stdin is not None
+        # A child that closes its input early is not an error; its exit status says what happened.
+        with contextlib.suppress(OSError, ValueError):
+            try:
+                process.stdin.write(stdin)
+            finally:
+                process.stdin.close()
+
+    workers = [
+        threading.Thread(target=drain, args=("stdout", limit), daemon=True),
+        threading.Thread(target=drain, args=("stderr", _MAX_STDERR_BYTES), daemon=True),
+    ]
+    if stdin is not None:
+        workers.append(threading.Thread(target=feed, daemon=True))
+    try:
+        for worker in workers:
+            worker.start()
+        for worker in workers:
+            worker.join(max(0.0, deadline - time.monotonic()))
+        if any(worker.is_alive() for worker in workers):
+            process.kill()
+            raise _unavailable(f"it ran past {GIT_TIMEOUT_S} seconds")
+        try:
+            process.wait(timeout=max(0.0, deadline - time.monotonic()))
+        except subprocess.TimeoutExpired as exc:
+            raise _unavailable(f"it ran past {GIT_TIMEOUT_S} seconds") from exc
+    except BaseException:
+        process.kill()
+        raise
+    finally:
+        for stream in (process.stdin, process.stdout, process.stderr):
+            if stream is not None:
+                with contextlib.suppress(OSError, ValueError):
+                    stream.close()
+        process.wait()
+    if oversize:
+        raise SupervisorGitError("denied-git-output-too-large", oversize[0])
+    return subprocess.CompletedProcess(
+        argv, process.returncode, b"".join(chunks["stdout"]), b"".join(chunks["stderr"])
+    )
 
 
 # ── discovery ───────────────────────────────────────────────────────────────
@@ -573,6 +684,7 @@ class HardenedGit:
         literal_pathspecs: bool,
         config: tuple[str, ...],
         work_tree: Path | None,
+        private_index: bool = False,
     ) -> list[str]:
         """The full ``git`` argument vector for one helper call."""
         pins = self.pins
@@ -584,7 +696,7 @@ class HardenedGit:
             "git",
             f"--git-dir={pins.git_dir}",
             f"--work-tree={work_tree if work_tree is not None else pins.root}",
-            *_fixed_flags(literal_pathspecs=literal_pathspecs),
+            *_fixed_flags(literal_pathspecs=literal_pathspecs, private_index=private_index),
             *self._carried_flags(),
             *extra,
             args[0],
@@ -602,17 +714,19 @@ class HardenedGit:
         config: tuple[str, ...] = (),
         work_tree: Path | None = None,
         ok_codes: tuple[int, ...] = (0,),
+        limit: int | None = None,
     ) -> bytes:
         """Run ``git <args>`` against the pinned directories and return stdout bytes.
 
         *config* adds ``-c key=value`` settings after the fixed flags. *work_tree* names a
         different work tree for the call (an attempt directory); the Git directory stays the
         pinned one and the call runs from *work_tree*. *ok_codes* are the exit codes that
-        are not a failure when *check* is set.
+        are not a failure when *check* is set. With *limit*, the read is bounded and an
+        oversized output refuses ``denied-git-output-too-large``.
         """
         return self.run_with_status(
             *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs,
-            config=config, work_tree=work_tree, ok_codes=ok_codes,
+            config=config, work_tree=work_tree, ok_codes=ok_codes, limit=limit,
         )[1]
 
     def run_with_status(
@@ -625,6 +739,7 @@ class HardenedGit:
         config: tuple[str, ...] = (),
         work_tree: Path | None = None,
         ok_codes: tuple[int, ...] = (0,),
+        limit: int | None = None,
     ) -> tuple[int, bytes]:
         """``run``, returning ``(exit code, stdout bytes)``; for a call whose code is an answer."""
         environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
@@ -632,12 +747,19 @@ class HardenedGit:
         if args[0] == "update-ref" and _UPDATE_HOOK is not None:
             _UPDATE_HOOK()
         argv = self._argv(
-            args, literal_pathspecs=literal_pathspecs, config=config, work_tree=work_tree
+            args,
+            literal_pathspecs=literal_pathspecs,
+            config=config,
+            work_tree=work_tree,
+            private_index=bool(env and env.get("GIT_INDEX_FILE")),
         )
-        result = _launch(
-            argv, cwd=work_tree if work_tree is not None else self.pins.root,
-            env=environment, stdin=stdin,
-        )
+        cwd = work_tree if work_tree is not None else self.pins.root
+        if limit is None:
+            result = _launch(argv, cwd=cwd, env=environment, stdin=stdin)
+        else:
+            result = _launch_bounded(
+                argv, cwd=cwd, env=environment, stdin=stdin, limit=limit
+            )
         if check and result.returncode not in ok_codes:
             detail = result.stderr.decode("utf-8", "replace").strip().splitlines()
             raise SupervisorGitError(

@@ -275,6 +275,40 @@ def human_decision(
     )
 
 
+def review_cap_decision(
+    ws: Workspace,
+    state: State,
+    question: str,
+    *,
+    round_count: int,
+    selection_key: str,
+    answered: int,
+    open_findings: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """The ``review-cap`` human decision.
+
+    Its id comes from the run, the round count, the selection key, how many ``review-cap``
+    answers the unit has admitted, and the sorted cap finding references: no ``HEAD`` salt,
+    so an unrelated commit never reissues it, and an answered request's id never returns.
+    """
+    refs = sorted(f["cap_ref"] for f in open_findings)
+    identity = "\0".join(
+        [state.run_id, str(round_count), selection_key, str(answered), *refs]
+    )
+    digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()[:16]
+    return make_request(
+        ws,
+        state,
+        "human-decision",
+        f"decide:review-cap:{digest}",
+        reason="review-cap",
+        question=question,
+        round_count=round_count,
+        selection_key=selection_key,
+        open_findings=sorted(open_findings, key=lambda f: f["cap_ref"]),
+    )
+
+
 def receipt(
     state: State,
     step: str,
@@ -307,7 +341,7 @@ def receipt(
 class Action:
     """What the step loop does next: issue a request, or commit a step itself."""
 
-    kind: str  # request | refusal | terminal | auto-red | effect-intent
+    kind: str  # request | refusal | terminal | auto-red | effect-intent | review-carry
     request: dict[str, Any] | None = None
     refusal: Refusal | None = None
     detail: dict[str, Any] = field(default_factory=dict)
@@ -411,7 +445,7 @@ def decide(ws: Workspace, state: State) -> Action:
                 "gate, review, or evidence is issued",
             ),
         )
-    dirty = ws.git.change_set()
+    dirty = ws.git.change_set(rehash=state.cited_paths)
     if dirty:
         return Action(
             "request",
@@ -523,7 +557,7 @@ def _write_status(ws: Workspace, state: State, action: Action | None) -> dict[st
 def _pending_replan(ws: Workspace, state: State) -> list[str]:
     """Controller edits to the spec, its plan, or a cited record not yet committed."""
     trusted = {f"{ws.spec_rel}/spec.md", f"{ws.spec_rel}/plan.md", *state.cited_paths}
-    return [p for p in ws.git.change_set() if p in trusted]
+    return [p for p in ws.git.change_set(rehash=state.cited_paths) if p in trusted]
 
 
 def _prepare(ws: Workspace) -> tuple[State, Refusal | None]:
@@ -581,15 +615,18 @@ def _act(ws: Workspace, state: State) -> tuple[State, Action]:
     """Run supervisor-internal steps until the current action is for the controller."""
     tdd = _supervisor("_supervisor_tdd.py")
     effects = _supervisor("_supervisor_effects.py")
+    readiness = _supervisor("_supervisor_readiness.py")
     for _ in range(64):
         action = decide(ws, state)
-        if action.kind in ("auto-red", "effect-intent", "terminal"):
+        if action.kind in ("auto-red", "effect-intent", "terminal", "review-carry"):
             # Nothing commits on top of a regenerate step the install does not match.
             ws.attempts.confirm_admitted(state.run_id)
         if action.kind == "auto-red":
             refusal = tdd.commit_supervisor_red(ws, state, action.detail["task"])
             if refusal is not None:
                 return state, Action("refusal", refusal=refusal)
+        elif action.kind == "review-carry":
+            readiness.commit_carries(ws, state)
         elif action.kind == "effect-intent":
             request = effects.commit_intent(ws, state, action.detail)
             state = derive(ws)
@@ -748,7 +785,7 @@ def _refuse_protected_change(ws: Workspace, state: State, *, exempt: bool = Fals
 
     *exempt* skips that refusal for a replan confirmation, which checks its own change set.
     """
-    changed = ws.git.change_set()
+    changed = ws.git.change_set(rehash=state.cited_paths)
     protected = [p for p in changed if p.startswith(ws.spec_rel + "/") or p in state.cited_paths]
     if protected and not exempt:
         raise Refusal(

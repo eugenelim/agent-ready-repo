@@ -26,11 +26,12 @@ import shutil
 import stat
 import sys
 import tempfile
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Generator, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
+from typing import BinaryIO
 
 __all__ = [
     "Commit",
@@ -138,6 +139,11 @@ SupervisorGitError = _git.SupervisorGitError
 set_update_hook = _git.set_update_hook
 
 _SIBLINGS: dict[str, ModuleType] = {}
+# The tree object a diff against "nothing" names, by object-id length (SHA-1, SHA-256).
+_EMPTY_TREES = {
+    40: "4b825dc642cb6eb9a060e54bf8d69288fbee4904",
+    64: "6ef19b41225c5369f1c104d45d8d85efa9b057b53b14b4b9b939dd74decc5321",
+}
 
 
 def sibling(filename: str) -> ModuleType:
@@ -189,6 +195,25 @@ def append_note(error: BaseException, note: str) -> None:
         error.args = (f"{error.args[0]}; {note}", *error.args[1:])
 
 
+# The most bytes any single classifier Git read may return: the classifier's own limit.
+_READ_LIMIT: int = supervisor_module("_review_tiers.py").READ_LIMIT
+
+
+def _ls_tree_entries(out: bytes) -> dict[str, tuple[str, str]]:
+    """Parse ``ls-tree -z`` output into ``path -> (mode, object id)``."""
+    found: dict[str, tuple[str, str]] = {}
+    for record in out.split(b"\0"):
+        if record:
+            meta, _, path = record.partition(b"\t")
+            mode, _kind, oid = meta.decode().split()
+            found[path.decode("utf-8", "surrogateescape")] = (mode, oid)
+    return found
+
+
+# A work tree index larger than this is not copied; its scan starts cold instead.
+_MAX_INDEX_BYTES = 256 * 1024 * 1024
+
+
 class GitPort:
     """Git plumbing for one repository and one spec directory."""
 
@@ -215,11 +240,83 @@ class GitPort:
         stdin: bytes | None = None,
         check: bool = True,
         literal_pathspecs: bool = False,
+        limit: int | None = None,
     ) -> bytes:
         """Run ``git <args>`` through the hardened helper and return stdout bytes."""
         return self.hardened.run(
-            *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs
+            *args,
+            env=env,
+            stdin=stdin,
+            check=check,
+            literal_pathspecs=literal_pathspecs,
+            limit=limit,
         )
+
+    # ── the bounded reads the review-tier classifier makes ──────────────────
+
+    def git_version(self) -> tuple[int, int]:
+        """The ``(major, minor)`` Git version the helper pinned."""
+        return self.hardened.git_version
+
+    def entries(self, rev: str, paths: Sequence[str]) -> dict[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for each of *paths* present at *rev*.
+
+        The paths are literal and read one level deep, in one read bounded by
+        the classifier's read limit.
+        """
+        sha = self.resolve(rev)
+        if not sha or not paths:
+            return {}
+        out = self.run(
+            "ls-tree", "-z", "--full-tree", sha, "--", *paths,
+            literal_pathspecs=True, limit=_READ_LIMIT,
+        )
+        return _ls_tree_entries(out)
+
+    def matching_entries(
+        self, rev: str, pathspecs: Sequence[str]
+    ) -> dict[str, tuple[str, str]]:
+        """``path -> (mode, object id)`` for every non-directory entry at *rev* a pathspec matches.
+
+        A diff of the tree against the empty tree, because ``ls-tree`` takes no
+        pathspec magic. One read, bounded by the classifier's read limit.
+        """
+        sha = self.resolve(rev)
+        if not sha or not pathspecs:
+            return {}
+        empty = _EMPTY_TREES.get(len(sha))
+        if empty is None:
+            raise SupervisorGitError("denied-git-failed", "the object id length is unknown")
+        out = self.run(
+            "diff-tree", "-r", "-z", "--raw", "--no-abbrev", "--no-renames", empty, sha, "--",
+            *pathspecs, limit=_READ_LIMIT,
+        )
+        tokens = out.split(b"\0")
+        found: dict[str, tuple[str, str]] = {}
+        for meta, path in zip(tokens[0::2], tokens[1::2], strict=False):
+            fields = meta.decode().split()
+            found[path.decode("utf-8", "surrogateescape")] = (fields[1], fields[3])
+        return found
+
+    def blob(self, oid: str, limit: int = _READ_LIMIT) -> bytes:
+        """The bytes of blob *oid*, refused past *limit* bytes before it is read."""
+        size = int(self.run("cat-file", "-s", oid).strip() or b"0")
+        if size > limit:
+            raise _git.SupervisorGitError(
+                "denied-git-output-too-large", f"blob {oid[:12]} holds {size} bytes"
+            )
+        return self.run("cat-file", "blob", oid, limit=limit)
+
+    def patch_id(self, base: str, result: str, path: str, limit: int = _READ_LIMIT) -> str:
+        """``git patch-id --verbatim`` of the diff of *path* from *base* to *result*."""
+        diff = self.run(
+            "diff", "--no-renames", base, result, "--", path,
+            literal_pathspecs=True, limit=limit,
+        )
+        if not diff:
+            return ""
+        out = self.run("patch-id", "--verbatim", stdin=diff, limit=limit)
+        return out.split(b" ", 1)[0].decode("ascii", "replace")
 
     # ── the commits the supervisor made ─────────────────────────────────────
 
@@ -521,11 +618,15 @@ class GitPort:
         )
         return out.decode().strip() == older
 
-    def rev_list(self, older: str, newer: str) -> list[str]:
-        """The commits reachable from *newer* and not from *older*, newest first."""
+    def rev_list(self, older: str, newer: str, limit: int | None = None) -> list[str]:
+        """The commits reachable from *newer* and not from *older*, newest first.
+
+        With *limit*, a list longer than that many bytes refuses
+        ``denied-git-output-too-large``.
+        """
         low = self.revision(older, "the older commit")
         high = self.revision(newer, "the newer commit")
-        return self.text("rev-list", f"{low}..{high}", "--").split()
+        return self.text("rev-list", f"{low}..{high}", "--", limit=limit).split()
 
     def made_only(self, run_id: str, older: str, newer: str) -> bool:
         """Whether *newer* descends from *older* through commits this run made only."""
@@ -665,23 +766,18 @@ class GitPort:
         sha = self.resolve(rev)
         if not sha:
             return {}
-        out = self.run("ls-tree", "-r", "-z", "--full-tree", sha)
-        found: dict[str, tuple[str, str]] = {}
-        for record in out.split(b"\0"):
-            if record:
-                meta, _, path = record.partition(b"\t")
-                mode, _kind, oid = meta.decode().split()
-                found[path.decode("utf-8", "surrogateescape")] = (mode, oid)
-        return found
+        return _ls_tree_entries(self.run("ls-tree", "-r", "-z", "--full-tree", sha))
 
-    def working_changes(self) -> dict[str, tuple[str, str] | None]:
+    def working_changes(
+        self, rehash: Iterable[str] = ()
+    ) -> dict[str, tuple[str, str] | None]:
         """What ``change_set`` names, each with the ``(mode, object id)`` Git would stage.
 
         ``None`` marks a removal. Read from one private index, so the paths and their entries
         come from the same read of the working tree.
         """
         excluded = (f"{self.spec_rel}/.supervisor/", ".loop-run/", f"{self.delivery_rel}/")
-        with self._private_index() as env:
+        with self._private_index(warm=True, rehash=rehash) as env:
             self.run("add", "-A", env=env)
             out = self.run(
                 "diff", "--cached", "--raw", "--no-abbrev", "-z", "--no-renames", "HEAD",
@@ -758,14 +854,17 @@ class GitPort:
 
     # ── the change set ──────────────────────────────────────────────────────
 
-    def change_set(self) -> list[str]:
+    def change_set(self, rehash: Iterable[str] = ()) -> list[str]:
         """What ``git add -A`` would stage against the current HEAD.
+
+        The spec directory and every path in *rehash* are read from their bytes, never from the
+        index's stat data, so a forged index entry cannot hide a change there.
 
         Ignored files stay out, and so do the supervisor's own local and
         durable directories, whatever the ignore rules say.
         """
         excluded = (f"{self.spec_rel}/.supervisor/", ".loop-run/", f"{self.delivery_rel}/")
-        with self._private_index() as env:
+        with self._private_index(warm=True, rehash=rehash) as env:
             self.run("add", "-A", env=env)
             out = self.run(
                 "diff", "--cached", "--name-only", "-z", "--no-renames", "HEAD", env=env
@@ -776,25 +875,139 @@ class GitPort:
     # ── the commit builder ──────────────────────────────────────────────────
 
     class _PrivateIndex:
-        def __init__(self, port: GitPort, tree: str | None = None) -> None:
+        """A throwaway index; *warm* seeds it from the work tree's own index.
+
+        With *tree*, the index starts from that tree instead of ``HEAD`` and is never warm.
+
+        A fresh ``read-tree HEAD`` index has no stat data, so ``add -A`` opens and hashes every
+        tracked file, and a scanner that taxes each open makes that minutes. The work tree's
+        index already holds the stat data, so a copy lets ``add -A`` only stat unchanged files.
+        Entries that differ from ``HEAD`` are reset to it, so the copy names the same changes
+        ``read-tree HEAD`` would. Outside the *rehash* paths it trusts the stat data in that
+        index: the hardened flags pin the stat comparison, but an index written by hand can hide
+        a change there, which is an accepted residual risk. A shape this cannot reset exactly, or
+        a copy over ``_MAX_INDEX_BYTES``, falls back to ``read-tree HEAD``.
+        """
+
+        def __init__(
+            self,
+            port: GitPort,
+            tree: str | None = None,
+            *,
+            warm: bool = False,
+            rehash: Iterable[str] = (),
+        ) -> None:
             self.port = port
+            self.warm = warm
+            # Paths whose stat data the copy must not keep: the spec directory and the caller's.
+            self.rehash = [f"{port.spec_rel}/", *rehash]
             self.path = ""
             self.tree = tree
 
         def __enter__(self) -> dict[str, str]:
+            try:
+                return self._open()
+            except BaseException:
+                self._remove()
+                raise
+
+        def _open(self) -> dict[str, str]:
             fd, self.path = tempfile.mkstemp(prefix="work-supervisor-index-")
-            os.close(fd)
-            Path(self.path).unlink()
             env = {"GIT_INDEX_FILE": self.path}
-            self.port.run("read-tree", self.tree or "HEAD", env=env)
+            if tree_start := self.tree:
+                os.close(fd)
+                Path(self.path).unlink()
+                self.port.run("read-tree", tree_start, env=env)
+                return env
+            if self.warm:
+                if self._seed(fd, env):  # closes *fd*, whatever it answers
+                    return env
+            else:
+                os.close(fd)
+            Path(self.path).unlink()
+            self.port.run("read-tree", "HEAD", env=env)
             return env
 
-        def __exit__(self, *exc: object) -> None:
+        def _seed(self, fd: int, env: dict[str, str]) -> bool:
+            """Copy the work tree's index into *fd* (closed here) and reset it to ``HEAD``.
+
+            False when it cannot. Writing through the exclusive ``mkstemp`` descriptor keeps the
+            copy off any path another user could have swapped for a link.
+            """
+            target = os.fdopen(fd, "wb")
+            source = self.port.hardened.pins.git_dir / "index"
+            try:
+                with target:
+                    if not self._copy_index(source, target):
+                        return False
+                flags = self.port.run("ls-files", "-v", "-z", env=env)
+                # Assume-unchanged (lowercase) and skip-worktree (S) entries ignore the work
+                # tree, which a ``read-tree HEAD`` index would not.
+                if any(e[:1].islower() or e[:1] == b"S" for e in flags.split(b"\0") if e):
+                    return False
+                fields = self.port.run(
+                    "diff-index", "--cached", "--raw", "--no-abbrev", "-z", "--no-renames",
+                    "HEAD", env=env,
+                ).split(b"\0")
+                lines: list[bytes] = []
+                for meta, path in zip(fields[0::2], fields[1::2], strict=False):
+                    old_mode, _mode, old_oid, _oid, status = meta.decode().lstrip(":").split()
+                    if status.startswith("U"):
+                        return False
+                    absent = old_mode == "000000"
+                    entry = f"0 {old_oid}" if absent else f"{old_mode} {old_oid}"
+                    lines.append(entry.encode() + b"\t" + path + b"\0")
+                if lines:
+                    self.port.run(
+                        "update-index", "-z", "--index-info", env=env, stdin=b"".join(lines)
+                    )
+                # Re-enter the protected paths without stat data, so ``add -A`` hashes them; the
+                # update also drops the cached tree for their directories.
+                held = self.port.run(
+                    "ls-files", "-s", "-z", "--", *self.rehash, env=env, literal_pathspecs=True
+                )
+                if held:
+                    self.port.run("update-index", "-z", "--index-info", env=env, stdin=held)
+            except (OSError, SupervisorGitError) as exc:
+                if isinstance(exc, SupervisorGitError) and exc.code != "denied-git-failed":
+                    raise
+                return False
+            return True
+
+        @staticmethod
+        def _copy_index(source: Path, target: BinaryIO) -> bool:
+            """Copy a regular, bounded index through one non-blocking, link-refusing open."""
+            flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
+            try:
+                fd = os.open(source, flags)
+            except OSError:
+                return False
+            with os.fdopen(fd, "rb") as original:
+                if not stat.S_ISREG(os.fstat(original.fileno()).st_mode):
+                    return False
+                if os.fstat(original.fileno()).st_size > _MAX_INDEX_BYTES:
+                    return False
+                data = original.read(_MAX_INDEX_BYTES + 1)
+            if len(data) > _MAX_INDEX_BYTES:
+                return False
+            target.write(data)
+            return True
+
+        def _remove(self) -> None:
             for suffix in ("", ".lock"):
                 Path(self.path + suffix).unlink(missing_ok=True)
 
-    def _private_index(self, tree: str | None = None) -> GitPort._PrivateIndex:
-        return GitPort._PrivateIndex(self, tree)
+        def __exit__(self, *exc: object) -> None:
+            self._remove()
+
+    def _private_index(
+        self,
+        tree: str | None = None,
+        *,
+        warm: bool = False,
+        rehash: Iterable[str] = (),
+    ) -> GitPort._PrivateIndex:
+        return GitPort._PrivateIndex(self, tree, warm=warm, rehash=rehash)
 
     @staticmethod
     def _stamp(when: str) -> str:
