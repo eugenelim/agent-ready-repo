@@ -10,8 +10,8 @@ follows.
 1. **Find the run.** When `<spec-dir>/delivery/approvals.jsonl` exists, a run was
    admitted. Run `python '<skill-dir>/scripts/work-supervisor.py' status <spec-dir> --json`
    and read `run.run_id`, `run.stage`, `terminal`, `retry_count`, `tasks`, `request`,
-   and `refusal`. A refusal in the answer is the first thing to deal with: read its
-   `code`, `owner`, and `detail`, and follow [`supervisor.md`](supervisor.md).
+   and `refusal`. What to do next is the first matching row of the routing table in
+   step 3; the answer's `route` field carries that row's string.
 2. **Read the artifact statuses before acting on the stage.** If `spec.md` is
    `Draft` or `plan.md` is `Drafting`, no run exists yet; resume PLAN and the
    approvals. If both are `Approved` and no `approvals.jsonl` exists, the humans
@@ -25,16 +25,19 @@ follows.
    entry for this spec. A `pending` entry still waits: it is not an approval. A
    `stale` entry is re-reviewed and parked again, and an `invalid` one is parked
    again too. Never run `start` from a listing.
-3. **Route by what `status` shows.**
+3. **Route by what `status` or `next` shows.** The first match wins, top to bottom.
 
-   | `status` shows | Action |
-   | --- | --- |
-   | `terminal: true` | The run is ready or ended. Run `status --check`, then the Finish checklist and PR if they are not done. |
-   | a `request` of a worker kind | Answer it. A request is re-issued, with the same identity, until its result is reported, so run `next` and answer what it returns. |
-   | a `human-decision` request | Wait for the named human, then report only the answers [`supervisor.md`](supervisor.md) lists for that reason. |
-   | a `refusal` | Follow its `owner`, and look its `code` up in [`supervisor.md`](supervisor.md#refusals-and-their-owners). |
-   | `retry_count` at the cap | The run is stopped. Surface it; no replan or approval resets it. |
-   | `recovery_leftovers` not empty | Remove each named path or restore it to `HEAD`, then `next`. |
+   | Order | Verb | Shape | `route` string |
+   | --- | --- | --- | --- |
+   | 1 | status, next | cap: `status` on a non-terminal run with `retry_count` at or above the cap; `next` with the `retry-cap` human decision | `Retry cap reached: stop and surface it; no replan or approval resets it.` |
+   | 2 | status, next | refusal with code `recovery-leftovers` | `Remove or restore the paths the refusal detail names, then run next.` |
+   | 3 | status, next | any other top-level refusal | `Refused (<code>, owner: <owner>): see supervisor.md, Refusals and their owners.` |
+   | 4 | status | pending regenerate step | `Run next: it commits the pending regenerate step.` |
+   | 5 | status, next | terminal | `Run status --check, then the Finish checklist and PR.` |
+   | 6 | status, next | any other open `human-decision` request | `Read this request's reason under Human decisions in supervisor.md: a named human answers some; for the rest fix the cause, then run next.` |
+   | 7 | status | any other open request | `Run next and answer the request it issues.` |
+   | 7 | next | any other request | `Answer the request, write the result outside the spec directory, then run report <spec-dir> <result.json>.` |
+   | 8 | status | none of the above | `Run next.` |
 
 4. **Do not re-run completed steps.** Every admitted step is a Git commit; `next`
    never reissues a task whose commits and receipts show it complete for its

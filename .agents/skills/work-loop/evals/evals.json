@@ -1640,6 +1640,19 @@
         "Response names both fired triggers as tokens",
         "Response refuses to add or change the Risk triggers: line on a spec past Draft"
       ]
+    },
+    {
+      "id": "undispatchable-reviewer-follows-roster-rule",
+      "prompt": "I am in a full-mode review. The diff warrants the `adversarial-reviewer`, but no installed subagent matches that role, so I cannot dispatch it. The work-loop skill has a single-agent fallback section; can I review the diff myself under that fallback and carry on to readiness?",
+      "expected_output": "No. The single-agent fallback only covers a missing `implementer`, not a reviewer. A missing reviewer follows the reviewer rule in the skill's REVIEW step and the `fallback` and `mandatory_when` fields in `review-rules.json`. The `adversarial-reviewer` is mandatory under its `mandatory_when` field, so record its outcome as `missing`, emit `BLOCKED`, and stop readiness; do not turn it into a summary-only review or a named skip. Only an absent non-mandatory reviewer may proceed as a named skip.",
+      "assertions": [
+        "Says the single-agent fallback section only covers a missing `implementer`, not a reviewer",
+        "Follows the REVIEW step's reviewer rule and the `fallback` and `mandatory_when` fields in `review-rules.json`",
+        "Records the absent mandatory reviewer's outcome as `missing`",
+        "Emits `BLOCKED` and stops readiness",
+        "Does not replace the missing mandatory reviewer with a self-review, a summary-only review, or a named skip",
+        "Says only an absent non-mandatory reviewer may proceed as a named skip"
+      ]
     }
   ]
 }

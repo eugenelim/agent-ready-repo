@@ -667,11 +667,15 @@ def _adoption_request(ws: Workspace) -> dict[str, Any]:
 
 
 def _validate_result(result: object) -> dict[str, Any]:
-    if not isinstance(result, dict) or result.get("schema_version") != SCHEMA_VERSION:
-        raise Refusal("invalid-result", "controller", "result must be an execution-result.v1")
+    if not isinstance(result, dict):
+        raise Refusal("invalid-result", "controller", "result must be a JSON object")
+    if result.get("schema_version") != SCHEMA_VERSION:
+        raise Refusal("invalid-result", "controller", "result schema_version must be 1")
     for key in ("request_id", "run_id", "kind"):
         if not isinstance(result.get(key), str) or not result[key]:
-            raise Refusal("invalid-result", "controller", f"result {key} is missing")
+            raise Refusal(
+                "invalid-result", "controller", f"result {key} must be a non-empty string"
+            )
     return result
 
 
