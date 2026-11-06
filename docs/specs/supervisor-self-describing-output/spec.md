@@ -27,7 +27,7 @@ A controller driving a full-mode run, on any model, gets the answer to its next 
 - `--json` is accepted on every `work-supervisor.py` verb — `scripts/work-supervisor.py`
 - Every `status` and `next` answer carries a one-line `route` naming the next action — `scripts/work-supervisor.py`
 - The routing decision has one written home, a first-match table — `references/session-resumption.md`
-- `invalid-result` from `report` names the field that failed — `scripts/_supervisor_loop.py`
+- `invalid-result` from `report` for a malformed result envelope names the field that failed — `scripts/_supervisor_loop.py`
 - The single-agent fallback section points an undispatchable reviewer role at the existing reviewer rule — `references/supervisor-mode.md`
 - The reference documents describe `--json` and `route` — `references/supervisor.md`, `references/state-schema.md`
 - One eval case covers the reviewer fallback — `evals/evals.json`
@@ -67,7 +67,7 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 ## Testing Strategy
 
 - **Supervisor answers: `--json`, `route` and the routing table's strings (AC-0001, AC-0002, AC-0003, AC-0004, AC-0005, AC-0006, AC-0007, AC-0008)** use TDD through `main(argv)` on the supervisor test harness, because each is a deterministic answer over a run state. The git-backed cases are integration-gated and run by the Gate A-supervisor lane; the string, length and detail checks are ungated unit tests.
-- **The `invalid-result` refusal text (AC-0009, AC-0010)** uses TDD at `loop.report` and `_validate_result`, because the detail is a pure function of the result sent.
+- **The `invalid-result` refusal text for a malformed result envelope (AC-0009, AC-0010)** uses TDD at `loop.report` and `_validate_result`, because the detail is a pure function of the envelope sent. Other `invalid-result` paths, such as the accept-risk decision check in `_supervisor_review.py`, are not changed here.
 - **Reference sentences and the routing table's rows (AC-0011, AC-0012, AC-0013, AC-0014, AC-0015, AC-0016, AC-0017)** use goal-based pin tests that read the reference files, because each criterion is the presence or absence of a stated sentence or row.
 - **The eval case (AC-0018)** uses a goal-based pin test that loads `evals/evals.json`, because the criterion is the presence of one case.
 - **Release (AC-0019, AC-0020, AC-0021)** uses goal-based checks: the release checker and the roster file that reads `_RELEASED["core"]`.
@@ -82,8 +82,8 @@ All paths above are under `packs/core/.apm/skills/work-loop/` except the three r
 - [ ] **AC-0006.** A `route` contains no `detail` text from a refusal.
 - [ ] **AC-0007.** A `route` is 160 characters or fewer.
 - [ ] **AC-0008.** `status --check` exits with the same codes as before `route` existed.
-- [ ] **AC-0009.** `report` refuses with `invalid-result` and a detail that names the failing field and states its required form when the result is not a JSON object, when `schema_version` is not equal to 1, or when `request_id`, `run_id` or `kind` is not a non-empty string.
-- [ ] **AC-0010.** An `invalid-result` detail from `report` contains no non-empty value the controller sent, except where that value falls inside the detail's fixed field name and required-form text.
+- [ ] **AC-0009.** `report` refuses a malformed result envelope with `invalid-result` and a detail that names the failing field and states its required form; the malformed envelopes are a result that is not a JSON object, a `schema_version` not equal to 1, and a `request_id`, `run_id` or `kind` that is not a non-empty string.
+- [ ] **AC-0010.** The `invalid-result` detail that `report` gives for a malformed result envelope contains no non-empty value the controller sent, except where that value falls inside the detail's fixed field name and required-form text.
 - [ ] **AC-0011.** `references/supervisor-mode.md` § Single-agent fallback sends an undispatchable reviewer role to `SKILL.md` § Step 4. REVIEW and to the `fallback` and `mandatory_when` fields of `review-rules.json`.
 - [ ] **AC-0012.** `references/supervisor-mode.md` § Single-agent fallback restates no part of the reviewer rule that `SKILL.md` and `review-rules.json` hold.
 - [ ] **AC-0013.** `references/session-resumption.md` holds a routing table for the `status` and `next` shapes with a first-match order and one row per shape.
