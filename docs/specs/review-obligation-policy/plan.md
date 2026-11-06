@@ -252,6 +252,17 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 **Done when:** `test_review_tiers.py`, `test_review_carry.py`, `test_supervisor_git.py`, `test_review_obligation_policy.py` (integration), the review suites, and `make lint-ruff lint-mypy` pass.
 
+### T8: Release version follows main
+
+**Depends on:** T7
+
+**Touches:** packs/core/pack.toml, packs/core/.claude-plugin/plugin.json, docs/product/changelog.d/5c12600f-3dfc-48e8-85cf-cabd83f06106.md, tests/roster/test_registry_upgrade_notes.py
+
+**Tests:**
+- AC-0034: after `git fetch origin`, `tools/check-core-release.py --base origin/main` reports the release consistent; the manifests, the changelog fragment's version and anchor, and the registry-notes pin all name the patch successor of `origin/main`'s Core version.
+
+**Done when:** `check-core-release` passes and `tests/roster/test_registry_upgrade_notes.py` passes.
+
 ## Rollout
 
 - **Delivery:** one Core patch. A run started before the upgrade stops with `supervisor-changed` (existing behaviour) or keeps today's review through its protection-unknown selection lines.
