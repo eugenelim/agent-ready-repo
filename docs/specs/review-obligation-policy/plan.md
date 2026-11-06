@@ -287,6 +287,17 @@ Each task's `Tests:` names its suites; the integration flows all run in the supe
 
 **Done when:** `test_review_tiers.py` and lint pass.
 
+### T11: Wording-only accepts plain text only
+
+**Depends on:** T10
+
+**Touches:** packs/core/.apm/skills/work-loop/scripts/_review_tiers.py, packs/core/tests/skills/work-loop/test_review_tiers.py
+
+**Tests:**
+- AC-0004: a file is wording-only only when both revisions hold nothing but printable characters, newline, and tab, and no line's first non-blank character is `<`, a backtick, or `~`; regression fixtures for a carriage-return-only file, a raw HTML `<pre>` block, a leading byte-order mark, and the earlier fence inputs all classify `full`, and a plain prose edit stays wording-only.
+
+**Done when:** `test_review_tiers.py` and lint pass.
+
 ## Rollout
 
 - **Delivery:** one Core patch. A run started before the upgrade stops with `supervisor-changed` (existing behaviour) or keeps today's review through its protection-unknown selection lines.
