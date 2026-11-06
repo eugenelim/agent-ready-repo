@@ -2,7 +2,7 @@
 
 - **Spec:** [`spec.md`](spec.md)
 - **Status:** Drafting
-- **Repository anchors:** the analog is `status`, the one verb that already takes `--json` (`work-supervisor.py` `_parser`) and builds its answer in `_supervisor_loop.status`; refusal text is built in `_validate_result`; dispatch findings take their `next_action` from `_FINDING_NEXT_ACTIONS` through `make` in `dispatch.py`; tests drive `main(argv)` through `tests/skills/work-loop/supervisor_harness.py` and `test_dispatch.py`. Named uncertainty: which test file already pins the section hashes of `supervisor-mode.md`; T5 finds it by running the three `tools/` pin suites.
+- **Repository anchors:** the analog is `status`, the one verb that already takes `--json` (`work-supervisor.py` `_parser`) and builds its answer in `_supervisor_loop.status`; refusal text is built in `_validate_result`; dispatch findings take their `next_action` from `_FINDING_NEXT_ACTIONS` (`_header_readiness.py`) through `make` in `dispatch.py`; tests drive `main(argv)` through `tests/skills/work-loop/supervisor_harness.py` and `test_dispatch.py`. Named uncertainty: none; the suite that reads § Single-agent fallback is `tests/roster/test_sequential_implementer_dispatch_contract.py`.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
 > change needs an **amendment** only when it touches the spec's protected
@@ -35,10 +35,10 @@ Five small, independent output changes and one release. T1 to T3 edit `work-supe
 ### Behavior & rules
 Traces to: the route, `invalid-result` and `Shipped` criteria. Owned by: T2, T3, T4.
 
-`route` precedence, first match wins, each a fixed string of 160 characters or fewer:
+`route` is computed once, in `work-supervisor.py`, by one helper that every `status` emission passes through: the answer `loop.status` builds, the `supervisor-changed` pin refusal on `status`, and the unsupported-ref-storage refusal on `status`. Precedence follows `status --check`, first match wins, each a fixed string of 160 characters or fewer:
 
-1. Standing refusal: `Refused (<code>, owner: <owner>): see supervisor.md, Refusals and their owners.` The refusal `detail` is never included.
-2. `retry_count` at `retry_cap` on a non-terminal run: `Retry cap reached: stop and surface it; no replan or approval resets it.`
+1. A non-terminal run whose `retry_count` is at or above `implementation_retry_cap` (read from the workspace policy, so the refusal branch needs no new key): `Retry cap reached: stop and surface it; no replan or approval resets it.`
+2. Standing refusal: `Refused (<code>, owner: <owner>): see supervisor.md, Refusals and their owners.` The refusal `detail` is never included.
 3. Non-empty `recovery_leftovers`: `Remove or restore each path in recovery_leftovers, then run next.`
 4. A pending regenerate step: `Run next: it commits the pending regenerate step.`
 5. Terminal: `Run status --check, then the Finish checklist and PR.`
@@ -46,9 +46,11 @@ Traces to: the route, `invalid-result` and `Shipped` criteria. Owned by: T2, T3,
 7. Any other open request: `Run next and answer the request it issues.`
 8. Otherwise: `Run next.`
 
-`invalid-result` messages from `_validate_result`: `result must be a JSON object`; `result schema_version must be the integer 1`; `result <field> must be a non-empty string` for `request_id`, `run_id`, `kind`. None repeats a received value.
+The two early refusals carry no run view, so only row 2 applies to them.
 
-The `Shipped` finding keeps code `impossible_transition`; its `next_action` reads: `A Shipped spec is frozen. Start follow-up work as a new spec; when it supersedes part of this one, record that in this spec's Status line rather than editing its body.` Applied in `_refusal` when the target's status is `Shipped`, in both modes, by replacing `next_action` on the dict `make` returns.
+`invalid-result` messages from `_validate_result`: `result must be a JSON object`; `result schema_version must be 1`; `result <field> must be a non-empty string` for `request_id`, `run_id`, `kind`. None repeats a received value.
+
+The `Shipped` finding keeps code `impossible_transition`; its `next_action` reads: `A Shipped spec is frozen. Start follow-up work as a new spec. If the new work reverses part of this one, write a decision record and set this spec's Status line to Shipped (superseded in part by ADR-NNNN — <what changed>; everything else stands); edit nothing else.` In `_refusal` it applies to a named `--start` or `--resume` target that is in `cooled_paths` (a cooled spec is a `Shipped` spec whose lifecycle record has cooled; its body is never opened) or whose status is `Shipped`, by replacing `next_action` on the dict `make` returns. This breaks the dispatch rule that a printed `next_action` equals its table entry for this one case; T4 names it as the exception in the table-pair test.
 
 ### Interfaces & contracts
 Traces to: the `--json` criterion. Owned by: T1.
@@ -73,7 +75,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- TDD, at `loop.report`: a non-object result, a `schema_version` of the string `"execution-result.v1"`, and each of `request_id`, `run_id`, `kind` missing or empty refuse `invalid-result`; each detail names its field and the required form; no detail contains the sent value (AC-0005).
+- TDD, at `loop.report`: a non-object result, a `schema_version` of the string `"execution-result.v1"`, a `schema_version` of `2`, and each of `request_id`, `run_id`, `kind` missing, empty or not a string refuse `invalid-result`; each detail names its field and the required form; no detail contains the sent value (AC-0005). The check itself is unchanged, so the tests assert no behavior for `true` or `1.0`.
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_loop.py`, `packs/core/tests/skills/work-loop/test_supervisor_results.py`
 
@@ -84,7 +86,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T1
 
 **Tests:**
-- TDD, at `main(["status", ...])`: one case per route row in the design, checking the string, its length at or under 160, and that a refusal's `detail` text is absent (AC-0002, AC-0003); `status --check` exit codes equal the values the existing tests already assert (AC-0004).
+- TDD, at `main(["status", ...])`: one case per route row in the design, plus one case each for the `supervisor-changed` refusal and the unsupported-ref-storage refusal, and one for a run that is both capped and refused (route names the cap); each checks the string and its length at or under 160, and that a refusal's `detail` text is absent (AC-0002, AC-0003); `status --check` exit codes equal the values the existing tests already assert (AC-0004).
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/work-supervisor.py`, `packs/core/tests/skills/work-loop/test_supervisor_status_route.py`
 
@@ -95,7 +97,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** none
 
 **Tests:**
-- TDD, at `dispatch.py` with `--start` and `--resume` on a `Shipped` spec: code is `impossible_transition`, `next_action` names a new spec and the Status-line pointer (AC-0006). A cooled path and an `Implementing` start refusal keep the old `next_action` (AC-0007).
+- TDD, at `dispatch.py` with `--start` and `--resume` on a `Shipped` spec and on a cooled spec: code is `impossible_transition`, `next_action` names a new spec, a decision record and the `Shipped (superseded in part by ADR-NNNN …)` form (AC-0006). A `--start` on an `Implementing` spec and a `--resume` on an `Approved` spec keep the table `next_action` (AC-0007). `test_every_finding_dispatch_prints_is_a_table_pair` gains a named exception for the Shipped route text.
 
 **Touches:** `packs/core/.apm/skills/work-loop/scripts/dispatch.py`, `packs/core/tests/skills/work-loop/test_dispatch.py`
 
@@ -106,11 +108,11 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 **Depends on:** T1, T3
 
 **Tests:**
-- Goal-based: a pin test asserts the reviewer sentence in `supervisor-mode.md` § Single-agent fallback (AC-0008), the `--json` and `route` statements in `supervisor.md`, and `route` in the `status` key lists of `state-schema.md` and `session-resumption.md` (AC-0009).
+- Goal-based: a pin test asserts that `supervisor-mode.md` § Single-agent fallback points an undispatchable reviewer role at `SKILL.md` and holds no `BLOCKED` text (AC-0008), that `supervisor.md` states `--json` goes after the verb and defines `route`, that `state-schema.md` lists `route` among the `status` keys, and that `session-resumption.md` names `route` among the keys it reads (AC-0009).
 
 **Touches:** `packs/core/.apm/skills/work-loop/references/supervisor-mode.md`, `packs/core/.apm/skills/work-loop/references/supervisor.md`, `packs/core/.apm/skills/work-loop/references/state-schema.md`, `packs/core/.apm/skills/work-loop/references/session-resumption.md`, `packs/core/tests/skills/work-loop/test_supervisor_self_description_guidance.py`
 
-**Done when:** the pin test is green, and `tools/test_workspace_status.py` still passes or its work-loop section hashes are re-pinned in this task.
+**Done when:** the pin test and `tests/roster/test_sequential_implementer_dispatch_contract.py` are green.
 
 ### T6: Eval cases
 
@@ -121,7 +123,7 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 **Touches:** `packs/core/.apm/skills/work-loop/evals/evals.json`
 
-**Done when:** `python3 -c "import json;json.load(open('packs/core/.apm/skills/work-loop/evals/evals.json'))"` exits 0 and a count shows 143 cases with unique ids.
+**Done when:** `python3 -c "import json;json.load(open('packs/core/.apm/skills/work-loop/evals/evals.json'))"` exits 0, all `id` values are unique, and the two new ids are present.
 
 ### T7: Release the `core` patch
 
@@ -139,11 +141,12 @@ Each verb parser gains `--json` as `store_true`, read by nothing: every verb alr
 
 ## Rollout
 
-Ships as one patch release of `core`. Reversible by revert. Closeout, after `terminal`: rebuild projections, then run `tools/test_workspace_status.py`, `tools/test_workspace_status_cli.py`, `tools/test_local_ci_shared_test_deduplication.py`, `tests/roster/test_registry_upgrade_notes.py` and `tests/roster/test_workspace_retirement_inventory.py`; a ledger or note in this spec directory that names retired workspace files needs an inventory row.
+Ships as one patch release of `core`. Reversible by revert. Closeout, after `terminal`: rebuild projections, then run `tests/roster/test_sequential_implementer_dispatch_contract.py`, `tools/test_workspace_status.py`, `tools/test_workspace_status_cli.py`, `tools/test_local_ci_shared_test_deduplication.py`, `tests/roster/test_registry_upgrade_notes.py` and `tests/roster/test_workspace_retirement_inventory.py`; a ledger or note in this spec directory that names retired workspace files needs an inventory row.
 
 ## Risks
 
 - A caller compares a whole `status` object: mitigated by the additive key and unchanged status tests.
+- Models filter `status` output, so `route` may go unseen: accepted; the spec records it as unmeasured.
 - Main ships `core` while the run is open: T7 takes the next patch above fetched main and re-checks before push.
 - The installed copy is stale for pinned-script edits until Closeout: roster projection tests fail until then and are excused.
 
