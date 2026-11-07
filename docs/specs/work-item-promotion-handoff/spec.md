@@ -17,7 +17,7 @@
 > **Not every section is contract.** `Agent Rules`, `Testing Strategy` and
 > `Acceptance Criteria` are what a completion gate reads, and an amendment
 > changes them. `## Decisions this spec makes` is contract on the same footing:
-> criteria dereference § D1, D2, D4–D11 for their meaning, so those decisions
+> criteria dereference § D1, D2, D3, D4–D11 for their meaning, so those decisions
 > change only by amendment. `Outcome`, `What Changes`, `Durable Outputs`,
 > `Follow-ons` and `Assumptions` are working material: they orient a reader and
 > an author corrects them in place as the work teaches, without an amendment
@@ -52,6 +52,12 @@ dispositions an informed reader would dispute.
 - **Durable surfaces** — the work-item reference guide entry, the
   knowledge-capture architecture entry, and `docs/architecture/security.md`,
   which records the § D10 prose residual as settled by this spec's read path.
+- **Follow-up hardening (post-review)** — four sustained findings from the
+  merged delivery's review: a route with no dispatch wired holds instead of
+  recording `routed` (`AC-0025`); a classification is validated against the
+  classify table's six members (`AC-0026`); the superseded closure ground's
+  mechanical test runs in the drain (`AC-0027`); a stale workspace lock is
+  recovered so the re-run completes (`AC-0028`).
 
 ## Boundaries
 
@@ -129,6 +135,54 @@ trivially. The duplicate-coverage offer sits outside the unit: a human gate
 ahead of materialization, whose acceptance enters the sequence at the
 transaction.
 
+A route commit requires a real processor dispatch. A drain invoked with no
+dispatch wired — no `transact` override and no `dispatch_processor` — holds
+the item and records no disposition, on both route branches, and the hold
+precedes every transaction effect: no lock is taken, no artifact is
+materialized. A `routed`
+disposition with no handoff is exactly the unrepairable state this section's
+ordering exists to prevent, and a silent no-op default must not be able to
+reach it. The work-intake procedure supplies the real dispatch; its § 8
+records how the operator wires it at invocation. A transaction or
+disposition-write failure — a failed processor dispatch, a lock-busy
+acquisition, a store-refused disposition write — holds the item with the
+failing stage or refusing control named in the run report; no failure of
+that kind aborts the run or writes a terminal event.
+
+The workspace-writer lock the transaction takes must not outlive its owner.
+A lock left by a process that no longer exists is stale, and the transaction
+recovers it — the lock records its owner's pid, and a stale owner is
+detected by liveness probe; the removal re-verifies, immediately before the
+unlink, that it removes the same lock it probed — same inode, same pid
+payload — and refuses with lock-busy when the lock changed underneath,
+patterned on the sibling `intent_rename.py` `_normalise_old_claim` defense —
+then acquisition is retried once, so the
+re-run this section names as the one recovery path completes instead of
+returning lock-busy forever. A lock whose owner is alive is never taken; a
+reused pid is bounded by the lock's short critical section and is recorded
+as a residual risk, not a recovery trigger. A file at the lock path that
+is not a regular file — a symlink, a FIFO, a device — is alien, never
+probed and never removed, the sibling pattern's discipline; the
+acquisition's payload read is no-follow, non-blocking, and bounded. The re-verify-to-unlink window
+itself is a bounded residual on the same terms: two concurrent recoverers
+that both verify against the same stale lock before either acts can still
+race — the pattern the sibling writers' refusals name — and the token-keyed
+reclaim `project-knowledge`'s own `_statelock.py` uses would close it, but
+that changes the shared lock's payload protocol every taker reads, and so
+belongs to the lock protocol's owner, not this spec. A lock whose payload
+carries no
+parseable pid is never removed — its owner is treated as live — and the
+transaction's own acquisition closes the create-then-write window — the
+lock is published by an atomic link of a pid-complete temporary file, the
+sibling `_acquire_claim` link-publication step; the temporary's
+holder-unique name — pid and a random token, created fresh on every
+acquisition — is this spec's own mechanism, so
+concurrent acquirers never collide on it and a killed creator's orphan
+never blocks a later acquisition; every
+lock it leaves carries its pid; a foreign pid-less lock left by a writer
+killed mid-acquisition is a disclosed residual requiring manual removal,
+strictly narrower than the permanent wedge this rule removes.
+
 ### D2 — `work_item.shape` selects the route family; per-shape fields select within it
 
 - `defect` routes to the defect processor (`bug-fix`), gated on § D10's
@@ -157,6 +211,15 @@ routes automatically at capture time. The drain derives work-intake's
 bounded signals from the record's structured fields and hands them to the
 existing classification; it holds only the shape-to-family mapping § D2
 fixes, which is this spec's rule, and no per-shape routing table of its own.
+
+The classification's output is a member of work-intake's classify table, by
+name: one of `direct-light`, `spec`, `brief`, `remember`, `defect`,
+`incomplete` — the six shapes that table's § 4 rows fix, each naming the
+row, not a free string. An output that is not one of the six is not a
+classification: the item is held as unroutable (§ D2), never routed on a
+string no table row owns. A member whose row is non-dispatchable —
+`remember`, `incomplete` — holds the item the same way, because no route
+exists for the drain to commit (§ D1's dispatch rule above).
 
 ### D4 — the read path re-runs all three write-time prose controls before the record influences anything
 
@@ -191,11 +254,37 @@ carried as data and has already passed the re-run scan.
   state. The closure records what was run or read and what it showed.
 - **Superseded** — a later capture or an existing live artifact records the
   same work. Test: the cited capture id resolves in the store, or the cited
-  artifact path exists and is live. The closure records the citation.
+  artifact path exists — a mechanical test the drain itself
+  runs before the disposition commits; a superseded closure whose citation
+  resolves nowhere is refused, whatever the operator attests. The closure
+  input for this ground carries the citation as a required field —
+  `citation` holding one of `{"capture_id": <id>}` or
+  `{"path": <repository-relative path>}` — and an absent citation resolves
+  nowhere and is refused. The path is resolved within the repository root,
+  symlinks followed — this spec's own confinement standard (§ D7): a path
+  escaping it — a `..` traversal that resolves outside the root, an
+  absolute form, or a symlink whose target resolves outside the root —
+  resolves
+  nowhere and is refused the same way. That an existing artifact is live —
+  not withdrawn,
+  tombstoned, or itself superseded — is the operator's attestation, riding
+  the closure's evidence; the drain's mechanical check is resolution and
+  existence, never liveness. The operator's `test_passes` verdict remains a
+  veto on every ground, this one included: a false verdict refuses the
+  closure even when the citation resolves, and a resolving citation is
+  additionally required, so both gates must pass. The closure
+  records the citation.
 - **Falsified** — the premise the item rested on no longer holds. Test: the
   change that falsified it is named — a commit, an artifact state, an
   answered question — and the item's own evidence corroborates it. The
   closure records the named change and the corroboration.
+
+Who runs each test: the superseded ground's test is mechanical and the
+  drain's — it holds the store and can resolve the citation itself, and a
+  closure proposal on that ground is refused when the citation resolves
+  nowhere. The overtaken and falsified grounds' tests are the operator's:
+  the operator runs or reads what the ground names and supplies the verdict,
+  and the drain records that verdict and the evidence, never re-deriving it.
 
 Where the closure's record lives: the ground rides the disposition's reason
 code, and no evidence citation rides beside it — § D6's enumeration of
@@ -411,6 +500,21 @@ requires. The scenarios below state how each is driven.
 - **`AC-0003`, `AC-0004` — goal-based check, store replay after a drain:**
   both are derived from the store alone, which is the property being
   claimed.
+- **`AC-0025`, `AC-0026` — TDD, unit:** each is a pure decision over the
+  drain's own inputs — a missing dispatch seam, a classification string —
+  asserted through the drain's held/routed outcome, the store's absence of a
+  terminal event, and the absence of transaction effects (no artifact, no
+  lock).
+- **`AC-0027` — TDD, unit, against a real store:** the superseded ground's
+  test resolves a citation against the store, so the check seeds a store and
+  closes against a resolving, a non-resolving, and an absent citation.
+- **`AC-0028` — TDD, unit, against a real lock file:** liveness and retry are
+  filesystem and process properties, asserted by writing a stale lock with
+  a dead pid and a live lock with the running pid; the atomic publication
+  is asserted by fault-injecting the link step — no lock exists at the
+  path and no temporary is left behind — and by a successful publication
+  leaving no temporary behind; an orphaned temporary — one its killed
+  creator never linked — is asserted not to block a later acquisition.
 - **`AC-0001`, `AC-0002` — visual / manual QA, the named adjudicator over
   the rubric below:** the disposition judgement is the adjudicator's, not a
   function's.
@@ -457,6 +561,30 @@ requires. The scenarios below state how each is driven.
   test failing; assert each closure is refused (`AC-0003`). This is the half
   the adjudicator sample cannot reach, because a refused closure produces no
   disposition to sample.
+- Run the drain with no `transact` override and no `dispatch_processor`, over
+  a routable question and a ready defect; assert each is held with the
+  missing dispatch named, and no terminal disposition exists in the store
+  (`AC-0025`).
+- Classify a question with an output that is not one of the six members, and
+  with each non-dispatchable member; assert each is held as unroutable, and
+  that each dispatchable member still routes (`AC-0026`).
+- Close an item on the superseded ground with a cited capture id that
+  resolves, then with a capture id that resolves nowhere, then with a path
+  that does not exist, then with a path that escapes the repository root
+  lexically, then with a repository-relative symlink whose target resolves
+  outside the root, then with no citation at all; assert the first closes
+  and the second through sixth are refused by the drain itself
+  (`AC-0027`).
+- Write a workspace lock holding a pid that no longer exists; assert the
+  transaction recovers it and completes; that a fresh lock taken between the
+  probe and the removal is refused, not removed; that a lock holding a
+  live pid, or no parseable pid, is never taken; that a non-regular file
+  at the lock path is never probed and never removed; and that
+  fault-injecting
+  the acquisition's link step leaves no lock at the path and no temporary
+  behind; a successful publication leaves no temporary behind; and an
+  orphaned temporary — one its killed creator never linked — does not
+  block a later acquisition (`AC-0028`).
 - Add a row to `docs/specs/work-item-capture/spec.md` § D6 cases and assert
   the pre-execution re-check drives it without any edit here (`AC-0017`).
 - Drain a governance-shaped item while no governance route exists; assert it
@@ -489,8 +617,12 @@ and the original work behind it and judges:
 1. A **routed** item by whether the destination is the one the record's
    fields select under § D2 and work-intake's classify table.
 2. A **held** item by whether no shape fits, or a named check refuses it —
-   readiness (§ D10), the pre-execution re-check, an envelope refusal, or a
-   prose re-run refusal (§ D4).
+   readiness (§ D10), the pre-execution re-check, an envelope refusal, a
+   prose re-run refusal (§ D4), a non-dispatchable classify member (§ D3),
+   a missing processor dispatch (§ D1), a refused closure citation
+   (§ D5), a failed processor dispatch, a lock-busy acquisition, or a
+   store-refused disposition write — the last three being failures § D1
+   requires to hold the item with its reason named in the run report.
 3. A **closed** item by whether the stated ground holds under § D5's test,
    with the recorded evidence.
 
@@ -581,6 +713,34 @@ verifies the criteria below mechanically.
 - [ ] **AC-0024.** Record prose reaches every reasoning or classification step
       as delimited data, and no record field is interpolated into instruction
       position.
+- [ ] **AC-0025.** A route committed with no processor dispatch wired — no
+      `transact` override and no `dispatch_processor`, on either route branch
+      — holds the item with no transaction effect — no lock taken, no
+      artifact materialized — and records no terminal disposition (§ D1).
+- [ ] **AC-0026.** A question whose classification is not one of the six
+      classify-table members, or names a non-dispatchable member, is held as
+      unroutable (§ D3, extending `AC-0006`).
+- [ ] **AC-0027.** A superseded closure whose citation is absent, or whose
+      citation is a capture id that resolves nowhere, or whose citation is
+      a path that does not exist or that escapes the repository root, is
+      refused by the drain itself
+      (§ D5, extending `AC-0003`); the liveness of a cited artifact is the
+      operator's attestation, and overtaken and falsified closures remain
+      operator-attested.
+- [ ] **AC-0028.** A workspace lock left by a process that no longer exists
+      is recovered by the transaction, and the re-run completes the sequence
+      (§ D1, extending `AC-0005`); the removal re-verifies the lock's
+      identity — same inode, same pid payload — immediately before the
+      unlink and refuses when the lock changed underneath; a lock whose
+      owner is alive, or whose payload carries no parseable pid, is never
+      taken, and a non-regular file at the lock path — a symlink, a FIFO,
+      a device — is never probed and never removed; and the transaction's
+      own acquisition publishes the lock
+      atomically — a pid-complete temporary file, unique to its holder,
+      linked into place — so a
+      lock it leaves always carries its owner's pid; the temporary is
+      unlinked immediately after publication and on link failure, and an
+      orphaned temporary never blocks a later acquisition.
 
 ## Follow-ons
 
@@ -595,6 +755,17 @@ verifies the criteria below mechanically.
 - The § D12 adjudicated sample: owner eugenelim — runs on the first drain the
   real store offers ten items; until capture traffic exists the measurement
   is gated, with the rubric in place above.
+- Stale-lock recovery for the lock takers outside the shared transaction —
+  `workspace-status`'s `workspace_status.py` and work-intake's
+  `refresh.py` each take the same lock file with their own acquisition and
+  refuse PID-probe recovery, each recording its own reason; the recovery
+  `AC-0028` adds lands in the shared `_acquire_workspace_lock` and so
+  reaches every `run_intake_transaction` caller — work-intake's § 5
+  artifact-creating flows included. `intent_rename.py` already recovers its
+  own dead-owner locks (`_normalise_old_claim`, the pattern `AC-0028`
+  follows); the remaining gap is each foreign taker's recovery of locks
+  other writers leave. Owner: eugenelim, routed when a writer outside the
+  transaction wedges on a foreign stale lock.
 
 ## Assumptions
 

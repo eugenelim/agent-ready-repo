@@ -215,7 +215,10 @@ def test_base_spec_show_timeout_skips_diff_invariants_for_unchanged_specs(
 
     assert hard == []
     assert calls == [module.GIT_TIMEOUT_S, module.GIT_TIMEOUT_S], warn
-    assert sum("diff-triggered invariants (ii) and (vi) skipped" in item for item in warn) == 2
+    assert sum(
+        "diff-triggered invariants (ii), (vi) and the (vii) missing-line check skipped"
+        in item for item in warn
+    ) == 2
 
 
 def test_repo_root_probe_timeout_degrades_to_script_relative_root(
@@ -1684,3 +1687,119 @@ def test_a_commented_only_section_without_a_marker_is_still_a_hard_error() -> No
         "<!--\n## Acceptance Criteria\n\n- [ ] disabled\n-->\n"
     )
     assert lint.commented_out_ac_heading(spec) is not None
+
+
+# --- invariant (vii): the `Risk triggers:` header line -----------------------
+
+
+def _risk_spec(status: str, header: str = "", body: str = "") -> str:
+    """Return a minimal spec whose preamble carries ``header`` lines."""
+    return (
+        f"# Spec: s\n\n- **Status:** {status}\n{header}\n"
+        f"## Acceptance Criteria\n\n- [ ] one\n{body}"
+    )
+
+
+def _vii(new: dict[str, str], base: dict[str, str] | None = None,
+         base_ref: str | None = "HEAD") -> tuple[list[str], list[str]]:
+    """Lint ``new`` specs added after a base commit holding ``base`` specs."""
+    lint = load_linter_module()
+    with best_effort_tempdir() as tmp:
+        root = Path(tmp).resolve()
+        specs = root / "docs" / "specs"
+        for name, text in {"anchor": _risk_spec("Draft", "- **Risk triggers:** none"),
+                           **(base or {})}.items():
+            (specs / name).mkdir(parents=True, exist_ok=True)
+            (specs / name / "spec.md").write_text(text, encoding="utf-8")
+        git_init_commit(root)
+        for name, text in new.items():
+            (specs / name).mkdir(parents=True, exist_ok=True)
+            (specs / name / "spec.md").write_text(text, encoding="utf-8")
+        hard, warn = lint.check(root, base_ref, all_specs=base_ref is None)
+    # Per-spec findings only: a run with no base also warns once, naming no
+    # spec, that the absence check was skipped.
+    return ([v for v in hard if "(vii)" in v],
+            [w for w in warn if "(vii)" in w and "docs/specs/" in w])
+
+
+@pytest.mark.parametrize("value", [
+    "unknown-token",
+    "unfamiliar, unfamiliar",
+    "unfamiliar,,multi-person",
+    "unfamiliar,",
+    ",unfamiliar",
+    "none, unfamiliar",
+    "`none`",
+    "Unfamiliar",
+    "unfamiliar\t",
+    "none\u00a0",
+], ids=["unknown", "repeated", "empty-middle", "empty-trailing", "empty-leading",
+        "none-beside-token", "backticked", "wrong-case", "tab", "no-break-space"])
+def test_vii_refuses_a_malformed_value(value: str) -> None:
+    hard, _warn = _vii({"s": _risk_spec("Draft", f"- **Risk triggers:** {value}")})
+    assert len(hard) == 1, hard
+
+
+def test_vii_refuses_a_second_line() -> None:
+    header = "- **Risk triggers:** none\n- **Risk triggers:** unfamiliar"
+    hard, _warn = _vii({"s": _risk_spec("Draft", header)})
+    assert len(hard) == 1 and "more than one" in hard[0], hard
+
+
+@pytest.mark.parametrize("header", [
+    "",
+    "- **Risk triggers:**",
+    "- **Risk triggers:** <!-- fill in -->",
+    "**Risk triggers:** none",
+    "<!--\n- **Risk triggers:** none\n-->",
+], ids=["absent", "empty", "comment-only", "bare", "commented-out"])
+def test_vii_warns_for_a_new_draft_spec_with_no_line(header: str) -> None:
+    hard, warn = _vii({"s": _risk_spec("Draft", header)})
+    assert hard == [] and len(warn) == 1, (hard, warn)
+
+
+@pytest.mark.parametrize("value", [
+    "none",
+    "unfamiliar",
+    "  structural-interface ,unfamiliar,  multi-feature  ",
+    "none <!-- nothing fired -->",
+    "security-boundary, structural-interface, persistent-representation, "
+    "destructive-operation, data-transformation, new-dependency, unfamiliar, "
+    "multi-person, multi-feature",
+], ids=["none", "one-token", "spaced", "trailing-comment", "all-tokens"])
+def test_vii_accepts_a_valid_value(value: str) -> None:
+    assert _vii({"s": _risk_spec("Draft", f"- **Risk triggers:** {value}")}) == ([], [])
+
+
+def test_vii_treats_a_valid_line_beside_an_empty_one_as_one_line() -> None:
+    header = "- **Risk triggers:** none\n- **Risk triggers:** <!-- -->"
+    assert _vii({"s": _risk_spec("Draft", header)}) == ([], [])
+
+
+def test_vii_ignores_a_line_in_the_body_or_a_fence() -> None:
+    header = "```\n- **Risk triggers:** bogus\n```"
+    body = "\n- **Risk triggers:** bogus\n"
+    hard, warn = _vii({"s": _risk_spec("Draft", header, body)})
+    assert hard == [] and len(warn) == 1, (hard, warn)
+
+
+@pytest.mark.parametrize("status", ["Approved", "Implementing", "Shipped"],
+                         ids=["approved", "implementing", "shipped"])
+def test_vii_is_silent_for_a_new_spec_past_draft_with_no_line(status: str) -> None:
+    assert _vii({"s": _risk_spec(status)}) == ([], [])
+
+
+def test_vii_is_silent_for_a_base_spec_with_no_line() -> None:
+    old = _risk_spec("Draft")
+    hard, warn = _vii({"old": old + "\nedited\n"}, base={"old": old})
+    assert (hard, warn) == ([], [])
+
+
+def test_vii_is_silent_for_a_missing_line_when_no_base_resolves() -> None:
+    assert _vii({"s": _risk_spec("Draft")}, base_ref=None) == ([], [])
+
+
+def test_vii_still_refuses_a_malformed_value_without_a_base() -> None:
+    hard, _warn = _vii({"s": _risk_spec("Draft", "- **Risk triggers:** bogus")},
+                       base_ref=None)
+    assert len(hard) == 1, hard

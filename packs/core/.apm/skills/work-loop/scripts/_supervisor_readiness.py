@@ -19,10 +19,12 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import os
 import re
 import stat
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -65,11 +67,16 @@ _loop = _supervisor("_supervisor_loop.py")
 _projector = _supervisor("_supervisor_projector.py")
 _review = _supervisor("_supervisor_review.py")
 _admission = _supervisor("_supervisor_admission.py")
+_tiers = _supervisor("_review_tiers.py")
 sibling = _loop.sibling
 Refusal = _loop.Refusal
 
 __all__ = [
     "changed_files",
+    "commit_carries",
+    "open_finding_pairs",
+    "review_flow",
+    "run_base",
     "criteria",
     "current_selection_key",
     "delivery_subject",
@@ -226,6 +233,490 @@ def _properties(state: Any, ids: list[str]) -> list[dict[str, Any]]:
     ]
 
 
+# ── the review flow: tier, protection, rounds, and carries ──────────────────
+
+
+def run_base_checked(ws: Any, state: Any, result: str) -> tuple[str | None, str]:
+    """``(run base, why)``: the parent of the run's earliest ``stub`` or ``implement`` commit.
+
+    Defined only when every commit between that parent and *result* is a commit of this
+    run, so a foreign commit in the middle of the history leaves it undefined. *why* is
+    empty for a defined base and names the failed condition otherwise. The rev-list read is
+    bounded by the classifier's read limit.
+    """
+    first = next((c for c in state.commits if c.operation in ("stub", "implement")), None)
+    if first is None:
+        return None, "the run has no stub or implement commit"
+    try:
+        base = ws.git.resolve(f"{first.sha}^")
+        if not base:
+            return None, "the run's first commit has no parent"
+        between = ws.git.rev_list(base, result, limit=_tiers.READ_LIMIT)
+    except Exception as exc:  # noqa: BLE001 - an undefined run base only lowers what a tier can save
+        code = getattr(exc, "code", None)
+        return None, f"the run base could not be read: {type(exc).__name__}" + (
+            f" ({code})" if code else ""
+        )
+    mine = {c.sha for c in state.commits}
+    if all(sha in mine for sha in between):
+        return base, ""
+    return None, "a commit that is not the run's lies between the run base and the result"
+
+
+def run_base(ws: Any, state: Any, result: str) -> str | None:
+    """The run base, or ``None`` when it is undefined (see ``run_base_checked``)."""
+    return run_base_checked(ws, state, result)[0]
+
+
+def _memoized(ws: Any, key: tuple[Any, ...], make: Callable[[], Any]) -> Any:
+    """One classifier input or answer per key for the life of the workspace object.
+
+    Every key names commits by id, so a cached answer never goes stale.
+    """
+    memo = ws.__dict__.setdefault("_review_memo", {})
+    if key not in memo:
+        memo[key] = make()
+    return memo[key]
+
+
+def _reanchors_since(state: Any, subject_fingerprint: str) -> tuple[bool, bool]:
+    """Whether a reanchor changed the product, and the spec directory, since a reviewed subject.
+
+    The subject's last review or carry step is the last commit whose step id names it; with
+    no such step the answer is ``(False, False)``, so no rebase is called. The flow asks about
+    the subject reviewed just before the current one: a reanchor that an earlier subject
+    already carried through review does not make a later repair a reanchor subject.
+    """
+    span = _subject_span(state.commits, subject_fingerprint)
+    if span is None:
+        return False, False
+    product = spec = False
+    for commit in state.commits[span[1] + 1 :]:
+        if commit.operation == "reanchor":
+            changed = commit.trailers.get("Supervisor-Reanchor-Changed", "none")
+            product = product or "product" in changed
+            spec = spec or "spec" in changed
+    return product, spec
+
+
+def _report_subjects(reports: list[dict[str, Any]], run_id: str) -> list[dict[str, str]]:
+    """The review subjects of this run that hold a report, in order of their first report."""
+    found: dict[str, dict[str, str]] = {}
+    for report in reports:
+        subject = report.get("subject", {})
+        ref = subject.get("delivery_subject_ref", {})
+        fp = subject.get("review_subject_fingerprint")
+        if fp and ref.get("subject_id") == run_id and fp not in found:
+            found[fp] = {"fp": fp, "acceptance": str(ref.get("acceptance_fingerprint", ""))}
+    return list(found.values())
+
+
+def _raised(store: Any, reports: list[dict[str, Any]], fp: str) -> list[dict[str, str]]:
+    """Supported material findings in each role's tip report on subject *fp*, not accepted.
+
+    A finding a later fresh report closes with ``fixed-by`` is still listed: the tier a
+    subject earns must not change as the reports on that subject arrive.
+    """
+    tips: dict[str, dict[str, Any]] = {}
+    for report in reports:
+        if report["subject"]["review_subject_fingerprint"] != fp:
+            continue
+        held = tips.get(report["role"])
+        if held is None or report["lineage"]["sequence"] >= held["lineage"]["sequence"]:
+            tips[report["role"]] = report
+    if not tips:
+        return []
+    current = store.current_finding_assessments(fp)
+    dispositions = store.get_semantic_records("finding-disposition.v1")
+    raised = []
+    for role, tip in sorted(tips.items()):
+        for finding in tip["findings"]:
+            entry = current.get((tip["report_id"], finding["finding_id"]))
+            if not finding.get("material", False) or entry is None:
+                continue
+            assessment = entry["assessment"]
+            if assessment["assessment"] != "supported":
+                continue
+            if any(
+                d["assessment_id"] == assessment["assessment_id"]
+                and d["disposition"] == "accept-risk"
+                and store.disposition_closes(d["disposition_id"], tip["subject"])
+                for d in dispositions
+            ):
+                continue
+            raised.append(
+                {"role": role, "report_id": tip["report_id"], "finding_id": finding["finding_id"]}
+            )
+    return raised
+
+
+def _subject_span(commits: list[Any], fp: str) -> tuple[int, int] | None:
+    """The first and last position of a commit that records review work on subject *fp*."""
+    tag = f":{fp[-24:]}:"
+    marks = [
+        number
+        for number, commit in enumerate(commits)
+        if commit.operation == "review"
+        and commit.step.startswith(("review:", "carry:"))
+        and tag in commit.step
+    ]
+    return (marks[0], marks[-1]) if marks else None
+
+
+def _implemented_between(commits: list[Any], earlier: str, later: str | None) -> bool:
+    """Whether the run's own implement or stub commits changed the product between two subjects.
+
+    A reanchor adopts upstream history and is not the run's own change. A subject whose commits
+    cannot be located counts as changed, so the cap errs towards asking.
+    """
+    before = _subject_span(commits, earlier)
+    after = _subject_span(commits, later) if later is not None else (len(commits), len(commits))
+    if before is None or after is None:
+        return True
+    return any(
+        commit.operation in ("stub", "implement") for commit in commits[before[1] + 1 : after[0]]
+    )
+
+
+def _rounds(
+    store: Any,
+    reports: list[dict[str, Any]],
+    subjects: list[dict[str, str]],
+    current: dict[str, str],
+    commits: list[Any],
+) -> tuple[int, bool]:
+    """``(rounds among the reviewed subjects, whether the current subject is a round)``.
+
+    A subject is a round when it is the unit's first, or the run's own implement step changed
+    the product after a subject whose supported findings were not accepted. A selection alone
+    changes the review subject and not the product, a rebase or a wording-only subject follows
+    no such findings, and a product change that only a reanchor adopted is not the run's own
+    repair, so none of them is a round.
+    """
+    reviewed = {s["fp"] for s in subjects}
+    ordered = subjects if current["fp"] in reviewed else [*subjects, current]
+    count = 0
+    is_round = False
+    previous: dict[str, str] | None = None
+    for subject in ordered:
+        counts = previous is None or (
+            subject["acceptance"] != previous["acceptance"]
+            and bool(_raised(store, reports, previous["fp"]))
+            and _implemented_between(
+                commits, previous["fp"], subject["fp"] if subject["fp"] in reviewed else None
+            )
+        )
+        if subject["fp"] == current["fp"]:
+            is_round = counts
+        if counts and subject["fp"] in reviewed:
+            count += 1
+        previous = subject
+    return count, is_round
+
+
+def _unit_protection(
+    rules: dict[str, Any], selection: Any, roles: set[str]
+) -> tuple[bool, list[str], frozenset[str]]:
+    """``(protection unknown, declared classes, protected roles)`` over the unit's selections."""
+    unknown = False
+    classes: set[str] = set()
+    protected: set[str] = set()
+    for record in selection.unit:
+        found = _review.protection(rules, record)
+        if found.unknown:
+            unknown = True
+            continue
+        classes |= set(found.classes or ())
+        protected |= found.roles
+    return unknown, sorted(classes), frozenset(protected & roles)
+
+
+def review_flow(
+    ws: Any,
+    state: Any,
+    store: Any,
+    rules: dict[str, Any],
+    selection: Any,
+    policy: dict[str, Any],
+    review: dict[str, Any],
+    subject: dict[str, Any],
+    changes: list[dict[str, str]],
+) -> dict[str, Any]:
+    """The tier the current review subject earns, who is asked, who is carried, the rounds.
+
+    Pure over the committed records and Git reads. Protected roles are never excused, and
+    a unit that reads a selection with no ``protected_classes`` is protected and ``full``.
+    """
+    fp = review["review_subject_fingerprint"]
+    roles = [r["role"] for r in policy["roles"]]
+    unknown, classes, protected = _unit_protection(rules, selection, set(roles))
+    reports = store.get_semantic_records("review-report.v1")
+    subjects = _report_subjects(reports, state.run_id)
+    previous = next((s for s in reversed(subjects) if s["fp"] != fp), None)
+    raised = _raised(store, reports, previous["fp"]) if previous else []
+    anchors = _review.anchor_records(ws)
+    answers = _review.cap_answers(ws)
+    line = anchors[-1] if anchors else None
+    result = result_lineage(ws, state)[1]
+    changed = [c["path"] for c in changes]
+    tier_name, reason = _tiers.FULL, "no anchor facts"
+    if unknown:
+        reason = "protection is unknown for a selection that predates protected classes"
+    elif line is not None and line["review_subject_fingerprint"] == fp:
+        reason = "the subject is the anchor round"
+    elif line is not None:
+        product, spec = _reanchors_since(
+            state, previous["fp"] if previous else line["review_subject_fingerprint"]
+        )
+        facts = _review.anchor_facts(line)
+        base, base_why = (
+            _memoized(
+                ws,
+                ("run-base", result, len(state.commits)),
+                lambda: run_base_checked(ws, state, result),
+            )
+            if product
+            else (None, "")
+        )
+        inputs = {
+            "current": result,
+            "changed": changed,
+            "run_base": base,
+            "open_findings": bool(raised),
+            "adopted_reanchor": product,
+            "spec_dir_changed": spec,
+            "selection_changed": line["review_policy_fingerprint"]
+            != review["review_policy_fingerprint"],
+            "review_tier": selection.latest.get("review_tier"),
+        }
+        key = (
+            "tier",
+            rules["rules_version"],
+            json.dumps(line, sort_keys=True),
+            result,
+            base,
+            tuple(sorted(changed)),
+            bool(raised),
+            product,
+            spec,
+            inputs["selection_changed"],
+            inputs["review_tier"],
+        )
+        found = _memoized(
+            ws, key, lambda: _tiers.classify(ws.git, rules, facts, **inputs)
+        )
+        tier_name, reason = found.name, found.reason
+        if base_why and tier_name == _tiers.FULL:
+            reason = f"{reason} ({base_why})"
+    if line is None and reason == "no anchor facts":
+        skipped = next(
+            (
+                c.trailers["Supervisor-Anchor-Skipped"]
+                for c in reversed(state.commits)
+                if "Supervisor-Anchor-Skipped" in c.trailers
+            ),
+            None,
+        )
+        if skipped:
+            reason = f"no anchor facts: {skipped}"
+    plain = [r for r in roles if r not in protected]
+    delta: dict[str, list[str]] = {}
+    if tier_name == _tiers.WORDING_ONLY:
+        asked: list[str] = []
+    elif tier_name == _tiers.REBASE:
+        asked = [r for r in plain if r == "adversarial-reviewer"]
+        delta = {r: [] for r in asked}
+    elif tier_name == _tiers.MINOR_FIX:
+        asked = [r for r in plain if any(f["role"] == r for f in raised)]
+        delta = {r: sorted(f["finding_id"] for f in raised if f["role"] == r) for r in asked}
+    else:
+        asked = list(plain)
+    digest = None
+    if line is not None:
+        body = _admission.canonical_line(line)
+        digest = hashlib.sha256(
+            body + b"\0" + subject["acceptance_fingerprint"].encode() + b"\0"
+            + rules["rules_version"].encode()
+        ).hexdigest()
+    current = {"fp": fp, "acceptance": subject["acceptance_fingerprint"]}
+    count, is_round = _rounds(store, reports, subjects, current, state.commits)
+    reported = fp in {s["fp"] for s in subjects}
+    extensions = sum(1 for d in answers if d["decision"] == "extend-review")
+    return {
+        "tier": tier_name,
+        "reason": reason,
+        "roles": roles,
+        "protection_unknown": unknown,
+        "protected_classes": classes,
+        "protected_roles": sorted(protected),
+        "asked_roles": asked,
+        "excused_roles": [] if tier_name == _tiers.FULL else [r for r in plain if r not in asked],
+        "delta": delta,
+        "delta_base": line["anchor_result"] if line is not None else None,
+        "anchor_round": line["round"] if line is not None else None,
+        "classifier_digest": digest,
+        "round_count": count,
+        "rounds_with_current": count + (0 if reported or not is_round else 1),
+        "current_is_round": is_round,
+        "round_cap": int(rules["code_review_round_cap"]) + extensions,
+        "answered_caps": len(answers),
+    }
+
+
+def open_finding_pairs(ws: Any, view: dict[str, Any]) -> list[dict[str, str]]:
+    """The open findings of the current subject as ``role``, ``report_id``, ``finding_id`` rows."""
+    review = view["review_subject"]
+    if review is None:
+        return []
+    store = ws.open_evidence()
+    reports = store.get_semantic_records("review-report.v1")
+    open_keys = {(f["role"], f["finding_id"]) for f in view["review"]["open_findings"]}
+    return [
+        row
+        for row in _raised(store, reports, review["review_subject_fingerprint"])
+        if (row["role"], row["finding_id"]) in open_keys
+    ]
+
+
+def _report_positions(ws: Any) -> dict[str, int]:
+    """Each report's position (frame number) in the evidence log, derived by the supervisor."""
+    es = sibling("_evidence_store.py")
+    raw = ws.evidence_bytes()
+    replay = es.replay_admitted_frames(raw[: raw.rfind(b"\n") + 1])
+    found: dict[str, int] = {}
+    for number, (_tx, records) in enumerate(replay["frames"]):
+        for record in records:
+            if isinstance(record, dict) and "report_id" in record and "findings" in record:
+                found.setdefault(str(record["report_id"]), number)
+    return found
+
+
+def _build_carry(
+    role: str,
+    *,
+    flow: dict[str, Any],
+    review: dict[str, Any],
+    policy: dict[str, Any],
+    reports: list[dict[str, Any]],
+    carries: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """The ``review-carry.v1`` that stands in for *role*'s latest report, or ``None``.
+
+    Tries a carry of the role's latest report, then of its latest carry, and keeps the
+    first one the carry resolver would count; with neither, the role is asked instead.
+    """
+    contracts = sibling("_review_contracts.py")
+    selection = sibling("_review_selection.py")
+    fp = review["review_subject_fingerprint"]
+    earlier = [
+        c
+        for c in carries
+        if contracts.validate_review_carry_dict(c)[0]
+        and c["role"] == role
+        and c["review_subject_fingerprint"] != fp
+    ]
+    held = [
+        r
+        for r in reports
+        if r.get("role") == role and r["subject"]["review_subject_fingerprint"] != fp
+    ]
+    if not held:
+        return None
+    sources = [{"from_report_id": held[-1]["report_id"]}]
+    if earlier:
+        sources.append({"from_carry_id": earlier[-1]["carry_id"]})
+    for source in sources:
+        record: dict[str, Any] = {
+            "schema_version": 1,
+            "role": role,
+            "review_subject_fingerprint": fp,
+            "review_policy_fingerprint": review["review_policy_fingerprint"],
+            "tier": flow["tier"],
+            "anchor_round": flow["anchor_round"],
+            **source,
+            "classifier_digest": flow["classifier_digest"],
+        }
+        record["carry_id"] = contracts.carry_id_of(record)
+        carried, _why = selection.resolve_carried_report(
+            role,
+            review_subject=review,
+            policy=policy,
+            reports=reports,
+            carries=[*carries, record],
+            expected_tier=flow["tier"],
+            expected_classifier_digest=flow["classifier_digest"],
+            protected_roles=frozenset(flow["protected_roles"]),
+        )
+        if carried is not None:
+            return record
+    return None
+
+
+def _carries_to_write(ws: Any, state: Any, view: dict[str, Any]) -> list[dict[str, Any]]:
+    """The carries the current subject still needs: one per excused role with no carry yet."""
+    flow, review = view["flow"], view["review_subject"]
+    if flow is None or review is None or not flow["excused_roles"] or flow["anchor_round"] is None:
+        return []
+    store = ws.open_evidence()
+    reports = store.get_semantic_records("review-report.v1")
+    carries = store.get_semantic_records("review-carry.v1")
+    policy = _review.current_policy(ws, state, view["selection"]["key"])
+    fp = review["review_subject_fingerprint"]
+    have = {c["role"] for c in carries if c.get("review_subject_fingerprint") == fp}
+    pending = {
+        d["role"]
+        for d in view["review"]["obligations"]
+        if d["decision"] == "mandatory-report-unsatisfied"
+    }
+    records = []
+    for role in flow["excused_roles"]:
+        if role not in pending or role in have or role in flow["protected_roles"]:
+            continue
+        record = _build_carry(
+            role, flow=flow, review=review, policy=policy, reports=reports, carries=carries
+        )
+        if record is not None:
+            records.append(record)
+    return records
+
+
+def commit_carries(ws: Any, state: Any) -> None:
+    """Write one ``review-carry.v1`` per excused role as one supervisor ``review`` step."""
+    view = readiness(ws, state)
+    records = _carries_to_write(ws, state, view)
+    if not records:
+        raise Refusal("no-progress", "skill maintainer", "no review carry is due")
+    review = view["review_subject"]
+    fingerprint = review["delivery_subject_ref"]["acceptance_fingerprint"]
+    ids = hashlib.sha256("\0".join(sorted(r["carry_id"] for r in records)).encode()).hexdigest()
+    step = f"carry:{review['review_subject_fingerprint'][-24:]}:{ids[:16]}"
+
+    def write(store: Any, issuer: Any, grant: Any, sink: Any) -> None:
+        for record in records:
+            store.append_semantic_records(
+                [record],
+                transaction_id=f"tx:{step}:{record['role']}",
+                acceptance_fingerprint=fingerprint,
+                issuer=issuer,
+                grant=grant,
+                audit_sink=sink,
+            )
+
+    try:
+        evidence = ws.evidence_append(writer=write)
+    except Exception as exc:  # noqa: BLE001 - every review-record refusal names its own code
+        code = getattr(exc, "denial_code", None) or type(exc).__name__
+        raise Refusal("review-record-refused", "controller", str(code)) from exc
+    ws.git.build_commit(
+        run_id=state.run_id,
+        step=step,
+        operation="review",
+        appends={"evidence.jsonl": evidence},
+        summary="record review carries",
+        known_steps=state.steps,
+    )
+
+
 def readiness(ws: Any, state: Any) -> dict[str, Any]:
     """Readiness from the approval pair, criteria verdicts, and review readiness."""
     subject = delivery_subject(ws, state)
@@ -252,6 +743,7 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
         _review.selection_key(subject["acceptance_fingerprint"], [c["path"] for c in changes]),
     )
     review: dict[str, Any] | None
+    flow: dict[str, Any] | None = None
     if selection.required:
         # No usable record: nothing is eligible until the controller selects.
         review = None
@@ -263,8 +755,15 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
     else:
         policy = _review.resolve_policy(rules, selection.latest)
         review = review_subject(ws, state, subject, policy, changes)
+        flow = review_flow(ws, state, store, rules, selection, policy, review, subject, changes)
+        carrying = bool(flow["excused_roles"]) and flow["classifier_digest"] is not None
         review_state = sibling("_review_disposition.py").review_readiness(
-            store, review_subject=review, review_policy=policy
+            store,
+            review_subject=review,
+            review_policy=policy,
+            carry_tier=flow["tier"] if carrying else None,
+            classifier_digest=flow["classifier_digest"] if carrying else None,
+            protected_roles=frozenset(flow["protected_roles"]),
         )
     supported = all(v == "supported" for v in by_criterion.values())
     return {
@@ -275,6 +774,7 @@ def readiness(ws: Any, state: Any) -> dict[str, Any]:
         "gates_ran_for_subject": gated,
         "review_subject": review,
         "review": review_state,
+        "flow": flow,
         "selection": {
             "key": selection.key,
             "required": selection.required,
@@ -334,6 +834,10 @@ def readiness_action(ws: Any, state: Any) -> Any:
     review = view["review_subject"]
     subject_fp = review["review_subject_fingerprint"]
     reports = ws.open_evidence().get_semantic_records("review-report.v1")
+    flow = view["flow"]
+    if _carries_to_write(ws, state, view):
+        # The supervisor writes the carries itself before it asks anyone for anything.
+        return _loop.Action("review-carry")
     for decision in view["review"]["obligations"]:
         role = decision["role"]
         if decision["decision"] == "mandatory-report-unsatisfied":
@@ -342,6 +846,14 @@ def readiness_action(ws: Any, state: Any) -> Any:
                 for r in reports
                 if r["role"] == role and r["subject"]["review_subject_fingerprint"] == subject_fp
             )
+            # A delta pass names the anchor result and the role's open findings; a protected
+            # role and every role under `full` is asked for the whole change.
+            delta: dict[str, Any] = {}
+            if role in flow["delta"] and role not in flow["protected_roles"]:
+                delta = {
+                    "delta_base": flow["delta_base"],
+                    "repair_finding_ids": flow["delta"][role],
+                }
             return _loop.Action(
                 "request",
                 _loop.make_request(
@@ -352,6 +864,7 @@ def readiness_action(ws: Any, state: Any) -> Any:
                     role=role,
                     review_subject_fingerprint=subject_fp,
                     review_subject=review,
+                    **delta,
                 ),
             )
         if decision["decision"] == "finding-assessment-required":
@@ -376,6 +889,9 @@ def readiness_action(ws: Any, state: Any) -> Any:
                             finding_id=finding["finding_id"],
                         ),
                     )
+    capped = _cap_action(ws, state, view)
+    if capped is not None:
+        return capped
     open_ids = sorted({f["finding_id"] for f in view["review"]["open_findings"]})
     return _loop.Action(
         "request",
@@ -393,6 +909,107 @@ def readiness_action(ws: Any, state: Any) -> Any:
             selection_key=selection["key"],
         ),
     )
+
+
+def _cap_action(ws: Any, state: Any, view: dict[str, Any]) -> Any:
+    """The ``review-cap`` decision, or ``None`` when the cap does not apply or cannot be shown.
+
+    It applies to an unprotected unit whose round count reached the cap with a supported
+    material finding still open. Findings show only as supervisor-derived references; when
+    two share one, or one cannot be tied to its report, nothing is shown and the caller
+    issues ``review-not-eligible`` with every finding left open.
+    """
+    flow = view["flow"]
+    if flow["protection_unknown"] or flow["protected_classes"]:
+        return None
+    if not view["review"]["open_findings"] or flow["round_count"] < flow["round_cap"]:
+        return None
+    pairs = open_finding_pairs(ws, view)
+    refs = [_review.cap_ref(p["report_id"], p["finding_id"]) for p in pairs]
+    if (
+        not pairs
+        or len(pairs) < len(view["review"]["open_findings"])
+        or len(set(refs)) != len(refs)
+        or any(p["role"] not in flow["roles"] for p in pairs)
+    ):
+        return None
+    positions = _report_positions(ws)
+    entries = [
+        {"cap_ref": ref, "role": p["role"], "evidence_sequence": positions[p["report_id"]]}
+        for ref, p in zip(refs, pairs, strict=True)
+    ]
+    question = (
+        f"The review ran {flow['round_count']} rounds and the cap is {flow['round_cap']}, "
+        f"with {len(entries)} supported material findings still open; open_findings lists "
+        "each by its reference, role, and evidence-log position. Answer accept-risk with a "
+        "risk-owner authority reference and the references to accept, extend-review with an "
+        "owner authority reference to allow one more round, or reselect-review with an owner "
+        "authority reference and the selection key to choose the reviewers again."
+    )
+    return _loop.Action(
+        "request",
+        _loop.review_cap_decision(
+            ws,
+            state,
+            question,
+            round_count=flow["round_count"],
+            selection_key=view["selection"]["key"],
+            answered=flow["answered_caps"],
+            open_findings=entries,
+        ),
+    )
+
+
+def _trailer_text(text: str) -> str:
+    """*text* as one safe trailer value: printable ASCII, no leading space, bounded."""
+    return re.sub(r"[^\x20-\x7e]", "?", text).strip()[:200]
+
+
+def _anchor_line(
+    ws: Any, state: Any, view: dict[str, Any], role: str, report: dict[str, Any]
+) -> tuple[dict[str, Any] | None, str]:
+    """``(anchor-facts line, why none)`` for the line this report completes.
+
+    An anchor round is a round on whose subject every selected role has returned a report.
+    A line is returned only when ``parse_anchors`` accepts it, so a line the parser would
+    refuse never reaches the ledger. A failure to build or validate the facts records no
+    line, so the next subject classifies ``full``, and *why* names the failure; the caller
+    carries it as a trailer for ``status`` to show. A round that is not an anchor round
+    returns an empty *why*.
+    """
+    flow, review = view["flow"], view["review_subject"]
+    fp = review["review_subject_fingerprint"]
+    unusable = ("unable", "indeterminate")
+    if flow is None or not flow["current_is_round"] or report.get("terminal_status") in unusable:
+        return None, ""
+    if any(a["review_subject_fingerprint"] == fp for a in _review.anchor_records(ws)):
+        return None, ""
+    reported = {
+        r["role"]
+        for r in ws.open_evidence().get_semantic_records("review-report.v1")
+        if r["subject"]["review_subject_fingerprint"] == fp
+        and r.get("terminal_status") not in unusable
+    } | {role}
+    if not set(flow["roles"]) <= reported:
+        return None, ""
+    result = result_lineage(ws, state)[1]
+    try:
+        line = _review.anchor_record(
+            ws.git,
+            run_id=state.run_id,
+            round_number=flow["rounds_with_current"],
+            review_subject_fingerprint=fp,
+            review_policy_fingerprint=review["review_policy_fingerprint"],
+            anchor_result=result,
+            run_base=run_base(ws, state, result),
+            changed_paths=[c["path"] for c in view["selection"]["changed_files"]],
+        )
+        _review.parse_anchors(_admission.canonical_line(line))
+    except Exception as exc:  # noqa: BLE001 - no anchor line only lowers what a later tier can save
+        code = getattr(exc, "code", None) or getattr(exc, "detail", None)
+        note = f" ({code})" if code else ""
+        return None, _trailer_text(f"the anchor line was not recorded: {type(exc).__name__}{note}")
+    return line, ""
 
 
 def _selection_request(ws: Any, state: Any, view: dict[str, Any]) -> dict[str, Any]:
@@ -565,11 +1182,20 @@ def report_readiness(ws: Any, state: Any, request: dict[str, Any], result: dict[
     except Exception as exc:  # noqa: BLE001 - every review-record refusal names its own code
         code = getattr(exc, "denial_code", None) or type(exc).__name__
         raise Refusal("review-record-refused", "controller", str(code)) from exc
+    appends = {"evidence.jsonl": evidence}
+    trailers: dict[str, str] = {}
+    if request["kind"] == "review-role":
+        line, skipped = _anchor_line(ws, state, view, request["role"], report)
+        if line is not None:
+            appends[_review.ANCHORS_FILE] = _admission.canonical_line(line)
+        elif skipped:
+            trailers["Supervisor-Anchor-Skipped"] = skipped
     ws.git.build_commit(
         run_id=state.run_id,
         step=step,
         operation="review",
-        appends={"evidence.jsonl": evidence},
+        trailers=trailers or None,
+        appends=appends,
         summary=f"record {request['kind']}",
         known_steps=state.steps,
     )

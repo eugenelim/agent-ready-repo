@@ -172,9 +172,9 @@ def test_crash_at_each_effect_boundary_then_re_drive_completes_once(
             raise Crash(stage)
         if stage == "inside_transaction":
             return DRAIN.transact_route(
-                repo, offer, decision, materialize=partial_then_raise
+                repo, offer, decision, materialize=partial_then_raise, dispatch_processor=lambda: None
             )
-        result = DRAIN.transact_route(repo, offer, decision)
+        result = DRAIN.transact_route(repo, offer, decision, dispatch_processor=lambda: None)
         if stage == "after_transaction":
             raise Crash(stage)
         return result
@@ -225,7 +225,7 @@ def test_crash_at_each_effect_boundary_then_re_drive_completes_once(
     # crash landed after the disposition, finds it already complete and
     # performs no further effect.
     report = DRAIN.drain(
-        repo, confirmer=_confirm_all, recorded_at="2026-11-04T12:00:00Z"
+        repo, confirmer=_confirm_all, dispatch_processor=lambda: None, recorded_at="2026-11-04T12:00:00Z"
     )
 
     expected_counts = (
@@ -324,7 +324,7 @@ def test_store_derived_counts_agree_with_the_run_report(git_repo: Path) -> None:
             }
         return {}
 
-    report = DRAIN.drain(git_repo, confirmer=operator, recorded_at="2026-11-04T12:00:00Z")
+    report = DRAIN.drain(git_repo, confirmer=operator, dispatch_processor=lambda: None, recorded_at="2026-11-04T12:00:00Z")
 
     assert report["counts"] == {"routed": 1, "held": 1, "closed": 1}
     dispositions = DRAIN.store_terminal_dispositions(git_repo)
@@ -369,9 +369,90 @@ def test_materialize_never_writes_through_a_planted_tmp_symlink(git_repo: Path) 
     planted = repo / "docs" / "product" / "captured" / f"{_artifact_name(repo, capture_id)}.tmp"
     planted.symlink_to(outside)
 
-    DRAIN.drain(repo, confirmer=_confirm_all, recorded_at="2026-11-04T12:00:00Z")
+    DRAIN.drain(repo, confirmer=_confirm_all, dispatch_processor=lambda: None, recorded_at="2026-11-04T12:00:00Z")
 
     assert outside.read_text() == "untouched"
     artifact = repo / "docs" / "product" / "captured" / _artifact_name(repo, capture_id)
     assert not artifact.is_symlink()
     assert artifact.exists() and artifact.read_bytes() != b"untouched"
+
+
+def test_no_dispatch_wired_holds_routable_items_before_any_effect(
+    git_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # § D1's dispatch rule (AC-0025): a drain invoked with no dispatch
+    # wired — no `transact` override, no `dispatch_processor` — holds every
+    # confirmed route ahead of any transaction effect: no lock taken, no
+    # artifact materialized, no terminal disposition, on both route shapes.
+    _seed_store(
+        git_repo,
+        {
+            "defect": {
+                "shape": "defect",
+                "statement": "A ready defect needs a dispatch to route",
+                "observed": "The drain holds the item without a dispatch.",
+                "intended": "The route commits only through a real dispatch.",
+            },
+            "question": {
+                "shape": "question",
+                "statement": "A classified question needs a dispatch to route",
+            },
+        },
+    )
+    loader_calls: list[str] = []
+
+    def spying_loader() -> Any:
+        loader_calls.append("transaction-runner")
+        raise AssertionError("the no-dispatch hold precedes the transaction runner")
+
+    monkeypatch.setattr(DRAIN, "_load_intake_transaction", spying_loader)
+
+    report = DRAIN.drain(
+        git_repo,
+        confirmer=_confirm_all,
+        classify=lambda message: "spec",
+        recorded_at="2026-11-05T10:00:00Z",
+    )
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report["items"]
+    assert [item["reason"] for item in report["items"]] == ["no-dispatch-wired", "no-dispatch-wired"]
+    # The hold precedes every transaction effect (AC-0025): the transaction
+    # runner — through which alone the workspace lock is taken — was never
+    # reached, no captured-item artifact exists, and no terminal event was
+    # recorded for either capture.
+    assert loader_calls == []
+    assert _captured_files(git_repo) == []
+    assert DRAIN.store_terminal_dispositions(git_repo) == []
+    assert not (git_repo / ".workspace-repair.lock").exists()
+
+
+def test_wired_dispatch_routes_both_shapes(git_repo: Path) -> None:
+    # The same drain with a real dispatch wired routes both shapes (AC-0025
+    # names the hold's trigger: no dispatch; a wired dispatch routes).
+    _seed_store(
+        git_repo,
+        {
+            "defect": {
+                "shape": "defect",
+                "statement": "A ready defect routes through a dispatch",
+                "observed": "The drain routes the item with a dispatch.",
+                "intended": "The route commits through the wired dispatch.",
+            },
+            "question": {
+                "shape": "question",
+                "statement": "A classified question routes through a dispatch",
+            },
+        },
+    )
+
+    report = DRAIN.drain(
+        git_repo,
+        confirmer=_confirm_all,
+        classify=lambda message: "spec",
+        dispatch_processor=lambda: None,
+        recorded_at="2026-11-05T10:00:00Z",
+    )
+
+    assert report["counts"] == {"routed": 2, "held": 0, "closed": 0}, report["items"]
+    assert len(_captured_files(git_repo)) == 1
+    assert len(DRAIN.store_terminal_dispositions(git_repo)) == 2

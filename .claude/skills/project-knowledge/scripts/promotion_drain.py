@@ -219,11 +219,14 @@ def _confine_member(root: Path, member: str) -> str | None:
     """Resolve one stored-path member against the repository root.
 
     Returns the member when it resolves outside the root (refused), None
-    when it stays inside. Symlinks are followed on every component.
+    when it stays inside. Symlinks are followed on every component. A
+    path that cannot be resolved at all — `Path.resolve()` raises
+    `RuntimeError` for a symlink loop on Python 3.11–3.12 — is one that
+    resolves nowhere: refused the same way (T25, finding sec-hardening-001).
     """
     try:
         (root / member).resolve().relative_to(root)
-    except (OSError, ValueError):
+    except (OSError, ValueError, RuntimeError):
         return member
     return None
 
@@ -383,6 +386,21 @@ ROUTE_FAMILIES = {
     "question": "work-intake",
 }
 
+# § D3's classify-table membership: the six shapes work-intake's § 4
+# table fixes, by name — the table is the authority, the constant is the
+# gate. A classification that is not one of these six is not a
+# classification: no table row owns it, so the item is held as unroutable
+# rather than routed on a free string (AC-0026).
+CLASSIFY_TABLE_MEMBERS = frozenset(
+    {"direct-light", "spec", "brief", "remember", "incomplete", "defect"}
+)
+
+# § D3's non-dispatchable members: rows whose processor is `none` — no
+# route exists for the drain to commit (§ D1's dispatch rule), so a
+# question classified onto one of them holds the same way a non-member
+# does (AC-0026).
+NON_DISPATCHABLE_CLASSIFY_MEMBERS = frozenset({"remember", "incomplete"})
+
 # § D6's promoted-or-pruned split, exactly as CAP-0005 § Riskiest assumption
 # reads it. `promoted` stays the review path's and is never written by a
 # drain; `duplicate` stays the duplicate-coverage sibling's.
@@ -487,7 +505,14 @@ def decide(
             },
         }
     if shape == "question":
-        if not classification:
+        if (
+            classification not in CLASSIFY_TABLE_MEMBERS
+            or classification in NON_DISPATCHABLE_CLASSIFY_MEMBERS
+        ):
+            # § D3: a classification that is not one of the six classify-table
+            # members is not a classification, and a member whose row is
+            # non-dispatchable names no route — either way the item is held
+            # as unroutable (AC-0026).
             return {
                 "capture_id": capture_id,
                 "action": "hold",
@@ -517,6 +542,7 @@ def decide_closure(
     *,
     test_passes: bool,
     evidence: dict[str, Any],
+    citation: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """§ D5 and § D6: one closure ground, its test's verdict, the evidence.
 
@@ -526,6 +552,16 @@ def decide_closure(
     ground in the reason code. The evidence rides the drain's run report,
     never the store: § D6's three-code enumeration is what keeps a citation
     out of the disposition event.
+
+    § D5's citation rule (AC-0027): a superseded closure carries its
+    citation as a required field — ``citation`` holding exactly one of
+    ``{"capture_id": <id>}`` or ``{"path": <repository-relative path>}``.
+    An absent or malformed citation is refused here; whether the citation
+    resolves — the id in the store, the path inside the repository root —
+    is the drain's own mechanical test, run before the disposition commits.
+    The operator's ``test_passes`` verdict stays a veto on every ground,
+    this one included. Overtaken and falsified closures are operator-
+    attested and carry no citation.
     """
     if ground not in CLOSURE_GROUNDS:
         return {
@@ -534,6 +570,26 @@ def decide_closure(
             "ground": ground,
             "terminal_disposition": None,
         }
+    if ground == "superseded":
+        if citation is None:
+            return {
+                "verdict": "refused",
+                "reason": "citation-required",
+                "ground": ground,
+                "terminal_disposition": None,
+            }
+        if (
+            not isinstance(citation, dict)
+            or set(citation) not in ({"capture_id"}, {"path"})
+            or not isinstance(next(iter(citation.values())), str)
+            or not next(iter(citation.values()))
+        ):
+            return {
+                "verdict": "refused",
+                "reason": "citation-malformed",
+                "ground": ground,
+                "terminal_disposition": None,
+            }
     if not test_passes:
         return {
             "verdict": "refused",
@@ -542,15 +598,69 @@ def decide_closure(
             "terminal_disposition": None,
         }
     disposition, reason_code = CLOSURE_GROUNDS[ground]
-    return {
+    closed: dict[str, Any] = {
         "verdict": "closed",
         "ground": ground,
         "evidence": evidence,
         "terminal_disposition": {"disposition": disposition, "reason_code": reason_code},
     }
+    if ground == "superseded":
+        closed["citation"] = citation
+    return closed
 
 
 # --- § D1, § D3: the drain run, its transaction and its recovery ------------
+
+
+def _captured_ids(root: Path) -> frozenset[str]:
+    """Every capture id the store holds, quarantined records excluded (§ D5).
+
+    One pass over the observation partitions; a drain resolves all its
+    superseded closures' citations against the set this returns, so a
+    drain closing many items scans the store once rather than once per
+    closure.
+    """
+    quarantine = KS._Quarantine()
+    captured: set[str] = set()
+    for partition in KS._observation_partitions(root, quarantine=quarantine):
+        raw = KS._read_regular_file_bounded(
+            KS._journal_path(root, partition),
+            KS.budget_contract()["journal_partition_bytes"],
+            missing_ok=True,
+        )
+        for event in KS._events_excluding_invalid(partition, raw or b"", quarantine):
+            if event["event_type"] == KS._CAPTURED:
+                captured.add(event["capture_id"])
+    return frozenset(captured)
+
+
+def _citation_refusal(
+    root: Path, citation: dict[str, Any], captured_ids: frozenset[str] | None = None
+) -> str | None:
+    """§ D5's mechanical citation test (AC-0027): the drain's own resolution
+    of a superseded closure's citation, run before the disposition commits.
+
+    Returns ``None`` when the citation resolves — the capture id names a
+    capture the store holds, or the path exists inside the repository root
+    with symlinks followed per § D7 — and a refusal reason naming the
+    failed citation otherwise. A capture id resolves against the store's
+    captured-id set, read through the store's own per-record exclusion
+    reader so a quarantined record never aborts the lookup; a drain passes
+    the set it built once (``_captured_ids``), and a standalone call builds
+    its own. Liveness of a cited artifact is never tested here: that stays
+    the operator's attestation.
+    """
+    if "capture_id" in citation:
+        ids = captured_ids if captured_ids is not None else _captured_ids(root)
+        if citation["capture_id"] in ids:
+            return None
+        return "citation-capture-unresolved"
+    path = citation["path"]
+    if _confine_member(root, path) is not None:
+        return "citation-path-escapes-root"
+    if not (root / path).exists():
+        return "citation-path-missing"
+    return None
 
 
 def _load_work_intake_script(name: str) -> Any:
@@ -679,7 +789,21 @@ def transact_route(
     second artifact (§ D1). The rollback removes only a partial artifact,
     never a complete one. The processor dispatch is a seam: the work-intake
     procedure supplies the real one.
+
+    A route commit requires a real processor dispatch (§ D1, AC-0025): a
+    call with no ``dispatch_processor`` holds — on both route branches —
+    before any transaction effect, so no lock is taken and no artifact is
+    materialized. A `routed` disposition with no handoff is the
+    unrepairable state the ordering exists to prevent, and a silent no-op
+    default must not be able to reach it.
     """
+    if dispatch_processor is None:
+        return {
+            "committed": False,
+            "failed_stage": "processor_dispatch",
+            "status": "NO_DISPATCH_WIRED",
+            "route": decision.get("route"),
+        }
     root = Path(repo_root).resolve()
     if decision.get("route") != "defect-processor":
         # The work-intake family dispatches outside the transaction helper,
@@ -688,7 +812,11 @@ def transact_route(
         # error contract — instead of aborting the drain with the
         # processor's exception text.
         try:
-            (dispatch_processor or (lambda: None))()
+            # The no-dispatch gate at the top of this function is the only
+            # path to a missing dispatch: the call sites below enforce it
+            # by calling the wired processor directly, never a silent
+            # no-op.
+            dispatch_processor()
         except Exception:
             return {
                 "committed": False,
@@ -733,7 +861,7 @@ def transact_route(
         materialize_artifact=materialize or default_materialize,
         rollback_partial_state=rollback_partial_state,
         record_reconciliation=lambda message: None,
-        dispatch_processor=dispatch_processor or (lambda: None),
+        dispatch_processor=dispatch_processor,
     )
     return {
         "committed": result.status.name == "COMMITTED",
@@ -748,6 +876,7 @@ def drain(
     confirmer: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any] | None] | None = None,
     classify: Callable[[str], str] | None = None,
     transact: Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]] | None = None,
+    dispatch_processor: Callable[[], None] | None = None,
     write_disposition: Callable[[str, str, str], Any] | None = None,
     recorded_at: str | None = None,
 ) -> dict[str, Any]:
@@ -765,12 +894,19 @@ def drain(
     the item under § D5 instead, anything else holds it. ``transact`` and
     ``write_disposition`` are the effect seams the crash driver wraps; their
     defaults are the route transaction and the store's own disposition
-    writer.
+    writer. ``dispatch_processor`` is the dispatch seam: a drain invoked
+    with no dispatch wired — no ``transact`` override and none — holds
+    every confirmed route ahead of any transaction effect (§ D1,
+    AC-0025); work-intake's § 8 records how the operator wires it.
     """
     root = KS.resolve_worktree_root(repo_root)
     if recorded_at is None:
         recorded_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    do_transact = transact or (lambda offer, decision: transact_route(root, offer, decision))
+    do_transact = transact or (
+        lambda offer, decision: transact_route(
+            root, offer, decision, dispatch_processor=dispatch_processor
+        )
+    )
 
     def default_write(capture_id: str, disposition: str, reason_code: str) -> Any:
         return KS.write_terminal_disposition(
@@ -799,6 +935,10 @@ def drain(
 
     items: list[dict[str, Any]] = []
     read = read_open_captures(root)
+    # § D5 (AC-0027): the drain's citation resolutions share one store
+    # scan — built lazily, since a drain with no superseded closure never
+    # needs it.
+    captured_ids: frozenset[str] | None = None
     for record in read["quarantined"]:
         # A record the store's read rules excluded is held by the read
         # itself: it is never a routing input, and the refusing control —
@@ -823,6 +963,26 @@ def drain(
         if closure_input is not None:
             closure = decide_closure(**closure_input)
             if closure["verdict"] == "closed":
+                if closure["ground"] == "superseded" and captured_ids is None:
+                    captured_ids = _captured_ids(root)
+                citation_refusal = (
+                    _citation_refusal(root, closure["citation"], captured_ids)
+                    if closure["ground"] == "superseded"
+                    else None
+                )
+                if citation_refusal is not None:
+                    # § D5 (AC-0027): the drain's own mechanical test — a
+                    # citation that resolves nowhere refuses the closure
+                    # whatever the operator attests; the item stays open.
+                    items.append(
+                        {
+                            "capture_id": capture["capture_id"],
+                            "action": "held",
+                            "reason": f"closure-refused:{citation_refusal}",
+                            "citation": closure["citation"],
+                        }
+                    )
+                    continue
                 terminal = closure["terminal_disposition"]
                 refusal = write_or_refusal(
                     capture["capture_id"], terminal["disposition"], terminal["reason_code"]
@@ -836,17 +996,20 @@ def drain(
                         }
                     )
                     continue
-                items.append(
-                    {
-                        "capture_id": capture["capture_id"],
-                        "action": "closed",
-                        "ground": closure["ground"],
-                        # § D5: the evidence rides the run report beside the
-                        # closure it justifies — the store's disposition
-                        # event is reason-code-only by design.
-                        "evidence": closure["evidence"],
-                    }
-                )
+                closed_item: dict[str, Any] = {
+                    "capture_id": capture["capture_id"],
+                    "action": "closed",
+                    "ground": closure["ground"],
+                    # § D5: the evidence rides the run report beside the
+                    # closure it justifies — the store's disposition
+                    # event is reason-code-only by design.
+                    "evidence": closure["evidence"],
+                }
+                if closure["ground"] == "superseded":
+                    # § D5 (AC-0027): a superseded closure records the
+                    # citation its test resolved, beside the evidence.
+                    closed_item["citation"] = closure["citation"]
+                items.append(closed_item)
             else:
                 items.append(
                     {
@@ -861,6 +1024,19 @@ def drain(
             and isinstance(operator, dict)
             and operator.get("confirm") is True
         ):
+            if transact is None and dispatch_processor is None:
+                # § D1's dispatch rule, ahead of every transaction effect
+                # (AC-0025): a route commit requires a real processor
+                # dispatch, and a drain with none wired holds the item —
+                # no lock, no artifact, no disposition.
+                items.append(
+                    {
+                        "capture_id": capture["capture_id"],
+                        "action": "held",
+                        "reason": "no-dispatch-wired",
+                    }
+                )
+                continue
             result = do_transact(offer, proposal)
             if result.get("committed"):
                 refusal = write_or_refusal(

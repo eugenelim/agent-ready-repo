@@ -86,7 +86,7 @@ jobs:
     timeout-minutes: 25
     steps:
       - name: Checkout (gate-main)
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         id: checkout_gate_main
         if: '!cancelled()'
         with:
@@ -99,7 +99,7 @@ jobs:
       - name: Set up Python
         id: python
         if: '!cancelled()'
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install tools dependencies
@@ -129,6 +129,12 @@ jobs:
       - name: Install ruff + mypy
         id: ruff_mypy
         if: '!cancelled()'
+        # The ruff version is pinned once, in tools/requirements.txt —
+        # installed by the earlier "Install tools dependencies" step, which
+        # this bare install leaves in place (the parity mechanism that file
+        # documents). See
+        # docs/product/captured/pre-existing-closure-index-collapsible-if.md
+        # for the recorded version facts.
         run: pip install ruff mypy
       - name: Install credbroker (editable, with crypto extra)
         id: credbroker
@@ -1072,6 +1078,10 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_promotion_drain_surfaces.py
 
+      - name: pytest intake transaction lock recovery (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_intake_transaction_lock_recovery.py
+
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
         run: |
@@ -1654,7 +1664,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # Full history so the relevance diff below reaches the PR's merge-base.
           fetch-depth: 0
@@ -1663,7 +1673,7 @@ jobs:
           # so AC13's posture test is the only thing asserting it.
           persist-credentials: false
       - name: Set up Python (gate-sast)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install SAST/SCA tools
@@ -1732,7 +1742,7 @@ jobs:
     # terminates the surrounding job. This comment travels with the gate.
     timeout-minutes: 25
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # Full history for parity with the other jobs; and NO sparse-checkout — the suite's three real-artifact tests skipif on packages/agentbundle being a directory, so a narrowed checkout makes this 150s gate exit 0 having verified nothing (AC14(2)).
           fetch-depth: 0
@@ -1741,7 +1751,7 @@ jobs:
           # so AC13's posture test is the only thing asserting it.
           persist-credentials: false
       - name: Set up Python (gate-export-boundary)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install tools dependencies (gate-export-boundary)
@@ -1808,14 +1818,14 @@ jobs:
     # skips the gate instead of reddening it, with no condition to write.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # NO fetch-depth: 0, same carve-out and same reason as
           # gate-credbroker above: nothing in this job invokes git, so full
           # history buys nothing and costs clone time.
           persist-credentials: false
       - name: Set up Node (gate-css-tokens)
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1  # v7.1.0
         with:
           # 24 matches web/package.json engines.
           node-version: "24"
@@ -1838,7 +1848,7 @@ jobs:
     # the aggregator reports.
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # NO fetch-depth: 0, unlike the other three work jobs. packages/credbroker
           # invokes git nowhere, so full history buys nothing and costs clone time
@@ -1848,7 +1858,7 @@ jobs:
           # which is the point: it is decided once, here (spec AC1a).
           persist-credentials: false
       - name: Set up Python (gate-credbroker)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       - name: Install credbroker (editable, with crypto extra) + pytest (gate-credbroker)
@@ -1913,13 +1923,13 @@ jobs:
     timeout-minutes: 5
     if: ${{ always() }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           # AC12 exempts this job from fetch-depth: 0 — it runs one stdlib script
           # that parses one workflow file and touches no history.
           persist-credentials: false
       - name: Set up Python (aggregator)
-        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
         with:
           python-version: "3.11"
       # Two steps, not one, so each can carry an HONEST lint-ci-parity disposition:

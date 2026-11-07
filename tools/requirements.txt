@@ -8,7 +8,7 @@ ruff==0.16.10  # The lint gate's version is load-bearing, not incidental:
                # 0.16.0 added UP052 (context-manager-iterator), which is how
                # that gap was found. Declared here rather than pinned inline in
                # build-check.yml for the same audit-reach reason as httpx below,
-               # and it holds because the "Install tools requirements" step runs
+               # and it holds because the "Install tools dependencies" step runs
                # before "Install ruff + mypy", whose bare `pip install ruff`
                # then finds the pin already satisfied and leaves it in place.
                # mypy is still unpinned there and has the same latent gap.

@@ -477,6 +477,7 @@ def test_review_writer_boundaries_are_registered_without_mutating_slice1(
         "finding.v1": "review-report",
         "finding-assessment.v1": "structured-control",
         "finding-disposition.v1": "structured-control",
+        "review-carry.v1": "structured-control",
     }
     assert review_contracts.SLICE_1_WRITER_BOUNDARIES["initial-plan-review.v1"] == (
         "structured-control"

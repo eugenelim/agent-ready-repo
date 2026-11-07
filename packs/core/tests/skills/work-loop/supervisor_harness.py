@@ -178,6 +178,7 @@ def select_none(request: dict[str, Any], selected: tuple[str, ...] = ()) -> dict
             if r not in selected
         ],
         "authority_ref": "controller:0123456789ab",
+        "protected_classes": ["security-boundary"] if "security-reviewer" in selected else [],
     }
 
 
