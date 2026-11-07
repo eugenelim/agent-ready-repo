@@ -23,6 +23,8 @@ A check that runs, installs, builds, or starts something applies only in a repos
 When no section fits, say which evidence you found, name the closest surface,
 and ask once before drafting.
 
+Once a surface is named, load its file from [`surfaces/index.md`](surfaces/index.md) for the page-shape evidence, and only that surface's file.
+
 ## Library or SDK
 
 Evidence: a package manifest (`pyproject.toml`, `package.json` with `main` or
@@ -169,3 +171,10 @@ and the decisions it leaves to the user. Machine facts stay in the manifest.
 Verification: read each skill's source before stating what it does. In a trusted
 repository, start a session with the pack installed and send the README's first
 starter prompt; record whether the expected skill activates.
+
+Skill reference rules for a pack that ships several skills:
+
+- **Order.** Use lifecycle order only when the skills form a real sequence (start, then, later). Otherwise group by job and sort A to Z inside a group. State the rule on the page and keep the order stable. The sort must be real: sort each group by name, then re-read each group before you finish and fix any pair out of order (`export-notes` comes before `import-notes`).
+- **Exclude internal routers by a rule the repository declares.** Use a mechanical test the repository already states, such as a manifest or frontmatter flag that hides a skill from users. If it declares none, ask once; do not guess from a name. Cite the flag by key and file in one sentence of the reference, for example "Skills that the pack's skill index marks `user-invocable: false` are left out of this list (name the real file and key the repository uses)." Do not list an excluded skill as a peer, give it no heading or row of its own, and link it only from the skills that call it.
+- **One example ask per user-invocable skill.** Give a typed request and a one-line outcome, labelled as an example. The outcome names one result the reader can see: a file with its name and what it holds, or a visible change (a section added, a status changed), in words that differ from the skill's name and purpose. A line that states what the skill is for is not a result. Test each line: if it still reads true for any run of the skill, or only rephrases the name or declared purpose, rewrite it. When the source does not show the output, name the visible result its instructions support (read its steps for a file, a report, or an edit) and mark that line unverified. When even that is unknown, say "output not shown in the source" rather than restate the purpose. For a skill named `summarize-notes`, "A summary of your notes" fails; "A one-page recap that lists each decision and who owns it" passes. Do not claim an example improves discovery.
+- **Coverage check.** List the pack's user-invocable skills from its source, list the skills the reference covers, and report each skill the reference misses. The last block of the delivered reference section is a coverage statement in this form: "N user-invocable skills in the source, N covered: a, b, c... none missing." It lists every covered skill by name (or names the misses), plus the excluded skills and why. It goes in the page, not only in your report.
