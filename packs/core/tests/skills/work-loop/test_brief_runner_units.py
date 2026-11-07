@@ -494,17 +494,58 @@ def test_a_failing_gates_call_reaches_the_blocked_row_with_its_cause(
     }
 
 
+@pytest.mark.parametrize(("detail", "cause"), [("bad-path-chars", "bad-path-chars"), (None, "unreadable-worktree")])
+def test_a_row_with_no_usable_worktree_gives_its_own_gates_cause(
+    detail: str | None, cause: str
+) -> None:
+    row = _row("x", present=True, detail=detail, gates=[])
+    runner.attach_gates([row])
+    assert (row.gates, row.gates_detail) == (None, cause)
+
+
+def _raised(build: Any) -> BaseException:
+    try:
+        build()
+    except BaseException as exc:  # noqa: BLE001 - the test inspects whatever was raised
+        return exc
+    raise AssertionError("nothing was raised")
+
+
+def test_the_internal_error_trace_walks_context_and_skips_a_suppressed_one() -> None:
+    def implicit() -> None:
+        try:
+            raise KeyError("ctx-secret")
+        except KeyError:
+            raise ValueError("outer-secret")  # noqa: B904 - an implicit context on purpose
+
+    def suppressed() -> None:
+        try:
+            raise KeyError("ctx-secret")
+        except KeyError:
+            raise ValueError("outer-secret") from None
+
+    walked = runner.internal_error_trace(_raised(implicit))
+    assert walked.index("KeyError\n") < walked.index("ValueError\n") and "secret" not in walked
+    hidden = runner.internal_error_trace(_raised(suppressed))
+    assert "KeyError" not in hidden and hidden.endswith("ValueError\n") and "secret" not in hidden
+
+
 def test_an_unexpected_failure_still_answers_one_json_refusal(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
     def boom(*args: Any, **kwargs: Any) -> Any:
-        raise PermissionError("denied")
+        try:
+            raise KeyError("inner-secret")
+        except KeyError as cause:
+            raise PermissionError("outer-secret") from cause
 
     monkeypatch.setattr(runner, "read_brief", boom)
     capsys.readouterr()
     assert runner.main(["status", "b"]) == runner.EXIT_REFUSED
     captured = capsys.readouterr()
-    assert "PermissionError: denied" in captured.err and len(captured.err) <= runner.MAX_TRACEBACK
+    assert "KeyError\n" in captured.err and captured.err.endswith("PermissionError\n")
+    assert " in boom\n" in captured.err and len(captured.err) <= runner.MAX_TRACEBACK
+    assert "secret" not in captured.err, captured.err
     out = json.loads(captured.out)
     assert out == {
         "refusal": {

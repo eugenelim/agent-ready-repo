@@ -40,6 +40,7 @@ import importlib.util  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
 import re  # noqa: E402
+import stat  # noqa: E402
 import subprocess  # noqa: E402
 import traceback  # noqa: E402
 import unicodedata  # noqa: E402
@@ -434,6 +435,11 @@ def hidden_change(main: Path, head: str, pathspecs: list[str]) -> bool:
         entry = tree_entry(main, head, path)
         if entry is None or not entry.regular:
             return True
+        try:  # hash-object would follow a link, or block on a FIFO
+            if not stat.S_ISREG(os.lstat(main / path).st_mode):
+                return True
+        except OSError:
+            return True  # missing from disk, as a sparse checkout leaves it
         hashed = git(main, "hash-object", "--no-filters", "--", path, check=False)
         if hashed.returncode != 0 or _text(hashed.stdout) != entry.oid:
             return True
@@ -1370,6 +1376,29 @@ def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
+def internal_error_trace(exc: BaseException) -> str:
+    """Each failing frame's file, line number and function, then the exception type.
+
+    Never a message or source text. Walks to the cause, or else to an unsuppressed context,
+    naming each exception once, root first; group members are not walked. Bounded to
+    ``MAX_TRACEBACK`` characters, keeping the outermost frames.
+    """
+    chain: list[BaseException] = []
+    current: BaseException | None = exc
+    while current is not None and all(current is not seen for seen in chain):
+        chain.append(current)
+        if current.__cause__ is not None:
+            current = current.__cause__
+        else:
+            current = None if current.__suppress_context__ else current.__context__
+    lines: list[str] = []
+    for item in reversed(chain):
+        for frame in traceback.extract_tb(item.__traceback__):
+            lines.append(f"  {frame.filename}:{frame.lineno} in {frame.name}\n")
+        lines.append(f"{type(item).__name__}\n")
+    return "".join(lines)[-MAX_TRACEBACK:]
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run one verb and print its one JSON answer."""
     for stream in (sys.stdout, sys.stderr):
@@ -1414,7 +1443,7 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_REFUSED
     except Exception as exc:  # noqa: BLE001 - every failure still answers one JSON refusal
         # Stdout stays one JSON object; the location goes to stderr, bounded.
-        sys.stderr.write("".join(traceback.format_exception(exc))[-MAX_TRACEBACK:])
+        sys.stderr.write(internal_error_trace(exc))
         failure = Refusal(
             CODE_INTERNAL_ERROR,
             _bounded(f"the runner failed unexpectedly: {type(exc).__name__}"),

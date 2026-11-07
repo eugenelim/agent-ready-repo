@@ -17,6 +17,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from collections.abc import Callable, Generator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -399,6 +400,47 @@ def test_an_index_flag_cannot_hide_a_modified_docs_file(small: World) -> None:
         assert refusal(small, "status", "b-base") == "base-not-committed", flag
         h.git(small.main, "update-index", flag.replace("--", "--no-"), plan)
         h.git(small.main, "checkout", "--", plan)
+
+
+def test_weakened_stat_settings_cannot_hide_a_same_size_edit(small: World) -> None:
+    """The base check's stat pins override a repository that trusts only size and mtime."""
+    plan = small.main / "docs/specs/alpha/plan.md"
+    past = (plan.stat().st_atime - 100, plan.stat().st_mtime - 100)
+    os.utime(plan, past)
+    h.git(small.main, "update-index", "--refresh")  # cache the past mtime; the index is newer
+    h.git(small.main, "config", "core.checkStat", "minimal")
+    h.git(small.main, "config", "core.trustctime", "false")
+    time.sleep(1.1)  # the edit's ctime must differ from the cached one by a whole second
+    text = plan.read_text("utf-8")
+    plan.write_text(text[:-2] + ("x" if text[-2] != "x" else "y") + text[-1], **h._LF)
+    os.utime(plan, past)
+    assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_a_repository_excludes_file_cannot_hide_an_untracked_docs_file(small: World) -> None:
+    excludes = small.tmp / "excludes"
+    excludes.write_text("docs/hidden.md\n", **h._LF)
+    h.git(small.main, "config", "core.excludesFile", str(excludes))
+    _write(small.main, "docs/hidden.md", "not committed\n")
+    assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_a_skip_worktree_file_missing_from_disk_is_not_committed(small: World) -> None:
+    h.git(small.main, "update-index", "--skip-worktree", "docs/specs/alpha/plan.md")
+    (small.main / "docs/specs/alpha/plan.md").unlink()
+    assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_a_flagged_path_replaced_by_a_link_to_its_base_bytes_is_not_committed(
+    small: World,
+) -> None:
+    plan = small.main / "docs/specs/alpha/plan.md"
+    copy = small.tmp / "plan-copy.md"
+    copy.write_bytes(plan.read_bytes())
+    h.git(small.main, "update-index", "--assume-unchanged", "docs/specs/alpha/plan.md")
+    plan.unlink()
+    Path(plan).symlink_to(copy)
+    assert refusal(small, "status", "b-base") == "base-not-committed"
 
 
 def test_a_file_outside_docs_and_the_skill_does_not_matter(small: World) -> None:
@@ -836,8 +878,18 @@ def test_only_the_supervisors_own_security_log_may_change_in_a_slice_worktree(
     wt = w.add_slice("b-pin", "alpha")
     (git_dir(wt) / "agentbundle-supervisor" / "run-0123456789abcdef").mkdir(parents=True)
     store = git_dir(wt) / "agentbundle-supervisor"
+
+    def git_state() -> tuple[str, ...]:
+        return (
+            h.git(w.main, "rev-parse", "HEAD"),
+            h.git(wt, "rev-parse", "HEAD"),
+            h.git(w.main, "for-each-ref", "--format=%(refname) %(objectname)"),
+            (git_dir(w.main) / "index").read_bytes().hex(),
+            (git_dir(wt) / "index").read_bytes().hex(),
+        )
+
     before = _tree_files(wt)
-    before_store, before_main = _tree_files(store), _tree_files(w.main)
+    before_store, before_main, before_git = _tree_files(store), _tree_files(w.main), git_state()
     for verb in ("status", "next", "gates"):
         code, out = w.cli(verb, "b-pin")
         assert code == 0, (verb, out)
@@ -846,6 +898,7 @@ def test_only_the_supervisors_own_security_log_may_change_in_a_slice_worktree(
     after = _tree_files(wt)
     assert _tree_files(store) == before_store, "the slice's supervisor store changed"
     assert _tree_files(w.main) == before_main, "the main worktree changed"
+    assert git_state() == before_git, "HEAD, a ref or an index changed"
     log = "docs/specs/alpha/.supervisor/"
     changed = {p for p in set(before) | set(after) if before.get(p) != after.get(p)}
     assert changed, "the supervisor logged no denial: the case no longer reaches the exception"
