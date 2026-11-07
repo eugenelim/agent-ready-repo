@@ -609,15 +609,16 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     expect(stages.map((g) => g.dataset.stage)).toEqual(['setup', 'decide', 'shape', 'build', 'ship']);
   });
 
-  it('AC4: the Packs tab opens with About packs, then every pack in label order', () => {
+  it('AC4: the Packs tab opens with About packs and Skills by job, then every pack in label order', () => {
     const d = doc(join(DOCS_ROOT, 'packs', 'index.html'));
     const links = [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar .rail-nav a')];
     expect(links[0]?.textContent?.trim()).toBe('About packs');
-    const packLinks = links.slice(1);
+    expect(links[1]?.textContent?.trim()).toBe('Skills by job');
+    const packLinks = links.slice(2);
     const labels = packLinks.map((a) => a.textContent?.trim() ?? '');
     expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b)));
     const packPages = readdirSync(join(DOCS_ROOT, 'packs'), { withFileTypes: true })
-      .filter((e) => e.isDirectory() && existsSync(join(DOCS_ROOT, 'packs', e.name, 'index.html')))
+      .filter((e) => e.isDirectory() && e.name !== 'skills' && existsSync(join(DOCS_ROOT, 'packs', e.name, 'index.html')))
       .map((e) => `${DOCS_BASE_PATH}packs/${e.name}/`);
     expect(new Set(packLinks.map((a) => a.getAttribute('href')))).toEqual(new Set(packPages));
   });
