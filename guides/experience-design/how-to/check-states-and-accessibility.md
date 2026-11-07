@@ -23,12 +23,12 @@ The agent runs the quality-floor pass first, then a usability review of the scre
 
 The floor has three parts. A choice that cannot meet one is reported as a finding, not deferred.
 
-- **States.** Every state the screen can be in is designed: empty (first run and no results), loading, error, success, partial, and disabled, plus permission denied on a screen behind sign-in.
-- **Accessibility.** The design meets WCAG at the level your context requires: readable contrast, every action reachable by keyboard with visible focus, meaning never carried by color alone, accessible names for controls and images, and forgiving targets and timing.
+- **States.** Every state the screen can be in is designed: empty (first run and no results), loading, error, success, partial, and disabled, plus permission denied on a gated screen, one that needs permission to view.
+- **Accessibility.** The design meets WCAG, the Web Content Accessibility Guidelines, at the level your context requires: readable contrast, every action reachable by keyboard with visible focus, meaning never carried by color alone, accessible names for controls and images, and forgiving targets and timing.
 - **Motion.** Every animation tells the user something, and the design honors reduced-motion settings.
 
 ## What this job does not do
 
-The skill reviews a screen, flow, mockup, or described surface; Figma files are not a documented input, so describe the frame you want checked. It is a review with you in the same session, not an independent one. For a fresh-context pass after you author, ask for the `experience-reviewer` agent. Reviewing code defects belongs to frontend engineering.
+The skill reviews a screen, flow, mockup, or described surface; a Figma file is not read directly, so give it an exported image of the frame or a written description. It is a review with you in the same session, not an independent one. For a fresh-context pass after you author, ask for the `experience-reviewer` agent. Reviewing code defects belongs to frontend engineering.
 
 Next, [choose how much design a screen owes](choose-the-depth.md).
