@@ -409,7 +409,7 @@ def base_checks(root: Path) -> str:
         "--ignore-submodules=dirty",
         "--",
         *pathspecs,
-        *parents,
+        *(f":(icase){p}" for p in parents),
     )
     if status.stdout or hidden_change(main, head, pathspecs, parents):
         raise Refusal(
@@ -449,6 +449,11 @@ def _blob_id(data: bytes, like: str) -> str:
     return digest.hexdigest()
 
 
+def _glob_literal(path: str) -> str:
+    """*path* with every glob metacharacter escaped, for use under ``:(glob)`` magic."""
+    return re.sub(r"([*?\[\\])", r"\\\1", path)
+
+
 def parent_ignore_files(pathspecs: list[str]) -> list[str]:
     """The ``.gitignore`` path of every folder above *pathspecs*, up to the repository root."""
     found: set[str] = set()
@@ -479,13 +484,16 @@ def hidden_change(
     # An untracked .gitignore can ignore itself and the files beside it, which dispatch.py
     # would still read, so one is a change whatever the ignore rules say.
     # icase: a case-insensitive filesystem reads `.GITIGNORE` as an ignore file too.
-    ignore_files = [f":(glob,icase){p}/**/.gitignore" for p in pathspecs if p != "workspace.toml"]
+    folders = [p for p in pathspecs if p != "workspace.toml"]
+    ignore_files = [f":(glob,icase){_glob_literal(p)}/**/.gitignore" for p in folders]
     ignore_files += [f":(icase){p}" for p in parents or []]
     found = git(main, "ls-files", "--others", "-z", "--", *ignore_files).stdout
     for raw in (item for item in found.split(b"\0") if item):
         if not _supervisor_ignore_file(main, raw.decode("utf-8", "surrogateescape")):
             return True
-    listing = git(main, "ls-files", "-v", "-z", "--", *pathspecs, *(parents or []))
+    listing = git(
+        main, "ls-files", "-v", "-z", "--", *pathspecs, *(f":(icase){p}" for p in parents or [])
+    )
     for item in listing.stdout.split(b"\0"):
         tag, _, raw = item.partition(b" ")
         if not item or tag == b"H":

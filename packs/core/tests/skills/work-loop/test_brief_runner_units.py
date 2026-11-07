@@ -583,6 +583,10 @@ def test_a_usage_error_and_help_print_no_json(capsys: pytest.CaptureFixture[str]
         json.loads(help_text)
 
 
+def test_glob_characters_in_a_path_are_escaped() -> None:
+    assert runner._glob_literal("ven[d]or/a*b?c") == "ven\\[d]or/a\\*b\\?c"
+
+
 def test_the_parent_ignore_files_reach_the_root() -> None:
     assert runner.parent_ignore_files(["docs", "workspace.toml", ".claude/skills/work-loop"]) == [
         ".claude/.gitignore",

@@ -466,7 +466,49 @@ def test_an_uncommitted_root_gitignore_line_cannot_hide_a_spec(small: World) -> 
     root = small.main / ".gitignore"
     root.write_text(root.read_text("utf-8") + "docs/specs/evil/\n", **h._LF)
     _hide_evil(small)
+    code, out = small.cli("status", "b-base")
+    assert (code, out["refusal"]["code"]) == (1, "base-not-committed"), out
+    assert "a changed .gitignore in a folder above those paths" in out["refusal"]["detail"]
+
+
+def _committed_upper_parent(tmp_path: Path) -> tuple[World, Path]:
+    """A world whose base holds ``.GITIGNORE`` in the folder above the skill directory."""
+    parent = COPY.split("/")[0]
+    w = build_world(
+        tmp_path, briefs={"b-base": ["alpha"]},
+        edit=lambda main: _write(main, f"{parent}/.GITIGNORE", "# committed\n"),
+    )  # fmt: skip
+    return w, w.main / parent / ".GITIGNORE"
+
+
+@pytest.mark.parametrize("flagged", [False, True])
+def test_a_changed_parent_ignore_file_in_another_letter_case_refuses(
+    tmp_path: Path, flagged: bool
+) -> None:
+    """Only the letter-case match on parent paths sees it, on either kind of filesystem."""
+    w, upper = _committed_upper_parent(tmp_path)
+    if flagged:
+        h.git(w.main, "update-index", "--assume-unchanged", str(upper.relative_to(w.main)))
+    upper.write_text("# committed\n# edited\n", **h._LF)
+    assert refusal(w, "status", "b-base") == "base-not-committed"
+
+
+def test_an_untracked_harmless_parent_ignore_file_in_another_letter_case_refuses(
+    small: World,
+) -> None:
+    """No other file is untracked, so only the letter-case match on parent paths finds it."""
+    _write(small.main, f"{COPY.split('/')[0]}/.GITIGNORE", "# nothing ignored\n")
     assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_a_skill_path_with_glob_characters_is_matched_literally(small: World) -> None:
+    folder = "ven[d]or/work-loop"
+    _write(small.main, f"{folder}/a.md", "committed\n")
+    small.commit("a folder whose name holds glob characters")
+    _write(small.main, f"{folder}/x/.gitignore", "*\n")
+    _write(small.main, f"{folder}/x/dispatch.py", "hidden\n")
+    head = h.git(small.main, "rev-parse", "HEAD").strip()
+    assert small.runner.hidden_change(small.main, head, [folder])
 
 
 def test_an_untracked_root_gitignore_cannot_hide_a_spec(small: World) -> None:
