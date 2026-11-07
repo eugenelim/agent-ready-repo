@@ -1,111 +1,148 @@
 ---
 title: Get started
-description: Install a supervised agent workflow matched to the work you need to do.
+description: Pick the route that matches your role, install its packs, and paste a first prompt.
 ---
 
-import { Tabs, TabItem } from '@astrojs/starlight/components';
-import PromptBlock from '../../../components/primitives/PromptBlock.astro';
+## Install the CLI once
 
-## Intro
-
-agent-ready-repo is an open source toolkit for AI-assisted software delivery. It gives teams reusable workflows for building software with human oversight. It contains agent skills and subagents that are installable as packs or plugins for popular harnesses such as Claude Code, Codex, Gemini, Cursor, GitHub Copilot, Kiro IDE and Kiro CLI.
-
-[The Operating Model](/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/) covers how software teams use each pack across the lifecycle stages of building software. 
-
-The `core` pack is the flagship agentic loop and build system. Product, design, infrastructure and research packs provide first-class capabilities required to build quality working software.
-
-## What a pack installs
-
-Depending on the pack and adapter, an installation can add:
-
-- **Skills** — repeatable workflows your agent discovers from your request.
-- **Subagents** — specialist executors or reviewers that receive bounded tasks.
-- **Hooks and commands** — adapter-supported automation and explicit entry points.
-- **Seeds and configuration** — repository scaffolding or pack defaults delivered through declared contracts.
-
-The result is a set of readable files in your repository or user-scope agent directory. `agentbundle` installs and upgrades them; it is not a hosted agent runtime.
-
-## Step 1: install the CLI
+Every `agentbundle install` line below needs the CLI. Install it once, in a terminal:
 
 ```bash
 python -m pip install agentbundle
+agentbundle --help
 ```
 
-Before any real install, add `--dry-run` to preview the rendered files and any preserved companions.
+If the second command prints usage text, the install worked. If you do not use a terminal, ask whoever runs your tooling to run these lines, or use the [Claude apps route](#use-the-claude-apps-without-a-terminal).
 
-Claude users can also [add this catalogue as a plugin marketplace](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/#install-as-a-claude-plugin) for user-scope packs. `core` and other repo-scoped packs install with `agentbundle` so the workflow is shared and versioned with the project.
+Add `--dry-run` to any install to preview the files it writes before it writes them. A pack installs skills, subagents, hooks, commands, and seed files as readable files; `agentbundle` is not a hosted agent runtime.
 
-## Step 2: choose your starting work
+## Pick your route
 
-<Tabs>
-  <TabItem label="Build and review">
-    Install the flagship supervised work loop into a repository:
+Find your role, install its packs, and paste the first prompt into your agent. A pack is a bundle of skills (repeatable workflows) that your agent finds from your request. Every route shows where the output lands; [find and open those files](/agent-ready-repo/docs/guides/_shared/how-to/find-and-open-your-files/) covers opening them.
 
-    ```bash
-    agentbundle install --pack core
-    ```
+### Build and fix code
 
-    Start with a feature or bug whose tests and diff you can inspect. The loop makes assumptions explicit, plans against the repository's real contracts, implements, runs mechanical gates, and sends the diff into a cold independent review. It fixes findings until clean, stops if progress stalls, and never crosses the human merge gate for you.
-  </TabItem>
-  <TabItem label="Product decisions">
-    Install the portable strategy, evidence, and shaping workflows you need:
+You get a supervised loop: a spec you approve, an implementation, mechanical checks, and an independent review. The `core` pack runs it.
 
-    ```bash
-    agentbundle install --pack product-strategy --scope user
-    agentbundle install --pack desk-research --scope user
-    agentbundle install --pack product-engineering --scope user
-    ```
+```bash
+agentbundle install --pack core
+```
 
-    You can install these independently. Together they move from a strategic question or uncertain idea through evidence and competing shapes to a decision brief a delivery team can act on. A human ratifies the bet before it crosses into implementation.
-  </TabItem>
-  <TabItem label="Infrastructure and release">
-    Install the supervised build spine, reviewable Terraform workflow, and release loop into the repository:
+First prompt:
 
-    ```bash
-    agentbundle install --pack core
-    agentbundle install --pack iac-terraform
-    agentbundle install --pack release-engineering
-    ```
+```text
+I need to make the login test deterministic. Route this request.
+```
 
-    `iac-terraform` stops at a reviewable plan; it never runs `terraform apply`. `release-engineering` converges in an ephemeral environment and stops at the human production gate. Add user-scope `architect` and `contracts` when the system and interface decisions also need shaping.
-  </TabItem>
-  <TabItem label="Curated profile">
-    Use a profile when its single-scope pack set matches your starting job:
+Output lands in your repository as `docs/specs/<slug>/spec.md` and `plan.md`, then as a diff you review. Continue with [run the build loop](/agent-ready-repo/docs/guides/core/how-to/start-the-work/).
 
-    ```bash
-    agentbundle list-profiles
-    agentbundle install --profile inception
-    ```
+### Shape an idea
 
-    `inception` supports idea-to-buildable-repo work; `solution-architect` groups architecture, research, and contracts; `full-ceremony` adds the repository governance set around `core`.
-  </TabItem>
-</Tabs>
+You get a written outcome and a de-risked plan, ready for a delivery team. The `product-engineering` pack does the shaping, `desk-research` adds evidence, and `product-strategy` adds market and direction work.
 
-## Step 3: make the first request
+```bash
+agentbundle install --pack product-engineering --scope user
+```
 
-Use natural language. Installed skills are discovered from the work you ask for.
+First prompt:
 
-<PromptBlock
-  speaker="You"
-  prompt="Implement the smallest testable version of <feature> with the work-loop."
-  mode="read-only"
-/>
+```text
+Frame this as a product intent: our onboarding drops half of new accounts before they connect a data source.
+```
 
-Other credible first requests:
+Output lands in your product folder, `docs/product/` by default, and the agent names each path. Continue with [shape an idea](/agent-ready-repo/docs/guides/product-engineering/how-to/frame-the-intent/).
 
-- **Product:** “Compare the evidence for these three product bets and help me place one bounded bet.”
-- **Infrastructure:** “Design the deployment boundary, then generate a reviewable Terraform plan. Do not apply it.”
-- **Catalogue owner:** “Initialize a catalogue for our organization and show me the contracts I need to customize.”
+### Design an experience
 
-## Step 4: inspect the result and boundary
+You get a customer journey, a content brief, and reviewed screens. The `experience-design` pack does this.
 
-The first-value artifact should be something you can judge in minutes: a decision brief, architecture note, contract, tested diff, Terraform plan, documentation change, or release-readiness record. Check what the agent did, what remains unverified, and which decision it surfaced to a human.
+```bash
+agentbundle install --pack experience-design --scope user
+```
 
-## Continue
+First prompt:
 
-- [Follow the install-to-ship walkthrough](/agent-ready-repo/docs/guides/#the-install-to-ship-walkthrough).
-- [Choose work by outcome and role](/agent-ready-repo/docs/).
+```text
+Map the journey for a new account owner who wants to connect their first data source. The current experience breaks at setup.
+```
+
+Output lands in your design folder, and the agent names each path. Continue with [design the experience](/agent-ready-repo/docs/guides/experience-design/how-to/map-the-customer-journey/).
+
+### Write product docs
+
+You get a page drafted from your code, or a list of the pages your docs are missing. The `product-documentation` pack does this.
+
+```bash
+agentbundle install --pack product-documentation
+```
+
+First prompt:
+
+```text
+Audit this project's docs and tell me which stages of the reader journey are missing.
+```
+
+The audit changes no files. New pages land where your repository already keeps docs. Continue with [write the docs](/agent-ready-repo/docs/guides/product-documentation/how-to/write-a-guide/).
+
+### Design an architecture and record decisions
+
+You get a half-page architecture concept you agree before anyone builds, and a short record of each decision you make. The `architect` pack writes the concept, and the `repo-governance` pack records decisions.
+
+```bash
+agentbundle install --pack architect --scope user
+agentbundle install --pack repo-governance
+```
+
+First prompt:
+
+```text
+Draft the architecture concept for account notifications.
+```
+
+The concept lands in your design folder, and decision records land in `docs/adr/` unless your repository keeps them elsewhere. Continue with [design the architecture](/agent-ready-repo/docs/guides/architect/how-to/shape-an-architecture-concept/).
+
+### Release and report
+
+You get a release checked in a temporary environment that stops for your approval before production. The `release-engineering` pack runs the release, and `core` is its base.
+
+```bash
+agentbundle install --pack core
+agentbundle install --pack release-engineering
+```
+
+First prompt:
+
+```text
+Run the release loop for the v2.3.0 payment service deployment.
+```
+
+Output is a release-readiness record shown in your session. The release needs a way to create and tear down a temporary environment. To report delivery speed from Jira, add the `atlassian` pack. Continue with [release a change](/agent-ready-repo/docs/guides/release-engineering/how-to/run-a-release/).
+
+## Use the Claude apps without a terminal
+
+The Claude desktop and web apps can install the user-scope packs from this catalogue as a plugin, so a strategist, designer, or writer needs no terminal. In the left sidebar, open Customize, then the Plugins tab. Choose Add, then Add marketplace, then Add from a repository, and enter `eugenelim/agent-ready-repo`.[^apps]
+
+Plugins need a paid plan: Pro, Max, Ultra, Team, or Enterprise. An organization can block a marketplace it has not allowed. If "Add from a repository" does not appear in your app build, register the marketplace in Claude Code instead:
+
+```bash
+claude plugin marketplace add eugenelim/agent-ready-repo
+```
+
+The apps route lacks three things the terminal route has:
+
+- Sub-agents and hooks do not run in the chat apps, so reviewers and retrievers that a method calls do not run and the result is thinner.
+- The chat apps read nothing from your computer's files, so the agent shows its result in the conversation. Copy it from there.
+- Repo-scoped packs, such as `core`, `repo-governance`, and `release-engineering`, are not on this route. They install with `agentbundle`.
+
+The Claude apps and Claude Code keep separate plugin lists, so register the marketplace in each place you work.
+
+## Choose another start
+
+- [Install and pick packs by profile](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/#install-a-profile): `agentbundle list-profiles` shows `inception`, `solution-architect`, and `full-ceremony`.
+- [Check adapter support](/agent-ready-repo/docs/guides/_shared/reference/adapter-support/) if you use Codex, Cursor, Copilot, Gemini CLI, or Kiro.
 - [Browse every pack](/agent-ready-repo/docs/packs/).
-- [Install packs for your agent](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/).
-- [Check adapter support](/agent-ready-repo/docs/guides/_shared/reference/adapter-support/).
-- [Install a profile](/agent-ready-repo/docs/guides/_shared/how-to/install-packs/#install-a-profile).
+- [Read the operating model](/agent-ready-repo/docs/guides/_shared/explanation/the-operating-model/) for how the packs fit the stages of building software.
+
+Next: [follow the install-to-ship walkthrough](/agent-ready-repo/docs/guides/#the-install-to-ship-walkthrough).
+
+[^apps]: [Use plugins in Claude](https://support.claude.com/en/articles/13837440-use-plugins-in-claude), read 2026-11-06, for the menu path, plans, and organization limits; the missing "Add from a repository" option is reported in [claude-code issue 72072](https://github.com/anthropics/claude-code/issues/72072). Also [Claude apps practitioner journey](https://github.com/eugenelim/agent-ready-repo/blob/main/docs/design/journeys/claude-apps-practitioner-current-state.md), Stage 3 and surface notes. The menu path is documentation-verified, not run in the app, and so are the missing sub-agents, hooks, and file reads.
