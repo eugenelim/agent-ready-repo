@@ -17,6 +17,7 @@ These guides help you go from a customer's goal to reviewed screens that are rea
 
 - [Thread a feature from journey to screens](how-to/author-design-intent.md) — Thread a feature from journey to screens, with a review at the end.
 - [Establish design intent](how-to/establish-design-intent.md) — Set design principles, an aesthetic direction, and a design system first.
+- [Check a screen for states and accessibility](how-to/check-states-and-accessibility.md) — Review a screen, flow, or mockup against the pack's quality floor, which holds every state designed, the accessibility floor cleared, and motion that honors reduced-motion.
 - [Choose how much design a screen owes](how-to/choose-the-depth.md) — Pick the risk tier that sets how much design a surface owes.
 - [Choose the right copy mode](how-to/copy-boundary.md) — Route a copy task to the right content mode or to microcopy.
 - [How to write a product's voice and microcopy](how-to/write-product-microcopy.md) — Set the product's voice once, then write error, empty-state, button, and label copy in it.
