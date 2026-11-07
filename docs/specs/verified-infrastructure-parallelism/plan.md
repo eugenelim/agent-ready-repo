@@ -486,9 +486,35 @@ line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
 `make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
 in T5's release).
 
+### T8: Close the second-round review findings
+
+**Depends on:** T7
+
+**Tests:**
+- AC-0033: a held ref added during a floor attempt with no held record is
+  answered `attempt-residue` (the floor manifest records the held-ref
+  namespace as well as the held records), proven with the ref-only case.
+- AC-0008, AC-0009: a settle marker that is never written makes the waiting
+  fixture launcher fail within a bounded test deadline well under the CI job
+  timeout, with a message naming the missing marker.
+- AC-0059 to AC-0063: `test_supervisor_untrusted_unsafe_host.py` runs in one
+  of the Gate A-supervisor jobs within its budget, and the lane-coverage
+  check exempts no integration-gated suite that runs nowhere.
+- Nits ride along: the supervisor-written execution-result for a concurrent
+  attempt claims no gate outcome nobody observed and still validates; the
+  workflow header names every Gate A-supervisor job; the budget check fails
+  when a job's stated timeout and its `timeout-minutes` differ, with budgets
+  taken from a named timing run; the phase test is renamed to what it checks
+  and its tautological `callable` loop dropped.
+
+**Done when:** each changed git-backed suite is on the Gate A-supervisor run
+line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
+`make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
+in T5's release).
+
 ## Rollout
 
-- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6 and T7).
+- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6, T7 and T8).
   `concurrency` ships `sequential` in every one, so adopters see no behaviour
   change beyond AC-0040's merge-driver refusal, which arrives with T2.
 - **Reversal:** reinstall the prior Core release; a run in flight finishes on
