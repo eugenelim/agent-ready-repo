@@ -285,6 +285,18 @@ Owned by: T3, T6, T9
 
 **Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green, the boundary lint pair exits 0 and the guide tools exit 0.
 
+### T19: Eighth-round review findings are repaired
+
+**Depends on:** T18
+**Touches:** `guides/repo-governance/how-to/new-rfc.md`, `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/.apm/skills/new-rfc/evals/evals.json`, `packs/repo-governance/tests/skills/new-rfc/test_rfc_script.py`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`, `packs/repo-governance/tests/skills/new-rfc/test_evals.py`, `tests/roster/test_lighter_rfc_delivery.py`
+
+**Tests:**
+- The guide, SKILL.md step 1 and eval 12 make the CI clause conditional on the repository having set up a `check` job as its governance file describes, with the local merge-then-`check` as the other route, and the T18 pins match that wording and fail on the unconditional one (AC-0072, AC-0058, AC-0071). Step 1 says to run `renumber` only on this branch's own unmerged draft and never on a record already on the default branch, pinned by a source-text test (AC-0013). A `--dir` test runs while the helper cache is empty, with a regular-file `file_safety.py` carrying a run marker planted in the `--dir` folder, and fails if the loader reads the helper from the `--dir` folder (AC-0034, AC-0025). Mode: TDD for the script test, goal-based for the text.
+
+**Approach:** the planted-helper test is a separate test whose fresh module has not loaded the helper; the existing `--dir` tests keep their pre-warmed spies. The rest is wording. No version bump. The `rfc.py` copies are not touched.
+
+**Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green, the boundary lint pair exits 0 and the guide tools exit 0.
+
 ## Rollout
 
 Reversible: the template and skill revert by reverting the change; seeded files already installed in adopter repositories stay, inert. Sequencing: script, then template, then seeds and skill, then repository adoption, guide and ADR, then versions last so no task borrows an unreleased version. The `agentbundle` tag and publish follow the merge. Seeded files reach fresh installs only; existing adopters can run `agentbundle scaffold` to add them.
