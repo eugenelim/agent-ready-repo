@@ -91,7 +91,9 @@ def test_adr_lists_each_superseded_criterion() -> None:
         token = criterion.split(",")[0].split(" and ")[0].strip()
         if token.startswith("AC"):
             assert token in section, (spec, token)
-    assert "AC-0065" in adr and "governance draft" in adr
+    d3 = adr.index("- **D3:**")
+    d3_end = adr.index("\nEvery other criterion", d3)
+    assert "AC-0065" in adr[d3:d3_end] and "governance draft" in adr[d3:d3_end]
 
 
 @pytest.mark.parametrize("spec", SUPERSEDED_SPECS)

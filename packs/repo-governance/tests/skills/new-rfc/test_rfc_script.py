@@ -134,7 +134,7 @@ def test_next_uses_upstream_and_origin_through_git_seam(rig: Rig) -> None:
     def fake(argv: list[str], cwd: str, env: dict[str, str]) -> tuple[int, str]:
         calls.append((argv, cwd, env))
         sub = argv[9:]
-        if sub[:2] == ["rev-parse", "--show-toplevel"]:
+        if sub[0] == "rev-parse" and sub[1] == "--show-toplevel":
             return 0, str(top) + "\n"
         if sub[0] == "symbolic-ref":
             return (0, "origin/main\n") if "origin" in sub[-1] else (1, "")
@@ -156,7 +156,7 @@ def test_next_takes_upstream_when_it_is_higher_than_origin(rig: Rig) -> None:
 
     def fake(argv: list[str], cwd: str, env: dict[str, str]) -> tuple[int, str]:
         sub = argv[9:]
-        if sub[:2] == ["rev-parse", "--show-toplevel"]:
+        if sub[0] == "rev-parse" and sub[1] == "--show-toplevel":
             return 0, str(top) + "\n"
         if sub[0] == "symbolic-ref":
             return 0, sub[-1].split("refs/remotes/")[1].replace("/HEAD", "/main") + "\n"
@@ -176,7 +176,7 @@ def test_next_takes_the_larger_when_both_remotes_resolve(rig: Rig) -> None:
 
     def fake(argv: list[str], cwd: str, env: dict[str, str]) -> tuple[int, str]:
         sub = argv[9:]
-        if sub[:2] == ["rev-parse", "--show-toplevel"]:
+        if sub[0] == "rev-parse" and sub[1] == "--show-toplevel":
             return 0, str(top) + "\n"
         if sub[0] == "symbolic-ref":
             return 0, sub[-1].split("refs/remotes/")[1].replace("/HEAD", "/main") + "\n"

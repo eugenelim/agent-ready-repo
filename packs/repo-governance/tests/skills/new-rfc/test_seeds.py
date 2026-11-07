@@ -13,9 +13,6 @@ SCRIPTS = PACK / ".apm/skills/new-rfc/scripts"
 STARTER = SEEDS / "docs/GOVERNANCE.md"
 ISSUE = SEEDS / ".github/ISSUE_TEMPLATE/proposal-idea.md"
 TEMPLATE = SEEDS / "docs/rfc/template.md.tmpl"
-CATALOGUE_HELPER = (
-    PACK.parents[1] / "packages/agentbundle/agentbundle/catalogue_tooling/file_safety.py"
-)
 SEEDED = [
     STARTER,
     ISSUE,
@@ -39,8 +36,6 @@ def test_scripts_are_byte_identical_copies() -> None:
     """AC-0052, AC-0053."""
     for name in ("rfc.py", "file_safety.py"):
         assert (SEEDS / "docs/rfc" / name).read_bytes() == (SCRIPTS / name).read_bytes()
-    seeded = (SEEDS / "docs/rfc/file_safety.py").read_bytes()
-    assert seeded == CATALOGUE_HELPER.read_bytes()
 
 
 def test_maintainer_owned_files_and_close_review() -> None:

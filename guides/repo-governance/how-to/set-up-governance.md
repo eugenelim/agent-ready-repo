@@ -33,7 +33,7 @@ GOVERNANCE PREVIEW:
 - Target: docs/GOVERNANCE.md
 - Kind: governance
 - Current: sha256:<digest>
-- Proposed: sha256:<64 hex digits> (812 bytes)
+- Proposed: sha256:<64 hex digits> (<n> bytes)
 - Approval required: yes — a GOVERNANCE.md is present
 - Approved by: none
 - Characters made visible: 0

@@ -87,6 +87,7 @@ def test_ac6_header_comment_names_only_the_rfc_script() -> None:
     text = _text()
     header = _flat(text.split("- **Status:**")[0])
     assert "python3 -I docs/rfc/rfc.py" in header
+    assert "python3 -I docs/rfc/rfc.py check <file>" in header
     assert len(re.findall(r"\b[\w./-]+\.py\b", text)) == 1
 
 
