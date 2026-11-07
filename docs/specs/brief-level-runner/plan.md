@@ -1,7 +1,7 @@
 # Plan: brief-level runner
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `tests/AGENTS.md` (roster tests and their named build-check step); `dispatch.py` `dispatch()` and `_header_readiness.py` as the readiness owner; `author-delivery-brief/scripts/lint-brief-coverage.py` as the Spec map parser precedent; `_supervisor_git.HardenedGit` as the hardened Git launcher; `_file_safety.read_confined_regular_file` as the read path; `lint-knowledge.py` `field_problems` with its `body` policy as the one standing-orders character rule; `_supervisor_admission._check_lease` and its lease key constants as the one lease rule; `_supervisor_loop.State.attempt` as the failed-attempt count; `supervisor_harness.py` and `test_supervisor_parked_gates.py` as the analogous integration tests.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -291,6 +291,8 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
 - 2026-11-06: amendment approved by eugenelim (build strategy)
 - 2026-11-06: amendment approved by eugenelim (scope)
 - 2026-11-06: amendment approved by eugenelim (build strategy)
+- 2026-11-07: amendment approved by eugenelim (scope)
+- 2026-11-07: amendment approved by eugenelim (build strategy)
 - 2026-11-07: amendment approved by eugenelim (scope)
 - 2026-11-07: amendment approved by eugenelim (build strategy)
 - 2026-11-07: amendment approved by eugenelim (scope)
