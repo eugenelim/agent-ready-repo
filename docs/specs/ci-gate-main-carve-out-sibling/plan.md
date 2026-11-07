@@ -365,3 +365,5 @@ Approvals, and nothing else.
 - YYYY-MM-DD: spec approved by <handle>
 - YYYY-MM-DD: plan approved by <handle>
 -->
+
+- 2026-11-07: spec approved by eugenelim (scope)
