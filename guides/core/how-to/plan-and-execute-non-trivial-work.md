@@ -7,7 +7,7 @@ kind: how-to
 
 # How to plan and execute non-trivial work
 
-Take a feature, refactor, or multi-file change to a merge-ready pull request with the `new-spec` and `work-loop` skills. You need [the `core` pack installed](../../_shared/how-to/install-packs.md) and set up with [adapt-to-project](adapt-to-project.md), and a directory where you can edit, commit, and run your lint, type, and test commands. A spec is a short document that says what done means; [the core pack explained](../explanation/core-pack.md) gives the why.
+Take a feature, refactor, or multi-file change to a merge-ready pull request with the `new-spec` and `work-loop` skills. You need [the `core` pack installed](../../_shared/how-to/install-packs.md) and set up with [adapt-to-project](adapt-to-project.md), and a directory where you can edit, commit, and run your lint, type, and test commands. A spec is a short document that says what done means; [why the loop works this way](../explanation/core-pack.md#why-the-loop) gives the why.
 
 ## Pick your entry point
 
