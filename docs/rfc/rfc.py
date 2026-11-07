@@ -111,7 +111,12 @@ def _fs() -> Any:
         missing = [n for n in HELPER_NAMES if not hasattr(module, n)]
         if missing:
             raise ImportError("required helper is incomplete: file_safety.py")
-    except BaseException:
+    except Exception as exc:  # a broken helper is the same refusal as a missing one
+        sys.modules.pop(name, None)
+        if isinstance(exc, ImportError) and str(exc).startswith("required helper"):
+            raise
+        raise ImportError("required helper is broken: file_safety.py") from exc
+    except BaseException:  # interrupts propagate
         sys.modules.pop(name, None)
         raise
     _fs_module = module
@@ -339,14 +344,16 @@ def cmd_renumber(args: argparse.Namespace) -> int:
         return 2
     text = re.sub(r"^# RFC-(\d+|XXXX):", f"# RFC-{args.number:04d}:", text, count=1,
                   flags=re.MULTILINE)
-    created = False
+    attempted = created = False
     try:
+        attempted = True  # an interrupt inside the helper's write may still leave the target
         _fs().write_confined_regular_file(base, target, text.encode("utf-8"), expect_sha256=None)
         created = True
         source.unlink()
     except BaseException as exc:  # an interrupt after the create must also roll back
         stuck = False
-        if created and os.path.lexists(source):
+        interrupted = attempted and not isinstance(exc, (OSError, ValueError))
+        if (created or interrupted) and os.path.lexists(source) and os.path.lexists(target):
             try:
                 target.unlink()  # never leave two copies behind
             except OSError:

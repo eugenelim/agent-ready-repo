@@ -30,11 +30,11 @@ The agent then runs `preview` and shows you the whole block:
 
 ```text
 GOVERNANCE PREVIEW:
-- Target: GOVERNANCE.md
+- Target: docs/GOVERNANCE.md
 - Kind: governance
-- Current: absent
+- Current: sha256:<digest>
 - Proposed: sha256:<64 hex digits> (812 bytes)
-- Approval required: no
+- Approval required: yes — a GOVERNANCE.md is present
 - Approved by: none
 - Characters made visible: 0
 --- content ---
@@ -57,7 +57,7 @@ Do not add a standing permission rule for the script's `write` command. Your hos
 
 ## When a named approval is needed
 
-The preview says `Approval required: yes` when a `GOVERNANCE.md` already exists, when the draft picks a decision model other than the default, or when a `CODEOWNERS` change alters who owns a path. Name the accepted RFC or the recorded owner decision that approves the change, and the agent passes it as `Approved by`. Without a name, the agent writes nothing and gives you the draft as text. It then starts an RFC if your repository has an RFC process, or asks you to record an owner decision.
+The preview says `Approval required: yes` when a `GOVERNANCE.md` already exists, when the draft picks a decision model other than the default, or when a `CODEOWNERS` change alters who owns a path. A fresh install seeds a starter `docs/GOVERNANCE.md` with placeholder text, so your first preview already says `yes`: replacing that placeholder needs a named accepted RFC or recorded owner decision. Name the accepted RFC or the recorded owner decision that approves the change, and the agent passes it as `Approved by`. Without a name, the agent writes nothing and gives you the draft as text. It then starts an RFC if your repository has an RFC process, or asks you to record an owner decision.
 
 ## Link it from your charter
 

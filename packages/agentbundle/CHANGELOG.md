@@ -10,7 +10,7 @@ breaking.
 
 ### Changed
 
-- Release bump carrying the RFC-0114 delivery-route change (`Engine-Change-RFC: RFC-0114`).
+- Release bump carrying the lighter-RFC change: a shorter RFC template, `rfc.py` checks, and a governance draft that fits a fresh install (`Engine-Change-RFC: RFC-0114`).
 - `catalogue self-host` keeps `docs/GOVERNANCE.md` repository-owned.
 - The catalogue lint checks the new `repo-governance` seed shapes.
 

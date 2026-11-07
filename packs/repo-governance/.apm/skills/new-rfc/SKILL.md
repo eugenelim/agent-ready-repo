@@ -355,8 +355,10 @@ not in a terminal documentation wave.
 Touch a frozen RFC (Accepted or Rejected) only after the superseding RFC is Accepted,
 and never for a draft. Then, for each RFC it replaces:
 
-1. Change that RFC's one header line to the mirror: `Superseded by` for a whole RFC, or
-   `Superseded in part` with the same decisions the superseding RFC names.
+1. Set that RFC's one header mirror line: change its `Superseded by` or `Superseded in part`
+   line if it has one, and add the line if it has none (the template ships without it). Use
+   `Superseded by` for a whole RFC, or `Superseded in part` with the same decisions the
+   superseding RFC names.
 2. Append an `## Errata` entry that names the superseding RFC.
 3. Edit nothing else: a frozen RFC's body stays as it is.
 

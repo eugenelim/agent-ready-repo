@@ -6,7 +6,7 @@ Most RFCs fit in two pages. Required sections are marked. Delete optional ones y
 If this RFC replaces part or all of another, add a `- **Supersedes:**` or `- **Supersedes in part:**` header
 line with ids and decision numbers, for example `RFC-NNNN D1,D3; RFC-NNNN D2`. The replaced RFC gets the
 matching `Superseded by` or `Superseded in part` line.
-Check a draft with `python3 -I docs/rfc/rfc.py`. -->
+Check a draft with `python3 -I docs/rfc/rfc.py check <file>`. -->
 
 - **Status:** Draft <!-- Maintainers update it. -->
 - **Author:** <account-handle>

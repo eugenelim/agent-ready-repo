@@ -81,11 +81,16 @@ def test_adr_lists_each_superseded_criterion() -> None:
     rows = _superseded_rows()
     assert len(rows) == 8
     assert "RFC-0114" in adr
+    decisions = {"new-rfc-two-humans": "D1", "new-rfc-readability": "D2", "new-rfc-governance": "D3"}
     for spec, criterion in rows:
         assert spec in adr
+        start = adr.index(f"- **{decisions[spec]}:**")
+        end = adr.find("\n- **D", start + 1)
+        end = adr.index("\nEvery other criterion", start) if end == -1 else end
+        section = adr[start:end]  # this spec's own decision, so another spec's token cannot mask a gap
         token = criterion.split(",")[0].split(" and ")[0].strip()
         if token.startswith("AC"):
-            assert token in adr, (spec, token)
+            assert token in section, (spec, token)
     assert "AC-0065" in adr and "governance draft" in adr
 
 
@@ -140,6 +145,10 @@ def test_release_notes_name_self_host_and_lint_changes() -> None:
 def test_governance_guide_sample_starts_like_the_starter() -> None:
     """AC-0048: the sample preview of the default draft has no Decision model line."""
     guide = (ROOT / "guides/repo-governance/how-to/set-up-governance.md").read_text(encoding="utf-8")
-    sample = guide.split("--- content ---\n", 1)[1].split("```", 1)[0]
+    preview = guide.split("GOVERNANCE PREVIEW:\n", 1)[1].split("```", 1)[0]
+    assert "- Target: docs/GOVERNANCE.md\n" in preview
+    assert "- Current: sha256:<digest>\n" in preview
+    assert "- Approval required: yes \u2014 a GOVERNANCE.md is present\n" in preview
+    sample = preview.split("--- content ---\n", 1)[1]
     assert sample.startswith("# Governance\n\n## Maintainers\n")
     assert "Decision model" not in sample

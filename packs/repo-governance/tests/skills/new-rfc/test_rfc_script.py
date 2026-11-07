@@ -171,6 +171,26 @@ def test_next_takes_upstream_when_it_is_higher_than_origin(rig: Rig) -> None:
     assert rig.run("next")[1] == "0031\n"
 
 
+def test_next_takes_the_larger_when_both_remotes_resolve(rig: Rig) -> None:
+    top = rig.dir.parent.parent
+
+    def fake(argv: list[str], cwd: str, env: dict[str, str]) -> tuple[int, str]:
+        sub = argv[9:]
+        if sub[:2] == ["rev-parse", "--show-toplevel"]:
+            return 0, str(top) + "\n"
+        if sub[0] == "symbolic-ref":
+            return 0, sub[-1].split("refs/remotes/")[1].replace("/HEAD", "/main") + "\n"
+        if sub[:2] == ["rev-parse", "--verify"]:
+            return 0, "abc\n"
+        if sub[0] == "ls-tree":
+            return 0, "0020-u.md\n" if sub[-1].startswith("upstream/") else "0030-r.md\n"
+        raise AssertionError(sub)
+
+    rig.mod = Rig.load(rig.dir, stub=False)
+    rig.mod._spawn = fake
+    assert rig.run("next")[1] == "0031\n"
+
+
 def test_next_exits_2_when_unreadable_or_full(rig: Rig, tmp_path: Path) -> None:
     code, out, _ = rig.run("--dir", str(tmp_path / "missing"), "next")
     assert (code, out) == (2, "")
@@ -413,6 +433,25 @@ def test_renumber_interrupt_after_create_restores_original(
         real_unlink(path, *a, **k)
 
     monkeypatch.setattr(os, "unlink", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        rig.run("renumber", str(rig.dir / "XXXX-a.md"), "5")
+    monkeypatch.undo()
+    assert rig.snapshot() == original
+
+
+def test_renumber_interrupt_inside_helper_write_leaves_only_the_original(
+    rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rig.put("XXXX-a.md", rfc_text(title="RFC-XXXX: T"))
+    original = rig.snapshot()
+    helper = rig.mod._fs()
+    real_write = helper.write_confined_regular_file
+
+    def write_then_interrupt(*a: Any, **k: Any) -> None:
+        real_write(*a, **k)  # the exclusive create lands, then Ctrl-C arrives
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(helper, "write_confined_regular_file", write_then_interrupt)
     with pytest.raises(KeyboardInterrupt):
         rig.run("renumber", str(rig.dir / "XXXX-a.md"), "5")
     monkeypatch.undo()
@@ -758,6 +797,18 @@ def test_isolated_run_ignores_planted_module_and_bytecode(rig: Rig, tmp_path: Pa
     finally:
         sys.dont_write_bytecode = previous
     assert marker.read_text(encoding="utf-8") == "ran"
+
+
+@pytest.mark.parametrize("body", ["def broken(:\n", "raise RuntimeError('boom')\n"])
+@pytest.mark.parametrize("command", [["next"], ["check"]])
+def test_broken_helper_exits_2_without_a_traceback(
+    rig: Rig, body: str, command: list[str]
+) -> None:
+    (rig.dir / "file_safety.py").write_text(body, encoding="utf-8")
+    mod = Rig.load(rig.dir)
+    assert mod.main(command) == 2
+    err = rig.capsys.readouterr().err
+    assert "required helper is broken: file_safety.py" in err and "Traceback" not in err
 
 
 def test_helper_that_is_a_link_is_not_loaded(rig: Rig, tmp_path: Path) -> None:
