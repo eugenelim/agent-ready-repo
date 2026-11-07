@@ -112,7 +112,7 @@ A profile is a curated, single-scope manifest — see [Design a profile](../../_
 The second is a **CI packaging release**: `agentbundle catalogue package` bundles the catalogue into a versioned, reproducible archive for Artifactory publication.
 For publication ordering, exit codes, and the full CI pipeline contract, see the [Catalogue CI contract](../../_shared/reference/catalogue-ci-contract.md).
 
-To create a **new or derived catalogue** (enterprise self-hosting), use `agentbundle catalogue init <directory> --name <name>`; for an enterprise catalogue derived from an existing source catalogue, add `--preset self-hosted --source <catalogue>`. This replaces the former `export-catalogue` skill with a deterministic CLI workflow.
+To create a **new or derived catalogue** (enterprise self-hosting), use `agentbundle catalogue init <directory> --name <name>`; for an enterprise catalogue derived from an existing source catalogue, add `--preset self-hosted --source <catalogue>`.
 
 **Primary touchpoints:** `assimilate-repo`, `propose-catalogue-pack`, `assimilate-primitive`.
 

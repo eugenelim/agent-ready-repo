@@ -107,7 +107,7 @@ Round 2 runs the same sequence. This time:
 - Changed-surface coverage: 100% (all three changed endpoints have passing e2e tests) ✓
 - Canary metrics: p99 latency within SLO, error rate 0.0% ✓
 - Flake rate: 0% (no test ran more than once) ✓
-- Error budget: 2 rounds consumed, cap is 10 ✓
+- Loop budget: 2 rounds consumed, cap is 10 ✓
 
 All convergence conditions met. **The loop stops.** `release-lead` surfaces the release-readiness record.
 
@@ -125,7 +125,7 @@ The release-readiness record looks like this (abbreviated):
 - E2e: 47/47 passing, 100% changed-surface coverage
 - Canary: p50 42ms, p99 187ms (within SLO), error rate 0.0%
 - Flake rate: 0.0%
-- Error budget: 2 rounds consumed, 0.3% cost of $15 threshold
+- Loop budget: 2 rounds consumed, 0.3% cost of $15 threshold
 
 ### Operational verdict — PASS
 quality-engineer (operational mode): Response time distributions are healthy.
@@ -158,10 +158,10 @@ G5 is yours. The loop has done everything it can autonomously. The production sh
 Read the record, confirm you're satisfied, and ratify:
 
 ```
-G5 ratified. Ship to production.
+I ratify this release at G5.
 ```
 
-`release-lead` records your ratification (harness-attested), tears down the ephemeral environment, and hands the ratified ship to you. It does not apply the migration or roll out the artifact: you or your deploy pipeline does that, with the ratified record as your go decision.
+The tooling records your ratification (harness-attested); the agent holds no token to write it. `release-lead` reads it back, tears down the ephemeral environment, and hands the ratified ship to you. It does not apply the migration or roll out the artifact: you or your deploy pipeline does that, with the ratified record as your go decision.
 
 The release loop is done. The production rollout is yours.
 
