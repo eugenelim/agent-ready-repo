@@ -319,7 +319,7 @@ def test_no_governing_source_carries_a_retired_edit_licence() -> None:
 
 def test_how_to_states_the_amendment_boundary_and_routes_to_the_ledger() -> None:
     """The public how-to keeps its own rule and names the ledger destination."""
-    relative = "guides/core/how-to/plan-and-execute-non-trivial-work.md"
+    relative = "guides/core/reference/plan-and-execute-details.md"
     flat = _flat(_section(relative, "### Spec amendment mid-flight"))
 
     assert "A change to tasks, tests, stubs, design, or approach is a working-plan edit" in flat, (
