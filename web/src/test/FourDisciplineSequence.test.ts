@@ -200,7 +200,7 @@ describe.skipIf(!built)('four-discipline sequence on the journeys index', () => 
     // Exact target, not substrings: a different path or fragment sharing
     // "/docs/guides/" and "#p2b" would otherwise pass.
     expect(onward!.getAttribute('href')).toBe(
-      '/agent-ready-repo/docs/guides/#p2b--take-the-wider-route-through-the-four-disciplines--4-hours'
+      '/agent-ready-repo/docs/guides/#p2b--take-the-wider-route-through-the-four-disciplines'
     );
   });
 
