@@ -59,6 +59,16 @@ def test_guide_runs_rfc_py_only_in_isolated_mode() -> None:
     assert all("python3 -I " in line for line in lines), lines
 
 
+def test_guide_states_the_number_snapshot_rule() -> None:
+    """AC-0072: a clash shows only on the branch merged with the default branch."""
+    text = " ".join(GUIDE.read_text(encoding="utf-8").split())
+    assert "re-derive it just before you open the pull request" not in text
+    assert "`check` reports a clash and `renumber` fixes it" not in text
+    assert "not a reservation" in text
+    assert "`check` runs on your branch merged with the default branch" in text
+    assert "`next` or `check` on the branch alone cannot confirm the number is free" in text
+
+
 ADR_0161 = next((ROOT / "docs/adr").glob("0161-*.md"))
 SUPERSEDED_SPECS = ("new-rfc-two-humans", "new-rfc-readability", "new-rfc-governance")
 

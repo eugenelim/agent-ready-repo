@@ -124,11 +124,11 @@ A written file is a draft that the maintainers adopt through their normal review
    python3 -I <absolute skill dir>/scripts/rfc.py --dir <RFC folder> check
    ```
 
-   `check` reports an ordinal held by two records. The number is free across the
-   working tree and the remote default branch the script can see — a snapshot, not a
-   reservation — so **re-derive it immediately before opening the pull request, not
-   when the branch starts**; a branch that sits in review finds its number taken by
-   whoever merged first, and that collision is invisible inside the branch. A
+   `check` reports an ordinal held by two records. The number is a snapshot, not a
+   reservation. A clash with a record merged since shows only when `check` runs on
+   the branch merged with the default branch (as pull-request CI does, or locally
+   after merging the default branch in); `renumber` then fixes it. `next` or `check`
+   on the branch alone cannot confirm the number is free. A
    `NNNN-notes/` folder or a `NNNN-<slug>-research.md` sibling is a companion and
    shares its RFC's ordinal by design.
    Then, before creating anything, resolve the RFC owner root and prove the RFC

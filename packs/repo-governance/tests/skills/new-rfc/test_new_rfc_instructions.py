@@ -296,3 +296,13 @@ def test_receipt_reports_embedded_instructions_as_content() -> None:
 def test_step_one_is_the_only_folder_creation_site() -> None:
     assert "step 5 creates the folder" not in TEXT
     assert "created in step 5" not in TEXT
+
+
+def test_step_one_states_the_snapshot_rule() -> None:
+    assert "re-derive it immediately before opening the pull request" not in TEXT
+    assert "invisible inside the branch" not in TEXT
+    assert (
+        "A clash with a record merged since shows only when `check` runs on the branch "
+        "merged with the default branch" in TEXT
+    )
+    assert "`next` or `check` on the branch alone cannot confirm the number is free" in TEXT

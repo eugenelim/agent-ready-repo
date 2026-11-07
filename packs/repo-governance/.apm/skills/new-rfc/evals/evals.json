@@ -167,11 +167,11 @@
     {
       "id": 12,
       "prompt": "Before I open this RFC's pull request, is the number I picked still safe to use?",
-      "expected_output": "Explains that the number is a snapshot rather than a reservation and re-derives it immediately before the PR opens, using the bundled helper, rather than reusing the value chosen at branch start. Runs `rfc.py --dir <RFC folder> check` (the `check` subcommand) against the RFC directory to report any ordinal already held by two records. Notes that the collision exists only against the default branch and is therefore invisible to review inside the branch.",
+      "expected_output": "Explains that the number is a snapshot rather than a reservation. A clash with a record merged since shows only when `rfc.py --dir <RFC folder> check` runs on the branch merged with the default branch (as pull-request CI does, or locally after merging the default branch in), and `renumber` then fixes it. Says that `next` or `check` on the branch alone cannot confirm the number is free.",
       "assertions": [
-        "Re-derives the ordinal immediately before the pull request opens rather than reusing the branch-start value",
-        "Runs the bundled `rfc.py` with `--dir <RFC folder>` and the `check` subcommand against the RFC directory",
-        "Explains that the collision exists only against the default branch and is invisible to review within the branch",
+        "Says the number is a snapshot, not a reservation",
+        "Says a clash with a record merged since shows only when `rfc.py --dir <RFC folder> check` runs on the branch merged with the default branch, and that `renumber` then fixes it",
+        "Says `next` or `check` on the branch alone cannot confirm the number is free",
         "Treats a `NNNN-notes/` folder or a `NNNN-<slug>-research.md` sibling as a companion sharing its RFC's ordinal, not a collision",
         "Does not claim the helper reserves or holds a number"
       ]

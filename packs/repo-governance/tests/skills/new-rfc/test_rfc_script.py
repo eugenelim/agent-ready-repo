@@ -767,6 +767,45 @@ def test_dir_targets_only_the_given_folder(
     assert not (other / "__pycache__").exists()
 
 
+def test_dir_renumber_targets_only_the_given_folder(
+    rig: Rig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    other = tmp_path / "other"
+    other.mkdir()
+    rig.put("XXXX-a.md", rfc_text(title="RFC-XXXX: T"), folder=other)
+    rig.put("0001-script.md")
+    rig.put("0042-script-too.md")
+    before = rig.snapshot()
+
+    fs = rig.mod._fs()
+    roots: list[Path] = []
+    for name in ("read_confined_regular_file", "write_confined_regular_file", "validate_confined_directory"):
+        real: Callable[..., Any] = getattr(fs, name)
+
+        def spy(root: Path, *a: Any, _real: Callable[..., Any] = real, **k: Any) -> Any:
+            roots.append(Path(root))
+            return _real(root, *a, **k)
+
+        monkeypatch.setattr(fs, name, spy)
+    scanned: list[Path] = []
+    real_scandir = os.scandir
+
+    def scan(path: Any = ".") -> Any:
+        scanned.append(Path(os.fspath(path)))
+        return real_scandir(path)
+
+    with monkeypatch.context() as m:
+        m.setattr(os, "scandir", scan)
+        code = rig.run("--dir", str(other), "renumber", str(other / "XXXX-a.md"), "7")[0]
+    assert code == 0
+    assert (other / "0007-a.md").read_text(encoding="utf-8").startswith("# RFC-0007: T\n")
+    assert not (other / "XXXX-a.md").exists()
+    assert not (rig.dir / "0007-a.md").exists() and not (rig.dir / "XXXX-a.md").exists()
+    assert rig.snapshot() == before
+    assert roots and {r.resolve() for r in roots} == {other.resolve()}
+    assert scanned and {s.resolve() for s in scanned} == {other.resolve()}
+
+
 def test_dir_must_be_a_folder(rig: Rig, tmp_path: Path) -> None:
     (tmp_path / "f").write_text("x", encoding="utf-8")
     assert rig.run("--dir", str(tmp_path / "f"), "next")[0] == 2

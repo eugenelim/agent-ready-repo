@@ -94,3 +94,13 @@ def test_no_stale_vocabulary_in_new_assertions() -> None:
             continue
         for w in ("Reviewer brief", "The ask", "Approver"):
             assert w not in _text(ev)
+
+
+def test_number_clash_eval_states_the_snapshot_rule() -> None:
+    ev = BY_ID[12]
+    blob = ev["expected_output"] + "\n" + _text(ev)
+    assert "immediately before" not in blob and "invisible to review" not in blob
+    assert "merged with the default branch" in ev["expected_output"]
+    assert _has(ev, "snapshot", "not a reservation")
+    assert _has(ev, "alone cannot confirm")
+    assert _has(ev, "renumber")
