@@ -1002,6 +1002,12 @@ consumer = "states that navigate-intents never reads workspace.toml and names wo
 owner = "rfc-0067"
 
 [[row]]
+pattern = "guides/core/reference/navigate-intents-queries.md"
+class = "guide"
+consumer = "states that navigate-intents never reads workspace.toml; its readiness input is dispatch.py's output, which still loads the workspace-status engine"
+owner = "rfc-0067"
+
+[[row]]
 pattern = "guides/core/how-to/orient-at-session-start.md"
 class = "guide"
 consumer = "orientation guide built on dispatch.py; names the unmigrated_workspace refusal and links the upgrade page"

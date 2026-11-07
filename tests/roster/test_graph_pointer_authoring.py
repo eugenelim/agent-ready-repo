@@ -63,7 +63,7 @@ MANIFEST: dict[str, tuple[str, str]] = {
     "packs/core/DESIGN.md": ("excluded", "design record of the reader; writes no field"),
     P + "align-value-stream/references/cross-component-rollup.md": (
         "excluded", "describes how coverage reads Brief: back-links; writes none"),
-    "guides/core/how-to/navigate-intents.md": (
+    "guides/core/reference/navigate-intents-queries.md": (
         "excluded", "describes the reader's output; writes no field"),
     "guides/core/how-to/run-a-live-demo.md": (
         "excluded", "quotes `Brief: none` as demo output only"),
@@ -319,7 +319,7 @@ DISCOVERY_MANIFEST: dict[str, tuple[str, str]] = {
         "excluded", "lists the checked fields only; instructs no value form"),
     S + "navigate-intents/SKILL.md": (
         "excluded", "describes the pointer fields the reader follows; writes none"),
-    "guides/core/how-to/navigate-intents.md": (
+    "guides/core/reference/navigate-intents-queries.md": (
         "excluded", "describes the reader's output; writes no field"),
     "packs/core/DESIGN.md": ("excluded", "design record of the reader; writes no field"),
     P + "discovery-loop/SKILL.md": (

@@ -18,7 +18,7 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-GUIDE = ROOT / "guides" / "core" / "how-to" / "plan-and-execute-non-trivial-work.md"
+GUIDE = ROOT / "guides" / "core" / "reference" / "plan-and-execute-details.md"
 
 
 def flat(text: str) -> str:
