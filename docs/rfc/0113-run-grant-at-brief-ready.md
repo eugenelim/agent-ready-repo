@@ -52,7 +52,7 @@ Who is affected: maintainers who run a delivery brief through the brief-level ru
 
 - **work-loop** is core's build workflow. In its **full mode**, its path for risky change, each slice has two human approvals, `spec-approved` and `plan-approved`. ADR-0157 lets them wait as **parked gates**, each tied to a **digest** (a fingerprint of a file's contents), so an edited file cannot pass as approved. A **material amendment** is a change to an approved spec or plan that needs a fresh approval.
 - The **supervisor** runs one slice's work-loop procedure and keeps its delivery records. A slice's stop is **merge-ready** when its run reports it ready to merge, and **merged** when its spec is `Shipped`.
-- The **brief-level runner** (ADR-0159) is a read-only script above it. It reads committed records at the **base**, the local ref of the freshly fetched default branch that every worktree shares, and names the next slice to work on. Its **default limits** are the ones it applies with no grant. Its four commands, or **verbs**, are `next` (one action, such as `start-slice`, `resume-slice`, `await-gates`, `await-merge`, `complete`, or `blocked` with a reason per row, such as `refused` when the supervisor refused the slice or `unreadable` when its records cannot be read), `status` (each row's state), `gates` (every parked gate and its state) and `classify` (what to do with a failed task: retry, split it, replace the worker, replan, or `surface-to-human`).
+- The **brief-level runner** (ADR-0159) is a read-only script above it. It reads committed records at the **base**, the local ref of the freshly fetched default branch that every worktree shares, and names the next slice to work on. Its **default limits** are the ones it applies with no grant. A runner call changes no file, apart from the supervisor's own security-event record keeping that brief-level-runner AC-0001 allows. Its four commands, or **verbs**, are `next` (one action, such as `start-slice`, `resume-slice`, `await-gates`, `await-merge`, `complete`, or `blocked` with a reason per row, such as `refused` when the supervisor refused the slice or `unreadable` when its records cannot be read), `status` (each row's state), `gates` (every parked gate and its state) and `classify` (what to do with a failed task: retry, split it, replace the worker, replan, or `surface-to-human`).
 - The **controller** is the agent that acts on the runner's answers. A **worker** is any agent it starts to do slice work. Each slice runs in its own **slice worktree** on a branch named `brief/<brief-slug>/<spec-slug>`; the **main worktree** holds the base.
 - **Standing orders** are one human-written file of numbered constraints per brief, passed to every worker (brief-level-runner AC-0015 to AC-0017).
 - **Lease policy** is the supervisor's table of run limits: a retry budget per task, slices in flight at once, and each worker kind's **stuck-after runtime**, after which a worker with no visible progress is replaced (brief-level-runner AC-0018). An **AC** (acceptance criterion) is a numbered rule in a spec.
@@ -89,8 +89,6 @@ flowchart LR
   M[Merge check where required] -.->|catches some grant edits| O
   W -.->|base-writer limit D4| B
 ```
-
-The change touches `author-delivery-brief` continue mode, the brief-level runner, a new committed file kind `docs/product/run-grants/<brief-slug>.md`, and one merge-check script. Adopters get them on the core release that ships the follow-on spec (D8).
 
 ### D1. One stop, three distinct answers
 
@@ -171,7 +169,7 @@ A grant is a set of limits on the runner's default behavior. It never adds anyth
 
 `gates` never refuses on a grant problem, because the human needs the gate listing most when a run has stopped. `next` and `status` refuse, as they do for malformed standing orders (brief-level-runner AC-0016). `classify` never sends work out again once a grant limit has fired.
 
-A deleted grant on a brief with the line refuses; it does not fall back. Removing the `Run grant: required` line does not make the grant stale, because the digest skips that line. The runner catches it through the table's "File present, line missing" row.
+Removing the `Run grant: required` line does not make the grant stale, because the digest skips that line. The runner catches it through the table's "File present, line missing" row.
 
 ### D4. What a grant cannot bound
 
@@ -233,14 +231,14 @@ One spec delivers the grant. It amends the brief-level-runner spec in these plac
 - AC-0003 (refuses a brief that is not `Ready` or `Executing`);
 - AC-0009 (which rows `start-slice` and `resume-slice` may name, and the grant reasons);
 - AC-0028 (the in-flight cap becomes the lower of the grant's and the lease policy's);
-- AC-0013 and `next` (`Also human` and `Spend cap` in the output);
-- AC-0016 (a grant refusal for `next` and `status`);
+- AC-0009 and AC-0013 (`Also human`, `Spend cap` and the other grant values as named fields in `next` and `status`; this changes `next`'s answer shape, so its `schema_version` rises);
+- AC-0016 and AC-0033 (a grant refusal for `next` and `status`, with its place in the refusal order AC-0033 sets beside `invalid-policy` and `invalid-standing-orders`);
 - AC-0020 (`classify` answers `surface-to-human` once a grant limit fires);
 - the Agent Rules: "extract only the fields named here" gains the grant fields, and the runner spec's rule that new reason codes need prior approval is met by this spec.
 
 The same spec owns the detail this RFC leaves open:
 
-- the file format: a closed grammar for each field, a regular UTF-8 file with a size limit and a hidden-character rule at the depth of brief-level-runner AC-0015, and the exact digest function with its rationale;
+- the file format: a closed grammar for each field, a regular UTF-8 file with a size limit and the same content rules as brief-level-runner AC-0015, which refuses anything the work-loop knowledge lint refuses in a multi-line body field, and the exact digest function with its rationale;
 - the grant reasons' place in AC-0009's reason order;
 - the merge check's full trigger and exemption lists, including the lifecycle edits that slice and close-out pull requests must make;
 - the rollback and reconciliation rule for a failed write-back;
@@ -299,6 +297,6 @@ No new ADR is needed. A grant changes which actions can proceed without a human,
 1. `auto_parallel` was a per-run on/off grant that skipped only the human go-ahead for a group of tasks that had already cleared its gates. It was "never a gate input", and a failed group still surfaced and stopped. It had no fields. Source: the `work-loop` text removed in commit `49a239a72` (core 4.0.0, PR #1651). Method: `git show 49a239a72`, reading the removed lines.
 2. Every spec-plan and human approval gate stays, and approval binds to exact revisions. Source: [RFC-0099 §7](0099-cut-before-adding-and-artifact-shaping.md#7-preserve-every-spec-plan-and-human-approval-gate). Method: read.
 3. Spec and plan approvals wait as parked gates. The first decision driver forbids removing, merging or inferring a human approval. No record turns a parked gate into an approval. The gate digest ignores the `Status:` value. Source: [ADR-0157](../adr/0157-work-loop-approval-gates-park-instead-of-halting.md). Method: read.
-4. One decision driver is "No human approval is removed, merged, or inferred." The runner reads only committed records, standing orders cannot grant authority, and approvals, merge and irreversible operations stay human. Its "Revisit if" line reads "if a run grant changes which actions may proceed without a human". Source: [ADR-0159](../adr/0159-brief-level-runner-chains-slices-from-committed-records.md), Accepted on an unmerged branch as of 2026-11-07. Method: read at commit `d25333d4`.
-5. The runner reads the brief, specs and standing orders only from the base (AC-0002), answers `next` in a fixed action and reason order (AC-0009), reads a standing-orders file of numbered lines (AC-0015 to AC-0017), and takes its lease keys from policy (AC-0018). Its Assumptions accept two `Security:` residuals: forgeable `brief/*` branches and a movable local base. Source: the [brief-level-runner spec](../specs/brief-level-runner/spec.md), Approved on an unmerged branch as of 2026-11-07. Method: read at commit `d25333d4`.
+4. One decision driver is "No human approval is removed, merged, or inferred." The runner reads only committed records, standing orders cannot grant authority, and approvals, merge and irreversible operations stay human. Its "Revisit if" line reads "if a run grant changes which actions may proceed without a human". Source: [ADR-0159](../adr/0159-brief-level-runner-chains-slices-from-committed-records.md), Accepted on an unmerged branch as of 2026-11-07. Method: read at commits `d25333d4` and `7e8821ca9`, unchanged between them.
+5. The runner reads the brief, specs and standing orders only from the base (AC-0002), answers `next` in a fixed action and reason order with a `schema_version` (AC-0009), reads a standing-orders file of numbered lines (AC-0015 to AC-0017), takes its lease keys from policy (AC-0018), and refuses an invalid policy in a fixed refusal order (AC-0033). Its Assumptions accept two `Security:` residuals: forgeable `brief/*` branches and a movable local base. Source: the [brief-level-runner spec](../specs/brief-level-runner/spec.md), Implementing on an unmerged branch as of 2026-11-07. Method: read at commit `7e8821ca9`.
 6. `author-delivery-brief` continue mode confirms Ready at stage 3, asks a "second, distinct human confirmation" of the cut at stage 4, and treats a delivery-map change as a material edit. Its brief coverage lint fails a Spec map Status cell that differs from the spec's real status. Source: `packs/core/.apm/skills/author-delivery-brief/SKILL.md` and `packs/core/.apm/skills/author-delivery-brief/scripts/lint-brief-coverage.py`. Method: read.
