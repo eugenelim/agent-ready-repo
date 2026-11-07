@@ -84,6 +84,7 @@ def _run_helper_source(data: bytes, path: Path, module: types.ModuleType) -> Non
     bytes, never imported, so no bytecode cache is consulted.
     """
     code = compile(data, str(path), "exec", dont_inherit=True)
+    # nosemgrep: python.lang.security.audit.exec-detected.exec-detected  # maintainer-owned helper bytes read above - see docstring
     exec(code, module.__dict__)  # nosec B102
 
 
