@@ -196,6 +196,14 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
   - Guidance (AC-0021): a `classify` refusal holds every `next` action until the human answers; the reference names the fetch and `git merge --ff-only` step that moves the base, and the run precondition names `workspace.toml`.
 - **Done when:** the T10 tests pass, the existing brief-runner suites stay green, and lint is clean.
 
+### T11: Release on the next patch above main
+
+- **Depends on:** T10
+- **Touches:** `packs/core/pack.toml`, `packs/core/.claude-plugin/plugin.json`, `docs/product/changelog.d/e7bae207-f05a-4335-a571-d19848a531f2.md`, `tests/roster/test_registry_upgrade_notes.py`
+- **Mode:** verification
+- **Tests:** release version check (AC-0026); the roster registry test's `core` pin names this release's version and fragment.
+- **Done when:** `tools/check-core-release.py --base origin/main` exits 0 and `tests/roster/test_registry_upgrade_notes.py` passes.
+
 ## Rollout
 
 - **Delivery:** additive; the runner is read-only and opt-in, so a controller that never calls it behaves as before. Reversal is reinstalling the prior Core release.
