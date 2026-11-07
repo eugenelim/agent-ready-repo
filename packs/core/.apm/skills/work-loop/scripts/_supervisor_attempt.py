@@ -51,6 +51,7 @@ import os
 import re
 import stat
 import sys
+import threading
 from collections.abc import Callable, Generator, Iterable
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -297,6 +298,9 @@ class Attempts:
         self.ws = ws
         self.open: Issuance | None = None
         self._manifest: Issuance | None = None
+        # Set on the thread running ``guard``: its own Git calls refresh the manifest and are
+        # not held to the one being replaced. Every other thread stays checked throughout.
+        self._guarding = threading.local()
         # The digests of the installed supervisor files, hashed before any sibling
         # loaded; ``None`` when a caller drives the modules without the entry point.
         self.installed: dict[str, str] | None = None
@@ -705,15 +709,16 @@ class Attempts:
     def _files(self, issuance: Issuance) -> dict[str, str]:
         """The trusted files as they stand now, for comparison with *issuance*'s manifest.
 
-        A held result's record and ref are compared only when the manifest holds them: one the
-        supervisor records later is not in it, and one a worker changes or removes is.
+        A floor manifest holds every held result's record and ref, so one a worker adds, changes,
+        or removes differs. A ``run-concurrent`` manifest holds none: the supervisor's own verb
+        records them.
         """
         trusted = [k for k in issuance.trusted if not k.startswith(_HELD_LABELS)]
         found = self._trusted_state(
             [k for k in trusted if not k.startswith("skill:")], skill=issuance.kind != "regenerate"
         )
-        held = self.held_state(issuance.run_id)
-        found.update({k: v for k, v in held.items() if k in issuance.trusted})
+        if issuance.kind != "run-concurrent":
+            found.update(self.held_state(issuance.run_id))
         return found
 
     def held_state(self, run_id: str) -> dict[str, str]:
@@ -755,8 +760,8 @@ class Attempts:
 
     def _control_check(self, hardened: Any) -> None:
         """The helper's pre-check: Git control state must match the open attempt's manifest."""
-        manifest = self._manifest
-        if manifest is None:
+        manifest = self._manifest  # one read: the guard may rebind it from another thread
+        if manifest is None or getattr(self._guarding, "active", False):
             return
         changed = differences(manifest.git, self.git_state(manifest.git))
         changed += self.product_ref_problems(manifest.run_id)
@@ -775,8 +780,17 @@ class Attempts:
         Runs before any derivation and any write. Returns the open attempt that
         passed, or ``None``; only ``next`` clears a refusal whose paths are restored.
         """
+        # A sibling attempt's Git call reads ``_manifest`` from another thread, so it is
+        # rebound once at the end, never cleared first; only this thread's calls skip the check.
+        self._guarding.active = True
+        try:
+            return self._guard(verb)
+        finally:
+            self._guarding.active = False
+
+    def _guard(self, verb: str) -> Issuance | None:
         self.open = None
-        self._manifest = None
+        manifest: Issuance | None = None
         for issuance in self._latest():
             if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
                 continue
@@ -805,7 +819,8 @@ class Attempts:
                 continue
             if paths:
                 self._refuse(issuance, paths, verb)
-            self.open = self._manifest = issuance
+            self.open = manifest = issuance
+        self._manifest = manifest
         return self.open
 
     def _settle_own_landing(self, issuance: Issuance) -> None:

@@ -34,7 +34,9 @@ A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (s
 * ``per_task``: ``{task id prefix: overrides}``, merged over the script for the attempt whose
   task id starts with the prefix; ``wait_for``: a path the attempt waits for before its access
   line; ``touch``: a path it creates after sending the access line (together they finish
-  attempts in a chosen order);
+  attempts in a chosen order); ``wait_for_settle``: a path the supervisor creates when an
+  earlier result is held (the test's kill-point hook), waited for with no deadline: the
+  launcher gives up and exits only when the supervisor closes its pipe;
 * ``on_abort``: ``"exit"`` (default) or ``"ignore"``; ``hold``: wait on the gate file before
   the access line; ``never_access``: never send it; ``child``: leave a sleeping child in the
   process group; ``release_wait``: ``"never"`` sends access without waiting for release.
@@ -42,6 +44,7 @@ A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (s
 
 import json
 import os
+import select
 import subprocess
 import sys
 import time
@@ -92,7 +95,9 @@ def main():
                 continue
             fds.append(fd)
         target = Path(SCRIPT["log"]) / "env.json"
-        with target.with_suffix(".tmp").open("w", encoding="utf-8") as handle:
+        # Sibling launchers write side by side: each stages its own file, then replaces.
+        staged = target.with_suffix(f".{os.getpid()}.tmp")
+        with staged.open("w", encoding="utf-8") as handle:
             json.dump(
                 {"argv": sys.argv, "env": dict(os.environ), "cwd": os.path.realpath("."),
                  "cwd_listing": [p.name for p in Path().iterdir()], "extra_fds": fds,
@@ -100,7 +105,7 @@ def main():
                  "isolated": sys.flags.isolated},
                 handle,
             )
-        target.with_suffix(".tmp").replace(target)
+        staged.replace(target)
     for pattern in SCRIPT.get("tamper_glob", []):
         for path in Path("/").glob(pattern.lstrip("/")):
             path.chmod(0o700)
@@ -190,6 +195,11 @@ def main():
         path.symlink_to(target)
     if SCRIPT.get("hold"):
         wait_gate()
+    settle = SCRIPT.get("wait_for_settle")
+    while settle and not Path(settle).exists():
+        ready, _, _ = select.select([sys.stdin.fileno()], [], [], 0.02)
+        if ready:  # the supervisor ended the attempt (abort or closed pipe): the signal is lost
+            return 1
     waiting = SCRIPT.get("wait_for")
     deadline = time.time() + 60
     while waiting and not Path(waiting).exists() and time.time() < deadline:

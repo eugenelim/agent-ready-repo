@@ -539,9 +539,17 @@ def test_a_denied_read_does_not_enter_the_attested_set(
     outcome = _outcome(env.verb(request["request_id"])[1])
     assert outcome["outcome"] == "landed" and outcome["access_defect"] is None
     assert L.attested_reads(
-        {"reads": [{"path": "a", "kind": "file"}, {"path": "b", "kind": "file"}],
+        {"mode": "allowlist",
+         "reads": [{"path": "a", "kind": "file"}, {"path": "b", "kind": "file"}],
          "denied_reads": ["b"]}
     ) == [{"path": "a", "kind": "file"}]
+
+
+def test_a_denied_read_stays_in_the_attested_set_under_complete_trace() -> None:
+    # A trace enforces no denial: the read the attestation lists as denied may have happened.
+    reads = [{"path": "a", "kind": "file"}, {"path": "b", "kind": "file"}]
+    att = {"mode": "trace", "reads": reads, "denied_reads": ["b"]}
+    assert L.attested_reads(att) == reads
 
 
 # ── the release token (AC-0019) ─────────────────────────────────────────────

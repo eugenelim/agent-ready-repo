@@ -62,11 +62,15 @@ TRIPLE = plan_of(
     ("T2", "Plain note is written", "`README.md`", "`plain.txt`", "none"),
     ("T3", "Third file is written", "`README.md`", "`third.txt`", "none"),
 )
+# The later task settles first. The supervisor's own kill-point hook (see ``settle_releases``)
+# creates ``second.done`` as that task's result is held, so the earlier task cannot reach its
+# access line before then: the order is forced at the settle point, not by a race.
 REVERSE = {
+    "settle_release": {"plain-note-is-written": "{log}/second.done"},
     "per_task": {
-        "calculator-answers": {"wait_for": "{log}/second.done"},
-        "plain-note-is-written": {"write": {"plain.txt": NOTE}, "touch": "{log}/second.done"},
-    }
+        "calculator-answers": {"wait_for_settle": "{log}/second.done"},
+        "plain-note-is-written": {"write": {"plain.txt": NOTE}},
+    },
 }
 
 
@@ -82,10 +86,44 @@ def make_env(
 ) -> Any:
     tmp_path.mkdir(parents=True, exist_ok=True)
     policy = {"max_concurrent_attempts": 2, **kwargs.pop("policy", {})}
-    return ls.Env(
-        tmp_path, monkeypatch, plan=plan, script=script_for(tmp_path, script or {}),
-        policy=policy, **kwargs,
-    )
+    resolved = script_for(tmp_path, script or {})
+    env = ls.Env(tmp_path, monkeypatch, plan=plan, script=resolved, policy=policy, **kwargs)
+    settle_releases(monkeypatch, resolved.get("settle_release", {}))
+    return env
+
+
+def settle_releases(monkeypatch: pytest.MonkeyPatch, releases: dict[str, str]) -> None:
+    """Create each marker as the named task's result is held, whatever else the test hooks.
+
+    A task that waits on a marker (``wait_for_settle``) is therefore released by the
+    supervisor reaching its settle point for the earlier task, so the completion order is forced.
+    Every kill hook a test installs afterwards runs after this one.
+    """
+    if not releases:
+        return
+    real = harness.commit_module.set_kill_hook
+
+    def release(name: str) -> None:
+        if name != "result-held":
+            return
+        who = threading.current_thread().name.removeprefix("attempt-")
+        for prefix, marker in releases.items():
+            if who.startswith(prefix):
+                Path(marker).write_text("held", encoding="utf-8")
+
+    def install(hook: Any) -> None:
+        if hook is None:
+            real(None)
+            return
+
+        def both(name: str) -> None:
+            release(name)
+            hook(name)
+
+        real(both)
+
+    monkeypatch.setattr(harness.commit_module, "set_kill_hook", install)
+    real(release)
 
 
 def head(env: Any) -> str:
@@ -217,13 +255,16 @@ def test_three_tasks_finishing_in_reverse_land_in_floor_order(
 ) -> None:
     script = {
         "write": {"calc.py": CALC},
+        "settle_release": {
+            "plain-note-is-written": "{log}/second.done",
+            "third-file-is-written": "{log}/third.done",
+        },
         "per_task": {
-            "calculator-answers": {"wait_for": "{log}/second.done"},
+            "calculator-answers": {"wait_for_settle": "{log}/second.done"},
             "plain-note-is-written": {
-                "write": {"plain.txt": NOTE}, "wait_for": "{log}/third.done",
-                "touch": "{log}/second.done",
+                "write": {"plain.txt": NOTE}, "wait_for_settle": "{log}/third.done",
             },
-            "third-file-is-written": {"write": {"third.txt": "3\n"}, "touch": "{log}/third.done"},
+            "third-file-is-written": {"write": {"third.txt": "3\n"}},
         },
     }
     env = make_env(
@@ -279,12 +320,18 @@ def test_the_in_process_seam_integrates_in_completion_order(
 
 
 def crash_second_result(env: Any) -> dict[str, Any]:
-    """Kill the verb as the later task's result is held; its sibling never settles."""
+    """Kill the verb as the later task's result is held; its sibling never settles.
+
+    The earlier task is released by the same hold (``REVERSE``), reaches its access line, and
+    dies at ``access-read`` in its own thread, so it can neither settle nor land the held
+    result: nothing a sibling thread does can add a second held record.
+    """
     request = env.issued()
     seen: list[str] = []
 
     def hook(name: str) -> None:
-        if name == "result-held":
+        who = threading.current_thread().name
+        if name == "result-held" or (name == "access-read" and "calculator" in who):
             seen.append(name)
             raise harness.Crash(name)
 
@@ -292,6 +339,7 @@ def crash_second_result(env: Any) -> dict[str, Any]:
     with pytest.raises(harness.Crash):
         env.verb(request["request_id"])
     ls.clear_kill_hook()
+    assert seen.count("result-held") == 1 and seen.count("access-read") == 1, seen
     ws = harness.workspace(env.repo)
     for record in env.records():
         ls.concurrent_module._write(ws, request["run_id"], {**record, "verb_start": "gone"})
@@ -366,6 +414,167 @@ def test_a_floor_attempt_that_rewrites_a_held_tree_ref_is_residue(
     env.git("update-ref", ref, other)
     assert_residue_after_report(env, floor)
     env.git("update-ref", ref, original)
+
+
+FORGED_ID = "att-" + "0123456789abcdef"
+
+
+def _forge_held(env: Any, *, with_ref: bool) -> dict[str, Any]:
+    """Copy the real held record under a new attempt id with another tree, reads, and writes."""
+    (record,) = (env.store() / "held").iterdir()
+    real = json.loads(record.read_text("utf-8"))
+    tree = env.git("rev-parse", "HEAD^{tree}").strip()
+    forged = {
+        **real, "attempt_id": FORGED_ID, "seq": real["seq"] + 1, "result_tree": tree,
+        "reads": [], "writes": [],
+    }
+    (env.store() / "held" / f"{FORGED_ID}.json").write_text(json.dumps(forged), encoding="utf-8")
+    if with_ref:
+        ref = [
+            r for r in env.git(
+                "for-each-ref", "--format=%(refname)", "refs/agentbundle/delivery"
+            ).splitlines()
+            if "/held/" in r
+        ][0]
+        env.git("update-ref", ref.rsplit("/", 1)[0] + "/" + FORGED_ID, tree)
+    return forged
+
+
+@pytest.mark.parametrize("with_ref", [False, True], ids=["record", "record-and-ref"])
+def test_a_held_record_added_during_a_floor_attempt_is_residue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, with_ref: bool
+) -> None:
+    env = make_env(tmp_path, monkeypatch, script=reverse_script())
+    crash_second_result(env)
+    floor = env.next()["request"]
+    before = head(env)
+    _forge_held(env, with_ref=with_ref)
+    assert_residue_after_report(env, floor)
+    assert head(env) == before
+
+
+def test_integration_never_lists_a_held_record_no_consumed_record_matches(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = make_env(tmp_path, monkeypatch, script=reverse_script())
+    request = crash_second_result(env)
+    ws = harness.workspace(env.repo)
+    real = [h["attempt_id"] for h in integ.list_held(ws, request["run_id"])]
+    assert len(real) == 1
+    forged = _forge_held(env, with_ref=True)
+    assert [h["attempt_id"] for h in integ.list_held(ws, request["run_id"])] == real
+    # A record that copies the real identity but names another tree is not listed either.
+    (env.store() / "held" / f"{forged['attempt_id']}.json").unlink()
+    path = env.store() / "held" / f"{real[0]}.json"
+    record = json.loads(path.read_text("utf-8"))
+    record["result_tree"] = forged["result_tree"]
+    path.write_text(json.dumps(record), encoding="utf-8")
+    assert integ.list_held(ws, request["run_id"]) == []
+    assert head(env) == env.git("rev-parse", "HEAD").strip()
+
+
+@pytest.mark.parametrize(
+    "skill_dir", [".claude/skills/work-loop", ".agents/skills/work-loop"],
+    ids=["claude", "agents"],
+)
+def test_a_result_changing_the_installed_skill_fails_its_attempt_before_integration(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, skill_dir: str
+) -> None:
+    script = {"write": {f"{skill_dir}/scripts/x.py": "x = 1\n"}}
+    env = make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script=script)
+    installed = env.repo / skill_dir
+    (installed / "scripts").mkdir(parents=True)
+    (installed / "scripts" / "y.py").write_text("y = 1\n", encoding="utf-8")
+    env.git("add", "-A")
+    env.git("commit", "-q", "-m", "chore: install skill")
+    monkeypatch.setattr(ls.cli._supervisor("_supervisor_attempt.py"), "SKILL_DIR", installed)
+    request = env.issued()
+    before = head(env)
+    code, payload = env.verb(request["request_id"])
+    assert code == 0, payload
+    (record,) = env.records()
+    assert record["state"] != "landed" and record["reason"] == "protected-path-changed"
+    held = env.store() / "held"
+    assert head(env) == before and (not held.exists() or not list(held.iterdir()))
+    assert not (env.repo / skill_dir / "scripts" / "x.py").exists()
+
+
+def test_a_concurrent_landing_records_no_task_gate_pass_and_the_run_still_gates(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK)
+    run_batch(env)
+    receipts = ls.cli._supervisor("_supervisor_loop.py").derive(harness.workspace(env.repo)).receipts
+    seen = [(r["observation"]["type"], r["outcome"]) for r in receipts]
+    assert ("task-gate", "pass") not in seen
+    assert ("concurrent-integration", "pass") in seen
+    assert env.next()["request"]["kind"] == "run-gates"
+
+
+def test_a_sibling_git_call_is_checked_while_the_guard_refreshes_the_manifest(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK)
+    env.issued()
+    ws = harness.workspace(env.repo)
+    assert ws.attempts.guard("report") is not None  # the open attempt's manifest is bound
+    _edit_git_control_state(env)
+    seen: list[BaseException | None] = []
+
+    def sibling_git_call() -> None:
+        try:
+            ws.git.hardened.run("rev-parse", "HEAD")
+            seen.append(None)
+        except Exception as exc:  # the thread reports what it saw; the test asserts it
+            seen.append(exc)
+
+    latest = ws.attempts._latest
+
+    def latest_with_a_sibling() -> Any:
+        # The guard is mid-refresh here: a sibling's Git call runs now, to completion.
+        thread = threading.Thread(target=sibling_git_call)
+        thread.start()
+        thread.join()
+        return latest()
+
+    monkeypatch.setattr(ws.attempts, "_latest", latest_with_a_sibling)
+    with pytest.raises(Exception):  # noqa: B017 - the guard itself refuses the changed state
+        ws.attempts.guard("report")
+    (outcome,) = seen
+    assert getattr(outcome, "code", None) == "denied-git-control-state", outcome
+
+
+SECRET_NAME = "zq9-attempt-chosen-dir"
+
+
+def test_a_gitmodules_link_fails_the_attempt_with_a_closed_code_and_no_path_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = {"links": {f"{SECRET_NAME}/.gitmodules": "../README.md"}}
+    env = make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script=script)
+    request = env.issued()
+    code, payload = env.verb(request["request_id"])
+    assert code == 0, payload
+    (record,) = env.records()
+    assert record["reason"] == "attempt-git-name" and record["state"] != "landed"
+    assert SECRET_NAME not in json.dumps(payload) + json.dumps(env.next())
+
+
+def test_a_git_failure_during_ingestion_maps_to_a_closed_code_without_its_text(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK)
+
+    def failing(*_a: Any, **_k: Any) -> Any:
+        raise integ.SupervisorGitError("denied-git-failed", f"git update-index failed: {SECRET_NAME}")
+
+    monkeypatch.setattr(ls.concurrent_module._conc, "ingest_attempt_directory", failing)
+    request = env.issued()
+    code, payload = env.verb(request["request_id"])
+    assert code == 0, payload
+    (record,) = env.records()
+    assert record["reason"] == "attempt-unreadable"
+    assert SECRET_NAME not in json.dumps(payload) + json.dumps(env.next())
 
 
 def test_integration_reads_the_held_identity_not_the_attempt_directory(
@@ -449,10 +658,13 @@ def test_a_traced_read_of_a_path_a_sibling_changed_is_the_refusal_outcome(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     script = {
+        "settle_release": {"plain-note-is-written": "{log}/second.done"},
         "per_task": {
-            "calculator-answers": {"write": {"calc.py": CALC}, "wait_for": "{log}/second.done"},
+            "calculator-answers": {
+                "write": {"calc.py": CALC}, "wait_for_settle": "{log}/second.done",
+            },
             "plain-note-is-written": {
-                "write": {"plain.txt": NOTE}, "touch": "{log}/second.done",
+                "write": {"plain.txt": NOTE},
                 "access_reads": [
                     {"path": "README.md", "kind": "file"}, {"path": "calc.py", "kind": "file"},
                 ],
@@ -481,10 +693,13 @@ def test_an_undeclared_traced_read_that_meets_nothing_integrates(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     script = {
+        "settle_release": {"plain-note-is-written": "{log}/second.done"},
         "per_task": {
-            "calculator-answers": {"write": {"calc.py": CALC}, "wait_for": "{log}/second.done"},
+            "calculator-answers": {
+                "write": {"calc.py": CALC}, "wait_for_settle": "{log}/second.done",
+            },
             "plain-note-is-written": {
-                "write": {"plain.txt": NOTE}, "touch": "{log}/second.done",
+                "write": {"plain.txt": NOTE},
                 "access_reads": [
                     {"path": "README.md", "kind": "file"}, {"path": "elsewhere.txt", "kind": "file"},
                 ],
@@ -600,6 +815,44 @@ def test_a_union_merge_attribute_in_the_checked_out_gitattributes_resolves_nothi
     })
     (rig.repo / ".gitattributes").write_text("* merge=union\n", encoding="utf-8")
     assert refusal_of(rig, held).reason == "content"
+
+
+def test_the_apply_pins_attributes_with_the_global_attr_source_option(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    git_module = ls.cli._supervisor("_supervisor_git.py")
+    launched: list[list[str]] = []
+    real = git_module._launch
+
+    def recording(argv: list[str], **kwargs: Any) -> Any:
+        launched.append(list(argv))
+        return real(argv, **kwargs)
+
+    monkeypatch.setattr(git_module, "_launch", recording)
+    rig, held = same_line_rig(tmp_path)
+    assert refusal_of(rig, held).reason == "content"
+    empty = harness.git(rig.repo, "hash-object", "-t", "tree", os.devnull).strip()
+    for command in ("merge-tree", "check-attr"):
+        (argv,) = [a for a in launched if command in a]
+        assert argv.index(f"--attr-source={empty}") < argv.index(command)
+        assert not any(part.startswith("attr.tree") for part in argv)
+
+
+def test_a_traced_read_listed_as_denied_still_meets_a_change_since_the_source(
+    tmp_path: Path,
+) -> None:
+    launcher = ls.cli._supervisor("_supervisor_launcher.py")
+    rig = Rig(tmp_path, {"f.txt": LINES, "g.txt": "g\n"})
+    attestation = {
+        "mode": "trace", "reads": [{"path": "f.txt", "kind": "file"}], "denied_reads": ["f.txt"],
+    }
+    held = rig.held(
+        {"g.txt": ("100644", "changed\n")}, reads=launcher.attested_reads(attestation),
+        writes=[{"path": "g.txt", "kind": "write"}],
+    )
+    rig.advance({"f.txt": ("100644", LINES.replace("c\n", "X\n"))})
+    refused = refusal_of(rig, held)
+    assert refused.reason == "meets" and refused.paths == ["f.txt"]
 
 
 def test_a_merge_attribute_from_info_attributes_is_refused(tmp_path: Path) -> None:

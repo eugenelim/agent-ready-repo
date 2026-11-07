@@ -119,7 +119,9 @@ denying the write (§ 1a).
    and the digest of the access line.
 2. Before creating any Git object, ingestion walks the attempt directory without
    following links and refuses a path or byte count over the caps, a special file,
-   a hard link, a Git control name, an unsafe link target, and a protected path.
+   a hard link, a Git control name (a symbolic link named like `.gitmodules` or an HFS
+   or NTFS alias of it included), an unsafe link target, a protected path (the installed
+   skill directory included), and link resolution past a total work bound.
    The Product addition profile (planned) does not yet classify added paths.
 3. A finished result is held. Results integrate one at a time, in the order the
    sequential floor would have issued their tasks; a finished later result waits.
@@ -181,7 +183,7 @@ unless its observation is explicitly pre-execution evidence.
 | Integration coordinator | Lock and temporary index | Acquired, committed or discarded | Loss cannot create a semantic partial write |
 | Worktree projection | Checked-out product files | Materialized, dirty, repaired | Never authoritative over the protected ref |
 | Result and conflict records | Immutable operation outcome in the run store (`integrations/`, `conflicts/`) | Emitted, consumed, retained through closeout | Stable operation key deduplicates recovery |
-| Held results | A record in `held/` and a ref `refs/agentbundle/delivery/<run>/<token>/held/<attempt>` naming the tree | Written when an attempt finishes, removed when it lands, is refused, or is discarded | Part of every later attempt's manifest, so a worker's change to either is `attempt-residue` |
+| Held results | A record in `held/` and a ref `refs/agentbundle/delivery/<run>/<token>/held/<attempt>` naming the tree | Written when an attempt finishes, removed when it lands, is refused, or is discarded | Part of every later attempt's manifest, so a worker's change, addition, or removal of either is `attempt-residue`; integration lands only a record the supervisor's consumed and result records back |
 
 ## 6. Deployment and Operations
 

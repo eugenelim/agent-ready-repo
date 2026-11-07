@@ -608,6 +608,13 @@ def test_a_held_result_with_every_task_complete_stops_the_run_rather_than_gating
         "access_defect": None, "attested_reads": [], "attested_writes": [],
     })()
     ws = harness.workspace(env.repo)
+    # The supervisor's own records for the stray attempt back its held record.
+    ls.concurrent_module._write(ws, landed["run_id"], {**stray, "state": "running"})
+    integ._put(
+        ws, landed["run_id"], "results", ls.concurrent_module._record_name("conc:stray"),
+        {"request_id": "conc:stray", "result_tree": result.tree,
+         "access_attestation_sha256": result.access_sha},
+    )
     integ.hold(ws, landed["run_id"], stray, result, "impl:stray")
     code, refused = env.run("next", ls.SPEC_DIR)
     assert code == 1 and refused["refusal"]["code"] == "no-progress"
@@ -663,3 +670,147 @@ def test_a_stub_fence_revision_waits_for_the_open_attempts_then_discards_held_re
     discarded = record_of(env, "plain")
     assert discarded["state"] == "discarded" and discarded["reason"] == "plan-changed"
     assert not any(a["reprojected"] for a in status_attempts(env))
+
+
+# ── one close path (AC-0052, AC-0053) ───────────────────────────────────────
+
+
+def raise_in_session(env: Any, stuck: set[int], exc: Exception) -> None:
+    """Raise *exc* inside the launcher conversation, once the group is recorded and released."""
+
+    def hook(name: str) -> None:
+        if name == "launcher-recorded":
+            stuck.update(r["pgid"] for r in env.records() if isinstance(r.get("pgid"), int))
+        if name == "released":
+            raise exc
+
+    harness.commit_module.set_kill_hook(hook)
+
+
+def no_floor_record_with_a_live_group(env: Any) -> None:
+    for record in env.records():
+        if record["state"] == "floor" and isinstance(record.get("pgid"), int):
+            assert ls.group_dead(int(record["pgid"])), record
+
+
+@pytest.mark.parametrize(
+    "exc", [OSError("disk"), RuntimeError("boom")], ids=["os-error", "any-exception"]
+)
+def test_an_unexpected_error_in_the_conversation_closes_through_the_one_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, exc: Exception
+) -> None:
+    env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script={"on_abort": "ignore"})
+    request = env.issued()
+    raise_in_session(env, set(), exc)
+    code, payload = env.verb(request["request_id"])
+    ls.clear_kill_hook()
+    assert code != 0 and "run_concurrent" not in payload, payload
+    (record,) = env.records()
+    assert record["state"] == "floor" and record["reason"] == "attempt-error"
+    assert_group_dead(record)
+    assert not Path(record["attempt_dir"]).exists()
+    (line,) = journal_for(env, "floor")
+    assert line["request_id"] == record["request_id"] and line["reason"] == "attempt-error"
+    no_floor_record_with_a_live_group(env)
+    # Recovery has nothing left to settle, and the task is issued on the floor.
+    assert env.next()["request"]["kind"] == "implement-task"
+    no_floor_record_with_a_live_group(env)
+
+
+def test_an_unexpected_error_whose_end_never_confirms_keeps_the_directory_as_residue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(L, "CLOCK", ls.ScriptedClock(sleep_step=5.0))
+    env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script={"on_abort": "ignore"})
+    request = env.issued()
+    stuck: set[int] = set()
+    raise_in_session(env, stuck, OSError("disk"))
+    original = L.group_alive
+    monkeypatch.setattr(L, "group_alive", lambda pgid: pgid in stuck or original(pgid))
+    try:
+        code, payload = env.verb(request["request_id"])
+    finally:
+        for pgid in stuck:
+            ls.kill_group(pgid)
+        ls.clear_kill_hook()
+    assert code != 0 and "run_concurrent" not in payload, payload
+    (record,) = env.records()
+    assert record["state"] == "residue" and Path(record["attempt_dir"]).exists()
+    (line,) = journal_for(env, "residue")
+    assert line["request_id"] == record["request_id"]
+    no_floor_record_with_a_live_group(env)
+
+
+def test_the_launcher_protocol_phases_run_on_their_own(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Each phase is a function: a refusal in one is a closed defect, nothing else runs."""
+    env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script={"on_abort": "ignore"})
+    env.issued()
+    for phase in ("_spawn_phase", "_containment_phase", "_release_phase", "_access_phase"):
+        assert callable(getattr(conc, phase))
+    launch = conc._Launch.__new__(conc._Launch)
+    launch.proc = None
+    launch.finished = False
+    # A conversation that never spawned has nothing to end: the close path's first step is a no-op.
+    assert conc._end_launcher(launch, "attempt-error") is True
+    launch.reader = type("R", (), {"read_line": lambda self, deadline: (_ for _ in ()).throw(
+        L.ReadTimeout())})()
+    with pytest.raises(conc._Defect) as caught:
+        conc._read_line(launch, 0.0, conc._ACCESS_REFUSALS)
+    assert (caught.value.reason, caught.value.state) == ("access-timeout", "cancelled")
+    with pytest.raises(conc._Defect) as caught:
+        conc._read_line(launch, 0.0, conc._CONTAINMENT_REFUSALS)
+    assert (caught.value.reason, caught.value.state) == ("containment-timeout", "floor")
+
+
+# ── nits ────────────────────────────────────────────────────────────────────
+
+
+def test_a_verb_record_with_no_captured_start_never_reads_as_alive() -> None:
+    import os
+
+    own = os.getpid()
+    assert conc._verb_alive({"verb_pid": own, "verb_start": L.process_start(own)}) is True
+    assert conc._verb_alive({"verb_pid": own, "verb_start": None}) is False
+    assert conc._verb_alive({"verb_pid": own}) is False
+    # A pid no process holds has no start either; the two Nones must not match.
+    gone = 2**22 + 12345
+    assert L.process_start(gone) is None
+    assert conc._verb_alive({"verb_pid": gone, "verb_start": None}) is False
+
+
+def test_the_launcher_copy_is_hashed_once_before_spawn_and_again_after_containment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[str] = []
+    real = L.copy_matches
+
+    def counting(store: Path, sha: str) -> Any:
+        calls.append(sha)
+        return real(store, sha)
+
+    def phase_calls(name: str) -> Any:
+        phase = getattr(conc, name)
+
+        def wrapped(launch: Any) -> Any:
+            before = len(calls)
+            try:
+                return phase(launch)
+            finally:
+                seen[name] = len(calls) - before
+
+        monkeypatch.setattr(conc, name, wrapped)
+
+    seen: dict[str, int] = {}
+    monkeypatch.setattr(L, "copy_matches", counting)
+    for name in ("_spawn_phase", "_containment_phase", "_release_phase", "_access_phase"):
+        phase_calls(name)
+    env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK)
+    request = env.issued()
+    code, payload = env.verb(request["request_id"])
+    assert code == 0 and payload["run_concurrent"]["outcome"] == "landed", payload
+    # One hash before spawn (the AC-0015 re-hash after containment is the release phase's).
+    assert seen == {
+        "_spawn_phase": 1, "_containment_phase": 0, "_release_phase": 1, "_access_phase": 0,
+    }, seen

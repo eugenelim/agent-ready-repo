@@ -241,6 +241,7 @@ class GitPort:
         check: bool = True,
         literal_pathspecs: bool = False,
         limit: int | None = None,
+        attr_source: str | None = None,
     ) -> bytes:
         """Run ``git <args>`` through the hardened helper and return stdout bytes."""
         return self.hardened.run(
@@ -250,6 +251,7 @@ class GitPort:
             check=check,
             literal_pathspecs=literal_pathspecs,
             limit=limit,
+            attr_source=attr_source,
         )
 
     # ── the bounded reads the review-tier classifier makes ──────────────────

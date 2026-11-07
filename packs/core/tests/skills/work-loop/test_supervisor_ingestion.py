@@ -326,6 +326,39 @@ def test_a_link_cycle_is_refused_as_too_many_hops(rig: Rig) -> None:
 
 
 @posix_only
+@pytest.mark.parametrize(
+    "name",
+    [
+        ".gitmodules", ".GitModules", "sub/.gitmodules", "gitmod~1", "GITMOD~4", "gi7eba~1",
+        ".gitmodules ", ".gitmodules.", ".git\u200cmodules", ".gitmodules::$DATA",
+    ],
+    ids=lambda n: ascii(n),
+)
+def test_a_link_the_protected_index_write_would_refuse_fails_before_any_object(
+    rig: Rig, name: str
+) -> None:
+    rig.link(name, "README.md")
+    rig.refused("attempt-git-name")
+
+
+@posix_only
+def test_a_file_named_like_gitmodules_is_not_a_link_and_is_admitted(rig: Rig) -> None:
+    rig.write(".gitmodules", "[submodule]\n")
+    assert rig.tree(rig.ingest().tree)[".gitmodules"][0] == "100644"
+
+
+@posix_only
+def test_link_resolution_work_is_bounded_across_all_links(
+    rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    for index in range(6):
+        rig.link(f"ln{index}", "a/../b/../README.md")
+    rig.ingest()  # within the default bound
+    monkeypatch.setattr(ing, "MAX_LINK_WORK", 20)
+    assert rig.refused("attempt-too-large").path is None
+
+
+@posix_only
 def test_a_link_inside_the_tree_to_an_untrusted_file_is_admitted(rig: Rig) -> None:
     rig.link("a/ok", "../README.md")
     assert rig.tree(rig.ingest().tree)["a/ok"][0] == "120000"

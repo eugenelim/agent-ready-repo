@@ -92,6 +92,8 @@ GIT_FLOOR = (2, 41)
 MAX_PATHS = 100_000
 MAX_TOTAL_BYTES = 10 * 1024**3
 MAX_LINK_HOPS = 40
+# Components processed across every link of one attempt (or one merged tree); a test sets it.
+MAX_LINK_WORK = 1_000_000
 _PROTECT = ("core.protectHFS=true", "core.protectNTFS=true")
 
 
@@ -131,8 +133,8 @@ def _key(path: str, ignore_case: bool) -> str:
 
 # ── the meets relation ──────────────────────────────────────────────────────
 
-_READ_KINDS = frozenset({"file", "missing", "listing", "walk"})
-_WRITE_KINDS = frozenset({"write", "delete", "rename-from", "rename-to", "mode"})
+READ_KINDS = frozenset({"file", "missing", "listing", "walk"})
+WRITE_KINDS = frozenset({"write", "delete", "rename-from", "rename-to", "mode"})
 _CREATING = frozenset({"write", "rename-to"})
 
 
@@ -150,14 +152,14 @@ class Access:
     subtree: bool = False
 
     def __post_init__(self) -> None:
-        if self.kind not in _READ_KINDS | _WRITE_KINDS:
+        if self.kind not in READ_KINDS | WRITE_KINDS:
             raise ValueError(f"unknown access kind: {self.kind}")
         if self.subtree and self.kind != "write":
             raise ValueError("only a write can cover a subtree")
 
     @property
     def is_write(self) -> bool:
-        return self.kind in _WRITE_KINDS
+        return self.kind in WRITE_KINDS
 
 
 def declared_reads(entries: Iterable[str]) -> list[Access]:
@@ -374,12 +376,15 @@ def _resolve_link(
     *,
     root: str,
     ignore_case: bool,
+    work: list[int],
 ) -> list[str]:
     """The lexical product path *link* resolves to, through every link in *keyed*.
 
     *keyed* maps each listed link's folded path to its target text. Raises
     ``AttemptRefused`` when the result leaves the work tree, passes a ``.git`` entry, or
-    needs more than ``MAX_LINK_HOPS`` hops; the link itself is the first hop.
+    needs more than ``MAX_LINK_HOPS`` hops; the link itself is the first hop. *work* is a
+    one-item running count of components processed across all links; going past
+    ``MAX_LINK_WORK`` refuses ``attempt-too-large``.
     """
 
     def refuse(why: str) -> AttemptRefused:
@@ -390,6 +395,11 @@ def _resolve_link(
     pending = [link.split("/")[-1]]
     while pending:
         part = pending.pop()
+        work[0] += 1
+        if work[0] > MAX_LINK_WORK:
+            raise AttemptRefused(
+                "attempt-too-large", f"link resolution needs more than {MAX_LINK_WORK} steps"
+            )
         if part in ("", "."):
             continue
         if part == "..":
@@ -428,10 +438,13 @@ def _check_links(
 ) -> None:
     denied = [_key(p.rstrip("/"), ignore_case) for p in (*trusted_paths, *protected_prefixes)]
     keyed = {_key(path, ignore_case): target for path, target in links.items()}
+    work = [0]
     for link in admitted:
         if link not in links:
             continue
-        final = "/".join(_resolve_link(link, keyed, root=product_root, ignore_case=ignore_case))
+        final = "/".join(
+            _resolve_link(link, keyed, root=product_root, ignore_case=ignore_case, work=work)
+        )
         folded = _key(final, ignore_case)
         if any(_under(folded, d) for d in denied):
             raise AttemptRefused(
@@ -500,6 +513,9 @@ def ingest_attempt_directory(
             product_root=product_root or os.path.realpath(attempt_dir),
             ignore_case=ignore_case,
         )
+        _refuse_protected_links(
+            git, [e.path for e in admitted if e.kind == "link"], index_dir / "probe-index"
+        )
         kept = _source_entries(git, source, excluded, {e.path for e in admitted})
         lines: list[bytes] = []
         for mode, oid, path in kept:
@@ -535,6 +551,33 @@ def ingest_attempt_directory(
         tuple(sorted(e.path for e in admitted)),
         tuple(sorted(ignored)),
     )
+
+
+def _refuse_protected_links(git: Any, paths: list[str], index: Path) -> None:
+    """Refuse a link path the protected index write would refuse, before any object is written.
+
+    Git drops or rejects a symbolic link named like ``.gitmodules`` (with its HFS and NTFS
+    aliases) when ``core.protectHFS`` and ``core.protectNTFS`` are on. Rather than copy those
+    name rules, the same write runs on a throwaway index with an object id nothing is stored
+    under, and any link path that did not come out is refused with a closed code; no Git
+    message, which names the attempt's path, is passed on.
+    """
+    if not paths:
+        return
+    blob = git.run("hash-object", "-t", "blob", "--stdin", stdin=b"").decode().strip()
+    env = {"GIT_INDEX_FILE": str(index)}
+    lines = b"".join(
+        f"120000 {blob}\t".encode() + p.encode("utf-8", "surrogateescape") + b"\0" for p in paths
+    )
+    try:
+        git.run("update-index", "-z", "--index-info", env=env, config=_PROTECT, stdin=lines)
+        listed = set(git.run("ls-files", "-z", env=env).split(b"\0"))
+    except SupervisorGitError as error:
+        if error.code != "denied-git-failed":
+            raise
+        raise AttemptRefused("attempt-git-name", "a link name Git protects") from None
+    if any(p.encode("utf-8", "surrogateescape") not in listed for p in paths):
+        raise AttemptRefused("attempt-git-name", "a link name Git protects")
 
 
 def _source_entries(
