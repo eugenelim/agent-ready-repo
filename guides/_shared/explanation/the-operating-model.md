@@ -36,7 +36,7 @@ You turn the outcome into work the build can take. There are three routes, and a
 
 - **Short.** Write the intent, a short file that states the outcome you want and why, test its riskiest assumption, and break it into pieces. Most teams start here.
 - **Longer.** Map the situation, the opportunities, and the options before you bet. Use it when the problem itself is unclear.
-- **Supervised.** The agent runs product, design, architecture, and contract work side by side, and two reviewers check threats and reliability before you see the brief, the written summary of what to build. Use it for a new product area.
+- **Supervised route.** The agent runs product, design, architecture, and contract work side by side, and two reviewers check threats and reliability before you see the brief, the written summary of what to build. Use it for a new product area.
 
 See [Shape an idea](../../product-engineering/how-to/frame-the-intent.md).
 
@@ -70,4 +70,7 @@ Architecture then joins each stage when it is needed: you assess the area a bet 
 
 ## Why three loops
 
-Working out what to build, building it, and shipping it are different jobs. Exploring five product ideas is cheap and a bad release is not, so each job runs as its own loop with its own checks. None runs inside another, and nothing crosses from one to the next without your decision.
+Working out what to build, building it, and shipping it are different jobs. Exploring five product ideas is cheap and a bad release is not, so each job runs as its own loop with its own checks. None runs inside another, and nothing crosses from one to the next without your decision. Shaping happens in documents, so it installs for you; building and shipping happen in the repository, so they install there. [The detailed model](../reference/detailed-operating-model.md#loops-and-where-they-install) lists the packs and commands.
+
+Next, [start a project](../../core/how-to/start-a-project.md).
+

@@ -27,8 +27,8 @@ Dashed boxes on the map are optional, a shortcut, or usually automatic. A gold, 
 2. **Shape it**, by one of three routes. Each ends at G3, when you commit to build, and passes on buildable pieces or a capability map. A product manager usually decides.
    - *Short route*, the default, about three hours: `intent frame`, then you approve the intent (G0), then `intent de-risk` tests the riskiest assumption. While you frame, `architect-design` is offered to shape the architecture. Take it before you cut the work, and if it changes the capabilities, take the longer route. `intent decompose` breaks the work into buildable pieces.
    - *Longer route*, when the problem is unclear: `frame-situation`, `identify-opportunities`, `diverge-solutions`, `intent de-risk`, `place-bet`, then `map-capabilities` for the capabilities and a build order, then `intent decompose` takes the capability map as input. Once the order is set, `architect-design` is offered to design against the capabilities. If the design is not settled, revise the capabilities and design again. Then `architect-design` designs the subsystems that earn a doc, and `architect-review` checks them.
-   - *Supervised loop*, for a new product area, run by `discovery-lead`: `intent frame` and G0, then `intent de-risk` and `explore-options`. G1 usually passes on its own. `frame-domain` grounds the domain, and you set the MVP (G1.5). Design, system, and contract work run in parallel with `journey-mapping`, `user-flow`, `architect-design`, `architect-diagram`, and `api-contract`, then a threat and reliability review. You approve the brief (G2), and `intent decompose` breaks it into buildable pieces.
-3. **Build it**, run by the work-loop supervisor. An engineer or tech lead usually decides. `work-intake` routes the work to a spec, a brief, or an intent. `new-spec` writes the spec and plan, following `reference.md` and reading the design as context, and you approve both. `work-loop` builds and checks: lint, types, tests, and an adversarial review, plus specialist reviews when the change calls for them. A small, low-risk change skips the spec. The stage ends at G4, when you merge. If the build proves the design wrong, change the design in the open. After the merge, `close-work` and `architect-diagram` fold the design into the current-state map.
+   - *Supervised route*, for a new product area, run by `discovery-lead`: `intent frame` and G0, then `intent de-risk` and `explore-options`. `frame-domain` grounds the domain, and you set the MVP (G1.5). Design, system, and contract work run in parallel with `journey-mapping`, `user-flow`, `architect-design`, `architect-diagram`, and `api-contract`, then a threat and reliability review. You approve the brief (G2), and `intent decompose` breaks it into buildable pieces.
+3. **Build it**, run by the work-loop supervisor. An engineer or tech lead usually decides. `work-intake` routes the work to a spec, a brief, or an intent. `new-spec` writes the spec and plan, following `reference.md` and reading the design as context, and you approve both. `work-loop` builds and checks: lint, types, tests, and an adversarial review, plus specialist reviews when the change calls for them. A small, low-risk change skips the spec. The stage ends at G4, when you merge. If the build proves the design wrong, change the design in the open. After the merge, `close-work` offers to fold the design into the current-state map, using `architect-diagram`, and you accept or decline.
 4. **Ship it**, run by `release-lead`. A delivery lead or SRE usually decides. `define-slo` sets an error budget if you want one. `release-loop` deploys somewhere safe, then runs end-to-end tests and watches telemetry. A failure goes back to the build loop. You read the readiness record on operations, security, and cost, and the stage ends at G5, when you ship it. Nothing reaches production until you say so.
 
 ## Stop codes
@@ -38,8 +38,8 @@ Some stops carry a code, and the agent prints it when it stops for you.
 | Code | You decide |
 | --- | --- |
 | G0 | Is the problem real, and worth a bet? |
-| G1 | Does the strategy hold? On the supervised loop this usually passes on its own. |
-| G1.5 | What is in the first version? Shown only on the supervised loop. |
+| G1 | Does the strategy hold? Appears only on the supervised route, where it usually passes on its own. |
+| G1.5 | What is in the first version? Shown only on the supervised route. |
 | G2 | Is the brief good enough to build from? |
 | G3 | Is it ready for the build loop? |
 | G4 | Is the merged change ready for release testing? |
@@ -47,11 +47,11 @@ Some stops carry a code, and the agent prints it when it stops for you.
 
 ## Loops and where they install
 
-Each loop installs where its work happens. Shaping happens in documents, so it installs for you. Building and shipping happen in the repository, so they install there.
+Each loop installs where its work happens.
 
 | Loop | Run by | Installs |
 | --- | --- | --- |
-| Shape it | `discovery-lead` on the supervised loop; you run the skills on the short and longer routes | Your user account, `--scope user` |
+| Shape it | `discovery-lead` runs the supervised route; you run the skills on the short and longer routes | Your user account, `--scope user` |
 | Build it | The work loop | The repository |
 | Ship it | `release-lead` | The repository |
 
@@ -62,4 +62,6 @@ agentbundle install --pack core
 agentbundle install --pack release-engineering
 ```
 
-Install only the loops your team uses. Most teams start with `core`.
+Install only the loops your team uses. Most teams start with `core`. The supervised route also needs `experience-design`, `architect`, and `contracts`, installed the same way with `--scope user`.
+
+Next, [run the build loop](../../core/how-to/start-the-work.md).
