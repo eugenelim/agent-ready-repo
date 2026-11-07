@@ -104,7 +104,7 @@ Owned by T1 and T2. Each task's `Tests:` names its cases.
   text before the first version or marker character.
 
 ### Failure, edge cases & resilience
-<!-- Owned by: T2, T4, T5. -->
+<!-- Owned by: T2, T4, T5, T6. -->
 
 - Pi is started with `start_new_session=True`. Cleanup, in a `finally`, with
   the watcher still sampling: send `SIGTERM` to every recorded run process
@@ -268,6 +268,24 @@ Owned by T1 and T2. Each task's `Tests:` names its cases.
   to the evidence directory.
 
 **Done when:** the T5 pins pass with no real Pi involved, the fresh real run passes, `make lint-ruff lint-mypy` and the CI-parity lint exit `0`.
+
+### T6: Stub pins cannot fail on host scheduling alone
+
+**Depends on:** T5
+
+**Touches:** tests/roster/test_pi_hosted_conformance.py
+
+**Tests:**
+- AC-0006 (qe3-1): `run_harness` takes the sample-gap bound as a parameter
+  whose default is the spec's 5 seconds; the opt-in real-run test passes no
+  value, and a pin asserts that default. Stub pins that expect a clean outcome
+  pass a bound of 120 seconds, and `test_sample_gap_over_bound_fails_the_run`
+  still reds on a gap over the bound.
+- AC-0003 (qe3-2): a JUnit report whose suite attributes count a failure, an
+  error or a skip with no matching case child reds the reader.
+- The `WATCH_INTERVAL_S` comment states the amended rule (adv3-1).
+
+**Done when:** the T6 pins pass, `make lint-ruff lint-mypy` and the CI-parity lint exit `0`.
 
 ## Rollout
 
