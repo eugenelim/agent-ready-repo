@@ -213,6 +213,18 @@ Owned by: T3, T6, T9
 
 **Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green and the copies are identical.
 
+### T13: Second-round review findings are repaired
+
+**Depends on:** T12
+**Touches:** `packs/repo-governance/.apm/skills/new-rfc/scripts/rfc.py`, `packs/repo-governance/seeds/docs/rfc/rfc.py`, `docs/rfc/rfc.py`, `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/.apm/skills/new-rfc/assets/rfc.md`, `packs/repo-governance/seeds/docs/rfc/template.md.tmpl`, `docs/rfc/template.md.tmpl`, `packs/repo-governance/tests/skills/new-rfc/test_rfc_script.py`, `packs/repo-governance/tests/skills/new-rfc/test_template.py`, `tests/roster/test_lighter_rfc_delivery.py`, `guides/repo-governance/how-to/set-up-governance.md`, `packages/agentbundle/CHANGELOG.md`, `packages/agentbundle/README-pypi.md`
+
+**Tests:**
+- A helper with a syntax error, or one that raises at import, makes every command exit 2 with no traceback (AC-0025, AC-0012). A `KeyboardInterrupt` raised inside the helper's write during `renumber` leaves only the original (AC-0015). A case where both remotes resolve and `origin` holds the higher number shows `next` takes the larger (AC-0008). The AC-0074 roster check looks for each superseded criterion inside its own spec's section of the ADR. The governance guide's sample matches a fresh install (AC-0048). The template's check cue names a runnable command (AC-0006). Mode: TDD for the script, goal-based for text.
+
+**Approach:** `_fs` converts any exception from compiling or running the helper into the helper-unavailable error, and interrupts keep propagating. `renumber` records that the create was attempted before it calls the helper and removes the target after any non-`OSError` interruption when the source still exists. The governance guide shows the fresh-install preview (`docs/GOVERNANCE.md` present, approval required) and says replacing the seeded placeholder needs a named accepted RFC or recorded owner decision. The template cue becomes `python3 -I docs/rfc/rfc.py check <file>` in all three copies. The skill's supersession step adds the mirror line when the frozen RFC has none. The package changelog describes the lighter-RFC change. The three `rfc.py` copies and the template copies stay byte-identical.
+
+**Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green and the copies are identical.
+
 ## Rollout
 
 Reversible: the template and skill revert by reverting the change; seeded files already installed in adopter repositories stay, inert. Sequencing: script, then template, then seeds and skill, then repository adoption, guide and ADR, then versions last so no task borrows an unreleased version. The `agentbundle` tag and publish follow the merge. Seeded files reach fresh installs only; existing adopters can run `agentbundle scaffold` to add them.
