@@ -15,6 +15,6 @@ These guides help you deploy a finished change, check it works, and record your 
 
 ## More
 
-- [Your first release](tutorials/your-first-release.md) — Walk one release from a deploy-ready build to a ratified ship decision.
+- [Your first release](tutorials/your-first-release.md) — A complete walkthrough of a release cycle from deploy-ready build to a ratified ship decision — deploy, converge, and ratify G5.
 - [The release loop explained](explanation/the-release-loop.md) — Why a deploy-and-verify loop closes the gap between passing tests and working in production.
 - [Release-readiness record](reference/release-readiness-record.md) — Sections, verdicts, and when the production gate opens.

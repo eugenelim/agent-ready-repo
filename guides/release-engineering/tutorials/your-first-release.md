@@ -161,7 +161,7 @@ Read the record, confirm you're satisfied, and ratify:
 I ratify this release at G5.
 ```
 
-The tooling records your ratification (harness-attested); the agent holds no token to write it. `release-lead` reads it back, tears down the ephemeral environment, and hands the ratified ship to you. It does not apply the migration or roll out the artifact: you or your deploy pipeline does that, with the ratified record as your go decision.
+The harness, the tooling that runs your agent, records your ratification and attests it; the agent holds no token to write it. `release-lead` reads it back, tears down the ephemeral environment, and hands the ratified ship to you. It does not apply the migration or roll out the artifact: you or your deploy pipeline does that, with the ratified record as your go decision.
 
 The release loop is done. The production rollout is yours.
 

@@ -38,7 +38,7 @@ The ship to production is always your decision, and the agent asks you for it. T
 I approve shipping v2.3.0 to production.
 ```
 
-Your approval is recorded by the tooling, so the agent cannot give it for itself. The agent stops there and does not ship: you or your deploy pipeline rolls out to production with the approved record in hand. To stop, say "Hold the release" and give a reason. The tooling records your choice, and the agent tears down the temporary environment and keeps the build so you can try again.
+The harness, the tooling that runs your agent, records your approval, so the agent cannot give it for itself. The agent stops there and does not ship: you or your deploy pipeline rolls out to production with the approved record in hand. To stop, say "Hold the release" and give a reason. The harness records your choice, and the agent tears down the temporary environment and keeps the build so you can try again.
 
 If the loop runs out of rounds or budget, [the record reference](../reference/release-readiness-record.md#when-the-loop-runs-out-of-rounds) says what to do.
 

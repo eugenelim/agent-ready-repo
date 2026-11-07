@@ -193,7 +193,7 @@ This release and reporting stage takes the build through its human ship gate.
 1. [The release loop](release-engineering/explanation/the-release-loop.md)
 2. [Run a release](release-engineering/how-to/run-a-release.md)
 3. [Project slices out to a tracker](_shared/how-to/project-slices-to-a-tracker.md), or [intake from one](_shared/how-to/choose-a-tracker-integration.md)
-4. [Measure flow and DORA metrics](atlassian/how-to/measure-flow-and-dora-metrics.md)
+4. [Measure delivery](atlassian/how-to/measure-flow-and-dora-metrics.md)
 
 **First value:** a deployed artifact validated in an environment like production.
 **Ends at:** a human ratifying the production ship.
