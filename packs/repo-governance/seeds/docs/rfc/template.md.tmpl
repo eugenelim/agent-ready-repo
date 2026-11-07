@@ -4,8 +4,8 @@
 then the support. Define a term or cite an RFC or ADR in a phrase on first use.
 Most RFCs fit in two pages. Required sections are marked. Delete optional ones you do not use.
 If this RFC replaces part or all of another, add a `- **Supersedes:**` or `- **Supersedes in part:**` header
-line with ids and decision numbers, for example `RFC-NNNN D1,D3; RFC-NNNN D2`. The replaced RFC gets the
-matching `Superseded by` or `Superseded in part` line.
+line with ids and decision numbers, for example `RFC-NNNN D1,D3; RFC-NNNN D2`. Add the replaced RFC's
+`Superseded by` or `Superseded in part` line and its Errata entry only after this RFC is Accepted, never in the draft.
 Check a draft with `python3 -I docs/rfc/rfc.py check <file>`. -->
 
 - **Status:** Draft <!-- Maintainers update it. -->

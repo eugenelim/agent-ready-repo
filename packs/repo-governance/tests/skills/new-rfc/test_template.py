@@ -91,6 +91,14 @@ def test_ac6_header_comment_names_only_the_rfc_script() -> None:
     assert len(re.findall(r"\b[\w./-]+\.py\b", text)) == 1
 
 
+def test_supersession_lines_are_added_only_after_acceptance() -> None:
+    header = _flat(_text().split("- **Status:**")[0])
+    assert (
+        "`Superseded by` or `Superseded in part` line and its Errata entry "
+        "only after this RFC is Accepted, never in the draft"
+    ) in header
+
+
 def test_ac7_summary_and_proposal_comments() -> None:
     text = _text()
     summary = _section_comment(text, "## Summary")
