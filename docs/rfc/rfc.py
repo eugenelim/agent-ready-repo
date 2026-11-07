@@ -342,7 +342,7 @@ def cmd_renumber(args: argparse.Namespace) -> int:
         print(f"error: cannot renumber {show(source.name)}: {show(exc)}; nothing changed",
               file=sys.stderr)
         return 2
-    text = re.sub(r"^# RFC-(\d+|XXXX):", f"# RFC-{args.number:04d}:", text, count=1,
+    text = re.sub(r"^# RFC-(\d+|XXXX|NNNN):", f"# RFC-{args.number:04d}:", text, count=1,
                   flags=re.MULTILINE)
     attempted = created = False
     try:

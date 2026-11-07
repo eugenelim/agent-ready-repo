@@ -116,7 +116,7 @@ A written file is a draft that the maintainers adopt through their normal review
 1. Find the next ordinal with the bundled script. First resolve the repository root, the
    RFC folder and its sibling index from project instructions, because the script needs
    the folder to exist. If the RFC folder does not exist, the first number is `0001`:
-   do not run the script, and step 5 creates the folder. Otherwise run it, using `--dir`
+   do not run the script, and the folder is created later in this step, once the target is proven confined. Otherwise run it, using `--dir`
    for the RFC folder:
 
    ```text
@@ -136,7 +136,7 @@ A written file is a draft that the maintainers adopt through their normal review
    link-like, identity-changing, or out-of-root target before any mutation —
    including before creating a directory. Only once every intended target is
    proven confined, and only on the warranted-RFC path, create the directory and
-   standard index if needed (a missing RFC folder is created in step 5).
+   standard index if needed.
 
 2. **Resolve the target — don't create the file yet.** Choose a short
    `NNNN-kebab-title.md`; do not copy `assets/rfc.md` until the checkpoint and preview

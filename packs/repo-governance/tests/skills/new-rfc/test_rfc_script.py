@@ -351,6 +351,16 @@ def test_renumber_renames_file_and_title(rig: Rig) -> None:
     assert (rig.dir / "0005-a.md").read_text(encoding="utf-8").startswith("# RFC-0005: T\n")
 
 
+def test_renumber_accepts_seeded_template_title(rig: Rig) -> None:
+    seed = Path(__file__).resolve().parents[3] / "seeds/docs/rfc/template.md.tmpl"
+    body = seed.read_text(encoding="utf-8").replace("<short title>", "T", 1)
+    assert body.startswith("# RFC-NNNN: T\n")
+    rig.put("XXXX-a.md", body)
+    code, _, _ = rig.run("renumber", str(rig.dir / "XXXX-a.md"), "5")
+    assert code == 0 and not (rig.dir / "XXXX-a.md").exists()
+    assert (rig.dir / "0005-a.md").read_text(encoding="utf-8").startswith("# RFC-0005: T\n")
+
+
 def test_renumber_exits_1_on_used_number(rig: Rig) -> None:
     rig.put("XXXX-a.md")
     rig.put("0005-b.md")
