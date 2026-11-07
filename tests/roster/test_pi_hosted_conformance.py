@@ -26,6 +26,7 @@ Spec: docs/specs/pi-runtime-compatibility/spec.md
 from __future__ import annotations
 
 import contextlib
+import inspect
 import json
 import os
 import queue
@@ -56,8 +57,9 @@ RPC_ID = "conformance"
 # Six hours, measured from sending the RPC command to receiving its response.
 # The serial run took 8,508 s on a loaded machine; Pi's bash has no timeout.
 DEADLINE_S = 21_600
-WATCH_INTERVAL_S = 0.5  # the spec requires at least one sample a second
+WATCH_INTERVAL_S = 0.5  # the spec's "Run processes" term: a sample every 0.5 s
 MAX_SAMPLE_GAP_S = 5.0  # the spec: a longer gap between two read starts fails the run
+STUB_MAX_GAP_S = 120.0  # stub pins: host scheduling alone must not fail them
 PS_TIMEOUT_S = 5.0
 TERM_GRACE_S = 10.0
 PUMP_JOIN_S = 10.0  # bound on waiting for Pi's stdout to reach EOF after cleanup
@@ -326,7 +328,11 @@ class ProcessWatcher:
     """Polls the process table and records run processes until stopped."""
 
     def __init__(
-        self, root_pid: int, ps_env: Mapping[str, str], interval_s: float = WATCH_INTERVAL_S
+        self,
+        root_pid: int,
+        ps_env: Mapping[str, str],
+        interval_s: float = WATCH_INTERVAL_S,
+        max_gap_s: float = MAX_SAMPLE_GAP_S,
     ) -> None:
         self.runs = RunSet(root_pid=root_pid, harness_pid=os.getpid())
         self._ps_env = dict(ps_env)
@@ -334,6 +340,7 @@ class ProcessWatcher:
         self._lock = threading.Lock()
         self.cleaning = False  # set when cleanup starts
         self._last_sample: float | None = None
+        self._max_gap_s = max_gap_s
         self.unreadable: str | None = None
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._loop, name="pi-process-watcher", daemon=True)
@@ -361,7 +368,7 @@ class ProcessWatcher:
     def snapshot(self) -> list[Proc]:
         """Read the process table once; a bad read, or a gap over the sampling bound, is noted."""
         now = time.monotonic()
-        if self._last_sample is not None and now - self._last_sample > MAX_SAMPLE_GAP_S:
+        if self._last_sample is not None and now - self._last_sample > self._max_gap_s:
             self._note_unreadable(f"no sample for {now - self._last_sample:.1f} s")
         self._last_sample = now
         try:
@@ -533,6 +540,7 @@ def run_harness(
     base_env: Mapping[str, str] | None = None,
     repo_root: Path = REPO_ROOT,
     interval_s: float = WATCH_INTERVAL_S,
+    max_gap_s: float = MAX_SAMPLE_GAP_S,
     term_grace_s: float = TERM_GRACE_S,
     before_send: Callable[[], None] | None = None,
 ) -> RunOutcome:
@@ -569,7 +577,7 @@ def run_harness(
         lines: queue.Queue[str | None] = queue.Queue()
         pump = threading.Thread(target=_pump, args=(proc.stdout, lines), daemon=True)
         pump.start()
-        watcher = ProcessWatcher(proc.pid, ps_env, interval_s)
+        watcher = ProcessWatcher(proc.pid, ps_env, interval_s, max_gap_s)
         watcher.start()
         survivors: list[Proc] = []
         try:
@@ -896,6 +904,15 @@ class TestJunitReader:
         problems = check_junit(_junit(SUITE_FILES, extra), SUITE_FILES, len(SUITE_FILES) + 1)
         assert problems == [f"1 {named}(s)"]
 
+    @pytest.mark.parametrize(
+        ("attr", "named"), [("failures", "failure"), ("errors", "error"), ("skipped", "skip")]
+    )
+    def test_summary_attribute_without_case_child_red(self, attr: str, named: str) -> None:
+        """A suite count with no matching case child still reds the reader (qe3-2)."""
+        xml = _junit(SUITE_FILES).replace(f'{attr}="0"', f'{attr}="1"', 1)
+        problems = check_junit(xml, SUITE_FILES, len(SUITE_FILES))
+        assert problems == [f"1 {named}(s)"]
+
     def test_missing_named_file_red(self) -> None:
         xml = _junit(SUITE_FILES, skip_file="test_policy_import.py")
         problems = check_junit(xml, SUITE_FILES, len(SUITE_FILES) - 1)
@@ -976,7 +993,9 @@ class TestLaunch:
         monkeypatch.setenv("PI_CODING_AGENT_DIR", "/planted")
         monkeypatch.setenv("LC_TIME", "C")
         monkeypatch.setenv("LANG", "en_US.UTF-8")
-        outcome = run_harness(pi, _run_root(tmp_path), 60, term_grace_s=3)
+        outcome = run_harness(
+            pi, _run_root(tmp_path), 60, term_grace_s=3, max_gap_s=STUB_MAX_GAP_S
+        )
         assert outcome.failure is None and outcome.survivors == []
         record = json.loads((out / "rpc.json").read_text())
         assert record["argv"] == list(PI_FLAGS)
@@ -1171,6 +1190,11 @@ class TestCleanup:
         watcher.snapshot()
         assert watcher.unreadable is not None and watcher.unreadable.startswith("no sample for")
 
+    def test_real_run_uses_the_spec_gap_bound(self) -> None:
+        """The opt-in run passes no bound, so it gets the spec's 5 seconds (qe3-1)."""
+        default = inspect.signature(run_harness).parameters["max_gap_s"].default
+        assert default == MAX_SAMPLE_GAP_S == 5.0
+
     def test_sample_gap_within_bound_is_tolerated(self) -> None:
         """A 1.4-second gap, as the first strict real run saw, does not fail the run."""
         watcher = ProcessWatcher(os.getpid(), dict(os.environ))
@@ -1186,21 +1210,36 @@ class TestShellEnvironment:
     def test_green_clean_run_through_a_shell(self, tmp_path: Path) -> None:
         pi, out = _make_stub(tmp_path, "shell")
         outcome = run_harness(
-            pi, _run_root(tmp_path), 120, term_grace_s=3, before_send=_wait_ready(out)
+            pi,
+            _run_root(tmp_path),
+            120,
+            term_grace_s=3,
+            before_send=_wait_ready(out),
+            max_gap_s=STUB_MAX_GAP_S,
         )
         assert evaluate(outcome) == []
 
     def test_green_with_pi_added_names_and_path_prefix(self, tmp_path: Path) -> None:
         pi, out = _make_stub(tmp_path, "shell:pibin")
         outcome = run_harness(
-            pi, _run_root(tmp_path), 120, term_grace_s=3, before_send=_wait_ready(out)
+            pi,
+            _run_root(tmp_path),
+            120,
+            term_grace_s=3,
+            before_send=_wait_ready(out),
+            max_gap_s=STUB_MAX_GAP_S,
         )
         assert evaluate(outcome) == []
 
     def test_extra_variable_name_reds(self, tmp_path: Path) -> None:
         pi, out = _make_stub(tmp_path, "shell:extra")
         outcome = run_harness(
-            pi, _run_root(tmp_path), 120, term_grace_s=3, before_send=_wait_ready(out)
+            pi,
+            _run_root(tmp_path),
+            120,
+            term_grace_s=3,
+            before_send=_wait_ready(out),
+            max_gap_s=STUB_MAX_GAP_S,
         )
         problems = evaluate(outcome)
         assert len(problems) == 1 and "PLANTED_NAME" in problems[0]
@@ -1208,7 +1247,12 @@ class TestShellEnvironment:
     def test_rewritten_path_reds(self, tmp_path: Path) -> None:
         pi, out = _make_stub(tmp_path, "shell:path")
         outcome = run_harness(
-            pi, _run_root(tmp_path), 120, term_grace_s=3, before_send=_wait_ready(out)
+            pi,
+            _run_root(tmp_path),
+            120,
+            term_grace_s=3,
+            before_send=_wait_ready(out),
+            max_gap_s=STUB_MAX_GAP_S,
         )
         problems = evaluate(outcome)
         assert len(problems) == 1 and "PATH" in problems[0] and "/planted/bin" in problems[0]
