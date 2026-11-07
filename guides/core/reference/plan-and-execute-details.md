@@ -11,6 +11,8 @@ Use this page to look up what `new-spec` and `work-loop` do at each step. For th
 
 ## Worked examples
 
+If you're unsure whether the change is trivial, default to the loop. The cost of running it on a small task is one extra minute; the cost of vibe-coding a non-trivial task is a re-do.
+
 Name the skill in your invocation. Two worked invocations for `new-spec`, one backend and one frontend:
 
 ```
@@ -88,6 +90,8 @@ The skill doesn't care which shape you brought. The assumption checkpoint is whe
     PR when implementation diverges. There is no spec index to maintain: specs
     are discovered by listing `docs/specs/`.
 
+If you want to stop here (pure planning, no build yet), this is the natural exit point. The spec and plan are durable; come back to `work-loop` whenever you're ready, or return to the spec when the intended outcome changes.
+
 ## What `work-loop` does
 
 The full procedure lives in [the `work-loop` SKILL.md](../../../packs/core/.apm/skills/work-loop/SKILL.md). The short version:
@@ -127,7 +131,7 @@ For the end-to-end narrative with the parts in context, read [core-pack.md § Ho
 - **`work-supervisor.py status --check` exits 3, or a `retry-cap` decision opens** → the implementation retry cap fired. The loop stopped converging, so the default answer is to stop and re-plan or split the task, not to push past it; no replan, amendment, or approval resets the count. An agent running unattended should stop and surface it.
 - **Diff is shrinking but findings aren't** → you're spot-fixing without addressing root cause. Back to PLAN.
 
-If any of these fire and the work isn't done, the task is bigger than you thought. Re-plan rather than expanding scope silently.
+If either of the last two fire and the work isn't done, the task is bigger than you thought. Re-plan rather than expanding scope silently.
 
 ## Variations
 
@@ -154,7 +158,7 @@ For bug-shaped work that crosses multiple files, see [how to fix a bug](../how-t
 ## Pitfalls
 
 :::caution
-**Reaching for `new-spec` because the change touches several files.** File count stopped deciding this a long time ago; risk decides it, and so does durability. A bounded, low-risk change you are doing now runs direct-light with its plan in the session and no spec at all, however many files it touches. Write a spec when the work needs a durable contract — a risk trigger fires, it needs queueing, another session, another person, an external orchestrator, an approval that outlives the context, or it defines published behavior. The discipline is the loop, not the document. A request that bundles independent tasks — no task depends on another, no two write the same files, and each finished diff stays in its own files — splits into one unit per task, and each unit is judged on its own. A plain edit to an existing agent-guidance file runs light, with a content-pin test: a test that checks the edited section's key phrases. It stays in full mode if it changes a tool surface, an authority or gate, a security boundary, or a published schema. A new guidance file and policy prose also stay in full mode. A spec records which triggers fired on its `- **Risk triggers:**` header line, as tokens or `none`, written while the spec is Draft.
+**Reaching for `new-spec` because the change touches several files.** File count does not decide this; risk and durability do. A bounded, low-risk change you are doing now runs direct-light with its plan in the session and no spec at all, however many files it touches. Write a spec when the work needs a durable contract — a risk trigger fires, it needs queueing, another session, another person, an external orchestrator, an approval that outlives the context, or it defines published behavior. The discipline is the loop, not the document. A request that bundles independent tasks — no task depends on another, no two write the same files, and each finished diff stays in its own files — splits into one unit per task, and each unit is judged on its own. A plain edit to an existing agent-guidance file runs light, with a content-pin test: a test that checks the edited section's key phrases. It stays in full mode if it changes a tool surface, an authority or gate, a security boundary, or a published schema. A new guidance file and policy prose also stay in full mode. A spec records which triggers fired on its `- **Risk triggers:**` header line, as tokens or `none`, written while the spec is Draft.
 :::
 
 :::caution

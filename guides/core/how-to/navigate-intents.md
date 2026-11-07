@@ -7,7 +7,7 @@ kind: how-to
 
 # How to navigate intents, briefs, and specs
 
-Find outstanding work, walk the intent hierarchy, trace where an intent sits, and share the graph as one offline page, using the `navigate-intents` skill. An intent is a short file that states an outcome you want and why; briefs and specs sit beneath intents. You need the `core` pack and an agent session in the repository root.
+Find outstanding work, walk the intent hierarchy, trace where an intent sits, and share the graph as one offline page, using the `navigate-intents` skill. An intent is a short file that states an outcome you want and why; briefs and specs sit beneath intents. You need [the `core` pack installed](../../_shared/how-to/install-packs.md) and an agent session in the repository root.
 
 ## Find outstanding work
 
@@ -83,6 +83,6 @@ Use the same `<repo-root>` on both sides, and pipe only argless `dispatch.py --r
 
 ## What this job does not do
 
-The skill only reads. For what is ready to start, ask `work-loop` to run `dispatch.py` ([Orient at the start of a session](orient-at-session-start.md) shows how). For workspace repair, use `workspace-status`. The skill never reads `workspace.toml`.
+The queries only read, and `export` writes one file, never inside your repository. For what is ready to start, ask `work-loop` to run `dispatch.py` ([Orient at the start of a session](orient-at-session-start.md) shows how). For workspace repair, use `workspace-status`. The skill never reads `workspace.toml`.
 
 Next, [look up every operation, option, and refusal code](../reference/navigate-intents-queries.md).

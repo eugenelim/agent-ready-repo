@@ -240,7 +240,7 @@ capability:work-item-capture-and-disposition · capability · Accepted
   opportunity:governance-item-record-routing · feature · opportunity · Accepted
 ```
 
-`tree` prints intents only. `outstanding` also prints the briefs and specs placed under them, as in the first example on this page.
+`tree` prints intents only. `outstanding` also prints the briefs and specs placed under them, as in the `outstanding` example in [How to navigate intents, briefs, and specs](../how-to/navigate-intents.md#find-outstanding-work).
 
 Each intent line reads: `node-id · level · kind (when present) · status`. A brief or spec line reads: `node-id · status`. A refused parent edge prints one level deeper as `! refused <state>`. Related edges print one level deeper too, before the intent's children. A related intent the line names prints as `~ related <id>`. A related value that cannot resolve prints as `! refused related <state>`. An intent that another intent names as related prints as `~ related from <id>`.
 
