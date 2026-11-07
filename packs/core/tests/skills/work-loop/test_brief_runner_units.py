@@ -530,6 +530,48 @@ def test_the_internal_error_trace_walks_context_and_skips_a_suppressed_one() -> 
     assert "KeyError" not in hidden and hidden.endswith("ValueError\n") and "secret" not in hidden
 
 
+@pytest.mark.parametrize(
+    ("action", "added"),
+    [
+        ({"kind": "resume-slice", "slice": "a", "worktree": "/w", "stage": "implementing"},
+         {"spec_path": "docs/specs/a"}),
+        ({"kind": "start-slice", "slice": "b", "branch": "brief/x/b", "mode": "run",
+          "spec_status": "Approved", "plan_status": "Approved"}, {"spec_path": "docs/specs/b"}),
+        ({"kind": "await-gates", "gates": []}, {}),
+        ({"kind": "await-merge", "slices": ["a", "c"]},
+         {"spec_paths": ["docs/specs/a", "docs/specs/c"]}),
+        ({"kind": "complete"}, {}),
+    ],
+)  # fmt: skip
+def test_every_next_action_carries_base_and_its_spec_paths(
+    action: dict[str, Any], added: dict[str, Any]
+) -> None:
+    assert runner.with_contract_fields(action, "b" * 40) == {**action, "base": "b" * 40, **added}
+
+
+def test_each_blocked_row_carries_its_spec_path() -> None:
+    action = {"kind": "blocked", "rows": [{"slice": "a", "reason": "in-flight-cap"}]}
+    out = runner.with_contract_fields(action, "c" * 40)
+    assert out["rows"] == [{"slice": "a", "reason": "in-flight-cap", "spec_path": "docs/specs/a"}]
+    assert action["rows"] == [{"slice": "a", "reason": "in-flight-cap"}]  # the input is unchanged
+
+
+@pytest.mark.parametrize(("verb", "versioned"), [("next", True), ("status", False)])
+def test_only_a_next_refusal_carries_the_schema_version(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], verb: str, versioned: bool
+) -> None:
+    def refuse(*args: Any, **kwargs: Any) -> Any:
+        raise runner.Refusal("base-not-default", "HEAD is not the default branch's commit")
+
+    monkeypatch.setattr(runner, "read_brief", refuse)
+    capsys.readouterr()
+    assert runner.main([verb, "b"]) == runner.EXIT_REFUSED
+    out = json.loads(capsys.readouterr().out)
+    assert ("schema_version" in out) is versioned
+    if versioned:
+        assert out["schema_version"] == runner.NEXT_SCHEMA_VERSION == 1
+
+
 def test_an_unexpected_failure_still_answers_one_json_refusal(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

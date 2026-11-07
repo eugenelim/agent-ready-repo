@@ -287,6 +287,15 @@ def test_the_controller_fast_forwards_the_base_after_a_fetch() -> None:
     assert "The one exception is the fast-forward in [Moving the base](#moving-the-base)" in refusing
 
 
+def test_the_next_row_names_the_versioned_contract_fields() -> None:
+    """The reference's `next` row names the schema version, the base and the spec-path fields."""
+    verbs = _section("Verbs")
+    row = re.search(r"\| `next <brief-slug>` \| (.*?) \|", verbs)
+    assert row is not None
+    for field in ("`schema_version`", "`base`", "`spec_path`", "`spec_paths`"):
+        assert field in row.group(1), field
+
+
 def test_the_run_precondition_names_every_path_the_base_check_reads() -> None:
     """The intro names docs/, workspace.toml and the skill directory, as the base check does."""
     intro = " ".join(RUNNER_MD.read_text(encoding="utf-8").split("## ", 1)[0].split())

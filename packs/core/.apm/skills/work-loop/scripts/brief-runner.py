@@ -85,6 +85,8 @@ MAX_RELAYED_DETAIL = 400
 # Stands in for relayed supervisor text that is not a plain slug or holds an unsafe character.
 WITHHELD = "withheld"
 CODE_INTERNAL_ERROR = "internal-error"
+# The version of the `next` answer's shape; it changes only when that shape does.
+NEXT_SCHEMA_VERSION = 1
 # The most traceback characters an internal error writes to stderr.
 MAX_TRACEBACK = 4000
 # Stages the supervisor never names; the runner derives them itself (AC-0032).
@@ -1414,6 +1416,33 @@ def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
+def spec_path(slug: str) -> str:
+    """The repository path of the spec directory a Spec map row names."""
+    return f"docs/specs/{slug}"
+
+
+def with_contract_fields(action: dict[str, Any], base: str) -> dict[str, Any]:
+    """*action* plus the fields a program controller reads without deriving them.
+
+    Every action carries ``base``; one that names a slice carries its ``spec_path``,
+    ``await-merge`` carries ``spec_paths`` beside ``slices``, and each ``blocked`` row
+    carries its own ``spec_path``.
+    """
+    out = {**action, "base": base}
+    if "slice" in out:
+        out["spec_path"] = spec_path(out["slice"])
+    if out["kind"] == "await-merge":
+        out["spec_paths"] = [spec_path(slug) for slug in out["slices"]]
+    if out["kind"] == "blocked":
+        out["rows"] = [{**row, "spec_path": spec_path(row["slice"])} for row in out["rows"]]
+    return out
+
+
+def _versioned(verb: str, answer: dict[str, Any]) -> dict[str, Any]:
+    """*answer* with ``schema_version`` first when the verb is ``next``."""
+    return {"schema_version": NEXT_SCHEMA_VERSION, **answer} if verb == "next" else answer
+
+
 def internal_error_trace(exc: BaseException) -> str:
     """Each failing frame's file, line number and function, then the exception type.
 
@@ -1475,10 +1504,17 @@ def main(argv: list[str] | None = None) -> int:
                 }
             )
         else:
-            action = decide_next(rows, cap)
-            _emit({"base": base, "action": action, "standing_orders": orders})
+            action = with_contract_fields(decide_next(rows, cap), base)
+            _emit(
+                {
+                    "schema_version": NEXT_SCHEMA_VERSION,
+                    "base": base,
+                    "action": action,
+                    "standing_orders": orders,
+                }
+            )
     except Refusal as exc:
-        _emit({"refusal": {"code": exc.code, "detail": exc.detail}})
+        _emit(_versioned(args.verb, {"refusal": {"code": exc.code, "detail": exc.detail}}))
         return EXIT_REFUSED
     except Exception as exc:  # noqa: BLE001 - every failure still answers one JSON refusal
         # Stdout stays one JSON object; the location goes to stderr, bounded.
@@ -1487,7 +1523,7 @@ def main(argv: list[str] | None = None) -> int:
             CODE_INTERNAL_ERROR,
             _bounded(f"the runner failed unexpectedly: {type(exc).__name__}"),
         )
-        _emit({"refusal": {"code": failure.code, "detail": failure.detail}})
+        _emit(_versioned(args.verb, {"refusal": {"code": failure.code, "detail": failure.detail}}))
         return EXIT_REFUSED
     return EXIT_OK
 

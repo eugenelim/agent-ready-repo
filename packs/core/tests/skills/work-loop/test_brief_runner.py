@@ -890,8 +890,11 @@ def test_a_spec_directory_without_a_readable_spec_is_never_authored_over(tmp_pat
         assert code == 0, out
         assert out["action"]["kind"] == "blocked", out
         assert out["action"]["rows"] == [
-            {"slice": slug, "reason": "not-dispatchable", "detail": "spec-unreadable"}
-        ]
+            {
+                "slice": slug, "reason": "not-dispatchable", "detail": "spec-unreadable",
+                "spec_path": f"docs/specs/{slug}",
+            }
+        ]  # fmt: skip
     w.add_slice("b-plandir", "plandir")
     w.add_slice("b-link", "linkspec")
     # On a slice head, no spec.md is drafting; a spec.md that is not a regular file is not.
@@ -1244,11 +1247,17 @@ def test_a_worktree_path_with_a_control_hidden_or_separator_character_is_never_e
         code, out = small.cli(verb, "b-base")
         assert code == 0, out
         assert "IGNORE" not in json.dumps(out)
-    blocked = small.cli("next", "b-base")[1]["action"]
-    assert blocked == {
+    answer = small.cli("next", "b-base")[1]
+    assert answer["action"] == {
         "kind": "blocked",
-        "rows": [{"slice": "alpha", "reason": "unreadable", "detail": "bad-path-chars"}],
-    }
+        "base": answer["base"],
+        "rows": [
+            {
+                "slice": "alpha", "reason": "unreadable", "detail": "bad-path-chars",
+                "spec_path": "docs/specs/alpha",
+            }
+        ],
+    }  # fmt: skip
     entry = small.cli("status", "b-base")[1]["rows"][0]
     assert entry["worktree"] is None and entry["stage"] == "unreadable"
 
@@ -1567,11 +1576,13 @@ def reasons(act: dict[str, Any]) -> dict[str, str]:
 def test_start_slice_names_the_first_ready_row_with_its_facts(nx: World) -> None:
     code, out = nx.cli("next", "n-start")
     assert code == 0, out
+    assert out["schema_version"] == 1
     assert out["base"] == h.git(nx.main, "rev-parse", "HEAD").strip()
     assert out["standing_orders"] is None
     assert out["action"] == {
         "kind": "start-slice", "slice": "alpha", "branch": "brief/n-start/alpha",
         "mode": "run", "spec_status": "Approved", "plan_status": "Approved",
+        "base": out["base"], "spec_path": "docs/specs/alpha",
     }  # fmt: skip
 
 

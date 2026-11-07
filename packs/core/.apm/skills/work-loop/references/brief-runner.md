@@ -61,7 +61,7 @@ worktree holds commits the fetched tip lacks, put the refusal to a human.
 | Verb | What it prints |
 | --- | --- |
 | `status <brief-slug>` | One entry per Spec map row: `slice`, `spec_status` (at the base), `worktree`, `branch`, `head`, `stop`, `stage`, `gates`, and `marker`, plus `standing_orders`. |
-| `next <brief-slug>` | `{"base", "action", "standing_orders"}`: the one action the controller takes now. |
+| `next <brief-slug>` | `{"schema_version", "base", "action", "standing_orders"}`: the one action the controller takes now. Every action also carries `base`; one that names a `slice` carries its `spec_path`, `await-merge` carries `spec_paths`, and each `blocked` row carries its `spec_path`. A `next` refusal carries `schema_version` too. |
 | `gates <brief-slug>` | Every slice worktree's supervisor `gates` entries, each with `slice` and `worktree`, in Spec map order. A worktree whose `gates` call fails is listed once as `{"slice", "worktree", "state": "unavailable"}`, never as `pending`. |
 | `classify <brief-slug> --slice <slug> --task <task-id> --class <class>` | `{"base", "action", "failed_attempts"}` for one failed `implement-task` dispatch. |
 
