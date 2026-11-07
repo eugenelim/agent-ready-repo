@@ -186,7 +186,7 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
 - **Touches:** `packs/core/.apm/skills/work-loop/scripts/brief-runner.py`, `references/brief-runner.md`, `evals/evals.json`, `packs/core/tests/skills/work-loop/test_brief_runner.py`, `test_brief_runner_units.py`, `test_brief_runner_guidance.py`
 - **Mode:** TDD
 - **Tests:**
-  - Spec directories (AC-0004, AC-0032): a spec directory at the base whose `spec.md` is absent or a symlink is `not-dispatchable` with detail `spec-unreadable`, never `author-spec`; the same directory on a slice head is `unreadable`, not `drafting`.
+  - Spec directories (AC-0004, AC-0032): a spec directory at the base whose `spec.md` is absent or a symlink is `not-dispatchable` with detail `spec-unreadable`, never `author-spec`; on a slice head, no `spec.md` is `drafting` (AC-0032) and a `spec.md` that is not a small regular file is `unreadable`.
   - Read-only (AC-0001): over a slice worktree whose supervisor store has no spec record, `status`, `next`, `gates` and `classify` change no slice-worktree file except `docs/specs/<slug>/.supervisor/.gitignore` and `security-events.jsonl`, and the case is shown to reach that exception.
   - Base check (AC-0002): a base holding a submodule under `docs/` refuses `base-not-committed` from `status`, `next` and `gates` before `git status` runs; a submodule only staged there reaches `git status`, which refuses it as staged without entering it; in both cases a filter defined only in that submodule's own config never runs; `workspace.toml` is in the check; an unexpected exception through `main` answers one `internal-error` refusal, exit 1, naming only the exception type.
   - Supervisor launch (AC-0022): the supervisor runs as `python -I -X utf8 -B`, and a module committed at a slice worktree's root never loads into it under a `PYTHONPATH` with an empty entry.
@@ -203,6 +203,20 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
 - **Mode:** verification
 - **Tests:** release version check (AC-0026); the roster registry test's `core` pin names this release's version and fragment.
 - **Done when:** `tools/check-core-release.py --base origin/main` exits 0 and `tests/roster/test_registry_upgrade_notes.py` passes.
+
+### T12: Restarted-run review round 2 repairs
+
+- **Depends on:** T11
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/brief-runner.py`, `references/brief-runner.md`, `packs/core/tests/skills/work-loop/test_brief_runner.py`, `test_brief_runner_units.py`, `docs/product/captured/read-once-filter-names-race.md` (the follow-on for the accepted S5 risk)
+- **Mode:** TDD
+- **Tests:**
+  - Slice-head stage (AC-0032): a slice head whose spec directory holds no `spec.md` is `drafting`; a symlinked `spec.md` is `unreadable`.
+  - Base check (AC-0002): an untracked `docs/` file named in `info/exclude`, and a modified `docs/` file marked assume-unchanged or skip-worktree, each refuse `base-not-committed`; a flagged but unchanged file does not; the base checks pin the supervisor's stat settings and an empty excludes file.
+  - Read-only (AC-0001): the security-log exception case also leaves the slice's supervisor store and the main worktree unchanged.
+  - Gates cause (AC-0009, AC-0011): a failing `gates` call reaches `next`'s blocked row through `attach_gates` with detail `supervisor-exit-1`.
+  - Internal error (AC-0002): the `internal-error` refusal writes a bounded traceback to stderr and keeps stdout one JSON object.
+  - Guidance (AC-0001): the reference names the supervisor's own security-event log as the one thing a runner read may change in a slice worktree.
+- **Done when:** the T12 tests pass, the existing brief-runner suites stay green, and lint is clean.
 
 ## Rollout
 
