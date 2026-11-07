@@ -133,6 +133,8 @@ _MAX_ENTRIES = 50_000
 _MAX_FILE_BYTES = 64 * 1024 * 1024
 _MAX_RECORD_BYTES = 16 * 1024 * 1024
 _MAX_SMALL_BYTES = 64 * 1024
+# The ref reader's bound for ``packed-refs``; a held-ref scan must not read less than it does.
+_MAX_PACKED_REFS_BYTES = _commit._MAX_DELIVERY_BYTES
 _NAMED_PATHS = 20
 _PRUNED = "__pycache__"
 _HELD_LABELS = ("held:", "held-ref:")
@@ -774,8 +776,19 @@ class Attempts:
                 names.update(entry.name for entry in os.scandir(loose))
         except OSError:
             names.add("unreadable")
-        packed = self._text(common, "packed-refs")
-        for line in (packed or "").splitlines():
+        packed = common / "packed-refs"
+        fs = sibling("_file_safety.py")
+        data = b""
+        if os.path.lexists(packed):
+            try:
+                data = bytes(
+                    fs.read_confined_regular_file(common, packed, max_bytes=_MAX_PACKED_REFS_BYTES)
+                )
+            except (fs.UnsafeContentError, OSError) as exc:
+                raise SupervisorGitError(
+                    "denied-git-control-state", "packed-refs cannot be read", unverifiable=True
+                ) from exc
+        for line in data.decode("utf-8", "replace").split("\n"):
             _sha, _, ref = line.partition(" ")
             if ref.startswith(prefix):
                 names.add(ref[len(prefix) :])

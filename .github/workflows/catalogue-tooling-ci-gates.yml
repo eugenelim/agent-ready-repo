@@ -235,8 +235,9 @@ jobs:
   # These suites drive whole git-backed supervisor runs; the crash corpus alone is
   # about 190 of them. That does not fit Gate A-packs' 15-minute budget, so they
   # skip there (naming this lane) and run here with the variable set. The lane is
-  # split into jobs, each with a budget stated beside its timeout (taken from the local
-  # gates4 timing run, made under load, so a runner has headroom): the corpus runs in its own shards,
+  # split into jobs, each with a budget stated beside its timeout (taken from one named run, the local
+  # gates5 run of 2026-11-07, pytest times, made under load so a runner has headroom; a job's
+  # comment says which of its suites that run did not time): the corpus runs in its own shards,
   # and the other suites in six jobs. Every pytest path is a literal in a run line.
   # The corpus shards select test functions by name, and a repository test
   # (tests/roster/test_supervisor_ci_shards.py) checks that they are disjoint,
@@ -245,7 +246,7 @@ jobs:
   supervisor-integration:
     name: "Gate A-supervisor — the core suites"
     runs-on: ubuntu-latest
-    # Budget: about 8 min: the five suites timed in the gates4 run total 465 s (the other eleven were not timed); timeout 30 min.
+    # Budget: about 8 min: the gates5 run timed six of the sixteen suites (admission, attempt, git, commit, review-closure, ingestion), 307 s in all; the other ten were not timed; timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -283,7 +284,7 @@ jobs:
   supervisor-integration-product:
     name: "Gate A-supervisor — the product-ref and step-loop suites"
     runs-on: ubuntu-latest
-    # Budget: about 14 min: gates4 timed 571 s and 269 s for the two suites; timeout 30 min.
+    # Budget: about 11 min: gates5 timed both suites, 482 s and 187 s (669 s); timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -307,7 +308,7 @@ jobs:
   supervisor-integration-concurrent:
     name: "Gate A-supervisor — the concurrent-path suites"
     runs-on: ubuntu-latest
-    # Budget: about 18 min: gates4 timed 51, 299, 183 and 509 s for the four suites (1042 s); timeout 30 min.
+    # Budget: about 11 min: gates5 timed all four suites, 50, 229, 113 and 255 s (646 s); timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -333,7 +334,7 @@ jobs:
   supervisor-integration-launcher:
     name: "Gate A-supervisor — the launcher and unsafe-host suites"
     runs-on: ubuntu-latest
-    # Budget: about 5 min: gates4 timed 244 s for the launcher suite, and the unsafe-host suite took 23 s alone; timeout 30 min.
+    # Budget: about 5 min: gates5 timed both suites, 239 s for the launcher suite and 12 s for the unsafe-host suite; timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -357,7 +358,7 @@ jobs:
   supervisor-integration-records:
     name: "Gate A-supervisor — the concurrency-records roster suite"
     runs-on: ubuntu-latest
-    # Budget: about 2 min: gates4 timed 117 s; timeout 30 min.
+    # Budget: about 2 min: gates5 timed 129 s; timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -380,7 +381,7 @@ jobs:
   supervisor-integration-permutations:
     name: "Gate A-supervisor — the permutation corpus"
     runs-on: ubuntu-latest
-    # Budget: about 12 min: gates4 timed 716 s; one module-scoped fixture builds the whole corpus, so it cannot be sharded and has the one larger timeout; timeout 45 min.
+    # Budget: about 7 min: gates5 timed 406 s; one module-scoped fixture builds the whole corpus, so it cannot be sharded and has the one larger timeout; timeout 45 min.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1

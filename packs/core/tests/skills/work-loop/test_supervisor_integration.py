@@ -473,6 +473,62 @@ def test_a_held_ref_added_with_no_record_during_a_floor_attempt_is_residue(
     assert head(env) == before
 
 
+def _forge_packed_held_ref(env: Any, *, filler_refs: int = 0) -> None:
+    """Add a held ref with no record, then move every ref into ``packed-refs``."""
+    ref = [
+        r for r in env.git(
+            "for-each-ref", "--format=%(refname)", "refs/agentbundle/delivery"
+        ).splitlines()
+        if "/held/" in r
+    ][0]
+    tree = env.git("rev-parse", "HEAD^{tree}").strip()
+    env.git("update-ref", ref.rsplit("/", 1)[0] + "/" + FORGED_ID, tree)
+    if filler_refs:
+        commit = env.git("rev-parse", "HEAD").strip()
+        tags = env.repo / ".git" / "refs" / "tags"
+        tags.mkdir(parents=True, exist_ok=True)
+        for n in range(filler_refs):
+            (tags / f"filler-{n:06d}").write_text(commit + "\n", encoding="utf-8")
+    env.git("pack-refs", "--all")
+    # Keep the checked-out branch loose so only the held-ref scan, not the HEAD read, meets packed-refs.
+    branch = env.git("symbolic-ref", "HEAD").strip()
+    (env.repo / ".git" / branch).write_text(env.git("rev-parse", "HEAD").strip() + "\n", "utf-8")
+    assert not list((env.repo / ".git" / "refs").rglob(FORGED_ID))
+    assert FORGED_ID in (env.repo / ".git" / "packed-refs").read_text("utf-8")
+
+
+@pytest.mark.parametrize("filler_refs", [0, 3000], ids=["small-packed-refs", "packed-refs-over-64k"])
+def test_a_packed_only_held_ref_with_no_record_during_a_floor_attempt_is_residue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, filler_refs: int
+) -> None:
+    env = make_env(tmp_path, monkeypatch, script=reverse_script())
+    crash_second_result(env)
+    floor = env.next()["request"]
+    before = head(env)
+    _forge_packed_held_ref(env, filler_refs=filler_refs)
+    if filler_refs:
+        assert (env.repo / ".git" / "packed-refs").stat().st_size > 64 * 1024
+    assert_residue_after_report(env, floor)
+    assert head(env) == before
+
+
+def test_an_oversized_packed_refs_makes_the_held_ref_check_refuse_not_admit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = make_env(tmp_path, monkeypatch, script=reverse_script())
+    crash_second_result(env)
+    floor = env.next()["request"]
+    before = head(env)
+    _forge_packed_held_ref(env)
+    # A 64 MiB file is too slow to write here, so the bound is shrunk below the file's size.
+    monkeypatch.setattr(ls.cli._supervisor("_supervisor_attempt.py"), "_MAX_PACKED_REFS_BYTES", 64)
+    assert (env.repo / ".git" / "packed-refs").stat().st_size > 64
+    code, refused = env.report(floor, gate={"passed": True})
+    assert code == 1, refused
+    assert refused["refusal"]["code"] == "denied-git-control-state", refused
+    assert head(env) == before
+
+
 def test_integration_never_lists_a_held_record_no_consumed_record_matches(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
