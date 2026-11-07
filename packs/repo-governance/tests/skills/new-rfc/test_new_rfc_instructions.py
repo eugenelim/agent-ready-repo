@@ -306,3 +306,9 @@ def test_step_one_states_the_snapshot_rule() -> None:
         "merged with the default branch" in TEXT
     )
     assert "`next` or `check` on the branch alone cannot confirm the number is free" in TEXT
+    assert "as pull-request CI does" not in TEXT
+    assert "as a pull-request CI job running `check` does where the repository has set one up" in TEXT
+    assert (
+        "Run `renumber` only on this branch's own unmerged draft, never on a record "
+        "already on the default branch" in TEXT
+    )

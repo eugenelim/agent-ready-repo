@@ -66,6 +66,8 @@ def test_guide_states_the_number_snapshot_rule() -> None:
     assert "`check` reports a clash and `renumber` fixes it" not in text
     assert "not a reservation" in text
     assert "`check` runs on your branch merged with the default branch" in text
+    assert "as pull-request CI does" not in text
+    assert "where the repository has set one up" in text
     assert "`next` or `check` on the branch alone cannot confirm the number is free" in text
 
 

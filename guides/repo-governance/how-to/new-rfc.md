@@ -179,7 +179,7 @@ python3 -I docs/rfc/rfc.py next
 python3 -I docs/rfc/rfc.py new "Short title"
 ```
 
-`next` prints the next free number and `new` creates a numbered `Draft` from the template. The number is a snapshot, not a reservation. A clash with a record merged since shows only when `check` runs on your branch merged with the default branch, as pull-request CI does or as you can do locally after merging the default branch in; `renumber` then fixes it. `next` or `check` on the branch alone cannot confirm the number is free.
+`next` prints the next free number and `new` creates a numbered `Draft` from the template. The number is a snapshot, not a reservation. A clash with a record merged since shows only when `check` runs on your branch merged with the default branch, as a pull-request CI job running `check` does where the repository has set one up (the seeded governance file says how), or as you can do locally after merging the default branch in; `renumber` then fixes it. `next` or `check` on the branch alone cannot confirm the number is free.
 
 The template has six required sections, each leading with its conclusion:
 

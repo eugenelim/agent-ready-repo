@@ -126,8 +126,11 @@ A written file is a draft that the maintainers adopt through their normal review
 
    `check` reports an ordinal held by two records. The number is a snapshot, not a
    reservation. A clash with a record merged since shows only when `check` runs on
-   the branch merged with the default branch (as pull-request CI does, or locally
-   after merging the default branch in); `renumber` then fixes it. `next` or `check`
+   the branch merged with the default branch (as a pull-request CI job running
+   `check` does where the repository has set one up, the seeded governance file
+   says how, or locally after merging the default branch in); `renumber` then
+   fixes it. Run `renumber` only on this branch's own unmerged draft, never on a
+   record already on the default branch. `next` or `check`
    on the branch alone cannot confirm the number is free. A
    `NNNN-notes/` folder or a `NNNN-<slug>-research.md` sibling is a companion and
    shares its RFC's ordinal by design.

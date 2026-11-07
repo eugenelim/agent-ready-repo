@@ -767,6 +767,18 @@ def test_dir_targets_only_the_given_folder(
     assert not (other / "__pycache__").exists()
 
 
+def test_dir_folder_helper_never_runs(rig: Rig, tmp_path: Path) -> None:
+    """AC-0034: a file_safety.py in the --dir folder is data; the helper loads from the script folder."""
+    other = tmp_path / "other"
+    other.mkdir()
+    marker = tmp_path / "planted-ran"
+    (other / "file_safety.py").write_text(f"open({str(marker)!r}, 'w')\n", encoding="utf-8")
+    assert rig.mod._fs_module is None  # nothing has loaded the helper yet
+    code = rig.run("--dir", str(other), "next")[0]
+    assert code == 0
+    assert not marker.exists()
+
+
 def test_dir_renumber_targets_only_the_given_folder(
     rig: Rig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
