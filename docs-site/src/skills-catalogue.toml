@@ -3,6 +3,18 @@
 # paste, `gets` the result. Pack and link come from the skill's directory.
 # `sequence` names a lifecycle sequence. Its rows stay together in lifecycle order
 # ahead of the rest of the job, which runs A to Z by skill name.
+# `[terms]` gives one plain-words definition per term the page uses; it prints under the intro.
+
+[terms]
+intent = "A short record of a problem to solve and how you will know it is solved."
+spec = "A written description of one feature that the build follows and the tests check."
+brief = "A short document that sets out one outcome to deliver, so the work can be planned and split."
+ADR = "A record of one design decision and the reasons for it."
+RFC = "A written proposal that others comment on before a decision is made."
+bet = "A decision to invest in one option, with its reasons, time budget and accepted risks."
+contract = "A written agreement on how two parts of a system talk to each other, such as an API description."
+pack = "An installable bundle of skills, helper agents and commands for your coding agent."
+skill = "A saved set of instructions your coding agent follows for one kind of job."
 
 [skills.adapt-to-project]
 job = "Set up a repository"
@@ -22,11 +34,35 @@ want = "Store a service credential safely"
 ask = "Set up credentials for the Jira skill."
 gets = "Each required key entered once and stored in your OS keychain or a private file."
 
+[skills.github-brief-intake]
+job = "Set up a repository"
+want = "Start from a GitHub Issue"
+ask = "Take GitHub Issue 42 into our work intake."
+gets = "A cleaned summary of the GitHub work, handed to work-intake to decide where it belongs; nothing is written back to GitHub."
+
 [skills.init-project]
 job = "Set up a repository"
 want = "Start a new project"
 ask = "Turn my idea into a structured new repository."
-gets = "A repository foundation: a decision record, a golden-path reference, and a first spec."
+gets = "A repository foundation: a decision record, a file that names your stack and standards, and a first spec."
+
+[skills.jira-align-brief-intake]
+job = "Set up a repository"
+want = "Start from Jira Align work"
+ask = "Take this Jira Align Feature into our work intake."
+gets = "A cleaned summary of the Jira Align work, handed to work-intake to decide where it belongs; Jira Align is only read."
+
+[skills.jira-brief-intake]
+job = "Set up a repository"
+want = "Start from Jira work"
+ask = "Take Jira epic PROJ-12 into our work intake."
+gets = "A cleaned summary of the Jira work, handed to work-intake to decide where it belongs; Jira is only read."
+
+[skills.linear-brief-intake]
+job = "Set up a repository"
+want = "Start from Linear work"
+ask = "Take this Linear project into our work intake."
+gets = "A cleaned summary of the Linear work, handed to work-intake to decide where it belongs; nothing is written back to Linear."
 
 [skills.new-package]
 job = "Set up a repository"
@@ -111,6 +147,13 @@ want = "Begin a multi-week investigation"
 ask = "Start a research project on developer onboarding."
 gets = "A research project folder with an overview to work from."
 
+[skills.desk-research-project-status]
+job = "Decide what to build"
+sequence = "research project"
+want = "See where a research project stands"
+ask = "Where does the research project stand?"
+gets = "Phase, working hypothesis, stop signal, and what to do next."
+
 [skills.desk-research-project-digest]
 job = "Decide what to build"
 sequence = "research project"
@@ -155,12 +198,6 @@ job = "Decide what to build"
 want = "Set the experience direction"
 ask = "Define the UX strategy before design starts."
 gets = "A UX strategy linking business goals to what the design must achieve."
-
-[skills.desk-research-project-status]
-job = "Decide what to build"
-want = "See where a research project stands"
-ask = "Where does the research project stand?"
-gets = "Phase, working hypothesis, stop signal, and what to do next."
 
 [skills.devils-advocate]
 job = "Decide what to build"
@@ -327,12 +364,6 @@ want = "Critique an architecture document"
 ask = "Review this design doc."
 gets = "A verdict with severity-tagged findings."
 
-[skills.author-brief]
-job = "Shape it"
-want = "Write a delivery brief (older name)"
-ask = "Create a delivery brief. (Use author-delivery-brief.)"
-gets = "Deprecated alias. It runs author-delivery-brief in create mode."
-
 [skills.author-delivery-brief]
 job = "Shape it"
 want = "Plan a multi-slice outcome"
@@ -357,12 +388,6 @@ want = "See where the design work stands"
 ask = "Where does the experience design stand, and what comes next?"
 gets = "The design artifacts that exist, what is missing, and the next skill to use."
 
-[skills.github-brief-intake]
-job = "Shape it"
-want = "Start from a GitHub Issue"
-ask = "Take GitHub Issue 42 into our work intake."
-gets = "GitHub work passed into the intake route."
-
 [skills.information-architecture]
 job = "Shape it"
 want = "Decide what goes where"
@@ -375,53 +400,11 @@ want = "Specify how a screen responds"
 ask = "Specify how this form validates and recovers."
 gets = "Behavior and state specs for a screen or component."
 
-[skills.jira-align-brief-intake]
-job = "Shape it"
-want = "Start from Jira Align work"
-ask = "Take this Jira Align Feature into our work intake."
-gets = "Jira Align work passed read-only into the intake route."
-
-[skills.jira-brief-intake]
-job = "Shape it"
-want = "Start from Jira work"
-ask = "Take Jira epic PROJ-12 into our work intake."
-gets = "Jira work passed read-only into the intake route."
-
 [skills.jira-story-triage]
 job = "Shape it"
 want = "Check stories are ready"
 ask = "Triage the stories in this sprint for readiness."
 gets = "Why each weak item is not ready, and improved stories."
-
-[skills.linear-brief-intake]
-job = "Shape it"
-want = "Start from Linear work"
-ask = "Take this Linear project into our work intake."
-gets = "Linear work passed into the intake route."
-
-[skills.navigate-decisions]
-job = "Shape it"
-want = "Look up past decisions"
-ask = "Which ADRs are accepted, and what supersedes ADR 12?"
-gets = "A summary or trace of decision records and RFCs."
-
-[skills.navigate-intents]
-job = "Shape it"
-want = "Find work under a goal"
-ask = "Show me the outstanding work under this intent."
-gets = "The intent graph, outstanding items, and an optional offline HTML view."
-
-[skills.new-adr]
-job = "Shape it"
-want = "Record a decision"
-ask = "Write an ADR for choosing PostgreSQL."
-gets = "An architecture decision record."
-
-[skills.new-rfc]
-job = "Shape it"
-want = "Propose a change"
-ask = "Draft an RFC to change our branching rules."
-gets = "A request for comments ready to circulate."
 
 [skills.process-mapping]
 job = "Shape it"
@@ -429,35 +412,17 @@ want = "Map an internal process"
 ask = "Map how our invoice approval works today."
 gets = "A scope, swimlane map, and as-is versus to-be view."
 
-[skills.receive-brief]
-job = "Shape it"
-want = "Continue a delivery brief (older name)"
-ask = "Continue this delivery brief. (Use author-delivery-brief.)"
-gets = "Deprecated alias. It runs author-delivery-brief in continue mode."
-
 [skills.service-blueprint]
 job = "Shape it"
 want = "Show what supports each step"
 ask = "Draw a service blueprint for this journey."
 gets = "A blueprint of the people, services, and systems behind each step."
 
-[skills.work-intake]
-job = "Shape it"
-want = "Hand over a raw request"
-ask = "Here is a vague request. Where does it go?"
-gets = "The request routed to the right place in the repository."
-
 [skills.a11y-engineering]
 job = "Build it"
 want = "Make a surface accessible"
 ask = "Fix focus and screen-reader behavior in this menu."
 gets = "Accessibility fixes for focus, ARIA, and live regions."
-
-[skills.author-or-update-agent-skill]
-job = "Build it"
-want = "Write or change an agent skill"
-ask = "Create a skill that triages support tickets."
-gets = "A new or updated SKILL.md."
 
 [skills.bug-fix]
 job = "Build it"
@@ -469,7 +434,7 @@ gets = "A diagnosed cause and a fix backed by a regression test."
 job = "Build it"
 want = "Ask what is true in the code"
 ask = "What calls this function?"
-gets = "Answers from an indexed code graph."
+gets = "Answers about your code, such as who calls a function, taken from an index of the repository."
 
 [skills.component-contract]
 job = "Build it"
@@ -517,7 +482,7 @@ gets = "A summary against the frontend quality floor."
 job = "Build it"
 want = "Build a web surface"
 ask = "Build this dashboard in HTML, CSS, and JavaScript."
-gets = "A web surface with an evidence manifest."
+gets = "A web surface with a record of the checks the page passed."
 
 [skills.generate-iac]
 job = "Build it"
@@ -537,11 +502,29 @@ want = "Fix a Jira defect"
 ask = "Fix PROJ-123."
 gets = "A diagnosis and fix for the Jira defect."
 
-[skills.operational-safety]
+[skills.navigate-decisions]
 job = "Build it"
-want = "Apply safety checks to risky work"
-ask = "Check this migration for operational risk."
-gets = "Failure-mode checklists for reviewers on infrastructure or data changes."
+want = "Look up past decisions"
+ask = "Which ADRs are accepted, and what supersedes ADR 12?"
+gets = "A summary or trace of decision records and RFCs."
+
+[skills.navigate-intents]
+job = "Build it"
+want = "Find work under a goal"
+ask = "Show me the outstanding work under this intent."
+gets = "The map of intents, briefs and specs, outstanding items, and an optional offline HTML view."
+
+[skills.new-adr]
+job = "Build it"
+want = "Record a decision"
+ask = "Write an ADR for choosing PostgreSQL."
+gets = "An architecture decision record."
+
+[skills.new-rfc]
+job = "Build it"
+want = "Propose a change"
+ask = "Draft an RFC to change our branching rules."
+gets = "A request for comments ready to circulate."
 
 [skills.reconcile-iac]
 job = "Build it"
@@ -552,14 +535,14 @@ gets = "A drift audit, preflight, or decision-compliance check."
 [skills.rendering-strategy]
 job = "Build it"
 want = "Pick how pages render"
-ask = "Choose SSR or static for each route."
+ask = "Choose server or static rendering for each route."
 gets = "A rendering model per route."
 
 [skills.repository-exploration]
 job = "Build it"
 want = "Find evidence in the code"
 ask = "Which files must this rename touch?"
-gets = "Attributed evidence from the repository."
+gets = "A short list of repository files and lines that answer your question."
 
 [skills.repository-grounding]
 job = "Build it"
@@ -573,23 +556,17 @@ want = "Make a layout adapt"
 ask = "Make this page layout work from phone to desktop."
 gets = "An adaptive layout with fluid type and spacing."
 
-[skills.review-or-optimize-agent-skill]
-job = "Build it"
-want = "Improve an agent skill"
-ask = "Review this skill for trigger precision."
-gets = "Findings and fixes on a skill."
-
-[skills.security-checklists]
-job = "Build it"
-want = "Apply security checks"
-ask = "Review this change at the security boundary."
-gets = "Boundary-matched security checklists for the reviewer."
-
 [skills.token-architecture]
 job = "Build it"
 want = "Set up design tokens"
 ask = "Set up a design token system with dark mode."
 gets = "A three-tier token system."
+
+[skills.work-intake]
+job = "Build it"
+want = "Hand over a raw request"
+ask = "Here is a vague request. Where does it go?"
+gets = "The request routed to the right place in the repository."
 
 [skills.work-loop]
 job = "Build it"
@@ -633,12 +610,6 @@ want = "See what epics delivered"
 ask = "Show our epics next to their outcomes."
 gets = "A view of each epic beside the change it was meant to make."
 
-[skills.new-guide]
-job = "Ship it"
-want = "Write or tidy a guide"
-ask = "Write a how-to guide for this feature."
-gets = "A guide through the product-documentation workflow."
-
 [skills.release-loop]
 job = "Ship it"
 want = "Test the whole thing deployed"
@@ -646,22 +617,40 @@ ask = "Deploy this to a throwaway environment and run the end-to-end tests."
 gets = "Deployed test results and telemetry findings."
 
 [skills.assimilate-primitive]
-job = "Any stage"
+job = "Build and curate a catalogue"
 want = "Bring in one outside skill"
 ask = "Assimilate this skill from a URL."
-gets = "A migrated primitive, or a rejection."
+gets = "A migrated skill or subagent, or a rejection."
 
 [skills.assimilate-repo]
-job = "Any stage"
+job = "Build and curate a catalogue"
 want = "Survey an outside repository"
 ask = "Survey this repository for what we could ingest."
 gets = "An RFC of verdicts per candidate."
 
+[skills.author-or-update-agent-skill]
+job = "Build and curate a catalogue"
+want = "Write or change an agent skill"
+ask = "Create a skill that triages support tickets."
+gets = "A new or updated SKILL.md."
+
 [skills.compile-okf]
-job = "Any stage"
+job = "Build and curate a catalogue"
 want = "Compile pack knowledge"
 ask = "Compile the OKF bundles for this pack."
 gets = "Generated router and procedure skills, or a check they are current."
+
+[skills.propose-catalogue-pack]
+job = "Build and curate a catalogue"
+want = "Propose a new pack"
+ask = "Propose a new pack for cost engineering."
+gets = "A justified, scaffolded pack proposal."
+
+[skills.review-or-optimize-agent-skill]
+job = "Build and curate a catalogue"
+want = "Improve an agent skill"
+ask = "Review this skill for trigger precision."
+gets = "Findings and fixes on a skill."
 
 [skills.confluence-crawler]
 job = "Any stage"
@@ -775,13 +764,7 @@ gets = "A Markdown file with the headers and body."
 job = "Any stage"
 want = "Keep lessons from the work"
 ask = "Capture what we learned from this review."
-gets = "Admitted project knowledge, or answers from it."
-
-[skills.propose-catalogue-pack]
-job = "Any stage"
-want = "Propose a new pack"
-ask = "Propose a new pack for cost engineering."
-gets = "A justified, scaffolded pack proposal."
+gets = "A saved project note, or an answer drawn from the notes already saved."
 
 [skills.render-proof]
 job = "Any stage"
@@ -794,3 +777,20 @@ job = "Any stage"
 want = "Repair the workspace file"
 ask = "Run repair-plan on workspace.toml."
 gets = "A repair plan, then the applied repair."
+
+# Skills left off the page. Each needs a one-line reason; the generator checks the name
+# is a real skill and that no row or page text still carries it.
+[exclude.operational-safety]
+reason = "Reviewer depth library that other skills load, not a job a reader asks for."
+
+[exclude.security-checklists]
+reason = "Reviewer depth library that other skills load, not a job a reader asks for."
+
+[exclude.author-brief]
+reason = "Deprecated alias of author-delivery-brief."
+
+[exclude.receive-brief]
+reason = "Deprecated alias of author-delivery-brief."
+
+[exclude.new-guide]
+reason = "Deprecated; the user-guide-diataxis pack replaces it."

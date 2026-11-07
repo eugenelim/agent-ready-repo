@@ -2,7 +2,9 @@
 """Generate the "Skills by job" page and check its input is complete.
 
 Input: ``docs-site/src/skills-catalogue.toml`` (job, want, ask, gets per skill, and
-an optional ``sequence`` label for skills that form a lifecycle sequence).
+an optional ``sequence`` label for skills that form a lifecycle sequence, and
+``[exclude.<name>]`` tables with a one-line ``reason`` for skills left off the page, and
+a ``[terms]`` table of plain-words definitions printed under the intro).
 Facts taken from the tree: which skills exist and which pack holds each.
 Output: ``docs-site/src/content/docs/packs/skills.md`` (never hand-edited).
 
@@ -36,6 +38,7 @@ JOBS = (
     "Shape it",
     "Build it",
     "Ship it",
+    "Build and curate a catalogue",
     "Any stage",
 )
 FIELDS = ("job", "want", "ask", "gets")
@@ -78,15 +81,45 @@ def load_entries(path: Path) -> dict[str, dict[str, str]]:
         return tomllib.load(handle).get("skills", {})
 
 
+def load_exclusions(path: Path) -> dict[str, str]:
+    """Return {skill: reason} from the ``[exclude.<name>]`` tables."""
+    with path.open("rb") as handle:
+        tables = tomllib.load(handle).get("exclude", {})
+    return {name: str(table.get("reason", "")) for name, table in tables.items()}
+
+
+def load_terms(path: Path) -> dict[str, str]:
+    """Return {term: definition} from the ``[terms]`` table, in file order."""
+    with path.open("rb") as handle:
+        return {k: str(v) for k, v in tomllib.load(handle).get("terms", {}).items()}
+
+
 def validate(
-    entries: dict[str, dict[str, str]], public: dict[str, str], internal: set[str]
+    entries: dict[str, dict[str, str]],
+    public: dict[str, str],
+    internal: set[str],
+    excluded: dict[str, str] | None = None,
+    terms: dict[str, str] | None = None,
 ) -> list[str]:
-    """Return one message per input problem, each naming the skill."""
+    """Return one message per input problem, each naming the skill or term."""
+    excluded = excluded or {}
     errors = [
+        f"{term}: empty term definition"
+        for term, text in (terms or {}).items()
+        if not text.strip()
+    ]
+    errors += [
         f"{name}: user-invocable skill has no entry in {CATALOGUE_TOML.name}"
         for name in public
-        if name not in entries
+        if name not in entries and name not in excluded
     ]
+    for name, reason in excluded.items():
+        if name not in public and name not in internal:
+            errors.append(f"{name}: stale exclusion, no such skill")
+        if not reason.strip():
+            errors.append(f"{name}: empty exclusion reason")
+        if name in entries:
+            errors.append(f"{name}: excluded skill must not have a row")
     for name, entry in entries.items():
         if name in internal:
             errors.append(f"{name}: internal skill must not be listed")
@@ -140,7 +173,11 @@ def _cell(text: str) -> str:
     return " ".join(text.split()).replace("|", "\\|")
 
 
-def render(entries: dict[str, dict[str, str]], public: dict[str, str]) -> str:
+def render(
+    entries: dict[str, dict[str, str]],
+    public: dict[str, str],
+    terms: dict[str, str] | None = None,
+) -> str:
     """Return the page. Same input gives the same bytes."""
     lines = [
         "---",
@@ -155,6 +192,10 @@ def render(entries: dict[str, dict[str, str]], public: dict[str, str]) -> str:
         "last column, so install that pack first.[^1]",
         "",
     ]
+    if terms:
+        lines += ["Words used on this page:", ""]
+        lines += [f"- **{term}**: {_cell(text)}" for term, text in terms.items()]
+        lines.append("")
     for job in JOBS:
         rows = [(n, e) for n, e in entries.items() if e["job"] == job and n in public]
         if not rows:
@@ -189,14 +230,29 @@ def render(entries: dict[str, dict[str, str]], public: dict[str, str]) -> str:
     return "\n".join(lines)
 
 
+def _excluded_in_page(page: str, excluded: dict[str, str]) -> list[str]:
+    """Name each excluded skill that still appears in the page text."""
+    return [
+        f"{name}: excluded skill appears in the page"
+        for name in excluded
+        if re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", page)
+    ]
+
+
 def build(repo_root: Path = REPO_ROOT) -> str:
     """Validate the input and return the page; raise ValueError on any problem."""
     public, internal = discover_skills(repo_root / "packs")
     entries = load_entries(repo_root / "docs-site" / "src" / "skills-catalogue.toml")
-    errors = validate(entries, public, internal)
+    excluded = load_exclusions(repo_root / "docs-site" / "src" / "skills-catalogue.toml")
+    terms = load_terms(repo_root / "docs-site" / "src" / "skills-catalogue.toml")
+    errors = validate(entries, public, internal, excluded, terms)
     if errors:
         raise ValueError("skills catalogue input is invalid:\n  " + "\n  ".join(errors))
-    return render(entries, public)
+    page = render(entries, public, terms)
+    errors = _excluded_in_page(page, excluded)
+    if errors:
+        raise ValueError("skills catalogue page is invalid:\n  " + "\n  ".join(errors))
+    return page
 
 
 def check(repo_root: Path = REPO_ROOT) -> list[str]:

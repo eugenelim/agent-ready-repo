@@ -162,3 +162,88 @@ def test_real_catalogue_rows_follow_the_stated_order() -> None:
     for job in sc.JOBS:
         plain = [n for n, e in entries.items() if e["job"] == job and not e.get("sequence")]
         assert plain == sorted(plain), job
+
+
+def _exclude(tree: Path, extra: str) -> None:
+    body = (tree / "docs-site/src/skills-catalogue.toml").read_text()
+    _write(tree, body + "\n" + extra)
+
+
+def test_excluded_skill_is_skipped_and_needs_no_row(tree: Path) -> None:
+    _skill(tree, "alpha", "old-name")
+    _exclude(tree, '[exclude.old-name]\nreason = "Deprecated alias."\n')
+    assert sc.check(tree) == []
+    assert "old-name" not in sc.build(tree)
+
+
+def test_empty_exclusion_reason_fails(tree: Path) -> None:
+    _skill(tree, "alpha", "old-name")
+    _exclude(tree, '[exclude.old-name]\nreason = " "\n')
+    assert any(p.startswith("old-name: empty exclusion reason") for p in sc.check(tree))
+
+
+def test_stale_exclusion_fails(tree: Path) -> None:
+    _exclude(tree, '[exclude.gone]\nreason = "r"\n')
+    assert any(p.startswith("gone: stale exclusion") for p in sc.check(tree))
+
+
+def test_excluded_skill_with_a_row_fails(tree: Path) -> None:
+    _exclude(tree, '[exclude.do-it]\nreason = "r"\n')
+    assert any("do-it: excluded skill must not have a row" in p for p in sc.check(tree))
+
+
+def test_excluded_skill_named_in_page_text_fails(tree: Path) -> None:
+    _skill(tree, "alpha", "old-name")
+    _exclude(tree, '[exclude.old-name]\nreason = "r"\n')
+    body = (tree / "docs-site/src/skills-catalogue.toml").read_text()
+    _write(tree, body.replace('ask = "a"', 'ask = "Use old-name."', 1))
+    assert any("old-name: excluded skill appears in the page" in p for p in sc.check(tree))
+
+
+def test_real_tree_excludes_five_skills_and_row_count_follows() -> None:
+    page = sc.build(REPO)
+    public, internal = sc.discover_skills(REPO / "packs")
+    excluded = sc.load_exclusions(sc.CATALOGUE_TOML)
+    assert set(excluded) == {
+        "operational-safety", "security-checklists", "author-brief", "receive-brief", "new-guide"
+    }
+    assert not any(re.search(rf"(?<![\w-]){n}(?![\w-])", page) for n in excluded)
+    rows = [ln for ln in page.splitlines() if re.search(r"\| \[[\w-]+\]\(/agent-ready-repo/docs/packs/", ln)]
+    assert len(rows) == len(public) - len(excluded)
+
+
+def test_empty_term_definition_fails(tree: Path) -> None:
+    _exclude(tree, '[terms]\nspec = " "\n')
+    assert any(p.startswith("spec: empty term definition") for p in sc.check(tree))
+
+
+def test_terms_print_under_the_intro(tree: Path) -> None:
+    body = (tree / "docs-site/src/skills-catalogue.toml").read_text()
+    _write(tree, '[terms]\nspec = "A written plan."\n\n' + body)
+    page = sc.build(tree)
+    assert "- **spec**: A written plan." in page
+    assert page.index("install that pack first") < page.index("- **spec**") < page.index("## Build it")
+
+
+def test_real_tree_defines_the_required_terms() -> None:
+    terms = sc.load_terms(sc.CATALOGUE_TOML)
+    assert {"intent", "spec", "brief", "ADR", "RFC", "bet", "contract", "pack"} <= set(terms)
+    assert all(text.strip() for text in terms.values())
+
+
+def test_real_tree_moved_rows_and_research_project_sequence() -> None:
+    entries = sc.load_entries(sc.CATALOGUE_TOML)
+    job = "Build and curate a catalogue"
+    assert sc.JOBS.index(job) == sc.JOBS.index("Ship it") + 1 == sc.JOBS.index("Any stage") - 1
+    in_job = {n for n, e in entries.items() if e["job"] == job}
+    assert in_job == {
+        "assimilate-primitive", "assimilate-repo", "propose-catalogue-pack",
+        "author-or-update-agent-skill", "review-or-optimize-agent-skill", "compile-okf",
+    }
+    for n in ("new-adr", "new-rfc", "navigate-decisions", "navigate-intents", "work-intake"):
+        assert entries[n]["job"] == "Build it", n
+    for n in ("github-brief-intake", "jira-brief-intake", "jira-align-brief-intake", "linear-brief-intake"):
+        assert entries[n]["job"] == "Set up a repository", n
+    names = list(entries)
+    assert entries["desk-research-project-status"]["sequence"] == "research project"
+    assert names.index("desk-research-project-status") == names.index("desk-research-project-start") + 1
