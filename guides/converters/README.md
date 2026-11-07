@@ -7,7 +7,7 @@ kind: explanation
 
 # `converters` — guides
 
-These guides help you convert documents to Markdown, render diagrams, and publish Markdown as HTML or Office files.
+These guides help you convert documents to Markdown, render diagrams, and publish Markdown as HTML or Office files. The converters read PDF files but do not produce them: to get a PDF, publish HTML or a Word file and export it from there.
 
 ## Start here
 
