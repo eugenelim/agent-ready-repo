@@ -22,8 +22,10 @@ This module holds the read core the verbs share:
   * each row's readiness (through ``dispatch.py`` beside it), stop and stage;
   * the gates join, the row marker, and the ``next`` decision over the rows.
 
-Output: one JSON object on standard output. Exit 0 on an answer, 1 on a refusal
-``{"refusal": {"code", "detail"}}``, 2 on a usage error.
+Output: an answer is one JSON object on standard output with exit 0, a refusal is
+``{"refusal": {"code", "detail"}}`` with exit 1, and a ``next`` answer or refusal also
+carries ``schema_version``. A usage error exits 2 and ``--help`` exits 0; neither prints
+JSON.
 
 Standard library only. Python 3.11+.
 """
@@ -40,7 +42,9 @@ import importlib.util  # noqa: E402
 import json  # noqa: E402
 import os  # noqa: E402
 import re  # noqa: E402
+import stat  # noqa: E402
 import subprocess  # noqa: E402
+import traceback  # noqa: E402
 import unicodedata  # noqa: E402
 from dataclasses import dataclass, field  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -78,6 +82,15 @@ _GIT_INHERITED_ENV = ("PATH", "HOME", "LANG", "TMPDIR")
 _GIT_INHERITED_ENV_WINDOWS = ("SYSTEMROOT", "TEMP", "TMP", "PATHEXT", "COMSPEC")
 CODE_INVALID_POLICY = "invalid-policy"
 MAX_DETAIL = 80
+# The longest supervisor refusal detail the runner relays; longer text is cut.
+MAX_RELAYED_DETAIL = 400
+# Stands in for relayed supervisor text that is not a plain slug or holds an unsafe character.
+WITHHELD = "withheld"
+CODE_INTERNAL_ERROR = "internal-error"
+# The version of the `next` answer's shape; it changes only when that shape does.
+NEXT_SCHEMA_VERSION = 1
+# The most traceback characters an internal error writes to stderr.
+MAX_TRACEBACK = 4000
 # Stages the supervisor never names; the runner derives them itself (AC-0032).
 STAGE_DRAFTING = "drafting"
 STAGE_SUPERVISOR_CHANGED = "supervisor-changed"
@@ -133,6 +146,10 @@ def _fixed_flags() -> list[str]:
         "core.fsmonitor": "false",
         "diff.external": "",
         "core.attributesFile": os.devnull,
+        "core.excludesFile": os.devnull,
+        # As the supervisor's launcher: repository config must not weaken the stat check.
+        "core.checkStat": "default",
+        "core.trustctime": "true",
     }
     flags = ["--no-pager", "--no-replace-objects", "--no-optional-locks"]
     for key, value in settings.items():
@@ -369,35 +386,180 @@ def base_checks(root: Path) -> str:
     skill = _skill_pathspec(main)
     if skill is not None:
         pathspecs.append(skill)
-    status = git(main, "status", "--porcelain=v1", "-z", "--untracked-files=all", "--", *pathspecs)
-    if status.stdout:
+    # The ignore files above those paths decide what counts as untracked under them.
+    parents = parent_ignore_files(pathspecs)
+    # A submodule's files are not in the base commit, yet dispatch.py would read them from the
+    # working tree, so a base that holds one under these paths is refused.
+    listing = git(main, "ls-tree", "-r", "-z", head, "--", *pathspecs)
+    if any(
+        entry.split(b" ", 2)[1:2] == [b"commit"] for entry in listing.stdout.split(b"\0") if entry
+    ):
+        raise Refusal(
+            "base-not-committed",
+            "a submodule sits under docs/, workspace.toml or this skill's directory",
+        )
+    # Ignoring submodule dirtiness keeps status from running inside a submodule, whose own
+    # config and attributes this call cannot neutralize; a submodule at another commit shows.
+    status = git(
+        main,
+        "status",
+        "--porcelain=v1",
+        "-z",
+        "--untracked-files=all",
+        "--ignore-submodules=dirty",
+        "--",
+        *pathspecs,
+        *(f":(icase){p}" for p in parents),
+    )
+    if status.stdout or hidden_change(main, head, pathspecs, parents):
         raise Refusal(
             "base-not-committed",
             "a file under docs/, workspace.toml or this skill's directory is modified, "
-            "staged or untracked",
+            "staged or untracked, or hidden from git status by an untracked .gitignore, "
+            "a changed .gitignore in a folder above those paths, "
+            "info/exclude, a sparse checkout or an index flag",
         )
     return head
+
+
+_SUPERVISOR_IGNORE_RE = re.compile(r"docs/specs/[^/]+/\.supervisor/\.gitignore")
+
+
+def _supervisor_ignore_file(main: Path, path: str) -> bool:
+    """True for the supervisor's own ``.supervisor/.gitignore`` holding exactly ``*``.
+
+    That folder holds only the supervisor's local records, which no readiness read opens.
+    """
+    if _SUPERVISOR_IGNORE_RE.fullmatch(path) is None:
+        return False
+    try:
+        if not stat.S_ISREG(os.lstat(main / path).st_mode):
+            return False
+    except OSError:
+        return False
+    hashed = git(main, "hash-object", "--no-filters", "--", path, check=False)
+    found = _text(hashed.stdout)
+    return hashed.returncode == 0 and found == _blob_id(b"*\n", found)
+
+
+def _blob_id(data: bytes, like: str) -> str:
+    """The Git blob id of *data* in the object format of the id *like*."""
+    digest = hashlib.sha256() if len(like) == 64 else hashlib.sha1()  # noqa: S324 - Git ids
+    digest.update(b"blob %d\0" % len(data) + data)
+    return digest.hexdigest()
+
+
+def _glob_literal(path: str) -> str:
+    """*path* with every glob metacharacter escaped, for use under ``:(glob)`` magic."""
+    return re.sub(r"([*?\[\\])", r"\\\1", path)
+
+
+def parent_ignore_files(pathspecs: list[str]) -> list[str]:
+    """The ``.gitignore`` path of every folder above *pathspecs*, up to the repository root."""
+    found: set[str] = set()
+    for spec in pathspecs:
+        parts = spec.split("/")[:-1]
+        for depth in range(len(parts) + 1):
+            found.add("/".join([*parts[:depth], ".gitignore"]))
+    return sorted(found)
+
+
+def hidden_change(
+    main: Path, head: str, pathspecs: list[str], parents: list[str] | None = None
+) -> bool:
+    """True when Git state outside the base hides a change that ``git status`` leaves out.
+
+    Three reads, none of which runs a filter or writes an object. Untracked files are listed
+    against the in-tree ``.gitignore`` files only, never ``info/exclude`` or an excludes file.
+    Untracked ``.gitignore`` files, in any letter case, are listed with no ignore rule applied;
+    any but the supervisor's own counts, and so does one at a *parents* path. An index entry
+    marked assume-unchanged or skip-worktree, a *parents* one included, is judged by its
+    working-tree bytes, hashed with no filter, against the base blob.
+    """
+    others = git(
+        main, "ls-files", "--others", "-z", "--exclude-per-directory=.gitignore", "--", *pathspecs
+    )
+    if others.stdout:
+        return True
+    # An untracked .gitignore can ignore itself and the files beside it, which dispatch.py
+    # would still read, so one is a change whatever the ignore rules say.
+    # icase: a case-insensitive filesystem reads `.GITIGNORE` as an ignore file too.
+    folders = [p for p in pathspecs if p != "workspace.toml"]
+    ignore_files = [f":(glob,icase){_glob_literal(p)}/**/.gitignore" for p in folders]
+    ignore_files += [f":(icase){p}" for p in parents or []]
+    found = git(main, "ls-files", "--others", "-z", "--", *ignore_files).stdout
+    for raw in (item for item in found.split(b"\0") if item):
+        if not _supervisor_ignore_file(main, raw.decode("utf-8", "surrogateescape")):
+            return True
+    listing = git(
+        main, "ls-files", "-v", "-z", "--", *pathspecs, *(f":(icase){p}" for p in parents or [])
+    )
+    for item in listing.stdout.split(b"\0"):
+        tag, _, raw = item.partition(b" ")
+        if not item or tag == b"H":
+            continue  # an ordinary entry: git status has judged it
+        path = raw.decode("utf-8", "surrogateescape")
+        entry = tree_entry(main, head, path)
+        if entry is None or not entry.regular:
+            return True
+        try:  # hash-object would follow a link, or block on a FIFO
+            if not stat.S_ISREG(os.lstat(main / path).st_mode):
+                return True
+        except OSError:
+            return True  # missing from disk, as a sparse checkout leaves it
+        hashed = git(main, "hash-object", "--no-filters", "--", path, check=False)
+        if hashed.returncode != 0 or _text(hashed.stdout) != entry.oid:
+            return True
+    return False
 
 
 # ── committed reads ─────────────────────────────────────────────────────────
 
 
-def read_blob(root: Path, rev: str, path: str) -> bytes | None:
-    """The bytes of regular file *path* at commit *rev*; None when absent or not a small file."""
+@dataclass(frozen=True)
+class TreeEntry:
+    """One ``ls-tree --long`` entry; *size* is None for anything but a blob."""
+
+    mode: str
+    kind: str
+    oid: str
+    size: int | None
+
+    @property
+    def regular(self) -> bool:
+        """True for a regular file blob, executable or not."""
+        return self.kind == "blob" and self.mode in ("100644", "100755") and self.size is not None
+
+
+# An entry that exists but whose listing cannot be parsed.
+UNPARSED_ENTRY = TreeEntry("", "", "", None)
+
+
+def tree_entry(root: Path, rev: str, path: str) -> TreeEntry | None:
+    """The tree entry of *path* at commit *rev*: None when absent, ``UNPARSED_ENTRY`` when odd."""
     listing = git(root, "ls-tree", "-z", "--long", rev, "--", path, check=False)
     if listing.returncode != 0 or not listing.stdout:
         return None
     meta, _, name = listing.stdout.rstrip(b"\0").partition(b"\t")
     parts = meta.split()
     if name.decode("utf-8", "replace") != path or len(parts) != 4:
-        return None
+        return UNPARSED_ENTRY
     mode, kind, oid, size = (p.decode("ascii", "replace") for p in parts)
-    if kind != "blob" or mode not in ("100644", "100755") or not size.isdigit():
-        return None
-    if int(size) > MAX_BLOB_BYTES:
-        return None
-    blob = git(root, "cat-file", "blob", oid, check=False)
+    return TreeEntry(mode, kind, oid, int(size) if size.isdigit() else None)
+
+
+def read_entry_blob(root: Path, entry: TreeEntry) -> bytes | None:
+    """The bytes of the blob *entry* names; None when the read fails."""
+    blob = git(root, "cat-file", "blob", entry.oid, check=False)
     return blob.stdout if blob.returncode == 0 else None
+
+
+def read_blob(root: Path, rev: str, path: str) -> bytes | None:
+    """The bytes of regular file *path* at commit *rev*; None when absent or not a small file."""
+    entry = tree_entry(root, rev, path)
+    if entry is None or not entry.regular or (entry.size or 0) > MAX_BLOB_BYTES:
+        return None
+    return read_entry_blob(root, entry)
 
 
 # ── standing orders ─────────────────────────────────────────────────────────
@@ -454,27 +616,29 @@ def read_standing_orders(root: Path, base: str, brief_slug: str) -> dict[str, st
     tree. An entry that is not a regular file blob (a symlink, gitlink or tree) is refused.
     """
     path = f"{STANDING_ORDERS_DIR}/{brief_slug}.md"
-    listing = git(root, "ls-tree", "-z", "--long", base, "--", path, check=False)
-    if listing.returncode != 0 or not listing.stdout:
+    entry = tree_entry(root, base, path)
+    if entry is None:
         return None
-    meta, _, name = listing.stdout.rstrip(b"\0").partition(b"\t")
-    parts = meta.split()
-    if name.decode("utf-8", "replace") != path or len(parts) != 4:
+    if entry is UNPARSED_ENTRY:
         raise Refusal(CODE_INVALID_STANDING_ORDERS, f"{path} has an unreadable tree entry")
-    mode, kind, oid, _size = (p.decode("ascii", "replace") for p in parts)
-    if kind != "blob" or mode != "100644":
+    if not entry.regular or entry.size is None:
         raise Refusal(CODE_INVALID_STANDING_ORDERS, f"{path} is not a regular file blob")
-    blob = git(root, "cat-file", "blob", oid, check=False)
-    if blob.returncode != 0:
+    if entry.size > MAX_STANDING_ORDERS_BYTES:  # judged before the blob is read
+        raise Refusal(
+            CODE_INVALID_STANDING_ORDERS,
+            f"{path}: larger than {MAX_STANDING_ORDERS_BYTES} bytes",
+        )
+    data = read_entry_blob(root, entry)
+    if data is None:
         raise Refusal(CODE_INVALID_STANDING_ORDERS, f"{path} cannot be read")
-    problem = standing_orders_problem(blob.stdout)
+    problem = standing_orders_problem(data)
     if problem is not None:
         raise Refusal(CODE_INVALID_STANDING_ORDERS, f"{path}: {problem}")
-    text = blob.stdout.decode("utf-8")
+    text = data.decode("utf-8")
     longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
     return {
         "path": path,
-        "sha256": hashlib.sha256(blob.stdout).hexdigest(),
+        "sha256": hashlib.sha256(data).hexdigest(),
         "fence": "`" * max(3, longest + 1),
         "text": text,
     }
@@ -651,6 +815,15 @@ def discover_slices(root: Path, brief_slug: str, slugs: list[str]) -> dict[str, 
 # ── supervisor reads ────────────────────────────────────────────────────────
 
 
+def supervisor_argv(*argv: str) -> list[str]:
+    """The supervisor command line: an isolated interpreter, UTF-8 mode, no bytecode.
+
+    ``-I`` keeps every inherited ``PYTHON*`` variable, the user site directory and the working
+    directory out of the import path, so a module committed in a slice worktree never loads.
+    """
+    return [sys.executable, "-I", "-X", "utf8", "-B", str(SUPERVISOR), *argv]
+
+
 def run_supervisor(worktree: str, *argv: str) -> tuple[int, Any]:
     """Run the supervisor beside this file in *worktree*; return (exit code, parsed JSON or None).
 
@@ -658,14 +831,11 @@ def run_supervisor(worktree: str, *argv: str) -> tuple[int, Any]:
 
     Never the slice branch's copy: the path is fixed from this file's own location.
     """
-    env = _clean_env()
-    env["PYTHONDONTWRITEBYTECODE"] = "1"
-    env["PYTHONUTF8"] = "1"
     try:
         done = subprocess.run(
-            [sys.executable, str(SUPERVISOR), *argv],
+            supervisor_argv(*argv),
             cwd=worktree,
-            env=env,
+            env=_clean_env(),
             stdin=subprocess.DEVNULL,
             capture_output=True,
             timeout=SUPERVISOR_TIMEOUT_S,
@@ -757,13 +927,23 @@ def derive_stage(code: int, payload: Any) -> Reading:
     return Reading(stage, merge_ready=payload["terminal"] is True and ready)
 
 
+def spec_dir_present(root: Path, rev: str, spec_slug: str) -> bool:
+    """True when ``docs/specs/<spec_slug>`` exists at *rev*, whatever it holds."""
+    return tree_entry(root, rev, f"docs/specs/{spec_slug}") is not None
+
+
 def read_slice(root: Path, spec_slug: str, found: Slice) -> Reading:
-    """The stage of one slice worktree; no spec on its branch head means ``drafting``."""
+    """The stage of one slice worktree; no ``spec.md`` on its branch head means ``drafting``.
+
+    A ``spec.md`` that is there but is not a small regular file is unreadable.
+    """
     if not found.readable or found.head is None or found.worktree is None:
         return Reading(STAGE_UNREADABLE, detail=found.detail or "unreadable-worktree")
     spec_dir = f"docs/specs/{spec_slug}"
-    if read_blob(root, found.head, f"{spec_dir}/spec.md") is None:
+    if tree_entry(root, found.head, f"{spec_dir}/spec.md") is None:
         return Reading(STAGE_DRAFTING)
+    if read_blob(root, found.head, f"{spec_dir}/spec.md") is None:
+        return Reading(STAGE_UNREADABLE, detail="spec-unreadable")
     code, payload = run_supervisor(found.worktree, "status", spec_dir, "--json")
     return derive_stage(code, payload)
 
@@ -792,6 +972,8 @@ class Row:
     present: bool = False
     # A bounded cause for ``next``'s blocked rows: why the row is unreadable or not dispatchable.
     detail: str | None = None
+    # Why the gate entries are unavailable, when they are.
+    gates_detail: str | None = None
 
     def __post_init__(self) -> None:
         self.present = self.present or self.worktree is not None
@@ -863,8 +1045,10 @@ def read_rows(root: Path, base: str, brief_slug: str, slugs: list[str]) -> list[
                 mode, ready = "run", spec_path in approved_ready
                 if answer is None:
                     detail = "dispatch-unavailable"
-            elif spec_blob is None:
+            elif spec_blob is None and not spec_dir_present(root, base, slug):
                 mode, ready = "author-spec", earlier_stopped
+            elif spec_blob is None:
+                detail = "spec-unreadable"
             elif spec_status == "Draft":
                 mode, ready = "shape", earlier_stopped
         rows.append(
@@ -907,21 +1091,26 @@ def read_brief(
 # ── gates, marker, status ───────────────────────────────────────────────────
 
 
-def read_gates(worktree: str) -> list[dict[str, Any]] | None:
-    """The entries the supervisor's ``gates`` verb prints in *worktree*; None when unavailable.
+def read_gates_answer(worktree: str) -> tuple[list[dict[str, Any]] | None, str | None]:
+    """The supervisor's ``gates`` entries in *worktree*, or None and a short fixed cause.
 
     A non-zero exit or any output that is not ``{"gates": [<object with a state>, ...]}``
     is unavailable, never an empty or a pending listing.
     """
     code, payload = run_supervisor(worktree, "gates")
+    if code != 0:
+        return None, _exit_detail(code, payload)
     entries = payload.get("gates") if isinstance(payload, dict) else None
-    if (
-        code != 0
-        or not isinstance(entries, list)
-        or not all(isinstance(e, dict) and isinstance(e.get("state"), str) for e in entries)
+    if not isinstance(entries, list) or not all(
+        isinstance(e, dict) and isinstance(e.get("state"), str) for e in entries
     ):
-        return None
-    return entries
+        return None, "supervisor-bad-output"
+    return entries, None
+
+
+def read_gates(worktree: str) -> list[dict[str, Any]] | None:
+    """The entries the supervisor's ``gates`` verb prints in *worktree*; None when unavailable."""
+    return read_gates_answer(worktree)[0]
 
 
 def attach_gates(rows: list[Row]) -> None:
@@ -930,9 +1119,9 @@ def attach_gates(rows: list[Row]) -> None:
         if not row.present:
             row.gates = []
         elif row.worktree is None or row.head is None:
-            row.gates = None
+            row.gates, row.gates_detail = None, row.detail or "unreadable-worktree"
         else:
-            row.gates = read_gates(row.worktree)
+            row.gates, row.gates_detail = read_gates_answer(row.worktree)
 
 
 def joined_gates(row: Row) -> list[dict[str, Any]]:
@@ -966,13 +1155,8 @@ def row_marker(head: str, delivery_tree: str, gates: list[dict[str, Any]] | None
 
 def delivery_tree(root: Path, head: str, slug: str) -> str:
     """The tree id of the slice's committed ``delivery/`` records at *head*, or empty."""
-    path = f"docs/specs/{slug}/delivery"
-    done = git(root, "ls-tree", "-z", head, "--", path, check=False)
-    meta, _, name = done.stdout.rstrip(b"\0").partition(b"\t")
-    parts = meta.split()
-    if done.returncode != 0 or name.decode("utf-8", "replace") != path or len(parts) != 3:
-        return ""
-    return parts[2].decode("ascii", "replace") if parts[1] == b"tree" else ""
+    entry = tree_entry(root, head, f"docs/specs/{slug}/delivery")
+    return entry.oid if entry is not None and entry.kind == "tree" else ""
 
 
 def status_entries(root: Path, rows: list[Row]) -> list[dict[str, Any]]:
@@ -1015,17 +1199,28 @@ def read_lease(root: Path, base: str) -> dict[str, Any]:
     abandon a task early.
     """
     skill = _skill_pathspec(root.resolve())
-    data = read_blob(root, base, f"{skill}/supervisor-policy.json") if skill else None
+    if skill is None:
+        raise Refusal(
+            CODE_INVALID_POLICY, "the runner's skill directory is not inside this repository"
+        )
+    path = f"{skill}/supervisor-policy.json"
+    data = read_blob(root, base, path)
+    if data is None:
+        raise Refusal(CODE_INVALID_POLICY, f"{path} is not a small regular file at the base")
+    try:
+        policy = json.loads(data.decode("utf-8"))
+    except ValueError as exc:
+        raise Refusal(CODE_INVALID_POLICY, f"{path} is not UTF-8 JSON at the base") from exc
+    lease = policy.get("lease") if isinstance(policy, dict) else None
+    if not isinstance(lease, dict):
+        raise Refusal(CODE_INVALID_POLICY, f"{path} has no lease table at the base")
     admission = _admission()
     try:
-        if data is None:
-            raise ValueError("missing")
-        lease = json.loads(data.decode("utf-8"))["lease"]
         admission._check_lease(lease)
-    except (ValueError, KeyError, TypeError, admission.Refusal) as exc:
-        detail = "the base lease policy is unreadable or invalid"
-        raise Refusal(CODE_INVALID_POLICY, detail) from exc
-    assert isinstance(lease, dict)
+    except admission.Refusal as exc:
+        raise Refusal(
+            CODE_INVALID_POLICY, _bounded(f"the base lease table is invalid: {exc.detail}")
+        ) from exc
     return lease
 
 
@@ -1053,6 +1248,25 @@ def _pilot(rows: list[Row]) -> str | None:
     return next((row.slice for row in rows if row.ready), None)
 
 
+def _relayed_slug(value: Any) -> str | None:
+    """A supervisor code or owner as relayed: itself when a plain slug, else ``WITHHELD``."""
+    if value is None:
+        return None
+    return value if isinstance(value, str) and SLUG_RE.fullmatch(value) else WITHHELD
+
+
+def _relayed_detail(value: Any) -> str | None:
+    """A supervisor detail as relayed: cut to ``MAX_RELAYED_DETAIL``, or ``WITHHELD``.
+
+    Text holding a control, hidden or line-separator character is never relayed.
+    """
+    if value is None:
+        return None
+    if not isinstance(value, str) or unsafe_path_char(value):
+        return WITHHELD
+    return value[:MAX_RELAYED_DETAIL]
+
+
 def _reason(row: Row, rows: list[Row], cap_reached: bool) -> dict[str, Any]:
     """The first reason, in the stated order, that *row* is not named by an action."""
     out: dict[str, Any] = {"slice": row.slice}
@@ -1064,14 +1278,16 @@ def _reason(row: Row, rows: list[Row], cap_reached: bool) -> dict[str, Any]:
     elif row.stage == STAGE_REFUSED:
         out.update(
             reason="refused",
-            code=refusal.get("code"),
-            owner=refusal.get("owner"),
-            detail=refusal.get("detail"),
+            code=_relayed_slug(refusal.get("code")),
+            owner=_relayed_slug(refusal.get("owner")),
+            detail=_relayed_detail(refusal.get("detail")),
         )
     elif row.stage == STAGE_AWAITING_DECISION:
         out["reason"] = "awaiting-decision"
     elif row.present and not _gate_clean(row):
         out["reason"] = "gate-not-clean"
+        if row.gates is None and row.gates_detail is not None:
+            out["detail"] = row.gates_detail
     elif row.present and row.stage == STAGE_TERMINAL:
         out["reason"] = "terminal-not-ready"
     elif row.ready and cap_reached:
@@ -1227,6 +1443,57 @@ def _emit(payload: dict[str, Any]) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
+def spec_path(slug: str) -> str:
+    """The repository path of the spec directory a Spec map row names."""
+    return f"docs/specs/{slug}"
+
+
+def with_contract_fields(action: dict[str, Any], base: str) -> dict[str, Any]:
+    """*action* plus the fields a program controller reads without deriving them.
+
+    Every action carries ``base``; one that names a slice carries its ``spec_path``,
+    ``await-merge`` carries ``spec_paths`` beside ``slices``, and each ``blocked`` row
+    carries its own ``spec_path``.
+    """
+    out = {**action, "base": base}
+    if "slice" in out:
+        out["spec_path"] = spec_path(out["slice"])
+    if out["kind"] == "await-merge":
+        out["spec_paths"] = [spec_path(slug) for slug in out["slices"]]
+    if out["kind"] == "blocked":
+        out["rows"] = [{**row, "spec_path": spec_path(row["slice"])} for row in out["rows"]]
+    return out
+
+
+def _versioned(verb: str, answer: dict[str, Any]) -> dict[str, Any]:
+    """*answer* with ``schema_version`` first when the verb is ``next``."""
+    return {"schema_version": NEXT_SCHEMA_VERSION, **answer} if verb == "next" else answer
+
+
+def internal_error_trace(exc: BaseException) -> str:
+    """Each failing frame's file, line number and function, then the exception type.
+
+    Never a message or source text. Walks to the cause, or else to an unsuppressed context,
+    naming each exception once, root first; group members are not walked. Bounded to the
+    last ``MAX_TRACEBACK`` characters: a long trace loses the root cause's frames first and
+    keeps the raised exception's innermost frames and type.
+    """
+    chain: list[BaseException] = []
+    current: BaseException | None = exc
+    while current is not None and all(current is not seen for seen in chain):
+        chain.append(current)
+        if current.__cause__ is not None:
+            current = current.__cause__
+        else:
+            current = None if current.__suppress_context__ else current.__context__
+    lines: list[str] = []
+    for item in reversed(chain):
+        for frame in traceback.extract_tb(item.__traceback__):
+            lines.append(f"  {frame.filename}:{frame.lineno} in {frame.name}\n")
+        lines.append(f"{type(item).__name__}\n")
+    return "".join(lines)[-MAX_TRACEBACK:]
+
+
 def main(argv: list[str] | None = None) -> int:
     """Run one verb and print its one JSON answer."""
     for stream in (sys.stdout, sys.stderr):
@@ -1264,10 +1531,26 @@ def main(argv: list[str] | None = None) -> int:
                 }
             )
         else:
-            action = decide_next(rows, cap)
-            _emit({"base": base, "action": action, "standing_orders": orders})
+            action = with_contract_fields(decide_next(rows, cap), base)
+            _emit(
+                {
+                    "schema_version": NEXT_SCHEMA_VERSION,
+                    "base": base,
+                    "action": action,
+                    "standing_orders": orders,
+                }
+            )
     except Refusal as exc:
-        _emit({"refusal": {"code": exc.code, "detail": exc.detail}})
+        _emit(_versioned(args.verb, {"refusal": {"code": exc.code, "detail": exc.detail}}))
+        return EXIT_REFUSED
+    except Exception as exc:  # noqa: BLE001 - every failure still answers one JSON refusal
+        # Stdout stays one JSON object; the location goes to stderr, bounded.
+        sys.stderr.write(internal_error_trace(exc))
+        failure = Refusal(
+            CODE_INTERNAL_ERROR,
+            _bounded(f"the runner failed unexpectedly: {type(exc).__name__}"),
+        )
+        _emit(_versioned(args.verb, {"refusal": {"code": failure.code, "detail": failure.detail}}))
         return EXIT_REFUSED
     return EXIT_OK
 
