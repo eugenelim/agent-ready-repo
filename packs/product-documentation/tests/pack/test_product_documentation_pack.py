@@ -389,12 +389,15 @@ def test_skill_has_no_scripts_dir() -> None:
 
 def test_wave3_eval_cases(eval_cases: list[dict]) -> None:
     by_id = {c["id"]: c for c in eval_cases}
+    shipped_files = {
+        f.relative_to(SKILL_DIR).as_posix() for f in (SKILL_DIR / "evals").rglob("*") if f.is_file()
+    }
     for case_id in NEW_CASE_IDS:
         assert case_id in by_id, f"missing eval case {case_id}"
         case = by_id[case_id]
         assert case["files"], f"{case_id} names no fixture"
         for rel in case["files"]:
-            assert (SKILL_DIR / rel).is_file(), f"{case_id} file missing: {rel}"
+            assert rel in shipped_files, f"{case_id} file missing: {rel}"
         for assertion in case["assertions"]:
             tags = re.findall(r"^\[([a-z-]+)\] ", assertion)
             assert len(tags) == 1 and tags[0] in PRINCIPLE_TAGS, f"{case_id}: {assertion}"
