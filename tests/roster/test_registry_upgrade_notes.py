@@ -992,7 +992,7 @@ _FRAGMENT = "docs/product/changelog.d/fddd49ef-5bc1-4110-8652-21a38557e3a1.md"
 # the pack at the new version, and the map points that pack at its fragment.
 _RELEASED = {
     "core": ("4.0.22", "docs/product/changelog.d/e7bae207-f05a-4335-a571-d19848a531f2.md"),
-    "repo-governance": ("2.5.2", _FRAGMENT),
+    "repo-governance": ("2.5.3", "docs/product/changelog.d/419f6fb4-b4a5-4df5-b4a2-f8bd3e1869ce.md"),
     "product-strategy": ("0.2.11", _FRAGMENT),
     "experience-design": ("4.2.2", _FRAGMENT),
     "desk-research": ("1.1.11", _FRAGMENT),

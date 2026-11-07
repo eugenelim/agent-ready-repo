@@ -34,6 +34,22 @@ A page the docs sidebar lists is a job page. The CLI tab pages are the model.
 - No callouts; a table only to compare options. About 150–400 words.
 - No "Step N" in headings: verb-phrase H2s in reading order, H3 for sub-parts.
 - Name no agent host outside the supported agents (no Conductor, Orca, etc.).
+- Answer first: a section's first sentence is its point. One page, one job,
+  one Diátaxis kind; link across kinds instead of mixing them.
+- Label who acts where it could blur: you say, the agent does, you run in a
+  terminal. Say where output lands and link
+  [`find-and-open-your-files`](_shared/how-to/find-and-open-your-files.md)
+  rather than repeating how to open it.
+- Inline sample output is at most 10 lines and comes from a real run. Longer
+  samples and templates go to a reference page. Never present invented output as real.
+- Describe current state only: no "previously", "now", "no longer". Keep
+  authoring scaffolding (kind labels, `<!-- rung: -->` comments, draft notes) out of reader text.
+- Put sources in footnotes at the page foot. Use one name per thing.
+- State what the job does not do. When a non-terminal route exists, name it and
+  say what it lacks.
+- End with one Next link whose text names the destination. The `summary`
+  equals the page's card blurb.
+- Run every command and prompt, and check the rendered page, before you publish.
 
 ## Essential commands
 

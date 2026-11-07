@@ -258,6 +258,7 @@ also ships.
 | `execution-supervisor-cutover` | <auto> |
 | `canonical-result-integration` | <auto> |
 | `verified-infrastructure-parallelism` | <auto> |
+| `pi-runtime-compatibility` | <auto> |
 
 ## Design artifacts
 

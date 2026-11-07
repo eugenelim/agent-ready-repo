@@ -247,7 +247,7 @@ jobs:
         # below where this heap is expected to fail, so growth trips a named
         # assertion rather than an unreadable abort; raise both together.
         env:
-          NODE_OPTIONS: --max-old-space-size=6144
+          NODE_OPTIONS: --max-old-space-size=7168
         run: npm test --prefix web
 
       # spec/site-browser-quality-gate. The deterministic browser subset: the

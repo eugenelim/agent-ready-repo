@@ -609,15 +609,16 @@ describe.skipIf(!docsBuilt)('built docs output', () => {
     expect(stages.map((g) => g.dataset.stage)).toEqual(['setup', 'decide', 'shape', 'build', 'ship']);
   });
 
-  it('AC4: the Packs tab opens with About packs, then every pack in label order', () => {
+  it('AC4: the Packs tab opens with About packs and Skills by job, then every pack in label order', () => {
     const d = doc(join(DOCS_ROOT, 'packs', 'index.html'));
     const links = [...d.querySelectorAll<HTMLAnchorElement>('nav.sidebar .rail-nav a')];
     expect(links[0]?.textContent?.trim()).toBe('About packs');
-    const packLinks = links.slice(1);
+    expect(links[1]?.textContent?.trim()).toBe('Skills by job');
+    const packLinks = links.slice(2);
     const labels = packLinks.map((a) => a.textContent?.trim() ?? '');
     expect(labels).toEqual([...labels].sort((a, b) => a.localeCompare(b)));
     const packPages = readdirSync(join(DOCS_ROOT, 'packs'), { withFileTypes: true })
-      .filter((e) => e.isDirectory() && existsSync(join(DOCS_ROOT, 'packs', e.name, 'index.html')))
+      .filter((e) => e.isDirectory() && e.name !== 'skills' && existsSync(join(DOCS_ROOT, 'packs', e.name, 'index.html')))
       .map((e) => `${DOCS_BASE_PATH}packs/${e.name}/`);
     expect(new Set(packLinks.map((a) => a.getAttribute('href')))).toEqual(new Set(packPages));
   });
@@ -1609,7 +1610,7 @@ describe.skipIf(!docsBuilt || !webBuilt)('install-to-ship walkthrough', () => {
  * locally — so nothing announced the drift for 55 pages.
  *
  * This is the tripwire that comment needed. It is not a precise limit: the
- * ceiling is set below where the 6GB heap the CI step grants
+ * ceiling is set below where the 7GB heap the CI step grants
  * (NODE_OPTIONS in .github/workflows/pages.yml) is expected to fail, so
  * growth trips a named assertion first rather than an out-of-memory abort
  * nobody can read.
@@ -1618,7 +1619,7 @@ describe.skipIf(!docsBuilt || !webBuilt)('install-to-ship walkthrough', () => {
  * is sharding these scans across workers, because every raise buys less than
  * the last.
  */
-const DOCS_PAGE_BUDGET = 330;
+const DOCS_PAGE_BUDGET = 360;
 
 describe('whole-site scan budget', () => {
   it('stays under the page count the configured worker heap was sized for', () => {

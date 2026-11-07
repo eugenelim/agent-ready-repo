@@ -16,6 +16,12 @@ Required checks:
 
 How to check links: resolve each relative link against the directory of the file that contains it, and check each link separately. Skip absolute URLs, or check them with an HTTP request. When the repository has its own link checker, use it.
 
+Reader-facing checks for any page you change, run in a trusted repository where the docs site builds, otherwise reported as "rendered output not checked":
+- **Re-open pages; do not trust a summary.** Open the page itself before you state what it contains. A summarising fetch has misdescribed pages.
+- **Footnotes render.** Each footnote marker links to a footnote at the foot, and no raw marker syntax shows.
+- **Narrow-viewport table check.** View each table at a narrow width (about 375 px as a fallback) and confirm it scrolls or wraps without cutting columns off.
+- **Link check.** Every internal link resolves, as above.
+
 ### Level 2 — Navigation changes
 
 Applies when: a new file is added to the docs tree, a file is renamed, or an index/README is updated.
