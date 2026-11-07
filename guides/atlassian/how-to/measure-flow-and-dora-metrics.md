@@ -28,7 +28,7 @@ Ask in team language:
 What's our cycle time this quarter for PROJ?
 ```
 
-The agent runs the `flow-metrics` skill and returns cycle time, lead time, throughput, work in progress, and the rest of the Flow Framework and DORA set as JSON for the last 90 days. Name a different window, or a filter such as "only issues labelled ai-assisted", to narrow it.
+The agent runs the `flow-metrics` skill and returns cycle time, lead time, throughput, work in progress, and related Flow Framework measures as JSON for the last 90 days. Name a different window, or a filter such as "only issues labelled ai-assisted", to narrow it.
 
 ## Split out a group
 

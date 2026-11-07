@@ -12,7 +12,7 @@ How the three operator sub-personas — org-stack engineer, catalogue maintainer
 ## First install and orientation
 
 If you have not yet installed the pack, run `agentbundle install --pack catalogue-curation --scope repo`.
-The pack requires core and repo-governance at repo scope.
+The pack installs at repo scope and works on its own. Add `core` and `repo-governance` when you also want specs and RFCs.
 After install, run `agentbundle show catalogue-curation` to confirm all four skills are present with their activation phrases.
 
 The pack is off every default profile by design: it is for people who build catalogues, not for people who use them.
@@ -112,7 +112,7 @@ A profile is a curated, single-scope manifest — see [Design a profile](../../_
 The second is a **CI packaging release**: `agentbundle catalogue package` bundles the catalogue into a versioned, reproducible archive for Artifactory publication.
 For publication ordering, exit codes, and the full CI pipeline contract, see the [Catalogue CI contract](../../_shared/reference/catalogue-ci-contract.md).
 
-To create a **new or derived catalogue** (enterprise self-hosting), use `agentbundle catalogue init --preset self-hosted`. This replaces the former `export-catalogue` skill with a deterministic CLI workflow.
+To create a **new or derived catalogue** (enterprise self-hosting), use `agentbundle catalogue init <directory> --name <name>`; for an enterprise catalogue derived from an existing source catalogue, add `--preset self-hosted --source <catalogue>`. This replaces the former `export-catalogue` skill with a deterministic CLI workflow.
 
 **Primary touchpoints:** `assimilate-repo`, `propose-catalogue-pack`, `assimilate-primitive`.
 

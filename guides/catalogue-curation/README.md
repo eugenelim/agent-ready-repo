@@ -24,6 +24,7 @@ These guides help you write, import, and govern the skills and subagents in your
 
 ### How-to guides
 
+- [Author a skill](../_shared/how-to/author-a-skill.md) — Teach your agent a repeating task, as a skill it loads only when a request matches.
 - [Author and compile an OKF bundle](how-to/author-an-okf-bundle.md) — Declare pack knowledge and compile its router skill.
 
 ### Explanation
