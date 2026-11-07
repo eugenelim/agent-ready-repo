@@ -24,7 +24,7 @@ The agent installs the pack and walks you through credential setup interactively
 
 The token is stored in your OS keychain and never written to a file the agent can read. The agent tells you when credential setup is complete.
 
-For Jira Data Center or Server instances that block API tokens (common in enterprise environments with SSO enforcement), see [Authenticate Jira and Confluence with SSO cookies](authenticate-jira-confluence-with-sso-cookies.md).
+For Jira Data Center or Server instances that block API tokens (common in enterprise environments with SSO enforcement), see [Authenticate Jira and Confluence with SSO cookies](../how-to/authenticate-jira-confluence-with-sso-cookies.md).
 
 For program-level reports that join Jira Align for team structure, you also need Jira Align credentials:
 

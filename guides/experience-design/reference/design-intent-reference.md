@@ -11,6 +11,14 @@ Use this page to look up what `design-principles`, `creative-direction`, and `de
 
 In every example, `<output_dir>` is the design output directory this pack is configured to write to, and `<slug>` is the short name you give this piece of work.
 
+## What you will run
+
+| Skill | Needs | What it produces | Needed? |
+| --- | --- | --- | --- |
+| `design-principles` | The journey's pains and peak moments | 3–5 named principles, each grounded in a journey moment. | Optional |
+| `creative-direction` | The target surface plus any product intent, Digital Experience Contract, screen brief, existing product, approved visual target, or direct answers. | A product-specific visual direction: engagement mode, ranked goals, visual thesis, first-viewport thesis, honest evidence and asset status, and any approved target boundaries. | Required |
+| `design-system` | The approved aesthetic direction, plus whatever system the product already has | A project-specific design system: the relationships that must hold and the values that make them buildable. | Conditional |
+
 ## `design-principles`: 3–5 decision rules
 
 **You type:**

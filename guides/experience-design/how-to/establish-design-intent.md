@@ -14,13 +14,10 @@ Turn journey evidence into decision rules, a grounded aesthetic direction, and a
 | Skill | Needs | What it produces | Needed? |
 | --- | --- | --- | --- |
 | `design-principles` | The journey's pains and peak moments | 3–5 named principles, each grounded in a journey moment. | Optional |
-| `creative-direction` | The target surface plus any product intent, Digital Experience Contract, screen brief, existing product, approved visual target, or direct answers. | A product-specific visual direction: engagement mode, ranked goals, visual thesis, first-viewport thesis, honest evidence and asset status, and any approved target boundaries. | Required |
-| `design-system` | The approved aesthetic direction, plus whatever system the product already has | A project-specific design system: the relationships that must hold and the values that make them buildable. | Conditional |
+| `creative-direction` | The target surface and whatever evidence you have | A product-specific visual direction. | Required |
+| `design-system` | The approved direction, plus any system the product already has | A project-specific design system. | Conditional |
 
-Prompts go into an AI agent session with this pack installed — the same session
-throughout. In every path below, `<output_dir>` is the design output directory
-this pack is configured to write to, and `<slug>` is the short name you give
-this piece of work.
+Prompts go into one agent session with this pack installed. `<output_dir>` is the design output directory the pack writes to, and `<slug>` is the short name you give this piece of work.
 
 Run `design-system` when a direction exists and neither a completed design system
 nor a coherent incumbent system supplies every concrete value the surface needs.
@@ -59,6 +56,10 @@ Turn the approved aesthetic direction into the design system we can build.
 
 The agent writes the system to `<output_dir>/tokens/<slug>.md`. Every role traces to a goal in the approved direction, and each value records the ranked source behind it, which the skill calls a rung. A domain no source reaches is recorded as unresolved, not guessed. The same gate closes here. Challenge any role with no direction rationale, and any set of role names whose values are left for later.
 
-You are done when each principle decides between two real screen choices and each token role traces to a named aesthetic goal. [The design intent reference](../reference/design-intent-reference.md) has the sample exchanges, checks, templates, routes, and operations for all three skills.
+You are done when each principle decides between two real screen choices and each token role traces to a named aesthetic goal. This is stage 3 of five and the pack's second human gate; later stages should not reopen the direction.
+
+## What this job does not do
+
+It does not design individual screens; that is the next step. It does not invent evidence: a direction goal with no audience, mechanism, precedent, or platform referent has not passed. [The design intent reference](../reference/design-intent-reference.md) has the sample exchanges, checks, templates, routes, and operations, and [the `experience-design` skill reference](../reference/experience-design.md) lists every skill this step runs.
 
 Next, [design each screen](map-the-customer-journey.md#design-each-screen).
