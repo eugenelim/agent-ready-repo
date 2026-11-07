@@ -1,7 +1,7 @@
 # Plan: brief-level runner
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `tests/AGENTS.md` (roster tests and their named build-check step); `dispatch.py` `dispatch()` and `_header_readiness.py` as the readiness owner; `author-delivery-brief/scripts/lint-brief-coverage.py` as the Spec map parser precedent; `_supervisor_git.HardenedGit` as the hardened Git launcher; `_file_safety.read_confined_regular_file` as the read path; `lint-knowledge.py` `field_problems` with its `body` policy as the one standing-orders character rule; `_supervisor_admission._check_lease` and its lease key constants as the one lease rule; `_supervisor_loop.State.attempt` as the failed-attempt count; `supervisor_harness.py` and `test_supervisor_parked_gates.py` as the analogous integration tests.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -179,6 +179,22 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
   - Standing orders (AC-0015): the T8 cases stay; new cases refuse interleaved short joiner runs over the lint's invisible budget and a run of more than the lint's whitespace bound, and accept an ordinary numbered list.
   - Lease policy (AC-0018, AC-0020, AC-0028, AC-0033): the runner judges the base `lease` table with `_check_lease` loaded from the sibling module; committed policies with `max_slices_in_flight` 0, `retry_budget` -1, `retry_budget` 3, `max_slices_in_flight` `true`, a missing top-level key, an extra top-level key, a missing `stuck_after_seconds` kind, an extra kind and a `stuck_after_seconds` value of 0 each refuse `invalid-policy` from `next`, `status` and `classify`; the shipped policy is accepted; `invalid-policy` follows the AC-0002 refusals and precedes `invalid-spec-map`.
 - **Done when:** the T9 tests pass, the existing brief-runner suites stay green, and lint is clean.
+
+### T10: Restarted-run review round 1 repairs
+
+- **Depends on:** T9
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/brief-runner.py`, `references/brief-runner.md`, `evals/evals.json`, `packs/core/tests/skills/work-loop/test_brief_runner.py`, `test_brief_runner_units.py`, `test_brief_runner_guidance.py`
+- **Mode:** TDD
+- **Tests:**
+  - Spec directories (AC-0004, AC-0032): a spec directory at the base whose `spec.md` is absent or a symlink is `not-dispatchable` with detail `spec-unreadable`, never `author-spec`; the same directory on a slice head is `unreadable`, not `drafting`.
+  - Read-only (AC-0001): over a slice worktree whose supervisor store has no spec record, `status`, `next`, `gates` and `classify` change no slice-worktree file except `docs/specs/<slug>/.supervisor/.gitignore` and `security-events.jsonl`, and the case is shown to reach that exception.
+  - Base check (AC-0002): a base holding a submodule under `docs/` refuses `base-not-committed` from `status`, `next` and `gates` before `git status` runs; a submodule only staged there reaches `git status`, which refuses it as staged without entering it; in both cases a filter defined only in that submodule's own config never runs; `workspace.toml` is in the check; an unexpected exception through `main` answers one `internal-error` refusal, exit 1, naming only the exception type.
+  - Supervisor launch (AC-0022): the supervisor runs as `python -I -X utf8 -B`, and a module committed at a slice worktree's root never loads into it under a `PYTHONPATH` with an empty entry.
+  - Relayed text (AC-0009): a `refused` row relays `code` and `owner` only as plain slugs and `detail` only without control, hidden or line-separator characters, bounded; anything else reads `withheld`; unavailable gates carry a fixed cause.
+  - Lease policy (AC-0028, AC-0033): `next` through `main` follows committed caps of 1 and 3; `invalid-policy` names its cause.
+  - Standing orders (AC-0015, AC-0016): an executable regular file is accepted; an oversized entry is refused before its blob is read.
+  - Guidance (AC-0021): a `classify` refusal holds every `next` action until the human answers; the reference names the fetch and `git merge --ff-only` step that moves the base, and the run precondition names `workspace.toml`.
+- **Done when:** the T10 tests pass, the existing brief-runner suites stay green, and lint is clean.
 
 ## Rollout
 

@@ -1,6 +1,6 @@
 # Spec: brief-level runner
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Draft <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0159, ADR-0157, ADR-0144, ADR-0156, RFC-0099
@@ -65,7 +65,7 @@ A maintainer running a delivery brief through full-mode work-loop gets the next 
 ### Never do
 
 - Never approve, park, start, report, merge, push or open a pull request from the runner, and never infer an approval from runner output, a standing order, a policy value, a timeout or a default.
-- Never write a file, commit, ref, branch, worktree or store record from the runner.
+- Never write a file, commit, ref, branch, worktree or store record from the runner. The one exception is the supervisor's own security-event log in a slice worktree (AC-0001), which only the supervisor writes.
 - Never put standing-order text or controller text into a field the runner presents as derived fact.
 - Never add a dependency, a top-level directory, a `contracts/` schema or a new supervisor verb.
 
@@ -83,8 +83,8 @@ A maintainer running a delivery brief through full-mode work-loop gets the next 
 
 ### Reading
 
-- [ ] **AC-0001.** After any `brief-runner.py` verb, `HEAD`, every ref, the index, every working-tree file (ignored files included) and every slice worktree's supervisor store are byte-identical to before.
-- [ ] **AC-0002.** Every verb refuses, exit 1, in this order: `unsupported-git-version` when the installed Git is older than the supervisor's minimum, before any Git command other than `git version`; `not-main-worktree` when `--root` is not the repository's main worktree; `default-branch-unknown` when `refs/remotes/origin/HEAD` does not name a branch; `base-not-default` when `HEAD` differs from that branch's commit; `denied-git-config` when the repository configures a filter whose name the supervisor's filter-name rule refuses, before any Git command that can run a filter; `base-not-committed` when `git status` reports any modified, staged or untracked file under `docs/` or in the runner's own skill directory. The brief, specs, `dispatch.py` readiness, standing orders and lease policy are read only from that base; slice worktrees are read only through the worktree list, their branch heads and the supervisor (AC-0006, AC-0007, AC-0010). Every answer names the base commit id as `base`.
+- [ ] **AC-0001.** After any `brief-runner.py` verb, `HEAD`, every ref, the index, every working-tree file (ignored files included) and every slice worktree's supervisor store are byte-identical to before, with one exception: when a runner read meets an unverifiable pin or Git check in a slice worktree, the supervisor itself may append to that slice's `docs/specs/<slug>/.supervisor/security-events.jsonl`, creating the `.supervisor/` directory and its `.gitignore` first if they are absent. No other file changes.
+- [ ] **AC-0002.** Every verb refuses, exit 1, in this order: `unsupported-git-version` when the installed Git is older than the supervisor's minimum, before any Git command other than `git version`; `not-main-worktree` when `--root` is not the repository's main worktree; `default-branch-unknown` when `refs/remotes/origin/HEAD` does not name a branch; `base-not-default` when `HEAD` differs from that branch's commit; `denied-git-config` when the repository configures a filter whose name the supervisor's filter-name rule refuses, before any Git command that can run a filter; `base-not-committed` when `git status` reports any modified, staged or untracked file under `docs/`, in `workspace.toml`, or in the runner's own skill directory, and also when the base commit holds a submodule under those paths, whose files the base does not hold; the status check never enters a submodule. The brief, specs, `dispatch.py` readiness, standing orders and lease policy are read only from that base; slice worktrees are read only through the worktree list, their branch heads and the supervisor (AC-0006, AC-0007, AC-0010). Every answer names the base commit id as `base`. Outside that order, any other failure of a verb, except a usage error (exit 2, no JSON), answers one JSON refusal `internal-error`, exit 1, whose detail names only the exception type.
 - [ ] **AC-0003.** The runner reads the Spec map rows of `docs/product/briefs/<brief-slug>.md` in table order, and refuses with `invalid-spec-map` when the brief has no Spec map, a row's spec slug is repeated, or a slug is not lowercase ASCII letters, digits and single hyphens.
 
 ### Order and stop
