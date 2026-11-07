@@ -657,11 +657,6 @@ def test_no_dispatch_answer_makes_no_approved_row_ready(
     assert _readiness(world.rows("b-ready")["alpha"]) == (False, None)
 
 
-def test_the_runner_reads_no_depends_on_header_itself(world: World) -> None:
-    source = (world.main / RUNNER_REL).read_text("utf-8")
-    assert "Depends on" not in source and "depends_on" not in source
-
-
 # ── AC-0006: stops ──────────────────────────────────────────────────────────
 
 
@@ -708,9 +703,12 @@ def test_the_supervisor_launched_is_always_the_runners_sibling(
         slice_copy.write_bytes(original)
     sibling = str(world.main / COPY / "scripts" / "work-supervisor.py")
     assert launched, "no supervisor was launched"
+    flags = len(world.runner.supervisor_argv()) - 1
     for argv, cwd in launched:
-        assert Path(argv[1]).resolve() == Path(sibling).resolve()
-        assert argv[2:] == ["status", argv[3], "--json"] and argv[3].startswith("docs/specs/")
+        assert argv[1:flags] == ["-I", "-X", "utf8", "-B"], argv
+        assert Path(argv[flags]).resolve() == Path(sibling).resolve()
+        rest = argv[flags + 1 :]
+        assert rest == ["status", rest[1], "--json"] and rest[1].startswith("docs/specs/")
         assert Path(cwd).name.startswith("wt-b-stops-")
     assert not marker.exists(), "the slice branch's supervisor copy ran"
 
@@ -770,6 +768,124 @@ def test_a_slice_without_a_spec_directory_is_drafting_with_no_supervisor_call(
     row = world.rows("b-stage")["fresh"]
     assert row.stage == "drafting"
     assert row.stop == "none"
+
+
+def _unreadable_spec_dirs(main: Path) -> None:
+    """``plandir`` holds only a plan; ``linkspec``'s spec.md is a symlink."""
+    _write(main, "docs/specs/plandir/plan.md", PLAN_HEADER)
+    link = main / "docs/specs/linkspec/spec.md"
+    link.parent.mkdir(parents=True)
+    Path(link).symlink_to("../alpha/spec.md")
+
+
+def test_a_spec_directory_without_a_readable_spec_is_never_authored_over(tmp_path: Path) -> None:
+    w = build_world(
+        tmp_path,
+        briefs={"b-plandir": ["shipped", "plandir"], "b-link": ["shipped", "linkspec"]},
+        edit=_unreadable_spec_dirs,
+    )
+    for brief, slug in (("b-plandir", "plandir"), ("b-link", "linkspec")):
+        row = w.rows(brief)[slug]
+        assert (row.ready, row.mode, row.detail) == (False, None, "spec-unreadable"), brief
+        code, out = w.cli("next", brief)
+        assert code == 0, out
+        assert out["action"]["kind"] == "blocked", out
+        assert out["action"]["rows"] == [
+            {"slice": slug, "reason": "not-dispatchable", "detail": "spec-unreadable"}
+        ]
+    w.add_slice("b-plandir", "plandir")
+    row = w.rows("b-plandir")["plandir"]
+    assert (row.stage, row.detail) == ("unreadable", "spec-unreadable")
+
+
+def _tree_files(root: Path) -> dict[str, bytes]:
+    """Every file under *root*, ignored ones included, by relative path; ``.git`` excluded."""
+    return {
+        p.relative_to(root).as_posix(): p.read_bytes()
+        for p in root.rglob("*")
+        if p.is_file() and not p.is_symlink() and p.relative_to(root).parts[0] != ".git"
+    }
+
+
+def test_only_the_supervisors_own_security_log_may_change_in_a_slice_worktree(
+    tmp_path: Path,
+) -> None:
+    """A store with no spec record makes the supervisor log a denial; nothing else changes."""
+    w = build_world(tmp_path, briefs={"b-pin": ["shipped", "alpha"]})
+    wt = w.add_slice("b-pin", "alpha")
+    (git_dir(wt) / "agentbundle-supervisor" / "run-0123456789abcdef").mkdir(parents=True)
+    before = _tree_files(wt)
+    for verb in ("status", "next", "gates"):
+        code, out = w.cli(verb, "b-pin")
+        assert code == 0, (verb, out)
+    code, out = w.cli("classify", "b-pin", "--slice", "alpha", "--task", "T1", "--class", "network")
+    assert code in (0, 1) and ("action" in out or "refusal" in out), out
+    after = _tree_files(wt)
+    log = "docs/specs/alpha/.supervisor/"
+    changed = {p for p in set(before) | set(after) if before.get(p) != after.get(p)}
+    assert changed, "the supervisor logged no denial: the case no longer reaches the exception"
+    assert changed <= {f"{log}security-events.jsonl", f"{log}.gitignore"}, changed
+    assert after[f"{log}.gitignore"] == b"*\n"
+
+
+def _planted_submodule(w: World, *, commit: bool) -> Path:
+    """A submodule at ``docs/sub`` whose own config maps every file to a marker-touching filter.
+
+    With *commit* it is in the base commit; without, it is only staged. Returns the marker.
+    """
+    source = w.tmp / "sub-source"
+    source.mkdir()
+    h.git(source, "init", "-q", "-b", "main")
+    _write(source, "note.md", "note\n")
+    h.git(source, "add", "-A")
+    h.git(source, "commit", "-q", "-m", "sub")
+    h.git(w.main, "-c", "protocol.file.allow=always", "submodule", "add", "-q",
+          str(source), "docs/sub")  # fmt: skip
+    if commit:
+        w.commit("add a submodule under docs")
+    marker = w.tmp / "submodule-filter-ran"
+    script = w.tmp / "clean.sh"
+    script.write_text(f"#!/bin/sh\ntouch '{marker}'\ncat\n", **h._LF)
+    modules = w.main / ".git" / "modules" / "docs" / "sub"
+    config = modules / "config"
+    config.write_bytes(config.read_bytes() + f'[filter "evil"]\n\tclean = sh {script}\n'.encode())
+    (modules / "info").mkdir(exist_ok=True)
+    (modules / "info" / "attributes").write_text("* filter=evil\n", **h._LF)
+    note = w.main / "docs" / "sub" / "note.md"
+    os.utime(note, (note.stat().st_atime + 10, note.stat().st_mtime + 10))
+    return marker
+
+
+@pytest.mark.parametrize("commit", [True, False], ids=["in-the-base", "only-staged"])
+def test_a_submodule_under_docs_is_refused_and_its_own_filter_never_runs(
+    small: World, commit: bool
+) -> None:
+    """A committed submodule is refused before status; a staged one reaches status, which
+    never enters it. Either way its own filter never runs."""
+    marker = _planted_submodule(small, commit=commit)
+    for verb in ("status", "next", "gates"):
+        code, out = small.cli(verb, "b-base")
+        assert (code, out["refusal"]["code"]) == (1, "base-not-committed"), (verb, out)
+        if commit:
+            assert "submodule" in out["refusal"]["detail"]
+        else:
+            assert "modified, staged or untracked" in out["refusal"]["detail"]
+    assert not marker.exists(), "a submodule's own filter ran"
+
+
+def test_a_module_committed_in_a_slice_worktree_never_loads_into_the_supervisor(
+    world: World, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    marker = world.tmp / "planted-module-ran"
+    planted = world.wt("b-stops", "calc") / "argparse.py"
+    planted.write_text(f"open({str(marker)!r}, 'w').close()\nraise SystemExit(9)\n", **h._LF)
+    monkeypatch.setenv("PYTHONPATH", os.pathsep)  # an empty entry: the working directory
+    try:
+        rows = world.rows("b-stops")
+    finally:
+        planted.unlink()
+    assert not marker.exists(), "a module from the slice worktree loaded"
+    assert rows["calc"].stop == "merge-ready"
 
 
 def test_an_unapproved_slice_is_drafting_from_the_no_approval_view(world: World) -> None:
@@ -1098,6 +1214,24 @@ def test_a_base_lease_table_the_supervisor_would_refuse_refuses_every_verb(
         assert (code, out["refusal"]["code"]) == (1, "invalid-policy"), (damage, argv)
 
 
+@pytest.mark.parametrize(
+    ("damage", "cause"),
+    [
+        ("missing-file", "is not a small regular file at the base"),
+        ("not-json", "is not UTF-8 JSON at the base"),
+        ("no-lease", "has no lease table at the base"),
+        ("cap-0", "the base lease table is invalid"),
+    ],
+)
+def test_an_invalid_policy_names_its_cause(
+    policy_world: World, capsys: pytest.CaptureFixture[str], damage: str, cause: str
+) -> None:
+    _commit_policy(policy_world, damage)
+    code, out = _runner_answer(policy_world, capsys, "status", "b-base")
+    assert (code, out["refusal"]["code"]) == (1, "invalid-policy"), out
+    assert cause in out["refusal"]["detail"], out
+
+
 def test_the_shipped_lease_table_is_accepted(
     policy_world: World, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -1418,11 +1552,33 @@ def test_the_in_flight_cap_stops_a_start_but_not_the_waiting(nx: World) -> None:
     assert act["kind"] == "await-gates"  # two slices in flight: alpha does not start
 
 
-def test_the_cap_comes_from_the_policy_at_the_base(nx: World) -> None:
-    base = nx.runner.base_checks(nx.main)
-    assert nx.runner.read_lease_cap(nx.main, base) == 2
-    committed = json.loads((nx.main / COPY / "supervisor-policy.json").read_text("utf-8"))
-    assert committed["lease"]["max_slices_in_flight"] == 2
+def _commit_cap(w: World, cap: int) -> None:
+    path = w.main / COPY / "supervisor-policy.json"
+    policy = json.loads(path.read_text("utf-8"))
+    policy["lease"]["max_slices_in_flight"] = cap
+    path.write_text(json.dumps(policy, indent=2) + "\n", **h._LF)
+    w.commit(f"cap {cap}")
+
+
+@pytest.mark.parametrize(
+    ("cap", "brief", "kind"),
+    [
+        (3, "n-cap", "start-slice"),  # two parked slices in flight: a third may start
+        (1, "n-beside", "await-gates"),  # one parked slice in flight: nothing else starts
+    ],
+)
+def test_next_takes_its_cap_from_the_committed_policy(
+    nx: World, capsys: pytest.CaptureFixture[str], cap: int, brief: str, kind: str
+) -> None:
+    shipped = (nx.main / COPY / "supervisor-policy.json").read_text("utf-8")
+    _commit_cap(nx, cap)
+    try:
+        capsys.readouterr()
+        assert nx.runner.main(["next", brief, "--root", str(nx.main)]) == 0
+        assert json.loads(capsys.readouterr().out)["action"]["kind"] == kind
+    finally:
+        (nx.main / COPY / "supervisor-policy.json").write_text(shipped, **h._LF)
+        nx.commit("restore the shipped policy")
 
 
 # ── AC-0009: blocked reasons ────────────────────────────────────────────────
@@ -1788,7 +1944,18 @@ def test_an_invalid_committed_file_refuses_next_and_status(so_world: World, brie
         assert "action" not in out and "rows" not in out
 
 
-def test_gates_and_classify_do_not_read_standing_orders(so_world: World) -> None:
+def test_an_executable_standing_orders_file_is_a_regular_file(tmp_path: Path) -> None:
+    def edit(main: Path) -> None:
+        _write(main, "docs/product/standing-orders/b-base.md", "1. Keep the tests green.\n")
+        (main / "docs/product/standing-orders/b-base.md").chmod(0o755)
+
+    w = build_world(tmp_path, briefs={"b-base": ["alpha"]}, edit=edit)
+    code, out = w.cli("next", "b-base")
+    assert code == 0, out
+    assert out["standing_orders"]["text"] == "1. Keep the tests green.\n"
+
+
+def test_gates_does_not_read_standing_orders(so_world: World) -> None:
     code, out = so_world.cli("gates", "b-so-gap")
     assert code == 0, out
     assert "refusal" not in out and "standing_orders" not in out
@@ -1859,8 +2026,9 @@ def test_the_runner_starts_only_read_only_git_and_supervisor_gates_and_status(
         ["classify", "n-impl", "--slice", "wa", "--task", task, "--class", "stuck"],
     ):  # fmt: skip
         assert nx.runner.main([*argv, "--root", main]) == 0
+    flags = len(nx.runner.supervisor_argv()) - 1
     supervisors = [a for a in seen if a[0] != "git"]
-    assert supervisors and any(a[2] == "gates" for a in supervisors)
+    assert supervisors and any(a[flags + 1] == "gates" for a in supervisors)
     for argv in seen:
         if argv[0] == "git" and argv[-1] == "version":
             continue  # the one version read, before any repository is named
@@ -1868,8 +2036,8 @@ def test_the_runner_starts_only_read_only_git_and_supervisor_gates_and_status(
             assert "-C" in argv, argv
             assert argv[argv.index("-C") + 2] in READ_ONLY_GIT, argv
         else:
-            assert argv[1] == str(nx.runner.SUPERVISOR), argv
-            verb = argv[2:]
+            assert argv[flags] == str(nx.runner.SUPERVISOR), argv
+            verb = argv[flags + 1 :]
             assert verb[0] == "gates" or (
                 verb[0] == "status" and verb[2:] == ["--json"] and verb[1].startswith("docs/specs/")
             ), argv

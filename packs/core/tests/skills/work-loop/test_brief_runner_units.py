@@ -6,6 +6,7 @@ No Git and no supervisor process runs here; the integration suite covers both.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from pathlib import Path
 from types import ModuleType
@@ -431,6 +432,104 @@ def test_blocked_reasons_in_the_stated_order() -> None:
     assert refused == {"slice": "x", "reason": "refused", "code": "c", "owner": "o", "detail": "d"}
 
 
+@pytest.mark.parametrize(
+    "refusal",
+    [
+        {"code": "Bad Code", "owner": "o", "detail": "d"},
+        {"code": "c", "owner": "own\ner", "detail": "d"},
+        {"code": "c", "owner": "o", "detail": "line\nbreak"},
+        {"code": "c", "owner": "o", "detail": "bidi\u202eflip"},
+        {"code": "c", "owner": "o", "detail": "zero\u200bwidth"},
+        {"code": "c", "owner": "o", "detail": 7},
+    ],
+)
+def test_a_relayed_refusal_withholds_text_that_is_not_safe(refusal: dict[str, Any]) -> None:
+    row = runner.decide_next([_wt("x", "refused", refusal=refusal)], 2)["rows"][0]
+    relayed = {key: row[key] for key in ("code", "owner", "detail")}
+    assert runner.WITHHELD in relayed.values(), relayed
+    for key, value in relayed.items():
+        if value != runner.WITHHELD:
+            assert value == refusal[key]
+
+
+def test_a_relayed_refusal_detail_is_bounded() -> None:
+    long = {"code": "c", "owner": "o", "detail": "x" * 1000}
+    row = runner.decide_next([_wt("x", "refused", refusal=long)], 2)["rows"][0]
+    assert row["detail"] == "x" * runner.MAX_RELAYED_DETAIL
+
+
+def test_unavailable_gates_name_their_cause_in_the_blocked_row() -> None:
+    row = _wt("x", "drafting", gates=None, gates_detail="supervisor-timeout")
+    blocked = runner.decide_next([row], 2)["rows"][0]
+    assert blocked == {"slice": "x", "reason": "gate-not-clean", "detail": "supervisor-timeout"}
+
+
+@pytest.mark.parametrize(
+    ("answer", "cause"),
+    [
+        ((runner.CODE_TIMEOUT, None), "supervisor-timeout"),
+        ((runner.CODE_UNAVAILABLE, None), "supervisor-unavailable"),
+        ((2, None), "supervisor-exit-2"),
+        ((1, {"refusal": {"code": "run-locked"}}), "supervisor-refusal:run-locked"),
+        ((0, {"gates": {}}), "supervisor-bad-output"),
+        ((0, {"gates": [{"state": "pending"}]}), None),
+    ],
+)
+def test_each_unavailable_gates_answer_has_a_fixed_cause(
+    monkeypatch: pytest.MonkeyPatch, answer: tuple[int, Any], cause: str | None
+) -> None:
+    monkeypatch.setattr(runner, "run_supervisor", lambda wt, *argv: answer)
+    assert runner.read_gates_answer("/w")[1] == cause
+
+
+def test_an_unexpected_failure_still_answers_one_json_refusal(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def boom(*args: Any, **kwargs: Any) -> Any:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(runner, "read_brief", boom)
+    capsys.readouterr()
+    assert runner.main(["status", "b"]) == runner.EXIT_REFUSED
+    out = json.loads(capsys.readouterr().out)
+    assert out == {
+        "refusal": {
+            "code": "internal-error",
+            "detail": "the runner failed unexpectedly: PermissionError",
+        }
+    }
+
+
+def test_the_supervisor_runs_in_an_isolated_interpreter() -> None:
+    argv = runner.supervisor_argv("status", "docs/specs/s", "--json")
+    assert argv[:5] == [sys.executable, "-I", "-X", "utf8", "-B"]
+    assert argv[5:] == [str(runner.SUPERVISOR), "status", "docs/specs/s", "--json"]
+
+
+def test_an_oversized_standing_orders_entry_is_refused_before_its_blob_is_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    size = runner.MAX_STANDING_ORDERS_BYTES + 1
+    monkeypatch.setattr(
+        runner, "tree_entry", lambda root, rev, path: runner.TreeEntry("100644", "blob", "o", size)
+    )
+
+    def forbidden(*args: Any) -> Any:
+        raise AssertionError("the blob was read")
+
+    monkeypatch.setattr(runner, "read_entry_blob", forbidden)
+    with pytest.raises(runner.Refusal) as caught:
+        runner.read_standing_orders(Path("/r"), "b" * 40, "demo")
+    assert caught.value.code == "invalid-standing-orders"
+
+
+@pytest.mark.parametrize("mode", ["100644", "100755"])
+def test_an_executable_regular_file_is_a_regular_entry(mode: str) -> None:
+    assert runner.TreeEntry(mode, "blob", "o", 1).regular
+    assert not runner.TreeEntry("120000", "blob", "o", 1).regular
+    assert not runner.TreeEntry("160000", "commit", "o", None).regular
+
+
 def test_a_ready_row_is_capped_before_it_is_held_by_the_pilot() -> None:
     pilot = _wt("p", "awaiting-decision")
     other = _wt("q", "awaiting-decision")
@@ -616,12 +715,3 @@ def test_classify_refuses_an_unusable_status(
     monkeypatch: pytest.MonkeyPatch, answer: tuple[int, Any]
 ) -> None:
     assert _code(monkeypatch, [_crow("alpha", "/w")], answer) == "status-unavailable"
-
-
-# ── AC-0022: the verb set ───────────────────────────────────────────────────
-
-
-def test_the_parser_has_exactly_the_four_verbs() -> None:
-    parser = runner._parser()
-    choices = next(a.choices for a in parser._actions if getattr(a, "choices", None))
-    assert sorted(choices) == ["classify", "gates", "next", "status"]

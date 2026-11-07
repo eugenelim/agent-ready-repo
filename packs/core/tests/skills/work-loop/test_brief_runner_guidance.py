@@ -268,8 +268,26 @@ def test_the_refusal_section_names_exactly_the_runners_codes() -> None:
     assert named == _runner_refusal_codes()
 
 
-def test_a_classify_refused_slice_takes_no_next_action_while_it_waits() -> None:
-    """No `next` action for a classify-refused slice, not even resume-slice, until a human answers."""
+def test_a_classify_refusal_holds_every_next_action_until_a_human_answers() -> None:
+    """`next` names one action and may name the held slice, so the brief takes none meanwhile."""
     section = _section("When a verb refuses")
-    assert "act on no `next` action for that slice, `resume-slice` included" in section
-    assert "take the next action for another slice instead" in section
+    assert "take no `next` action for the brief, `resume-slice` included" in section
+    assert "`next` names one action, and it may name the held slice" in section
+    assert "another slice" not in section
+
+
+def test_the_controller_fast_forwards_the_base_after_a_fetch() -> None:
+    """The one ref the controller moves: the main worktree's default branch, fast-forward only."""
+    section = _section("Moving the base")
+    assert "Before each `next` call, and after every `await-merge`, fetch the default branch" in section
+    assert "`git merge --ff-only`" in section
+    assert "only ref the controller moves in the main worktree" in section
+    assert "When the fast-forward fails" in section and "put the refusal to a human" in section
+    refusing = _section("When a verb refuses")
+    assert "The one exception is the fast-forward in [Moving the base](#moving-the-base)" in refusing
+
+
+def test_the_run_precondition_names_every_path_the_base_check_reads() -> None:
+    """The intro names docs/, workspace.toml and the skill directory, as the base check does."""
+    intro = " ".join(RUNNER_MD.read_text(encoding="utf-8").split("## ", 1)[0].split())
+    assert "no uncommitted change under `docs/`, in `workspace.toml`, or in this skill's own directory" in intro
