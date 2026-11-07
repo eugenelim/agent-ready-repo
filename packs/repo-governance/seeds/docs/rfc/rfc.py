@@ -76,6 +76,17 @@ CHECK_HELP = ("warn about open RFCs that trigger a length or missing-section war
 _fs_module: Any = None
 
 
+def _run_helper_source(data: bytes, path: Path, module: types.ModuleType) -> None:
+    """Run the helper's compiled source in its own module namespace.
+
+    Only the maintainer-owned helper reaches here: it was read as a confined
+    regular file from the script's own folder, and it is compiled from those
+    bytes, never imported, so no bytecode cache is consulted.
+    """
+    code = compile(data, str(path), "exec", dont_inherit=True)
+    exec(code, module.__dict__)  # nosec B102
+
+
 def _fs() -> Any:
     """Load file_safety.py from this script's folder, once, from its own source bytes.
 
@@ -107,7 +118,7 @@ def _fs() -> Any:
     module.__file__ = str(path)
     sys.modules[name] = module
     try:
-        exec(compile(data, str(path), "exec", dont_inherit=True), module.__dict__)
+        _run_helper_source(data, path, module)
         missing = [n for n in HELPER_NAMES if not hasattr(module, n)]
         if missing:
             raise ImportError("required helper is incomplete: file_safety.py")
