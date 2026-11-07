@@ -69,5 +69,11 @@ able to begin a real task from the first screen.
     once whether one exists, and write the page without claiming that none does
     until they answer.
 
-12. **Say what the product does not do.** One plain line in the page's scope,
+12. **For an app, start a task page with the click or menu path.** The first
+    step is the menu path or click that starts the task (for example "Choose
+    **File**, then **Export**"). Put what must be selected or open first inside
+    that step or in a prerequisite line above the steps, never as step 1 ahead of
+    the menu path. In an audit, name that path as the page's first reader action.
+
+13. **Say what the product does not do.** One plain line in the page's scope,
     where a reader would otherwise assume the capability.

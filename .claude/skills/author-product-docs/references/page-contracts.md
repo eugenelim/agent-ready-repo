@@ -30,6 +30,7 @@ An over-budget page is a signal to check for mixed kinds, not a reason to cut co
 
 **Split a mixed-kind page.** When a how-to carries reference tables, a template, or internals, move each to its own page of the right kind and keep the how-to to the task. The first runnable action stays inside the first 120 words. A split follows these rules:
 - Link each moved part once, from the step that needs it. A how-to links its template or settings reference from that step, not only from the foot of the page.
+- Give every step in the rewritten how-to a stated result, the first steps included.
 - Keep numbered steps a single straight sequence. Move every "if you..." branch to a short variations list after the steps, or to the page that owns it.
 - Give every page the split creates, and the original, exactly one Next link whose text names its destination, including reference and explanation pages.
 - End your report on the split with one line that says no product claim changed, and list anything you could not check as unverified.
@@ -73,7 +74,7 @@ An over-budget page is a signal to check for mixed kinds, not a reason to cut co
 **Required content:**
 - A copyable request, command, or code sample that starts the task
 - The scope of what is read and what may change
-- A minimal procedure covering the common path, where each step says who acts and ends with what the reader should see (a result line, a message, or a changed screen); a step with no visible result says so
+- A minimal procedure covering the common path, where every step, the first ones included, names who acts and ends with a sentence stating what the reader will see (output, a message, or a changed screen). Write "Run `x`. You see `y`.", not "Run `x`." alone. A step that shows nothing says so ("Nothing prints."). When the source does not show the result, state the observable effect you can support and mark it unverified
 - Common variations the reader is likely to hit
 - The most likely follow-up task after this one completes
 

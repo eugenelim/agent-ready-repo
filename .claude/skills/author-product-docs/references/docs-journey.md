@@ -100,15 +100,15 @@ between stages so a reader landing anywhere can move forward and back.
 
 Beside the gap report, walk the pages as a first-time reader would. Pick the persona from the journey or from the repository's stated audience, and follow pages in the order a reader clicks. Record one row per page:
 
-| Page | First lost moment | Undefined terms | Who acts | Sample or template in the way |
-| --- | --- | --- | --- | --- |
-| path | the first line where the reader cannot continue, and why | terms used before they are defined | where the page leaves unclear whether the reader, the agent, or the product acts | a long sample, template, or inventory between the reader and the next step |
+| Page | First reader action | First lost moment | Undefined terms | Who acts | Sample or template in the way |
+| --- | --- | --- | --- | --- | --- |
+| path:line | the first thing the reader does, named by surface: a click or menu path for an app, a command for a CLI, a call for a library, a request for an API or agent pack | file:line of the first point where the reader cannot continue, and why | terms used before they are defined | where the page leaves unclear whether the reader, the agent, or the product acts | a long sample, template, or inventory between the reader and the next step |
 
 A page with no lost moment says so. Report the table with the gap report and rank rows by how early the reader is lost.
 
 ## Cross-page consistency check
 
-List the facts several pages state: install command, required dependencies and versions, scope, what the product never does, names of its parts, and where output lands. Compare each fact across the pages that state it. Report every disagreement with both file and line, and name which page the source supports. When one page restates a fact another page owns, link to the owner instead.
+List the facts several pages state: install command, required dependencies and versions, scope, what the product never does, names of its parts, and where output lands. Compare each fact across the pages that state it. Report every disagreement with both file and line, and name the page the source supports (the manifest, parser, contract, or code that settles it). When the repository holds no such source, name the page that agrees with the most other pages as the likely owner, label that unverified, and say what the owner must confirm. When one page restates a fact another page owns, link to the owner instead.
 
 ## Handoffs
 
