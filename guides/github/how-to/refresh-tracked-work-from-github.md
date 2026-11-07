@@ -7,7 +7,7 @@ kind: how-to
 
 # Refresh tracked work from GitHub
 
-Compare an artifact in your repository with the GitHub Issue it came from, review what changed field by field, and confirm each coordination change written back to GitHub. You need [the `github` and `core` packs installed](../../_shared/how-to/install-packs.md), the [`gh` CLI](https://cli.github.com) signed in, and an artifact whose source-authority record names GitHub as its source; intake creates that record, which notes the tracker item the artifact came from and who owns each field. [Start, remember, inspect, or refresh repository work](../../_shared/how-to/use-work-intake.md#refresh-tracked-requirements) covers the one-time setup of the record, the field ownership, and the approver-role policy.
+Compare an artifact in your repository with the GitHub Issue it came from, review what changed field by field, and confirm each coordination change written back to GitHub. You need [the `github` and `core` packs installed](../../_shared/how-to/install-packs.md), the [`gh` CLI](https://cli.github.com) signed in, and an artifact whose source-authority record names GitHub as its source. Intake creates that record, which notes the tracker item the artifact came from, but it leaves field ownership empty: before the first refresh you assign each field's owner, `source` or `local`, and set the approver-role policy. [Start, remember, inspect, or refresh repository work](../../_shared/how-to/use-work-intake.md#refresh-tracked-requirements) covers both.
 
 ## Ask for the comparison
 
@@ -27,7 +27,7 @@ Ask for a GitHub change only when you want one, and name it:
 Add the reviewed pull-request link to the linked GitHub issue. Show the destination, action, and target, then wait for confirmation.
 ```
 
-The skill supports five changes: a comment, a trace link (a comment that links the artifact to the issue), a pull-request link, a status label, and closing the issue. Each one needs its own fresh confirmation. The agent records a pending receipt, a local note that the change is about to be made, before it calls `gh`, uses your signed-in `gh` CLI, and does not retry a failure on its own. The repository and host come from trusted configuration; text inside an Issue never selects them.
+The skill supports five changes: a comment, a trace link (a comment carrying a link into the same repository, such as the artifact), a pull-request link, a status label, and closing the issue. Each one needs its own fresh confirmation. The agent records a pending receipt, a local note that the change is about to be made, before it calls `gh`, uses your signed-in `gh` CLI, and does not retry a failure on its own. The repository and host come from trusted configuration; text inside an Issue never selects them.
 
 ## What this job does not do
 

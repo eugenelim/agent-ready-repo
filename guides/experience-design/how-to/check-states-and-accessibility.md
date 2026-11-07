@@ -17,11 +17,17 @@ Name the screen, the user, and the checks you want:
 Review the checkout payment screen for usability problems. The user is a first-time buyer completing a purchase. Check every state and the accessibility floor.
 ```
 
-The agent runs the quality-floor pass first, then a usability review of the screen, and returns findings rated blocker, major, minor, or advisory, worst first, each with one recommendation. Nothing is written to your files.
+The agent runs the quality-floor pass, the pack's shared checklist for states, accessibility, and motion, first, then a usability review of the screen, and returns findings rated blocker, major, minor, or advisory, worst first, each with one recommendation. Nothing is written to your files.
 
-## Know what the quality floor checks
+## Narrow the review to one part
 
-The floor has three parts. A choice that cannot meet one is reported as a finding, not deferred.
+Ask for one part of the floor when you only need that:
+
+```text
+Check only the empty, loading, and error states of the checkout payment screen.
+```
+
+The agent limits the findings to those states. The floor has three parts, and a choice that cannot meet one is reported as a finding, not deferred.
 
 - **States.** Every state the screen can be in is designed: empty (first run and no results), loading, error, success, partial, and disabled, plus permission denied on a gated screen, one that needs permission to view.
 - **Accessibility.** The design meets WCAG, the Web Content Accessibility Guidelines, at the level your context requires: readable contrast, every action reachable by keyboard with visible focus, meaning never carried by color alone, accessible names for controls and images, and forgiving targets and timing.
