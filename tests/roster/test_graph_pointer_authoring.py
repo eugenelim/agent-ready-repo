@@ -46,6 +46,7 @@ MANIFEST: dict[str, tuple[str, str]] = {
     P + "intent/references/recursive-decomposition.md": ("instruction", ""),
     "guides/core/reference/product-brief-fields.md": ("instruction", ""),
     "guides/core/how-to/start-the-work.md": ("instruction", ""),
+    "guides/core/tutorials/your-first-workspace.md": ("example", ""),
     "guides/core/how-to/close-and-disposition-work.md": ("instruction", ""),
     "guides/core/how-to/receive-a-product-brief-and-decompose-it-into-specs.md": ("instruction", ""),
     "guides/core/explanation/why-a-brief-layer.md": ("instruction", ""),

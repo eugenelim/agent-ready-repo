@@ -1038,12 +1038,6 @@ consumer = "routing reference that names dispatch.py for status and links the wo
 owner = "rfc-0067"
 
 [[row]]
-pattern = "guides/core/tutorials/your-first-workspace.md"
-class = "guide"
-consumer = "tutorial that starts from dispatch.py and states no workspace.toml is needed"
-owner = "rfc-0067"
-
-[[row]]
 pattern = "guides/repo-governance/tutorials/repo-governance-first-session.md"
 class = "guide"
 consumer = "tutorial whose example ADR decides on TOML as the format for workspace.toml"
