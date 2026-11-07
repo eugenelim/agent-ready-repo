@@ -36,7 +36,7 @@ You turn the outcome into work the build can take. There are three routes, and a
 
 - **Short.** Write the intent, a short file that states the outcome you want and why, test its riskiest assumption, and break it into pieces. Most teams start here.
 - **Longer.** Map the situation, the opportunities, and the options before you bet. Use it when the problem itself is unclear.
-- **Supervised route.** The agent runs product, design, architecture, and contract work side by side, and two reviewers check threats and reliability before you see the brief, the written summary of what to build. Use it for a new product area.
+- **Supervised route.** The agent runs product work, plus design, architecture, and contract work when those packs are installed, side by side, and two reviewers check threats and reliability before you see the brief, the written summary of what to build. Use it for a new product area.
 
 See [Shape an idea](../../product-engineering/how-to/frame-the-intent.md).
 
@@ -57,7 +57,7 @@ The more permanent the action, the more the agent waits:
 | What happens | Examples | The agent |
 | --- | --- | --- |
 | Can be undone | Exploring options, writing and running tests, deploying to throwaway environments | Keeps going |
-| Needs a call | A blocker, or the release loop reaching its stop point | Stops and shows you where things stand |
+| Needs a call | A blocker, or a release reaching its stop point | Stops and shows you where things stand |
 | Can't be undone | Committing to build, merging, shipping to production | Waits for your yes |
 
 Some stops carry a code from G0 to G5, such as G3 when you commit to build. The [detailed model](../reference/detailed-operating-model.md#stop-codes) lists each one.
