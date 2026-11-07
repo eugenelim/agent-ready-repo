@@ -28,7 +28,11 @@ Choose every other artifact by journey stage: the README, quickstart, installati
 
 An over-budget page is a signal to check for mixed kinds, not a reason to cut content.
 
-**Split a mixed-kind page.** When a how-to carries reference tables, a template, or internals, move each to its own page of the right kind, link once from the step that needs it, and keep the how-to to the task. The first runnable action stays inside the first 120 words.
+**Split a mixed-kind page.** When a how-to carries reference tables, a template, or internals, move each to its own page of the right kind and keep the how-to to the task. The first runnable action stays inside the first 120 words. A split follows these rules:
+- Link each moved part once, from the step that needs it. A how-to links its template or settings reference from that step, not only from the foot of the page.
+- Keep numbered steps a single straight sequence. Move every "if you..." branch to a short variations list after the steps, or to the page that owns it.
+- Give every page the split creates, and the original, exactly one Next link whose text names its destination, including reference and explanation pages.
+- End your report on the split with one line that says no product claim changed, and list anything you could not check as unverified.
 
 **Samples.**
 - Keep an inline sample short: about 10 lines as a fallback ceiling.

@@ -57,11 +57,17 @@ able to begin a real task from the first screen.
 
 10. **Say where the result lands and how to open it.** Name the location of any
     file or output and the way to open it. Do not assume a terminal, git, or a
-    repository. State what must be installed and who can install it.
+    repository. State what must be installed and who can install it. When the
+    source does not show where output lands, do not invent a location: leave the
+    claim out of the page and list it as an open question for the owner in your
+    report.
 
 11. **Name the non-terminal route when one exists, and what it lacks.** If the
     task can be done through a menu or another interface, give that route first
-    for readers who do not use a terminal, and say what it cannot do.
+    for readers who do not use a terminal, and say what it cannot do. When the
+    audience does not use a terminal and you find no such route, ask the owner
+    once whether one exists, and write the page without claiming that none does
+    until they answer.
 
 12. **Say what the product does not do.** One plain line in the page's scope,
     where a reader would otherwise assume the capability.
