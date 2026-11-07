@@ -23,7 +23,10 @@ agentbundle install --pack product-documentation --scope user
 - Write a README, quickstart, how-to, reference page, troubleshooting page, release notes, migration guide, or contributing guide around the reader's task.
 - Check a page's claims and list the verified, unverified, and contradicted ones.
 - Fix a README so a newcomer can run something in the first minute.
-- Write the README for an agent-context pack, led by starter prompts in the user's language.
+- Walk your docs as a first-time reader would and list where each page loses them: the first lost moment, undefined terms, unclear who acts, and a sample or template in the way.
+- Split an oversized page by kind, and check page length against your repository's own limit before it uses a default.
+- Check that pages agree on shared facts such as the install command and supported versions.
+- Write the README and skill reference for an agent-context pack, led by starter prompts in the user's language, with one example ask per skill.
 
 ## Skills
 
@@ -45,4 +48,4 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, Kiro IDE, and
 
 ## Details
 
-Scope: repo (default), user · Version: 0.1.2 · Source: [packs/product-documentation](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/product-documentation)
+Scope: repo (default), user · Version: 0.1.3 · Source: [packs/product-documentation](https://github.com/eugenelim/agent-ready-repo/tree/main/packs/product-documentation)

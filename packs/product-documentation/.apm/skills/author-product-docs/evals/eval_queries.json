@@ -9,7 +9,6 @@
   {"query": "Retrofit the three related how-to guides around a coherent user journey", "should_trigger": true},
   {"query": "Help me write the product documentation for this pack — start with the README", "should_trigger": true},
   {"query": "Create a journey page walking through the full workspace setup flow from first request to outcome", "should_trigger": true},
-
   {"query": "Write a spec for the new CSV export feature before we build it", "should_trigger": false},
   {"query": "Draft a proposal to change how we structure our documentation system", "should_trigger": false},
   {"query": "Record the decision to store our API definitions in OpenAPI 3.1", "should_trigger": false},
@@ -20,7 +19,6 @@
   {"query": "Fix the broken link in the installation guide", "should_trigger": false},
   {"query": "Write release notes for the 2.0 release", "should_trigger": true},
   {"query": "Add docstrings to the exporter module so the API is documented inline", "should_trigger": false},
-
   {"query": "Rewrite this guide so the reader sees what to ask first, not a skill inventory", "should_trigger": true},
   {"query": "Improve this pack README — it currently opens with a list of capabilities", "should_trigger": true},
   {"query": "Document how an operator configures SSO — write the user-facing guide", "should_trigger": true},
@@ -30,9 +28,18 @@
   {"query": "Document the REST API's authentication and error responses", "should_trigger": true},
   {"query": "Write a migration guide for upgrading our app from v2 to v3", "should_trigger": true},
   {"query": "Audit our library's docs and tell me which journey stages are missing", "should_trigger": true},
-
   {"query": "Show me the team's blockers in Jira", "should_trigger": false},
   {"query": "Create a Jira story for password reset", "should_trigger": false},
   {"query": "Fix a typo in the README", "should_trigger": false},
-  {"query": "What is Diátaxis and how does it work", "should_trigger": false}
+  {"query": "What is Diátaxis and how does it work", "should_trigger": false},
+  {"query": "This how-to has grown to 2,000 words with a settings table and a config template inside it — split it up", "should_trigger": true},
+  {"query": "Review our desktop app's help pages; one of them tells users to open a terminal", "should_trigger": true},
+  {"query": "Write the skill reference page for our agent pack so users know what to ask each skill", "should_trigger": true},
+  {"query": "Our repo says how-to pages may be at most 450 words — check which of ours go over", "should_trigger": true},
+  {"query": "Two of our pages disagree on the supported Python version — find every page that states it", "should_trigger": true},
+  {"query": "Draft an RFC proposing a new docs review process for the team", "should_trigger": false},
+  {"query": "Write an ADR recording why we chose a static site generator for the docs", "should_trigger": false},
+  {"query": "Rewrite the code comments in the sync module so they explain intent", "should_trigger": false},
+  {"query": "Tighten the button labels and tooltip text on the settings dialog", "should_trigger": false},
+  {"query": "Write an internal runbook for restoring the docs site build after a failed deploy", "should_trigger": false}
 ]

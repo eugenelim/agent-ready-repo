@@ -19,6 +19,24 @@ Choose every other artifact by journey stage: the README, quickstart, installati
 
 ---
 
+## Page budgets, splitting, and samples
+
+**Budget by kind.** Find the limit in this order and stop at the first source:
+1. The repository's own docs rules, if they state a limit for the kind. Cite the number and where it is written.
+2. The distribution of same-kind pages already in the repository. Flag a page that sits well outside it as an outlier, and say which pages you measured.
+3. A labelled fallback when neither exists: how-to about 700 words, tutorial about 1,200, reference unbounded but one entry per item, explanation about 1,500, README about 600. These are fallback numbers, not findings; say so when you use one.
+
+An over-budget page is a signal to check for mixed kinds, not a reason to cut content.
+
+**Split a mixed-kind page.** When a how-to carries reference tables, a template, or internals, move each to its own page of the right kind, link once from the step that needs it, and keep the how-to to the task. The first runnable action stays inside the first 120 words.
+
+**Samples.**
+- Keep an inline sample short: about 10 lines as a fallback ceiling.
+- Use real samples, taken from an actual run or from the source. Never present invented output as real. If output was not produced by a run, label it an illustration or leave it out.
+- Link a long sample or a template to the reference page and link it once.
+
+---
+
 ## Tutorial
 
 **First screen must answer:** "How do I complete my first real journey?"

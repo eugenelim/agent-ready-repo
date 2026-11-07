@@ -50,3 +50,18 @@ able to begin a real task from the first screen.
    that enumerates every flag, a tutorial that lists every configuration key — both
    interrupt the reader's task with detail they did not ask for. Link to the
    reference; do not embed it.
+
+9. **Label who acts.** For each step, say whether the reader says something, the
+   agent or product does something, or the reader runs something in a terminal.
+   Never show a command the agent runs as if the reader must type it.
+
+10. **Say where the result lands and how to open it.** Name the location of any
+    file or output and the way to open it. Do not assume a terminal, git, or a
+    repository. State what must be installed and who can install it.
+
+11. **Name the non-terminal route when one exists, and what it lacks.** If the
+    task can be done through a menu or another interface, give that route first
+    for readers who do not use a terminal, and say what it cannot do.
+
+12. **Say what the product does not do.** One plain line in the page's scope,
+    where a reader would otherwise assume the capability.

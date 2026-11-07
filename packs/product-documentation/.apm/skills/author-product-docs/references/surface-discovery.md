@@ -23,6 +23,8 @@ A check that runs, installs, builds, or starts something applies only in a repos
 When no section fits, say which evidence you found, name the closest surface,
 and ask once before drafting.
 
+Once a surface is named, load its file from [`surfaces/index.md`](surfaces/index.md) for the page-shape evidence, and only that surface's file.
+
 ## Library or SDK
 
 Evidence: a package manifest (`pyproject.toml`, `package.json` with `main` or
@@ -169,3 +171,10 @@ and the decisions it leaves to the user. Machine facts stay in the manifest.
 Verification: read each skill's source before stating what it does. In a trusted
 repository, start a session with the pack installed and send the README's first
 starter prompt; record whether the expected skill activates.
+
+Skill reference rules for a pack that ships several skills:
+
+- **Order.** Use lifecycle order only when the skills form a real sequence (start, then, later). Otherwise group by job and sort A to Z inside a group. State the rule on the page and keep the order stable.
+- **Exclude internal routers by a rule the repository declares.** Use a mechanical test the repository already states, such as a manifest or frontmatter flag that hides a skill from users. If it declares none, ask once; do not guess from a name. Link an excluded skill from the skills that call it instead of listing it.
+- **One example ask per user-invocable skill.** Give a typed request and a one-line outcome, labelled as an example. Do not claim an example improves discovery.
+- **Coverage check.** List the pack's user-invocable skills from its source, list the skills the reference covers, and report each skill the reference misses.
