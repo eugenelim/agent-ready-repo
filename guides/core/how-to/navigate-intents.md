@@ -7,7 +7,7 @@ kind: how-to
 
 # How to navigate intents, briefs, and specs
 
-Find outstanding work, trace where an intent sits, and share the whole graph as one offline page, without opening files one by one. An intent is a short file that states an outcome you want and why; briefs and specs sit beneath intents. You need the `core` pack and an agent session open in the repository root.
+Find outstanding work, walk the intent hierarchy, trace where an intent sits, and share the graph as one offline page, using the `navigate-intents` skill. An intent is a short file that states an outcome you want and why; briefs and specs sit beneath intents. You need the `core` pack and an agent session in the repository root.
 
 ## Find outstanding work
 
@@ -17,7 +17,7 @@ Ask for the open work under one intent:
 Show me the outstanding work under capability:work-item-capture-and-disposition.
 ```
 
-The agent runs the navigator's `outstanding` query and prints each open item under its parent:
+The agent runs the skill's `outstanding` query, with `--operation outstanding --format text --from capability:work-item-capture-and-disposition`, and prints each open item under its parent:
 
 ```text
 (no parent)
@@ -30,6 +30,16 @@ The agent runs the navigator's `outstanding` query and prints each open item und
 
 This output is trimmed. The capability prints under `(no parent)` because it has no parent intent of its own.
 
+## Walk the hierarchy
+
+Ask for the tree under one intent:
+
+```text
+Show me the intent tree under capability:work-item-capture-and-disposition, one level deep.
+```
+
+The agent runs the `tree` query with `--depth 1` and prints each intent with its level, kind, and status.
+
 ## Trace where an intent sits
 
 Ask for the parents and the work placed under one intent:
@@ -38,17 +48,17 @@ Ask for the parents and the work placed under one intent:
 Show me the parents of intent:my-slug and the briefs and specs placed under it.
 ```
 
-The agent runs the `ancestors` and `record` queries and returns the chain up to a root, the intent's recorded fields, and the briefs and specs placed under it.
+The agent runs the `ancestors` and `record` queries and returns the chain up to a root, then the intent's recorded fields, its children, and the briefs and specs placed under it with their delivery links.
 
-## Count live intents
+## Summarize the graph
 
 Ask for the overall picture:
 
 ```text
-How many live intents do we have, by level?
+Summarize the intent graph: how many live intents are there at each level?
 ```
 
-The agent runs the `summary` query and returns counts by level and kind, plus the briefs, specs, outstanding items, and refused links. A live intent is an intent file without a `Tombstone:` field.
+The agent runs `summary` and returns counts of live intents by level and kind, briefs and specs, outstanding items, refused edges by state, and parentless intents. A live intent is an intent file without a `Tombstone:` field.
 
 ## Export an offline view
 
@@ -62,7 +72,7 @@ The agent runs `export` and prints the path of one HTML file in your system's te
 
 ### Show what is ready to work on
 
-To mark what `work-loop` says is ready, ask the agent to pipe the argless dispatch output into the export. It runs:
+To mark what `work-loop` says is ready, ask the agent to pipe the argless dispatch output into the export. It runs the command below, where `<skill-dir>` is the installed `navigate-intents` skill folder, `<work-loop-skill-dir>` is the installed `work-loop` skill folder, and `<repo-root>` is your repository root:
 
 ```bash
 python3 '<work-loop-skill-dir>/scripts/dispatch.py' --root <repo-root> \
@@ -73,6 +83,6 @@ Use the same `<repo-root>` on both sides, and pipe only argless `dispatch.py --r
 
 ## What this job does not do
 
-The navigator only reads. For what is ready to start, ask `work-loop` to run `dispatch.py` ([Orient at the start of a session](orient-at-session-start.md) shows how). For workspace repair, use `workspace-status`. This skill never reads `workspace.toml`.
+The skill only reads. For what is ready to start, ask `work-loop` to run `dispatch.py` ([Orient at the start of a session](orient-at-session-start.md) shows how). For workspace repair, use `workspace-status`. The skill never reads `workspace.toml`.
 
 Next, [look up every operation, option, and refusal code](../reference/navigate-intents-queries.md).

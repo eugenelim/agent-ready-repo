@@ -9,6 +9,40 @@ kind: reference
 
 Use this page to look up what `new-spec` and `work-loop` do at each step. For the task steps, see [How to plan and execute non-trivial work](../how-to/plan-and-execute-non-trivial-work.md).
 
+## Worked examples
+
+Name the skill in your invocation. Two worked invocations for `new-spec`, one backend and one frontend:
+
+```
+use the new-spec skill to design webhook retries with exponential
+backoff for the payment-events stream
+```
+(retry logic is a state machine; Testing Strategy will pick TDD for this one.)
+
+```
+use the new-spec skill to spec the saved-filters chip on the
+product-search results page
+```
+(the chip is a visible UI element; Testing Strategy will pair it with visual / manual QA, possibly automated.)
+
+Natural phrasings (`let's spec out X`, `new spec: Y`, `write a spec for Z`) match the skill's description and often trigger it, but description matching isn't guaranteed. Lead with `use the new-spec skill to …` whenever you want the discipline to fire reliably.
+
+With a spec in place, the same two domains carry through to `work-loop`:
+
+```
+use the work-loop skill to implement docs/specs/webhook-retries
+```
+(TDD-mode tasks for retry logic; goal-based for wiring.)
+
+```
+use the work-loop skill to drive the saved-filters-chip spec
+```
+(visual / manual QA on the chip; goal-based on the URL-state plumbing.)
+
+The `work-loop` description also matches phrasings like "implement the X spec" or "let's work on Y", but the explicit form fires the loop's full discipline (gates, adversarial review, the iteration cap, the state machine) even on edges where description matching wouldn't pick it up automatically.
+
+The mandatory spec sections are Agent Rules, Testing Strategy and Acceptance Criteria, read in the frame Outcome and What Changes set above them; see the `new-spec` skill's spec-and-plan contract reference.
+
 ## What to put in front of `new-spec`
 
 `new-spec` ingests whatever input you give it and surfaces what's missing. Any of these shapes work:
@@ -109,6 +143,14 @@ After `start`, the approval covers the spec's protected sections, its terminal i
 
 The supervisor issues one `implement-task` request at a time, in the plan's dependency order. When an `implementer` subagent is installed, the controller dispatches each plan task sequentially, one implementer at a time; the reviewer fan-out rules are in [`references/supervisor-mode.md`](../../../packs/core/.apm/skills/work-loop/references/supervisor-mode.md).
 
+## When not to use this workflow
+
+- **Genuine one-line edits** — typo, config tweak, copy-paste fix. The loop's overhead exceeds the work.
+- **Spikes and throwaway exploration.** If the output is going to be thrown away, the spec / plan / review machinery adds friction for no gain. Mark the work explicitly as a spike and skip the loop.
+- **Investigation before implementation.** If you don't yet know what to build, you're not ready for `new-spec`. Investigate first; come back with a question shaped like a feature.
+
+For bug-shaped work that crosses multiple files, see [how to fix a bug](../how-to/bug-fix.md); the `bug-fix` skill is the right entry point.
+
 ## Pitfalls
 
 :::caution
@@ -134,6 +176,15 @@ The supervisor issues one `implement-task` request at a time, in the plan's depe
 :::caution
 **In Kiro, pick Vibe — not spec mode.** Kiro nudges hard toward its own spec-driven session (a generated `requirements.md` / `design.md` / `tasks.md`). For work the loop should own, choose **Vibe** at the session picker so `work-loop` drives; Kiro's spec mode is one-shot per task and doesn't iterate against a cold reviewer the way the loop does. There's no global off-switch — it's a per-session choice each time you start work. [Why the loop beats one-shot spec modes](../explanation/core-pack.md#how-it-differs-from-spec-kit-and-kiro-ide).
 :::
+
+## Related
+
+- [The core pack as a system](../explanation/core-pack.md) — why the loop exists and how the parts compose.
+- [`core-pack.md` § Why the loop](../../core/explanation/core-pack.md#why-the-loop) — the contributor-side rationale.
+- [`new-spec` skill](../../../packs/core/.apm/skills/new-spec/SKILL.md) — authoritative procedure for the planning skill.
+- [`work-loop` skill](../../../packs/core/.apm/skills/work-loop/SKILL.md) — authoritative procedure for the loop itself.
+- [How to fix a bug](../how-to/bug-fix.md) — `bug-fix` is the entry point for bug-shaped work.
+- [How to adapt the pack to your project](../how-to/adapt-to-project.md) — post-install setup; do this before your first feature.
 
 ## Enforcement
 
