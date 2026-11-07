@@ -1,7 +1,7 @@
 # Plan: brief-level runner
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `tests/AGENTS.md` (roster tests and their named build-check step); `dispatch.py` `dispatch()` and `_header_readiness.py` as the readiness owner; `author-delivery-brief/scripts/lint-brief-coverage.py` as the Spec map parser precedent; `_supervisor_git.HardenedGit` as the hardened Git launcher; `_file_safety.read_confined_regular_file` as the read path; `lint-knowledge.py` `field_problems` with its `body` policy as the one standing-orders character rule; `_supervisor_admission._check_lease` and its lease key constants as the one lease rule; `_supervisor_loop.State.attempt` as the failed-attempt count; `supervisor_harness.py` and `test_supervisor_parked_gates.py` as the analogous integration tests.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -261,6 +261,17 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
   - Next refusals (AC-0009): an `internal-error` from `next` carries `schema_version` 1.
   - Exit codes (AC-0009): a usage error exits 2 with nothing on stdout, and `--help` exits 0 with help text that is not JSON; the reference and the module docstring say so, and that a `next` answer or refusal carries `schema_version`.
 - **Done when:** the T16 tests pass, the existing brief-runner suites stay green, and lint is clean.
+
+### T17: Restarted-run review round 6 repairs
+
+- **Depends on:** T16
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/brief-runner.py`, `packs/core/tests/skills/work-loop/test_brief_runner.py`, `packs/core/tests/skills/work-loop/test_brief_runner_units.py`
+- **Mode:** TDD
+- **Tests:**
+  - Parent letter case (AC-0002): with `.GITIGNORE` committed in the folder above the skill directory, a harmless uncommitted edit to it refuses `base-not-committed`, and so does the same edit while it is marked assume-unchanged; with no other untracked file, an untracked harmless `.GITIGNORE` there refuses too, and removing the letter-case match from the parent checks turns these red on case-sensitive and case-insensitive filesystems alike.
+  - Refusal detail (AC-0002): a parent `.gitignore` refusal's detail names a changed `.gitignore` in a folder above the checked paths.
+  - Literal skill path (AC-0002): a skill directory whose path holds `[`, `*` or `?` is matched literally, so an untracked `.gitignore` inside it refuses.
+- **Done when:** the T17 tests pass, the existing brief-runner suites stay green, and lint is clean.
 
 ## Rollout
 
