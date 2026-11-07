@@ -39,7 +39,7 @@ import subprocess
 import sys
 import threading
 import time
-import xml.etree.ElementTree as ET
+import xml.etree.ElementTree as ET  # noqa: S405  # nosec B405  # parses the JUnit report the harness's own pytest run writes
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -147,7 +147,7 @@ class JunitSummary:
 
 def read_junit(xml_text: str) -> JunitSummary:
     """Count cases, failures, errors and skips straight from the case elements."""
-    root = ET.fromstring(xml_text)
+    root = ET.fromstring(xml_text)  # noqa: S314  # nosec B314  # the JUnit report the harness's own pytest run writes
     total = failures = errors = skipped = 0
     modules: set[str] = set()
     for suite in root.iter("testsuite"):
