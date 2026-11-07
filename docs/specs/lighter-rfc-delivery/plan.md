@@ -237,6 +237,18 @@ Owned by: T3, T6, T9
 
 **Done when:** both boundary-lint commands exit 0 and `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py tests/roster/test_new_rfc_governance_surfaces.py -q` is green.
 
+### T15: Fourth-round review findings are repaired
+
+**Depends on:** T14
+**Touches:** `packs/repo-governance/.apm/skills/new-rfc/evals/evals.json`, `packs/repo-governance/.apm/skills/new-rfc/evals/files/`, `packs/repo-governance/tests/skills/new-rfc/test_evals.py`, `packs/repo-governance/tests/skills/new-rfc/test_seeds.py`, `tests/roster/test_lighter_rfc_delivery.py`, `guides/repo-governance/how-to/set-up-governance.md`, `docs/product/captured/desk-research-guide-rfc-mapping-is-stale.md`
+
+**Tests:**
+- The injection eval lists a template fixture and an existing-RFC fixture in its `files`, each carrying its planted comment, and its prompt names them by base name (AC-0047). The guide's sample opens with the lines the default asset opens with and the roster check passes only then (AC-0048). The captured item names the template's six required sections and its optional ones (AC-0081). The `test_seeds.py` docstring cites only the criterion that test decides. Mode: goal-based, plus a judged run of the injection eval recorded at closeout.
+
+**Approach:** two fixtures go under the skill's `evals/files/` folder, and `test_evals.py` pins that the eval references both. The guide sample shows the default asset's adopter comment between `# Governance` and `## Maintainers`, and the roster assertion matches it. The captured item maps known unknowns to `Open questions` and findings to `Evidence`.
+
+**Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green and the boundary lint pair exits 0.
+
 ## Rollout
 
 Reversible: the template and skill revert by reverting the change; seeded files already installed in adopter repositories stay, inert. Sequencing: script, then template, then seeds and skill, then repository adoption, guide and ADR, then versions last so no task borrows an unreleased version. The `agentbundle` tag and publish follow the merge. Seeded files reach fresh installs only; existing adopters can run `agentbundle scaffold` to add them.
