@@ -741,14 +741,12 @@ def test_an_unexpected_error_whose_end_never_confirms_keeps_the_directory_as_res
     no_floor_record_with_a_live_group(env)
 
 
-def test_the_launcher_protocol_phases_run_on_their_own(
+def test_an_unspawned_launcher_ends_clean_and_a_read_timeout_is_its_phases_defect(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """Each phase is a function: a refusal in one is a closed defect, nothing else runs."""
+    """A launcher that never spawned has nothing to end; a timed-out read closes as that phase's defect."""
     env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script={"on_abort": "ignore"})
     env.issued()
-    for phase in ("_spawn_phase", "_containment_phase", "_release_phase", "_access_phase"):
-        assert callable(getattr(conc, phase))
     launch = conc._Launch.__new__(conc._Launch)
     launch.proc = None
     launch.finished = False

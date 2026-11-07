@@ -39,9 +39,9 @@ LANE_JOBS = (
     "supervisor-integration-records",
     "supervisor-integration-permutations",
 )
-# Integration-gated suites the lane does not list: the corpus runs in its own shards (checked
-# below), and the unsafe-host suite predates the lane and is listed by no workflow.
-NOT_IN_LANE_JOBS = {"test_supervisor_crash_corpus.py", "test_supervisor_untrusted_unsafe_host.py"}
+# The one integration-gated suite the lane jobs do not list: the corpus runs in its own shards
+# (checked below).
+NOT_IN_LANE_JOBS = {"test_supervisor_crash_corpus.py"}
 
 
 def _job(text: str, name: str) -> str:
@@ -125,7 +125,12 @@ def test_the_lane_jobs_list_every_integration_suite_once_each_with_a_stated_budg
     for name in LANE_JOBS:
         job = _job(text, name)
         assert 'WORK_SUPERVISOR_INTEGRATION: "1"' in job, name
-        assert re.search(r"# Budget: .*; timeout \d+ min\.", job), f"{name} states no budget"
+        stated = re.search(r"# Budget: .*; timeout (\d+) min\.", job)
+        assert stated, f"{name} states no budget"
+        timeout = re.search(r"^    timeout-minutes: (\d+)$", job, flags=re.M)
+        assert timeout and timeout.group(1) == stated.group(1), (
+            f"{name} states a {stated.group(1)} min timeout but sets another"
+        )
         paths = re.findall(r"^\s+((?:packs|tests)/\S+\.py)$", job, flags=re.M)
         assert paths, f"{name} runs no literal pytest path"
         listed.extend(paths)

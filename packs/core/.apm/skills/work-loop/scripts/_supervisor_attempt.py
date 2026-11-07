@@ -724,23 +724,27 @@ class Attempts:
     def held_state(self, run_id: str) -> dict[str, str]:
         """A digest of every held-result record, and the tree each held ref names.
 
-        Labelled ``held:<attempt>`` and ``held-ref:<attempt>``. Direct file reads, no Git call.
+        Labelled ``held:<attempt>`` and ``held-ref:<attempt>``. The ref namespace is listed on
+        its own, so a held ref with no record is recorded too. Direct file reads, no Git call.
         """
         store = self._store_dir(run_id)
         directory = store / "held"
-        if not os.path.lexists(directory):
-            return {}
         fs = sibling("_file_safety.py")
-        try:
-            files = fs.list_confined_regular_files(store, directory, max_files=_MAX_ENTRIES)
-        except (fs.UnsafeContentError, OSError) as exc:
-            raise _unverifiable(
-                "denied-attempt-record", "the held results cannot be listed"
-            ) from exc
-        product = self.ws.git.product_record(run_id)
+        files: list[Path] = []
+        if os.path.lexists(directory):
+            try:
+                files = list(
+                    fs.list_confined_regular_files(store, directory, max_files=_MAX_ENTRIES)
+                )
+            except (fs.UnsafeContentError, OSError) as exc:
+                raise _unverifiable(
+                    "denied-attempt-record", "the held results cannot be listed"
+                ) from exc
         found: dict[str, str] = {}
+        stems = set()
         for path in sorted(files):
             stem = path.name.removesuffix(".json")
+            stems.add(stem)
             try:
                 data = bytes(
                     fs.read_confined_regular_file(store, path, max_bytes=_MAX_SMALL_BYTES)
@@ -749,14 +753,33 @@ class Attempts:
                 found[f"held:{stem}"] = "unsafe"
                 continue
             found[f"held:{stem}"] = _digest(data)
-            if product is not None:
-                ref = product.name.rsplit("/", 1)[0] + f"/held/{stem}"
+        product = self.ws.git.product_record(run_id)
+        if product is not None:
+            prefix = product.name.rsplit("/", 1)[0] + "/held/"
+            for stem in sorted(stems | self._held_ref_names(prefix)):
                 try:
-                    kind, value = self.ws.git.read_ref(ref)
+                    kind, value = self.ws.git.read_ref(prefix + stem)
                 except SupervisorGitError:
                     kind, value = "malformed", ""
                 found[f"held-ref:{stem}"] = f"{kind}:{value}"
         return found
+
+    def _held_ref_names(self, prefix: str) -> set[str]:
+        """Every name under the run's held-ref namespace, loose or packed, by direct reads."""
+        common = self.ws.git.hardened.pins.common_dir
+        names: set[str] = set()
+        loose = common.joinpath(*prefix.rstrip("/").split("/"))
+        try:
+            if loose.is_dir() and not loose.is_symlink():
+                names.update(entry.name for entry in os.scandir(loose))
+        except OSError:
+            names.add("unreadable")
+        packed = self._text(common, "packed-refs")
+        for line in (packed or "").splitlines():
+            _sha, _, ref = line.partition(" ")
+            if ref.startswith(prefix):
+                names.add(ref[len(prefix) :])
+        return names
 
     def _control_check(self, hardened: Any) -> None:
         """The helper's pre-check: Git control state must match the open attempt's manifest."""

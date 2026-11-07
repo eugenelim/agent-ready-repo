@@ -1066,8 +1066,9 @@ def _settle(
                 "schema_version": 1,
                 "request_id": record["request_id"],
                 "run_id": state.run_id,
-                "kind": "implement-task",
-                "gate": {"passed": True},
+                # The supervisor wrote this record, not a controller, and no gate ran for the
+                # attempt, so it carries the request's own kind and no gate outcome.
+                "kind": "run-concurrent",
                 "result_tree": outcome.tree,
                 "access_attestation_sha256": outcome.access_sha,
             }

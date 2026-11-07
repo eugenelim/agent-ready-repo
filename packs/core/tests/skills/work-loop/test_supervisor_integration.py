@@ -453,6 +453,26 @@ def test_a_held_record_added_during_a_floor_attempt_is_residue(
     assert head(env) == before
 
 
+def test_a_held_ref_added_with_no_record_during_a_floor_attempt_is_residue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    env = make_env(tmp_path, monkeypatch, script=reverse_script())
+    crash_second_result(env)
+    floor = env.next()["request"]
+    before = head(env)
+    ref = [
+        r for r in env.git(
+            "for-each-ref", "--format=%(refname)", "refs/agentbundle/delivery"
+        ).splitlines()
+        if "/held/" in r
+    ][0]
+    tree = env.git("rev-parse", "HEAD^{tree}").strip()
+    env.git("update-ref", ref.rsplit("/", 1)[0] + "/" + FORGED_ID, tree)
+    assert not (env.store() / "held" / f"{FORGED_ID}.json").exists()
+    assert_residue_after_report(env, floor)
+    assert head(env) == before
+
+
 def test_integration_never_lists_a_held_record_no_consumed_record_matches(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

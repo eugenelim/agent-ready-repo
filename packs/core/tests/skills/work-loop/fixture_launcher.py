@@ -35,8 +35,10 @@ A test copies this file with ``SCRIPT`` replaced by the behaviour to simulate (s
   task id starts with the prefix; ``wait_for``: a path the attempt waits for before its access
   line; ``touch``: a path it creates after sending the access line (together they finish
   attempts in a chosen order); ``wait_for_settle``: a path the supervisor creates when an
-  earlier result is held (the test's kill-point hook), waited for with no deadline: the
-  launcher gives up and exits only when the supervisor closes its pipe;
+  earlier result is held (the test's kill-point hook), waited for up to ``settle_timeout``
+  seconds (default ``FIXTURE_SETTLE_TIMEOUT`` from the environment, else 120): past it the
+  launcher names the missing marker on stderr and exits 1, so the test fails fast and named;
+  it also exits when the supervisor closes its pipe;
 * ``on_abort``: ``"exit"`` (default) or ``"ignore"``; ``hold``: wait on the gate file before
   the access line; ``never_access``: never send it; ``child``: leave a sleeping child in the
   process group; ``release_wait``: ``"never"`` sends access without waiting for release.
@@ -196,7 +198,13 @@ def main():
     if SCRIPT.get("hold"):
         wait_gate()
     settle = SCRIPT.get("wait_for_settle")
+    settle_until = time.monotonic() + float(
+        SCRIPT.get("settle_timeout", os.environ.get("FIXTURE_SETTLE_TIMEOUT", 120))
+    )
     while settle and not Path(settle).exists():
+        if time.monotonic() > settle_until:
+            sys.stderr.write(f"fixture launcher: settle marker never written: {settle}\n")
+            return 1
         ready, _, _ = select.select([sys.stdin.fileno()], [], [], 0.02)
         if ready:  # the supervisor ended the attempt (abort or closed pipe): the signal is lost
             return 1

@@ -887,6 +887,41 @@ def test_the_fixture_launcher_is_never_reachable_from_the_pack_runtime() -> None
     assert not list((pack / ".apm").rglob("fixture_launcher*"))
 
 
+def test_a_settle_marker_never_written_fails_the_fixture_launcher_fast_and_named(
+    tmp_path: Path,
+) -> None:
+    marker = tmp_path / "never.done"
+    launcher, _ = ls.make_launcher(
+        tmp_path / "bin", {"wait_for_settle": str(marker), "settle_timeout": 0.3}
+    )
+    start = json.dumps(
+        {
+            "binding": {}, "attempt_dir": str(tmp_path),
+            "grant": {"product_read_proof_mode": "trace"}, "request": {},
+        }
+    )
+    release = json.dumps({"type": "release", "release_token": "0" * 64})
+    started = time.monotonic()
+    proc = subprocess.Popen(
+        [str(launcher)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        cwd=tmp_path, text=True,
+    )
+    assert proc.stdin is not None and proc.stderr is not None
+    proc.stdin.write(start + "\n" + release + "\n")
+    proc.stdin.flush()  # the pipe stays open: a closed pipe would end the wait silently
+    try:
+        code = proc.wait(timeout=30)
+        error = proc.stderr.read()
+    finally:
+        proc.kill()
+        proc.stdin.close()
+        proc.stderr.close()
+        assert proc.stdout is not None
+        proc.stdout.close()
+    assert code == 1 and str(marker) in error
+    assert time.monotonic() - started < 15
+
+
 def test_start_settles_a_dead_verbs_attempt_first(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

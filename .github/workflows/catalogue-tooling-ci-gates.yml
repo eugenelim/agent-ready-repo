@@ -5,7 +5,7 @@ name: catalogue-tooling-ci-gates
 # once build-check.yml's longest job dropped to ~the SAST leg):
 #   A-tests: agentbundle-tests       — full pytest on Ubuntu 3.11/3.12; curated portable subset on Windows 3.11
 #   A-packs: pack-hook-tests         — repo/pack hook suites; Ubuntu 3.12 only (AC8) + curated Windows 3.11 subset
-#   A-supervisor: supervisor-integration, supervisor-integration-corpus — git-backed execution-supervisor suites (WORK_SUPERVISOR_INTEGRATION=1); Ubuntu 3.12
+#   A-supervisor: supervisor-integration, -product, -concurrent, -launcher, -records, -permutations, -corpus (sharded) — git-backed execution-supervisor suites (WORK_SUPERVISOR_INTEGRATION=1); Ubuntu 3.12
 #   B: external-catalogue-smoke      — portable engine outside this repo
 #   C: enterprise-agentbundle-distribution — enterprise distribution + credential scan
 #   D: catalogue-artifact-smoke      — real catalogue packaging round-trip
@@ -235,8 +235,8 @@ jobs:
   # These suites drive whole git-backed supervisor runs; the crash corpus alone is
   # about 190 of them. That does not fit Gate A-packs' 15-minute budget, so they
   # skip there (naming this lane) and run here with the variable set. The lane is
-  # split into jobs, each with a budget stated beside its timeout (local timings
-  # taken under load, so a runner has headroom): the corpus runs in its own shards,
+  # split into jobs, each with a budget stated beside its timeout (taken from the local
+  # gates4 timing run, made under load, so a runner has headroom): the corpus runs in its own shards,
   # and the other suites in six jobs. Every pytest path is a literal in a run line.
   # The corpus shards select test functions by name, and a repository test
   # (tests/roster/test_supervisor_ci_shards.py) checks that they are disjoint,
@@ -245,7 +245,7 @@ jobs:
   supervisor-integration:
     name: "Gate A-supervisor — the core suites"
     runs-on: ubuntu-latest
-    # Budget: about 13 min locally under load; timeout 30 min.
+    # Budget: about 8 min: the five suites timed in the gates4 run total 465 s (the other eleven were not timed); timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -283,7 +283,7 @@ jobs:
   supervisor-integration-product:
     name: "Gate A-supervisor — the product-ref and step-loop suites"
     runs-on: ubuntu-latest
-    # Budget: about 20 min locally under load; timeout 30 min.
+    # Budget: about 14 min: gates4 timed 571 s and 269 s for the two suites; timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -307,7 +307,7 @@ jobs:
   supervisor-integration-concurrent:
     name: "Gate A-supervisor — the concurrent-path suites"
     runs-on: ubuntu-latest
-    # Budget: about 17 min locally under load; timeout 30 min.
+    # Budget: about 18 min: gates4 timed 51, 299, 183 and 509 s for the four suites (1042 s); timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -331,9 +331,9 @@ jobs:
           -q -rs --durations=10
 
   supervisor-integration-launcher:
-    name: "Gate A-supervisor — the launcher suite"
+    name: "Gate A-supervisor — the launcher and unsafe-host suites"
     runs-on: ubuntu-latest
-    # Budget: about 16 min locally under load; timeout 30 min.
+    # Budget: about 5 min: gates4 timed 244 s for the launcher suite, and the unsafe-host suite took 23 s alone; timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -344,19 +344,20 @@ jobs:
           python-version: "3.12"
       - name: Install agentbundle (editable) + pytest
         run: python -m pip install -e packages/credbroker -e packages/agentbundle pytest 'jsonschema>=4.0' referencing
-      - name: Run the launcher suite
+      - name: Run the launcher and unsafe-host suites
         env:
           WORK_SUPERVISOR_INTEGRATION: "1"
           PYTHONUTF8: "1"
         run: >-
           python -m pytest
           packs/core/tests/skills/work-loop/test_supervisor_launcher.py
+          packs/core/tests/skills/work-loop/test_supervisor_untrusted_unsafe_host.py
           -q -rs --durations=10
 
   supervisor-integration-records:
     name: "Gate A-supervisor — the concurrency-records roster suite"
     runs-on: ubuntu-latest
-    # Budget: about 13 min locally under load; timeout 30 min.
+    # Budget: about 2 min: gates4 timed 117 s; timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -379,7 +380,7 @@ jobs:
   supervisor-integration-permutations:
     name: "Gate A-supervisor — the permutation corpus"
     runs-on: ubuntu-latest
-    # Budget: about 28 min locally under load; one module-scoped fixture builds the whole corpus, so it cannot be sharded and has the one larger timeout; timeout 45 min.
+    # Budget: about 12 min: gates4 timed 716 s; one module-scoped fixture builds the whole corpus, so it cannot be sharded and has the one larger timeout; timeout 45 min.
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
