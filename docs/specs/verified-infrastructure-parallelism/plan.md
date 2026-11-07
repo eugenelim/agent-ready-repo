@@ -526,9 +526,28 @@ in T5's release).
 `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy`
 is green, and this task adds no Core bump (it ships in T5's release).
 
+### T10: Read packed held refs in full and fail closed
+
+**Depends on:** T9
+
+**Tests:**
+- AC-0033: a held ref with no record that exists only in `packed-refs` is
+  answered `attempt-residue` after a floor attempt, including when
+  `packed-refs` is larger than 64 KiB; the held-ref listing reads
+  `packed-refs` up to the bound the ref reader already uses, and an oversized
+  or unreadable `packed-refs` makes the check unverifiable rather than
+  listing nothing.
+- Nit rides along: each Gate A-supervisor budget comment states numbers that
+  trace to one named timing run covering every suite in the job, or says
+  plainly which suites are untimed.
+
+**Done when:** each changed git-backed suite passes locally under
+`WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy`
+is green, and this task adds no Core bump (it ships in T5's release).
+
 ## Rollout
 
-- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6, T7, T8 and T9).
+- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6 to T10).
   `concurrency` ships `sequential` in every one, so adopters see no behaviour
   change beyond AC-0040's merge-driver refusal, which arrives with T2.
 - **Reversal:** reinstall the prior Core release; a run in flight finishes on
