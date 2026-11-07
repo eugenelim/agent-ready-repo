@@ -16,6 +16,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR = (
     REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "project-knowledge" / "scripts"
@@ -126,7 +128,7 @@ def test_two_routes_sharing_a_slug_prefix_both_commit(git_repo: Path) -> None:
                      intended="The drain reports the item at its owner as well."),
         ],
     )
-    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True}, dispatch_processor=lambda: None)
     assert report["counts"] == {"routed": 2, "held": 0, "closed": 0}, report
     assert len(_captured_files(repo)) == 2, _captured_files(repo)
     for capture_id in ids:
@@ -153,7 +155,7 @@ def test_preexisting_differing_target_is_never_deleted(git_repo: Path) -> None:
     }
     target = repo / DRAIN._captured_item_target(offer)
     target.write_bytes(b"an operator's complete file, not this transaction's")
-    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True}, dispatch_processor=lambda: None)
     assert report["counts"] == {"routed": 0, "held": 1, "closed": 0}, report
     assert target.read_bytes() == b"an operator's complete file, not this transaction's"
 
@@ -172,8 +174,8 @@ def test_repeated_transact_is_idempotent(git_repo: Path) -> None:
         "partition": capture["partition"],
         "request": capture["request"],
     }
-    first = DRAIN.transact_route(repo, offer, {"route": "defect-processor"})
-    second = DRAIN.transact_route(repo, offer, {"route": "defect-processor"})
+    first = DRAIN.transact_route(repo, offer, {"route": "defect-processor"}, dispatch_processor=lambda: None)
+    second = DRAIN.transact_route(repo, offer, {"route": "defect-processor"}, dispatch_processor=lambda: None)
     assert first["committed"] and second["committed"]
     assert len(_captured_files(repo)) == 1
 
@@ -264,7 +266,7 @@ def test_defect_artifact_parses_under_the_owner_grammar(git_repo: Path) -> None:
                   observed="The captured-item grammar is the owner's contract.",
                   intended="The materialized file parses valid under it.")],
     )
-    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True}, dispatch_processor=lambda: None)
     assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
     (artifact,) = (repo / "docs" / "product" / "captured").iterdir()
     fields, failing = WL.parse_captured_item(artifact.read_text(encoding="utf-8"))
@@ -352,7 +354,7 @@ def test_refused_route_disposition_holds_the_item(git_repo: Path) -> None:
     _seed_store(repo, [])
     _mixed_store(repo)
 
-    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True}, dispatch_processor=lambda: None)
 
     # The quarantined record is held by the read; the clean capture's route
     # transaction commits, its disposition write is refused by the store's
@@ -399,7 +401,7 @@ def test_clean_store_dispositions_are_unchanged(git_repo: Path) -> None:
                   observed="The store holds no quarantined record.",
                   intended="The disposition write succeeds.")],
     )
-    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True}, dispatch_processor=lambda: None)
     assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
     assert [d["capture_id"] for d in DRAIN.store_terminal_dispositions(repo)] == ids
 
@@ -463,7 +465,7 @@ def _routed_defect_with_statement(repo: Path, statement: str) -> dict[str, Any]:
                         observed="The filename must match the owner grammar.",
                         intended="The owner listing sees the item.")]
     )
-    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True})
+    report = DRAIN.drain(repo, confirmer=lambda offer, proposal: {"confirm": True}, dispatch_processor=lambda: None)
     assert report["counts"] == {"routed": 1, "held": 0, "closed": 0}, report
     return {"capture_id": ids[0], "report": report}
 
@@ -575,3 +577,231 @@ def test_store_terminal_dispositions_tolerates_misnamed_partition(
         {"capture_id": ids[0], "disposition": "routed",
          "reason_code": "route-handoff-accepted"}
     ], dispositions
+
+
+def test_transact_route_without_dispatch_returns_the_hold_shape(git_repo: Path) -> None:
+    # § D1's dispatch rule (AC-0025), direct-call half: `transact_route`
+    # with no `dispatch_processor` holds on both route branches — the
+    # artifact-carrying defect route and the dispatch-only work-intake
+    # family — attempting neither materialization nor a disposition.
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-no-dispatch")
+    (capture_id,) = _seed_store(
+        repo,
+        [_request("defect", "A defect whose route needs a dispatch",
+                  observed="The transaction holds without a dispatch.",
+                  intended="The dispatch is wired at invocation.")],
+    )
+    offer = {
+        "capture_id": capture_id,
+        "partition": "observations/work-item/2026-11.jsonl",
+        "request": _request("defect", "A defect whose route needs a dispatch",
+                            observed="The transaction holds without a dispatch.",
+                            intended="The dispatch is wired at invocation."),
+    }
+
+    defect_hold = DRAIN.transact_route(repo, offer, {"route": "defect-processor"})
+    intake_hold = DRAIN.transact_route(repo, offer, {"route": "work-intake"})
+
+    expected = {
+        "committed": False,
+        "failed_stage": "processor_dispatch",
+        "status": "NO_DISPATCH_WIRED",
+    }
+    assert defect_hold == {**expected, "route": "defect-processor"}
+    assert intake_hold == {**expected, "route": "work-intake"}
+    # Neither branch reached the transaction: no artifact, no lock.
+    assert _captured_files(repo) == []
+    assert not (repo / ".workspace-repair.lock").exists()
+
+
+# --- T21: the superseded closure's citation test runs in the drain ------------
+
+
+def _superseded_close(
+    target_capture_id: str,
+    citation: dict[str, Any] | None,
+    *,
+    test_passes: bool = True,
+) -> Any:
+    """Close only the target capture as superseded; decline every other item."""
+
+    def close(offer: dict[str, Any], _proposal: dict[str, Any]) -> dict[str, Any]:
+        if offer["capture_id"] != target_capture_id:
+            return {}
+        closure: dict[str, Any] = {
+            "ground": "superseded",
+            "test_passes": test_passes,
+            "evidence": {"what_was_read": "the cited capture's record"},
+        }
+        if citation is not None:
+            closure["citation"] = citation
+        return {"close": closure}
+
+    return close
+
+
+def _two_capture_repo(git_repo: Path, name: str) -> tuple[Path, list[str]]:
+    repo = _git_repo(git_repo.parent, f"{git_repo.name}-{name}")
+    ids = _seed_store(
+        repo,
+        [
+            _request("defect", "A capture superseded by a later one",
+                     observed="The later capture records the same work.",
+                     intended="The drain closes the item on the citation."),
+            _request("defect", "The later capture recording the same work",
+                     observed="This is the superseding record.",
+                     intended="The citation resolves here."),
+        ],
+    )
+    return repo, ids
+
+
+def test_superseded_closure_with_resolving_capture_id_closes(git_repo: Path) -> None:
+    # § D5 (AC-0027): a cited capture id that resolves in the seeded store
+    # closes the item and records the disposition; the citation rides the
+    # closed item's run-report entry beside the evidence.
+    repo, ids = _two_capture_repo(git_repo, "t21-id-resolves")
+
+    report = DRAIN.drain(repo, confirmer=_superseded_close(ids[0], {"capture_id": ids[1]}))
+
+    assert report["counts"] == {"routed": 0, "held": 1, "closed": 1}, report
+    (closed,) = [item for item in report["items"] if item["action"] == "closed"]
+    assert closed["capture_id"] == ids[0]
+    assert closed["ground"] == "superseded"
+    assert closed["citation"] == {"capture_id": ids[1]}
+    assert closed["evidence"] == {"what_was_read": "the cited capture's record"}
+    dispositions = DRAIN.store_terminal_dispositions(repo)
+    assert [d["capture_id"] for d in dispositions] == [ids[0]]
+    assert dispositions[0]["disposition"] == "superseded"
+
+
+def test_superseded_closure_with_resolving_path_closes(git_repo: Path) -> None:
+    # § D5 (AC-0027): a repository-relative path that exists inside the
+    # root resolves, and the closure commits.
+    repo, ids = _two_capture_repo(git_repo, "t21-path-resolves")
+    (repo / "docs" / "product" / "captured" / "existing.md").write_text(
+        "The cited artifact exists.", encoding="utf-8"
+    )
+
+    report = DRAIN.drain(
+        repo, confirmer=_superseded_close(ids[0], {"path": "docs/product/captured/existing.md"})
+    )
+
+    assert report["counts"] == {"routed": 0, "held": 1, "closed": 1}, report
+    (closed,) = [item for item in report["items"] if item["action"] == "closed"]
+    assert closed["citation"] == {"path": "docs/product/captured/existing.md"}
+
+
+@pytest.mark.parametrize(
+    "citation,reason",
+    [
+        ({"capture_id": "kco-202611-" + "9" * 64}, "closure-refused:citation-capture-unresolved"),
+        ({"path": "docs/product/captured/missing.md"}, "closure-refused:citation-path-missing"),
+        ({"path": "../outside.md"}, "closure-refused:citation-path-escapes-root"),
+        ({"path": "/etc/hosts"}, "closure-refused:citation-path-escapes-root"),
+        (None, "closure-refused:citation-required"),
+    ],
+)
+def test_superseded_closure_with_unresolvable_citation_is_refused(
+    git_repo: Path, citation: dict[str, Any] | None, reason: str
+) -> None:
+    # § D5 (AC-0027): the drain's own mechanical test — a citation that
+    # resolves nowhere refuses the closure whatever the operator attests,
+    # the item stays open (no terminal event), and the refusal names the
+    # failed citation.
+    repo, ids = _two_capture_repo(git_repo, "t21-refuses")
+    (repo.parent / "outside.md").write_text("outside the root", encoding="utf-8")
+
+    report = DRAIN.drain(repo, confirmer=_superseded_close(ids[0], citation))
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    (held,) = [
+        item for item in report["items"] if item["action"] == "held" and item["capture_id"] == ids[0]
+    ]
+    assert held["reason"] == reason
+    if citation is not None:
+        assert held["citation"] == citation
+    assert DRAIN.store_terminal_dispositions(repo) == []
+
+
+def test_superseded_citation_through_a_symlink_escaping_the_root_is_refused(
+    git_repo: Path,
+) -> None:
+    # § D7 (AC-0027): a path whose symlink target resolves outside the
+    # repository root resolves nowhere and is refused.
+    repo, ids = _two_capture_repo(git_repo, "t21-symlink")
+    outside = repo.parent / "outside-target.md"
+    outside.write_text("outside the root", encoding="utf-8")
+    (repo / "docs" / "product" / "captured" / "link.md").symlink_to(outside)
+
+    report = DRAIN.drain(repo, confirmer=_superseded_close(ids[0], {"path": "docs/product/captured/link.md"}))
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    (held,) = [
+        item for item in report["items"] if item["action"] == "held" and item["capture_id"] == ids[0]
+    ]
+    assert held["reason"] == "closure-refused:citation-path-escapes-root"
+
+
+def test_operator_veto_still_refuses_a_resolving_superseded_closure(
+    git_repo: Path,
+) -> None:
+    # § D5 (AC-0027): both gates must pass — a false operator verdict
+    # refuses the closure even when the citation resolves.
+    repo, ids = _two_capture_repo(git_repo, "t21-veto")
+
+    report = DRAIN.drain(repo, confirmer=_superseded_close(ids[0], {"capture_id": ids[1]}, test_passes=False))
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    (held,) = [
+        item for item in report["items"] if item["action"] == "held" and item["capture_id"] == ids[0]
+    ]
+    assert held["reason"] == "closure-refused:ground-test-failed"
+
+
+def test_citation_path_that_cannot_be_resolved_holds_the_item(
+    git_repo: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # AC-0027 (T25, finding sec-hardening-001): a citation path whose
+    # resolution raises — Path.resolve() raises RuntimeError for a symlink
+    # loop on Python 3.11, CI's version — is one that resolves nowhere:
+    # the closure is refused and the item held, never an abort. The seam
+    # is driven directly, so the hold holds regardless of the
+    # interpreter's own loop behavior.
+    repo, ids = _two_capture_repo(git_repo, "t25-unresolvable")
+    original_resolve = Path.resolve
+
+    def looping_resolve(self: Path, strict: bool = True) -> Path:
+        if self.name == "loop.md":
+            raise RuntimeError(f"Symlink loop from {self}")
+        return original_resolve(self, strict=strict)
+
+    monkeypatch.setattr(Path, "resolve", looping_resolve)
+
+    report = DRAIN.drain(repo, confirmer=_superseded_close(ids[0], {"path": "docs/product/captured/loop.md"}))
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    (held,) = [
+        item for item in report["items"] if item["action"] == "held" and item["capture_id"] == ids[0]
+    ]
+    assert held["reason"] == "closure-refused:citation-path-escapes-root"
+
+
+def test_citation_path_through_a_real_symlink_loop_holds_the_item(
+    git_repo: Path,
+) -> None:
+    # The same hold over a real circular symlink: on Python 3.13+ the loop
+    # resolves inside the root and the path does not exist; on 3.11–3.12
+    # resolution raises. Either way the closure is refused, never an abort.
+    repo, ids = _two_capture_repo(git_repo, "t25-real-loop")
+    captured = repo / "docs" / "product" / "captured"
+    (captured / "loop-a.md").symlink_to(captured / "loop-b.md")
+    (captured / "loop-b.md").symlink_to(captured / "loop-a.md")
+
+    report = DRAIN.drain(repo, confirmer=_superseded_close(ids[0], {"path": "docs/product/captured/loop-a.md"}))
+
+    assert report["counts"] == {"routed": 0, "held": 2, "closed": 0}, report
+    (held,) = [
+        item for item in report["items"] if item["action"] == "held" and item["capture_id"] == ids[0]
+    ]
+    assert held["reason"].startswith("closure-refused:citation-path-")

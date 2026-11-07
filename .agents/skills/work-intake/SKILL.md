@@ -372,7 +372,17 @@ The intake transaction participates in the shared workspace-writer lock at
 the repository root. It acquires the lock without waiting before artifact
 materialization and holds it continuously through the record write and
 any rollback or reconciliation recovery. If another writer holds the lock,
-the transaction returns `lock_busy` without mutating either side.
+the transaction returns `lock_busy` without mutating either side — with one
+recovery: a lock left by a process that no longer exists is stale, and the
+acquisition recovers it — a liveness probe, an identity re-verification
+(same inode, same pid payload) immediately before the removal, then one
+acquisition retry — so a re-run after a hard-killed predecessor completes
+instead of wedging. A lock whose owner is alive, or whose payload carries
+no parseable pid, is never taken or removed, and a non-regular file at the
+lock path — a symlink, a FIFO, a device — is never probed and never
+removed. The transaction's own acquisition publishes the lock atomically —
+a pid-complete temporary file, unique to its holder, linked into place —
+so a lock it leaves always carries its owner's pid.
 
 For all routes that create or remember work, the artifact owns requirements,
 rationale, findings, source excerpts, follow-on scope, and any other context a
@@ -553,9 +563,20 @@ Every route and every closure is attended: the operator confirms each item's
 disposition before any effect commits. Confirming a route runs the § 5
 transaction — the captured-item file under `docs/product/captured/` for a
 defect, then the processor handoff — through the same
-`scripts/intake_transaction.py` seam every other route uses. A closure states
+`scripts/intake_transaction.py` seam every other route uses. A route commit
+requires a real processor dispatch: the operator wires the owning processor's
+entrypoint as `drain()`'s `dispatch_processor` argument at invocation, and a
+drain invoked without one — no `dispatch_processor` and no `transact` override
+— holds every routable item with no lock taken and no artifact written, so a
+route is never recorded as dispatched without a handoff. A closure states
 one ground — overtaken, superseded, or falsified — with the evidence its test
-needs; a ground whose test fails is refused and the item stays open.
+needs; a ground whose test fails is refused and the item stays open. A
+superseded closure carries a required `citation` field — `{"capture_id":
+<id>}` or `{"path": <repository-relative path>}` — and the drain itself runs
+the resolution test before committing: a citation that resolves nowhere, a
+path that escapes the repository root, or an absent citation refuses the
+closure whatever the operator attests; whether a resolved artifact is live
+is the operator's attestation.
 
 The terminal disposition is written only after every effect: a route's
 disposition is `routed`, a closure records `rejected` or `superseded` with the
