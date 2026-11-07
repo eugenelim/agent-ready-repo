@@ -261,6 +261,18 @@ Owned by: T3, T6, T9
 
 **Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green and the boundary lint pair exits 0.
 
+### T17: Sixth-round review findings are repaired
+
+**Depends on:** T16
+**Touches:** `packs/repo-governance/.apm/skills/new-rfc/scripts/rfc.py`, `packs/repo-governance/seeds/docs/rfc/rfc.py`, `docs/rfc/rfc.py`, `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/tests/skills/new-rfc/test_rfc_script.py`, `packs/repo-governance/tests/skills/new-rfc/test_precreate_checkpoint.py`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`
+
+**Tests:**
+- `renumber` of an `XXXX-<slug>.md` draft whose title is still the template's `# RFC-NNNN: <title>` renames the file and sets the title to the new number, in the script test with a template-derived draft that fails if the repair is reverted (AC-0013). The skill names exactly one step that creates a missing RFC folder and its index, and step 1's cross-reference points to that text (AC-0058, AC-0064), pinned by a source-text test. Mode: TDD for the script, goal-based for the skill text.
+
+**Approach:** the title pattern in `renumber` accepts `RFC-NNNN` as well as `RFC-XXXX` and a number. The skill keeps the creation sentence that `test_precreate_checkpoint.py` pins in step 1, the cross-reference in step 1 points to it, and the parenthetical that points at step 5 is removed. The three `rfc.py` copies stay byte-identical. No version bump.
+
+**Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green, the boundary lint pair exits 0 and the copies are identical.
+
 ## Rollout
 
 Reversible: the template and skill revert by reverting the change; seeded files already installed in adopter repositories stay, inert. Sequencing: script, then template, then seeds and skill, then repository adoption, guide and ADR, then versions last so no task borrows an unreleased version. The `agentbundle` tag and publish follow the merge. Seeded files reach fresh installs only; existing adopters can run `agentbundle scaffold` to add them.
