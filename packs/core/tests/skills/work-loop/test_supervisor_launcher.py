@@ -316,7 +316,8 @@ def test_an_honest_attempt_lands_its_tree_and_completes_on_report(
     assert "Supervisor-Operation: implement" in message and "Supervisor-Attempt: att-" in message
     stored = (env.store() / "results").glob("*.json")
     result = json.loads(next(iter(stored)).read_text("utf-8"))
-    assert result["kind"] == "implement-task" and len(result["result_tree"]) in (40, 64)
+    assert result["kind"] == "run-concurrent" and "gate" not in result
+    assert len(result["result_tree"]) in (40, 64)
     assert len(result["access_attestation_sha256"]) == 64
     code, admitted = env.report(request)
     assert code == 0 and admitted["admitted"] == "run-concurrent"
