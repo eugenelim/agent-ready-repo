@@ -11,17 +11,17 @@ Every piece of work moves through four stages: decide what to build, shape it, b
 
 [![Four stages, left to right: Decide what to build, which ends when you pick the outcome. Shape it, which ends when you commit to build. Build it, which ends when you merge. Ship it, which ends when you ship. Below them, architecture by stage: before any work, architect-assess maps what exists and adapt-to-project or init-project writes reference.md; then you assess the area in Decide, design in Shape, and close-work folds the design into the current-state map after the merge.](the-operating-model-overview.svg)](the-operating-model-overview.svg)
 
-[See the detailed operating model](../reference/detailed-operating-model.md) for every route, skill, and decision.
+[See the detailed operating model](../reference/detailed-operating-model.md) for every route, skill, and stop code.
 
 ## The four stages
 
-Start at the stage your work is in. A bug fix starts at Build it.
+Start at the stage your work is in. A bug fix starts at Build it. A pack is a bundle you install together: skills, the repeatable workflows your agent runs, plus the specialist agents and checks they use.
 
 | Stage | What happens | Packs | It ends when you |
 | --- | --- | --- | --- |
 | Decide what to build | Gather evidence and make the strategic call | `desk-research`, `product-strategy` | Pick the outcome |
 | Shape it | Frame the idea, test the riskiest assumption, design it, cut it into pieces | `product-engineering`, `experience-design`, `architect`, `contracts` | Commit to build |
-| Build it | Write the spec, build, run the checks, review | `core` | Merge |
+| Build it | Write the spec (a short document that says what done means), build, run the checks, review | `core` | Merge |
 | Ship it | Deploy to a throwaway environment, test it, watch it run | `release-engineering` | Ship to production |
 
 Some packs help at any stage: `code-intelligence` to learn what the code does, `repo-governance` to record a decision, `product-documentation` to document what shipped, and `atlassian`, `github`, `linear`, and `figma` to connect your team's tools.
@@ -34,15 +34,15 @@ You find out what is true, then choose what to bet on. `desk-research` answers q
 
 You turn the outcome into work the build can take. There are three routes, and all end when you commit to build:
 
-- **Short.** Write the intent, test its riskiest assumption, and break it into pieces. Most teams start here.
+- **Short.** Write the intent, a short file that states the outcome you want and why, test its riskiest assumption, and break it into pieces. Most teams start here.
 - **Longer.** Map the situation, the opportunities, and the options before you bet. Use it when the problem itself is unclear.
-- **Supervised.** The `discovery-lead` agent runs product, design, architecture, and contract work side by side, and two reviewers check threats and reliability before you see the brief. Use it for a new product area.
+- **Supervised.** The agent runs product, design, architecture, and contract work side by side, and two reviewers check threats and reliability before you see the brief, the written summary of what to build. Use it for a new product area.
 
 See [Shape an idea](../../product-engineering/how-to/frame-the-intent.md).
 
 ## Build it
 
-The `core` pack's work loop builds the piece: features, fixes, refactors, migrations, and upgrades. Small, low-risk work runs straight from your request. Riskier work gets a written spec and plan, which you approve before any code is written.
+The `core` pack's work loop builds the piece: features, fixes, refactors, migrations, and upgrades. Small, low-risk work runs straight from your request. Riskier work gets a written spec and a plan, which you approve before any code is written.
 
 Lint, type checks, and tests must pass: the agent cannot report success while one fails. A shaping review checks the spec before code starts, and an adversarial reviewer then reads every change cold for drift between spec and code. Security, quality, and other specialist reviewers join when the change touches their area. The merge is always yours. See [Run the build loop](../../core/how-to/start-the-work.md).
 
@@ -60,36 +60,14 @@ The more permanent the action, the more the agent waits:
 | Needs a call | A blocker, or the release loop reaching its stop point | Stops and shows you where things stand |
 | Can't be undone | Committing to build, merging, shipping to production | Waits for your yes |
 
-When an agent stops for a decision, it labels the decision point with a short code:
-
-| Decision point | You decide |
-| --- | --- |
-| G0 | Is the problem real, and worth a bet? |
-| G1.5 | What is in the first version? Shown only on the supervised route. |
-| G2 | Is the brief good enough to build from? |
-| G3 | Is it ready for the build loop? |
-| G4 | Is the merged change ready for release testing? |
-| G5 | Does it go to production? |
+Some stops carry a code from G0 to G5, such as G3 when you commit to build. The [detailed model](../reference/detailed-operating-model.md#stop-codes) lists each one.
 
 ## Where architecture comes in
 
-Before any work, the `architect-assess` skill maps the system you have, and `adapt-to-project` (for an existing codebase) or `init-project` (for a new one) writes `reference.md`, the file that names your stack and standards. Every plan follows it.
+Before any work, the agent maps the system you have and writes a file called `reference.md` that records your stack and standards. Every plan follows it.
 
-After that, architecture joins each stage when it is needed: you assess the area a bet touches while deciding, design against the capabilities while shaping, and change the design in the open if the build proves it wrong. After the merge, `close-work` offers to fold the shipped design back into the map. See [Design the architecture](../../architect/how-to/shape-an-architecture-concept.md).
+Architecture then joins each stage when it is needed: you assess the area a bet touches while deciding, design against the capabilities while shaping, and change the design in the open if the build proves it wrong. After the merge, the agent offers to fold the shipped design back into the map, and you choose whether to take it. See [Design the architecture](../../architect/how-to/shape-an-architecture-concept.md).
 
 ## Why three loops
 
-Working out what to build, building it, and shipping it are different jobs. Exploring five product ideas is cheap and a bad release is not, so each job runs in its own loop with its own checks: `discovery-lead` for shaping, the work loop for building, and `release-lead` for shipping. None runs inside another, and nothing crosses from one to the next without your decision.
-
-## Where each loop installs
-
-Each loop installs where its work happens. Shaping happens in documents, so it installs for you; building and shipping happen in the repository, so they install there:
-
-```bash
-agentbundle install --pack product-engineering --scope user
-cd path/to/your-repo
-agentbundle install --pack core
-agentbundle install --pack release-engineering
-```
-
-Install only the loops your team uses. Most teams start with `core`.
+Working out what to build, building it, and shipping it are different jobs. Exploring five product ideas is cheap and a bad release is not, so each job runs as its own loop with its own checks. None runs inside another, and nothing crosses from one to the next without your decision.
