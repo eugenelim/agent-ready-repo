@@ -103,6 +103,7 @@ def test_number_clash_eval_states_the_snapshot_rule() -> None:
     assert "merged with the default branch" in ev["expected_output"]
     assert "as pull-request CI does" not in ev["expected_output"]
     assert "where the repository has set one up" in ev["expected_output"]
+    assert "locally after merging the default branch in" in ev["expected_output"]
     assert _has(ev, "snapshot", "not a reservation")
     assert _has(ev, "alone cannot confirm")
     assert _has(ev, "renumber")

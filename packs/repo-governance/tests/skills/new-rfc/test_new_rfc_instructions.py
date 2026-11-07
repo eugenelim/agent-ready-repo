@@ -227,6 +227,7 @@ def test_rfc_mode_never_names_the_governance_file_ac_0061() -> None:
     rendering = TEXT.split("## Output rendering", 1)[1].split(" ## ", 1)[0]
     rfc_mode = rendering + " " + PROCEDURE
     assert "GOVERNANCE" not in rfc_mode
+    assert "governance file" not in PROCEDURE
     when = TEXT.split("## When to invoke", 1)[1].split(" ## Governance mode ", 1)[0]
     assert "GOVERNANCE.md" in when and "uses the Governance mode" in when
 
@@ -308,6 +309,7 @@ def test_step_one_states_the_snapshot_rule() -> None:
     assert "`next` or `check` on the branch alone cannot confirm the number is free" in TEXT
     assert "as pull-request CI does" not in TEXT
     assert "as a pull-request CI job running `check` does where the repository has set one up" in TEXT
+    assert "or locally after merging the default branch in" in TEXT
     assert (
         "Run `renumber` only on this branch's own unmerged draft, never on a record "
         "already on the default branch" in TEXT
