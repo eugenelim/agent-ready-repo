@@ -459,4 +459,4 @@ in T5's release).
 - 2026-11-06: amendment approved by eugenelim (build strategy)
 - 2026-11-06: amendment approved by eugenelim (scope)
 - 2026-11-06: amendment approved by eugenelim (build strategy)
-- 2026-11-06: spec approved by eugenelim (restart on the fixed supervisor)
+- 2026-11-06: spec approved by eugenelim
