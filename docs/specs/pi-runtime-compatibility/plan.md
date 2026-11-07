@@ -1,7 +1,7 @@
 # Plan: Pi runtime compatibility
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `tests/AGENTS.md` (roster placement and CI wiring); `tests/roster/test_t9a_clean_env_fence.py` (static import scan with red evidence, and the supervisor `start`/`next` subprocess fence built on `packs/core/tests/skills/work-loop/supervisor_harness.py`); `tools/lint-ci-parity.py` `STEP_DISPOSITION`.
 
 > **Plan contract:** this is the implementation strategy. After approval, a

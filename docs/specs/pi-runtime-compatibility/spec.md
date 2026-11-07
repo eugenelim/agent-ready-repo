@@ -1,6 +1,6 @@
 # Spec: Pi runtime compatibility
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144 (the skill-shipped supervisor owns work-loop procedure), ADR-0074 (standard-library skill scripts)
@@ -85,31 +85,31 @@ Terms used below.
 
 **The Pi-hosted run**
 
-- [ ] **AC-0001.** With `AGENT_READY_PI_CONFORMANCE=1` and `pi` on `PATH`, the harness starts exactly one Pi launch, with the child environment and no other variable, and sends it exactly one RPC command, of type `bash`.
-- [ ] **AC-0002.** That command runs `<python> -m pytest -p no:cacheprovider -q --junitxml=<tmp>/junit.xml` followed by the named suite list and no other argument, where `<python>` is the test's own interpreter.
-- [ ] **AC-0016.** Before pytest starts, that command writes, to files in `<tmp>`, the shell's parent PID and the case count `--collect-only -q` reports for the same file list.
-- [ ] **AC-0003.** The test passes only when Pi's RPC response reports `success: true` and `exitCode: 0`, and the JUnit report has zero failures, zero errors and zero skips, at least one case from every file in the named suite list, and a case total equal to the collected count.
-- [ ] **AC-0004.** The test fails unless the parent PID the shell wrote equals the PID of the Pi process the harness started.
-- [ ] **AC-0005.** The test fails when the deadline passes without a `response` line.
-- [ ] **AC-0006.** When the test ends, whatever the outcome, no run process is still running.
-- [ ] **AC-0007.** On a passing run, `python -m pytest tests/roster/test_pi_hosted_conformance.py -q -rsP` prints `<pi>`, the output of `<pi> --version` run with the child environment and its own fresh empty `HOME`, and the passed and collected counts.
+- [x] **AC-0001.** With `AGENT_READY_PI_CONFORMANCE=1` and `pi` on `PATH`, the harness starts exactly one Pi launch, with the child environment and no other variable, and sends it exactly one RPC command, of type `bash`.
+- [x] **AC-0002.** That command runs `<python> -m pytest -p no:cacheprovider -q --junitxml=<tmp>/junit.xml` followed by the named suite list and no other argument, where `<python>` is the test's own interpreter.
+- [x] **AC-0016.** Before pytest starts, that command writes, to files in `<tmp>`, the shell's parent PID and the case count `--collect-only -q` reports for the same file list.
+- [x] **AC-0003.** The test passes only when Pi's RPC response reports `success: true` and `exitCode: 0`, and the JUnit report has zero failures, zero errors and zero skips, at least one case from every file in the named suite list, and a case total equal to the collected count.
+- [x] **AC-0004.** The test fails unless the parent PID the shell wrote equals the PID of the Pi process the harness started.
+- [x] **AC-0005.** The test fails when the deadline passes without a `response` line.
+- [x] **AC-0006.** When the test ends, whatever the outcome, no run process is still running.
+- [x] **AC-0007.** On a passing run, `python -m pytest tests/roster/test_pi_hosted_conformance.py -q -rsP` prints `<pi>`, the output of `<pi> --version` run with the child environment and its own fresh empty `HOME`, and the passed and collected counts.
 
 **Opt-in skip**
 
-- [ ] **AC-0008.** With `AGENT_READY_PI_CONFORMANCE` unset the test is skipped with a reason naming the variable, whether or not `pi` is on `PATH`; with the variable set and no `pi` executable on `PATH`, the reason names `pi`.
-- [ ] **AC-0009.** A skipped run starts no `pi` process.
+- [x] **AC-0008.** With `AGENT_READY_PI_CONFORMANCE` unset the test is skipped with a reason naming the variable, whether or not `pi` is on `PATH`; with the variable set and no `pi` executable on `PATH`, the reason names `pi`.
+- [x] **AC-0009.** A skipped run starts no `pi` process.
 
 **Core with Pi absent**
 
-- [ ] **AC-0010.** The Pi-absent check fails when any file under `packs/core/` holds a Pi reference, and passes on this branch.
-- [ ] **AC-0011.** The Pi-absent check fails when any dependency manifest under `packs/core/` names a package or pack in which `pi` is a whole hyphen-, underscore-, dot- or slash-separated word. The manifests are `pack.toml` (`[[pack.runtime-dependencies]] package` and `[[pack.integrations]] pack`), every `plugin.json` and `package.json` (`dependencies`, `devDependencies`, `peerDependencies`, `optionalDependencies` keys), every `requirements*.txt`, and every `pyproject.toml` (`[project] dependencies` and `optional-dependencies`).
-- [ ] **AC-0012.** From an environment built from scratch with no `PI_` variable, a `PATH` on which `pi` does not resolve, and `HOME` an empty temporary directory, the projected supervisor's `work-supervisor.py start` then `next` each exit `0` on a committed fixture repository, after the test confirms `pi` does not resolve on that `PATH`.
-- [ ] **AC-0013.** With a sentinel `pi` executable first on that `PATH`, which records each run to a file, `start` then `next` each exit `0` and the sentinel records no run.
+- [x] **AC-0010.** The Pi-absent check fails when any file under `packs/core/` holds a Pi reference, and passes on this branch.
+- [x] **AC-0011.** The Pi-absent check fails when any dependency manifest under `packs/core/` names a package or pack in which `pi` is a whole hyphen-, underscore-, dot- or slash-separated word. The manifests are `pack.toml` (`[[pack.runtime-dependencies]] package` and `[[pack.integrations]] pack`), every `plugin.json` and `package.json` (`dependencies`, `devDependencies`, `peerDependencies`, `optionalDependencies` keys), every `requirements*.txt`, and every `pyproject.toml` (`[project] dependencies` and `optional-dependencies`).
+- [x] **AC-0012.** From an environment built from scratch with no `PI_` variable, a `PATH` on which `pi` does not resolve, and `HOME` an empty temporary directory, the projected supervisor's `work-supervisor.py start` then `next` each exit `0` on a committed fixture repository, after the test confirms `pi` does not resolve on that `PATH`.
+- [x] **AC-0013.** With a sentinel `pi` executable first on that `PATH`, which records each run to a file, `start` then `next` each exit `0` and the sentinel records no run.
 
 **Docs and wiring**
 
-- [ ] **AC-0014.** `docs/architecture/runtime-adapter-crosswalk.md` links `https://github.com/eugenelim/agent-ready-pi`, `tests/roster/test_pi_hosted_conformance.py`, `tests/roster/test_core_pi_absent.py` and this spec's Accepted Risk. With every run of whitespace in the page collapsed to one space, the page contains the sentence "The Pi proof runs Core's suites under Pi's process and tool environment; it is not a model-driven work-loop run." and none of "Pi conformance are later slices", "or Pi conformance environment exists in the tree", and "adds no runtime-specific proof obligation".
-- [ ] **AC-0015.** `tools/lint-ci-parity.py` exits `0`, with a named `build-check.yml` step for each new roster file above the bulk `pytest tests/` step.
+- [x] **AC-0014.** `docs/architecture/runtime-adapter-crosswalk.md` links `https://github.com/eugenelim/agent-ready-pi`, `tests/roster/test_pi_hosted_conformance.py`, `tests/roster/test_core_pi_absent.py` and this spec's Accepted Risk. With every run of whitespace in the page collapsed to one space, the page contains the sentence "The Pi proof runs Core's suites under Pi's process and tool environment; it is not a model-driven work-loop run." and none of "Pi conformance are later slices", "or Pi conformance environment exists in the tree", and "adds no runtime-specific proof obligation".
+- [x] **AC-0015.** `tools/lint-ci-parity.py` exits `0`, with a named `build-check.yml` step for each new roster file above the bulk `pytest tests/` step.
 
 ## Terminal Intent
 
