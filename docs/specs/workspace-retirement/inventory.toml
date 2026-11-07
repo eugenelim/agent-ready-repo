@@ -84,6 +84,12 @@ consumer = "ignore rules for the repair artifacts workspace-status writes next t
 owner = "rfc-0067"
 
 [[row]]
+pattern = "docs-site/src/skills-catalogue.toml"
+class = "guide"
+consumer = "Skills by job rows: the workspace-status entry gives its repair-plan example ask"
+owner = "rfc-0067"
+
+[[row]]
 pattern = "ARCHITECTURE.md"
 class = "guide"
 consumer = "architecture map: workspace.toml is a legacy file that only workspace-status repair changes; dispatch reads artifact headers"
