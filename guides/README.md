@@ -93,7 +93,7 @@ Work moves through four stages, and most work skips one or two. Find your stage,
 
 **Ship it**
 
-- [Release a change](release-engineering/how-to/run-a-release.md) deploys, checks, and ships on your approval.
+- [Release a change](release-engineering/how-to/run-a-release.md) deploys, checks, and records your approval to ship.
 - [Change infrastructure](iac-terraform/how-to/change-infrastructure.md) turns a request into reviewed Terraform or OpenTofu.
 - [Measure delivery](atlassian/how-to/measure-flow-and-dora-metrics.md) reports cycle time and throughput from Jira.
 
@@ -193,7 +193,7 @@ This release and reporting stage takes the build through its human ship gate.
 1. [The release loop](release-engineering/explanation/the-release-loop.md)
 2. [Run a release](release-engineering/how-to/run-a-release.md)
 3. [Project slices out to a tracker](_shared/how-to/project-slices-to-a-tracker.md), or [intake from one](_shared/how-to/choose-a-tracker-integration.md)
-4. [Measure flow and DORA metrics](atlassian/how-to/measure-flow-and-dora-metrics.md)
+4. [Measure delivery](atlassian/how-to/measure-flow-and-dora-metrics.md)
 
 **First value:** a deployed artifact validated in an environment like production.
 **Ends at:** a human ratifying the production ship.

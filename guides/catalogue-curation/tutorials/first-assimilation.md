@@ -8,7 +8,7 @@ kind: tutorial
 # Your first assimilation
 
 **What you'll build:** One external skill adopted into the catalogue — fetched, security-reviewed, shaped to catalogue convention, and verified with a passing definition-of-done checklist.
-**Prerequisites:** The `catalogue-curation` pack installed (requires `core` + `repo-governance`); read [Skill standards](../explanation/skill-standards.md) first.
+**Prerequisites:** The `catalogue-curation` pack installed (works on its own at repo scope; add `core` and `repo-governance` when you also want specs and RFCs); read [Skill standards](../explanation/skill-standards.md) first.
 **Time:** 30–45 minutes.
 
 **Goal:** bring one external skill into the catalogue — safely, and shaped to
@@ -19,8 +19,7 @@ seen where every guardrail fires.
 When assimilating, the three standards apply in reverse: you review the incoming skill against them rather than building to them.
 Standard 3 (OWASP AST) applies with extra weight here because the material arrives from outside.
 
-You need the `catalogue-curation` pack installed (it requires `core` +
-`repo-governance`).
+You need the `catalogue-curation` pack installed (it works on its own at repo scope; add `core` and `repo-governance` when you also want specs and RFCs).
 
 ## 1. Point the skill at the source
 
