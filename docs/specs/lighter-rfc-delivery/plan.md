@@ -273,6 +273,18 @@ Owned by: T3, T6, T9
 
 **Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green, the boundary lint pair exits 0 and the copies are identical.
 
+### T18: Seventh-round review findings are repaired
+
+**Depends on:** T17
+**Touches:** `guides/repo-governance/how-to/new-rfc.md`, `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/.apm/skills/new-rfc/evals/evals.json`, `packs/repo-governance/tests/skills/new-rfc/test_rfc_script.py`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`, `packs/repo-governance/tests/skills/new-rfc/test_evals.py`, `tests/roster/test_lighter_rfc_delivery.py`
+
+**Tests:**
+- The guide, the skill's step 1 and eval 12 say that a number is a snapshot, that a clash with a record merged since shows only when `check` runs on the branch merged with the default branch (as pull-request CI does, or locally after merging it in), and that `next` or `check` on the branch alone cannot confirm the number is free; source-text pins fail on the old wording (AC-0072, AC-0058, AC-0071). `renumber` run with `--dir` set to a folder other than the script's own renames an `XXXX-` draft there, leaves the script's folder unchanged, and reads, lists and writes only under that folder, so the test fails if the base folder is replaced by the script's folder (AC-0034, AC-0013). Mode: TDD for the script, goal-based for the text.
+
+**Approach:** the guide sentence about re-deriving the number and the matching lines in SKILL.md step 1 and eval 12 state the snapshot rule and name the merge-then-`check` step; the three keep the companion and no-reservation statements. The new script test extends the `--dir` spies in `test_dir_targets_only_the_given_folder` or adds a sibling that uses them. No version bump. The `rfc.py` copies are not touched.
+
+**Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green, the boundary lint pair exits 0 and the guide tools exit 0.
+
 ## Rollout
 
 Reversible: the template and skill revert by reverting the change; seeded files already installed in adopter repositories stay, inert. Sequencing: script, then template, then seeds and skill, then repository adoption, guide and ADR, then versions last so no task borrows an unreleased version. The `agentbundle` tag and publish follow the merge. Seeded files reach fresh installs only; existing adopters can run `agentbundle scaffold` to add them.
