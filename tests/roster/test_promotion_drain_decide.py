@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPTS_DIR = (
     REPO_ROOT / "packs" / "core" / ".apm" / "skills" / "project-knowledge" / "scripts"
@@ -209,8 +211,10 @@ def test_each_closure_ground_with_its_test_passing_records_the_ground() -> None:
         "superseded": ("superseded", "closed_superseded"),
     }
     for ground, (disposition, reason_code) in expected.items():
+        citation = {"capture_id": "kco-202611-" + "0" * 64} if ground == "superseded" else None
         closure = DRAIN.decide_closure(
-            ground, test_passes=True, evidence={"what": "the deviation no longer shows"}
+            ground, test_passes=True, evidence={"what": "the deviation no longer shows"},
+            citation=citation,
         )
         assert closure["verdict"] == "closed", ground
         assert closure["terminal_disposition"] == {
@@ -218,6 +222,16 @@ def test_each_closure_ground_with_its_test_passing_records_the_ground() -> None:
             "reason_code": reason_code,
         }
         assert closure["evidence"] == {"what": "the deviation no longer shows"}
+    # § D5 (AC-0027): the closed superseded verdict carries its citation;
+    # the other two grounds never do.
+    superseded = DRAIN.decide_closure(
+        "superseded",
+        test_passes=True,
+        evidence={},
+        citation={"capture_id": "kco-202611-" + "0" * 64},
+    )
+    assert superseded["citation"] == {"capture_id": "kco-202611-" + "0" * 64}
+    assert "citation" not in DRAIN.decide_closure("overtaken", test_passes=True, evidence={})
 
 
 def test_each_closure_ground_with_its_test_failing_is_refused() -> None:
@@ -238,7 +252,12 @@ def test_every_disposition_falls_on_exactly_one_side_of_the_split(git_repo: Path
         classification="spec",
     )
     closures = [
-        DRAIN.decide_closure(ground, test_passes=True, evidence={})
+        DRAIN.decide_closure(
+            ground,
+            test_passes=True,
+            evidence={},
+            citation={"capture_id": "kco-202611-" + "0" * 64} if ground == "superseded" else None,
+        )
         for ground in ("overtaken", "falsified", "superseded")
     ]
     dispositions = [
@@ -283,3 +302,83 @@ def test_capped_envelope_run_holds_rather_than_reporting_verified() -> None:
         assert decision["action"] == "hold", outcome
         assert decision["reason"] == "defect-readiness", outcome
         assert decision["terminal_disposition"] is None, outcome
+
+
+@pytest.mark.parametrize(
+    "member,routes",
+    [
+        ("direct-light", True),
+        ("spec", True),
+        ("brief", True),
+        ("defect", True),
+        ("remember", False),
+        ("incomplete", False),
+    ],
+)
+def test_each_classify_member_routes_or_holds_by_dispatchability(
+    git_repo: Path, member: str, routes: bool
+) -> None:
+    # § D3 (AC-0026): a question's classification must be one of the six
+    # classify-table members by name; a non-dispatchable member — `remember`
+    # or `incomplete`, rows whose processor is `none` — names no route, so
+    # the item holds the same way a non-member does.
+    offer = DRAIN.assemble_offer(_capture(_request("question")))
+
+    decision = DRAIN.decide(offer, attended=True, classification=member)
+
+    if routes:
+        assert decision["action"] == "route"
+        assert decision["classification"] == member
+        assert decision["terminal_disposition"] is not None
+    else:
+        assert decision["action"] == "hold"
+        assert decision["reason"] == "unroutable"
+        assert decision["terminal_disposition"] is None
+
+
+def test_non_member_classification_holds_as_unroutable(git_repo: Path) -> None:
+    # § D3 (AC-0026): a classification that is not one of the six members is
+    # not a classification — no table row owns it — and no non-empty string
+    # can route a question.
+    offer = DRAIN.assemble_offer(_capture(_request("question")))
+
+    decision = DRAIN.decide(offer, attended=True, classification="deploy-checklist")
+
+    assert decision["action"] == "hold"
+    assert decision["reason"] == "unroutable"
+    assert decision["terminal_disposition"] is None
+
+
+def test_superseded_closure_requires_a_well_formed_citation() -> None:
+    # § D5 (AC-0027): the citation is a required field — absent or
+    # malformed citations are refused before any test verdict, whatever the
+    # operator attests; the other two grounds never require one.
+    absent = DRAIN.decide_closure("superseded", test_passes=True, evidence={})
+    assert absent == {
+        "verdict": "refused",
+        "reason": "citation-required",
+        "ground": "superseded",
+        "terminal_disposition": None,
+    }
+    for malformed in ({}, {"capture_id": ""}, {"capture_id": 7}, {"path": ""},
+                      {"capture_id": "x", "path": "y"}, "kco-202611-0"):
+        refused = DRAIN.decide_closure("superseded", test_passes=True, evidence={}, citation=malformed)
+        assert refused["verdict"] == "refused", malformed
+        assert refused["reason"] == "citation-malformed"
+    # The operator's veto still refuses a well-formed citation.
+    vetoed = DRAIN.decide_closure(
+        "superseded", test_passes=False, evidence={}, citation={"path": "docs/example.md"}
+    )
+    assert vetoed["verdict"] == "refused"
+    assert vetoed["reason"] == "ground-test-failed"
+
+
+def test_non_superseded_grounds_ignore_the_citation_field() -> None:
+    # § D5 (AC-0027): overtaken and falsified stay operator-attested,
+    # byte-for-byte their current behavior — a citation rides neither.
+    for ground in ("overtaken", "falsified"):
+        closure = DRAIN.decide_closure(
+            ground, test_passes=True, evidence={"what": "named"}, citation={"path": "docs/x.md"}
+        )
+        assert closure["verdict"] == "closed"
+        assert "citation" not in closure

@@ -129,6 +129,12 @@ jobs:
       - name: Install ruff + mypy
         id: ruff_mypy
         if: '!cancelled()'
+        # The ruff version is pinned once, in tools/requirements.txt —
+        # installed by the earlier "Install tools dependencies" step, which
+        # this bare install leaves in place (the parity mechanism that file
+        # documents). See
+        # docs/product/captured/pre-existing-closure-index-collapsible-if.md
+        # for the recorded version facts.
         run: pip install ruff mypy
       - name: Install credbroker (editable, with crypto extra)
         id: credbroker
@@ -408,7 +414,7 @@ jobs:
       # navigation. make build-check runs no pytest — wire them explicitly.
       - name: pytest guides sidebar generation
         if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_build_a_catalogue_nav.py tools/test_schema_field_reference.py tools/test_catalogue_spec_site.py
+        run: python -m pytest tools/test_build_site_inventory.py tools/test_build_site_projection.py tools/test_build_site_sidebar.py tools/test_skills_catalogue.py tools/test_build_a_catalogue_nav.py tools/test_schema_field_reference.py tools/test_catalogue_spec_site.py
       - name: pytest guides + catalogue navigation
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
@@ -968,6 +974,23 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_t9a_clean_env_fence.py
 
+      # Pi-absent check (pi-runtime-compatibility AC-0010..AC-0013): scans
+      # packs/core/ source and manifests and runs the projected supervisor with
+      # Pi unreachable and with a sentinel `pi` reachable. It reads the pack tree
+      # and the projected skill together, so it is roster-owned. Sits ABOVE the
+      # carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Core Pi-absent check (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_core_pi_absent.py -q
+
+      # Pi-hosted conformance harness (pi-runtime-compatibility AC-0001..AC-0009):
+      # the opt-in real run skips in CI (no AGENT_READY_PI_CONFORMANCE, no Pi);
+      # the stub-`pi` pins run. Roster-owned: it reads the pack tree. Sits ABOVE
+      # the carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Pi-hosted conformance harness pins (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_pi_hosted_conformance.py -q -rs
+
       # visual-handoff-golden-path: installs experience-design and
       # frontend-engineering together and reads both, so lint-pack-test-boundary
       # forbids a pack home. Sits ABOVE the carve-out step below, whose
@@ -1078,6 +1101,10 @@ jobs:
       - name: pytest promotion drain surfaces (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_promotion_drain_surfaces.py
+
+      - name: pytest intake transaction lock recovery (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_intake_transaction_lock_recovery.py
 
       - name: pytest catalogue-test carve-out destinations (RFC-0082)
         if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"

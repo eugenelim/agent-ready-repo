@@ -750,6 +750,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest promotion drain surfaces (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest intake transaction lock recovery (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest retired-name pinned sites (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest brief lifecycle single home (roster-owned)":
@@ -851,6 +853,15 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # LOCAL("test-after-build-check") is correct: that target's run-test-suite
     # includes pytest tests/ -q, which discovers this roster file.
     "pytest T9a clean-environment fence (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0010..AC-0013: Pi-absent check.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest Core Pi-absent check (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0001..AC-0009: Pi-hosted harness pins (the
+    # real run is opt-in and skips). Discovered by the bulk pytest tests/ -q.
+    "pytest Pi-hosted conformance harness pins (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest visual handoff golden path (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -1176,6 +1187,7 @@ _GATE_MAIN_CHECKS = (
     "pytest promotion drain repair (roster-owned)",
     "pytest promotion drain run (roster-owned)",
     "pytest promotion drain surfaces (roster-owned)",
+    "pytest intake transaction lock recovery (roster-owned)",
     "pytest retired-name pinned sites (roster-owned)",
     "pytest brief lifecycle single home (roster-owned)",
     "pytest workspace retirement inventory (roster-owned)",
@@ -1205,6 +1217,8 @@ _GATE_MAIN_CHECKS = (
     "pytest reviewer output contract (roster-owned)",
     "pytest T9a conformance roll-up (roster-owned)",
     "pytest T9a clean-environment fence (roster-owned)",
+    "pytest Core Pi-absent check (roster-owned)",
+    "pytest Pi-hosted conformance harness pins (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",
     "pytest skill HTML view token file agreement (roster-owned)",
     "pytest agentbundle shipped governance markers (roster-owned)",
@@ -1755,6 +1769,10 @@ SUITE_DISPOSITION: dict[str, tuple[str, ...]] = {
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),
     'tools/test_build_site_sidebar.py':
+        PR_GATED(
+            "build-check.yml / gate-main / pytest guides sidebar generation"
+        ),
+    'tools/test_skills_catalogue.py':
         PR_GATED(
             "build-check.yml / gate-main / pytest guides sidebar generation"
         ),

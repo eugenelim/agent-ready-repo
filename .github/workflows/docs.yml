@@ -26,6 +26,9 @@ on:
       - 'tools/lint-guide-titles.py'
       - 'tools/test_lint_guide_titles.py'
       - 'tools/validate_guides.py'
+      - 'tools/skills_catalogue.py'
+      - 'tools/test_skills_catalogue.py'
+      - 'docs-site/src/skills-catalogue.toml'
       - 'tools/test_validate_guides.py'
       - 'tools/build-site.py'
       - 'packages/agentbundle/agentbundle/catalogue_tooling/skill_spec_lint.py'
@@ -159,6 +162,8 @@ jobs:
       # could land with no frontmatter and every gate stayed green.
       - name: Validate published-guide metadata
         run: python3 tools/validate_guides.py
+      - name: Check the skills catalogue covers every user-invocable skill
+        run: python3 tools/skills_catalogue.py --check
       - name: Fail on any warning, and assert the run had coverage
         # Two assertions, because the first alone is blind. The validator exits 0 for
         # warnings by design (they were advisory while the backfill was in flight), so

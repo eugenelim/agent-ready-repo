@@ -238,7 +238,10 @@ in the store. Per item it routes, holds, or closes:
   `observed` and `intended` — routes to the defect processor (`bug-fix`)
   through a captured-item file under `docs/product/captured/`.
 - A **question** is classified by work-intake's classify table over its
-  framed fields and routes to whichever input shape that table selects.
+  framed fields and routes to whichever input shape that table selects —
+  and only a classification that is one of the table's six members routes
+  at all: an output no table row owns, or a non-dispatchable member —
+  `remember` or `incomplete` — is held as unroutable.
 - A **decision** is held until the governance routing sibling ships.
 - An item the drain cannot route — no classification resolves, the stored
   path escapes the repository, the re-check or the envelope refuses the
@@ -248,7 +251,14 @@ in the store. Per item it routes, holds, or closes:
 - An item whose work already exists, is recorded elsewhere, or rested on a
   premise that no longer holds can be **closed** on one of three grounds —
   overtaken, superseded, falsified — each with evidence its own test must
-  hold; a ground whose test fails is refused and the item stays open.
+  hold; a ground whose test fails is refused and the item stays open. A
+  superseded closure additionally carries a required `citation` field —
+  `{"capture_id": <id>}` or `{"path": <repository-relative path>}` — and
+  the drain itself resolves it before committing: a citation that resolves
+  nowhere, an id the store does not hold, a path that does not exist or
+  that escapes the repository root, or an absent citation refuses the
+  closure whatever the operator attests; that a resolved artifact is live
+  remains the operator's attestation.
 
 A routed item records the terminal disposition `routed`; a closure records
 `rejected` or `superseded` with its ground in the reason code. Nothing runs a
