@@ -1,7 +1,7 @@
 # Plan: brief-level runner
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `tests/AGENTS.md` (roster tests and their named build-check step); `dispatch.py` `dispatch()` and `_header_readiness.py` as the readiness owner; `author-delivery-brief/scripts/lint-brief-coverage.py` as the Spec map parser precedent; `_supervisor_git.HardenedGit` as the hardened Git launcher; `_file_safety.read_confined_regular_file` as the read path; `lint-knowledge.py` `field_problems` with its `body` policy as the one standing-orders character rule; `_supervisor_admission._check_lease` and its lease key constants as the one lease rule; `_supervisor_loop.State.attempt` as the failed-attempt count; `supervisor_harness.py` and `test_supervisor_parked_gates.py` as the analogous integration tests.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -229,6 +229,16 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
   - Read-only (AC-0001): the security-log exception case also leaves `HEAD`, every ref and the index unchanged.
   - Gates cause (AC-0009, AC-0011): `attach_gates` on a row with no worktree gives the row's own detail, or `unreadable-worktree`.
 - **Done when:** the T13 tests pass, the existing brief-runner suites stay green, and lint is clean.
+
+### T14: Restarted-run review round 4 repairs
+
+- **Depends on:** T13
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/brief-runner.py`, `packs/core/.apm/skills/work-loop/references/brief-runner.md`, `packs/core/tests/skills/work-loop/test_brief_runner.py`, `packs/core/tests/skills/work-loop/test_brief_runner_guidance.py`, `docs/product/captured/read-once-filter-names-race.md`
+- **Mode:** TDD
+- **Tests:**
+  - Base check (AC-0002): an untracked `docs/specs/<x>/` holding a `.gitignore` of `*` and a `spec.md` refuses `base-not-committed`; so do the same folder with the name written `.GITIGNORE`, an untracked `docs/.gitignore`, an untracked `.gitignore` inside a folder a committed rule ignores, and an untracked `.gitignore` in the skill directory; a committed, unchanged `.gitignore` under `docs/` passes; the supervisor's own `docs/specs/<slug>/.supervisor/.gitignore` holding `*` passes, and the same path holding anything else refuses; the refusal detail names hidden states as well as modified, staged and untracked files.
+  - Guidance (AC-0002): the reference's run precondition names sparse-checkout and index-flagged paths, `info/exclude`-hidden files and untracked `.gitignore` files as refusing states.
+- **Done when:** the T14 tests pass, the existing brief-runner suites stay green, and lint is clean.
 
 ## Rollout
 
