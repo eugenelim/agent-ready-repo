@@ -1,7 +1,7 @@
 # Plan: brief-level runner
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `tests/AGENTS.md` (roster tests and their named build-check step); `dispatch.py` `dispatch()` and `_header_readiness.py` as the readiness owner; `author-delivery-brief/scripts/lint-brief-coverage.py` as the Spec map parser precedent; `_supervisor_git.HardenedGit` as the hardened Git launcher; `_file_safety.read_confined_regular_file` as the read path; `lint-knowledge.py` `field_problems` with its `body` policy as the one standing-orders character rule; `_supervisor_admission._check_lease` and its lease key constants as the one lease rule; `_supervisor_loop.State.attempt` as the failed-attempt count; `supervisor_harness.py` and `test_supervisor_parked_gates.py` as the analogous integration tests.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -217,6 +217,18 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
   - Internal error (AC-0002): the `internal-error` refusal writes a bounded traceback to stderr and keeps stdout one JSON object.
   - Guidance (AC-0001): the reference names the supervisor's own security-event log as the one thing a runner read may change in a slice worktree.
 - **Done when:** the T12 tests pass, the existing brief-runner suites stay green, and lint is clean.
+
+### T13: Restarted-run review round 3 repairs
+
+- **Depends on:** T12
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/brief-runner.py`, `packs/core/tests/skills/work-loop/test_brief_runner.py`, `packs/core/tests/skills/work-loop/test_brief_runner_units.py`, `docs/product/captured/read-once-filter-names-race.md` (adds the accepted S7 risk to the follow-on)
+- **Mode:** TDD
+- **Tests:**
+  - Base check (AC-0002): with `core.checkStat=minimal` and `core.trustctime=false` in the repository config, a same-size `docs/` edit with its mtime restored refuses `base-not-committed`; the original entry is first made not racily clean (an old mtime, then an index refresh), so dropping either stat pin turns it red; an untracked `docs/` file that only the repository's `core.excludesFile` ignores refuses; a skip-worktree `docs/` file missing from disk refuses; an assume-unchanged path replaced by a symlink to its base bytes refuses without following the link.
+  - Internal error (AC-0002): stderr names frame locations and exception types for an explicit cause and for an implicit context, omits a context suppressed with `from None`, and no message or source text appears.
+  - Read-only (AC-0001): the security-log exception case also leaves `HEAD`, every ref and the index unchanged.
+  - Gates cause (AC-0009, AC-0011): `attach_gates` on a row with no worktree gives the row's own detail, or `unreadable-worktree`.
+- **Done when:** the T13 tests pass, the existing brief-runner suites stay green, and lint is clean.
 
 ## Rollout
 
