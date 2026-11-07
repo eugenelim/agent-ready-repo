@@ -291,3 +291,6 @@ def test_the_run_precondition_names_every_path_the_base_check_reads() -> None:
     """The intro names docs/, workspace.toml and the skill directory, as the base check does."""
     intro = " ".join(RUNNER_MD.read_text(encoding="utf-8").split("## ", 1)[0].split())
     assert "no uncommitted change under `docs/`, in `workspace.toml`, or in this skill's own directory" in intro
+    for state in ("a sparse checkout", "assume-unchanged or skip-worktree", "only `info/exclude` ignores",
+                  "an untracked `.gitignore` file"):  # fmt: skip
+        assert state in intro, state

@@ -12,7 +12,14 @@ records and each slice worktree's supervisor output, and it writes nothing: no
 file, ref, branch, worktree, or store record. The controller owns every action
 it names. Run it from the clean main worktree, with the default branch's tip
 checked out and no uncommitted change under `docs/`, in `workspace.toml`, or in
-this skill's own directory, and no submodule under those paths. Python 3.11 or later, standard library only. Each verb prints one JSON
+this skill's own directory, and no submodule under those paths. Changes `git status`
+does not show still count: a sparse checkout or an assume-unchanged or skip-worktree
+entry that leaves out such a path, a file only `info/exclude` ignores, and an untracked
+`.gitignore` file, in any letter case, each make the verbs refuse `base-not-committed`.
+That includes the `.gitignore` a tool or cache folder writes for itself (a `.venv` or
+`.pytest_cache`, say): remove such a folder from these paths. The one untracked
+`.gitignore` allowed is the supervisor's own, holding `*`, in a spec's `.supervisor/`
+folder. Python 3.11 or later, standard library only. Each verb prints one JSON
 object: exit 0 for an answer, 1 for `{"refusal": {"code", "detail"}}`, 2 for a
 usage error.
 

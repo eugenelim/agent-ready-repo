@@ -408,24 +408,62 @@ def base_checks(root: Path) -> str:
         raise Refusal(
             "base-not-committed",
             "a file under docs/, workspace.toml or this skill's directory is modified, "
-            "staged or untracked",
+            "staged or untracked, or hidden from git status by an untracked .gitignore, "
+            "info/exclude, a sparse checkout or an index flag",
         )
     return head
+
+
+_SUPERVISOR_IGNORE_RE = re.compile(r"docs/specs/[^/]+/\.supervisor/\.gitignore")
+
+
+def _supervisor_ignore_file(main: Path, path: str) -> bool:
+    """True for the supervisor's own ``.supervisor/.gitignore`` holding exactly ``*``.
+
+    That folder holds only the supervisor's local records, which no readiness read opens.
+    """
+    if _SUPERVISOR_IGNORE_RE.fullmatch(path) is None:
+        return False
+    try:
+        if not stat.S_ISREG(os.lstat(main / path).st_mode):
+            return False
+    except OSError:
+        return False
+    hashed = git(main, "hash-object", "--no-filters", "--", path, check=False)
+    found = _text(hashed.stdout)
+    return hashed.returncode == 0 and found == _blob_id(b"*\n", found)
+
+
+def _blob_id(data: bytes, like: str) -> str:
+    """The Git blob id of *data* in the object format of the id *like*."""
+    digest = hashlib.sha256() if len(like) == 64 else hashlib.sha1()  # noqa: S324 - Git ids
+    digest.update(b"blob %d\0" % len(data) + data)
+    return digest.hexdigest()
 
 
 def hidden_change(main: Path, head: str, pathspecs: list[str]) -> bool:
     """True when Git state outside the base hides a change that ``git status`` leaves out.
 
-    Untracked files are listed against the in-tree ``.gitignore`` files only, never
-    ``info/exclude`` or an excludes file. An index entry marked assume-unchanged or
+    Three reads, none of which runs a filter or writes an object. Untracked files are listed
+    against the in-tree ``.gitignore`` files only, never ``info/exclude`` or an excludes file.
+    Untracked ``.gitignore`` files, in any letter case, are listed with no ignore rule applied;
+    any but the supervisor's own counts. An index entry marked assume-unchanged or
     skip-worktree is judged by its working-tree bytes, hashed with no filter, against the
-    base blob. Neither read runs a filter or writes an object.
+    base blob.
     """
     others = git(
         main, "ls-files", "--others", "-z", "--exclude-per-directory=.gitignore", "--", *pathspecs
     )
     if others.stdout:
         return True
+    # An untracked .gitignore can ignore itself and the files beside it, which dispatch.py
+    # would still read, so one is a change whatever the ignore rules say.
+    # icase: a case-insensitive filesystem reads `.GITIGNORE` as an ignore file too.
+    ignore_files = [f":(glob,icase){p}/**/.gitignore" for p in pathspecs if p != "workspace.toml"]
+    found = git(main, "ls-files", "--others", "-z", "--", *ignore_files).stdout
+    for raw in (item for item in found.split(b"\0") if item):
+        if not _supervisor_ignore_file(main, raw.decode("utf-8", "surrogateescape")):
+            return True
     listing = git(main, "ls-files", "-v", "-z", "--", *pathspecs)
     for item in listing.stdout.split(b"\0"):
         tag, _, raw = item.partition(b" ")
@@ -1380,8 +1418,9 @@ def internal_error_trace(exc: BaseException) -> str:
     """Each failing frame's file, line number and function, then the exception type.
 
     Never a message or source text. Walks to the cause, or else to an unsuppressed context,
-    naming each exception once, root first; group members are not walked. Bounded to
-    ``MAX_TRACEBACK`` characters, keeping the outermost frames.
+    naming each exception once, root first; group members are not walked. Bounded to the
+    last ``MAX_TRACEBACK`` characters: a long trace loses the root cause's frames first and
+    keeps the raised exception's innermost frames and type.
     """
     chain: list[BaseException] = []
     current: BaseException | None = exc

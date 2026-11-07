@@ -425,6 +425,45 @@ def test_a_repository_excludes_file_cannot_hide_an_untracked_docs_file(small: Wo
     assert refusal(small, "status", "b-base") == "base-not-committed"
 
 
+@pytest.mark.parametrize(
+    ("where", "name"),
+    [
+        ("docs/specs/evil", ".gitignore"),
+        ("docs/specs/evil", ".GITIGNORE"),
+        ("docs", ".gitignore"),
+        ("docs/_build", ".gitignore"),  # inside a folder a committed rule ignores
+        ("skill", ".gitignore"),
+    ],
+)
+def test_an_untracked_gitignore_cannot_hide_files_from_the_base_check(
+    tmp_path: Path, where: str, name: str
+) -> None:
+    small = build_world(
+        tmp_path, edit=lambda main: _write(main, ".gitignore", "*.log\n.loop-run/\n__pycache__/\ndocs/_build/\n")
+    )
+    folder = COPY + "/scratch" if where == "skill" else where
+    _write(small.main, f"{folder}/{name}", "*\n")
+    _write(small.main, f"{folder}/spec.md", "# Spec: evil\n\n- **Status:** Shipped\n")
+    code, out = small.cli("status", "b-base")
+    assert (code, out["refusal"]["code"]) == (1, "base-not-committed"), out
+    assert "untracked .gitignore" in out["refusal"]["detail"]
+
+
+@pytest.mark.parametrize(("content", "code"), [("*\n", 0), ("*\n!spec.md\n", 1)])
+def test_only_the_supervisors_own_ignore_file_is_allowed_untracked(
+    small: World, content: str, code: int
+) -> None:
+    _write(small.main, "docs/specs/alpha/.supervisor/.gitignore", content)
+    assert small.cli("status", "b-base")[0] == code
+
+
+def test_a_committed_gitignore_under_docs_passes(tmp_path: Path) -> None:
+    w = build_world(tmp_path, briefs={"b-base": ["alpha"]},
+                    edit=lambda main: _write(main, "docs/.gitignore", "*.tmp\n"))  # fmt: skip
+    _write(w.main, "docs/scratch.tmp", "ignored by a committed rule\n")
+    assert w.cli("status", "b-base")[0] == 0
+
+
 def test_a_skip_worktree_file_missing_from_disk_is_not_committed(small: World) -> None:
     h.git(small.main, "update-index", "--skip-worktree", "docs/specs/alpha/plan.md")
     (small.main / "docs/specs/alpha/plan.md").unlink()
