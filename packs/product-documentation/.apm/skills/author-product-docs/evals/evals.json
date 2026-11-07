@@ -207,7 +207,7 @@
         "[hands-on-steps] The rewritten export page starts with the menu path (File, then Export, then GPX file) and demands no command from the reader",
         "[verified] Checks the UI labels against strings.en.json and uses the exact labels, in bold",
         "[plain-prose] Uses no directional wording such as left or right panel in place of a label",
-        "[hands-on-steps] Says where the exported file lands and how to open it",
+        "[hands-on-steps] Says where the exported file lands and how to open it when the files show it; when they do not show it, lists the export location as an open question for the owner and states no invented location",
         "[honest-scope] Says what the app route cannot do if the source shows a gap, or says it found none, and does not invent a terminal-only feature"
       ]
     },

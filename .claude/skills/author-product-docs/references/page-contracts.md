@@ -73,7 +73,7 @@ An over-budget page is a signal to check for mixed kinds, not a reason to cut co
 **Required content:**
 - A copyable request, command, or code sample that starts the task
 - The scope of what is read and what may change
-- A minimal procedure covering the common path
+- A minimal procedure covering the common path, where each step says who acts and ends with what the reader should see (a result line, a message, or a changed screen); a step with no visible result says so
 - Common variations the reader is likely to hit
 - The most likely follow-up task after this one completes
 
