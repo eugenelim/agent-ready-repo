@@ -297,6 +297,18 @@ Owned by: T3, T6, T9
 
 **Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green, the boundary lint pair exits 0 and the guide tools exit 0.
 
+### T20: Ninth-round review findings are repaired
+
+**Depends on:** T19
+**Touches:** `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`, `packs/repo-governance/tests/skills/new-rfc/test_evals.py`, `tests/roster/test_lighter_rfc_delivery.py`
+
+**Tests:**
+- SKILL.md step 1 no longer points at the governance file: the parenthetical reads as a pull-request CI job running `check` where the repository has set one up, or locally after merging the default branch in, and the AC-0061 scan asserts that the procedure text does not contain `governance file` (AC-0061, AC-0058). Each of the three snapshot-rule tests also asserts that the local merge-then-`check` route is present: the skill's step 1, eval 12's expected output and the guide (AC-0058, AC-0071, AC-0072). Mode: goal-based.
+
+**Approach:** delete the clause that names the seeded governance file from step 1 only; the guide keeps its pointer, because the guide is not RFC-mode skill text. No version bump. No script or `rfc.py` change.
+
+**Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green, the boundary lint pair exits 0 and the guide tools exit 0.
+
 ## Rollout
 
 Reversible: the template and skill revert by reverting the change; seeded files already installed in adopter repositories stay, inert. Sequencing: script, then template, then seeds and skill, then repository adoption, guide and ADR, then versions last so no task borrows an unreleased version. The `agentbundle` tag and publish follow the merge. Seeded files reach fresh installs only; existing adopters can run `agentbundle scaffold` to add them.
