@@ -14,6 +14,7 @@ import json
 import os
 import stat
 import sys
+from collections.abc import Collection
 from pathlib import Path
 from types import ModuleType
 from typing import Any, Final
@@ -29,6 +30,7 @@ __all__ = [
     "project_review_subject",
     "select_review_obligations",
     "decide_review_obligation",
+    "resolve_carried_report",
     "current_engine_review_obligations",
     "synthetic_review_obligations",
 ]
@@ -388,6 +390,134 @@ def _has_closing_disposition(
     return False
 
 
+def _carry_root(
+    carry: dict[str, Any], by_id: dict[str, dict[str, Any]]
+) -> str | None:
+    """Follow a carry chain to the report id it started from; ``None`` on a gap or a cycle."""
+    seen: set[str] = set()
+    while "from_carry_id" in carry:
+        if carry["carry_id"] in seen:
+            return None
+        seen.add(carry["carry_id"])
+        parent = by_id.get(carry["from_carry_id"])
+        if parent is None or parent["role"] != carry["role"]:
+            return None
+        carry = parent
+    return str(carry["from_report_id"])
+
+
+def resolve_carried_report(
+    role: str,
+    *,
+    review_subject: dict[str, Any],
+    policy: dict[str, Any],
+    reports: list[dict[str, Any]],
+    carries: Collection[dict[str, Any]],
+    expected_tier: str | None,
+    expected_classifier_digest: str | None,
+    protected_roles: Collection[str],
+) -> tuple[dict[str, Any] | None, str]:
+    """Return the earlier report a valid carry stands in for, or ``None`` and why not.
+
+    Fails closed: with no expected tier or classifier digest, or for a protected
+    role, no carry counts. Exactly one valid carry must name the role and the
+    current subject and policy; it must carry the expected tier and digest, and
+    its source must be the role's latest report on an earlier subject, directly
+    or through the role's latest carry. Open findings are checked by the caller.
+    """
+    if expected_tier is None or expected_classifier_digest is None:
+        return None, "carry-not-expected"
+    if role in protected_roles:
+        return None, "carry-protected-role"
+    contracts = _review_contracts()
+    subject_fp = review_subject["review_subject_fingerprint"]
+    policy_fp = policy["review_policy_fingerprint"]
+    valid = [
+        c for c in carries
+        if contracts.validate_review_carry_dict(c)[0] and c["role"] == role
+    ]
+    named = [
+        c for c in valid
+        if c["review_subject_fingerprint"] == subject_fp
+        and c["review_policy_fingerprint"] == policy_fp
+    ]
+    if len(named) != 1:
+        return None, "carry-not-exactly-one"
+    carry = named[0]
+    if carry["tier"] != expected_tier:
+        return None, "carry-tier-mismatch"
+    if carry["classifier_digest"] != expected_classifier_digest:
+        return None, "carry-classifier-mismatch"
+    earlier = [c for c in valid if c["review_subject_fingerprint"] != subject_fp]
+    by_id = {c["carry_id"]: c for c in earlier}
+    role_reports = [
+        r for r in reports
+        if r.get("role") == role
+        and r.get("subject", {}).get("review_subject_fingerprint") != subject_fp
+    ]
+    if not role_reports:
+        return None, "carry-source-missing"
+    latest = role_reports[-1]
+    if "from_carry_id" in carry:
+        if not earlier or earlier[-1]["carry_id"] != carry["from_carry_id"]:
+            return None, "carry-not-latest"
+        root = _carry_root(carry, by_id)
+        if root is None:
+            return None, "carry-source-missing"
+    else:
+        root = carry["from_report_id"]
+        if any(_carry_root(c, by_id) == root for c in earlier):
+            return None, "carry-not-latest"
+    if root != latest.get("report_id"):
+        return None, "carry-not-latest"
+    ok, _code = contracts.validate_review_report_dict(latest)
+    if not ok or latest.get("terminal_status") in {"unable", "indeterminate"}:
+        return None, "carry-report-unusable"
+    return latest, "ok"
+
+
+def _decide_carried(
+    report: dict[str, Any],
+    obligation: dict[str, Any],
+    *,
+    assessments: list[dict[str, Any]],
+    dispositions: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Decide an obligation a carry satisfies, or refuse to count the carry."""
+    blocked = obligation["kind"] == "mandatory"
+    if report["terminal_status"] != "clean":
+        for finding in report["findings"]:
+            assessment = _current_assessment(assessments, finding, report)
+            reason = ""
+            if assessment is None or assessment["assessment"] == "indeterminate":
+                reason = "carry-finding-unassessed"
+            elif (
+                assessment["assessment"] == "supported"
+                and finding["material"]
+                and not _has_closing_disposition(
+                    dispositions, finding, assessment, review_subject=report["subject"]
+                )
+            ):
+                reason = "carry-open-finding"
+            if reason:
+                return {
+                    "obligation_satisfied": False,
+                    "review_block": blocked,
+                    "acceptance_block": blocked,
+                    "decision": "mandatory-report-unsatisfied"
+                    if blocked
+                    else "optional-unsatisfied",
+                    "reason": reason,
+                }
+    return {
+        "obligation_satisfied": True,
+        "review_block": False,
+        "acceptance_block": False,
+        "decision": "satisfied-carry",
+        "reason": "review-carry",
+    }
+
+
 def decide_review_obligation(
     obligation: dict[str, Any],
     *,
@@ -396,8 +526,16 @@ def decide_review_obligation(
     reports: list[dict[str, Any]],
     assessments: list[dict[str, Any]],
     dispositions: list[dict[str, Any]],
+    carries: Collection[dict[str, Any]] = (),
+    expected_tier: str | None = None,
+    expected_classifier_digest: str | None = None,
+    protected_roles: Collection[str] = frozenset(),
 ) -> dict[str, Any]:
-    """Return the review decision for one selected obligation."""
+    """Return the review decision for one selected obligation.
+
+    With no current report for the role, a ``review-carry.v1`` record may satisfy
+    the obligation; see ``resolve_carried_report``. The defaults count no carry.
+    """
     ok, code = _review_contracts().validate_review_obligation_dict(obligation)
     if not ok:
         raise ReviewSelectionRefused(code)
@@ -435,6 +573,21 @@ def decide_review_obligation(
         review_subject_fingerprint=review_subject["review_subject_fingerprint"],
         review_policy_fingerprint=policy["review_policy_fingerprint"],
     )
+    if report is None and report_code == "denied-no-current-report" and carries:
+        carried, _why = resolve_carried_report(
+            obligation["role"],
+            review_subject=review_subject,
+            policy=policy,
+            reports=reports,
+            carries=carries,
+            expected_tier=expected_tier,
+            expected_classifier_digest=expected_classifier_digest,
+            protected_roles=protected_roles,
+        )
+        if carried is not None:
+            return _decide_carried(
+                carried, obligation, assessments=assessments, dispositions=dispositions
+            )
     if report is None or report.get("terminal_status") in {"unable", "indeterminate"}:
         return {
             "obligation_satisfied": False,

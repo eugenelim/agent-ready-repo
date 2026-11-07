@@ -300,3 +300,110 @@ def test_content_rules_pinned(skill_and_refs_text: dict[str, str], needle: str) 
 @pytest.mark.parametrize("field", ["surface:", "journey stage:"])
 def test_documentation_contract_fields(author_skill_body: str, field: str) -> None:
     assert field in author_skill_body
+
+
+SURFACE_FILES = (
+    "library-sdk.md",
+    "cli.md",
+    "http-api.md",
+    "desktop-or-mobile-app.md",
+    "service.md",
+    "agent-pack.md",
+)
+SURFACE_HEADINGS = [
+    "## First screen",
+    "## First reader action",
+    "## Sample style",
+    "## Reference shape",
+    "## Troubleshooting",
+    "## Failures to refuse",
+    "## Sources",
+]
+PRINCIPLE_TAGS = (
+    "answer-first",
+    "one-job-one-type",
+    "hands-on-steps",
+    "reference-lookup",
+    "short-real-samples",
+    "current-state-only",
+    "footnotes",
+    "plain-prose",
+    "respect-reader",
+    "honest-scope",
+    "navigation",
+    "verified",
+)
+NEW_CASE_IDS = (
+    "seeded-defect-audit",
+    "oversized-howto-split",
+    "terminal-assuming-readme",
+    "agent-pack-skill-reference",
+    "desktop-app-doc-set",
+    "declared-page-budget",
+)
+
+
+@pytest.mark.parametrize("name", SURFACE_FILES)
+def test_surface_files_share_headings(name: str) -> None:
+    text = _read(REFS / "surfaces" / name)
+    headings = [ln for ln in text.splitlines() if ln.startswith("## ")]
+    assert headings == SURFACE_HEADINGS
+
+
+@pytest.mark.parametrize("name", SURFACE_FILES)
+def test_surface_files_state_evidence_narrow(name: str) -> None:
+    text = _read(REFS / "surfaces" / name)
+    assert any(ln.startswith("Evidence narrow:") for ln in text.splitlines())
+
+
+@pytest.mark.parametrize("name", SURFACE_FILES)
+def test_surface_files_cite_three_sources(name: str) -> None:
+    text = _read(REFS / "surfaces" / name)
+    notes = [ln for ln in text.splitlines() if re.match(r"\[\^\d+\]: ", ln)]
+    assert len(notes) >= 3
+    for note in notes:
+        assert "http" in note, note
+        assert re.search(r"accessed \d{4}-\d{2}-\d{2}", note), note
+        assert "Confidence:" in note, note
+
+
+def test_surface_files_are_repo_neutral() -> None:
+    hits = [
+        (f.name, token)
+        for f in sorted((REFS / "surfaces").glob("*.md"))
+        for token in REPO_SPECIFIC
+        if token in f.read_text(encoding="utf-8")
+    ]
+    assert not hits, f"repo-specific strings remain: {hits}"
+
+
+def test_surface_index_routes_every_surface() -> None:
+    index = _read(REFS / "surfaces" / "index.md")
+    for name in SURFACE_FILES:
+        assert f"({name})" in index, f"index does not link {name}"
+
+
+def test_skill_has_no_scripts_dir() -> None:
+    assert not (SKILL_DIR / "scripts").exists()
+
+
+def test_wave3_eval_cases(eval_cases: list[dict]) -> None:
+    by_id = {c["id"]: c for c in eval_cases}
+    shipped_files = {
+        f.relative_to(SKILL_DIR).as_posix() for f in (SKILL_DIR / "evals").rglob("*") if f.is_file()
+    }
+    for case_id in NEW_CASE_IDS:
+        assert case_id in by_id, f"missing eval case {case_id}"
+        case = by_id[case_id]
+        assert case["files"], f"{case_id} names no fixture"
+        for rel in case["files"]:
+            assert rel in shipped_files, f"{case_id} file missing: {rel}"
+        for assertion in case["assertions"]:
+            tags = re.findall(r"^\[([a-z-]+)\] ", assertion)
+            assert len(tags) == 1 and tags[0] in PRINCIPLE_TAGS, f"{case_id}: {assertion}"
+
+
+def test_wave3_activation_queries(queries: list[dict]) -> None:
+    negatives = " ".join(q["query"].lower() for q in queries if not q["should_trigger"])
+    for needle in ("rfc", "adr", "code comments", "button labels"):
+        assert needle in negatives, f"no should-not-trigger query for {needle}"

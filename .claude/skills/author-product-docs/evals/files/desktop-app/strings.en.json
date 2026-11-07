@@ -1,0 +1,10 @@
+{
+  "menu.file": "File",
+  "menu.file.new_route": "New Route",
+  "menu.file.export": "Export",
+  "menu.file.export.gpx": "GPX file",
+  "button.save": "Save",
+  "button.export": "Export",
+  "dialog.new_route.title": "New Route",
+  "field.route_name": "Route name"
+}

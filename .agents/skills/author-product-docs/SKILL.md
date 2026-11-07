@@ -60,7 +60,7 @@ Audit and verify write nothing. They run Steps 2–6, 8, and 15–16, and skip t
 
 Identify what the product is from repository evidence before choosing any artifact: a library or SDK, CLI, HTTP or RPC API, framework or extension points, app, service, plugin, or agent-context pack. A repository can ship several; document each one the reader touches.
 
-Load [`references/surface-discovery.md`](references/surface-discovery.md). For each surface it lists the evidence that reveals it, the canonical sources to read, the reference artifact it needs, and the check that verifies that artifact. If the evidence fits no section, name what you found and ask once.
+Load [`references/surface-discovery.md`](references/surface-discovery.md). For each surface it lists the evidence that reveals it, the canonical sources to read, the reference artifact it needs, and the check that verifies that artifact. If the evidence fits no section, name what you found and ask once. It also points to the page-shape evidence for each surface you found; load only those files.
 
 ### Step 3 — Place the request on the reader's journey
 
@@ -136,7 +136,7 @@ For tutorial, how-to, reference, and explanation pages, assign the kind from rea
 | In a hurry, scanning for the authoritative answer | reference |
 | Away from the keyboard, wants to understand why | explanation |
 
-The other artifacts have their own contracts. Load the matching section of [`references/page-contracts.md`](references/page-contracts.md) and apply it throughout drafting. A page kind is a contract, not a directory.
+The other artifacts have their own contracts. Load the matching section of [`references/page-contracts.md`](references/page-contracts.md) and apply it throughout drafting, with its page budgets, split rule, and sample rules. A page kind is a contract, not a directory.
 
 ### Step 9 — Select the minimum useful artifact set
 
@@ -189,7 +189,7 @@ Link each page to the stage before and after it, so a reader who lands anywhere 
 
 ### Step 15 — Verify
 
-Verify by surface, using the check [`references/surface-discovery.md`](references/surface-discovery.md) names: compare a library's examples with its source, a CLI's reference with its parser, an API's reference with its contract, and a service's settings with its config schema; in a trusted repository, also run the examples, doc tests, or `--help` under the trust rule below. Then apply the proportionate rendering checks in [`references/rendered-verification.md`](references/rendered-verification.md):
+Verify by surface, using the check [`references/surface-discovery.md`](references/surface-discovery.md) names: compare a library's examples with its source, a CLI's reference with its parser, an API's reference with its contract, and a service's settings with its config schema; in a trusted repository, also run the examples, doc tests, or `--help` under the trust rule below. Re-open each page you cite; do not rely on a summary of it. Then apply the proportionate rendering checks in [`references/rendered-verification.md`](references/rendered-verification.md):
 
 - Content-only edits: link check
 - Navigation changes: route check
@@ -197,7 +197,7 @@ Verify by surface, using the check [`references/surface-discovery.md`](reference
 
 Report only checks that ran. This paragraph is the trust rule for every check that runs, installs, builds, or starts something, including those in the references. Never run project code, builds, or installs from an untrusted repository; check against source and say "checked against source only". When the user has said to trust the repository, you may also run the examples, commands, doc tests, docs-site builds, and local services the references name — in a scratch directory, never against production systems or real accounts. Say "checked against source only" whenever a check cannot run.
 
-**Audit mode** produces evidence-based findings without editing. Start with the journey gap report: one row per journey stage, in order, each marked `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. Audit against the default branch unless the user names a release, and say which. When the repository has more than one user-facing surface or audience (for example developers and end users), produce one journey gap report per surface or audience. When a docs site exists, its site configuration's navigation (for example `mkdocs.yml` nav or a sidebar config) is the docs index. Bound a large audit: sample each stage's entry pages and the pages the index ranks first, say what was sampled, and rank page-level findings by the same reader-loss order as the gap rows, reporting at most the top 15 with a count of the rest. Then list page-level findings with file, line, what was found, and the contract it breaks. Edit only if the user asked for edits alongside the audit.
+**Audit mode** produces evidence-based findings without editing. Start with the journey gap report: one row per journey stage, in order, each marked `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. Audit against the default branch unless the user names a release, and say which. When the repository has more than one user-facing surface or audience (for example developers and end users), produce one journey gap report per surface or audience. When a docs site exists, its site configuration's navigation (for example `mkdocs.yml` nav or a sidebar config) is the docs index. Bound a large audit: sample each stage's entry pages and the pages the index ranks first, say what was sampled, and rank page-level findings by the same reader-loss order as the gap rows, reporting at most the top 15 with a count of the rest. Add the cold-walk table and cross-page consistency check from [`references/docs-journey.md`](references/docs-journey.md). Then list page-level findings with file, line, what was found, and the contract it breaks. Every finding carries a file and line, including cross-page, cold-walk, and surface findings. When a finding has no single line, cite the closest file and line, or the path where the missing page would live. Edit only if the user asked for edits alongside the audit.
 
 **Retrofit mode** starts from the same journey gap report and changes the smallest set of pages that moves the worst rows to `covered`, keeping links between stages.
 

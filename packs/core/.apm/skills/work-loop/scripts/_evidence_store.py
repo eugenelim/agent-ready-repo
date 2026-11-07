@@ -697,6 +697,12 @@ _SEMANTIC_RECORDS: Final[dict[str, dict[str, Any]]] = {
         "validate": lambda record: _validate_review_record("finding-disposition.v1", record),
         "profile": "finding-disposition.v1",
     },
+    "review-carry.v1": {
+        "detect": lambda record: "carry_id" in record,
+        "id": _review_record_id("carry_id"),
+        "validate": lambda record: _validate_review_record("review-carry.v1", record),
+        "profile": "review-carry.v1",
+    },
     "approval-record.v1": {
         # Detected by the presence of approval_id; no other registered kind uses this field.
         "detect": lambda record: "approval_id" in record and "disposition_id" not in record,
@@ -724,6 +730,7 @@ _REVIEW_RECORD_TYPES: Final[frozenset[str]] = frozenset({
     "finding.v1",
     "finding-assessment.v1",
     "finding-disposition.v1",
+    "review-carry.v1",
 })
 
 # Closed lifecycle kinds and their required key sets.

@@ -15,7 +15,7 @@ gate are the two invocation surfaces. (An earlier design shipped this as a
 standalone linter; it now ships as a skill script so it projects to adopters
 too.)
 
-It checks six invariants over `docs/specs/*/spec.md`, measured against the
+It checks seven invariants over `docs/specs/*/spec.md`, measured against the
 contract pinned in the `new-spec` skill's `references/spec-and-plan-contract.md`
 (Spec metadata contract). Only the
 header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
@@ -65,6 +65,12 @@ header `- **Status:**` field is checked; `plan.md` status is out of v1 scope.
         section was already absent at the base ref are grandfathered. If no
         base ref resolves, the invariant is skipped with a warning. HARD when
         it runs; malformed or contradictory markers are always HARD.
+  (vii) risk-trigger record — the preamble's `- **Risk triggers:**` line holds
+        `none` or distinct tokens from `RISK_TRIGGER_TOKENS`, separated by
+        commas. A malformed value or a second line is HARD. A bare, commented,
+        fenced, body or empty line counts as no line. A `Draft` spec added
+        since the base ref with no line is WARN-ONLY; with no base ref that
+        check is skipped.
 
 Exit codes: 0 = clean (warnings allowed), 1 = one or more HARD violations.
 By default, per-spec checks run only for spec directories changed from the base
@@ -423,6 +429,58 @@ def status_uses_list_item_form(spec_text: str) -> bool:
         if _STATUS_RE.search(line):
             return line.lstrip().startswith("- **Status:**")
     return False
+
+
+# The token half of the spec metadata contract's risk-trigger table; a pack test
+# keeps the two equal. `none` records that no trigger fired.
+RISK_TRIGGER_TOKENS: frozenset[str] = frozenset({
+    "security-boundary",
+    "structural-interface",
+    "persistent-representation",
+    "destructive-operation",
+    "data-transformation",
+    "new-dependency",
+    "unfamiliar",
+    "multi-person",
+    "multi-feature",
+})
+_RISK_TRIGGERS_PREFIX = "- **Risk triggers:**"
+
+
+def risk_trigger_lines(spec_text: str) -> list[tuple[int, str]]:
+    """Return `(lineno, value)` for each live `- **Risk triggers:**` line.
+
+    Comments are hidden across the whole text first, keeping line numbers, so a
+    commented-out example is no line. Only the list-item form at column 0, in
+    the preamble and outside fences, counts, and an empty value is no line.
+    """
+    cleaned = _HTML_COMMENT_RE.sub(lambda m: "\n" * m.group(0).count("\n"), spec_text)
+    out: list[tuple[int, str]] = []
+    for lineno, line in _unfenced_lines(cleaned):
+        if _SECTION_HEADING_RE.match(line):
+            break
+        if line.startswith(_RISK_TRIGGERS_PREFIX):
+            value = line[len(_RISK_TRIGGERS_PREFIX):].strip(" ")
+            if value:
+                out.append((lineno, value))
+    return out
+
+
+def risk_trigger_problem(value: str) -> str | None:
+    """Return why a non-empty `Risk triggers:` value is malformed, or None."""
+    # Only spaces are trimmed: a tab or no-break space stays part of the token,
+    # so it reads as unknown rather than silently matching.
+    items = [item.strip(" ") for item in value.split(",")]
+    if "" in items:
+        return "has an empty item"
+    unknown = [item for item in items if item != "none" and item not in RISK_TRIGGER_TOKENS]
+    if unknown:
+        return f"has unknown token(s) {', '.join(repr(u) for u in unknown)}"
+    if len(items) != len(set(items)):
+        return "repeats a token"
+    if "none" in items and len(items) > 1:
+        return "puts `none` beside another token"
+    return None
 
 
 def deferred_anchors(spec_text: str) -> list[tuple[int, str]]:
@@ -1174,7 +1232,7 @@ def check(
         # missing ref rather than reporting every spec as new.
         warn.append(
             f"base ref {base_ref!r} does not resolve to a commit — "
-            f"diff-triggered invariants (ii) and (vi) skipped"
+            f"diff-triggered invariants (ii), (vi) and the (vii) missing-line check skipped"
         )
         base_resolvable = False
     if not base_resolvable:
@@ -1185,6 +1243,10 @@ def check(
         warn.append(
             "invariant (vi): no base ref resolvable — Acceptance-Criteria "
             "section-presence check skipped (shallow clone / detached HEAD)"
+        )
+        warn.append(
+            "invariant (vii): no base ref resolvable — missing risk-trigger "
+            "line check skipped (shallow clone / detached HEAD)"
         )
 
     specs_dir = root / "docs" / "specs"
@@ -1238,7 +1300,7 @@ def check(
         if base_text_undetermined:
             warn.append(
                 f"{rel}: git show at base ref {base_ref!r} timed out — "
-                "diff-triggered invariants (ii) and (vi) skipped"
+                "diff-triggered invariants (ii), (vi) and the (vii) missing-line check skipped"
             )
 
         # (i) status vocabulary
@@ -1340,6 +1402,35 @@ def check(
                 f"{rel}: invariant (vi) — spec has no `## Acceptance Criteria` "
                 "section and no `- **Acceptance Criteria:** none — <reason>` "
                 "opt-out header"
+            )
+
+        # (vii) risk-trigger record. The absence warning is diff-triggered so
+        # that specs written before the field are never asked to backfill it.
+        risk_lines = risk_trigger_lines(text)
+        if len(risk_lines) > 1:
+            hard.append(
+                f"{rel}:{risk_lines[1][0]}: invariant (vii) — more than one "
+                f"`- **Risk triggers:**` line in the preamble"
+            )
+        for lineno, value in risk_lines:
+            problem = risk_trigger_problem(value)
+            if problem is not None:
+                hard.append(
+                    f"{rel}:{lineno}: invariant (vii) — `Risk triggers:` value "
+                    f"{problem}; write `none` or distinct tokens from the spec "
+                    f"metadata contract, separated by commas"
+                )
+        if (
+            not risk_lines
+            and token == "Draft"
+            and base_resolvable
+            and not base_text_undetermined
+            and base_text is None
+        ):
+            warn.append(
+                f"{rel}: invariant (vii) — new Draft spec has no "
+                f"`- **Risk triggers:**` line recording its mode decision "
+                f"(warn-only)"
             )
 
         # (ii) ACs at the ship transition (diff-triggered)

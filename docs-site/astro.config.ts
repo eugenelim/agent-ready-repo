@@ -205,6 +205,7 @@ export default defineConfig({
           label: 'Packs',
           items: [
             { label: 'About packs', slug: 'packs' },
+            { label: 'Skills by job', slug: 'packs/skills' },
             ...(sidebarConfig as any[])
               .flatMap((group) => group.items ?? [])
               .filter((item) => typeof item.slug === 'string' && item.slug.startsWith('packs/'))

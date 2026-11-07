@@ -91,6 +91,7 @@ disagree, `contracts/` is authoritative.
 | `delivery/review-subject.v1.schema.json` | Canonical review subject binding Slice 1 delivery identity, review policy, normalized paths, normalized statuses, and review lineage | no |
 | `delivery/review-obligation.v1.schema.json` | Selected review obligation for one role, review subject, policy, and mandatory/optional/waived kind | no |
 | `delivery/review-report.v1.schema.json` | Terminal structured reviewer report with role, subject, lineage, status, and embedded findings | no |
+| `delivery/review-carry.v1.schema.json` | Supervisor-written record that carries one role's earlier review report onto the current review subject when a review tier excuses the role | no |
 | `delivery/finding.v1.schema.json` | Reviewer finding fields required for actual-failure assessment | no |
 | `delivery/finding-assessment.v1.schema.json` | Current finding assessment bound to report, subject, evidence, and assessment lineage | no |
 | `delivery/finding-disposition.v1.schema.json` | Authorized disposition for a supported material finding without mutating acceptance support | no |

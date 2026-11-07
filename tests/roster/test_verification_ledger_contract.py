@@ -237,7 +237,7 @@ SOURCES: tuple[tuple[str, str, tuple[str, ...], tuple[str, ...]], ...] = (
         "guides/core/explanation/why-the-plan-owns-the-lld.md",
         "## The shape of the answer",
         ("allowed to change as you learn while it is `Drafting`",),
-        ("plan-and-execute-non-trivial-work.md",),
+        ("plan-and-execute-details.md",),
     ),
     (
         "packs/core/.apm/skills/work-loop/references/pre-execute-review.md",
@@ -318,8 +318,8 @@ def test_no_governing_source_carries_a_retired_edit_licence() -> None:
 
 
 def test_how_to_states_the_amendment_boundary_and_routes_to_the_ledger() -> None:
-    """The public how-to keeps its own rule and names the ledger destination."""
-    relative = "guides/core/how-to/plan-and-execute-non-trivial-work.md"
+    """The plan and execute reference keeps its own rule and names the ledger destination."""
+    relative = "guides/core/reference/plan-and-execute-details.md"
     flat = _flat(_section(relative, "### Spec amendment mid-flight"))
 
     assert "A change to tasks, tests, stubs, design, or approach is a working-plan edit" in flat, (
@@ -416,7 +416,7 @@ AC3_REQUIRED_SOURCES = (
 LEDGER_DESTINATIONS = (
     "notes/verification-ledger.md",
     "delivery-contract-lifecycle.md#verification-ledger",
-    "plan-and-execute-non-trivial-work.md",
+    "plan-and-execute-details.md",
 )
 
 #: A region may name the canonical ledger and nothing else. Keyed on the `notes/`

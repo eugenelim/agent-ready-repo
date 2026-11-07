@@ -112,7 +112,7 @@ engagement without holding any decision. Status stays answerable from the
 repository: the brief's Spec map rolls up from each spec's own `Status:`.
 
 For what the tracker can report once the tickets exist, see
-[Measure flow and DORA metrics](../../atlassian/how-to/measure-flow-and-dora-metrics.md).
+[Measure delivery](../../atlassian/how-to/measure-flow-and-dora-metrics.md).
 
 ## See also
 
