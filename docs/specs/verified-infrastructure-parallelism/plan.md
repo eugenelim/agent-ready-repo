@@ -432,9 +432,63 @@ line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
 `make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
 in T5's release).
 
+### T7: Close the code-review findings
+
+**Depends on:** T6
+
+**Tests:**
+- AC-0033: a held-result record or held ref added during a floor attempt
+  (not only one rewritten) is answered `attempt-residue`, and integration
+  never lands a held record that does not match a supervisor-written consumed
+  record and its held ref.
+- AC-0050: a concurrent result that changes any path under the running
+  installed skill directory, or any trusted file the floor manifest guards,
+  fails its attempt before integration, as the floor would refuse it.
+- AC-0059: a concurrent result records no task-gate pass receipt it did not
+  observe; the run's `run-gates` stays the gate of record, and a scripted
+  failing result does not land as a gate pass.
+- AC-0050: a Git call from a running sibling attempt never runs with the
+  manifest control-state check skipped while another thread refreshes the
+  guard (manifest swapped atomically or snapshotted per thread).
+- AC-0037: the apply reads merge attributes only from the empty tree on every
+  admitted Git version (the global `--attr-source` option, not `attr.tree`),
+  asserted on the argument vector and by a work-tree `merge=union` fixture.
+- AC-0026: under `complete-trace` a read listed as denied stays in the
+  attested read set (or makes the attestation incomplete); under
+  `enforced-allowlist` it is excluded; one test per mode.
+- AC-0031: any path the protected index write would refuse (for example a
+  `.gitmodules` symlink and its HFS and NTFS aliases) fails the attempt with a
+  closed code before any object is written, and no Git stderr text reaches
+  verb output.
+- AC-0070: link resolution has a total-work bound per attempt (components
+  processed across all links); exceeding it fails the attempt with a closed
+  code, in ingestion and in the merged-tree recheck.
+- AC-0052, AC-0053: every way an attempt closes, including an unexpected error
+  inside the launcher conversation, goes through one close path that journals
+  the outcome, removes or keeps the attempt directory by the confirmed rule,
+  and records `residue` when the launcher's end is unconfirmed; the launcher
+  protocol phases are separate functions testable on their own.
+- AC-0008, AC-0009: the reverse-order integration fixtures force completion
+  order at the supervisor's settle point and fail fast on a missing signal,
+  with no wall-clock wait.
+- AC-0059 to AC-0063: the Gate A-supervisor lane is split into jobs or shards
+  that each finish under their timeout with stated headroom, every pytest path
+  stays a literal, and the roster shard check proves the shards cover every
+  test.
+- Nits ride along: one owning definition of the read and write kinds; the
+  launcher copy hashed once before spawn; a verb record with no captured
+  start time never reads as alive; the reference and module docstring
+  describe floor-order integration, by exact source only for an incomplete
+  attestation.
+
+**Done when:** each changed git-backed suite is on the Gate A-supervisor run
+line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
+`make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
+in T5's release).
+
 ## Rollout
 
-- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6).
+- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6 and T7).
   `concurrency` ships `sequential` in every one, so adopters see no behaviour
   change beyond AC-0040's merge-driver refusal, which arrives with T2.
 - **Reversal:** reinstall the prior Core release; a run in flight finishes on
