@@ -22,3 +22,4 @@ These guides help you go from a customer's goal to reviewed screens that are rea
 - [How to write a product's voice and microcopy](how-to/write-product-microcopy.md) — Set the product's voice once, then write error, empty-state, button, and label copy in it.
 - [The experience thread](explanation/the-experience-thread.md) — How design artifacts link into one traceable thread.
 - [`experience-design` — skill and reviewer reference](reference/experience-design.md) — Each design skill and reviewer, with inputs, outputs, and routing.
+- [Design intent reference](reference/design-intent-reference.md) — Look up the sample exchanges, checks, templates, routes, and operations for design-principles, creative-direction, and design-system.

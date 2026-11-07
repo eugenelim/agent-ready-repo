@@ -37,3 +37,7 @@ Do not mix the modes: requirements edited in two places diverge silently.
 ### Explanation
 
 - [Measuring AI adoption with flow metrics](explanation/ai-adoption-measurement.md) — Understand what delivery-flow comparisons can and cannot establish about AI-assisted engineering adoption.
+
+### Reference
+
+- [AI adoption report reference](reference/ai-adoption-report-reference.md) — Look up the credential setup, labeling convention, commands, sample reports, scale limits, metric meanings, and exclusions behind the AI adoption report.
