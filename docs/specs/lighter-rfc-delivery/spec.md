@@ -89,7 +89,7 @@ Each group names its criteria once.
 - **Evals (AC-0071):** goal-based. A pin on the eval file decides it.
 - **Guide (AC-0072 and AC-0073):** goal-based. A grep and the pinning suites decide them.
 - **Decision record (AC-0074, AC-0075 and AC-0076):** goal-based. The ADR lint, a roster check of the Status lines and the health report decide them.
-- **Versions (AC-0077, AC-0078, AC-0079 and AC-0080):** goal-based. Catalogue lint, the version-pin and discovery tests, the changelog check, and a comparison with the fetched default branch recorded in the ledger decide them.
+- **Versions (AC-0077, AC-0078, AC-0079 and AC-0080):** goal-based. Catalogue lint, the version-pin and discovery tests, the changelog check, and a comparison with the fetched default branch, recorded in the closeout ledger, decide them.
 - **Work item (AC-0081):** goal-based. The captured item's presence and owner decide it.
 - **Suites (AC-0082):** goal-based. The named suites run.
 - **Fork-only contributor (AC-0083):** manual QA. One recorded run in a fresh clone with no agent installed.
@@ -178,7 +178,7 @@ Each group names its criteria once.
 - [ ] **AC-0080.** The tests that pin the `repo-governance` version carry the new version, and the registry-notes map points `repo-governance` at the new fragment.
 - [ ] **AC-0081.** A captured work item for fixing seed upgrades exists under `docs/product/captured/`, owned by eugenelim.
 - [ ] **AC-0082.** The roster, `new-rfc`, `new-adr` and `navigate-decisions` suites, `tools/validate_guides.py`, `tools/check-guide-index.py`, `tools/lint-guide-titles.py` and `tools/test_stasis_retirement_claims.py` pass.
-- [ ] **AC-0083.** A fork-only contributor in a fresh clone creates a draft with `rfc.py new` and no agent installed, `rfc.py check` on that draft file reports no warning, and the run is recorded in `docs/specs/lighter-rfc-delivery/notes/verification-ledger.md`.
+- [ ] **AC-0083.** A fork-only contributor in a fresh clone creates a draft with `rfc.py new` and no agent installed, `rfc.py check` on that draft file reports no warning.
 - [ ] **AC-0084.** `rfc.py check` starts no git process and gives no warning that depends on a record being present on any branch; its help describes no warning about branch presence or decided status and names the length, missing-section and number-clash warnings.
 
 ## Follow-ons
@@ -198,4 +198,5 @@ Each group names its criteria once.
 ## Changelog
 
 - 2026-11-06: spec approved by eugenelim (scope)
+- 2026-11-06: amendment approved by eugenelim (scope)
 - 2026-11-06: amendment approved by eugenelim (scope)

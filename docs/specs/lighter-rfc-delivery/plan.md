@@ -27,7 +27,7 @@ Build the script first, because the template, seeds, skill and repository copies
 
 Cross-cutting tests are the install snapshot, `python3 packs/repo-governance/.apm/skills/new-rfc/scripts/index-records.py --type rfc --check docs/rfc`, `rfc.py check` over the real corpus, and `navigate-decisions` lineage over fixture RFCs.
 **Integration tests:** `agentbundle install` of `repo-governance` into an empty temp repo.
-**Manual verification:** T10 records one fork-only run in `notes/verification-ledger.md`.
+**Manual verification:** T10 runs one fork-only run and reports it; the controller records it in `notes/verification-ledger.md` at closeout, because the supervisor protects the spec folder during a run.
 
 ## Durable-output map
 
@@ -129,9 +129,9 @@ Owned by: T3, T6, T9
 **Touches:** `packs/repo-governance/.apm/skills/new-rfc/evals/evals.json`, `packs/repo-governance/.apm/skills/new-rfc/evals/eval_queries.json`, `packs/repo-governance/tests/skills/new-rfc/test_evals.py`
 
 **Tests:**
-- A pack test pins the eval file's assertions for AC-0071. One new eval plants an out-of-scope instruction in a template comment and in an existing RFC for AC-0047. `agentbundle pack evals run` for `new-rfc` runs in judge mode, and the verification ledger records the pass or fail result of each eval by name. Mode: goal-based plus the graded run.
+- A pack test pins the eval file's assertions for AC-0071. One new eval plants an out-of-scope instruction in a template comment and in an existing RFC for AC-0047. `agentbundle pack evals run` for `new-rfc` runs in judge mode, and the closeout ledger records the pass or fail result of each eval by name. Mode: goal-based plus the graded run.
 
-**Done when:** `test_evals.py` is green and the judged run passes the injection eval's assertions, with its result recorded in the ledger.
+**Done when:** `test_evals.py` is green and the judged run passes the injection eval's assertions, with its result recorded in the closeout ledger.
 
 ### T6: This repository adopts the starter and keeps its copies equal
 
@@ -173,21 +173,21 @@ Owned by: T3, T6, T9
 **Touches:** `packs/repo-governance/pack.toml`, `packs/repo-governance/.claude-plugin/plugin.json`, `packages/agentbundle/pyproject.toml`, `packages/agentbundle/agentbundle/version.py`, `packages/agentbundle/CHANGELOG.md`, `packages/agentbundle/README-pypi.md`, `docs/product/changelog.d/`, `tests/roster/test_new_rfc_governance_surfaces.py`, `tests/roster/test_repo_governance_rename_completeness.py`, `tests/roster/test_registry_upgrade_notes.py`, `tests/roster/test_okf_catalogue_discovery.py`
 
 **Tests:**
-- Catalogue lint `CAT-L009`, `tests/roster/test_okf_catalogue_discovery.py` and the `README-pypi.md` and `CHANGELOG.md` heading checks for AC-0077; the changelog check for AC-0079; the pack-version pins updated and the registry-notes map pointed at the new fragment (AC-0080); and a comparison of each new version with `git show origin/main:<file>` for AC-0078, run in this task and recorded in the ledger. Mode: goal-based.
+- Catalogue lint `CAT-L009`, `tests/roster/test_okf_catalogue_discovery.py` and the `README-pypi.md` and `CHANGELOG.md` heading checks for AC-0077; the changelog check for AC-0079; the pack-version pins updated and the registry-notes map pointed at the new fragment (AC-0080); and a comparison of each new version with `git show origin/main:<file>` for AC-0078, run in this task and reported for the closeout ledger. Mode: goal-based.
 
 **Approach:** each new version is the next patch above the fetched default branch, read at this task and never a literal copied from an earlier note. The package change is committed with an `Engine-Change-RFC: RFC-0114` trailer. Tagging and publishing the package is a post-merge step for the owner, listed in Follow-ons.
 
-**Done when:** catalogue lint and the four roster files are green, the ledger holds the version comparison, and the commit that changes `packages/agentbundle/` carries the `Engine-Change-RFC: RFC-0114` trailer, which the release guide requires and which a squash before the PR must keep.
+**Done when:** catalogue lint and the four roster files are green, the version comparison is reported for the closeout ledger, and the commit that changes `packages/agentbundle/` carries the `Engine-Change-RFC: RFC-0114` trailer, which the release guide requires and which a squash before the PR must keep.
 
 ### T10: Whole-change verification
 
 **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T11
-**Touches:** `docs/specs/lighter-rfc-delivery/notes/verification-ledger.md`
+**Touches:** none (verification only)
 
 **Tests:**
 - AC-0022, AC-0082, `agentbundle catalogue lint --root . --deep`, `make build-self` leaving a clean tree, and AC-0083 as one recorded run of `rfc.py check` on the new draft file. Mode: goal-based and manual QA.
 
-**Done when:** every command above exits 0 and the ledger records the fork-only run.
+**Done when:** every command above exits 0 and the fork-only run is reported for the closeout ledger.
 
 ### T11: Follow-ons are captured as work items
 
