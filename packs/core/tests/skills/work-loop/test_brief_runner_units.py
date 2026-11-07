@@ -572,6 +572,38 @@ def test_only_a_next_refusal_carries_the_schema_version(
         assert out["schema_version"] == runner.NEXT_SCHEMA_VERSION == 1
 
 
+def test_a_usage_error_and_help_print_no_json(capsys: pytest.CaptureFixture[str]) -> None:
+    capsys.readouterr()
+    assert runner.main(["next"]) == runner.EXIT_USAGE
+    assert capsys.readouterr().out == ""
+    assert runner.main(["next", "--help"]) == runner.EXIT_OK
+    help_text = capsys.readouterr().out
+    assert help_text.startswith("usage:")
+    with pytest.raises(json.JSONDecodeError):
+        json.loads(help_text)
+
+
+def test_the_parent_ignore_files_reach_the_root() -> None:
+    assert runner.parent_ignore_files(["docs", "workspace.toml", ".claude/skills/work-loop"]) == [
+        ".claude/.gitignore",
+        ".claude/skills/.gitignore",
+        ".gitignore",
+    ]
+
+
+def test_an_internal_error_from_next_carries_the_schema_version(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    def boom(*args: Any, **kwargs: Any) -> Any:
+        raise PermissionError("secret")
+
+    monkeypatch.setattr(runner, "read_brief", boom)
+    capsys.readouterr()
+    assert runner.main(["next", "b"]) == runner.EXIT_REFUSED
+    out = json.loads(capsys.readouterr().out)
+    assert out["schema_version"] == 1 and out["refusal"]["code"] == "internal-error"
+
+
 def test_an_unexpected_failure_still_answers_one_json_refusal(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

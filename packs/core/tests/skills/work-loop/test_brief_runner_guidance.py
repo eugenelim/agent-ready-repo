@@ -287,6 +287,13 @@ def test_the_controller_fast_forwards_the_base_after_a_fetch() -> None:
     assert "The one exception is the fast-forward in [Moving the base](#moving-the-base)" in refusing
 
 
+def test_the_exit_codes_say_which_outputs_are_json() -> None:
+    """Answers and refusals are JSON; a usage error and --help are not."""
+    intro = " ".join(RUNNER_MD.read_text(encoding="utf-8").split("## ", 1)[0].split())
+    assert "a `next` answer or refusal also carries `schema_version`" in intro
+    assert "A usage error exits 2 and `--help` exits 0, and neither prints JSON" in intro
+
+
 def test_the_next_row_names_the_versioned_contract_fields() -> None:
     """The reference's `next` row names the schema version, the base and the spec-path fields."""
     verbs = _section("Verbs")
@@ -301,5 +308,6 @@ def test_the_run_precondition_names_every_path_the_base_check_reads() -> None:
     intro = " ".join(RUNNER_MD.read_text(encoding="utf-8").split("## ", 1)[0].split())
     assert "no uncommitted change under `docs/`, in `workspace.toml`, or in this skill's own directory" in intro
     for state in ("a sparse checkout", "assume-unchanged or skip-worktree", "only `info/exclude` ignores",
-                  "an untracked `.gitignore` file"):  # fmt: skip
+                  "an untracked `.gitignore` file", "a folder above those paths",
+                  "an untracked one there in any letter case"):  # fmt: skip
         assert state in intro, state

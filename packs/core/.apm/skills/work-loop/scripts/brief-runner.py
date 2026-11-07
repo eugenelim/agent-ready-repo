@@ -22,8 +22,10 @@ This module holds the read core the verbs share:
   * each row's readiness (through ``dispatch.py`` beside it), stop and stage;
   * the gates join, the row marker, and the ``next`` decision over the rows.
 
-Output: one JSON object on standard output. Exit 0 on an answer, 1 on a refusal
-``{"refusal": {"code", "detail"}}``, 2 on a usage error.
+Output: an answer is one JSON object on standard output with exit 0, a refusal is
+``{"refusal": {"code", "detail"}}`` with exit 1, and a ``next`` answer or refusal also
+carries ``schema_version``. A usage error exits 2 and ``--help`` exits 0; neither prints
+JSON.
 
 Standard library only. Python 3.11+.
 """
@@ -384,6 +386,8 @@ def base_checks(root: Path) -> str:
     skill = _skill_pathspec(main)
     if skill is not None:
         pathspecs.append(skill)
+    # The ignore files above those paths decide what counts as untracked under them.
+    parents = parent_ignore_files(pathspecs)
     # A submodule's files are not in the base commit, yet dispatch.py would read them from the
     # working tree, so a base that holds one under these paths is refused.
     listing = git(main, "ls-tree", "-r", "-z", head, "--", *pathspecs)
@@ -405,12 +409,14 @@ def base_checks(root: Path) -> str:
         "--ignore-submodules=dirty",
         "--",
         *pathspecs,
+        *parents,
     )
-    if status.stdout or hidden_change(main, head, pathspecs):
+    if status.stdout or hidden_change(main, head, pathspecs, parents):
         raise Refusal(
             "base-not-committed",
             "a file under docs/, workspace.toml or this skill's directory is modified, "
             "staged or untracked, or hidden from git status by an untracked .gitignore, "
+            "a changed .gitignore in a folder above those paths, "
             "info/exclude, a sparse checkout or an index flag",
         )
     return head
@@ -443,15 +449,27 @@ def _blob_id(data: bytes, like: str) -> str:
     return digest.hexdigest()
 
 
-def hidden_change(main: Path, head: str, pathspecs: list[str]) -> bool:
+def parent_ignore_files(pathspecs: list[str]) -> list[str]:
+    """The ``.gitignore`` path of every folder above *pathspecs*, up to the repository root."""
+    found: set[str] = set()
+    for spec in pathspecs:
+        parts = spec.split("/")[:-1]
+        for depth in range(len(parts) + 1):
+            found.add("/".join([*parts[:depth], ".gitignore"]))
+    return sorted(found)
+
+
+def hidden_change(
+    main: Path, head: str, pathspecs: list[str], parents: list[str] | None = None
+) -> bool:
     """True when Git state outside the base hides a change that ``git status`` leaves out.
 
     Three reads, none of which runs a filter or writes an object. Untracked files are listed
     against the in-tree ``.gitignore`` files only, never ``info/exclude`` or an excludes file.
     Untracked ``.gitignore`` files, in any letter case, are listed with no ignore rule applied;
-    any but the supervisor's own counts. An index entry marked assume-unchanged or
-    skip-worktree is judged by its working-tree bytes, hashed with no filter, against the
-    base blob.
+    any but the supervisor's own counts, and so does one at a *parents* path. An index entry
+    marked assume-unchanged or skip-worktree, a *parents* one included, is judged by its
+    working-tree bytes, hashed with no filter, against the base blob.
     """
     others = git(
         main, "ls-files", "--others", "-z", "--exclude-per-directory=.gitignore", "--", *pathspecs
@@ -462,11 +480,12 @@ def hidden_change(main: Path, head: str, pathspecs: list[str]) -> bool:
     # would still read, so one is a change whatever the ignore rules say.
     # icase: a case-insensitive filesystem reads `.GITIGNORE` as an ignore file too.
     ignore_files = [f":(glob,icase){p}/**/.gitignore" for p in pathspecs if p != "workspace.toml"]
+    ignore_files += [f":(icase){p}" for p in parents or []]
     found = git(main, "ls-files", "--others", "-z", "--", *ignore_files).stdout
     for raw in (item for item in found.split(b"\0") if item):
         if not _supervisor_ignore_file(main, raw.decode("utf-8", "surrogateescape")):
             return True
-    listing = git(main, "ls-files", "-v", "-z", "--", *pathspecs)
+    listing = git(main, "ls-files", "-v", "-z", "--", *pathspecs, *(parents or []))
     for item in listing.stdout.split(b"\0"):
         tag, _, raw = item.partition(b" ")
         if not item or tag == b"H":

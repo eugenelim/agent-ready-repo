@@ -432,6 +432,7 @@ def test_a_repository_excludes_file_cannot_hide_an_untracked_docs_file(small: Wo
         ("docs/specs/evil", ".GITIGNORE"),
         ("docs", ".gitignore"),
         ("docs/_build", ".gitignore"),  # inside a folder a committed rule ignores
+        ("docs/_build", ".GITIGNORE"),  # only the letter-case match finds it, on any filesystem
         ("skill", ".gitignore"),
     ],
 )
@@ -455,6 +456,48 @@ def test_only_the_supervisors_own_ignore_file_is_allowed_untracked(
 ) -> None:
     _write(small.main, "docs/specs/alpha/.supervisor/.gitignore", content)
     assert small.cli("status", "b-base")[0] == code
+
+
+def _hide_evil(w: World) -> None:
+    _write(w.main, "docs/specs/evil/spec.md", "# Spec: evil\n\n- **Status:** Shipped\n")
+
+
+def test_an_uncommitted_root_gitignore_line_cannot_hide_a_spec(small: World) -> None:
+    root = small.main / ".gitignore"
+    root.write_text(root.read_text("utf-8") + "docs/specs/evil/\n", **h._LF)
+    _hide_evil(small)
+    assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_an_untracked_root_gitignore_cannot_hide_a_spec(small: World) -> None:
+    h.git(small.main, "rm", "-q", ".gitignore")
+    small.commit("no root ignore file")
+    _write(small.main, ".gitignore", "*\n")  # ignores itself and everything else
+    _hide_evil(small)
+    assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_a_flagged_root_gitignore_with_new_bytes_cannot_hide_a_spec(small: World) -> None:
+    h.git(small.main, "update-index", "--assume-unchanged", ".gitignore")
+    root = small.main / ".gitignore"
+    root.write_text(root.read_text("utf-8") + "docs/specs/evil/\n", **h._LF)
+    _hide_evil(small)
+    assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_an_untracked_gitignore_above_the_skill_directory_refuses(small: World) -> None:
+    parent = COPY.split("/")[0]
+    _write(small.main, f"{parent}/.gitignore", "*/work-loop/scratch/\n")
+    _write(small.main, f"{COPY}/scratch/note.md", "hidden\n")
+    assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_an_uppercase_ignore_file_above_the_skill_directory_refuses(small: World) -> None:
+    """Only the letter-case match on parent paths finds it, on either kind of filesystem."""
+    parent = COPY.split("/")[0]
+    _write(small.main, f"{parent}/.GITIGNORE", "*\n")
+    _write(small.main, f"{COPY}/scratch/note.md", "hidden\n")
+    assert refusal(small, "status", "b-base") == "base-not-committed"
 
 
 def test_a_committed_gitignore_under_docs_passes(tmp_path: Path) -> None:

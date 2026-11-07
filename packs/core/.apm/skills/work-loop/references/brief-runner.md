@@ -19,9 +19,12 @@ entry that leaves out such a path, a file only `info/exclude` ignores, and an un
 That includes the `.gitignore` a tool or cache folder writes for itself (a `.venv` or
 `.pytest_cache`, say): remove such a folder from these paths. The one untracked
 `.gitignore` allowed is the supervisor's own, holding `*`, in a spec's `.supervisor/`
-folder. Python 3.11 or later, standard library only. Each verb prints one JSON
-object: exit 0 for an answer, 1 for `{"refusal": {"code", "detail"}}`, 2 for a
-usage error.
+folder. An uncommitted change to the `.gitignore` of a folder above those paths, the
+repository root's included, refuses too, and so does an untracked one there in any
+letter case. Python 3.11 or later, standard library only. An answer is one JSON object on
+stdout with exit 0, and a refusal is `{"refusal": {"code", "detail"}}` with exit 1;
+a `next` answer or refusal also carries `schema_version`. A usage error exits 2 and
+`--help` exits 0, and neither prints JSON.
 
 ## When a verb refuses
 
