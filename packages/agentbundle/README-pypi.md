@@ -16,7 +16,7 @@ Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
 ## What's new in 0.60.2
 
-A release bump that carries the RFC-0114 lighter delivery route. The CLI
+A release bump that carries the lighter RFC delivery route. The CLI
 behavior is unchanged.
 
 ## What's new in 0.60.1
