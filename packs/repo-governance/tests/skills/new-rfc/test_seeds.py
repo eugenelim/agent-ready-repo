@@ -33,7 +33,7 @@ def test_seeded_files_exist() -> None:
 
 
 def test_scripts_are_byte_identical_copies() -> None:
-    """AC-0052, AC-0053."""
+    """AC-0052."""
     for name in ("rfc.py", "file_safety.py"):
         assert (SEEDS / "docs/rfc" / name).read_bytes() == (SCRIPTS / name).read_bytes()
 

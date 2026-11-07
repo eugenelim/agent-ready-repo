@@ -40,6 +40,9 @@ GOVERNANCE PREVIEW:
 --- content ---
 # Governance
 
+<!-- Adopters: this file is yours. Change any section to match how your project
+really works, then delete this note. Replace the maintainer handle below. -->
+
 ## Maintainers
 
 - @alice

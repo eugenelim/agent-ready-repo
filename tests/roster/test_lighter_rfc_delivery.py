@@ -152,5 +152,6 @@ def test_governance_guide_sample_starts_like_the_starter() -> None:
     assert "- Current: sha256:<digest>\n" in preview
     assert "- Approval required: yes \u2014 a GOVERNANCE.md is present\n" in preview
     sample = preview.split("--- content ---\n", 1)[1]
-    assert sample.startswith("# Governance\n\n## Maintainers\n")
+    assert sample.startswith("# Governance\n\n<!-- Adopters: this file is yours.")
+    assert "\n\n## Maintainers\n" in sample
     assert "Decision model" not in sample
