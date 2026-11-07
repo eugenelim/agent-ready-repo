@@ -2,7 +2,7 @@
 
 ## Maintainers
 
-- eugenelim
+- @eugenelim
 
 A maintainer can add another maintainer when the current maintainers agree.
 

@@ -107,22 +107,14 @@ def test_starter_headings_ladder_and_rfc_rule() -> None:
     """AC-0041, AC-0042, AC-0043, AC-0044."""
     raw = STARTER.read_text(encoding="utf-8")
     headings = re.findall(r"^## (.+)$", raw, flags=re.M)
-    assert headings[:5] == [
+    for heading in (
         "Maintainers",
         "How decisions are made",
         "Suggesting a change",
         "When to write an RFC",
         "How an RFC is decided",
-    ] or all(
-        h in headings
-        for h in (
-            "Maintainers",
-            "How decisions are made",
-            "Suggesting a change",
-            "When to write an RFC",
-            "How an RFC is decided",
-        )
-    )
+    ):
+        assert heading in headings, heading
     ladder = _flat(STARTER).split("Suggesting a change", 1)[1].split("When to write an RFC", 1)[0]
     positions = [
         ladder.find(k) for k in ("issue or start a discussion", "pull request", "ADR", "RFC")

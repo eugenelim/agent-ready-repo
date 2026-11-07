@@ -195,7 +195,6 @@ def test_governance_checks_for_a_folder_with_a_glob_of_its_files() -> None:
     )
 
 
-RFC_MODE = TEXT.split(" ## Governance mode ", 1)[0] + " " + TEXT.split(" ## Procedure ", 1)[1]
 PROCEDURE = TEXT.split(" ## Procedure ", 1)[1]
 
 
@@ -225,9 +224,8 @@ def test_who_decides_replaces_the_approver_ac_0059_ac_0060() -> None:
 
 
 def test_rfc_mode_never_names_the_governance_file_ac_0061() -> None:
-    rfc_mode = " ".join(
-        TEXT.split(" ## Governance mode ", 1)[1].split(" ## Procedure ", 1)[1:]
-    ) + " " + PROCEDURE
+    rendering = TEXT.split("## Output rendering", 1)[1].split(" ## ", 1)[0]
+    rfc_mode = rendering + " " + PROCEDURE
     assert "GOVERNANCE" not in rfc_mode
     when = TEXT.split("## When to invoke", 1)[1].split(" ## Governance mode ", 1)[0]
     assert "GOVERNANCE.md" in when and "uses the Governance mode" in when
@@ -247,7 +245,7 @@ def test_drafting_guidance_ac_0063() -> None:
 def test_supersession_while_drafting_ac_0064() -> None:
     step = _step(5)
     assert "`- **Supersedes:**` or `- **Supersedes in part:**`" in step
-    assert "`RFC-0014 D1,D3`" in step
+    assert "`RFC-NNNN D1,D3`" in step
     assert "The draft does not touch the replaced RFC." in step
 
 

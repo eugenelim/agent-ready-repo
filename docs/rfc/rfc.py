@@ -90,10 +90,11 @@ def _fs() -> Any:
         flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
         descriptor = os.open(path, flags)
         try:
-            if not stat.S_ISREG(os.fstat(descriptor).st_mode):
-                raise ImportError("required helper is not a regular file: file_safety.py")
+            info = os.fstat(descriptor)
+            if not stat.S_ISREG(info.st_mode) or info.st_nlink > 1:
+                raise ImportError("required helper is not a single regular file: file_safety.py")
             data = b""
-            while chunk := os.read(descriptor, 65536):
+            while chunk := os.read(descriptor, min(65536, MAX_BYTES + 1 - len(data))):
                 data += chunk
                 if len(data) > MAX_BYTES:
                     raise ImportError("required helper is too large: file_safety.py")
@@ -315,11 +316,16 @@ def cmd_renumber(args: argparse.Namespace) -> int:
         print("error: give an RFC file in this folder (not a link) and a number from 1 to "
               f"{MAX_NUMBER}", file=sys.stderr)
         return 2
-    target = base / f"{args.number:04d}-{source.name.split('-', 1)[1]}"
+    slug = source.name.split("-", 1)[1][: -len(".md")]
+    if len(slug) > MAX_SLUG:
+        print(f"error: the slug is over {MAX_SLUG} characters; nothing changed", file=sys.stderr)
+        return 2
+    target = base / f"{args.number:04d}-{slug}.md"
     try:
-        cwd = Path.cwd()
-        anchor = cwd if source.parent.is_relative_to(cwd) else source.parent
-        _fs().validate_confined_directory(anchor, source.parent)
+        for part in (source.parent, *source.parent.parents):
+            if part.is_symlink():
+                raise OSError("a directory in the path is a link")
+        _fs().validate_confined_directory(source.parent, source.parent)
         if stat.S_ISLNK(os.lstat(source).st_mode):
             raise OSError("not a regular file")
         if args.number in used_numbers(listing()):
@@ -338,10 +344,19 @@ def cmd_renumber(args: argparse.Namespace) -> int:
         _fs().write_confined_regular_file(base, target, text.encode("utf-8"), expect_sha256=None)
         created = True
         source.unlink()
-    except (OSError, ValueError) as exc:
-        if created:
-            target.unlink()  # never leave two copies behind
-        print(f"error: {show(exc)}; nothing changed", file=sys.stderr)
+    except BaseException as exc:  # an interrupt after the create must also roll back
+        stuck = False
+        if created and os.path.lexists(source):
+            try:
+                target.unlink()  # never leave two copies behind
+            except OSError:
+                stuck = True
+                print(f"error: could not remove {show(target.name)}; both "
+                      f"{show(source.name)} and {show(target.name)} remain", file=sys.stderr)
+        if not isinstance(exc, (OSError, ValueError)):
+            raise
+        if not stuck:
+            print(f"error: {show(exc)}; nothing changed", file=sys.stderr)
         return 2
     print(f"Renamed {show(source.name)} -> {show(target.name)}. "
           "Links to the old number are not rewritten.")
@@ -486,6 +501,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         _fs()
     except ImportError as exc:
+        if args.command == "check" and (SCRIPT_DIR / "file_safety.py").is_symlink():
+            print("warning: file_safety.py is a link and is ignored.")
         print(f"error: {exc}", file=sys.stderr)
         return 2
     return int(args.run(args))

@@ -113,7 +113,11 @@ A written file is a draft that the maintainers adopt through their normal review
    Every return above has no RFC effect. Do not resolve an ordinal, create a directory
    or index, choose a target, or draft body text.
 
-1. Find the next ordinal with the bundled script, using `--dir` for the RFC folder:
+1. Find the next ordinal with the bundled script. First resolve the repository root, the
+   RFC folder and its sibling index from project instructions, because the script needs
+   the folder to exist. If the RFC folder does not exist, the first number is `0001`:
+   do not run the script, and step 5 creates the folder. Otherwise run it, using `--dir`
+   for the RFC folder:
 
    ```text
    python3 -I <absolute skill dir>/scripts/rfc.py --dir <RFC folder> next
@@ -126,14 +130,13 @@ A written file is a draft that the maintainers adopt through their normal review
    when the branch starts**; a branch that sits in review finds its number taken by
    whoever merged first, and that collision is invisible inside the branch. A
    `NNNN-notes/` folder or a `NNNN-<slug>-research.md` sibling is a companion and
-   shares its RFC's ordinal by design. Resolve the
-   repository root, the RFC location and its sibling index from project instructions.
+   shares its RFC's ordinal by design.
    Then, before creating anything, resolve the RFC owner root and prove the RFC
    target, index, and companion-note paths stay inside it. Refuse an unsafe,
    link-like, identity-changing, or out-of-root target before any mutation —
    including before creating a directory. Only once every intended target is
    proven confined, and only on the warranted-RFC path, create the directory and
-   standard index if needed.
+   standard index if needed (a missing RFC folder is created in step 5).
 
 2. **Resolve the target — don't create the file yet.** Choose a short
    `NNNN-kebab-title.md`; do not copy `assets/rfc.md` until the checkpoint and preview
@@ -213,7 +216,7 @@ A written file is a draft that the maintainers adopt through their normal review
 
    An RFC that replaces another carries `- **Supersedes:**` or
    `- **Supersedes in part:**` header lines while drafting, naming each RFC and its
-   decisions, such as `RFC-0014 D1,D3`. The draft does not touch the replaced RFC.
+   decisions, such as `RFC-NNNN D1,D3`. The draft does not touch the replaced RFC.
 
 6. **Pre-handoff gate — mandatory, before status → Open.** At every tier,
    citation-integrity checks that references contain their cited claims and

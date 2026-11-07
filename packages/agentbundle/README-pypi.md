@@ -16,8 +16,9 @@ Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
 ## What's new in 0.60.2
 
-A release bump that carries the lighter RFC delivery route. The CLI
-behavior is unchanged.
+`catalogue self-host` keeps `docs/GOVERNANCE.md` repository-owned, and the
+catalogue lint checks the new `repo-governance` seed shapes (the RFC script,
+its helper, the template and the starter governance file).
 
 ## What's new in 0.60.1
 

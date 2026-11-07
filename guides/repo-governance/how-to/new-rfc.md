@@ -188,9 +188,9 @@ The template has six required sections, each leading with its conclusion:
 - **Proposal.** The concrete change, with follow-on work at its end. **Design details** follow when the detail needs room.
 - **Costs and what could go wrong.** Drawbacks, falsifiable assumptions and what would make the proposal wrong.
 - **Alternatives.** The options considered, including doing nothing.
-- **Evidence.** One entry per `[n]` citation: fact, source and method. Every citation is fetched and confirmed.
+- **How we will know it works.** The signal or check that shows the change worked, and when to look for it. A proposal that needs a trial says so here and links the results out to a spike note.
 
-Optional sections cover **How we will know it works**, **Migration** and **Open questions**; delete any you do not use. Research too long for the body goes in a `NNNN-notes/` folder. An `Experiment / validation` section is for a proposal that needs a trial, with results linked out to a spike note.
+Optional sections cover **Evidence** (one entry per `[n]` citation: fact, source and method; every citation is fetched and confirmed), **Migration** and **Open questions**; delete any you do not use. Research too long for the body goes in a `NNNN-notes/` folder.
 
 The header carries `Status`, `Author`, `Date opened`, `Date closed`, `Decision weight` and `Related`. No field names an approver: the repository's rules decide, and the merge by a maintainer they name accepts the RFC. A decider named in the Summary is a suggestion.
 
@@ -217,7 +217,7 @@ The lifecycle is `Draft → Open → Final Comment Period → Accepted | Rejecte
 - **`Draft`** — still working on it; not yet circulated.
 - **`Open`** — ready for reviewers. Update the frontmatter and push.
 - **`Final Comment Period`** — discussion is winding down; last call for objections.
-- **`Experimental`** (optional) — the proposal includes an `Experiment / validation` section and the trial is running; the RFC sits here, results pending in a linked spike note, until they land and it moves to a terminal status. Use only when an experiment is genuinely in flight.
+- **`Experimental`** (optional) — the proposal's **How we will know it works** section describes a trial and the trial is running; the RFC sits here, results pending in a linked spike note, until they land and it moves to a terminal status. Use only when an experiment is genuinely in flight.
 - **`Accepted`** | **`Rejected`** | **`Withdrawn`** — terminal. Fill in `Date closed:`. The RFC freezes here (see [`docs/README.md` § The three lifecycle classes](../../../docs/README.md#the-three-lifecycle-classes)) — status field can change later (e.g. a future RFC supersedes it), the body cannot.
 
 The skill then regenerates the index so the new file shows up in it, by running
@@ -310,7 +310,7 @@ Draft → Open → Final Comment Period → Accepted | Rejected | Withdrawn
 ```
 
 **Optional `Experimental` status.** An RFC that proposes running an
-experiment — using an optional `Experiment / validation` section of the RFC
+experiment — described in the **How we will know it works** section of the RFC
 template — may sit in `Experimental` while the trial runs and
 results are pending, instead of being forced to a premature Accept or Reject.
 Results live in a linked spike note (or a follow-up RFC / superseding ADR),

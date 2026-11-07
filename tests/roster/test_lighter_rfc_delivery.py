@@ -24,7 +24,7 @@ def test_governance_names_the_owner_and_has_no_placeholder() -> None:
     """AC-0055: no placeholder remains and the spec Owner is a listed maintainer."""
     text = (ROOT / "docs/GOVERNANCE.md").read_text(encoding="utf-8")
     assert "<maintainer-handle>" not in text
-    assert f"- {MAINTAINER}\n" in text
+    assert f"- @{MAINTAINER}\n" in text
 
 
 def test_pack_layout_lists_governance_as_repository_owned() -> None:
@@ -34,7 +34,7 @@ def test_pack_layout_lists_governance_as_repository_owned() -> None:
 
 
 GUIDE = ROOT / "guides/repo-governance/how-to/new-rfc.md"
-SIX_SECTIONS = ["Summary", "Motivation", "Proposal", "Costs and what could go wrong", "Alternatives", "Evidence"]
+SIX_SECTIONS = ["Summary", "Motivation", "Proposal", "Costs and what could go wrong", "Alternatives", "How we will know it works"]
 
 
 def test_guide_names_six_sections_and_no_retired_terms() -> None:
@@ -45,10 +45,11 @@ def test_guide_names_six_sections_and_no_retired_terms() -> None:
     for name in SIX_SECTIONS:
         assert f"**{name}.**" in text, name
     assert "python3 -I docs/rfc/rfc.py next" in text
+    assert "Experiment / validation" not in text
 
 
 def test_guide_runs_rfc_py_only_in_isolated_mode() -> None:
-    """AC-0015: every `rfc.py` command line in the how-to uses `python3 -I`."""
+    """AC-0046: every `rfc.py` command line in the how-to uses `python3 -I`."""
     lines = [
         line
         for line in GUIDE.read_text(encoding="utf-8").splitlines()
@@ -112,3 +113,33 @@ def test_seed_upgrade_follow_on_is_captured_with_an_owner() -> None:
     assert "guides say it does" in text
     for slug in ("re-sync-approver-wording-is-stale", "desk-research-guide-rfc-mapping-is-stale"):
         assert (CAPTURED / f"{slug}.md").is_file(), slug
+
+
+def test_changelog_fragment_states_new_installs_only_and_recopy_route() -> None:
+    """AC-0079: the fragment names new-rfc and states the seeded-files limit and the re-copy route."""
+    text = (ROOT / "docs/product/changelog.d/419f6fb4-b4a5-4df5-b4a2-f8bd3e1869ce.md").read_text(
+        encoding="utf-8"
+    )
+    assert "`new-rfc`" in text and "`rfc.py`" in text and "issue template" in text
+    assert "Seeded files reach new installs only" in text
+    assert "only by re-copying the script" in text
+
+
+def test_release_notes_name_self_host_and_lint_changes() -> None:
+    """AC-0077: the package notes name the self-host and catalogue lint changes."""
+    for name in ("README-pypi.md", "CHANGELOG.md"):
+        text = (ROOT / "packages/agentbundle" / name).read_text(encoding="utf-8")
+        section = text.split("0.60.2", 1)[1].split("0.60.1", 1)[0]
+        assert "docs/GOVERNANCE.md" in section and "repository-owned" in section, name
+        assert "seed shapes" in section, name
+    assert "RFC-0" not in (ROOT / "packages/agentbundle/README-pypi.md").read_text(
+        encoding="utf-8"
+    ).split("0.60.2", 1)[1].split("0.60.1", 1)[0]
+
+
+def test_governance_guide_sample_starts_like_the_starter() -> None:
+    """AC-0048: the sample preview of the default draft has no Decision model line."""
+    guide = (ROOT / "guides/repo-governance/how-to/set-up-governance.md").read_text(encoding="utf-8")
+    sample = guide.split("--- content ---\n", 1)[1].split("```", 1)[0]
+    assert sample.startswith("# Governance\n\n## Maintainers\n")
+    assert "Decision model" not in sample

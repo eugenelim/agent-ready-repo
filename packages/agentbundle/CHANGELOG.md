@@ -11,6 +11,8 @@ breaking.
 ### Changed
 
 - Release bump carrying the RFC-0114 delivery-route change (`Engine-Change-RFC: RFC-0114`).
+- `catalogue self-host` keeps `docs/GOVERNANCE.md` repository-owned.
+- The catalogue lint checks the new `repo-governance` seed shapes.
 
 ## [0.60.1] — 2026-11-03
 

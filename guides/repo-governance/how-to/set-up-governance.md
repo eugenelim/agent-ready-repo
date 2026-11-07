@@ -40,8 +40,6 @@ GOVERNANCE PREVIEW:
 --- content ---
 # Governance
 
-- **Decision model:** single maintainer or small group by consensus
-
 ## Maintainers
 
 - @alice

@@ -151,6 +151,26 @@ def test_next_uses_upstream_and_origin_through_git_seam(rig: Rig) -> None:
     assert calls
 
 
+def test_next_takes_upstream_when_it_is_higher_than_origin(rig: Rig) -> None:
+    top = rig.dir.parent.parent
+
+    def fake(argv: list[str], cwd: str, env: dict[str, str]) -> tuple[int, str]:
+        sub = argv[9:]
+        if sub[:2] == ["rev-parse", "--show-toplevel"]:
+            return 0, str(top) + "\n"
+        if sub[0] == "symbolic-ref":
+            return 0, sub[-1].split("refs/remotes/")[1].replace("/HEAD", "/main") + "\n"
+        if sub[:2] == ["rev-parse", "--verify"]:
+            return 0, "abc\n"
+        if sub[0] == "ls-tree":
+            return 0, "0030-u.md\n" if sub[-1].startswith("upstream/") else "0020-r.md\n"
+        raise AssertionError(sub)
+
+    rig.mod = Rig.load(rig.dir, stub=False)
+    rig.mod._spawn = fake
+    assert rig.run("next")[1] == "0031\n"
+
+
 def test_next_exits_2_when_unreadable_or_full(rig: Rig, tmp_path: Path) -> None:
     code, out, _ = rig.run("--dir", str(tmp_path / "missing"), "next")
     assert (code, out) == (2, "")
@@ -187,6 +207,7 @@ def test_new_refuses_used_number_or_dangling_link_and_writes_nothing(rig: Rig) -
     rig.put("0003-a.md")
     before = rig.snapshot()
     assert rig.run("new", "Other", "--number", "3")[0] == 1
+    assert rig.snapshot() == before
     (rig.dir / "0004-short-title.md").symlink_to(rig.dir / "nowhere")
     before = rig.snapshot()
     assert rig.run("new", "Short title", "--number", "4")[0] == 1
@@ -240,6 +261,12 @@ def test_check_section_must_be_exact_level_two_heading(rig: Rig) -> None:
     text = rfc_text(skip="Summary") + "### Summary\n\n## Summary extra\n"
     rig.put("0001-a.md", text)
     assert "'## Summary'" in rig.run("check")[1]
+
+
+def test_check_strict_accepts_record_with_research_companion(rig: Rig) -> None:
+    rig.put("0001-a.md")
+    rig.put("0001-a-research.md", "x")
+    assert rig.run("check", "--strict") == (0, "", "")
 
 
 def test_check_warns_on_shared_number(rig: Rig) -> None:
@@ -330,6 +357,68 @@ def test_renumber_refuses_symlinked_directory_component_under_cwd(
     assert rig.snapshot() == before
 
 
+def test_renumber_refuses_overlong_slug(rig: Rig) -> None:
+    long_name = "XXXX-" + "a" * 80 + ".md"
+    rig.put(long_name)
+    before = rig.snapshot()
+    assert rig.run("renumber", str(rig.dir / long_name), "7")[0] == 2
+    assert rig.snapshot() == before
+    ok_name = "XXXX-" + "a" * 60 + ".md"
+    rig.put(ok_name)
+    assert rig.run("renumber", str(rig.dir / ok_name), "7")[0] == 0
+
+
+def test_renumber_refuses_symlinked_directory_outside_cwd(
+    rig: Rig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rig.put("XXXX-a.md")
+    (tmp_path / "links").mkdir()
+    (tmp_path / "cwd").mkdir()
+    alias = tmp_path / "links" / "alias"
+    alias.symlink_to(tmp_path)  # an ancestor of the folder, not the folder itself
+    folder = alias / "docs" / "rfc"
+    monkeypatch.chdir(tmp_path / "cwd")  # the folder is not under the working directory
+    before = rig.snapshot()
+    code = rig.run("--dir", str(folder), "renumber", str(folder / "XXXX-a.md"), "5")[0]
+    assert code == 2
+    assert rig.snapshot() == before
+
+
+def test_renumber_rollback_that_fails_names_both_files(
+    rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rig.put("XXXX-a.md", rfc_text(title="RFC-XXXX: T"))
+    real_unlink = os.unlink
+
+    def failing_unlink(path: Any, *a: Any, **k: Any) -> None:
+        if str(path).endswith(("XXXX-a.md", "0005-a.md")):
+            raise OSError("denied")
+        real_unlink(path, *a, **k)
+
+    monkeypatch.setattr(os, "unlink", failing_unlink)
+    code, _, err = rig.run("renumber", str(rig.dir / "XXXX-a.md"), "5")
+    assert code == 2 and "XXXX-a.md" in err and "0005-a.md" in err
+
+
+def test_renumber_interrupt_after_create_restores_original(
+    rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    rig.put("XXXX-a.md", rfc_text(title="RFC-XXXX: T"))
+    original = rig.snapshot()
+    real_unlink = os.unlink
+
+    def interrupted(path: Any, *a: Any, **k: Any) -> None:
+        if str(path).endswith("XXXX-a.md"):
+            raise KeyboardInterrupt
+        real_unlink(path, *a, **k)
+
+    monkeypatch.setattr(os, "unlink", interrupted)
+    with pytest.raises(KeyboardInterrupt):
+        rig.run("renumber", str(rig.dir / "XXXX-a.md"), "5")
+    monkeypatch.undo()
+    assert rig.snapshot() == original
+
+
 def test_renumber_failure_paths_leave_exactly_the_original(
     rig: Rig, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -416,8 +505,7 @@ def test_docstring_and_check_help_name_the_three_warnings(
     doc = rig.mod.__doc__
     assert "decided" not in doc.lower()
     paragraph = doc[doc.index("`check`"):]
-    for text in (paragraph, ""):
-        assert "branch" not in text.lower()
+    assert "branch" not in paragraph.lower()
     with pytest.raises(SystemExit) as exit_info:
         rig.mod.main(["check", "--help"])
     assert exit_info.value.code == 0
@@ -681,3 +769,44 @@ def test_helper_that_is_a_link_is_not_loaded(rig: Rig, tmp_path: Path) -> None:
     mod = Rig.load(rig.dir)
     code = mod.main(["next"])
     assert code == 2 and "file_safety" in rig.capsys.readouterr().err
+
+
+def test_check_warns_then_refuses_when_own_helper_is_a_link(rig: Rig, tmp_path: Path) -> None:
+    (tmp_path / "real.py").write_text(
+        (SKILL_SCRIPTS / "file_safety.py").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (rig.dir / "file_safety.py").unlink()
+    (rig.dir / "file_safety.py").symlink_to(tmp_path / "real.py")
+    mod = Rig.load(rig.dir)
+    rig.mod = mod
+    code, out, err = rig.run("check")
+    assert code == 2 and "warning" in out and "file_safety.py" in out and err
+
+
+def test_helper_that_is_hard_linked_is_not_loaded(rig: Rig, tmp_path: Path) -> None:
+    (tmp_path / "real.py").write_text(
+        (SKILL_SCRIPTS / "file_safety.py").read_text(encoding="utf-8"), encoding="utf-8"
+    )
+    (rig.dir / "file_safety.py").unlink()
+    (rig.dir / "file_safety.py").hardlink_to(tmp_path / "real.py")
+    mod = Rig.load(rig.dir)
+    assert mod.main(["next"]) == 2 and "file_safety" in rig.capsys.readouterr().err
+
+
+def test_helper_loader_never_reads_past_one_byte_over_the_cap(
+    rig: Rig, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    (rig.dir / "file_safety.py").write_bytes(b"#" * (2 * 1024 * 1024))
+    mod = Rig.load(rig.dir)
+    total = 0
+    real_read = os.read
+
+    def counting(fd: int, n: int) -> bytes:
+        nonlocal total
+        data = real_read(fd, n)
+        total += len(data)
+        return data
+
+    monkeypatch.setattr(os, "read", counting)
+    assert mod.main(["next"]) == 2
+    assert total <= mod.MAX_BYTES + 1
