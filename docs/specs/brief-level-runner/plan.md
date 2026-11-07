@@ -1,7 +1,7 @@
 # Plan: brief-level runner
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Drafting <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, no internal citations, UTF-8 streams, pack-test loader rule); `tests/AGENTS.md` (roster tests and their named build-check step); `dispatch.py` `dispatch()` and `_header_readiness.py` as the readiness owner; `author-delivery-brief/scripts/lint-brief-coverage.py` as the Spec map parser precedent; `_supervisor_git.HardenedGit` as the hardened Git launcher; `_file_safety.read_confined_regular_file` as the read path; `lint-knowledge.py` `field_problems` with its `body` policy as the one standing-orders character rule; `_supervisor_admission._check_lease` and its lease key constants as the one lease rule; `_supervisor_loop.State.attempt` as the failed-attempt count; `supervisor_harness.py` and `test_supervisor_parked_gates.py` as the analogous integration tests.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -249,6 +249,18 @@ Owned by: T2, T3, T5. Traces to AC-0001, AC-0002, AC-0011, AC-0029.
   - Next output (AC-0009): every `next` answer through `main` carries `schema_version` 1 at its top level, and so does a `next` refusal, while a `status` refusal does not; every action kind carries `base`; `resume-slice` and `start-slice` carry `spec_path`, `await-merge` carries `spec_paths` in `slices` order, and each `blocked` row carries its `spec_path`.
   - Guidance (AC-0009): the reference's `next` row names `schema_version`, `base` and the spec-path fields.
 - **Done when:** the T15 tests pass, the existing brief-runner suites stay green, and lint is clean.
+
+### T16: Restarted-run review round 5 repairs
+
+- **Depends on:** T15
+- **Touches:** `packs/core/.apm/skills/work-loop/scripts/brief-runner.py`, `packs/core/.apm/skills/work-loop/references/brief-runner.md`, `packs/core/tests/skills/work-loop/test_brief_runner.py`, `packs/core/tests/skills/work-loop/test_brief_runner_units.py`, `packs/core/tests/skills/work-loop/test_brief_runner_guidance.py`
+- **Mode:** TDD
+- **Tests:**
+  - Parent ignore files (AC-0002): an uncommitted root `.gitignore` line that ignores an untracked `docs/specs/<x>/spec.md` refuses `base-not-committed`; so does an untracked root `.gitignore` where the base has none, an assume-unchanged root `.gitignore` whose bytes changed, an untracked `.gitignore` in a folder above the skill directory, and an untracked `.GITIGNORE` there, which only the letter-case match on parent paths finds on either kind of filesystem; the refusal detail names a changed `.gitignore` above those paths; the parent list for a nested skill path names every folder up to the root.
+  - Letter case (AC-0002): an untracked `.GITIGNORE` inside a folder a committed rule ignores refuses, so removing the letter-case match turns it red on case-sensitive and case-insensitive filesystems alike.
+  - Next refusals (AC-0009): an `internal-error` from `next` carries `schema_version` 1.
+  - Exit codes (AC-0009): a usage error exits 2 with nothing on stdout, and `--help` exits 0 with help text that is not JSON; the reference and the module docstring say so, and that a `next` answer or refusal carries `schema_version`.
+- **Done when:** the T16 tests pass, the existing brief-runner suites stay green, and lint is clean.
 
 ## Rollout
 
