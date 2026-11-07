@@ -7,7 +7,7 @@ kind: tutorial
 
 # Your first workspace session
 
-In this tutorial you build a small example repository, ask your agent what is ready to work on, remember a follow-on as its own file, and see how the answer changes after a spec ships. You need a git repository with [the `core` pack installed](../how-to/start-a-project.md) and a fresh agent session open in it. The outputs below come from a real run.[^run]
+In this tutorial you build a small example repository, ask your agent what is ready to work on, remember a follow-on as its own file, and see how the answer changes after a spec ships. A spec is a short document that says what done means. You need a git repository with [the `core` pack installed](../how-to/start-a-project.md) and a fresh agent session open in it. The outputs below come from a real run.[^run]
 
 ## Create the example repository
 
@@ -32,7 +32,7 @@ Start every session with this question:
 What is ready to work on in this repo?
 ```
 
-The agent runs `dispatch.py` from the `work-loop` skill, `<skill-dir>/scripts/dispatch.py --root . --captured`, where `<skill-dir>` is the installed skill folder, such as `.claude/skills/work-loop` for Claude Code. The script reads each spec's `Status:` and `Depends on:` headers and writes nothing. It prints one JSON object, and your agent turns it into plain words. The part that matters most is the decision:
+The agent runs `dispatch.py` from the `work-loop` skill, `<skill-dir>/scripts/dispatch.py --root . --captured`, where `<skill-dir>` is the installed skill folder, such as `.claude/skills/work-loop` for Claude Code. The script reads each spec's `Status:` and `Depends on:` headers, writes nothing, and prints one JSON object that your agent turns into plain words. The part that matters most is the decision:
 
 ```json
 "decision": {
@@ -46,7 +46,11 @@ The agent runs `dispatch.py` from the `work-loop` skill, `<skill-dir>/scripts/di
 }
 ```
 
-`ready` lists `capture-work-v2` and `workspace-core`. `blocked` lists `status-phase2` with an `unsatisfied_dependency` on `workspace-core`, because it declares `Depends on: spec:workspace-core`. Under `captured`, `auth-strategy` routes to `frame-situation`, the skill that frames a strategy question, and `infra-cost-monitoring` is a signal with no action. With two ready specs the decision is `ask`: dispatch lists the candidates and never picks one for you. Answer it:
+`ready` lists `capture-work-v2` and `workspace-core`. `blocked` lists `status-phase2` with an `unsatisfied_dependency` on `workspace-core`, because it declares `Depends on: spec:workspace-core`. Under `captured`, `auth-strategy` routes to `frame-situation`, a skill in the `product-engineering` pack that sorts out a signal before anyone shapes work, and `infra-cost-monitoring` is a signal with no action.
+
+## Choose a spec
+
+With two ready specs the decision is `ask`: dispatch lists the candidates and never picks one for you. Answer it:
 
 ```text
 Start workspace-core.
@@ -54,23 +58,23 @@ Start workspace-core.
 
 ## Build the spec
 
-The example specs are stubs with nothing to build, so this is where you switch to a real approved spec. A real spec has Outcome, What Changes, Agent Rules, Testing Strategy, and Acceptance Criteria sections; skim the Outcome and the acceptance criteria, and confirm the status is not `Shipped`. Then start the loop:
+This tutorial does not run the loop. The example specs are stubs with nothing to build, and the real run covered only the dispatch and intake steps. With your own approved spec, skim its Outcome and acceptance criteria, then start the loop:
 
 ```text
-use the work-loop skill to implement docs/specs/workspace-core/
+use the work-loop skill to implement docs/specs/<slug>/
 ```
 
-The loop plans, builds task by task, runs your checks, and sends the diff to an independent reviewer. [Run the build loop](../how-to/start-the-work.md) covers what it does and where it stops for you.
+The loop plans, builds task by task, runs your checks, and sends the diff to independent reviewers. [Run the build loop](../how-to/start-the-work.md) covers what it does and where it stops for you.
 
 ## Remember a follow-on
 
-While the loop runs, review may find an improvement that the current spec does not need. Capture it without stopping the loop:
+While the loop runs, review may find an improvement the current spec does not need. Capture it without stopping the loop:
 
 ```text
 work-intake: remember the configurable retry backoff follow-on from docs/specs/workspace-core; stop without implementation
 ```
 
-In the real run, the agent wrote one file, `docs/product/captured/configurable-retry-backoff.md`, as a captured item of kind `design`, and changed nothing else. Check it by asking what is ready again. `dispatch.py` validates every captured item, and the real run produced this finding for the new file:
+In the real run, the agent wrote one file, `docs/product/captured/configurable-retry-backoff.md`, as a captured item of kind `design`, and changed nothing else. Ask what is ready again, because `dispatch.py` validates every captured item. It rejected the new file:
 
 ```json
 {
@@ -82,14 +86,14 @@ In the real run, the agent wrote one file, `docs/product/captured/configurable-r
 }
 ```
 
-The agent had written the header lines as `Status: Open` and `Kind: design`. The other captured items use the bullet form, `- **Status:** Open` and `- **Kind:** design`. Rewrite the two lines that way, and the item lists as valid, with kind `design`.
+The skill's current contract describes the header as bare `Status: Open` and `Kind: design` lines, and the script accepts only the bullet form the other captured items use, `- **Status:** Open` and `- **Kind:** design`. Rewrite the two lines that way and run it again; the item lists as valid, with kind `design`.
 
 ## See the state after the spec ships
 
-When `workspace-core` ships, its `Status:` becomes `Shipped` and its plan `Done`. In the example, set those two lines by hand and ask what is ready again. The real answer: `ready` now lists `capture-work-v2` and `status-phase2`, `blocked` is empty, and the decision is again `ask`. The follow-on stays a file until someone picks it up.
+When `workspace-core` ships, its `Status:` is `Shipped` and its plan `Done`. In the example, set those two lines by hand and ask what is ready again. The real answer: `ready` holds `capture-work-v2` and `status-phase2`, `blocked` is empty, and the decision is `ask` again. The follow-on stays a file until someone picks it up.
 
 Shipping is not closeout. [Close work without losing lasting context](../how-to/close-and-disposition-work.md) previews what the spec and plan still hold that no other document does.
 
 Next, [orient faster at the start of every session](../how-to/orient-at-session-start.md).
 
-[^run]: Run on 2026-11-07 in a scratch repository with the `core` pack installed by `agentbundle install --pack core --adapter claude-code`. The `dispatch.py` outputs were captured from the installed script. The follow-on was a headless `claude -p` session using the installed `work-intake` skill with the prompt shown. Agent wording and the item's `Kind` can differ between runs.
+[^run]: Run on 2026-11-07 in a scratch repository with `core` 4.0.21 installed by `agentbundle install --pack core --adapter claude-code`. Each `dispatch.py` output was captured from the installed script, in the order shown. The follow-on was a headless `claude -p` session using the installed `work-intake` skill with the prompt shown; its wording and the item's `Kind` can differ between runs. The build loop was not run.
