@@ -1,6 +1,6 @@
 # Spec: Lighter RFC delivery
 
-- **Status:** Implementing
+- **Status:** Shipped
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** RFC-0114, RFC-0091, ADR-0089
@@ -96,90 +96,90 @@ Each group names its criteria once.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** The skill's `assets/rfc.md` and the seeded `docs/rfc/template.md.tmpl` are byte-identical.
-- [ ] **AC-0002.** The template's level-two headings, in order, are Summary, Motivation, Proposal, Design details, Costs and what could go wrong, Alternatives, How we will know it works, Migration, Open questions and Evidence, with Goals and Non-goals as level-three headings under Motivation.
-- [ ] **AC-0003.** The template's header fields are exactly Status, Author, Date opened, Date closed, Decision weight and Related, and it has no `Approver` field.
-- [ ] **AC-0004.** The template contains the `<account-handle>` placeholder, the cold-reader cue and the commented Errata/Amendments scaffold.
-- [ ] **AC-0005.** The template's Decision-weight line carries the default `standard`, the three tier definitions, and the sentence "Use core's work-loop risk triggers when core is installed, otherwise these definitions".
-- [ ] **AC-0006.** The template's header comment names `python3 -I docs/rfc/rfc.py` and no other script.
-- [ ] **AC-0007.** The template's Summary comment asks for the proposal and its reason followed by one bullet per decision, and its Proposal comment asks for follow-on work at the end of Proposal.
-- [ ] **AC-0008.** `rfc.py next` prints, as four digits, one more than the highest number among the folder's records, its `NNNN-notes/` folders, its research companions, and the last-fetched default branches of `upstream` and `origin` in the repository that contains the RFC folder.
-- [ ] **AC-0009.** `rfc.py next` prints no number and exits 2 when the folder cannot be read or the next number would pass 9999.
-- [ ] **AC-0010.** `rfc.py new "Title"` writes `NNNN-<slug>.md` from the template with the number `next` gives, creating the file exclusively.
-- [ ] **AC-0011.** `rfc.py new` exits 1 and writes nothing when the number or the file name is already used, including a dangling link at that name.
-- [ ] **AC-0012.** `rfc.py check` reads an `XXXX-<slug>.md` draft as a record and applies the length and section warnings to it.
-- [ ] **AC-0013.** `rfc.py renumber FILE N` renames the file and its title number, where FILE may be an `XXXX-<slug>.md` draft, and exits 1 when `N` is in use.
-- [ ] **AC-0014.** `rfc.py renumber` refuses a path with a symlinked directory component.
-- [ ] **AC-0015.** After any failure in `renumber`, the folder holds exactly the original file.
-- [ ] **AC-0016.** `rfc.py check` warns when a non-terminal RFC passes 5,000 whitespace-separated words, counting everything except the title and the header field lines, and counting fenced code.
-- [ ] **AC-0017.** `rfc.py check` warns when a non-terminal RFC lacks one of its six required sections, Summary, Motivation, Proposal, Costs and what could go wrong, Alternatives and How we will know it works, each matched as a level-two heading with exactly that name.
-- [ ] **AC-0018.** `rfc.py check` warns when two records share a number.
-- [ ] **AC-0019.** `rfc.py check` skips the length and section warnings for RFCs whose status is Accepted, Rejected, Withdrawn, Experimental or Superseded, and skips every `NNNN-<slug>-research.md` companion in every check.
-- [ ] **AC-0020.** `rfc.py check` exits 0 on warnings, 1 on warnings with `--strict`, and 2 when a file cannot be read.
-- [ ] **AC-0021.** With FILE arguments, `rfc.py check` applies the length and section checks only to the named files.
-- [ ] **AC-0022.** `rfc.py check` over the existing `docs/rfc/` reports no length, section or number-clash warning.
-- [ ] **AC-0023.** `rfc.py` imports only modules of the Python standard library.
-- [ ] **AC-0024.** A `argparse.py` planted beside the script is not imported by the documented `python3 -I` call.
-- [ ] **AC-0025.** `rfc.py` executes `file_safety.py` only from its own source bytes, read as a confined regular file, and consults and writes no bytecode cache, so a planted unchecked-hash `__pycache__/file_safety.*.pyc` never runs.
-- [ ] **AC-0026.** At the top level of the folder it inspects, `rfc.py check` exempts exactly `rfc.py` and `file_safety.py` as regular non-link files and warns about any other code file, any bytecode file, `__pycache__/`, a symlinked `file_safety.py`, and any subdirectory other than a `NNNN-notes/` folder; it does not look inside `NNNN-notes/` folders, and the folder it inspects is the `--dir` folder or, without `--dir`, the script's own folder.
-- [ ] **AC-0027.** Every read and exclusive create in the RFC folder, the template included, goes through `file_safety.py`; a listing validates the folder with the helper and then reads one directory level without following links; `renumber`'s rename, remove and rollback are the exception.
-- [ ] **AC-0028.** `rfc.py` reads and writes only regular non-link files whose parent is the RFC folder.
-- [ ] **AC-0029.** `rfc.py` reads at most 1 MiB from any file.
-- [ ] **AC-0030.** A name `new` or `renumber` creates uses only `[a-z0-9-]` in its slug, at most 60 characters of slug, and a number from 1 to 9999.
-- [ ] **AC-0031.** `rfc.py check` reports a file whose name is not a record, a companion, `README.md`, `rfc.py`, `file_safety.py` or `template.md.tmpl`, and never reads, renames or counts it.
-- [ ] **AC-0032.** A file name `rfc.py` prints has its control characters escaped.
-- [ ] **AC-0033.** Every git invocation carries `-c core.fsmonitor=`, `-c core.hooksPath=<null device>`, `-c protocol.allow=never`, `-c safe.bareRepository=explicit` and `GIT_TERMINAL_PROMPT=0`, and runs only `rev-parse`, `symbolic-ref` or `ls-tree`.
-- [ ] **AC-0034.** With `rfc.py --dir PATH`, every file read, listing and write targets `PATH` and none targets the script's folder except loading `file_safety.py` from it, and no code from `PATH` runs.
-- [ ] **AC-0035.** The seeded guidance names `rfc.py`, `file_safety.py`, the template and the governance file as maintainer-owned and says changes to them need close review.
-- [ ] **AC-0036.** The seeded guidance tells maintainers to check a contributor's branch with their own default-branch copy of `rfc.py`, never the branch's copy.
-- [ ] **AC-0037.** The seeded guidance names `pull_request` with read-only permissions and no secrets as the CI trigger for `check`, forbids `pull_request_target` on pull-request content, and says the CI job runs the default-branch copy of `rfc.py` with the pull request as data through `--dir`, because a copy from the pull request is contributor code.
-- [ ] **AC-0038.** The starter and the template say a decider named inside an RFC is a suggestion, and that only the repository's rules and a listed maintainer's merge accept an RFC.
-- [ ] **AC-0039.** The starter's maintainers list holds only the `<maintainer-handle>` placeholder, the starter has no rule that accepts a change by silence or timeout, and it names no `CODEOWNERS` dependency.
-- [ ] **AC-0040.** The issue template asks for no personal data beyond what the platform shows, sets no assignee, and says a reply is not an acceptance.
-- [ ] **AC-0041.** The starter has headings for maintainers, how decisions are made, suggesting a change, when to write an RFC and how an RFC is decided.
-- [ ] **AC-0042.** The starter states the ladder of an optional issue or discussion, then a pull request, an ADR, or an RFC, and marks the discussion step optional.
-- [ ] **AC-0043.** The starter states that one RFC proposes one change, how to start an RFC, and that agent-binding rules belong in project instructions.
-- [ ] **AC-0044.** The starter's RFC rule states the trigger of an unresolved direction that more than one owner must agree, and the four reserved categories: charter mission, scope or foundational principles; maintainer authority, approval or governance model; a security trust model; and withdrawal or breaking change of a stable published compatibility promise.
-- [ ] **AC-0045.** No seeded file, template asset or `rfc.py` text contains an identifier of the form `RFC-` or `ADR-` followed by digits.
-- [ ] **AC-0046.** Every `rfc.py` command line shown in seeded text, the script's help, the template header, the skill and the guide uses `python3 -I`.
-- [ ] **AC-0047.** One judged `new-rfc` eval supplies a template and an existing RFC that each carry an HTML comment instructing an out-of-scope action, and the recorded judged run passes its assertions that the action does not occur and the receipt reports the comment as content.
-- [ ] **AC-0048.** Governance mode's default asset is byte-identical to the seeded `docs/GOVERNANCE.md`.
-- [ ] **AC-0049.** Governance mode's draft check accepts that text once a handle replaces the placeholder.
-- [ ] **AC-0050.** Installing `repo-governance` into an empty repository delivers `docs/GOVERNANCE.md`, `docs/rfc/README.md`, `docs/rfc/rfc.py`, `docs/rfc/file_safety.py`, `docs/rfc/template.md.tmpl` and `.github/ISSUE_TEMPLATE/proposal-idea.md`, and the install snapshot lists them.
-- [ ] **AC-0051.** Each new seed has a declared shape in the seed lint, and `agentbundle catalogue lint --root . --deep` passes.
-- [ ] **AC-0052.** The skill's bundled `rfc.py` and `file_safety.py` are byte-identical to the seeded copies.
-- [ ] **AC-0053.** The seeded `file_safety.py` is byte-identical to the canonical helper under `packages/agentbundle/agentbundle/catalogue_tooling/`.
-- [ ] **AC-0054.** This repository's `docs/rfc/rfc.py`, `docs/rfc/file_safety.py` and `docs/rfc/template.md.tmpl` are byte-identical to the seeds.
-- [ ] **AC-0055.** This repository's `docs/GOVERNANCE.md` has no `<maintainer-handle>` placeholder and lists the handle of this spec's Owner.
-- [ ] **AC-0056.** `agentbundle catalogue self-host --root . --check` passes.
-- [ ] **AC-0057.** `docs/architecture/pack-layout.md` lists `docs/GOVERNANCE.md` among the repository-owned seeded paths.
-- [ ] **AC-0058.** The skill numbers an RFC through its bundled `rfc.py next` and `check` with `--dir` set to the RFC folder, and its text uses `next-ordinal.py` for no RFC step.
-- [ ] **AC-0059.** The skill's completeness check asks "who decides is clear", and its text contains no `Approver`.
-- [ ] **AC-0060.** The skill's receipt reports who decides.
-- [ ] **AC-0061.** The skill never reads or names `GOVERNANCE.md` outside governance mode.
-- [ ] **AC-0062.** Governance mode's target is an existing governance file at any allowed location.
-- [ ] **AC-0063.** The skill's drafting guidance states each of: Summary first with one bullet per decision, a preview that shows the Summary and not a Reviewer brief, evidence cited as `[n]` and listed under Evidence, diagrams where structure is clearer as a picture, long research in a `NNNN-notes/` folder, and a check that each decision is one claim.
-- [ ] **AC-0064.** For an RFC that supersedes another, the skill writes `Supersedes` or `Supersedes in part` header lines with D-numbers while drafting.
-- [ ] **AC-0065.** The skill writes the mirrored header line and the Errata entry on a frozen RFC only after the superseding RFC is Accepted, and edits no frozen body.
-- [ ] **AC-0066.** After the mirrors are written, a lineage query returns a checked edge between the two RFCs, with equal scopes, in both directions.
-- [ ] **AC-0067.** The skill's pre-handoff checks require that every `[n]` citation resolves to an Evidence item, every Evidence item is cited, and every date has a source.
-- [ ] **AC-0068.** The skill's research-findings block and open-question guidance carry no decide-by date.
-- [ ] **AC-0069.** The skill's anti-patterns name narrative history in the body, a mirror line on a frozen RFC before acceptance, an invented date or deadline, and filler.
-- [ ] **AC-0070.** The skill records whole-RFC supersession as header lines on both records plus the Errata entry, and says the merge by a maintainer the repository's rules name signs an Errata entry.
-- [ ] **AC-0071.** The first `new-rfc` eval keeps its assertions that the RFC reads from zero prior context and carries the Decision-weight field and adds assertions for Summary-first order, footnoted evidence without narrative, no decide-by dates, a diagram where structure matters, supersession lines at draft and no mirror line before acceptance, and the second eval asserts no decide-by date.
-- [ ] **AC-0072.** The how-to guide names the six required sections of the check criterion and contains no `Approver`.
-- [ ] **AC-0073.** The guide keeps its readiness-summary and proof wording and its description of the fresh-context check.
-- [ ] **AC-0074.** One ADR supersedes in part each shipped criterion that `docs/rfc/0114-notes/superseded-criteria.md` lists as superseded.
-- [ ] **AC-0075.** Each affected spec's Status line carries a scoped pointer to that ADR.
-- [ ] **AC-0076.** `navigate-decisions` health reports `ok`.
-- [ ] **AC-0077.** Each release surface carries one version per artifact: `repo-governance` `pack.toml` and `plugin.json`; and `agentbundle`'s `version.py`, `pyproject.toml`, the first `## What's new in X.Y.Z` heading of `README-pypi.md`, the first `## [X.Y.Z]` heading of `CHANGELOG.md` and its changelog fragment.
-- [ ] **AC-0078.** Each new version, the pack's and the package's, is the next patch above the version on the fetched default branch.
-- [ ] **AC-0079.** A changelog fragment for the pack version states that the seeded files reach new installs only and that fixes to seeded scripts reach existing adopters only by re-copying.
-- [ ] **AC-0080.** The tests that pin the `repo-governance` version carry the new version, and the registry-notes map points `repo-governance` at the new fragment.
-- [ ] **AC-0081.** A captured work item for fixing seed upgrades exists under `docs/product/captured/`, owned by eugenelim.
-- [ ] **AC-0082.** The roster, `new-rfc`, `new-adr` and `navigate-decisions` suites, `tools/validate_guides.py`, `tools/check-guide-index.py`, `tools/lint-guide-titles.py` and `tools/test_stasis_retirement_claims.py` pass.
-- [ ] **AC-0083.** A fork-only contributor in a fresh clone creates a draft with `rfc.py new` and no agent installed, `rfc.py check` on that draft file reports no warning.
-- [ ] **AC-0084.** `rfc.py check` starts no git process and gives no warning that depends on a record being present on any branch; its help describes no warning about branch presence or decided status and names the length, missing-section and number-clash warnings.
+- [x] **AC-0001.** The skill's `assets/rfc.md` and the seeded `docs/rfc/template.md.tmpl` are byte-identical.
+- [x] **AC-0002.** The template's level-two headings, in order, are Summary, Motivation, Proposal, Design details, Costs and what could go wrong, Alternatives, How we will know it works, Migration, Open questions and Evidence, with Goals and Non-goals as level-three headings under Motivation.
+- [x] **AC-0003.** The template's header fields are exactly Status, Author, Date opened, Date closed, Decision weight and Related, and it has no `Approver` field.
+- [x] **AC-0004.** The template contains the `<account-handle>` placeholder, the cold-reader cue and the commented Errata/Amendments scaffold.
+- [x] **AC-0005.** The template's Decision-weight line carries the default `standard`, the three tier definitions, and the sentence "Use core's work-loop risk triggers when core is installed, otherwise these definitions".
+- [x] **AC-0006.** The template's header comment names `python3 -I docs/rfc/rfc.py` and no other script.
+- [x] **AC-0007.** The template's Summary comment asks for the proposal and its reason followed by one bullet per decision, and its Proposal comment asks for follow-on work at the end of Proposal.
+- [x] **AC-0008.** `rfc.py next` prints, as four digits, one more than the highest number among the folder's records, its `NNNN-notes/` folders, its research companions, and the last-fetched default branches of `upstream` and `origin` in the repository that contains the RFC folder.
+- [x] **AC-0009.** `rfc.py next` prints no number and exits 2 when the folder cannot be read or the next number would pass 9999.
+- [x] **AC-0010.** `rfc.py new "Title"` writes `NNNN-<slug>.md` from the template with the number `next` gives, creating the file exclusively.
+- [x] **AC-0011.** `rfc.py new` exits 1 and writes nothing when the number or the file name is already used, including a dangling link at that name.
+- [x] **AC-0012.** `rfc.py check` reads an `XXXX-<slug>.md` draft as a record and applies the length and section warnings to it.
+- [x] **AC-0013.** `rfc.py renumber FILE N` renames the file and its title number, where FILE may be an `XXXX-<slug>.md` draft, and exits 1 when `N` is in use.
+- [x] **AC-0014.** `rfc.py renumber` refuses a path with a symlinked directory component.
+- [x] **AC-0015.** After any failure in `renumber`, the folder holds exactly the original file.
+- [x] **AC-0016.** `rfc.py check` warns when a non-terminal RFC passes 5,000 whitespace-separated words, counting everything except the title and the header field lines, and counting fenced code.
+- [x] **AC-0017.** `rfc.py check` warns when a non-terminal RFC lacks one of its six required sections, Summary, Motivation, Proposal, Costs and what could go wrong, Alternatives and How we will know it works, each matched as a level-two heading with exactly that name.
+- [x] **AC-0018.** `rfc.py check` warns when two records share a number.
+- [x] **AC-0019.** `rfc.py check` skips the length and section warnings for RFCs whose status is Accepted, Rejected, Withdrawn, Experimental or Superseded, and skips every `NNNN-<slug>-research.md` companion in every check.
+- [x] **AC-0020.** `rfc.py check` exits 0 on warnings, 1 on warnings with `--strict`, and 2 when a file cannot be read.
+- [x] **AC-0021.** With FILE arguments, `rfc.py check` applies the length and section checks only to the named files.
+- [x] **AC-0022.** `rfc.py check` over the existing `docs/rfc/` reports no length, section or number-clash warning.
+- [x] **AC-0023.** `rfc.py` imports only modules of the Python standard library.
+- [x] **AC-0024.** A `argparse.py` planted beside the script is not imported by the documented `python3 -I` call.
+- [x] **AC-0025.** `rfc.py` executes `file_safety.py` only from its own source bytes, read as a confined regular file, and consults and writes no bytecode cache, so a planted unchecked-hash `__pycache__/file_safety.*.pyc` never runs.
+- [x] **AC-0026.** At the top level of the folder it inspects, `rfc.py check` exempts exactly `rfc.py` and `file_safety.py` as regular non-link files and warns about any other code file, any bytecode file, `__pycache__/`, a symlinked `file_safety.py`, and any subdirectory other than a `NNNN-notes/` folder; it does not look inside `NNNN-notes/` folders, and the folder it inspects is the `--dir` folder or, without `--dir`, the script's own folder.
+- [x] **AC-0027.** Every read and exclusive create in the RFC folder, the template included, goes through `file_safety.py`; a listing validates the folder with the helper and then reads one directory level without following links; `renumber`'s rename, remove and rollback are the exception.
+- [x] **AC-0028.** `rfc.py` reads and writes only regular non-link files whose parent is the RFC folder.
+- [x] **AC-0029.** `rfc.py` reads at most 1 MiB from any file.
+- [x] **AC-0030.** A name `new` or `renumber` creates uses only `[a-z0-9-]` in its slug, at most 60 characters of slug, and a number from 1 to 9999.
+- [x] **AC-0031.** `rfc.py check` reports a file whose name is not a record, a companion, `README.md`, `rfc.py`, `file_safety.py` or `template.md.tmpl`, and never reads, renames or counts it.
+- [x] **AC-0032.** A file name `rfc.py` prints has its control characters escaped.
+- [x] **AC-0033.** Every git invocation carries `-c core.fsmonitor=`, `-c core.hooksPath=<null device>`, `-c protocol.allow=never`, `-c safe.bareRepository=explicit` and `GIT_TERMINAL_PROMPT=0`, and runs only `rev-parse`, `symbolic-ref` or `ls-tree`.
+- [x] **AC-0034.** With `rfc.py --dir PATH`, every file read, listing and write targets `PATH` and none targets the script's folder except loading `file_safety.py` from it, and no code from `PATH` runs.
+- [x] **AC-0035.** The seeded guidance names `rfc.py`, `file_safety.py`, the template and the governance file as maintainer-owned and says changes to them need close review.
+- [x] **AC-0036.** The seeded guidance tells maintainers to check a contributor's branch with their own default-branch copy of `rfc.py`, never the branch's copy.
+- [x] **AC-0037.** The seeded guidance names `pull_request` with read-only permissions and no secrets as the CI trigger for `check`, forbids `pull_request_target` on pull-request content, and says the CI job runs the default-branch copy of `rfc.py` with the pull request as data through `--dir`, because a copy from the pull request is contributor code.
+- [x] **AC-0038.** The starter and the template say a decider named inside an RFC is a suggestion, and that only the repository's rules and a listed maintainer's merge accept an RFC.
+- [x] **AC-0039.** The starter's maintainers list holds only the `<maintainer-handle>` placeholder, the starter has no rule that accepts a change by silence or timeout, and it names no `CODEOWNERS` dependency.
+- [x] **AC-0040.** The issue template asks for no personal data beyond what the platform shows, sets no assignee, and says a reply is not an acceptance.
+- [x] **AC-0041.** The starter has headings for maintainers, how decisions are made, suggesting a change, when to write an RFC and how an RFC is decided.
+- [x] **AC-0042.** The starter states the ladder of an optional issue or discussion, then a pull request, an ADR, or an RFC, and marks the discussion step optional.
+- [x] **AC-0043.** The starter states that one RFC proposes one change, how to start an RFC, and that agent-binding rules belong in project instructions.
+- [x] **AC-0044.** The starter's RFC rule states the trigger of an unresolved direction that more than one owner must agree, and the four reserved categories: charter mission, scope or foundational principles; maintainer authority, approval or governance model; a security trust model; and withdrawal or breaking change of a stable published compatibility promise.
+- [x] **AC-0045.** No seeded file, template asset or `rfc.py` text contains an identifier of the form `RFC-` or `ADR-` followed by digits.
+- [x] **AC-0046.** Every `rfc.py` command line shown in seeded text, the script's help, the template header, the skill and the guide uses `python3 -I`.
+- [x] **AC-0047.** One judged `new-rfc` eval supplies a template and an existing RFC that each carry an HTML comment instructing an out-of-scope action, and the recorded judged run passes its assertions that the action does not occur and the receipt reports the comment as content.
+- [x] **AC-0048.** Governance mode's default asset is byte-identical to the seeded `docs/GOVERNANCE.md`.
+- [x] **AC-0049.** Governance mode's draft check accepts that text once a handle replaces the placeholder.
+- [x] **AC-0050.** Installing `repo-governance` into an empty repository delivers `docs/GOVERNANCE.md`, `docs/rfc/README.md`, `docs/rfc/rfc.py`, `docs/rfc/file_safety.py`, `docs/rfc/template.md.tmpl` and `.github/ISSUE_TEMPLATE/proposal-idea.md`, and the install snapshot lists them.
+- [x] **AC-0051.** Each new seed has a declared shape in the seed lint, and `agentbundle catalogue lint --root . --deep` passes.
+- [x] **AC-0052.** The skill's bundled `rfc.py` and `file_safety.py` are byte-identical to the seeded copies.
+- [x] **AC-0053.** The seeded `file_safety.py` is byte-identical to the canonical helper under `packages/agentbundle/agentbundle/catalogue_tooling/`.
+- [x] **AC-0054.** This repository's `docs/rfc/rfc.py`, `docs/rfc/file_safety.py` and `docs/rfc/template.md.tmpl` are byte-identical to the seeds.
+- [x] **AC-0055.** This repository's `docs/GOVERNANCE.md` has no `<maintainer-handle>` placeholder and lists the handle of this spec's Owner.
+- [x] **AC-0056.** `agentbundle catalogue self-host --root . --check` passes.
+- [x] **AC-0057.** `docs/architecture/pack-layout.md` lists `docs/GOVERNANCE.md` among the repository-owned seeded paths.
+- [x] **AC-0058.** The skill numbers an RFC through its bundled `rfc.py next` and `check` with `--dir` set to the RFC folder, and its text uses `next-ordinal.py` for no RFC step.
+- [x] **AC-0059.** The skill's completeness check asks "who decides is clear", and its text contains no `Approver`.
+- [x] **AC-0060.** The skill's receipt reports who decides.
+- [x] **AC-0061.** The skill never reads or names `GOVERNANCE.md` outside governance mode.
+- [x] **AC-0062.** Governance mode's target is an existing governance file at any allowed location.
+- [x] **AC-0063.** The skill's drafting guidance states each of: Summary first with one bullet per decision, a preview that shows the Summary and not a Reviewer brief, evidence cited as `[n]` and listed under Evidence, diagrams where structure is clearer as a picture, long research in a `NNNN-notes/` folder, and a check that each decision is one claim.
+- [x] **AC-0064.** For an RFC that supersedes another, the skill writes `Supersedes` or `Supersedes in part` header lines with D-numbers while drafting.
+- [x] **AC-0065.** The skill writes the mirrored header line and the Errata entry on a frozen RFC only after the superseding RFC is Accepted, and edits no frozen body.
+- [x] **AC-0066.** After the mirrors are written, a lineage query returns a checked edge between the two RFCs, with equal scopes, in both directions.
+- [x] **AC-0067.** The skill's pre-handoff checks require that every `[n]` citation resolves to an Evidence item, every Evidence item is cited, and every date has a source.
+- [x] **AC-0068.** The skill's research-findings block and open-question guidance carry no decide-by date.
+- [x] **AC-0069.** The skill's anti-patterns name narrative history in the body, a mirror line on a frozen RFC before acceptance, an invented date or deadline, and filler.
+- [x] **AC-0070.** The skill records whole-RFC supersession as header lines on both records plus the Errata entry, and says the merge by a maintainer the repository's rules name signs an Errata entry.
+- [x] **AC-0071.** The first `new-rfc` eval keeps its assertions that the RFC reads from zero prior context and carries the Decision-weight field and adds assertions for Summary-first order, footnoted evidence without narrative, no decide-by dates, a diagram where structure matters, supersession lines at draft and no mirror line before acceptance, and the second eval asserts no decide-by date.
+- [x] **AC-0072.** The how-to guide names the six required sections of the check criterion and contains no `Approver`.
+- [x] **AC-0073.** The guide keeps its readiness-summary and proof wording and its description of the fresh-context check.
+- [x] **AC-0074.** One ADR supersedes in part each shipped criterion that `docs/rfc/0114-notes/superseded-criteria.md` lists as superseded.
+- [x] **AC-0075.** Each affected spec's Status line carries a scoped pointer to that ADR.
+- [x] **AC-0076.** `navigate-decisions` health reports `ok`.
+- [x] **AC-0077.** Each release surface carries one version per artifact: `repo-governance` `pack.toml` and `plugin.json`; and `agentbundle`'s `version.py`, `pyproject.toml`, the first `## What's new in X.Y.Z` heading of `README-pypi.md`, the first `## [X.Y.Z]` heading of `CHANGELOG.md` and its changelog fragment.
+- [x] **AC-0078.** Each new version, the pack's and the package's, is the next patch above the version on the fetched default branch.
+- [x] **AC-0079.** A changelog fragment for the pack version states that the seeded files reach new installs only and that fixes to seeded scripts reach existing adopters only by re-copying.
+- [x] **AC-0080.** The tests that pin the `repo-governance` version carry the new version, and the registry-notes map points `repo-governance` at the new fragment.
+- [x] **AC-0081.** A captured work item for fixing seed upgrades exists under `docs/product/captured/`, owned by eugenelim.
+- [x] **AC-0082.** The roster, `new-rfc`, `new-adr` and `navigate-decisions` suites, `tools/validate_guides.py`, `tools/check-guide-index.py`, `tools/lint-guide-titles.py` and `tools/test_stasis_retirement_claims.py` pass.
+- [x] **AC-0083.** A fork-only contributor in a fresh clone creates a draft with `rfc.py new` and no agent installed, `rfc.py check` on that draft file reports no warning.
+- [x] **AC-0084.** `rfc.py check` starts no git process and gives no warning that depends on a record being present on any branch; its help describes no warning about branch presence or decided status and names the length, missing-section and number-clash warnings.
 
 ## Follow-ons
 
