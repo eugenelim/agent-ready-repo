@@ -512,9 +512,23 @@ line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
 `make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
 in T5's release).
 
+### T9: Align the launcher test with the stored result kind
+
+**Depends on:** T8
+
+**Tests:**
+- AC-0046: the honest-attempt launcher test expects the supervisor-written
+  result record to carry kind `run-concurrent` and no `gate` field, and its
+  remaining assertions (attestation digest, completion-only report, follow-up
+  request) run green.
+
+**Done when:** `test_supervisor_launcher.py` passes locally under
+`WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy`
+is green, and this task adds no Core bump (it ships in T5's release).
+
 ## Rollout
 
-- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6, T7 and T8).
+- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6, T7, T8 and T9).
   `concurrency` ships `sequential` in every one, so adopters see no behaviour
   change beyond AC-0040's merge-driver refusal, which arrives with T2.
 - **Reversal:** reinstall the prior Core release; a run in flight finishes on
