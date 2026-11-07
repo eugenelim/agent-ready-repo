@@ -70,7 +70,10 @@ Each slice runs in its own worktree on branch `brief/<brief-slug>/<spec-slug>`,
 created from the freshly fetched default branch. Fetch first, then create the
 worktree from the fetched tip. The runner finds slice worktrees by that branch
 name. It starts only read-only Git commands and the supervisor's `gates` and
-`status` verbs, so a slice's own state never changes because the runner read it.
+`status` verbs. A runner read changes nothing in a slice worktree except the
+supervisor's own security-event log, which the supervisor appends in the
+slice spec directory's `.supervisor/` folder when it meets an unverifiable pin or
+Git check.
 
 ## Acting on `next`
 

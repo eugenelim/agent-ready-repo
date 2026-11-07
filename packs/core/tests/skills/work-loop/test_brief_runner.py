@@ -383,6 +383,24 @@ def test_an_uncommitted_file_under_docs_or_the_skill_directory_is_not_committed(
     assert refusal(small, "status", "b-base") == "base-not-committed"
 
 
+def test_an_exclude_file_cannot_hide_an_untracked_docs_file(small: World) -> None:
+    _write(small.main, "docs/hidden.md", "not committed\n")
+    exclude = small.main / ".git" / "info" / "exclude"
+    exclude.write_text(exclude.read_text("utf-8") + "docs/hidden.md\n", **h._LF)
+    assert refusal(small, "status", "b-base") == "base-not-committed"
+
+
+def test_an_index_flag_cannot_hide_a_modified_docs_file(small: World) -> None:
+    plan = "docs/specs/alpha/plan.md"
+    for flag in ("--assume-unchanged", "--skip-worktree"):
+        h.git(small.main, "update-index", flag, plan)
+        assert small.cli("status", "b-base")[0] == 0, flag  # flagged but unchanged: clean
+        _write(small.main, plan, PLAN_HEADER + "\nedited\n")
+        assert refusal(small, "status", "b-base") == "base-not-committed", flag
+        h.git(small.main, "update-index", flag.replace("--", "--no-"), plan)
+        h.git(small.main, "checkout", "--", plan)
+
+
 def test_a_file_outside_docs_and_the_skill_does_not_matter(small: World) -> None:
     _write(small.main, "src/untracked.py", "x = 1\n")
     _write(small.main, "ignored.log", "noise\n")
@@ -794,7 +812,10 @@ def test_a_spec_directory_without_a_readable_spec_is_never_authored_over(tmp_pat
             {"slice": slug, "reason": "not-dispatchable", "detail": "spec-unreadable"}
         ]
     w.add_slice("b-plandir", "plandir")
-    row = w.rows("b-plandir")["plandir"]
+    w.add_slice("b-link", "linkspec")
+    # On a slice head, no spec.md is drafting; a spec.md that is not a regular file is not.
+    assert w.rows("b-plandir")["plandir"].stage == "drafting"
+    row = w.rows("b-link")["linkspec"]
     assert (row.stage, row.detail) == ("unreadable", "spec-unreadable")
 
 
@@ -814,13 +835,17 @@ def test_only_the_supervisors_own_security_log_may_change_in_a_slice_worktree(
     w = build_world(tmp_path, briefs={"b-pin": ["shipped", "alpha"]})
     wt = w.add_slice("b-pin", "alpha")
     (git_dir(wt) / "agentbundle-supervisor" / "run-0123456789abcdef").mkdir(parents=True)
+    store = git_dir(wt) / "agentbundle-supervisor"
     before = _tree_files(wt)
+    before_store, before_main = _tree_files(store), _tree_files(w.main)
     for verb in ("status", "next", "gates"):
         code, out = w.cli(verb, "b-pin")
         assert code == 0, (verb, out)
     code, out = w.cli("classify", "b-pin", "--slice", "alpha", "--task", "T1", "--class", "network")
     assert code in (0, 1) and ("action" in out or "refusal" in out), out
     after = _tree_files(wt)
+    assert _tree_files(store) == before_store, "the slice's supervisor store changed"
+    assert _tree_files(w.main) == before_main, "the main worktree changed"
     log = "docs/specs/alpha/.supervisor/"
     changed = {p for p in set(before) | set(after) if before.get(p) != after.get(p)}
     assert changed, "the supervisor logged no denial: the case no longer reaches the exception"
@@ -1027,7 +1052,10 @@ def test_git_calls_are_read_only_and_hardened(world: World, monkeypatch: pytest.
 
     monkeypatch.setattr(world.runner.subprocess, "run", record)
     world.rows("b-stops")
-    allowed = {"worktree", "symbolic-ref", "rev-parse", "status", "ls-tree", "cat-file", "config"}
+    allowed = {
+        "worktree", "symbolic-ref", "rev-parse", "status", "ls-tree", "cat-file", "config",
+        "ls-files", "hash-object",
+    }  # fmt: skip
     # The supervisor's Git helper, which reads the repository's filter names, runs in its
     # own forms: one plain config listing, and version and discovery reads under its fixed
     # settings.
@@ -1963,7 +1991,10 @@ def test_gates_does_not_read_standing_orders(so_world: World) -> None:
 
 # ── AC-0022, AC-0023, AC-0030: classify, and no approval from the runner ────
 
-READ_ONLY_GIT = {"worktree", "symbolic-ref", "rev-parse", "status", "ls-tree", "cat-file", "config"}
+READ_ONLY_GIT = {
+    "worktree", "symbolic-ref", "rev-parse", "status", "ls-tree", "cat-file", "config",
+    "ls-files", "hash-object",
+}  # fmt: skip
 AC_0009_KINDS = {"resume-slice", "start-slice", "await-gates", "await-merge", "complete", "blocked"}
 PLAIN_PLAN = sup.plan(sup.TASKS["plain"]("T1"))
 CLASSES = ("cap-hit", "network", "tool-error", "stuck")

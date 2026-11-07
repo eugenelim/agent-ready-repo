@@ -41,6 +41,7 @@ import json  # noqa: E402
 import os  # noqa: E402
 import re  # noqa: E402
 import subprocess  # noqa: E402
+import traceback  # noqa: E402
 import unicodedata  # noqa: E402
 from dataclasses import dataclass, field  # noqa: E402
 from pathlib import Path  # noqa: E402
@@ -83,6 +84,8 @@ MAX_RELAYED_DETAIL = 400
 # Stands in for relayed supervisor text that is not a plain slug or holds an unsafe character.
 WITHHELD = "withheld"
 CODE_INTERNAL_ERROR = "internal-error"
+# The most traceback characters an internal error writes to stderr.
+MAX_TRACEBACK = 4000
 # Stages the supervisor never names; the runner derives them itself (AC-0032).
 STAGE_DRAFTING = "drafting"
 STAGE_SUPERVISOR_CHANGED = "supervisor-changed"
@@ -138,6 +141,10 @@ def _fixed_flags() -> list[str]:
         "core.fsmonitor": "false",
         "diff.external": "",
         "core.attributesFile": os.devnull,
+        "core.excludesFile": os.devnull,
+        # As the supervisor's launcher: repository config must not weaken the stat check.
+        "core.checkStat": "default",
+        "core.trustctime": "true",
     }
     flags = ["--no-pager", "--no-replace-objects", "--no-optional-locks"]
     for key, value in settings.items():
@@ -396,13 +403,41 @@ def base_checks(root: Path) -> str:
         "--",
         *pathspecs,
     )
-    if status.stdout:
+    if status.stdout or hidden_change(main, head, pathspecs):
         raise Refusal(
             "base-not-committed",
             "a file under docs/, workspace.toml or this skill's directory is modified, "
             "staged or untracked",
         )
     return head
+
+
+def hidden_change(main: Path, head: str, pathspecs: list[str]) -> bool:
+    """True when Git state outside the base hides a change that ``git status`` leaves out.
+
+    Untracked files are listed against the in-tree ``.gitignore`` files only, never
+    ``info/exclude`` or an excludes file. An index entry marked assume-unchanged or
+    skip-worktree is judged by its working-tree bytes, hashed with no filter, against the
+    base blob. Neither read runs a filter or writes an object.
+    """
+    others = git(
+        main, "ls-files", "--others", "-z", "--exclude-per-directory=.gitignore", "--", *pathspecs
+    )
+    if others.stdout:
+        return True
+    listing = git(main, "ls-files", "-v", "-z", "--", *pathspecs)
+    for item in listing.stdout.split(b"\0"):
+        tag, _, raw = item.partition(b" ")
+        if not item or tag == b"H":
+            continue  # an ordinary entry: git status has judged it
+        path = raw.decode("utf-8", "surrogateescape")
+        entry = tree_entry(main, head, path)
+        if entry is None or not entry.regular:
+            return True
+        hashed = git(main, "hash-object", "--no-filters", "--", path, check=False)
+        if hashed.returncode != 0 or _text(hashed.stdout) != entry.oid:
+            return True
+    return False
 
 
 # ── committed reads ─────────────────────────────────────────────────────────
@@ -825,16 +860,16 @@ def spec_dir_present(root: Path, rev: str, spec_slug: str) -> bool:
 
 
 def read_slice(root: Path, spec_slug: str, found: Slice) -> Reading:
-    """The stage of one slice worktree; no spec directory on its branch head means ``drafting``.
+    """The stage of one slice worktree; no ``spec.md`` on its branch head means ``drafting``.
 
-    A spec directory whose ``spec.md`` is absent or not a small regular file is unreadable.
+    A ``spec.md`` that is there but is not a small regular file is unreadable.
     """
     if not found.readable or found.head is None or found.worktree is None:
         return Reading(STAGE_UNREADABLE, detail=found.detail or "unreadable-worktree")
     spec_dir = f"docs/specs/{spec_slug}"
+    if tree_entry(root, found.head, f"{spec_dir}/spec.md") is None:
+        return Reading(STAGE_DRAFTING)
     if read_blob(root, found.head, f"{spec_dir}/spec.md") is None:
-        if not spec_dir_present(root, found.head, spec_slug):
-            return Reading(STAGE_DRAFTING)
         return Reading(STAGE_UNREADABLE, detail="spec-unreadable")
     code, payload = run_supervisor(found.worktree, "status", spec_dir, "--json")
     return derive_stage(code, payload)
@@ -1378,6 +1413,8 @@ def main(argv: list[str] | None = None) -> int:
         _emit({"refusal": {"code": exc.code, "detail": exc.detail}})
         return EXIT_REFUSED
     except Exception as exc:  # noqa: BLE001 - every failure still answers one JSON refusal
+        # Stdout stays one JSON object; the location goes to stderr, bounded.
+        sys.stderr.write("".join(traceback.format_exception(exc))[-MAX_TRACEBACK:])
         failure = Refusal(
             CODE_INTERNAL_ERROR,
             _bounded(f"the runner failed unexpectedly: {type(exc).__name__}"),

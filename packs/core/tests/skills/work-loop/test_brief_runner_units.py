@@ -482,6 +482,18 @@ def test_each_unavailable_gates_answer_has_a_fixed_cause(
     assert runner.read_gates_answer("/w")[1] == cause
 
 
+def test_a_failing_gates_call_reaches_the_blocked_row_with_its_cause(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(runner, "run_supervisor", lambda wt, *argv: (1, None))
+    rows = [_wt("x", "drafting", gates=[])]
+    runner.attach_gates(rows)
+    assert runner.decide_next(rows, 2) == {
+        "kind": "blocked",
+        "rows": [{"slice": "x", "reason": "gate-not-clean", "detail": "supervisor-exit-1"}],
+    }
+
+
 def test_an_unexpected_failure_still_answers_one_json_refusal(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -491,7 +503,9 @@ def test_an_unexpected_failure_still_answers_one_json_refusal(
     monkeypatch.setattr(runner, "read_brief", boom)
     capsys.readouterr()
     assert runner.main(["status", "b"]) == runner.EXIT_REFUSED
-    out = json.loads(capsys.readouterr().out)
+    captured = capsys.readouterr()
+    assert "PermissionError: denied" in captured.err and len(captured.err) <= runner.MAX_TRACEBACK
+    out = json.loads(captured.out)
     assert out == {
         "refusal": {
             "code": "internal-error",
