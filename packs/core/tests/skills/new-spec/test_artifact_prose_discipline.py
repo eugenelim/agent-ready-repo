@@ -13,7 +13,7 @@ itself: a helper returning "" makes every absence arm in this module vacuous.
 
 Anchored at the owning pack: `lint-pack-test-boundary` forbids a pack test from
 reading above `packs/<pack>/`, so the arm covering
-`guides/core/how-to/plan-and-execute-non-trivial-work.md` lives in
+`guides/core/reference/plan-and-execute-details.md` lives in
 `tests/roster/test_spec_prose_discipline_guide.py` instead.
 
 Contract: spec and plan prose discipline

@@ -202,7 +202,7 @@ def test_core_guides_point_at_work_loop_for_verification_modes() -> None:
 def test_plan_guide_states_bundle_split_and_guidance_edit_rules() -> None:
     """The new-spec pitfall tells readers how bundles split and guidance edits run."""
     guide = _collapsed(
-        REPOSITORY_ROOT / "guides/core/how-to/plan-and-execute-non-trivial-work.md"
+        REPOSITORY_ROOT / "guides/core/reference/plan-and-execute-details.md"
     )
     start = guide.index("Reaching for")
     pitfall = guide[start : guide.index(":::", start)]
