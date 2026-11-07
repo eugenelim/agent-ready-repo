@@ -19,6 +19,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import importlib.util
+import io
 import os
 import pathlib
 import re
@@ -26,6 +27,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from typing import cast
 
 try:
     import yaml
@@ -69,8 +71,12 @@ def _utf8_streams() -> None:
     Called from `main`, not at import, so importing this module for its pure
     functions does not reconfigure the importer's streams.
     """
-    sys.stdout.reconfigure(encoding="utf-8", errors="strict")
-    sys.stderr.reconfigure(encoding="utf-8", errors="backslashreplace")
+    # Same cast as lint-ci-parity's `_utf8_streams`: TextIO has no
+    # `reconfigure` in typeshed, and the concrete streams are TextIOWrapper.
+    cast(io.TextIOWrapper, sys.stdout).reconfigure(
+        encoding="utf-8", errors="strict")
+    cast(io.TextIOWrapper, sys.stderr).reconfigure(
+        encoding="utf-8", errors="backslashreplace")
 
 
 def _load():
@@ -1268,6 +1274,26 @@ composed:
     _check_fires("suites-no-pr-gate-contradicted-by-a-conditional-source",
                  _suites(one_line, full, _src(filtered=True)),
                  "reaches it conditionally")
+    # spec ci-gate-main-carve-out-sibling AC-0006: one of the suites the carve-out
+    # moved to the sibling's dispatch step, flipped back to NO_PR_GATE while the
+    # dispatch step still reaches it. The where string is the real post-move
+    # source, so a roster edit that reverts a moved entry to ungated reddens
+    # here exactly as it would in the live lint.
+    _MOVED_WHERE = (
+        "build-check.yml / gate-catalogue-tests / dispatch catalogue-test shard"
+    )
+    moved_line = _mk("\t$(PYTHON) -m pytest tools/test_gate_enumeration.py -q")
+    moved_src = {"tools/test_gate_enumeration.py": [{
+        "workflow": "build-check.yml", "where": _MOVED_WHERE,
+        "filtered": False, "conditional": False,
+    }]}
+    moved_gated = {"tools/test_gate_enumeration.py": M.PR_GATED(_MOVED_WHERE)}
+    _check("suites-moved-suite-corroborated-by-the-sibling-dispatch",
+           _suites(moved_line, moved_gated, moved_src), [])
+    moved_flipped = {"tools/test_gate_enumeration.py":
+                     M.NO_PR_GATE("nothing runs it")}
+    _check_fires("suites-moved-suite-flipped-to-no-pr-gate-fires",
+                 _suites(moved_line, moved_flipped, moved_src), "contradicted")
     # A reason is required. Whether it is TRUE is a human-review control.
     blank = dict(full)
     blank["a/tests/"] = M.NO_PR_GATE("   ")

@@ -79,6 +79,97 @@ jobs:
           python -m pytest tools/test_check_docs_contrast.py -q
       - name: pages.yml concurrency posture
         run: python3 tools/test-pages-concurrency.py
+  gate-catalogue-tests:
+    name: gate-catalogue-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [shard-1, shard-2, shard-3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Set up Python (gate-catalogue-tests)
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+        with:
+          python-version: "3.11"
+      - name: Install Python dependencies (gate-catalogue-tests)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest -r tools/requirements.txt
+          python -m pip install -e ./packages/agentbundle
+      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)
+        run: |
+          set -euo pipefail
+          for mod in yaml jsonschema tomlkit httpx; do
+            python -c "import $mod" || { echo "::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail"; exit 1; }
+          done
+          for exe in git sh make node; do
+            command -v "$exe" >/dev/null 2>&1 || { echo "::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail"; exit 1; }
+          done
+          echo "provisioning probe: all measured availability conditions present"
+      - name: dispatch catalogue-test shard
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          case "$SHARD" in
+            shard-1)
+              python tools/lint-conformance-portability.py --root .
+              python tools/lint-direct-code-table.py --root .
+              python -m pytest tests/ -q
+              python -c "import httpx"
+              ;;
+            shard-2)
+              python -m pytest packs/architect/tests/pack/ -q
+              python -m pytest packs/architect/tests/skills/architect-assess/ -q
+              python -m pytest packs/architect/tests/skills/architect-design/ -q
+              python -m pytest packs/core/tests/pack/ -q
+              python -m pytest packs/core/tests/skills/workspace-status/ -q
+              python -m pytest packs/credential-brokers/tests/pack/ -q
+              python -m pytest tools/test_lint_agents_md_diataxis_block.py \
+                tools/test_lint_agents_md_legacy_block.py \
+                tools/test_lint_agents_md_risk_block.py \
+                tools/test_lint_agents_md_frontmatter_scope.py \
+                tools/test_precheck.py \
+                tools/test_lint_agents_md_local_gate.py \
+                tools/test_catalogue_curation_guard.py \
+                tools/test_contract_parity.py \
+                tools/test_marketplace_envelope_parity.py \
+                tools/test_guide_authoring_standard.py \
+                tools/test_guide_ledger_integrity.py \
+                tools/test_release_check.py \
+                tools/test_check_release_impact.py \
+                tools/test_scaffold_projection.py \
+                tools/test_conformance_portability.py \
+                tools/test_lint_direct_code_table.py \
+                tools/test_lint_guides_no_repo_only_refs.py \
+                tools/test_okf_pre_pr.py \
+                tools/test_pack_test_compatibility.py \
+                tools/test_check_distribution_route_decisions.py \
+                tools/test_route_branch_guard.py \
+                tools/test_gate_enumeration.py \
+                tools/test_rewrite_member_ids.py \
+                tools/test_check_spec_version.py \
+                tools/test_check_release_immutability.py \
+                tools/test_check_deployed_release_parity.py \
+                tools/test_check_release_gate.py -q
+              ;;
+            shard-3)
+              python -m pytest packs/atlassian/tests/pack/ -q
+              python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+              python -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
+              python -m pytest packs/product-engineering/tests/pack/ -q
+              python -m pytest packs/linear/tests/skills/linear/ -q
+              python -m pytest tools/test_local_ci_shared_test_deduplication.py -q
+              ;;
+            *)
+              echo "::error::unknown shard: $SHARD" >&2
+              exit 1
+              ;;
+          esac
   gate-sast:
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -187,6 +278,7 @@ jobs:
       - gate-export-boundary
       - gate-credbroker
       - gate-css-tokens
+      - gate-catalogue-tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: ${{ always() }}
@@ -213,6 +305,7 @@ jobs:
           GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
           GATE_CREDBROKER_RESULT: ${{ needs.gate-credbroker.result }}
           GATE_CSS_TOKENS_RESULT: ${{ needs.gate-css-tokens.result }}
+          GATE_CATALOGUE_TESTS_RESULT: ${{ needs.gate-catalogue-tests.result }}
         # Comparison order must equal REQUIRED_WORK_JOBS order: _differential_failures
         # builds _GUARD_BASE from that tuple and splices it in by exact text match,
         # reporting "harness is blind" rather than failing usefully if it is absent.
@@ -223,4 +316,5 @@ jobs:
           [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1
           [ "$GATE_CREDBROKER_RESULT" != "success" ] && echo "::error::gate-credbroker reported $GATE_CREDBROKER_RESULT" && exit 1
           [ "$GATE_CSS_TOKENS_RESULT" != "success" ] && echo "::error::gate-css-tokens reported $GATE_CSS_TOKENS_RESULT" && exit 1
+          [ "$GATE_CATALOGUE_TESTS_RESULT" != "success" ] && echo "::error::gate-catalogue-tests reported $GATE_CATALOGUE_TESTS_RESULT" && exit 1
           echo "every gate passed"

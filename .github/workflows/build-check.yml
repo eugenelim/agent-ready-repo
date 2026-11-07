@@ -1082,51 +1082,6 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_intake_transaction_lock_recovery.py
 
-      - name: pytest catalogue-test carve-out destinations (RFC-0082)
-        if: "!cancelled() && steps.python.conclusion == 'success' && steps.tools.conclusion == 'success'"
-        run: |
-          python tools/lint-conformance-portability.py --root .
-          python tools/lint-direct-code-table.py --root .
-          python -m pytest tests/ -q
-          python -m pytest packs/architect/tests/pack/ -q
-          python -m pytest packs/architect/tests/skills/architect-assess/ -q
-          python -m pytest packs/architect/tests/skills/architect-design/ -q
-          python -m pytest packs/core/tests/pack/ -q
-          python -m pytest packs/core/tests/skills/workspace-status/ -q
-          python -m pytest packs/credential-brokers/tests/pack/ -q
-          python -m pytest packs/atlassian/tests/pack/ -q
-          python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
-          python -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
-          python -m pytest packs/product-engineering/tests/pack/ -q
-          python -c "import httpx"
-          python -m pytest packs/linear/tests/skills/linear/ -q
-          python -m pytest tools/test_lint_agents_md_diataxis_block.py \
-            tools/test_lint_agents_md_legacy_block.py \
-            tools/test_lint_agents_md_risk_block.py \
-            tools/test_lint_agents_md_frontmatter_scope.py \
-            tools/test_precheck.py \
-            tools/test_lint_agents_md_local_gate.py \
-            tools/test_catalogue_curation_guard.py \
-            tools/test_contract_parity.py \
-            tools/test_marketplace_envelope_parity.py \
-            tools/test_guide_authoring_standard.py \
-            tools/test_guide_ledger_integrity.py \
-            tools/test_release_check.py \
-            tools/test_check_release_impact.py \
-            tools/test_scaffold_projection.py \
-            tools/test_conformance_portability.py \
-            tools/test_lint_direct_code_table.py \
-            tools/test_lint_guides_no_repo_only_refs.py \
-            tools/test_okf_pre_pr.py \
-            tools/test_pack_test_compatibility.py \
-            tools/test_check_distribution_route_decisions.py \
-            tools/test_route_branch_guard.py \
-            tools/test_gate_enumeration.py \
-            tools/test_rewrite_member_ids.py \
-            tools/test_check_spec_version.py \
-            tools/test_check_release_immutability.py \
-            tools/test_check_deployed_release_parity.py \
-            tools/test_check_release_gate.py -q
 
       # CI-only by design, and lint-ci-parity holds the disposition. Proving
       # collection equivalence costs 30 collect-only pytest processes (~36s) —
@@ -1180,17 +1135,6 @@ jobs:
         run: >-
           python -m pytest
           packs/experience-design/tests/skills/design-system/ -q
-      # The dedup guard is the second instance, and the more expensive one:
-      # ~65s, because it shells out to `make -n` repeatedly to compare the
-      # Makefile's expansion against pinned plan digests. It earns the budget by
-      # having been RED on `main` from PR #1313 to PR #1339 with no pull request
-      # noticing — PR #1336 merged green with three of its pins stale. Its whole
-      # job is to catch the run-test-suite expansion moving, which is the defect
-      # class this spec exists to close, so leaving it ungated left the
-      # guard-of-the-guard unguarded.
-      - name: pytest shared-test dedup guard (pr-gate-suite-disposition)
-        if: "!cancelled() && steps.python.conclusion == 'success'"
-        run: python -m pytest tools/test_local_ci_shared_test_deduplication.py -q
 
       # credbroker-user-scope T3: the build pipeline vendors credbroker to the
       # per-scope lib floor (.agentbundle/lib/) + the catalogue pack copy,
@@ -1659,6 +1603,139 @@ jobs:
           python3 tools/test-lint-pack-maintainer-emails.py
           python3 tools/lint-pack-maintainer-emails.py
 
+  # ci-gate-main-carve-out-sibling: gate-main's two heaviest steps — the
+  # RFC-0082 catalogue-test carve-out and the shared-test dedup guard — run
+  # here as three weight-balanced shards, in parallel with gate-main instead
+  # of serially inside it, so the required aggregator still sees every check
+  # without gate-main paying their serial wall-time. Every invocation moved
+  # verbatim: one pytest process per invocation, none merged, none split
+  # (ADR-0101 compatibility-class discipline). The dispatch body and the
+  # provisioning probe are pinned by tools/test-build-check-workflow.py.
+  # The dedup guard rides shard-3 (~65s: it shells out to `make -n`
+  # repeatedly); it earned its budget by having been RED on `main` from
+  # PR #1313 to PR #1339 with no pull request noticing — the
+  # guard-of-the-guard stays guarded.
+  #
+  # This job follows test-corpus.yml's shape, not gate-main's phase pattern:
+  # provisioning is unconditional (no step-level `if:`), because the
+  # admitted-expression machinery of ADR-0122 is scoped to gate-main and a
+  # matrix job whose steps carried `if:` would re-evaluate it per shard. It
+  # is deliberately NOT in branch protection: the aggregator
+  # (make build-check) is the required check, and this job gates through it.
+  gate-catalogue-tests:
+    name: gate-catalogue-tests
+    runs-on: ubuntu-latest
+    # 25 minutes, floored like test-corpus.yml's on the serial maximum: the
+    # moved steps' combined median is ~287s, so a shard that somehow ran the
+    # whole set takes serial time and must still finish inside the budget.
+    timeout-minutes: 25
+    strategy:
+      # One red shard must not cancel its siblings: a cancelled sibling hides
+      # which shard actually failed and reddens the aggregator with less
+      # information than the shards had.
+      fail-fast: false
+      matrix:
+        shard: [shard-1, shard-2, shard-3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          # Nothing here needs the token after checkout, and leaving the default
+          # would persist it into the working tree for the suites' own git calls.
+          persist-credentials: false
+          # `tests/` reaches git-history-dependent roster cases (pinned-commit
+          # and merge-base probes), so a depth-1 clone skips them instead of
+          # running them.
+          fetch-depth: 0
+      - name: Set up Python (gate-catalogue-tests)
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0  # v7.1.0
+        with:
+          python-version: "3.11"
+      - name: Install Python dependencies (gate-catalogue-tests)
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest -r tools/requirements.txt
+          python -m pip install -e ./packages/agentbundle
+      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)
+        # Fail closed BEFORE the dispatch rather than letting suites skip
+        # inside it: pytest exits 0 on skips, so a missing dependency reddens
+        # here instead of greening the shard silently. The module and
+        # executable lists are the discovered set (the spec's skip-aware
+        # discovery procedure); `dist/apm/` is deliberately absent — that
+        # suite skips in gate-main today for the same reason, so the move
+        # changes nothing.
+        run: |
+          set -euo pipefail
+          for mod in yaml jsonschema tomlkit httpx; do
+            python -c "import $mod" || { echo "::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail"; exit 1; }
+          done
+          for exe in git sh make node; do
+            command -v "$exe" >/dev/null 2>&1 || { echo "::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail"; exit 1; }
+          done
+          echo "provisioning probe: all measured availability conditions present"
+      - name: dispatch catalogue-test shard
+        # The shard key arrives via step env rather than a `${{ }}`
+        # interpolation in the run body: the posture test forbids
+        # interpolation in run bodies, and the lint parses the body as pure
+        # shell. An unknown shard hits the `*)` branch and exits 1 rather
+        # than running nothing.
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          case "$SHARD" in
+            shard-1)
+              python tools/lint-conformance-portability.py --root .
+              python tools/lint-direct-code-table.py --root .
+              python -m pytest tests/ -q
+              python -c "import httpx"
+              ;;
+            shard-2)
+              python -m pytest packs/architect/tests/pack/ -q
+              python -m pytest packs/architect/tests/skills/architect-assess/ -q
+              python -m pytest packs/architect/tests/skills/architect-design/ -q
+              python -m pytest packs/core/tests/pack/ -q
+              python -m pytest packs/core/tests/skills/workspace-status/ -q
+              python -m pytest packs/credential-brokers/tests/pack/ -q
+              python -m pytest tools/test_lint_agents_md_diataxis_block.py \
+                tools/test_lint_agents_md_legacy_block.py \
+                tools/test_lint_agents_md_risk_block.py \
+                tools/test_lint_agents_md_frontmatter_scope.py \
+                tools/test_precheck.py \
+                tools/test_lint_agents_md_local_gate.py \
+                tools/test_catalogue_curation_guard.py \
+                tools/test_contract_parity.py \
+                tools/test_marketplace_envelope_parity.py \
+                tools/test_guide_authoring_standard.py \
+                tools/test_guide_ledger_integrity.py \
+                tools/test_release_check.py \
+                tools/test_check_release_impact.py \
+                tools/test_scaffold_projection.py \
+                tools/test_conformance_portability.py \
+                tools/test_lint_direct_code_table.py \
+                tools/test_lint_guides_no_repo_only_refs.py \
+                tools/test_okf_pre_pr.py \
+                tools/test_pack_test_compatibility.py \
+                tools/test_check_distribution_route_decisions.py \
+                tools/test_route_branch_guard.py \
+                tools/test_gate_enumeration.py \
+                tools/test_rewrite_member_ids.py \
+                tools/test_check_spec_version.py \
+                tools/test_check_release_immutability.py \
+                tools/test_check_deployed_release_parity.py \
+                tools/test_check_release_gate.py -q
+              ;;
+            shard-3)
+              python -m pytest packs/atlassian/tests/pack/ -q
+              python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q
+              python -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q
+              python -m pytest packs/product-engineering/tests/pack/ -q
+              python -m pytest packs/linear/tests/skills/linear/ -q
+              python -m pytest tools/test_local_ci_shared_test_deduplication.py -q
+              ;;
+            *)
+              echo "::error::unknown shard: $SHARD" >&2
+              exit 1
+              ;;
+          esac
   gate-sast:
     name: gate-sast
     runs-on: ubuntu-latest
@@ -1919,6 +1996,7 @@ jobs:
       - gate-export-boundary
       - gate-credbroker
       - gate-css-tokens
+      - gate-catalogue-tests
     runs-on: ubuntu-latest
     timeout-minutes: 5
     if: ${{ always() }}
@@ -1948,6 +2026,7 @@ jobs:
           GATE_EXPORT_BOUNDARY_RESULT: ${{ needs.gate-export-boundary.result }}
           GATE_CREDBROKER_RESULT: ${{ needs.gate-credbroker.result }}
           GATE_CSS_TOKENS_RESULT: ${{ needs.gate-css-tokens.result }}
+          GATE_CATALOGUE_TESTS_RESULT: ${{ needs.gate-catalogue-tests.result }}
         run: |
           set -euo pipefail
           [ "$GATE_MAIN_RESULT" != "success" ] && echo "::error::gate-main reported $GATE_MAIN_RESULT" && exit 1
@@ -1955,4 +2034,5 @@ jobs:
           [ "$GATE_EXPORT_BOUNDARY_RESULT" != "success" ] && echo "::error::gate-export-boundary reported $GATE_EXPORT_BOUNDARY_RESULT" && exit 1
           [ "$GATE_CREDBROKER_RESULT" != "success" ] && echo "::error::gate-credbroker reported $GATE_CREDBROKER_RESULT" && exit 1
           [ "$GATE_CSS_TOKENS_RESULT" != "success" ] && echo "::error::gate-css-tokens reported $GATE_CSS_TOKENS_RESULT" && exit 1
+          [ "$GATE_CATALOGUE_TESTS_RESULT" != "success" ] && echo "::error::gate-catalogue-tests reported $GATE_CATALOGUE_TESTS_RESULT" && exit 1
           echo "every gate passed"

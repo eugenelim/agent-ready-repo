@@ -119,7 +119,13 @@ missing one. What remains are the claims no mutation can express:
   it. Fail-closed either way, but by two different routes, and the value of this block is
   that the next reviewer can trust the reason as written.
 - `strategy.matrix` with an empty list → the job produces no instances and never
-  reports; once AC2 requires it by name the PR hangs rather than merging.
+  reports; once AC2 requires it by name the PR hangs rather than merging. The
+  sibling `gate-catalogue-tests` is the deliberate exception: it is OUTSIDE branch
+  protection (the aggregator is the required check), so an empty or
+  never-instantiated matrix yields `needs.gate-catalogue-tests.result` ≠ success
+  and the aggregator's guard reddens the required check — fail-closed by a
+  different route. On top of that, `sibling-matrix-shards` pins ≥ 2 entries, so
+  the posture test itself reddens before any run reports anything.
 - `uses: actions/checkout@main` → scanner-owned. zizmor ranks `unpinned-uses` HIGH
   and `.github/zizmor.yml` suppresses nothing, so do not add an assertion here.
 - Backslash continuations in the GUARD body → the comparison becomes an argument to
@@ -136,6 +142,7 @@ import importlib.util
 import re
 import sys
 from pathlib import Path
+from typing import TypedDict
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOW = REPO_ROOT / ".github" / "workflows" / "build-check.yml"
@@ -190,6 +197,14 @@ _PROVISIONING_NOT_AUDITED = frozenset({
     "<unnamed step in gate-css-tokens>",
     "Set up Node (gate-css-tokens)",
     "Install web dependencies (gate-css-tokens)",
+    # The sharded sibling's provisioning (spec ci-gate-main-carve-out-sibling).
+    # Unconditional by design — the sibling follows test-corpus.yml's job shape,
+    # not gate-main's `if:`-gated phase pattern, so none of these carries the
+    # condition the gate-main phase audit below would demand.
+    "<unnamed step in gate-catalogue-tests>",
+    "Set up Python (gate-catalogue-tests)",
+    "Install Python dependencies (gate-catalogue-tests)",
+    "Probe provisioning (gate-catalogue-tests, fail closed, not skip)",
 })
 _ALL_PROVISIONING = frozenset(
     name for name, phase in STEP_PHASES.items() if phase[0] == "PROVISIONING"
@@ -247,13 +262,14 @@ AGGREGATOR_RUN_STEPS = (
 # spliced into the fixture by exact text, so this order must match the fixture's
 # guard-body comparison order or `_differential_failures` reports itself blind.
 REQUIRED_WORK_JOBS = ("gate-main", "gate-sast", "gate-export-boundary",
-                      "gate-credbroker", "gate-css-tokens")
+                      "gate-credbroker", "gate-css-tokens", "gate-catalogue-tests")
 EXPECTED_JOB_NAMES = {
     "gate-main": "gate-main",
     "gate-sast": "gate-sast",
     "gate-export-boundary": "gate-export-boundary",
     "gate-credbroker": "gate-credbroker",
     "gate-css-tokens": "gate-css-tokens",
+    "gate-catalogue-tests": "gate-catalogue-tests",
     "build-check": "make build-check",
 }
 GATE_MAIN_PHASE_HEADER = (
@@ -378,6 +394,11 @@ _ALLOWED_STEP_ENV = frozenset({
     "BASE_SHA", "HEAD_SHA",
     "GATE_MAIN_RESULT", "GATE_SAST_RESULT", "GATE_EXPORT_BOUNDARY_RESULT",
     "GATE_CREDBROKER_RESULT", "GATE_CSS_TOKENS_RESULT",
+    "GATE_CATALOGUE_TESTS_RESULT",
+    # The sibling's dispatch step reads its shard through step env rather than a
+    # `${{ }}` interpolation in the run body (which `no-interpolation-in-run`
+    # forbids), so `SHARD` is the one matrix→shell channel the design admits.
+    "SHARD",
 })
 
 
@@ -442,7 +463,14 @@ PINNED_PAGES_CONCURRENCY = "python3 tools/test-pages-concurrency.py"
 #   - `-k "not vault"` DESELECTS rather than skips, so it emits no SKIPPED line and
 #     exits 0 — 32 tests gone, every gate green.
 # All three audited clean before this pin existed.
-PINNED_JOB_STATEMENTS = {
+# Functional-syntax TypedDict because `working-directory` is hyphenated and so
+# cannot be a class-based field name. Annotating the map ends the mypy join of
+# `str` and `tuple[str, ...]` values into `Sequence[str]`, which made
+# `_want["step"]` fail `_step_named`'s `str` parameter.
+_PinnedJob = TypedDict(
+    "_PinnedJob", {"step": str, "working-directory": str,
+                   "statements": tuple[str, ...]})
+PINNED_JOB_STATEMENTS: dict[str, _PinnedJob] = {
     "gate-credbroker": {
         "step": "pytest credbroker (RFC-0023 Phase 1)",
         "working-directory": "packages/credbroker",
@@ -454,6 +482,72 @@ PINNED_JOB_STATEMENTS = {
         ),
     },
 }
+
+# ── The sharded sibling (spec ci-gate-main-carve-out-sibling) ─────────────────
+SIBLING_JOB_ID = "gate-catalogue-tests"
+SIBLING_DISPATCH_STEP = "dispatch catalogue-test shard"
+SIBLING_PROBE_STEP = "Probe provisioning (gate-catalogue-tests, fail closed, not skip)"
+# The two gate-main steps the carve-out moved. AC-0004's presence half is the
+# dispatch-body pin below — the invocation set lives there, so a missing or
+# extra invocation reddens `sibling-dispatch-body-exact` directly.
+MOVED_STEP_NAMES = (
+    "pytest catalogue-test carve-out destinations (RFC-0082)",
+    "pytest shared-test dedup guard (pr-gate-suite-disposition)",
+)
+# The dispatch body, pinned by equality like the aggregator statements: the
+# invocation set IS the moved gate, and set-equality over statements is the
+# form no argv-level check can hold (see the STATEMENT EQUALITY section).
+# Continuations are JOINED by `_run_lines`, so the 27-file tools group pins as
+# ONE statement — the ADR-0101 one-pytest-process-per-invocation rail, held by
+# the same pin that holds the invocation set.
+PINNED_DISPATCH_BODY = (
+    "case \"$SHARD\" in",
+    "shard-1)",
+    "python tools/lint-conformance-portability.py --root .",
+    "python tools/lint-direct-code-table.py --root .",
+    "python -m pytest tests/ -q",
+    "python -c \"import httpx\"",
+    ";;",
+    "shard-2)",
+    "python -m pytest packs/architect/tests/pack/ -q",
+    "python -m pytest packs/architect/tests/skills/architect-assess/ -q",
+    "python -m pytest packs/architect/tests/skills/architect-design/ -q",
+    "python -m pytest packs/core/tests/pack/ -q",
+    "python -m pytest packs/core/tests/skills/workspace-status/ -q",
+    "python -m pytest packs/credential-brokers/tests/pack/ -q",
+    "python -m pytest tools/test_lint_agents_md_diataxis_block.py tools/test_lint_agents_md_legacy_block.py tools/test_lint_agents_md_risk_block.py tools/test_lint_agents_md_frontmatter_scope.py tools/test_precheck.py tools/test_lint_agents_md_local_gate.py tools/test_catalogue_curation_guard.py tools/test_contract_parity.py tools/test_marketplace_envelope_parity.py tools/test_guide_authoring_standard.py tools/test_guide_ledger_integrity.py tools/test_release_check.py tools/test_check_release_impact.py tools/test_scaffold_projection.py tools/test_conformance_portability.py tools/test_lint_direct_code_table.py tools/test_lint_guides_no_repo_only_refs.py tools/test_okf_pre_pr.py tools/test_pack_test_compatibility.py tools/test_check_distribution_route_decisions.py tools/test_route_branch_guard.py tools/test_gate_enumeration.py tools/test_rewrite_member_ids.py tools/test_check_spec_version.py tools/test_check_release_immutability.py tools/test_check_deployed_release_parity.py tools/test_check_release_gate.py -q",
+    ";;",
+    "shard-3)",
+    "python -m pytest packs/atlassian/tests/pack/ -q",
+    "python -m pytest packs/atlassian/tests/skills/flow-metrics/ -q",
+    "python -m pytest packs/atlassian/tests/skills/jira-epic-outcome-view/ -q",
+    "python -m pytest packs/product-engineering/tests/pack/ -q",
+    "python -m pytest packs/linear/tests/skills/linear/ -q",
+    "python -m pytest tools/test_local_ci_shared_test_deduplication.py -q",
+    ";;",
+    "*)",
+    "echo \"::error::unknown shard: $SHARD\" >&2",
+    "exit 1",
+    ";;",
+    "esac",
+)
+# The provisioning probe, pinned by equality. The module and executable lists
+# are the discovered set (spec Assumptions' skip-aware procedure): every member
+# is a dependency whose absence a moved suite meets as a SKIP, not a failure.
+# Scope, stated as honestly as test-corpus.yml's own probe: this asserts the
+# discovered availability conditions, not every condition that could ever
+# cause a skip. `dist/apm/` is deliberately absent — that suite skips in
+# gate-main today for the same reason, so the move changes nothing.
+PINNED_PROBE_BODY = (
+    "set -euo pipefail",
+    "for mod in yaml jsonschema tomlkit httpx; do",
+    "python -c \"import $mod\" || { echo \"::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail\"; exit 1; }",
+    "done",
+    "for exe in git sh make node; do",
+    "command -v \"$exe\" >/dev/null 2>&1 || { echo \"::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail\"; exit 1; }",
+    "done",
+    "echo \"provisioning probe: all measured availability conditions present\"",
+)
 # `working-directory:` decides WHERE a pinned statement runs, so it is the YAML sibling
 # of the `-C`/`-f` ban in `_REDIRECT_FLAGS` — and it was unasserted. Measured:
 # `working-directory: tools` on the anchor leaves the pinned text untouched, audits
@@ -514,6 +608,10 @@ PINNED_CHECKOUT_WITH = {
     # A THIRD fetch-depth exemption, same reason: gate-css-tokens runs stylelint
     # over the working tree and invokes git nowhere.
     "gate-css-tokens": {"persist-credentials": "false"},
+    # The sharded sibling (spec ci-gate-main-carve-out-sibling) runs `pytest
+    # tests/`, whose roster cases read pinned commits and merge bases, so it
+    # needs the same full history as gate-main.
+    "gate-catalogue-tests": {"fetch-depth": "0", "persist-credentials": "false"},
     AGGREGATOR_JOB_ID: {"persist-credentials": "false"},
 }
 PINNED_SETUP_PYTHON_WITH = {"python-version": EXPECTED_PYTHON}
@@ -674,6 +772,31 @@ def _comparison_line(job_id: str) -> str:
     var = _result_var(job_id)
     return (f'[ "${var}" != "success" ] && '
             f'echo "::error::{job_id} reported ${var}" && exit 1')
+
+
+def _matrix_shards(block: str) -> list[str]:
+    """The `strategy.matrix.shard` entries, flow-style only: `[a, b, c]`.
+
+    The sibling's matrix is authored in flow style (test-corpus.yml's shape),
+    so one anchored pattern reads it. A block-style matrix returns [], which
+    `sibling-matrix-shards` fails — the author then either restores the flow
+    style or extends this reader; silence is not an option.
+    """
+    m = re.search(r"^\s*shard:\s*\[([^\]]*)\]\s*$", block, re.M)
+    if not m:
+        return []
+    return [entry.strip() for entry in m.group(1).split(",") if entry.strip()]
+
+
+def _case_branches(run_lines: list[str]) -> list[str]:
+    """The `case` dispatch's shard-branch labels, minus the `*)` fallback.
+
+    Branch labels are the lines that end with `)` and are not the wildcard
+    default; no moved invocation ends with `)` (verified against the pinned
+    body), so the shape cannot misread a command as a label.
+    """
+    return [ln[:-1] for ln in run_lines
+            if ln.endswith(")") and ln != "*)" and not ln.startswith("case ")]
 
 
 def _job_ids(text: str) -> list[str]:
@@ -1471,6 +1594,56 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
             check(f"no-job-if[{job_id}]", _key_re("if", "    ").search(blk) is None)
             check(f"no-needs[{job_id}]", _key_re("needs", r"\s+").search(blk) is None)
 
+    # ── gate-catalogue-tests: the sharded sibling (spec ci-gate-main-carve-out-sibling) ──
+    # Every check below fails closed on an absent job or step: `_job_block`
+    # returns "" for a missing job, `_step_named` returns "" for a missing or
+    # ambiguous step, and the equality and positional comparisons then fail
+    # rather than raise — the same fail-closed rule `_pinned` follows.
+    sib = _job_block(text, SIBLING_JOB_ID)
+    sib_steps = _steps(sib)
+    _matrix = _matrix_shards(sib)
+    check("sibling-matrix-shards", len(_matrix) >= 2)
+    check("sibling-fail-fast",
+          _key_values(sib, "fail-fast", "      ") == ["false"])
+    _dispatch = _step_named(sib, SIBLING_DISPATCH_STEP)
+    _probe = _step_named(sib, SIBLING_PROBE_STEP)
+    _actual_dispatch = _run_lines(_dispatch)
+    if _actual_dispatch != list(PINNED_DISPATCH_BODY):
+        _note_miss("\n              ".join(PINNED_DISPATCH_BODY),
+                   "\n              ".join(_actual_dispatch)
+                   or "(step not found or empty body)")
+    check("sibling-dispatch-body-exact",
+          _actual_dispatch == list(PINNED_DISPATCH_BODY))
+    _actual_probe = _run_lines(_probe)
+    if _actual_probe != list(PINNED_PROBE_BODY):
+        _note_miss("\n              ".join(PINNED_PROBE_BODY),
+                   "\n              ".join(_actual_probe) or "(step not found or empty body)")
+    check("sibling-probe-body-exact", _actual_probe == list(PINNED_PROBE_BODY))
+    # Order is load-bearing: a probe that runs after the dispatch step cannot
+    # stop a skip the suites already took. Index comparison, not text order,
+    # so the check survives comment placement between the steps.
+    _probe_idx = next(
+        (i for i, (nm, _) in enumerate(sib_steps) if nm == SIBLING_PROBE_STEP), None)
+    _dispatch_idx = next(
+        (i for i, (nm, _) in enumerate(sib_steps) if nm == SIBLING_DISPATCH_STEP), None)
+    check("sibling-probe-before-dispatch",
+          _probe_idx is not None and _dispatch_idx is not None
+          and _probe_idx < _dispatch_idx)
+    # The matrix↔case cross-pin, both directions (the test-corpus matrix↔SHARDS
+    # discipline). A shrunken matrix silently un-runs a branch's suites while
+    # every gate stays green; an extra matrix entry hits the `*)` fallback and
+    # fails loudly. Either direction of drift is a graph change this must
+    # catch — one-direction containment would catch only one of the two.
+    _branches = _case_branches(_actual_dispatch)
+    check("sibling-matrix-covers-case-branches", set(_branches) <= set(_matrix))
+    check("sibling-case-branches-cover-matrix", set(_matrix) <= set(_branches))
+    # AC-0004's absence half: neither moved step name remains in gate-main.
+    # The presence half is the dispatch-body pin above — the invocation set
+    # lives in the pinned body, so a reintroduced invocation reddens there.
+    _main_step_names = {nm for nm, _ in _steps(_job_block(text, "gate-main"))}
+    check("moved-steps-left-gate-main",
+          not any(name in _main_step_names for name in MOVED_STEP_NAMES))
+
     # AC4/AC5b: delegation must be a make ARGUMENT. As an env prefix, $(origin) is
     # `environment`, so AC5c runs the SAST leg in gate-main too — silent double scan.
     main_blk = _job_block(text, "gate-main")
@@ -1834,9 +2007,10 @@ def _sub_in_job(text: str, job_id: str, old: str, new: str) -> str:
     return text[:lo] + text[lo:hi].replace(old, new, 1) + text[hi:]
 
 
-def _move_named_step_after(text: str, source: str, target: str) -> str:
-    """Move one named gate-main step after another for an ordering mutation."""
-    lo, hi = _job_span(text, "gate-main")
+def _move_named_step_after(text: str, source: str, target: str,
+                           job: str = "gate-main") -> str:
+    """Move one named step of *job* after another for an ordering mutation."""
+    lo, hi = _job_span(text, job)
     block = text[lo:hi]
     source_match = re.search(
         rf"^      - name: {re.escape(source)}\n.*?(?=^      - |\Z)",
@@ -2056,7 +2230,12 @@ _MUTATIONS: list[tuple[str, str, object]] = [
      lambda t: t.replace("          test -d packages/agentbundle",
                          "          while false; do\n          test -d packages/agentbundle")),
     ("drop-strict-shell", "export-boundary-strict-shell",
-     lambda t: t.replace("          set -euo pipefail\n", "", 1)),
+     # Scoped to gate-export-boundary: the sibling's probe (and gate-credbroker's
+     # suite) also open with `set -euo pipefail`, and an unscoped first-occurrence
+     # replace started hitting the probe once the sibling job entered the fixture
+     # ahead of it — mutating the wrong step while reporting the right one.
+     lambda t: _sub_in_job(t, "gate-export-boundary",
+                           "          set -euo pipefail\n", "")),
     ("strict-shell-late", "export-boundary-strict-shell",
      lambda t: t.replace("          set -euo pipefail\n          test -d",
                          "          test -d")),
@@ -2501,9 +2680,14 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "        run: make build-check PACKS_DIR=packs SAST_DELEGATED=1\n"
                          "        run: make -n build-check", 1)),
     ("duplicate-with-on-checkout", "no-duplicate-step-keys[gate-sast]",
-     lambda t: t.replace("        with:\n          fetch-depth: 0\n",
-                         "        with:\n          fetch-depth: 0\n"
-                         "        with:\n          persist-credentials: true\n", 1)),
+     # Scoped to gate-sast for the same reason as drop-strict-shell: the
+     # sibling's checkout now precedes gate-sast's in the fixture and carries
+     # the same `with:` shape an unscoped first-occurrence replace targeted.
+     lambda t: _sub_in_job(
+         t, "gate-sast",
+         "        with:\n          fetch-depth: 0\n",
+         "        with:\n          fetch-depth: 0\n"
+         "        with:\n          persist-credentials: true\n")),
     # The JOB-SET INPUT to guard-body-exact's derivation — the dimension no other
     # mutation varies. It is NOT isolated and does not claim to be: four sibling
     # per-job assertions co-fire by design (`needs[gate-extra]`,
@@ -2536,6 +2720,78 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                          "        with:\n          python-version: \"3.11\"\n"
                          "      - name: Run the extra gate\n        run: echo hi\n"
                          "  build-check:\n", 1)),
+    # -- gate-catalogue-tests: the sharded sibling (spec ci-gate-main-carve-out-sibling) --
+    # AC-0002: the aggregator wiring, one mutation per edge. Removing the needs
+    # entry, the env binding, or the guard comparison each unwires the sibling
+    # from the required check in its own way.
+    ("drop-sibling-from-needs", "needs[gate-catalogue-tests]",
+     lambda t: t.replace("      - gate-catalogue-tests\n", "", 1)),
+    ("drop-sibling-env-binding", "env-binding[gate-catalogue-tests]",
+     lambda t: t.replace(
+         "          GATE_CATALOGUE_TESTS_RESULT: ${{ needs.gate-catalogue-tests.result }}\n",
+         "", 1)),
+    ("drop-sibling-guard-comparison", "comparison[gate-catalogue-tests]",
+     lambda t: t.replace(
+         '          [ "$GATE_CATALOGUE_TESTS_RESULT" != "success" ] && '
+         'echo "::error::gate-catalogue-tests reported $GATE_CATALOGUE_TESTS_RESULT" && exit 1\n',
+         "", 1)),
+    ("drop-sibling-job", "job-id-set[gate-catalogue-tests]",
+     lambda t: t.replace("  gate-catalogue-tests:\n", "  gate-catalogue-tests-x:\n", 1)),
+    # AC-0007: the matrix shape and the both-direction cross-pin.
+    ("sibling-matrix-single-shard", "sibling-matrix-shards",
+     lambda t: t.replace("shard: [shard-1, shard-2, shard-3]",
+                         "shard: [shard-1]", 1)),
+    ("sibling-matrix-shrunk", "sibling-matrix-covers-case-branches",
+     lambda t: t.replace("shard: [shard-1, shard-2, shard-3]",
+                         "shard: [shard-1, shard-2]", 1)),
+    ("sibling-matrix-extra-entry", "sibling-case-branches-cover-matrix",
+     lambda t: t.replace("shard: [shard-1, shard-2, shard-3]",
+                         "shard: [shard-1, shard-2, shard-3, shard-4]", 1)),
+    ("sibling-fail-fast-true", "sibling-fail-fast",
+     lambda t: t.replace("      fail-fast: false\n", "      fail-fast: true\n", 1)),
+    # AC-0008: the probe's efficacy, not just its presence — a present-but-inert
+    # probe satisfies a step-name check while converting nothing.
+    ("sibling-probe-step-removed", "sibling-probe-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "      - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)\n"
+                           "        run: |\n"
+                           "          set -euo pipefail\n"
+                           "          for mod in yaml jsonschema tomlkit httpx; do\n"
+                           "            python -c \"import $mod\" || { echo \"::error::provisioning incomplete: python module '$mod' missing — suites depending on it would SKIP, not fail\"; exit 1; }\n"
+                           "          done\n"
+                           "          for exe in git sh make node; do\n"
+                           "            command -v \"$exe\" >/dev/null 2>&1 || { echo \"::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail\"; exit 1; }\n"
+                           "          done\n"
+                           "          echo \"provisioning probe: all measured availability conditions present\"\n",
+                           "")),
+    ("sibling-probe-emptied", "sibling-probe-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "          set -euo pipefail\n"
+                           "          for mod in yaml jsonschema tomlkit httpx; do",
+                           "          exit 0\n"
+                           "          set -euo pipefail\n"
+                           "          for mod in yaml jsonschema tomlkit httpx; do")),
+    ("sibling-probe-dependency-dropped", "sibling-probe-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "for mod in yaml jsonschema tomlkit httpx; do",
+                           "for mod in yaml jsonschema tomlkit; do")),
+    ("sibling-probe-after-dispatch", "sibling-probe-before-dispatch",
+     lambda t: _move_named_step_after(t, SIBLING_PROBE_STEP, SIBLING_DISPATCH_STEP,
+                                      job=SIBLING_JOB_ID)),
+    # AC-0004: a moved step reintroduced in gate-main — the removal this spec
+    # exists to make, reverted behind an otherwise-green workflow. Inserted
+    # before the anchor, which exists only in gate-main in the fixture.
+    ("moved-step-back-in-gate-main", "moved-steps-left-gate-main",
+     lambda t: t.replace(
+         "      - name: Run make build-check\n",
+         "      - name: pytest shared-test dedup guard (pr-gate-suite-disposition)\n"
+         "        run: python -m pytest tools/test_local_ci_shared_test_deduplication.py -q\n"
+         "      - name: Run make build-check\n", 1)),
+    # AC-0001's standing control: the dispatch body pin. Dropping one invocation
+    # (or merging two, or splitting one) changes the statement list and reddens.
+    ("sibling-dispatch-invocation-dropped", "sibling-dispatch-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "              python -c \"import httpx\"\n", "")),
 ]
 
 
@@ -2615,7 +2871,8 @@ def _differential_failures() -> list[str]:
     env.update({"GATE_MAIN_RESULT": "failure", "GATE_SAST_RESULT": "success",
                 "GATE_EXPORT_BOUNDARY_RESULT": "success",
                 "GATE_CREDBROKER_RESULT": "success",
-                "GATE_CSS_TOKENS_RESULT": "success"})
+                "GATE_CSS_TOKENS_RESULT": "success",
+                "GATE_CATALOGUE_TESTS_RESULT": "success"})
     out: list[str] = []
     for name, transform in _DIFFERENTIAL_VARIANTS:
         body = transform(_GUARD_BASE)  # type: ignore[operator]
