@@ -201,6 +201,18 @@ Owned by: T3, T6, T9
 
 **Done when:** the three captured items exist and the roster function is green.
 
+### T12: Review findings are repaired
+
+**Depends on:** T1, T2, T3, T4, T5, T6, T7, T8, T9, T11
+**Touches:** `packs/repo-governance/.apm/skills/new-rfc/scripts/rfc.py`, `packs/repo-governance/seeds/docs/rfc/rfc.py`, `docs/rfc/rfc.py`, `packs/repo-governance/.apm/skills/new-rfc/SKILL.md`, `packs/repo-governance/.apm/skills/new-rfc/evals/evals.json`, `packs/repo-governance/tests/skills/new-rfc/test_rfc_script.py`, `packs/repo-governance/tests/skills/new-rfc/test_new_rfc_instructions.py`, `packs/repo-governance/tests/skills/new-rfc/test_seeds.py`, `tests/roster/test_lighter_rfc_delivery.py`, `guides/repo-governance/how-to/new-rfc.md`, `guides/repo-governance/how-to/set-up-governance.md`, `docs/GOVERNANCE.md`, `docs/product/changelog.d/`, `packages/agentbundle/README-pypi.md`, `packages/agentbundle/CHANGELOG.md`
+
+**Tests:**
+- Each repair below carries a test that fails before it: `renumber` slug length and symlinked ancestors outside the working directory (AC-0014, AC-0030); a linked helper in the script's folder prints the AC-0026 warning and then refuses with exit 2; the loader refuses a hard-linked helper (AC-0025); the loader never reads past one byte over the cap (AC-0029); a rollback that fails exits above 1 and names the leftover file, and an interrupt after the create restores the original (AC-0015); `next` takes the larger of `upstream` and `origin` when they differ (AC-0008); a record and its research companion sharing a number raise no clash (AC-0019); the guide names the six sections `rfc.py` requires (AC-0072); the changelog fragment states the new-installs-only limit and the re-copy route (AC-0079); the release notes name the self-host and lint changes (AC-0077); the governance guide's sample matches the starter (AC-0048); the maintainer is listed as `@eugenelim` (AC-0055). Mode: TDD for the script, goal-based for text.
+
+**Approach:** apply the supported findings of the first review round. The skill resolves the RFC folder before numbering and says to number the first RFC `0001` when the folder does not exist. The shipped skill text uses `RFC-NNNN` in its supersession example. Eval 12 names the `rfc.py ... check` subcommand. Dead test arms and the unused name are removed, and the wrong criterion labels are corrected. The three copies of `rfc.py` stay byte-identical.
+
+**Done when:** `python3 -m pytest packs/repo-governance/tests/skills/new-rfc tests/roster/test_lighter_rfc_delivery.py -q` is green and the copies are identical.
+
 ## Rollout
 
 Reversible: the template and skill revert by reverting the change; seeded files already installed in adopter repositories stay, inert. Sequencing: script, then template, then seeds and skill, then repository adoption, guide and ADR, then versions last so no task borrows an unreleased version. The `agentbundle` tag and publish follow the merge. Seeded files reach fresh installs only; existing adopters can run `agentbundle scaffold` to add them.
