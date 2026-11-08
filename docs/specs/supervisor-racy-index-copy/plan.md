@@ -82,3 +82,5 @@ Owned by: T1
 - A host whose filesystem cannot set times falls through to the existing cold-index fallback only if `os.utime` raises; the change treats that as a failed seeding.
 
 ## Changelog
+
+- 2026-11-07: spec approved by eugenelim
