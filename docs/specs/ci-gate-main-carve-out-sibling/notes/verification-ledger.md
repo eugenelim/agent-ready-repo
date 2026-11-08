@@ -15,8 +15,12 @@ control for everything here is the posture test's dispatch-body pin
   backslash continuations the same way bash does. Compared as multisets
   (the shard rebalance deliberately reorders invocations across
   branches; AC-0001 pins presence and count, not sequence).
-- **Input revisions.** Before: `5499ff9d9` (the spec-approval state,
-  pre-carve-out). After: the T1 commit `a0ac3a36d` working tree.
+- **Input revisions.** Before: `6dc12944e` (the plan-approval commit and
+  review base — its `.github/workflows/build-check.yml` is byte-identical
+  to the originally extracted before-state `5499ff9d9`, a commit that became
+  unreachable after the run was re-admitted; the comparison is reproduced
+  against the reachable base). After: the delivered T1 commit `3c690bcc6`.
+  Both revisions are branch-reachable.
 - **Result.** BEFORE: 17 invocations. AFTER: 17 invocations.
   Multiset one-to-one: **true** — zero missing, zero added. The
   27-file tools group extracts as one continuation-joined statement on
@@ -82,11 +86,16 @@ WEIGHTS plus the dedup guard's measured ~65 s.
   httpx`; executables `git, sh, make, node`. Pinned verbatim by
   `PINNED_PROBE_BODY` in the posture test.
 - **Deliberately not probed, stated honestly:**
-  - `dist/apm/` — `test_credential_user_scope_invocation` skips
-    without it; gate-main does not run `make build-self`, so the suite
-    skips there today for the same reason. The move changes nothing.
   - Platform skips (symlinks, junctions, Windows-only cases) —
     environmental on every runner, not provisioning.
+  - `dist/apm/` — probed after the round-1 review repair (T5): the
+    discovery environment held dist/ from local runs, so its skip-audit
+    could not see the projected-variant cases' dependency on it, and the
+    original entry here wrongly claimed gate-main skipped those cases too —
+    inside gate-main `make build-check` had materialized `dist/` before the
+    carve-out step ran. The sibling now materializes the catalogue
+    projection in its own step and the probe fails closed when `dist/apm/`
+    is absent (finding R1-001, repaired in T5).
 
 ## T1 red proof (red-green, never committed red)
 
@@ -111,11 +120,43 @@ self-test 220 cases pass.
 
 ## T4: runtime verification
 
-- [ ] `python -m pytest tools/test_local_ci_shared_test_deduplication.py -q`
-      local run (moved dedup guard against the unchanged Makefile).
-- [ ] `make lint-ruff lint-mypy` (local gate pair).
-- [ ] `make build-check` end-to-end (chains the posture test and
-      lint-ci-parity; the PR's own gate is the integration proof).
+- [x] `python -m pytest tools/test_local_ci_shared_test_deduplication.py -q`
+      local run (moved dedup guard against the unchanged Makefile):
+      **51 passed, 99.36 s**.
+- [x] `make lint-ruff lint-mypy` (local gate pair): **green** (ruff clean;
+      mypy: no issues in 158 source files).
+- [x] `make build-check` end-to-end (chains the posture test and
+      lint-ci-parity; the PR's own gate is the integration proof):
+      **green** — all 93 chain steps, SAST/SCA delegated as gate-main runs
+      it; ~85 min wall-clock locally (macOS subprocess overhead; CI runs
+      the same chain in minutes). Re-run green after the T5 repair at the
+      same tree (~50 min).
 - [ ] Post-merge: gate-main docs-only median vs the ≤ 600 s target
       (the intent's success metric; the rebalance path is a deliberate
       pinned edit if three shards under-deliver).
+
+## T5: round-1 review repairs (red-green, never committed red)
+
+Round-1 adversarial findings R1-001…R1-005 (see
+`.context/reviews/run-3a659195cba798ec/1-adversarial-reviewer-raw.md`):
+
+- **R1-001 (six projected-variant cases would silently skip in the
+  sibling).** Repaired: the sibling gains a `Materialize catalogue
+  projections (gate-catalogue-tests)` step (the same catalogue-build
+  invocation gate-main's `make build-check` chain runs) and the probe
+  gains a fail-closed `dist/apm/` check. Red proof before the workflow
+  edit: `sibling-probe-body-exact`, `sibling-materialize-body-exact`,
+  `sibling-materialize-before-probe` each red against the unmodified
+  workflow. Green after: 212 mutations, 95 assertion families, all
+  caught; four new mutations (step removed, body emptied, step moved
+  after the probe, probe dist-check dropped) each redden.
+- **R1-002 / SEC-001 (stray root `uv.lock`).** Deleted; nothing consumes
+  it (no uv invocation in Makefile or workflows; the root pyproject is
+  tooling-only).
+- **R1-003 (24 stale gate-main placement comments).** All reworded for
+  the two-job layout: the broad `pytest tests/ -q` run they referenced
+  now lives in the sibling's shard-1 (a parallel job), so the named
+  gate-main steps are what attribute failures precisely.
+- **R1-004 (T4 section unchecked).** Completed above.
+- **R1-005 (ledger cited unreachable revisions).** Input-revision record
+  corrected above.
