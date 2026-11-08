@@ -57,7 +57,7 @@ One task: `_copy_index` returns the source index's file status, and `_seed` give
 
 ### Design decisions
 
-- **Keep the source index's times on the copy.** Git's racy-clean check compares each entry's modification time with the index file's; a copy written now would be newer than every entry. Setting the copy's times with `os.utime` from the source's `fstat` keeps the check identical to the original index's. Rejected: forcing a cold `read-tree HEAD` scan (loses the speed-up), or rehashing every entry (same).
+- **Keep the source index's times on the copy.** Git's racy-clean check compares each entry's modification time with the index file's; a copy written now would be newer than every entry. Setting the copy's times with `os.utime(..., ns=...)` from the source's `fstat`, at nanosecond precision and before the first Git command touches the copy, keeps the check identical to the original index's: Git reads the copy as racy and smudges racily clean entries when `_seed`'s `update-index` rewrites it, so the later `add -A` re-hashes them. Rejected: forcing a cold `read-tree HEAD` scan (loses the speed-up), or rehashing every entry (same).
 
 Owned by: T1
 
@@ -68,8 +68,7 @@ Owned by: T1
 **Depends on:** none
 
 **Tests:**
-- AC-0001: `test_supervisor_git.py::test_a_same_size_rewrite_in_the_index_second_is_seen_by_the_seeded_scan` rewrites a tracked file within the index's second, waits into the next second without refreshing the real index, and asserts both scans name it; it fails without the fix.
-- AC-0002: a test reads the seeded copy's modification time (through the `_PrivateIndex` context) and asserts it equals the work tree index's.
+- AC-0001: `test_supervisor_git.py::test_a_same_size_rewrite_in_the_index_second_is_seen_by_the_seeded_scan` runs in the supervisor harness repository, whose tracked spec directory makes `_seed` rewrite the copy with `update-index`; it rewrites a tracked file within the index's second, waits into the next second without refreshing the real index, and asserts both scans name it; it fails without the fix.
 
 **Done when:** `test_supervisor_git.py` and `test_supervisor_commit.py` pass under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy` is green, and Core is one patch above the merge base.
 

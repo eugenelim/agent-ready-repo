@@ -28,7 +28,7 @@ Maintainers running full-mode `work-loop` get a supervisor whose whole-tree scan
 
 ## What Changes
 
-- The supervisor's private index copy keeps the work tree index's access and modification times, so Git's racy-clean check still applies to entries written in the index's own second — `work-loop/scripts/_supervisor_commit.py` (`_PrivateIndex`).
+- The supervisor's private index copy takes the work tree index's access and modification times, at nanosecond precision, before any Git command reads or writes it, so Git's racy-clean check still applies to entries written in the index's own second — `work-loop/scripts/_supervisor_commit.py` (`_PrivateIndex`).
 - A regression test reproduces the same-second, same-size rewrite — `packs/core/tests/skills/work-loop/test_supervisor_git.py`.
 - Core ships the fix as a patch release.
 
@@ -57,12 +57,11 @@ Maintainers running full-mode `work-loop` get a supervisor whose whole-tree scan
 
 ## Testing Strategy
 
-- **Racy-clean scan (AC-0001, AC-0002):** TDD at the supervisor's `change_set` and `working_changes` boundary over a real Git repository, with the rewrite made inside the index's own second and no Git command that refreshes the real index in between, because the defect only shows when Git trusts stat data the copy made look old.
+- **Racy-clean scan (AC-0001):** TDD at the supervisor's `change_set` and `working_changes` boundary over a real Git repository with a tracked spec directory, so seeding takes the production path that rewrites the copy, with the rewrite made inside the index's own second and no Git command that refreshes the real index in between, because the defect only shows when Git trusts stat data the copy made look old.
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** After a tracked file is rewritten to a same-size content within the second the work tree's index was last written, and a later second has begun, `change_set` and `working_changes` from the index-seeded scan both name that file.
-- [ ] **AC-0002.** The private index copy the scan seeds carries the work tree index's modification time.
+- [ ] **AC-0001.** In a repository whose tracked spec directory makes the seeded scan rewrite its index copy, after a tracked file is rewritten to a same-size content within the second the work tree's index was last written, and a later second has begun, `change_set` and `working_changes` from the index-seeded scan both name that file.
 
 ## Closeout
 
