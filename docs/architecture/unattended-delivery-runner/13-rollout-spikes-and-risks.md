@@ -84,14 +84,14 @@ The Codex session used `workspace-write`, `on-request`, null stdin, and a fixtur
 
 Unverified: `spec-supervisor` (not built), parked-gate and approval flows, resume with `attempt-residue` or `supervisor-changed`, and a kill during `report` or a worker edit.
 
-**Spike S1: restore.** It checks that a snapshot restores in a fresh clone. The local part passed, and credential scoping, a push audit, and a restore with an open attempt are open ([page 12](12-pool-state-integrity-and-signals.md)).[^5]
+**Spike S1: restore.** It checks that a snapshot restores in a fresh clone. The local part passed, and atomic pushes, credential scoping, and the push audit were tested on one real host ([page 12](12-pool-state-integrity-and-signals.md)), with rulesets on a paid or public repository, the control-plane-pushed alternative, and a restore with an open attempt still open.[^5]
 1. Run a spec to a mid-run step on a scratch repository, and snapshot the run store and product ref.
 2. Restore the snapshot in a fresh clone, and run `status` and `next`.
 3. Pass: `next` re-issues the same request id with no refusal. Controls: with the store missing, `next` refuses `supervisor-changed`, and with the ref missing and an attempt open, the supervisor emits `attempt-residue`.
    - With a changed supervisor file, the pin check refuses.
 4. Record the file list the snapshot needed: the whole supervisor directory, since gate records sit outside the run directory.
 5. Push-rate, ref-growth, and atomic steps: measured locally, with host limits open.
-6. Credential scoping: confirm a credential scoped to `refs/ferryman/` cannot push a branch, and that the Git host can limit one. Open.
+6. Credential scoping: a deploy key is scoped to one repository, not a namespace (one host). Open: a ruleset on a paid or public repository.
 7. Shallow clone: confirm a non-shallow clone restores, and record how a shallow clone behaves. Open.
 8. Integrity step: a restored store with no open attempt and a template-built `.git/config` passes the supervisor integrity checks. Open: that `start` on an admitted run re-pins and answers `current` on a fresh clone.
 
@@ -167,30 +167,30 @@ Risks:
 - A late `answer` from a worker that left its session. Mitigation: `host-attested` off by default (D15).
 - A scribe crash between edit and commit. Mitigation: the write-ahead intent and kill points B-S1 to B-S6.
 - Principle 3 drift through `--watch`. Mitigation: no port, registry, or daemon.
-- A headless worker burns budget overnight. Mitigation: `wall_seconds`, `max_respawns`, and retry and round caps.
+- A headless worker burns budget. Mitigation: `wall_seconds`, `max_respawns`, and retry and round caps.
 - Contract drift between ferryman and supervisors. Mitigation: manifest tests and a descriptor refused on an unknown skill version. Residual: a `work-supervisor.py` bump needs a new descriptor.
 - Tracker data poisoning. Mitigation: tracker content is untrusted, and labels hold no free text.
 - Ticket drift mid-run. Mitigation: `source-revision-drift` parks the run.
 
 - Control plane compromise and containment limits: the control plane can sign any command (D27) and owns key custody, there is no process containment on Windows, a `setsid` escape exists elsewhere, and token spend is invisible unless the executor reports it. Accepted here.
-- Checkpoint credential scope. Untested: that a Git host can limit a credential to `refs/ferryman/`, and that the remote exposes a push audit. Every node holds the one credential (D45), so a checkpoint counts only on the digest from that audit. P7 waits for a check.
+- Checkpoint credential scope. One host: a deploy key is scoped to a repository, not a ref namespace, and no push audit exists.[^11] The control plane records the refs it reads, and a control-plane-pushed checkpoint or per-run credentials is open (D45). Untested: rulesets on a paid or public repository. P7 waits for a check.
 - Lease clock skew. A failed compare-and-swap push halts `ferryman` whatever the clock says.
 - Repeated effect after a restore. Mitigation: D69 parks pool effects, so none dispatches. If D69's alternative is taken, a checkpoint follows each `effect-intent` commit, with no progress if the push fails. An effect-intent restore is untested.
 - Skill and CLI drift: Claude loads user-level skills by default, and a default or model can change. Mitigation: project-only setting sources, a skill-list check, a pinned version, a named model, and the probe.
-- Assumption debt. Unverified: GitHub event retention, actor ids, `gh` scope handling, the `gh issue list` transport, Codex reviewer dispatch, and documented-only CLIs. P4 waits for the GitHub items.
-- Claims from other projects' checkouts are not reproducible here, and the `workspace_mcp_server.py` failure was read, not run.[^3]
-- The model channel for concurrent attempts is undefined: AC-0017 requires denied network access, and no record defines a channel. Mitigation: no phase depends on `run-concurrent` (D36), and pool parallelism comes from separate runs (stated by the Slice 7 owner).[^4]
+- Assumption debt. Unverified: GitHub event retention, a GitHub App actor, `gh` scope handling, the `gh issue list` transport, Codex reviewer dispatch, and documented-only CLIs. P4 waits for the GitHub items.
+- Claims from other projects' checkouts are not reproducible here, and the `workspace_mcp_server.py` failure was only read.[^3]
+- The model channel for concurrent attempts is undefined: AC-0017 requires denied network, and no record defines a channel. Mitigation: no phase depends on `run-concurrent` (D36), and pool parallelism comes from separate runs (stated by the Slice 7 owner).[^4]
 - A worker swaps the pinned launcher. Mitigation: the launcher path and digest are in the trusted configuration set, and the guard corpus has a shape for it ([05b](05b-approval-integrity-and-trusted-configuration.md)).
-- Adjacent work changes. Mitigation: pages cite Slice 7 as unmerged and the grant's follow-on spec as unwritten, add only additive seams, keep D30's rename.
+- Adjacent work changes. Mitigation: pages cite Slice 7 as unmerged and the grant's follow-on spec as unwritten, and add only additive seams.
 - Duplicate dispatch repeats an external effect. Mitigation: D69 parks pool effects, and only its alternative adds the `store` compare-and-swap before each dispatch.
 - A signed command replays across nodes. Mitigation: consumed nonces, epoch binding, 15-minute expiry.
-- Per-run spend grows under repeated preemption. Mitigation: usage and retry counters travel in the manifest, under the launch file's budget.
+- Spend grows under preemption. Mitigation: usage and retry counters travel in the manifest, under the launch file's budget.
 - The standard library has no asymmetric signature verification. Mitigation: verification by `ssh-keygen -Y verify` (D43, decided).
 - The agent sandbox has open egress. Mitigation: the pool agent-sandbox attestation (gateway-only egress, per-attempt token, D46), and a missing one refuses `pool-config-incomplete`.
 - The `approval-fields.v1` copy in `spec-loop` and the one a `ferryman` release expects drift apart. Mitigation: a `fields_version` mismatch refuses, the pin covers the copy read, and a drift test ([01](01-contracts-and-data.md)).
-- A same-user process injects input into the terminal prompt. No mitigation is claimed, and it is unverified. Accepted for v1.
-- A worker running as the same OS user can read home files. The stripped environment and run-owned git config (D76, [03b](03b-headless-worker-launch.md)) narrow it, since `[protocol] allow = never` blocks a push (tested), though a credential in a home file and the CLI's model login remain. A Codex worker ran `gh api user`, so the forge-CLI deny list stays required. Accepted for v1, with a separate OS user or container (D23) as an input to D7 before P5.
-- A headless light worker implements an unreviewed change. Mitigation: the `adversarial-reviewer` runs inside the session, a missing review is `BLOCKED` in the work-loop finish checklist, and a human publishes. A Pi run stopped `BLOCKED` with the reviewer tool missing, so the profile carries `reviewer_available` ([03](03-ferryman-runtime.md)), and Codex reviewer dispatch is unverified.
+- A same-user process injects input into the terminal prompt. No mitigation is claimed. Accepted for v1.
+- A worker running as the same OS user can read home files. The stripped environment and run-owned git config (D76, [03b](03b-headless-worker-launch.md)) narrow it, and `[protocol] allow = never` blocks a push (tested), but a home-file credential and the CLI's model login remain. A Codex worker ran `gh api user`, so the forge-CLI deny list stays. Accepted for v1, with a separate OS user or container (D23) an input to D7 before P5.
+- A headless light worker implements an unreviewed change. Mitigation: the `adversarial-reviewer` runs inside the session, a missing review is `BLOCKED`, and a human publishes. A Pi run stopped `BLOCKED` with the reviewer missing, so the profile carries `reviewer_available` ([03](03-ferryman-runtime.md)). Codex reviewer dispatch is unverified.
 - Unverified: that a headless worker's Surface-and-stop is representable on a CLI other than Codex. The queueing and control-plane rows of `light-mode.md` still bar the pool case, and the PL gate holds the `light-mode.md` change for a local human launch.
 - Self-approval in a session: the agent can write an approval itself, as under `work-loop` today. Mitigation: the ADR-0157 rule, the `no-human-answer` refusal in `report`, and the `ferryman` guard once adopted ([page 05](05-supervisors-and-gates.md)). Accepted for E1 and E2.
 - A session agent resumes from `status` alone: tested on a stub and on the real `work-supervisor.py` across three CLIs, and untested on `spec-supervisor`.
@@ -203,22 +203,24 @@ Each page's build mapping covers its elements, and the set-level table is in the
 
 ## Evidence
 
-[^1]: Claude Code, "Run Claude Code programmatically" — https://code.claude.com/docs/en/headless — verified by fetch. It states `-p`, `--bare`, `--allowedTools`, and `--permission-mode`.
+[^1]: Claude Code, "Run Claude Code programmatically" — https://code.claude.com/docs/en/headless — verified by fetch.
 
-[^2]: Codex non-interactive mode — https://learn.chatgpt.com/docs/non-interactive-mode — verified by fetch. It states `codex exec`, the read-only sandbox, `--sandbox`, `--json`, and `-o`, and not skills or `AGENTS.md`.
+[^2]: Codex non-interactive mode — https://learn.chatgpt.com/docs/non-interactive-mode — verified by fetch. It does not state skills or `AGENTS.md`.
 
 [^3]: `packs/core/.apm/skills/workspace-status/scripts/workspace_mcp_server.py` line 4 — verified by reading, not run.
 
 [^4]: ADR-0156 D1 and spec `verified-infrastructure-parallelism` AC-0017 require network denial, and no record defines a model gateway — stated by the Slice 7 owner (2026-11-07), not independently checked. The AC-0017 text was read in the unmerged Slice 7 worktree — verified.
 
-[^5]: Spike S1, 2026-11-07, local scratch repositories: the restore reached `status` and `next` once `.git/config` matched, with `attempt-residue` otherwise, and a template-built config restored with no open attempt (details in [page 12](12-pool-state-integrity-and-signals.md)) — verified (tested, single run, 2026-11-07). Credential scoping, host limits, shallow clones, and a restore with an open attempt: unverified.
+[^5]: Spike S1, 2026-11-07, local scratch repositories: the restore reached `status` and `next` once `.git/config` matched, with `attempt-residue` otherwise, and a template-built config restored with no open attempt — verified (tested, single run, 2026-11-07). Shallow clones and a restore with an open attempt: unverified.
 
-[^6]: Spike S2, 2026-11-07, four CLIs, single run each: Claude Code, Copilot and Pi printed no direct-light decision record, skipped Surface-and-stop, and ran a risk-trigger fixture with no auth check — verified (tested, single run, 2026-11-07) for what ran, otherwise unverified. Codex is footnote 8.
+[^6]: Spike S2, 2026-11-07, four CLIs, single run each: Claude Code, Copilot and Pi printed no direct-light decision record, skipped Surface-and-stop, and ran a risk-trigger fixture with no auth check — verified (tested, single run, 2026-11-07) for what ran, otherwise unverified.
 
-[^7]: Spike S3, 2026-11-07: a stub supervisor with Claude Code, and the unedited pinned `work-supervisor.py` as a proxy with a killed session and a fresh one (Claude Code twice, Codex, Copilot; two Claude tries not counted after harness changes) — verified (tested, single run each, 2026-11-07). `spec-supervisor` and the flows listed above: unverified.
+[^7]: Spike S3, 2026-11-07: a stub supervisor with Claude Code, and the unedited pinned `work-supervisor.py` as a proxy with a killed session and a fresh one (Claude Code, Codex, Copilot) — verified (tested, single run each, 2026-11-07). `spec-supervisor` and the flows listed above: unverified.
 
 [^8]: Codex 0.164.0, 2026-11-07, one run per case: skill loading, the sandbox denials ([03b](03b-headless-worker-launch.md)), and the three S2 runs — verified (tested, single run, 2026-11-07). Skill precedence with both paths, reviewer dispatch, and the custom-agent format: unverified.
 
 [^9]: The maintainer confirms a local human `ferryman session` launch is an explicit trusted invocation under `light-mode.md`; the skill text does not say so yet: unverified.
 
 [^10]: Credential-stripping test, 2026-11-07, git 2.56.0, four CLIs, trivial prompt ([page 03b](03b-headless-worker-launch.md)) — verified (tested, single run, 2026-11-07) for Copilot, Pi, and Codex. Claude Code: inconclusive, 2 of 7 runs passing in each mode.
+
+[^11]: Deploy key on a free private repository: scoped to its own repository, able to write any custom ref in it, no push audit, rulesets HTTP 403 — verified (tested, single run, 2026-11-08; [page 12](12-pool-state-integrity-and-signals.md)).

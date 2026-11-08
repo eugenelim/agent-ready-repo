@@ -15,8 +15,6 @@
 
 **Baseline — current architecture:** Pages 01 to 08 of this [set](README.md) and the [supervisor](../work-loop-execution-supervisor.md).
 
-[Page 12](12-pool-state-integrity-and-signals.md) owns the pool's portable state, supervisor digests, relayed signals, and claims.
-
 ## 1. Scope and Baseline
 
 This page owns the node deployment, the worker interface for remote kinds, node trust, and usage.
@@ -92,7 +90,7 @@ Five trust boundaries (TB1 to TB5) cross the node:
 - TB1: control plane to node. Commands carry a signature, and events carry no authority.
 - TB2: ferryman sandbox to agent sandbox. The agent gets a copy of the clone and returns a bundle. It never sees the run store, the control inbox, or a long-lived credential, and the only credential it holds is a per-attempt model token (D46).
 - TB3: sidecar to ferryman. The sidecar is an untrusted courier. It can drop, delay, or replay a command and cannot forge one, because it holds no signing key.
-- TB4: node to remote. The node's push credential is limited to `refs/ferryman/`.
+- TB4: node to remote. The node's push credential is scoped to a dedicated checkpoint repository (D45), with no ref-namespace scoping inside it ([12](12-pool-state-integrity-and-signals.md)).
 - TB5: provisioning to the ferryman sandbox. The launch file, the allowed-signers file (its one home), and the user config with its profiles arrive by image bake or by a read-only mount that the control plane authenticates, never through the sidecar or the work tree, and the ferryman sandbox cannot write them. The node bootstrap compares each file's digest to the value the control plane recorded at dispatch, outside `ferryman`.
 
 ## 3. Runtime Change
@@ -105,9 +103,9 @@ Three seams change runtime behaviour here, and each failure mode has a stated re
 | Signed answer delivered by the sidecar | new | control inbox |
 | Budget exhaustion | new | `wall_seconds` timeout |
 
-**Seam 1: remote worker kind.** The `workers` interface is `spawn(order) -> handle`, `status`, `cancel`, and `result`, and all four kinds implement it ([03](03-ferryman-runtime.md) owns it). A `remote` profile names four list-form commands, `spawn`, `status`, `cancel`, and `result`, supplied by the control plane's transport ([03](03-ferryman-runtime.md) owns the profile keys).
+**Seam 1: remote worker kind.** The `workers` interface is `spawn(order) -> handle`, `status`, `cancel`, and `result`, and all four kinds implement it ([03](03-ferryman-runtime.md) owns it). A `remote` profile names four list-form commands, `spawn`, `status`, `cancel`, and `result`, supplied by the control plane's transport.
 
-The work order is a bundle: request, briefing, result path, manifest scope, pre-attempt commit, deadline, and budget. The manifest scope lists the trusted files that must not change and, for a sibling supervisor, the slot paths the attempt may write. The `attach` order already carries request, briefing, and result path.
+The work order is a bundle: request, briefing, result path, manifest scope, pre-attempt commit, deadline, and budget. The manifest scope lists the trusted files that must not change and, for a sibling supervisor, the slot paths the attempt may write.
 
 Liveness is a lease. The handle carries `lease_id` and `lease_until`, and the remote side refreshes it by heartbeat. When it lapses `ferryman` calls `cancel`, records the attempt `lost`, and uses no pid (local kinds keep pid checks).
 
@@ -121,7 +119,7 @@ Changed fields: `run-state` `worker` gains `executor`, `handle`, `state`, `lease
 
 **Session route in a pool.** Pool mode refuses a session run with `session-pool-refused`, because a control-plane launch is external control-plane orchestration, a durability trigger in `light-mode.md`.
 
-`ferryman session` reads no launch file, so it detects pool mode from a committed `[pool]` table or from a node marker that TB5 provisioning writes ([03](03-ferryman-runtime.md) owns session step 1). A repository that commits `[pool]` therefore refuses every session run, and the work-loop owners revisit the rule ([13](13-rollout-spikes-and-risks.md)).
+`ferryman session` reads no launch file, so it detects pool mode from a committed `[pool]` table or from a node marker that TB5 provisioning writes ([03](03-ferryman-runtime.md) owns session step 1). A repository that commits `[pool]` therefore refuses every session run, ([13](13-rollout-spikes-and-risks.md)).
 
 **Pool mode and patch hardening.** A launch file with `mode = pool`, or any `kind = remote` profile, makes `run` refuse `pool-config-incomplete` (the list is the `launch.v1` row on [page 01](01-contracts-and-data.md)).
 
@@ -132,7 +130,7 @@ The list requires `kind = remote` for every role's profile, because a local `hea
 - touches a path that `git check-ignore` matches, or any `.gitattributes` file;
 - exceeds the file-count cap for one patch.
 
-Refusing mode bits also blocks a legitimate `chmod +x`.
+Refusing mode bits also blocks `chmod +x`.
 
 It applies the patch with `git apply --check` under confined paths. The ferryman sandbox never runs worker-modified files before the guard passes. Unverified: whether the supervisor's `report` or a lint script runs repository code.
 
@@ -143,8 +141,6 @@ D55 names its execution boundary before any P7 slice starts, and until it does t
 A nonce is consumed only in a checkpoint: a command that arrives during an attempt waits for the next boundary, except `stop`, which cancels and abandons the attempt first and then checkpoints ([12](12-pool-state-integrity-and-signals.md), a D27 sub-choice).
 
 For every level `ferryman` checks the actor against the gate's approvers and refuses `actor-not-approver`. The signature scheme is decided as public-key verification (D43), and the human-decision assertion rides in the signed actor lines (D44, under D27).
-
-Two sequences show the remote attempt and its recovery.
 
 ```mermaid
 sequenceDiagram
@@ -195,7 +191,7 @@ A separate sandbox is necessary and not sufficient. The concurrent-attempt attes
 
 Network denial leaves no model channel, and no record defines a model gateway. An off-the-shelf headless CLI, whose model client and tools share one process, cannot be a concurrent-attempt worker today.
 
-Pool parallelism therefore comes from separate runs on separate clones ([12](12-pool-state-integrity-and-signals.md)), and no phase depends on `run-concurrent` (D36). A launcher-provided gateway would be a new channel the attestation must cover, and it needs an ADR from ADR-0156's owner.[^4]
+Pool parallelism comes from separate runs on separate clones ([12](12-pool-state-integrity-and-signals.md)), and no phase depends on `run-concurrent` (D36). A launcher-provided gateway would be a new channel the attestation must cover, and needs an ADR from ADR-0156's owner.[^4]
 
 **Pool agent-sandbox attestation.** A pool attempt needs a model channel, so it attests a different set from the concurrent-attempt list above, which keeps `network.allowed` false. The `spawn` answer of `remote-transport.v1` ([01](01-contracts-and-data.md)) carries an attestation that proves:[^6]
 - egress to the model gateway only, with the per-attempt model token as the only credential (TB2, D46);
@@ -206,7 +202,7 @@ Pool parallelism therefore comes from separate runs on separate clones ([12](12-
 
 A missing or failing attestation is an item on the `pool-config-incomplete` list ([01](01-contracts-and-data.md)), and `ferryman` refuses the spawn.
 
-**Seam 4: trust inside a node.** An environment allowlist does not protect a credential when `ferryman` and the agent share an OS user or container (assumption).[^1] A pool node therefore requires separate sandboxes or users, not a hardening option.
+**Seam 4: trust inside a node.** An environment allowlist does not protect a credential when `ferryman` and the agent share an OS user or container (assumption).[^1] A pool node therefore requires separate sandboxes or users.
 
 Control commands carry a signature. The control plane holds the private key, and the allowed-signers file that TB5 provisions holds the public keys. A signed command binds the fields in the canonical signed bytes defined in the `run-control.v1` row on [page 01](01-contracts-and-data.md).
 
@@ -232,7 +228,7 @@ Failure modes:
 | --- | --- | --- |
 | Node preempted mid-attempt | The lease lapses, the control plane reassigns, and the new node restores the last checkpoint and re-issues the same request id. At most one attempt is lost | 1, [12](12-pool-state-integrity-and-signals.md) |
 | Control plane restart | Commands wait in `control/`, the sidecar buffers events, and signed commands carry an expiry | 4 |
-| Duplicate dispatch | The second node's checkpoint push fails on the lease and `ferryman` halts `checkpoint-conflict`. Two nodes on one checkpoint are separated by the epoch in the `store` ref ([12](12-pool-state-integrity-and-signals.md)) | [12](12-pool-state-integrity-and-signals.md) |
+| Duplicate dispatch | The second node's checkpoint push fails on the lease, also on a real host[^7], and `ferryman` halts `checkpoint-conflict`. Two nodes on one checkpoint are separated by the epoch in the `store` ref ([12](12-pool-state-integrity-and-signals.md)) | [12](12-pool-state-integrity-and-signals.md) |
 | Partitioned worker still running | After a restore the old node's push fails on its stale `store` lease and it halts `checkpoint-conflict`. The control plane revokes the node's credential, and the old agent's result can never apply | 1, [12](12-pool-state-integrity-and-signals.md) |
 | Lost node disk | The control plane restores a checkpoint. With none, `next` refuses `supervisor-changed` and a human restarts the run | [12](12-pool-state-integrity-and-signals.md) |
 | Control plane compromise | It can sign any command. Key custody and approver identity are its job and are outside this design | 4 |
@@ -323,3 +319,5 @@ The worker interface and the signed-command contract ship at P7 (D67) as contrac
 [^5]: wicked-core's seat container floor uses a read-only root, all capabilities dropped, no-new-privileges, a per-seat internal network, and a credential gateway, and needs a container runtime, a VM on macOS, and image builds — verified (read, wicked-core clone 2026-11-07), not run. Fit with our worker interface: unverified.
 
 [^6]: The attestation is the control plane's assertion, and no record defines how a node proves its fields to `ferryman` — unverified.
+
+[^7]: 30 atomic leased pushes to a free private repository failed 0 times, and a stale lease rejected all three refs in 20 of 20 trials — verified (tested, single run, 2026-11-08).

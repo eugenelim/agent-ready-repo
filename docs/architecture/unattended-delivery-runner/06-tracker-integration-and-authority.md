@@ -85,8 +85,6 @@ flowchart LR
 
 The seam uses neutral words. A ticket is a `ref`, an opaque string in the existing `scheme://host/path` or `scheme:ID` locator form. A label is a `tag`, a milestone is a `group`, and an actor is `{id, login, kind}` with `kind` `user`, `bot`, or `app`.
 
-Each tracker's shim maps its own terms onto these.
-
 **Label lifecycle (GitHub, names set in `ferryman-config`).** Who may apply a label decides how far `ferryman` trusts it.
 
 | Label (tag) | Applied by | Ferryman action | Repository effect |
@@ -117,7 +115,7 @@ Three rules hold:
 2. Import and mirror are separate configuration: import needs the read side of the shim (`get`, `list`), and mirror needs `[authorization.mirror]`. Either works without the other, and they share only the ticket ref in the intent's `source-authority` record.
 3. The repository item is authoritative from the import commit onward.
 
-`ferryman` creates no ticket and imports nothing by itself. A human selects the ticket, and `work-intake` acquisition or `intake-ticket` does the import.[^10]
+A human selects the ticket, and `work-intake` acquisition or `intake-ticket` does the import.[^10]
 
 | Scenario | What happens | Existing mechanism | What `ferryman` does |
 | --- | --- | --- | --- |
@@ -193,7 +191,9 @@ A missing actor, a bot or app actor, an actor outside the set, a stale event, a 
 
 `approvers` and `shapers` name role refs. `[identities.<role-ref>]` in `ferryman-config` maps each to `tracker_ids` (stable numeric ids, preferred) and `logins` (a weaker fallback). The verifier resolves an actor through that table and nothing else.
 
-The issue events endpoint, `GET /repos/{owner}/{repo}/issues/{issue_number}/events`, returns `labeled` and `unlabeled` events with a required `actor` (a user object with `login`), a required `label` with `name`, and `created_at`, and pages at up to 100.[^5] Unverified: that the actor carries a numeric `id`, that events persist as long as the issue, and that an app-applied label shows an app or bot actor. Without an id the verifier falls back to `login` and flags the weaker binding.[^6]
+The issue events endpoint, `GET /repos/{owner}/{repo}/issues/{issue_number}/events`, returns `labeled` and `unlabeled` events with a required `actor`, a required `label` with `name`, and `created_at`, and pages at up to 100.[^5]
+
+The actor carries a numeric `id` and a `type`, a label applied with an Actions `GITHUB_TOKEN` shows `{login: github-actions[bot], type: Bot}`, and a re-applied label is a new, later event that appears within seconds.[^6] Untested: a real GitHub App token, a third-party comment editor, and event persistence. GraphQL `userContentEdits` gives the comment editor id though comment approval stays cut, and `login` is a fallback only for trackers with no numeric id.
 
 **Drift.** A run depends on tickets: the intent's ticket, and for a brief the milestone's issues. Each tick the poller reads their revisions and compares them with the `source-authority` revision pin.
 
@@ -203,7 +203,7 @@ The GitHub revision field is `updatedAt`.[^7]
 
 Like `hold`, this is a tightening signal and needs no verified identity. The refresh decision stays human, through `work-intake` refresh.
 
-**Polling budget.** GitHub documents 5,000 requests an hour per authenticated user, a secondary REST limit of 900 points a minute (a GET costs 1, a write 5), at most about 80 content-creating requests a minute and 500 an hour for an authenticated user, and `403` or `429` with `retry-after` on excess.[^8] Unverified: which limit `gh issue list` spends, so the cap counts every `gh` call.
+**Polling budget.** GitHub documents 5,000 requests an hour per authenticated user, a secondary REST limit of 900 points a minute (a GET costs 1, a write 5), at most about 80 content-creating requests a minute and 500 an hour for an authenticated user, and `403` or `429` with `retry-after` on excess.[^8] Unverified: which limit `gh issue list` spends, so the cap counts every call.
 
 ETag behaviour is unverified, so it is not relied on.
 
@@ -216,7 +216,7 @@ One tick costs R = 1 candidate list + W events reads (one per gate awaiting appr
 | Aggregate, every gate has over 100 events (W counts 20 reads) | 20 | 3 | 5 | 29 | 1,740 an hour | 105 s |
 | Aggregate, no drift reads | 10 | 0 | 0 | 11 | 660 an hour | 60 s |
 
-A verified approval adds one confirming read, and a drift adds one field fetch. Both count against the cap. In a pool one control-plane poller serves every node, so this arithmetic applies once per token ([page 12](12-pool-state-integrity-and-signals.md)).
+A confirming read for a verified approval and a field fetch for a drift count against the cap. In a pool one control-plane poller serves every node, so this arithmetic applies once per token ([page 12](12-pool-state-integrity-and-signals.md)).
 
 ## 4. Contract and Invariant Change
 
@@ -254,8 +254,6 @@ A reply is untrusted data, listed in run-state as `untrusted-reply` and never wr
 
 It enters the repository only through a human answer, with the reply cited as provenance.
 
-Call sites. The rows follow from them.
-
 ```text
 tracker_adapter.py events github://github.com/example/repo/issues/7 --since 2026-11-01T00:00:00Z
   -> {"signals":[{"kind":"tag-applied","tag":"approve:spec","actor":{"id":"123","login":"alice-example","kind":"user"},"at":"...","event_id":"..."}]}
@@ -273,7 +271,7 @@ Everything added is optional, so a repository that adds nothing keeps today's be
 | `source-authority.remote_actions` | per-mutation receipts | adds `policy_fingerprint` | additive field | old receipts stay valid |
 | Approval attribution | none | `approval-attributions.jsonl` with a `tracker` object ([05b](05b-approval-integrity-and-trusted-configuration.md)) | the first approval creates the file | revert the commit |
 
-A failure between the repository commit and the mirror write leaves the ticket stale and never the repository. The mirror write retries under policy, and a persistent failure shows as `mirror-drift`.
+A failure between the repository commit and the mirror write leaves the ticket stale and never the repository.
 
 ## 6. Deployment/Operational Change
 
@@ -289,7 +287,7 @@ The GitHub adapters authenticate through `gh` and import no `credbroker`. The Li
 
 Unverified: how `gh` handles token scopes.
 
-`doctor` prints its auth status output and parses nothing.
+`doctor` parses no auth output.
 
 ## 7. Quality Regression and Verification
 
@@ -333,7 +331,7 @@ Unverified: whether Jira's changelog gives the same actor and time facts.
 
 [^5]: GitHub REST docs, issue events — https://docs.github.com/en/rest/issues/events — verified by fetch.
 
-[^6]: Numeric actor id, event retention, app-actor shape — unverified.
+[^6]: Private repository on a free personal account, 2026-11-08: actor `{id, login, type}` with type `User`, events in order, `performed_via_github_app` null for the `GITHUB_TOKEN` bot — verified (tested, single run, 2026-11-08). GraphQL `editor{login,databaseId}` was tested for a self-edit only. A real App token, a third-party editor, and event retention: unverified.
 
 [^7]: `github-refresh/references/refresh-profile.json` (`revision_field: updatedAt`) and `work-intake/SKILL.md` (record carries locator, revision, profile) — verified.
 

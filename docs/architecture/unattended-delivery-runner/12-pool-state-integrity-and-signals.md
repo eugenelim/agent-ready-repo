@@ -65,8 +65,6 @@ flowchart LR
 
 ## 3. Runtime Change
 
-Each seam below has a premise checked in code or docs.
-
 | Journey or scenario | Change type | Baseline reference |
 | --- | --- | --- |
 | Checkpoint between attempts, restore on a new node | new | product ref, run store |
@@ -96,7 +94,7 @@ Recommendation (D24): checkpoints in `ferryman`'s own namespace. Each checkpoint
 
 Every manifest carries `head_sha` and `product_sha`, and a restore compares the fetched refs to them first.
 
-A planning gate parks before `start`, so it has no run id. A run-scoped snapshot restores with no gates, and a whole-directory snapshot restores `gates` and `status` identically. Until `start` assigns the run id, the checkpoint is keyed by subject hash (unverified design).[^11]
+A planning gate parks before `start`, so it has no run id, and until `start` assigns one the checkpoint is keyed by subject hash (unverified design).[^11]
 
 `ferryman` pushes only when no attempt is open: after each `report` commit and each scribe commit, before the next `next`, and before exit 10. It never pushes at attempt open, so a node lost mid-attempt loses only that attempt, which the new node abandons and re-issues from the last boundary checkpoint.
 
@@ -114,7 +112,9 @@ An old node that pushes after the restore carries a stale lease on `store`, so i
 
 Without `attempts/`, `next` returns the same request id with no refusal, but attempt numbering restarts and the earlier reported record is lost silently.[^11]
 
-Every node holds the one checkpoint credential (D45), so the control plane accepts a checkpoint only if its digest equals the one from the remote's own push audit, never from node events. A store rewritten by another node fails step 2 and refuses `checkpoint-conflict`. The remote must expose that audit (unverified), and per-run credentials, which D45 declined, are stronger.
+Every node holds the one checkpoint credential, scoped to a dedicated checkpoint repository (D45) with no ref-namespace scoping inside it.[^13] No push audit exists for custom refs on the tested host, so the control plane records the refs it reads itself at each assignment and restore, which detects a rewrite only if it reads before and after. A store rewritten by another node fails step 2 and refuses `checkpoint-conflict`.
+
+**Open design decision (owner, revisits D45).** Two options are stronger than observation: a control-plane-pushed checkpoint, where the node returns a bundle and the control plane writes the refs, and per-run credentials. Neither is chosen.
 
 The node never copies a recorded `.git/config`, because a hostile store could set `core.fsmonitor` or a hook and run code in the sandbox that holds the push credential.[^10] It rebuilds the file from a fixed template with an allowlist of keys and no hooks, and it takes the value of an allowed key only from TB5 or the launch file, never from the store. It writes the template before any git command runs in the node, because with a copied config the supervisor's own git calls did not fire the hostile hooks, but a plain `git status` and `git commit` did.[^8]
 
@@ -122,27 +122,27 @@ The template denies `include*`, `credential.*`, `core.sshCommand`, `core.fsmonit
 
 No attempt is open at a checkpoint, so no recorded fingerprint has to match. A template adding the clone's own `[remote "origin"]` or a `[branch "main"]` block is accepted too, and whether the next attempt open fingerprints the rebuilt config is unverified.[^8]
 
-Unverified: whether a Git host can limit the node's push credential to `refs/ferryman/`, whether `start` on an admitted run re-pins and answers `current` on a fresh clone (alternative: D24, [10c](10c-review-decisions.md)), a restore with an open attempt, and signed manifests.
+Unverified: whether a paid or public repository's ruleset can limit custom refs, whether `start` on an admitted run re-pins and answers `current` on a fresh clone (alternative: D24, [10c](10c-review-decisions.md)), a restore with an open attempt, and signed manifests.
 
 **Restore epoch.** The launch file carries an epoch, and a lost race on the compare-and-swap of restore step 3 refuses `checkpoint-conflict` before any worker spawns.
 
 Effects park in a pool (D69), so no pool effect needs a push before dispatch. If D69's alternative is taken, the compare-and-swap repeats before each effect dispatch and a checkpoint follows each `effect-intent` commit.
 
-On one machine a parked effect, with an `effect-intent` commit and an unknown outcome, resolves through an `effect-query` request that parks for a human until the outcome is recorded.
+On one machine a parked effect, with an `effect-intent` commit and an unknown outcome, resolves through an `effect-query` request that parks for a human.
 
 Two writers on one stale lease, two restorers racing the compare-and-swap, and an old-node checkpoint racing the new node's compare-and-swap each yield one winner in 20 of 20 trials, and an empty expected value is create-only.[^9][^8] After node B restores and advances `store` to epoch+1, node A's atomic push with stale leases fails 20 of 20 times with no ref moved, also when only the `store` lease is stale.[^8]
 
-At one step a minute, 100 concurrent runs make 6,000 atomic pushes and 18,000 ref updates an hour. On a local bare repository 200 sequential atomic pushes of three refs fail 0 times, with mean 0.30 s and p95 0.48 s.[^9]
+At one step a minute, 100 concurrent runs make 6,000 atomic pushes and 18,000 ref updates an hour. On a local bare repository 200 sequential atomic pushes of three refs fail 0 times, and on a real host 30 fail 0 times.[^9][^12]
 
 `head` keeps the whole chain, and only the latest `store` checkpoint stays reachable. Git host push limits are unverified.
 
-The launch file also carries the digest of the control plane's `doctor --probe` record. The digest is SHA-256 over the canonical JSON (sorted keys, no whitespace) of the profile id, `cli_version`, role limits, and probe result, plus the sha256 of the pinned binaries (D73), and `ferryman` skips its own probe only when the digest it recomputes equals that value.
+The launch file also carries the digest of the control plane's `doctor --probe` record. The digest is SHA-256 over the canonical JSON of the profile id, `cli_version`, role limits, probe result, and the pinned binaries' sha256 (D73), and `ferryman` skips its own probe only when its recomputed digest equals it.
 
 **Subject fence.** The restore epoch fences per run id. Before `start`, a pool node also pushes `refs/ferryman/claims/<subject hash>` with an empty expected value, carrying `{run_id once known, epoch, node_id}`.
 
-A pool claim does not expire (D26): only the control plane releases it, at terminal or abandon, and each re-key takes it again, so a park or a preemption cannot lapse it.
+A pool claim does not expire (D26): only the control plane releases it, at terminal or abandon, and each re-key takes it again, so a park or preemption cannot lapse it.
 
-On a restore the new node pushes the claim with `--force-with-lease` naming the old value and carrying the new epoch, and the control plane reconciles claim refs against live runs and releases any whose run is gone. A second node refuses before `start`, in 20 of 20 trials. The claim is on the `pool-config-incomplete` list ([page 01](01-contracts-and-data.md)).
+On a restore the new node pushes the claim with `--force-with-lease` on the old value and the new epoch, and the control plane releases any claim whose run is gone. A second node refuses before `start`, in 20 of 20 trials. The claim is on the `pool-config-incomplete` list ([page 01](01-contracts-and-data.md)).
 
 **Lost attempts.** The next launch file echoes each `worker-spawned` event as a charge. A lost or `usage-unknown` attempt counts as a respawn and charges `max_cost` and `max_tokens` until a real report arrives.
 
@@ -150,17 +150,15 @@ On a restore the new node pushes the claim with `--force-with-lease` naming the 
 
 The `terminal` manifest carries `terminal: true` and `head_sha`, so the control plane reconciles from refs after a lost event.
 
-**Run grant.** `ferryman` reads grant values only from the brief-level runner's `next` or `status` at the base, and parks when they change. Until the owner's follow-on spec excludes a separate checkpoint remote from "push" (D57), a grant that keeps pushing human-only or any grant refusal holds checkpoints back with the event `checkpoint-held`, and pool mode refuses `pool-config-incomplete` instead of keeping them local.
+**Run grant.** `ferryman` reads grant values only from the brief-level runner's `next` or `status` at the base, and parks when they change. Until the owner's follow-on spec excludes a separate checkpoint remote from "push" (D57), a grant that keeps push human-only or any grant refusal holds checkpoints back with `checkpoint-held`, and pool mode refuses `pool-config-incomplete`.
 
-**Pool-mode behaviour.** Two behaviours apply.
+**Pool-mode behaviour.**
 - A parked gate: `ferryman` exits 10, and the control plane re-dispatches with a restore when the answer arrives (D24).
 - Package and image integrity: the control plane checks the image against the digest in `launch.v1` (D27).
 
 **Seam 3: supervisor integrity on fresh clones.** The remaining gap is the first admission, which "pins the files itself": it pins whatever is installed when `start` runs.
 
-On one machine [page 05b](05b-approval-integrity-and-trusted-configuration.md) closes it with the install-state hashes.
-
-In a pool the control plane's digests close it. The control plane records them once per run_id and reuses that set for every re-dispatch.
+On one machine [page 05b](05b-approval-integrity-and-trusted-configuration.md) closes it with install-state hashes, and in a pool the control plane's digests close it. The control plane records them once per run_id and reuses that set for every re-dispatch.
 
 Repository files come from the run's base commit plus the released pack's hash records (or reviewed `main`), never from the clone. The user config and the profiles it names come from the files the control plane itself provisions through TB5 ([page 11](11-remote-agent-pool-seams.md)).
 
@@ -182,7 +180,7 @@ A relayed `signal` also carries the tightening signals `hold`, `source-revision-
 
 `ferryman` cannot check that the event exists or re-read the label (check 6 on page 06). The control plane's attestation replaces both, and it recomputes the gate digest from the repository at the parked commit and never from the relayed signal (D25). The record stores `verification: control-plane-signed`, `relayed_by`, and the whole bundle as evidence (D28).
 
-**Seam 6: claims and duplicate dispatch.** Two clones at one `HEAD` pick the same spec, and an `active` spec stays invisible across clones until a branch merges. The control plane owns assignment, and `ferryman` takes an explicit subject.
+**Seam 6: claims and duplicate dispatch.** An `active` spec stays invisible across clones until a branch merges. The control plane owns assignment, and `ferryman` takes an explicit subject.
 
 Where no control plane exists, `ferryman` can take a claim: a commit holding `{owner, subject, lease_until, base}` at `refs/ferryman/claims/<subject hash>`. Creation is `git push --force-with-lease=<ref>:` with an empty expected value, so the ref must not exist.[^5]
 
@@ -192,7 +190,6 @@ The claim carries its base commit, and `ferryman` runs `check-base-freshness.py 
 
 
 
-Signed-command expiry uses absolute times with a 60-second maximum skew and a node clock-sync requirement (D45, D48).
 
 ## 4. Contract and Invariant Change
 
@@ -205,8 +202,6 @@ Five rows change, and one narrows the index invariant.
 | Expected digests | new | pin check | an absent file means no out-of-band check, flagged by `doctor` | `registry` | tamper-before-`start` test |
 | `signal` command | new | tracker poller | `[tracker] mode = direct` ignores it | signature and evidence re-check | forged-signal corpus |
 | Claim ref | new | none | off unless `[claims] enabled` | lease push | two-clone claim test |
-
-Call sites. The rows follow from them.
 
 ```text
 ferryman run --supervisor work docs/specs/f --launch /run/launch.toml    # subject, expected digests, signers digest, checkpoint remote
@@ -237,7 +232,7 @@ The control plane supplies the launch file, and nothing in the repository runs o
 
 ## 7. Quality Regression and Verification
 
-Six scenarios cover fencing, integrity, effects, signals, a fresh clone, and duplicate dispatch across a park. All targets are design targets.
+All targets are design targets.
 
 | Attribute at risk | Baseline target | Stimulus that could regress it | Verification |
 | --- | --- | --- | --- |
@@ -275,10 +270,14 @@ All four modules live in `ferryman` package.
 
 [^7]: `packs/core/.apm/skills/work-loop/scripts/check-base-freshness.py` docstring (`--target REMOTE/BRANCH`, exit 1 on surface) — verified.
 
-[^8]: Restore test on the real unedited `work-loop` skill, 2026-11-07, local scratch: a checkpoint with no open attempt restored in a fresh clone from the template, with zero differing keys in `status --json` and the same request id from `next`; a stale `report` refused `not-current-attempt`, and a hostile recorded config was dropped with nothing executed. Old-node and race trials ran 20 each — verified (tested, single run, 2026-11-07). A restore with an open attempt, signed manifests, and `start`'s re-pin on a fresh clone: unverified.
+[^8]: Restore test on the real unedited `work-loop` skill, 2026-11-07, local scratch: a checkpoint with no open attempt restored in a fresh clone from the template with zero differing keys and the same request id from `next`; a stale `report` refused `not-current-attempt`, and a hostile recorded config was dropped. Old-node and race trials ran 20 each — verified (tested, single run, 2026-11-07). A restore with an open attempt, signed manifests, and `start`'s re-pin on a fresh clone: unverified.
 
 [^9]: Spike S1, 2026-11-07, local bare repository: 200 sequential atomic pushes, and 20 trials each of the stale-lease and epoch races — verified (tested, single run).
 
 [^10]: A repository-local `core.fsmonitor` program ran on `git status`, and a `core.hooksPath` hook ran on `git commit` — verified (tested, git 2.56.0, single run, 2026-11-07).
 
-[^11]: Gate records at `.git/agentbundle-supervisor/gates/<id>.json` outside any `<run-id>/` directory, and a run-scoped snapshot restoring no gates against a whole-directory snapshot restoring `gates` and `status` identically; a restore without `attempts/` giving the same request id and a lost earlier record — verified (tested, single run, 2026-11-07, real unedited supervisor, local scratch). Keying a pre-`start` checkpoint by subject hash and the re-key at `start`: unverified design item for P7.
+[^11]: Gate records sit at `.git/agentbundle-supervisor/gates/<id>.json` outside any `<run-id>/` directory: a run-scoped snapshot restored no gates, and a whole-directory snapshot restored them; a restore without `attempts/` gave the same request id and lost an earlier record — verified (tested, single run, 2026-11-07, real unedited supervisor, local scratch). Keying a pre-`start` checkpoint by subject hash and the re-key at `start`: unverified design item for P7.
+
+[^12]: Free private repository, git 2.56.0: 30 atomic leased pushes, 0 failures; a stale lease rejected all three refs in 20 of 20 trials; two racing writers had one winner in 20 of 20 — verified (tested, single run, 2026-11-08).
+
+[^13]: Same host: a deploy key reached only its own repository and could write any ref in it; `/events` and `/activity` showed no custom-ref pushes; rulesets returned HTTP 403 — verified (tested, single run, 2026-11-08).
