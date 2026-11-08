@@ -107,6 +107,12 @@ _RECORD_FIELDS = {
     "effect-resolutions.jsonl": frozenset({"entry", "operation_key", "run_id", "effect", "scope"}),
 }
 RESULT_AUTHORITIES = ("legacy-worktree", "protected-product-ref")
+# The brief-level runner's lease policy: the keys it must carry, the agent kinds a
+# stuck-after runtime is set for, and the retry budget the runner applies.
+LEASE_KEYS = frozenset({"heartbeat_seconds", "max_slices_in_flight", "retry_budget",
+                        "stuck_after_seconds"})
+LEASE_AGENT_KINDS = frozenset({"implementer", "reviewer", "slice-session"})
+LEASE_RETRY_BUDGET = 2
 INTENTS = ("code", "spec-plan")
 CODE_TRUST = ("trusted", "untrusted")
 
@@ -155,6 +161,7 @@ def load_policy() -> dict[str, Any]:
             "skill maintainer",
             "result_authority must be legacy-worktree or protected-product-ref",
         )
+    _check_lease(data.get("lease"))
     wait = float(data["run_lock_timeout_seconds"])
     hold = float(data["red_proof_budget_seconds"]) + _LOCK_MARGIN_SECONDS
     if not wait < hold < float(data["run_lock_stale_seconds"]):
@@ -165,6 +172,32 @@ def load_policy() -> dict[str, Any]:
             f"{_LOCK_MARGIN_SECONDS:g} < run_lock_stale_seconds must hold",
         )
     return data
+
+
+def _positive_int(value: object) -> bool:
+    """True for an integer of at least 1; a bool is not an integer here."""
+    return isinstance(value, int) and not isinstance(value, bool) and value >= 1
+
+
+def _check_lease(lease: object) -> None:
+    """Refuse a lease table that is missing, has a missing or extra key, or a bad value."""
+    stuck = lease.get("stuck_after_seconds") if isinstance(lease, dict) else None
+    if (
+        not isinstance(lease, dict)
+        or set(lease) != LEASE_KEYS
+        or not all(_positive_int(lease[key]) for key in LEASE_KEYS - {"stuck_after_seconds"})
+        or lease["retry_budget"] != LEASE_RETRY_BUDGET
+        or not isinstance(stuck, dict)
+        or set(stuck) != LEASE_AGENT_KINDS
+        or not all(_positive_int(value) for value in stuck.values())
+    ):
+        raise Refusal(
+            "invalid-policy",
+            "skill maintainer",
+            "lease must hold positive integers heartbeat_seconds, max_slices_in_flight, "
+            f"retry_budget ({LEASE_RETRY_BUDGET}) and stuck_after_seconds for exactly "
+            "implementer, reviewer and slice-session",
+        )
 
 
 def canonical_line(record: dict[str, Any]) -> bytes:

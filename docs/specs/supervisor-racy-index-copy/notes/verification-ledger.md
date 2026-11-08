@@ -10,6 +10,6 @@ The approved `spec.md` and `plan.md` hold the obligations; this file records the
 
 ## Closeout
 
-- Core is 4.0.23, one patch above freshly fetched `origin/main` (4.0.22); `tools/check-core-release.py --base origin/main` reports the release consistent.
+- Core is 4.0.24, one patch above freshly fetched `origin/main` (4.0.23); `tools/check-core-release.py --base origin/main` reports the release consistent.
 - `agentbundle catalogue self-host --root . --check` is clean after the supervisor's `regenerate` step.
 - Reviews: security-reviewer clean; adversarial-reviewer closed an unclosed plan comment and a docstring residual-risk gap in T2, leaving one nit that the closeout merge with `origin/main` settles.
