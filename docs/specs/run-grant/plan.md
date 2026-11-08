@@ -132,3 +132,5 @@ No supervisor file changes. Every edit under `work-loop/scripts/` changes the su
 - Draft briefs stop starting slices (AC-0001); the exemption covers only slices already in flight.
 
 ## Changelog
+
+- 2026-11-08: spec approved by eugenelim (scope)
