@@ -115,8 +115,9 @@ DENIALS = (
     "git-common-dir", "shared-refs", "run-store", "work-trees", "sibling-trees", "sibling-ipc",
 )
 _HEX64 = re.compile(r"[0-9a-f]{64}")
-_READ_KINDS = ("file", "missing", "listing", "walk")
-_WRITE_KINDS = ("write", "delete", "rename-from", "rename-to", "mode")
+# The access kinds have one owner, the meets relation's module.
+_READ_KINDS = _conc.READ_KINDS
+_WRITE_KINDS = _conc.WRITE_KINDS
 
 
 class _RealClock:
@@ -560,7 +561,7 @@ def verify_containment(
     return None, att
 
 
-def _entries_shape(items: object, kinds: tuple[str, ...]) -> bool:
+def _entries_shape(items: object, kinds: frozenset[str]) -> bool:
     return isinstance(items, list) and all(
         isinstance(item, dict)
         and set(item) == {"path", "kind"}
@@ -643,12 +644,12 @@ def access_defect(
     The reasons, in order: a mode that differs from the containment's read enforcement; under
     ``allowlist``, an attested read outside the declared reads; a path that is not a
     repository path; more than 20,000 entries in a list; a change the supervisor computed
-    that no attested write names; and ``complete`` false. A denied read never counts as read.
+    that no attested write names; and ``complete`` false. Under ``allowlist`` a denied read
+    never counts as read; under ``trace`` it stays in the attested read set.
     """
     if att["mode"] != read_enforcement:
         return "access-mode"
-    denied = set(att["denied_reads"])
-    reads = [r for r in att["reads"] if r["path"] not in denied]
+    reads = attested_reads(att)
 
     def fold(path: str) -> str:
         return _conc._key(path, ignore_case)  # type: ignore[no-any-return]
@@ -672,6 +673,12 @@ def access_defect(
 
 
 def attested_reads(att: dict[str, Any]) -> list[dict[str, str]]:
-    """The attested read set: every attested read except one the containment denied."""
+    """The attested read set.
+
+    Under ``allowlist`` the containment enforces denial, so a denied read never happened and is
+    left out. Under ``trace`` nothing enforces it, so a read the attestation lists stays in.
+    """
+    if att["mode"] != "allowlist":
+        return list(att["reads"])
     denied = set(att["denied_reads"])
     return [r for r in att["reads"] if r["path"] not in denied]

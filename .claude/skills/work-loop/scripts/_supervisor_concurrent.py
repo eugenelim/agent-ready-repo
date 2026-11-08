@@ -11,8 +11,9 @@ one attempt. The controller then runs the blocking verb ``run-concurrent``, whic
 3. verifies the launcher's containment attestation, releases the worker, and reads the one
    access line the launcher sends at the end, all over the launcher's own pipes;
 4. confirms the launcher's process group has ended, ingests the attempt directory itself,
-   writes its own ``execution-result`` record, and integrates by exact source: the product
-   ref must still name the commit the attempt was issued against.
+   writes its own ``execution-result`` record, holds it, and integrates in floor order. Only
+   a result whose access attestation is incomplete integrates by exact source, where the
+   product ref must still name the commit the attempt was issued against.
 
 Every other verb first settles the attempts a dead verb left: a commit carrying the
 attempt's trailer means landed, and anything else has its launcher's process group ended
@@ -247,7 +248,10 @@ def _write(ws: Any, run_id: str, record: dict[str, Any], *, create: bool = False
 
 def _verb_alive(record: dict[str, Any]) -> bool:
     pid, start = record.get("verb_pid"), record.get("verb_start")
-    return isinstance(pid, int) and _launcher.process_start(pid) == start
+    # A record with no captured start time cannot be told from a reused pid: never alive.
+    if not isinstance(pid, int) or not isinstance(start, str):
+        return False
+    return _launcher.process_start(pid) == start
 
 
 # ── admission ───────────────────────────────────────────────────────────────
@@ -516,6 +520,12 @@ def run_concurrent(ws: Any, rid: str) -> dict[str, Any]:
         for name in ("consumed", "results", "held", "integrations", "conflicts"):
             _directory(ws, state.run_id, name)
         cm = sibling("_confined_mutation.py")
+        verb_start = _launcher.process_start(os.getpid())
+        if verb_start is None:
+            # Without its own start time a record would read as a dead verb's: refuse to consume.
+            raise refusal(
+                "not-current-attempt", "controller", "the verb's own start time cannot be read"
+            )
         records = []
         for task in tasks:
             count, discards = _spent(ws, task)
@@ -535,7 +545,7 @@ def run_concurrent(ws: Any, rid: str) -> dict[str, Any]:
                 "state": "consumed",
                 "source": source,
                 "verb_pid": os.getpid(),
-                "verb_start": _launcher.process_start(os.getpid()),
+                "verb_start": verb_start,
             }
             try:
                 _write(ws, state.run_id, record, create=True)
@@ -711,19 +721,48 @@ class _Result:
         self.attested_writes: list[dict[str, str]] = []
 
 
+class _Launch:
+    """One attempt's launcher conversation: what a phase needs and what the close path ends."""
+
+    def __init__(
+        self, ws: Any, state: Any, task: dict[str, Any], record: dict[str, Any], sha: str,
+        attempt_dir: Path, scratch: Path, control: _Control,
+    ) -> None:
+        self.ws, self.state, self.task, self.record = ws, state, task, record
+        self.sha, self.attempt_dir, self.scratch, self.control = sha, attempt_dir, scratch, control
+        self.store = _store(ws, state.run_id)
+        self.mode: str = ws.policy["concurrency"]
+        self.binding: Any = None
+        self.grant: Any = None
+        self.proc: Any = None
+        self.reader: Any = None
+        self.started = 0.0
+        self.token = ""
+        self.finished = False  # the launcher's end was verified inside the conversation
+
+
 def _drive(
     ws: Any, state: Any, task: dict[str, Any], record: dict[str, Any], sha: str,
     attempt_dir: Path, control: _Control,
 ) -> _Result | _Defect:
-    """Spawn, verify, release, wait, and ingest. Returns the result or the defect that ended it."""
+    """Spawn, verify, release, wait, and ingest. Returns the result or the defect that ended it.
+
+    Whatever ends the conversation early, the launcher's group is ended and confirmed here,
+    before the one close path records the outcome.
+    """
     scratch = Path(tempfile.mkdtemp(prefix="agentbundle-launcher-"))
+    launch = _Launch(ws, state, task, record, sha, attempt_dir, scratch, control)
     try:
-        return _session(ws, state, task, record, sha, attempt_dir, scratch, control)
+        return _session(launch)
     except _Defect as defect:
+        if not _end_launcher(launch, defect.reason):
+            defect.state = "residue"
         return defect
     except Exception as exc:
-        record.update(state="floor", reason="attempt-error")
-        _write(ws, state.run_id, record)
+        confirmed = _end_launcher(launch, "attempt-error")
+        _close(
+            ws, state, record, "attempt-error", "floor" if confirmed else "residue", attempt_dir
+        )
         if getattr(exc, "code", None) == "denied-git-control-state":
             # Git control state moved under the open attempt: the attempt check names it residue.
             with ws.run_lock():
@@ -731,6 +770,36 @@ def _drive(
         raise
     finally:
         shutil.rmtree(scratch, ignore_errors=True)
+
+
+def _close(
+    ws: Any, state: Any, record: dict[str, Any], reason: str, state_name: str,
+    attempt_dir: Path | None,
+) -> dict[str, Any]:
+    """The one close path: every attempt that does not integrate ends here.
+
+    The outcome is recorded and journalled, a confirmed end removes the attempt directory,
+    and ``residue`` keeps it. A cancellation is marked for projection again. The caller has
+    already ended the launcher's group (``_end_launcher``) and passes ``residue`` when that
+    end was not confirmed.
+    """
+    with ws.run_lock():
+        return _fall(ws, state, record, reason, state_name=state_name, attempt_dir=attempt_dir)
+
+
+def _end_launcher(launch: _Launch, reason: str) -> bool:
+    """End the launcher's group and confirm it; ``True`` when ended (or nothing was running)."""
+    proc = launch.proc
+    if proc is None or launch.finished:
+        return True
+    L = _launcher  # noqa: N806
+    L.send(proc, {
+        "schema_version": 1, "type": "abort",
+        "binding": launch.binding.as_dict(), "reason": reason,
+    })
+    if "pgid" in launch.record:
+        return _stop(launch.record, proc)
+    return _kill_unrecorded(proc)
 
 
 def _stop(record: dict[str, Any], proc: Any) -> bool:
@@ -748,117 +817,134 @@ def _stop(record: dict[str, Any], proc: Any) -> bool:
     return confirmed
 
 
-def _session(
-    ws: Any, state: Any, task: dict[str, Any], record: dict[str, Any], sha: str,
-    attempt_dir: Path, scratch: Path, control: _Control,
-) -> _Result:
-    """One attempt's conversation with its launcher; raises ``_Defect`` for any refusal."""
-    L = _launcher  # noqa: N806 - the module this session speaks through
-    store = _store(ws, state.run_id)
-    if L.copy_matches(store, sha) is None:
-        raise _Defect("launcher-changed")
-    copy = L.copy_matches(store, sha)
-    assert copy is not None
-    mode = ws.policy["concurrency"]
-    binding = L.Binding(
-        state.run_id, record["attempt_id"], "grant-" + secrets.token_hex(8),
-        secrets.token_hex(32), sha,
-    )
-    grant = L.Grant(
-        binding.grant_id, (str(attempt_dir),),
-        "allowlist" if mode == "enforced-allowlist" else "trace",
-    )
-    proc = L.spawn(copy, scratch)
+def _read_line(launch: _Launch, deadline: float, refusals: dict[str, tuple[str, str]]) -> bytes:
+    """Read one launcher line; a timeout, oversize, early close, or cancellation is a defect."""
+    L = _launcher  # noqa: N806
     try:
-        kill_point("launcher-spawned")
-        started = L.CLOCK.now()
-        pid = proc.pid
-        leader_start = L.process_start(pid)
-        if leader_start is None:
-            raise _Defect("launcher-spawn-failed")
-        record.update(
-            state="running", pgid=os.getpgid(pid), leader_pid=pid, leader_start=leader_start
-        )
-        _write(ws, state.run_id, record)  # durable before any line is sent
-        kill_point("launcher-recorded")
-        reader = L.LineReader(proc.stdout.fileno(), lambda: control.cancelled)
-        L.send(proc, {
-            "schema_version": 1,
-            "type": "attempt",
-            "binding": binding.as_dict(),
-            "grant": grant.as_dict(),
-            "attempt_dir": str(attempt_dir),
-            "request": _loop().make_request(
-                ws, state, "run-concurrent", record["request_id"],
-                task=_loop()._task_ref(task), tasks=[task["task_id"]], attempt=record["attempt"],
-            ),
-        })
-        try:
-            line = reader.read_line(started + L.CONTAINMENT_TIMEOUT_S)
-        except L.ReadTimeout:
-            raise _Defect("containment-timeout") from None
-        except L.LineTooLong:
-            raise _Defect("containment-oversized") from None
-        except L.StreamClosed:
-            raise _Defect("containment-missing") from None
-        except L.ReadCancelled:
-            raise _Defect("sibling-failed", "cancelled") from None
-        defect, attestation = L.verify_containment(
-            line, binding=binding, mode=mode, declared_reads=list(task["reads"]),
-            attempt_dir=str(attempt_dir), grant=grant,
-        )
-        if defect is not None or attestation is None:
-            raise _Defect(defect or "containment-schema")
-        if L.copy_matches(store, sha) is None:
-            raise _Defect("launcher-changed")
-        token = secrets.token_hex(32)
-        if not L.send(proc, {
-            "schema_version": 1, "type": "release",
-            "binding": binding.as_dict(), "release_token": token,
-        }):
-            raise _Defect("launcher-closed")
-        kill_point("released")
-        deadline = L.CLOCK.now() + float(ws.policy["attempt_timeout_seconds"])
-        try:
-            access_line = reader.read_line(deadline)
-        except L.ReadTimeout:
-            raise _Defect("access-timeout", "cancelled") from None
-        except L.LineTooLong:
-            raise _Defect("access-oversized") from None
-        except L.StreamClosed:
-            raise _Defect("access-missing") from None
-        except L.ReadCancelled:
-            raise _Defect("sibling-failed", "cancelled") from None
-        kill_point("access-read")
-        extra, ended = reader.rest(L.CLOCK.now() + L.CONFIRM_TIMEOUT_S)
-        if extra:
-            raise _Defect("access-extra-line")
-        if not ended:
-            raise _Defect("processes-not-ended")
-        defect, access = L.verify_access(access_line, binding=binding, token=token)
-        if defect is not None or access is None:
-            raise _Defect(defect or "access-schema")
-        if not access["processes_ended"] or not _wait_exit(proc):
-            raise _Defect("processes-not-ended")
-        if L.group_alive(int(record["pgid"])):
-            raise _Defect("processes-not-ended")
-        result = _ingest(ws, state, task, record, attempt_dir, attestation, access)
-        result.access_sha = hashlib.sha256(access_line).hexdigest()
-        return result
-    except _Defect as defect:
-        L.send(proc, {
-            "schema_version": 1, "type": "abort",
-            "binding": binding.as_dict(), "reason": defect.reason,
-        })
-        recorded = "pgid" in record
-        confirmed = _stop(record, proc) if recorded else _kill_unrecorded(proc)
-        if not confirmed:
-            defect.state = "residue"
-        raise
-    except Exception:
-        if "pgid" in record:
-            _stop(record, proc)
-        raise
+        return launch.reader.read_line(deadline)  # type: ignore[no-any-return]
+    except L.ReadTimeout:
+        code, state = refusals["timeout"]
+    except L.LineTooLong:
+        code, state = refusals["oversized"]
+    except L.StreamClosed:
+        code, state = refusals["missing"]
+    except L.ReadCancelled:
+        code, state = "sibling-failed", "cancelled"
+    raise _Defect(code, state)
+
+
+_CONTAINMENT_REFUSALS = {
+    "timeout": ("containment-timeout", "floor"), "oversized": ("containment-oversized", "floor"),
+    "missing": ("containment-missing", "floor"),
+}
+_ACCESS_REFUSALS = {
+    "timeout": ("access-timeout", "cancelled"), "oversized": ("access-oversized", "floor"),
+    "missing": ("access-missing", "floor"),
+}
+
+
+def _spawn_phase(launch: _Launch) -> None:
+    """Hash the launcher copy once, spawn it, and record its group before any line is sent."""
+    L = _launcher  # noqa: N806
+    copy = L.copy_matches(launch.store, launch.sha)
+    if copy is None:
+        raise _Defect("launcher-changed")
+    launch.binding = L.Binding(
+        launch.state.run_id, launch.record["attempt_id"], "grant-" + secrets.token_hex(8),
+        secrets.token_hex(32), launch.sha,
+    )
+    launch.grant = L.Grant(
+        launch.binding.grant_id, (str(launch.attempt_dir),),
+        "allowlist" if launch.mode == "enforced-allowlist" else "trace",
+    )
+    launch.proc = L.spawn(copy, launch.scratch)
+    kill_point("launcher-spawned")
+    launch.started = L.CLOCK.now()
+    pid = launch.proc.pid
+    leader_start = L.process_start(pid)
+    if leader_start is None:
+        raise _Defect("launcher-spawn-failed")
+    launch.record.update(
+        state="running", pgid=os.getpgid(pid), leader_pid=pid, leader_start=leader_start
+    )
+    _write(launch.ws, launch.state.run_id, launch.record)  # durable before any line is sent
+    kill_point("launcher-recorded")
+    launch.reader = L.LineReader(launch.proc.stdout.fileno(), lambda: launch.control.cancelled)
+
+
+def _containment_phase(launch: _Launch) -> dict[str, Any]:
+    """Send the attempt and verify the containment attestation; returns it."""
+    L = _launcher  # noqa: N806
+    ws, state, task, record = launch.ws, launch.state, launch.task, launch.record
+    L.send(launch.proc, {
+        "schema_version": 1,
+        "type": "attempt",
+        "binding": launch.binding.as_dict(),
+        "grant": launch.grant.as_dict(),
+        "attempt_dir": str(launch.attempt_dir),
+        "request": _loop().make_request(
+            ws, state, "run-concurrent", record["request_id"],
+            task=_loop()._task_ref(task), tasks=[task["task_id"]], attempt=record["attempt"],
+        ),
+    })
+    line = _read_line(launch, launch.started + L.CONTAINMENT_TIMEOUT_S, _CONTAINMENT_REFUSALS)
+    defect, attestation = L.verify_containment(
+        line, binding=launch.binding, mode=launch.mode, declared_reads=list(task["reads"]),
+        attempt_dir=str(launch.attempt_dir), grant=launch.grant,
+    )
+    if defect is not None or attestation is None:
+        raise _Defect(defect or "containment-schema")
+    return attestation  # type: ignore[no-any-return]
+
+
+def _release_phase(launch: _Launch) -> None:
+    """Re-check the launcher copy after containment, then release the worker."""
+    L = _launcher  # noqa: N806
+    if L.copy_matches(launch.store, launch.sha) is None:
+        raise _Defect("launcher-changed")
+    launch.token = secrets.token_hex(32)
+    if not L.send(launch.proc, {
+        "schema_version": 1, "type": "release",
+        "binding": launch.binding.as_dict(), "release_token": launch.token,
+    }):
+        raise _Defect("launcher-closed")
+    kill_point("released")
+
+
+def _access_phase(launch: _Launch) -> tuple[bytes, dict[str, Any]]:
+    """Read and verify the one access line, then confirm the launcher's group ended."""
+    L = _launcher  # noqa: N806
+    deadline = L.CLOCK.now() + float(launch.ws.policy["attempt_timeout_seconds"])
+    access_line = _read_line(launch, deadline, _ACCESS_REFUSALS)
+    kill_point("access-read")
+    extra, ended = launch.reader.rest(L.CLOCK.now() + L.CONFIRM_TIMEOUT_S)
+    if extra:
+        raise _Defect("access-extra-line")
+    if not ended:
+        raise _Defect("processes-not-ended")
+    defect, access = L.verify_access(access_line, binding=launch.binding, token=launch.token)
+    if defect is not None or access is None:
+        raise _Defect(defect or "access-schema")
+    if not access["processes_ended"] or not _wait_exit(launch.proc):
+        raise _Defect("processes-not-ended")
+    if L.group_alive(int(launch.record["pgid"])):
+        raise _Defect("processes-not-ended")
+    return access_line, access
+
+
+def _session(launch: _Launch) -> _Result:
+    """One attempt's conversation with its launcher; raises ``_Defect`` for any refusal."""
+    _spawn_phase(launch)
+    attestation = _containment_phase(launch)
+    _release_phase(launch)
+    access_line, access = _access_phase(launch)
+    launch.finished = True  # the group has ended, verified above
+    result = _ingest(
+        launch.ws, launch.state, launch.task, launch.record, launch.attempt_dir, attestation,
+        access,
+    )
+    result.access_sha = hashlib.sha256(access_line).hexdigest()
+    return result
 
 
 def _kill_unrecorded(proc: Any) -> bool:
@@ -924,10 +1010,19 @@ def _ingest(
         )
     except _conc.AttemptRefused as exc:
         raise _Defect(exc.code, "cancelled") from exc
+    except _integration.SupervisorGitError as exc:
+        # Git's own message can name a path the attempt chose; only a closed code leaves here.
+        if exc.code == "denied-git-control-state" or exc.unverifiable:
+            raise
+        raise _Defect("attempt-unreadable", "cancelled") from None
     changed = _changed(ws, record["source"], ingested.tree)
+    # The floor manifest guards the same paths: the spec directory, cited records, and the
+    # installed skill the verbs run from.
+    skill = ws.attempts._tracked_skill_prefix()
     protected = [
         p for p in changed
         if p.startswith(ws.spec_rel + "/") or p in set(state.cited_paths)
+        or (skill is not None and p.startswith(skill))
     ]
     if protected:
         raise _Defect("protected-path-changed")
@@ -956,11 +1051,7 @@ def _settle(
     """
     loop = _loop()
     if isinstance(outcome, _Defect):
-        with ws.run_lock():
-            summary = _fall(
-                ws, state, record, outcome.reason, state_name=outcome.state,
-                attempt_dir=attempt_dir,
-            )
+        summary = _close(ws, state, record, outcome.reason, outcome.state, attempt_dir)
         if outcome.reason != "sibling-failed":
             failed(task["task_id"])
         return summary
@@ -975,8 +1066,9 @@ def _settle(
                 "schema_version": 1,
                 "request_id": record["request_id"],
                 "run_id": state.run_id,
-                "kind": "implement-task",
-                "gate": {"passed": True},
+                # The supervisor wrote this record, not a controller, and no gate ran for the
+                # attempt, so it carries the request's own kind and no gate outcome.
+                "kind": "run-concurrent",
                 "result_tree": outcome.tree,
                 "access_attestation_sha256": outcome.access_sha,
             }
@@ -1000,8 +1092,7 @@ def _settle(
                     failed(each["task"])
     except Exception:
         if not held:
-            with ws.run_lock():
-                _fall(ws, state, record, "attempt-error", attempt_dir=attempt_dir)
+            _close(ws, state, record, "attempt-error", "floor", attempt_dir)
         raise
     final = read_record(ws, state.run_id, record["request_id"]) or record
     summary: dict[str, Any] = {

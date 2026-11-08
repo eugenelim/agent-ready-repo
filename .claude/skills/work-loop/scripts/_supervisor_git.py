@@ -685,6 +685,7 @@ class HardenedGit:
         config: tuple[str, ...],
         work_tree: Path | None,
         private_index: bool = False,
+        attr_source: str | None = None,
     ) -> list[str]:
         """The full ``git`` argument vector for one helper call."""
         pins = self.pins
@@ -699,6 +700,7 @@ class HardenedGit:
             *_fixed_flags(literal_pathspecs=literal_pathspecs, private_index=private_index),
             *self._carried_flags(),
             *extra,
+            *([f"--attr-source={attr_source}"] if attr_source is not None else []),
             args[0],
             *diffing,
             *args[1:],
@@ -715,6 +717,7 @@ class HardenedGit:
         work_tree: Path | None = None,
         ok_codes: tuple[int, ...] = (0,),
         limit: int | None = None,
+        attr_source: str | None = None,
     ) -> bytes:
         """Run ``git <args>`` against the pinned directories and return stdout bytes.
 
@@ -722,11 +725,13 @@ class HardenedGit:
         different work tree for the call (an attempt directory); the Git directory stays the
         pinned one and the call runs from *work_tree*. *ok_codes* are the exit codes that
         are not a failure when *check* is set. With *limit*, the read is bounded and an
-        oversized output refuses ``denied-git-output-too-large``.
+        oversized output refuses ``denied-git-output-too-large``. *attr_source* is a tree id
+        passed as Git's global ``--attr-source``, so attributes come from that tree only.
         """
         return self.run_with_status(
             *args, env=env, stdin=stdin, check=check, literal_pathspecs=literal_pathspecs,
             config=config, work_tree=work_tree, ok_codes=ok_codes, limit=limit,
+            attr_source=attr_source,
         )[1]
 
     def run_with_status(
@@ -740,6 +745,7 @@ class HardenedGit:
         work_tree: Path | None = None,
         ok_codes: tuple[int, ...] = (0,),
         limit: int | None = None,
+        attr_source: str | None = None,
     ) -> tuple[int, bytes]:
         """``run``, returning ``(exit code, stdout bytes)``; for a call whose code is an answer."""
         environment = hardened_env(env, no_lazy_fetch=self.no_lazy_fetch)
@@ -752,6 +758,7 @@ class HardenedGit:
             config=config,
             work_tree=work_tree,
             private_index=bool(env and env.get("GIT_INDEX_FILE")),
+            attr_source=attr_source,
         )
         cwd = work_tree if work_tree is not None else self.pins.root
         if limit is None:
