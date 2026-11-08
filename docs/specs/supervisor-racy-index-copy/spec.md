@@ -1,6 +1,6 @@
 # Spec: Supervisor racy-safe index copy
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** ADR-0144, ADR-0154
@@ -61,7 +61,7 @@ Maintainers running full-mode `work-loop` get a supervisor whose whole-tree scan
 
 ## Acceptance Criteria
 
-- [ ] **AC-0001.** In a repository whose tracked spec directory makes the seeded scan rewrite its index copy, after a tracked file is rewritten to a same-size content within the second the work tree's index was last written, and a later second has begun, `change_set` and `working_changes` from the index-seeded scan both name that file.
+- [x] **AC-0001.** In a repository whose tracked spec directory makes the seeded scan rewrite its index copy, after a tracked file is rewritten to a same-size content within the second the work tree's index was last written, and a later second has begun, `change_set` and `working_changes` from the index-seeded scan both name that file.
 
 ## Closeout
 

@@ -1,7 +1,7 @@
 # Plan: Supervisor racy-safe index copy
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_commit.py` (`_PrivateIndex._seed`, `_copy_index`); tests `packs/core/tests/skills/work-loop/test_supervisor_git.py` (the seeded-scan tests); evidence: a plain Git 2.56 reproduction where an index copy with a newer modification time misses a same-size rewrite that the original index and a time-preserving copy both see
 
 > **Plan contract:** this is the implementation strategy. After approval, a
