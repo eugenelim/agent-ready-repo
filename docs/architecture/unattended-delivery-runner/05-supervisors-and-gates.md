@@ -285,7 +285,7 @@ Each sibling hashes its own installed files against digests pinned at its first 
 
 [^3]: `docs/adr/0158-review-obligation-policy-round-cap-and-tiers.md` "Applies to"; `work-loop/references/pre-execute-review.md` — verified by keyword search.
 
-[^4]: `packs/core/.apm/skills/work-loop/references/light-mode.md` (the explicit trusted invocation is the authority, an issue or PR is context, no spec, no plan, no `workspace.toml` mutation, a missing review is `BLOCKED`) — verified by reading. The work-loop owners' ruling that a local human `ferryman session` launch is an explicit trusted invocation is not yet asked: unverified ([page 13](13-rollout-spikes-and-risks.md) PL).
+[^4]: `packs/core/.apm/skills/work-loop/references/light-mode.md` (the explicit trusted invocation is the authority, an issue or PR is context, no spec, no plan, no `workspace.toml` mutation, a missing review is `BLOCKED`) — verified by reading. The maintainer confirms a local human launch is trusted; `light-mode.md` does not say so yet: unverified ([page 13](13-rollout-spikes-and-risks.md) PL).
 
 [^5]: `work-loop/references/supervisor.md` and ADR-0157 describe a session agent driving `work-supervisor` and a human approving a parked gate. A real sibling does not exist until E1: unverified.
 

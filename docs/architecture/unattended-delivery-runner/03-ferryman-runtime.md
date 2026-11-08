@@ -336,7 +336,7 @@ The package follows the `packages/` rules.[^2] Unverified: inventory registratio
 
 ## 11. Open Questions
 
-- Is a headless worker's Surface-and-stop representable as `needs-human` on every CLI? The work-loop owners' ruling on a local human launch is a PL gate ([page 13](13-rollout-spikes-and-risks.md)).
+- Is a headless worker's Surface-and-stop representable as `needs-human` on every CLI? The `light-mode.md` change that records a local human launch as trusted is a PL gate ([page 13](13-rollout-spikes-and-risks.md)).
 - Does any request kind need an interactive controller capability that a headless worker lacks? The work-loop owners can answer by walking the nine request kinds.[^3]
 - The open CLI verification items are on [page 03b](03b-headless-worker-launch.md).
 

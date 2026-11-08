@@ -40,7 +40,7 @@ Appetite is not set. Constraints from the architecture: `ferryman` is an optiona
 - **Riskiest assumption:** a headless worker stays inside its limits across CLIs. A spike found the limits enforced unevenly across Claude Code, Copilot and Pi, and a Pi run wrote a stray file.
 - **Risk:** the credential stripping in the worker launch contract may stop a CLI authenticating to its model. It is untested on any CLI.
 - **Risk:** a headless light worker implements a change without independent review unless the reviewer runs inside the session.
-- **Risk:** the light session route assumes a local human launch counts as an explicit trusted invocation under `light-mode.md`. The work-loop owners have not been asked.
+- **Risk:** the light session route assumes a local human launch counts as an explicit trusted invocation under `light-mode.md`. The maintainer confirms it, and `light-mode.md` does not yet record it.
 
 ## Ready gaps (Draft only)
 
