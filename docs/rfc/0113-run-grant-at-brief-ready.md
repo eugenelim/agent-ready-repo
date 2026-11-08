@@ -1,9 +1,9 @@
 # RFC-0113: One run grant at brief Ready
 
-- **Status:** Draft
+- **Status:** Accepted
 - **Author:** eugenelim
 - **Date opened:** 2026-11-05
-- **Date closed:**
+- **Date closed:** 2026-11-07
 - **Decision weight:** heavy (it changes a published skill's confirmation flow and sets what an unattended run may do, which is an agent-authority trust model)
 - **Related:** [RFC-0099](0099-cut-before-adding-and-artifact-shaping.md) (§7 keeps every spec-plan and human approval gate), [ADR-0157](../adr/0157-work-loop-approval-gates-park-instead-of-halting.md) (spec and plan approvals wait for a human and bind to exact revisions), [ADR-0150](../adr/0150-tdd-red-test-is-written-at-execute-and-mechanism-lives-in-the-plan-design.md) (names the protected classes), [ADR-0159](../adr/0159-brief-level-runner-chains-slices-from-committed-records.md) and the [brief-level-runner spec](../specs/brief-level-runner/spec.md) (a read-only runner that chains a brief's slices, shipped in core 4.0.22)
 
