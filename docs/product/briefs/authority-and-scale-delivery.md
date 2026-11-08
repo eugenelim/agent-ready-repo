@@ -39,7 +39,7 @@ Appetite is not set. Constraints from the architecture: approval from a tracker 
 - **Riskiest assumption:** a restored checkpoint passes the supervisor's own integrity checks on a real remote. A local test passed only when the restore reproduced the attempt fingerprint.
 - **Risk:** approval from a relayed tracker signal shifts trust from the repository to the control plane, which can then forge a signal.
 - **Risk:** a worker running as the same OS user can read host credentials. Credential stripping narrows it and does not remove it.
-- **Risk:** a checkpoint push may count as a push under the run grant's `Also human: push` rule until the follow-on spec says otherwise.
+- **Risk:** a checkpoint push may count as a push under a run grant that keeps pushing human-only (RFC-0113 D5) until the follow-on spec says otherwise.
 
 ## Ready gaps (Draft only)
 

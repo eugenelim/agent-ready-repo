@@ -181,7 +181,7 @@ Risks:
 - Claims from other projects' checkouts are not reproducible here, and the `workspace_mcp_server.py` failure was read, not run.[^3]
 - The model channel for concurrent attempts is undefined: AC-0017 requires denied network access, and no record defines a channel. Mitigation: no phase depends on `run-concurrent` (D36), and pool parallelism comes from separate runs (stated by the Slice 7 owner).[^4]
 - A worker swaps the pinned launcher. Mitigation: the launcher path and digest are in the trusted configuration set, and the guard corpus has a shape for it ([05b](05b-approval-integrity-and-trusted-configuration.md)).
-- Adjacent work lands unmerged or changes. Mitigation: pages cite Slice 7 and the run grant as unmerged, add only additive seams, and keep D30's rename.
+- Adjacent work changes. Mitigation: pages cite Slice 7 as unmerged and the grant's follow-on spec as unwritten, add only additive seams, keep D30's rename.
 - Duplicate dispatch repeats an external effect. Mitigation: D69 parks pool effects, and only its alternative adds the `store` compare-and-swap before each dispatch.
 - A signed command replays across nodes. Mitigation: consumed nonces, epoch binding, 15-minute expiry.
 - Per-run spend grows under repeated preemption. Mitigation: usage and retry counters travel in the manifest, under the launch file's budget.

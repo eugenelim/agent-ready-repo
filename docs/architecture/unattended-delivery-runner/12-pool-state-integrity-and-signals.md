@@ -150,7 +150,7 @@ On a restore the new node pushes the claim with `--force-with-lease` naming the 
 
 The `terminal` manifest carries `terminal: true` and `head_sha`, so the control plane reconciles from refs after a lost event.
 
-**Run grant.** `ferryman` reads grant values only from the brief-level runner's `next` or `status` at the base, and parks when they change. Until the owner's follow-on spec excludes a separate checkpoint remote from "push" (D57), a grant with `Also human: push` or any grant refusal holds checkpoints back with the event `checkpoint-held`, and pool mode refuses `pool-config-incomplete` instead of keeping them local.
+**Run grant.** `ferryman` reads grant values only from the brief-level runner's `next` or `status` at the base, and parks when they change. Until the owner's follow-on spec excludes a separate checkpoint remote from "push" (D57), a grant that keeps pushing human-only or any grant refusal holds checkpoints back with the event `checkpoint-held`, and pool mode refuses `pool-config-incomplete` instead of keeping them local.
 
 **Pool-mode behaviour.** Two behaviours apply.
 - A parked gate: `ferryman` exits 10, and the control plane re-dispatches with a restore when the answer arrives (D24).
