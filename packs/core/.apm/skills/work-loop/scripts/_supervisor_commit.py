@@ -917,8 +917,13 @@ class GitPort:
             source = self.port.hardened.pins.git_dir / "index"
             try:
                 with target:
-                    if not self._copy_index(source, target):
-                        return False
+                    copied = self._copy_index(source, target)
+                if copied is None:
+                    return False
+                # Git trusts an entry's stat data only when the entry is older than the index
+                # file; a copy written now would be newer than every entry, so a same-size
+                # rewrite made in the index's own second would go unseen. Keep the original time.
+                os.utime(self.path, ns=(copied.st_atime_ns, copied.st_mtime_ns))
                 flags = self.port.run("ls-files", "-v", "-z", env=env)
                 # Assume-unchanged (lowercase) and skip-worktree (S) entries ignore the work
                 # tree, which a ``read-tree HEAD`` index would not.
@@ -954,23 +959,25 @@ class GitPort:
             return True
 
         @staticmethod
-        def _copy_index(source: Path, target: BinaryIO) -> bool:
-            """Copy a regular, bounded index through one non-blocking, link-refusing open."""
+        def _copy_index(source: Path, target: BinaryIO) -> os.stat_result | None:
+            """Copy a regular, bounded index through one non-blocking, link-refusing open.
+
+            Returns the source's status, whose times the copy must keep, or None when it cannot.
+            """
             flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0)
             try:
                 fd = os.open(source, flags)
             except OSError:
-                return False
+                return None
             with os.fdopen(fd, "rb") as original:
-                if not stat.S_ISREG(os.fstat(original.fileno()).st_mode):
-                    return False
-                if os.fstat(original.fileno()).st_size > _MAX_INDEX_BYTES:
-                    return False
+                status = os.fstat(original.fileno())
+                if not stat.S_ISREG(status.st_mode) or status.st_size > _MAX_INDEX_BYTES:
+                    return None
                 data = original.read(_MAX_INDEX_BYTES + 1)
             if len(data) > _MAX_INDEX_BYTES:
-                return False
+                return None
             target.write(data)
-            return True
+            return status
 
         def _remove(self) -> None:
             for suffix in ("", ".lock"):
