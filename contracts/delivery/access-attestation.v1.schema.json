@@ -1,0 +1,163 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-ready-repo.invalid/contracts/delivery/access-attestation.v1.schema.json",
+  "title": "access-attestation.v1",
+  "description": "Access attestation the launcher sends once, after the worker has exited: the binding, the release token, and the reads and writes the worker made. Complete only when `complete` and `processes_ended` are both true; an incomplete attestation never supports integration.",
+  "$comment": "Owned by: docs/specs/verified-infrastructure-parallelism/. Architecture: docs/architecture/work-loop-result-integration.md",
+  "x-spec": [
+    "docs/specs/verified-infrastructure-parallelism/"
+  ],
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "binding",
+    "release_token",
+    "mode",
+    "complete",
+    "processes_ended",
+    "reads",
+    "writes",
+    "denied_reads"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "integer",
+      "enum": [
+        1
+      ],
+      "description": "Schema major version. Unknown versions refuse."
+    },
+    "binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "attempt_id",
+        "grant_id",
+        "nonce",
+        "launcher_sha256"
+      ],
+      "description": "The binding the supervisor issues for one attempt.",
+      "properties": {
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "attempt_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "grant_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "nonce": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+          "description": "Fresh 32-byte nonce, lowercase hex."
+        },
+        "launcher_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+          "description": "sha256 of the pinned launcher, lowercase hex."
+        }
+      }
+    },
+    "release_token": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}(?![\\s\\S])",
+      "description": "The release token the supervisor sent, lowercase hex."
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "allowlist",
+        "trace"
+      ]
+    },
+    "complete": {
+      "type": "boolean",
+      "description": "True when the recorded reads and writes are proven complete."
+    },
+    "processes_ended": {
+      "type": "boolean",
+      "description": "True when every process of the attempt has ended."
+    },
+    "reads": {
+      "type": "array",
+      "maxItems": 20000,
+      "description": "Reads the worker made.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "kind"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Repository path: relative, `/` separators, no empty, `.` or `..` component, no NUL, control character, or backslash."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "file",
+              "missing",
+              "listing",
+              "walk"
+            ]
+          }
+        }
+      }
+    },
+    "writes": {
+      "type": "array",
+      "maxItems": 20000,
+      "description": "Writes the worker made.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "kind"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1024,
+            "description": "Repository path: relative, `/` separators, no empty, `.` or `..` component, no NUL, control character, or backslash."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "write",
+              "delete",
+              "rename-from",
+              "rename-to",
+              "mode"
+            ]
+          }
+        }
+      }
+    },
+    "denied_reads": {
+      "type": "array",
+      "maxItems": 20000,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1024,
+        "description": "Repository path: relative, `/` separators, no empty, `.` or `..` component, no NUL, control character, or backslash."
+      },
+      "description": "Paths whose read the containment denied."
+    }
+  }
+}
