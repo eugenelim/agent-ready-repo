@@ -44,9 +44,11 @@ import os  # noqa: E402
 import re  # noqa: E402
 import stat  # noqa: E402
 import subprocess  # noqa: E402
+import tomllib  # noqa: E402
 import traceback  # noqa: E402
 import unicodedata  # noqa: E402
 from dataclasses import dataclass, field  # noqa: E402
+from datetime import UTC, datetime, timedelta  # noqa: E402
 from pathlib import Path  # noqa: E402
 from types import ModuleType  # noqa: E402
 from typing import Any  # noqa: E402
@@ -63,6 +65,34 @@ MAX_BLOB_BYTES = 1024 * 1024
 MAX_STANDING_ORDERS_BYTES = 16384
 STANDING_ORDERS_DIR = "docs/product/standing-orders"
 CODE_INVALID_STANDING_ORDERS = "invalid-standing-orders"
+
+RUN_GRANTS_DIR = "docs/product/run-grants"
+MAX_GRANT_BYTES = 4096
+GRANT_MAX_LIFETIME = timedelta(days=14)
+CONFIRM_SKEW = timedelta(minutes=5)
+# Actions only a human takes; a fixed tuple in code, never read from a grant.
+HUMAN_ONLY = (
+    "accept-protected-class-risk",
+    "approve-plan",
+    "approve-spec",
+    "irreversible-operation",
+    "merge",
+    "reapprove-after-material-change",
+)
+HELD_ACTIONS = ("open-pull-request", "push")
+DONE_WHEN = ("all-granted-merged", "all-granted-stopped")
+GRANT_KEYS = (
+    "schema_version",
+    "brief",
+    "confirmed_by",
+    "confirmed_at",
+    "expires_at",
+    "done_when",
+    "slices",
+    "retry_budget",
+    "max_slices_in_flight",
+    "held_actions",
+)
 
 SKILL_DIR = Path(__file__).resolve().parent.parent
 SUPERVISOR = Path(__file__).resolve().parent / "work-supervisor.py"
@@ -687,6 +717,184 @@ def parse_status(text: str) -> str | None:
         if match:
             return _token(match.group(1)) or None
     return None
+
+
+# ── run grants ──────────────────────────────────────────────────────────────
+
+_CONFIRMED_BY_RE = re.compile(r"[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*")
+_RECORD_MARK = "**Run grant:**"
+_RECORD_LINE_RE = re.compile(
+    r"- \*\*Run grant:\*\* required \(confirmed (\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})Z\)"
+)
+
+
+def _now() -> datetime:
+    """The runner host's current UTC time; the one clock, so tests patch it."""
+    return datetime.now(UTC)
+
+
+@dataclass(frozen=True)
+class Grant:
+    """A validated run grant. ``confirmed_by`` is checked and then dropped; it is never emitted."""
+
+    confirmed_at: datetime
+    expires_at: datetime
+    done_when: str
+    slices: tuple[str, ...]
+    retry_budget: int
+    max_slices_in_flight: int
+    held_actions: tuple[str, ...]
+
+
+class GrantProblem(Exception):
+    """A grant or record is malformed; ``detail`` is one fixed-vocabulary value.
+
+    The detail never holds grant text or a parser message.
+    """
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
+def _is_int(value: object) -> bool:
+    """True for an integer that is not a boolean."""
+    return type(value) is int
+
+
+def _is_utc_seconds(value: object) -> bool:
+    """True for an aware datetime at UTC offset zero with whole seconds."""
+    return (
+        isinstance(value, datetime)
+        and value.tzinfo is not None
+        and value.utcoffset() == timedelta(0)
+        and value.microsecond == 0
+    )
+
+
+def _distinct_strings(value: object) -> bool:
+    """True for a list of distinct strings."""
+    return (
+        isinstance(value, list)
+        and all(isinstance(v, str) for v in value)
+        and len(set(value)) == len(value)
+    )
+
+
+def judge_grant(
+    data: bytes,
+    *,
+    brief_slug: str,
+    spec_map: list[str],
+    retry_budget_cap: int,
+    now: datetime,
+) -> Grant:
+    """Validate the grant file bytes, or raise ``GrantProblem`` with a fixed detail.
+
+    Check order: size, UTF-8, hidden text, TOML, any table, any extra key, then each
+    AC-0003 key in order (a missing key or a bad value is ``key:<name>``), then
+    ``expiry-order``, ``expiry-too-long`` and ``confirmed-in-future``. Nothing is clamped.
+    """
+    if len(data) > MAX_GRANT_BYTES:
+        raise GrantProblem("oversize")
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        raise GrantProblem("not-utf8") from None
+    if _hidden_text_problem(text) is not None:
+        raise GrantProblem("hidden-text")
+    try:
+        table = tomllib.loads(text)
+    except tomllib.TOMLDecodeError:
+        raise GrantProblem("not-toml") from None
+    if any(isinstance(v, dict) for v in table.values()):
+        raise GrantProblem("table")
+    if any(k not in GRANT_KEYS for k in table):
+        raise GrantProblem("unknown-key")
+    for key in GRANT_KEYS:
+        if key not in table:
+            raise GrantProblem(f"key:{key}")
+    slices = table["slices"]
+    checks = {
+        "schema_version": _is_int(table["schema_version"]) and table["schema_version"] == 1,
+        "brief": table["brief"] == brief_slug,
+        "confirmed_by": isinstance(table["confirmed_by"], str)
+        and len(table["confirmed_by"]) <= 39
+        and table["confirmed_by"].isascii()
+        and _CONFIRMED_BY_RE.fullmatch(table["confirmed_by"]) is not None,
+        "confirmed_at": _is_utc_seconds(table["confirmed_at"]),
+        "expires_at": _is_utc_seconds(table["expires_at"]),
+        "done_when": isinstance(table["done_when"], str) and table["done_when"] in DONE_WHEN,
+        "slices": _distinct_strings(slices)
+        and bool(slices)
+        and all(SLUG_RE.fullmatch(s) is not None and s in spec_map for s in slices),
+        "retry_budget": _is_int(table["retry_budget"])
+        and 0 <= table["retry_budget"] <= retry_budget_cap,
+        "max_slices_in_flight": _is_int(table["max_slices_in_flight"])
+        and table["max_slices_in_flight"] == 1,
+        "held_actions": _distinct_strings(table["held_actions"])
+        and all(a in HELD_ACTIONS for a in table["held_actions"]),
+    }
+    for key in GRANT_KEYS:
+        if not checks[key]:
+            raise GrantProblem(f"key:{key}")
+    confirmed_at: datetime = table["confirmed_at"]
+    expires_at: datetime = table["expires_at"]
+    if expires_at <= confirmed_at:
+        raise GrantProblem("expiry-order")
+    if expires_at - confirmed_at > GRANT_MAX_LIFETIME:
+        raise GrantProblem("expiry-too-long")
+    if confirmed_at > now + CONFIRM_SKEW:
+        raise GrantProblem("confirmed-in-future")
+    return Grant(
+        confirmed_at=confirmed_at,
+        expires_at=expires_at,
+        done_when=table["done_when"],
+        slices=tuple(slices),
+        retry_budget=table["retry_budget"],
+        max_slices_in_flight=1,
+        held_actions=tuple(sorted(table["held_actions"])),
+    )
+
+
+def record_evidence(text: str) -> bool:
+    """True when the brief holds a ``**Run grant:**`` mark anywhere, comments included."""
+    return _RECORD_MARK in text
+
+
+def judge_record(text: str) -> datetime | None:
+    """The UTC time of the brief's run-grant record line, None when the brief has no mark.
+
+    Two marks are ``record-repeated``. The one mark must be a preamble line (before the first
+    ``##`` heading), outside any HTML comment, and read exactly
+    ``- **Run grant:** required (confirmed YYYY-MM-DDTHH:MM:SSZ)``, else ``record-form``.
+    """
+    if text.count(_RECORD_MARK) == 0:
+        return None
+    if text.count(_RECORD_MARK) > 1:
+        raise GrantProblem("record-repeated")
+    in_comment = False
+    for line in text.splitlines():
+        before = in_comment
+        live, in_comment = _live(line, in_comment)
+        if not before and _BOUNDING_HEADING_RE.match(line):
+            break
+        if _RECORD_MARK in live:
+            match = _RECORD_LINE_RE.fullmatch(live)
+            if match is None:
+                raise GrantProblem("record-form")
+            try:
+                stamp = datetime.strptime(match.group(1), "%Y-%m-%dT%H:%M:%S")
+            except ValueError:
+                raise GrantProblem("record-form") from None
+            return stamp.replace(tzinfo=UTC)
+    raise GrantProblem("record-form")
+
+
+def check_record_matches(grant: Grant, record_ts: datetime) -> None:
+    """Raise ``record-mismatch`` unless the grant's confirmation time is the record's."""
+    if grant.confirmed_at != record_ts:
+        raise GrantProblem("record-mismatch")
 
 
 def _is_separator(cells: list[str]) -> bool:
