@@ -1443,7 +1443,7 @@ def _errors(name: str, record: dict) -> list:
 @pytest.mark.parametrize("kind", ["attempt", "containment", "release", "abort", "access"])
 def test_each_launcher_message_type_requires_its_body(kind: str) -> None:
     body = {
-        "attempt": {"binding": dict(_BINDING), "grant": {}, "attempt_dir": "/tmp/a",
+        "attempt": {"binding": dict(_BINDING), "grant": {}, "attempt_dir": "/attempts/a",
                     "request": {}},
         "containment": {"binding": dict(_BINDING), "attestation": {}},
         "release": {"binding": dict(_BINDING), "release_token": _HEX},
