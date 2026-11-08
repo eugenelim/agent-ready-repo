@@ -25,7 +25,7 @@ standard library alone (Python 3.11 or later):
 | `start <spec-dir> --intent code\|spec-plan --code-trust trusted\|untrusted --authority-ref owner[:<hex>] --review-authority-ref plan-reviewer[:<hex>] --approved-spec-digest <64 hex> --approved-plan-digest <64 hex>` | Reads the approved spec and plan, checks them against the two digests, appends the approval pair in one commit, and answers `{"status": "admitted" \| "current" \| "terminal", "run_id", "sequence"}`. A `spec-plan` intent ends terminal with no tasks. Running it again on an admitted run answers `current`. Both digest arguments are required whenever `start` records an approval pair, and are ignored when it answers `current`. |
 | `next <spec-dir>` | Derives the one current action and answers `{"request": {...}}`, `{"terminal": true}`, or `{"refusal": {...}}`. It also commits a pending controller plan edit and the supervisor's own red proofs and effect intents. |
 | `report <spec-dir> <result.json>` | Admits one result for the current request and answers `{"admitted": "<step>"}`, or refuses and commits nothing from it. |
-| `run-concurrent <spec-dir> --request <id>` | Blocks while it runs the one `run-concurrent` request `next` issued: spawns the run's pinned launcher, checks its containment attestation before releasing the worker, reads the one access line the launcher sends at the end, ingests the attempt directory itself, and integrates the result by exact source. A request runs once: a second invocation refuses `request-consumed` and spawns nothing. Answers `{"run_concurrent": {"outcome": "landed" \| "held" \| "conflict" \| "floor" \| "cancelled" \| "residue", ...}}`, or `"batch"` with one such entry per attempt. |
+| `run-concurrent <spec-dir> --request <id>` | Blocks while it runs the one `run-concurrent` request `next` issued: spawns the run's pinned launcher, checks its containment attestation before releasing the worker, reads the one access line the launcher sends at the end, ingests the attempt directory itself, and integrates the result in floor order (by exact source only when its access attestation is incomplete). A request runs once: a second invocation refuses `request-consumed` and spawns nothing. Answers `{"run_concurrent": {"outcome": "landed" \| "held" \| "conflict" \| "floor" \| "cancelled" \| "residue", ...}}`, or `"batch"` with one such entry per attempt. |
 | `status <spec-dir> [--json] [--check]` | Read-only view: run, stage, retry count and cap, readiness, task list with completion, the current request, and any refusal. With `--check`: exit 0 when the run is sound or terminal, 1 on a refusal, 3 when the retry cap is reached on a run that is not terminal (this wins over 1). |
 | `resolve-effect <spec-dir> --operation <key> --decision effect-confirmed\|do-not-retry\|retry-authorized --authority-ref effect-authority[:<hex>]` | Records a named human's decision about an external effect whose outcome could not be established. |
 
@@ -183,7 +183,13 @@ attested reads and writes, and the source commit) and a ref
 result is not an open attempt and its task is not complete, so a floor attempt for
 an earlier task can still be issued, and a task that depends on the held one is not.
 Every later attempt's manifest includes the held record and ref; a worker that
-changes either gets `attempt-residue`.
+changes, adds, or removes either gets `attempt-residue`. Integration lands only a held
+record that the supervisor's own consumed and result records for the same request,
+attempt, task, tree, and access-line digest back, and whose held ref names its tree.
+A result that changes a path under the installed skill directory, the spec directory,
+or a cited record fails its attempt as `protected-path-changed` before it is held.
+A concurrent landing records a `concurrent-integration` receipt, not a task-gate
+pass: no gate ran for it, and `run-gates` stays the gate of record.
 
 Integration takes one cross-process lock, `integration.lock` in the run store, and
 lands results in the sequential order whatever order they finished in. These verbs
@@ -201,7 +207,8 @@ for each of these steps:
    whose `core.ignoreCase` is true.
 3. A `merge.*` key in repository or worktree configuration is refused as
    `merge-config`, and a `merge` attribute from any source other than a committed
-   attributes file is refused as `merge-attribute`.
+   attributes file is refused as `merge-attribute`. Attributes are read only from the
+   empty tree, through Git's global `--attr-source` option.
 4. The merge is `git merge-tree --write-tree` with its merge base pinned to the
    source commit, attributes read from the empty tree, and no strategy option. A
    conflict is `content`.
@@ -238,9 +245,16 @@ after the cancellation. An attempt that sends no access line within
 
 A task projected again, whether after an integration conflict or after a cancellation
 whose end was confirmed, counts toward `reprojection_bound`; at the bound its next
-attempt runs on the floor (`reprojection-bound`). Each projection again is a journal
-line (`outcome` `conflict` or `cancelled`, `reprojected: true`) and an entry in
-`status` (`concurrency.attempts`, `reprojected: true`).
+attempt runs on the floor (`reprojection-bound`). An attempt directory refused at
+ingestion (any ingestion code except `protected-path-changed`) is cancelled the same
+way (a symbolic link named like `.gitmodules`, or one of its HFS or NTFS aliases, is
+`attempt-git-name`; link resolution that needs more than 1,000,000 steps in all is
+`attempt-too-large`; a Git failure during ingestion is `attempt-unreadable`, and its
+message never reaches the verb's output): its task is projected again and the attempt counts toward the bound. Each
+projection again is a journal line (`outcome` `conflict` or `cancelled`,
+`reprojected: true`) and an entry in `status` (`concurrency.attempts`,
+`reprojected: true`). Each attempt whose result is held also journals one
+`outcome: settled` line as it settles, so the journal's order is completion order.
 
 A controller replan or a stub-fence revision is admitted only while no attempt is
 open; an edit beside one is `attempt-residue`. Once the open attempts end, it is

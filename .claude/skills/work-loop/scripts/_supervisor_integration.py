@@ -205,8 +205,48 @@ def _valid_held(record: dict[str, Any]) -> bool:
     )
 
 
+def _supervisor_wrote(ws: Any, run_id: str, held: dict[str, Any]) -> bool:
+    """Whether the supervisor's own records for the attempt name *held*'s identity.
+
+    The consumed record carries the request, attempt, task, revision, and source; the result
+    record, written before the held record, carries the tree and the access line's sha256.
+    A held record no such pair backs was not written by the supervisor.
+    """
+    conc = _concurrent()
+    consumed = conc.read_record(ws, run_id, held["request_id"])
+    result = _get(ws, run_id, "results", conc._record_name(held["request_id"]))
+    return (
+        consumed is not None
+        and all(
+            consumed.get(k) == held[k]
+            for k in ("request_id", "attempt_id", "task_id", "revision", "source")
+        )
+        and consumed.get("run_id", run_id) == run_id
+        and result is not None
+        and result.get("request_id") == held["request_id"]
+        and result.get("result_tree") == held["result_tree"]
+        and result.get("access_attestation_sha256") == held["access_attestation_sha256"]
+    )
+
+
+def _held_ref_names(ws: Any, run_id: str, held: dict[str, Any]) -> bool:
+    """Whether the held ref names *held*'s tree; a ref a kill left uncreated is created."""
+    ref = held_ref_name(ws, run_id, held["attempt_id"])
+    kind, value = ws.git.read_ref(ref)
+    if kind == "missing":
+        ws.git.run(
+            "update-ref", "--no-deref", "-m", "work-supervisor: hold result", ref,
+            held["result_tree"], "0" * len(held["result_tree"]),
+        )
+        return True
+    return (kind, value) == ("commit", held["result_tree"])
+
+
 def list_held(ws: Any, run_id: str) -> list[dict[str, Any]]:
-    """Every held result of the run, in the order they were recorded."""
+    """Every held result of the run, in the order they were recorded.
+
+    Only a record the supervisor's consumed and result records back is listed.
+    """
     store = _store(ws, run_id)
     directory = store / "held"
     if not os.path.lexists(directory):
@@ -219,7 +259,10 @@ def list_held(ws: Any, run_id: str) -> list[dict[str, Any]]:
     found = []
     for path in sorted(files):
         record = _get(ws, run_id, "held", path.name)
-        if record and _valid_held(record) and path.name == record["attempt_id"] + ".json":
+        if (
+            record and _valid_held(record) and path.name == record["attempt_id"] + ".json"
+            and _supervisor_wrote(ws, run_id, record)
+        ):
             found.append(record)
     return sorted(found, key=lambda r: r["seq"])
 
@@ -328,7 +371,7 @@ def _check_attributes(git: Any, paths: list[str]) -> None:
     if not paths:
         return
     out = git.run(
-        "check-attr", f"--source={_empty_tree(git)}", "merge", "-z", "--stdin",
+        "check-attr", "merge", "-z", "--stdin", attr_source=_empty_tree(git),
         stdin=b"\0".join(p.encode("utf-8", "surrogateescape") for p in paths) + b"\0",
     )
     fields = out.split(b"\0")
@@ -360,7 +403,7 @@ def _merge(ws: Any, held: dict[str, Any], tip: str) -> str:
     commit = _result_commit(ws, source, held["result_tree"])
     code, out = git.hardened.run_with_status(
         "merge-tree", "--write-tree", "-z", "--name-only", f"--merge-base={source}", tip, commit,
-        config=(f"attr.tree={_empty_tree(git)}",), ok_codes=(0, 1),
+        attr_source=_empty_tree(git), ok_codes=(0, 1),
     )
     fields = out.split(b"\0")
     merged = fields[0].decode("ascii", "replace")
@@ -668,10 +711,13 @@ def integrate_one(ws: Any, state: Any, held: dict[str, Any]) -> dict[str, Any]:
             raise Refused("stale-authority")
         merged = apply_result(ws, state, held, tip)
         tdd = _supervisor("_supervisor_tdd.py")
+        # No gate ran for a concurrent attempt: the receipt says only that the result was
+        # integrated, and the run's `run-gates` stays the gate of record.
         evidence = ws.evidence_append([
             _loop().receipt(
                 state, held["step"], criterion=f"task:{task['task_id']}",
-                term=f"gate:{task['task_id']}:{task['revision']}", observation="task-gate",
+                term=f"integrated:{task['task_id']}:{task['revision']}",
+                observation="concurrent-integration",
                 outcome="pass", fingerprint=git.product_tree(), revision=task["revision"],
             )
         ])
@@ -728,7 +774,7 @@ def _next_step(ws: Any, run_id: str) -> dict[str, Any] | None:
     first, _pending = loop._first_incomplete(state)
     for each in held:
         task = _task_of(state, each)
-        if task is None:
+        if task is None or not _held_ref_names(ws, run_id, each):
             continue
         if INTEGRATE_IN_COMPLETION_ORDER or (
             first is not None and first["task_id"] == task["task_id"]

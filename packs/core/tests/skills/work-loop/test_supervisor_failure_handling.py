@@ -464,6 +464,50 @@ def test_a_cancellation_and_a_conflict_count_toward_the_same_bound(
     ]
 
 
+# ── an attempt refused at ingestion (AC-0031) ───────────────────────────────
+
+
+def _fifo(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    return {"fifo": "pipe"}
+
+
+def _over_the_path_cap(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
+    original = conc._conc.ingest_attempt_directory
+    monkeypatch.setattr(
+        conc._conc, "ingest_attempt_directory",
+        lambda *args, **kwargs: original(*args, **{**kwargs, "max_paths": 1}),
+    )
+    return {}
+
+
+@pytest.mark.parametrize(
+    ("code", "arrange"),
+    [("attempt-special-file", _fifo), ("attempt-too-large", _over_the_path_cap)],
+    ids=["fifo", "path-cap"],
+)
+def test_an_attempt_refused_at_ingestion_reprojects_its_task_and_counts_toward_the_bound(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, code: str, arrange: Any
+) -> None:
+    env = ti.make_env(
+        tmp_path, monkeypatch, plan=ls.ONE_TASK, script=arrange(monkeypatch),
+        policy={"reprojection_bound": 2},
+    )
+    request = env.issued()
+    before = ti.head(env)
+    outcome = env.verb(request["request_id"])[1]["run_concurrent"]
+    assert outcome["outcome"] == "cancelled" and outcome["reason"] == code, outcome
+    (record,) = env.records()
+    assert record["state"] == "cancelled" and record["reproject"] is True
+    assert not Path(record["attempt_dir"]).exists() and ti.head(env) == before
+    again = env.next()["request"]  # projected again, not the floor
+    assert again["kind"] == "run-concurrent" and again["request_id"].endswith(":r1")
+    assert env.verb(again["request_id"])[1]["run_concurrent"]["reason"] == code
+    floor = env.next()  # both refusals counted: the bound of two is spent
+    assert floor["request"]["kind"] == "implement-task"
+    assert ls.journal(env.repo)[-1]["floor_reason"] == "reprojection-bound"
+    assert [a["reprojected"] for a in status_attempts(env)] == [True, True]
+
+
 # ── plan changes (AC-0057) ──────────────────────────────────────────────────
 
 
@@ -564,8 +608,207 @@ def test_a_held_result_with_every_task_complete_stops_the_run_rather_than_gating
         "access_defect": None, "attested_reads": [], "attested_writes": [],
     })()
     ws = harness.workspace(env.repo)
+    # The supervisor's own records for the stray attempt back its held record.
+    ls.concurrent_module._write(ws, landed["run_id"], {**stray, "state": "running"})
+    integ._put(
+        ws, landed["run_id"], "results", ls.concurrent_module._record_name("conc:stray"),
+        {"request_id": "conc:stray", "result_tree": result.tree,
+         "access_attestation_sha256": result.access_sha},
+    )
     integ.hold(ws, landed["run_id"], stray, result, "impl:stray")
     code, refused = env.run("next", ls.SPEC_DIR)
     assert code == 1 and refused["refusal"]["code"] == "no-progress"
     assert "run-gates" not in json.dumps(refused)
     assert (env.store() / "held").exists()
+
+
+STUB_TRIPLE = ti.plan_of(
+    ("T1", "Calculator answers", "`README.md`", "`calc.py`", "none"),
+    ("T2", "Plain note is written", "`README.md`", "`plain.txt`", "none"),
+) .replace(
+    "## Changelog",
+    ls.sup.task(
+        "T3", "Third file is written", mode="goal-based", touches="`third.txt`",
+        tests="- **VI-1:** the test.\n\n" + ls.sup.stub_fence(indent="  "),
+        reads="`README.md`", writes="`third.txt`",
+    ) + "\n## Changelog",
+)
+
+
+def revise_stub_fence(env: Any) -> None:
+    path = env.repo / ls.SPEC_DIR / "plan.md"
+    path.write_text(
+        path.read_text("utf-8").replace("== 42", "== 43"), encoding="utf-8"
+    )
+
+
+def test_a_stub_fence_revision_waits_for_the_open_attempts_then_discards_held_results(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    script = {"per_task": {"calculator-answers": FAILS, "plain-note-is-written": {
+        "write": {"plain.txt": NOTE}}}}
+    env = ti.make_env(tmp_path, monkeypatch, plan=STUB_TRIPLE, script=script)
+    request = env.issued()
+    assert [t.split("-")[0] for t in request["tasks"]] == ["calculator", "plain"]  # T3 stays out
+    base = ti.head(env)
+    # While the request is open the revision is refused and nothing is committed.
+    revise_stub_fence(env)
+    code, refused = env.run("next", ls.SPEC_DIR)
+    assert code == 1 and refused["refusal"]["code"] == "attempt-residue"
+    assert ti.head(env) == base and "replan" not in env.git("log", "--format=%s")
+    env.git("checkout", "--", f"{ls.SPEC_DIR}/plan.md")
+    assert env.next()["request"]["request_id"] == request["request_id"]
+    outcomes = by_task(env.verb(request["request_id"])[1]["run_concurrent"])
+    assert outcomes["plain"]["outcome"] == "held"
+    assert env.report(request)[0] == 0
+    assert list((env.store() / "held").iterdir())
+    # No attempt is open now: the revision is admitted and the held result is discarded.
+    revise_stub_fence(env)
+    floor = env.next()["request"]
+    assert "replan" in env.git("log", "--format=%s") and floor["kind"] == "implement-task"
+    assert not list((env.store() / "held").iterdir()) and "/held/" not in held_refs(env)
+    discarded = record_of(env, "plain")
+    assert discarded["state"] == "discarded" and discarded["reason"] == "plan-changed"
+    assert not any(a["reprojected"] for a in status_attempts(env))
+
+
+# ── one close path (AC-0052, AC-0053) ───────────────────────────────────────
+
+
+def raise_in_session(env: Any, stuck: set[int], exc: Exception) -> None:
+    """Raise *exc* inside the launcher conversation, once the group is recorded and released."""
+
+    def hook(name: str) -> None:
+        if name == "launcher-recorded":
+            stuck.update(r["pgid"] for r in env.records() if isinstance(r.get("pgid"), int))
+        if name == "released":
+            raise exc
+
+    harness.commit_module.set_kill_hook(hook)
+
+
+def no_floor_record_with_a_live_group(env: Any) -> None:
+    for record in env.records():
+        if record["state"] == "floor" and isinstance(record.get("pgid"), int):
+            assert ls.group_dead(int(record["pgid"])), record
+
+
+@pytest.mark.parametrize(
+    "exc", [OSError("disk"), RuntimeError("boom")], ids=["os-error", "any-exception"]
+)
+def test_an_unexpected_error_in_the_conversation_closes_through_the_one_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, exc: Exception
+) -> None:
+    env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script={"on_abort": "ignore"})
+    request = env.issued()
+    raise_in_session(env, set(), exc)
+    code, payload = env.verb(request["request_id"])
+    ls.clear_kill_hook()
+    assert code != 0 and "run_concurrent" not in payload, payload
+    (record,) = env.records()
+    assert record["state"] == "floor" and record["reason"] == "attempt-error"
+    assert_group_dead(record)
+    assert not Path(record["attempt_dir"]).exists()
+    (line,) = journal_for(env, "floor")
+    assert line["request_id"] == record["request_id"] and line["reason"] == "attempt-error"
+    no_floor_record_with_a_live_group(env)
+    # Recovery has nothing left to settle, and the task is issued on the floor.
+    assert env.next()["request"]["kind"] == "implement-task"
+    no_floor_record_with_a_live_group(env)
+
+
+def test_an_unexpected_error_whose_end_never_confirms_keeps_the_directory_as_residue(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(L, "CLOCK", ls.ScriptedClock(sleep_step=5.0))
+    env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script={"on_abort": "ignore"})
+    request = env.issued()
+    stuck: set[int] = set()
+    raise_in_session(env, stuck, OSError("disk"))
+    original = L.group_alive
+    monkeypatch.setattr(L, "group_alive", lambda pgid: pgid in stuck or original(pgid))
+    try:
+        code, payload = env.verb(request["request_id"])
+    finally:
+        for pgid in stuck:
+            ls.kill_group(pgid)
+        ls.clear_kill_hook()
+    assert code != 0 and "run_concurrent" not in payload, payload
+    (record,) = env.records()
+    assert record["state"] == "residue" and Path(record["attempt_dir"]).exists()
+    (line,) = journal_for(env, "residue")
+    assert line["request_id"] == record["request_id"]
+    no_floor_record_with_a_live_group(env)
+
+
+def test_an_unspawned_launcher_ends_clean_and_a_read_timeout_is_its_phases_defect(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A launcher that never spawned has nothing to end; a timed-out read closes as that phase's defect."""
+    env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK, script={"on_abort": "ignore"})
+    env.issued()
+    launch = conc._Launch.__new__(conc._Launch)
+    launch.proc = None
+    launch.finished = False
+    # A conversation that never spawned has nothing to end: the close path's first step is a no-op.
+    assert conc._end_launcher(launch, "attempt-error") is True
+    launch.reader = type("R", (), {"read_line": lambda self, deadline: (_ for _ in ()).throw(
+        L.ReadTimeout())})()
+    with pytest.raises(conc._Defect) as caught:
+        conc._read_line(launch, 0.0, conc._ACCESS_REFUSALS)
+    assert (caught.value.reason, caught.value.state) == ("access-timeout", "cancelled")
+    with pytest.raises(conc._Defect) as caught:
+        conc._read_line(launch, 0.0, conc._CONTAINMENT_REFUSALS)
+    assert (caught.value.reason, caught.value.state) == ("containment-timeout", "floor")
+
+
+# ── nits ────────────────────────────────────────────────────────────────────
+
+
+def test_a_verb_record_with_no_captured_start_never_reads_as_alive() -> None:
+    import os
+
+    own = os.getpid()
+    assert conc._verb_alive({"verb_pid": own, "verb_start": L.process_start(own)}) is True
+    assert conc._verb_alive({"verb_pid": own, "verb_start": None}) is False
+    assert conc._verb_alive({"verb_pid": own}) is False
+    # A pid no process holds has no start either; the two Nones must not match.
+    gone = 2**22 + 12345
+    assert L.process_start(gone) is None
+    assert conc._verb_alive({"verb_pid": gone, "verb_start": None}) is False
+
+
+def test_the_launcher_copy_is_hashed_once_before_spawn_and_again_after_containment(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[str] = []
+    real = L.copy_matches
+
+    def counting(store: Path, sha: str) -> Any:
+        calls.append(sha)
+        return real(store, sha)
+
+    def phase_calls(name: str) -> Any:
+        phase = getattr(conc, name)
+
+        def wrapped(launch: Any) -> Any:
+            before = len(calls)
+            try:
+                return phase(launch)
+            finally:
+                seen[name] = len(calls) - before
+
+        monkeypatch.setattr(conc, name, wrapped)
+
+    seen: dict[str, int] = {}
+    monkeypatch.setattr(L, "copy_matches", counting)
+    for name in ("_spawn_phase", "_containment_phase", "_release_phase", "_access_phase"):
+        phase_calls(name)
+    env = ti.make_env(tmp_path, monkeypatch, plan=ls.ONE_TASK)
+    request = env.issued()
+    code, payload = env.verb(request["request_id"])
+    assert code == 0 and payload["run_concurrent"]["outcome"] == "landed", payload
+    # One hash before spawn (the AC-0015 re-hash after containment is the release phase's).
+    assert seen == {
+        "_spawn_phase": 1, "_containment_phase": 0, "_release_phase": 1, "_access_phase": 0,
+    }, seen

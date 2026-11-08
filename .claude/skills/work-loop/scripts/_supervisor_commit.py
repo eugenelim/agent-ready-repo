@@ -26,6 +26,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import threading
 from collections.abc import Callable, Generator, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -217,6 +218,10 @@ _MAX_INDEX_BYTES = 256 * 1024 * 1024
 class GitPort:
     """Git plumbing for one repository and one spec directory."""
 
+    # Held from a product ref move until its record is written. A concurrent attempt's thread
+    # checks the ref against that record under the same lock, so it never sees the move alone.
+    landing = threading.RLock()
+
     def __init__(self, root: Path, spec_rel: str, *, clock: Callable[[], str]) -> None:
         self.root = root
         self.spec_rel = spec_rel
@@ -241,6 +246,7 @@ class GitPort:
         check: bool = True,
         literal_pathspecs: bool = False,
         limit: int | None = None,
+        attr_source: str | None = None,
     ) -> bytes:
         """Run ``git <args>`` through the hardened helper and return stdout bytes."""
         return self.hardened.run(
@@ -250,6 +256,7 @@ class GitPort:
             check=check,
             literal_pathspecs=literal_pathspecs,
             limit=limit,
+            attr_source=attr_source,
         )
 
     # ── the bounded reads the review-tier classifier makes ──────────────────
@@ -1136,9 +1143,10 @@ class GitPort:
             "hash-object", "-t", "commit", "-w", "--stdin", stdin=body.encode("utf-8")
         ).strip()
         kill_point("commit-built")
-        self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
-        kill_point("refs-moved")
-        self._record_landing(run_id, new, create_ref, adopting)
+        with self.landing:
+            self._move(run_id, new, old, step, create_ref, product_source, adopting, product_old)
+            kill_point("refs-moved")
+            self._record_landing(run_id, new, create_ref, adopting)
         kill_point("made-recorded")
         self.write_delivery(appended)
         self.refresh_index(path_list + sorted(exact) + sorted(entries or ()) + sorted(appended))

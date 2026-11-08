@@ -1,7 +1,7 @@
 # Plan: Verified infrastructure parallelism
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `docs/architecture/work-loop-result-integration.md` and `runtime-security-primitives.md` § 7; ADR-0156; analogous implementations `_supervisor_commit.py` (`build_commit`, `update_refs`, `_diagnose`) and `_containment.py` (`validate_attestation_dict`, `check_attestation_within_grant`, `launch_untrusted`); tests `test_supervisor_product_ref.py`, `test_supervisor_crash_corpus.py`, `test_containment_broker.py` (`_FixtureHost`), `tests/roster/test_execution_supervisor_records.py`; deviations: no code launches a worker from the supervisor today, so the launcher boundary has no precedent beyond `launch_untrusted`; concurrent attempts use plain directories rather than ADR-0005 D7's worktree (ADR-0160 D1)
 
 > **Plan contract:** this is the implementation strategy. After approval, a
@@ -22,8 +22,9 @@
 
 ## Approach
 
-T1, T2, and T5 are one pull request each; T3 and T4 share one; every pull
-request except T6's ships one Core patch release, four in all. T1 ships the
+One supervisor run carries T1 to T5 on one branch; after it is terminal the
+controller cuts the commits into a stack of four pull requests (T1, T2, T3 with
+T4, T5), each one Core patch release. T1 ships the
 contracts, the plan fields, and the policy keys with `concurrency` shipped
 `sequential`, so nothing changes at runtime. T2 ships admission, the pinned
 launcher, attestation verification, and ingestion, but caps every
@@ -33,7 +34,7 @@ result can land out of order before T3 exists. T3 lifts the cap and ships
 ordered integration through the three-way apply. T4 ships blast radius,
 cancellation, the reprojection bound, and plan-change and evidence ordering. T5
 ships the permutation and conflict corpus and turns the architecture pages to
-as-built. T6 closes the spec.
+as-built. The spec's Closeout section closes it.
 
 The riskiest part is T3: one lock, one tip read, and a compare-and-swap that
 must stay correct under every completion order. T2's batch cap is the seam that
@@ -62,8 +63,8 @@ keeps T2 shippable without it.
   A-supervisor run line in `catalogue-tooling-ci-gates.yml` names them (with
   `WORK_SUPERVISOR_INTEGRATION=1`); elsewhere they skip. Every task that adds
   such a suite registers it there, and its evidence is the CI log showing the
-  suite ran with zero skips. `tests/roster/` runs through a recorded
-  `test-roster.yml` dispatch on the branch.
+  suite ran with zero skips (a Closeout duty per PR). `tests/roster/` runs
+  through a recorded `test-roster.yml` dispatch on each PR's branch.
 - Do not edit `work-loop/scripts/` while a `WORK_SUPERVISOR_INTEGRATION=1` run
   is live in the same worktree.
 
@@ -98,9 +99,9 @@ keeps T2 shippable without it.
 | Current architecture | T5 | Page diffs | No `STATUS: PLANNED` on a built element |
 | Result acceptance | T5 | § 7 table row | `run-concurrent` row citing this spec |
 | Maintainer procedure | T1, T5 | `references/supervisor.md` and plan-template diffs | Grammar and reason codes documented once |
-| Product truth | T6 | Brief spec-map row | Row reports `Shipped` |
+| Product truth | Closeout | Brief spec-map row | Row reports `Shipped` |
 | Release history | T1–T5 | Version bumps | One changelog fragment per Core PR |
-| Verification record | T6 | Ledger | Every AC row checked |
+| Verification record | Closeout | Ledger | Every AC row checked |
 
 Design facts below are owned by `work-loop-result-integration.md` (ordering,
 apply, conflict, ingestion, and record semantics) and, from T5,
@@ -139,8 +140,9 @@ token); until T5 lands, this section is their only home.
   carrying the ingested tree id and the access line's sha256; that record is
   the result D3 binds the attestation to, and `result-integration.v1` cites
   both.
-- **Ingestion** uses a new link-recording walk in `file_safety.py`
-  (`list_confined_entries`, no-follow, descriptor-relative) that returns
+- **Ingestion** uses a link-recording walk in `_confined_entries.py`
+  (`list_confined_entries`, no-follow, descriptor-relative, built on the
+  blessed helpers' error types) that returns
   regular files with sizes and links with target text. It checks AC-0031's
   caps and AC-0070's link targets from that listing before any object
   exists, resolving each target through the listing's own links with a
@@ -284,9 +286,8 @@ Owned by: T3, T4
   either field.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
-and its CI log shows it ran with zero skips, the roster suites pass in a
-recorded `test-roster.yml` dispatch, `make lint-ruff lint-mypy` is green, and
-Core is one patch above the merge base.
+and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, the roster suites pass locally, `make lint-ruff lint-mypy` is green, and
+Core is one patch above the previous task's release (T1: above `packs/core/pack.toml` at the run's base).
 
 ### T2: Admission, the pinned launcher, attestation verification, and ingestion run with batches of one
 
@@ -327,9 +328,8 @@ Core is one patch above the merge base.
   ancestors and `root/**` writes.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
-and its CI log shows it ran with zero skips, the existing
-product-ref and crash suites pass unchanged, and Core is one patch above the
-merge base.
+and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, the existing
+product-ref and crash suites pass unchanged, and Core is one patch above T1's release.
 
 ### T3: Ordered integration through the pinned three-way apply
 
@@ -360,8 +360,7 @@ merge base.
   cap is written truncated.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
-and its CI log shows it ran with zero skips and Core is one patch
-above the merge base.
+and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips and Core is one patch above the previous task's release.
 
 ### T4: Blast radius, cancellation, the reprojection bound, and plan-change ordering
 
@@ -376,8 +375,8 @@ above the merge base.
   results discarded and reprojected.
 - AC-0058: `next` issues no gate, review, or evidence while a result is held.
 - AC-0012: the expected reason set is written in the test from the spec's
-  list (each AC-0002 member, AC-0017 check, AC-0020 check, AC-0067 check, and
-  refusal reason); the test fails when a code is missing from the production
+  list (each AC-0002 member other than the policy opt-in, AC-0017 check,
+  AC-0020 check, AC-0067 check, and refusal reason) for a concurrent-mode run; the test fails when a code is missing from the production
   table, when a table code has no exercised emission in `status` and the
   journal, and on any launcher-supplied byte in either output.
 - AC-0068: an attempt silent past `attempt_timeout_seconds` on the injected
@@ -385,8 +384,7 @@ above the merge base.
   and with an end that never confirms its task goes to the floor.
 
 **Done when:** each new git-backed suite is on the Gate A-supervisor run line
-and its CI log shows it ran with zero skips and Core is one patch
-above the merge base (shared with T3's release).
+and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips and this task adds no Core bump (it ships in T3's release).
 
 ### T5: The permutation and conflict corpus, and the as-built pages
 
@@ -396,24 +394,197 @@ above the merge base (shared with T3's release).
 - AC-0059, AC-0060, AC-0061, AC-0062: VIP-X01.
 - AC-0063: VIP-X02 over the corpus records.
 
-**Done when:** both suites are on the Gate A-supervisor run line and their CI
-log shows they ran with zero skips; the pages the spec's
+**Done when:** both suites are on the Gate A-supervisor run line and pass
+locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips; the pages the spec's
 Durable Outputs name describe the concurrent path and the known limit; and
-Core is one patch above the merge base.
+Core is one patch above T3's release.
 
-### T6: The spec closes
+### T6: Close the gate gaps
 
 **Depends on:** T5
 
 **Tests:**
-- Every AC has a ledger row naming its test and run.
+- AC-0019: the release-token search skips the fixture launcher's own
+  `sent.log` as it skips `recv.log`, and its planted-leak control still reds.
+- AC-0031: an attempt refused at ingestion reprojects its task (not the
+  floor), proven end to end through `run-concurrent` and `next`.
+- AC-0033: a floor attempt that rewrites a held record or held ref is answered
+  `attempt-residue` by the next verb; the test accepts no other code.
+- AC-0044: each integration kill point asserts the product ref equals the
+  recorded old commit or the new commit, by value.
+- AC-0045: replay after a kill between the compare-and-swap and the record
+  creates no commit, no conflict record, and no reprojection (`next` payload
+  and the record's reproject flag both checked).
+- AC-0050: a Git control-state change and a `delivery/` change during a
+  concurrent attempt each refuse that attempt with `attempt-residue` while a
+  sibling is open.
+- AC-0057: a stub-fence revision is refused while an attempt is open and
+  admitted after, with held results discarded.
+- AC-0065: recovery confirms the end without signalling when no process holds
+  the leader id and the group has no members.
+- AC-0072: with a command-line flag, a policy key, and a file each set and no
+  seam, results land in floor order.
+- AC-0059: each attempt's finish is journaled when it settles, and the corpus
+  asserts completion order from the journal.
 
-**Done when:** `notes/verification-ledger.md` checks every AC, the spec is
-`Shipped`, this plan is `Done`, and the brief's spec map reports it.
+**Done when:** each changed git-backed suite is on the Gate A-supervisor run
+line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
+`make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
+in T5's release).
+
+### T7: Close the code-review findings
+
+**Depends on:** T6
+
+**Tests:**
+- AC-0033: a held-result record or held ref added during a floor attempt
+  (not only one rewritten) is answered `attempt-residue`, and integration
+  never lands a held record that does not match a supervisor-written consumed
+  record and its held ref.
+- AC-0050: a concurrent result that changes any path under the running
+  installed skill directory, or any trusted file the floor manifest guards,
+  fails its attempt before integration, as the floor would refuse it.
+- AC-0059: a concurrent result records no task-gate pass receipt it did not
+  observe; the run's `run-gates` stays the gate of record, and a scripted
+  failing result does not land as a gate pass.
+- AC-0050: a Git call from a running sibling attempt never runs with the
+  manifest control-state check skipped while another thread refreshes the
+  guard (manifest swapped atomically or snapshotted per thread).
+- AC-0037: the apply reads merge attributes only from the empty tree on every
+  admitted Git version (the global `--attr-source` option, not `attr.tree`),
+  asserted on the argument vector and by a work-tree `merge=union` fixture.
+- AC-0026: under `complete-trace` a read listed as denied stays in the
+  attested read set (or makes the attestation incomplete); under
+  `enforced-allowlist` it is excluded; one test per mode.
+- AC-0031: any path the protected index write would refuse (for example a
+  `.gitmodules` symlink and its HFS and NTFS aliases) fails the attempt with a
+  closed code before any object is written, and no Git stderr text reaches
+  verb output.
+- AC-0070: link resolution has a total-work bound per attempt (components
+  processed across all links); exceeding it fails the attempt with a closed
+  code, in ingestion and in the merged-tree recheck.
+- AC-0052, AC-0053: every way an attempt closes, including an unexpected error
+  inside the launcher conversation, goes through one close path that journals
+  the outcome, removes or keeps the attempt directory by the confirmed rule,
+  and records `residue` when the launcher's end is unconfirmed; the launcher
+  protocol phases are separate functions testable on their own.
+- AC-0008, AC-0009: the reverse-order integration fixtures force completion
+  order at the supervisor's settle point and fail fast on a missing signal,
+  with no wall-clock wait.
+- AC-0059 to AC-0063: the Gate A-supervisor lane is split into jobs or shards
+  that each finish under their timeout with stated headroom, every pytest path
+  stays a literal, and the roster shard check proves the shards cover every
+  test.
+- Nits ride along: one owning definition of the read and write kinds; the
+  launcher copy hashed once before spawn; a verb record with no captured
+  start time never reads as alive; the reference and module docstring
+  describe floor-order integration, by exact source only for an incomplete
+  attestation.
+
+**Done when:** each changed git-backed suite is on the Gate A-supervisor run
+line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
+`make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
+in T5's release).
+
+### T8: Close the second-round review findings
+
+**Depends on:** T7
+
+**Tests:**
+- AC-0033: a held ref added during a floor attempt with no held record is
+  answered `attempt-residue` (the floor manifest records the held-ref
+  namespace as well as the held records), proven with the ref-only case.
+- AC-0008, AC-0009: a settle marker that is never written makes the waiting
+  fixture launcher fail within a bounded test deadline well under the CI job
+  timeout, with a message naming the missing marker.
+- AC-0059 to AC-0063: `test_supervisor_untrusted_unsafe_host.py` runs in one
+  of the Gate A-supervisor jobs within its budget, and the lane-coverage
+  check exempts no integration-gated suite that runs nowhere.
+- Nits ride along: the supervisor-written execution-result for a concurrent
+  attempt claims no gate outcome nobody observed and still validates; the
+  workflow header names every Gate A-supervisor job; the budget check fails
+  when a job's stated timeout and its `timeout-minutes` differ, with budgets
+  taken from a named timing run; the phase test is renamed to what it checks
+  and its tautological `callable` loop dropped.
+
+**Done when:** each changed git-backed suite is on the Gate A-supervisor run
+line and passes locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
+`make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
+in T5's release).
+
+### T9: Align the launcher test with the stored result kind
+
+**Depends on:** T8
+
+**Tests:**
+- AC-0046: the honest-attempt launcher test expects the supervisor-written
+  result record to carry kind `run-concurrent` and no `gate` field, and its
+  remaining assertions (attestation digest, completion-only report, follow-up
+  request) run green.
+
+**Done when:** `test_supervisor_launcher.py` passes locally under
+`WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy`
+is green, and this task adds no Core bump (it ships in T5's release).
+
+### T10: Read packed held refs in full and fail closed
+
+**Depends on:** T9
+
+**Tests:**
+- AC-0033: a held ref with no record that exists only in `packed-refs` is
+  answered `attempt-residue` after a floor attempt, including when
+  `packed-refs` is larger than 64 KiB; the held-ref listing reads
+  `packed-refs` up to the bound the ref reader already uses, and an oversized
+  or unreadable `packed-refs` makes the check unverifiable rather than
+  listing nothing.
+- Nit rides along: each Gate A-supervisor budget comment states numbers that
+  trace to one named timing run covering every suite in the job, or says
+  plainly which suites are untimed.
+
+**Done when:** each changed git-backed suite passes locally under
+`WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy`
+is green, and this task adds no Core bump (it ships in T5's release).
+
+### T11: Keep the seeded scan index racy-safe
+
+**Depends on:** T10
+
+**Tests:**
+- AC-0001, AC-0059: the supervisor's index-seeded scan gives its private
+  index copy the work tree index's own modification time, so a same-size
+  rewrite made in the same second as the last index write is still seen by
+  `change_set`; a regression test rewrites a tracked file to the same size
+  within the index's timestamp second and asserts the change set names it;
+  the permutation corpus passes.
+
+**Done when:** the changed suites and `test_supervisor_concurrency_permutations.py`
+pass locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
+`make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
+in T5's release).
+
+### T12: Serialize the product-ref check with the supervisor's own move
+
+**Depends on:** T11
+
+**Tests:**
+- AC-0034, AC-0051: inside one `run-concurrent` verb, a sibling
+  attempt's Git control check never sees the product ref moved but not yet
+  recorded. `GitPort.landing` is held from the supervisor's product-ref move
+  through its record, and `product_ref_problems` reads the ref and its record
+  under the same lock, so both results land.
+  `test_supervisor_integration.py::test_a_sibling_ingesting_while_a_result_lands_never_sees_the_ref_ahead_of_its_record`
+  holds the move unrecorded until the sibling's check has begun; without the
+  check-side lock it refuses with `denied-git-control-state`. The
+  result-integration page's race table names this stimulus, the lock, and the
+  test.
+
+**Done when:** `test_supervisor_integration.py` passes locally under
+`WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy` is
+green, and this task adds no Core bump (it ships in T5's release).
 
 ## Rollout
 
-- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5).
+- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6 to T12).
   `concurrency` ships `sequential` in every one, so adopters see no behaviour
   change beyond AC-0040's merge-driver refusal, which arrives with T2.
 - **Reversal:** reinstall the prior Core release; a run in flight finishes on
@@ -432,5 +603,11 @@ Core is one patch above the merge base.
 
 ## Changelog
 
-- 2026-11-05: spec approved by eugenelim
-- 2026-11-05: plan approved by eugenelim
+- 2026-11-06: spec approved by eugenelim
+- 2026-11-06: plan approved by eugenelim
+- 2026-11-06: amendment approved by eugenelim (scope)
+- 2026-11-06: amendment approved by eugenelim (build strategy)
+- 2026-11-06: amendment approved by eugenelim (scope)
+- 2026-11-06: amendment approved by eugenelim (build strategy)
+- 2026-11-06: spec approved by eugenelim
+- 2026-11-06: plan approved by eugenelim
