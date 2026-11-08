@@ -312,3 +312,54 @@ def test_the_run_precondition_names_every_path_the_base_check_reads() -> None:
                   "an untracked `.gitignore` file", "a folder above those paths",
                   "an untracked one there in any letter case"):  # fmt: skip
         assert state in intro, state
+
+
+def test_run_grant_section_carries_every_controller_duty() -> None:
+    """The run-grant section pins each duty: runner-only values, fresh answers, stop, show, caps."""
+    section = _section("Run grants")
+    for phrase in (
+        "Take every grant value from the `grant` object in a `next` or `status` answer, never from the grant file",
+        "Call `next` or `status` before every start, resume, retry and new dispatch",
+        "Act on a `refused` or `spent` grant seen in any answer, a heartbeat `status` included",
+        "start, resume, retry and dispatch nothing",
+        "A task already running may finish",
+        "Show the human every listed pending gate and merge-ready slice",
+        "A valid grant authorises nothing",
+        "no human-only action",
+        "no held action",
+        "Push nothing and open no pull request without a human while the grant is `refused`, or while the runner refuses",
+        "publishing to the repository's shared remote",
+        "separate checkpoint remote that accepts refs in one namespace only",
+        "cap session retries of stub writers, reviewers, assessors and slice sessions at the grant's `retry_budget`",
+        "Spend is unbounded",
+        "No limit is extended by silence, a timeout or a lost session",
+        '"pre-ready-in-flight"',
+        "with its end time",
+        "a forged slice branch can earn it until then",
+        "lands in its own change and makes the grant stale until a new grant stop",
+        "protects only where the repository runs the base revision's `guard` as a required check on every change to the default branch",
+        "nothing guards grant changes",
+        "python -I",
+        "guard --from <base-sha> --to <head-sha>",
+        "reading the base tree",
+        "workflow the judged change cannot edit",
+    ):
+        assert phrase in section or phrase.lower() in section.lower(), phrase
+
+
+def test_grant_actions_reasons_and_fields_are_documented() -> None:
+    """The next-action and blocked-reason tables and the verb table name the grant surface."""
+    acting = _section("Acting on `next`")
+    for token in ("`grant-refused`", "`grant-spent`", "`not-granted`", "`waits-on-ungranted`", "`brief-not-ready`"):
+        assert token in acting, token
+    verbs = _section("Verbs")
+    assert "`brief_status`" in verbs and "`grant`" in verbs
+    intro = " ".join(RUNNER_MD.read_text(encoding="utf-8").split("## ", 1)[0].split())
+    assert "`schema_version`, now `2`" in intro
+
+
+def test_skill_points_to_run_grant_section_without_restating_it() -> None:
+    """SKILL.md names the run-grant section in the chaining line and holds none of its rules."""
+    skill = _text(SKILL_MD)
+    assert "including its run-grant section" in skill
+    assert "checkpoint remote" not in skill and "retry_budget" not in skill

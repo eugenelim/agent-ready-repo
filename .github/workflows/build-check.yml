@@ -576,6 +576,12 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_human_approval_gates_pinned.py
 
+      # The run-grant trust-model entry lives in docs/architecture/, above any one
+      # pack, so its pin is roster-owned. Placed above the bulk step.
+      - name: pytest run-grant security entry (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_run_grant_security_entry.py
+
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. It sits ABOVE the carve-out step below, whose
       # `pytest tests/ -q` also collects it. Placement above it still matters,
