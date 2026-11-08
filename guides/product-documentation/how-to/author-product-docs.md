@@ -20,7 +20,7 @@ The `author-product-docs` skill reads your repository and replies with a report.
 
 1. **Run the audit.** Send the request above. The skill infers audit mode from the words "audit" and "missing". It first finds what your product is — the code, manifests, and command parsers reveal a library, CLI, API, app, service, framework, plugin, or agent-context pack — then reads the README and the docs index (a docs site's navigation config counts as the index). In a large doc set it samples each stage's entry pages and says what it sampled.
 2. **Read the journey gap report.** You get one report per surface or audience — a repository with a CLI and a library, or with developer and end-user docs, gets one each. Each report has one row per reader stage, in order: discover and evaluate, install, first success, daily tasks, look up, understand, troubleshoot, upgrade, contribute. Each row is `covered`, `partial`, `missing`, or `not applicable`, with a file reference or the reason. The next actions are ranked by where readers are lost first, so a missing first success outranks a missing explanation.
-3. **Read the page-level findings.** After the report, each finding names a file, a line, what was found, and the page contract it breaks. A large audit reports the top 15 and counts the rest.
+3. **Read the cold-walk table and the page-level findings.** The cold-walk table follows the pages in the order a first-time reader clicks them. Each row gives the first lost moment, the terms used before they are defined, any step where it is unclear who acts, and any long sample or template in the way. After the report, each finding names a file, a line, what was found, and the page contract it breaks. A large audit reports the top 15 and counts the rest.
 4. **Retrofit the worst rows.** Ask "Retrofit the docs so the missing and partial rows are covered." The skill changes the smallest set of pages that moves the worst rows to `covered`, and links each page to the stage before and after it.
 5. **Check the result.** Ask for a second audit, or run the checks in [Verify before you ship](#verify-before-you-ship).
 
@@ -88,7 +88,16 @@ Verification follows the surface. The skill compares against source by default. 
 - A framework or extension point: compare each entry with its interface and the loader or registration code.
 - An agent-context pack: read each skill's source; in a trusted repository, also send the first starter prompt.
 
-Then check links. Run a route check after navigation changes. Review the rendered page after layout changes. The skill's report lists only the checks that ran.
+Then re-open each page you rely on instead of trusting a summary of it, and check that footnotes render, that tables fit a narrow screen, and that links resolve. Run a route check after navigation changes. Review the rendered page after layout changes. The skill's report lists only the checks that ran.
+
+## What the skill checks on every page
+
+- **Length.** It measures a page against your repository's own limit for that kind. Without one, it compares the page with your other pages of the same kind, and last uses a labelled default.
+- **Mixed kinds.** A how-to that carries a settings table, a template, or internals is split: each part goes on a page of its own kind and the how-to links to it once.
+- **Samples.** Inline output is short and comes from a real run. Longer samples and templates go to a reference page.
+- **Who acts.** Each step says whether you say something, the agent does something, or you run something in a terminal. Pages for people who do not use a terminal give a click path first.
+- **Shared facts.** The install command, supported versions, and scope are compared across pages, and any disagreement is reported with both files and lines.
+- **Skill lists.** A reference for an agent-context pack orders skills by a stated rule, leaves out skills the pack marks as internal, and gives one example request for each remaining skill.
 
 ## What remains your decision
 

@@ -588,6 +588,28 @@ def test_bridge_input_instructions_name_dispatch(
         assert phrase in head, f"{rel} {opening} lacks {phrase!r}"
 
 
+_NAVIGATE_REFERENCE = "guides/core/reference/navigate-intents-queries.md"
+
+
+def test_readiness_input_reference_names_dispatch() -> None:
+    """The moved Readiness input section keeps the dispatch pipe and drops the status wording.
+
+    The reference holds the full contract that the how-to's short section links
+    to, and it has no baseline text, so this checks the head only.
+    """
+    head = _scoped((_REPO / _NAVIGATE_REFERENCE).read_text(encoding="utf-8"), "### Readiness input")
+    for phrase in (
+        "workspace-status",
+        "workspace_status.py",
+        "the repository has no",
+        "a finding about the item it would pick",
+        "Pipe only the `status` subcommand",
+    ):
+        assert phrase not in head, f"{_NAVIGATE_REFERENCE} Readiness input still holds {phrase!r}"
+    for phrase in (_PIPE, "--readiness -"):
+        assert phrase in head, f"{_NAVIGATE_REFERENCE} Readiness input lacks {phrase!r}"
+
+
 def test_navigate_evals_name_dispatch_not_workspace_status() -> None:
     """AC-0020: the retired readiness query is gone and a dispatch query triggers."""
     text = (_REPO / _NAVIGATE_EVALS).read_text(encoding="utf-8")

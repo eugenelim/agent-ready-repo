@@ -812,3 +812,54 @@ def test_the_same_design_edit_while_an_attempt_is_open_is_attempt_residue(
     assert h.git(repo, "rev-parse", "HEAD") == head
     assert _operations(repo) == ["approval"]
     assert _approvals(repo) == 1
+
+
+# ── brief-level-runner AC-0019, AC-0030: failed attempts per task revision ────
+
+PLAIN_ONLY = sup.plan(sup.TASKS["plain"]("T1"))
+
+
+def _tasks_by_title(repo: Path) -> dict[str, dict[str, Any]]:
+    _, status = h.run_cli(repo, "status", SPEC, "--json")
+    return {t["title"]: t for t in status["tasks"]}
+
+
+def test_status_counts_failed_attempts_per_task(tmp_path: Path) -> None:
+    repo, end = _run(tmp_path, sup.PLAN)
+    assert end.get("terminal")
+    tasks = _tasks_by_title(repo)
+    # The synthetic worker fails the plain task's first attempt and passes the rest.
+    assert tasks["Plain note is written"]["failed_attempts"] == 1
+    assert tasks["Calculator answers"]["failed_attempts"] == 0
+    assert tasks["Release is pushed"]["failed_attempts"] == 0
+
+
+def _fail_implement(repo: Path, controller: h.Controller) -> None:
+    _, payload = h.run_cli(repo, "next", SPEC)
+    request = payload["request"]
+    assert request["kind"] == "implement-task", payload
+    result = controller.work(request)
+    result["gate"] = {"passed": False}
+    code, admitted = controller.report(result)
+    assert code == 0, admitted
+
+
+def test_three_failures_count_and_a_replan_keeps_the_run_count(tmp_path: Path) -> None:
+    repo = h.make_repo(tmp_path, plan=PLAIN_ONLY)
+    assert h.start(repo)[0] == 0
+    controller = h.Controller(repo, tmp_path / "effects.log")
+    for _ in range(3):
+        _fail_implement(repo, controller)
+    _, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert status["tasks"][0]["failed_attempts"] == 3
+    assert status["retry_count"] == 3
+    plan_path = repo / SPEC / "plan.md"
+    plan_path.write_text(
+        plan_path.read_text("utf-8").replace("plain.txt says done", "plain.txt reads done"),
+        "utf-8",
+    )
+    _, payload = h.run_cli(repo, "next", SPEC)  # commits the replan, issues the new revision
+    assert payload["request"]["kind"] == "implement-task", payload
+    _, status = h.run_cli(repo, "status", SPEC, "--json")
+    assert status["tasks"][0]["failed_attempts"] == 0
+    assert status["retry_count"] == 3

@@ -44,6 +44,7 @@ dist/
 # never committed (plan files, lock files, and atomic-write temps are session-scoped).
 .workspace-repair-plan.json
 .workspace-repair.lock
+.workspace-repair.lock.*.tmp
 .workspace.toml.*.tmp
 .plan.*.tmp
 

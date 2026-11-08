@@ -891,8 +891,9 @@ class GitPort:
         index already holds the stat data, so a copy lets ``add -A`` only stat unchanged files.
         Entries that differ from ``HEAD`` are reset to it, so the copy names the same changes
         ``read-tree HEAD`` would. Outside the *rehash* paths it trusts the stat data in that
-        index: the hardened flags pin the stat comparison, but an index written by hand can hide
-        a change there, which is an accepted residual risk. A shape this cannot reset exactly, or
+        index: the hardened flags pin the stat comparison, but an index written by hand, or an
+        index file whose own modification time was moved forward, can hide a change there, which
+        is an accepted residual risk. A shape this cannot reset exactly, or
         a copy over ``_MAX_INDEX_BYTES``, falls back to ``read-tree HEAD``.
         """
 

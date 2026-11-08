@@ -1,7 +1,7 @@
 """AC-0012 for the experience-design visual-target field.
 
 Lives in tests/roster/ and not in the pack contract suite: AC-0012 is a claim
-about guides/experience-design/how-to/establish-design-intent.md, and
+about the creative-direction template (the excerpt moved from establish-design-intent.md to guides/experience-design/reference/design-intent-reference.md), and
 tools/lint-pack-test-boundary.py forbids a pack test from reading above its own
 pack. The spec's Testing Strategy records why the original home could not
 satisfy both. tests/AGENTS.md names tests/roster/ as the repository-level home.
@@ -19,8 +19,8 @@ GUIDE = (
     REPO_ROOT
     / "guides"
     / "experience-design"
-    / "how-to"
-    / "establish-design-intent.md"
+    / "reference"
+    / "design-intent-reference.md"
 )
 TICKS = "`" * 3  # written this way so the literal survives a fenced code block
 FENCE = TICKS + "markdown"

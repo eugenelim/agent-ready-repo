@@ -14,6 +14,12 @@ python -m pip install agentbundle
 
 Requires Python 3.11+. Runs on macOS, Linux, and Windows.
 
+## What's new in 0.60.2
+
+`catalogue self-host` keeps `docs/GOVERNANCE.md` repository-owned, and the
+catalogue lint checks the new `repo-governance` seed shapes (the RFC script,
+its helper, the template and the starter governance file).
+
 ## What's new in 0.60.1
 
 The `catalogue self-host` excluded-pattern list and the catalogue lint's seed

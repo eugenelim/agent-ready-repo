@@ -246,7 +246,7 @@ jobs:
   supervisor-integration:
     name: "Gate A-supervisor — the core suites"
     runs-on: ubuntu-latest
-    # Budget: about 8 min: the gates5 run timed six of the sixteen suites (admission, attempt, git, commit, review-closure, ingestion), 307 s in all; the other ten were not timed; timeout 30 min.
+    # Budget: about 8 min: the gates5 run timed six of the seventeen suites (admission, attempt, git, commit, review-closure, ingestion), 307 s in all; the other eleven, including the brief-runner suite, were not timed; timeout 30 min.
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
@@ -279,6 +279,7 @@ jobs:
           packs/core/tests/skills/work-loop/test_supervisor_consumer_map.py
           packs/core/tests/skills/work-loop/test_supervisor_parked_gates.py
           packs/core/tests/skills/work-loop/test_supervisor_ingestion.py
+          packs/core/tests/skills/work-loop/test_brief_runner.py
           -q -rs --durations=10
 
   supervisor-integration-product:

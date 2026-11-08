@@ -864,6 +864,11 @@ def _generator_fixture(tmp_path):
     repo = _SCRIPT.parent.parent
     shutil.copy2(_SCRIPT.with_name("catalogue_spec_site.py"),
                  tmp_path / "tools" / "catalogue_spec_site.py")
+    # The skills catalogue generator; this tree has no skills, so its input is empty.
+    shutil.copy2(_SCRIPT.with_name("skills_catalogue.py"),
+                 tmp_path / "tools" / "skills_catalogue.py")
+    (tmp_path / "docs-site" / "src").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "docs-site" / "src" / "skills-catalogue.toml").write_text("", encoding="utf-8")
     (tmp_path / "tools" / "catalogue").mkdir()
     shutil.copy2(_SCRIPT.parent / "catalogue" / "sync_contract_inventory.py",
                  tmp_path / "tools" / "catalogue" / "sync_contract_inventory.py")
