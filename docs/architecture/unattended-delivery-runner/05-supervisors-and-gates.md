@@ -41,7 +41,7 @@ Five items change, and the work supervisor does not.
 
 **Session route (D75).** Light mode ships in v1 as a supervisor-less route that leaves no spec and no plan, as `work-loop` direct-light does today.[^4] A local human starts it with `ferryman session [--ticket <ref>] <prompt-or-request-file>`, and that invocation is the authority, since an issue or pull request is only context.
 
-`--ticket` fetches the ticket through the tracker module as untrusted context. No model triages the request, no `mode-decision` record exists, and the `light` label carries no authority and only lists a candidate. The frontier does not route light work, and an unmarked ticket takes the full path ([page 04](04-frontier-and-waves.md)).
+`--ticket` fetches the ticket through the tracker module as untrusted context. No model triages the request, no `mode-decision` record exists, and the `light` label carries no authority and only lists a candidate.
 
 The route is a driver kind `session` beside `supervisor`. It runs one worker session from one `light-session` order (role and profile, prompt file, cwd, limits, allow list), on a `ferryman/session-<hash>` branch or in a checkout that refuses a dirty tree, as `run` does (D58, D59).
 
@@ -53,9 +53,7 @@ The worker returns `handoff`, `escalate-full`, `needs-human`, or `blocked` in a 
 
 The controller checks "reached direct-light" deterministically: a clean `git status` limited to the declared files, no `docs/specs/` or `workspace.toml` change, and a recorded reviewer outcome, because the transcript is never evidence.[^6]
 
-The worker never commits. The result is the uncommitted tree plus the checkpoint ref `refs/ferryman/sessions/<run-id>/product`, and a human or the control plane commits, pushes, and opens the pull request. `ferryman` never pushes a real branch or opens one.
-
-The human check is who launches and who publishes, so ADR-0157 and the approval invariant are not engaged.
+The worker never commits. The result is the uncommitted tree plus the checkpoint ref `refs/ferryman/sessions/<run-id>/product`, and a human or the control plane commits, pushes, and opens the pull request.
 
 A session has no resume: a kill parks `session-interrupted` and keeps the tree and checkpoint ([page 03](03-ferryman-runtime.md) lists the boundaries and exit codes). Pool mode refuses a session run (`session-pool-refused`, [page 11](11-remote-agent-pool-seams.md)).
 
@@ -93,13 +91,13 @@ flowchart LR
 
 Rounded boxes are human gates.
 
-**Discovery doors (D3).** Two doors lead to an intent, and discovery is optional: standalone `intent frame` writes a plain intent, and `discovery-loop` is the door for raw ideas and tickets that need shaping. The discovery supervisor covers only initiatives that have a sidecar, and `spec-supervisor` does not depend on it.
+**Discovery doors (D3).** Two doors lead to an intent, and discovery is optional: standalone `intent frame` writes a plain intent, and `discovery-loop` is the door for raw ideas and tickets that need shaping.
 
-The short route (`intent frame`, `de-risk`, `decompose`) stays in the intent skill, with progress in the intent's headers and no supervisor. A ticket becomes an intent through manual `work-intake` until E2 ships. `start --adopt <intent-ref>` opts a committed intent into discovery by creating its sidecar, and `start --from-ticket <ref>` starts from a tracker ticket (below).
+The short route (`intent frame`, `de-risk`, `decompose`) stays in the intent skill, with progress in the intent's headers and no supervisor. `start --adopt <intent-ref>` opts a committed intent into discovery by creating its sidecar, and `start --from-ticket <ref>` starts from a tracker ticket (below).
 
 **Discovery shape.** The subject is a discovery directory in tier A (tracked, such as `docs/discovery/`) or tier B (local `.context/discovery/`; D9, [page 03c](03c-run-chain-locks-and-process-boundary.md)). State derives from sidecar slot statuses, verdict rows, and the connectedness lint, and in tier B from the local hash-chained ledger.
 
-Lens writers write distinct slots, so the supervisor can issue disjoint lens requests with `next --width N`, which depends on D36 ([page 11](11-remote-agent-pool-seams.md)). Each attempt manifest covers its slot paths, and the supervisor alone commits. `ferryman` uses width 1 in v1, and a pool can fan lens requests across nodes.
+Lens writers write distinct slots, so the supervisor can issue disjoint lens requests with `next --width N`, which depends on D36 ([page 11](11-remote-agent-pool-seams.md)). `ferryman` uses width 1 in v1, and a pool can fan lens requests across nodes.
 
 | Discovery request kind | Worker mode | Result the supervisor checks |
 | --- | --- | --- |
@@ -124,13 +122,13 @@ When `[intake]` is absent or `allow` is false, the request becomes a `consent` g
 
 Before the intent exists the run has no directory, so `ferryman` keys it on `ticket-<hash of ref>` and locks that key ([03c](03c-run-chain-locks-and-process-boundary.md)). The supervisor's `start --from-ticket` records one local ledger line under its store.
 
-After `intake-ticket` commits the intent, the discovery-supervisor creates `docs/discovery/<intent-slug>/` in a second commit and commits its first ledger line (D64). [Page 03c](03c-run-chain-locks-and-process-boundary.md) owns the re-keying and the lock handover. In a pool the control plane serialises intake per repository (D24).
+After `intake-ticket` commits the intent, the discovery-supervisor creates `docs/discovery/<intent-slug>/` in a second commit and commits its first ledger line (D64). [Page 03c](03c-run-chain-locks-and-process-boundary.md) owns the re-keying and the lock handover.
 
 `start --adopt` skips the ticket phase and keys on the directory from the start.
 
 **Spec shape.** The spec supervisor is a sibling and not a stage of `work-supervisor.py`. The work supervisor owns procedure from an Approved spec and nothing about what counts as accepted.
 
-The sibling keeps a committed append-only ledger, one commit per step.
+The sibling keeps a committed append-only ledger, one commit per step. When a brief exists, the brief runner decides which slice starts and when, and a slice whose `mode` is `shape` or `author-spec` runs its spec phase under this supervisor when installed, otherwise under `work-loop` ([04](04-frontier-and-waves.md)).[^10]
 
 | Spec request kind | Worker mode | Result the supervisor checks |
 | --- | --- | --- |
@@ -161,23 +159,27 @@ An approval is a verified answer, a scribe commit, and a delegated command, and 
 
 Request-kind modes gain `session` beside `headless` and `attach`. A gate parks through the existing `park` command with no `--known-commits`, and the same commands later run under `ferryman` unchanged.[^5]
 
-**Approval in a session.** The human approver writes `Status: Approved`, the dated plan Changelog line, and on rejection the revert to `Draft` (spec) and `Drafting` (plan), as ADR-0157 D4 has it today.[^8] The session agent never writes an approval, and no scribe, `approval-fields.v1` guard, or attribution record runs, so record 18 and the tracker-approval records are not needed.
+**Approval in a session.** The human approver writes `Status: Approved`, the dated plan Changelog line, and on rejection the revert to `Draft` (spec) and `Drafting` (plan), as ADR-0157 D4 has it today.[^8] The session agent never writes an approval, and no scribe, `approval-fields.v1` guard, or attribution record runs.
 
 **Guard in a session.** The sibling's `report` refuses a consent with no human answer record (`no-human-answer`) and a wrong request id, and applies the moved-`HEAD` check, while the full guard and the scribe begin with `ferryman`.
 
 The supervisor ships a human-run verb, `answer <gate> --decision <approve|reject|request-changes> --by <name>`. It checks that the gate is pending and the digest is the parked one, and records `{gate, decision, digest, by, time}`.
 
-In a session the human runs it from their own terminal, and the session instruction text forbids the agent running it. In-session identity is unverified: `--by` is a name and not a check, and it stays open for E1.
+In a session the human runs it from their own terminal. In-session identity is unverified: `--by` is a name and not a check, and it stays open for E1.
 
-**Attribution in a session.** The level is `in-session`: a human answer recorded with no identity check, unlike `session-attested`, which is `ferryman`'s own terminal prompt (D20). Tier B and the approval-fields contract apply only when `ferryman` runs.
+**Attribution in a session.** The level is `in-session`: a human answer with no identity check, unlike `session-attested` (D20). Tier B and the approval-fields contract apply only under `ferryman`.
 
 **Rejection in a session.** The human answers `reject` or `request-changes` and reverts the pair to Draft by hand, and `next` then issues `revise` or parks a `human-decision`, as under `ferryman`.
 
 `status` exposes the gate's answer and `decision`, and `next` returns a `parked` refusal while a gate waits. A stub showed these shapes, which real siblings must add.[^7] In a session, review independence means distinct agent definitions, and the supervisor flags `weak` when one does both.
 
-**Session writers.** The discovery-supervisor's `report` writes verdict rows and slot status after a human answer record, and `author-delivery-brief continue` writes brief `Status: Ready` after human confirmation, as today.
+**Instruction text.** Five rules apply: read the decision from `status`, never run `answer` or write an answer record or the store, run one command per verb, name the file-write tool generically ('Write, apply_patch or equivalent'), and carry a compact table of request kinds with their result-fact shapes. A one-page controller file worked after two edits.
 
-Three instruction-text rules apply: read the decision from `status`, never run `answer` or write an answer record or the store, and run each verb as one command. A session agent did not dispatch a distinct reviewer unprompted, so `weak` is the control, and no agent self-approved in three tempting runs, though `answer --by <name>` is only a flag.[^7]
+A session agent did not dispatch a distinct reviewer unprompted, so `weak` is the control, and no agent self-approved in three tempting runs, though `answer --by <name>` is only a flag.[^7]
+
+**Resume.** A fresh session calls `status` first and re-takes the same request id. `status` shows a pending request before `next` opens its attempt, so the attempt record `attempts/N.json` (and `N.reported`) is the open signal.
+
+On the real `work-supervisor.py` as a proxy, a resume took the same request id with no gap, duplicate, or lost report in 4 of 4 tries across three CLIs.[^9]
 
 ```mermaid
 sequenceDiagram
@@ -207,7 +209,7 @@ sequenceDiagram
 
 `request-changes` returns the pair to authoring for a revision. `reject` returns the pair and also stops automatic revision.
 
-Under `ferryman`, for both non-approve decisions the scribe sets the spec to `Draft` and the plan to `Drafting` in one commit under the write-ahead rule ([page 05b](05b-approval-integrity-and-trusted-configuration.md)), as the baseline route does. After `request-changes` the spec supervisor issues `revise` with the human's note as untrusted context.
+Under `ferryman`, for both non-approve decisions the scribe sets the spec to `Draft` and the plan to `Drafting` in one commit under the write-ahead rule ([page 05b](05b-approval-integrity-and-trusted-configuration.md)). After `request-changes` the spec supervisor issues `revise` with the human's note as untrusted context.
 
 After `reject` it parks a `human-decision` that offers revise or abandon. The decisions apply only before `start`, since an admitted run is amended. The guard allows the Draft revert, and the scribe writes the attribution record with the decision.
 
@@ -253,8 +255,6 @@ Two supervisors ship in skills.
 | `discovery-supervisor.py` | new, ships with `discovery-loop` (user or repo scope) | none |
 | `spec-supervisor.py` | new, ships in a proposed new core skill `spec-loop` (repo scope) | none |
 
-Operators watch `gates` and `needs-attention`.
-
 ## 7. Quality Regression and Verification
 
 Review independence, integrity, and convergence are at risk.
@@ -277,10 +277,6 @@ Two supervisors and one contract make up the build.
 
 Each sibling hashes its own installed files against digests pinned at its first admitted `start`, and a test asserts the copied pin code behaves like the baseline's, since the work-loop scripts are not importable by name. Unverified: how much of the work supervisor's attempt-manifest and commit machinery a sibling can copy without editing the original.
 
-**Open questions** (no decision number, each with a default):
-- Home of `supervisor-manifest.v1` and the request envelope. Default: the core pack owns it.
-- Does a session need a stronger human check than `in-session`. Default: no, and E1 designs any stronger attribution.
-
 ## Evidence
 
 [^1]: `packs/core/.apm/skills/work-loop/references/delivery-contract-lifecycle.md` § Rejected planning gates — verified.
@@ -291,10 +287,14 @@ Each sibling hashes its own installed files against digests pinned at its first 
 
 [^4]: `packs/core/.apm/skills/work-loop/references/light-mode.md` (the explicit trusted invocation is the authority, an issue or PR is context, no spec, no plan, no `workspace.toml` mutation, a missing review is `BLOCKED`) — verified by reading. The work-loop owners' ruling that a local human `ferryman session` launch is an explicit trusted invocation is not yet asked: unverified ([page 13](13-rollout-spikes-and-risks.md) PL).
 
-[^5]: `work-loop/references/supervisor.md` and ADR-0157 describe a session agent driving `work-supervisor` and a human approving a parked gate. A Claude Code session drove a stub sibling and resumed from `status` — verified (tested, single run, 2026-11-07). Real siblings and other CLIs: unverified until E1.
+[^5]: `work-loop/references/supervisor.md` and ADR-0157 describe a session agent driving `work-supervisor` and a human approving a parked gate. A real sibling does not exist until E1: unverified.
 
 [^6]: Spike S2, 2026-11-07, Claude Code, Copilot, Pi and Codex: exit status 0 followed a result, a prose question, and a Codex stop, three CLIs printed no direct-light decision record and Codex wrote one as prose, a Pi run stopped BLOCKED with the reviewer tool missing, and a Pi run wrote an untracked `docs/product/captured/` file — verified (tested, single run, 2026-11-07). The other prompts did not load the shipped work-loop procedure, so Surface-and-stop was untested there: unverified.
 
 [^7]: Spike S3, 2026-11-07, stub supervisor with Claude Code: the response shapes above, no distinct reviewer without a prompt, and no self-approval in three runs with a tempting prompt — verified (tested, single run, 2026-11-07). The stub is not the real `work-supervisor.py`: unverified.
 
 [^8]: ADR-0157 D4 and `work-loop/references/supervisor.md` § Parked gates ("the spec approver then writes `Status: Approved` and the plan Changelog entry"; reject returns the pair to drafting) — verified by reading. The `in-session` level, session-mode `report` refusal, and a recording verb are not in ADR-0157: unverified design items for E1.
+
+[^9]: Real-supervisor resume test, 2026-11-07: a session agent drove the unedited pinned `work-supervisor.py` and was killed with a request open, and a fresh session re-took the same request id in 4 of 4 resume-capable tries (Claude Code twice, Codex, Copilot), with no agent writing an approval, answer record, or the store — verified (tested, single run each, 2026-11-07). `spec-supervisor` does not exist, so the test is a proxy ([page 13](13-rollout-spikes-and-risks.md) lists what is untested).
+
+[^10]: That `spec-supervisor` takes the spec phase of a brief-runner slice by default — unverified design item for E1.

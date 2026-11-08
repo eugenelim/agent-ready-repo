@@ -103,7 +103,7 @@ The table gives each number's class or marker, gate, record, and what stays froz
 | D53 | folded | n/a | into D50 | see D50 | the facet follows its parent |
 | D54 | default | n/a | none | none | nothing, since the default applies |
 | D55 | folded | n/a | into D27 | see D27 | the facet follows its parent |
-| D56 | 2 | decided | P1 | 17 | brief-scoped ordering, with `next` `schema_version` confirmed in the unmerged change T15 (decided) |
+| D56 | 2 | decided | P1 | 17 | brief-scoped ordering, with `schema_version` present on `next` in the merged runner (decided) |
 | D57 | folded | n/a | into D45 | see D45 | the facet follows its parent |
 | D58 | folded | n/a | into D59 | see D59 | the facet follows its parent |
 | D59 | 1 | decided | P0 | none | the v1 checkout refusals and the branch rule |

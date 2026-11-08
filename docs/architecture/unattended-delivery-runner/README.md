@@ -59,7 +59,7 @@ The set adds ten capabilities and leaves every pinned script, the daemon ban, an
 | Refresh lifecycle, field decisions, receipts | `packs/core/.apm/skills/work-intake/SKILL.md` § 7 |
 | Discovery gates G0 to G3 and the typed sidecar | `packs/product-engineering/.apm/skills/discovery-loop/SKILL.md` |
 | Concurrent attempts in host-contained directories | ADR-0160 (on main), ADR-0156, and the `verified-infrastructure-parallelism` spec (Implementing, unmerged) |
-| Brief-level ferryman | ADR-0159 (Accepted on its branch, not on main) |
+| Brief-level runner | ADR-0159 (Accepted, on main, core 4.0.22) |
 | Run grant at brief Ready | RFC-0113 (Draft, not on main) |
 
 `ferryman` only calls existing JSON commands, so anything not listed keeps its behaviour.

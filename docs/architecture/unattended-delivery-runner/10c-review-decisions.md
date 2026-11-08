@@ -75,7 +75,7 @@ All 26 owner decisions are decided (2026-11-07).
 | D37 | Review round cap | `max_review_rounds` defaults to 3, then a consent gate names the open findings | A different cap, or none | 4 |
 | D45 | Checkpoint credential scope | A separate checkpoint remote, with the shared-credential blast radius named and accepted (D48, D57) | Per-run credentials scoped to the checkpoint namespace | 14 |
 | D50 | Distribution channel | PyPI, an isolated tool install, and the clone path, with the name re-checked before the first publish (D51, D53) | Clone-only, or vendoring into `agentbundle` | 19 |
-| D56 | Brief-level runner requests | `next` carries `schema_version`, `base`, and spec paths | none | 17 |
+| D56 | Brief-level runner requests | `next` carries `schema_version`, `base`, and spec paths, and the merged runner does[^2] | none | 17 |
 | D59 | v1 single-checkout policy | Refuse the default branch, a dirty tree, and a mid-run branch switch, with named codes (sub-option D58, as revised on [page 10d](10d-folded-decisions-and-defaults.md)) | Allow runs on the default branch | none |
 | D67 | P0 contract scope | P0 ships the minimal contracts (D33), and pool shapes and signature fields ship at P7 | Gate D43, D44, D48 and the D45 and D47 launch fields at P0 | none |
 | D75 | Light mode in v1 (class 2, gates PL, decided 2026-11-07) | A supervisor-less session route of `ferryman`: `ferryman session [--ticket <ref>] <prompt-or-request-file>`, one worker, no spec and no plan, the result left as an uncommitted tree plus a `product` checkpoint ref, no resume, no pool, and the human publishes. The frontier only lists `light_candidates` ([page 05](05-supervisors-and-gates.md)) | Model triage and a first-class light route with a spec supervisor refusal and an automatic full restart | 22 |
@@ -111,3 +111,5 @@ None.
 ## Evidence
 
 [^1]: Candidates weighed for the name: `loop-runner` (generic, collides with ADR-0159's brief-level runner), `loop-driver` (collides with an existing npm package for agent-loop extensions), `bosun`, `coxswain`, `gangway` (existing agent tools), `charon` (taken on PyPI and npm, and strongSwan's IKE daemon), `lighterman` (the free alternative). PyPI and npm name lookups of 2026-11-07 — assumption: not reproduced here, because a PyPI fetch was blocked by a client challenge.
+
+[^2]: `references/brief-runner.md` and `scripts/brief-runner.py` (`NEXT_SCHEMA_VERSION`, `spec_path`, `spec_paths`) — verified (read, merged, core 4.0.22).

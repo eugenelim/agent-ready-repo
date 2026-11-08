@@ -90,11 +90,11 @@ When a brief exists, `ferryman` calls the brief-level runner's `next` only from 
 
 Every verb refuses `not-main-worktree` or `base-not-default` unless it runs in the main worktree at the fetched tip, and refuses `base-not-committed` when anything under `docs/`, `workspace.toml`, or the skill directory differs from the base, untracked files and an untracked `.gitignore` included.
 
-It lists gates by running the supervisor's `gates` per slice worktree, and an unreadable listing is `unavailable`, never pending. The next facts below are stated by the brief-level-runner session on 2026-11-07, landing in its change T15, unmerged, so they stay unmerged. Every `next` answer carries a top-level `schema_version: 1`, including a refusal `{"schema_version": 1, "refusal": {"code", "detail"}}`, and other verbs carry none.
+It lists gates by running the supervisor's `gates` per slice worktree, and an unreadable listing is `unavailable`, never pending. Every `next` answer carries `schema_version: 1`, including a refusal `{"schema_version": 1, "refusal": {"code", "detail"}}`, and other verbs carry none. A refusal is one of `not-main-worktree`, `base-not-default`, `base-not-committed`, `invalid-policy`, or `invalid-standing-orders`, among others.[^4]
 
-The version changes only when the answer's shape changes. Every action object carries `base`, which is also top-level.
+Every action object carries `base`, which is also top-level. `resume-slice` and `start-slice` carry `spec_path` (`docs/specs/<slug>`), `await-merge` carries `spec_paths` aligned with `slices`, and each `blocked` row carries its own `spec_path`. `await-gates` entries keep the supervisor's `spec_dir`, and `ferryman` requires `schema_version` (D56).
 
-`resume-slice` and `start-slice` carry `spec_path` (`docs/specs/<slug>`), `await-merge` carries `spec_paths` aligned with `slices`, and each `blocked` row carries its own `spec_path`. `await-gates` entries keep the supervisor's `spec_dir`. ADR-0159 itself is unchanged, and `ferryman` requires `schema_version` (D56).[^4]
+`start-slice` carries a `mode`: `run` for an Approved spec, `shape` for a Draft spec, and `author-spec` for a row with no spec yet. A `shape` or `author-spec` slice dispatches no implementer. When a brief exists, the brief runner decides which slice starts and when, and the spec phase of that slice runs under `spec-supervisor` when it is installed and otherwise under `work-loop`.[^7]
 
 v1 single-checkout runs take an explicit subject and do not use brief ordering. Brief chaining arrives with `ferryman`-created slice worktrees (P6) or control-plane subjects. `ferryman` keeps its own files out of `docs/`, `workspace.toml`, and the skill directory, except committed ledgers.
 
@@ -111,7 +111,7 @@ Reading `Priority:` as an input would make the field decide order, which its con
 
 Waves layer `run-spec` items by `Depends on:` edges, which specs declare as typed references. Path overlap is a separate flag. Specs declare no touched paths.
 
-**Waves and the brief.** A brief's Spec map is read by `lint-brief-coverage.py` for the spec slug in the first cell and the recorded status in the last cell, and the unmerged brief-level runner reads only the first cell in table order. `author-delivery-brief` calls the Spec map mechanically present and not a semantic gate field, and no existing brief defines waves as a field.[^6]
+**Waves and the brief.** A brief's Spec map is read by `lint-brief-coverage.py` for the spec slug in the first cell and the recorded status in the last cell, and the brief-level runner reads only the first cell in table order. `author-delivery-brief` calls the Spec map mechanically present and not a semantic gate field, and no existing brief defines waves as a field.[^6]
 
 The `waves` view derives its layers from `Depends on:` edges and never authors them. An authored wave label in a brief's planning table must agree with the derived layers. A machine-read Wave field would need an owner amendment of the brief skill, and a Wave column in the Spec map must sit between Spec and Status, never last.
 
@@ -237,8 +237,10 @@ The frontier finds both scripts through the registry on [page 02](02-install-tru
 
 [^3]: `packs/core/.apm/skills/new-spec/assets/plan.md`, "Optional `Touches:` grammar" — verified; the spec template has no touched-paths field.
 
-[^4]: Brief-level runner reference `references/brief-runner.md` (verbs, `next` keys, action and blocked reasons, refusal codes, main-worktree and base rules, slice worktrees found by branch name, gates per worktree) read in the unmerged worktree, and `scripts/brief-runner.py` searched for `schema_version` and `ambiguous-worktrees` — verified (read, partial for the script); ADR-0159 is accepted on its branch and not on main. The `schema_version`, `base`, `spec_path`, and `spec_paths` facts are stated by the brief-level-runner session on 2026-11-07, landing in its change T15, unmerged, and are not independently checked here.
+[^4]: Brief-level runner reference `references/brief-runner.md` (verbs, `next` keys, `mode` values, action and blocked reasons, refusal codes, main-worktree and base rules, slice worktrees found by branch name, gates per worktree) and `scripts/brief-runner.py` (`NEXT_SCHEMA_VERSION`, `spec_path`, `spec_paths`, `spec_dir`) — verified (read, merged, ADR-0159 Accepted, core 4.0.22).
 
 [^5]: The pin set (every file under installed `work-loop/scripts/`, plus `supervisor-policy.json` and `review-rules.json`) — stated by the work-loop owner, not independently checked.
 
-[^6]: The Spec map reading rules and the absence of a waves field — verified for the absence of a waves field (`lint-brief-coverage.py` searched for "wave", no match) and the Spec map text in `author-delivery-brief/SKILL.md`; the cell-reading rules and the unmerged brief-level runner's reading are unverified.
+[^6]: The Spec map reading rules and the absence of a waves field — verified for the absence of a waves field (`lint-brief-coverage.py` searched for "wave", no match) and the Spec map text in `author-delivery-brief/SKILL.md`; the cell-reading rules of `lint-brief-coverage.py` are unverified, and the brief-level runner's first-cell reading is verified (read, `brief-runner.py`).
+
+[^7]: That `spec-supervisor`, when installed, takes the spec phase of a brief-runner slice whose `mode` is `shape` or `author-spec` is a design item for E1 — unverified.

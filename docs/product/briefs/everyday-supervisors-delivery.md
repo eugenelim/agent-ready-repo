@@ -36,7 +36,7 @@ Appetite is not set. Constraints from the architecture: the core pack owns `supe
 
 ## Assumptions / Risks
 
-- **Riskiest assumption:** a session agent can drive a real sibling supervisor and resume from `status` alone. Tested on a stub only.
+- **Riskiest assumption:** a session agent can drive a real sibling supervisor and resume from `status` alone. Tested on a stub and on the real `work-supervisor` as a proxy across three CLIs. Untested on `spec-supervisor`, which does not exist yet.
 - **Risk:** without the guard, a session agent could write an approval itself. The exposure matches `work-loop` today, and the mitigation is ADR-0157 plus the instruction text.
 - **Risk:** a session agent does not dispatch a distinct reviewer unprompted, so review independence rests on instruction text and the supervisor's `weak` flag.
 

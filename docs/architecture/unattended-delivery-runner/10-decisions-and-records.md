@@ -71,7 +71,7 @@ The new ADR leaves ADR-0157 D1 to D3 and D5 to D7 untouched, and the baseline wo
 ADR-0159 D10 and RFC-0113 pin RFC-0099 section 7 and ADR-0157 D4's no-default rule. The new ADR keeps those guarantees: no approval is removed or inferred. Those owners are told once the architecture settles.
 
 Adjacent work this set reconciles with. Items not on main are cited as unmerged.[^3]
-- ADR-0159 (Accepted on its branch, not on main): a read-only script derives the next ready slice from the Spec map and `dispatch.py` and names `start-slice`, `resume-slice`, `await-gates`, `await-merge`, `complete`, or `blocked`. Slices get linked worktrees on `brief/<brief-slug>/<spec-slug>`, gates are joined per slice worktree (D4), standing orders are one committed file per brief (D6), and heartbeat, stuck-after runtime, and retry budget are lease policy in `supervisor-policy.json` (D8).
+- ADR-0159 (Accepted, on main, core 4.0.22): a read-only script derives the next ready slice from the Spec map and `dispatch.py` and names `start-slice`, `resume-slice`, `await-gates`, `await-merge`, `complete`, or `blocked`. Slices get linked worktrees on `brief/<brief-slug>/<spec-slug>`, gates are joined per slice worktree (D4), standing orders are one committed file per brief (D6), and heartbeat, stuck-after runtime, and retry budget are lease policy in `supervisor-policy.json` (D8).
 - RFC-0113 (Draft, not on main): a committed `docs/product/run-grants/<brief-slug>.md` bounds an unattended run. Human merge authority and the `spec-approved` and `plan-approved` gates stay as they are.[^4]
 - ADR-0157 D4: no verb, flag, default, or record turns a parked gate into an approval.
 - ADR-0156 and ADR-0160 (ADR-0160 is on main): concurrent attempts run in host-contained plain directories, and the `run-concurrent` request kind and blocking verb are in Slice 7, not yet on main.[^5] [Page 03](03-ferryman-runtime.md) owns how `ferryman` handles it.
@@ -156,7 +156,7 @@ Each page's build mapping covers its elements, and the set-level table is in the
 
 [^2]: ADR-0157 status Accepted (its header) and merged to main (commit `4c7f17e12`, #1690, core 4.0.16) — verified by reading the ADR and `git log`.
 
-[^3]: ADR-0159 read in the unmerged `brief-level-ferryman` worktree; its spec `docs/specs/brief-level-ferryman/` was not read in full — verified (read) for the ADR.
+[^3]: ADR-0159, `references/brief-runner.md`, and `scripts/brief-runner.py` read on main; the spec `docs/specs/brief-level-runner/` was not read in full — verified (read, merged) for the ADR.
 
 [^4]: RFC-0113 read in the unmerged run-grant worktree (path, grant location, and glossary) — verified (read), Draft.
 

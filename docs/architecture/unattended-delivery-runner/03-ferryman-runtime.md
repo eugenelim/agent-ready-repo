@@ -352,7 +352,7 @@ The package follows the `packages/` rules.[^2] Unverified: inventory registratio
 
 [^5]: `work-supervisor.py` module docstring: exit 0 success, 1 refusal, 2 usage error, and 3 only from `status --check` — verified.
 
-[^6]: Brief-level runner reference (`classify` takes `cap-hit`, `network`, `tool-error`, `stuck`; `surface-to-human` otherwise; failed `implement-task` dispatches are reported first; retries capped at `lease.retry_budget`) — stated by the brief-level-runner owner, not independently checked.
+[^6]: Brief-level runner reference (`classify` takes `cap-hit`, `network`, `tool-error`, `stuck`; `surface-to-human` otherwise; failed `implement-task` dispatches are reported first; past `lease.retry_budget` failed attempts the action is `abandon-and-replan`) — verified (read, merged, core 4.0.22).
 
 [^7]: The `refusal` key of `status --json` for a request id — stated by the work-loop owner, and not verified in the supervisor code here.
 

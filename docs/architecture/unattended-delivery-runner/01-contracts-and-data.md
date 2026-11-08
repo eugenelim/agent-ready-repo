@@ -4,7 +4,7 @@
 
 Any host can read run state and send commands if the contracts stay neutral, for three reasons:
 
-- Each file has one writer, so readers need no lock.
+- One writer per file means no lock.
 - Projection files can be deleted without loss, and recovery records (`scribe/` and open `attempts/`) are kept while open.
 - A reader refuses an unknown version, so a mismatch is loud.
 
@@ -26,13 +26,12 @@ The contracts own shapes and versions, and neighbours own meaning and rendering.
 | Local state files and their lifecycle | Committed supervisor ledgers | [Page 05](05-supervisors-and-gates.md) |
 
 **Goals**
-- A host that reads only `run-state.v1` and `run-event.v1` shows run, stage, parked gates, and the current request, proved by a conformance test on a fixture run.
+- A host that reads only `run-state.v1` and `run-event.v1` shows run, stage, parked gates, and the current request, proved by a fixture conformance test.
 - No file under `contracts/ferryman/` contains the name Studio, VelaTerm, Orca, tmux, Claude, Codex, or Cursor. A test greps for them.
 - A reader refuses an unknown `schema_version` with a named code, tested with a future version of each contract.
 
 **Non-goals**
 - Not a transport: files only, no socket or port, per [ADR-0062](../../adr/0062-workspace-mcp-per-session-only-constraint.md).
-- Not a replacement for `.loop-run/events.jsonl` ([telemetry](../telemetry.md)).
 
 *Question: who reads and writes each contract file? Zoom: container.*
 
@@ -62,7 +61,7 @@ Twelve contracts and one run root make up the model.
 | `approval-attribution.v1` | contract and committed record | Who approved or rejected a gate, by which channel, with which evidence | container |
 | `approval-fields.v1` | contract | Two lists the guard reads: approval-bearing fields, and protected paths (the trusted configuration set, [05b](05b-approval-integrity-and-trusted-configuration.md)) | container |
 | `launch.v1` | contract | A pool launch file: subject, the subject claim, expected digests (protected and executed paths), the digest of the allowed-signers file (the file itself is provisioned through TB5 on [page 11](11-remote-agent-pool-seams.md), its one home), `profile_digests` (the user config and each named profile, which the control plane provisions), `expected_checkpoint`, checkpoint remote, epoch, the `.git/config` template digest, budget (`max_tokens`, `max_cost`, `max_wall_seconds`, tokens the primary unit), `trace_id`, `mode`, probe-record digest (compared as [page 12](12-pool-state-integrity-and-signals.md) states), `grant` (the control plane's run-grant values, the D34 pool facet), `data_policy_ref`, and package and image integrity (the distribution file-hash record digest plus the pinned agent CLI binaries; the control plane is the one verifier, D73) | container |
-| `checkpoint-manifest.v1` | contract | One checkpoint: sequence, epoch, `node_id`, consumed `(key_id, nonce)` and command ids, retry counters per request id, cumulative usage, store digest | container |
+| `checkpoint-manifest.v1` | contract | One checkpoint: sequence, epoch, `node_id`, consumed `(key_id, nonce)` and command ids, retry counters per request id, cumulative usage, store digest, `attempts/` digest | container |
 | `remote-transport.v1` | contract | The four remote worker commands, the pool agent-sandbox attestation that `spawn` returns, and the sidecar's forwarding cursor | container |
 | `ferryman-config.v1` | contract | Repository-owned settings in `ferryman.toml` | container |
 | Run root `<git-dir>/ferryman/runs/<run-id>/` | directory | `state.json`, `events.jsonl`, `control/`, `attempts/`, `scribe/` | container |
@@ -80,7 +79,7 @@ Every `run-event.v1` line also carries `epoch`, `node_id`, `attempt_id`, `checkp
 
 `run-control.v1` `answer` carries `gate`, its digest, `decision` (`approve`, `reject`, or `request-changes`), an `actor` claim, and an optional `note`.
 
-A `signal` command carries a tracker evidence bundle ([page 11](11-remote-agent-pool-seams.md) owns the signature, [page 12](12-pool-state-integrity-and-signals.md) the signal). The note is untrusted text, and [page 05](05-supervisors-and-gates.md) owns what each decision does.
+A `signal` command carries a tracker evidence bundle ([page 11](11-remote-agent-pool-seams.md) owns the signature, [page 12](12-pool-state-integrity-and-signals.md) the signal). The note is untrusted text.
 
 `ferryman-config.v1` keys, all in `ferryman.toml`:
 
@@ -162,7 +161,7 @@ Each contract has one writer, one compatibility rule, and one refusal.
 | approval-attribution.v1 | scribe to repository | JSON line: `gate`, `artifact`, `digest`, `decision`, `actor`, `verification`, `channel`, `at`, optional `tracker` object | `approval_id` | additive | a record without verification evidence is invalid | one record per approval edit, same commit | scribe writes both or neither | commit-shape test |
 | approval-fields.v1 | guard readers | `fields` and `protected_paths` lists | `fields_version` | additive; removal is a new major | reader refuses an unknown major | under `ferryman`, guard and sibling `report` read one list | both read the `spec-loop` copy | drift test against `contracts/ferryman/` and `_data/` |
 | launch.v1 | control plane to ferryman | TOML or JSON launch file | `trace_id` | additive | with `mode = pool`, `ferryman` refuses `pool-config-incomplete` unless all of these hold: `require_signature`, checkpointing, a checkpoint remote distinct from the product remote, a non-shallow clone, every role's profile has `kind = remote`, an expected-digest file, the subject claim, relayed tracker mode when a tracker is configured, gates that accept `control-plane-signed`, and a passing pool agent-sandbox attestation at each `spawn`. `ferryman` also forces `enforcement_required = true` in pool mode whatever a profile sets, so an `unenforced` worker refuses `enforcement-required`. This is the one list | the launch file is read before the first command | one read at start | pool corpus, one case per list item, including a local-kind profile |
-| checkpoint-manifest.v1 | ferryman to remote | JSON in the `store` ref, with `head_sha`, `product_sha`, and `terminal` on every manifest | `(epoch, sequence)` | additive | a restore rejects a set whose sequence or epoch does not match, and the `store` ref carries the epoch so a push with a stale lease fails | consumed nonces and retry counters travel with the run | written with each checkpoint | restore test |
+| checkpoint-manifest.v1 | ferryman to remote | JSON in the `store` ref, whose tree snapshots the whole supervisor directory, with `head_sha`, `product_sha`, and `terminal` on every manifest | `(epoch, sequence)` | additive | a restore rejects a set whose sequence or epoch does not match or whose `attempts/` listing differs from its digest (`checkpoint-conflict`), and the `store` ref carries the epoch so a push with a stale lease fails | consumed nonces and retry counters travel with the run | written with each checkpoint | restore test |
 | remote-transport.v1 | ferryman to control-plane transport | argv in, JSON out for `spawn`, `status`, `cancel`, `result` | `handle` | additive | a non-JSON answer is a `transport-protocol` refusal | one JSON object per command | strict parse | fake-transport test |
 | ferryman-config.v1 | owner to ferryman | TOML | file path | additive | unknown key refused | repository-owned and pinned per run ([05b](05b-approval-integrity-and-trusted-configuration.md)) | schema | schema tests |
 

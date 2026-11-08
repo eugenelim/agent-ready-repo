@@ -31,12 +31,12 @@ The work-loop already mechanizes implementation through a supervisor. Shaping an
 
 ## Assumptions
 
-- A session agent can drive a sibling supervisor through `start`, `next` and `report`, and a fresh session resumes from `status`. Tested on a stub supervisor with one CLI, and untested on the real supervisors.
+- A session agent can drive a sibling supervisor through `start`, `next` and `report`, and a fresh session resumes from `status`. Tested on a stub supervisor and on the real `work-supervisor` as a proxy across three CLIs (4 of 4 resume-capable tries), and untested on `spec-supervisor`, which does not exist yet.
 - Spec and discovery procedure can be a deterministic script that routes by file state, with the judgment left to a worker session.
 - A controller can classify a worker's stop reliably enough to park for a human. Spikes show stops differ across CLIs.
 - An optional controller adds value on top of supervisors that already work without it.
 - A restored checkpoint passes the supervisor's own integrity checks only when the restore reproduces its attempt fingerprint. Tested locally, untested against a real remote.
-- **Riskiest assumption:** the first one, that a session agent drives a real sibling supervisor and resumes from `status`. Kill condition: a fresh session fails to resume a real `spec-supervisor` run from `status` alone, reaching the same request id with no lost record, in at least two of three tries across different CLIs. If it dies, the supervisors need a controller and the first brief's premise changes. The test is the first slice of `everyday-supervisors-delivery`, because it needs the real supervisor. No de-risk date is stamped until it runs.
+- **Riskiest assumption:** the first one, that a session agent drives a real sibling supervisor and resumes from `status`. Tested on a stub and on the real `work-supervisor` as a proxy across three CLIs, where the kill condition was not met. Kill condition: a fresh session fails to resume a real `spec-supervisor` run from `status` alone, reaching the same request id with no lost record, in at least two of three tries across different CLIs. If it dies, the supervisors need a controller and the first brief's premise changes. The same test on the real `spec-supervisor` remains the first slice of `everyday-supervisors-delivery`, because it needs that supervisor. No de-risk date is stamped until it runs.
 - **Knowledge surface:** none detected.
 
 ## Delivery

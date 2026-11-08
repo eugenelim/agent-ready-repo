@@ -83,6 +83,10 @@ Seven Codex facts shape that recipe:[^7]
 - Output: `--json` gives JSONL ending in `turn.completed` with usage. `-o FILE` gives the final message only.
 - Exit: the code is 0 for every completed run including a stop, so a stop is told apart only by a required result file or token. The `turn.failed` exit codes were never triggered: unverified.
 
+Two launch facts come from the resume test on the real `work-supervisor.py`:[^9]
+- Codex: under `workspace-write` the supervisor's `next` refuses `denied-git-failed`, since it cannot create `.git/index.lock`, unless the launch adds `--add-dir <repo>/.git`. That grant is neither full access nor an approval bypass, and whether a given configuration allows it is unverified.
+- Copilot: an allow-tool pattern needs an exact match, so `shell(python3 /path/script:*)` was denied while a bare executable path and the broad `shell(python3:*)` worked, and the broad one lets the worker run any python.
+
 The reviewer agent definition was converted to `.codex/agents/*.toml` by guess, so the custom-agent format is unverified.
 
 **Worker floor additions (D76).** The v1 floor stays the per-profile allow list, the allow-listed environment, and the guard. Three launch rules narrow it here, two guard checks narrow it on [page 05b](05b-approval-integrity-and-trusted-configuration.md), and a contained floor is a later item ([page 11](11-remote-agent-pool-seams.md)).
@@ -91,11 +95,19 @@ The floor applies to `ferryman session` as to `run`: `session` raises `profile-u
 
 **Credential stripping at spawn.** A worker never receives `GH_*`, `GITHUB_TOKEN`, `SSH_AUTH_SOCK`, or another forge or host credential. A profile that lists one in `env_allow` is refused at load with `credential-env-refused`.
 
-Git inside the worker reads a run-owned config file, with the global and system config pointed away. That file disables credential helpers and push, and refuses the `ssh`, `git`, and `ext` transports. The allow list denies the forge CLIs `gh`, `glab`, and `az`.
+Git inside the worker reads a run-owned config file: `GIT_CONFIG_GLOBAL` names it, `GIT_CONFIG_SYSTEM=/dev/null`, and `GIT_CONFIG_NOSYSTEM=1`. The one key that alone makes `git push origin HEAD` fail, to ssh, https, git, ext, and local-path URLs, is `[protocol] allow = never`. It also blocks fetch and clone from local paths, and local worktrees, `status`, `diff`, and `log` keep working.[^8]
+
+The allow list denies the forge CLIs `gh`, `glab`, and `az`.
+
+Alone, each of these leaves a push to a local path working: any single `protocol.<name>.allow = never` for `ssh`, `ext`, `git`, or `https`, an empty `credential.helper`, `push.default = nothing` (an explicit `HEAD` refspec bypasses it), a `core.hooksPath` to an empty directory, and an empty file. A `remote.origin.pushurl` set invalid or a `url.<x>.pushInsteadOf` rewrite blocks only that one path.
+
+A stripped environment lacks `GH_*`, `*_TOKEN`, `*_KEY`, and `SSH_AUTH_SOCK`. Copilot, Pi, and Codex still answer and need no stripped variable, and Claude Code is inconclusive: its login failed intermittently in the baseline too, with 2 of 7 runs passing in each mode and the cause not found, so it is untested and not a pass.[^4]
+
+Pi exits 0 even when its model login fails, so the runner reads Pi's JSON `stopReason` (`error` with an `errorMessage`) and never the exit code or the echoed prompt. Codex's own shell sets `GH_PAGER`, which is not a credential, so an environment-count check excludes it.
 
 This narrows the same-OS-user credential risk and does not remove it, because a worker can still read home files ([page 13](13-rollout-spikes-and-risks.md)). The model credential a CLI needs to run, such as Claude Code's login, is the explicit exception, and its exposure stays an accepted risk.
 
-Unverified: that each probed CLI still authenticates to its model endpoint with the stripped environment and the run-owned git config.[^4]
+Unverified: that `GIT_ALLOW_PROTOCOL`, `GIT_SSH`, or `GIT_CONFIG_COUNT` cannot override the file, and that a CLI's own git calls honour it.
 
 **Enforcement level.** Each attempt record and `run-state` carries `enforcement`:
 - `enforced`: the profile's tool limit was expressed to the CLI, and a probe record exists for that `cli_version`. A `remote` worker also needs a passing pool agent-sandbox attestation ([11](11-remote-agent-pool-seams.md)).
@@ -216,10 +228,14 @@ The launch lives with the workers and the probe with `doctor`.
 
 [^3]: Gemini CLI treats an approval prompt as a deny in headless mode — documented, not installed here: unverified.
 
-[^4]: Claude Code headless needs its login, and `--bare` failed with "Not logged in" (footnote 2). Whether each probed CLI authenticates with the stripped environment and run-owned git config was not run: unverified.
+[^4]: Credential-stripping test, 2026-11-07, git 2.56.0, four CLIs, trivial prompt, `HOME` unchanged: Copilot, Pi, and Codex answered — verified (tested, single run, 2026-11-07). Claude Code's login failed intermittently and `--bare` failed with "Not logged in" (footnote 2): inconclusive, untested. Whether the CLIs' own git calls honour the run-owned config: unverified.
 
 [^5]: Spike S2, 2026-11-07, Claude Code, Copilot and Pi, single run each: tool surfaces differed, since Copilot dispatched the reviewer, Claude on Haiku did not, and Pi lacked the review tool — verified (tested, single run, 2026-11-07). That Pi limits by tool name and so cannot deny one git command is inferred from its `--tools` flag and was not run: unverified.
 
 [^6]: wicked-core runs a launcher canary before the CLI (an out-of-tree write must fail, a connection to a probe port must be denied) and strips `GH_*` and `SSH_AUTH_SOCK` with seat-owned git config — verified (read, wicked-core clone 2026-11-07), not run. Our versions of these changes are unverified.
 
 [^7]: Codex 0.164.0, 2026-11-07, logged in, one run per case, sandbox, approval, stdin, escalation, and output cases — verified (tested, single run, 2026-11-07). Skill precedence, `turn.failed` exit codes, the `.codex/agents/*.toml` custom-agent format, and the model flag (`-m` or `-c model=...`): unverified.
+
+[^8]: Git run-owned config test, 2026-11-07, git 2.56.0, local scratch: `[protocol] allow = never` was the only single key that made `git push origin HEAD` fail for every URL kind, and the other keys listed left a local-path push working — verified (tested, single run, 2026-11-07).
+
+[^9]: Real-supervisor resume test, 2026-11-07, Codex and Copilot launches, and Claude Code's intermittent login failure in a fresh headless session (cause not found, environment) — verified (tested, single run each, 2026-11-07). Which configurations allow `--add-dir`: unverified.
