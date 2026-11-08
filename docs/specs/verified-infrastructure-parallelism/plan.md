@@ -567,7 +567,7 @@ in T5's release).
 **Depends on:** T11
 
 **Tests:**
-- AC-0034, AC-0051, AC-0059: inside one `run-concurrent` verb, a sibling
+- AC-0034, AC-0051: inside one `run-concurrent` verb, a sibling
   attempt's Git control check never sees the product ref moved but not yet
   recorded. `GitPort.landing` is held from the supervisor's product-ref move
   through its record, and `product_ref_problems` reads the ref and its record
