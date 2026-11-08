@@ -97,3 +97,4 @@ Approvals, and nothing else.
 
 
 - 2026-11-08: spec approved by eugenelim (scope)
+- 2026-11-08: plan approved by eugenelim (build strategy)
