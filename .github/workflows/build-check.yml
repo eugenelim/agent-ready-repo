@@ -541,18 +541,17 @@ jobs:
       # seed must carry the same delivery-time-contract section, and nothing
       # syncs them — the seed is Excluded from the self-host check. Reading
       # both puts the guard above any one pack's test tree, so it is
-      # roster-owned. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it. Placement above it still matters,
-      # for a changed reason: the job no longer stops at the first failure, so
-      # a step after the carve-out runs — and reports the same failure a second
-      # time against a broad target instead of the named one.
+      # roster-owned. The gate-catalogue-tests sibling's
+      # shard-1 `pytest tests/ -q` (a parallel job) also collects it. This named
+      # step still matters: without it the sibling's broad run reports the
+      # failure against a broad target instead of the named one.
       - name: pytest spec-authority note live/seed parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_spec_authority_note.py
 
       # The graph-pointer authoring pins read `guides/` and two packs' sources,
       # so they sit above any one pack's test tree and are roster-owned. Placed
-      # above the carve-out step so a failure is attributed here.
+      # as a named step so a failure is attributed here.
       - name: pytest graph-pointer authoring sources (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_graph_pointer_authoring.py
@@ -576,29 +575,27 @@ jobs:
         run: python -m pytest tests/roster/test_lint_traceability_intent_parity.py
 
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
-      # this check is roster-owned. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it. Placement above it still matters,
-      # for a changed reason: the job no longer stops at the first failure, so
-      # a step after the carve-out runs — and reports the same failure a second
-      # time against a broad target instead of the named one.
+      # this check is roster-owned. The gate-catalogue-tests sibling's
+      # shard-1 `pytest tests/ -q` (a parallel job) also collects it. This named
+      # step still matters: without it the sibling's broad run reports the
+      # failure against a broad target instead of the named one.
       - name: pytest capture-rename guide contract (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_capture_rename_guide.py
 
       # The supervisor's emitted records are validated against `contracts/`,
       # which sits above every pack's tests, so this check is roster-owned and
-      # sits ABOVE the carve-out step for named attribution.
+      # is its own named step for attribution.
       - name: pytest execution-supervisor emitted-record parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_execution_supervisor_records.py
 
       # The allocator's owner-parity and cross-pack equivalence claims read
       # `docs/product/intents/` and a second pack's script, which a pack test
-      # may not reach. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it. Placement above it still matters,
-      # for a changed reason: the job no longer stops at the first failure, so
-      # a step after the carve-out runs — and reports the same failure a second
-      # time against a broad target instead of the named one.
+      # may not reach. The gate-catalogue-tests sibling's
+      # shard-1 `pytest tests/ -q` (a parallel job) also collects it. This named
+      # step still matters: without it the sibling's broad run reports the
+      # failure against a broad target instead of the named one.
       - name: pytest typed-ordinal owner parity and equivalence (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_typed_ordinal_collision_equivalence.py
@@ -607,11 +604,10 @@ jobs:
       # reference lives in `guides/` and the validator in `packs/core`, and the
       # intent template lives in `packs/product-engineering` while the validator
       # that judges it lives in core — so each reads two trees and neither can
-      # live in a pack's own test tree. Both sit ABOVE the carve-out step below,
-      # whose `pytest tests/ -q` also collects them. Placement above it still
-      # matters, for a changed reason: the job no longer stops at the first
-      # failure, so a step after the carve-out runs — and reports the same
-      # failure a second time against a broad target instead of the named one.
+      # live in a pack's own test tree. The gate-catalogue-tests sibling's
+      # shard-1 `pytest tests/ -q` (a parallel job) also collects them. These
+      # named steps still matter: without them the sibling's broad run reports
+      # the failure against a broad target instead of the named one.
       - name: pytest intent shape contract cross-tree claims (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
@@ -629,11 +625,10 @@ jobs:
       # pack-internal paths and so is pack-local by that lint's rule; it is
       # here because the pack ships no test tree, and a suite created for one
       # file would be ungated until it was wired into this workflow anyway.
-      # This step sits ABOVE the carve-out step below, whose `pytest tests/ -q`
-      # also collects them. Placement above it still matters: the job no longer
-      # stops at the first failure, so a step after the carve-out runs — and
-      # reports the same failure a second time against a broad target instead
-      # of the named one.
+      # The gate-catalogue-tests sibling's shard-1 `pytest tests/ -q`
+      # (a parallel job) also collects them. This named step still matters:
+      # without it the sibling's broad run reports the failure against a broad
+      # target instead of the named one.
       - name: pytest experience-design output-addressing contracts (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: >-
@@ -647,9 +642,9 @@ jobs:
       # depth loads from references/. Three claims here read outside packs/core
       # — the backend's subcommand set, the prune source's refusal codes, and
       # this workflow plus tests/AGENTS.md — so lint-pack-test-boundary forbids
-      # a pack home. It sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it, so that a failure is attributed to
-      # this named step rather than to the broad one.
+      # a pack home. The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it, so that a failure
+      # is attributed to this named step rather than to the broad one.
       - name: pytest workspace-status progressive disclosure (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_workspace_status_progressive_disclosure.py
@@ -657,9 +652,9 @@ jobs:
       # contracts/REGISTRY.md is the backward-traceability channel for contracts
       # whose format carries no `x-spec` key. The module reads `contracts/` and
       # `docs/specs/`, both above packs/core, so lint-pack-test-boundary forbids a
-      # pack home. It sits ABOVE the carve-out step below, whose `pytest tests/ -q`
-      # also collects it, so that a failure is attributed to this named step
-      # rather than to the broad one.
+      # pack home. The gate-catalogue-tests sibling's shard-1 `pytest tests/ -q`
+      # (a parallel job) also collects it, so that a failure is attributed to
+      # this named step rather than to the broad one.
       - name: pytest contract backward-traceability registry (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_contract_backward_registry.py
@@ -679,8 +674,8 @@ jobs:
         run: python -m pytest packs/repo-governance/tests/skills/new-rfc/ -q
 
       # navigate-decisions vendors the blessed file_safety helper; this byte pin
-      # reads two packs, so lint-pack-test-boundary forbids a pack home. It sits
-      # ABOVE the carve-out step so a failure is attributed to this named step.
+      # reads two packs, so lint-pack-test-boundary forbids a pack home. It runs
+      # as its own named step so a failure is attributed to it.
       - name: pytest navigate-decisions file_safety mirror (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_navigate_decisions_file_safety_mirror.py
@@ -716,11 +711,11 @@ jobs:
         run: python -m pytest tests/roster/test_retired_name_pinned_sites.py
 
       # Both modules read across two packs and the guides, so lint-pack-test-boundary
-      # forbids a pack home and they live in the roster suite. Each sits ABOVE the
-      # carve-out step below, whose `pytest tests/ -q` also collects them: placement
-      # is what buys failure attribution, not reach. A step below the carve-out
-      # reports the same failure a second time against a broad target instead of the
-      # named one.
+      # forbids a pack home and they live in the roster suite. Each is its own named step: the
+      # gate-catalogue-tests sibling's shard-1 `pytest tests/ -q` (a parallel
+      # job) also collects them, and placement is what buys failure
+      # attribution, not reach — the sibling's broad run reports the same
+      # failure against a broad target instead of the named one.
       - name: pytest shared state-coverage map (experience composition)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_experience_state_coverage_map.py
@@ -739,10 +734,9 @@ jobs:
 
       # AC-0019 of brief-lifecycle-contract: exactly one *.py under
       # packs/*/.apm/ carries a collection literal with all six status tokens.
-      # This step sits ABOVE the carve-out step below, whose `pytest tests/ -q`
-      # also collects it.  Placement above it still matters, because the
-      # carve-out stops at the first failure, so a step after the carve-out
-      # runs — and reports the same failure a second time against a broad
+      # The gate-catalogue-tests sibling's shard-1 `pytest tests/ -q`
+      # (a parallel job) also collects it. This named step still matters:
+      # without it the sibling's broad run reports the failure against a broad
       # target instead of the named one.
       - name: pytest brief lifecycle single home (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
@@ -815,50 +809,46 @@ jobs:
       # AC-0036 of closure-eligibility-check: the reader-facing guide's
       # § Review the closeout preview names all three verdicts and says what a
       # human decides at each. Roster-owned because it reads `guides/`, which a
-      # pack test may not reach. Sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it: the carve-out stops at the first
-      # failure, so a step after it reports the same failure against a broad
+      # pack test may not reach. The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it: without this
+      # named step the sibling's broad run reports the failure against a broad
       # target instead of the named one.
       - name: pytest closure guide surface (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_closure_guide_surface.py
 
       # visual-target-field (T5): reads guides/experience-design, so
-      # lint-pack-test-boundary forbids a pack home. Sits ABOVE the carve-out
-      # step below, whose `pytest tests/ -q` also collects it. Placement above it
-      # still matters: the job no longer stops at the first failure, so a step
-      # after the carve-out runs — and reports the same failure a second time
+      # lint-pack-test-boundary forbids a pack home. The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it. This named step
+      # still matters: without it the sibling's broad run reports the failure
       # against a broad target instead of the named one.
       - name: pytest visual-target guide excerpt (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_target_guide_excerpt.py
 
       # visual-target-field (T4): reads packs/experience-design and docs/product/,
-      # so lint-pack-test-boundary forbids a pack home. Sits ABOVE the carve-out
-      # step below, whose `pytest tests/ -q` also collects it. Placement above it
-      # still matters: the job no longer stops at the first failure, so a step
-      # after the carve-out runs — and reports the same failure a second time
+      # so lint-pack-test-boundary forbids a pack home. The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it. This named step
+      # still matters: without it the sibling's broad run reports the failure
       # against a broad target instead of the named one.
       - name: pytest visual-target release surface (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_target_release_surface.py
 
       # visual-target-rung-precondition (T4): reads packs/, guides/, web/src/content/,
-      # tests/, and docs/design/, so lint-pack-test-boundary forbids a pack home. Sits
-      # ABOVE the carve-out step below, whose `pytest tests/ -q` also collects it.
-      # Placement above it still matters: the job no longer stops at the first failure,
-      # so a step after the carve-out runs — and reports the same failure a second time
-      # against a broad target instead of the named one.
+      # tests/, and docs/design/, so lint-pack-test-boundary forbids a pack home. The gate-catalogue-tests
+      # sibling's shard-1 `pytest tests/ -q` (a parallel job) also collects it.
+      # This named step still matters: without it the sibling's broad run
+      # reports the failure against a broad target instead of the named one.
       - name: pytest visual-target exclusive property (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_target_exclusive_property.py
 
       # visual-target-rung-precondition (T5): reads docs/specs/frontend-visual-authority,
-      # so lint-pack-test-boundary forbids a pack home. Sits ABOVE the carve-out step
-      # below, whose `pytest tests/ -q` also collects it. Placement above it still
-      # matters: the job no longer stops at the first failure, so a step after the
-      # carve-out runs — and reports the same failure a second time against a broad
-      # target instead of the named one.
+      # so lint-pack-test-boundary forbids a pack home. The gate-catalogue-tests sibling's
+      # shard-1 `pytest tests/ -q` (a parallel job) also collects it. This named
+      # step still matters: without it the sibling's broad run reports the
+      # failure against a broad target instead of the named one.
       - name: pytest visual-authority supersession (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_authority_supersession.py
@@ -869,9 +859,10 @@ jobs:
 
       # The canonical delivery contract bundle spans contracts/delivery/,
       # contracts/README.md, and contracts/REGISTRY.md — all above any pack
-      # tree, so lint-pack-test-boundary forbids a pack home. Sits ABOVE the
-      # carve-out step below whose `pytest tests/ -q` also collects it, so
-      # that a failure is attributed to this named step rather than the broad one.
+      # tree, so lint-pack-test-boundary forbids a pack home. The gate-catalogue-tests
+      # sibling's shard-1 `pytest tests/ -q` (a parallel job) also collects it,
+      # so that a failure is attributed to this named step rather than the
+      # broad one.
       - name: pytest delivery contract bundle (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_delivery_contract_bundle.py
@@ -879,9 +870,9 @@ jobs:
       # The Slice 1 content-safety boundary matrix test reads both
       # packs/core/.apm/.../scripts/_content_safety.py and
       # docs/architecture/delivery-content-safety.md — both above the pack
-      # tree, so lint-pack-test-boundary forbids a pack home. Sits ABOVE the
-      # carve-out step below whose `pytest tests/ -q` also collects it, so
-      # that a failure is attributed to this named step.
+      # tree, so lint-pack-test-boundary forbids a pack home. The gate-catalogue-tests
+      # sibling's shard-1 `pytest tests/ -q` (a parallel job) also collects it,
+      # so that a failure is attributed to this named step.
       - name: pytest content-safety boundary matrix (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_content_safety_boundary_matrix.py
@@ -889,9 +880,9 @@ jobs:
       # The Slice 1 security-primitive schema parity test reads three modules
       # from packs/core/.apm/.../scripts/ and three schemas from
       # contracts/delivery/ — both paths are above the pack tree, so
-      # lint-pack-test-boundary forbids a pack home.  Sits ABOVE the
-      # carve-out step below whose `pytest tests/ -q` also collects it, so
-      # that a failure is attributed to this named step.
+      # lint-pack-test-boundary forbids a pack home.  The gate-catalogue-tests
+      # sibling's shard-1 `pytest tests/ -q` (a parallel job) also collects it,
+      # so that a failure is attributed to this named step.
       - name: pytest security-primitives schema parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_security_primitives_schema_parity.py
@@ -899,8 +890,8 @@ jobs:
       # The T6 delivery-subject schema parity test reads _subject_projection.py
       # from packs/core/.apm/.../scripts/ and delivery-subject.v1.schema.json
       # from contracts/delivery/ — both paths are above the pack tree, so
-      # lint-pack-test-boundary forbids a pack home.  Sits ABOVE the carve-out
-      # step below whose `pytest tests/ -q` also collects it, so that a failure
+      # lint-pack-test-boundary forbids a pack home.  The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it, so that a failure
       # is attributed to this named step.
       - name: pytest delivery-subject schema parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
@@ -909,8 +900,9 @@ jobs:
       # The Slice 1 T4 acceptance schema parity test reads _acceptance.py from
       # packs/core/.apm/.../scripts/ and three schemas from contracts/delivery/ —
       # both paths are above the pack tree, so lint-pack-test-boundary forbids a
-      # pack home.  Sits ABOVE the carve-out step below whose `pytest tests/ -q`
-      # also collects it, so that a failure is attributed to this named step.
+      # pack home.  The gate-catalogue-tests sibling's shard-1 `pytest tests/ -q`
+      # (a parallel job) also collects it, so that a failure is attributed to
+      # this named step.
       - name: pytest acceptance schema parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_acceptance_schema_parity.py
@@ -919,8 +911,8 @@ jobs:
       # from packs/core/.apm/.../scripts/, the containment-attestation.v1 schema
       # from contracts/delivery/, and contracts/adapter.toml to pin
       # DELIVERY_CONTROL_PATHS — all paths above the pack tree, so
-      # lint-pack-test-boundary forbids a pack home.  Sits ABOVE the carve-out
-      # step below whose `pytest tests/ -q` also collects it, so that a failure
+      # lint-pack-test-boundary forbids a pack home.  The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it, so that a failure
       # is attributed to this named step.
       - name: pytest containment-attestation schema parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
@@ -931,8 +923,8 @@ jobs:
       # evidence-supersession.v1) satisfy their canonical contracts/delivery/
       # schemas, and that each validate_*_dict() refuses four classes of invalid
       # input with stable denial codes.  Both paths are above the pack tree, so
-      # lint-pack-test-boundary forbids a pack home.  Sits ABOVE the carve-out
-      # step below whose `pytest tests/ -q` also collects it, so that a failure
+      # lint-pack-test-boundary forbids a pack home.  The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it, so that a failure
       # is attributed to this named step.
       - name: pytest evidence-store schema parity (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
@@ -957,8 +949,9 @@ jobs:
       # are byte-identical to the pack source, plus import smoke-tests from each
       # projected path and red evidence that the byte-identity check can fail.
       # Reads above any single pack tree, so lint-pack-test-boundary forbids a
-      # pack home.  Sits ABOVE the carve-out step below whose `pytest tests/ -q`
-      # also collects it, so that a failure is attributed to this named step.
+      # pack home.  The gate-catalogue-tests sibling's shard-1 `pytest tests/ -q`
+      # (a parallel job) also collects it, so that a failure is attributed to
+      # this named step.
       - name: pytest T9a conformance roll-up (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_t9a_conformance_rollup.py
@@ -966,8 +959,8 @@ jobs:
       # T9a clean-environment fence: two independent checks (static import
       # analysis, subprocess agentbundle-free fence) each with red evidence.
       # Uses a subprocess, so it reads above any single pack tree —
-      # lint-pack-test-boundary forbids a pack home.  Sits ABOVE the carve-out
-      # step below whose `pytest tests/ -q` also collects it, so that a failure
+      # lint-pack-test-boundary forbids a pack home.  The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it, so that a failure
       # is attributed to this named step.
       - name: pytest T9a clean-environment fence (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
@@ -975,8 +968,9 @@ jobs:
 
       # visual-handoff-golden-path: installs experience-design and
       # frontend-engineering together and reads both, so lint-pack-test-boundary
-      # forbids a pack home. Sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it, so a failure is reported here first.
+      # forbids a pack home. The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it, so a failure is
+      # reported here first.
       - name: pytest visual handoff golden path (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_visual_handoff_golden_path.py
@@ -1026,17 +1020,18 @@ jobs:
       # The repo-governance confinement check loads the shipped helper and CLI
       # from the pack tree and decides AC3 of repo-governance-without-core.
       # It lives under tests/roster because the pack must not test itself with
-      # a path above its own tree. Sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it, so a failure is attributed here.
+      # a path above its own tree. The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it, so a failure is
+      # attributed here.
       - name: pytest repo-governance standalone (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_confine_destination.py tests/roster/test_repo_governance_standalone_install.py tests/roster/test_repo_governance_rename_completeness.py tests/roster/test_repo_governance_migration_text.py tests/roster/test_repo_governance_archive_map.py
 
       # The lifecycle record's optional `parent` is checked against the published
       # JSON Schema in contracts/, which a pack test may not reach, so the
-      # schema-agreement half is roster-owned. It sits ABOVE the carve-out step
-      # below, whose `pytest tests/ -q` also collects it, so a failure is
-      # attributed to this named step.
+      # schema-agreement half is roster-owned. The gate-catalogue-tests sibling's
+      # shard-1 `pytest tests/ -q` (a parallel job) also collects it, so a
+      # failure is attributed to this named step.
       - name: pytest lifecycle record parent schema agreement (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_cooling_parent_schema.py
@@ -1045,9 +1040,9 @@ jobs:
       # roster-owned: the drain script lives in the core pack while its
       # contract spans the store, the work-intake transaction and the
       # header-readiness owner grammar, so a pack-local test cannot reach
-      # them all. Each suite sits ABOVE the carve-out step below, whose
-      # `pytest tests/ -q` also collects it, so a failure is attributed
-      # to its named step.
+      # them all. The gate-catalogue-tests sibling's shard-1
+      # `pytest tests/ -q` (a parallel job) also collects it, so a failure is
+      # attributed to its named step.
       - name: pytest promotion drain decide (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_promotion_drain_decide.py
@@ -1661,14 +1656,25 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest -r tools/requirements.txt
           python -m pip install -e ./packages/agentbundle
+      - name: Materialize catalogue projections (gate-catalogue-tests)
+        # `pytest tests/` collects
+        # tests/roster/test_credential_user_scope_invocation.py, whose
+        # projected variants read dist/apm/ — gitignored, so a fresh checkout
+        # has none. Inside gate-main those cases ran after `make build-check`
+        # had materialized dist/ (its catalogue-build leg); the sibling
+        # reproduces that precondition directly, with the same invocation
+        # gate-main's chain runs. Unconditional: the sibling carries no
+        # step-level `if:`, so every shard pays its ~30–60 s.
+        run: python -m agentbundle catalogue build --root . --output dist
       - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)
         # Fail closed BEFORE the dispatch rather than letting suites skip
         # inside it: pytest exits 0 on skips, so a missing dependency reddens
         # here instead of greening the shard silently. The module and
         # executable lists are the discovered set (the spec's skip-aware
-        # discovery procedure); `dist/apm/` is deliberately absent — that
-        # suite skips in gate-main today for the same reason, so the move
-        # changes nothing.
+        # discovery procedure); `dist/apm/` is checked because the
+        # materialization step above is what makes the projected variants
+        # run — inside gate-main `make build-check` had supplied dist/ before
+        # those cases, so its absence here would silently weaken the check.
         run: |
           set -euo pipefail
           for mod in yaml jsonschema tomlkit httpx; do
@@ -1677,6 +1683,7 @@ jobs:
           for exe in git sh make node; do
             command -v "$exe" >/dev/null 2>&1 || { echo "::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail"; exit 1; }
           done
+          test -d dist/apm || { echo "::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail"; exit 1; }
           echo "provisioning probe: all measured availability conditions present"
       - name: dispatch catalogue-test shard
         # The shard key arrives via step env rather than a `${{ }}`

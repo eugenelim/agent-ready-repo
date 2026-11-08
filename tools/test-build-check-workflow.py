@@ -204,6 +204,7 @@ _PROVISIONING_NOT_AUDITED = frozenset({
     "<unnamed step in gate-catalogue-tests>",
     "Set up Python (gate-catalogue-tests)",
     "Install Python dependencies (gate-catalogue-tests)",
+    "Materialize catalogue projections (gate-catalogue-tests)",
     "Probe provisioning (gate-catalogue-tests, fail closed, not skip)",
 })
 _ALL_PROVISIONING = frozenset(
@@ -487,6 +488,7 @@ PINNED_JOB_STATEMENTS: dict[str, _PinnedJob] = {
 SIBLING_JOB_ID = "gate-catalogue-tests"
 SIBLING_DISPATCH_STEP = "dispatch catalogue-test shard"
 SIBLING_PROBE_STEP = "Probe provisioning (gate-catalogue-tests, fail closed, not skip)"
+SIBLING_MATERIALIZE_STEP = "Materialize catalogue projections (gate-catalogue-tests)"
 # The two gate-main steps the carve-out moved. AC-0004's presence half is the
 # dispatch-body pin below — the invocation set lives there, so a missing or
 # extra invocation reddens `sibling-dispatch-body-exact` directly.
@@ -531,13 +533,28 @@ PINNED_DISPATCH_BODY = (
     ";;",
     "esac",
 )
+# The catalogue projection, materialized by an unconditional sibling step
+# before the probe. Inside gate-main the projected-variant cases in
+# tests/roster/test_credential_user_scope_invocation.py ran after
+# `make build-check` had built dist/ (its catalogue-build leg); dist/ is
+# gitignored, so a fresh sibling checkout has none and those cases SKIP
+# silently. The sibling reproduces gate-main's precondition directly — the
+# same invocation gate-main's chain runs (tools/repo/build_gate_chain.py's
+# catalogue-build leg). Pinned by equality like the probe: a present-but-
+# redirected or emptied step satisfies a name check while converting nothing.
+PINNED_MATERIALIZE_BODY = (
+    "python -m agentbundle catalogue build --root . --output dist",
+)
 # The provisioning probe, pinned by equality. The module and executable lists
 # are the discovered set (spec Assumptions' skip-aware procedure): every member
 # is a dependency whose absence a moved suite meets as a SKIP, not a failure.
 # Scope, stated as honestly as test-corpus.yml's own probe: this asserts the
 # discovered availability conditions, not every condition that could ever
-# cause a skip. `dist/apm/` is deliberately absent — that suite skips in
-# gate-main today for the same reason, so the move changes nothing.
+# cause a skip. `dist/apm/` is checked because the materialization step above
+# is what makes the projected variants run — before the repair it was
+# deliberately absent on the false belief that gate-main skipped those cases
+# too; inside gate-main `make build-check` had materialized dist/ first, so
+# the sibling must reproduce that precondition and verify it fail-closed.
 PINNED_PROBE_BODY = (
     "set -euo pipefail",
     "for mod in yaml jsonschema tomlkit httpx; do",
@@ -546,6 +563,7 @@ PINNED_PROBE_BODY = (
     "for exe in git sh make node; do",
     "command -v \"$exe\" >/dev/null 2>&1 || { echo \"::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail\"; exit 1; }",
     "done",
+    "test -d dist/apm || { echo \"::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail\"; exit 1; }",
     "echo \"provisioning probe: all measured availability conditions present\"",
 )
 # `working-directory:` decides WHERE a pinned statement runs, so it is the YAML sibling
@@ -1607,6 +1625,7 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
           _key_values(sib, "fail-fast", "      ") == ["false"])
     _dispatch = _step_named(sib, SIBLING_DISPATCH_STEP)
     _probe = _step_named(sib, SIBLING_PROBE_STEP)
+    _materialize = _step_named(sib, SIBLING_MATERIALIZE_STEP)
     _actual_dispatch = _run_lines(_dispatch)
     if _actual_dispatch != list(PINNED_DISPATCH_BODY):
         _note_miss("\n              ".join(PINNED_DISPATCH_BODY),
@@ -1619,6 +1638,13 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
         _note_miss("\n              ".join(PINNED_PROBE_BODY),
                    "\n              ".join(_actual_probe) or "(step not found or empty body)")
     check("sibling-probe-body-exact", _actual_probe == list(PINNED_PROBE_BODY))
+    _actual_materialize = _run_lines(_materialize)
+    if _actual_materialize != list(PINNED_MATERIALIZE_BODY):
+        _note_miss("\n              ".join(PINNED_MATERIALIZE_BODY),
+                   "\n              ".join(_actual_materialize)
+                   or "(step not found or empty body)")
+    check("sibling-materialize-body-exact",
+          _actual_materialize == list(PINNED_MATERIALIZE_BODY))
     # Order is load-bearing: a probe that runs after the dispatch step cannot
     # stop a skip the suites already took. Index comparison, not text order,
     # so the check survives comment placement between the steps.
@@ -1629,6 +1655,14 @@ def _audit(text: str, evaluated: list[str] | None) -> list[str]:
     check("sibling-probe-before-dispatch",
           _probe_idx is not None and _dispatch_idx is not None
           and _probe_idx < _dispatch_idx)
+    # The probe's dist/apm/ check can only be honest after the step that
+    # builds dist/ has run: a materialization placed after the probe (or the
+    # dispatch) leaves the probe checking a directory nothing produced yet.
+    _materialize_idx = next(
+        (i for i, (nm, _) in enumerate(sib_steps) if nm == SIBLING_MATERIALIZE_STEP), None)
+    check("sibling-materialize-before-probe",
+          _materialize_idx is not None and _probe_idx is not None
+          and _materialize_idx < _probe_idx)
     # The matrix↔case cross-pin, both directions (the test-corpus matrix↔SHARDS
     # discipline). A shrunken matrix silently un-runs a branch's suites while
     # every gate stays green; an extra matrix entry hits the `*)` fallback and
@@ -2762,6 +2796,7 @@ _MUTATIONS: list[tuple[str, str, object]] = [
                            "          for exe in git sh make node; do\n"
                            "            command -v \"$exe\" >/dev/null 2>&1 || { echo \"::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail\"; exit 1; }\n"
                            "          done\n"
+                           "          test -d dist/apm || { echo \"::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail\"; exit 1; }\n"
                            "          echo \"provisioning probe: all measured availability conditions present\"\n",
                            "")),
     ("sibling-probe-emptied", "sibling-probe-body-exact",
@@ -2778,6 +2813,25 @@ _MUTATIONS: list[tuple[str, str, object]] = [
     ("sibling-probe-after-dispatch", "sibling-probe-before-dispatch",
      lambda t: _move_named_step_after(t, SIBLING_PROBE_STEP, SIBLING_DISPATCH_STEP,
                                       job=SIBLING_JOB_ID)),
+    # The materialization step's efficacy (review finding R1-001's repair):
+    # removed, emptied, or reordered behind the probe each leaves the
+    # projected-variant cases skipping silently while every gate stays green.
+    ("sibling-materialize-step-removed", "sibling-materialize-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "      - name: Materialize catalogue projections (gate-catalogue-tests)\n"
+                           "        run: python -m agentbundle catalogue build --root . --output dist\n",
+                           "")),
+    ("sibling-materialize-emptied", "sibling-materialize-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "        run: python -m agentbundle catalogue build --root . --output dist\n",
+                           "        run: exit 0\n")),
+    ("sibling-materialize-after-probe", "sibling-materialize-before-probe",
+     lambda t: _move_named_step_after(t, SIBLING_MATERIALIZE_STEP, SIBLING_PROBE_STEP,
+                                      job=SIBLING_JOB_ID)),
+    ("sibling-probe-dist-check-dropped", "sibling-probe-body-exact",
+     lambda t: _sub_in_job(t, SIBLING_JOB_ID,
+                           "          test -d dist/apm || { echo \"::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail\"; exit 1; }\n",
+                           "")),
     # AC-0004: a moved step reintroduced in gate-main — the removal this spec
     # exists to make, reverted behind an otherwise-green workflow. Inserted
     # before the anchor, which exists only in gate-main in the fixture.

@@ -101,6 +101,8 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest -r tools/requirements.txt
           python -m pip install -e ./packages/agentbundle
+      - name: Materialize catalogue projections (gate-catalogue-tests)
+        run: python -m agentbundle catalogue build --root . --output dist
       - name: Probe provisioning (gate-catalogue-tests, fail closed, not skip)
         run: |
           set -euo pipefail
@@ -110,6 +112,7 @@ jobs:
           for exe in git sh make node; do
             command -v "$exe" >/dev/null 2>&1 || { echo "::error::provisioning incomplete: executable '$exe' missing — suites depending on it would SKIP, not fail"; exit 1; }
           done
+          test -d dist/apm || { echo "::error::provisioning incomplete: dist/apm/ missing — the projected-variant cases would SKIP, not fail"; exit 1; }
           echo "provisioning probe: all measured availability conditions present"
       - name: dispatch catalogue-test shard
         env:

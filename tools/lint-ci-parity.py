@@ -636,6 +636,11 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     "Install Python dependencies (gate-catalogue-tests)":
         CI_ONLY("Installs the sibling's runner: pytest, tools/requirements.txt, "
                 "editable agentbundle. Provisioning; no local counterpart."),
+    "Materialize catalogue projections (gate-catalogue-tests)":
+        CI_ONLY("Builds dist/apm/ so the projected-variant cases run instead "
+                "of skipping (the precondition gate-main's make build-check "
+                "supplied). Provisioning; a local tree already has dist/ or "
+                "runs make build-self."),
     "Probe provisioning (gate-catalogue-tests, fail closed, not skip)":
         CI_ONLY("Fail-closed availability probe derived from the spec's "
                 "skip-aware discovery. Provisioning verification; a local "
@@ -973,6 +978,8 @@ _PROVISIONING_IDS = {
     "<unnamed step in gate-catalogue-tests>": "checkout_gate_catalogue_tests",
     "Set up Python (gate-catalogue-tests)": "python_gate_catalogue_tests",
     "Install Python dependencies (gate-catalogue-tests)": "tools_gate_catalogue_tests",
+    "Materialize catalogue projections (gate-catalogue-tests)":
+        "materialize_gate_catalogue_tests",
     "Probe provisioning (gate-catalogue-tests, fail closed, not skip)":
         "probe_gate_catalogue_tests",
     "Install ripgrep": "ripgrep",
