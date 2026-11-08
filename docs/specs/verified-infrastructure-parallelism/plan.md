@@ -562,6 +562,26 @@ pass locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
 `make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
 in T5's release).
 
+### T12: Serialize the product-ref check with the supervisor's own move
+
+**Depends on:** T11
+
+**Tests:**
+- AC-0034, AC-0051, AC-0059: inside one `run-concurrent` verb, a sibling
+  attempt's Git control check never sees the product ref moved but not yet
+  recorded. `GitPort.landing` is held from the supervisor's product-ref move
+  through its record, and `product_ref_problems` reads the ref and its record
+  under the same lock, so both results land.
+  `test_supervisor_integration.py::test_a_sibling_ingesting_while_a_result_lands_never_sees_the_ref_ahead_of_its_record`
+  holds the move unrecorded until the sibling's check has begun; without the
+  check-side lock it refuses with `denied-git-control-state`. The
+  result-integration page's race table names this stimulus, the lock, and the
+  test.
+
+**Done when:** `test_supervisor_integration.py` passes locally under
+`WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy` is
+green, and this task adds no Core bump (it ships in T5's release).
+
 ## Rollout
 
 - **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6 to T11).
