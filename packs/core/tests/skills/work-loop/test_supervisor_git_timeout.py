@@ -15,6 +15,11 @@ from types import ModuleType
 import pytest
 
 _SCRIPTS = Path(__file__).resolve().parents[3] / ".apm" / "skills" / "work-loop" / "scripts"
+# Each script by literal path, so every file this suite loads stays visibly inside this pack.
+_PATHS = {
+    "_supervisor_git": _SCRIPTS / "_supervisor_git.py",
+    "_supervisor_admission": _SCRIPTS / "_supervisor_admission.py",
+}
 _VARIABLE = "WORK_LOOP_GIT_TIMEOUT_S"
 _counter = itertools.count()
 
@@ -22,7 +27,7 @@ _counter = itertools.count()
 def _load(name: str) -> ModuleType:
     """Load a fresh copy of a work-loop script under a unique, registered module name."""
     alias = f"core_work_loop_timeout_{name}_{next(_counter)}"
-    spec = importlib.util.spec_from_file_location(alias, _SCRIPTS / f"{name}.py")
+    spec = importlib.util.spec_from_file_location(alias, _PATHS[name])
     assert spec is not None and spec.loader is not None
     module = importlib.util.module_from_spec(spec)
     sys.modules[alias] = module  # its dataclasses look the module up by name while it runs
