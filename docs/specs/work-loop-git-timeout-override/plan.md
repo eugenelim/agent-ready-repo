@@ -82,6 +82,7 @@ One pull request, one core patch release. No migration; the default behaviour is
 
 ## Risks
 
+- Slow calls that each finish under the ceiling add up inside one run-lock hold, and the ceiling does not bound that total; the spec records it as an accepted risk.
 - A long timeout can hide a real hang for up to 240 seconds per call; the ceiling bounds it, AC-0007 keeps it inside the lock margin, and the default is unchanged.
 - Another core release can land first and take the version; re-derive the bump and the pin by merging `main` before merge.
 
