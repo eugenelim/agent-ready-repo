@@ -101,9 +101,9 @@ def _write(root: Path, rel: str, text: str) -> None:
     path.write_text(text, **h._LF)
 
 
-def _brief(slugs: Sequence[str]) -> str:
+def _brief(slugs: Sequence[str], status: str = "Ready") -> str:
     rows = "\n".join(f"| `{slug}` | <auto> |" for slug in slugs)
-    return f"# Brief\n\n## Spec map\n\n| Spec | Status |\n| --- | --- |\n{rows}\n"
+    return f"# Brief\n\n- **Status:** {status}\n\n## Spec map\n\n| Spec | Status |\n| --- | --- |\n{rows}\n"
 
 
 def _simple_spec(slug: str, status: str, depends: str | None) -> str:
@@ -1661,7 +1661,7 @@ def reasons(act: dict[str, Any]) -> dict[str, str]:
 def test_start_slice_names_the_first_ready_row_with_its_facts(nx: World) -> None:
     code, out = nx.cli("next", "n-start")
     assert code == 0, out
-    assert out["schema_version"] == 1
+    assert out["schema_version"] == 2
     assert out["base"] == h.git(nx.main, "rev-parse", "HEAD").strip()
     assert out["standing_orders"] is None
     assert out["action"] == {
@@ -2181,7 +2181,7 @@ def test_gates_does_not_read_standing_orders(so_world: World) -> None:
 
 READ_ONLY_GIT = {
     "worktree", "symbolic-ref", "rev-parse", "status", "ls-tree", "cat-file", "config",
-    "ls-files", "hash-object",
+    "ls-files", "hash-object", "log",
 }  # fmt: skip
 AC_0009_KINDS = {"resume-slice", "start-slice", "await-gates", "await-merge", "complete", "blocked"}
 PLAIN_PLAN = sup.plan(sup.TASKS["plain"]("T1"))

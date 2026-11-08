@@ -569,7 +569,7 @@ def test_only_a_next_refusal_carries_the_schema_version(
     out = json.loads(capsys.readouterr().out)
     assert ("schema_version" in out) is versioned
     if versioned:
-        assert out["schema_version"] == runner.NEXT_SCHEMA_VERSION == 1
+        assert out["schema_version"] == runner.NEXT_SCHEMA_VERSION == 2
 
 
 def test_a_usage_error_and_help_print_no_json(capsys: pytest.CaptureFixture[str]) -> None:
@@ -605,7 +605,7 @@ def test_an_internal_error_from_next_carries_the_schema_version(
     capsys.readouterr()
     assert runner.main(["next", "b"]) == runner.EXIT_REFUSED
     out = json.loads(capsys.readouterr().out)
-    assert out["schema_version"] == 1 and out["refusal"]["code"] == "internal-error"
+    assert out["schema_version"] == 2 and out["refusal"]["code"] == "internal-error"
 
 
 def test_an_unexpected_failure_still_answers_one_json_refusal(
