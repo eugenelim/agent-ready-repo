@@ -942,6 +942,13 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("build-check"),
     "pack description drift backstop + self-test":
         LOCAL("build-check"),
+    "work-loop guard (run-grant AC-0019)":
+        CI_ONLY(
+            "Pull-request only: it needs the pull request's base and head SHAs, "
+            "which a local run lacks. Locally run "
+            "`brief-runner.py guard --from <base> --to HEAD` by hand; the guard "
+            "verb's own tests run in the catalogue-tooling integration lane."
+        ),
 }
 
 
@@ -1242,6 +1249,7 @@ _GATE_MAIN_CHECKS = (
     "catalogue-curation skill-script tests (RFC-0059 security ACs)",
     "experience framework-agnosticism lint + self-test (design-craft-pack AC8)",
     "pack description drift backstop + self-test",
+    "work-loop guard (run-grant AC-0019)",
 )
 
 _NON_GATE_MAIN_CHECKS = (

@@ -1689,6 +1689,41 @@ jobs:
           python3 tools/lint-pack-descriptions.py
           python3 tools/test-lint-pack-maintainer-emails.py
           python3 tools/lint-pack-maintainer-emails.py
+      - name: work-loop guard (run-grant AC-0019)
+        if: "!cancelled() && steps.python.conclusion == 'success' && github.event_name == 'pull_request'"
+        # Grant changes (run grants, standing orders, a brief made runnable or a
+        # Spec map edit) must stand alone in their pull request. The guard that
+        # judges that runs from the BASE revision's scripts, so a pull request
+        # cannot weaken the check that judges it. Whether the base has a guard
+        # verb is read from the base tree (a marker line in its runner), never
+        # inferred from an exit code, so a crash cannot pass for "no verb".
+        env:
+          # Never do: no ${{ }} inside a run: body this change writes or moves.
+          # Passed as env so the values are data, not spliced command text.
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          scripts=packs/core/.apm/skills/work-loop/scripts
+          mkdir -p "$RUNNER_TEMP/guard-base"
+          git archive "$BASE_SHA" "$scripts" | tar -x -C "$RUNNER_TEMP/guard-base"
+          copy="$RUNNER_TEMP/guard-base/$scripts"
+          note=""
+          if git show "$BASE_SHA:$scripts/brief-runner.py" > "$RUNNER_TEMP/base-runner.py" && grep -qxF 'GUARD_VERB = "guard"' "$RUNNER_TEMP/base-runner.py"; then
+            :
+          else
+            copy="$GITHUB_WORKSPACE/$scripts"
+            note="base has no guard verb; judged by the head copy"
+          fi
+          status=0
+          python3 -I "$copy/brief-runner.py" guard --from "$BASE_SHA" --to "$HEAD_SHA" --root "$GITHUB_WORKSPACE" > "$RUNNER_TEMP/guard.json" || status=$?
+          {
+            echo "### work-loop guard"
+            if [ -n "$note" ]; then echo "$note"; fi
+            echo '```json'
+            cat "$RUNNER_TEMP/guard.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$status"
 
   gate-sast:
     name: gate-sast

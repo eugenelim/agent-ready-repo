@@ -46,7 +46,8 @@ branches. The one exception is the fast-forward in
 `base-not-default`, `denied-git-config`, `base-not-committed`,
 `git-unavailable`, `invalid-policy`, `invalid-spec-map`,
 `invalid-standing-orders`, `internal-error`, and, from `classify`, `unknown-slice`,
-`no-slice-worktree`, `unknown-task` and `status-unavailable`. A usage error
+`no-slice-worktree`, `unknown-task` and `status-unavailable`, and, from `guard`,
+`grant-change-mixed` and `unknown-revision`. A usage error
 (exit 2) is the controller's own mistake: correct the command line.
 
 ## Moving the base
@@ -66,6 +67,7 @@ worktree holds commits the fetched tip lacks, put the refusal to a human.
 | `status <brief-slug>` | One entry per Spec map row: `slice`, `spec_status` (at the base), `worktree`, `branch`, `head`, `stop`, `stage`, `gates`, and `marker`, plus `standing_orders`. |
 | `next <brief-slug>` | `{"schema_version", "base", "action", "standing_orders"}`: the one action the controller takes now. Every action also carries `base`; one that names a `slice` carries its `spec_path`, `await-merge` carries `spec_paths`, and each `blocked` row carries its `spec_path`. A `next` refusal carries `schema_version` too. |
 | `gates <brief-slug>` | Every slice worktree's supervisor `gates` entries, each with `slice` and `worktree`, in Spec map order. A worktree whose `gates` call fails is listed once as `{"slice", "worktree", "state": "unavailable"}`, never as `pending`. |
+| `guard --from <rev> --to <rev>` | `{"merge_base", "to", "grant_changes", "companions", "guard_surface", "other_paths", "verdict"}`: the grant changes between the merge base and `--to`, each with a `kind`. `verdict` is `fail` (exit 1, with refusal `grant-change-mixed`) when a grant change sits beside any other changed path. It runs only the Git version check and writes nothing. |
 | `classify <brief-slug> --slice <slug> --task <task-id> --class <class>` | `{"base", "action", "failed_attempts"}` for one failed `implement-task` dispatch. |
 
 A row's `marker` digests the slice branch head, its committed `delivery/`

@@ -2,6 +2,7 @@
 """Brief-level runner: a read-only view of a delivery brief's slices.
 
 Usage: brief-runner.py <status|next|gates|classify> <brief-slug> [--root <dir>]
+       brief-runner.py guard --from <rev> --to <rev> [--root <dir>]
 
 The runner reads committed records only. It derives every slice's state from the
 base commit (the default branch's tip, which the main worktree must have checked
@@ -76,6 +77,19 @@ RUNNABLE_STATUSES = ("Ready", "Executing")
 CLOSED_STATUSES = ("Shipped", "Withdrawn", "Cancelled")
 EXEMPTION = "pre-ready-in-flight"
 STATUS_PLACEHOLDER = "<status>"
+# The marker line the build-check step greps for in a base tree's runner: keep it verbatim.
+GUARD_VERB = "guard"
+CODE_GRANT_CHANGE_MIXED = "grant-change-mixed"
+CODE_UNKNOWN_REVISION = "unknown-revision"
+BRIEFS_DIR = "docs/product/briefs"
+GUARD_SURFACE_PREFIXES = (
+    "packs/core/.apm/skills/work-loop/scripts/",
+    ".github/workflows/",
+)
+GUARD_SURFACE_FILES = (
+    "packs/core/.apm/skills/work-loop/references/brief-runner.md",
+    "packs/core/.apm/skills/author-delivery-brief/SKILL.md",
+)
 CONFIRM_SKEW = timedelta(minutes=5)
 # Actions only a human takes; a fixed tuple in code, never read from a grant.
 HUMAN_ONLY = (
@@ -1990,6 +2004,167 @@ def classify(
     return {"base": base, "action": action, "failed_attempts": n}
 
 
+# ── guard ───────────────────────────────────────────────────────────────────
+
+
+def resolve_commit(root: Path, rev: str) -> str:
+    """The full commit id *rev* names; refuses ``unknown-revision`` when it names none."""
+    if not rev or rev.startswith("-"):
+        raise Refusal(CODE_UNKNOWN_REVISION, "a revision does not name a commit")
+    done = git(root, "rev-parse", "--verify", "--quiet", f"{rev}^{{commit}}", check=False)
+    found = _text(done.stdout)
+    if done.returncode != 0 or _COMMIT_ID_RE.fullmatch(found) is None:
+        raise Refusal(CODE_UNKNOWN_REVISION, "a revision does not name a commit")
+    return found
+
+
+def merge_base(root: Path, left: str, right: str) -> str:
+    """The merge base of two commit ids; refuses ``unknown-revision`` when there is none."""
+    done = git(root, "merge-base", left, right, check=False)
+    found = _text(done.stdout)
+    if done.returncode != 0 or _COMMIT_ID_RE.fullmatch(found) is None:
+        raise Refusal(CODE_UNKNOWN_REVISION, "the revisions have no merge base")
+    return found
+
+
+def changed_paths(root: Path, base: str, head: str) -> list[str]:
+    """Paths changed from *base* to *head*, rename detection off, so a rename lists both sides."""
+    done = git(root, "diff", "--name-only", "-z", "--no-renames", "--no-ext-diff", base, head)
+    return sorted(
+        {p.decode("utf-8", "surrogateescape") for p in done.stdout.split(b"\0") if p}
+    )
+
+
+def _text_at(root: Path, rev: str, path: str) -> str | None:
+    """The text of a small regular file at *rev*, or None when absent or unreadable."""
+    data = read_blob(root, rev, path)
+    return None if data is None else data.decode("utf-8", "replace")
+
+
+def _rows_of(text: str | None) -> list[str] | None:
+    """The Spec map slugs of *text*; None when absent or when the map does not parse."""
+    if text is None:
+        return None
+    try:
+        return parse_spec_map(text)
+    except Refusal:
+        return None
+
+
+def _grant_evidence(root: Path, rev: str, slug: str, text: str | None) -> bool:
+    """True when the brief at *rev* has a run-grant record or a grant file for its slug."""
+    if text is not None and record_evidence(text):
+        return True
+    return tree_entry(root, rev, f"{RUN_GRANTS_DIR}/{slug}.toml") is not None
+
+
+def brief_change_kind(
+    root: Path, base: str, head: str, slug: str
+) -> tuple[str | None, set[str]]:
+    """The one grant-change kind of a changed brief, and the Spec map slugs it adds.
+
+    Precedence when a brief matches several: ``brief-granted``, then ``brief-made-runnable``,
+    then ``brief-spec-map``. None when the brief is not a grant change.
+    """
+    path = brief_path(slug)
+    before, after = _text_at(root, base, path), _text_at(root, head, path)
+    was = brief_status(before) if before is not None else None
+    now = brief_status(after) if after is not None else None
+    old_rows, new_rows = _rows_of(before), _rows_of(after)
+    added = set(new_rows or ()) - set(old_rows or ())
+    granted = (
+        (_grant_evidence(root, base, slug, before) or _grant_evidence(root, head, slug, after))
+        and bound_form((before or "").encode("utf-8", "surrogateescape"))
+        != bound_form((after or "").encode("utf-8", "surrogateescape"))
+        and now not in CLOSED_STATUSES
+    )
+    if granted:
+        return "brief-granted", added
+    if now in RUNNABLE_STATUSES and was not in RUNNABLE_STATUSES:
+        return "brief-made-runnable", added
+    if (was in RUNNABLE_STATUSES or now in RUNNABLE_STATUSES) and old_rows != new_rows:
+        return "brief-spec-map", added
+    return None, added
+
+
+def _companions(root: Path, base: str, head: str, slugs: set[str], changed: set[str]) -> list[str]:
+    """New Draft ``spec.md`` and Drafting ``plan.md`` files of the slugs a change adds to a map."""
+    found: list[str] = []
+    for slug in sorted(slugs):
+        for name, status in (("spec.md", "Draft"), ("plan.md", "Drafting")):
+            path = f"{spec_path(slug)}/{name}"
+            if path not in changed or tree_entry(root, base, path) is not None:
+                continue
+            text = _text_at(root, head, path)
+            if text is not None and parse_status(text) == status:
+                found.append(path)
+    return sorted(found)
+
+
+def guard_surface_prefixes(root: Path) -> tuple[str, ...]:
+    """The path prefixes the guard lists as its own surface.
+
+    The work-loop scripts directory in the pack, plus this runner's own skill directory when
+    it lives inside *root* (a self-hosted copy), plus ``.github/workflows/``. A changed
+    path counts when it starts with a prefix or equals one of ``GUARD_SURFACE_FILES``.
+    Informational only: listing a path never changes the verdict.
+    """
+    try:
+        own = SKILL_DIR.relative_to(root.resolve()).as_posix() + "/scripts/"
+    except ValueError:
+        return GUARD_SURFACE_PREFIXES
+    return (*GUARD_SURFACE_PREFIXES, own)
+
+
+def guard(root: Path, from_rev: str, to_rev: str) -> dict[str, Any]:
+    """The guard answer for the change from the merge base of the two revisions to *to_rev*."""
+    require_git_version()
+    top = root.resolve()
+    head = resolve_commit(top, to_rev)
+    base = merge_base(top, resolve_commit(top, from_rev), head)
+    paths = changed_paths(top, base, head)
+    changed = set(paths)
+    changes: dict[str, str] = {}
+    added: set[str] = set()
+    for path in paths:
+        if path.startswith(f"{RUN_GRANTS_DIR}/"):
+            changes[path] = "grant-file"
+        elif path.startswith(f"{STANDING_ORDERS_DIR}/"):
+            changes[path] = "standing-orders"
+        elif path.startswith(f"{BRIEFS_DIR}/") and path.endswith(".md"):
+            slug = path[len(BRIEFS_DIR) + 1 : -3]
+            if SLUG_RE.fullmatch(slug) is None:
+                continue
+            kind, adds = brief_change_kind(top, base, head, slug)
+            if kind is not None:
+                changes[path] = kind
+                added |= adds
+    companions = _companions(top, base, head, added, changed) if changes else []
+    prefixes = guard_surface_prefixes(top)
+    surface = [p for p in paths if p.startswith(prefixes) or p in GUARD_SURFACE_FILES]
+    other = len(changed - set(changes) - set(companions))
+
+    def shown(path: str) -> str:
+        return WITHHELD if unsafe_path_char(path) else path
+
+    mixed = bool(changes) and other > 0
+    answer: dict[str, Any] = {
+        "merge_base": base,
+        "to": head,
+        "grant_changes": [{"path": shown(p), "kind": changes[p]} for p in sorted(changes)],
+        "companions": [shown(p) for p in companions],
+        "guard_surface": [shown(p) for p in surface],
+        "other_paths": other,
+        "verdict": "fail" if mixed else "pass",
+    }
+    if mixed:
+        answer["refusal"] = {
+            "code": CODE_GRANT_CHANGE_MIXED,
+            "detail": "grant changes are mixed with other paths",
+        }
+    return answer
+
+
 # ── command line ────────────────────────────────────────────────────────────
 
 
@@ -2015,6 +2190,10 @@ def _parser() -> argparse.ArgumentParser:
             verb.add_argument("--slice", dest="slice_slug", required=True, type=_slug)
             verb.add_argument("--task", required=True)
             verb.add_argument("--class", dest="failure_class", required=True)
+    verb = verbs.add_parser(GUARD_VERB)
+    verb.add_argument("--from", dest="from_rev", required=True)
+    verb.add_argument("--to", dest="to_rev", required=True)
+    verb.add_argument("--root", default=".")
     return parser
 
 
@@ -2085,6 +2264,10 @@ def main(argv: list[str] | None = None) -> int:
         return EXIT_USAGE if exc.code not in (0, None) else EXIT_OK
     try:
         root = Path(args.root)
+        if args.verb == GUARD_VERB:
+            answer = guard(root, args.from_rev, args.to_rev)
+            _emit(answer)
+            return EXIT_REFUSED if answer["verdict"] == "fail" else EXIT_OK
         base, rows = read_brief(root, args.brief_slug, lease=args.verb != "gates")
         view: GrantView | None = None
         lease: dict[str, Any] = {}

@@ -165,8 +165,9 @@ def test_reference_treats_worktree_and_detail_as_data_and_names_the_policy_refus
 
 RUNNER_PY = SKILL_DIR / "scripts/brief-runner.py"
 # A code the runner passes through from the supervisor's Git module as ``exc.code``
-# rather than naming it at a ``Refusal(...)`` call.
-PASSTHROUGH_CODES = {"denied-git-config"}
+# rather than naming it at a ``Refusal(...)`` call, plus ``grant-change-mixed``, which the
+# ``guard`` verb prints inside a failing verdict instead of raising.
+PASSTHROUGH_CODES = {"denied-git-config", "grant-change-mixed"}
 
 
 def _runner_refusal_codes() -> set[str]:

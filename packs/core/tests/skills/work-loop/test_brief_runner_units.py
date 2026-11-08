@@ -290,9 +290,9 @@ def test_a_usage_error_exits_2(argv: list[str], capsys: pytest.CaptureFixture[st
     assert runner.main(argv) == 2
 
 
-def test_the_verbs_are_exactly_the_four_named() -> None:
+def test_the_verbs_are_exactly_the_five_named() -> None:
     action = runner._parser()._subparsers._group_actions[0]  # type: ignore[union-attr]
-    assert sorted(action.choices) == ["classify", "gates", "next", "status"]
+    assert sorted(action.choices) == ["classify", "gates", "guard", "next", "status"]
 
 
 # ── marker, gates join and the next decision, over canned rows ──────────────
