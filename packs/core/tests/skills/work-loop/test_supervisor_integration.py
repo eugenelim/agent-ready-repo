@@ -250,6 +250,48 @@ def test_a_batch_finishing_in_reverse_order_lands_in_floor_order(
     assert code == 0 and admitted["admitted"] == "run-concurrent"
 
 
+def test_a_sibling_ingesting_while_a_result_lands_never_sees_the_ref_ahead_of_its_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The later task reads its access line just as the earlier one moves the product ref.
+
+    Its Git calls check the ref against the run's record; between the move and the record
+    they would see a ref the run did not record and refuse the whole batch.
+    """
+    script = {"per_task": {
+        "calculator-answers": {"write": {"calc.py": CALC}},
+        "plain-note-is-written": {"write": {"plain.txt": NOTE}},
+    }}
+    env = make_env(tmp_path, monkeypatch, script=script)
+    moved, checking = threading.Event(), threading.Event()
+    attempts = ls.cli._supervisor("_supervisor_attempt.py").Attempts
+    original = attempts.product_ref_problems
+
+    def problems(self: Any, run_id: str) -> list[str]:
+        if moved.is_set() and "plain" in threading.current_thread().name:
+            checking.set()
+        return original(self, run_id)  # type: ignore[no-any-return]
+
+    def hook(name: str) -> None:
+        if name == "access-read" and "plain" in threading.current_thread().name:
+            assert moved.wait(120), "the earlier task never moved the product ref"
+        elif name == "refs-moved" and "calculator" in threading.current_thread().name:
+            moved.set()
+            # Hold the move unrecorded until the sibling's check has begun, then a moment more.
+            assert checking.wait(120), "the sibling made no Git call after the move"
+            threading.Event().wait(1)
+
+    request = env.issued()
+    monkeypatch.setattr(attempts, "product_ref_problems", problems)
+    harness.commit_module.set_kill_hook(hook)
+    code, payload = env.verb(request["request_id"])
+    assert code == 0, payload
+    assert moved.is_set()
+    outcomes = [a["outcome"] for a in payload["run_concurrent"]["attempts"]]
+    assert outcomes == ["landed", "landed"], payload
+    assert landed_order(env) == request["tasks"]
+
+
 def test_three_tasks_finishing_in_reverse_land_in_floor_order(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

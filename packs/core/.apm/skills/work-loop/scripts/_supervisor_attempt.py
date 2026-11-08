@@ -439,14 +439,16 @@ class Attempts:
         """Labels naming this run's product ref when it is not at its recorded value.
 
         Direct file reads, no Git call. A run with no recorded product ref has none to
-        check. The supervisor's own move is accepted because the invocation that makes it
-        records the new value before its next Git call.
+        check. The supervisor's own move is accepted: the thread that makes it records the
+        new value before its next Git call, and every other thread reads the ref and its
+        record under the lock that move holds until the record is written.
         """
         git = self.ws.git
-        record = git.product_record(run_id)
-        if record is None:
-            return []
-        kind, value, trusted = git.product_ref_view(record)
+        with git.landing:
+            record = git.product_record(run_id)
+            if record is None:
+                return []
+            kind, value, trusted = git.product_ref_view(record)
         if trusted:
             return []
         shown = f"commit {value}" if kind == "commit" else kind

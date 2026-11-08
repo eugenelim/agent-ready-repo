@@ -855,6 +855,32 @@ def test_a_same_size_same_mtime_edit_is_seen_even_under_a_weakened_stat_check(
 
 
 @posix_only
+def test_a_same_size_rewrite_in_the_index_second_is_seen_by_the_seeded_scan(
+        tmp_path: Path) -> None:
+    # Git compares stat times to the second here, so a same-size rewrite made in the second
+    # the index was written matches its entry; only Git's racy check (an entry not older
+    # than the index file) catches it. A scan whose index copy is newer would not.
+    for _attempt in range(5):
+        repo = h.make_repo(tmp_path / f"try-{_attempt}")
+        shared = repo / "shared.txt"
+        shared.write_text("one\n", encoding="utf-8")
+        h.git(repo, "add", "shared.txt")
+        h.git(repo, "commit", "-q", "-m", "shared")
+        shared.write_text("two\n", encoding="utf-8")
+        index_second = (repo / ".git" / "index").stat().st_mtime_ns // 10**9
+        if shared.stat().st_ctime_ns // 10**9 == index_second:
+            break
+    else:
+        pytest.skip("could not rewrite within the index's second on this host")
+    time.sleep(1.1)  # the scan's copy is made in a later second than the index
+    # (No `git status` here: it refreshes and rewrites the real index, smudging the entry.)
+    ws = h.workspace(repo)
+    with h.git_identity():
+        assert ws.git.change_set() == ["shared.txt"]
+        assert "shared.txt" in ws.git.working_changes()
+
+
+@posix_only
 def test_a_failed_seeding_leaves_no_index_copy_behind(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     repo = h.make_repo(tmp_path)
