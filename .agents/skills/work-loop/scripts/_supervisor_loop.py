@@ -764,7 +764,10 @@ def _refuse_protected_change(ws: Workspace, state: State, *, exempt: bool = Fals
         raise Refusal(
             "protected-path-changed",
             "controller",
-            "the attempt changed trusted files: " + ", ".join(protected),
+            "the attempt changed trusted files: "
+            + ", ".join(protected)
+            + ". Restore them; a spec-directory deliverable lands by your own commit, "
+            "which the owner adopts through history-adoption.",
         )
     ws.attempts.check_change_set(state, changed)
     return changed
