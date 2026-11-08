@@ -33,7 +33,7 @@ import stat
 import subprocess
 import sys
 import time
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
@@ -338,6 +338,10 @@ class StreamClosed(Exception):
     """The stream ended before a complete line."""
 
 
+class ReadCancelled(Exception):
+    """The reader's cancel check said the attempt was cancelled while it waited."""
+
+
 def send(proc: subprocess.Popen[bytes], message: dict[str, Any]) -> bool:
     """Send one line to the launcher; ``False`` when its input is closed."""
     data = json.dumps(message, separators=(",", ":")).encode("utf-8") + b"\n"
@@ -353,12 +357,15 @@ def send(proc: subprocess.Popen[bytes], message: dict[str, Any]) -> bool:
 class LineReader:
     """Reads capped lines from the launcher's output, against deadlines on ``CLOCK``."""
 
-    def __init__(self, fd: int) -> None:
+    def __init__(self, fd: int, cancelled: Callable[[], bool] | None = None) -> None:
         self.fd = fd
         self.buffer = bytearray()
         self.eof = False
+        self.cancelled = cancelled
 
     def _fill(self, deadline: float) -> None:
+        if self.cancelled is not None and self.cancelled():
+            raise ReadCancelled
         remaining = deadline - CLOCK.now()
         if remaining <= 0:
             raise ReadTimeout
@@ -388,7 +395,11 @@ class LineReader:
             self._fill(deadline)
 
     def rest(self, deadline: float) -> tuple[bytes, bool]:
-        """Everything left up to end of stream, and whether the stream ended by *deadline*."""
+        """Everything left up to end of stream, and whether the stream ended by *deadline*.
+
+        The attempt has already answered, so a cancellation no longer interrupts the wait.
+        """
+        self.cancelled = None
         while not self.eof and len(self.buffer) <= LINE_CAP:
             try:
                 self._fill(deadline)

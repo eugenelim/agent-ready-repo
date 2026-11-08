@@ -400,7 +400,10 @@ EVENTS = {"binding-run-id", "binding-attempt-id", "binding-grant-id", "binding-n
 def test_a_containment_defect_goes_to_the_floor_without_a_release(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, label: str, script: dict[str, Any], reason: str
 ) -> None:
-    monkeypatch.setattr(L, "CONTAINMENT_TIMEOUT_S", 0.5)
+    # Only the silent launcher needs the deadline to fire; every other defect
+    # keeps the real 60-second window so a loaded host cannot turn it into a timeout.
+    if reason == "containment-timeout":
+        monkeypatch.setattr(L, "CONTAINMENT_TIMEOUT_S", 0.5)
     env = ls.Env(tmp_path, monkeypatch, script=script)
     request = env.issued()
     before = _head(env)
@@ -644,7 +647,9 @@ def test_each_attempt_runs_in_a_fresh_directory_outside_every_denied_location(
 
     def look(name: str) -> None:
         if name == "launcher-recorded":
-            seen.append(Path(env.records()[-1]["attempt_dir"]))
+            seen.append(
+                Path([r for r in env.records() if r["state"] == "running"][-1]["attempt_dir"])
+            )
             assert (seen[-1] / "README.md").is_file() and not (seen[-1] / ".git").exists()
             assert stat.S_IMODE(seen[-1].stat().st_mode) == 0o700
 
@@ -701,7 +706,9 @@ def test_an_attempt_silent_past_its_timeout_is_cancelled_and_never_integrates(
     assert ls.group_dead(json.loads((env.log / "env.json").read_text())["pgid"])
     assert _head(env) == before
     monkeypatch.setattr(L, "CLOCK", L._RealClock())
-    assert env.next()["request"]["kind"] == "implement-task"
+    # A confirmed end projects the task again onto a fresh attempt, under a new request.
+    again = env.next()["request"]
+    assert again["kind"] == "run-concurrent" and again["request_id"].endswith(":r1")
 
 
 def test_an_end_that_never_confirms_leaves_residue_and_goes_to_the_floor(
@@ -714,9 +721,12 @@ def test_an_end_that_never_confirms_leaves_residue_and_goes_to_the_floor(
     request = env.issued()
     seen: list[Path] = []
     harness.commit_module.set_kill_hook(
-        lambda name: seen.append(Path(env.records()[-1]["attempt_dir"]))
+        lambda name: seen.append(
+                Path([r for r in env.records() if r["state"] == "running"][-1]["attempt_dir"])
+            )
         if name == "launcher-recorded" else None
     )
+    real_clock, real_group_alive = L.CLOCK, L.group_alive
     monkeypatch.setattr(L, "CLOCK", ls.StepClock(20.0))
     monkeypatch.setattr(L, "group_alive", lambda pgid: True)  # an end the window cannot confirm
     try:
@@ -725,7 +735,10 @@ def test_an_end_that_never_confirms_leaves_residue_and_goes_to_the_floor(
         _settle_group(env)
     assert _outcome(payload)["outcome"] == "residue"
     assert env.records()[0]["state"] == "residue" and seen[0].exists()
-    monkeypatch.undo()
+    # Restore only the clock and the group probe, so the run's concurrent policy still
+    # applies and the floor issue below is a real fall, not the sequential default.
+    monkeypatch.setattr(L, "CLOCK", real_clock)
+    monkeypatch.setattr(L, "group_alive", real_group_alive)
     assert env.next()["request"]["kind"] == "implement-task"
 
 
@@ -737,14 +750,14 @@ def test_a_dead_verb_whose_commit_landed_is_recorded_as_landed(
 ) -> None:
     env = ls.Env(tmp_path, monkeypatch, plan=ls.TWO_TASKS)
     request = env.issued()
-    ls.crash_at("integrated")
+    ls.crash_at("integration-before-record")
     with pytest.raises(harness.Crash):
         env.verb(request["request_id"])
     ls.clear_kill_hook()
     landed = _head(env)
     assert not (env.repo / "calc.py").exists()  # the working tree was not brought along
     record = env.records()[0]
-    assert record["state"] == "running"
+    assert record["state"] == "held"  # the result was recorded; its landing was not
     ls.concurrent_module._write(
         harness.workspace(env.repo), request["run_id"], {**record, "verb_start": "gone"}
     )
@@ -841,7 +854,7 @@ def test_start_settles_a_dead_verbs_attempt_first(
 ) -> None:
     env = ls.Env(tmp_path, monkeypatch, plan=ls.TWO_TASKS)
     request = env.issued()
-    ls.crash_at("integrated")
+    ls.crash_at("integration-before-record")
     with pytest.raises(harness.Crash):
         env.verb(request["request_id"])
     ls.clear_kill_hook()

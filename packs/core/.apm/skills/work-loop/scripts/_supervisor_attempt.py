@@ -134,6 +134,7 @@ _MAX_RECORD_BYTES = 16 * 1024 * 1024
 _MAX_SMALL_BYTES = 64 * 1024
 _NAMED_PATHS = 20
 _PRUNED = "__pycache__"
+_HELD_LABELS = ("held:", "held-ref:")
 _STORE_ROOT = "agentbundle-supervisor"
 
 
@@ -702,9 +703,55 @@ class Attempts:
         return sorted(set(paths))
 
     def _files(self, issuance: Issuance) -> dict[str, str]:
-        """The trusted files as they stand now, for comparison with *issuance*'s manifest."""
-        trusted = [k for k in issuance.trusted if not k.startswith("skill:")]
-        return self._trusted_state(trusted, skill=issuance.kind != "regenerate")
+        """The trusted files as they stand now, for comparison with *issuance*'s manifest.
+
+        A held result's record and ref are compared only when the manifest holds them: one the
+        supervisor records later is not in it, and one a worker changes or removes is.
+        """
+        trusted = [k for k in issuance.trusted if not k.startswith(_HELD_LABELS)]
+        found = self._trusted_state(
+            [k for k in trusted if not k.startswith("skill:")], skill=issuance.kind != "regenerate"
+        )
+        held = self.held_state(issuance.run_id)
+        found.update({k: v for k, v in held.items() if k in issuance.trusted})
+        return found
+
+    def held_state(self, run_id: str) -> dict[str, str]:
+        """A digest of every held-result record, and the tree each held ref names.
+
+        Labelled ``held:<attempt>`` and ``held-ref:<attempt>``. Direct file reads, no Git call.
+        """
+        store = self._store_dir(run_id)
+        directory = store / "held"
+        if not os.path.lexists(directory):
+            return {}
+        fs = sibling("_file_safety.py")
+        try:
+            files = fs.list_confined_regular_files(store, directory, max_files=_MAX_ENTRIES)
+        except (fs.UnsafeContentError, OSError) as exc:
+            raise _unverifiable(
+                "denied-attempt-record", "the held results cannot be listed"
+            ) from exc
+        product = self.ws.git.product_record(run_id)
+        found: dict[str, str] = {}
+        for path in sorted(files):
+            stem = path.name.removesuffix(".json")
+            try:
+                data = bytes(
+                    fs.read_confined_regular_file(store, path, max_bytes=_MAX_SMALL_BYTES)
+                )
+            except (fs.UnsafeContentError, OSError):
+                found[f"held:{stem}"] = "unsafe"
+                continue
+            found[f"held:{stem}"] = _digest(data)
+            if product is not None:
+                ref = product.name.rsplit("/", 1)[0] + f"/held/{stem}"
+                try:
+                    kind, value = self.ws.git.read_ref(ref)
+                except SupervisorGitError:
+                    kind, value = "malformed", ""
+                found[f"held-ref:{stem}"] = f"{kind}:{value}"
+        return found
 
     def _control_check(self, hardened: Any) -> None:
         """The helper's pre-check: Git control state must match the open attempt's manifest."""
@@ -733,6 +780,8 @@ class Attempts:
         for issuance in self._latest():
             if issuance.superseded or issuance.reported or (issuance.refused and issuance.cleared):
                 continue
+            if issuance.kind == "run-concurrent" and not issuance.refused:
+                self._settle_own_landing(issuance)
             paths = self._paths(issuance)
             if issuance.refused:
                 if paths:
@@ -758,6 +807,18 @@ class Attempts:
                 self._refuse(issuance, paths, verb)
             self.open = self._manifest = issuance
         return self.open
+
+    def _settle_own_landing(self, issuance: Issuance) -> None:
+        """Record a step the supervisor's own ``run-concurrent`` verb moved the refs to and died.
+
+        That verb moves ``HEAD`` and the product ref and then records the step; a kill between
+        the two leaves refs the manifest comparison would call residue. The step is recorded
+        only when Git control state still matches the manifest and the commit carries a held
+        attempt's trailer, the one thing a worker cannot know.
+        """
+        if differences(issuance.git, self.git_state(issuance.git)):
+            return
+        _supervisor("_supervisor_concurrent.py").repair_unrecorded(self.ws)
 
     def _paths(self, issuance: Issuance) -> list[str]:
         """What differs now from *issuance*'s manifest; reads only, writes nothing."""
@@ -944,7 +1005,12 @@ class Attempts:
             "kind": request["kind"],
             "head": head,
             "head_ref": symref,
-            "trusted": self._trusted_state(self.trusted_paths(state), skill=skill),
+            "trusted": {
+                **self._trusted_state(self.trusted_paths(state), skill=skill),
+                # The supervisor's own blocking verb moves held results itself, so its
+                # manifest leaves them out; every worker's manifest holds them.
+                **({} if request["kind"] == "run-concurrent" else self.held_state(run_id)),
+            },
             "git": self.git_state(),
         }
         body = _json(record)

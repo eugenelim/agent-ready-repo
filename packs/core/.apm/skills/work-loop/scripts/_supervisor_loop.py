@@ -433,6 +433,18 @@ def decide(ws: Workspace, state: State) -> Action:
                 "no incomplete task has its dependencies complete",
             ),
         )
+    if _supervisor("_supervisor_concurrent.py").results_pending(ws, state):
+        # No gate, review, or evidence beside an open attempt or a held result; a held result
+        # whose task is complete cannot be integrated, so nothing may go on past it.
+        return Action(
+            "refusal",
+            refusal=Refusal(
+                "no-progress",
+                "skill maintainer",
+                "a held result or an open attempt remains with every task complete, so no "
+                "gate, review, or evidence is issued",
+            ),
+        )
     dirty = ws.git.change_set(rehash=state.cited_paths)
     if dirty:
         return Action(
@@ -578,6 +590,7 @@ def _prepare(ws: Workspace) -> tuple[State, Refusal | None]:
         )
         state = derive(ws)
         ws.local.reconcile_events(state.run_id, state.commits)
+        _supervisor("_supervisor_concurrent.py").discard_stale(ws, state.run_id)
     plan = ws.attempts.regenerate_plan(state.run_id)
     if plan is not None:
         # A tracked install the regeneration rebuilt is the pack source the repository
@@ -646,6 +659,7 @@ def next_request(ws: Workspace) -> dict[str, Any]:
             return {"refusal": exc.as_dict(), "run": _write_status(ws, state, None)}
         if diverged is not None:
             return _adoption_request(ws)
+        _supervisor("_supervisor_integration.py").integrate_ready(ws)
         state, refusal = _prepare(ws)
         if refusal is not None:
             state.refusal = refusal
@@ -866,6 +880,9 @@ def report(ws: Workspace, result: object) -> dict[str, Any]:
                     f"a {kind} result is not admitted through report",
                 )
         ws.attempts.close(checked)
+        if checked["kind"] in ("implement-task", "run-concurrent"):
+            # A floor result has landed: every held result now next in floor order follows it.
+            _supervisor("_supervisor_integration.py").integrate_ready(ws)
         after = derive(ws)
         ws.local.reconcile_events(after.run_id, after.commits)
         return {"admitted": outcome}
