@@ -1,7 +1,7 @@
 # Plan: run grant
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Approved <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/AGENTS.md` (version bump, self-host, eval harness, pack-test loader rule); `tests/AGENTS.md`; `brief-runner.py` `read_blob`, `parse_status`, `parse_spec_map`, `_hidden_text_problem`, `read_lease`, `decide_next` and `_reason` as the seams this change extends; `author-delivery-brief/scripts/brief_shape.py` `BRIEF_STATUSES` as the status vocabulary; `test_brief_runner.py` and its fixture harness as the analogous integration tests; `test_brief_runner_units.py` as the unit analogue; `build-check.yml` `gate-sast` change-detection step as the base/head diff precedent.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
