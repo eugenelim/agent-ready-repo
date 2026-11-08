@@ -30,7 +30,7 @@ _SCAN_ROOTS = ("packs/core/.apm/skills", "guides")
 _ANCHOR = "load-bearing-claim-routing"
 _POINTER_SURFACES = (
     "packs/core/.apm/skills/work-loop/SKILL.md",
-    "guides/core/how-to/plan-and-execute-non-trivial-work.md",
+    "guides/core/reference/plan-and-execute-details.md",
 )
 
 # AC-0006's routing-input key set. Written here, never read from the table:

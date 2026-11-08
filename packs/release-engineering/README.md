@@ -38,6 +38,8 @@ Works with Claude Code, Codex, Cursor, GitHub Copilot, Gemini CLI, and Kiro IDE.
 
 **Does it ship my deploy pipeline?** No. It has no runtime engine and no canary analyzer. It uses the deploy, smoke, and teardown artifacts you have, or names the ones it is missing.
 
+**Does it tie a release to a Jira issue?** No. The release pack makes no Jira call and keeps no live link to an issue. An issue id appears only as plain text in a changelog delta entry, taken from the commits or written there, with no lookup or live link.
+
 **Why repo scope only?** It runs in the repository where the build happened and reuses Core's reviewers there.
 
 ## Details

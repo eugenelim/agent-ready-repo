@@ -694,6 +694,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest capture-rename guide contract (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest lighter-RFC delivery adoption (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest execution-supervisor emitted-record parity (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest catalogue specification contract loads (roster-owned)":
@@ -865,6 +867,15 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
     # LOCAL("test-after-build-check") is correct: that target's run-test-suite
     # includes pytest tests/ -q, which discovers this roster file.
     "pytest T9a clean-environment fence (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0010..AC-0013: Pi-absent check.
+    # LOCAL("test-after-build-check") is correct: that target's run-test-suite
+    # includes pytest tests/ -q, which discovers this roster file.
+    "pytest Core Pi-absent check (roster-owned)":
+        LOCAL("test-after-build-check"),
+    # pi-runtime-compatibility AC-0001..AC-0009: Pi-hosted harness pins (the
+    # real run is opt-in and skips). Discovered by the bulk pytest tests/ -q.
+    "pytest Pi-hosted conformance harness pins (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest visual handoff golden path (roster-owned)":
         LOCAL("test-after-build-check"),
@@ -1139,6 +1150,7 @@ _GATE_MAIN_CHECKS = (
     "pytest priority field documentation surfaces (roster-owned)",
     "pytest lint-traceability intent parity vs the real corpus (roster-owned)",
     "pytest capture-rename guide contract (roster-owned)",
+    "pytest lighter-RFC delivery adoption (roster-owned)",
     "pytest execution-supervisor emitted-record parity (roster-owned)",
     "pytest catalogue specification contract loads (roster-owned)",
     "pytest catalogue manifest schema parity (roster-owned)",
@@ -1220,6 +1232,8 @@ _GATE_MAIN_CHECKS = (
     "pytest reviewer output contract (roster-owned)",
     "pytest T9a conformance roll-up (roster-owned)",
     "pytest T9a clean-environment fence (roster-owned)",
+    "pytest Core Pi-absent check (roster-owned)",
+    "pytest Pi-hosted conformance harness pins (roster-owned)",
     "pytest visual handoff golden path (roster-owned)",
     "pytest skill HTML view token file agreement (roster-owned)",
     "pytest agentbundle shipped governance markers (roster-owned)",
