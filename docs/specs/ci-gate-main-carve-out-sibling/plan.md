@@ -332,6 +332,67 @@ header — are untouched or updated consistently).
 **Done when:** all three commands exit 0; runtime and any failures recorded in
 the verification ledger.
 
+### T5: The round-1 review findings are repaired — dist/ materialization, comment sweep, stray-file removal
+
+**Depends on:** T1, T2, T3, T4
+
+**Tests:**
+- The sibling job materializes `dist/apm/` (the catalogue projection,
+  gitignored, so a fresh checkout has none) in an unconditional step after
+  Python provisioning and before the probe, and the probe fails closed when
+  `dist/apm/` is absent — the projected-variant cases in
+  `tests/roster/test_credential_user_scope_invocation.py` run rather than
+  silently skip in every PR — repairs review finding R1-001. Inside
+  gate-main those cases ran after `make build-check` had materialized
+  `dist/`; the sibling reproduces that precondition directly — AC-0001,
+  AC-0008.
+- The posture test pins the materialization step's name and body and the
+  probe's extended check by equality; mutations that remove the step, empty
+  or short-circuit its body, drop the probe's `dist/apm/` check, or move the
+  step after the dispatch each redden, with no regression in the caught-
+  mutation count — AC-0008.
+- `grep` over `.github/workflows/build-check.yml` finds no comment still
+  asserting the carve-out or dedup guard runs in gate-main, and no comment
+  asserting `dist/apm/` skips in gate-main — repairs review finding R1-003
+  (T3's sweep missed the step-placement rationales inside gate-main).
+- The stray root `uv.lock` (a 3-line stub, `requires-python >= 3.14`, owned
+  by no manifest) is deleted from the tree — repairs review findings R1-002
+  and SEC-001.
+- The ledger's input-revision record names branch-reachable revisions
+  (before: the review base `6dc12944e`, whose workflow is byte-identical to
+  the recorded before-state; after: the delivered T1 commit `3c690bcc6`)
+  with correct labels, and its T4 section records the three verification
+  commands' outcomes and runtimes — repairs review findings R1-004 and
+  R1-005. These are controller-recorded execution observations: they land
+  as controller history the owner adopts, not as an implement-step change
+  set (the spec directory is protected for implement results).
+
+**Approach:** the same extend-first order as T1 — the posture test's new
+assertions and the fixture's new step redden against the current workflow
+first (local red proof, never committed red), then one workflow edit greens
+them: a `Materialize catalogue projections (gate-catalogue-tests)` step
+running the same catalogue-build invocation gate-main's `make build-check`
+chain runs (`python -m agentbundle catalogue build --root . --output dist`),
+the probe gaining a `dist/apm/` existence check whose failure message names
+the skip it prevents, and the false probe comment ("that suite skips in
+gate-main today for the same reason") replaced with the corrected history.
+The materialization step is unconditional (the sibling carries no step-level
+`if:`); every shard pays its ~30–60 s, inside the 25-minute floor. The
+comment sweep rewords the gate-main step-placement rationales that still
+reference "the carve-out step below" for the two-job layout. `uv.lock` is
+deleted; nothing consumes it.
+
+**Touches:** `.github/workflows/build-check.yml`, `tools/test-build-check-workflow.py`, `tools/fixtures/build-check-good.yml`, `tools/lint-ci-parity.py`, `tools/test-lint-ci-parity.py`, `uv.lock` (deleted)
+
+**Effects:** none
+
+**Done when:** `python3 tools/test-build-check-workflow.py` exits 0,
+`--self-test` reports every mutation caught with no count regression,
+`python3 tools/lint-ci-parity.py` exits 0, `python3 tools/test-lint-ci-parity.py`
+reports all cases passing, `uv.lock` is absent from the tree, the comment
+grep comes back clean, and `make build-check` passes end to end — all after
+one commit carrying the workflow edit and the tools' updates together.
+
 ## Rollout
 
 One PR, no flag, fully reversible by revert (workflow YAML plus the tools
