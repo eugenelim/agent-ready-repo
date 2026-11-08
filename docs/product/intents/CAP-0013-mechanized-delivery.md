@@ -53,7 +53,7 @@ The design lives in the architecture set at [`docs/architecture/unattended-deliv
 
 In scope: the supervisors, the optional controller, the contracts between them and the way they are installed and adopted.
 
-Two entry doors to shaping: `intent frame` stays standalone and writes a plain intent, and `discovery-loop` is the door for raw ideas and tickets that need shaping. The discovery supervisor covers only initiatives that have a sidecar. The short route (`intent frame`, `intent de-risk`, `intent decompose`) stays in the intent skill, with progress recorded in the intent's own headers and no supervisor. A ticket becomes an intent through manual `work-intake` until `discovery-supervisor` ships.
+Two entry doors to shaping: `intent frame` stays standalone and writes a plain intent, and `discovery-loop` is the door for raw ideas and tickets that need shaping. The discovery supervisor covers only initiatives that have a sidecar. The short route (`intent frame`, `intent de-risk`, `intent decompose`) stays in the intent skill, with progress recorded in the intent's own headers and no supervisor. A ticket becomes an intent through manual `work-intake` until `discovery-supervisor` ships. Tracker flows are two independent one-way flows, an import into the repository and a display-only mirror out, and there is no continuous two-way sync.
 
 Out of scope:
 

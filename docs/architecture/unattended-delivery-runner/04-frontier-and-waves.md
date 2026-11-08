@@ -82,6 +82,8 @@ One row per item kind. The headers named already exist in the scripts and templa
 
 A tracker ticket with the verified label `[frontier] light_label` (default `light`) appears in the additive `light_candidates` field of `frontier.v1` and in no item. It is never served, and `run --next` and `ask` never see it, so a human reads the list and starts the work with `ferryman session --ticket <ref>`. An unmarked ticket takes the existing full path, and the frontier never judges risk.
 
+The `shape-intent` tracker row stays a read-only candidate listing, and the bring-over itself is `work-intake` or `intake-ticket`, never the frontier.
+
 The frontier also skips a ticket that already carries a `ferryman/*` branch or a `refs/ferryman/branches/<name>` marker (D58). Unverified: the exact `shape-intent` predicate. The relation script emits `direct-delivery`, `unresolved`, and `no-durable-child` classifications, and the full set of intent statuses and routes is read at implementation time.[^2]
 
 When a brief exists, `ferryman` calls the brief-level runner's `next` only from a clean base checkout: the main worktree at the fetched tip, never a run branch or a pool clone on a run branch (D31). The answer is `{schema_version, base, action, standing_orders}`, where `action.kind` is one of `resume-slice`, `start-slice`, `await-gates`, `await-merge`, `complete`, or `blocked`.[^4] A `blocked` row carries a closed reason: `gate-not-clean`, `terminal-not-ready`, `in-flight-cap`, `pilot-in-flight`, `earlier-row-not-stopped`, `not-dispatchable`, `unreadable`, `refused`, `awaiting-decision`, or `supervisor-changed`.

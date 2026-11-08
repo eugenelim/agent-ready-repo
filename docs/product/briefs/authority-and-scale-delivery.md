@@ -19,13 +19,14 @@ Not yet set. The architecture names tests: a forged-signal corpus, a pool corpus
 
 In scope:
 
-- P5: the standing write-back policy and tracker approval from a verified signal.
+- P5: the standing write-back policy and tracker approval from a verified signal. The mirror is one-way and display-only: display status, comment, trace link and pull-request link, never closure and never field content.
 - P6: per-slice and parallel worktrees on one machine, with an ownership transaction.
 - P7: the pool contract shapes and signature fields, a `remote` executor, checkpoint push and restore, subject fence and claims, out-of-band digests, signed commands, relayed signals, and a host conformance suite.
 
 Non-goals:
 
 - The control plane, which is built separately.
+- Continuous two-way sync, ticket creation, and importing by itself.
 - Changes in the Studio repository, a generic command center, and concurrent attempts through `run-concurrent`.
 - Anything in the first two briefs.
 

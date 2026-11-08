@@ -22,12 +22,13 @@ In scope:
 - P0: the `ferryman` loop, workers and profiles, `doctor`, the `work-supervisor` descriptor, the gate scribe, the guard, the trusted configuration pin, locks, `init`, `clean`, `--demo` and `setup-ferryman`.
 - PL: the supervisor-less light session route, `ferryman session`.
 - P1: the frontier and waves, with brief-scoped order delegated to the brief-level runner when one exists.
-- P4: a read-only GitHub shim for candidates, events and revisions.
+- P4: a read-only GitHub shim for candidates, events and revisions, including the read-only candidate listing for bring-over. The bring-over itself is `work-intake` or `intake-ticket`.
 
 Non-goals:
 
 - The supervisors themselves (Brief `everyday-supervisors-delivery`).
 - Tracker write-back, approval from a tracker, parallel worktrees and the remote pool (a later brief).
+- Continuous two-way sync, ticket creation, and importing by itself.
 - A scheduler of many runs, a model router, a generic command center, and any edit to the pinned `work-supervisor.py` (ADR-0144).
 
 ## Constraints / Appetite
@@ -48,6 +49,7 @@ Appetite is not set. Constraints from the architecture: `ferryman` is an optiona
 - The work-loop owners have not confirmed light-session eligibility.
 - The distribution channel and compatibility rule for the release need a record, and the `ferryman` name needs a check before first publish.
 - This brief depends on the manifest contract from `everyday-supervisors-delivery`, whose schema home is unconfirmed.
+- The per-team bring-over label and the ordering default for several candidates are not set.
 - Success metrics and appetite are not set.
 
 ## Rabbit holes
