@@ -638,6 +638,20 @@ def test_every_verb_reports_an_old_git_by_its_own_code(
     assert "2.32" in out["detail"], out
 
 
+def test_launch_refuses_a_call_that_runs_past_the_timeout(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """AC-0005: the ``_launch`` path honours ``GIT_TIMEOUT_S`` and refuses as unavailable."""
+    monkeypatch.setattr(_git_module, "GIT_TIMEOUT_S", 1.0)
+    with pytest.raises(_git_module.SupervisorGitError) as refused:
+        _git_module._launch(
+            [sys.executable, "-c", "import time\ntime.sleep(120)\n"],
+            cwd=None,
+            env=dict(os.environ),
+        )
+    assert refused.value.code == "denied-git-unavailable" and refused.value.unverifiable
+
+
 # ── AC-0002: the bounded launch keeps its limits over the whole process ─────
 
 

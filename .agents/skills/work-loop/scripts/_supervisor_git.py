@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import atexit
 import contextlib
+import math
 import os
 import re
 import shutil
@@ -49,7 +50,30 @@ __all__ = [
     "set_update_hook",
 ]
 
-GIT_TIMEOUT_S = 60.0
+_TIMEOUT_FLOOR_S = 60.0
+# One hung call at the ceiling must fit the run lock's margin for the git work around
+# the red proof (``_LOCK_MARGIN_SECONDS`` in ``_supervisor_admission``, 300 seconds).
+_TIMEOUT_CEILING_S = 240.0
+
+
+def _resolve_git_timeout(raw: str | None) -> float:
+    """The per-call git timeout for *raw*, the value of ``WORK_LOOP_GIT_TIMEOUT_S``.
+
+    Unset, empty, non-numeric and non-finite values give the floor; a finite value is
+    clamped to the floor-to-ceiling range. The value is untrusted: it is parsed, never
+    passed to a shell or a format string.
+    """
+    try:
+        value = float(raw) if raw is not None else math.nan
+    except ValueError:
+        return _TIMEOUT_FLOOR_S
+    if not math.isfinite(value):
+        return _TIMEOUT_FLOOR_S
+    return min(_TIMEOUT_CEILING_S, max(_TIMEOUT_FLOOR_S, value))
+
+
+# Resolved once at load; every reader and test uses this module attribute.
+GIT_TIMEOUT_S = _resolve_git_timeout(os.environ.get("WORK_LOOP_GIT_TIMEOUT_S"))
 # The most stderr bytes one bounded read may produce before it is killed.
 _MAX_STDERR_BYTES = 256 * 1024
 _MAX_SMALL_FILE_BYTES = 4096
