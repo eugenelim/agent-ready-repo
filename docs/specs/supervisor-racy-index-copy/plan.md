@@ -29,8 +29,6 @@
 > because a per-task resolution that nobody wrote is not grounding; what it stops
 > being is a claim a reviewer holds the plan to.
 
-<!-- Existing plans without this field remain valid. Treat its absence as a
-
 ## Approach
 
 One task: `_copy_index` returns the source index's file status, and `_seed` gives the copy that status's access and modification times before any Git command reads it. Git then treats entries written in the index's own second as racily clean, exactly as it does for the original index.
@@ -71,6 +69,15 @@ Owned by: T1
 - AC-0001: `test_supervisor_git.py::test_a_same_size_rewrite_in_the_index_second_is_seen_by_the_seeded_scan` runs in the supervisor harness repository, whose tracked spec directory makes `_seed` rewrite the copy with `update-index`; it rewrites a tracked file within the index's second, waits into the next second without refreshing the real index, and asserts both scans name it; it fails without the fix.
 
 **Done when:** `test_supervisor_git.py` and `test_supervisor_commit.py` pass under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy` is green, and Core is one patch above the merge base.
+
+### T2: Close the first-round review findings
+
+**Depends on:** T1
+
+**Tests:**
+- AC-0001: the T1 regression test still passes; the `_PrivateIndex` docstring names the index file's own modification time as trusted on the same terms as its entries.
+
+**Done when:** `test_supervisor_git.py` and `test_supervisor_commit.py` pass under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy` is green, and the plan renders every section after `## Approach`.
 
 ## Rollout
 
