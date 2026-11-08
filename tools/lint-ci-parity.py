@@ -678,6 +678,8 @@ _LOCAL_STEP_DISPOSITION: dict[str, tuple[str, str]] = {
         LOCAL("test-after-build-check"),
     "pytest intent shape contract cross-tree claims (roster-owned)":
         LOCAL("test-after-build-check"),
+    "pytest human approval gates pinned (roster-owned)":
+        LOCAL("test-after-build-check"),
     "pytest capture-rename guide contract (roster-owned)":
         LOCAL("test-after-build-check"),
     "pytest lighter-RFC delivery adoption (roster-owned)":
@@ -1132,6 +1134,7 @@ _GATE_MAIN_CHECKS = (
     "pytest priority field never-read guard (roster-owned)",
     "pytest priority field documentation surfaces (roster-owned)",
     "pytest lint-traceability intent parity vs the real corpus (roster-owned)",
+    "pytest human approval gates pinned (roster-owned)",
     "pytest capture-rename guide contract (roster-owned)",
     "pytest lighter-RFC delivery adoption (roster-owned)",
     "pytest execution-supervisor emitted-record parity (roster-owned)",

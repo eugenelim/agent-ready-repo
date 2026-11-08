@@ -415,8 +415,12 @@ The skill ships the modules as path-loaded siblings, with no build step.
 [ADR-0151](../adr/0151-post-lock-routes-for-the-stub-fence-and-implementation-discovered-means.md)
 hold the decisions and the rejected alternatives.
 
-- **`STATUS: PLANNED`:** leases and parallel scheduling. ADR-0144 D1 assigns
-  leases to the supervisor, and the
+- **Shipped (read side):** the `lease` policy table in `supervisor-policy.json`
+  (`heartbeat_seconds`, `stuck_after_seconds` per agent kind, `retry_budget`,
+  `max_slices_in_flight`), which the brief-level runner reads
+  ([ADR-0159](../adr/0159-brief-level-runner-chains-slices-from-committed-records.md)).
+- **`STATUS: PLANNED`:** supervisor-side lease enforcement and parallel
+  scheduling. ADR-0144 D1 assigns leases to the supervisor, and the
   [brief's delivery slices](../product/briefs/acceptance-centered-work-loop.md#proposed-delivery-slices)
   schedule them.
 - **Not in this subsystem:** provider selection and external runtime adapters
