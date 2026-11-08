@@ -545,9 +545,26 @@ is green, and this task adds no Core bump (it ships in T5's release).
 `WORK_SUPERVISOR_INTEGRATION=1` with zero skips, `make lint-ruff lint-mypy`
 is green, and this task adds no Core bump (it ships in T5's release).
 
+### T11: Keep the seeded scan index racy-safe
+
+**Depends on:** T10
+
+**Tests:**
+- AC-0001, AC-0059: the supervisor's index-seeded scan gives its private
+  index copy the work tree index's own modification time, so a same-size
+  rewrite made in the same second as the last index write is still seen by
+  `change_set`; a regression test rewrites a tracked file to the same size
+  within the index's timestamp second and asserts the change set names it;
+  the permutation corpus passes.
+
+**Done when:** the changed suites and `test_supervisor_concurrency_permutations.py`
+pass locally under `WORK_SUPERVISOR_INTEGRATION=1` with zero skips,
+`make lint-ruff lint-mypy` is green, and this task adds no Core bump (it ships
+in T5's release).
+
 ## Rollout
 
-- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6 to T10).
+- **Delivery:** four Core patch releases (T1, T2, T3 with T4, T5 with T6 to T11).
   `concurrency` ships `sequential` in every one, so adopters see no behaviour
   change beyond AC-0040's merge-driver refusal, which arrives with T2.
 - **Reversal:** reinstall the prior Core release; a run in flight finishes on
