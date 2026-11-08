@@ -1,6 +1,6 @@
 # Spec: the work-loop supervisor's git timeout is overridable
 
-- **Status:** Implementing <!-- Draft | Approved | Implementing | Shipped | Archived -->
+- **Status:** Shipped <!-- Draft | Approved | Implementing | Shipped | Archived -->
 - **Owner:** eugenelim
 - **Plan:** [`plan.md`](plan.md)
 - **Constrained by:** none
@@ -73,13 +73,13 @@ An owner running the work-loop supervisor on a loaded machine can raise the wall
 
 "Parses" means Python's `float()` accepts it, so surrounding whitespace, underscores, exponents and non-ASCII digits are accepted; the result is then clamped.
 
-- [ ] **AC-0001.** With `WORK_LOOP_GIT_TIMEOUT_S` unset, `GIT_TIMEOUT_S` is 60.0 after the module loads.
-- [ ] **AC-0002.** A value that parses to a finite number from 60 to 240 inclusive becomes `GIT_TIMEOUT_S` unchanged.
-- [ ] **AC-0003.** A value that parses to a finite number outside 60 to 240 becomes the nearer bound.
-- [ ] **AC-0004.** A value that does not parse to a finite number (empty, non-numeric, `nan`, `inf`, or an overflow such as `1e309`) leaves `GIT_TIMEOUT_S` at 60.0 and raises no error.
-- [ ] **AC-0005.** A git call that runs past `GIT_TIMEOUT_S` is refused as `denied-git-unavailable` through each of the two launch paths.
-- [ ] **AC-0006.** A `git-history` evidence record's `timeout_s` equals the `GIT_TIMEOUT_S` of the process that built it, the evidence process.
-- [ ] **AC-0007.** The ceiling is no greater than `_LOCK_MARGIN_SECONDS`.
+- [x] **AC-0001.** With `WORK_LOOP_GIT_TIMEOUT_S` unset, `GIT_TIMEOUT_S` is 60.0 after the module loads.
+- [x] **AC-0002.** A value that parses to a finite number from 60 to 240 inclusive becomes `GIT_TIMEOUT_S` unchanged.
+- [x] **AC-0003.** A value that parses to a finite number outside 60 to 240 becomes the nearer bound.
+- [x] **AC-0004.** A value that does not parse to a finite number (empty, non-numeric, `nan`, `inf`, or an overflow such as `1e309`) leaves `GIT_TIMEOUT_S` at 60.0 and raises no error.
+- [x] **AC-0005.** A git call that runs past `GIT_TIMEOUT_S` is refused as `denied-git-unavailable` through each of the two launch paths.
+- [x] **AC-0006.** A `git-history` evidence record's `timeout_s` equals the `GIT_TIMEOUT_S` of the process that built it, the evidence process.
+- [x] **AC-0007.** The ceiling is no greater than `_LOCK_MARGIN_SECONDS`.
 
 ## Follow-ons
 

@@ -1,7 +1,7 @@
 # Plan: the work-loop supervisor's git timeout is overridable
 
 - **Spec:** [`spec.md`](spec.md)
-- **Status:** Executing <!-- Drafting | Approved | Executing | Done -->
+- **Status:** Done <!-- Drafting | Approved | Executing | Done -->
 - **Repository anchors:** `packs/core/.apm/skills/work-loop/scripts/_supervisor_git.py` (the timeout constant and its two readers); `packs/core/tests/skills/work-loop/test_supervisor_git.py` (existing tests that monkeypatch `GIT_TIMEOUT_S` and load the module by path); `packs/core/.apm/skills/work-loop/scripts/_git_history.py` (the one reader that records the value). Uncertainty: none beyond the spec's defaulted assumptions.
 
 > **Plan contract:** this is the implementation strategy. After approval, a
