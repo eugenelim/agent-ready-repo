@@ -61,3 +61,5 @@ These guides help you take work from a request to a merged change, with your app
 - [Project knowledge topics](reference/project-knowledge-topics.md)
 - [Spec shape and plan design](reference/spec-shape-and-lld.md)
 - [Phase-scoped policy families](reference/phase-scoped-policy-delivery.md)
+- [Navigate intents reference](reference/navigate-intents-queries.md)
+- [Plan and execute reference](reference/plan-and-execute-details.md)

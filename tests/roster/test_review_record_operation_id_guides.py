@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-HOW_TO = ROOT / "guides/core/how-to/plan-and-execute-non-trivial-work.md"
+HOW_TO = ROOT / "guides/core/reference/plan-and-execute-details.md"
 EXPLANATION = ROOT / "guides/core/explanation/core-pack.md"
 
 

@@ -569,6 +569,13 @@ jobs:
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_lint_traceability_intent_parity.py
 
+      # The human-approval pins read the RFC, the root AGENTS.md and an ADR above
+      # any one pack, so they are roster-owned. Placed above the bulk step so a
+      # failure is attributed here.
+      - name: pytest human approval gates pinned (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_human_approval_gates_pinned.py
+
       # `guides/core/explanation/core-pack.md` sits above every pack's tests, so
       # this check is roster-owned. It sits ABOVE the carve-out step below, whose
       # `pytest tests/ -q` also collects it. Placement above it still matters,
@@ -578,6 +585,13 @@ jobs:
       - name: pytest capture-rename guide contract (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_capture_rename_guide.py
+
+      # The lighter-RFC starter's repository copies (docs/rfc/, docs/GOVERNANCE.md)
+      # are compared with the seeds above any one pack, so this is roster-owned
+      # and sits ABOVE the bulk step for named attribution.
+      - name: pytest lighter-RFC delivery adoption (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_lighter_rfc_delivery.py
 
       # The supervisor's emitted records are validated against `contracts/`,
       # which sits above every pack's tests, so this check is roster-owned and
@@ -966,6 +980,23 @@ jobs:
       - name: pytest T9a clean-environment fence (roster-owned)
         if: "!cancelled() && steps.python.conclusion == 'success'"
         run: python -m pytest tests/roster/test_t9a_clean_env_fence.py
+
+      # Pi-absent check (pi-runtime-compatibility AC-0010..AC-0013): scans
+      # packs/core/ source and manifests and runs the projected supervisor with
+      # Pi unreachable and with a sentinel `pi` reachable. It reads the pack tree
+      # and the projected skill together, so it is roster-owned. Sits ABOVE the
+      # carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Core Pi-absent check (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_core_pi_absent.py -q
+
+      # Pi-hosted conformance harness (pi-runtime-compatibility AC-0001..AC-0009):
+      # the opt-in real run skips in CI (no AGENT_READY_PI_CONFORMANCE, no Pi);
+      # the stub-`pi` pins run. Roster-owned: it reads the pack tree. Sits ABOVE
+      # the carve-out step below, whose `pytest tests/ -q` also collects it.
+      - name: pytest Pi-hosted conformance harness pins (roster-owned)
+        if: "!cancelled() && steps.python.conclusion == 'success'"
+        run: python -m pytest tests/roster/test_pi_hosted_conformance.py -q -rs
 
       # visual-handoff-golden-path: installs experience-design and
       # frontend-engineering together and reads both, so lint-pack-test-boundary

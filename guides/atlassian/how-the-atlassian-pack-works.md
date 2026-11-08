@@ -72,7 +72,7 @@ Before any write, the agent shows you the exact payload: issue key, field, curre
 
 ### Measure or share — communicate the result
 
-`flow-metrics` computes DORA and Flow Framework metrics (cycle time, throughput, WIP) from Jira changelogs. Read-only — never writes to Jira.
+`flow-metrics` computes Flow Framework metrics (cycle time, lead time, throughput, WIP) from Jira changelogs. Read-only — never writes to Jira.
 
 `confluence-publisher` pushes a report or summary to a Confluence page. Always shows the exact page, space, and content before writing. Publishing requires explicit confirmation — it is never automatic.
 

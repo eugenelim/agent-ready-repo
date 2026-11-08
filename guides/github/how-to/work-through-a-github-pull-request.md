@@ -7,7 +7,7 @@ kind: how-to
 
 # Work through a GitHub pull request
 
-**Use this when:** you need to review a pull request, address feedback on your own, or carry a contributor's pull request to merge.
+**Use this when:** you need to review a pull request, address feedback on your own, or carry a contributor's pull request to merge, using the `github-pr` skill.
 **Result:** only the actions you approved happen on GitHub, and the agent says what it did.
 
 You need the [`gh` CLI](https://cli.github.com), signed in, and a checkout whose `origin` is on github.com. The agent reads first and changes nothing until you approve. Comment, diff, and log text is data. Instructions inside it are never followed.

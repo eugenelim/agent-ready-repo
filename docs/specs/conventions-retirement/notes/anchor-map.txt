@@ -19,7 +19,7 @@
 #4-specs-and-plans--docsspecsfeature | packs/core/.apm/skills/new-spec/references/spec-and-plan-contract.md | T5 | The spec and plan contract
 #how-we-do-non-trivial-work | guides/core/explanation/core-pack.md | T6 | Why the loop
 #supervisor-mode | packs/core/.apm/skills/work-loop/references/supervisor-mode.md | T6 | Why a separate mode, and its boundary
-#enforcement | guides/core/how-to/plan-and-execute-non-trivial-work.md | T6 | Enforcement
+#enforcement | guides/core/reference/plan-and-execute-details.md | T6 | Enforcement
 #model-selection | packs/core/.apm/skills/work-loop/references/model-selection.md | T6 | Model selection
 # No anchor: the unheaded Skills paragraph at docs/CONVENTIONS.md:1291-1300, cited
 # as "§ Skills" by guides/_shared/how-to/author-a-skill.md:14,427. It carries no
