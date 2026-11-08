@@ -57,11 +57,17 @@ concurrency:
 #                          `make test` covers it many-to-one. It also runs WITHOUT
 #                          this job's [crypto] import probe and -rs skip check, so
 #                          the same green-locally/red-in-CI gap as above applies.
+#   gate-catalogue-tests   make test runs every moved suite through the
+#                          run-test-suite roster — many-to-one, like
+#                          gate-credbroker. No single local command equals one
+#                          shard, and the shard split itself has no local
+#                          counterpart; the posture test's dispatch-body pin is
+#                          what holds the invocation set.
 #   aggregator             make build-check runs the posture test via
 #                          build_gate_chain.py; the needs.*.result guard has no
 #                          local counterpart in any target.
 #
-#   all five               make ci   ← the broadest local reproduction, and NOT a
+#   all six                make ci   ← the broadest local reproduction, and NOT a
 #                                      CI-green guarantee: the gate-export-boundary
 #                                      and gate-credbroker gaps above are exactly
 #                                      the case where it is green and CI is red.

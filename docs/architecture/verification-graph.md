@@ -152,7 +152,7 @@ disables `github-actions` updates for that reason.[^8]
 
 | Workflow | Triggers | Establishes |
 | --- | --- | --- |
-| `build-check.yml` | `pull_request` and `push` on `main`, `workflow_dispatch` | Five parallel gates (`gate-main`, `gate-sast`, `gate-export-boundary`, `gate-credbroker`, `gate-css-tokens`) joined by an aggregator job displayed as `make build-check`. `gate-main` runs `make build-check … SAST_DELEGATED=1`, ruff, mypy, and curated pytest steps wired in the workflow rather than through a Make target |
+| `build-check.yml` | `pull_request` and `push` on `main`, `workflow_dispatch` | Six parallel gates (`gate-main`, `gate-sast`, `gate-export-boundary`, `gate-credbroker`, `gate-css-tokens`, `gate-catalogue-tests`) joined by an aggregator job displayed as `make build-check`. `gate-main` runs `make build-check … SAST_DELEGATED=1`, ruff, mypy, and curated pytest steps wired in the workflow rather than through a Make target; `gate-catalogue-tests` is a three-shard matrix holding gate-main's former RFC-0082 catalogue-test carve-out and the shared-test dedup guard, moved out so gate-main stops paying their serial wall-time |
 | `build-check-windows.yml` | `pull_request`, `push` on `main`, `paths-ignore: docs/**, Makefile, *.md` | Four `windows-latest` jobs and an `ubuntu-latest` aggregate displayed as `make build-check (windows)` |
 | `catalogue-tooling-ci-gates.yml` | `pull_request`, `push` | Agentbundle, pack, and hook suites across more than one OS and Python version; supervisor integration; external-catalogue, enterprise-distribution, artifact, disconnected, repo-rewire, and release-impact smokes |
 | `ci-security.yml` | `pull_request`, `push` | `gitleaks`; `actionlint`; `zizmor --min-severity high`; an excessive-permissions check |
@@ -179,7 +179,8 @@ Ten workflows declare `workflow_dispatch`: `build-check`, `iac-release-loop-cana
 
 Branch protection on `main` requires `make build-check`, `gate-main`,
 `gate-sast`, `gate-export-boundary`, and `gate-credbroker`. `gate-css-tokens`
-runs and feeds the aggregator but is not itself required.
+and `gate-catalogue-tests` run and feed the aggregator but are not themselves
+required.
 
 `codeql.yml`,
 `build-check-windows.yml`, and `pages.yml` are absent from the set. No repository
@@ -229,7 +230,10 @@ weekly schedule and on dispatch, so no pull request or push reaches it. No job
 runs `make test-after-build-check`.
 
 `gate-main` instead wires curated pytest
-paths in the workflow. `catalogue-tooling-ci-gates.yml` narrows the gap with
+paths in the workflow, and `gate-catalogue-tests` — a three-shard matrix sibling
+that joins the same aggregator — runs the RFC-0082 catalogue-test carve-out and
+the shared-test dedup guard in parallel with gate-main rather than serially
+inside it. `catalogue-tooling-ci-gates.yml` narrows the gap with
 multi-OS agentbundle, pack, and hook suites, but it is not a required context
 and its selection is its own.
 
